@@ -77,19 +77,19 @@ export function PhoneDeviceApproval() {
   return <main className="cs-device-login cs-phone-device">
     <style>{tvDeviceLoginStyles}</style>
     <div className="cs-phone-device-inner">
-      <a href="/" className="cs-phone-device-brand" onClick={clearTvLoginReturn}>CareSuite <span>HealthOS</span></a>
+      <a href="/" className="cs-phone-device-brand" aria-label="Zur CareSuite-Startseite" onClick={clearTvLoginReturn}>CareSuite <span>HealthOS</span></a>
       <section className="cs-phone-device-card" aria-labelledby="device-approval-title">
         <span className="cs-device-kicker">TV mit dem Handy verbinden</span>
         <h1 id="device-approval-title">{complete ? 'TV-Zugang freigegeben.' : unavailable ? 'Diese Anfrage ist beendet.' : 'Diesen Bildschirm anmelden?'}</h1>
         {request && role ? <>
           {complete ? <div className="cs-device-status" role="status">Ihr TV erhält eine eigene Sitzung für {role.title}. Sie bleiben auf diesem Handy angemeldet. Falls der TV keine Verbindung herstellt, erstellen Sie dort einen neuen QR-Code.</div> : unavailable ? <div className="cs-device-status" role="status">{rejected ? 'Der TV wurde mit dieser Anfrage nicht angemeldet.' : 'Der QR-Code ist abgelaufen oder nicht mehr verwendbar.'} Erstellen Sie bei Bedarf einen neuen QR-Code am TV.</div> : <>
             <p>Sie geben einen weiteren Bildschirm für den Bereich <strong style={{ color: '#f1f8ff' }}>{role.title}</strong> frei. Personen vor diesem Bildschirm können danach auf Ihr Konto zugreifen.</p>
-            <div className="cs-phone-device-code"><span className="cs-device-code-label">Steht diese Nummer auch auf Ihrem TV?</span><div className="cs-device-code">{request.verificationCode.slice(0, 3)} {request.verificationCode.slice(3)}</div><p style={{ fontSize: '.8em' }}>Nur fortfahren, wenn Sie die Anmeldung selbst am TV gestartet haben.</p></div>
+            <div className="cs-phone-device-code"><span className="cs-device-code-label">Steht diese Nummer auch auf Ihrem TV?</span><div className="cs-device-code">{request.verificationCode.slice(0, 3)} {request.verificationCode.slice(3)}</div><p className="cs-phone-device-hint">Nur fortfahren, wenn Sie die Anmeldung selbst am TV gestartet haben.</p></div>
             {!authReady ? <div className="cs-device-status" role="status">Ihre Handy-Sitzung wird geprüft …</div> : !isAuthenticated || !roleMatches ? <>
               <p>{isAuthenticated ? 'Auf diesem Handy ist eine andere Zugangsart angemeldet. Wechseln Sie zum passenden Konto, um diesen TV freizugeben.' : `Melden Sie sich auf diesem Handy mit Ihrem Zugang für ${role.title} an. Anschließend bestätigen Sie den TV hier ausdrücklich.`}</p>
               <div className="cs-device-actions"><button type="button" className="cs-device-button primary" disabled={busy} onClick={() => void login()}>{busy ? 'Anmeldung wird geöffnet …' : isAuthenticated ? 'Konto wechseln und anmelden' : `Als ${role.title} anmelden`}</button></div>
             </> : <>
-              <div className="cs-phone-device-account"><span className="cs-device-kicker">Angemeldet als</span><p style={{ color: '#f5faff', marginTop: 7 }}>{accountLabel}</p><p style={{ fontSize: '.78em' }}>{role.title}</p><button type="button" className="cs-device-button quiet" style={{ marginTop: 12, fontSize: ".8em" }} disabled={busy} onClick={() => void login(true)}>Mit anderem Konto anmelden</button></div>
+              <div className="cs-phone-device-account"><span className="cs-device-kicker">Angemeldet als</span><p className="cs-phone-device-account-name">{accountLabel}</p><p className="cs-phone-device-account-role">{role.title}</p><button type="button" className="cs-device-button quiet cs-phone-device-switch" disabled={busy} onClick={() => void login(true)}>Mit anderem Konto anmelden</button></div>
               {portalSession?.mustChangePassword ? <div className="cs-device-status cs-device-error">Legen Sie zuerst Ihr persönliches Passwort fest.<div className="cs-device-actions"><button type="button" className="cs-device-button" onClick={() => {
                 rememberTvLoginReturn(code, request.role, request.expiresAt);
                 router.push('/auth/employee-first-login' as never);

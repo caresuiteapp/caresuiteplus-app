@@ -4,7 +4,7 @@ Diese Funktion implementiert eine kurzlebige Gerätefreigabe für `administratio
 
 ## Produktiver Bereitstellungsstand
 
-Am 1. Oktober 2026 auf `euagyyztvmemuaiumvxm` eingerichtet: Migration `20261001002430_tv_device_login_pairing`, Edge Function `tv-device-login` Version 1, Status `ACTIVE`. Tabellen-/RPC-Rechte wurden per Metadatenabfrage geprüft. Web-Rollout und echter Zwei-Geräte-Anmeldedurchlauf stehen noch aus.
+Am 1. Oktober 2026 auf `euagyyztvmemuaiumvxm` eingerichtet: Migration `20261001002430_tv_device_login_pairing`, Edge Function `tv-device-login` Version 2, Status `ACTIVE`. Version 2 korrigiert die Auswertung bestehender Verwaltungszugänge und des Mandantenstatus `trial`. Tabellen-/RPC-Rechte wurden per Metadatenabfrage geprüft. Der ursprüngliche Web-Ablauf ist veröffentlicht; das ergänzende Layout-Update und ein erfolgreicher echter Zwei-Geräte-Anmeldedurchlauf stehen noch aus.
 
 ## Bereitstellung auf weiteren Umgebungen und Voraussetzungen
 
@@ -36,6 +36,7 @@ Statuswerte: `pending`, `approved`, `consumed`, `denied`, `expired`, `cancelled`
 - Datenbank speichert nur gehashte Benutzer-/Gerätecodes und die genehmigende Identität/Sitzungs-ID. Neue Zugangstoken werden erst nach erfolgreichem Claim erstellt und nur in der Antwort zurückgegeben.
 - Bei Mitarbeiter- und Klientenportal werden sowohl die aktuelle Auth-Sitzung als auch die aktive Portalsitzung, Kontoverknüpfung, Rolle und Mandant geprüft. Das TV-Gerät erhält eine neue eigene Portalsitzung und eine neue Supabase-Sitzung. Die Sitzung des Handys wird nicht kopiert.
 - Vor und nach der Ausstellung werden Kontosperren, Mandantensperren, Rollen-/Verknüpfungsänderungen und die Herkunftssitzung erneut geprüft. Fehler nach Ausstellung führen zur bestmöglichen Rücknahme der neu erzeugten Sitzung.
+- Mandanten mit Status `active` oder `trial` können die Gerätefreigabe verwenden. `paused`, `cancelled` und `locked` bleiben gesperrt; zusätzliche Plattform-Sperren gelten weiterhin. Ein altes Profil mit Status `invited` wird nur akzeptiert, wenn es aktiv ist, die serverseitig geprüfte Auth-E-Mail bestätigt wurde und ein aktives verwaltetes Konto desselben Mandanten mit ausdrücklich abgeschlossener Passwortpflicht vorliegt. Profilstatus `inactive` und `locked` sowie gesperrte verwaltete Konten werden dadurch nicht überstimmt.
 - Unvollständige Mitarbeiter-Erstanmeldung wird abgewiesen. Bei vorhandener verifizierter MFA, AAL2, unbekanntem Assurance-Level oder aktiven App-MFA-Schaltern (`profiles.mfa_enabled`, `client_portal_access.two_factor_enabled`) gibt es keinen QR-Transfer; die direkte Anmeldung mit der vorgesehenen Sicherheitsprüfung bleibt notwendig. Ein Magic-Link-Grant darf keine MFA-Anforderung auf AAL1 herabsetzen.
 - Wenn die Antwort nach erfolgreicher Erstellung verloren geht, kann derselbe QR-Code keine zweite Sitzung erzeugen. Der Benutzer muss einen neuen QR-Code anfordern.
 - Aktuelle Quoten: 20 Neuanforderungen je IP/5 Minuten, 60 Handyaktionen je IP/5 Minuten, 2400 Bildschirmaktionen je IP/5 Minuten und 150 Status-/Bezugsaktionen pro Gerät/5 Minuten. Der Client muss Statusabfragen begrenzen (beispielsweise alle 2,5 Sekunden).

@@ -188,3 +188,46 @@ test('application-level MFA flags block QR even without a Supabase factor', () =
   assert.throws(() => assertApplicationMfaDisabled({ two_factor_enabled: true }), { code: 'mfa_required' });
   assert.throws(() => assertApplicationMfaDisabled({ mfa_enabled: false, two_factor_enabled: true }), { code: 'mfa_required' });
 });
+
+test('completed managed business login resolves a stale invited profile in the same tenant', () => {
+  const profile = { is_active: true, status: 'invited', tenant_id: 'business-tenant' };
+  const account = { tenant_id: 'business-tenant', status: 'active', must_change_password: false };
+  assert.doesNotThrow(() => assertBusinessProfileActive(profile, [account], true));
+  assert.throws(() => assertBusinessProfileActive(profile, [account], false), { code: 'not_authorized' });
+  assert.throws(() => assertBusinessProfileActive(profile, [account]), { code: 'not_authorized' });
+  // A bare invitation, a different tenant or incomplete password setup is not a grant.
+  for (const accounts of [[], [{ ...account, tenant_id: 'other-tenant' }],
+    [{ ...account, must_change_password: true }], [{ ...account, must_change_password: undefined }],
+    [{ ...account, status: 'pending_first_login' }], [{ ...account, status: 'blocked' }]]) {
+    assert.throws(() => assertBusinessProfileActive(profile, accounts, true), { code: 'not_authorized' });
+  }
+  assert.throws(() => assertBusinessProfileActive({ ...profile, tenant_id: undefined }, [account], true), { code: 'not_authorized' });
+});
+
+test('managed account cannot reactivate a disabled or unknown profile', () => {
+  const account = { tenant_id: 'business-tenant', status: 'active', must_change_password: false };
+  for (const status of ['active', 'invited']) {
+    assert.throws(() => assertBusinessProfileActive({ is_active: false, status, tenant_id: account.tenant_id }, [account], true), { code: 'not_authorized' });
+  }
+  for (const status of ['inactive', 'locked', 'blocked', 'archived', 'disabled', 'pending', '', undefined]) {
+    assert.throws(() => assertBusinessProfileActive({ is_active: true, status, tenant_id: account.tenant_id }, [account], true), { code: 'not_authorized' });
+  }
+  for (const status of ['active', 'invited']) {
+    assert.throws(() => assertBusinessProfileActive({ is_active: true, status, tenant_id: account.tenant_id },
+      [account, { ...account, status: 'blocked' }], true), { code: 'not_authorized' });
+  }
+});
+
+test('trial tenants can pair while tenant and platform suspensions still take precedence', () => {
+  assert.doesNotThrow(() => assertTenantActive({ status: 'trial' }, { status: 'active', lifecycle_status: 'live' }));
+  assert.doesNotThrow(() => assertTenantActive({ status: 'trial' }, null));
+  for (const status of ['paused', 'cancelled', 'locked', 'blocked', 'suspended', 'terminated', 'expired', '', undefined]) {
+    assert.throws(() => assertTenantActive({ status }, { status: 'active', lifecycle_status: 'live' }), { code: 'not_authorized' });
+  }
+  for (const status of ['blocked', 'suspended', 'locked', 'terminated', 'deleted_soft', undefined]) {
+    assert.throws(() => assertTenantActive({ status: 'trial' }, { status, lifecycle_status: 'live' }), { code: 'not_authorized' });
+  }
+  for (const lifecycle_status of ['paused', 'offboarding', 'terminated']) {
+    assert.throws(() => assertTenantActive({ status: 'trial' }, { status: 'active', lifecycle_status }), { code: 'not_authorized' });
+  }
+});

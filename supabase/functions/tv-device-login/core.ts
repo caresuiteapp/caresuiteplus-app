@@ -38,13 +38,26 @@ export function assertEmployeeReady(account: { status?: string; must_change_pass
     throw new DeviceError('password_setup_required', 'Bitte schließen Sie zuerst die Erstanmeldung und Passwortvergabe am Handy ab. Erzeugen Sie anschließend einen neuen QR-Code.', 403);
   }
 }
-export function assertBusinessProfileActive(profile: { is_active?: boolean; status?: string }) {
-  if (profile.is_active !== true || profile.status !== 'active') {
+export function assertBusinessProfileActive(
+  profile: { is_active?: boolean; status?: string; tenant_id?: string },
+  accounts: { tenant_id?: string; status?: string; must_change_password?: boolean }[] = [],
+  emailConfirmed = false,
+) {
+  // The managed account is the business-login authority. Older profiles can
+  // retain "invited" after that account has completed its first login.
+  // Only this known stale state may use an active account in the same tenant;
+  // an explicitly disabled profile or unfinished account must still fail closed.
+  const matchingAccount = typeof profile.tenant_id === 'string' && profile.tenant_id.length > 0
+    && accounts.some((account) => account.tenant_id === profile.tenant_id);
+  const managedAccountsReady = accounts.every((account) => account.status === 'active' && account.must_change_password === false);
+  if (profile.is_active !== true || !managedAccountsReady
+    || (accounts.length > 0 && !matchingAccount)
+    || (profile.status !== 'active' && !(profile.status === 'invited' && matchingAccount && emailConfirmed))) {
     throw new DeviceError('not_authorized', 'Dieser Zugang ist nicht für eine Bildschirmanmeldung freigegeben.', 403);
   }
 }
 export function assertTenantActive(tenant: { status?: string }, platform: { status?: string; lifecycle_status?: string } | null) {
-  if (tenant.status !== 'active' || (platform && (platform.status !== 'active'
+  if (!['active', 'trial'].includes(tenant.status ?? '') || (platform && (platform.status !== 'active'
     || ['paused', 'offboarding', 'terminated'].includes(platform.lifecycle_status ?? '')))) {
     throw new DeviceError('not_authorized', 'Dieser Zugang ist nicht für eine Bildschirmanmeldung freigegeben.', 403);
   }

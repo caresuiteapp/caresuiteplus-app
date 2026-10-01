@@ -48,17 +48,15 @@ function dependencies(): DeviceDependencies {
     if (platform.error) throw unavailable();
     assertTenantActive(result.data, platform.data);
   }
-  async function businessIdentity(userId: string) {
+  async function businessIdentity(user: { id: string; email_confirmed_at?: string }) {
+    const userId = user.id;
     const profile = await db.from('profiles').select('id,tenant_id,role_id,is_active,status').or(`auth_user_id.eq.${userId},id.eq.${userId}`).maybeSingle();
     if (profile.error || !profile.data?.tenant_id || !profile.data.role_id) throw unavailable();
-    assertBusinessProfileActive(profile.data);
     const role = await db.from('roles').select('key').eq('id', profile.data.role_id).maybeSingle();
     if (role.error || !internalRoles.has(role.data?.key ?? '')) throw unavailable();
     const accounts = await db.from('tenant_users').select('id,tenant_id,status,must_change_password').eq('auth_user_id', userId);
     if (accounts.error) throw unavailable();
-    // Legacy business users may only have a profile. If a managed account exists, its status wins.
-    if ((accounts.data ?? []).some((account) => account.status !== 'active' || account.must_change_password)) throw unavailable();
-    if ((accounts.data ?? []).length && !(accounts.data ?? []).some((account) => account.tenant_id === profile.data.tenant_id)) throw unavailable();
+    assertBusinessProfileActive(profile.data, accounts.data ?? [], Boolean(user.email_confirmed_at));
     await assertTenant(profile.data.tenant_id);
     return { tenantId: String(profile.data.tenant_id) };
   }
@@ -89,7 +87,7 @@ function dependencies(): DeviceDependencies {
     await activeAuthSession(actor);
     if (actor.role === 'administration') {
       if (user.app_metadata?.portal_type || user.app_metadata?.portal_account_id) throw unavailable();
-      const current = await businessIdentity(actor.authUserId);
+      const current = await businessIdentity(user);
       if (current.tenantId !== actor.tenantId) throw unavailable();
     } else {
       if (user.app_metadata?.portal_type !== actor.role || user.app_metadata?.tenant_id !== actor.tenantId || user.app_metadata?.portal_account_id !== actor.accountId) throw unavailable();
@@ -107,7 +105,7 @@ function dependencies(): DeviceDependencies {
     let actor: DeviceActor;
     if (role === 'administration') {
       if (user.app_metadata?.portal_type || user.app_metadata?.portal_account_id) throw unavailable();
-      const identity = await businessIdentity(user.id);
+      const identity = await businessIdentity(user);
       actor = { role, authUserId: user.id, authSessionId: claims.id, tenantId: identity.tenantId };
     } else {
       if (!sourceToken || sourceToken.length < 16 || sourceToken.length > 256 || user.app_metadata?.portal_type !== role) throw unavailable();

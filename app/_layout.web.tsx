@@ -27,6 +27,7 @@ import { useHydrated } from '@/hooks/useHydrated';
 import { installSystemTextDefaults } from '@/product-workflows/design/installSystemTextDefaults';
 import { GlobalWorkflowFeedbackProvider } from '@/product-workflows/components/ui';
 import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
+import { isWebDeviceLoginRoute } from '@/lib/navigation/deviceLoginRoute.web';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
@@ -67,11 +68,12 @@ function RootShell() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compactPopup = width < 780;
-  const currentRouteIsPopup = isHealthOSContextualPopupRoute(pathname);
+  const isDeviceLogin = isWebDeviceLoginRoute(pathname);
+  const currentRouteIsPopup = !isDeviceLogin && isHealthOSContextualPopupRoute(pathname);
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  const hostsGlobalBackground = !isPortalRoutePath(pathname) && !showChoice;
+  const hostsGlobalBackground = !isPortalRoutePath(pathname) && !showChoice && !isDeviceLogin;
 
   useWebLayoutEffect(() => {
     if (authReady && startupReady && typeof document !== 'undefined') {
@@ -89,7 +91,7 @@ function RootShell() {
     // former bright ORBIT attribute enabled here repainted every popup page.
     // The platform console owns its palette, including semantic KPI colors.
     const platformConsoleRoute = pathname === '/platform' || pathname.startsWith('/platform/');
-    const internalOrbit = isLiquidCommandRoute && !showChoice && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
+    const internalOrbit = isLiquidCommandRoute && !showChoice && !isDeviceLogin && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
     document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/' && !showChoice);
     document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
@@ -98,7 +100,7 @@ function RootShell() {
       document.documentElement.removeAttribute('data-cs-central-home');
       document.documentElement.removeAttribute('data-cs-central-popup');
     };
-  }, [currentRouteIsPopup, isLiquidCommandRoute, pathname, showChoice]);
+  }, [currentRouteIsPopup, isDeviceLogin, isLiquidCommandRoute, pathname, showChoice]);
 
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
@@ -131,7 +133,7 @@ function RootShell() {
             <PortalPremiumProvider kind="workspace" localOnly active={currentRouteIsPopup}>
             <Stack
               screenOptions={({ route }) => {
-                const contextualPopup = isHealthOSContextualPopupRoute(route.name);
+                const contextualPopup = !isWebDeviceLoginRoute(route.name) && isHealthOSContextualPopupRoute(route.name);
                 return {
                   headerShown: false,
                   contentStyle: contextualPopup
@@ -183,7 +185,7 @@ function RouteScopedLegacyOverlays() {
   const startupReady = useAppStartIntroReady();
   const pathname = usePathname();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  const isDeviceLogin = pathname === '/device/confirm' || pathname === '/device/tv';
+  const isDeviceLogin = isWebDeviceLoginRoute(pathname);
   if (!startupReady || isLiquidCommandRoute || isDeviceLogin) return null;
   return (
     <>
@@ -196,7 +198,8 @@ function RouteScopedLegacyOverlays() {
 function SoftwareScreensaver() {
   const { showChoice } = useWebStartDestination();
   const startupReady = useAppStartIntroReady();
-  return startupReady && !showChoice ? <GlobalScreensaver /> : null;
+  const pathname = usePathname();
+  return startupReady && !showChoice && !isWebDeviceLoginRoute(pathname) ? <GlobalScreensaver /> : null;
 }
 
 export default function RootLayout() {

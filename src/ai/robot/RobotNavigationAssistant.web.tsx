@@ -8,6 +8,7 @@ import { fetchClientList } from '@/lib/office/clientListService';
 import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { useWebStartChoiceVisible } from '@/components/brand/WebStartDestination.web';
+import { isWebDeviceLoginRoute } from '@/lib/navigation/deviceLoginRoute.web';
 import { mountRobotAssistant } from './robotAssistantDom';
 import { createNeoSpeech } from './neoSpeech.web';
 import { neoProfileName } from './neoCommands';
@@ -41,7 +42,7 @@ export function RobotNavigationAssistant() {
   // The DOM assistant is attached to body, outside the intro's hidden content.
   // Mount only after the video (including autoplay/error recovery) releases the app.
   const enabled = startupReady && !choosingDestination && authReady && isAuthenticated && !!tenantId && !!userId &&
-    can('office.access') && !/^\/(?:auth|portal)(?:\/|$)/.test(pathname);
+    can('office.access') && !isWebDeviceLoginRoute(pathname) && !/^\/(?:auth|portal)(?:\/|$)/.test(pathname);
 
   useEffect(() => {
     if (!enabled || !tenantId || !userId || typeof document === 'undefined') return;
