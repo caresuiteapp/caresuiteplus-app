@@ -481,10 +481,6 @@ export function AccessHubBaseScreen({
               Wo möchten Sie starten?
             </Text>
           </View>
-          <div className="cs-display-switch">
-            <button type="button" onClick={() => router.push('/device/tv' as never)}>TV-Ansicht · mit dem Handy anmelden</button>
-            <span>Für große Bildschirme und Fernseher</span>
-          </div>
           <View style={[styles.accessGrid, stacked && styles.accessGridStacked]} testID="access-hub-options">
             {options.map((option, index) => (
               <AccessCard
@@ -511,6 +507,10 @@ export function AccessHubBaseScreen({
               <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: spacious ? 20 : 14, lineHeight: 1.6, padding: '8px 4px', minHeight: 44, display: 'inline-flex', alignItems: 'center', textUnderlineOffset: 3 }}>{label}</a>
             ))}
           </nav>
+          <div className="cs-display-switch">
+            <button type="button" onClick={() => router.push('/device/tv' as never)}>TV-Ansicht · mit dem Handy anmelden</button>
+            <span>Für große Bildschirme und Fernseher</span>
+          </div>
         </View>
       </ScrollView>
     </View>
