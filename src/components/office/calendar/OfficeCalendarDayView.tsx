@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -9,8 +9,13 @@ import {
   eventsForDay,
   formatDayHeader,
   isSameDay,
+  toDateKey,
 } from '@/lib/office/calendarDateUtils';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
+import {
+  assignmentProfileClickCount,
+  useAssignmentProfileDateSelection,
+} from '@/components/calendar/AssignmentProfileDateSelection';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
 import {
   buildAssignmentProfileDropTargetProps,
@@ -39,6 +44,8 @@ export function OfficeCalendarDayView({
 }: OfficeCalendarDayViewProps) {
   const text = useAuroraAdaptiveText();
   const portal = usePortalPremiumTheme();
+  const dateSelection = useAssignmentProfileDateSelection();
+  const selected = dateSelection?.selectedDateKeys.includes(toDateKey(anchor)) ?? false;
   const scrollRef = useRef<ScrollView>(null);
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
 
@@ -56,7 +63,26 @@ export function OfficeCalendarDayView({
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.title, { color: text.primary }]}>{formatDayHeader(anchor)}</Text>
+      {dateSelection ? (
+        <Pressable
+          style={[styles.selectableTitle, selected && styles.selectedTitle]}
+          disabled={dateSelection.disabled}
+          onPress={(event) => {
+            if (!dateSelection.disabled) dateSelection.selectDate(anchor, assignmentProfileClickCount(event));
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`${formatDayHeader(anchor)}, ${selected ? 'für das Einsatzprofil ausgewählt' : 'für das Einsatzprofil auswählen'}`}
+          accessibilityState={{ selected, disabled: dateSelection.disabled }}
+          accessibilityHint="Ein Klick ändert die Auswahl. Ein Doppelklick wählt nur diesen Tag."
+        >
+          <Text style={[styles.selectableTitleText, { color: text.primary }]}>{formatDayHeader(anchor)}</Text>
+          <View pointerEvents="none" style={!selected && styles.selectionMarkHidden}>
+            <Text accessible={false} style={styles.selectionMark}>✓</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Text style={[styles.title, { color: text.primary }]}>{formatDayHeader(anchor)}</Text>
+      )}
 
       {allDay.length > 0 ? (
         <View style={[styles.allDay, portal.active && styles.portalSoftSurface]}>
@@ -78,7 +104,13 @@ export function OfficeCalendarDayView({
               <Pressable
                 key={h}
                 onPress={
-                  selectedAssignmentProfileId && onAssignmentProfileDrop
+                  dateSelection
+                    ? (event) => {
+                        if (!dateSelection.disabled) {
+                          dateSelection.selectDate(anchor, assignmentProfileClickCount(event), `${String(h).padStart(2, '0')}:00`);
+                        }
+                      }
+                    : selectedAssignmentProfileId && onAssignmentProfileDrop
                     ? () =>
                         onAssignmentProfileDrop(
                           selectedAssignmentProfileId,
@@ -87,12 +119,16 @@ export function OfficeCalendarDayView({
                         )
                     : undefined
                 }
+                disabled={dateSelection?.disabled}
+                accessibilityRole={dateSelection ? 'button' : undefined}
+                accessibilityLabel={dateSelection ? `${formatDayHeader(anchor)}, ${selected ? 'für das Einsatzprofil ausgewählt' : 'für das Einsatzprofil auswählen'}, Zeitvorschlag ${String(h).padStart(2, '0')}:00 Uhr` : undefined}
+                accessibilityState={dateSelection ? { selected, disabled: dateSelection.disabled } : undefined}
                 {...buildAssignmentProfileDropTargetProps(
                   anchor,
                   onAssignmentProfileDrop,
                   `${String(h).padStart(2, '0')}:00`,
                 )}
-                style={[styles.row, portal.active && styles.portalRow, { minHeight: HOUR_HEIGHT }]}
+                style={[styles.row, portal.active && styles.portalRow, selected && styles.selectedRow, { minHeight: HOUR_HEIGHT }]}
               >
                 <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
@@ -114,7 +150,10 @@ export function OfficeCalendarDayView({
                       return (
                         <Pressable
                           key={event.id}
-                          onPress={() => onEventPress(event)}
+                          onPress={(pressEvent) => {
+                            if (Platform.OS === 'web') pressEvent.stopPropagation();
+                            onEventPress(event);
+                          }}
                           style={blockStyle}
                         >
                           {inner}
@@ -140,6 +179,37 @@ export function OfficeCalendarDayView({
 const styles = StyleSheet.create({
   card: { padding: careSpacing.md },
   title: { fontSize: 16, fontWeight: '700', marginBottom: careSpacing.md },
+  selectableTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 8,
+    padding: careSpacing.xs,
+    marginBottom: careSpacing.md,
+  },
+  selectableTitleText: { flex: 1, minWidth: 0, fontSize: 16, fontWeight: '700' },
+  selectedTitle: {
+    backgroundColor: 'rgba(35, 136, 255, 0.18)',
+    borderColor: '#0866C2',
+  },
+  selectionMark: {
+    width: 20,
+    height: 20,
+    lineHeight: 20,
+    borderRadius: 10,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    backgroundColor: '#0866C2',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  selectionMarkHidden: { opacity: 0 },
+  selectedRow: {
+    backgroundColor: 'rgba(35, 136, 255, 0.12)',
+    borderColor: 'rgba(8, 102, 194, 0.36)',
+  },
   allDay: {
     marginBottom: careSpacing.md,
     padding: careSpacing.sm,

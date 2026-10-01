@@ -11,6 +11,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import type { AssistAssignmentTaskDraft } from '@/types/assistCatalog';
 import { assignmentProfileEndAt } from '@/lib/office/clientAssignmentProfileDuration';
+import { isDefiniteAssignmentScheduleRejection } from '@/lib/office/clientAssignmentScheduleOutcome';
 
 type ProfileRow = {
   id: string;
@@ -387,7 +388,7 @@ export async function scheduleClientAssignmentProfile(
   profileId: string,
   assignmentDate: string,
   startTime: string,
-): Promise<ServiceResult<ScheduledClientAssignment>> {
+): Promise<ServiceResult<ScheduledClientAssignment> & { uncertain?: boolean }> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate)) {
     return { ok: false, error: 'Datum ist ungültig.' };
   }
@@ -420,6 +421,19 @@ export async function scheduleClientAssignmentProfile(
     p_assignment_date: assignmentDate,
     p_start_time: startTime,
   } as never);
-  if (error) return { ok: false, error: toClientAssignmentScheduleError(error) };
+  if (error) {
+    return {
+      ok: false,
+      error: toClientAssignmentScheduleError(error),
+      uncertain: !isDefiniteAssignmentScheduleRejection(error),
+    };
+  }
+  if (!data) {
+    return {
+      ok: false,
+      error: 'Die Speicherung konnte nicht bestätigt werden.',
+      uncertain: true,
+    };
+  }
   return { ok: true, data: data as unknown as ScheduledClientAssignment };
 }

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
@@ -66,7 +66,10 @@ export function OfficeCalendarEventChip({
   if (onEventPress) {
     return (
       <Pressable
-        onPress={() => onEventPress(event)}
+        onPress={(pressEvent) => {
+          if (Platform.OS === 'web') pressEvent.stopPropagation();
+          onEventPress(event);
+        }}
         accessibilityRole="button"
         accessibilityLabel={isCancelled ? `Abgesagter Einsatz: ${event.title}` : event.title}
       >
@@ -78,7 +81,10 @@ export function OfficeCalendarEventChip({
   if (!event.href) return content;
 
   return (
-    <Pressable onPress={() => router.push(event.href as never)} accessibilityRole="link">
+    <Pressable onPress={(pressEvent) => {
+      if (Platform.OS === 'web') pressEvent.stopPropagation();
+      router.push(event.href as never);
+    }} accessibilityRole="link">
       {content}
     </Pressable>
   );

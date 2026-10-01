@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -13,6 +13,10 @@ import {
   toDateKey,
 } from '@/lib/office/calendarDateUtils';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
+import {
+  assignmentProfileClickCount,
+  useAssignmentProfileDateSelection,
+} from '@/components/calendar/AssignmentProfileDateSelection';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
 import {
   buildAssignmentProfileDropTargetProps,
@@ -75,6 +79,7 @@ export function OfficeCalendarWeekView({
 }: OfficeCalendarWeekViewProps) {
   const text = useAuroraAdaptiveText();
   const portal = usePortalPremiumTheme();
+  const dateSelection = useAssignmentProfileDateSelection();
   const gridScrollRef = useRef<ScrollView>(null);
   const days = useMemo(() => getWeekDays(anchor, weekStartDay), [anchor, weekStartDay]);
   const hours = useMemo(() => hourRange(weekFullDay), [weekFullDay]);
@@ -101,15 +106,50 @@ export function OfficeCalendarWeekView({
             <View style={styles.timeGutter} />
             {days.map((day) => {
               const isToday = isSameDay(day, today);
+              const selected = dateSelection?.selectedDateKeys.includes(toDateKey(day)) ?? false;
+              const headerStyle = [
+                styles.dayCol,
+                dateSelection && styles.dayColSelectable,
+                portal.active && styles.portalBorder,
+                isToday && styles.dayColToday,
+                isToday && portal.active && styles.portalToday,
+                selected && styles.dayColSelected,
+              ];
+              const headerContent = (
+                <>
+                  <Text style={[styles.dayLabel, { color: text.muted }]}>
+                    {day.toLocaleDateString('de-DE', { weekday: 'short' })}
+                  </Text>
+                  <Text style={[styles.dayNum, { color: text.primary }]}>{day.getDate()}</Text>
+                  {selected ? (
+                    <View pointerEvents="none" style={styles.selectionMarkPosition}>
+                      <Text accessible={false} style={styles.selectionMark}>✓</Text>
+                    </View>
+                  ) : null}
+                </>
+              );
+              if (dateSelection) {
+                return (
+                  <Pressable
+                    key={toDateKey(day)}
+                    style={headerStyle}
+                    disabled={dateSelection.disabled}
+                    onPress={(event) => {
+                      if (!dateSelection.disabled) dateSelection.selectDate(day, assignmentProfileClickCount(event));
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${day.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${selected ? 'für das Einsatzprofil ausgewählt' : 'für das Einsatzprofil auswählen'}`}
+                    accessibilityState={{ selected, disabled: dateSelection.disabled }}
+                    accessibilityHint="Ein Klick ändert die Auswahl. Ein Doppelklick wählt nur diesen Tag."
+                  >
+                    {headerContent}
+                  </Pressable>
+                );
+              }
               return (
                 <View
                   key={toDateKey(day)}
-                  style={[
-                    styles.dayCol,
-                    portal.active && styles.portalBorder,
-                    isToday && styles.dayColToday,
-                    isToday && portal.active && styles.portalToday,
-                  ]}
+                  style={headerStyle}
                 >
                   <Text style={[styles.dayLabel, { color: text.muted }]}>
                     {day.toLocaleDateString('de-DE', { weekday: 'short' })}
@@ -124,8 +164,9 @@ export function OfficeCalendarWeekView({
             <Text style={[styles.allDayLabel, { color: text.muted }]}>GT</Text>
             {days.map((day) => {
               const allDay = eventsForDay(events, day).filter((e) => e.allDay);
+              const selected = dateSelection?.selectedDateKeys.includes(toDateKey(day)) ?? false;
               return (
-                <View key={`allday-${toDateKey(day)}`} style={styles.allDayCol}>
+                <View key={`allday-${toDateKey(day)}`} style={[styles.allDayCol, selected && styles.selectedSurface]}>
                   {allDay.map((event) => (
                     <OfficeCalendarEventChip
                       key={event.id}
@@ -150,13 +191,20 @@ export function OfficeCalendarWeekView({
               </View>
               {days.map((day) => {
                 const dayEvents = eventsForDay(events, day).filter((e) => !e.allDay);
+                const selected = dateSelection?.selectedDateKeys.includes(toDateKey(day)) ?? false;
                 return (
-                  <View key={toDateKey(day)} style={styles.dayGrid}>
+                  <View key={toDateKey(day)} style={[styles.dayGrid, selected && styles.selectedSurface]}>
                     {hours.map((h) => (
                       <Pressable
                         key={h}
                         onPress={
-                          selectedAssignmentProfileId && onAssignmentProfileDrop
+                          dateSelection
+                            ? (event) => {
+                                if (!dateSelection.disabled) {
+                                  dateSelection.selectDate(day, assignmentProfileClickCount(event), `${String(h).padStart(2, '0')}:00`);
+                                }
+                              }
+                            : selectedAssignmentProfileId && onAssignmentProfileDrop
                             ? () =>
                                 onAssignmentProfileDrop(
                                   selectedAssignmentProfileId,
@@ -165,6 +213,10 @@ export function OfficeCalendarWeekView({
                                 )
                             : undefined
                         }
+                        disabled={dateSelection?.disabled}
+                        accessibilityRole={dateSelection ? 'button' : undefined}
+                        accessibilityLabel={dateSelection ? `${day.toLocaleDateString('de-DE')}, ${selected ? 'für das Einsatzprofil ausgewählt' : 'für das Einsatzprofil auswählen'}, Zeitvorschlag ${String(h).padStart(2, '0')}:00 Uhr` : undefined}
+                        accessibilityState={dateSelection ? { selected, disabled: dateSelection.disabled } : undefined}
                         {...buildAssignmentProfileDropTargetProps(
                           day,
                           onAssignmentProfileDrop,
@@ -208,7 +260,10 @@ export function OfficeCalendarWeekView({
                         return (
                           <Pressable
                             key={event.id}
-                            onPress={() => onEventPress(event)}
+                            onPress={(pressEvent) => {
+                              if (Platform.OS === 'web') pressEvent.stopPropagation();
+                              onEventPress(event);
+                            }}
                             style={eventStyle}
                           >
                             {inner}
@@ -245,6 +300,28 @@ const styles = StyleSheet.create({
     borderColor: auroraGlass.border,
   },
   dayColToday: { backgroundColor: auroraGlass.rowSelected },
+  dayColSelectable: { borderBottomWidth: 3 },
+  dayColSelected: {
+    backgroundColor: 'rgba(35, 136, 255, 0.18)',
+    borderColor: '#0866C2',
+  },
+  selectionMarkPosition: {
+    position: 'absolute',
+    top: 16,
+    right: 8,
+  },
+  selectionMark: {
+    width: 18,
+    height: 18,
+    lineHeight: 18,
+    borderRadius: 9,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    backgroundColor: '#0866C2',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  selectedSurface: { backgroundColor: 'rgba(35, 136, 255, 0.12)' },
   dayLabel: { fontSize: 11 },
   dayNum: { fontSize: 16, fontWeight: '700' },
   allDayRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: auroraGlass.border },
