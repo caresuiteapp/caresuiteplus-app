@@ -1,2 +1,2 @@
-import { PflegeServiceProofWorkflowScreen } from '@/screens/pflege/CareBillingLiveScreens';
-export default PflegeServiceProofWorkflowScreen;
+import { PflegeProofWorkflowScreen } from '@/screens/pflege/PflegeProofWorkflowScreen';
+export default PflegeProofWorkflowScreen;

@@ -1,11 +1,11 @@
 import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const employee = new RegExp(
-  `^/portal/employee/(?:calendar|offene-einsaetze|announcements|messages(?:/${UUID})?|documents(?:/signatures(?:/${UUID})?|/${UUID})?|assignments/${UUID}/execute|profile(?:\\?pushUpdate=[1-9][0-9]{0,8})?)$`,
+  `^/portal/employee(?:/(?:calendar|offene-einsaetze|announcements|messages(?:/${UUID})?|documents(?:/signatures(?:/${UUID})?|/${UUID})?|assignments/${UUID}/execute|profile(?:\\?pushUpdate=[1-9][0-9]{0,8})?))?$`,
   'i',
 );
 const client = new RegExp(
-  `^/portal/client/(?:appointments(?:/${UUID})?|announcements|messages(?:/${UUID})?|documents(?:/signatures(?:/${UUID})?|/${UUID})?|profile(?:\\?pushUpdate=[1-9][0-9]{0,8})?)$`,
+  `^/portal/client/(?:proofs|appointments(?:/${UUID})?|announcements|messages(?:/${UUID})?|documents(?:/signatures(?:/${UUID})?|/${UUID})?|profile(?:\\?pushUpdate=[1-9][0-9]{0,8})?)$`,
   'i',
 );
 export function isAllowedPortalPushRoute(value: unknown): value is string {

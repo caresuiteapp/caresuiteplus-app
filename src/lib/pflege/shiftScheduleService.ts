@@ -6,8 +6,8 @@ import { syncCalendarEventAsync, buildCalendarEventFromShift } from '@/lib/calen
 import { createDemoShift, getDemoShiftScheduleListItems, type ShiftScheduleListItem } from './shiftScheduleDemo';
 import { isPflegeDemoFunctional } from '@/lib/pflege/pflegeModuleConfig';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
-import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { callCareOperationsRpc, readCareRows } from './ambulatoryOperationsService';
+import { validateShift } from './ambulatoryOperationsDomain';
 
 type Row = Record<string, unknown>;
 const text = (value: unknown): string => value == null ? '' : String(value);
@@ -39,6 +39,9 @@ function mapShift(row: Row): ShiftScheduleListItem {
                   ? 'archiviert'
                   : 'aktiv',
     updatedAt: text(row.updated_at),
+    breakMinutes: Number(row.break_minutes ?? 0),
+    breakStart: text(row.break_start).slice(0, 5),
+    cancellationReason: text(row.cancellation_reason),
   };
 }
 
@@ -58,13 +61,9 @@ export async function fetchShiftScheduleList(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase' && getSupabaseClient()) {
-    const { data, error } = await fromUnknownTable(getSupabaseClient()!, 'care_staff_shifts')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('shift_date', { ascending: true })
-      .order('start_time', { ascending: true });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: ((data ?? []) as Row[]).map(mapShift) };
+    const result = await readCareRows('care_staff_shifts', tenantId);
+    if (!result.ok) return result;
+    return { ok: true, data: result.data.map(mapShift).sort((a, b) => a.shiftDate.localeCompare(b.shiftDate) || a.startTime.localeCompare(b.startTime)) };
   }
 
   await demoDelay();
@@ -82,35 +81,24 @@ export async function createShiftScheduleEntry(
     startTime: string;
     endTime: string;
     location: string;
+    breakMinutes?: number;
+    breakStart?: string;
   },
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<ShiftScheduleListItem>> {
-  const denied = enforcePermission<ShiftScheduleListItem>(actorRoleKey, 'pflege.plans.view');
+  const denied = enforcePermission<ShiftScheduleListItem>(actorRoleKey, 'pflege.plans.manage');
   if (denied) return denied;
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase' && getSupabaseClient()) {
-    const supabase = getSupabaseClient()!;
-    const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
-    const { data, error } = await fromUnknownTable(supabase, 'care_staff_shifts')
-      .insert({
-        tenant_id: tenantId,
-        employee_id: input.employeeId ?? null,
-        employee_name_snapshot: input.employeeName.trim(),
-        role_label_snapshot: input.roleLabel.trim(),
-        shift_date: input.shiftDate,
-        start_time: input.startTime,
-        end_time: input.endTime,
-        location: input.location.trim(),
-        status: 'draft',
-        created_by: userId,
-      })
-      .select('*')
-      .single();
-    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    const item = mapShift(data as Row);
+    const invalid = validateShift(input); if (invalid) return { ok: false, error: invalid };
+    const saved = await callCareOperationsRpc(tenantId, 'create_ambulatory_care_shift', { p_payload: input });
+    if (!saved.ok) return saved;
+    const all = await fetchShiftScheduleList(tenantId, actorRoleKey); if (!all.ok) return all;
+    const item = all.data.find((v) => v.id === saved.data.id);
+    if (!item) return { ok: false, error: 'Schicht wurde gespeichert. Bitte die Liste aktualisieren.' };
     syncCalendarEventAsync(buildCalendarEventFromShift(tenantId, item));
     return { ok: true, data: item };
   }
@@ -123,4 +111,9 @@ export async function createShiftScheduleEntry(
   const item = createDemoShift(input);
   syncCalendarEventAsync(buildCalendarEventFromShift(tenantId, item));
   return { ok: true, data: item };
+}
+
+export async function advanceCareShift(tenantId: string, item: ShiftScheduleListItem, status: 'published' | 'confirmed' | 'cancelled', reason: string, role?: RoleKey | null) {
+  const denied = enforcePermission<{ id: string }>(role, 'pflege.plans.manage'); if (denied) return denied;
+  return callCareOperationsRpc(tenantId, 'advance_ambulatory_care_shift', { p_id: item.id, p_expected_at: item.updatedAt, p_status: status, p_reason: reason });
 }

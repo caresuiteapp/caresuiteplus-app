@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { PflegeDashboardView } from '@/components/dashboard/PflegeDashboardView';
 import { usePflegeDashboard } from '@/hooks/usePflegeDashboard';
-import { LiquidButton, LiquidState, LiquidStatus, LiquidSurface, LiquidText } from '../components/LiquidPrimitives';
+import { LiquidButton, LiquidState, LiquidSurface, LiquidText } from '../components/LiquidPrimitives';
 import { liquidSpace } from '../foundation/tokens';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 
@@ -14,10 +14,10 @@ export function PflegeHomeWorkspace({ tenantId }: { tenantId: string | null }) {
     <LiquidCommandShell
       activeModule="pflege"
       activeArea="home"
-      title="Pflege-Startseite"
+      title="Pflegedienst Ambulant"
       subtitle="Pflegelage, Prioritäten, Touren und nächste Entscheidungen"
-      contextLabel="Pflege"
-      contextDetail={tenantId ? 'Eigenständiger Pflegebereich · Mandant aktiv' : 'Mandantenkontext fehlt'}
+      contextLabel="Ambulante Pflege"
+      contextDetail={tenantId ? 'Ambulante Versorgung · Planung und Dokumentation' : 'Mandantenkontext fehlt'}
       primaryActionLabel="Pflegeeinsatz planen"
       onPrimaryAction={() => router.push('/pflege/planung/new' as never)}
       aside={
@@ -25,11 +25,16 @@ export function PflegeHomeWorkspace({ tenantId }: { tenantId: string | null }) {
           <LiquidText variant="kicker">SCHNELLZUGRIFF</LiquidText>
           <LiquidText variant="section">Pflegebetrieb</LiquidText>
           <LiquidButton label="Klient:innenakten" onPress={() => router.push('/pflege/klienten' as never)} />
+          <LiquidButton label="Versorgungsübersicht" variant="secondary" onPress={() => router.push('/pflege/versorgungsuebersicht' as never)} />
+          <LiquidButton label="Aufnahme & Versorgung" variant="secondary" onPress={() => router.push('/pflege/aufnahme' as never)} />
+          <LiquidButton label="Aufgaben & Wiedervorlagen" variant="secondary" onPress={() => router.push('/pflege/aufgaben' as never)} />
+          <LiquidButton label="Leistungen & Vergütung" variant="secondary" onPress={() => router.push('/pflege/leistungskatalog' as never)} />
           <LiquidButton label="Pflegepersonalakten" variant="secondary" onPress={() => router.push('/pflege/personal' as never)} />
           <LiquidButton label="Tourenplanung" variant="secondary" onPress={() => router.push('/pflege/tourenplanung' as never)} />
           <LiquidButton label="Dienstplan" variant="secondary" onPress={() => router.push('/pflege/dienstplaene' as never)} />
           <LiquidButton label="Fuhrpark & Inventar" variant="secondary" onPress={() => router.push('/pflege/inventar' as never)} />
-          <LiquidStatus label="Pflege eigenständig" tone="success" detail="Keine Navigation nach Assist oder Stationär" />
+          <LiquidButton label="Leistungsnachweise" variant="secondary" onPress={() => router.push('/pflege/leistungsnachweise' as never)} />
+          <LiquidButton label="Abrechnungsfreigabe" variant="secondary" onPress={() => router.push('/pflege/abrechnung' as never)} />
         </LiquidSurface>
       }
     >
