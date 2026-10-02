@@ -8,4 +8,6 @@ Use Node 22.12+ and run `npm install` then `npm run build` in this directory. Co
 
 The Vercel config handles both `/landingpage` and `/landingpage/`. All landing assets use `/landingpage/` paths. The web access hub footer uses a normal HTML link so the route opens independently of Expo authentication and startup flows.
 
-Content is prerendered for direct access and search engines, then hydrated for product filters, galleries, chapters, motion controls and Neo. Speech uses available known male German voices; it does not fall back to a female voice. Reduced motion and pause controls are preserved.
+Content is prerendered for direct access and search engines, then hydrated for product filters, galleries, chapters, motion controls and Neo. Neo plays the approved original MP3 directly from a user click/tap; it does not depend on installed system voices. A native audio player and readable transcript are available as fallbacks. Reduced motion and pause controls are preserved.
+
+CareSuite Assist links to the verified Google Play package `app.caresuitehealthos`. The German badge, app icon and employee/client screenshots are unmodified originals; provenance is recorded in `store-assets.sources.json`.

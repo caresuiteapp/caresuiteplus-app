@@ -116,7 +116,7 @@
     },
     {
       "question": "Wer ist Neo und wie funktioniert seine Stimme auf dieser Seite?",
-      "answer": "Neo ist der männliche digitale Assistent von CareSuite HealthOS. Auf dieser Landingpage begrüßt er euch mit einer kurzen persönlichen Vorstellung. Seine Sprachwiedergabe hängt davon ab, welche passenden Stimmen euer Gerät und Browser bereitstellen. Für die männliche Stimme wird eine geeignete verfügbare Auswahl benötigt; steht sie nicht bereit, bleibt seine Vorstellung lesbar. Ihr könnt die Wiedergabe bewusst starten oder stoppen. Neo bleibt damit ein persönlicher Einstieg in die Produktwelt, während ihr selbst bestimmt, ob ihr die Seite mit Ton oder in Ruhe entdecken möchtet."
+      "answer": "Neo ist der männliche digitale Assistent von CareSuite HealthOS. Tippt auf „Neo anhören“ oder auf Neo, um seine kurze Vorstellung mit seiner Originalstimme abzuspielen. Die Seite verwendet eine feste Audiodatei; eine installierte Systemstimme ist dafür nicht erforderlich. Ihr könnt die Wiedergabe stoppen oder den Ton ausschalten. Unter „Vorstellung & Audioplayer“ findet ihr den gesprochenen Text und einen zusätzlichen Audioplayer. So lässt sich CareSuite mit Ton oder in Ruhe entdecken."
     },
     {
       "question": "Woran lässt sich ein erfolgreicher erster Produktdurchlauf erkennen?",
