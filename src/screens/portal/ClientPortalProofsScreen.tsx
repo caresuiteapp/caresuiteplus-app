@@ -1,3 +1,4 @@
+import { ClientCareProofPanel } from '@/components/pflege/PortalCarePanels';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -126,6 +127,8 @@ export function ClientPortalProofsScreen() {
           subtitle="Freigegebene Nachweise mit PDF, Status und Historie"
           showStatusDot
         />
+
+        <ClientCareProofPanel />
 
         {loading || isResolvingClientLink ? <LoadingState message="Nachweise werden geladen…" /> : null}
         {error ? <ErrorState title="Nachweise" message={error} onRetry={loadProofs} /> : null}

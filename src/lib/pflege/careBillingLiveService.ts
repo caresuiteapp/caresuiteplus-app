@@ -48,7 +48,7 @@ export async function advancePflegeServiceProof(tenantId: string, role: RoleKey 
   const denied = enforcePermission<{ id: string }>(role, permission); if (denied) return denied;
   const blocked = live<{ id: string }>(tenantId); if (blocked) return blocked;
   const { data, error } = await rpcClient().rpc('advance_pfleger_service_proof', { p_proof_id: proofId, p_action: action, p_payload: payload });
-  if (error || !data || Array.isArray(data)) return { ok: false, error: toGermanSupabaseError(error) };
+  if (error || !data || Array.isArray(data)) return { ok: false, error: (error as { message?: string } | null)?.message === 'Der eigene Leistungsnachweis benötigt eine zweite prüfende Person.' ? 'Der eigene Leistungsnachweis benötigt eine zweite prüfende Person.' : toGermanSupabaseError(error) };
   return { ok: true, data: { id: text(data.id) } };
 }
 

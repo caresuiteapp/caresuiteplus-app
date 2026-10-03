@@ -6,6 +6,8 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { callCareOperationsRpc, readCareRows } from './ambulatoryOperationsService';
+import { isCalendarDate } from './ambulatoryOperationsDomain';
 
 type Row = Record<string, unknown>;
 const text = (value: unknown) => value == null ? '' : String(value);
@@ -112,12 +114,9 @@ export async function fetchCareMedicalOrders(
   if (tenant) return tenant;
   const live = liveOnly<CareMedicalOrder[]>();
   if (live) return live;
-  const supabase = getSupabaseClient()!;
-  const { data, error } = await fromUnknownTable(supabase, 'care_medical_orders')
-    .select('*').eq('tenant_id', tenantId).neq('status', 'archived')
-    .order('updated_at', { ascending: false });
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  const rows = (data ?? []) as Row[];
+  const result = await readCareRows('care_medical_orders', tenantId);
+  if (!result.ok) return result;
+  const rows = result.data.sort((a, b) => text(b.updated_at).localeCompare(text(a.updated_at)));
   const names = await clientNames(tenantId, rows.map((row) => text(row.client_id)));
   if (!names.ok) return names;
   return { ok: true, data: rows.map((row) => ({
@@ -129,6 +128,8 @@ export async function fetchCareMedicalOrders(
     validFrom: text(row.valid_from), validUntil: row.valid_until ? text(row.valid_until) : null,
     insurerApprovalRequired: Boolean(row.insurer_approval_required),
     insurerApprovalStatus: text(row.insurer_approval_status) as CareMedicalOrder['insurerApprovalStatus'],
+    insurerApprovalReference: text(row.insurer_approval_reference),
+    physicianBsnr: text(row.physician_bsnr), physicianLanr: text(row.physician_lanr), sourceDocument: text(row.source_document),
     frequency: text(row.frequency), executionInstructions: text(row.execution_instructions),
     qualificationRequirement: text(row.qualification_requirement),
     status: text(row.status) as CareMedicalOrder['status'], recordedByName: text(row.recorded_by_name),
@@ -143,6 +144,7 @@ export async function createCareMedicalOrder(
     orderingPhysician: string; orderedAt: string; validFrom: string; validUntil?: string;
     approvalRequired: boolean; frequency: string; executionInstructions: string;
     qualificationRequirement: string; actorName: string;
+    physicianBsnr?: string; physicianLanr?: string; sourceDocument?: string;
   },
   role?: RoleKey | null,
 ): Promise<ServiceResult<CareMedicalOrder>> {
@@ -155,20 +157,17 @@ export async function createCareMedicalOrder(
   if (!input.clientId || !input.title.trim() || !input.description.trim() || !input.orderingPhysician.trim()) {
     return { ok: false, error: 'Klient:in, Verordnung, Inhalt und verordnende Ärztin/Arzt sind erforderlich.' };
   }
-  const supabase = getSupabaseClient()!;
-  const { data, error } = await fromUnknownTable(supabase, 'care_medical_orders').insert({
-    tenant_id: tenantId, client_id: input.clientId, order_type: input.orderType,
-    title: input.title.trim(), description: input.description.trim(),
-    ordering_physician: input.orderingPhysician.trim(), ordered_at: input.orderedAt,
-    valid_from: input.validFrom, valid_until: input.validUntil || null,
-    insurer_approval_required: input.approvalRequired,
-    insurer_approval_status: input.approvalRequired ? 'pending' : 'not_required',
-    frequency: input.frequency.trim(), execution_instructions: input.executionInstructions.trim(),
-    qualification_requirement: input.qualificationRequirement.trim(), recorded_by_name: input.actorName,
-  }).select('*').single();
-  if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+  if (![input.orderedAt, input.validFrom].every(isCalendarDate) || (input.validUntil && (!isCalendarDate(input.validUntil) || input.validUntil < input.validFrom))) return { ok: false, error: 'Verordnungsdatum und Gültigkeitszeitraum prüfen.' };
+  if ([input.physicianBsnr, input.physicianLanr].some((v) => v && !/^\d{9}$/.test(v))) return { ok: false, error: 'BSNR und LANR müssen jeweils neun Ziffern enthalten.' };
+  const savedResult = await callCareOperationsRpc(tenantId, 'manage_ambulatory_care_order', { p_id: null, p_expected_at: null, p_payload: input });
+  if (!savedResult.ok) return savedResult;
   const all = await fetchCareMedicalOrders(tenantId, role);
   if (!all.ok) return all;
-  const saved = all.data.find((entry) => entry.id === text((data as Row).id));
+  const saved = all.data.find((entry) => entry.id === savedResult.data.id);
   return saved ? { ok: true, data: saved } : { ok: false, error: 'Verordnung wurde nicht zurückgelesen.' };
+}
+
+export async function advanceCareMedicalOrder(tenantId: string, role: RoleKey | null | undefined, order: CareMedicalOrder, payload: Record<string, unknown>) {
+  const denied = enforcePermission<{ id: string }>(role, 'pflege.orders.manage'); if (denied) return denied;
+  return callCareOperationsRpc(tenantId, 'manage_ambulatory_care_order', { p_id: order.id, p_expected_at: order.updatedAt, p_payload: payload });
 }

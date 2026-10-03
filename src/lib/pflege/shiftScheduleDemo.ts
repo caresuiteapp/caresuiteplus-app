@@ -14,6 +14,9 @@ export type ShiftScheduleListItem = {
   location: string;
   status: WorkflowStatus;
   updatedAt: string;
+  breakMinutes?: number;
+  breakStart?: string;
+  cancellationReason?: string;
 };
 
 const SHIFT_TIMES: { start: string; end: string }[] = [

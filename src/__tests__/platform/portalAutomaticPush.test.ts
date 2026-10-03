@@ -43,6 +43,16 @@ describe('Push tap follows only the authenticated portal account', () => {
     expect(isAllowedPortalPushRoute(`/portal/employee/documents/signatures/${uid}`)).toBe(true);
     expect(isAllowedPortalPushRoute('/portal/client/profile?pushUpdate=35')).toBe(true);
   });
+  it('opens care destinations only in the matching signed-in portal', () => {
+    const proof = { ...data, route: '/portal/client/proofs' };
+    const tour = { ...data, route: '/portal/employee' };
+    expect(portalPushDestination(proof, session)).toBe(proof.route);
+    expect(portalPushDestination(tour, { ...session, roleKey: 'employee_portal' })).toBe(tour.route);
+    expect(portalPushDestination(tour, session)).toBeNull();
+    expect(portalPushDestination(proof, { ...session, roleKey: 'employee_portal' })).toBeNull();
+    expect(portalPushDestination(proof, { ...session, tenantId: 'foreign' })).toBeNull();
+    expect(isAllowedPortalPushRoute('/portal/client/proofs?redirect=https://evil.test')).toBe(false);
+  });
   it('consumes the same response only once across component remounts', () => {
     expect(consumePortalPushResponse('unique-response-1')).toBe(true);
     expect(consumePortalPushResponse('unique-response-1')).toBe(false);

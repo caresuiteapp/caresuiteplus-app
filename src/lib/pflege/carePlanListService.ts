@@ -1,3 +1,4 @@
+import { fetchCareOperationalStats } from './careDashboardOperationalService';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { CarePlanListItem, PflegeDashboardStats } from '@/types/modules/pflege';
 import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
@@ -26,9 +27,12 @@ export async function fetchPflegeDashboardStats(
 ): Promise<ServiceResult<PflegeDashboardStats>> {
   const denied = enforcePermission<PflegeDashboardStats>(actorRoleKey, 'pflege.access');
   if (denied) return denied;
-  const listResult = await fetchCarePlanList(tenantId, actorRoleKey);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() !== 'supabase') return { ok: false, error: 'Pflegekennzahlen erfordern die Live-Datenbank.' };
+  const [listResult, operational] = await Promise.all([fetchCarePlanList(tenantId, actorRoleKey), fetchCareOperationalStats(tenantId, actorRoleKey)]);
   if (!listResult.ok) return listResult;
-  const now = Date.now();
+  if (!operational.ok) return operational;
   const active = listResult.data.filter((item) => item.status === 'aktiv');
   return {
     ok: true,
@@ -38,11 +42,9 @@ export async function fetchPflegeDashboardStats(
       activePlansCount: active.length,
       assignedClientsCount: new Set(active.map((item) => item.clientId)).size,
       dueMeasuresCount: listResult.data.reduce((sum, item) => sum + item.alertCount, 0),
-      openReportsCount: listResult.data.filter((item) => item.status === 'entwurf').length,
+
       alertsCount: listResult.data.reduce((sum, item) => sum + item.alertCount, 0),
-      openSisAssessmentCount: listResult.data.filter((item) =>
-        item.validUntil ? Date.parse(item.validUntil) <= now : false,
-      ).length,
+      ...operational.data,
     },
   };
 }

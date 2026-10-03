@@ -3,10 +3,12 @@ import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
 import type { ShiftScheduleListItem } from '@/lib/pflege/shiftScheduleDemo';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { ShiftScheduleActions } from './ShiftScheduleActions';
 
 type ShiftScheduleListTableProps = {
   items: ShiftScheduleListItem[];
   selectedId?: string | null;
+  onSaved?: () => void | Promise<unknown>;
 };
 
 function statusVariant(status: ShiftScheduleListItem['status']) {
@@ -27,6 +29,7 @@ function statusVariant(status: ShiftScheduleListItem['status']) {
 export function ShiftScheduleListTable({
   items,
   selectedId = null,
+  onSaved,
 }: ShiftScheduleListTableProps) {
   const tableText = useTableTextStyles();
 
@@ -36,6 +39,7 @@ export function ShiftScheduleListTable({
       keyExtractor={(item) => item.id}
       selectedId={selectedId}
       columns={[
+        { key: 'actions', label: 'Freigabe & Pause', flex: 1.5, render: (item) => <ShiftScheduleActions item={item} onSaved={onSaved} /> },
         {
           key: 'employee',
           label: 'Mitarbeiter:in',

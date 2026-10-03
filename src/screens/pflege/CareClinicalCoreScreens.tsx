@@ -13,8 +13,11 @@ import {
   createCareDiagnosis, createCareMedicalOrder, fetchCareDiagnoses, fetchCareMedicalOrders,
 } from '@/lib/pflege/careClinicalCoreService';
 import { colors, spacing, typography } from '@/theme';
+import { CareMedicalOrderActions } from '@/components/pflege/CareMedicalOrderActions';
+import { berlinCalendarDate } from '@/lib/pflege/careTourWorkflow';
+import { hasPermission } from '@/lib/permissions';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = berlinCalendarDate;
 
 function useCareClientOptions() {
   const tenantId = useServiceTenantId();
@@ -119,6 +122,7 @@ export function CareOrdersScreen() {
   const [frequency, setFrequency] = useState('');
   const [instructions, setInstructions] = useState('');
   const [qualification, setQualification] = useState('Pflegefachkraft');
+  const [bsnr, setBsnr] = useState(''); const [lanr, setLanr] = useState(''); const [source, setSource] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -131,6 +135,7 @@ export function CareOrdersScreen() {
       orderedAt, validFrom, validUntil, approvalRequired: approvalRequired === 'yes',
       frequency, executionInstructions: instructions, qualificationRequirement: qualification,
       actorName: profile?.displayName ?? 'Pflegefachperson',
+      physicianBsnr: bsnr, physicianLanr: lanr, sourceDocument: source,
     }, profile?.roleKey);
     setBusy(false);
     if (!result.ok) return setError(result.error);
@@ -148,13 +153,16 @@ export function CareOrdersScreen() {
           <PremiumInput label="Bezeichnung *" value={title} onChangeText={setTitle} />
           <PremiumInput label="Verordneter Inhalt *" value={description} onChangeText={setDescription} multiline />
           <PremiumInput label="Verordnende Ärztin/Arzt *" value={physician} onChangeText={setPhysician} />
+          <PremiumInput label="Betriebsstättennummer (BSNR)" value={bsnr} onChangeText={setBsnr} keyboardType="numeric" />
+          <PremiumInput label="Lebenslange Arztnummer (LANR)" value={lanr} onChangeText={setLanr} keyboardType="numeric" />
+          <PremiumInput label="Verordnungsdokument / Fundstelle" value={source} onChangeText={setSource} />
           <View style={styles.row}><PremiumInput label="Verordnet am" value={orderedAt} onChangeText={setOrderedAt} /><PremiumInput label="Gültig ab" value={validFrom} onChangeText={setValidFrom} /><PremiumInput label="Gültig bis" value={validUntil} onChangeText={setValidUntil} /></View>
           <Text style={styles.caption}>Kostenträgergenehmigung</Text><FilterChipGroup options={[{ key: 'no', label: 'Nicht erforderlich' }, { key: 'yes', label: 'Erforderlich / offen' }]} value={approvalRequired} onChange={setApprovalRequired} />
           <PremiumInput label="Häufigkeit / Zeitfenster" value={frequency} onChangeText={setFrequency} />
           <PremiumInput label="Durchführungsanweisung" value={instructions} onChangeText={setInstructions} multiline />
           <PremiumInput label="Erforderliche Qualifikation" value={qualification} onChangeText={setQualification} />
           {error ? <ErrorState message={error} /> : null}{success ? <SuccessState message="Verordnung wurde live gespeichert und zurückgelesen." /> : null}
-          <PremiumButton title="Verordnung live speichern" fullWidth loading={busy} disabled={busy || !options.length} onPress={save} />
+          <PremiumButton title="Verordnung speichern" fullWidth loading={busy} disabled={busy || !options.length || !hasPermission(profile?.roleKey, 'pflege.orders.manage')} onPress={save} />
         </SectionPanel>
         <SectionPanel title="Verordnungsbestand" subtitle={`${orders.data?.length ?? 0} Datensätze`}>
           {!orders.data?.length ? <EmptyState title="Keine Verordnungen" message="Es sind noch keine ärztlichen Verordnungen dokumentiert." /> : orders.data.map((item) => (
@@ -163,6 +171,7 @@ export function CareOrdersScreen() {
               <Text style={styles.meta}>{item.clientName} · {item.orderingPhysician}</Text><Text style={styles.body}>{item.description}</Text>
               <Text style={styles.bodyStrong}>{item.frequency || 'Keine Frequenz hinterlegt'} · {item.qualificationRequirement}</Text>
               <Text style={styles.meta}>Gültig {item.validFrom}{item.validUntil ? ` bis ${item.validUntil}` : ' unbefristet'} · Genehmigung: {item.insurerApprovalStatus}</Text>
+              <CareMedicalOrderActions order={item} onSaved={orders.refresh} />
             </PremiumCard>
           ))}
         </SectionPanel>

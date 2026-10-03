@@ -2,13 +2,16 @@ import type { ModuleNavConfig } from '@/types/navigation/platform';
 
 export const pflegeNav: ModuleNavConfig = {
   moduleKey: 'pflege',
-  label: 'Pflege',
+  label: 'Pflegedienst Ambulant',
   groups: [
     {
       title: 'Übersicht',
       items: [
         { key: 'dashboard', label: 'Startseite', icon: '🏠', href: '/pflege' },
+        { key: 'care-overview', label: 'Versorgungsübersicht', icon: '📊', href: '/pflege/versorgungsuebersicht' },
         { key: 'clients', label: 'Klient:innenakten', icon: '👥', href: '/pflege/klienten' },
+        { key: 'admissions', label: 'Aufnahme & Versorgung', icon: '📋', href: '/pflege/aufnahme' },
+        { key: 'tasks', label: 'Aufgaben & Wiedervorlagen', icon: '✅', href: '/pflege/aufgaben' },
         { key: 'staff', label: 'Pflegepersonalakten', icon: '🧑‍⚕️', href: '/pflege/personal' },
       ],
     },
@@ -37,6 +40,8 @@ export const pflegeNav: ModuleNavConfig = {
         { key: 'vitalwerte', label: 'Vitalwerte', icon: '❤️', href: '/pflege/vitalwerte' },
         { key: 'medikation', label: 'Medikation', icon: '💊', href: '/pflege/medikation' },
         { key: 'behandlungspflege', label: 'Behandlungspflege', icon: '🩺', href: '/pflege/behandlungspflege' },
+        { key: 'orders', label: 'Verordnungen & Genehmigungen', icon: '📄', href: '/pflege/verordnungen' },
+        { key: 'diagnoses', label: 'Diagnosen', icon: '🩺', href: '/pflege/diagnosen' },
         { key: 'wunden', label: 'Wunddokumentation', icon: '🩹', href: '/pflege/wunddokumentation' },
       ],
     },
@@ -63,6 +68,7 @@ export const pflegeNav: ModuleNavConfig = {
       title: 'Leistung & Abrechnung',
       items: [
         { key: 'leistungsnachweise', label: 'Leistungsnachweise', icon: '§', href: '/pflege/leistungsnachweise' },
+        { key: 'tariffs', label: 'Leistungen & Vergütung', icon: '€', href: '/pflege/leistungskatalog' },
         { key: 'abrechnung', label: 'Abrechnungsfreigabe', icon: '€', href: '/pflege/abrechnung' },
         { key: 'rechnungsgrundlagen', label: 'Rechnungsgrundlagen', icon: '🧾', href: '/pflege/rechnungsgrundlagen' },
         { key: 'gesamtabnahme', label: 'Gesamtabnahme', icon: '✓', href: '/pflege/gesamtabnahme' },
