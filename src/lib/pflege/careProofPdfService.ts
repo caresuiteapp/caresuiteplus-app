@@ -7,7 +7,9 @@ const labels: Record<string, string> = { draft: 'Entwurf', submitted: 'Eingereic
 /** Export the captured record. A download is not a payer submission or invoice. */
 export async function generateCareProofPdf(proof: PflegeServiceProofItem, signature: CareProofSignature) {
   if (['signed', 'approved'].includes(proof.status) && !signature) throw new Error('Die gespeicherte Unterschrift muss vor dem Export geladen werden.');
-  const { jsPDF } = await import('jspdf'); const pdf = new jsPDF({ unit: 'mm', format: 'a4' }); registerCareSuitePdfFont(pdf); pdf.setFont(CARESUITE_PDF_FONT, 'normal');
+  const jsPdfModule = await import('jspdf/dist/jspdf.es.min.js');
+  const { jsPDF } = jsPdfModule as unknown as typeof import('jspdf');
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' }); registerCareSuitePdfFont(pdf); pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   let y = 20;
   function line(value: string, heading = false) {
     pdf.setFontSize(heading ? 13 : 10); pdf.setTextColor(heading ? '#0759BC' : '#182A40');
