@@ -656,17 +656,17 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
               <Text style={[styles.eyebrow, mobile && styles.eyebrowMobile]}>{mobile ? "Persönlicher Arbeitsplatz" : "PERSÖNLICHER ARBEITSPLATZ"}</Text>
               {!mobile ? <Text style={styles.desktopTitle}>{moduleLabel} · Mein Desktop</Text> : null}
             </View>
+          <View style={styles.moduleTabs} accessibilityRole="tablist" accessibilityLabel="Desktop-Modul auswählen">
+            {availableModules.map(module => <Pressable key={module.key} accessibilityRole="tab" accessibilityState={{ selected: module.key === moduleKey }} onPress={() => onModuleChange(module.key)} style={[styles.chip, module.key === moduleKey && styles.chipActive]}>
+              <Text style={[styles.chipText, module.key === moduleKey && styles.chipTextActive]}>{module.label}</Text>
+            </Pressable>)}
+          </View>
             <View style={styles.desktopActions}>
               <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
               <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
                 <Text style={[styles.editText, mobile && styles.editTextMobile]}>{editMode ? "✓ Fertig" : "✎ Bearbeiten"}</Text>
               </Pressable>
             </View>
-          </View>
-          <View style={styles.moduleTabs} accessibilityRole="tablist" accessibilityLabel="Desktop-Modul auswählen">
-            {availableModules.map(module => <Pressable key={module.key} accessibilityRole="tab" accessibilityState={{ selected: module.key === moduleKey }} onPress={() => onModuleChange(module.key)} style={[styles.chip, module.key === moduleKey && styles.chipActive]}>
-              <Text style={[styles.chipText, module.key === moduleKey && styles.chipTextActive]}>{module.label}</Text>
-            </Pressable>)}
           </View>
           {preferencesError ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Die Einstellungen konnten nicht gespeichert werden. Ihre Auswahl bleibt geöffnet; bitte prüfen Sie den Browserspeicher.</Text> : null}
           <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
@@ -772,7 +772,7 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
-  moduleTabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingVertical: 10, flexShrink: 0 },
+  moduleTabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, flexShrink: 1, minWidth: 0 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
