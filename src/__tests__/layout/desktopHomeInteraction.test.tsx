@@ -3,10 +3,11 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktop.web';
 import { resolveDesktopGridLayout } from '@/lib/platform/desktopGridLayout';
 
 const memory = new Map<string, string>();
-const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn() };
+const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
 const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
 const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
@@ -29,9 +30,11 @@ const native = {
 const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
   'expo-router': { useRouter: () => ({ push: api.push }) },
-  '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet },
+  '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet, setItem: api.setItem },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
+  '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: 'tenant', can: () => true, hasModuleGate: (module: string) => ['office', 'assist'].includes(module) }) },
+  '@/hooks/useModuleAccess': { useModuleAccess: () => ({}) },
   '@/lib/auth': { useAuth: () => ({ user: { id: api.owner }, profile: { displayName: 'Testverwaltung' }, signOut: vi.fn() }) },
   '@/components/portal/accessibility/PortalTextSizeControls.web': { PortalTextSizeControls: () => <button>Textgröße ändern</button> },
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
@@ -47,7 +50,7 @@ new Function('require', 'module', 'exports', compiled)((id: string) => {
   return dependencies[id];
 }, loaded, loaded.exports);
 const Desktop = loaded.exports.CommandCenterScreen;
-const key = (owner = api.owner) => `caresuite.healthos.desktop-widgets.v3.${owner}`;
+const key = (owner = api.owner) => moduleDesktopStorageKey('tenant', owner, 'office');
 const sidebarKey = (owner = api.owner) => `caresuite.healthos.sidebar-open.v2.${owner}`;
 let root: Root, host: HTMLDivElement;
 const label = (text: string) => host.querySelector(`[aria-label="${text}"]`) as HTMLButtonElement | null;
@@ -58,6 +61,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   memory.clear(); api.owner = 'a'; api.width = 1440; api.scale = 1; vi.clearAllMocks();
   api.getItem.mockReset().mockImplementation(async (k: string) => memory.get(k) ?? null);
+  api.setItem.mockImplementation(async (k: string, v: string) => { memory.set(k, v); });
   api.multiSet.mockImplementation(async (values: string[][]) => { values.forEach(([k, v]) => memory.set(k, v)); });
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
 });
@@ -73,7 +77,7 @@ describe('Web desktop preferences and navigation', () => {
     await render(); await click(label('Desktop bearbeiten')); await click(label('Klient:innen entfernen'));
     expect(label('Klient:innen öffnen')).toBeNull();
     await act(async () => root.unmount()); root = createRoot(host); await render();
-    expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('11/12 aktiv');
+    expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('7/12 aktiv');
   });
   it('does not expose or overwrite a previous account’s preferences while the next account loads', async () => {
     memory.set(key(), JSON.stringify(['messages'])); await render();
@@ -84,20 +88,20 @@ describe('Web desktop preferences and navigation', () => {
     api.owner = 'b'; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(label('Nachrichten öffnen')).toBeNull(); expect(memory.has(key('b'))).toBe(false);
-    await act(async () => resolve(null)); expect(host.textContent).toContain('12/12 aktiv');
+    await act(async () => resolve(null)); expect(host.textContent).toContain('8/12 aktiv');
     expect(JSON.parse(memory.get(key('a'))!)).toEqual(['messages']);
   });
   it('allows a failed preferences read to be retried without overwriting stored choices', async () => {
-    memory.set(key(), JSON.stringify(['messages'])); api.getItem.mockRejectedValueOnce(new Error('Storage unavailable'));
+    memory.set(key(), JSON.stringify(['messages'])); api.getItem.mockImplementation((k: string) => k === key() ? Promise.reject(new Error('Storage unavailable')) : Promise.resolve(memory.get(k) ?? null));
     await render(); expect(host.textContent).toContain('Desktop-Einstellungen konnten nicht geladen werden');
     expect(api.multiSet).not.toHaveBeenCalled();
-    await click(button('Erneut versuchen')); expect(host.textContent).toContain('1/12 aktiv');
+    api.getItem.mockImplementation(async (k: string) => memory.get(k) ?? null); await click(button('Erneut versuchen')); expect(host.textContent).toContain('1/12 aktiv');
   });
   it('keeps the compact menu separate from the saved wide-screen preference and closes it after navigation', async () => {
     memory.set(sidebarKey(), 'true'); api.width = 780; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     await click(label('Navigation öffnen')); expect(host.querySelector('[role="dialog"]')).not.toBeNull();
-    await click(label('Seite Klient:innen öffnen')); expect(api.push).toHaveBeenCalledWith('/assist/zugeordnete-klienten');
+    await click(label('Seite Klient:innen öffnen')); expect(api.push).toHaveBeenCalledWith('/business/office/clients');
     expect(host.querySelector('[role="dialog"]')).toBeNull(); expect(memory.get(sidebarKey())).toBe('true');
     api.width = 1440; await render(); expect(label('Navigation schließen')).not.toBeNull();
     api.width = 780; await render(); expect(host.querySelector('[role="dialog"]')).toBeNull();
@@ -135,6 +139,7 @@ describe('App centre categories and distinct actions', () => {
     expect(memory.get(key())).toBe(before);
   });
   it('removes and adds desktop widgets in place, enforces capacity, and preserves the category', async () => {
+    memory.set(key(), JSON.stringify(['clients','people','logbook','time','salary','billing','documents','messages','access','inventory','audit','office']));
     await render(); await click(label('Apps und Widgets öffnen')); await click(catalogButton('Widgets'));
     await click(catalogButton('Workspace'));
     expect(label('Gmail zum Desktop hinzufügen')?.getAttribute('aria-disabled')).toBe('true');
@@ -160,7 +165,30 @@ describe('App centre categories and distinct actions', () => {
     await click(label('Seite Audit öffnen'));
     expect(api.push).toHaveBeenCalledWith('/business/office/audit-log');
     await typeInto('Seiten in der Navigation suchen', 'Hilfe');
-    await click(label('Seite Support & Hilfe öffnen'));
-    expect(api.push).toHaveBeenLastCalledWith('/support');
+    expect(label('Seite Support & Hilfe öffnen')).toBeNull();
+  });
+});
+
+
+describe('module switching', () => {
+  it('keeps an explicitly empty legacy desktop empty during migration', async () => {
+    memory.set(`caresuite.healthos.desktop-widgets.v3.${api.owner}`, '[]'); await render();
+    expect(JSON.parse(memory.get(key())!)).toEqual([]);
+  });
+  it('restores distinct Office and Assist widget choices across switches and reloads', async () => {
+    memory.set(key(), JSON.stringify(['clients']));
+    memory.set(moduleDesktopStorageKey('tenant', api.owner, 'assist'), JSON.stringify(['assignments']));
+    await render();
+    expect(label('Klient:innen öffnen')).not.toBeNull();
+    expect(label('Einsätze öffnen')).toBeNull();
+    await click([...host.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === 'Assist'));
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Einsätze öffnen')).not.toBeNull();
+    expect(label('Seite Rechnungen öffnen')).toBeNull();
+    await act(async () => root.unmount()); root = createRoot(host); await render();
+    expect(label('Einsätze öffnen')).not.toBeNull();
+    await click([...host.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === 'Office'));
+    expect(label('Klient:innen öffnen')).not.toBeNull();
+    expect(JSON.parse(memory.get(key())!)).toEqual(['clients']);
   });
 });

@@ -28,11 +28,15 @@ import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
 import { GoogleWorkspaceWidget } from "@/components/googleWorkspace/GoogleWorkspaceWidget.web";
 import {
   buildDesktopApps,
-  buildDesktopNavigationGroups,
   DESKTOP_CATEGORIES,
   type DesktopApp,
   type DesktopCategory,
 } from "../navigation/desktopAppCatalog.web";
+import { usePermissions } from '@/hooks/usePermissions';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
+import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, normalizeModuleWidgets, buildModuleDesktopNavigation } from '../navigation/moduleDesktop.web';
+import type { ProductKey } from '@/types';
+import type { PermissionKey } from '@/types/permissions';
 import type { WorkspaceService } from "@/lib/googleWorkspace/workspaceModel";
 
 type Category = DesktopCategory;
@@ -399,6 +403,50 @@ function Text({ style, ...props }: TextProps) {
 }
 
 export function CommandCenterScreen() {
+  const auth = useAuth();
+  const permissions = usePermissions();
+  useModuleAccess(); // Subscribe to changes in the existing tenant module cache.
+  const tenant = permissions.tenantId ?? '';
+  const user = auth.user?.id ?? '';
+  const identity = JSON.stringify([tenant, user]);
+  const selectionKey = `caresuite.healthos.active-desktop-module.v1.${encodeURIComponent(identity)}`;
+  const availableModules = DESKTOP_MODULES.filter(module => permissions.hasModuleGate(module.key) && permissions.can(`${module.key}.access` as PermissionKey));
+  const availableSignature = availableModules.map(module => module.key).join(',');
+  const [selection, setSelection] = useState<{ identity: string; module: ProductKey } | null>(null);
+  const [selectionError, setSelectionError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setSelectionError(false);
+    if (!tenant || !user || !availableSignature) return;
+    void AsyncStorage.getItem(selectionKey).then(stored => {
+      if (!active) return;
+      const module = availableModules.find(item => item.key === stored)?.key ?? availableModules[0].key;
+      setSelection({ identity, module });
+    }).catch(() => active && setSelectionError(true));
+    return () => { active = false; };
+    // The signature tracks access changes without depending on an unstable array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identity, selectionKey, availableSignature, attempt]);
+  const changeModule = (module: ProductKey) => {
+    if (!availableModules.some(item => item.key === module)) return;
+    setSelection({ identity, module });
+    void AsyncStorage.setItem(selectionKey, module).catch(() => setSelectionError(true));
+  };
+  if (!selection || selection.identity !== identity || !availableModules.some(module => module.key === selection.module)) {
+    return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
+      <Text style={styles.sidebarTitle}>{selectionError ? 'Modulauswahl konnte nicht geladen werden' : availableSignature ? 'Desktop wird vorbereitet' : 'Keine freigegebenen Arbeitsbereiche'}</Text>
+      <Text style={styles.desktopSubtitle}>{availableSignature ? 'Ihre persönlichen Moduleinstellungen werden geladen.' : 'Für diesen Zugang ist derzeit kein Desktop-Modul verfügbar.'}</Text>
+      {selectionError ? <Pressable onPress={() => setAttempt(value => value + 1)} style={styles.appsButton}><Text style={styles.appsText}>Erneut versuchen</Text></Pressable> : null}
+      <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
+    </View></View>;
+  }
+  return <ModuleDesktopScreen key={`${identity}:${selection.module}`} moduleKey={selection.module} tenantId={tenant} availableModules={availableModules} onModuleChange={changeModule} />;
+}
+
+function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleChange }: {
+  moduleKey: ProductKey; tenantId: string; availableModules: readonly { key: ProductKey; label: string }[]; onModuleChange: (key: ProductKey) => void;
+}) {
   const router = useRouter();
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
@@ -417,7 +465,9 @@ export function CommandCenterScreen() {
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
   const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
-  const desktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
+  const desktopKey = moduleDesktopStorageKey(tenantId, owner, moduleKey);
+  const oldDesktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
+  const moduleLabel = DESKTOP_MODULES.find(module => module.key === moduleKey)?.label ?? moduleKey;
   const previousDesktopKey = `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const sidebarKey = `${SIDEBAR_STORAGE_KEY}.${owner}`;
   const backgroundKey = `${BACKGROUND_STORAGE_KEY}.${owner}`;
@@ -446,9 +496,13 @@ export function CommandCenterScreen() {
   const apps = useMemo(() => buildDesktopApps(WIDGETS, profile?.roleKey), [profile?.roleKey]);
   const matchesSearch = (app: DesktopApp, value: string) =>
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
-  const filteredApps = apps.filter(app => app.category === category && matchesSearch(app, query));
-  const filteredWidgets = WIDGETS.filter(widget => widget.category === category && matchesSearch(widget, query));
-  const navigationGroups = buildDesktopNavigationGroups(apps, navigationQuery);
+  const moduleApps = apps.filter(app => desktopModuleForRoute(app.route) === moduleKey);
+  const moduleWidgets = useMemo(() => WIDGETS.filter(widget => desktopModuleForRoute(widget.route) === moduleKey), [moduleKey]);
+  const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
+  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id)).map(widget => widget.id), [moduleWidgets]);
+  const filteredApps = moduleApps.filter(app => app.category === category && matchesSearch(app, query));
+  const filteredWidgets = moduleWidgets.filter(widget => widget.category === category && matchesSearch(widget, query));
+  const navigationGroups = buildModuleDesktopNavigation(moduleApps, moduleKey, navigationQuery);
   const resultCount = centerTab === "apps" ? filteredApps.length : filteredWidgets.length;
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
@@ -464,19 +518,22 @@ export function CommandCenterScreen() {
     setQuery("");
     setCategory("Übersicht");
     setNavigationQuery("");
-    void Promise.all([AsyncStorage.getItem(desktopKey), AsyncStorage.getItem(previousDesktopKey), AsyncStorage.getItem(legacyKey), AsyncStorage.getItem(sidebarKey), AsyncStorage.getItem(backgroundKey)]).then(([desktop, previousDesktop, legacy, sidebar, storedBackground]) => {
+    void Promise.all([AsyncStorage.getItem(desktopKey), AsyncStorage.getItem(oldDesktopKey), AsyncStorage.getItem(previousDesktopKey), AsyncStorage.getItem(legacyKey), AsyncStorage.getItem(sidebarKey), AsyncStorage.getItem(backgroundKey)]).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground]) => {
       if (!active) return;
       let stored: unknown = null;
-      try { stored = JSON.parse(desktop ?? previousDesktop ?? legacy ?? "null"); } catch { stored = null; }
-      setDesktopIds(migrateDesktopIdsToR13(stored, !desktop && Boolean(previousDesktop)));
+      try { stored = JSON.parse(desktop ?? oldDesktop ?? previousDesktop ?? legacy ?? "null"); } catch { stored = null; }
+      const migrated = desktop ? stored : migrateDesktopIdsToR13(stored, !oldDesktop && Boolean(previousDesktop));
+      const imported = normalizeModuleWidgets(migrated, moduleWidgetIds, moduleDefaults);
+      // A deliberately empty saved desktop stays empty; legacy selections are only imported once.
+      setDesktopIds(desktop || imported.length || (Array.isArray(stored) && stored.length === 0) ? imported : normalizeModuleWidgets(null, moduleWidgetIds, moduleDefaults));
       setSidebarOpen(sidebar !== "false");
       setBackgroundId(storedBackground && BACKGROUNDS.some((item) => item.id === storedBackground) ? storedBackground : BACKGROUNDS[0].id);
       setLoadedOwner(owner);
     }).catch(() => active && setPreferencesError(true));
     return () => { active = false; };
-  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, preferencesAttempt]);
+  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, moduleKey, moduleWidgetIds, moduleDefaults]);
   useEffect(() => {
-    if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => undefined);
+    if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => setPreferencesError(true));
   }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);
 
   const closeNavigation = () => {
@@ -485,7 +542,7 @@ export function CommandCenterScreen() {
   };
   const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); setCenterTab(tab); setCenterOpen(true); };
   const openWidget = (widget: Pick<DesktopApp, "route">) => { setCenterOpen(false); setMobileSidebarOpen(false); router.push(widget.route as never); };
-  const togglePinned = (id: string) => setDesktopIds((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < DESKTOP_SLOT_COUNT ? [...current, id] : current);
+  const togglePinned = (id: string) => moduleWidgetIds.includes(id) && setDesktopIds((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < DESKTOP_SLOT_COUNT ? [...current, id] : current);
   const signOut = async () => { setProfileOpen(false); await auth.signOut(); };
   const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => WIDGET_BY_ID.get(desktopIds[index] ?? ""));
 
@@ -597,7 +654,7 @@ export function CommandCenterScreen() {
           <View testID="desktop-workspace-header" style={[styles.glass, styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
             <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
               <Text style={[styles.eyebrow, mobile && styles.eyebrowMobile]}>{mobile ? "Persönlicher Arbeitsplatz" : "PERSÖNLICHER ARBEITSPLATZ"}</Text>
-              {!mobile ? <Text style={styles.desktopTitle}>Mein Desktop</Text> : null}
+              {!mobile ? <Text style={styles.desktopTitle}>{moduleLabel} · Mein Desktop</Text> : null}
             </View>
             <View style={styles.desktopActions}>
               <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
@@ -606,6 +663,12 @@ export function CommandCenterScreen() {
               </Pressable>
             </View>
           </View>
+          <View style={styles.moduleTabs} accessibilityRole="tablist" accessibilityLabel="Desktop-Modul auswählen">
+            {availableModules.map(module => <Pressable key={module.key} accessibilityRole="tab" accessibilityState={{ selected: module.key === moduleKey }} onPress={() => onModuleChange(module.key)} style={[styles.chip, module.key === moduleKey && styles.chipActive]}>
+              <Text style={[styles.chipText, module.key === moduleKey && styles.chipTextActive]}>{module.label}</Text>
+            </Pressable>)}
+          </View>
+          {preferencesError ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Die Einstellungen konnten nicht gespeichert werden. Ihre Auswahl bleibt geöffnet; bitte prüfen Sie den Browserspeicher.</Text> : null}
           <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
             <View style={styles.grid} dataSet={{ csDesktopWidgetGrid: "true" }} testID="desktop-widget-grid">
               {slots.map((widget, index) => (
@@ -638,7 +701,7 @@ export function CommandCenterScreen() {
       </Modal>
       <Modal transparent animationType="fade" visible={centerOpen} onRequestClose={() => setCenterOpen(false)}>
         <Pressable onPress={() => setCenterOpen(false)} style={styles.backdrop}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.centerPanel]}>
-          <View style={styles.centerHeader}><View style={styles.centerHeading}><Text style={styles.eyebrow}>CARESUITE HEALTHOS CENTER</Text><Text style={styles.centerTitle}>Apps & Widgets</Text><Text style={styles.centerSubtitle}>Arbeitsbereiche öffnen und Ihren Desktop gestalten.</Text></View><Pressable accessibilityLabel="Center schließen" onPress={() => setCenterOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View>
+          <View style={styles.centerHeader}><View style={styles.centerHeading}><Text style={styles.eyebrow}>CARESUITE HEALTHOS CENTER</Text><Text style={styles.centerTitle}>{moduleLabel} · Apps & Widgets</Text><Text style={styles.centerSubtitle}>Arbeitsbereiche öffnen und Ihren Desktop gestalten.</Text></View><Pressable accessibilityLabel="Center schließen" onPress={() => setCenterOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View>
           <ScrollView style={styles.centerScroll} contentContainerStyle={styles.centerContent} keyboardShouldPersistTaps="handled">
           <View style={styles.centerToolbar}><View style={styles.tabs}>{(["apps", "widgets", "workflows", "backgrounds"] as const).map((tab) => <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: tab === centerTab }} onPress={() => setCenterTab(tab)} style={[styles.tab, tab === centerTab && styles.tabActive]}><Text style={[styles.tabText, tab === centerTab && styles.tabTextActive]}>{tab === "apps" ? "Apps" : tab === "widgets" ? "Widgets" : tab === "workflows" ? "Workflows" : "Hintergründe"}</Text></Pressable>)}</View>{centerTab === "apps" || centerTab === "widgets" ? <View style={styles.search}><Text style={styles.searchGlyph}>⌕</Text><TextInput nativeID="desktop-catalog-search" accessibilityLabel={centerTab === "apps" ? "Apps durchsuchen" : "Widgets durchsuchen"} placeholder={`${category} durchsuchen …`} placeholderTextColor="#8FA9C2" value={query} onChangeText={setQuery} style={[styles.searchInput, { fontSize: 16 * fontScale }]} /></View> : null}</View>
           {centerTab === "apps" || centerTab === "widgets" ? <View style={styles.chips}>{CATEGORIES.map((item) => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: item === category }} onPress={() => setCategory(item)} style={[styles.chip, item === category && styles.chipActive]}><Text style={[styles.chipText, item === category && styles.chipTextActive]}>{item}</Text></Pressable>)}</View> : null}
@@ -656,7 +719,7 @@ export function CommandCenterScreen() {
             <Text style={styles.centerSubtitle}>Ändern Sie den Suchbegriff oder wählen Sie eine andere Kategorie.</Text>
             <Pressable accessibilityRole="button" onPress={() => setQuery("")} style={styles.appsButton}><Text style={styles.appsText}>Suche zurücksetzen</Text></Pressable>
           </View> : null}
-            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
+            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.filter(workflow => desktopModuleForRoute(workflow.route) === moduleKey).map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
               {filteredApps.map(app => <View key={app.route} style={[styles.centerCell, { flexBasis: 300 * fontScale }]}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`App ${app.label} öffnen`} onPress={() => openWidget(app)}
                   style={({ pressed }) => [styles.centerCard, styles.appCard, pressed && styles.widgetPressed]}>
@@ -709,6 +772,7 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
+  moduleTabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingVertical: 10, flexShrink: 0 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
