@@ -9,7 +9,7 @@ import { resolveDesktopGridLayout } from '@/lib/platform/desktopGridLayout';
 const memory = new Map<string, string>();
 const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
-const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
+const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-label={p.accessibilityLabel} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
 const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
 class Value {
   constructor(public value: number) {}
@@ -160,9 +160,9 @@ describe('App centre categories and distinct actions', () => {
   });
   it('finds released pages outside the old shortlist and opens their actual destination', async () => {
     await render(); await typeInto('Seiten in der Navigation suchen', 'Audit');
-    expect(label('Seite Audit öffnen')).not.toBeNull();
+    expect(label('Seite Änderungsprotokoll öffnen')).not.toBeNull();
     expect(label('Seite Rechnungen öffnen')).toBeNull();
-    await click(label('Seite Audit öffnen'));
+    await click(label('Seite Änderungsprotokoll öffnen'));
     expect(api.push).toHaveBeenCalledWith('/business/office/audit-log');
     await typeInto('Seiten in der Navigation suchen', 'Hilfe');
     expect(label('Seite Support & Hilfe öffnen')).toBeNull();
@@ -171,6 +171,11 @@ describe('App centre categories and distinct actions', () => {
 
 
 describe('module switching', () => {
+  it('places the module switch inside the existing desktop header', async () => {
+    await render();
+    const header = host.querySelector('[data-testid=desktop-workspace-header]')!;
+    expect(header.querySelector('[aria-label="Desktop-Modul auswählen"]')).not.toBeNull();
+  });
   it('keeps an explicitly empty legacy desktop empty during migration', async () => {
     memory.set(`caresuite.healthos.desktop-widgets.v3.${api.owner}`, '[]'); await render();
     expect(JSON.parse(memory.get(key())!)).toEqual([]);

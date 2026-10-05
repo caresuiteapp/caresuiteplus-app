@@ -33,3 +33,27 @@ describe('module desktops', () => {
     expect(normalizeModuleWidgets(ids, ids, [])).toHaveLength(12);
   });
 });
+
+
+describe('navigation cleanup', () => {
+  const app = (route: string) => ({ id: route, route, label: route, description: '', category: 'Übersicht' as const });
+  it('collapses confirmed Assist redirects into one canonical entry', () => {
+    const groups = buildModuleDesktopNavigation(['/assist/einsaetze', '/assist/assignments', '/assist/kalender', '/assist/calendar'].map(app), 'assist');
+    expect(groups.flatMap(g => g.items).map(a => a.route)).toEqual(['/assist/calendar', '/assist/assignments']);
+    expect(groups.map(g => g.title)).toEqual(['Planung', 'Einsätze & Durchführung']);
+  });
+  it('keeps distinct timekeeping functions and merges identical portal dashboards', () => {
+    const entries = buildModuleDesktopNavigation(['/business/office/time-tracking', '/business/office/time-tracking/live', '/business/office/access', '/business/office/portals'].map(app), 'office').flatMap(g => g.items);
+    expect(entries.map(a => a.label)).toEqual(['Zeitkonten & Arbeitszeit', 'Live-Anwesenheit', 'Benutzer & Portale']);
+  });
+  it('places messages, signatures and quality in their own areas', () => {
+    const groups = buildModuleDesktopNavigation(['/office/messages/templates', '/business/office/documents/signatures', '/business/office/qm'].map(app), 'office');
+    expect(groups.map(g => g.title)).toEqual(['Dokumente', 'Kommunikation', 'Qualität & Auswertung']);
+    expect(groups.find(g => g.title === 'Kommunikation')?.items[0].route).toBe('/office/messages/templates');
+  });
+  it('bundles Workspace navigation without mutating the full app catalog', () => {
+    const apps = ['/business/connect/google-workspace', '/business/connect/google-workspace?service=gmail'].map(app);
+    expect(buildModuleDesktopNavigation(apps, 'office')[0].items).toHaveLength(1);
+    expect(apps).toHaveLength(2);
+  });
+});
