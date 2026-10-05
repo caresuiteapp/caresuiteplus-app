@@ -3,7 +3,7 @@ import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import { BackHandler } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import { ErrorState, FullScreenLoader } from '@/components/ui';
+import { FullScreenLoader } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
@@ -76,16 +76,8 @@ export function RedirectIfAuthenticated({
     }
   }
 
-  if (isAuthenticated && !canRedirectHome && !isAuthSetupRoute(pathname)) {
-    return (
-      <ErrorState
-        title="Weiterleitung nicht möglich"
-        message="Ihre Sitzung konnte keinem Zielbereich zugeordnet werden. Bitte erneut anmelden."
-        onRetry={() => router.replace('/auth/business-login' as never)}
-      />
-    );
-  }
-
+  // An unresolved saved identity must not lock the user out of public login
+  // or recovery screens. Protected routes still enforce their own role guard.
   if (isAuthenticated && canRedirectHome && !isAuthSetupRoute(pathname)) {
     return <FullScreenLoader message={loadingMessage} />;
   }

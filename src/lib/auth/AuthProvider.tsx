@@ -294,7 +294,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setProfile(null);
       setSession(minimal.session);
       setProfileBootstrapError(error);
-      profileRepairAttemptedRef.current = false;
+      // Keep the single automatic web repair marked as attempted. Resetting
+      // it on every failure restarted this effect indefinitely for roleless
+      // profiles and repeatedly replaced the state while recovery was open.
+      if (Platform.OS !== 'web') profileRepairAttemptedRef.current = false;
     },
     [],
   );
@@ -528,7 +531,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const retryProfileBootstrap = useCallback(async () => {
     setProfileBootstrapError(null);
-    profileRepairAttemptedRef.current = false;
+    profileRepairAttemptedRef.current = Platform.OS === 'web';
 
     const sessionResult = await getSession();
     if (!sessionResult.ok || !sessionResult.data) {

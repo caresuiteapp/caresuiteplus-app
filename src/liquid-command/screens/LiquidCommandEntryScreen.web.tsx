@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth/context';
 import { RequireRole } from '@/lib/auth/RequireRole';
 import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
+import { SessionAccessRecovery } from '@/lib/auth/SessionAccessRecovery.web';
 import { AccessHubScreen } from './AccessScreens';
 import { CommandCenterScreen } from './CommandCenterScreen';
 
@@ -14,6 +15,7 @@ export function LiquidCommandEntryScreen() {
   if (!auth.isAuthenticated) return <AccessHubScreen />;
 
   const { homePath, canRedirectHome } = resolveAuthSessionTarget(auth);
+  if (!canRedirectHome) return <SessionAccessRecovery />;
   if (canRedirectHome && homePath !== '/') {
     return <Redirect href={homePath as never} />;
   }

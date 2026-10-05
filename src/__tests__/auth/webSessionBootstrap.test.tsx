@@ -42,8 +42,10 @@ function deferred<T>() {
 }
 let root: Root, host: HTMLDivElement;
 let states: Array<{ ready: boolean; authenticated: boolean; role: string | null }>;
+let latestAuth: ReturnType<typeof useAuth>;
 function Probe() {
   const auth = useAuth();
+  latestAuth = auth;
   states.push({ ready: auth.authReady, authenticated: auth.isAuthenticated, role: auth.profile?.roleKey ?? null });
   return <span>{auth.authReady ? auth.isAuthenticated ? 'Desktop' : 'Anmeldung' : 'Sitzung wird geladen'}</span>;
 }
@@ -60,6 +62,28 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('web session bootstrap', () => {
+  it('stops automatic repairs after one failed retry of a roleless saved session', async () => {
+    mock.bootstrap.mockResolvedValue({ ok: false, error: 'Benutzerrolle konnte nicht geladen werden.' });
+    await render();
+    await act(async () => { await Promise.resolve(); });
+    expect(mock.bootstrap).toHaveBeenCalledTimes(2);
+    expect(latestAuth.authReady).toBe(true);
+    expect(latestAuth.profileBootstrapError).toBe('Benutzerrolle konnte nicht geladen werden.');
+    expect(latestAuth.profile).toBeNull();
+    expect(latestAuth.user?.roleKey).toBeNull();
+    await act(async () => { await Promise.resolve(); });
+    expect(mock.bootstrap).toHaveBeenCalledTimes(2);
+  });
+  it('allows an explicit retry to recover the role without another automatic request', async () => {
+    mock.bootstrap.mockResolvedValue({ ok: false, error: 'Benutzerrolle konnte nicht geladen werden.' });
+    await render();
+    expect(mock.bootstrap).toHaveBeenCalledTimes(2);
+    mock.bootstrap.mockResolvedValue(identity);
+    await act(async () => latestAuth.retryProfileBootstrap());
+    expect(latestAuth.profile?.roleKey).toBe('business_admin');
+    expect(latestAuth.profileBootstrapError).toBeNull();
+    expect(mock.bootstrap).toHaveBeenCalledTimes(3);
+  });
   it('keeps login and desktop hidden until a slow session and profile resolve', async () => {
     const session = deferred<any>(), profile = deferred<any>();
     mock.getSession.mockReturnValue(session.promise); mock.bootstrap.mockReturnValue(profile.promise);

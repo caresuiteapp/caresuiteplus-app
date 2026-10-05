@@ -1,5 +1,6 @@
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
 import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
+import { Platform } from 'react-native';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import { resolveEmployeeFirstLoginHref } from './loginRouter';
 import type { PortalSessionRecord } from './portalSessionStore';
@@ -28,7 +29,11 @@ export function resolveEffectiveRoleKey(
 export function resolveAuthSessionTarget(input: SessionTargetInput) {
   const roleKey = resolveEffectiveRoleKey(input.profile, input.user, input.portalSession);
   const hasSupabaseSession = Boolean(input.user && input.session);
-  const hasSessionTarget = Boolean(input.portalSession || roleKey || hasSupabaseSession);
+  // A token alone is not a workspace identity. Web must keep the recovery
+  // and login screens reachable when a saved session has no resolved role.
+  const hasSessionTarget = Boolean(
+    input.portalSession || roleKey || (Platform.OS !== 'web' && hasSupabaseSession),
+  );
 
   let homePath = String(resolveSessionHomeRoute(roleKey, input.portalSession));
   if (
