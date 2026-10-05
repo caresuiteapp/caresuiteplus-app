@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { shouldOfferWebStartChoice } from './webStartDestinationPolicy';
 
 type WebStartDestination = {
@@ -12,16 +12,21 @@ const WebStartDestinationContext = createContext<WebStartDestination | null>(nul
 /** In document memory only: a fresh visit to / opens the choice again. */
 export function WebStartDestinationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [softwareEntered, setSoftwareEntered] = useState(() =>
     typeof window !== 'undefined' && !shouldOfferWebStartChoice(window.location),
   );
-  const enterSoftware = useCallback(() => setSoftwareEntered(true), []);
+  const enterSoftware = useCallback(() => {
+    // Keep the choice mounted until navigation commits. Revealing the home
+    // entry first would let a saved session redirect before /auth opens.
+    router.replace('/auth' as never);
+  }, [router]);
 
   useEffect(() => {
     // Login, QR confirmation and portal links retain their existing direct flow.
     // Returning to the home screen must not interrupt an in-progress session.
-    if (pathname !== '/') enterSoftware();
-  }, [enterSoftware, pathname]);
+    if (pathname !== '/') setSoftwareEntered(true);
+  }, [pathname]);
 
   const showChoice = pathname === '/' && !softwareEntered;
   const value = useMemo(() => ({ showChoice, enterSoftware }), [enterSoftware, showChoice]);

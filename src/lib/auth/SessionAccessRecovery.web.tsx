@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
 import { fetchPlatformCurrentUser } from '@/lib/platformConsole/platformAuthService';
 import {
@@ -63,7 +63,7 @@ export function SessionAccessRecovery() {
     setActionError(null);
     try {
       await signOut();
-      router.replace('/' as never);
+      router.replace('/auth' as never);
     } catch {
       setActionError('Die Sitzung konnte nicht beendet werden. Bitte versuchen Sie es erneut.');
     } finally {
@@ -74,7 +74,6 @@ export function SessionAccessRecovery() {
   if (platformAccess === 'checking') {
     return <FullScreenLoader message="Zugang wird geprüft…" />;
   }
-  if (platformAccess === 'granted') return <Redirect href="/platform" />;
 
   return (
     <LiquidBackdrop>
@@ -101,6 +100,15 @@ export function SessionAccessRecovery() {
             loading={pending === 'retry'}
             disabled={pending !== null}
           />
+          {platformAccess === 'granted' ? (
+            <LiquidButton
+              label="Plattform-Konsole öffnen"
+              variant="secondary"
+              fullWidth
+              onPress={() => router.replace('/platform' as never)}
+              disabled={pending !== null}
+            />
+          ) : null}
         </View>
       </ScrollView>
     </LiquidBackdrop>

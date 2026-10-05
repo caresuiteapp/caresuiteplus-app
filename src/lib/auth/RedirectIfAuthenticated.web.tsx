@@ -33,6 +33,7 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const isLoginOverview = pathname.replace(/\/+$/, '') === '/auth';
   const hydrated = useHydrated();
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
@@ -48,15 +49,15 @@ export function RedirectIfAuthenticated({
 
   useEffect(() => {
     if (!hydrated || !authReady || !isAuthenticated || !canRedirectHome) return;
-    if (isAuthSetupRoute(pathname)) return;
+    if (isLoginOverview || isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
     runAppTransition(() => {
       router.replace(homePath as never);
     });
-  }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, pathname, router]);
+  }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, isLoginOverview, pathname, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !canRedirectHome) return undefined;
+    if (isLoginOverview || !isAuthenticated || !canRedirectHome) return undefined;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       router.replace(homePath as never);
@@ -64,7 +65,12 @@ export function RedirectIfAuthenticated({
     });
 
     return () => subscription.remove();
-  }, [canRedirectHome, homePath, isAuthenticated, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, isLoginOverview, router]);
+
+  // Choosing a portal is a public action, also during session restoration.
+  // Only the overview bypasses this guard; login and protected routes keep
+  // their existing role, password-setup and TV-return handling.
+  if (isLoginOverview) return <>{children}</>;
 
   if (!hydrated || !authReady || sessionPending) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;

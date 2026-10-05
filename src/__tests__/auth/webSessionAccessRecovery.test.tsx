@@ -76,19 +76,25 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); });
 
 describe('web saved-session access recovery', () => {
-  it('routes an active platform account without a company role to its verified console', async () => {
+  it('opens a verified platform console only after an explicit user action', async () => {
     mock.platformUser.mockResolvedValue({ ok: true, data: { status: 'active' } });
     await render(<LiquidCommandEntryScreen />);
     expect(mock.platformUser).toHaveBeenCalledOnce();
-    expect(host.textContent).toBe('Redirect: /platform');
+    expect(host.textContent).toContain('Plattform-Konsole öffnen');
+    expect(mock.replace).not.toHaveBeenCalled();
+    expect(host.textContent).not.toContain('Redirect: /platform');
     expect(host.textContent).not.toContain('Protected desktop');
     expect(host.textContent).not.toContain('Error overlay');
+    const button = [...host.querySelectorAll('button')].find(node => node.textContent === 'Plattform-Konsole öffnen')!;
+    await act(async () => button.click());
+    expect(mock.replace).toHaveBeenCalledWith('/platform');
   });
   it.each(['disabled', 'revoked'])('does not grant console access to a %s platform account', async (status) => {
     mock.platformUser.mockResolvedValue({ ok: true, data: { status } });
     await render(<LiquidCommandEntryScreen />);
     expect(host.textContent).toContain('Anmeldung wiederherstellen');
     expect(host.textContent).not.toContain('Redirect: /platform');
+    expect(host.textContent).not.toContain('Plattform-Konsole öffnen');
   });
   it('keeps recovery usable if the platform authorization lookup fails', async () => {
     mock.platformUser.mockRejectedValue(new Error('test-only connection failure'));
@@ -115,6 +121,7 @@ describe('web saved-session access recovery', () => {
     expect(host.textContent).toContain('Anmeldung wiederherstellen');
     await act(async () => oldIdentity.resolve({ ok: true, data: { status: 'active' } }));
     expect(host.textContent).not.toContain('Redirect: /platform');
+    expect(host.textContent).not.toContain('Plattform-Konsole öffnen');
   });
   it('does not infer a desktop destination from an access token without a role', () => {
     const target = resolveAuthSessionTarget(mock.auth);
@@ -139,7 +146,7 @@ describe('web saved-session access recovery', () => {
     expect(mock.replace).not.toHaveBeenCalled();
     expect(button.disabled).toBe(true);
     await act(async () => signout.resolve());
-    expect(mock.replace).toHaveBeenCalledWith('/');
+    expect(mock.replace).toHaveBeenCalledWith('/auth');
     mock.auth = { ...mock.auth, isAuthenticated: false, user: null, session: null };
     await render(<LiquidCommandEntryScreen />);
     expect(host.textContent).toBe('Portal selection');
