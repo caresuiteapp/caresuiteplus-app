@@ -31,5 +31,6 @@ describe('HealthOS central route presentation', () => {
   it('keeps authentication and public portals outside the popup presenter', () => {
     expect(isHealthOSContextualPopupRoute('/auth/business-login')).toBe(false);
     expect(isHealthOSContextualPopupRoute('/portal/employee')).toBe(false);
+    expect(isHealthOSContextualPopupRoute('/support')).toBe(false);
   });
 });

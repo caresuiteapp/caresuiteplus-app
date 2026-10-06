@@ -38,6 +38,7 @@ describe('post-login redirect routing', () => {
     expect(isAuthSetupRoute('/auth/employee-first-login')).toBe(true);
     expect(isAuthSetupRoute('/auth/employee-first-login?accountId=1')).toBe(true);
     expect(isAuthSetupRoute('/auth/business-login')).toBe(false);
+    expect(isAuthSetupRoute('/auth/forgot-password')).toBe(true);
   });
 
   it('isAuthRoutePath matches auth tree routes', () => {

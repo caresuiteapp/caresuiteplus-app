@@ -37,7 +37,7 @@ function createId(prefix: string): string {
 
 export async function registerBusinessTenant(
   input: BusinessRegistrationInput,
-): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal }>> {
+): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal; welcomeEmailQueued?: boolean }>> {
   const validationError = validateCompanyRegistrationSelection(input) ?? validateBusinessRegistration(input);
   if (validationError) return { ok: false, error: validationError };
   if (getServiceMode() === 'supabase') {
@@ -52,6 +52,7 @@ export async function registerBusinessTenant(
         displayName: string;
       };
       credentials: { username: string };
+      welcomeEmailQueued?: boolean;
     }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined });
 
     if (!registration.ok) {
@@ -86,6 +87,7 @@ export async function registerBusinessTenant(
         tenantId: registration.data.tenantId,
         owner,
         credentials: registration.data.credentials,
+        welcomeEmailQueued: registration.data.welcomeEmailQueued === true,
       },
     };
   }
