@@ -111,7 +111,7 @@
 .cinematic .start-heading{align-items:center}
 .cinematic .start-heading h2{font-size:clamp(2.9rem,5.2vw,5rem)}
 .cinematic .start-heading .button{margin-top:35px}
-.cinematic .price-mark>span{background:linear-gradient(140deg,#edffff,#8ed8ff,#809bff);background-clip:text;-webkit-text-fill-color:transparent;font-size:clamp(9rem,19vw,16rem);line-height:.9;filter:drop-shadow(0 0 28px #4793ff22)}
+.cinematic .price-mark>span{display:inline-block;letter-spacing:0;background:linear-gradient(140deg,#edffff,#8ed8ff,#809bff);background-clip:text;-webkit-text-fill-color:transparent;font-size:clamp(9rem,19vw,16rem);line-height:.9;filter:drop-shadow(0 0 28px #4793ff22)}
 .cinematic .price-mark>small{color:#b5e9ff}
 .cinematic .price-mark>i{font-size:.75rem;line-height:1.6}
 .portal-intro{display:flex;gap:18px;align-items:center;margin-top:60px;color:#9ab8d4;font-size:.875rem}
