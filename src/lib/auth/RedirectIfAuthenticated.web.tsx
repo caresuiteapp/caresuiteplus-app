@@ -33,7 +33,9 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const isLoginOverview = pathname.replace(/\/+$/, '') === '/auth';
+  const normalizedPath = pathname.replace(/\/+$/, '');
+  const isLoginOverview = normalizedPath === '/auth';
+  const isPublicRecoveryRoute = normalizedPath === '/auth/forgot-password' || normalizedPath === '/auth/reset-password';
   const hydrated = useHydrated();
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
@@ -57,7 +59,7 @@ export function RedirectIfAuthenticated({
   }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, isLoginOverview, pathname, router]);
 
   useEffect(() => {
-    if (isLoginOverview || !isAuthenticated || !canRedirectHome) return undefined;
+    if (isLoginOverview || isPublicRecoveryRoute || !isAuthenticated || !canRedirectHome) return undefined;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       router.replace(homePath as never);
@@ -65,12 +67,12 @@ export function RedirectIfAuthenticated({
     });
 
     return () => subscription.remove();
-  }, [canRedirectHome, homePath, isAuthenticated, isLoginOverview, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, isLoginOverview, isPublicRecoveryRoute, router]);
 
-  // Choosing a portal is a public action, also during session restoration.
-  // Only the overview bypasses this guard; login and protected routes keep
-  // their existing role, password-setup and TV-return handling.
-  if (isLoginOverview) return <>{children}</>;
+  // Keep public recovery navigation mounted from the first client render.
+  // Replacing its nested Stack with a session loader loses a direct deep link
+  // before the asynchronous session restore has finished.
+  if (isLoginOverview || isPublicRecoveryRoute) return <>{children}</>;
 
   if (!hydrated || !authReady || sessionPending) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
