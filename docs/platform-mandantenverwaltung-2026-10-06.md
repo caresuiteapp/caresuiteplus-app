@@ -25,7 +25,7 @@ Der produktive Zusatzpaket- und Rabattkatalog war zum Prüfzeitpunkt leer. Diese
 ## Nachweise und Grenzen
 
 - 216 relevante Prüfungen erfolgreich: Plattformverwaltung, Anmelde- und Versandabläufe, PostgreSQL-Berechtigungen, Unternehmenszuordnung, Freigaben, Wiederholschutz und Bedienung. Die Datenbankprüfungen verwenden die tatsächlich eingesetzte Tarifstruktur.
-- Web-Export erfolgreich. Der vollständige Produktions-Build wird zusätzlich mit den vorhandenen Projektprüfungen ausgeführt.
+- Web-Export und vorhandene Prüfungen für Web-Navigation, Kalender-Erkennung und Sprachdateien erfolgreich. Die öffentlichen Seiten werden mit dem vorhandenen Projektablauf erzeugt.
 - Die gesamte Typprüfung enthält 32 bestehende Fehler in unveränderten Dateien. In den geänderten Dateien wurden keine Typfehler gefunden. Die Prüfung erlaubt die für Edge-Funktionen erforderlichen `.ts`-Importe.
 - Die optische Prüfung in breiter und schmaler Darstellung bleibt offen: Der verfügbare Cloud-Browser blockiert die lokale Vorschau mit `ERR_BLOCKED_BY_CLIENT`. DOM-Bedienprüfungen ersetzen keinen Layoutnachweis.
 - Es wurden keine produktiven Konten, Tarifzuweisungen oder Datenfreigaben verändert und keine Testmails an echte Empfänger versendet. Zustellung, realer Kontowechsel und Freigabe durch ein echtes Unternehmen sind deshalb noch nicht durchgängig nachgewiesen.

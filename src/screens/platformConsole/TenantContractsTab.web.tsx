@@ -98,4 +98,3 @@ export function TenantAddonsTab({tenantId,role,onReload}:Omit<Props,'detail'>) {
     </div>:<p>Ihre Rolle hat für Zusatzpakete Lesezugriff.</p>}
   </div></section><PlatformConfirmModal visible={!!confirm} title={confirm?.title??''} description={confirm?.description??''} danger={confirm?.danger} loading={operation.busy} error={operation.error} onCancel={()=>{setConfirm(null);operation.clear();}} onConfirm={reason=>{if(confirm)void operation.run(()=>confirm.action(reason)).then(ok=>{if(ok)setConfirm(null);});}}/></div>;
 }
-

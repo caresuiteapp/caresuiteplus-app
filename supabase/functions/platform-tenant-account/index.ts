@@ -43,4 +43,3 @@ serve(async req=>{
       needsReview:cause instanceof AccountActionError&&cause.needsReview},code==='platform_forbidden'?403:409);
   }
 });
-

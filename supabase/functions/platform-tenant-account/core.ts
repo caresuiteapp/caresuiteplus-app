@@ -79,4 +79,3 @@ export async function manageTenantAccount(user:RpcClient,admin:AccountAdmin,conf
     throw new AccountActionError(review?'account_update_needs_review':cause instanceof AccountActionError?cause.code:'account_save_unconfirmed',review);
   }
 }
-
