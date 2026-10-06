@@ -20,7 +20,7 @@ describe('registration scheduler configuration and authorization',()=>{
       CREATE FUNCTION net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) RETURNS bigint LANGUAGE sql AS $$INSERT INTO net.fixture_calls VALUES(url,headers,body) RETURNING 1::bigint$$;`);
     // Embedded PostgreSQL cannot load the hosted scheduler/HTTP extensions. The
     // exact application SQL executes against explicit adapter fixtures above.
-    const source=readFileSync(resolve('supabase/migrations/20261006032128_registration_welcome_scheduler.sql'),'utf8');
+    const source=readFileSync(resolve('supabase/migrations/20261006063341_registration_welcome_scheduler.sql'),'utf8');
     const lines=source.split('\n').filter(line=>!/^CREATE EXTENSION IF NOT EXISTS (pg_net|pg_cron)/.test(line));
     expect(source.split('\n').length-lines.length).toBe(2);
     await db.exec(lines.join('\n'));

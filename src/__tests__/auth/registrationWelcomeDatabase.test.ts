@@ -31,7 +31,7 @@ describe('transactional registration welcome database',()=>{
   let db:PGlite;
   beforeAll(async()=>{
     db=new PGlite();await db.exec(fixture);
-    await db.exec(readFileSync(resolve('supabase/migrations/20261006032122_registration_welcome_outbox.sql'),'utf8'));
+    await db.exec(readFileSync(resolve('supabase/migrations/20261006063320_registration_welcome_outbox.sql'),'utf8'));
   },30000);
   afterAll(async()=>{await db?.close();});
   async function register(email=`owner-${randomUUID()}@example.test`) {
