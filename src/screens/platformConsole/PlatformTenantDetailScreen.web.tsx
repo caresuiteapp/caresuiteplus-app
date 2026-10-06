@@ -50,23 +50,17 @@ import {
 
   TenantAuditTab,
 
-  TenantBillingPreviewTab,
 
-  TenantCreditsTab,
 
   TenantDiagnosisTab,
 
-  TenantDiscountsTab,
 
   TenantEntitlementsTab,
 
   TenantFeatureFlagsTab,
 
-  TenantInvoicesTab,
 
-  TenantLimitsTab,
 
-  TenantPaymentsTab,
 
 
 
@@ -80,23 +74,17 @@ import { ConsoleStyle, ConsoleBadge } from '@/components/platformConsole/Console
 import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
 import { platformName } from '@/lib/platformConsole/platformLanguage';
 import { TenantAccountsTab } from './TenantAccountsTab.web';
-import { TenantContractTab, TenantAddonsTab } from './TenantContractsTab.web';
+import { PlatformFreeUsagePanel } from '@/components/platformConsole/PlatformFreeUsagePanel.web';
 
 
 
 const TAB_GROUPS = [
   { key: 'record', label: 'Mandantenakte', tabs: [
     { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
+    { key: 'usage', label: 'Kostenlose Nutzung' },
   ] },
-  { key: 'contract', label: 'Vertrag & Produkte', tabs: [
-    { key: 'subscription', label: 'Tarif & Vertrag' }, { key: 'addons', label: 'Zusatzpakete' },
-    { key: 'entitlements', label: 'Berechtigungen' }, { key: 'limits', label: 'Kapazitäten' },
-    { key: 'flags', label: 'Funktionsfreigaben' },
-  ] },
-  { key: 'finance', label: 'Finanzen', tabs: [
-    { key: 'billing', label: 'Rechnungen' }, { key: 'preview', label: 'Kostenübersicht' },
-    { key: 'payments', label: 'Zahlungen' }, { key: 'credits', label: 'Guthaben' },
-    { key: 'discounts', label: 'Rabatte' },
+  { key: 'functions', label: 'Funktionen & Freigaben', tabs: [
+    { key: 'entitlements', label: 'Funktionsbereiche' }, { key: 'flags', label: 'Funktionsfreigaben' },
   ] },
   { key: 'access', label: 'Zugriff & Support', tabs: [
     { key: 'users', label: 'Anmeldung & E-Mails' }, { key: 'support', label: 'Support' },
@@ -108,28 +96,21 @@ const TAB_GROUPS = [
 
 type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 const TAB_CAPABILITIES: Record<TabKey, PlatformCapability> = {
-  overview:'tenants.read',recordEdit:'tenants.write',subscription:'plans.read',addons:'plans.read',entitlements:'modules.read',limits:'plans.read',
-  flags:'flags.read',billing:'billing.read',preview:'billing.read',payments:'payments.read',credits:'billing.read',
-  discounts:'discounts.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
+  overview:'tenants.read',recordEdit:'tenants.write',usage:'tenants.read',entitlements:'modules.read',
+  flags:'flags.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
 };
 const TAB_DESCRIPTIONS: Record<TabKey,string> = {
   overview:'Unternehmensstatus, Kontaktdaten und aktivierte Funktionen im Zusammenhang prüfen.',
   recordEdit:'Rechtliche Angaben, Ansprechpartner, E-Mail-Adressen und Datenumgebung verbindlich pflegen.',
-  subscription:'Vertragsversion, Laufzeit, Status und zugeordnete Erweiterungen für dieses Unternehmen bearbeiten.',
-  addons:'Zusatzpakete und Abrechnungsrhythmus zuweisen, bestehende Zuweisungen prüfen oder beenden.',
-  entitlements:'Den tatsächlich berechneten Funktionszugriff einschließlich seiner Vertragsgrundlage prüfen.',
-  limits:'Vereinbarte Kapazitäten und die aktuell zugrunde liegenden Kapazitäten nachvollziehen.',
+  usage:'CareSuite HealthOS ist vollständig kostenlos nutzbar. Alle derzeit bereitgestellten Funktionen sind kostenlos.',
+  entitlements:'Die tatsächlich gespeicherten Freigaben der kostenlosen Funktionsbereiche prüfen.',
   flags:'Funktionsfreigaben für genau dieses Unternehmen prüfen und mit Begründung ändern.',
-  billing:'Rechnungen, Fälligkeiten und dokumentierte Zahlungsstände dieses Unternehmens prüfen.',
-  preview:'Preise des aktuellen Tarifs, aktiver Zusatzpakete und hinterlegtes Guthaben prüfen.',
-  payments:'Dokumentierte Zahlungseingänge, Rechnungszuordnungen und fehlgeschlagene Vorgänge nachvollziehen.',
-  credits:'Guthabenbestand und Buchungshistorie prüfen; Korrekturen benötigen eine nachvollziehbare Grundlage.',
-  discounts:'Aktive Sonderkonditionen und ihre Laufzeiten prüfen, zuweisen oder beenden.',
   users:'Die dem Unternehmen zugeordneten Konten und ihre Kontaktinformationen einsehen.',
   support:'Unternehmensbezogene Supportanfragen und bestätigte Datenzugriffe im Support-Arbeitsbereich bearbeiten.',
   diagnosis:'Einrichtungsstand und betriebliche Auffälligkeiten prüfen, bevor Sie einen Fehler eskalieren.',
   audit:'Änderungen an diesem Unternehmen mit Zeitpunkt, ausführender Rolle und Begründung nachvollziehen.',
 };
+
 
 
 
@@ -297,7 +278,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   return (
 
-    <DesktopPlatformShell scroll={false} title={tenantName} subtitle="Mandantenakte, Vertrag, Finanzen und Support">
+    <DesktopPlatformShell scroll={false} title={tenantName} subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support">
 
       <View style={styles.navigation}>
         <View style={styles.groupTabs}>
@@ -424,45 +405,11 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
-        {tab === 'subscription' ? (
-          <TenantContractTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
-        ) : null}
+        {tab === 'usage' ? <PlatformFreeUsagePanel /> : null}
 
         {tab === 'entitlements' ? (
           <TenantEntitlementsTab tenantId={tid} role={platformUser?.role} detail={detail} />
         ) : null}
-
-        {tab === 'billing' ? (
-
-          <TenantInvoicesTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
-
-        ) : null}
-
-
-
-        {tab === 'preview' ? (
-          <TenantBillingPreviewTab tenantId={tid} role={platformUser?.role} />
-        ) : null}
-
-        {tab === 'credits' ? (
-          <TenantCreditsTab tenantId={tid} role={platformUser?.role} onReload={load} />
-        ) : null}
-
-        {tab === 'payments' ? (
-
-          <TenantPaymentsTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
-
-        ) : null}
-
-
-
-        {tab === 'discounts' ? (
-
-          <TenantDiscountsTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
-
-        ) : null}
-
-
 
         {tab === 'support' ? (
 
@@ -480,8 +427,6 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
-        {tab === 'addons' ? <TenantAddonsTab tenantId={tid} role={platformUser?.role} onReload={load} /> : null}
-        {tab === 'limits' ? <TenantLimitsTab detail={detail} /> : null}
 
         {tab === 'users' ? <TenantAccountsTab tenantId={tid} role={platformUser?.role} onDirtyChange={setRecordDirty} /> : null}
 
@@ -585,26 +530,24 @@ function OverviewTab({
           <InfoRow label="Ansprechperson" value={String(t.primary_contact_name ?? '—')} />
           <InfoRow label="E-Mail" value={String(t.primary_contact_email ?? '—')} />
           <InfoRow label="Telefon" value={String(t.primary_contact_phone ?? '—')} />
-          <InfoRow label="Abrechnung" value={String(t.billing_email ?? '—')} />
           <InfoRow label="Support" value={String(t.support_email ?? '—')} />
         </View>
       </View>
 
       <View style={styles.recordColumns}>
         <View style={[styles.panel, styles.recordColumn]}>
-          <Text style={styles.panelTitle}>Vertrag & Betrieb</Text>
+          <Text style={styles.panelTitle}>Nutzung & Betrieb</Text>
           <InfoBadgeRow label="Mandantenstatus" status={String(t.status ?? '—')} />
           <InfoBadgeRow label="Einrichtungsstand" status={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
-          <InfoBadgeRow label="Abrechnung" status={String(t.billing_status ?? t.billingStatus ?? '—')} />
-          <InfoRow label="Tarif" value={(t.plan_key ?? t.planKey ?? detail.plan?.plan_key) === 'free_platform' ? 'Kostenlos · 0 €' : platformName(t.plan_key ?? t.planKey ?? detail.plan?.plan_key, String(detail.plan?.plan_name || 'Individueller Tarif'))} />
+          <InfoRow label="Nutzung" value="Kostenlos · 0 €" />
         </View>
 
         <View style={[styles.panel, styles.recordColumn]}>
-          <Text style={styles.panelTitle}>Aktive Produkte</Text>
+          <Text style={styles.panelTitle}>Aktive Funktionsbereiche</Text>
           {activeModules.length ? activeModules.map((module) => (
             <View key={module.moduleKey} style={styles.productRow}>
               <Text style={styles.productName}>{platformName(module.moduleKey, module.moduleName)}</Text>
-              <PlatformStatusBadge status={module.status} />
+              <PlatformStatusBadge status={module.status === 'trial' ? 'enabled' : module.status} />
             </View>
           )) : <Text style={styles.panelHint}>Keine aktiven Funktionsbereiche.</Text>}
         </View>
@@ -655,7 +598,7 @@ function TenantRecordEditTab({
   const [contactName, setContactName] = useState(String(t.primary_contact_name ?? ''));
   const [contactEmail, setContactEmail] = useState(String(t.primary_contact_email ?? ''));
   const [contactPhone, setContactPhone] = useState(String(t.primary_contact_phone ?? ''));
-  const [billingEmail, setBillingEmail] = useState(String(t.billing_email ?? ''));
+  const billingEmail = String(t.billing_email ?? '');
   const [supportEmail, setSupportEmail] = useState(String(t.support_email ?? ''));
   const [country, setCountry] = useState(String(t.country ?? 'DE'));
   const [timezone, setTimezone] = useState(String(t.timezone ?? 'Europe/Berlin'));
@@ -669,7 +612,7 @@ function TenantRecordEditTab({
   const dirty = currentValues.some((value, index) => value !== initialValues.current[index]);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
-  const emailError = [contactEmail, billingEmail, supportEmail].some(value => value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
+  const emailError = [contactEmail, supportEmail].some(value => value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
   const recordError = emailError ? 'Bitte gültige E-Mail-Adressen angeben.' : !/^[A-Za-z]{2}$/.test(country.trim()) ? 'Bitte das zweistellige Länderkürzel angeben, zum Beispiel DE.' : null;
 
   if (!canWrite) {
@@ -705,11 +648,10 @@ function TenantRecordEditTab({
           <PlatformFormField label="Zeitzone"><TextInput editable={!disabled} style={styles.input} value={timezone} onChangeText={setTimezone} autoCapitalize="none" /></PlatformFormField>
         </View>
         <View style={[styles.panel, styles.recordColumn]}>
-          <Text style={styles.panelTitle}>Kontakt & Abrechnung</Text>
+          <Text style={styles.panelTitle}>Kontakt & Support</Text>
           <PlatformFormField label="Ansprechperson"><TextInput editable={!disabled} style={styles.input} value={contactName} onChangeText={setContactName} /></PlatformFormField>
           <PlatformFormField label="Kontakt-E-Mail"><TextInput editable={!disabled} style={styles.input} value={contactEmail} onChangeText={setContactEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
           <PlatformFormField label="Telefon"><TextInput editable={!disabled} style={styles.input} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" /></PlatformFormField>
-          <PlatformFormField label="Abrechnungs-E-Mail"><TextInput editable={!disabled} style={styles.input} value={billingEmail} onChangeText={setBillingEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
           <PlatformFormField label="Support-E-Mail"><TextInput editable={!disabled} style={styles.input} value={supportEmail} onChangeText={setSupportEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
         </View>
       </View>

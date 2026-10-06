@@ -159,7 +159,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           {(['overview', 'customers', 'product', 'finance', 'operations'] as const).map((group) => {
             const groupItems = navItems.filter((item) => item.group === group);
             if (!groupItems.length) return null;
-            const groupLabel = { overview: 'Übersicht', customers: 'Kunden & Verträge', product: 'Produktverwaltung', finance: 'Finanzen', operations: 'Betrieb', mobile: '' }[group];
+            const groupLabel = { overview: 'Übersicht', customers: 'Unternehmen', product: 'Funktionen', finance: '', operations: 'Betrieb', mobile: '' }[group];
             const closed = closedGroups.includes(group);
             return <View key={group} style={styles.navGroup}>
               <Pressable accessibilityRole="button" accessibilityLabel={groupLabel} accessibilityState={{ expanded: !closed }} style={styles.navGroupHeader} onPress={() => setClosedGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])}><Text style={styles.navGroupLabel}>{groupLabel}</Text><Text style={styles.navGroupLabel}>{closed ? '+' : '−'}</Text></Pressable>

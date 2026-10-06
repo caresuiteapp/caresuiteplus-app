@@ -262,7 +262,7 @@ describe('Platform Billing Preview Engine', () => {
 
 describe('Platform Foundation RPC rules (client-side RBAC/reason)', () => {
   it('Platform Owner darf schreiben', () => {
-    expect(platformRoleHasCapability('platform_owner', 'plans.write')).toBe(true);
+    expect(platformRoleHasCapability('platform_owner', 'plans.write')).toBe(false);
     expect(platformRoleCanWrite('platform_owner')).toBe(true);
   });
 

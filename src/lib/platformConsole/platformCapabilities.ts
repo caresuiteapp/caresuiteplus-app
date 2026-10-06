@@ -1,4 +1,5 @@
 import type { PlatformCapability, PlatformRoleKey } from '@/types/platformConsole';
+import { isRetiredPlatformCapability } from './platformFreePolicy';
 
 const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> = {
   platform_owner: 'all',
@@ -73,7 +74,7 @@ export function platformRoleHasCapability(
   role: PlatformRoleKey | null | undefined,
   capability: PlatformCapability,
 ): boolean {
-  if (!role) return false;
+  if (!role || isRetiredPlatformCapability(capability)) return false;
   const caps = ROLE_CAPABILITIES[role];
   if (caps === 'all') return true;
   return caps?.includes(capability) ?? false;

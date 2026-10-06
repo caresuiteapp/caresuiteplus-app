@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 
 const migration=(name:string)=>readFileSync('supabase/migrations/'+name,'utf8');
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-describe('tenant administration against the deployed tariff and consent schema',()=>{
+describe('tenant administration with free usage, account recovery and company consent',()=>{
   let db:PGlite;
   const rows=async(sql:string,args:unknown[]=[])=> (await db.query<Record<string,any>>(sql,args)).rows;
   const scalar=async(sql:string,args:unknown[]=[])=>Object.values((await rows(sql,args))[0])[0] as any;
@@ -48,6 +48,15 @@ describe('tenant administration against the deployed tariff and consent schema',
     // Gmail is already deployed. Apply the pending administration change afterwards.
     await db.exec(migration('20261006123127_registration_gmail_smtp.sql'));
     await db.exec(migration('20261006122235_platform_tenant_operations_de.sql'));
+    await db.exec(`
+      INSERT INTO platform_plans(plan_key,plan_name,monthly_price_cents,yearly_price_cents,is_public)
+        VALUES('free_platform','CareSuite kostenlos',0,0,true),('other_free','Anderer Bestand',0,0,false);
+      INSERT INTO platform_audit_log(action,target_type,target_id,reason,user_agent)
+        SELECT 'plan.created','platform_plan',id,
+          'Produktiver Konfigurationsabgleich zur freigegebenen Mandantenverwaltung vom 06.10.2026: Prüfbeleg',
+          'CareSuite-Konfigurationsabgleich' FROM platform_plans WHERE plan_key='free_platform';
+    `);
+    await db.exec(migration('20261006182606_platform_console_free_only.sql'));
     await db.exec(`
       GRANT ALL ON ALL TABLES IN SCHEMA public,auth TO service_role;
       INSERT INTO tenants(id,name) VALUES('${id(1)}','Firma A'),('${id(2)}','Firma B');
@@ -141,28 +150,43 @@ describe('tenant administration against the deployed tariff and consent schema',
     expect(await scalar('SELECT business_consume_recovery_delivery($1,$2,$3)',[digest,id(20),'old@example.test'])).toBe(true);
     expect(await scalar('SELECT business_consume_recovery_delivery($1,$2,$3)',[digest,id(20),'old@example.test'])).toBe(false);
   });
-  it('books a credit only once and displays costs from real assigned records',async()=>{
-    await login(10);const nonce=randomUUID();
-    await scalar('SELECT platform_record_tenant_credit($1,$2,2500,$3)',[nonce,id(1),'Gutschrift vereinbart']);
-    await scalar('SELECT platform_record_tenant_credit($1,$2,2500,$3)',[nonce,id(1),'Gutschrift vereinbart']);
-    const costs=await scalar('SELECT platform_tenant_cost_overview($1)',[id(1)]);expect(costs.credit_cents).toBe(2500);expect(costs.addons).toEqual([]);
-    await server();expect(await scalar('SELECT count(*)::integer FROM platform_credit_ledger WHERE tenant_id=$1',[id(1)])).toBe(1);
-    await login(11);await expect(scalar('SELECT platform_record_tenant_credit($1,$2,1000,$3)',[randomUUID(),id(1),'Unauthorized credit'])).rejects.toThrow('platform_forbidden');
+  it('denies commercial credit and cost actions even to the owner',async()=>{
+    await login(10);
+    await expect(scalar('SELECT platform_record_tenant_credit($1,$2,2500,$3)',[randomUUID(),id(1),'Überholter Vorgang'])).rejects.toThrow('platform_forbidden');
+    await expect(scalar('SELECT platform_tenant_cost_overview($1)',[id(1)])).rejects.toThrow('platform_forbidden');
+    await server();expect(await scalar('SELECT count(*)::integer FROM platform_credit_ledger')).toBe(0);
   });
-  it('maintains the deployed tariff catalog while protecting existing prices and readonly access',async()=>{
-    await login(11);await expect(scalar("SELECT platform_create_plan('free_platform','CareSuite kostenlos','Vertragsgrundlage geprüft')")).rejects.toThrow('platform_forbidden');
-    await login(10);await expect(scalar("SELECT platform_create_plan('paid_new','Unzulässiger Preis','Vertragsgrundlage geprüft',null,100,0)")).rejects.toThrow('invalid_plan_values');
-    const plan=await scalar("SELECT platform_create_plan('free_platform','CareSuite kostenlos','Vertragsgrundlage geprüft')");expect(plan.monthly_price_cents).toBe(0);
+  it('archives only the mistaken administrative record and retains history',async()=>{
+    await db.exec('RESET ROLE');
+    expect((await rows("SELECT status,is_public FROM platform_plans WHERE plan_key='free_platform'"))[0]).toEqual({status:'archived',is_public:false});
+    expect(await scalar("SELECT status FROM platform_plans WHERE plan_key='other_free'")).toBe('active');
+    expect(await scalar("SELECT count(*)::integer FROM platform_audit_log WHERE action='plan.created' AND user_agent='CareSuite-Konfigurationsabgleich'")).toBe(1);
+    expect(await scalar("SELECT count(*)::integer FROM platform_audit_log WHERE action='plan.archived' AND user_agent='CareSuite-Konfigurationskorrektur'")).toBe(1);
     const old=await scalar("SELECT monthly_price_cents FROM platform_plans WHERE plan_key='starter'");
-    await scalar("SELECT platform_update_plan('starter','Bezeichnung aktualisiert','Basis')");
-    expect(await scalar("SELECT monthly_price_cents FROM platform_plans WHERE plan_key='starter'")).toBe(old);
+    await login(10);await expect(scalar("SELECT platform_create_plan('new_free','Kostenlos','Überholter Vorgang')")).rejects.toThrow('platform_forbidden');
+    await expect(scalar("SELECT platform_update_plan('starter','Überholter Vorgang','Basis')")).rejects.toThrow('platform_forbidden');
+    await db.exec('RESET ROLE');expect(await scalar("SELECT monthly_price_cents FROM platform_plans WHERE plan_key='starter'")).toBe(old);
   });
-  it('uses the deployed tariff table for assignment, pause and renewal',async()=>{
-    await db.exec("RESET ROLE; INSERT INTO platform_plans(plan_key,plan_name,status,monthly_price_cents,yearly_price_cents) VALUES('test_tariff','Prüftarif','active',1000,10000);");
-    await login(10);await scalar("SELECT platform_assign_tenant_tariff($1,'test_tariff','Vereinbarung geprüft','monthly',null)",[id(1)]);
-    expect((await scalar("SELECT platform_update_tenant_contract($1,'paused','Pause vereinbart')",[id(1)])).status).toBe('paused');
-    await scalar("SELECT platform_assign_tenant_tariff($1,'test_tariff','Neuer Vertrag vereinbart','yearly',null)",[id(1)]);
-    await server();expect(await scalar("SELECT count(*)::integer FROM platform_tenant_plans WHERE tenant_id=$1 AND status IN ('active','paused')",[id(1)])).toBe(1);
-    await login(11);await expect(scalar("SELECT platform_update_tenant_contract($1,'cancelled','Test change')",[id(1)])).rejects.toThrow('platform_forbidden');
+  it('blocks tariff assignment, contract changes and changes to the free product policy',async()=>{
+    await login(10);
+    await expect(scalar("SELECT platform_assign_tenant_tariff($1,'starter','Überholter Vorgang','monthly',null)",[id(1)])).rejects.toThrow('platform_forbidden');
+    await expect(scalar("SELECT platform_update_tenant_contract($1,'paused','Überholter Vorgang')",[id(1)])).rejects.toThrow('platform_forbidden');
+    await expect(scalar("SELECT platform_update_system_setting('free_platform_enabled','false'::jsonb,'Überholter Vorgang')")).rejects.toThrow('free_usage_policy_locked');
+    await server();expect(await scalar('SELECT count(*)::integer FROM platform_tenant_plans')).toBe(0);
+  });
+  it('denies all eight commercial capabilities for every platform role and preserves account and support permissions',async()=>{
+    await db.exec('RESET ROLE');
+    const roles=['platform_owner','platform_admin','platform_billing','platform_support','platform_developer','platform_readonly'];
+    for(let index=0;index<roles.length;index++){
+      const user=id(100+index);
+      await db.query('INSERT INTO auth.users(id,email) VALUES($1,$2)',[user,`role-${index}@example.test`]);
+      await db.query("INSERT INTO platform_users(user_id,email,role,status) VALUES($1,$2,$3,'active')",[user,`role-${index}@example.test`,roles[index]]);
+    }
+    for(let index=0;index<roles.length;index++){
+      await login(100+index);
+      for(const cap of ['plans.read','plans.write','discounts.read','discounts.write','billing.read','billing.write','payments.read','payments.write']) expect(await scalar('SELECT platform_has_capability($1)',[cap])).toBe(false);
+    }
+    await login(10);expect(await scalar("SELECT platform_has_capability('tenants.write')")).toBe(true);
+    await login(12);expect(await scalar("SELECT platform_has_capability('support.write')")).toBe(true);
   });
 });
