@@ -4,7 +4,7 @@ Eine erfolgreiche öffentliche Firmenregistrierung erzeugt einen dauerhaften Ver
 
 Das selbst gewählte Passwort, Authentifizierungstokens und temporäre Codes werden weder in die Willkommensmail übernommen noch in der Versandtabelle gespeichert. Die Nachricht bestätigt die Registrierung und behauptet keine Verifikation der E-Mail-Inhaberschaft. Bestehende Android-Bildschirme und der Registrierungsvertrag bleiben erhalten. Das öffentliche Formular verwendet die vorhandene Webroute `app/support/index.web.tsx`; die native Route `app/support/index.tsx` bleibt unverändert.
 
-Alle automatischen Nachrichten verwenden den Anzeigenamen **CareSuite HealthOS System**. Der vorgesehene Absender ist `no-reply@caresuiteplus.app`; er muss im bestehenden Versanddienst freigegeben werden. `Reply-To` zeigt ebenfalls auf die No-Reply-Adresse, niemals auf das persönliche/Supportpostfach. HTML und Klartext enthalten „Bitte antworten Sie nicht auf diese E-Mail“ und verweisen auf das öffentliche Supportformular. Header kennzeichnen die Nachricht als automatisch erzeugt und unterdrücken automatische Antworten, soweit der Empfänger diese Header unterstützt.
+Alle automatischen Willkommens- und Verwaltungspasswortmails verwenden den Anzeigenamen **CareSuite HealthOS System** und den ausdrücklich gewählten Absender `caresuiteapp@gmail.com`. Der gemeinsame Versandweg ist Gmail SMTP mit TLS auf Port 465. Gmail muss mit einem eigenen serverseitigen Google-App-Passwort authentifiziert werden; die Gmail-Verbindung in ChatGPT und vorhandene Resend-/SendGrid-Schlüssel können dafür nicht verwendet werden. HTML und Klartext enthalten weiterhin „Bitte antworten Sie nicht auf diese E-Mail“ und verweisen auf das öffentliche Supportformular. Das Gmail-Postfach kann Antworten empfangen; die frühere Anforderung einer technisch gesperrten No-Reply-Empfangsadresse gilt für diesen gewählten Absender nicht mehr. Header kennzeichnen Nachrichten als automatisch erzeugt und unterdrücken automatische Antworten, soweit der Empfänger diese Header unterstützt.
 
 ## Verhalten
 
@@ -13,23 +13,24 @@ Alle automatischen Nachrichten verwenden den Anzeigenamen **CareSuite HealthOS S
 - Ein unmittelbarer Versandversuch läuft über `EdgeRuntime.waitUntil`. Der minutengenaue Datenbank-Scheduler verarbeitet offene Aufträge auch ohne geöffneten Browser.
 - Der Worker prüft vor dem Versand das aktuelle Auth-Konto, den aktiven Eigentümerdatensatz, dessen E-Mail und das aktive Unternehmen. Geänderte, gesperrte oder gelöschte Konten werden nicht an eine alte Adresse angeschrieben.
 - Fünf Minuten gültige Bearbeitungssperren verhindern parallele Sendungen. Vorübergehende Fehler erhalten bis zu acht Versuche mit ansteigenden Wartezeiten. Resend verwendet dabei denselben Idempotenzschlüssel; unbestätigte Sendungen werden höchstens innerhalb von 23 Stunden erneut versucht.
-- SendGrid hat keinen vergleichbaren Idempotenzschutz. Unbestätigte Transportfehler und abgelaufene laufende SendGrid-Aufträge werden zur Prüfung angehalten, damit ein bereits angenommener Auftrag nicht automatisch doppelt gesendet wird.
+- SendGrid und Gmail SMTP haben keinen vergleichbaren Idempotenzschutz. Unbestätigte Transportfehler und abgelaufene laufende SendGrid-/Gmail-Aufträge werden zur Prüfung angehalten, damit ein bereits angenommener Auftrag nicht automatisch doppelt gesendet wird.
 - `sent` bezeichnet die Annahme durch den Mailanbieter. Es ist kein Nachweis für den Eingang im Postfach. Bounces/Spamfilter werden über den verwendeten Mailanbieter geprüft.
 - Die Versandtabelle und sämtliche Worker-RPCs sind für `anon` und `authenticated` gesperrt. Der Scheduler verwendet einen eigenen zufälligen Token in Vault. Kein Service-Role-Schlüssel steht in einer Frontend-Datei oder im Cron-Auftrag.
 
 ## Versandkonfiguration
 
-Die Konfiguration liegt ausschließlich in den serverseitigen Edge-Function-Secrets. Bestehende Resend- oder SendGrid-Zugangsdaten können wiederverwendet werden.
+Die Konfiguration liegt ausschließlich in den serverseitigen Edge-Function-Secrets.
 
 | Secret | Zweck |
 | --- | --- |
-| `RESEND_API_KEY` | Resend-Versand; bevorzugt, falls vorhanden |
-| `SENDGRID_API_KEY` | Alternativer SendGrid-Versand |
-| `REGISTRATION_EMAIL_FROM` | Ausschließlich verifizierter No-Reply-Absender; vorgesehen: `no-reply@caresuiteplus.app`. Anzeigename wird vom System gesetzt. |
-| `REGISTRATION_SUPPORT_EMAIL` | Separater Kontakt im Inhalt, niemals Reply-To; Standard: `caresuiteapp@gmail.com` |
-| `REGISTRATION_APP_URL` | Optionaler HTTPS-Ursprung für die Links; Standard: `https://www.caresuiteplus.app` |
+| `GMAIL_SMTP_APP_PASSWORD` | Google-App-Passwort für `caresuiteapp@gmail.com`; ausschließlich auf dem Server eingeben. Ohne diesen Wert bleibt Gmail deaktiviert und verbraucht keine Versandversuche. |
+| `REGISTRATION_EMAIL_FROM` | Beim Standardanbieter Gmail ist die gewählte Adresse fest `caresuiteapp@gmail.com`; ein alter No-Reply-Wert wird ignoriert. Nur ausdrücklich gewählte Resend-/SendGrid-Transporte lesen diesen Wert. |
+| `REGISTRATION_EMAIL_PROVIDER` | Standard `gmail`; andere bestehende Transporte erfordern ausdrücklich `resend` oder `sendgrid`. |
+| `REGISTRATION_SUPPORT_EMAIL` | Kontakt im Inhalt; Standard: `caresuiteapp@gmail.com` |
+| `REGISTRATION_APP_URL` | Optionaler HTTPS-Ursprung; Standard: `https://www.caresuiteplus.app` |
+| `RESEND_API_KEY` / `SENDGRID_API_KEY` | Ausschließlich für ausdrücklich konfigurierte, verifizierte No-Reply-Adressen der bisherigen Versandwege. Sie authentifizieren kein Gmail-Postfach. |
 
-Es gibt bewusst keinen Fallback auf Dokumenten- oder persönliche Absender. Ohne expliziten No-Reply-Absender bleibt die Willkommensmail in der Warteschlange. Eine bereits vorhandene Resend-/SendGrid-Verbindung kann verwendet werden; es wird keine neue Mitgliedschaft eingerichtet. Die No-Reply-Empfangsadresse muss beim Mailserver abgelehnt werden, ohne Catch-all-Weiterleitung an ein persönliches oder Supportpostfach. Ein E-Mail-Client kann den Antwort-Button trotzdem anzeigen: Die tatsächliche Ablehnung erfolgt beim empfangenden Mailserver, nicht durch HTML oder `Reply-To`. Diese Empfangskonfiguration und die Absender-Freigabe sind noch nicht bestätigt.
+Der Gmail-Transport verwendet ausschließlich `smtp.gmail.com:465`, prüft TLS-Zertifikate, deaktiviert Protokollierung sensibler Inhalte und bindet die originalen Bilder als CID-Anhänge ein. Ein dauerhaft gleicher Message-ID-Wert erleichtert die Nachverfolgung, bietet jedoch keine SMTP-Deduplizierung. Unbestätigte Sendungen werden deshalb zur Prüfung angehalten. Definitive vorübergehende SMTP-Ablehnungen dürfen erneut versucht werden. Eine normale Google-Kontopasswort-Eingabe wird nicht als App-Passwort akzeptiert. Bestehende Passwörter oder Schlüssel gehören nicht in Chatnachrichten oder Quelltexte.
 
 ## Passwort vergessen – ausschließlich Verwaltung
 
@@ -54,7 +55,7 @@ Eine private Limittabelle speichert nur gehashte Schlüssel und Zeitfenster, kei
 ## Aktivierungsreihenfolge
 
 1. Die drei neuen SQL-Dateien prüfen und gezielt in dieser Reihenfolge anwenden: `20261006063320_registration_welcome_outbox.sql`, danach `20261006063341_registration_welcome_scheduler.sql`, danach `20261006063422_public_access_support_and_business_recovery.sql`. Keine ungeprüfte Sammelanwendung anderer ausstehender Migrationen.
-2. Server-Secrets für den bestehenden Mailanbieter und den verifizierten Absender prüfen/setzen. API-Schlüssel gehören nicht in Chatnachrichten, öffentliche Quelltexte oder Shell-Beispiele mit Klartextwerten.
+2. Gmail-App-Passwort als `GMAIL_SMTP_APP_PASSWORD` und die gewählte Adresse als `REGISTRATION_EMAIL_FROM` in den Server-Secrets setzen. API-Schlüssel gehören nicht in Chatnachrichten, öffentliche Quelltexte oder Shell-Beispiele mit Klartextwerten.
 3. Die vier betroffenen Edge Functions einschließlich aller referenzierten Shared-Dateien aus demselben Commit deployen: `registration-welcome-dispatch`, `register-business-tenant`, `business-password-recovery`, `public-support-ticket`. `verify_jwt=false` erhält den öffentlichen Formulareingang; der Worker akzeptiert ausschließlich seinen eigenen Scheduler-Token. Die Recovery-Verifikation verwendet die integrierten serverseitigen `SUPABASE_URL`, `SUPABASE_ANON_KEY` und `SUPABASE_SERVICE_ROLE_KEY`.
 4. Nach Deployment und Konfiguration einmal im SQL-Editor als Datenbankadministrator ausführen, mit der zum Zielprojekt gehörenden URL:
 
@@ -64,7 +65,7 @@ Eine private Limittabelle speichert nur gehashte Schlüssel und Zeitfenster, kei
 
    Die Funktion legt den Token intern an und aktiviert genau einen Cron-Auftrag. Bei erneutem Aufruf wird der Token rotiert. Die Migration allein aktiviert keinen Job.
 5. Die Webänderung einschließlich `/support`, beider Passwortseiten und der Konsolen-Erweiterung veröffentlichen. Die Erfolgsmeldung der Registrierung zeigt die angekündigte Willkommensmail nur bei bestätigtem Versandauftrag. Der Export-Audit prüft zusätzlich, dass die drei öffentlichen Zielrouten mit dem Anwendungsstart konsistent erzeugt werden.
-6. No-Reply-Empfang beim Mailserver prüfen: keine Inbox, keine Catch-all-Weiterleitung, keine automatische Konversationsantwort. Die Sperre der Empfangsadresse ist durch dieses Code-Paket allein nicht gesetzt.
+6. Automatische Gmail-Antworten für Systemmails vermeiden; das gewählte Gmail-Postfach bleibt als Supportkontakt erreichbar. Die allgemeinen Supabase-Auth-Mails haben eine separate SMTP-Einstellung und sind durch diese Edge-Function-Konfiguration allein nicht umgestellt.
 7. Einen vollständig autorisierten Registrierungs-, Passwort- und Tickettest in der vorgesehenen Testumgebung durchführen. Für den Produktionstest keine erfundenen Unternehmen, Konten oder Klientendaten anlegen.
 
 Der Worker ist nicht als öffentliches „Mail an beliebige Adresse senden“-API verwendbar. Er verarbeitet ausschließlich bereits gespeicherte Registrierungsaufträge; der HTTP-Body kann Empfänger und Zugangsdaten nicht überschreiben.
@@ -83,6 +84,13 @@ Die HTML-Datei enthält erkennbare Beispieldaten; produktive Nachrichten verwend
 
 Der Routenfix entfernt die versehentlich angelegten flachen Dateien `app/support.tsx` und `app/support.web.tsx`. Die vorhandene Webroute exportiert das öffentliche Formular ohne Authentifizierungskontext. `scripts/audit-public-access-routes.mjs` verwendet die installierte Expo-Routenauflösung und HTML-Exportberechnung für `/support`, `/auth/forgot-password` und `/auth/reset-password`; die Prüfung läuft im bestehenden Vercel-Preflight. Die Tests reproduzieren den gemeldeten Routenkonflikt und bestätigen die korrigierte Web-/Android-Zuordnung sowie `support/index.html` als Exportdatei. Der vollständige gehostete Web-Build muss nach dem Fix-Commit erneut erfolgreich durchlaufen.
 
-Offene Nachweise: tatsächlicher Mailanbieter-Absender/Secret-Konfiguration, No-Reply-Empfangssperre, gehosteter Cron-Betrieb, echte Mail-Eingänge, produktiver Recovery-Token-Lebenszyklus, Proxy-Limits und Darstellung in Gmail/Outlook bzw. öffentliche Formulare auf Desktop/Smartphone. Die Browserprüfung lokaler HTML-Dateien war in dieser Arbeitsumgebung durch die Browser-URL-Richtlinie gesperrt; eine visuelle Freigabe wird deshalb nicht behauptet. Die vollständige bestehende Projekt-TypeScript-Prüfung überschritt das verfügbare Node-Heap-Limit; die gezielte Prüfung der betroffenen Edge-Dateien war erfolgreich. Die Änderungen sind vor einer ausdrücklich freigegebenen Aktivierung nicht als live zu bezeichnen. Der GitHub-Connector verweigerte bereits das Anlegen eines Branches mit HTTP 403; das Download-Skript bereitet deshalb das vollständige Paket in einer getrennten lokalen Arbeitskopie vor und veröffentlicht es nicht automatisch.
+Offene Nachweise: tatsächlicher Mailanbieter-Absender/Secret-Konfiguration, gehosteter Cron-Betrieb, echte Mail-Eingänge, produktiver Recovery-Token-Lebenszyklus, Proxy-Limits und Darstellung in Gmail/Outlook bzw. öffentliche Formulare auf Desktop/Smartphone. Die Browserprüfung lokaler HTML-Dateien war in dieser Arbeitsumgebung durch die Browser-URL-Richtlinie gesperrt; eine visuelle Freigabe wird deshalb nicht behauptet. Die vollständige bestehende Projekt-TypeScript-Prüfung überschritt das verfügbare Node-Heap-Limit; die gezielte Prüfung der betroffenen Edge-Dateien war erfolgreich. Die Änderungen sind vor einer ausdrücklich freigegebenen Aktivierung nicht als live zu bezeichnen. Der GitHub-Connector verweigerte bereits das Anlegen eines Branches mit HTTP 403; das Download-Skript bereitet deshalb das vollständige Paket in einer getrennten lokalen Arbeitskopie vor und veröffentlicht es nicht automatisch.
 
 Technische Referenzen: [Supabase – E-Mail aus Edge Functions](https://supabase.com/docs/guides/functions/examples/send-emails), [Supabase – Hintergrundaufgaben](https://supabase.com/docs/guides/functions/background-tasks), [Supabase – geplante Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions), [Supabase – Recovery-Link generieren](https://supabase.com/docs/reference/javascript/auth-admin-generatelink), [Supabase – Token prüfen](https://supabase.com/docs/reference/javascript/auth-verifyotp), [Resend – Idempotenzschlüssel](https://resend.com/docs/dashboard/emails/idempotency-keys), [Resend – offizielles CID-Beispiel](https://github.com/resend/resend-examples/blob/main/astro-resend-examples/typescript/src/pages/api/send-cid.ts), [SendGrid – Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send), [RFC 3834 – automatische E-Mails](https://www.rfc-editor.org/rfc/rfc3834.html).
+
+
+## Gmail-Änderung vom 06.10.2026
+
+Die explizite Absenderwahl ersetzt die frühere No-Reply-Vorgabe. Der gemeinsame Transport betrifft Firmen-Willkommensmails und die eigene Passwortwiederherstellung der Verwaltung. Allgemeine Supabase-Auth-Nachrichten (etwa bestehende Portal-Einladungen) brauchen dieselben Gmail-Zugangsdaten zusätzlich in Auth → SMTP: Absender/Benutzer `caresuiteapp@gmail.com`, Anzeigename `CareSuite HealthOS System`, Host `smtp.gmail.com`, Port `465`. Dieser separate Auth-Versand wird ohne vorhandenen Google-Zugang nicht als aktiviert behauptet. Die additive Migration `20261006123127_registration_gmail_smtp.sql` erhält alle vorhandenen Versandaufträge und Rechte. Kein Kundenkonto wurde zu Testzwecken angelegt oder angeschrieben.
+
+Produktionsübernahme der Gmail-Unterstützung: `registration-welcome-dispatch` Version 2, `business-password-recovery` Version 2, `register-business-tenant` Version 19. SMTP-Authentifizierung und echte Zustellung sind weiterhin nicht bestätigt. 45 passende Funktions-/Datenbankprüfungen und die gezielte Typprüfung sind bestanden.

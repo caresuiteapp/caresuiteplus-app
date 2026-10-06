@@ -7,7 +7,7 @@ import {
 } from '../../../supabase/functions/_shared/registrationWelcomeEmail';
 
 const details = { companyName: 'Pflege & Alltag GmbH', recipientName: 'Maria Müller', recipientEmail: 'maria@example.test', username: 'admin.company' };
-const config = resolveRegistrationWelcomeConfig({ RESEND_API_KEY: 'test-key', REGISTRATION_EMAIL_FROM: 'no-reply@example.test' });
+const config = resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_PROVIDER: 'resend', RESEND_API_KEY: 'test-key', REGISTRATION_EMAIL_FROM: 'no-reply@example.test' });
 
 describe('registration welcome content and delivery', () => {
   it('includes real branding, Neo, credentials, login, first steps and support in HTML and plain text', () => {
@@ -32,15 +32,23 @@ describe('registration welcome content and delivery', () => {
     expect(content.html).toContain('&lt;script&gt;boom&lt;/script&gt;');
     expect(content.html).toContain('&lt;img src=x onerror=alert(1)&gt; &amp; &quot;Partner&quot;');
   });
-  it('requires an explicit no-reply sender and never falls back to a personal/document sender', () => {
-    expect(resolveRegistrationWelcomeConfig({ RESEND_API_KEY: 'key', DOCUMENT_EMAIL_FROM: 'mail@example.test' })).toMatchObject({ provider: null, from: null });
-    expect(resolveRegistrationWelcomeConfig({ SENDGRID_API_KEY: 'key', REGISTRATION_EMAIL_FROM: 'noreply@example.test' })).toMatchObject({ provider: 'sendgrid',from:'CareSuite HealthOS System <noreply@example.test>' });
-    expect(()=>resolveRegistrationWelcomeConfig({RESEND_API_KEY:'key',REGISTRATION_EMAIL_FROM:'support@example.test'})).toThrow();
+  it('defaults to the chosen Gmail sender without reusing an unrelated provider credential', () => {
+    expect(resolveRegistrationWelcomeConfig({ RESEND_API_KEY: 'key', DOCUMENT_EMAIL_FROM: 'mail@example.test' })).toMatchObject({ provider: null, from: 'CareSuite HealthOS System <caresuiteapp@gmail.com>', smtp: null });
+    expect(resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_PROVIDER: 'sendgrid', SENDGRID_API_KEY: 'key', REGISTRATION_EMAIL_FROM: 'noreply@example.test' })).toMatchObject({ provider: 'sendgrid',from:'CareSuite HealthOS System <noreply@example.test>' });
+    expect(()=>resolveRegistrationWelcomeConfig({REGISTRATION_EMAIL_PROVIDER:'resend',RESEND_API_KEY:'key',REGISTRATION_EMAIL_FROM:'support@example.test'})).toThrow();
     expect(resolveRegistrationWelcomeConfig({ RESEND_API_KEY: 'key' }).provider).toBeNull();
     expect(resolveRegistrationWelcomeConfig({ DOCUMENT_EMAIL_API_URL: 'https://example.test' }).provider).toBeNull();
-    expect(() => resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_FROM: 'mail@example.test\r\nBcc: x@example.test' })).toThrow();
+    expect(() => resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_PROVIDER: 'resend', REGISTRATION_EMAIL_FROM: 'mail@example.test\r\nBcc: x@example.test' })).toThrow();
     expect(() => resolveRegistrationWelcomeConfig({ REGISTRATION_APP_URL: 'javascript:alert(1)' })).toThrow();
     expect(() => resolveRegistrationWelcomeConfig({ REGISTRATION_APP_URL: 'https://user:pass@example.test/' })).toThrow();
+  });
+  it('uses only the explicitly authorized Gmail account with its own app password', () => {
+    expect(resolveRegistrationWelcomeConfig({ GMAIL_SMTP_APP_PASSWORD: 'abcd efgh ijkl mnop', RESEND_API_KEY: 'unrelated' })).toMatchObject({
+      provider: 'gmail', apiKey: null, from: 'CareSuite HealthOS System <caresuiteapp@gmail.com>',
+      smtp: { user: 'caresuiteapp@gmail.com', password: 'abcdefghijklmnop' },
+    });
+    expect(resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_FROM: 'no-reply@caresuiteplus.app', GMAIL_SMTP_APP_PASSWORD: 'abcdefghijklmnop' })).toMatchObject({ provider: 'gmail', from: 'CareSuite HealthOS System <caresuiteapp@gmail.com>' });
+    expect(() => resolveRegistrationWelcomeConfig({ GMAIL_SMTP_APP_PASSWORD: 'ordinary-account-password' })).toThrow();
   });
   it('sends both formats to the registered administrator and reuses one idempotency key on retry', async () => {
     const fetcher = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ id: 'provider-1' }), { status: 200 }));
@@ -68,7 +76,7 @@ describe('registration welcome content and delivery', () => {
     }
     const network = vi.fn().mockRejectedValue(new Error('secret-token recipient@example.test'));
     expect(await sendRegistrationWelcomeEmail(config,details,'job',network)).toEqual({ ok:false,retryable:true,code:'mail_transport_unconfirmed' });
-    const sendgrid = resolveRegistrationWelcomeConfig({ SENDGRID_API_KEY: 'key', REGISTRATION_EMAIL_FROM: 'no-reply@example.test' });
+    const sendgrid = resolveRegistrationWelcomeConfig({ REGISTRATION_EMAIL_PROVIDER: 'sendgrid', SENDGRID_API_KEY: 'key', REGISTRATION_EMAIL_FROM: 'no-reply@example.test' });
     expect(await sendRegistrationWelcomeEmail(sendgrid,details,'job',network)).toEqual({ ok:false,retryable:false,code:'mail_delivery_needs_review' });
     const accepted = vi.fn().mockResolvedValue(new Response(null,{status:202,headers:{'x-message-id':'sg-1'}}));
     expect(await sendRegistrationWelcomeEmail(sendgrid,details,'job',accepted)).toEqual({ok:true,providerMessageId:'sg-1'});

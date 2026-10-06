@@ -32,6 +32,7 @@ describe('transactional registration welcome database',()=>{
   beforeAll(async()=>{
     db=new PGlite();await db.exec(fixture);
     await db.exec(readFileSync(resolve('supabase/migrations/20261006063320_registration_welcome_outbox.sql'),'utf8'));
+    await db.exec(readFileSync(resolve('supabase/migrations/20261006123127_registration_gmail_smtp.sql'),'utf8'));
   },30000);
   afterAll(async()=>{await db?.close();});
   async function register(email=`owner-${randomUUID()}@example.test`) {
@@ -89,6 +90,14 @@ describe('transactional registration welcome database',()=>{
     const r=await register();const [first]=await claim(r.tenantId,'sendgrid');
     await db.query('UPDATE registration_welcome_outbox SET lease_until=now()-interval \'1 minute\' WHERE id=$1',[first.id]);
     expect(await claim(r.tenantId,'sendgrid')).toHaveLength(0);
+    expect((await db.query('SELECT state,last_error_code FROM registration_welcome_outbox WHERE id=$1',[first.id])).rows[0]).toEqual({state:'failed',last_error_code:'mail_delivery_needs_review'});
+  });
+  it('leases Gmail jobs and stops an expired in-flight delivery instead of sending it twice',async()=>{
+    const r=await register();const [first]=await claim(r.tenantId,'gmail');
+    expect(first.attempts).toBe(1);
+    expect(await claim(r.tenantId,'gmail')).toHaveLength(0);
+    await db.query("UPDATE registration_welcome_outbox SET lease_until=now()-interval '1 minute' WHERE id=$1",[first.id]);
+    expect(await claim(r.tenantId,'gmail')).toHaveLength(0);
     expect((await db.query('SELECT state,last_error_code FROM registration_welcome_outbox WHERE id=$1',[first.id])).rows[0]).toEqual({state:'failed',last_error_code:'mail_delivery_needs_review'});
   });
   it('stops retries within the provider idempotency window and after eight attempts',async()=>{

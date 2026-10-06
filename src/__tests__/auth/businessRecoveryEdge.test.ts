@@ -4,7 +4,7 @@ import {resolveRegistrationWelcomeConfig} from '../../../supabase/functions/_sha
 const token='a'.repeat(64);
 const target={authUserId:'admin-id',email:'admin@example.test',recipientName:'Maria <Admin>'};
 const identity={id:target.authUserId,email:target.email};
-const config=resolveRegistrationWelcomeConfig({RESEND_API_KEY:'key',REGISTRATION_EMAIL_FROM:'no-reply@example.test'});
+const config=resolveRegistrationWelcomeConfig({REGISTRATION_EMAIL_PROVIDER:'resend',RESEND_API_KEY:'key',REGISTRATION_EMAIL_FROM:'no-reply@example.test'});
 function fixture() {
   const rpc=vi.fn(async(name:string)=>({data:name==='public_access_consume_limit'?true:target,error:null}));
   const admin={getUserById:vi.fn().mockResolvedValue({data:{user:identity},error:null}),generateLink:vi.fn().mockResolvedValue({data:{user:identity,properties:{hashed_token:token,verification_type:'recovery'}},error:null}),signOut:vi.fn().mockResolvedValue({error:null}),updateUserById:vi.fn().mockResolvedValue({data:{user:identity},error:null})};

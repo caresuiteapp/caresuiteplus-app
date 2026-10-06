@@ -1,10 +1,11 @@
 /** Transactional onboarding email. Never accepts or renders passwords/tokens. */
 import { REGISTRATION_WELCOME_ASSETS } from './registrationWelcomeAssets.ts';
+import { CARESUITE_GMAIL_SENDER, sendGmailSystemEmail, type GmailSmtpCredentials } from './gmailSmtp.ts';
 
 export const REGISTRATION_WELCOME_TEMPLATE = 'registration-welcome-v1';
 export const REGISTRATION_APP_URL = 'https://www.caresuiteplus.app';
 export const REGISTRATION_SUPPORT_EMAIL = 'caresuiteapp@gmail.com';
-export const REGISTRATION_SYSTEM_SENDER = 'CareSuite HealthOS System <no-reply@caresuiteplus.app>';
+export const REGISTRATION_SYSTEM_SENDER = `CareSuite HealthOS System <${CARESUITE_GMAIL_SENDER}>`;
 
 export type RegistrationWelcomeDetails = {
   companyName: string;
@@ -13,8 +14,9 @@ export type RegistrationWelcomeDetails = {
   username: string;
 };
 export type RegistrationWelcomeConfig = {
-  provider: 'resend' | 'sendgrid' | null;
+  provider: 'resend' | 'sendgrid' | 'gmail' | null;
   apiKey: string | null;
+  smtp: GmailSmtpCredentials | null;
   from: string | null;
   replyTo: string | null;
   supportEmail: string;
@@ -23,12 +25,21 @@ export type RegistrationWelcomeConfig = {
 
 const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 export function resolveRegistrationWelcomeConfig(env: Record<string, string | undefined>): RegistrationWelcomeConfig {
-  // A support/personal sender must never silently replace the system identity.
-  const configuredFrom = env.REGISTRATION_EMAIL_FROM?.trim() || null;
+  // The explicitly selected Gmail account is the default system sender.
+  const providerChoice = env.REGISTRATION_EMAIL_PROVIDER?.trim().toLowerCase() || 'gmail';
+  if (!['gmail', 'resend', 'sendgrid'].includes(providerChoice)) throw new Error('Invalid system email provider.');
+  // The new default overrides an obsolete No-Reply environment value.
+  // Other transports remain available only through an explicit provider choice.
+  const configuredFrom = providerChoice === 'gmail' ? CARESUITE_GMAIL_SENDER : env.REGISTRATION_EMAIL_FROM?.trim() || null;
   const senderAddress = configuredFrom?.match(/<([^<>]+)>$/)?.[1] ?? configuredFrom;
+  const gmailSender = providerChoice === 'gmail';
   const from = senderAddress ? `CareSuite HealthOS System <${senderAddress}>` : null;
   const resend = env.RESEND_API_KEY?.trim();
   const sendgrid = env.SENDGRID_API_KEY?.trim();
+  const gmailPassword = env.GMAIL_SMTP_APP_PASSWORD?.replace(/ /g, '').trim() || null;
+  if (gmailPassword && !/^[A-Za-z0-9]{16}$/.test(gmailPassword)) {
+    throw new Error('Invalid Gmail SMTP app-password configuration.');
+  }
   const supportEmail = env.REGISTRATION_SUPPORT_EMAIL?.trim() || REGISTRATION_SUPPORT_EMAIL;
   let appUrl = REGISTRATION_APP_URL;
   if (env.REGISTRATION_APP_URL) {
@@ -38,12 +49,14 @@ export function resolveRegistrationWelcomeConfig(env: Record<string, string | un
     }
     appUrl = parsed.origin;
   }
-  if (!emailPattern.test(supportEmail) || (senderAddress && (!emailPattern.test(senderAddress) || /[\r\n]/.test(configuredFrom!) || !/^no-?reply@/i.test(senderAddress)))) {
+  if (!emailPattern.test(supportEmail) || (senderAddress && (!emailPattern.test(senderAddress) || /[\r\n]/.test(configuredFrom!) || (!gmailSender && !/^no-?reply@/i.test(senderAddress))))) {
     throw new Error('Invalid registration email configuration.');
   }
   return {
-    provider: from && resend ? 'resend' : from && sendgrid ? 'sendgrid' : null,
-    apiKey: resend || sendgrid || null,
+    // Gmail cannot be authenticated by a Resend/SendGrid key or the ChatGPT connector.
+    provider: gmailSender ? (gmailPassword ? 'gmail' : null) : from && providerChoice === 'resend' && resend ? 'resend' : from && providerChoice === 'sendgrid' && sendgrid ? 'sendgrid' : null,
+    apiKey: gmailSender ? null : providerChoice === 'resend' ? resend || null : sendgrid || null,
+    smtp: gmailSender && gmailPassword ? { user: CARESUITE_GMAIL_SENDER, password: gmailPassword } : null,
     from,
     replyTo: senderAddress,
     supportEmail,
@@ -185,6 +198,10 @@ export async function sendCareSuiteSystemEmail(
   idempotencyKey: string,
   fetcher: typeof fetch = fetch,
 ): Promise<WelcomeSendResult> {
+  if (config.provider === 'gmail') {
+    if (!config.smtp) return { ok: false, retryable: true, code: 'mail_not_configured' };
+    return sendGmailSystemEmail(config.smtp, recipientEmail, content, idempotencyKey);
+  }
   if (!config.provider || !config.apiKey || !config.from) return { ok: false, retryable: true, code: 'mail_not_configured' };
   const resend = config.provider === 'resend';
   const headers: Record<string,string> = { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' };

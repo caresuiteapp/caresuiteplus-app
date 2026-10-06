@@ -72,7 +72,7 @@ export type RegistrationWelcomeClient = {
   }> } };
 };
 
-export function createRegistrationWelcomeQueue(client: RegistrationWelcomeClient, provider: 'resend' | 'sendgrid' = 'resend'): RegistrationWelcomeQueue {
+export function createRegistrationWelcomeQueue(client: RegistrationWelcomeClient, provider: 'resend' | 'sendgrid' | 'gmail' = 'resend'): RegistrationWelcomeQueue {
   return {
     async claim(tenantId) {
       const { data, error } = await client.rpc('registration_welcome_claim', { p_tenant_id: tenantId ?? null, p_limit: 10, p_provider: provider });
@@ -108,7 +108,8 @@ export function createRegistrationWelcomeQueue(client: RegistrationWelcomeClient
 
 export const REGISTRATION_WELCOME_ENV_KEYS = [
   'RESEND_API_KEY', 'SENDGRID_API_KEY',
-  'REGISTRATION_EMAIL_FROM', 'REGISTRATION_SUPPORT_EMAIL', 'REGISTRATION_APP_URL',
+  'GMAIL_SMTP_APP_PASSWORD',
+  'REGISTRATION_EMAIL_FROM', 'REGISTRATION_EMAIL_PROVIDER', 'REGISTRATION_SUPPORT_EMAIL', 'REGISTRATION_APP_URL',
 ] as const;
 
 export async function dispatchRegistrationWelcomeEmails(
