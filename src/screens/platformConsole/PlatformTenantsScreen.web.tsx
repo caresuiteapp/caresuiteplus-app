@@ -19,8 +19,8 @@ import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 
 const COMPANY_COLUMN_WIDTHS: Record<string, number> = {
-  tenantName: 210, environment: 150, status: 96, planKey: 132,
-  createdAt: 116, lifecycleStatus: 188, billingStatus: 112, actions: 96,
+  tenantName: 210, environment: 150, status: 96, freeUsage: 132,
+  createdAt: 116, lifecycleStatus: 188, actions: 96,
 };
 const MIN_COMPANY_TABLE_WIDTH = Object.values(COMPANY_COLUMN_WIDTHS).reduce((sum, width) => sum + width, 0);
 
@@ -34,12 +34,11 @@ export function PlatformTenantsScreen() {
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [billingFilter, setBillingFilter] = useState('');
   const [environmentFilter, setEnvironmentFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
-  const filtered = !!(search.trim() || statusFilter || billingFilter || environmentFilter);
-  const resetFilters = () => { setSearch(''); setStatusFilter(''); setBillingFilter(''); setEnvironmentFilter(''); setOffset(0); };
+  const filtered = !!(search.trim() || statusFilter || environmentFilter);
+  const resetFilters = () => { setSearch(''); setStatusFilter(''); setEnvironmentFilter(''); setOffset(0); };
   const [hasMore, setHasMore] = useState(false);
   const requestNumber = useRef(0);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +60,6 @@ export function PlatformTenantsScreen() {
       const result = await listPlatformCompanies({
         search: search.trim() || undefined,
         status: statusFilter || undefined,
-        billingStatus: billingFilter || undefined,
         limit: 51, offset, environment: environmentFilter || undefined,
       });
       if (request !== requestNumber.current) return;
@@ -74,7 +72,7 @@ export function PlatformTenantsScreen() {
     } finally {
       if (request === requestNumber.current) setLoading(false);
     }
-  }, [billingFilter, environmentFilter, search, statusFilter, offset]);
+  }, [environmentFilter, search, statusFilter, offset]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 300);
@@ -96,14 +94,9 @@ export function PlatformTenantsScreen() {
         render: (row: PlatformTenantListItem) => <PlatformTenantEnvironmentBadge mode={row.environmentMode} />,
       },
       { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.status} /> },
-      { key: 'planKey', label: 'Tarif', render: (row: PlatformTenantListItem) => row.planKey === 'free_platform' ? 'Kostenlos · 0 €' : row.planKey ?? '—' },
+      { key: 'freeUsage', label: 'Nutzung', render: () => 'Kostenlos · 0 €' },
       { key: 'createdAt', label: 'Registriert', render: (row: PlatformTenantListItem) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('de-DE') : '—' },
       { key: 'lifecycleStatus', label: 'Einrichtung', render: (row: PlatformTenantListItem) => row.lifecycleStatus === 'onboarding' ? 'Neu · Einrichtung läuft' : row.lifecycleStatus === 'live' ? 'Im Betrieb' : row.lifecycleStatus },
-      {
-        key: 'billingStatus',
-        label: 'Abrechnung',
-        render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.billingStatus} />,
-      },
       {
         key: 'actions',
         label: 'Aktion',
@@ -158,14 +151,6 @@ export function PlatformTenantsScreen() {
             {[
               ['', 'Alle'], ['active', 'Aktiv'], ['suspended', 'Gesperrt'], ['locked', 'Blockiert'], ['terminated', 'Beendet'],
             ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={statusFilter === key} onPress={() => { setStatusFilter(key); setOffset(0); }} />)}
-          </PlatformFilterChipRow>
-        </View>
-        <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Abrechnung</Text>
-          <PlatformFilterChipRow>
-            {[
-              ['', 'Alle'], ['manual_free', 'Kostenlos'], ['active', 'Aktiv'], ['trial', 'Testphase'], ['past_due', 'Überfällig'], ['failed', 'Fehlgeschlagen'],
-            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={billingFilter === key} onPress={() => { setBillingFilter(key); setOffset(0); }} />)}
           </PlatformFilterChipRow>
         </View>
       </View>

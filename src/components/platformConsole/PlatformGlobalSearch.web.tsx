@@ -55,7 +55,7 @@ export function PlatformGlobalSearch() {
       <label className="cs-field">Suchbegriff<input autoFocus type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Unternehmen, E-Mail oder Arbeitsbereich" /></label>
       <section><h3>Arbeitsbereiche</h3><div className="cs-actions">{pages.map(item => <button key={item.path} className="cs-btn" onClick={() => go(item.path)}>{item.icon} {item.label}</button>)}</div>{!pages.length && <p>Keine passenden Arbeitsbereiche.</p>}</section>
       {canReadTenants && <section><h3>Unternehmen</h3>{loading && <p role="status">Unternehmen werden gesucht…</p>}{error && <p className="cs-notice error" role="alert">{error}</p>}
-        {tenants.map(tenant => <div className="cs-task" key={tenant.tenantId}><div><button className="cs-link" onClick={() => go(`/platform/tenants/${encodeURIComponent(tenant.tenantId)}`)}>{tenant.tenantName}</button><p>{tenant.legalName || tenant.slug || tenant.tenantId}</p></div><span aria-hidden>↗</span></div>)}
+        {tenants.map(tenant => <div className="cs-task" key={tenant.tenantId}><div><button className="cs-link" onClick={() => go(`/platform/tenants/${encodeURIComponent(tenant.tenantId)}`)}>{tenant.tenantName}</button><p>{tenant.legalName || tenant.slug || 'Unternehmen'} · Kostenlos</p></div><span aria-hidden>↗</span></div>)}
         {!loading && !error && !tenants.length && <p>Keine passenden Unternehmen.</p>}
         {tenants.length === 12 && <button className="cs-link" onClick={() => go('/platform/tenants')}>Unternehmensverzeichnis öffnen</button>}
       </section>}

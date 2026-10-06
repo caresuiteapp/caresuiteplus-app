@@ -19,6 +19,7 @@ const names: Record<string, string> = {
   'module.enabled': 'Funktionsbereich freigegeben', 'module.disabled': 'Funktionsbereich deaktiviert',
   'module.status_changed': 'Funktionsfreigabe geändert', 'tenant.status_changed': 'Unternehmensstatus geändert',
   'tenant.record_updated': 'Stammdaten aktualisiert', 'plan.assigned': 'Tarif zugewiesen',
+  'plan.archived': 'Überholter Katalogeintrag archiviert',
   'subscription.plan_assigned': 'Tarif zugewiesen', 'subscription.suspended': 'Vertrag pausiert',
   'subscription.reactivated': 'Vertrag fortgesetzt', 'subscription.cancelled': 'Vertrag beendet',
   'addon.assigned': 'Zusatzpaket zugewiesen', 'addon.removed': 'Zusatzpaket beendet',

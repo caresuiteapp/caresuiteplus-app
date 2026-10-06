@@ -101,3 +101,12 @@ it('retains confirmation inputs across an error and unlocks a retry after loadin
   expect(host.querySelector('[role="alert"]')?.textContent).toContain('Netzwerkfehler');
   await click('Bestätigen');expect(confirm).toHaveBeenCalledTimes(2);
 });
+
+it.each(['plans','addons','discounts','billing','payments'] as const)('keeps direct %s URLs free of catalog, financial and booking requests',async section=>{
+  await render(<PlatformConsoleWorkspace section={section}/>);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(300);});
+  expect(host.textContent).toContain('vollständig kostenlos');
+  expect(host.textContent).toContain('derzeit nicht verfügbar');
+  expect(host.querySelector('form')).toBeNull();expect(host.querySelector('select')).toBeNull();
+  expect(state.load).not.toHaveBeenCalled();expect(state.save).not.toHaveBeenCalled();
+});

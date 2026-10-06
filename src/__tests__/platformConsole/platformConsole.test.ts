@@ -32,7 +32,7 @@ describe('Platform Console RBAC', () => {
 
   it('platform_owner darf alle Capabilities', () => {
     expect(platformRoleHasCapability('platform_owner', 'system.write')).toBe(true);
-    expect(platformRoleHasCapability('platform_owner', 'payments.write')).toBe(true);
+    expect(platformRoleHasCapability('platform_owner', 'payments.write')).toBe(false);
     expect(platformRoleCanWrite('platform_owner')).toBe(true);
   });
 
@@ -41,9 +41,9 @@ describe('Platform Console RBAC', () => {
     expect(platformRoleHasCapability(undefined, 'tenants.read')).toBe(false);
   });
 
-  it('platform_billing darf Billing, aber keine Systemflags schreiben', () => {
-    expect(platformRoleHasCapability('platform_billing', 'billing.write')).toBe(true);
-    expect(platformRoleHasCapability('platform_billing', 'payments.write')).toBe(true);
+  it('die frühere Abrechnungsrolle kann keine kostenpflichtigen Vorgänge oder Systemflags schreiben', () => {
+    expect(platformRoleHasCapability('platform_billing', 'billing.write')).toBe(false);
+    expect(platformRoleHasCapability('platform_billing', 'payments.write')).toBe(false);
     expect(platformRoleHasCapability('platform_billing', 'system.write')).toBe(false);
     expect(platformRoleHasCapability('platform_billing', 'flags.write')).toBe(false);
   });

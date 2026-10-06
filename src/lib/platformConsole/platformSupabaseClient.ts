@@ -15,6 +15,7 @@ const PLATFORM_ERROR_MESSAGES: Record<string, string> = {
   platform_user_already_exists: 'Dieser Benutzer hat bereits einen Plattformzugriff. Öffnen Sie den vorhandenen Eintrag.',
   core_module_protected: 'Eine Grundfunktion darf hier nicht deaktiviert oder auf intern umgestellt werden.',
   protected_setting: 'Diese geschützte Einstellung kann nicht über die Plattformverwaltung verändert werden.',
+  free_usage_policy_locked: 'CareSuite ist vollständig kostenlos. Einstellungen für Tarife, Zahlungen oder einen kostenpflichtigen Zugang sind derzeit nicht verfügbar.',
   setting_type_mismatch: 'Der Datentyp der Einstellung muss erhalten bleiben.',
   setting_not_found: 'Die Einstellung wurde nicht gefunden. Aktualisieren Sie die Liste.',
   request_payload_changed: 'Dieser Vorgang wurde bereits mit anderen Angaben übermittelt. Prüfen Sie den Datenstand und öffnen Sie bei Bedarf einen neuen Vorgang.',

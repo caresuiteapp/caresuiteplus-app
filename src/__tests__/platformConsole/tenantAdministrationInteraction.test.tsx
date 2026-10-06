@@ -59,14 +59,11 @@ it('ignores accounts arriving after the displayed company has changed',async()=>
   api.accounts.mockResolvedValue({ok:true,data:[{...account,display_name:'Firma B'}]});await render(<TenantAccountsTab tenantId="b" role="platform_owner"/>);
   await act(async()=>resolve({ok:true,data:[{...account,display_name:'Firma A'}]}));expect(host.textContent).toContain('Firma B');expect(host.textContent).not.toContain('Firma A');
 });
-it('assigns the selected tariff and interval only after confirmation',async()=>{
-  await render(<TenantContractTab tenantId="a" role="platform_owner" detail={detail} onReload={api.reload}/>);
-  expect(button('Tarif zuweisen').disabled).toBe(true);await write('select','professional');
-  const selects=host.querySelectorAll('select');await act(async()=>{selects[1].value='yearly';selects[1].dispatchEvent(new Event('change',{bubbles:true}));});
-  expect(host.textContent).not.toContain('Professional');await click('Tarif zuweisen');await write('dialog textarea','Vertrag vereinbart');await click('Bestätigen');
-  expect(api.assign).toHaveBeenCalledWith('a','professional','Vertrag vereinbart',{billingInterval:'yearly'});expect(api.reload).toHaveBeenCalledTimes(1);
-});
-it('does not offer assignment for an addon with no released price',async()=>{
-  await render(<TenantAddonsTab tenantId="a" role="platform_owner" onReload={api.reload}/>);await write('select','sms_pack');
-  expect(host.textContent).toContain('keine gültige Preisversion');expect(button('Zusatzpaket zuweisen').disabled).toBe(true);expect(api.addonAssign).not.toHaveBeenCalled();
+it.each([TenantContractTab, TenantAddonsTab])('replaces a retired company purchase view with free usage without catalog requests',async Component=>{
+  await render(<Component tenantId="a" role="platform_owner" detail={detail} onReload={api.reload}/>);
+  expect(host.textContent).toContain('vollständig kostenlos');
+  expect(host.textContent).toContain('derzeit nicht verfügbar');
+  expect(host.querySelector('select')).toBeNull();
+  expect(host.querySelector('button')).toBeNull();
+  for (const request of [api.contracts,api.plans,api.addons,api.assigned,api.versions,api.assign,api.addonAssign]) expect(request).not.toHaveBeenCalled();
 });
