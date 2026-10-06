@@ -84,7 +84,14 @@ export async function provisionBusinessRegistration(client: RegistrationClient, 
   const owner = await client.from('tenant_users').select('id,tenant_id,username,email,role_key,display_name').eq('auth_user_id',data.user.id).eq('role_key','owner').maybeSingle();
   if (!owner.error && owner.data) {
     const row = owner.data;
-    return { status: 201, body: { ok: true, tenantId: row.tenant_id, owner: { id: row.id, tenantId: row.tenant_id, username: row.username, email: row.email, roleKey: row.role_key, displayName: row.display_name }, credentials: { username: row.username } } };
+    let welcomeEmailQueued = false;
+    try {
+      const welcome = row.id ? await client.from('registration_welcome_outbox').select('state').eq('tenant_user_id',row.id).maybeSingle() : null;
+      welcomeEmailQueued = !welcome?.error && ['pending','sending','sent'].includes(welcome?.data?.state ?? '');
+    } catch {
+      // The workspace is already confirmed; a mail-status lookup cannot undo it.
+    }
+    return { status: 201, body: { ok: true, tenantId: row.tenant_id, owner: { id: row.id, tenantId: row.tenant_id, username: row.username, email: row.email, roleKey: row.role_key, displayName: row.display_name }, credentials: { username: row.username }, welcomeEmailQueued } };
   }
   if (!uncertainTransport && !owner.error && !owner.data) {
     const profile = await client.from('profiles').select('tenant_id').eq('auth_user_id',data.user.id).maybeSingle();
