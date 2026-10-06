@@ -54,6 +54,20 @@ describe('company registration provisioning',()=>{
     expect((await provisionBusinessRegistration(c.client,body)).status).toBe(201);
     expect(c.deleteUser).not.toHaveBeenCalled();
   });
+  it('does not turn a confirmed workspace into a failed registration when the mail lookup is unavailable',async()=>{
+    const c=setup([new Error('network'),new Error('network')],{id:'owner-row',tenant_id:'company',username:'admin',email:body.adminEmail,role_key:'owner',display_name:'Test Owner'});
+    const client=c.client as any;
+    const original=client.from;
+    client.from=(table:string)=>{
+      if(table!=='registration_welcome_outbox')return original(table);
+      const q={select:()=>q,eq:()=>q,maybeSingle:async()=>{throw new Error('mail status unavailable');}};
+      return q;
+    };
+    const result=await provisionBusinessRegistration(client,body);
+    expect(result.status).toBe(201);
+    expect(result.body).toMatchObject({ok:true,welcomeEmailQueued:false});
+    expect(c.deleteUser).not.toHaveBeenCalled();
+  });
   it('canonicalizes catalog selections and forwards stable keys with the workspace',async()=>{
     const c=setup([{data:{ok:true,tenantId:'company'},error:null}]);
     const selected=normalizeCompanyRegistrationSelection({...body,legalForm:'UG',industry:'Alltagsbegleitung'});

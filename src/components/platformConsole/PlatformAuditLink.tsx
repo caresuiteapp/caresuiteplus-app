@@ -9,7 +9,7 @@ type PlatformAuditLinkProps = {
   label?: string;
 };
 
-export function PlatformAuditLink({ tenantId, action, label = 'Audit anzeigen' }: PlatformAuditLinkProps) {
+export function PlatformAuditLink({ tenantId, action, label = 'Änderungsprotokoll öffnen' }: PlatformAuditLinkProps) {
   const router = useRouter();
   const href = buildPlatformAuditPath({ tenantId, action });
 

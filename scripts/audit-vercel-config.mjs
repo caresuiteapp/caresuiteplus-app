@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { auditPublicAccessRoutes } from './audit-public-access-routes.mjs';
 
 // Command-field constraints from https://openapi.vercel.sh/vercel.json.
 // Keep long build pipelines in package.json; Vercel rejects them before building.
@@ -11,3 +12,5 @@ for (const field of ['buildCommand', 'installCommand', 'devCommand', 'ignoreComm
   assert.ok([...value].length <= 256, `vercel.json: ${field} has ${[...value].length} characters; Vercel permits at most 256. Move the command into an npm script.`);
 }
 console.log('Vercel command configuration audit passed (maximum 256 characters).');
+const publicRoutes = auditPublicAccessRoutes();
+console.log(`Public access route audit passed: ${publicRoutes.map(route => route.url).join(', ')} resolve uniquely.`);

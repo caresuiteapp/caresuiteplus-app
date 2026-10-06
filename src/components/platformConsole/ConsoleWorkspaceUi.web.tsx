@@ -26,7 +26,7 @@ export function ConsoleDialog({ title, description, children, footer, busy = fal
   const close = useRef(onClose); close.current = onClose;
   useEffect(() => { const dialog = ref.current; if (!dialog) return; dialog.showModal(); return () => { dialog.close(); }; }, []);
   return <dialog ref={ref} className="cs-dialog" aria-label={title} aria-busy={busy} onCancel={event => { event.preventDefault(); if (!busy) close.current(); }}>
-    <div className="cs-console"><ConsoleStyle /><div className="cs-dialog-head"><div><div className="cs-eyebrow">CareSuite · Platform Console</div><h2>{title}</h2>{description && <p>{description}</p>}</div><button className="cs-btn" aria-label="Dialog schließen" disabled={busy} onClick={onClose}>✕</button></div>
+    <div className="cs-console"><ConsoleStyle /><div className="cs-dialog-head"><div><div className="cs-eyebrow">CareSuite · Plattformverwaltung</div><h2>{title}</h2>{description && <p>{description}</p>}</div><button className="cs-btn" aria-label="Dialog schließen" disabled={busy} onClick={onClose}>✕</button></div>
       {busy && <div className="cs-loading" role="progressbar" aria-label="Änderung wird gespeichert" />}
       <div className="cs-dialog-body">{children}</div>{footer && <div className="cs-dialog-footer">{footer}</div>}
     </div>

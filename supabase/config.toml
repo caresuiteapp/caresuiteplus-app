@@ -34,3 +34,24 @@ verify_jwt = false
 # Polling and consumption require the separate 256-bit device secret.
 [functions.tv-device-login]
 verify_jwt = false
+
+# Public company registration; the handler validates the body and provisions atomically.
+[functions.register-business-tenant]
+verify_jwt = false
+
+# Only the dedicated Vault scheduler token is accepted by this handler.
+[functions.registration-welcome-dispatch]
+verify_jwt = false
+
+# Public forms validate every input; recovery completion verifies its one-time
+# Auth token and current administration profile inside the handler.
+[functions.business-password-recovery]
+verify_jwt = false
+
+[functions.public-support-ticket]
+verify_jwt = false
+
+# This protected handler validates the bearer with Auth and checks the current
+# platform role in the user-scoped database operation before touching Auth.
+[functions.platform-tenant-account]
+verify_jwt = false

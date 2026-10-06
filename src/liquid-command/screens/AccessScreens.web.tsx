@@ -31,11 +31,9 @@ import {
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
-import { requestBusinessPasswordReset } from '@/lib/auth/passwordResetService';
+import { requestBusinessPasswordReset,completeBusinessPasswordReset,readBusinessRecoveryToken } from '@/lib/auth/passwordResetService.web';
 import {
-  getSession,
   signOut as supabaseSignOut,
-  updatePassword,
 } from '@/lib/supabase/authService';
 import {
   LiquidBackdrop,
@@ -458,7 +456,7 @@ export function RegisterOrganizationScreen() {
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ username?: string } | null>(null);
+  const [success, setSuccess] = useState<{ username?: string; welcomeEmailQueued?: boolean } | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const submitLock = useRef(false);
   const draftWrites = useRef<Promise<unknown>>(Promise.resolve());
@@ -563,7 +561,7 @@ export function RegisterOrganizationScreen() {
       }
       await draftWrites.current;
       await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
-      setSuccess({ username: result.data.owner.email });
+      setSuccess({ username: result.data.owner.email, welcomeEmailQueued: Boolean('welcomeEmailQueued' in result.data && result.data.welcomeEmailQueued) });
       setForm(current => ({ ...current, adminPassword: '' }));
       setConfirmPassword('');
     } catch (cause) {
@@ -591,6 +589,9 @@ export function RegisterOrganizationScreen() {
           title="Registrierung erfolgreich"
           message={success.username ? `Ihre E-Mail für die Anmeldung: ${success.username}` : 'Administrationskonto erstellt.'}
         />
+        {success.welcomeEmailQueued && (
+          <LiquidText variant="body">Ihre persönliche Willkommens-E-Mail mit Zugangsdaten, Starthilfe und Supportkontakt wird automatisch an {success.username} versendet. Bitte prüfen Sie auch den Spam-Ordner. Verwenden Sie für die Anmeldung Ihr selbst gewähltes Passwort.</LiquidText>
+        )}
         <LiquidButton fullWidth label="Zur Anmeldung" onPress={() => router.replace('/auth/business-login' as never)} />
       </AccessShell>
     );
@@ -743,23 +744,23 @@ export function PasswordRecoveryScreen() {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    if(loading) return;
     setError(null);
     setSuccess(null);
     setLoading(true);
-    const result = await requestBusinessPasswordReset(email);
-    setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setSuccess(result.data.message);
+    try {
+      const result = await requestBusinessPasswordReset(email);
+      if (!result.ok) setError(result.error);
+      else setSuccess(result.data.message);
+    } catch {setError('Die Anfrage konnte nicht bestätigt werden. Bitte versuchen Sie es erneut.');}
+    finally {setLoading(false);}
   };
 
   return (
     <AccessShell
-      eyebrow="PASSWORT-WIEDERHERSTELLUNG"
+      eyebrow="VERWALTUNG · PASSWORT-WIEDERHERSTELLUNG"
       title="Zugang sicher wiederherstellen."
-      subtitle="Ein Rücksetz-Link wird ausschließlich an das verknüpfte Administrationskonto gesendet."
+      subtitle="Fordern Sie einen einmaligen Rücksetz-Link für Ihr aktives Verwaltungskonto an. Mitarbeitenden- und Klientenzugänge werden durch die zuständige Verwaltung betreut."
       backRoute="/auth/business-login"
       side={<SecuritySide />}
     >
@@ -767,7 +768,7 @@ export function PasswordRecoveryScreen() {
         {error ? <LiquidState kind="error" title="Versand nicht möglich" message={error} /> : null}
         {success ? <LiquidState kind="success" title="E-Mail geprüft" message={success} /> : null}
         <LiquidField
-          label="E-Mail"
+          label="Verwaltungs-E-Mail"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -776,6 +777,7 @@ export function PasswordRecoveryScreen() {
         />
         <LiquidButton fullWidth label="Rücksetz-Link anfordern" loading={loading} onPress={() => void submit()} />
         <LiquidButton fullWidth label="Zur Anmeldung" variant="secondary" onPress={() => router.replace('/auth/business-login' as never)} />
+        <Link href="/support" style={{color:liquidColors.blue500}}>Ohne Anmeldung ein Support-Ticket einreichen →</Link>
       </LiquidSurface>
     </AccessShell>
   );
@@ -784,23 +786,30 @@ export function PasswordRecoveryScreen() {
 export function PasswordResetScreen() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
+  const [tokenHash, setTokenHash] = useState<string|null>(null);
+  const [completed,setCompleted] = useState(false);
+  const tokenCaptured = useRef(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    void getSession().then((result) => {
-      setHasSession(result.ok && Boolean(result.data));
-      setReady(true);
-    });
+    if(tokenCaptured.current) return;
+    tokenCaptured.current=true;
+    if(typeof window!=='undefined') {
+      setTokenHash(readBusinessRecoveryToken(window.location.hash));
+      // Keep the one-time value in memory, never in history, storage or referrers.
+      if(window.location.hash) window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);
+    }
+    setReady(true);
   }, []);
 
   const submit = async () => {
+    if(loading || !tokenHash) return;
     setError(null);
-    if (password.length < 10) {
-      setError('Das neue Passwort muss mindestens 10 Zeichen haben.');
+    if (password.length < 10 || password.length>128) {
+      setError('Das neue Passwort muss 10 bis 128 Zeichen haben.');
       return;
     }
     if (password !== confirm) {
@@ -808,28 +817,28 @@ export function PasswordResetScreen() {
       return;
     }
     setLoading(true);
-    const result = await updatePassword(password);
-    if (!result.ok) {
-      setLoading(false);
-      setError(result.error);
-      return;
-    }
-    await supabaseSignOut();
-    setLoading(false);
-    router.replace('/auth/business-login' as never);
+    try {
+      const result = await completeBusinessPasswordReset(tokenHash,password,confirm);
+      if (!result.ok) {setError(result.error);return;}
+      setPassword('');setConfirm('');setTokenHash(null);setCompleted(true);
+      await supabaseSignOut();
+    } catch {setError('Die Änderung konnte nicht bestätigt werden. Bitte fordern Sie einen neuen Link an.');}
+    finally {setLoading(false);}
   };
 
   return (
     <AccessShell
-      eyebrow="NEUES PASSWORT"
-      title="Sitzung schützen."
-      subtitle="Vergeben Sie ein neues Passwort für das bestätigte Konto."
+      eyebrow="VERWALTUNG · NEUES PASSWORT"
+      title="Ihr Zugang bleibt Ihrer."
+      subtitle="Legen Sie ein neues Passwort mit 10 bis 128 Zeichen fest. Der Link gilt ausschließlich für Ihr Verwaltungskonto."
       backRoute="/auth/business-login"
       side={<SecuritySide />}
     >
       {!ready ? (
         <LiquidState kind="loading" title="Rücksetz-Link wird geprüft" message="Die sichere Sitzung wird wiederhergestellt." />
-      ) : !hasSession ? (
+      ) : completed ? (
+        <LiquidSurface active contentStyle={styles.formCard}><LiquidState kind="success" title="Passwort geändert" message="Ihr neues Verwaltungspasswort wurde gespeichert. Melden Sie sich damit erneut an." /><LiquidButton fullWidth label="Zur Verwaltungsanmeldung" onPress={()=>router.replace('/auth/business-login' as never)} /></LiquidSurface>
+      ) : !tokenHash ? (
         <LiquidState
           kind="locked"
           title="Link ungültig oder abgelaufen"

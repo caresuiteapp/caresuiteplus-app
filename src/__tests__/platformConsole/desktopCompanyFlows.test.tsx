@@ -2,7 +2,7 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const api = vi.hoisted(() => ({ register: vi.fn(), draft: vi.fn(), saveDraft: vi.fn(), removeDraft: vi.fn(), detail: vi.fn(), list: vi.fn(), status: vi.fn(), record: vi.fn(), push: vi.fn(), tenantId: 'a' }));
+const api = vi.hoisted(() => ({ register: vi.fn(), draft: vi.fn(), saveDraft: vi.fn(), removeDraft: vi.fn(), detail: vi.fn(), list: vi.fn(), status: vi.fn(), record: vi.fn(), push: vi.fn(), resetRequest:vi.fn(),resetComplete:vi.fn(),readToken:vi.fn(),signOut:vi.fn(),tenantId: 'a' }));
 vi.mock('react-native', async () => {
   const React = await import('react');
   const element = (tag: string) => (p: any) => React.createElement(tag, { onClick: p.onPress, disabled: p.disabled, role: p.accessibilityRole, 'aria-label': p.accessibilityLabel }, p.children);
@@ -18,8 +18,8 @@ vi.mock('@/lib/auth/clientPortalAuthService', () => ({ loginClientPortal: vi.fn(
 vi.mock('@/lib/auth/clientPortalUsernameGenerator', () => ({ sanitizePortalUsernameInput: vi.fn() }));
 vi.mock('@/lib/auth/portalLoginFlow', () => ({ completePortalLogin: vi.fn() }));
 vi.mock('@/lib/auth/portalCodeGenerator', () => ({ normalizePortalCodeInput: vi.fn() }));
-vi.mock('@/lib/auth/passwordResetService', () => ({ requestBusinessPasswordReset: vi.fn() }));
-vi.mock('@/lib/supabase/authService', () => ({ getSession: vi.fn(), signOut: vi.fn(), updatePassword: vi.fn() }));
+vi.mock('@/lib/auth/passwordResetService.web', () => ({ requestBusinessPasswordReset: api.resetRequest,completeBusinessPasswordReset:api.resetComplete,readBusinessRecoveryToken:api.readToken }));
+vi.mock('@/lib/supabase/authService', () => ({ getSession: vi.fn(), signOut: api.signOut, updatePassword: vi.fn() }));
 vi.mock('@/liquid-command/screens/AccessHubScreen', () => ({ AccessHubScreen: () => null }));
 vi.mock('@/liquid-command/foundation/useLiquidLayout', () => ({ useLiquidLayout: () => ({ width: 1440, isDesktop: true }) }));
 vi.mock('@/liquid-command/foundation/tokens', () => ({ liquidColors: {}, liquidRadius: {} }));
@@ -44,7 +44,7 @@ vi.mock('@/components/platformConsole', () => ({
   PlatformDataTable: ({ data }: any) => <div>{data.map((row: any) => <span key={row.id}>{row.tenantName}</span>)}</div>,
 }));
 vi.mock('@/screens/platformConsole/PlatformTenantOperatorTabs', () => Object.fromEntries(['Audit', 'BillingPreview', 'Credits', 'Diagnosis', 'Discounts', 'Entitlements', 'FeatureFlags', 'Invoices', 'Limits', 'Payments', 'Subscription', 'Support', 'Users'].map(name => [`Tenant${name}Tab`, () => null])));
-import { RegisterOrganizationScreen } from '@/liquid-command/screens/AccessScreens.web';
+import { RegisterOrganizationScreen,PasswordRecoveryScreen,PasswordResetScreen } from '@/liquid-command/screens/AccessScreens.web';
 import { PlatformTenantDetailScreen } from '@/screens/platformConsole/PlatformTenantDetailScreen.web';
 import { PlatformTenantsScreen } from '@/screens/platformConsole/PlatformTenantsScreen.web';
 const draft = { companyName: 'Musterpflege', legalForm: 'GmbH', industry: 'Pflege', street: 'Testweg 1', zip: '10115', city: 'Berlin', phone: '030123456', email: 'kontakt@example.test', adminFirstName: 'Anna', adminLastName: 'Test', adminEmail: 'anna@example.test', adminPassword: 'NeverRestoreThis', selectedModules: ['office'] };
@@ -88,8 +88,10 @@ describe('free web registration', () => {
     await click('Unternehmen kostenlos registrieren'); expect(api.register).toHaveBeenCalledTimes(1);
     expect(api.register.mock.calls[0][0].selectedModules).toHaveLength(6);
     expect(api.saveDraft.mock.calls.every(([, value]) => JSON.parse(value).adminPassword === '')).toBe(true);
-    await act(async () => pending.resolve({ ok: true, data: { owner: { email: draft.adminEmail } } }));
+    await act(async () => pending.resolve({ ok: true, data: { owner: { email: draft.adminEmail }, welcomeEmailQueued: true } }));
     expect(host.textContent).toContain('Registrierung erfolgreich'); expect(api.removeDraft).toHaveBeenCalled();
+    expect(host.textContent).toContain('Willkommens-E-Mail');
+    expect(host.textContent).toContain('wird automatisch');
   });
   it.each(['response', 'exception'])('preserves a failed %s and clears the draft only after a successful retry', async failure => {
     if (failure === 'exception') api.register.mockRejectedValueOnce(new Error('Verbindung unterbrochen'));
@@ -118,6 +120,32 @@ describe('free web registration', () => {
     await click('Zur Anmeldung'); expect(api.push).toHaveBeenLastCalledWith('/auth/business-login');
   });
 });
+describe('administration recovery screens',()=>{
+  it('preserves the email and offers public support after a rejected request',async()=>{
+    api.resetRequest.mockResolvedValueOnce({ok:false,error:'Systemmail momentan nicht verfügbar'});
+    await render(<PasswordRecoveryScreen/>);await write('Verwaltungs-E-Mail','admin@example.test');await click('Rücksetz-Link anfordern');
+    expect(input('Verwaltungs-E-Mail').value).toBe('admin@example.test');expect(host.textContent).toContain('Systemmail momentan nicht verfügbar');expect(host.textContent).toContain('Ohne Anmeldung');
+    expect(api.resetRequest).toHaveBeenCalledWith('admin@example.test');
+  });
+  it('does not show a password form for an absent or invalid link',async()=>{
+    api.readToken.mockReturnValue(null);await render(<PasswordResetScreen/>);
+    expect(host.textContent).toContain('Link ungültig oder abgelaufen');expect(input('Neues Passwort')).toBeNull();
+  });
+  it('keeps the one-time value under React StrictMode and does not lose it after removing the fragment',async()=>{
+    api.readToken.mockReturnValue('a'.repeat(64));
+    window.history.replaceState(null,'','/auth/reset-password#token_hash=example&type=recovery');
+    await render(<React.StrictMode><PasswordResetScreen/></React.StrictMode>);
+    expect(api.readToken).toHaveBeenCalledTimes(1);expect(window.location.hash).toBe('');expect(input('Neues Passwort')).not.toBeNull();
+  });
+  it('shows confirmed success only after the backend accepted a password update',async()=>{
+    const token='a'.repeat(64);api.readToken.mockReturnValue(token);api.resetComplete.mockResolvedValueOnce({ok:false,error:'Link abgelaufen'}).mockResolvedValueOnce({ok:true,data:null});api.signOut.mockResolvedValue({ok:true,data:null});
+    await render(<PasswordResetScreen/>);await write('Neues Passwort','New Password 123!');await write('Passwort bestätigen','New Password 123!');await click('Passwort speichern');
+    expect(host.textContent).toContain('Link abgelaufen');expect(input('Neues Passwort').value).toBe('New Password 123!');
+    await click('Passwort speichern');expect(host.textContent).toContain('Passwort geändert');expect(input('Neues Passwort')).toBeNull();
+    expect(api.resetComplete).toHaveBeenLastCalledWith(token,'New Password 123!','New Password 123!');expect(api.signOut).toHaveBeenCalled();
+    await click('Zur Verwaltungsanmeldung');expect(api.push).toHaveBeenLastCalledWith('/auth/business-login');
+  });
+});
 describe('company management failures', () => {
   it('ignores a late result for the previous company', async () => {
     const a = deferred(); const b = deferred(); api.detail.mockImplementation((id: string) => id === 'a' ? a.promise : b.promise);
@@ -125,7 +153,7 @@ describe('company management failures', () => {
     await act(async () => b.resolve(detail('b'))); await act(async () => a.resolve(detail('a')));
     expect(host.textContent).toContain('Unternehmen b'); expect(host.textContent).not.toContain('Unternehmen a');
     await click('Zugriff & Support'); await click('Support'); await click('Support-Zentrale öffnen');
-    expect(api.push).toHaveBeenCalledWith({ pathname: '/platform/support', params: { company: 'Unternehmen b' } });
+    expect(api.push).toHaveBeenCalledWith({ pathname: '/platform/support', params: { company: 'Unternehmen b', tenantId: 'b' } });
   });
   it('does not report a rejected suspension as audited success', async () => {
     api.status.mockResolvedValue({ ok: false, error: 'Zugriff verweigert' });

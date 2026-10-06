@@ -1,46 +1,39 @@
 import { usePlatformOperation, requirePlatformResult } from '@/hooks/usePlatformOperation.web';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
-  PlatformConfirmModal,
   PlatformFilterChip,
   PlatformFilterChipRow,
-  PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
+import { PlatformConfirmModal } from '@/components/platformConsole/PlatformConfirmModal.web';
 import { LoadingState } from '@/components/ui';
 import type { PlatformTenantDetail } from '@/lib/platformConsole';
 import {
   assignPlatformDiscount,
-  assignPlatformPlan,
-  bookPlatformTenantCredit,
-  cancelPlatformTenantSubscription,
-  getPlatformEffectiveTenantEntitlements,
   getPlatformPlanLimits,
   listPlatformAuditLog,
   listPlatformFeatureFlags,
-  listPlatformPlans,
-  listPlatformTenantUsers,
+  listPlatformDiscountCatalog,
   platformRoleHasCapability,
-  recalculatePlatformTenantEntitlements,
-  reactivatePlatformTenantSubscription,
   removePlatformDiscount,
   setPlatformFeatureFlag,
   updatePlatformPaymentStatus,
-  suspendPlatformTenantSubscription,
   updatePlatformInvoiceStatus,
 } from '@/lib/platformConsole';
 import {
   getPlatformTenantCredits,
-  listPlatformTenantAddons,
-  listPlatformTenantSubscriptions,
 } from '@/lib/platformConsole/platformOperatorDataService';
-import { PlatformBillingPreviewPanel } from '@/components/platformConsole/PlatformBillingPreviewPanel';
+import { ConsoleStyle } from '@/components/platformConsole/ConsoleWorkspaceUi.web';
+import { PlatformBillingPreviewPanel } from '@/components/platformConsole/PlatformBillingPreviewPanel.web';
 import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
-import type { PlatformRoleKey, PlatformTenantModuleRow } from '@/types/platformConsole';
+import type { PlatformDiscountRow, PlatformRoleKey, PlatformTenantModuleRow } from '@/types/platformConsole';
 import { spacing } from '@/theme';
+import { platformRpc } from '@/lib/platformConsole/platformSupabaseClient';
+import { consoleEuros, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
+import { platformName, platformActionLabel } from '@/lib/platformConsole/platformLanguage';
 
 type TabProps = {
   tenantId: string;
@@ -53,303 +46,51 @@ function mapRecordRows(items: Record<string, unknown>[]): Record<string, unknown
   return items ?? [];
 }
 
-export function TenantSubscriptionTab({ tenantId, detail, role, onReload }: TabProps) {
-  const operation = usePlatformOperation();
-  const canWrite = platformRoleHasCapability(role, 'plans.write');
-  const [subscriptions, setSubscriptions] = useState<Record<string, unknown>[]>([]);
-  const [addons, setAddons] = useState<Record<string, unknown>[]>([]);
-  const [plans, setPlans] = useState<Record<string, unknown>[]>([]);
-  const [planKey, setPlanKey] = useState('');
-  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string; danger?: boolean } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [auditAction, setAuditAction] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const [sub, ad, pl] = await Promise.all([
-      listPlatformTenantSubscriptions(tenantId),
-      listPlatformTenantAddons(tenantId),
-      listPlatformPlans(),
-    ]);
-    if (sub.ok) setSubscriptions(sub.data); else operation.report(sub.error);
-    if (ad.ok) setAddons(ad.data); else operation.report(ad.error);
-    if (pl.ok) setPlans(pl.data); else operation.report(pl.error);
-  }, [tenantId]);
-
-  useEffect(() => {
-    void load().catch(operation.report).finally(() => setLoading(false));
-  }, [load]);
-
-  const activeSub = subscriptions.find((s) => s.status === 'active') ?? subscriptions[0];
-  const plan = (detail.plan ?? {}) as Record<string, unknown>;
-
-  return (
-    <View style={styles.panel}>
-      {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
-      <Text style={styles.section}>Vertrag</Text>
-      {activeSub ? (
-        <>
-          <Info label="Status" value={String(activeSub.status ?? '—')} />
-          <Info label="Plan" value={String(activeSub.plan_key ?? plan.plan_key ?? '—')} />
-          <Info label="Intervall" value={String(activeSub.billing_interval ?? '—')} />
-          <Info label="Periode Start" value={formatPlatformDate(activeSub.current_period_start)} />
-          <Info label="Periode Ende" value={formatPlatformDate(activeSub.current_period_end)} />
-          <Info label="Trial bis" value={formatPlatformDate(activeSub.trial_ends_at)} />
-        </>
-      ) : (
-        <Text style={styles.hint}>Kein aktiver Vertrag hinterlegt.</Text>
-      )}
-
-      <Text style={styles.section}>Aktive Add-ons</Text>
-      {addons.length === 0 ? <Text style={styles.hint}>Keine Add-ons.</Text> : null}
-      {addons.map((a) => (
-        <Text key={String(a.addon_key ?? a.id)} style={styles.meta}>
-          {String(a.addon_key)} · {String(a.status ?? 'active')}
-        </Text>
-      ))}
-
-      {canWrite ? (
-        <View style={styles.subPanel}>
-          <Text style={styles.label}>Plan zuweisen / wechseln</Text>
-          <PlatformFilterChipRow>
-            {plans.map((p) => (
-              <PlatformFilterChip
-                key={String(p.plan_key)}
-                label={String(p.plan_key)}
-                active={planKey === String(p.plan_key)}
-                onPress={() => setPlanKey(String(p.plan_key))}
-              />
-            ))}
-          </PlatformFilterChipRow>
-          <Pressable
-            style={styles.btn}
-            disabled={!planKey}
-            onPress={() =>
-              setConfirm({
-                title: 'Plan zuweisen',
-                desc: `Plan ${planKey} dem Mandanten zuweisen. Entitlements werden neu berechnet.`,
-                action: async (reason) => {
-                  const res = await assignPlatformPlan(tenantId, planKey, reason);
-                  if (!res.ok) throw new Error(res.error);
-                  await requirePlatformResult(recalculatePlatformTenantEntitlements(tenantId, reason));
-                  setAuditAction('subscription.plan_assigned');
-                  await load().catch(operation.report);
-                  await onReload();
-                },
-              })
-            }
-          >
-            <Text style={styles.btnText}>Plan zuweisen</Text>
-          </Pressable>
-
-          <View style={styles.rowActions}>
-            <Pressable
-              style={styles.btn}
-              onPress={() =>
-                setConfirm({
-                  title: 'Subscription pausieren',
-                  desc: 'Zugriff eingeschränkt. Billing-Auswirkung prüfen.',
-                  danger: true,
-                  action: async (reason) => {
-                    const res = await suspendPlatformTenantSubscription(tenantId, reason);
-                    if (!res.ok) throw new Error(res.error);
-                    setAuditAction('subscription.suspended');
-                    await load().catch(operation.report);
-                    await onReload();
-                  },
-                })
-              }
-            >
-              <Text style={styles.btnText}>Pausieren</Text>
-            </Pressable>
-            <Pressable
-              style={styles.btn}
-              onPress={() =>
-                setConfirm({
-                  title: 'Subscription reaktivieren',
-                  desc: 'Subscription wieder aktivieren.',
-                  action: async (reason) => {
-                    const res = await reactivatePlatformTenantSubscription(tenantId, reason);
-                    if (!res.ok) throw new Error(res.error);
-                    setAuditAction('subscription.reactivated');
-                    await load().catch(operation.report);
-                    await onReload();
-                  },
-                })
-              }
-            >
-              <Text style={styles.btnText}>Reaktivieren</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.btn, styles.btnDanger]}
-              onPress={() =>
-                setConfirm({
-                  title: 'Subscription kündigen',
-                  desc: 'Kündigung ohne Rückgängig — Grund Pflicht.',
-                  danger: true,
-                  action: async (reason) => {
-                    const res = await cancelPlatformTenantSubscription(tenantId, reason);
-                    if (!res.ok) throw new Error(res.error);
-                    setAuditAction('subscription.cancelled');
-                    await load().catch(operation.report);
-                    await onReload();
-                  },
-                })
-              }
-            >
-              <Text style={styles.btnText}>Kündigen</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : (
-        <Text style={styles.hint}>Ihr Konto hat für Verträge Leserechte.</Text>
-      )}
-
-      {auditAction ? <PlatformAuditLink tenantId={tenantId} action={auditAction} /> : null}
-      <PlatformConfirmModal
-        error={operation.error}
-        visible={Boolean(confirm)}
-        title={confirm?.title ?? ''}
-        description={confirm?.desc ?? ''}
-        danger={confirm?.danger}
-        loading={operation.busy}
-        onCancel={() => { setConfirm(null); operation.clear(); }}
-        onConfirm={(reason) => {
-          if (!confirm) return;
-          void operation.run(() => confirm.action(reason)).then(saved => { if (saved) setConfirm(null); });
-        }}
-      />
-    </View>
-  );
-}
-
-export function TenantEntitlementsTab({ tenantId, role }: Pick<TabProps, 'tenantId' | 'role'>) {
-  const operation = usePlatformOperation();
-  const canWrite = platformRoleHasCapability(role, 'plans.write');
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const res = await getPlatformEffectiveTenantEntitlements(tenantId);
-    if (res.ok) setItems((res.data as Record<string, unknown>[]) ?? []); else operation.report(res.error);
-    setLoading(false);
-  }, [tenantId]);
-
-  useEffect(() => {
-    void load().catch(operation.report).finally(() => setLoading(false));
-  }, [load]);
-
-  if (loading) return <LoadingState message="Berechtigungen werden geladen…" />;
-
-  return (
-    <View style={styles.panel}>
-      {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
-      {items.length === 0 ? <Text style={styles.hint}>Keine Berechtigungen hinterlegt.</Text> : null}
-      {items.map((e, i) => (
-        <View key={String(e.module_key ?? e.entitlement_key ?? i)} style={styles.row}>
-          <Text style={styles.primary}>{String(e.module_key ?? e.entitlement_key ?? '—')}</Text>
-          <Text style={styles.meta}>
-            {String(e.access_state ?? e.status ?? '—')} · Quelle: {String(e.source ?? '—')}
-            {e.limit_value != null ? ` · Limit ${String(e.limit_value)}` : ''}
-          </Text>
-        </View>
-      ))}
-      {canWrite ? (
-        <Pressable
-          style={styles.btn}
-          onPress={() =>
-            setConfirm({
-              title: 'Berechtigungen aktualisieren',
-              desc: 'Effektive Rechte aus Plan, Add-ons und Overrides neu berechnen.',
-              action: async (reason) => {
-                await requirePlatformResult(recalculatePlatformTenantEntitlements(tenantId, reason));
-                await load().catch(operation.report);
-              },
-            })
-          }
-        >
-          <Text style={styles.btnText}>Neu berechnen</Text>
-        </Pressable>
-      ) : null}
-      <PlatformAuditLink tenantId={tenantId} action="entitlements.recalculated" />
-      <PlatformConfirmModal
-        error={operation.error}
-        visible={Boolean(confirm)}
-        title={confirm?.title ?? ''}
-        description={confirm?.desc ?? ''}
-        loading={operation.busy}
-        onCancel={() => { setConfirm(null); operation.clear(); }}
-        onConfirm={(reason) => {
-          if (!confirm) return;
-          void operation.run(() => confirm.action(reason)).then(saved => { if (saved) setConfirm(null); });
-        }}
-      />
-    </View>
-  );
+export function TenantEntitlementsTab({ detail }: Pick<TabProps, 'tenantId' | 'role' | 'detail'>) {
+  return <View style={styles.panel}><Text style={styles.section}>Wirksame Funktionsfreigaben</Text>
+    {detail.modules.length ? detail.modules.map(module => <View key={module.moduleKey} style={styles.row}>
+      <Text style={styles.primary}>{platformName(module.moduleKey, module.moduleName)}</Text>
+      <Text style={styles.meta}>{consoleLabel(module.status)}{module.isTrial ? ` · Testphase bis ${formatPlatformDate(module.trialEndsAt)}` : ''}{module.manualOverride ? ' · Individuelle Vereinbarung' : ''}</Text>
+    </View>) : <Text style={styles.hint}>Für dieses Unternehmen sind keine Funktionsfreigaben hinterlegt.</Text>}
+    <Text style={styles.hint}>Diese Übersicht zeigt die tatsächlich gespeicherten Freigaben. Die kostenlosen Grundfunktionen bleiben Bestandteil der Plattform.</Text>
+  </View>;
 }
 
 export function TenantCreditsTab({ tenantId, role, onReload }: Pick<TabProps, 'tenantId' | 'role' | 'onReload'>) {
   const operation = usePlatformOperation();
-  const canWrite = platformRoleHasCapability(role, 'billing.write');
+  const report = operation.report;
   const [balance, setBalance] = useState<number | null>(null);
   const [amount, setAmount] = useState('');
-  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-
+  const [confirm, setConfirm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const nonce = useRef(crypto.randomUUID());
+  const revision = useRef(0);
+  const canWrite = platformRoleHasCapability(role, 'billing.write');
   const load = useCallback(async () => {
-    const res = await getPlatformTenantCredits(tenantId);
-    if (res.ok && res.data) setBalance(Number(res.data.balance_cents ?? 0)); else if (!res.ok) operation.report(res.error);
-  }, [tenantId]);
-
-  useEffect(() => {
-    void load().catch(operation.report).finally(() => setLoading(false));
-  }, [load]);
-
-  return (
-    <View style={styles.panel}>
-      {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
-      <Text style={styles.primary}>Aktuelles Guthaben: {formatPlatformCents(balance ?? 0)}</Text>
-      {canWrite ? (
-        <View style={styles.subPanel}>
-          <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholder="Betrag (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
-          <Pressable
-            style={styles.btn}
-            onPress={() =>
-              setConfirm({
-                title: 'Credit buchen',
-                desc: `${amount} Cent gutschreiben. Ledger-Eintrag append-only.`,
-                action: async (reason) => {
-                  const res = await bookPlatformTenantCredit(tenantId, Number(amount) || 0, reason, 'credit');
-                  if (!res.ok) throw new Error(res.error);
-                  await load().catch(operation.report);
-                  await onReload();
-                },
-              })
-            }
-          >
-            <Text style={styles.btnText}>Credit buchen</Text>
-          </Pressable>
-          <PlatformAuditLink tenantId={tenantId} action="credit.booked" />
-        </View>
-      ) : (
-        <Text style={styles.hint}>Lesemodus — billing.write erforderlich.</Text>
-      )}
-      <PlatformConfirmModal
-        error={operation.error}
-        visible={Boolean(confirm)}
-        title={confirm?.title ?? ''}
-        description={confirm?.desc ?? ''}
-        loading={operation.busy}
-        onCancel={() => { setConfirm(null); operation.clear(); }}
-        onConfirm={(reason) => {
-          if (!confirm) return;
-          void operation.run(() => confirm.action(reason)).then(saved => { if (saved) setConfirm(null); });
-        }}
-      />
-    </View>
-  );
+    const request = ++revision.current;
+    setLoading(true); const result = await getPlatformTenantCredits(tenantId);
+    if (request !== revision.current) return;
+    if (result.ok) setBalance(Number(result.data?.balance_cents ?? 0));
+    else { setBalance(null); report(result.error); }
+    setLoading(false);
+  }, [tenantId, report]);
+  useEffect(() => { const counter = revision; void load(); return () => { counter.current++; }; }, [load]);
+  return <View style={styles.panel}>
+    {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
+    <Text style={styles.primary}>{loading ? 'Guthaben wird geladen…' : balance == null ? 'Guthaben konnte nicht ermittelt werden.' : `Aktuelles Guthaben: ${formatPlatformCents(balance)}`}</Text>
+    {canWrite ? <View style={styles.subPanel}>
+      <Text style={styles.label}>Gutschrift in Euro</Text><TextInput accessibilityLabel="Gutschrift in Euro" style={styles.input} value={amount} onChangeText={setAmount} placeholder="Zum Beispiel 25,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+      <Pressable accessibilityRole="button" style={styles.btn} disabled={operation.busy || loading || balance == null || !amount.trim()} onPress={() => setConfirm(true)}><Text style={styles.btnText}>Guthaben buchen</Text></Pressable>
+    </View> : <Text style={styles.hint}>Ihre Rolle hat für Guthaben Lesezugriff.</Text>}
+    <PlatformConfirmModal visible={confirm} title="Guthaben buchen" description={`Gutschrift: ${amount} Euro. Die Buchung wird dauerhaft im Verlauf dokumentiert.`} error={operation.error} loading={operation.busy}
+      onCancel={() => { setConfirm(false); operation.clear(); }} onConfirm={reason => { void operation.run(async () => {
+        const cents = consoleEuros(amount); if (!cents) throw new Error('Bitte einen Betrag größer als null eingeben.');
+        const result = await platformRpc('platform_record_tenant_credit', { p_nonce: nonce.current, p_tenant_id: tenantId, p_amount_cents: cents, p_reason: reason, p_entry_type: 'credit' });
+        if (result.error) throw new Error(result.error.message);
+        nonce.current = crypto.randomUUID(); setAmount(''); setConfirm(false); await load(); await onReload();
+      }); }} />
+    <PlatformAuditLink tenantId={tenantId} action="credit.booked" />
+  </View>;
 }
 
 export function TenantBillingPreviewTab({ tenantId, role }: Pick<TabProps, 'tenantId' | 'role'>) {
@@ -364,9 +105,8 @@ export function TenantInvoicesTab({ tenantId, detail, role, onReload }: TabProps
   const canWrite = platformRoleHasCapability(role, 'billing.write');
   const invoices = mapRecordRows(detail.invoices);
   const [selectedId, setSelectedId] = useState('');
-  const [newStatus, setNewStatus] = useState('paid');
+  const [newStatus, setNewStatus] = useState('open');
   const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
-  const [loading, setLoading] = useState(false);
   const [auditAction, setAuditAction] = useState<string | null>(null);
 
   const selected = invoices.find((i) => String(i.id) === selectedId);
@@ -380,7 +120,7 @@ export function TenantInvoicesTab({ tenantId, detail, role, onReload }: TabProps
           <View style={{ flex: 1 }}>
             <Text style={styles.primary}>{String(inv.invoice_number ?? inv.id)}</Text>
             <Text style={styles.meta}>
-              {String(inv.status)} · {formatPlatformCents(inv.total_cents ?? inv.amount_cents)} · Fällig:{' '}
+              {consoleLabel(inv.status)} · {formatPlatformCents(inv.total_cents ?? inv.amount_cents)} · Fällig:{' '}
               {formatPlatformDate(inv.due_date ?? inv.due_at)}
             </Text>
           </View>
@@ -392,13 +132,13 @@ export function TenantInvoicesTab({ tenantId, detail, role, onReload }: TabProps
       {selected && canWrite ? (
         <View style={styles.subPanel}>
           <Text style={styles.label}>Status für {String(selected.invoice_number)}</Text>
-          <TextInput style={styles.input} value={newStatus} onChangeText={setNewStatus} placeholder="paid, open, …" placeholderTextColor={PLATFORM_COLORS.muted} />
+          <PlatformFilterChipRow>{[["open","Offen"],["past_due","Überfällig"],["cancelled","Storniert"]].map(([value,label])=><PlatformFilterChip key={value} label={label} active={newStatus===value} onPress={()=>setNewStatus(value)}/>)}</PlatformFilterChipRow>
           <Pressable
             style={styles.btn}
             onPress={() =>
               setConfirm({
                 title: 'Rechnungsstatus ändern',
-                desc: `Status → ${newStatus}. Grund Pflicht.`,
+                desc: `Status: ${consoleLabel(newStatus)}. Grund Pflicht.`,
                 action: async (reason) => {
                   const res = await updatePlatformInvoiceStatus(String(selected.id), newStatus, reason);
                   if (!res.ok) throw new Error(res.error);
@@ -435,7 +175,6 @@ export function TenantPaymentsTab({ tenantId, detail, role, onReload }: TabProps
   const canRead = platformRoleHasCapability(role, 'payments.read');
   const canWrite = platformRoleHasCapability(role, 'payments.write');
   const [confirm, setConfirm] = useState<{ paymentId: string; status: string } | null>(null);
-  const [loading, setLoading] = useState(false);
   if (!canRead) return <Text style={styles.hint}>Keine Berechtigung für Zahlungen.</Text>;
   const payments = mapRecordRows(detail.payments);
   return (
@@ -450,7 +189,7 @@ export function TenantPaymentsTab({ tenantId, detail, role, onReload }: TabProps
         </View>
       ))}
       <PlatformAuditLink tenantId={tenantId} action="payment" />
-      <PlatformConfirmModal error={operation.error} visible={Boolean(confirm)} title="Zahlungsstatus berichtigen" description={`Zahlung als ${confirm?.status ?? ''} markieren.`} loading={operation.busy} onCancel={() => { setConfirm(null); operation.clear(); }} onConfirm={(reason) => {
+      <PlatformConfirmModal error={operation.error} visible={Boolean(confirm)} title="Zahlungsstatus berichtigen" description={`Zahlung als ${consoleLabel(confirm?.status)} markieren.`} loading={operation.busy} onCancel={() => { setConfirm(null); operation.clear(); }} onConfirm={(reason) => {
         if (!confirm) return; void operation.run(async () => { await requirePlatformResult(updatePlatformPaymentStatus(confirm.paymentId, confirm.status, reason)); await onReload(); }).then(saved => { if (saved) setConfirm(null); });
       }} />
     </View>
@@ -459,21 +198,33 @@ export function TenantPaymentsTab({ tenantId, detail, role, onReload }: TabProps
 
 export function TenantDiscountsTab({ tenantId, detail, role, onReload }: TabProps) {
   const operation = usePlatformOperation();
+  const report = operation.report;
   const canWrite = platformRoleHasCapability(role, 'discounts.write');
   const discounts = mapRecordRows(detail.discounts);
   const [key, setKey] = useState('');
+  const [catalog, setCatalog] = useState<PlatformDiscountRow[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  useEffect(() => {
+    let active = true; setCatalogLoading(true);
+    void listPlatformDiscountCatalog().then(result => {
+      if (!active) return;
+      if (result.ok) setCatalog(result.data); else report(result.error);
+    }).catch(report).finally(() => { if (active) setCatalogLoading(false); });
+    return () => { active = false; };
+  }, [tenantId, report]);
+  const discountName = (value: unknown) => catalog.find(row => row.discount_key === value)?.discount_name || platformName(value, 'Individuelle Sonderkondition');
   const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
-  const [loading, setLoading] = useState(false);
 
   return (
-    <View style={styles.panel}>
+    <div className="cs-console"><ConsoleStyle/><View style={styles.panel}>
       {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
+      {!discounts.length ? <Text style={styles.hint}>Noch keine Sonderkonditionen zugewiesen.</Text> : null}
       {discounts.map((d) => (
         <View key={String(d.id ?? d.discount_key)} style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.primary}>{String(d.discount_key)}</Text>
+            <Text style={styles.primary}>{discountName(d.discount_key)}</Text>
             <Text style={styles.meta}>
-              {String(d.status)} · {formatPlatformDate(d.starts_at)} – {formatPlatformDate(d.ends_at)}
+              {consoleLabel(d.status)} · {formatPlatformDate(d.starts_at)} – {formatPlatformDate(d.ends_at)}
             </Text>
           </View>
           {canWrite && d.status === 'active' ? (
@@ -481,7 +232,7 @@ export function TenantDiscountsTab({ tenantId, detail, role, onReload }: TabProp
               onPress={() =>
                 setConfirm({
                   title: 'Rabatt entfernen',
-                  desc: `Rabatt ${String(d.discount_key)} widerrufen.`,
+                  desc: `Rabatt „${discountName(d.discount_key)}“ widerrufen.`,
                   action: async (reason) => {
                     await requirePlatformResult(removePlatformDiscount(tenantId, String(d.discount_key), reason));
                     await onReload();
@@ -496,13 +247,21 @@ export function TenantDiscountsTab({ tenantId, detail, role, onReload }: TabProp
       ))}
       {canWrite ? (
         <View style={styles.subPanel}>
-          <TextInput style={styles.input} value={key} onChangeText={setKey} placeholder="discount_key" placeholderTextColor={PLATFORM_COLORS.muted} />
+          <label className="cs-field">Sonderkondition auswählen
+            <select value={key} disabled={catalogLoading || operation.busy} onChange={event => setKey(event.target.value)}>
+              <option value="">Bitte auswählen</option>
+              {catalog.filter(row => row.status === 'active').map(row => <option key={row.discount_key} value={row.discount_key}>{row.discount_name}</option>)}
+            </select>
+          </label>
+          {!catalogLoading && !catalog.some(row => row.status === 'active') ? <Text style={styles.hint}>Keine aktive Sonderkondition im Katalog hinterlegt.</Text> : null}
           <Pressable
+            accessibilityRole="button"
             style={styles.btn}
+            disabled={catalogLoading || operation.busy || !key}
             onPress={() =>
               setConfirm({
                 title: 'Rabatt zuweisen',
-                desc: `Rabatt ${key} zuweisen.`,
+                desc: `Rabatt „${discountName(key)}“ zuweisen.`,
                 action: async (reason) => {
                   await requirePlatformResult(assignPlatformDiscount(tenantId, key.trim(), reason));
                   await onReload();
@@ -527,7 +286,7 @@ export function TenantDiscountsTab({ tenantId, detail, role, onReload }: TabProp
           void operation.run(() => confirm.action(reason)).then(saved => { if (saved) setConfirm(null); });
         }}
       />
-    </View>
+    </View></div>
   );
 }
 
@@ -538,6 +297,7 @@ export function TenantSupportTab({ tenantId }: Omit<TabProps, 'detail'>) {
 
 export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail' | 'onReload'>) {
   const operation = usePlatformOperation();
+  const report = operation.report;
   const canWrite = platformRoleHasCapability(role, 'flags.write');
   const [flags, setFlags] = useState<Record<string, unknown>[]>([]);
   const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
@@ -545,33 +305,34 @@ export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail
 
   const load = useCallback(async () => {
     const res = await listPlatformFeatureFlags({ tenantId });
-    if (res.ok) setFlags(res.data as unknown as Record<string, unknown>[]); else operation.report(res.error);
-  }, [tenantId]);
+    if (res.ok) setFlags(res.data as unknown as Record<string, unknown>[]); else report(res.error);
+  }, [tenantId, report]);
 
   useEffect(() => {
-    void load().catch(operation.report).finally(() => setLoading(false));
-  }, [load]);
+    setLoading(true);
+    void load().catch(report).finally(() => setLoading(false));
+  }, [load, report]);
 
   return (
     <View style={styles.panel}>
       {operation.error ? <Text accessibilityRole="alert" style={styles.operationError}>{operation.error}</Text> : null}
-      {flags.length === 0 ? <Text style={styles.hint}>Keine mandantenspezifischen Flags.</Text> : null}
+      {loading ? <Text style={styles.hint}>Funktionsfreigaben werden geladen…</Text> : !flags.length ? <Text style={styles.hint}>Keine gesonderten Funktionsfreigaben für dieses Unternehmen hinterlegt.</Text> : null}
       {flags.map((f) => (
         <View key={String(f.id)} style={styles.row}>
-          <Text style={styles.primary}>{String(f.flag_key)}</Text>
-          <Text style={styles.meta}>{f.enabled ? 'aktiv' : 'inaktiv'} · Rollout {String(f.rollout_percentage ?? '—')}%</Text>
+          <Text style={styles.primary}>{String(f.description || platformName(f.flag_key, 'Individuelle Funktionsfreigabe'))}</Text>
+          <Text style={styles.meta}>{f.enabled ? 'aktiv' : 'inaktiv'} · Freigabeanteil {String(f.rollout_percentage ?? '—')}%</Text>
           {canWrite ? (
             <Pressable
               onPress={() =>
                 setConfirm({
-                  title: f.enabled ? 'Flag deaktivieren' : 'Flag aktivieren',
-                  desc: `${String(f.flag_key)} für Mandant ${tenantId.slice(0, 8)}…`,
+                  title: f.enabled ? 'Funktionsfreigabe deaktivieren' : 'Funktion freigeben',
+                  desc: `${String(f.description || platformName(f.flag_key, 'Individuelle Funktionsfreigabe'))} für dieses Unternehmen ändern.`,
                   action: async (reason) => {
                     await requirePlatformResult(setPlatformFeatureFlag(String(f.flag_key), !f.enabled, reason, {
                       scope: 'tenant',
                       tenantId,
                     }));
-                    await load().catch(operation.report);
+                    await load().catch(report);
                   },
                 })
               }
@@ -605,36 +366,14 @@ export function TenantLimitsTab({ detail }: Pick<TabProps, 'detail'>) {
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.section}>Tariflimits (aus aktivem Plan)</Text>
+      <Text style={styles.section}>Vereinbarte Kapazitäten</Text>
       {Object.entries(limits).map(([k, v]) => (
         <View key={k} style={styles.infoRow}>
-          <Text style={styles.meta}>{k}</Text>
-          <Text style={styles.primary}>{v ?? '—'}</Text>
+          <Text style={styles.meta}>{platformName(k)}</Text>
+          <Text style={styles.primary}>{v ?? 'Unbegrenzt'}</Text>
         </View>
       ))}
-      <Text style={styles.hint}>Es werden ausschließlich wirksame Tariflimits angezeigt. Nicht konfigurierte Limits gelten als unbegrenzt.</Text>
-    </View>
-  );
-}
-
-export function TenantUsersTab({ tenantId }: { tenantId: string }) {
-  const [users, setUsers] = useState<{ id: string; display_name: string | null; email: string | null; phone: string | null; role_key: string | null }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true; setLoading(true); setError(null); setUsers([]);
-    void listPlatformTenantUsers(tenantId).then(result => {
-      if (!active) return;
-      if (result.ok) setUsers(result.data); else setError(result.error);
-    }).catch(() => { if (active) setError('Die Benutzerliste konnte nicht geladen werden. Bitte die Ansicht erneut öffnen.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [tenantId]);
-  return (
-    <View style={styles.panel}>
-      <Text style={styles.section}>Mandantenbenutzer</Text>
-      {loading ? <LoadingState message="Benutzer werden geladen…" /> : error ? <Text style={styles.hint}>{error}</Text> : users.length === 0 ? <Text style={styles.hint}>Für diesen Mandanten sind keine Benutzerprofile vorhanden.</Text> : users.map((user) => <View key={user.id} style={styles.row}><View style={{ flex: 1 }}><Text style={styles.primary}>{user.display_name || user.email || 'Ohne Namen'}</Text><Text style={styles.meta}>{user.email || 'Keine E-Mail'} · {String(user.role_key || 'Keine Rolle')}</Text>{user.phone ? <Text style={styles.meta}>{user.phone}</Text> : null}</View></View>)}
-      <Text style={styles.hint}>Einladungen und Rollenwechsel werden innerhalb des Mandanten in Office → Zugänge verwaltet; hier erfolgt die plattformweite Kontrolle ohne Passwörter oder Tokens.</Text>
+      <Text style={styles.hint}>Es gelten die Kapazitäten des aktuellen Tarifs. Nicht begrenzte Werte werden als unbegrenzt angezeigt.</Text>
     </View>
   );
 }
@@ -669,10 +408,10 @@ export function TenantDiagnosisTab({ tenantId, detail }: Pick<TabProps, 'tenantI
 
   return (
     <View style={styles.panel}>
-      <Info label="Tenant-ID" value={tenantId} />
-      <Info label="Slug" value={String(t.slug ?? '—')} />
-      <Info label="Status" value={String(t.status ?? '—')} />
-      <Info label="Billing" value={String(t.billing_status ?? t.billingStatus ?? '—')} />
+      <Info label="Unternehmensnummer" value={tenantId} />
+      <Info label="Unternehmenskürzel" value={String(t.slug ?? '—')} />
+      <Info label="Status" value={consoleLabel(t.status)} />
+      <Info label="Abrechnung" value={consoleLabel(t.billing_status ?? t.billingStatus)} />
       <Info label="Aktive Funktionsbereiche" value={String(enabledModules.length)} />
       <Info label="Deaktivierte Funktionsbereiche" value={String(disabledModules.length)} />
       <Info label="Offene Rechnungen" value={String(openInvoices.length)} />
@@ -690,14 +429,14 @@ export function TenantDiagnosisTab({ tenantId, detail }: Pick<TabProps, 'tenantI
       {modules.slice(0, 8).map((m) => (
         <ModuleDiag key={m.moduleKey} mod={m} />
       ))}
-      <Text style={styles.section}>Letzte Audit-Einträge</Text>
+      <Text style={styles.section}>Letzte Änderungen</Text>
       {audit.map((a) => (
         <Text key={a.created_at + a.action} style={styles.meta}>
-          {a.action} · {formatPlatformDate(a.created_at)}
+          {platformActionLabel(a.action)} · {formatPlatformDate(a.created_at)}
         </Text>
       ))}
       <PlatformAuditLink tenantId={tenantId} />
-      <Text style={styles.hint}>Keine automatische Reparatur — nur Diagnose.</Text>
+      <Text style={styles.hint}>Die Diagnose zeigt Hinweise. Änderungen werden über den zuständigen Verwaltungsbereich vorgenommen.</Text>
     </View>
   );
 }
@@ -726,21 +465,21 @@ export function TenantAuditTab({ tenantId }: Pick<TabProps, 'tenantId'>) {
     return () => { active = false; };
   }, [tenantId]);
 
-  if (loading) return <LoadingState message="Audit wird geladen…" />;
+  if (loading) return <LoadingState message="Änderungsprotokoll wird geladen…" />;
   if (error) return <View style={styles.panel}><Text accessibilityRole="alert" style={styles.operationError}>{error}</Text><PlatformAuditLink tenantId={tenantId} label="Vollständiges Protokoll öffnen" /></View>;
 
   return (
     <View style={styles.panel}>
-      {items.length === 0 ? <Text style={styles.hint}>Keine Audit-Einträge.</Text> : null}
+      {items.length === 0 ? <Text style={styles.hint}>Keine Einträge im Änderungsprotokoll.</Text> : null}
       {items.map((e) => (
         <View key={e.id} style={styles.row}>
-          <Text style={styles.primary}>{e.action}</Text>
+          <Text style={styles.primary}>{platformActionLabel(e.action)}</Text>
           <Text style={styles.meta}>{formatPlatformDate(e.created_at)}</Text>
           {e.reason ? <Text style={styles.meta}>Grund: {e.reason}</Text> : null}
         </View>
       ))}
-      <Text style={styles.hint}>Audit ist unveränderlich (read-only).</Text>
-      <PlatformAuditLink tenantId={tenantId} label="Vollständiges Audit öffnen" />
+      <Text style={styles.hint}>Das Änderungsprotokoll kann eingesehen und nicht nachträglich verändert werden.</Text>
+      <PlatformAuditLink tenantId={tenantId} label="Vollständiges Änderungsprotokoll öffnen" />
     </View>
   );
 }
@@ -757,8 +496,8 @@ function Info({ label, value }: { label: string; value: string }) {
 function ModuleDiag({ mod }: { mod: PlatformTenantModuleRow }) {
   return (
     <Text style={styles.meta}>
-      {mod.moduleKey}: {mod.status}
-      {mod.manualOverride ? ' (Override)' : ''}
+      {platformName(mod.moduleKey, mod.moduleName)}: {consoleLabel(mod.status)}
+      {mod.manualOverride ? ' (Individuelle Vereinbarung)' : ''}
     </Text>
   );
 }

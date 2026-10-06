@@ -1,5 +1,5 @@
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { PLATFORM_CONSOLE_TITLE, PLATFORM_NAV_ITEMS } from '@/lib/platformConsole/platformNavigation';
@@ -14,6 +14,10 @@ import { PLATFORM_COLORS } from './PlatformColors';
 import { HealthOSPageSurface } from '@/components/layout/HealthOSPageSurface';
 import { LiquidLogo } from '@/liquid-command/components/LiquidPrimitives';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { useAuth } from '@/lib/auth';
+import { signOut as endSupabaseSession } from '@/lib/supabase/authService';
+import { setDemoPlatformUser } from '@/lib/platformConsole/platformAuthService';
+import { consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
 
 type PlatformShellLayoutProps = {
   children: ReactNode;
@@ -33,7 +37,25 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const { platformUser } = usePlatformAuth();
+  const { platformUser, refresh } = usePlatformAuth();
+  const { signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const signOutLock = useRef(false);
+  const leavePlatform = async () => {
+    if (signOutLock.current) return;
+    signOutLock.current = true; setSigningOut(true); setSignOutError(null);
+    try {
+      const result = await endSupabaseSession();
+      if (!result.ok) throw new Error(result.error);
+      await signOut();
+      setDemoPlatformUser(null);
+      await refresh();
+      router.replace('/platform/login' as never);
+    } catch {
+      setSignOutError('Die Abmeldung konnte nicht bestätigt werden. Bitte erneut versuchen.');
+    } finally { signOutLock.current = false; setSigningOut(false); }
+  };
   const isWide = width >= 960;
   const { leftCollapsed, toggleLeft } = useDesktopWorkspacePreferences();
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
@@ -131,7 +153,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         <View style={styles.brand}>
           <View style={styles.brandLogo}><LiquidLogo width={200} /></View>
           <Text style={styles.brandTitle}>{PLATFORM_CONSOLE_TITLE}</Text>
-          <Text style={styles.brandSub}>Sicherer SaaS-Betrieb</Text>
+          <Text style={styles.brandSub}>Unternehmen und Plattform verwalten</Text>
         </View>
         <ScrollView style={styles.navScroll} keyboardShouldPersistTaps="handled">
           {(['overview', 'customers', 'product', 'finance', 'operations'] as const).map((group) => {
@@ -162,6 +184,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           <View style={styles.userBox}>
             <Text style={styles.userRole}>{PLATFORM_ROLE_LABELS[platformUser.role]}</Text>
             <Text style={styles.userEmail}>{platformUser.email}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Abmelden" disabled={signingOut} style={styles.menuButton} onPress={() => void leavePlatform()}><Text style={styles.menuButtonText}>{signingOut ? 'Wird abgemeldet…' : 'Abmelden'}</Text></Pressable>
           </View>
         ) : null}
       </View>
@@ -194,7 +217,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           <View style={styles.header}>
             {!isWide ? <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: mobileMenuOpen }} style={styles.menuButton} onPress={() => setMobileMenuOpen(true)}><Text style={styles.menuButtonText}>☰ Menü</Text></Pressable> : null}
             <View style={styles.headerCopy}>
-              <Text style={styles.breadcrumb}>Platform Console / {title}</Text>
+              <Text style={styles.breadcrumb}>Plattformverwaltung / {title}</Text>
               <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text>
               {subtitle ? <Text style={styles.headerSub}>{subtitle}</Text> : null}
             </View>
@@ -202,12 +225,14 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
               <PortalTextSizeControls />
               <PlatformGlobalSearch />
               <View style={styles.securityPill}><Text style={styles.securityText}>Rollenbasierter Zugriff</Text></View>
-              <View style={styles.contextPill}><Text style={styles.contextText}>{environment === 'production' ? 'Produktion' : environment}</Text></View>
+              <View style={styles.contextPill}><Text style={styles.contextText}>{consoleLabel(environment)}</Text></View>
               {platformUser ? <View style={styles.contextPill}><Text style={styles.contextText}>{PLATFORM_ROLE_LABELS[platformUser.role]}</Text></View> : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Abmelden" disabled={signingOut} style={styles.menuButton} onPress={() => void leavePlatform()}><Text style={styles.menuButtonText}>{signingOut ? 'Wird abgemeldet…' : 'Abmelden'}</Text></Pressable>
             </View>
           </View>
         ) : null}
         <View style={styles.content}>
+          {signOutError ? <Text accessibilityRole="alert" style={{ color: '#B42318', padding: 12 }}>{signOutError}</Text> : null}
           <HealthOSPageSurface padded>
             <PlatformErrorBoundary>{scroll ? <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ flexGrow: 1, gap: 16 }} keyboardShouldPersistTaps="handled">{children}</ScrollView> : children}</PlatformErrorBoundary>
           </HealthOSPageSurface>

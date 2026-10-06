@@ -3,7 +3,7 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from '
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { SupportArchive } from './SupportArchive.web';
-import { SupportAccessPanel } from './SupportAccessPanel';
+import { SupportAccessPanel } from './SupportAccessPanel.web';
 import { createSupportReadScope } from '@/lib/support/supportReadScope';
 import {
   SUPPORT_STATUS, downloadSupportAttachment, newSupportNonce, pickSupportAttachment,
@@ -13,13 +13,13 @@ import {
 
 import { SupportButton, SupportField, supportDate, supportStyles } from './SupportPrimitives';
 
-export function SupportWorkspace({ platformMode = false, initialSearch = '' }: { platformMode?: boolean; initialSearch?: string }) {
+export function SupportWorkspace({ platformMode = false, initialSearch = '', tenantId, initialTicket }: { platformMode?: boolean; initialSearch?: string; tenantId?: string; initialTicket?: string }) {
   const [width, setWidth] = useState(0);
   const [queue, setQueue] = useState<SupportQueue | null>(null);
   const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState('');
   const [offset, setOffset] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(initialTicket ?? null);
   const [archive, setArchive] = useState(false);
   const [creating, setCreating] = useState(false);
   const [loadedDetail, setDetail] = useState<SupportDetail | null>(null);
@@ -55,18 +55,18 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
   };
 
   const refreshQueue = useCallback(() => queueReads.run(
-    () => supportRpc<SupportQueue>('support_list_tickets', { p_search: search.trim(), p_status: status, p_offset: offset }),
+    () => supportRpc<SupportQueue>(platformMode && tenantId ? 'platform_tenant_ticket_queue' : 'support_list_tickets', { ...(platformMode && tenantId ? {p_tenant_id:tenantId}:{}), p_search: search.trim(), p_status: status, p_offset: offset }),
     data => { setQueue(data); setQueueError(null); setLoading(false); },
     cause => { setQueue(null); setQueueError(cause instanceof Error ? cause.message : 'Support nicht erreichbar.'); setLoading(false); },
-  ), [offset, search, status, queueReads]);
+  ), [offset, search, status, queueReads, tenantId, platformMode]);
   const refreshDetail = useCallback(async () => {
     if (!selected) return;
     await detailReads.run(
       () => supportRpc<SupportDetail>('support_get_ticket', { p_ticket_id: selected }),
-      data => { setDetail(data); setDetailError(null); setHasOlder(!oldestLoaded.current && data.messages.length === 100); setUpdatedAt(new Date().toISOString()); },
+      data => { if (tenantId && data.ticket.tenant_id !== tenantId) { setDetail(null); setDetailError('Die Anfrage gehört zu einem anderen Unternehmen.'); return; } setDetail(data); setDetailError(null); setHasOlder(!oldestLoaded.current && data.messages.length === 100); setUpdatedAt(new Date().toISOString()); },
       cause => { setDetail(null); setDetailError(cause instanceof Error ? cause.message : 'Ticket nicht erreichbar.'); },
     );
-  }, [selected, detailReads]);
+  }, [selected, detailReads, tenantId]);
 
   useEffect(() => {
     queueReads.activate();

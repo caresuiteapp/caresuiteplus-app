@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PlatformShellLayout } from '@/components/platformConsole/PlatformShellLayout.web';
-import { ConsoleBadge, ConsoleDialog, ConsoleJson, ConsolePanel, ConsoleStats, ConsoleStyle, ConsoleTabs, downloadConsoleCsv } from '@/components/platformConsole/ConsoleWorkspaceUi.web';
+import { ConsoleBadge, ConsoleDialog, ConsoleJson, ConsolePanel, ConsoleStats, ConsoleStyle, downloadConsoleCsv } from '@/components/platformConsole/ConsoleWorkspaceUi.web';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import * as api from '@/lib/platformConsole';
+import { platformName, platformActionLabel } from '@/lib/platformConsole/platformLanguage';
 import { consoleDate, consoleLabel, consoleMoney, consoleText, isSensitiveSetting, redactConsoleValue, type ConsoleRow } from '@/lib/platformConsole/consoleWorkspaceModel';
-import { CONSOLE_SECTIONS, consoleActions, formatConsoleCell, loadConsoleData, loadConsoleVersions, type ConsoleAction, type ConsoleColumn, type ConsoleData, type ConsoleSection } from '@/lib/platformConsole/consoleWorkspaceService';
+import { CONSOLE_SECTIONS, consoleActions, formatConsoleCell, loadConsoleData, loadConsoleVersions, type ConsoleAction, type ConsoleData, type ConsoleSection } from '@/lib/platformConsole/consoleWorkspaceService';
 import type { PlatformCapability, PlatformRoleKey } from '@/types/platformConsole';
 import { getServiceMode } from '@/lib/services/mode';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
@@ -137,7 +138,7 @@ function ConsoleActionEditor({action,onClose,onSaved}:{action:ConsoleAction;onCl
     finally{lock.current=false;setBusy(false);}
   }
   return <ConsoleDialog title={action.title} description={action.description} busy={busy} onClose={()=>void close()} footer={<><small>{busy?'Speicherung läuft. Bitte warten.':'Die Änderung wird mit Ihrer Begründung protokolliert.'}</small><div className="cs-actions"><button className="cs-btn" disabled={busy} onClick={()=>void close()}>Abbrechen</button><button type="submit" form="console-action-form" className={`cs-btn ${action.danger?'danger':'primary'}`} disabled={busy||!valid||getServiceMode()==='demo'}>{busy?'Wird gespeichert…':'Speichern'}</button></div></>}>
-    <form id="console-action-form" onSubmit={event=>{event.preventDefault();void submit();}}><div className="cs-form-grid">{action.fields.map(field=><label className={`cs-field ${field.type==='textarea'?'wide':''}`} key={field.key}>{field.label}{field.required?' *':''}{field.type==='select'?<select required={field.required} disabled={busy} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}><option value="">Bitte auswählen</option>{field.options?.map(option=><option value={option.value} key={option.value}>{option.label==='not_checked'?'Nicht geprüft':option.label==='passed'?'Bestanden':option.label==='true'?'Ja':option.label==='false'?'Nein':option.label}</option>)}</select>:field.type==='textarea'?<textarea required={field.required} disabled={busy} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}/>:<input type={field.type??'text'} required={field.required} disabled={busy} min={field.min} max={field.max} step={field.type==='number'?'any':undefined} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}/>}{field.hint&&<small>{field.hint}</small>}</label>)}<label className="cs-field wide">Begründung *<textarea required minLength={5} disabled={busy} value={reason} onChange={event=>setReason(event.target.value)} placeholder="Anlass, Vereinbarung oder Grundlage dieser Änderung"/><small>Mindestens fünf Zeichen. Die Begründung bleibt im Audit nachvollziehbar.</small></label></div></form>
+    <form id="console-action-form" onSubmit={event=>{event.preventDefault();void submit();}}><div className="cs-form-grid">{action.fields.map(field=><label className={`cs-field ${field.type==='textarea'?'wide':''}`} key={field.key}>{field.label}{field.required?' *':''}{field.type==='select'?<select required={field.required} disabled={busy} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}><option value="">Bitte auswählen</option>{field.options?.map(option=><option value={option.value} key={option.value}>{option.label==='not_checked'?'Nicht geprüft':option.label==='passed'?'Bestanden':option.label==='true'?'Ja':option.label==='false'?'Nein':option.label}</option>)}</select>:field.type==='textarea'?<textarea required={field.required} disabled={busy} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}/>:<input type={field.type??'text'} required={field.required} disabled={busy} min={field.min} max={field.max} step={field.type==='number'?'any':undefined} value={values[field.key]} onChange={event=>setValues(current=>({...current,[field.key]:event.target.value}))}/>}{field.hint&&<small>{field.hint}</small>}</label>)}<label className="cs-field wide">Begründung *<textarea required minLength={5} disabled={busy} value={reason} onChange={event=>setReason(event.target.value)} placeholder="Anlass, Vereinbarung oder Grundlage dieser Änderung"/><small>Mindestens fünf Zeichen. Die Begründung bleibt im Änderungsprotokoll nachvollziehbar.</small></label></div></form>
     {error&&<div className="cs-notice error" role="alert">{error}<p>Die Eingaben bleiben erhalten. Prüfen Sie bei einem Verbindungsabbruch zunächst den tatsächlichen Datenstand, bevor Sie erneut speichern.</p></div>}
   </ConsoleDialog>;
 }
@@ -146,7 +147,7 @@ const DETAIL_FIELDS:Partial<Record<ConsoleSection,[string,string][]>>={
   modules:[['module_key','Technischer Schlüssel'],['description','Beschreibung'],['category','Kategorie'],['status','Freigabe'],['is_core','Grundfunktion'],['is_beta','Beta'],['is_internal','Intern'],['default_enabled','Standardmäßig aktiviert'],['requires_module_keys','Voraussetzungen'],['incompatible_module_keys','Unvereinbare Funktionen']],
   billing:[['invoice_number','Rechnungsnummer'],['tenant_label','Unternehmen'],['status','Status'],['currency','Währung'],['due_at','Fälligkeit'],['issued_at','Ausgestellt'],['paid_at','Bezahlt am']],
   payments:[['tenant_label','Unternehmen'],['invoice_label','Rechnung'],['status','Status'],['provider','Zahlungsquelle'],['payment_method','Zahlungsweg'],['failure_reason','Fehlergrund'],['created_at','Erfasst']],
-  'feature-flags':[['flag_key','Technischer Schlüssel'],['scope','Geltungsbereich'],['tenant_label','Unternehmen'],['enabled','Aktiviert'],['rollout_label','Rollout'],['starts_at','Beginn'],['ends_at','Ende'],['updated_at','Zuletzt geändert']],
+  'feature-flags':[['flag_key','Technischer Schlüssel'],['scope','Geltungsbereich'],['tenant_label','Unternehmen'],['enabled','Aktiviert'],['rollout_label','Freigabeanteil'],['starts_at','Beginn'],['ends_at','Ende'],['updated_at','Zuletzt geändert']],
   users:[['full_name','Name'],['email','E-Mail'],['role','Rolle'],['status','Zugriff'],['last_login_at','Letzte Anmeldung'],['updated_at','Geändert']],
   releases:[['version_label','Version'],['environment','Umgebung'],['status','Status'],['commit_sha','Git-Commit'],['migration_version','Datenbankstand'],['deployed_at','Registriert'],['notes','Prüfnotiz']],
   audit:[['action','Aktion'],['created_at','Zeitpunkt'],['actor_user_id','Ausführender Benutzer'],['actor_role','Ausführende Rolle'],['tenant_label','Unternehmen'],['tenant_id','Unternehmens-ID'],['target_type','Zielbereich'],['target_id','Ziel-ID'],['reason','Begründung']],
@@ -158,17 +159,18 @@ const DETAIL_FIELDS:Partial<Record<ConsoleSection,[string,string][]>>={
 
 function ConsoleDetail({section,row,data,role,onClose,onAction}:{section:ConsoleSection;row:ConsoleRow;data:ConsoleData;role:PlatformRoleKey|undefined;onClose:()=>void;onAction:(action:ConsoleAction)=>void}){
   const router=useRouter();const actions=consoleActions(section,row,data).filter(action=>api.platformRoleHasCapability(role,action.capability));
-  const title=String(row[PRIMARY_KEYS[section]??'id']??CONSOLE_SECTIONS[section].title);
+  const title=section==='audit'?platformActionLabel(row.action):section==='plans'?platformName(row.plan_key,String(row.plan_name||'Individueller Tarif')):String(row[PRIMARY_KEYS[section]??'id']??CONSOLE_SECTIONS[section].title);
   const fields=DETAIL_FIELDS[section]??[];
   const safeRow=redactConsoleValue(row) as ConsoleRow;
-  return <ConsoleDialog title={title} description={CONSOLE_SECTIONS[section].subtitle} onClose={onClose} footer={<><div className="cs-actions">{Boolean(row.tenant_id)&&api.platformRoleHasCapability(role,'tenants.read')&&<button className="cs-btn" onClick={()=>router.push(`/platform/tenants/${encodeURIComponent(String(row.tenant_id))}` as never)}>Unternehmensakte</button>}{section!=='audit'&&api.platformRoleHasCapability(role,'audit.read')&&<button className="cs-btn" onClick={()=>router.push(api.buildPlatformAuditPath({tenantId:row.tenant_id?String(row.tenant_id):undefined}) as never)}>Audit öffnen</button>}</div><button className="cs-btn" onClick={onClose}>Schließen</button></>}>
-    <dl className="cs-kv">{fields.map(([key,label])=><div key={key} style={{display:'contents'}}><dt>{label}</dt><dd>{key.endsWith('_at')?consoleDate(safeRow[key]):consoleText(safeRow[key])}</dd></div>)}</dl>
+  return <ConsoleDialog title={title} description={CONSOLE_SECTIONS[section].subtitle} onClose={onClose} footer={<><div className="cs-actions">{Boolean(row.tenant_id)&&api.platformRoleHasCapability(role,'tenants.read')&&<button className="cs-btn" onClick={()=>router.push(`/platform/tenants/${encodeURIComponent(String(row.tenant_id))}` as never)}>Unternehmensakte</button>}{section!=='audit'&&api.platformRoleHasCapability(role,'audit.read')&&<button className="cs-btn" onClick={()=>router.push(api.buildPlatformAuditPath({tenantId:row.tenant_id?String(row.tenant_id):undefined}) as never)}>Änderungsprotokoll öffnen</button>}</div><button className="cs-btn" onClick={onClose}>Schließen</button></>}>
+    <dl className="cs-kv">{fields.map(([key,label])=><div key={key} style={{display:'contents'}}><dt>{label}</dt><dd>{key==='action'?platformActionLabel(safeRow[key]):key.endsWith('_at')?consoleDate(safeRow[key]):consoleText(safeRow[key])}</dd></div>)}</dl>
     {['billing','payments'].includes(section)&&<ConsoleStats items={[{label:'Betrag',value:consoleMoney(row.amount_cents,row.currency)},...(section==='billing'?[{label:'Netto',value:consoleMoney(row.net_cents,row.currency)},{label:'Steuer',value:consoleMoney(row.tax_cents,row.currency)}]:[])]}/>}
     {actions.length>0&&<div className="cs-actions">{actions.map(action=><button className={`cs-btn ${action.danger?'danger':'primary'}`} key={action.key} disabled={getServiceMode()==='demo'} onClick={()=>onAction(action)}>{action.title}</button>)}</div>}
-    {section==='audit'&&<div className="cs-columns"><section><h3>Vor der Änderung</h3><ConsoleJson value={redactConsoleValue(row.before)}/></section><section><h3>Nach der Änderung</h3><ConsoleJson value={redactConsoleValue(row.after)}/></section></div>}
+    {section==='audit'&&<details><summary>Technische Einzelheiten der Änderung</summary><div className="cs-columns"><section><h3>Vor der Änderung</h3><ConsoleJson value={redactConsoleValue(row.before)}/></section><section><h3>Nach der Änderung</h3><ConsoleJson value={redactConsoleValue(row.after)}/></section></div></details>}
     {section==='billing'&&typeof row.invoice_url==='string'&&/^https:\/\//i.test(row.invoice_url)&&<a className="cs-btn" href={row.invoice_url} target="_blank" rel="noreferrer noopener">Rechnungsdokument öffnen ↗</a>}
     {section==='releases'&&<><h3>Dokumentierte Prüfergebnisse</h3><ConsoleJson value={row.checks}/>{typeof row.deployment_url==='string'&&/^https:\/\//i.test(row.deployment_url)&&<a className="cs-btn" href={row.deployment_url} target="_blank" rel="noreferrer noopener">Bereitstellung öffnen ↗</a>}</>}
-    {(section==='plans'||section==='addons')&&<ConsoleVersions section={section} row={row} role={role} onAction={onAction}/>}
+    {section==='plans'&&<ConsolePanel title="Hinterlegte Tarifgrundlage" description="Die Preise stammen aus dem aktuellen Katalog; frühere Zuweisungen behalten ihren gespeicherten Vertragsstand."><div className="cs-panel-body"><ConsoleStats items={[{label:'Monatspreis',value:consoleMoney(row.monthly_price_cents,row.currency)},{label:'Jahrespreis',value:consoleMoney(row.yearly_price_cents,row.currency)}]}/><p>Enthaltene Funktionen: {Array.isArray(row.included_module_keys)&&row.included_module_keys.length?row.included_module_keys.map(key=>platformName(key,'Funktionsbereich')).join(', '):'Keine gesonderten Funktionen hinterlegt'}</p></div></ConsolePanel>}
+    {section==='addons'&&<ConsoleVersions section={section} row={row} role={role} onAction={onAction}/>}
     {section==='billing'&&<ConsolePanel title="Zugeordnete Zahlungen"><div className="cs-panel-body">{data.related.filter(payment=>payment.invoice_id===row.id).map(payment=><div className="cs-task" key={String(payment.id)}><div><b>{consoleMoney(payment.amount_cents,payment.currency)}</b><p>{consoleDate(payment.created_at)} · {consoleLabel(payment.payment_method)}</p></div><ConsoleBadge value={payment.status} label={consoleLabel(payment.status)}/></div>)}{!data.related.some(payment=>payment.invoice_id===row.id)&&<p className="cs-muted">Keine zugeordneten Zahlungen in den verfügbaren Daten.</p>}</div></ConsolePanel>}
     {section==='discounts'&&<DiscountAssignments data={{...data,related:data.related.filter(item=>item.discount_key===row.discount_key)}} role={role} onAction={onAction}/>}
     {section==='users'&&<RoleMatrix selectedRole={String(row.role)}/>}
@@ -176,65 +178,22 @@ function ConsoleDetail({section,row,data,role,onClose,onAction}:{section:Console
   </ConsoleDialog>;
 }
 
-function ConsoleVersions({section,row,role,onAction}:{section:ConsoleSection;row:ConsoleRow;role:PlatformRoleKey|undefined;onAction:(action:ConsoleAction)=>void}){
+function ConsoleVersions({row}:{section:ConsoleSection;row:ConsoleRow;role:PlatformRoleKey|undefined;onAction:(action:ConsoleAction)=>void}){
   const [versions,setVersions]=useState<ConsoleRow[]>([]);
-  const [catalog,setCatalog]=useState<ConsoleRow[]>([]);
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
-  const [refresh,setRefresh]=useState(0);
   const [versionId,setVersionId]=useState('');
-  const [versionData,setVersionData]=useState<{modules:ConsoleRow[];limits:ConsoleRow[]}>({modules:[],limits:[]});
-  const canWrite=api.platformRoleHasCapability(role,'plans.write')&&getServiceMode()!=='demo';
   useEffect(()=>{
-    let alive=true;setLoading(true);setError('');
-    loadConsoleVersions(section,row).then(rows=>{if(alive){setVersions(rows);setVersionId(previous=>rows.some(item=>item.id===previous)?previous:String(rows[0]?.id??''));}})
-      .catch(cause=>{if(alive)setError(cause.message);}).finally(()=>{if(alive)setLoading(false);});
-    return()=>{alive=false;};
-  },[section,row,refresh]);
-  useEffect(()=>{
-    if(section!=='plans'||!api.platformRoleHasCapability(role,'modules.read'))return;
-    let alive=true;api.listPlatformModules().then(result=>{if(alive&&result.ok)setCatalog(result.data.filter(item=>!String(item.module_key).toLowerCase().includes('bodymap')));});
-    return()=>{alive=false;};
-  },[section,role]);
-  useEffect(()=>{
-    if(section!=='plans'||!versionId)return;
-    let alive=true;setError('');setLoading(true);setVersionData({modules:[],limits:[]});
-    Promise.all([api.listPlatformPlanModules(versionId),api.listPlatformPlanLimits(versionId)]).then(([modules,limits])=>{
-      if(!alive)return;if(!modules.ok)throw new Error(modules.error);if(!limits.ok)throw new Error(limits.error);
-      setVersionData({modules:modules.data.filter(item=>!String(item.module_key).toLowerCase().includes('bodymap')),limits:limits.data});
-    }).catch(cause=>{if(alive)setError(cause.message);}).finally(()=>{if(alive)setLoading(false);});
-    return()=>{alive=false;};
-  },[section,versionId,refresh]);
-  const versionName=`Version ${versions.find(item=>item.id===versionId)?.version_number??''}`;
-  const saveModule=(item?:ConsoleRow)=>onAction({
-    key:'plan-module',title:item?'Vertragsfunktion bearbeiten':'Vertragsfunktion zuordnen',
-    description:`${versionName}: Funktionsumfang und Freigabe für diese Vertragsversion festlegen.`,capability:'plans.write',
-    fields:[{key:'key',label:'Funktion',required:true,value:String(item?.module_key??''),...(catalog.length?{type:'select' as const,options:catalog.map(module=>({value:String(module.module_key),label:String(module.module_name)}))}:{type:'text' as const})},
-      {key:'state',label:'Freigabe',type:'select',required:true,value:String(item?.access_state??'active'),options:['active','beta','coming_soon','disabled','internal'].map(value=>({value,label:consoleLabel(value)}))}],
-    run:async(values,reason)=>{if(values.key.toLowerCase().includes('bodymap'))throw new Error('Diese Funktion ist nicht mehr verfügbar.');const result=await api.assignPlatformPlanModule(versionId,values.key,values.state,reason);if(!result.ok)throw new Error(result.error);return result.data;},
-  });
-  const saveLimit=(item?:ConsoleRow)=>onAction({
-    key:'limit',title:item?'Vertragslimit bearbeiten':'Vertragslimit festlegen',description:`${versionName}: Bestehende Werte desselben Schlüssels werden aktualisiert.`,capability:'plans.write',
-    fields:[{key:'key',label:'Limit-Schlüssel',type:'text',required:true,value:String(item?.limit_key??'max_users'),hint:'Zum Beispiel max_users, max_clients, max_employees oder max_storage_mb.'},{key:'value',label:'Maximalwert',type:'number',required:true,min:0,value:item?String(item.limit_value):''}],
-    run:async(values,reason)=>{const value=Number(values.value);if(!values.value.trim()||!Number.isInteger(value)||value<0||value>2147483647)throw new Error('Bitte eine ganze Zahl zwischen 0 und 2147483647 eingeben.');if(!/^[a-z][a-z0-9_]{2,99}$/.test(values.key))throw new Error('Bitte einen gültigen Limit-Schlüssel eingeben.');const result=await api.setPlatformPlanLimit(versionId,values.key,value,reason);if(!result.ok)throw new Error(result.error);return result.data;},
-  });
-  return <ConsolePanel title="Versionshistorie & Vertragsumfang" actions={<button className="cs-link" disabled={loading} onClick={()=>setRefresh(value=>value+1)}>Aktualisieren</button>}><div className="cs-panel-body">
-    {loading&&<p role="status">Vertragsstand wird geladen…</p>}
-    {error&&<div className="cs-notice error" role="alert">{error}</div>}
-    {!loading&&!error&&!versions.length&&<p>Es sind noch keine Versionen hinterlegt.</p>}
-    {!!versions.length&&<>
-      <label className="cs-field">Version auswählen<select disabled={loading} value={versionId} onChange={event=>setVersionId(event.target.value)}>{versions.map(version=><option key={String(version.id)} value={String(version.id)}>Version {String(version.version_number)} · {consoleLabel(version.status)} · {consoleMoney(version.monthly_price_cents)} / Monat</option>)}</select></label>
-      {versions.filter(version=>version.id===versionId).map(version=><ConsoleStats key={String(version.id)} items={[{label:'Monat',value:consoleMoney(version.monthly_price_cents)},{label:'Jahr',value:consoleMoney(version.yearly_price_cents)},{label:'Gültig ab',value:consoleDate(version.effective_from)}]}/>)}
-      {section==='plans'&&!loading&&!error&&<ConsoleTabs tabs={['Funktionen','Limits']}>{tab=><div className="cs-panel-body">
-        {(tab==='Funktionen'?versionData.modules:versionData.limits).map((item,index)=><div className="cs-task" key={String(item.id??index)}>
-          <div><b>{String(catalog.find(module=>module.module_key===item.module_key)?.module_name??item.module_key??item.limit_key)}</b><p>{consoleText(item.access_state??item.limit_value)}</p></div>
-          {canWrite&&<div className="cs-actions"><button className="cs-btn" onClick={()=>tab==='Funktionen'?saveModule(item):saveLimit(item)}>Bearbeiten</button>
-            {tab==='Funktionen'&&<button className="cs-btn danger" onClick={()=>onAction({key:'remove-module',title:'Vertragsfunktion entfernen',description:`${item.module_key} aus ${versionName} entfernen.`,capability:'plans.write',danger:true,fields:[],run:async(_,reason)=>{const result=await api.removePlatformPlanModule(versionId,String(item.module_key),reason);if(!result.ok)throw new Error(result.error);return result.data;}})}>Entfernen</button>}
-          </div>}
-        </div>)}
-        {!(tab==='Funktionen'?versionData.modules:versionData.limits).length&&<p>Für diese Version sind keine {tab} hinterlegt.</p>}
-        {canWrite&&<button className="cs-btn" onClick={()=>tab==='Funktionen'?saveModule():saveLimit()}>{tab==='Funktionen'?'Funktion zuordnen':'Limit festlegen'}</button>}
-      </div>}</ConsoleTabs>}
+    let active=true;setLoading(true);setError('');
+    loadConsoleVersions('addons',row).then(rows=>{if(active){setVersions(rows);setVersionId(String(rows[0]?.id??''));}})
+      .catch(cause=>{if(active)setError(cause.message);}).finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[row]);
+  const selected=versions.find(version=>version.id===versionId);
+  return <ConsolePanel title="Preisentwicklung" description="Dokumentierte Preise und ihre Gültigkeit"><div className="cs-panel-body">
+    {loading?<p role="status">Preise werden geladen…</p>:error?<p className="cs-notice error" role="alert">{error}</p>:!versions.length?<p>Noch keine Preise hinterlegt.</p>:<>
+      <label className="cs-field">Preisstand auswählen<select value={versionId} onChange={event=>setVersionId(event.target.value)}>{versions.map(version=><option key={String(version.id)} value={String(version.id)}>Preisstand {String(version.version_number)} · {consoleLabel(version.status)} · {consoleDate(version.effective_from)}</option>)}</select></label>
+      {selected?<ConsoleStats items={[{label:'Monat',value:consoleMoney(selected.monthly_price_cents,selected.currency)},{label:'Jahr',value:consoleMoney(selected.yearly_price_cents,selected.currency)},{label:'Gültig ab',value:consoleDate(selected.effective_from)}]}/>:null}
     </>}
   </div></ConsolePanel>;
 }
@@ -242,7 +201,7 @@ function ConsoleVersions({section,row,role,onAction}:{section:ConsoleSection;row
 function AddonAssignments({data,role,onAction}:{data:ConsoleData;role:PlatformRoleKey|undefined;onAction:(action:ConsoleAction)=>void}){
   return <ConsolePanel title="Zugeordnete Unternehmen" description="Vertragsstand und Laufzeit der Erweiterungen"><div className="cs-panel-body">
     {!data.related.length&&<p className="cs-muted">Keine Zuweisungen vorhanden.</p>}
-    {data.related.map(item=><div className="cs-task" key={String(item.id)}><div><b>{String(item.tenant_label)} · {String(item.addon_key)}</b><p>{consoleLabel(item.billing_interval)} · {consoleDate(item.starts_at??item.created_at)}{item.ends_at?` bis ${consoleDate(item.ends_at)}`:''}</p><ConsoleBadge value={item.status} label={consoleLabel(item.status)}/></div>
+    {data.related.map(item=><div className="cs-task" key={String(item.id)}><div><b>{String(item.tenant_label)} · {String(data.rows.find(row=>row.addon_key===item.addon_key)?.addon_name||platformName(item.addon_key,'Zusatzpaket'))}</b><p>{consoleLabel(item.billing_interval)} · {consoleDate(item.starts_at??item.created_at)}{item.ends_at?` bis ${consoleDate(item.ends_at)}`:''}</p><ConsoleBadge value={item.status} label={consoleLabel(item.status)}/></div>
       {!['cancelled','revoked','expired'].includes(String(item.status))&&api.platformRoleHasCapability(role,'plans.write')&&<button className="cs-btn danger" disabled={getServiceMode()==='demo'} onClick={()=>onAction({key:'remove-addon',title:'Erweiterung beenden',description:`${item.addon_key} für ${item.tenant_label} beenden. Die Begründung dokumentiert die Vertragsgrundlage.`,capability:'plans.write',danger:true,fields:[],run:async(_,reason)=>{const result=await api.removePlatformAddonFromTenant(String(item.tenant_id),String(item.addon_key),reason);if(!result.ok)throw new Error(result.error);return result.data;}})}>Beenden</button>}
     </div>)}
   </div></ConsolePanel>;
@@ -252,7 +211,7 @@ function DiscountAssignments({data,role,onAction}:{data:ConsoleData;role:Platfor
   return <ConsolePanel title="Mandantenzuweisungen" description="Geltungsdauer und Widerruf bestehender Sonderkonditionen"><div className="cs-panel-body">{!data.related.length?<p className="cs-muted">Keine Zuweisungen vorhanden.</p>:data.related.map(row=><div className="cs-task" key={String(row.id)}><div><b>{String(row.tenant_label)} · {String(row.discount_key)}</b><p>{consoleDate(row.starts_at)} bis {row.ends_at?consoleDate(row.ends_at):'unbefristet'}</p><ConsoleBadge value={row.status} label={consoleLabel(row.status)}/></div>{['active','scheduled'].includes(String(row.status))&&api.platformRoleHasCapability(role,'discounts.write')&&<button className="cs-btn danger" disabled={getServiceMode()==='demo'} onClick={()=>onAction({key:'revoke-discount',title:'Sonderkondition widerrufen',description:`${row.discount_key} für ${row.tenant_label} widerrufen. Der Vorgang bleibt protokolliert.`,capability:'discounts.write',fields:[],danger:true,run:async(_,reason)=>{const result=await api.removePlatformDiscount(String(row.tenant_id),String(row.discount_key),reason);if(!result.ok)throw new Error(result.error);return result.data;}})}>Widerrufen</button>}</div>)}</div></ConsolePanel>;
 }
 
-const MATRIX:[string,PlatformCapability,PlatformCapability?][]=[['Sonderkonditionen','discounts.read','discounts.write'],['Releases','releases.read'],['Unternehmen','tenants.read','tenants.write'],['Funktionen','modules.read','modules.write'],['Verträge','plans.read','plans.write'],['Rechnungen','billing.read','billing.write'],['Zahlungen','payments.read','payments.write'],['Support','support.read','support.write'],['Benutzer','users.read','users.write'],['System','system.read','system.write'],['Audit','audit.read'],['Freigaben','flags.read','flags.write']];
+const MATRIX:[string,PlatformCapability,PlatformCapability?][]=[['Sonderkonditionen','discounts.read','discounts.write'],['Veröffentlichungen','releases.read'],['Unternehmen','tenants.read','tenants.write'],['Funktionen','modules.read','modules.write'],['Verträge','plans.read','plans.write'],['Rechnungen','billing.read','billing.write'],['Zahlungen','payments.read','payments.write'],['Support','support.read','support.write'],['Benutzer','users.read','users.write'],['System','system.read','system.write'],['Änderungsprotokoll','audit.read'],['Freigaben','flags.read','flags.write']];
 function RoleMatrix({selectedRole}:{selectedRole?:string}){
   const roles=Object.keys(api.PLATFORM_ROLE_LABELS).filter(role=>!selectedRole||role===selectedRole) as PlatformRoleKey[];
   return <ConsolePanel title="Rollen & Berechtigungen" description="Lesen und Bearbeiten nach Bereich"><div className="cs-table-scroll"><table className="cs-table cs-role-table"><thead><tr><th>Bereich</th>{roles.map(role=><th key={role}>{consoleLabel(role)}</th>)}</tr></thead><tbody>{MATRIX.map(([label,read,write])=><tr key={label}><td>{label}</td>{roles.map(role=><td key={role}>{write&&api.platformRoleHasCapability(role,write)?'Lesen & bearbeiten':api.platformRoleHasCapability(role,read)?'Lesen':'Kein Zugriff'}</td>)}</tr>)}</tbody></table></div></ConsolePanel>;
@@ -269,10 +228,10 @@ function ConsoleDashboard({data,loading,role,onRefresh}:{data:ConsoleData;loadin
     {title:'Support bearbeiten',value:summary.system.activeSupportSessions,text:'Supporttickets und genehmigte Zugriffe im Support-Arbeitsbereich öffnen.',path:'/platform/support',cap:'support.read'},
   ].filter(task=>api.platformRoleHasCapability(role,task.cap as PlatformCapability));
   return <>
-    <ConsoleStats items={[{label:'Aktive Mandanten',value:summary.tenants.active},{label:'In Einrichtung',value:summary.tenants.onboarding},{label:'Aktive technische Freigaben',value:summary.system.activeFeatureFlags},{label:'Wartungsmodus',value:summary.system.maintenanceMode?'Aktiv':'Aus'}]}/>
+    <ConsoleStats items={[{label:'Aktive Mandanten',value:summary.tenants.active},{label:'In Einrichtung',value:summary.tenants.onboarding},{label:'Aktive Funktionsfreigaben',value:summary.system.activeFeatureFlags},{label:'Wartungsmodus',value:summary.system.maintenanceMode?'Aktiv':'Aus'}]}/>
     {summary.system.maintenanceMode&&<div className="cs-notice error">Der Wartungsmodus ist aktiviert. Prüfen Sie die Einstellung und die betroffenen Funktionen im Bereich System.</div>}
     <div className="cs-columns"><ConsolePanel title="Jetzt bearbeiten" description="Offene Vorgänge nach Zuständigkeit" actions={<button className="cs-btn" disabled={loading} onClick={onRefresh}>↻ Aktualisieren</button>}><div className="cs-panel-body">{tasks.map(task=><div className="cs-task" key={task.title}><div><button className="cs-link" onClick={()=>router.push(task.path as never)}>{task.title}</button><p>{task.text}</p></div><strong>{task.value}</strong></div>)}</div></ConsolePanel>
-      <ConsolePanel title="Letzte Änderungen" description="Zuletzt protokollierte Plattformaktionen" actions={api.platformRoleHasCapability(role,'audit.read')&&<button className="cs-link" onClick={()=>router.push('/platform/audit' as never)}>Gesamten Verlauf öffnen</button>}><div className="cs-panel-body">{data.related.map(row=><div className="cs-task" key={String(row.id)}><div><b>{consoleText(row.action)}</b><p>{consoleDate(row.created_at)} · {consoleLabel(row.actor_role)}</p><p>{consoleText(row.reason)}</p></div></div>)}{!data.related.length&&<p className="cs-muted">Keine zugänglichen Audit-Einträge vorhanden.</p>}</div></ConsolePanel></div>
+      <ConsolePanel title="Letzte Änderungen" description="Zuletzt protokollierte Plattformaktionen" actions={api.platformRoleHasCapability(role,'audit.read')&&<button className="cs-link" onClick={()=>router.push('/platform/audit' as never)}>Gesamten Verlauf öffnen</button>}><div className="cs-panel-body">{data.related.map(row=><div className="cs-task" key={String(row.id)}><div><b>{platformActionLabel(row.action)}</b><p>{consoleDate(row.created_at)} · {consoleLabel(row.actor_role)}</p><p>{consoleText(row.reason)}</p></div></div>)}{!data.related.length&&<p className="cs-muted">Keine zugänglichen Protokolleinträge vorhanden.</p>}</div></ConsolePanel></div>
     <ConsolePanel title="Arbeitsbereiche" description="Direkt zur passenden Verwaltung"><div className="cs-panel-body"><div className="cs-columns">{Object.entries(CONSOLE_SECTIONS).filter(([key,info])=>key!=='dashboard'&&(!info.capability||api.platformRoleHasCapability(role,info.capability))).map(([key,info])=><div className="cs-task" key={key}><div><button className="cs-link" onClick={()=>router.push(`/platform/${key}` as never)}>{info.title}</button><p>{info.subtitle}</p></div><span aria-hidden>↗</span></div>)}</div></div></ConsolePanel>
   </>;
 }

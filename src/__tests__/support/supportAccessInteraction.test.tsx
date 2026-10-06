@@ -10,9 +10,9 @@ vi.mock('react-native', async () => {
 });
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: vi.fn() }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: api.confirm }));
-vi.mock('@/lib/support/supportService', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/support/supportService')>(), supportRpc: api.rpc }));
-import { SupportAccessPanel } from '@/components/support/SupportAccessPanel';
-import { SupportRequestError, type SupportDetail, type SupportRecord } from '@/lib/support/supportService';
+vi.mock('@/lib/support/supportService.web', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/support/supportService.web')>(), supportRpc: api.rpc }));
+import { SupportAccessPanel } from '@/components/support/SupportAccessPanel.web';
+import { SupportRequestError, type SupportDetail, type SupportRecord } from '@/lib/support/supportService.web';
 
 const baseDetail = (): SupportDetail => ({
   ticket: { id: 't1', number: 1, subject: 'Anfrage', tenant_id: 'tenant1', tenant_name: 'Musterbetrieb', status: 'open', category: 'technical', priority: 'normal', assigned_name: null, updated_at: '2026-09-08T10:00:00Z' },
