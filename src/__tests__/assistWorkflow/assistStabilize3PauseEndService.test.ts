@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
 import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
@@ -18,6 +18,7 @@ const ensureOpenPauseEndMock = vi.fn();
 const ensureVisitTimeEventMock = vi.fn();
 const upsertStateMock = vi.fn();
 const markAssignmentExecutedMock = vi.fn();
+afterEach(() => { vi.useRealTimers(); });
 
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
   transitionAssistExecutionStatus: (...args: unknown[]) => transitionMock(...args),
@@ -324,6 +325,53 @@ describe('ASSIST.STABILIZE.3 endPause', () => {
 });
 
 describe('ASSIST.STABILIZE.3 endService', () => {
+  it('keeps one end timestamp when transition and event persistence take longer', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-29T10:00:00.000Z'));
+    const input = ctx({});
+    transitionMock.mockImplementationOnce(async () => {
+      vi.setSystemTime(new Date('2026-06-29T10:01:00.000Z'));
+      return { ok: true, data: { ...input, assignmentStatus: 'beendet', derivedStatus: 'beendet' } };
+    });
+    ensureVisitTimeEventMock.mockImplementationOnce(async () => {
+      vi.setSystemTime(new Date('2026-06-29T10:02:00.000Z'));
+      return { ok: true, data: { id: 'end-event', created: true } };
+    });
+    const result = await endService(input);
+    expect(ensureVisitTimeEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'service_end', occurredAt: '2026-06-29T10:00:00.000Z' }),
+      expect.any(Array),
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        detail: { actualEndAt: '2026-06-29T10:00:00.000Z' },
+        visitTimes: { serviceEndedAt: '2026-06-29T10:00:00.000Z', activeTimer: null },
+      },
+    });
+  });
+
+  it('closes an active pause and the service at the same timestamp', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-29T10:00:00.000Z'));
+    const input = ctx({
+      assignmentStatus: 'pausiert',
+      timeEvents: [
+        { eventType: 'service_start', occurredAt: '2026-06-29T08:35:00.000Z' },
+        { eventType: 'pause_start', occurredAt: '2026-06-29T09:50:00.000Z' },
+      ],
+    });
+    transitionMock.mockResolvedValueOnce({ ok: true, data: { ...input, assignmentStatus: 'beendet', derivedStatus: 'beendet' } });
+    const result = await endService(input);
+    expect(result.ok).toBe(true);
+    expect(ensureOpenPauseEndMock).toHaveBeenCalledWith(
+      expect.objectContaining({ occurredAt: '2026-06-29T10:00:00.000Z' }), expect.any(Array),
+    );
+    expect(ensureVisitTimeEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'service_end', occurredAt: '2026-06-29T10:00:00.000Z' }), expect.any(Array),
+    );
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     resetWfmOfficeTimekeepingStore();

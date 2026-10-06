@@ -206,6 +206,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
   const [localWarning, setLocalWarning] = useState<string | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
+  const [workflowStatusChecking, setWorkflowStatusChecking] = useState(false);
+  const workflowStatusCheckInFlight = useRef(false);
   const [geofenceOverride, setGeofenceOverrideInput] = useState('');
   const [showGeofenceOverride, setShowGeofenceOverride] = useState(false);
   const [noShowNote, setNoShowNote] = useState('');
@@ -278,9 +280,7 @@ export function EmployeePortalVisitExecutionScreen() {
       driveLoading ||
       actionLoading ||
       startServiceLoading ||
-      workflowConfirmationPending ||
       arrivalConfirmationPending ||
-      taskSaving ||
       locationDisclosureLoading ||
       deviationSubmitting ||
       (signatureConfirmationPending && !signatureConfirmationStalled),
@@ -296,6 +296,13 @@ export function EmployeePortalVisitExecutionScreen() {
           : 'Bitte warten – die Änderung wird vollständig gespeichert.';
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
+  const previousWorkflowConfirmationPending = useRef(false);
+  useEffect(() => {
+    if (previousWorkflowConfirmationPending.current && !workflowConfirmationPending) {
+      setLocalWarning(null);
+    }
+    previousWorkflowConfirmationPending.current = workflowConfirmationPending;
+  }, [workflowConfirmationPending]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined' || !blockingWorkflowLoading) return;
@@ -1215,6 +1222,7 @@ export function EmployeePortalVisitExecutionScreen() {
       : actionLoading || driveLoading;
   const primaryButtonDisabled =
     readOnlyExecution ||
+    workflowConfirmationPending ||
     (primaryActionResolved === 'start_en_route' && (!mobilityHydrated || !mobilityMode)) ||
     (primaryActionResolved != null && ['start_service', 'end_service'].includes(primaryActionResolved) && mobilityMode === 'car' && logbookConfirmationRequired) ||
     (primaryActionResolved === 'start_service'
@@ -1230,9 +1238,17 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const bottomBarVisible = showLiveBottomBar(phase) && !isLocked && canExecute;
   const handleGuideRefresh = useCallback(async () => {
+    if (workflowStatusCheckInFlight.current) return;
+    workflowStatusCheckInFlight.current = true;
+    setWorkflowStatusChecking(true);
     setLocalError(null);
     setLocalWarning(null);
-    await refresh();
+    try {
+      await refresh();
+    } finally {
+      workflowStatusCheckInFlight.current = false;
+      setWorkflowStatusChecking(false);
+    }
   }, [refresh]);
 
   if (!can('portal.employee.appointments.view')) {
@@ -1279,6 +1295,12 @@ export function EmployeePortalVisitExecutionScreen() {
     : null;
   const allTasksComplete = visitTasks.every((task) => task.status === 'done');
   const guide = (() => {
+    if (workflowConfirmationPending) {
+      return {
+        tone: 'warning' as const,
+        message: refetchWarning ?? 'Die Serverantwort steht aus. Der Einsatz ist noch nicht als gespeichert bestätigt. Prüfe den Status erneut. Du kannst die Seite weiter ansehen; eine zweite Änderung bleibt bis zur Klärung gesperrt.',
+      };
+    }
     if (signatureConfirmationPending) {
       if (signatureConfirmationStalled) {
         return {
@@ -1388,10 +1410,10 @@ export function EmployeePortalVisitExecutionScreen() {
     return { tone: 'info' as const, message: 'Mobilität gewählt. Prüfe Adresse und Hinweise – anschließend kannst du Navigation und Anfahrt starten.' };
   })();
   const guideNeedsRefresh = Boolean(
-    phase !== 'completed' &&
+    workflowConfirmationPending || (phase !== 'completed' &&
       ((!signatureConfirmationPending &&
         (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution)) ||
-        signatureConfirmationStalled),
+        signatureConfirmationStalled)),
   );
   const guideCanOpenDocumentation = Boolean(
     !guideNeedsRefresh &&
@@ -1672,7 +1694,7 @@ export function EmployeePortalVisitExecutionScreen() {
           plannedEndAt={visit.plannedEndAt}
           effectiveStatus={effectiveStatus}
           statusLabelOverride={
-            signatureConfirmationStalled ? 'Unterschrift noch nicht bestätigt' : signatureConfirmationPending ? 'Unterschrift wird geprüft' : undefined
+            workflowConfirmationPending ? 'Serverantwort ausstehend' : signatureConfirmationStalled ? 'Unterschrift noch nicht bestätigt' : signatureConfirmationPending ? 'Unterschrift wird geprüft' : undefined
           }
           timers={timers}
           requiresSignature={visit.requiresSignature}
@@ -1759,8 +1781,13 @@ export function EmployeePortalVisitExecutionScreen() {
           ) : null}
 
           {localError || taskSaveError ? <InfoBanner message={localError ?? taskSaveError!} variant="error" /> : null}
-          {localWarning || syncWarning ? <InfoBanner message={localWarning ?? formatExecutionSyncWarning(syncWarning!)} variant="warning" /> : null}
-          {!isLocked && !readOnlyExecution ? <EmployeeOpenVisitTimeEditor key={visit.assignmentId} visit={visit} onSaved={refresh} disabled={actionLoading || driveLoading || startServiceLoading} /> : null}
+          {workflowConfirmationPending ? (
+            <View style={{ gap: spacing.sm }}>
+              <InfoBanner message={guide.message} variant="warning" />
+              <PremiumButton title="Status erneut prüfen" variant="secondary" fullWidth loading={workflowStatusChecking} onPress={() => void handleGuideRefresh()} testID="employee-visit-workflow-status-check" />
+            </View>
+          ) : localWarning || syncWarning ? <InfoBanner message={localWarning ?? formatExecutionSyncWarning(syncWarning!)} variant="warning" /> : null}
+          {!isLocked && !readOnlyExecution ? <EmployeeOpenVisitTimeEditor key={visit.assignmentId} visit={visit} onSaved={refresh} disabled={actionLoading || driveLoading || startServiceLoading || workflowConfirmationPending} /> : null}
           {renderPhaseContent()}
 
           {(showSignature || (isServiceEnded && documentationSubmitted && signatureCaptured)) && !isLocked ? (

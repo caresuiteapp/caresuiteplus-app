@@ -42,6 +42,13 @@ export function didWorkflowActionReachPostcondition(
   before: AssistExecutionContext,
   after: AssistExecutionContext,
 ): boolean {
+  if (
+    before.tenantId !== after.tenantId ||
+    before.employeeId !== after.employeeId ||
+    before.assignmentId !== after.assignmentId ||
+    before.assistVisitId !== after.assistVisitId
+  ) return false;
+
   switch (action) {
     case 'mark_arrived':
       return Boolean(after.visitTimes?.arrivedAt || after.detail.arrivedAt) && statusAtLeast(after, 'angekommen');

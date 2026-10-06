@@ -212,6 +212,7 @@ async function prepareEndServiceTransition(
 async function persistEndServiceEvents(
   ctx: AssistExecutionContext,
   approval: WorkflowDeviationApproval,
+  endedAt: string,
 ): Promise<ServiceResult<void>> {
   let existing = ctx.timeEvents.map((e) => ({
     eventType: e.eventType,
@@ -219,7 +220,7 @@ async function persistEndServiceEvents(
   }));
 
   if (hasOpenPauseSegment(existing)) {
-    const pauseEndedAt = new Date().toISOString();
+    const pauseEndedAt = endedAt;
     const pauseClosed = await ensureOpenPauseEndEvent(
       {
         tenantId: ctx.tenantId,
@@ -242,6 +243,7 @@ async function persistEndServiceEvents(
       tenantId: ctx.tenantId,
       visitId: ctx.assistVisitId,
       eventType: 'service_end',
+      occurredAt: endedAt,
       recordedBy: ctx.profileId ?? ctx.employeeId,
       employeeId: ctx.employeeId,
       profileId: ctx.profileId,
@@ -335,11 +337,10 @@ export async function endService(
     return result;
   }
 
-  const eventsWritten = await persistEndServiceEvents(result.data, options);
+  const eventsWritten = await persistEndServiceEvents(result.data, options, actualEnd);
   if (!eventsWritten.ok) return eventsWritten;
 
-  const endedAt = new Date().toISOString();
-  const mergedTimes = mergeServiceEndedVisitTimes(result.data, result.data.visitTimes, endedAt);
+  const mergedTimes = mergeServiceEndedVisitTimes(result.data, result.data.visitTimes, actualEnd);
 
   const targetStatus = resolvePostServiceTargetStatus(result.data);
   const mirrors = await persistEndedExecutionMirrors(result.data, mergedTimes, targetStatus);
