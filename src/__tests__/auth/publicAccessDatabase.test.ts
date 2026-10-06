@@ -18,7 +18,7 @@ INSERT INTO platform_operators VALUES('${ids.operator}',true,true);`;
 const payload={name:'Anna Beispiel',email:'anna@example.test',organization:'Firma',subject:'Hilfe bei der Anmeldung',category:'account',message:'Ich komme nicht mehr in meine Verwaltung hinein.',privacyAccepted:true};
 const h='a'.repeat(64);
 const submit=async(nonce=randomUUID(),hash=h,emailHash='b'.repeat(64))=>(await db.query<{receipt:{reference?:string;rateLimited?:boolean}}>('SELECT public_support_submit($1,$2,$3,$4,$5::jsonb) AS receipt',[nonce,hash,'c'.repeat(64),emailHash,JSON.stringify(payload)])).rows[0].receipt;
-beforeAll(async()=>{db=new PGlite();await db.exec(fixture);await db.exec(readFileSync(resolve('supabase/migrations/20261006035633_public_access_support_and_business_recovery.sql'),'utf8'));},30000);
+beforeAll(async()=>{db=new PGlite();await db.exec(fixture);await db.exec(readFileSync(resolve('supabase/migrations/20261006063422_public_access_support_and_business_recovery.sql'),'utf8'));},30000);
 beforeEach(async()=>{await db.exec("RESET ROLE;SET request.jwt.claim.sub='';TRUNCATE public_support_tickets,public_access_private.request_limits;");});
 afterAll(async()=>{await db.close();});
 describe('public access PostgreSQL rights and persistence',()=>{

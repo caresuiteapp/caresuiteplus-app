@@ -53,7 +53,7 @@ Eine private Limittabelle speichert nur gehashte Schlüssel und Zeitfenster, kei
 
 ## Aktivierungsreihenfolge
 
-1. Die drei neuen SQL-Dateien prüfen und gezielt in dieser Reihenfolge anwenden: `20261006032122_registration_welcome_outbox.sql`, danach `20261006032128_registration_welcome_scheduler.sql`, danach `20261006035633_public_access_support_and_business_recovery.sql`. Keine ungeprüfte Sammelanwendung anderer ausstehender Migrationen.
+1. Die drei neuen SQL-Dateien prüfen und gezielt in dieser Reihenfolge anwenden: `20261006063320_registration_welcome_outbox.sql`, danach `20261006063341_registration_welcome_scheduler.sql`, danach `20261006063422_public_access_support_and_business_recovery.sql`. Keine ungeprüfte Sammelanwendung anderer ausstehender Migrationen.
 2. Server-Secrets für den bestehenden Mailanbieter und den verifizierten Absender prüfen/setzen. API-Schlüssel gehören nicht in Chatnachrichten, öffentliche Quelltexte oder Shell-Beispiele mit Klartextwerten.
 3. Die vier betroffenen Edge Functions einschließlich aller referenzierten Shared-Dateien aus demselben Commit deployen: `registration-welcome-dispatch`, `register-business-tenant`, `business-password-recovery`, `public-support-ticket`. `verify_jwt=false` erhält den öffentlichen Formulareingang; der Worker akzeptiert ausschließlich seinen eigenen Scheduler-Token. Die Recovery-Verifikation verwendet die integrierten serverseitigen `SUPABASE_URL`, `SUPABASE_ANON_KEY` und `SUPABASE_SERVICE_ROLE_KEY`.
 4. Nach Deployment und Konfiguration einmal im SQL-Editor als Datenbankadministrator ausführen, mit der zum Zielprojekt gehörenden URL:
