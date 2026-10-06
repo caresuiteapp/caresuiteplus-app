@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   authorizeRegistrationWelcomeWorker, createRegistrationWelcomeQueue,
   dispatchRegistrationWelcomeEmails, processRegistrationWelcomeQueue,
-  type RegistrationWelcomeItem, type RegistrationWelcomeQueue,
+  type RegistrationWelcomeItem,
 } from '../../../supabase/functions/registration-welcome-dispatch/worker';
 
 const item: RegistrationWelcomeItem = { id:'mail-job',tenant_id:'tenant',tenant_user_id:'owner',auth_user_id:'auth-user',recipient_email:'admin@example.test',lease_token:'lease' };
@@ -22,6 +22,13 @@ describe('welcome queue worker', () => {
     expect((await processRegistrationWelcomeQueue(queue,{send})).cancelled).toBe(1);
     expect(send).not.toHaveBeenCalled();
     expect(queue.finish).toHaveBeenCalledWith(item,'cancelled',null,'registration_account_changed');
+  });
+  it('gives an intentional resend a new provider key while keeping retries of that resend stable', async () => {
+    const queue=queued();queue.claim.mockResolvedValue([{...item,delivery_revision:2}]);
+    const send=vi.fn().mockResolvedValue({ok:true,providerMessageId:'resent'});
+    await processRegistrationWelcomeQueue(queue,{send});
+    await processRegistrationWelcomeQueue(queue,{send});
+    expect(send.mock.calls.map(call=>call[1])).toEqual(['mail-job/2','mail-job/2']);
   });
   it('leaves missing sender credentials unclaimed rather than exhausting retries', async () => {
     const rpc=vi.fn();

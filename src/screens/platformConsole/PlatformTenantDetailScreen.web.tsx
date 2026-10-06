@@ -68,18 +68,19 @@ import {
 
   TenantPaymentsTab,
 
-  TenantSubscriptionTab,
 
 
-  TenantUsersTab,
 
-} from './PlatformTenantOperatorTabs';
+} from './PlatformTenantOperatorTabs.web';
 
 import { spacing } from '@/theme';
 import { PlatformConfirmModal } from '@/components/platformConsole/PlatformConfirmModal.web';
 import type { PlatformCapability } from '@/types/platformConsole';
 import { ConsoleStyle, ConsoleBadge } from '@/components/platformConsole/ConsoleWorkspaceUi.web';
 import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
+import { platformName } from '@/lib/platformConsole/platformLanguage';
+import { TenantAccountsTab } from './TenantAccountsTab.web';
+import { TenantContractTab, TenantAddonsTab } from './TenantContractsTab.web';
 
 
 
@@ -88,26 +89,26 @@ const TAB_GROUPS = [
     { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
   ] },
   { key: 'contract', label: 'Vertrag & Produkte', tabs: [
-    { key: 'subscription', label: 'Vertrag' },
-    { key: 'entitlements', label: 'Berechtigungen' }, { key: 'limits', label: 'Limits' },
-    { key: 'flags', label: 'Feature Flags' },
+    { key: 'subscription', label: 'Tarif & Vertrag' }, { key: 'addons', label: 'Zusatzpakete' },
+    { key: 'entitlements', label: 'Berechtigungen' }, { key: 'limits', label: 'Kapazitäten' },
+    { key: 'flags', label: 'Funktionsfreigaben' },
   ] },
   { key: 'finance', label: 'Finanzen', tabs: [
-    { key: 'billing', label: 'Rechnungen' }, { key: 'preview', label: 'Abrechnungsvorschau' },
+    { key: 'billing', label: 'Rechnungen' }, { key: 'preview', label: 'Kostenübersicht' },
     { key: 'payments', label: 'Zahlungen' }, { key: 'credits', label: 'Guthaben' },
     { key: 'discounts', label: 'Rabatte' },
   ] },
   { key: 'access', label: 'Zugriff & Support', tabs: [
-    { key: 'users', label: 'Benutzer' }, { key: 'support', label: 'Support' },
+    { key: 'users', label: 'Anmeldung & E-Mails' }, { key: 'support', label: 'Support' },
   ] },
   { key: 'operations', label: 'Betrieb & Prüfung', tabs: [
-    { key: 'diagnosis', label: 'Diagnose' }, { key: 'audit', label: 'Audit' },
+    { key: 'diagnosis', label: 'Diagnose' }, { key: 'audit', label: 'Änderungsprotokoll' },
   ] },
 ] as const;
 
 type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 const TAB_CAPABILITIES: Record<TabKey, PlatformCapability> = {
-  overview:'tenants.read',recordEdit:'tenants.write',subscription:'plans.read',entitlements:'modules.read',limits:'plans.read',
+  overview:'tenants.read',recordEdit:'tenants.write',subscription:'plans.read',addons:'plans.read',entitlements:'modules.read',limits:'plans.read',
   flags:'flags.read',billing:'billing.read',preview:'billing.read',payments:'payments.read',credits:'billing.read',
   discounts:'discounts.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
 };
@@ -115,11 +116,12 @@ const TAB_DESCRIPTIONS: Record<TabKey,string> = {
   overview:'Unternehmensstatus, Kontaktdaten und aktivierte Funktionen im Zusammenhang prüfen.',
   recordEdit:'Rechtliche Angaben, Ansprechpartner, E-Mail-Adressen und Datenumgebung verbindlich pflegen.',
   subscription:'Vertragsversion, Laufzeit, Status und zugeordnete Erweiterungen für dieses Unternehmen bearbeiten.',
+  addons:'Zusatzpakete und Abrechnungsrhythmus zuweisen, bestehende Zuweisungen prüfen oder beenden.',
   entitlements:'Den tatsächlich berechneten Funktionszugriff einschließlich seiner Vertragsgrundlage prüfen.',
-  limits:'Vereinbarte Kapazitäten und die aktuell zugrunde liegenden Vertragslimits nachvollziehen.',
-  flags:'Technische Freigaben für genau dieses Unternehmen prüfen und mit Begründung ändern.',
+  limits:'Vereinbarte Kapazitäten und die aktuell zugrunde liegenden Kapazitäten nachvollziehen.',
+  flags:'Funktionsfreigaben für genau dieses Unternehmen prüfen und mit Begründung ändern.',
   billing:'Rechnungen, Fälligkeiten und dokumentierte Zahlungsstände dieses Unternehmens prüfen.',
-  preview:'Die nächste Abrechnung aus den aktuell hinterlegten Vertragsgrundlagen berechnen und kontrollieren.',
+  preview:'Preise des aktuellen Tarifs, aktiver Zusatzpakete und hinterlegtes Guthaben prüfen.',
   payments:'Dokumentierte Zahlungseingänge, Rechnungszuordnungen und fehlgeschlagene Vorgänge nachvollziehen.',
   credits:'Guthabenbestand und Buchungshistorie prüfen; Korrekturen benötigen eine nachvollziehbare Grundlage.',
   discounts:'Aktive Sonderkonditionen und ihre Laufzeiten prüfen, zuweisen oder beenden.',
@@ -423,11 +425,11 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
         {tab === 'subscription' ? (
-          <TenantSubscriptionTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
+          <TenantContractTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
         ) : null}
 
         {tab === 'entitlements' ? (
-          <TenantEntitlementsTab tenantId={tid} role={platformUser?.role} />
+          <TenantEntitlementsTab tenantId={tid} role={platformUser?.role} detail={detail} />
         ) : null}
 
         {tab === 'billing' ? (
@@ -464,7 +466,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
         {tab === 'support' ? (
 
-          <View style={styles.panel}><Text style={styles.panelTitle}>Support zu diesem Unternehmen</Text><Text style={styles.panelHint}>Tickets und Nachrichten bearbeiten Sie in der Support-Zentrale. Zugriff auf weitere Unternehmensdaten wird dort mit Zweck, Umfang und Ablaufzeit angefragt und durch das Unternehmen bestätigt.</Text><Pressable style={styles.saveButton} onPress={() => router.push({ pathname: '/platform/support', params: { company: tenantName } } as never)}><Text style={styles.saveButtonText}>Support-Zentrale öffnen</Text></Pressable></View>
+          <View style={styles.panel}><Text style={styles.panelTitle}>Support zu diesem Unternehmen</Text><Text style={styles.panelHint}>Tickets und Nachrichten bearbeiten Sie in der Support-Zentrale. Zugriff auf weitere Unternehmensdaten wird dort mit Zweck, Umfang und Ablaufzeit angefragt und durch das Unternehmen bestätigt.</Text><Pressable style={styles.saveButton} onPress={() => router.push({ pathname: '/platform/support', params: { company: tenantName, tenantId: tid } } as never)}><Text style={styles.saveButtonText}>Support-Zentrale öffnen</Text></Pressable></View>
 
         ) : null}
 
@@ -478,9 +480,10 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
+        {tab === 'addons' ? <TenantAddonsTab tenantId={tid} role={platformUser?.role} onReload={load} /> : null}
         {tab === 'limits' ? <TenantLimitsTab detail={detail} /> : null}
 
-        {tab === 'users' ? <TenantUsersTab tenantId={tid} /> : null}
+        {tab === 'users' ? <TenantAccountsTab tenantId={tid} role={platformUser?.role} onDirtyChange={setRecordDirty} /> : null}
 
         {tab === 'diagnosis' ? <TenantDiagnosisTab tenantId={tid} detail={detail} /> : null}
 
@@ -572,7 +575,7 @@ function OverviewTab({
           <InfoRow label="Mandanten-ID" value={String(t.tenant_id ?? t.tenantId ?? '—')} />
           <InfoRow label="Firmenname" value={String(t.tenant_name ?? t.tenantName ?? '—')} />
           <InfoRow label="Rechtlicher Name" value={String(t.legal_name ?? t.legalName ?? '—')} />
-          <InfoRow label="Slug" value={String(t.slug ?? '—')} />
+          <InfoRow label="Unternehmenskürzel" value={String(t.slug ?? '—')} />
           <InfoRow label="Land" value={String(t.country ?? 'DE')} />
           <InfoRow label="Zeitzone" value={String(t.timezone ?? 'Europe/Berlin')} />
         </View>
@@ -591,16 +594,16 @@ function OverviewTab({
         <View style={[styles.panel, styles.recordColumn]}>
           <Text style={styles.panelTitle}>Vertrag & Betrieb</Text>
           <InfoBadgeRow label="Mandantenstatus" status={String(t.status ?? '—')} />
-          <InfoBadgeRow label="Lifecycle" status={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
+          <InfoBadgeRow label="Einrichtungsstand" status={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
           <InfoBadgeRow label="Abrechnung" status={String(t.billing_status ?? t.billingStatus ?? '—')} />
-          <InfoRow label="Tarif" value={(t.plan_key ?? t.planKey ?? detail.plan?.plan_key) === 'free_platform' ? 'Kostenlos · 0 €' : String(t.plan_key ?? t.planKey ?? detail.plan?.plan_key ?? '—')} />
+          <InfoRow label="Tarif" value={(t.plan_key ?? t.planKey ?? detail.plan?.plan_key) === 'free_platform' ? 'Kostenlos · 0 €' : platformName(t.plan_key ?? t.planKey ?? detail.plan?.plan_key, String(detail.plan?.plan_name || 'Individueller Tarif'))} />
         </View>
 
         <View style={[styles.panel, styles.recordColumn]}>
           <Text style={styles.panelTitle}>Aktive Produkte</Text>
           {activeModules.length ? activeModules.map((module) => (
             <View key={module.moduleKey} style={styles.productRow}>
-              <Text style={styles.productName}>{module.moduleName}</Text>
+              <Text style={styles.productName}>{platformName(module.moduleKey, module.moduleName)}</Text>
               <PlatformStatusBadge status={module.status} />
             </View>
           )) : <Text style={styles.panelHint}>Keine aktiven Funktionsbereiche.</Text>}
@@ -610,7 +613,7 @@ function OverviewTab({
       {canWrite ? (
         <View style={[styles.panel, styles.dangerPanel]}>
           <Text style={styles.panelTitle}>Sicherheitsaktionen</Text>
-          <Text style={styles.panelHint}>Sperren und Entsperren werden mit Begründung im Audit protokolliert.</Text>
+          <Text style={styles.panelHint}>Sperren und Entsperren werden mit Begründung im Änderungsprotokoll dokumentiert.</Text>
           <View style={styles.actions}>
 
           <Pressable style={styles.btnDanger} onPress={onSuspend}>
@@ -697,7 +700,7 @@ function TenantRecordEditTab({
         <View style={[styles.panel, styles.recordColumn]}>
           <Text style={styles.panelTitle}>Unternehmen</Text>
           <PlatformFormField label="Rechtlicher Name"><TextInput editable={!disabled} style={styles.input} value={legalName} onChangeText={setLegalName} /></PlatformFormField>
-          <PlatformFormField label="Slug"><TextInput editable={!disabled} style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" /></PlatformFormField>
+          <PlatformFormField label="Unternehmenskürzel"><TextInput editable={!disabled} style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" /></PlatformFormField>
           <PlatformFormField label="Land"><TextInput editable={!disabled} style={styles.input} value={country} onChangeText={setCountry} autoCapitalize="characters" /></PlatformFormField>
           <PlatformFormField label="Zeitzone"><TextInput editable={!disabled} style={styles.input} value={timezone} onChangeText={setTimezone} autoCapitalize="none" /></PlatformFormField>
         </View>

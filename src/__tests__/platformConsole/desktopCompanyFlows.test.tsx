@@ -153,7 +153,7 @@ describe('company management failures', () => {
     await act(async () => b.resolve(detail('b'))); await act(async () => a.resolve(detail('a')));
     expect(host.textContent).toContain('Unternehmen b'); expect(host.textContent).not.toContain('Unternehmen a');
     await click('Zugriff & Support'); await click('Support'); await click('Support-Zentrale öffnen');
-    expect(api.push).toHaveBeenCalledWith({ pathname: '/platform/support', params: { company: 'Unternehmen b' } });
+    expect(api.push).toHaveBeenCalledWith({ pathname: '/platform/support', params: { company: 'Unternehmen b', tenantId: 'b' } });
   });
   it('does not report a rejected suspension as audited success', async () => {
     api.status.mockResolvedValue({ ok: false, error: 'Zugriff verweigert' });

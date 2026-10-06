@@ -24,23 +24,23 @@ afterAll(async()=>{await db.close();});
 describe('public access PostgreSQL rights and persistence',()=>{
   it('selects only active administration accounts, never employee/client/unknown/blocked profiles',async()=>{
     await db.exec('SET ROLE service_role');
-    for(const email of ['client@example.test','employee@example.test','blocked@example.test','unknown@example.test']) expect((await db.query('SELECT business_password_recovery_target($1,NULL) AS target',[email])).rows[0].target).toBeNull();
+    for(const email of ['client@example.test','employee@example.test','blocked@example.test','unknown@example.test']) expect((await db.query<Record<string, any>>('SELECT business_password_recovery_target($1,NULL) AS target',[email])).rows[0].target).toBeNull();
     expect((await db.query<{target:{authUserId:string}}>('SELECT business_password_recovery_target($1,NULL) AS target',['ADMIN@example.test'])).rows[0].target.authUserId).toBe(ids.admin);
-    expect((await db.query('SELECT business_password_recovery_target($1,$2) AS target',['admin@example.test',ids.client])).rows[0].target).toBeNull();
+    expect((await db.query<Record<string, any>>('SELECT business_password_recovery_target($1,$2) AS target',['admin@example.test',ids.client])).rows[0].target).toBeNull();
   });
   it('denies anonymous/authenticated users internal lookup, rate keys and public submission RPC',async()=>{
     for(const role of ['anon','authenticated']) {
       await db.exec(`SET ROLE ${role}`);
-      await expect(db.query("SELECT business_password_recovery_target('admin@example.test',NULL)")).rejects.toThrow('permission denied');
-      await expect(db.query('SELECT * FROM public_access_private.request_limits')).rejects.toThrow('permission denied');
+      await expect(db.query<Record<string, any>>("SELECT business_password_recovery_target('admin@example.test',NULL)")).rejects.toThrow('permission denied');
+      await expect(db.query<Record<string, any>>('SELECT * FROM public_access_private.request_limits')).rejects.toThrow('permission denied');
       await expect(submit()).rejects.toThrow('permission denied');await db.exec('RESET ROLE');
     }
   });
   it('persists a receipt once and reuses it after a lost response, without consuming more attempts',async()=>{
     await db.exec('SET ROLE service_role');const nonce=randomUUID();const receipt=await submit(nonce);
     for(let i=0;i<7;i++) expect(await submit(nonce)).toEqual(receipt);
-    expect((await db.query('SELECT count(*)::integer AS count FROM public_support_tickets')).rows[0].count).toBe(1);
-    expect((await db.query('SELECT max(attempts) AS attempts FROM public_access_private.request_limits')).rows[0].attempts).toBe(1);
+    expect((await db.query<Record<string, any>>('SELECT count(*)::integer AS count FROM public_support_tickets')).rows[0].count).toBe(1);
+    expect((await db.query<Record<string, any>>('SELECT max(attempts) AS attempts FROM public_access_private.request_limits')).rows[0].attempts).toBe(1);
     await expect(submit(nonce,'d'.repeat(64))).rejects.toThrow('support_invalid_nonce');
   });
   it('limits new anonymous requests but preserves confirmed receipt retries',async()=>{
@@ -49,21 +49,21 @@ describe('public access PostgreSQL rights and persistence',()=>{
   });
   it('enforces database validation as well as endpoint validation',async()=>{
     await db.exec('SET ROLE service_role');
-    await expect(db.query('SELECT public_support_submit($1,$2,$3,$4,$5)',[randomUUID(),h,h,h,JSON.stringify({...payload,privacyAccepted:false})])).rejects.toThrow('support_invalid_privacy');
-    await expect(db.query('SELECT public_support_submit($1,$2,$3,$4,$5)',[randomUUID(),h,h,h,JSON.stringify({...payload,message:'short'})])).rejects.toThrow('check constraint');
+    await expect(db.query<Record<string, any>>('SELECT public_support_submit($1,$2,$3,$4,$5)',[randomUUID(),h,h,h,JSON.stringify({...payload,privacyAccepted:false})])).rejects.toThrow('support_invalid_privacy');
+    await expect(db.query<Record<string, any>>('SELECT public_support_submit($1,$2,$3,$4,$5)',[randomUUID(),h,h,h,JSON.stringify({...payload,message:'short'})])).rejects.toThrow('check constraint');
   });
   it('keeps contact data invisible to guests and tenant users while authorised support can read it',async()=>{
-    await submit();await db.exec('SET ROLE anon');await expect(db.query('SELECT * FROM public_support_tickets')).rejects.toThrow('permission denied');
-    await db.exec(`SET ROLE authenticated;SET request.jwt.claim.sub='${ids.admin}'`);expect((await db.query('SELECT * FROM public_support_tickets')).rows).toHaveLength(0);
-    await expect(db.query("SELECT support_list_public_tickets('',0)")).rejects.toThrow('support_forbidden');
+    await submit();await db.exec('SET ROLE anon');await expect(db.query<Record<string, any>>('SELECT * FROM public_support_tickets')).rejects.toThrow('permission denied');
+    await db.exec(`SET ROLE authenticated;SET request.jwt.claim.sub='${ids.admin}'`);expect((await db.query<Record<string, any>>('SELECT * FROM public_support_tickets')).rows).toHaveLength(0);
+    await expect(db.query<Record<string, any>>("SELECT support_list_public_tickets('',0)")).rejects.toThrow('support_forbidden');
     await db.exec(`SET request.jwt.claim.sub='${ids.operator}'`);
     expect((await db.query<{data:{tickets:{email:string}[]}}>("SELECT support_list_public_tickets('',0) AS data")).rows[0].data.tickets[0].email).toBe(payload.email);
   });
   it('lets support update only status, without editing the sender or granting tenant access',async()=>{
     await submit();const id=(await db.query<{id:string}>('SELECT id FROM public_support_tickets')).rows[0].id;
     await db.exec(`SET ROLE authenticated;SET request.jwt.claim.sub='${ids.operator}'`);
-    expect((await db.query('SELECT support_set_public_ticket_status($1,$2) AS confirmed',[id,'in_progress'])).rows[0].confirmed).toBe(true);
-    await expect(db.query('UPDATE public_support_tickets SET email=$1 WHERE id=$2',['tampered@example.test',id])).rejects.toThrow('permission denied');
-    await db.exec(`SET request.jwt.claim.sub='${ids.admin}'`);await expect(db.query('SELECT support_set_public_ticket_status($1,$2)',[id,'closed'])).rejects.toThrow('support_forbidden');
+    expect((await db.query<Record<string, any>>('SELECT support_set_public_ticket_status($1,$2) AS confirmed',[id,'in_progress'])).rows[0].confirmed).toBe(true);
+    await expect(db.query<Record<string, any>>('UPDATE public_support_tickets SET email=$1 WHERE id=$2',['tampered@example.test',id])).rejects.toThrow('permission denied');
+    await db.exec(`SET request.jwt.claim.sub='${ids.admin}'`);await expect(db.query<Record<string, any>>('SELECT support_set_public_ticket_status($1,$2)',[id,'closed'])).rejects.toThrow('support_forbidden');
   });
 });

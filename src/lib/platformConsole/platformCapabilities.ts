@@ -87,12 +87,12 @@ export function platformRoleCanWrite(role: PlatformRoleKey | null | undefined): 
 }
 
 export const PLATFORM_ROLE_LABELS: Record<PlatformRoleKey, string> = {
-  platform_owner: 'Platform Owner',
-  platform_admin: 'Platform Admin',
-  platform_billing: 'Platform Billing',
-  platform_support: 'Platform Support',
-  platform_developer: 'Platform Developer',
-  platform_readonly: 'Platform Readonly',
+  platform_owner: 'Plattforminhaber',
+  platform_admin: 'Plattformverwaltung',
+  platform_billing: 'Abrechnung',
+  platform_support: 'Kundenbetreuung',
+  platform_developer: 'Entwicklung',
+  platform_readonly: 'Lesezugriff',
 };
 
 export const CRITICAL_ACTIONS_REQUIRING_REASON = [

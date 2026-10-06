@@ -50,3 +50,8 @@ verify_jwt = false
 
 [functions.public-support-ticket]
 verify_jwt = false
+
+# This protected handler validates the bearer with Auth and checks the current
+# platform role in the user-scoped database operation before touching Auth.
+[functions.platform-tenant-account]
+verify_jwt = false

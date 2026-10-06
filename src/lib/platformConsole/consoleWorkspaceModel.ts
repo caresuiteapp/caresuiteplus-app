@@ -1,6 +1,7 @@
 /** Pure presentation/validation helpers; no network or platform privileges. */
 export type ConsoleRow = Record<string, unknown>;
 export const CONSOLE_LABELS: Record<string, string> = {
+  enabled: 'Freigegeben', beta_enabled: 'Erprobung freigegeben', free_active: 'Kostenlos', pending_confirmation: 'Bestätigung ausstehend',
   active: 'Aktiv', available: 'Verfügbar', disabled: 'Deaktiviert', revoked: 'Entzogen',
   suspended: 'Gesperrt', locked: 'Gesperrt', terminated: 'Beendet', deleted_soft: 'Archiviert',
   live: 'Im Betrieb', onboarding: 'Einrichtung', lead: 'Interessent', trial: 'Testphase (Bestand)',
@@ -9,9 +10,9 @@ export const CONSOLE_LABELS: Record<string, string> = {
   cancelled: 'Storniert', refunded: 'Erstattet', partially_paid: 'Teilbezahlt', pending: 'Ausstehend',
   succeeded: 'Erfolgreich', chargeback: 'Rückbelastung', scheduled: 'Geplant', expired: 'Abgelaufen',
   beta: 'Beta', internal: 'Intern', deprecated: 'Auslaufend', global: 'Plattformweit', tenant: 'Einzelner Mandant',
-  production: 'Produktion', pilot: 'Pilot', demo: 'Demo', sandbox: 'Sandbox', internal_test: 'Interner Test',
-  unclassified: 'Noch nicht eingeordnet', preview: 'Vorschau', staging: 'Staging', ready: 'Bereit',
-  not_checked: 'Nicht geprüft', passed: 'Bestanden', coming_soon: 'In Vorbereitung', inactive: 'Inaktiv', archived: 'Archiviert', planned: 'Geplant', building: 'Im Build', rolled_back: 'Zurückgesetzt', percentage: 'Prozent',
+  production: 'Produktion', pilot: 'Pilot', demo: 'Demo', sandbox: 'Geschützte Testumgebung', internal_test: 'Interner Test',
+  unclassified: 'Noch nicht eingeordnet', preview: 'Vorschau', staging: 'Testumgebung', ready: 'Bereit',
+  not_checked: 'Nicht geprüft', passed: 'Bestanden', coming_soon: 'In Vorbereitung', inactive: 'Inaktiv', archived: 'Archiviert', planned: 'Geplant', building: 'Wird erstellt', rolled_back: 'Zurückgesetzt', percentage: 'Prozent',
   fixed_amount: 'Fester Betrag', free_months: 'Freimonate', lifetime_discount: 'Dauerhafter Rabatt',
   beta_discount: 'Beta-Rabatt', manual_credit: 'Guthaben', goodwill_credit: 'Kulanzguthaben', partner_discount: 'Partnerrabatt',
   monthly: 'Monatlich', yearly: 'Jährlich', manual: 'Manuell', bank_transfer: 'Überweisung',

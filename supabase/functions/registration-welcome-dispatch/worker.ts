@@ -13,6 +13,7 @@ export type RegistrationWelcomeItem = {
   auth_user_id: string;
   recipient_email: string;
   lease_token: string;
+  delivery_revision?: number;
 };
 type Outcome = 'sent' | 'retry' | 'failed' | 'cancelled';
 export type RegistrationWelcomeQueue = {
@@ -44,7 +45,8 @@ export async function processRegistrationWelcomeQueue(
         counts.cancelled++;
         continue;
       }
-      const result = await transport.send(details, item.id);
+      const deliveryId = (item.delivery_revision ?? 1) > 1 ? `${item.id}/${item.delivery_revision}` : item.id;
+      const result = await transport.send(details, deliveryId);
       if (result.ok) {
         await queue.finish(item, 'sent', result.providerMessageId, null);
         counts.accepted++;

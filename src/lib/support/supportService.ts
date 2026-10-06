@@ -10,6 +10,9 @@ export const SUPPORT_SCOPES = {
   'assignments.notes.write': 'Interne Einsatznotizen bearbeiten',
   'clients.read': 'Klienten: Name, Nummer und Status einsehen',
   'employees.read': 'Personal: Name, Nummer, Status und Portalstatus einsehen',
+  'clients.details.read': 'Klientendetails: Kontakt und Anschrift einsehen',
+  'employees.details.read': 'Mitarbeitendendetails: Kontakt und Anschrift einsehen',
+  'errors.read': 'Fehlerprotokoll des Unternehmens einsehen',
 } as const;
 export type SupportScope = keyof typeof SUPPORT_SCOPES;
 export const SUPPORT_STATUS: Record<string, string> = { open: 'Offen', waiting_tenant: 'Antwort vom Unternehmen', waiting_support: 'Antwort vom Support', resolved: 'Gelöst', closed: 'Geschlossen' };
@@ -58,6 +61,8 @@ export function isSupportAccessActive(request: SupportAccess, now = Date.now()) 
 
 export function withRequiredReadScopes(scopes: SupportScope[]): SupportScope[] {
   const next = new Set(scopes);
+  if (next.has('clients.details.read')) next.add('clients.read');
+  if (next.has('employees.details.read')) next.add('employees.read');
   if (next.has('company.write')) next.add('company.read');
   if (next.has('assignments.notes.write')) next.add('assignments.read');
   return [...next];

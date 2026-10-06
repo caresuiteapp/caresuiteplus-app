@@ -8,7 +8,6 @@ import {
   PlatformAuditLink,
   PlatformConfirmModal,
   PlatformDataTable,
-  PlatformEmptyState,
   PlatformFilterChip,
   PlatformFilterChipRow,
   PlatformReadOnlyBanner,
@@ -198,7 +197,7 @@ export function PlatformDiscountsScreen() {
           <Text style={styles.sectionTitle}>Rabattkatalog</Text>
           <PlatformDataTable
               columns={[
-                { key: 'key', label: 'Key', render: (r: PlatformDiscountRow) => r.discount_key },
+                { key: 'key', label: 'Kennung', render: (r: PlatformDiscountRow) => r.discount_key },
                 { key: 'name', label: 'Name', render: (r: PlatformDiscountRow) => r.discount_name },
                 { key: 'type', label: 'Typ', render: (r: PlatformDiscountRow) => r.discount_type === 'percentage' ? 'Prozent' : r.discount_type === 'fixed_amount' ? 'Fester Betrag' : r.discount_type === 'free_months' ? 'Freimonate' : r.discount_type.replaceAll('_', ' ') },
                 {
@@ -301,7 +300,7 @@ export function PlatformDiscountsScreen() {
           {lastAuditAction ? (
             <View style={styles.auditRow}>
               <Text style={styles.hint}>Aktion protokolliert.</Text>
-              <PlatformAuditLink action={lastAuditAction} label="Audit-Einträge anzeigen" />
+              <PlatformAuditLink action={lastAuditAction} label="Protokolleinträge anzeigen" />
             </View>
           ) : null}
         </>
@@ -434,7 +433,7 @@ export function PlatformBillingScreen() {
 
           {lastAuditAction ? (
             <View style={styles.auditRow}>
-              <PlatformAuditLink action={lastAuditAction} label="Letzte Änderung im Audit" />
+              <PlatformAuditLink action={lastAuditAction} label="Letzte Änderung im Protokoll" />
             </View>
           ) : null}
 
@@ -624,7 +623,7 @@ export function PlatformFeatureFlagsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editKey, setEditKey] = useState('');
-  const [editRollout, setEditRollout] = useState('');
+  const [editFreigabeanteil, setEditFreigabeanteil] = useState('');
   const [editTenant, setEditTenant] = useState('');
   const [editScope, setEditScope] = useState('global');
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
@@ -648,7 +647,7 @@ export function PlatformFeatureFlagsScreen() {
   const { setConfirm, modal } = useOperatorConfirm(load);
 
   return (
-    <DesktopPlatformShell title="Feature Flags" subtitle="Globale und mandantenspezifische Schalter">
+    <DesktopPlatformShell title="Funktionsfreigaben" subtitle="Globale und mandantenspezifische Schalter">
       {!canWriteGlobal ? (
         <PlatformReadOnlyBanner message="Lesemodus — Flag-Änderungen erfordern flags.write (Owner/Developer)." />
       ) : null}
@@ -665,16 +664,16 @@ export function PlatformFeatureFlagsScreen() {
       </PlatformFilterChipRow>
 
       {loading ? (
-        <LoadingState message="Feature Flags werden geladen…" />
+        <LoadingState message="Funktionsfreigaben werden geladen…" />
       ) : error ? (
-        <ErrorState title="Flags nicht verfügbar" message={error} onRetry={() => void load()} />
+        <ErrorState title="Funktionsfreigaben nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <>
           <PlatformDataTable
               columns={[
-                { key: 'key', label: 'Key', render: (r: PlatformFeatureFlagRow) => r.flag_key },
+                { key: 'key', label: 'Kennung', render: (r: PlatformFeatureFlagRow) => r.flag_key },
                 { key: 'name', label: 'Name', render: (r: PlatformFeatureFlagRow) => r.flag_name },
-                { key: 'scope', label: 'Scope', render: (r: PlatformFeatureFlagRow) => r.scope },
+                { key: 'scope', label: 'Geltungsbereich', render: (r: PlatformFeatureFlagRow) => r.scope },
                 {
                   key: 'enabled',
                   label: 'Aktiv',
@@ -682,7 +681,7 @@ export function PlatformFeatureFlagsScreen() {
                 },
                 {
                   key: 'rollout',
-                  label: 'Rollout %',
+                  label: 'Freigabeanteil %',
                   render: (r: PlatformFeatureFlagRow) => String(r.rollout_percentage ?? '—'),
                 },
                 { key: 'start', label: 'Start', render: (r: PlatformFeatureFlagRow) => formatPlatformDate(r.starts_at) },
@@ -722,7 +721,7 @@ export function PlatformFeatureFlagsScreen() {
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Flag setzen</Text>
               <TextInput style={styles.input} value={editKey} onChangeText={setEditKey} placeholder="flag_key" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={editRollout} onChangeText={setEditRollout} placeholder="Rollout 0-100" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              <TextInput style={styles.input} value={editFreigabeanteil} onChangeText={setEditFreigabeanteil} placeholder="Freigabeanteil 0-100" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
               {editScope === 'tenant' ? <PlatformTenantPicker value={editTenant} onChange={setEditTenant} required /> : null}
               <PlatformFilterChipRow>
                 {['global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
@@ -733,11 +732,11 @@ export function PlatformFeatureFlagsScreen() {
                 style={styles.primaryBtn}
                 onPress={() =>
                   setConfirm({
-                    title: 'Feature Flag aktivieren',
-                    description: `${editKey} (${editScope}) mit Rollout ${editRollout || '100'}%.`,
+                    title: 'Funktion freigeben',
+                    description: `${editKey} (${editScope}) mit Freigabeanteil ${editFreigabeanteil || '100'}%.`,
                     action: async (reason) => {
-                      const rollout = editRollout.trim() ? Number(editRollout) : 100;
-                      if (rollout < 0 || rollout > 100) throw new Error('Rollout muss 0–100 sein.');
+                      const rollout = editFreigabeanteil.trim() ? Number(editFreigabeanteil) : 100;
+                      if (rollout < 0 || rollout > 100) throw new Error('Freigabeanteil muss 0–100 sein.');
                       const res = await setPlatformFeatureFlag(editKey.trim(), true, reason, {
                         scope: editScope,
                         tenantId: editTenant.trim() || undefined,

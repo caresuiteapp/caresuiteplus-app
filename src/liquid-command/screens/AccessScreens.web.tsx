@@ -561,7 +561,7 @@ export function RegisterOrganizationScreen() {
       }
       await draftWrites.current;
       await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
-      setSuccess({ username: result.data.owner.email, welcomeEmailQueued: result.data.welcomeEmailQueued });
+      setSuccess({ username: result.data.owner.email, welcomeEmailQueued: Boolean('welcomeEmailQueued' in result.data && result.data.welcomeEmailQueued) });
       setForm(current => ({ ...current, adminPassword: '' }));
       setConfirmPassword('');
     } catch (cause) {

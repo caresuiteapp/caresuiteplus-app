@@ -101,7 +101,7 @@ export async function listPlatformTenantSubscriptions(
       data: [{ tenant_id: tenantId, plan_key: 'starter', status: 'active', billing_interval: 'monthly' }],
     };
   }
-  return selectPlatformRows('platform_tenant_subscriptions', {
+  return selectPlatformRows('platform_tenant_plans', {
     orderBy: 'created_at',
     ascending: false,
     eq: { tenant_id: tenantId },

@@ -6,7 +6,7 @@ const target={authUserId:'admin-id',email:'admin@example.test',recipientName:'Ma
 const identity={id:target.authUserId,email:target.email};
 const config=resolveRegistrationWelcomeConfig({RESEND_API_KEY:'key',REGISTRATION_EMAIL_FROM:'no-reply@example.test'});
 function fixture() {
-  const rpc=vi.fn(async(name:string)=>({data:name==='public_access_consume_limit'?true:target,error:null}));
+  const rpc=vi.fn(async(name:string)=>({data:['public_access_consume_limit','business_register_recovery_delivery','business_consume_recovery_delivery'].includes(name)?true:target,error:null}));
   const admin={getUserById:vi.fn().mockResolvedValue({data:{user:identity},error:null}),generateLink:vi.fn().mockResolvedValue({data:{user:identity,properties:{hashed_token:token,verification_type:'recovery'}},error:null}),signOut:vi.fn().mockResolvedValue({error:null}),updateUserById:vi.fn().mockResolvedValue({data:{user:identity},error:null})};
   const verifier={auth:{verifyOtp:vi.fn().mockResolvedValue({data:{user:identity,session:{access_token:'private-session'}},error:null})}};
   return {client:{rpc,auth:{admin}} as unknown as BusinessRecoveryAdmin,rpc,admin,verifier,fetcher:vi.fn().mockResolvedValue(new Response(JSON.stringify({id:'mail'}),{status:200}))};
@@ -49,7 +49,13 @@ describe('administration-only password recovery',()=>{
     expect(f.verifier.auth.verifyOtp).toHaveBeenCalledWith({type:'recovery',token_hash:token});
     expect(f.rpc).toHaveBeenCalledWith('business_password_recovery_target',{p_email:target.email,p_auth_user_id:target.authUserId});
     expect(f.admin.signOut).toHaveBeenCalledWith('private-session','global');
-    expect(f.admin.updateUserById).toHaveBeenCalledWith(target.authUserId,{password:body.password});
+    expect(f.admin.updateUserById).toHaveBeenCalledWith(target.authUserId,{password:body.password,email_confirm:true});
+  });
+  it('rejects a verified link when its delivery was bound to an earlier recipient address',async()=>{
+    const f=fixture();f.rpc.mockImplementation(async name=>({data:name==='business_consume_recovery_delivery'?false:['public_access_consume_limit','business_register_recovery_delivery'].includes(name)?true:target,error:null}));
+    const body={tokenHash:token,password:'New Password 123!',confirmPassword:'New Password 123!'};
+    expect((await completeBusinessRecovery(f.client,f.verifier,body,'ip')).status).toBe(400);
+    expect(f.admin.updateUserById).not.toHaveBeenCalled();
   });
   it('never changes a password when a token is expired/reused or its role was changed to a portal',async()=>{
     const f=fixture();f.verifier.auth.verifyOtp.mockResolvedValueOnce({data:{user:null,session:null},error:{code:'otp_expired'}});

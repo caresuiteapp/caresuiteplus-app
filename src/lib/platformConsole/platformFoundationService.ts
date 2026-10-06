@@ -85,13 +85,13 @@ export async function assignPlatformPlanToTenant(
   if (getServiceMode() === 'demo') {
     return { ok: true, data: { tenant_id: tenantId, plan_key: planKey } };
   }
-  const { data, error } = await platformRpc<Record<string, unknown>>('platform_assign_plan_to_tenant', {
+  if (options?.customYearlyCents != null) return { ok: false, error: 'Individuelle Jahrespreise werden im Tarifkatalog vereinbart. Bitte dort den Jahrespreis hinterlegen.' };
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_assign_tenant_tariff', {
     p_tenant_id: tenantId,
     p_plan_key: planKey,
     p_reason: reason.trim(),
     p_billing_interval: options?.billingInterval ?? 'monthly',
     p_custom_monthly_cents: options?.customMonthlyCents ?? null,
-    p_custom_yearly_cents: options?.customYearlyCents ?? null,
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: data ?? {} };
