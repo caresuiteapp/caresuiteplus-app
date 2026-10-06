@@ -8,6 +8,7 @@ const FULL_PAGE_PREFIXES = [
   '/command',
   '/impressum',
   '/datenschutz',
+  '/support',
   '/christianreinhardt',
   '/agb',
 ];

@@ -58,7 +58,7 @@ export function isBusinessLoginIdentifier(value: string): boolean {
   return value.includes('@') || value.includes('.');
 }
 
-const AUTH_SETUP_ROUTE_PREFIXES = ['/auth/employee-first-login', '/auth/reset-password'];
+const AUTH_SETUP_ROUTE_PREFIXES = ['/auth/employee-first-login', '/auth/reset-password', '/auth/forgot-password'];
 
 /** Authenticated users may stay on these routes (password setup, recovery). */
 export function isAuthSetupRoute(pathname: string): boolean {
