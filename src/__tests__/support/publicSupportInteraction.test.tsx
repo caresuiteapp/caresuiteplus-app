@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase/edgeFunctions',()=>({invokeEdgeFunction:api.invoke}));
 vi.mock('@/lib/support/supportService.web',()=>({supportRpc:api.rpc}));
 vi.mock('@/liquid-command/components/PublicAccessShell.web',()=>({PublicAccessShell:({children}:any)=><main>{children}</main>}));
 vi.mock('@/liquid-command/components/LiquidPrimitives',()=>({LiquidSurface:({children}:any)=><section>{children}</section>}));
-import PublicSupportScreen from '@/screens/support/PublicSupportScreen.web';
+import PublicSupportScreen from '../../../app/support/index.web';
 import {PublicSupportQueue} from '@/components/support/PublicSupportQueue.web';
 let host:HTMLDivElement;let root:Root;
 beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;api.invoke.mockReset();api.rpc.mockReset();host=document.createElement('div');document.body.appendChild(host);root=createRoot(host);});

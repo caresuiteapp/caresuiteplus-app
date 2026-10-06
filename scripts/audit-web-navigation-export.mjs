@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 // React root must therefore hydrate identically for the home and deep links.
 // This exercises Expo's platform-file resolution, beyond component unit tests.
 const output = resolve(process.argv[2] ?? 'dist');
-const routes = ['index.html', 'auth/business-login.html', 'auth/forgot-password.html', 'auth/reset-password.html', 'support.html', 'business/office/access/module-permissions/index.html'];
+const routes = ['index.html', 'auth/business-login.html', 'auth/forgot-password.html', 'auth/reset-password.html', 'support/index.html', 'business/office/access/module-permissions/index.html'];
 const roots = routes.map((route) => {
   const html = readFileSync(resolve(output, route), 'utf8');
   const root = html.match(/<div id="root">([\s\S]*?)<script\b/)?.[1];
