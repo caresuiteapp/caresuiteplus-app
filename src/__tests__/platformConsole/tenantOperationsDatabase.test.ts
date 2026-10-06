@@ -30,7 +30,7 @@ describe('tenant administration against the deployed tariff and consent schema',
       CREATE TABLE platform_addons(addon_key text PRIMARY KEY,addon_name text);
       CREATE TABLE platform_addon_versions(id uuid PRIMARY KEY,monthly_price_cents integer,yearly_price_cents integer,currency text);
       CREATE TABLE platform_tenant_addons(id uuid PRIMARY KEY,tenant_id uuid,addon_key text,addon_version_id uuid,status text,billing_interval text,price_override_cents integer,starts_at timestamptz,ends_at timestamptz);
-      CREATE TABLE registration_welcome_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid,tenant_user_id uuid,auth_user_id uuid,recipient_email text,template_version text DEFAULT 'registration-welcome-v1',state text DEFAULT 'pending',provider text,attempts integer DEFAULT 0,first_attempt_at timestamptz,next_attempt_at timestamptz DEFAULT now(),lease_token uuid,lease_until timestamptz,provider_message_id text,last_error_code text,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),sent_at timestamptz,UNIQUE(tenant_user_id,template_version));
+      CREATE TABLE registration_welcome_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid,tenant_user_id uuid,auth_user_id uuid,recipient_email text,template_version text DEFAULT 'registration-welcome-v1',state text DEFAULT 'pending',provider text CHECK(provider IN ('resend','sendgrid')),attempts integer DEFAULT 0,first_attempt_at timestamptz,next_attempt_at timestamptz DEFAULT now(),lease_token uuid,lease_until timestamptz,provider_message_id text,last_error_code text,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),sent_at timestamptz,UNIQUE(tenant_user_id,template_version));
     `);
     await db.exec(migration('0246_platform_console_foundation_live.sql'));
     const ops=migration('0259_platform_addons_and_tenant_records_repair.sql');
@@ -45,6 +45,8 @@ describe('tenant administration against the deployed tariff and consent schema',
     const a=support.indexOf('CREATE OR REPLACE FUNCTION public.support_assert_access');
     const b=support.indexOf('CREATE OR REPLACE FUNCTION public.support_workspace_read',a);
     await db.exec(support.slice(a,b));
+    // Gmail is already deployed. Apply the pending administration change afterwards.
+    await db.exec(migration('20261006123127_registration_gmail_smtp.sql'));
     await db.exec(migration('20261006122235_platform_tenant_operations_de.sql'));
     await db.exec(`
       GRANT ALL ON ALL TABLES IN SCHEMA public,auth TO service_role;
@@ -94,6 +96,15 @@ describe('tenant administration against the deployed tariff and consent schema',
     await login(10);const failed=randomUUID();await prepare(failed,'password_recovery');await server();await scalar('SELECT platform_claim_account_operation($1)',[failed]);
     await scalar('SELECT platform_finish_account_operation($1,false,true)',[failed]);await login(10);
     await expect(prepare(randomUUID(),'password_recovery')).rejects.toThrow('account_update_needs_review');
+  });
+  it('keeps the existing Gmail queue compatible with corrected recipients and deliberate delivery revisions',async()=>{
+    await server();
+    const claimed=await rows('SELECT * FROM registration_welcome_claim($1,10,$2)',[id(1),'gmail']);
+    expect(claimed).toHaveLength(1);
+    expect(claimed[0]).toMatchObject({recipient_email:'new@example.test',delivery_revision:2,provider:'gmail',state:'sending'});
+    await db.query("UPDATE registration_welcome_outbox SET lease_until=now()-interval '1 minute' WHERE id=$1",[claimed[0].id]);
+    expect(await rows('SELECT * FROM registration_welcome_claim($1,10,$2)',[id(1),'gmail'])).toEqual([]);
+    expect((await rows('SELECT state,last_error_code FROM registration_welcome_outbox WHERE id=$1',[claimed[0].id]))[0]).toEqual({state:'failed',last_error_code:'mail_delivery_needs_review'});
   });
   it('requires tenant approval, exact scopes and the requesting operator for details and errors',async()=>{
     await login(12);const req=await scalar("SELECT support_request_access($1,$2,$3,60)",[id(60),'Fehler gemeinsam prüfen',['clients.read','clients.details.read','errors.read']]);

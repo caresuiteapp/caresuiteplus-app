@@ -5,7 +5,7 @@ import {manageTenantAccount,validAccountRequest,type AccountAdmin} from '../../.
 import {resolveRegistrationWelcomeConfig} from '../../../supabase/functions/_shared/registrationWelcomeEmail';
 const input={nonce:'00000000-0000-4000-8000-000000000001',tenantId:'00000000-0000-4000-8000-000000000002',tenantUserId:'00000000-0000-4000-8000-000000000003',action:'email_change' as const,newEmail:'NEW@example.test',reason:'Kundenauftrag bestätigt',authorizationConfirmed:true};
 const op={id:input.nonce,tenant_id:input.tenantId,tenant_user_id:input.tenantUserId,auth_user_id:'server-identity',action:'email_change',old_email:'old@example.test',new_email:'new@example.test'};
-const config=resolveRegistrationWelcomeConfig({RESEND_API_KEY:'test-key',REGISTRATION_EMAIL_FROM:'no-reply@example.test'});
+const config=resolveRegistrationWelcomeConfig({REGISTRATION_EMAIL_PROVIDER:'resend',RESEND_API_KEY:'test-key',REGISTRATION_EMAIL_FROM:'no-reply@example.test'});
 function fixture() {
   delivery.mockReset().mockResolvedValue({accepted:true});
   const user={rpc:vi.fn().mockResolvedValue({data:{id:input.nonce,state:'prepared'},error:null})};
