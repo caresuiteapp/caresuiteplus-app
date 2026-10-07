@@ -1,4 +1,5 @@
 import { getSupabaseConfig,isDemoMode,isSupabaseConfigured } from '@/lib/supabase/config';
+export const PLATFORM_OBSERVATION_WEB_RELEASE='caresuite-platform-observation-web-20261007';
 
 type Surface = 'website'|'registration'|'software'|'platform';
 type ObservationCategory = 'connection'|'permission'|'timeout'|'validation'|'server'|'render'|'unexpected';
@@ -8,6 +9,7 @@ type Correlation = {sessionId:string;sessionSecret:string;attemptId:string};
 let identity: {sessionId:string;sessionSecret:string}|null=null;
 let accessToken: string|null=null;
 let collectionEnabled=false;
+const collectionListeners=new Set<()=>void>();
 let context: {surface:Surface;area:string}={surface:'website',area:'website'};
 let registration: {attemptId:string;stage:number;state:RegistrationState;issue?:string}|null=null;
 const lastErrors=new Map<string,number>();
@@ -21,8 +23,14 @@ function eligibleBrowser() {
 function enabled(){return collectionEnabled&&eligibleBrowser();}
 /** Collection starts only after the approved server release and collector are confirmed. */
 export function setObservationCollectionEnabled(value:boolean) {
+  const changed=collectionEnabled!==value;
   collectionEnabled=value;
   if(!value){identity=null;registration=null;lastErrors.clear();}
+  if(changed)for(const listener of collectionListeners){try{listener();}catch{/* Optional observers cannot interrupt the application. */}}
+}
+export function subscribeObservationCollection(listener:()=>void) {
+  collectionListeners.add(listener);
+  return ()=>{collectionListeners.delete(listener);};
 }
 export async function isObservationCollectionReady():Promise<boolean>{
   if(!eligibleBrowser())return false;

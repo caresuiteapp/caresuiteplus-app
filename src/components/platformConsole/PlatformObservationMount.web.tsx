@@ -3,7 +3,7 @@ import { usePathname } from 'expo-router';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { useWebStartDestination } from '@/components/brand/WebStartDestination.web';
-import { isObservationCollectionReady,observeHeartbeat,recordObservedError,setObservationAccessToken,setObservationCollectionEnabled,setObservationPage } from '@/lib/platformConsole/platformObservation.web';
+import { PLATFORM_OBSERVATION_WEB_RELEASE,isObservationCollectionReady,observeHeartbeat,recordObservedError,setObservationAccessToken,setObservationCollectionEnabled,setObservationPage } from '@/lib/platformConsole/platformObservation.web';
 
 /** Lifecycle-scoped Web/Desktop observation. It never blocks navigation or authentication. */
 export function PlatformObservationMount() {
@@ -12,6 +12,7 @@ export function PlatformObservationMount() {
   const {showChoice}=useWebStartDestination();
   useEffect(()=>{
     let alive=true;let loading=false;
+    document.documentElement.setAttribute('data-cs-platform-observation',PLATFORM_OBSERVATION_WEB_RELEASE);
     async function check(){
       if(loading||document.visibilityState==='hidden')return;
       loading=true;
@@ -23,7 +24,7 @@ export function PlatformObservationMount() {
     const timer=setInterval(()=>void check(),60_000);
     const visible=()=>{if(document.visibilityState==='visible')void check();};
     document.addEventListener('visibilitychange',visible);
-    return()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange',visible);setObservationCollectionEnabled(false);};
+    return()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange',visible);setObservationCollectionEnabled(false);document.documentElement.removeAttribute('data-cs-platform-observation');};
   },[]);
   useEffect(()=>{
     const client=getSupabaseClient();

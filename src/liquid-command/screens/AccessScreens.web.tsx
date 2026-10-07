@@ -3,7 +3,7 @@ import { canonicalCompanyContactFunction, validateCompanyContactFunction } from 
 import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect.web';
 import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
-import { leaveRegistrationObservation,observeRegistrationIssue,observeRegistrationStep } from '@/lib/platformConsole/platformObservation.web';
+import { leaveRegistrationObservation,observeRegistrationIssue,observeRegistrationStep,subscribeObservationCollection } from '@/lib/platformConsole/platformObservation.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
@@ -463,7 +463,12 @@ export function RegisterOrganizationScreen() {
   const draftWrites = useRef<Promise<unknown>>(Promise.resolve());
   const [draftError, setDraftError] = useState(false);
   const registrationLayout = useLiquidLayout();
-  useEffect(()=>{if(draftReady&&!success)observeRegistrationStep(step);},[draftReady,step,success]);
+  useEffect(()=>{
+    if(!draftReady||success)return;
+    const record=()=>observeRegistrationStep(step);
+    record();
+    return subscribeObservationCollection(record);
+  },[draftReady,step,success]);
   useEffect(()=>()=>leaveRegistrationObservation(),[]);
   useUnsavedWebChanges(!success && (!!form.adminPassword || !!confirmPassword || draftError), loading, 'Nicht gespeicherte Angaben und Passwörter gehen beim Verlassen verloren. Möchten Sie die Registrierung verlassen?');
 

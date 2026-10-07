@@ -141,3 +141,16 @@ test('deactivation clears the tab identity and suppresses future signup, heartbe
   observation.setObservationCollectionEnabled(true);await observation.observeHeartbeat();
   assert.notEqual(requests[0].body.sessionId,before);observation.setObservationCollectionEnabled(false);
 });
+test('a form already open during the readiness check records its current first step when collection starts',async()=>{
+  observation.setObservationCollectionEnabled(false);observation.setObservationPage('/auth/register');requests.length=0;
+  const unsubscribe=observation.subscribeObservationCollection(()=>observation.observeRegistrationStep(0));
+  observation.observeRegistrationStep(0);assert.equal(requests.length,0);
+  observation.setObservationCollectionEnabled(true);await flush();
+  assert.equal(requests[0].body.kind,'registration');assert.equal(requests[0].body.stage,0);
+  const first=requests[0].body.attemptId;
+  observation.setObservationCollectionEnabled(true);await flush();assert.equal(requests.length,1);
+  observation.observeRegistrationStep(1);await flush();assert.equal(requests.at(-1).body.attemptId,first);
+  unsubscribe();observation.setObservationCollectionEnabled(false);requests.length=0;
+  observation.setObservationCollectionEnabled(true);await flush();assert.equal(requests.length,0);
+  observation.setObservationCollectionEnabled(false);
+});

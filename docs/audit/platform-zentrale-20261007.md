@@ -5,6 +5,8 @@ Projekt: caresuiteapp/caresuiteplus-app. Produktiver Server: euagyyztvmemuaiumvx
 
 ## Ergebnis
 
+**Fortschreibung:** Die zusätzliche Erfassung wurde anschließend ausdrücklich freigegeben. Servereinrichtung, Prüfungen und der Stand der Webveröffentlichung werden in [platform-erfassung-20261007.md](platform-erfassung-20261007.md) dokumentiert. Die nachstehenden Angaben zur ausstehenden Freigabe beschreiben den ursprünglichen Basisstand dieses Berichts.
+
 Die Plattformverwaltung ist vorhanden und mit wesentlichen Unternehmens-, Konto- und Supportfunktionen verbunden. Sie ist noch keine vollständige Betriebszentrale für die gesamte Software und Website. Besonders Live-Nutzung, Registrierungsabbrüche, automatische Fehlerauswertung und die durchgängige Umsetzung allgemeiner Systemeinstellungen fehlten bisher.
 
 Dieser Stand ergänzt die korrekte Statusauswahl und eine echte, nur lesende Bestandsübersicht. Die Serverabfrage dafür ist produktiv eingerichtet. Die neue Weboberfläche liegt im geprüften Veröffentlichungsstand des Pakets; ihre Veröffentlichung ist erst nach erfolgreichem Git-Bash-Lauf bestätigt.
