@@ -33,7 +33,7 @@ function statusTone(status: string): { bg: string; border: string; fg: string } 
   if (['active', 'enabled', 'succeeded', 'paid', 'open'].includes(s)) {
     return { bg: '#DCFCE7', border: '#86EFAC', fg: '#166534' };
   }
-  if (['failed', 'past_due', 'chargeback', 'suspended', 'revoked', 'cancelled'].includes(s)) {
+  if (['failed', 'past_due', 'chargeback', 'suspended', 'locked', 'revoked', 'cancelled'].includes(s)) {
     return { bg: '#FEE2E2', border: '#FCA5A5', fg: '#991B1B' };
   }
   if (['pending', 'draft', 'scheduled'].includes(s)) {
@@ -47,7 +47,7 @@ const STATUS_LABELS: Record<string, string> = {
   failed: 'Fehlgeschlagen', past_due: 'Überfällig', chargeback: 'Rückbuchung', suspended: 'Gesperrt', revoked: 'Widerrufen',
   cancelled: 'Storniert', pending: 'Ausstehend', draft: 'Entwurf', scheduled: 'Geplant', trial: 'Testphase',
   live: 'Live', onboarding: 'Einrichtung', closed: 'Beendet', refunded: 'Erstattet', partially_paid: 'Teilbezahlt',
-  disabled: 'Deaktiviert', terminated: 'Beendet', locked: 'Gesperrt', manual_free: 'Kostenfrei', invoice_pending: 'Rechnung offen',
+  disabled: 'Deaktiviert', terminated: 'Deaktiviert', locked: 'Blockiert', deleted_soft: 'Gelöscht', deleted: 'Gelöscht', manual_free: 'Kostenfrei', invoice_pending: 'Rechnung offen',
 };
 
 export function statusLabel(status: string): string {

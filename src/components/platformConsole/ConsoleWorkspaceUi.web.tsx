@@ -15,10 +15,10 @@ export const CONSOLE_WORKSPACE_CSS = `
 @media(prefers-reduced-motion:reduce){.cs-loading{animation:none}}
 `;
 
-export function ConsoleStyle() { return <style>{CONSOLE_WORKSPACE_CSS}</style>; }
+export function ConsoleStyle() { return <style>{CONSOLE_WORKSPACE_CSS + '\n.cs-tab[aria-pressed=true]{background:#eaf2ff;border-color:#94b7e6;color:#075dd5}'}</style>; }
 export function ConsoleBadge({ value, label }: { value: unknown; label: string }) {
   const text = String(value);
-  const tone = ['active','available','succeeded','paid','ready','live','manual_free','true'].includes(text) ? 'good' : ['failed','suspended','revoked','chargeback','locked','false'].includes(text) ? 'bad' : ['past_due','pending','onboarding','scheduled','beta','partially_paid'].includes(text) ? 'warn' : 'blue';
+  const tone = ['active','available','succeeded','paid','ready','live','manual_free','true'].includes(text) ? 'good' : ['failed','suspended','revoked','chargeback','locked','false'].includes(text) ? 'bad' : ['past_due','pending','onboarding','scheduled','beta','partially_paid'].includes(text) ? 'warn' : ['terminated','disabled','deleted_soft','deleted','inactive','archived'].includes(text) ? 'neutral' : 'blue';
   return <span className={`cs-badge ${tone}`}>{label}</span>;
 }
 export function ConsoleDialog({ title, description, children, footer, busy = false, onClose }: { title: string; description?: string; children: ReactNode; footer?: ReactNode; busy?: boolean; onClose: () => void }) {
