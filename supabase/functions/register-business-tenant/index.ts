@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
 import { provisionBusinessRegistration, validateRegistrationBody } from './provision.ts';
 import { dispatchRegistrationWelcomeEmails, REGISTRATION_WELCOME_ENV_KEYS, type RegistrationWelcomeClient } from '../registration-welcome-dispatch/worker.ts';
+import { confirmRegistrationObservation } from '../platform-observation/core.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
@@ -20,7 +21,11 @@ serve(async req => {
   if (validation) return jsonResponse({ ok: false, error: validation }, 400);
   try {
     const service = getServiceClient();
-    const result = await provisionBusinessRegistration(service, body);
+    const { platformObservation, ...registrationBody } = body;
+    const result = await provisionBusinessRegistration(service, registrationBody);
+    const observation=confirmRegistrationObservation(service,platformObservation,result.status,result.body);
+    if(typeof EdgeRuntime!=='undefined')EdgeRuntime.waitUntil(observation);
+    else await observation;
     if (result.status === 201 && result.body.ok === true && typeof result.body.tenantId === 'string') {
       const env = Object.fromEntries(REGISTRATION_WELCOME_ENV_KEYS.map(key => [key, Deno.env.get(key)]));
       const delivery = dispatchRegistrationWelcomeEmails(service as unknown as RegistrationWelcomeClient, env, result.body.tenantId)

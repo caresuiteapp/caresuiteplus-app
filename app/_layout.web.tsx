@@ -30,6 +30,7 @@ import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePr
 import { isWebDeviceLoginRoute } from '@/lib/navigation/deviceLoginRoute.web';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
+import { PlatformObservationMount } from '@/components/platformConsole/PlatformObservationMount.web';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 applyInvisibleScrollIndicators();
@@ -207,6 +208,7 @@ export default function RootLayout() {
     <AppStartIntro>
       <WebStartDestinationProvider>
         <AuthProvider>
+          <PlatformObservationMount />
           <PortalKeyboardProvider>
             <ThemeModeProvider>
               <PerformanceProvider>
