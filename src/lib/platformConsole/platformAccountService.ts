@@ -5,13 +5,14 @@ import { platformRpc } from './platformSupabaseClient';
 
 export type PlatformAccount = {
   id:string;display_name:string|null;username:string|null;email:string|null;role_key:string;status:string;
-  last_login_at:string|null;has_login:boolean;
+  last_login_at:string|null;has_login:boolean;updated_at?:string;
+  access_state?:'active'|'inactive'|'deleted';
   open_operation?:{state:string;action:string;created_at:string}|null;
   welcome:{state:string;recipient_email:string;attempts:number;sent_at:string|null;updated_at:string;last_error_code:string|null}|null;
 };
-export async function listPlatformAccounts(tenantId:string):Promise<ServiceResult<PlatformAccount[]>> {
+export async function listPlatformAccounts(tenantId:string,includeDeleted=false):Promise<ServiceResult<PlatformAccount[]>> {
   if(getServiceMode()==='demo') return {ok:true,data:[{id:'demo-owner',display_name:'Geschäftsführung',username:'verwaltung',email:'verwaltung@example.test',role_key:'owner',status:'active',last_login_at:null,has_login:true,welcome:null}]};
-  const {data,error}=await platformRpc<{items:PlatformAccount[]}>('platform_list_tenant_accounts',{p_tenant_id:tenantId});
+  const {data,error}=await platformRpc<{items:PlatformAccount[]}>('platform_list_tenant_account_access',{p_tenant_id:tenantId,p_include_deleted:includeDeleted});
   return error?{ok:false,error:error.message}:{ok:true,data:data?.items??[]};
 }
 export type PlatformAccountAction = {nonce:string;tenantId:string;tenantUserId:string;action:'email_change'|'password_recovery'|'welcome_resend';newEmail?:string;reason:string;authorizationConfirmed:boolean};

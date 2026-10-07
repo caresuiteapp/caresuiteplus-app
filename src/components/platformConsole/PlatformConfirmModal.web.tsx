@@ -21,7 +21,7 @@ export function PlatformConfirmModal({visible,title,description,confirmLabel='Be
     <button className={`cs-btn ${danger?'danger':'primary'}`} type="submit" form="platform-confirm-form" disabled={loading||!valid}>{loading?'Wird gespeichert…':confirmLabel}</button>
   </div>}>
     <form id="platform-confirm-form" onSubmit={event=>{event.preventDefault();submit();}} className="cs-panel-body">
-      {requireReason&&<label className="cs-field">Begründung *<textarea required minLength={5} value={reason} disabled={loading} onChange={event=>setReason(event.target.value)} placeholder="Anlass und Grundlage dieser Änderung"/></label>}
+      {requireReason&&<label className="cs-field">Begründung *<textarea required minLength={5} maxLength={1000} value={reason} disabled={loading} onChange={event=>setReason(event.target.value)} placeholder="Anlass und Grundlage dieser Änderung"/></label>}
       {requireTypedConfirmation&&<label className="cs-field">Zur Bestätigung „{requireTypedConfirmation}“ eingeben<input required value={typed} disabled={loading} onChange={event=>setTyped(event.target.value)}/></label>}
       {error&&<p className="cs-notice error" role="alert">{error} Die Eingaben bleiben für die Korrektur erhalten.</p>}
     </form>

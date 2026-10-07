@@ -149,7 +149,7 @@ export function PlatformTenantsScreen() {
           <Text style={styles.filterLabel}>Mandantenstatus</Text>
           <PlatformFilterChipRow>
             {[
-              ['', 'Alle'], ['active', 'Aktiv'], ['suspended', 'Gesperrt'], ['locked', 'Blockiert'], ['terminated', 'Beendet'],
+              ['', 'Alle bestehenden'], ['active', 'Aktiv'], ['suspended', 'Gesperrt'], ['locked', 'Blockiert'], ['terminated', 'Deaktiviert'], ['deleted_soft', 'Gelöscht'],
             ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={statusFilter === key} onPress={() => { setStatusFilter(key); setOffset(0); }} />)}
           </PlatformFilterChipRow>
         </View>
