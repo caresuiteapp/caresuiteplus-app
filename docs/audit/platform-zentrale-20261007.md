@@ -68,7 +68,7 @@ Damit sind 80 Klienten und 29 Mitarbeitende keine reine Kunden- oder Produktivza
 | Veröffentlichungen | Versionen und Prüfergebnisse dokumentierbar | Ein Registereintrag veröffentlicht keine Software. Automatische Zuordnung aller Web-, Server- und Android-Versionen zur Plattformübersicht fehlt. |
 | Unternehmensregistrierung | Kostenloser Webablauf und Servereinrichtung vorhanden | Bestand enthält bestätigte Unternehmen; bisher kein vollständiges Register laufender oder abgebrochener Formulare. |
 | Registrierung gerade live | Bisher nicht erfasst | Schrittverlauf und bestätigte Ergebnisse vorbereitet, ausgeschaltet. Ohne neue Erfassung keine verlässliche Live-Auskunft. |
-| Wer hat abgebrochen? | Bisher nicht rekonstruierbar | Entwurf zeigt vor Kontoanlage einen anonymen Versuch. Erst erfolgreicher Serverabschluss ordnet Unternehmen und Verwaltungskonto zu. Inaktivität ist nur ein möglicher Abbruch; der persönliche Grund bleibt unbekannt. |
+| Wer hat abgebrochen? | Bisher nicht rekonstruierbar | Entwurf zeigt vor Kontoanlage einen noch nicht einem neuen Unternehmen zugeordneten Versuch ohne Formularnamen. Erst erfolgreicher Serverabschluss ordnet Unternehmen und Verwaltungskonto zu. Inaktivität ist nur ein möglicher Abbruch; der persönliche Grund bleibt unbekannt. |
 | Klienten und Mitarbeitende systemweit | Echte neue Bestandsabfrage eingerichtet | Übersicht, Gesamtbestände, gelöschte Datensätze und Datenumgebungen ergänzt. Kein nachträglich erfundener Zähler endgültig entfernter Datensätze. |
 | Software gerade genutzt | Bisher keine globale Aktivitätsmessung | Sichtbare Sitzungen mit bestätigter Anmeldung vorbereitet. Android und nicht bestätigte oder blockierte Meldungen werden damit nicht vollständig erfasst. |
 | Website gerade besucht | Bisher keine gemeinsame Messung mit der Software | Landingpage ist eigenständiges HTML. Entwurf enthält deshalb eine separate, ebenfalls ausgeschaltete Anbindung für Landingpage und öffentliche Informationsseiten. |
@@ -121,6 +121,8 @@ Der zusätzliche Quellstand befindet sich ausschließlich im Paketordner FREIGAB
 | Schutz gegen Missbrauch | Kurzlebige Anfragezähler, täglich wechselnder serverseitig geschützter IP-Prüfwert; keine Roh-IP in den neuen Erfassungstabellen. |
 | Nicht enthalten | Formularinhalte, Passwörter, vollständige aufgerufene Adressen, Personenakteninhalte oder medizinische Daten. |
 | Browserwünsche | Do Not Track und Global Privacy Control stoppen diese Erfassung. Vorschau- und Demoseiten erfassen nicht. |
+
+Die Fensterkennung kann bei einer bereits angemeldeten Person mit der geprüften Anmeldeidentität verbunden sein. Ein Registrierungsversuch ohne Formularnamen ist deshalb nicht pauschal eine anonyme Datenerfassung. Die neue Unternehmens- und Geschäftsführungszuordnung wird erst nach bestätigter Kontoanlage angezeigt.
 
 „Live“ berücksichtigt Meldungen der letzten 90 Sekunden. Sichtbare Seiten melden ungefähr alle 30 Sekunden. Die Verwaltungsübersicht fragt etwa alle 15 Sekunden ab. Seitenmeldungen werden nach einem Tag bereinigt, verknüpfte Registrierungsversuche und ihre Schritte nach 14 Tagen, zusammengefasste Fehler nach 30 Tagen. Anfragezähler werden nach einer Stunde bereinigt. Die Bereinigung wird bei weiteren Betriebsmeldungen angestoßen; ohne neue Meldungen können Datensätze bis zur nächsten Bereinigung bestehen bleiben.
 
