@@ -37,7 +37,7 @@ export function TenantEntitlementsTab({ detail }: Pick<TabProps, 'tenantId' | 'r
 
 export function TenantSupportTab({ tenantId }: Omit<TabProps, 'detail'>) {
   const router = useRouter();
-  return <View style={styles.panel}><Text style={styles.section}>Support & Freigaben</Text><Text style={styles.hint}>Support-Nachrichten und zeitlich begrenzte Datenfreigaben werden gemeinsam am Ticket verwaltet.</Text><Pressable accessibilityRole="button" style={styles.btn} onPress={() => router.push('/platform/support' as never)}><Text style={styles.btnText}>Support-Zentrale öffnen</Text></Pressable><PlatformAuditLink tenantId={tenantId} action="support" /></View>;
+  return <View style={styles.panel}><Text style={styles.section}>Support & Freigaben</Text><Text style={styles.hint}>Support-Nachrichten und zeitlich begrenzte Datenfreigaben werden gemeinsam am Ticket verwaltet.</Text><Pressable accessibilityRole="button" style={styles.btn} onPress={() => router.push(`/platform/support?tenantId=${encodeURIComponent(tenantId)}` as never)}><Text style={styles.btnText}>Support für dieses Unternehmen öffnen</Text></Pressable><PlatformAuditLink tenantId={tenantId} action="support" /></View>;
 }
 
 export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail' | 'onReload'>) {
