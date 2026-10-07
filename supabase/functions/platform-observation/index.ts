@@ -1,10 +1,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders,getServiceClient,jsonResponse,readClientMeta } from '../_shared/http.ts';
 import { normalizeObservation,observationIpHash,OBSERVATION_RELEASE } from './core.ts';
+import { readPlatformRuntimeSettings } from '../_shared/platformRuntime.ts';
 
 serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:{...corsHeaders,'Access-Control-Allow-Methods':'GET, POST, OPTIONS'}});
-  if(req.method==='GET')return jsonResponse({release:OBSERVATION_RELEASE,ready:true});
+  if(req.method==='GET'){
+    try {
+      const runtime=await readPlatformRuntimeSettings(getServiceClient());
+      return jsonResponse({release:OBSERVATION_RELEASE,ready:true,runtime});
+    }catch{return jsonResponse({release:OBSERVATION_RELEASE,ready:false},503);}
+  }
   if(req.method!=='POST')return jsonResponse({ok:false},405);
   try {
     const raw=await req.text();

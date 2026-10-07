@@ -31,6 +31,7 @@ import { isWebDeviceLoginRoute } from '@/lib/navigation/deviceLoginRoute.web';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
 import { PlatformObservationMount } from '@/components/platformConsole/PlatformObservationMount.web';
+import { PlatformRuntimeBoundary } from '@/components/platformConsole/PlatformRuntimeBoundary.web';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 applyInvisibleScrollIndicators();
@@ -218,9 +219,11 @@ export default function RootLayout() {
                       <ModalStackProvider>
                         <ScreensaverSettingsProvider>
                           <WebNavigationMount><HealthOSStoreEditionGuard>
+                            <PlatformRuntimeBoundary>
                             <RouteScopedLegacyOverlays />
                             <SoftwareScreensaver />
                             <RootShell />
+                            </PlatformRuntimeBoundary>
                           </HealthOSStoreEditionGuard></WebNavigationMount>
                         </ScreensaverSettingsProvider>
                       </ModalStackProvider>

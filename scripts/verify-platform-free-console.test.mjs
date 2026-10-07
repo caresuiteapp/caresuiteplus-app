@@ -71,6 +71,23 @@ const service = await realModule('src/lib/platformConsole/consoleWorkspaceServic
 const navigation = await realModule('src/lib/platformConsole/platformNavigation.ts');
 const retired = ['plans', 'addons', 'discounts', 'billing', 'payments'];
 const roles = ['platform_owner', 'platform_admin', 'platform_billing', 'platform_support', 'platform_developer', 'platform_readonly'];
+
+test('operational settings use German choices and bound public notices before starting a write', async () => {
+  systemRows = [{ id: 'maintenance', setting_key: 'maintenance_mode', value: false },
+    { id: 'registration', setting_key: 'allow_new_tenant_signup', value: true },
+    { id: 'notice', setting_key: 'platform_notice', value: '' }];
+  const loaded = await service.loadConsoleData('system', { search: '', status: '', tenantId: '', offset: 0 }, 'platform_owner');
+  assert.deepEqual(Array.from(loaded.rows, row => row.display_name), ['Wartungsmodus', 'Firmenregistrierung', 'Plattformhinweis']);
+  const maintenance = service.consoleActions('system', loaded.rows[0], loaded).find(action => action.key === 'setting');
+  assert.deepEqual(Array.from(maintenance.fields[0].options, option => option.label), ['Nein', 'Ja']);
+  const notice = service.consoleActions('system', loaded.rows[2], loaded).find(action => action.key === 'setting');
+  assert.equal(notice.fields[0].type, 'textarea');
+  const before = calls.length;
+  await assert.rejects(notice.run({ value: 'x'.repeat(2001) }, 'Betriebsinformation geändert'), /2.000/);
+  assert.equal(calls.length, before);
+  await notice.run({ value: 'Heute kurze Wartung' }, 'Betriebsinformation geändert');
+  assert.deepEqual(calls.at(-1).args, ['platform_notice', 'Heute kurze Wartung', 'Betriebsinformation geändert']);
+});
 const commercial = ['plans.read', 'plans.write', 'discounts.read', 'discounts.write', 'billing.read', 'billing.write', 'payments.read', 'payments.write'];
 const empty = { rows: [], tenants: [], related: [], warnings: [], hasMore: false };
 const query = { search: '', status: '', tenantId: '', offset: 0 };

@@ -121,6 +121,18 @@ test('caller cancellations and failures of the collector itself do not recursive
   await flush();assert.equal(requests.length,0);
 });
 
+test('planned maintenance and paused signup responses stay visible without creating server incidents',async()=>{
+  requests.length=0;observation.setObservationPage('/auth/register');
+  for(const code of ['maintenance_active','registration_paused']){
+    const original=new Response(JSON.stringify({code,error:'Planned operational closure'}),{status:503});
+    const result=await observation.createObservedSupabaseFetch(async()=>original)(config.url+'/functions/v1/register-business-tenant');
+    assert.equal(result,original);await flush();
+  }
+  assert.equal(requests.length,0);
+  await observation.createObservedSupabaseFetch(async()=>new Response(JSON.stringify({code:'unexpected_server_failure'}),{status:503}))(config.url+'/functions/v1/register-business-tenant');
+  await flush();assert.equal(requests.find(x=>x.body?.kind==='error')?.body.category,'server');
+});
+
 test('collection cannot start until both the approved server release and collector are ready',async()=>{
   const original=context.fetch;const calls=[];
   context.fetch=async url=>{calls.push(url);return new Response(JSON.stringify({release:'caresuite-platform-operations-20261007',inventoryReady:true,observationReady:false}),{status:200});};

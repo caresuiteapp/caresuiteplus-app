@@ -3,6 +3,7 @@ import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts'
 import { provisionBusinessRegistration, validateRegistrationBody } from './provision.ts';
 import { dispatchRegistrationWelcomeEmails, REGISTRATION_WELCOME_ENV_KEYS, type RegistrationWelcomeClient } from '../registration-welcome-dispatch/worker.ts';
 import { confirmRegistrationObservation } from '../platform-observation/core.ts';
+import { readPlatformRuntimeSettings, registrationRuntimeError } from '../_shared/platformRuntime.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
@@ -21,6 +22,9 @@ serve(async req => {
   if (validation) return jsonResponse({ ok: false, error: validation }, 400);
   try {
     const service = getServiceClient();
+    const runtime = await readPlatformRuntimeSettings(service);
+    const runtimeError = registrationRuntimeError(runtime);
+    if (runtimeError) return jsonResponse({ ok: false, ...runtimeError }, 503);
     const { platformObservation, ...registrationBody } = body;
     const result = await provisionBusinessRegistration(service, registrationBody);
     const observation=confirmRegistrationObservation(service,platformObservation,result.status,result.body);

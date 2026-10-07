@@ -1,5 +1,7 @@
 # CareSuite: Einrichtung der zentralen Betriebserfassung
 
+Nachtrag: Wartung, Firmenregistrierung und Plattformhinweise wurden anschließend mit dem Webbetrieb verbunden. Der neue Stand ist im [Bericht zur Betriebssteuerung](platform-betriebssteuerung-20261007.md) beschrieben. Die nachfolgenden Einrichtungsangaben dokumentieren den früheren Erfassungsstand.
+
 Stand: 7. Oktober 2026. Geltungsbereich: Website, Web und Desktop auf caresuiteplus.app. Freigabe: ausdrücklicher Nutzerauftrag „ja einrichten und aktivieren“.
 
 ## Ergebnis und Veröffentlichungsstand

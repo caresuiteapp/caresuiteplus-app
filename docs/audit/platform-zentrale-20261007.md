@@ -1,5 +1,7 @@
 # CareSuite – Prüfung der gesamten Plattformverwaltung
 
+Nachtrag: Die hier zunächst als unverbunden festgehaltenen Einstellungen für Wartung, Firmenregistrierung und Plattformhinweise sind im [Bericht zur Betriebssteuerung](platform-betriebssteuerung-20261007.md) aktualisiert. Die ursprünglichen Befunde bleiben als damaliger Prüfstand nachvollziehbar.
+
 Stand: 7. Oktober 2026. Bestandsabfrage: 15:12 Uhr, Europe/Berlin.
 Projekt: caresuiteapp/caresuiteplus-app. Produktiver Server: euagyyztvmemuaiumvxm.
 

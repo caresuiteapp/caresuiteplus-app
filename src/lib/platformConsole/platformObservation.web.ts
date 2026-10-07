@@ -140,7 +140,7 @@ export function recordObservedError(category:ObservationCategory,operation:Opera
   void send({kind:'error',category,operation,...(httpStatus?{httpStatus}:{})});
 }
 
-/** Observe HTTP failures without reading response bodies, form inputs or request queries. */
+/** Observe HTTP failures by fixed error code; never retain response contents, form inputs or request queries. */
 export function createObservedSupabaseFetch(base:typeof fetch):typeof fetch {
   return async(input,init)=>{
     let operation:Operation='database';let observe=false;
@@ -155,10 +155,11 @@ export function createObservedSupabaseFetch(base:typeof fetch):typeof fetch {
       const response=await base(input,init);
       if(observe&&!response.ok){
         const status=response.status;
-        // Only the fixed database error code is inspected; response text is never retained.
+        // Only fixed error codes are inspected; response text is never retained.
         try{
           void response.clone().json().then((body:unknown)=>{
             const code=body&&typeof body==='object'&&'code' in body&&typeof body.code==='string'?body.code:'';
+            if(operation==='registration'&&['maintenance_active','registration_paused'].includes(code))return;
             recordObservedError(code==='57014'?'timeout':classifyObservationError(status),operation,status);
           },()=>recordObservedError(classifyObservationError(status),operation,status));
         }catch{recordObservedError(classifyObservationError(status),operation,status);}
