@@ -34,8 +34,6 @@ import {
   platformRoleHasCapability,
 
 
-  updatePlatformTenantStatus,
-
   updatePlatformTenantRecord,
 
 } from '@/lib/platformConsole';
@@ -75,6 +73,8 @@ import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspac
 import { platformName } from '@/lib/platformConsole/platformLanguage';
 import { TenantAccountsTab } from './TenantAccountsTab.web';
 import { PlatformFreeUsagePanel } from '@/components/platformConsole/PlatformFreeUsagePanel.web';
+import { managePlatformTenantAccess } from '@/lib/platformConsole/platformAccessService';
+import { PLATFORM_ACCESS_RELEASE, TENANT_ACCESS_ACTIONS, tenantAccessActions, tenantAccessConfirmation, tenantAccessDescription, type PlatformTenantAccessAction } from '@/lib/platformConsole/platformAccessLifecycle';
 
 
 
@@ -142,7 +142,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
     description: string;
 
-    action: (reason: string) => Promise<void>;
+    action: (reason: string) => Promise<void | string>;
 
     danger?: boolean;
 
@@ -156,6 +156,9 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const currentTenant = useRef(tenantId);
+  currentTenant.current = tenantId;
   const requestNumber = useRef(0);
   const actionLock = useRef(false);
   const [recordDirty, setRecordDirty] = useState(false);
@@ -196,6 +199,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   useEffect(() => {
     mounted.current = true;
+    setConfirm(null); setActionError(null); setActionMessage(null); setLastAuditAction(null);
     void load();
     return () => { mounted.current = false; requestNumber.current++; };
   }, [load]);
@@ -217,18 +221,20 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
   async function runConfirm(reason: string) {
 
     if (!confirm || actionLock.current) return;
+    const requestTenant = tenantId;
     actionLock.current = true;
     setActionError(null);
     setLastAuditAction(null);
     setActionLoading(true);
     try {
-      await confirm.action(reason);
-      if (!mounted.current) return;
+      const message = await confirm.action(reason);
+      if (!mounted.current || currentTenant.current !== requestTenant) return;
+      if (message) setActionMessage(message);
       if (confirm.auditAction) setLastAuditAction(confirm.auditAction);
       setConfirm(null);
       await load();
     } catch (cause) {
-      if (!mounted.current) return;
+      if (!mounted.current || currentTenant.current !== requestTenant) return;
       setActionError(cause instanceof Error ? cause.message : 'Änderung konnte nicht gespeichert werden.');
     } finally {
       actionLock.current = false;
@@ -305,6 +311,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
       {actionError ? <Text accessibilityRole="alert" style={{ color: PLATFORM_COLORS.danger }}>{actionError}</Text> : null}
+      {actionMessage ? <Text accessibilityLiveRegion="polite" style={styles.panelHint}>{actionMessage}</Text> : null}
       {lastAuditAction ? (
 
         <View style={styles.auditBanner}>
@@ -335,51 +342,22 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
             canWrite={canWrite}
 
-            onSuspend={() =>
-
+            busy={actionLoading}
+            onAction={(action) => {
+              setActionError(null); setActionMessage(null);
+              const definition = TENANT_ACCESS_ACTIONS[action];
+              const typed = tenantAccessConfirmation(action, tenantName);
               setConfirm({
-
-                title: 'Mandant sperren',
-
-                description: `Der Mandant „${tenantName}" wird gesperrt. Nutzer können sich nicht mehr anmelden.`,
-
-                danger: true,
-
-                typed: 'SPERREN',
-
-                auditAction: 'tenant.suspended',
-
+                title: `Unternehmen: ${definition.label}`, description: tenantAccessDescription(action, tenantName),
+                danger: definition.danger, typed, auditAction: definition.audit,
                 action: async (reason) => {
-
-                  const result = await updatePlatformTenantStatus(tid, 'suspended', reason);
+                  const result = await managePlatformTenantAccess({ tenantId: tid, action, reason, confirmation: typed,
+                    expectedStatus: String(detail.tenant.status), expectedUpdatedAt: String(detail.tenant.updated_at ?? detail.tenant.updatedAt ?? '') });
                   if (!result.ok) throw new Error(result.error);
-
+                  return result.data.message;
                 },
-
-              })
-
-            }
-
-            onUnsuspend={() =>
-
-              setConfirm({
-
-                title: 'Mandant entsperren',
-
-                description: `Der Mandant „${tenantName}" wird wieder freigegeben.`,
-
-                auditAction: 'tenant.unsuspended',
-
-                action: async (reason) => {
-
-                  const result = await updatePlatformTenantStatus(tid, 'active', reason);
-                  if (!result.ok) throw new Error(result.error);
-
-                },
-
-              })
-
-            }
+              });
+            }}
 
           />
 
@@ -428,7 +406,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
-        {tab === 'users' ? <TenantAccountsTab tenantId={tid} role={platformUser?.role} onDirtyChange={setRecordDirty} /> : null}
+        {tab === 'users' ? <TenantAccountsTab tenantId={tid} role={platformUser?.role} companyStatus={String(detail.tenant.status)} onDirtyChange={setRecordDirty} /> : null}
 
         {tab === 'diagnosis' ? <TenantDiagnosisTab tenantId={tid} detail={detail} /> : null}
 
@@ -473,9 +451,8 @@ function OverviewTab({
 
   canWrite,
 
-  onSuspend,
-
-  onUnsuspend,
+  busy,
+  onAction,
 
 }: {
 
@@ -483,9 +460,8 @@ function OverviewTab({
 
   canWrite: boolean;
 
-  onSuspend: () => void;
-
-  onUnsuspend: () => void;
+  busy: boolean;
+  onAction: (action: PlatformTenantAccessAction) => void;
 
 }) {
 
@@ -495,7 +471,7 @@ function OverviewTab({
   const activeModules = detail.modules.filter((module) => ['enabled', 'beta_enabled', 'trial'].includes(module.status));
 
   return (
-    <View style={styles.recordGrid}>
+    <View nativeID={PLATFORM_ACCESS_RELEASE} style={styles.recordGrid}>
       <View style={[styles.panel, styles.environmentPanel]}>
         <View style={styles.panelHeader}>
           <View style={{ flex: 1 }}>
@@ -555,21 +531,14 @@ function OverviewTab({
 
       {canWrite ? (
         <View style={[styles.panel, styles.dangerPanel]}>
-          <Text style={styles.panelTitle}>Sicherheitsaktionen</Text>
-          <Text style={styles.panelHint}>Sperren und Entsperren werden mit Begründung im Änderungsprotokoll dokumentiert.</Text>
+          <Text style={styles.panelTitle}>Unternehmen verwalten</Text>
+          <Text style={styles.panelHint}>Sperren beendet den Zugriff vorübergehend. Deaktivieren beendet die Nutzung bis zur Reaktivierung. Löschen verschiebt die Akte in die Übersicht „Gelöscht“. Jede Änderung wird mit Begründung dokumentiert.</Text>
           <View style={styles.actions}>
-
-          <Pressable style={styles.btnDanger} onPress={onSuspend}>
-
-            <Text style={styles.btnText}>Sperren</Text>
-
-          </Pressable>
-
-          <Pressable style={styles.btn} onPress={onUnsuspend}>
-
-            <Text style={styles.btnText}>Entsperren</Text>
-
-          </Pressable>
+            {tenantAccessActions(t.status).map(action => <Pressable key={action} accessibilityRole="button" disabled={busy}
+              style={[TENANT_ACCESS_ACTIONS[action].danger ? styles.btnDanger : styles.btn, busy && styles.disabledButton]}
+              onPress={() => onAction(action)}>
+              <Text style={styles.btnText}>{TENANT_ACCESS_ACTIONS[action].label}</Text>
+            </Pressable>)}
           </View>
         </View>
       ) : null}
@@ -760,7 +729,7 @@ const styles = StyleSheet.create({
 
   infoValue: { flex: 1, minWidth: 0, textAlign: 'right', color: PLATFORM_COLORS.text, fontSize: font(13), fontWeight: '600' },
 
-  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
 
   btn: {
 

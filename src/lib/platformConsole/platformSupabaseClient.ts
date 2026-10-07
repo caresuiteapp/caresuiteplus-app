@@ -7,6 +7,16 @@ type RpcResult<T> = {
 
 const PLATFORM_ERROR_MESSAGES: Record<string, string> = {
   platform_forbidden: 'Ihre aktuelle Rolle darf diese Aktion nicht ausführen.',
+  access_record_changed: 'Die Akte wurde zwischenzeitlich geändert. Bitte neu laden und den aktuellen Stand prüfen.',
+  access_confirmation_required: 'Die eingegebene Bestätigung stimmt nicht mit der ausgewählten Aktion überein.',
+  access_action_invalid: 'Diese Aktion ist im aktuellen Zustand nicht verfügbar. Bitte die Akte neu laden.',
+  access_reason_invalid: 'Bitte eine Begründung mit fünf bis 1.000 Zeichen angeben.',
+  tenant_not_found: 'Das Unternehmen wurde nicht gefunden. Bitte die Übersicht neu laden.',
+  account_not_found: 'Das Konto gehört nicht zum ausgewählten Unternehmen oder ist nicht mehr verfügbar.',
+  account_update_needs_review: 'Für dieses Konto läuft ein Vorgang oder eine Änderung muss zuerst geprüft werden.',
+  account_mail_in_progress: 'Eine E-Mail wird gerade versendet. Bitte den Versandabschluss abwarten und die Akte neu laden.',
+  last_tenant_owner_protected: 'Dies ist das letzte aktive Geschäftsführungskonto. Aktivieren Sie zuerst ein weiteres Geschäftsführungskonto oder deaktivieren Sie das gesamte Unternehmen.',
+  tenant_deleted_restore_first: 'Bitte zuerst das gelöschte Unternehmen wiederherstellen.',
   reason_required: 'Bitte eine aussagekräftige Begründung mit mindestens fünf Zeichen angeben.',
   invoice_tenant_mismatch: 'Die Rechnung gehört nicht zum ausgewählten Unternehmen.',
   invoice_not_payable: 'Für diese Rechnung kann in ihrem aktuellen Status keine Zahlung erfasst werden.',

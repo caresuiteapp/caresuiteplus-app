@@ -8,6 +8,7 @@ import { activateRegistrationModules } from '@/lib/billing/moduleActivationServi
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { signInWithPassword } from '@/lib/supabase/authService';
+import { checkBusinessAccess } from './businessAccessService.web';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type {
   AccessCredentialsReveal,
@@ -164,6 +165,9 @@ export async function loginBusinessUser(
       });
       return { ok: false, error: sessionResult.error };
     }
+
+    const access = await checkBusinessAccess();
+    if (!access.ok) return { ok: false, error: access.error };
 
     void recordLoginAuditEvent({
       tenantId: null,
