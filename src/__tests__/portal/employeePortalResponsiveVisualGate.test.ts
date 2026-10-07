@@ -83,8 +83,8 @@ describe('employee portal responsive visual gate', () => {
   });
 
   it('uses a realistic confirmation budget for proof-backed finalization', () => {
-    expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(25_000);
-    expect(WORKFLOW_START_SERVICE_TIMEOUT_MS).toBe(20_000);
+    expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(90_000);
+    expect(WORKFLOW_START_SERVICE_TIMEOUT_MS).toBe(60_000);
     const hook = read('src/hooks/useEmployeePortalVisitExecution.ts');
     expect(hook).toContain("timeoutLabel: 'finalizeVisit'");
     expect(hook).toContain('timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS');
@@ -220,7 +220,7 @@ describe('employee portal responsive visual gate', () => {
     expect(tab).toContain("overflowX: 'hidden'");
     expect(tab).toContain("touchAction: 'pan-y'");
     expect(card).toContain('contentStyle?: StyleProp<ViewStyle>');
-    expect(card).toContain("dataSet={{ csHealthosComponent: onPress ? 'interactive-card' : 'card' }}");
+    expect(card).toMatch(/dataSet=\{\{\s*csHealthosComponent:\s*onPress\s*\?\s*'interactive-card'\s*:\s*'card'/);
     expect(screen).toContain('testID="employee-visit-fullscreen-workspace"');
     expect(screen).toContain('style={styles.focusStageViewport}');
     expect(screen).not.toContain('<PremiumCard');

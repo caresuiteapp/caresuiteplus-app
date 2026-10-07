@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { loadGoogleMapsApi, type GoogleMapInstance, type GoogleMapsNamespace } from '@/lib/maps/googleMapsLoader';
+import { loadGoogleMapsApi, subscribeGoogleMapsFailure, type GoogleMapInstance, type GoogleMapsNamespace } from '@/lib/maps/googleMapsLoader';
 
 export type StableMapOptions = {
   apiKey: string | null;
@@ -55,10 +55,21 @@ export function useStableGoogleMap(options: StableMapOptions): StableMapResult {
     }
 
     let cancelled = false;
+    let providerFailed = false;
+    const unsubscribe = subscribeGoogleMapsFailure((failure) => {
+      if (cancelled) return;
+      providerFailed = true;
+      setError(failure.message);
+      setReady(false);
+      mapRef.current = null;
+      googleRef.current = null;
+      setMapInstance(null);
+      setGoogleNs(null);
+    });
 
     void loadGoogleMapsApi(apiKey)
       .then((google) => {
-        if (cancelled || !containerRef.current) return;
+        if (cancelled || providerFailed || !containerRef.current) return;
 
         googleRef.current = google;
         setGoogleNs(google);
@@ -87,6 +98,7 @@ export function useStableGoogleMap(options: StableMapOptions): StableMapResult {
 
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [apiKey, enabled, containerRef, zoom, center]);
 

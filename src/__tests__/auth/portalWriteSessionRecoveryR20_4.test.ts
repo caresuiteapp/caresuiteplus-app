@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const { getSession, setSession, invokeEdgeFunction, runtimeProbe } = vi.hoisted(() => ({
@@ -62,6 +62,62 @@ describe('portal write-session recovery R20.4', () => {
     setSession.mockReset();
     invokeEdgeFunction.mockReset();
     runtimeProbe.mockReset();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  function successfulRepair() {
+    invokeEdgeFunction.mockResolvedValue({
+      ok: true, data: { supabaseAccessToken: 'new-access', supabaseRefreshToken: 'new-refresh' },
+    });
+    setSession.mockResolvedValue({ data: { session: alignedSession }, error: null });
+  }
+
+  it.each(['returned', 'thrown'])('repairs a missing refresh token when it is %s', async (mode) => {
+    const error = Object.assign(new Error('Invalid Refresh Token: Refresh Token Not Found'), { code: 'refresh_token_not_found' });
+    if (mode === 'thrown') getSession.mockRejectedValue(error);
+    else getSession.mockResolvedValue({ data: { session: null }, error });
+    successfulRepair();
+    expect((await ensurePortalWriteSession(portalSession, 'workflow')).ok).toBe(true);
+    expect(invokeEdgeFunction).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one repair when GPS, bootstrap and a workflow encounter the same stale session', async () => {
+    getSession.mockResolvedValue({ data: { session: null }, error: null });
+    successfulRepair();
+    const results = await Promise.all([
+      ensurePortalWriteSession(portalSession),
+      ensurePortalWriteSession(portalSession, 'workflow'),
+      ensurePortalWriteSession(portalSession, 'messages'),
+    ]);
+    expect(results.every((result) => result.ok)).toBe(true);
+    expect(invokeEdgeFunction).toHaveBeenCalledTimes(1);
+    expect(setSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a renewed session belonging to another portal account', async () => {
+    getSession.mockResolvedValue({ data: { session: null }, error: null });
+    successfulRepair();
+    setSession.mockResolvedValue({ data: { session: {
+      ...alignedSession,
+      user: { ...alignedSession.user, app_metadata: { ...alignedSession.user.app_metadata, portal_account_id: 'other-account' } },
+    } }, error: null });
+    const result = await ensurePortalWriteSession(portalSession, 'workflow');
+    expect(result.ok).toBe(false);
+  });
+
+  it('does not renew credentials for an unrelated network exception', async () => {
+    getSession.mockRejectedValue(new Error('Network unavailable'));
+    expect((await ensurePortalWriteSession(portalSession)).ok).toBe(false);
+    expect(invokeEdgeFunction).not.toHaveBeenCalled();
+  });
+
+  it('bounds an auth check that never answers', async () => {
+    vi.useFakeTimers();
+    getSession.mockReturnValue(new Promise(() => {}));
+    const result = ensurePortalWriteSession(portalSession, 'workflow');
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect((await result).ok).toBe(false);
+    expect(invokeEdgeFunction).not.toHaveBeenCalled();
   });
 
   it('accepts only a JWT aligned with tenant, role, portal type and account', () => {

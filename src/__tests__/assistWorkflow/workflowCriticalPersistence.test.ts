@@ -48,7 +48,8 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain('didWorkflowActionReachPostcondition(options.recoveryAction, ctx, refreshed)');
     expect(file).toContain('return { ok: true, data: refreshed as T };');
     expect(file).toContain('workflowRecoveryReadback');
-    expect(file).toContain('void refreshExecutionContext().then');
+    expect(file).toContain('readWorkflowActionConfirmation(pending.before, pending.action)');
+    expect(file).toContain("confirmation.state === 'confirmed'");
   });
 
   it('keeps ordinary actions bounded but gives canonical service start a mobile-safe budget', () => {

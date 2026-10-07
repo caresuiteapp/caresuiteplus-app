@@ -4,6 +4,7 @@ import { toGermanAuthError } from '@/lib/supabase/authService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
+import { createSingleFlight } from '@/lib/services/singleFlight';
 import type { PortalSessionRecord } from './portalSessionStore';
 
 export type PortalSupabaseTokens = {
@@ -14,6 +15,14 @@ export type PortalSupabaseTokens = {
 export type PortalWriteCapability = 'session' | 'messages' | 'workflow';
 
 const PORTAL_SESSION_CHECK_TIMEOUT_MS = 12_000;
+const runPortalSessionRepair = createSingleFlight();
+
+function isInvalidRefreshToken(cause: unknown): boolean {
+  if (!cause || typeof cause !== 'object') return false;
+  const error = cause as { code?: string; message?: string };
+  return error.code === 'refresh_token_not_found' || error.code === 'refresh_token_already_used' ||
+    /invalid refresh token/i.test(error.message ?? '');
+}
 
 async function withPortalSessionTimeout<T>(operation: PromiseLike<T>): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -121,6 +130,15 @@ export function mapPortalSupabaseTokensFromEdge(data: {
 export async function refreshPortalSupabaseSession(
   portalSession: PortalSessionRecord,
 ): Promise<AuthServiceResult<Session>> {
+  // Auth bootstrap, GPS and a visit action can all encounter the same expired
+  // token. Share the repair so they do not race to replace the RLS session.
+  const key = JSON.stringify([portalSession.tenantId, portalSession.accountId, portalSession.sessionToken]);
+  return runPortalSessionRepair(key, () => repairPortalSupabaseSession(portalSession));
+}
+
+async function repairPortalSupabaseSession(
+  portalSession: PortalSessionRecord,
+): Promise<AuthServiceResult<Session>> {
   try {
     const refreshed = await withPortalSessionTimeout(invokeEdgeFunction<{
       supabaseAccessToken?: string;
@@ -131,7 +149,12 @@ export async function refreshPortalSupabaseSession(
     if (!tokens) {
       return { ok: false, error: 'Die erneuerte Portalsitzung enthält keine Schreibberechtigung.' };
     }
-    return await withPortalSessionTimeout(signInWithPortalSupabaseTokens(tokens));
+    const signedIn = await withPortalSessionTimeout(signInWithPortalSupabaseTokens(tokens));
+    if (!signedIn.ok) return signedIn;
+    if (!isPortalSupabaseSessionAligned(signedIn.data, portalSession)) {
+      return { ok: false, error: 'Die erneuerte Sitzung gehört nicht zum aktiven Portal. Bitte erneut anmelden.' };
+    }
+    return signedIn;
   } catch (cause) {
     return {
       ok: false,
@@ -162,7 +185,15 @@ export async function ensurePortalWriteSession(
   }
 
   try {
-    const current = await withPortalSessionTimeout(client.auth.getSession());
+    let current: Awaited<ReturnType<typeof client.auth.getSession>>;
+    try {
+      current = await withPortalSessionTimeout(client.auth.getSession());
+    } catch (cause) {
+      // Supabase can either return or throw a missing/rotated refresh-token
+      // error. A still-valid opaque portal session can repair both forms.
+      if (!isInvalidRefreshToken(cause)) throw cause;
+      return await refreshPortalSupabaseSession(portalSession);
+    }
     let session: Session;
     if (!current.error && isPortalSupabaseSessionAligned(current.data.session, portalSession)) {
       session = current.data.session!;

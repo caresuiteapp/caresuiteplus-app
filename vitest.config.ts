@@ -2,6 +2,11 @@ import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 
 export default defineConfig({
+  // Expo releases differ in their inherited JSX mode. Keep React component
+  // tests on the automatic runtime even when dependencies are reused.
+  esbuild: {
+    jsx: 'automatic',
+  },
   test: {
     globals: true,
     environment: 'node',

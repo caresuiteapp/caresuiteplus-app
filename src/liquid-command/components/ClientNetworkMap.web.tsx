@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getGoogleMapsBrowserKey } from '@/lib/maps/getGoogleMapsBrowserKey';
 import {
   loadGoogleMapsApi,
+  subscribeGoogleMapsFailure,
   type GoogleGeocoderInstance,
   type GoogleMapInstance,
   type GoogleMarkerInstance,
@@ -139,16 +140,24 @@ export function ClientNetworkMap({
 
   useEffect(() => {
     let cancelled = false;
+    let providerFailed = false;
+    const unsubscribe = subscribeGoogleMapsFailure(() => {
+      providerFailed = true;
+      if (!cancelled) {
+        setProviderReady(false);
+        setGoogle(null);
+      }
+    });
     setMarkers([]);
     setProcessed(0);
 
     void getGoogleMapsBrowserKey(tenantId)
       .then(async (key) => {
-        if (cancelled) return;
+        if (cancelled || providerFailed) return;
         setProviderReady(Boolean(key));
         if (!key) return;
         const mapsNamespace = await loadGoogleMapsApi(key);
-        if (cancelled) return;
+        if (cancelled || providerFailed) return;
         setGoogle(mapsNamespace);
         const geocoder = new mapsNamespace.maps.Geocoder();
         await geocodeClients(
@@ -158,7 +167,7 @@ export function ClientNetworkMap({
             setMarkers(nextMarkers);
             setProcessed(nextProcessed);
           },
-          () => cancelled,
+          () => cancelled || providerFailed,
         );
       })
       .catch(() => {
@@ -167,6 +176,7 @@ export function ClientNetworkMap({
 
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [clientKey, clients, tenantId]);
 

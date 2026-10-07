@@ -50,6 +50,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
+import { useWorkflowWaitState } from '@/hooks/useWorkflowWaitState';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import { WfmVisitDeviationJustificationModal } from '@/components/wfm/WfmVisitDeviationJustificationModal';
@@ -220,6 +221,7 @@ export function EmployeePortalVisitExecutionScreen() {
     pendingAction: 'start_service' | 'end_service';
   } | null>(null);
   const [deviationSubmitting, setDeviationSubmitting] = useState(false);
+  const deviationInFlight = useRef(new Set<string>());
   const [deviationError, setDeviationError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const docPanelRef = useRef<EmployeePortalVisitDocumentationPanelHandle>(null);
@@ -258,6 +260,11 @@ export function EmployeePortalVisitExecutionScreen() {
     signatureViewMountedRef.current = true;
     return () => { signatureViewMountedRef.current = false; };
   }, []);
+  useEffect(() => {
+    setDeviationModal(null);
+    setDeviationError(null);
+    setDeviationSubmitting(deviationInFlight.current.has(signatureViewScope));
+  }, [signatureViewScope]);
   const returnTripPromptHandledRef = useRef(false);
   const pendingCameraRecoveryVisitRef = useRef<string | null>(null);
   const [returnTripPromptRetry, setReturnTripPromptRetry] = useState(0);
@@ -275,14 +282,13 @@ export function EmployeePortalVisitExecutionScreen() {
   const [locationDisclosureLoading, setLocationDisclosureLoading] = useState(false);
   const [locationDisclosureAccepted, setLocationDisclosureAccepted] = useState(false);
 
+  const workflowWaitStalled = useWorkflowWaitState(
+    Boolean(driveLoading || actionLoading || startServiceLoading || arrivalConfirmationPending || locationDisclosureLoading || deviationSubmitting),
+    signatureViewScope,
+  );
   const blockingWorkflowLoading = Boolean(
     loading ||
-      driveLoading ||
-      actionLoading ||
-      startServiceLoading ||
-      arrivalConfirmationPending ||
-      locationDisclosureLoading ||
-      deviationSubmitting ||
+      (!workflowWaitStalled && (driveLoading || actionLoading || startServiceLoading || arrivalConfirmationPending || locationDisclosureLoading || deviationSubmitting)) ||
       (signatureConfirmationPending && !signatureConfirmationStalled),
   );
   const blockingWorkflowMessage = workflowConfirmationPending || arrivalConfirmationPending
@@ -1223,6 +1229,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const primaryButtonDisabled =
     readOnlyExecution ||
     workflowConfirmationPending ||
+    workflowWaitStalled ||
     (primaryActionResolved === 'start_en_route' && (!mobilityHydrated || !mobilityMode)) ||
     (primaryActionResolved != null && ['start_service', 'end_service'].includes(primaryActionResolved) && mobilityMode === 'car' && logbookConfirmationRequired) ||
     (primaryActionResolved === 'start_service'
@@ -1244,7 +1251,9 @@ export function EmployeePortalVisitExecutionScreen() {
     setLocalError(null);
     setLocalWarning(null);
     try {
-      await refresh();
+      await withWorkflowTimeout(refresh(), 30_000, 'workflowStatusCheck');
+    } catch {
+      setLocalWarning('Der aktuelle Serverstatus konnte nicht geladen werden. Die Speicherung ist weiterhin nicht bestätigt. Bitte Verbindung prüfen und den Status erneut prüfen.');
     } finally {
       workflowStatusCheckInFlight.current = false;
       setWorkflowStatusChecking(false);
@@ -1299,6 +1308,12 @@ export function EmployeePortalVisitExecutionScreen() {
       return {
         tone: 'warning' as const,
         message: refetchWarning ?? 'Die Serverantwort steht aus. Der Einsatz ist noch nicht als gespeichert bestätigt. Prüfe den Status erneut. Du kannst die Seite weiter ansehen; eine zweite Änderung bleibt bis zur Klärung gesperrt.',
+      };
+    }
+    if (workflowWaitStalled) {
+      return {
+        tone: 'warning' as const,
+        message: 'Die Verarbeitung dauert länger als erwartet. Der Vorgang läuft weiter und ist noch nicht als gespeichert bestätigt. Prüfe den Status erneut. Eine zweite Änderung bleibt bis zur Klärung gesperrt.',
       };
     }
     if (signatureConfirmationPending) {
@@ -1410,7 +1425,7 @@ export function EmployeePortalVisitExecutionScreen() {
     return { tone: 'info' as const, message: 'Mobilität gewählt. Prüfe Adresse und Hinweise – anschließend kannst du Navigation und Anfahrt starten.' };
   })();
   const guideNeedsRefresh = Boolean(
-    workflowConfirmationPending || (phase !== 'completed' &&
+    workflowConfirmationPending || workflowWaitStalled || (phase !== 'completed' &&
       ((!signatureConfirmationPending &&
         (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution)) ||
         signatureConfirmationStalled)),
@@ -1781,7 +1796,7 @@ export function EmployeePortalVisitExecutionScreen() {
           ) : null}
 
           {localError || taskSaveError ? <InfoBanner message={localError ?? taskSaveError!} variant="error" /> : null}
-          {workflowConfirmationPending ? (
+          {workflowConfirmationPending || workflowWaitStalled ? (
             <View style={{ gap: spacing.sm }}>
               <InfoBanner message={guide.message} variant="warning" />
               <PremiumButton title="Status erneut prüfen" variant="secondary" fullWidth loading={workflowStatusChecking} onPress={() => void handleGuideRefresh()} testID="employee-visit-workflow-status-check" />
@@ -2103,38 +2118,50 @@ export function EmployeePortalVisitExecutionScreen() {
             setDeviationError(null);
           }}
           onSubmit={async (justification) => {
+            if (deviationInFlight.current.has(signatureViewScope)) return;
             const check = resolveDeviationCheck(deviationModal.phase);
             if (!check) return;
+            const submitScope = signatureViewScope;
+            deviationInFlight.current.add(submitScope);
             setDeviationSubmitting(true);
             setDeviationError(null);
-            const result = await submitVisitDeviationJustification(
-              executionContext.tenantId,
-              executionContext.employeeId,
-              actorId,
-              {
-                visitId: executionContext.assistVisitId,
-                assignmentId: executionContext.assignmentId,
-                clientLabel: executionContext.detail.clientName,
-                phase: deviationModal.phase,
-                plannedAt: check.planned,
-                actualAt: check.actual,
-                justification,
-              },
-            );
-            setDeviationSubmitting(false);
-            if (!result.ok) {
-              setDeviationError(result.error);
-              return;
+            try {
+              const result = await submitVisitDeviationJustification(
+                executionContext.tenantId,
+                executionContext.employeeId,
+                actorId,
+                {
+                  visitId: executionContext.assistVisitId,
+                  assignmentId: executionContext.assignmentId,
+                  clientLabel: executionContext.detail.clientName,
+                  phase: deviationModal.phase,
+                  plannedAt: check.planned,
+                  actualAt: check.actual,
+                  justification,
+                },
+              );
+              if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return;
+              if (!result.ok) {
+                setDeviationError(result.error);
+                return;
+              }
+              const pending = deviationModal.pendingAction;
+              setDeviationModal(null);
+              await proceedAfterDeviation(pending, {
+                deviationApproved: true,
+                deviationPhase: deviationModal.phase,
+                deviationJustification: justification.trim(),
+                deviationVisitId: executionContext.assistVisitId,
+                deviationActualAt: check.actual,
+              });
+            } catch {
+              if (signatureViewMountedRef.current && signatureViewScopeRef.current === submitScope) {
+                setDeviationError('Die Begründung konnte nicht verarbeitet werden. Bitte erneut versuchen.');
+              }
+            } finally {
+              deviationInFlight.current.delete(submitScope);
+              if (signatureViewMountedRef.current && signatureViewScopeRef.current === submitScope) setDeviationSubmitting(false);
             }
-            const pending = deviationModal.pendingAction;
-            setDeviationModal(null);
-            await proceedAfterDeviation(pending, {
-              deviationApproved: true,
-              deviationPhase: deviationModal.phase,
-              deviationJustification: justification.trim(),
-              deviationVisitId: executionContext.assistVisitId,
-              deviationActualAt: check.actual,
-            });
           }}
         />
       ) : null}

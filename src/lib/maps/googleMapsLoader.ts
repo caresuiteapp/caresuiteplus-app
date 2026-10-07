@@ -101,13 +101,44 @@ declare global {
   interface Window {
     google?: GoogleMapsNamespace;
     __caresuiteGoogleMapsInit?: () => void;
+    gm_authFailure?: () => void;
   }
 }
 
 let loadPromise: Promise<GoogleMapsNamespace> | null = null;
+let authenticationError: Error | null = null;
+const failureListeners = new Set<(error: Error) => void>();
+let installedAuthFailureHandler: (() => void) | null = null;
+let previousAuthFailureHandler: (() => void) | undefined;
+
+/** Google may reject the API key only after its script and Map have initialized. */
+export function subscribeGoogleMapsFailure(listener: (error: Error) => void): () => void {
+  failureListeners.add(listener);
+  if (authenticationError) listener(authenticationError);
+  return () => { failureListeners.delete(listener); };
+}
+
+function installAuthFailureHandler(): void {
+  if (window.gm_authFailure === installedAuthFailureHandler) return;
+  const previous = window.gm_authFailure;
+  previousAuthFailureHandler = previous;
+  installedAuthFailureHandler = () => {
+    authenticationError = new Error('Google Maps hat die Kartenansicht nicht freigegeben. Gespeicherte GPS-Punkte bleiben erhalten.');
+    for (const listener of failureListeners) listener(authenticationError);
+    previous?.();
+  };
+  window.gm_authFailure = installedAuthFailureHandler;
+}
 
 export function resetGoogleMapsLoaderForTests(): void {
   loadPromise = null;
+  authenticationError = null;
+  failureListeners.clear();
+  if (typeof window !== 'undefined' && window.gm_authFailure === installedAuthFailureHandler) {
+    window.gm_authFailure = previousAuthFailureHandler;
+  }
+  installedAuthFailureHandler = null;
+  previousAuthFailureHandler = undefined;
 }
 
 export async function loadGoogleMapsApi(apiKey: string): Promise<GoogleMapsNamespace> {
@@ -115,37 +146,53 @@ export async function loadGoogleMapsApi(apiKey: string): Promise<GoogleMapsNames
     throw new Error('Google Maps ist nur im Browser verfügbar.');
   }
 
+  installAuthFailureHandler();
+  if (authenticationError) throw authenticationError;
+
   if (window.google?.maps) {
     return window.google;
   }
 
   if (!loadPromise) {
-    loadPromise = new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[data-caresuite-google-maps]');
+    const attempt = new Promise<GoogleMapsNamespace>((resolve, reject) => {
+      let script: HTMLScriptElement;
+      const existing = document.querySelector<HTMLScriptElement>('script[data-caresuite-google-maps]');
+      const finish = (error?: Error) => {
+        clearTimeout(timer);
+        unsubscribe();
+        script.removeEventListener('load', onLoad);
+        script.removeEventListener('error', onError);
+        if (error) {
+          script.remove();
+          reject(error);
+        } else if (window.google?.maps) resolve(window.google);
+        else reject(new Error('Google Maps konnte nicht initialisiert werden.'));
+      };
+      const onLoad = () => {
+        if (window.google?.maps) finish();
+      };
+      const onError = () => finish(new Error('Google Maps Script konnte nicht geladen werden.'));
+      const timer = setTimeout(() => finish(new Error('Google Maps antwortet nicht. Gespeicherte GPS-Punkte bleiben erhalten.')), 15_000);
+      const unsubscribe = subscribeGoogleMapsFailure((error) => finish(error));
       if (existing) {
-        existing.addEventListener('load', () => {
-          if (window.google?.maps) resolve(window.google);
-          else reject(new Error('Google Maps konnte nicht geladen werden.'));
-        });
-        existing.addEventListener('error', () =>
-          reject(new Error('Google Maps Script konnte nicht geladen werden.')),
-        );
+        script = existing;
+        script.addEventListener('load', onLoad);
+        script.addEventListener('error', onError);
         return;
       }
 
-      window.__caresuiteGoogleMapsInit = () => {
-        if (window.google?.maps) resolve(window.google);
-        else reject(new Error('Google Maps konnte nicht initialisiert werden.'));
-      };
+      window.__caresuiteGoogleMapsInit = () => finish();
 
-      const script = document.createElement('script');
+      script = document.createElement('script');
       script.dataset.caresuiteGoogleMaps = 'true';
       script.async = true;
       script.defer = true;
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=__caresuiteGoogleMapsInit`;
-      script.onerror = () => reject(new Error('Google Maps Script konnte nicht geladen werden.'));
+      script.addEventListener('error', onError);
       document.head.appendChild(script);
     });
+    loadPromise = attempt;
+    void attempt.catch(() => { if (loadPromise === attempt) loadPromise = null; });
   }
 
   return loadPromise;
