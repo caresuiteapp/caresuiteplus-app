@@ -29,6 +29,9 @@ neu eingerichtet. Alle Änderungen werden mit Vorher/Nachher im Audit erfasst.
 - 14 neue ausführbare Prüfungen der tatsächlichen TypeScript-Modelle,
   Verwaltungsdienste und Web-Anmeldeprüfung: bestanden.
 - 10 bestehende Prüfungen der kostenlosen Plattform: bestanden.
+- 51 weitere bestehende Vitest-Prüfungen im Git-Bash-Lauf des Nutzers am
+  07.10.2026: bestanden. Die fünf verfügbaren Gruppen decken Plattformgrundlagen,
+  Konsolenaktionen, Seitenlisten und Kontovorgänge ab.
 - 22 PostgreSQL-Szenarien der engeren Datenbankfassung: bestanden. Originale
   Funktionskörper und die tatsächlichen Ergänzungen an Mandantenprüfungen wurden
   gegen ausschließlich temporäre Tabellen ausgeführt und vollständig
@@ -39,25 +42,48 @@ neu eingerichtet. Alle Änderungen werden mit Vorher/Nachher im Audit erfasst.
   Vier zusätzliche Interaktionsfälle sind zur Ausführung mit den vorhandenen
   Projektabhängigkeiten ergänzt. Es wird nichts installiert.
 
-## Produktiver Serverstand: ausstehend
+## Produktiver Serverstand: bereitgestellt
 
-Die SQL-Datei unter `supabase/pending/platform_tenant_access_controls.sql` ist
-ein geprüfter Entwurf. Sie ist nicht produktiv angewandt und gehört bewusst noch
-nicht in die automatische Migrationsfolge. Die automatische Freigabeprüfung
-lehnte zunächst zusätzliche Regeln auf allen Mandantentabellen ab. Diese Regeln
-wurden vollständig entfernt. Auch die engere Fassung wurde abgelehnt, weil die
-produktiven Änderungen an Zugang, Portalprüfungen, E-Mail-Vorgängen und
-Unternehmenslisten eine ausdrückliche Freigabe für diesen Umfang benötigen.
+Der Nutzer hat am 07.10.2026 um 13:24 Uhr (Europe/Berlin) mit „deploy“ die zuvor
+beschriebene produktive Bereitstellung ausdrücklich freigegeben. Die eingegrenzte
+SQL-Fassung wurde erfolgreich in `caresuiteplus-production` angewandt. Die vom
+Server tatsächlich vergebene Migrationsversion lautet `20261007112708`; dieselbe
+SQL-Datei wird unter
+`supabase/migrations/20261007112708_platform_tenant_access_controls.sql` geführt.
+SHA-256: `c10058832a65d2947d28f414ad9e21a75a6ba2b55d6955f60e48e4b9d31e6b6e`.
 
-Die engere Fassung ergänzt die bestehenden Mandantenprüfungen und erhält deren
-bisherige Auflösung. Sie fügt keine flächendeckenden Tabellenregeln hinzu.
-Ihre neue Zugriffstabelle ist für reguläre Benutzer nicht direkt beschreibbar.
-Die vorgesehenen Verwaltungsfunktionen prüfen Plattformrecht, Begründung,
-Bestätigung, Unternehmen, Konto, Zustand und Änderungszeitpunkt im selben
-Datenbankvorgang.
+Die Ergänzungen erhalten die bisherigen Auflösungen und Ausführungsrechte der
+bestehenden Mandantenprüfungen. Es werden keine flächendeckenden Tabellenregeln
+hinzugefügt. Die neue Zugriffstabelle hat Zeilenschutz und keine unmittelbaren
+Lese-/Schreibrechte für reguläre oder anonyme Benutzer. Die Verwaltungsfunktionen
+prüfen Plattformrecht, Begründung, Bestätigung, Unternehmen, Konto, Zustand und
+Änderungszeitpunkt im selben Datenbankvorgang.
 
-Eine Veröffentlichung der neuen Oberfläche bleibt bis zur ausdrücklichen
-Serverfreigabe und dem anschließend bestätigten Serverstand gesperrt. Der
-öffentliche Bereitstellungsnachweis enthält ausschließlich die Versionskennung.
-Das Veröffentlichungspaket enthält keinen Befehl zur Ausführung der SQL-Datei.
-Android wird nicht gebaut oder veröffentlicht. CareSuite bleibt kostenlos.
+Nach der produktiven Bereitstellung wurden rein lesend bestätigt:
+
+- Alle neuen Funktionen und die erwartete Versionskennung sind vorhanden.
+- Drei Zugriffsversuche ohne Anmeldung auf Verwaltungs- und Kontolistenfunktionen
+  wurden mit fehlenden Rechten abgewiesen; die Prüfsitzung wurde zurückgerollt.
+- Vier weitere Aufrufe mit der regulären Benutzerrolle, aber ohne angemeldete
+  Identität, wurden ebenfalls abgewiesen. Die reine Versionskennung ist für die
+  anonyme Rolle lesbar; es wurden keine Kundeninformationen zurückgegeben.
+- Die bisherigen Funktionsrechte und alle fünf eingebetteten Auflösungen der
+  vorhandenen Mandantenprüfungen sind unverändert erhalten.
+- Die neue Zugriffstabelle ist leer. Die vor/nach der Bereitstellung gebildeten
+  Prüfsummen aller Unternehmens-, Verwaltungskonto- und Willkommensmail-Zeilen
+  sind identisch. Die Bereitstellung hat keine vorhandenen Konten oder Unternehmen
+  deaktiviert/gelöscht und keine vorhandenen Mailaufträge verändert.
+- Die Sicherheitsberatung zeigt die erwarteten Hinweise zur absichtlich nicht
+  direkt zugänglichen Zugriffstabelle und zu den berechtigungsgesteuerten
+  privilegierten Funktionen. Ausführungsrechte und Begründungs-/Plattformprüfungen
+  sind für diese Funktionen ausdrücklich überprüft; allgemeine Altbefunde werden
+  nicht mit dieser Änderung bearbeitet.
+
+Die öffentliche REST-Prüfung und die endgültige Web-Veröffentlichung erfolgen
+im Git-Bash-Lauf: dieser Arbeitsbereich kann die Produktions-API nicht direkt
+erreichen und die verbundene GitHub-Anwendung hat keine Schreibrechte. Das
+Veröffentlichungsskript prüft den Servernachweis vor dem Upload und erneut vor
+der Zusammenführung sowie alle vier Web-Erstellungen und die ausgelieferten
+JavaScript-Kennungen. Vor Abschluss dieses Laufs ist die Oberfläche nicht als
+live bestätigt. Das Paket enthält keinen SQL-Ausführungsbefehl. Android wird
+nicht gebaut oder veröffentlicht. CareSuite bleibt kostenlos.

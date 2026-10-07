@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 import sys
 root=Path(__file__).resolve().parents[1]
-source_path=Path(sys.argv[1]) if len(sys.argv)>1 else root/'supabase/pending/platform_tenant_access_controls.sql'
+source_path=Path(sys.argv[1]) if len(sys.argv)>1 else root/'supabase/migrations/20261007112708_platform_tenant_access_controls.sql'
 source=source_path.read_text()
 functions=re.findall(r'CREATE OR REPLACE FUNCTION public\.\w+\([\s\S]*?\$\$;',source)
 assert len(functions)==7,len(functions)
