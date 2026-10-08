@@ -36,12 +36,12 @@ export function mapTransportModeToGoogle(
       if (distanceHintKm != null && distanceHintKm <= ESCOOTER_WALKING_MAX_KM) {
         return {
           googleMode: 'walking',
-          note: 'E-Scooter: Kurzstrecke als Fußweg geschätzt (kein Google-Modus).',
+          note: 'E-Scooter: Kurzstrecke als Fußweg geschätzt (kein eigenes Routingprofil).',
         };
       }
       return {
         googleMode: 'bicycling',
-        note: 'E-Scooter: als Radstrecke geschätzt (kein Google-Modus).',
+        note: 'E-Scooter: als Radstrecke geschätzt (kein eigenes Routingprofil).',
       };
   }
 }

@@ -14,7 +14,7 @@ export async function loadGoogleMaps(tenantId?: string | null): Promise<GoogleMa
   const apiKey = await getGoogleMapsBrowserKey(tenantId);
   if (!apiKey) {
     throw new Error(
-      'Google Maps ist nicht konfiguriert. Bitte Administrator kontaktieren (Browser-Schlüssel fehlt).',
+      'Kartenansicht konnte nicht geladen werden. Bitte erneut versuchen.',
     );
   }
   return loadGoogleMapsApi(apiKey);

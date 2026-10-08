@@ -5,8 +5,6 @@
  * API-Dokumentation: https://github.com/komoot/photon#public-api
  * Bitte Anfragen debouncen (≥300 ms) und nur bei Nutzereingabe auslösen.
  *
- * Optional: EXPO_PUBLIC_GOOGLE_PLACES_API_KEY — Google Places Autocomplete
- * (nur wenn gesetzt; schlägt im Browser oft an CORS fehl, daher Photon-Fallback).
  */
 import {
   dedupeAddressSuggestions,
@@ -29,11 +27,6 @@ type PhotonResponse = {
   features?: PhotonFeature[];
 };
 
-function getGooglePlacesApiKey(): string | null {
-  const key = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY?.trim();
-  return key || null;
-}
-
 async function searchPhoton(query: string, limit: number, signal?: AbortSignal): Promise<AddressSuggestion[]> {
   const params = new URLSearchParams({
     q: query,
@@ -42,11 +35,14 @@ async function searchPhoton(query: string, limit: number, signal?: AbortSignal):
     bbox: GERMANY_BBOX,
   });
 
-  const response = await fetch(`${PHOTON_API}?${params.toString()}`, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    signal,
-  });
+  const controller=new AbortController();
+  const cancel=()=>controller.abort(); signal?.addEventListener('abort',cancel,{once:true});
+  if(signal?.aborted)controller.abort();
+  const timer=setTimeout(cancel,8000);
+  let response: Response;
+  try { response = await fetch(`${PHOTON_API}?${params.toString()}`, {
+    method: 'GET', headers: { Accept: 'application/json' }, signal:controller.signal,
+  }); } finally {clearTimeout(timer);signal?.removeEventListener('abort',cancel);}
 
   if (!response.ok) {
     throw new Error(`Photon API Fehler (${response.status})`);
@@ -60,47 +56,6 @@ async function searchPhoton(query: string, limit: number, signal?: AbortSignal):
   return dedupeAddressSuggestions(suggestions).slice(0, limit);
 }
 
-async function searchGooglePlaces(
-  query: string,
-  limit: number,
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<AddressSuggestion[]> {
-  const params = new URLSearchParams({
-    input: query,
-    key: apiKey,
-    language: 'de',
-    components: 'country:de',
-  });
-
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`,
-    { method: 'GET', signal },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Google Places Fehler (${response.status})`);
-  }
-
-  const payload = (await response.json()) as {
-    status?: string;
-    predictions?: { place_id: string; description: string }[];
-  };
-
-  if (payload.status && payload.status !== 'OK' && payload.status !== 'ZERO_RESULTS') {
-    throw new Error(`Google Places: ${payload.status}`);
-  }
-
-  return (payload.predictions ?? []).slice(0, limit).map((prediction) => ({
-    id: `google-${prediction.place_id}`,
-    label: prediction.description,
-    street: '',
-    houseNumber: '',
-    zip: '',
-    city: '',
-  }));
-}
-
 /** Sucht Adressvorschläge für eine Nutzereingabe (debounce im UI). */
 export async function searchGermanAddresses(
   query: string,
@@ -111,23 +66,8 @@ export async function searchGermanAddresses(
     return { ok: true, data: [] };
   }
 
-  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const limit = Math.max(1, Math.min(10, options?.limit ?? DEFAULT_LIMIT));
   const signal = options?.signal;
-  const googleKey = getGooglePlacesApiKey();
-
-  if (googleKey) {
-    try {
-      const googleResults = await searchGooglePlaces(trimmed, limit, googleKey, signal);
-      const usable = googleResults.filter(
-        (entry) => entry.street.trim() || entry.zip.trim() || entry.city.trim(),
-      );
-      if (usable.length > 0) {
-        return { ok: true, data: usable };
-      }
-    } catch {
-      // Browser-CORS oder API-Fehler — Photon als Fallback
-    }
-  }
 
   try {
     const data = await searchPhoton(trimmed, limit, signal);

@@ -29,14 +29,14 @@ export type EmployeePortalLiveTimers = {
 export type EmployeePortalArrivalProof = 'gps' | 'without_gps' | 'manual' | null;
 
 export type EmployeePortalGoogleRouteReference = {
-  provider: 'google';
+  provider: 'google' | 'osm';
   requestedAt: string;
   origin: { latitude: number; longitude: number };
   destinationAddress: string;
   distanceMeters: number | null;
   durationMinutes: number | null;
   encodedPolyline: string | null;
-  source: 'google' | 'unavailable';
+  source: 'google' | 'osm' | 'unavailable';
 };
 
 export type EmployeePortalTrackingSnapshot = {

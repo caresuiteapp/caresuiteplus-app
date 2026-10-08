@@ -1,5 +1,5 @@
 /**
- * Assist live map — Google Maps (preferred), Mapbox or OpenStreetMap fallback via env.
+ * Assist live map — free OpenStreetMap data with OpenFreeMap/MapLibre.
  * No provider names in user-facing copy.
  */
 
@@ -36,15 +36,8 @@ const DEMO_MAP_POSITION: AssistMapPosition = {
   capturedAt: null,
 };
 
-function readEnv(key: string): string | undefined {
-  if (typeof process !== 'undefined' && process.env?.[key]) {
-    return process.env[key]?.trim() || undefined;
-  }
-  return undefined;
-}
-
 export function getGoogleMapsApiKey(): string | null {
-  return readEnv('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY') ?? null;
+  return null;
 }
 
 export function isGoogleMapsConfigured(): boolean {
@@ -52,16 +45,10 @@ export function isGoogleMapsConfigured(): boolean {
 }
 
 export function getMapboxAccessToken(): string | null {
-  return (
-    readEnv('EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN') ??
-    readEnv('MAPBOX_ACCESS_TOKEN') ??
-    null
-  );
+  return null;
 }
 
 export function getAssistMapTileSource(): AssistMapTileSource {
-  if (getGoogleMapsApiKey()) return 'google';
-  if (getMapboxAccessToken()) return 'mapbox';
   return 'osm';
 }
 
@@ -100,8 +87,7 @@ export function buildMapboxStaticMapUrl(
   token: string,
   size: { width: number; height: number } = { width: 640, height: 360 },
 ): string {
-  const { width, height } = size;
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+285AEB(${longitude},${latitude})/${longitude},${latitude},14,0/${width}x${height}@2x?access_token=${encodeURIComponent(token)}`;
+  return buildOsmStaticMapUrl(latitude, longitude, size);
 }
 
 export function buildGoogleStaticMapUrl(
@@ -112,18 +98,7 @@ export function buildGoogleStaticMapUrl(
   routePoints: AssistLiveRoutePoint[] = [],
   routeSegments?: AssistLiveRoutePoint[][],
 ): string {
-  const { width, height } = size;
-  const center = `${latitude},${longitude}`;
-  const marker = `color:red|${latitude},${longitude}`;
-  const sourceSegments = routeSegments?.filter((segment) => segment.length > 1) ??
-    (routePoints.length > 1 ? [routePoints] : []);
-  const paths = sourceSegments.map((segment) => {
-    const sampledRoute = segment.length > 80
-      ? segment.filter((_, index) => index % Math.ceil(segment.length / 80) === 0)
-      : segment;
-    return `&path=${encodeURIComponent(`color:0x0B63F3FF|weight:5|${sampledRoute.map((point) => `${point.latitude},${point.longitude}`).join('|')}`)}`;
-  }).join('');
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}${paths}&key=${encodeURIComponent(apiKey)}`;
+  return buildOsmStaticMapUrl(latitude, longitude, size);
 }
 
 export function buildAssistMapImageUrl(
@@ -133,14 +108,6 @@ export function buildAssistMapImageUrl(
   routePoints: AssistLiveRoutePoint[] = [],
   routeSegments?: AssistLiveRoutePoint[][],
 ): string {
-  const googleKey = getGoogleMapsApiKey();
-  if (googleKey) {
-    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size, routePoints, routeSegments);
-  }
-  const token = getMapboxAccessToken();
-  if (token) {
-    return buildMapboxStaticMapUrl(latitude, longitude, token, size);
-  }
   return buildOsmStaticMapUrl(latitude, longitude, size);
 }
 

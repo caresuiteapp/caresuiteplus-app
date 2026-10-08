@@ -83,7 +83,7 @@ export type GoogleTravelMode = 'driving' | 'transit' | 'bicycling' | 'walking';
 export type TravelTimeResult = {
   durationMinutes: number | null;
   distanceMeters: number | null;
-  source: 'google' | 'heuristic' | 'unavailable';
+  source: 'google' | 'osm' | 'heuristic' | 'unavailable';
   googleMode: GoogleTravelMode | null;
   transportMode: EmployeeTransportMode;
   note: string | null;

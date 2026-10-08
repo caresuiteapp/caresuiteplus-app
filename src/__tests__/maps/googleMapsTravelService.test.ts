@@ -114,7 +114,7 @@ describe('googleMapsTravelService', () => {
     expect(result.durationMinutes).toBeNull();
   });
 
-  it('uses Google response when edge function succeeds', async () => {
+  it('uses OSM response when edge function succeeds', async () => {
     vi.mocked(invokeEdgeFunction).mockResolvedValue({
       ok: true,
       data: {
@@ -123,7 +123,7 @@ describe('googleMapsTravelService', () => {
         distanceMeters: 9200,
         googleMode: 'driving',
         note: null,
-        source: 'google',
+        source: 'osm',
       },
     });
 
@@ -135,10 +135,10 @@ describe('googleMapsTravelService', () => {
     });
 
     expect(result.durationMinutes).toBe(18);
-    expect(result.source).toBe('google');
+    expect(result.source).toBe('osm');
   });
 
-  it('falls back to heuristic when edge function has no API key', async () => {
+  it('keeps unavailable routes honest instead of inventing a duration', async () => {
     vi.mocked(invokeEdgeFunction).mockResolvedValue({
       ok: true,
       data: {
@@ -158,8 +158,8 @@ describe('googleMapsTravelService', () => {
       transportMode: 'car',
     });
 
-    expect(result.source).toBe('heuristic');
-    expect(result.durationMinutes).toBeGreaterThan(0);
+    expect(result.source).toBe('unavailable');
+    expect(result.durationMinutes).toBeNull();
   });
 
   it('caches identical origin-destination-mode requests', async () => {
@@ -171,7 +171,7 @@ describe('googleMapsTravelService', () => {
         distanceMeters: 5000,
         googleMode: 'driving',
         note: null,
-        source: 'google',
+        source: 'osm',
       },
     });
 

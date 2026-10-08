@@ -22,22 +22,23 @@ export async function captureGoogleRouteReference(input: {
     includeRouteGeometry: true,
   });
   const reference: EmployeePortalGoogleRouteReference = {
-    provider: 'google',
+    provider: travel.source === 'osm' ? 'osm' : 'google',
     requestedAt: new Date().toISOString(),
     origin: input.origin,
     destinationAddress: input.destinationAddress,
     distanceMeters: travel.distanceMeters,
     durationMinutes: travel.durationMinutes,
     encodedPolyline: travel.encodedPolyline ?? null,
-    source: travel.source === 'google' ? 'google' : 'unavailable',
+    source: travel.source === 'google' || travel.source === 'osm' ? travel.source : 'unavailable',
   };
   await mergeTrackingSessionMetadata(input.tenantId, input.sessionId, {
     [GOOGLE_ROUTE_REFERENCE_METADATA_KEY]: reference,
   });
   const supabase = getSupabaseClient();
-  if (supabase && reference.source === 'google') {
+  if (supabase && (reference.source === 'google' || reference.source === 'osm')) {
     await fromUnknownTable(supabase, 'employee_logbook_trips')
       .update({
+        route_calculation_provider: reference.provider,
         google_route_distance_km: reference.distanceMeters != null ? reference.distanceMeters / 1000 : null,
         google_route_duration_minutes: reference.durationMinutes,
         google_route_polyline: reference.encodedPolyline,
@@ -58,7 +59,7 @@ export function parseGoogleRouteReference(
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Partial<EmployeePortalGoogleRouteReference>;
   if (
-    candidate.provider !== 'google' ||
+    (candidate.provider !== 'google' && candidate.provider !== 'osm') ||
     typeof candidate.requestedAt !== 'string' ||
     typeof candidate.destinationAddress !== 'string' ||
     !candidate.origin ||
@@ -66,14 +67,14 @@ export function parseGoogleRouteReference(
     typeof candidate.origin.longitude !== 'number'
   ) return null;
   return {
-    provider: 'google',
+    provider: candidate.provider,
     requestedAt: candidate.requestedAt,
     origin: candidate.origin,
     destinationAddress: candidate.destinationAddress,
     distanceMeters: typeof candidate.distanceMeters === 'number' ? candidate.distanceMeters : null,
     durationMinutes: typeof candidate.durationMinutes === 'number' ? candidate.durationMinutes : null,
     encodedPolyline: typeof candidate.encodedPolyline === 'string' ? candidate.encodedPolyline : null,
-    source: candidate.source === 'google' ? 'google' : 'unavailable',
+    source: candidate.source === 'google' || candidate.source === 'osm' ? candidate.source : 'unavailable',
   };
 }
 

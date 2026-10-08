@@ -1,5 +1,4 @@
-// CareSuite+ — Serve browser-restricted Google Maps API key to authenticated clients.
-// Server secret: GOOGLE_MAPS_API_KEY (Supabase Edge Function secrets).
+// CareSuite — free map configuration. No provider secrets are returned.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -34,12 +33,13 @@ serve(async (req) => {
     return jsonResponse({ ok: false, error: 'Sitzung ungültig.' }, 401);
   }
 
-  const browserKey = Deno.env.get('GOOGLE_MAPS_API_KEY')?.trim() ?? null;
+  const browserKey = null;
 
   return jsonResponse({
     ok: true,
     browserKey,
-    configured: Boolean(browserKey),
-    provider: 'google',
+    configured: true,
+    provider: 'openfreemap',
+    styleUrl: 'https://tiles.openfreemap.org/styles/bright',
   });
 });

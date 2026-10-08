@@ -22,7 +22,7 @@ export type AssignmentTravelTimeDisplay = {
   minutes: number | null;
   transportModes: EmployeeTransportMode[];
   loading: boolean;
-  source: 'google' | 'heuristic' | 'unavailable' | 'demo' | null;
+  source: 'google' | 'osm' | 'heuristic' | 'unavailable' | 'demo' | null;
   error: string | null;
   /** Ready-to-render text for compact cards (icons + minutes for all selected modes). */
   displayText: string | null;

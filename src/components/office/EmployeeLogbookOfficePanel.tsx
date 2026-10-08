@@ -486,8 +486,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                     <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'confirmation_required' ? 'BESTÄTIGUNG AUSSTEHEND' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' || trip.status === 'confirmation_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
                     <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
                     <PremiumBadge
-                      label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
-                      variant={trip.distanceSource === 'google_fallback' ? 'orange' : trip.distanceSource === 'gps' ? 'cyan' : 'muted'}
+                      label={trip.distanceSource === 'osm_fallback' ? 'OSM-ERSATZROUTE' : trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
+                      variant={(trip.distanceSource === 'google_fallback' || trip.distanceSource === 'osm_fallback') ? 'orange' : trip.distanceSource === 'gps' ? 'cyan' : 'muted'}
                     />
                     {segments.length ? <PremiumBadge label={`${segments.length} STOPPS`} variant="cyan" /> : null}
                     {receipts.length ? <PremiumBadge label={`${receipts.length} BELEGE`} variant="muted" /> : null}

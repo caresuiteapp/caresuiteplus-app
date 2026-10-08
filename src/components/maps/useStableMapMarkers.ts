@@ -43,7 +43,10 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
   const onSelectRef = useRef(onMarkerSelect);
   const fittedMarkerSetRef = useRef<string | null>(null);
   const lastSelectedMarkerRef = useRef<string | null>(null);
+  const itemsRef = useRef(markers);
+  itemsRef.current = markers;
   onSelectRef.current = onMarkerSelect;
+  useEffect(() => () => { markerRefs.current.forEach(marker => marker.setMap(null)); markerRefs.current.clear(); infoWindowRef.current?.close(); infoWindowRef.current = null; fittedMarkerSetRef.current = null; lastSelectedMarkerRef.current = null; }, [map]);
 
   useEffect(() => {
     if (!map || !google) return;
@@ -70,18 +73,22 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
           position: { lat: item.latitude, lng: item.longitude },
           title: item.label,
         });
+        const markerId = item.id;
         marker.addListener('click', () => {
-          onSelectRef.current?.(item.id);
-          const info = infoWindowRef.current!;
+          onSelectRef.current?.(markerId);
+          const item = itemsRef.current.find(row => row.id === markerId);
+          if (!item || !infoWindowRef.current) return;
+          const info = infoWindowRef.current;
           const html =
             item.infoHtml ??
             buildInfoContent?.(item, demoMode) ??
-            `<strong>${item.label}</strong>`;
+            `<strong>${escapeLabel(item.label)}</strong>`;
           info.setContent(html);
           info.open({ map, anchor: marker! });
         });
         existing.set(item.id, marker);
       } else {
+        marker.setPosition?.({ lat: item.latitude, lng: item.longitude });
         marker.setMap(map);
       }
     });
@@ -106,7 +113,7 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
         const html =
           selected.infoHtml ??
           buildInfoContent?.(selected, demoMode) ??
-          `<strong>${selected.label}</strong>`;
+          `<strong>${escapeLabel(selected.label)}</strong>`;
         info.setContent(html);
         info.open({ map, anchor: marker });
       }
@@ -114,3 +121,5 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
     }
   }, [map, google, markers, selectedMarkerId, demoMode, buildInfoContent]);
 }
+
+function escapeLabel(value: string): string { return value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }

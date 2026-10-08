@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { resetGoogleMapsBrowserKeyCacheForTests } from '@/lib/maps/getGoogleMapsBrowserKey';
 
 describe('getGoogleMapsBrowserKey', () => {
-  it('returns EXPO_PUBLIC key when set', async () => {
+  it('ignores a configured Google key and selects the free provider', async () => {
     resetGoogleMapsBrowserKeyCacheForTests();
     const original = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = 'test-expo-key';
     const { getGoogleMapsBrowserKey } = await import('@/lib/maps/getGoogleMapsBrowserKey');
     const key = await getGoogleMapsBrowserKey();
-    expect(key).toBe('test-expo-key');
+    expect(key).toBe('openfreemap');
     if (original === undefined) delete process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
     else process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = original;
     resetGoogleMapsBrowserKeyCacheForTests();

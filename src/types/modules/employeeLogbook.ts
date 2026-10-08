@@ -1,7 +1,7 @@
 import type { TravelRouteType } from './travelCompensation';
 
 export type LogbookTripStatus = 'recording' | 'confirmation_required' | 'review_required' | 'completed' | 'corrected' | 'confirmed' | 'cancelled';
-export type LogbookDistanceSource = 'gps' | 'google_fallback' | 'manual' | 'office_corrected';
+export type LogbookDistanceSource = 'gps' | 'google_fallback' | 'osm_fallback' | 'manual' | 'office_corrected';
 export type LogbookVehicleOwnership = 'private' | 'company';
 
 export type LogbookVehicle = {
@@ -25,6 +25,7 @@ export type LogbookTrip = {
   durationSeconds: number; countsAsWorkTime: boolean; worktimeDeductionMinutes: number;
   mileageRateCents: number; mileageAmountCents: number; gpsCaptured: boolean;
   distanceSource: LogbookDistanceSource;
+  routeCalculationProvider?: 'google' | 'osm' | null;
   googleRouteDistanceKm: number | null;
   googleRouteDurationMinutes: number | null;
   routeQualityStatus: 'measured' | 'estimated_due_to_gps_gap' | 'manual' | 'corrected';

@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { GoogleMapsLiveMap } from '@/components/maps/GoogleMapsLiveMap.web';
 import {
-  buildOsmEmbedUrl,
-  formatMapLastUpdated,
   type AssistLiveMapMarker,
   type AssistLiveRoutePoint,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
-import {
-  getGoogleMapsBrowserKey,
-  isGoogleMapsBrowserKeyConfiguredSync,
-} from '@/lib/maps/getGoogleMapsBrowserKey';
 import { spacing, typography } from '@/theme';
 
 export type AssistLiveMapProps = {
@@ -49,24 +42,6 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
     tenantId = null,
   } = props;
 
-  const [mapsConfigured, setMapsConfigured] = useState(isGoogleMapsBrowserKeyConfiguredSync());
-
-  useEffect(() => {
-    if (mapsConfigured) return;
-    let cancelled = false;
-    void getGoogleMapsBrowserKey(tenantId).then((key) => {
-      if (!cancelled) setMapsConfigured(Boolean(key));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId, mapsConfigured]);
-
-  const embedUrl = useMemo(() => {
-    if (mapsConfigured || !position) return null;
-    return buildOsmEmbedUrl(position.latitude, position.longitude);
-  }, [mapsConfigured, position]);
-
   const hasMapData = Boolean(position || (markers && markers.length > 0));
 
   if (!hasMapData) {
@@ -87,8 +62,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
     );
   }
 
-  if (mapsConfigured && Platform.OS === 'web') {
-    return (
+  return (
       <GoogleMapsLiveMap
         position={position}
         markers={markers}
@@ -106,57 +80,6 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
         tenantId={tenantId}
       />
     );
-  }
-
-  if (!position || !embedUrl) {
-    return (
-      <View style={[styles.fallback, { minHeight: height }]}>
-        <View style={styles.radarVisual}>
-          <View style={styles.radarRingLarge} />
-          <View style={styles.radarRingMedium} />
-          <View style={styles.radarRingSmall} />
-          <View style={styles.radarPoint} />
-          <Text style={styles.fallbackIcon}>⌖</Text>
-        </View>
-        <Text style={styles.fallbackEyebrow}>KARTENANSICHT</Text>
-        <Text style={styles.fallbackTitle}>Noch kein Live-Signal</Text>
-        <Text style={styles.fallbackText}>
-          {mapsConfigured
-            ? 'Interaktive Karte nur im Browser verfügbar.'
-            : fallbackMessage}
-        </Text>
-      </View>
-    );
-  }
-
-  const updated = formatMapLastUpdated(position.capturedAt);
-
-  return (
-    <View style={styles.container}>
-      <View style={[styles.mapFrame, { height }]}>
-        <iframe
-          title="Kartenansicht"
-          src={embedUrl}
-          style={{ border: 0, width: '100%', height: '100%' }}
-          loading="lazy"
-        />
-      </View>
-      <View style={styles.metaRow}>
-        {markerLabel ? <Text style={styles.meta}>{markerLabel}</Text> : null}
-        {updated ? (
-          <Text style={styles.meta}>
-            {lastUpdatedLabel}: {updated}
-            {demoMode ? ' · Demo' : ''}
-          </Text>
-        ) : demoMode ? (
-          <Text style={styles.meta}>Demo-Vorschau</Text>
-        ) : null}
-        {position.accuracyMeters != null ? (
-          <Text style={styles.meta}>Genauigkeit ca. {Math.round(position.accuracyMeters)} m</Text>
-        ) : null}
-      </View>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({

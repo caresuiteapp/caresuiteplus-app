@@ -26,6 +26,7 @@ export type EmployeeLogbookGpsRecoveryLeg = {
   endedAt: string;
   pointCount: number;
   measuredDistanceKm: number;
+  routeCalculationProvider?: 'google' | 'osm' | null;
   googleGapDistanceKm: number;
   finalDistanceKm: number;
   resolvedGapCount: number;
@@ -226,6 +227,7 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
         endedAt: window.endedAt,
         pointCount: summary.acceptedPointCount,
         measuredDistanceKm: summary.measuredDistanceKm,
+        routeCalculationProvider: reconciliation?.legs.some(leg=>leg.source==='osm') ? 'osm' : reconciliation?.legs.some(leg=>leg.source==='google') ? 'google' : null,
         googleGapDistanceKm: legGoogleDistance,
         finalDistanceKm: summary.measuredDistanceKm + legGoogleDistance,
         resolvedGapCount: legResolvedGapCount,
@@ -327,8 +329,9 @@ export async function synchronizeEmployeeLogbookFromAssistGps(input: {
       google_route_distance_km: leg.googleGapDistanceKm || null,
       distance_final_km: leg.finalDistanceKm,
       gps_captured: true,
-      navigation_provider: leg.googleGapDistanceKm > 0 ? 'google' : null,
-      distance_source: leg.googleGapDistanceKm > 0 ? 'google_fallback' : 'gps',
+      navigation_provider: leg.googleGapDistanceKm > 0 ? leg.routeCalculationProvider ?? 'google' : null,
+      route_calculation_provider: leg.googleGapDistanceKm > 0 ? leg.routeCalculationProvider ?? 'google' : null,
+      distance_source: leg.googleGapDistanceKm > 0 ? leg.routeCalculationProvider === 'osm' ? 'osm_fallback' : 'google_fallback' : 'gps',
       route_quality_status: leg.googleGapDistanceKm > 0 ? 'estimated_due_to_gps_gap' : 'measured',
       source: leg.source,
       counts_as_work_time: true,

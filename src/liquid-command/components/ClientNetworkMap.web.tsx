@@ -20,7 +20,7 @@ export type ClientNetworkMapProps = {
   onClientSelect?: (clientId: string) => void;
 };
 
-const coordinateCache = new Map<string, { latitude: number; longitude: number } | null>();
+const coordinateCache = new Map<string, { latitude: number; longitude: number; expiresAt: number }>();
 
 type ClientMapMarker = {
   id: string;
@@ -40,9 +40,11 @@ function clientAddress(client: ClientListItem): string {
 function geocode(
   geocoder: GoogleGeocoderInstance,
   address: string,
+  tenantId: string | null,
 ): Promise<{ latitude: number; longitude: number } | null> {
-  const cached = coordinateCache.get(address);
-  if (cached !== undefined) return Promise.resolve(cached);
+  const cached = coordinateCache.get(`${tenantId}:${address}`);
+  if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached);
+  if(cached)coordinateCache.delete(`${tenantId}:${address}`);
 
   return new Promise((resolve) => {
     geocoder.geocode({ address }, (results, status) => {
@@ -53,7 +55,7 @@ function geocode(
             longitude: first.geometry.location.lng(),
           }
         : null;
-      coordinateCache.set(address, coordinate);
+      if (coordinate) { if(coordinateCache.size > 500)coordinateCache.clear(); coordinateCache.set(`${tenantId}:${address}`, {...coordinate,expiresAt:Date.now()+24*60*60_000}); }
       resolve(coordinate);
     });
   });
@@ -64,6 +66,7 @@ async function geocodeClients(
   geocoder: GoogleGeocoderInstance,
   onProgress: (markers: ClientMapMarker[], processed: number) => void,
   isCancelled: () => boolean,
+  tenantId: string | null,
 ): Promise<void> {
   const pending = clients
     .map((client) => ({ client, address: clientAddress(client) }))
@@ -78,7 +81,7 @@ async function geocodeClients(
       cursor += 1;
       const entry = pending[index];
       if (!entry) return;
-      const coordinate = await geocode(geocoder, entry.address);
+      const coordinate = await geocode(geocoder, entry.address, tenantId);
       processed += 1;
       if (coordinate) {
         markers.push({
@@ -93,7 +96,7 @@ async function geocodeClients(
     }
   };
 
-  await Promise.all(Array.from({ length: Math.min(4, pending.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(1, pending.length) }, () => worker()));
 }
 
 function pulsingMarkerIcon(): string {
@@ -122,13 +125,16 @@ export function ClientNetworkMap({
   height = 380,
   onClientSelect,
 }: ClientNetworkMapProps) {
+  const [retry, setRetry] = useState(0);
   const [markers, setMarkers] = useState<ClientMapMarker[]>([]);
   const [processed, setProcessed] = useState(0);
   const [providerReady, setProviderReady] = useState<boolean | null>(null);
   const [google, setGoogle] = useState<GoogleMapsNamespace | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
-  const markerRefs = useRef<GoogleMarkerInstance[]>([]);
+  const markerRefs = useRef<Map<string, GoogleMarkerInstance>>(new Map());
+  const onSelectRef=useRef(onClientSelect);onSelectRef.current=onClientSelect;
+  const fittedRef=useRef(false);
   const addressableCount = useMemo(
     () => clients.filter((client) => Boolean(clientAddress(client))).length,
     [clients],
@@ -148,6 +154,7 @@ export function ClientNetworkMap({
         setGoogle(null);
       }
     });
+    setProviderReady(null);
     setMarkers([]);
     setProcessed(0);
 
@@ -156,7 +163,7 @@ export function ClientNetworkMap({
         if (cancelled || providerFailed) return;
         setProviderReady(Boolean(key));
         if (!key) return;
-        const mapsNamespace = await loadGoogleMapsApi(key);
+        const mapsNamespace = await loadGoogleMapsApi(key, tenantId);
         if (cancelled || providerFailed) return;
         setGoogle(mapsNamespace);
         const geocoder = new mapsNamespace.maps.Geocoder();
@@ -168,6 +175,7 @@ export function ClientNetworkMap({
             setProcessed(nextProcessed);
           },
           () => cancelled || providerFailed,
+          tenantId,
         );
       })
       .catch(() => {
@@ -177,8 +185,10 @@ export function ClientNetworkMap({
     return () => {
       cancelled = true;
       unsubscribe();
+      markerRefs.current.forEach(marker=>marker.setMap(null)); markerRefs.current.clear();fittedRef.current=false;
+      mapRef.current?.dispose?.(); mapRef.current=null;
     };
-  }, [clientKey, clients, tenantId]);
+  }, [clientKey, clients, tenantId, retry]);
 
   useEffect(() => {
     if (!google || !mapContainerRef.current || !markers.length) return;
@@ -190,36 +200,24 @@ export function ClientNetworkMap({
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: true,
-        styles: HEALTH_OS_CLIENT_MAP_STYLE,
+
       });
+      mapRef.current.onError?.(()=>setProviderReady(false));
     }
 
-    markerRefs.current.forEach((marker) => marker.setMap(null));
-    const markerIcon = pulsingMarkerIcon();
-    markerRefs.current = markers.map((item) => {
-      const marker = new google.maps.Marker({
-        map: mapRef.current ?? undefined,
-        position: { lat: item.latitude, lng: item.longitude },
-        title: `${item.label} · ${item.subtitle}`,
-        optimized: false,
-        icon: {
-          url: markerIcon,
-          scaledSize: new google.maps.Size(50, 50),
-          anchor: new google.maps.Point(25, 25),
-        },
-      });
-      marker.addListener('click', () => onClientSelect?.(item.id));
-      return marker;
+    const ids=new Set(markers.map(item=>item.id));
+    markerRefs.current.forEach((marker,id)=>{if(!ids.has(id)){marker.setMap(null);markerRefs.current.delete(id);}});
+    const markerIcon=pulsingMarkerIcon();
+    markers.forEach(item=>{
+      const existing=markerRefs.current.get(item.id);
+      if(existing){existing.setPosition?.({lat:item.latitude,lng:item.longitude});return;}
+      const marker=new google.maps.Marker({map:mapRef.current??undefined,position:{lat:item.latitude,lng:item.longitude},title:`${item.label} · ${item.subtitle}`,icon:{url:markerIcon,scaledSize:new google.maps.Size(50,50),anchor:new google.maps.Point(25,25)}});
+      marker.addListener('click',()=>onSelectRef.current?.(item.id));markerRefs.current.set(item.id,marker);
     });
-
-    if (markers.length === 1) {
-      mapRef.current.setCenter({ lat: markers[0].latitude, lng: markers[0].longitude });
-    } else {
-      const bounds = new google.maps.LatLngBounds();
-      markers.forEach((item) => bounds.extend({ lat: item.latitude, lng: item.longitude }));
-      mapRef.current.fitBounds(bounds);
+    if(!fittedRef.current && processed>=addressableCount){
+      const bounds=new google.maps.LatLngBounds();markers.forEach(item=>bounds.extend({lat:item.latitude,lng:item.longitude}));mapRef.current.fitBounds(bounds);fittedRef.current=true;
     }
-  }, [google, markers, onClientSelect]);
+  }, [google, markers, processed, addressableCount]);
 
   useEffect(() => {
     if (!google || !mapRef.current || !mapContainerRef.current || typeof ResizeObserver === 'undefined') {
@@ -238,9 +236,10 @@ export function ClientNetworkMap({
         <LiquidGlyph active glyph="⌖" size={34} />
         <Text style={styles.fallbackTitle}>{clients.length} Klient:innen im Versorgungsnetz</Text>
         <Text style={styles.fallbackDetail}>
-          Google Maps benötigt vollständige Klientenadressen und einen für den Mandanten
-          freigegebenen Maps-Schlüssel. Vorhandene Orte bleiben unten direkt auswählbar.
+          Die Kartenansicht benötigt vollständige, eindeutig zuordenbare Adressen.
+          Der Adressdienst ist möglicherweise vorübergehend nicht erreichbar. Vorhandene Orte bleiben unten direkt auswählbar.
         </Text>
+        <Pressable accessibilityRole="button" onPress={()=>setRetry(v=>v+1)}><Text style={styles.fallbackDetail}>Erneut versuchen</Text></Pressable>
         <View style={styles.clientChips}>
           {clients.slice(0, 12).map((client) => (
             <Pressable
@@ -284,7 +283,7 @@ export function ClientNetworkMap({
         {!markers.length ? (
           <View style={styles.mapLoading}>
             <LiquidGlyph active glyph="⌖" size={34} />
-            <Text style={styles.fallbackTitle}>Google-Klient:innenkarte wird aufgebaut</Text>
+            <Text style={styles.fallbackTitle}>Klient:innenkarte wird aufgebaut</Text>
             <Text style={styles.fallbackDetail}>Adressen und Ortsnamen werden mandantenbezogen aufgelöst.</Text>
           </View>
         ) : null}
@@ -292,32 +291,13 @@ export function ClientNetworkMap({
       <View pointerEvents="none" style={styles.progressBadge}>
         <Text style={styles.progressCount}>{markers.length}/{clients.length}</Text>
         <Text style={styles.progressLabel}>
-          Klient:innen dauerhaft auf Google Maps
-          {processed < addressableCount ? ' · Adressen werden geladen' : ''}
+          Klient:innen auf der Karte
+          {processed < addressableCount ? ' · Adressen werden geladen' : markers.length < clients.length ? ` · ${clients.length-markers.length} ohne eindeutigen Standort` : ''}
         </Text>
       </View>
     </View>
   );
 }
-
-const HEALTH_OS_CLIENT_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#eef5fc' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#334155' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#0f2744' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'administrative.neighborhood', elementType: 'labels', stylers: [{ visibility: 'on' }] },
-  { featureType: 'administrative.neighborhood', elementType: 'labels.text.fill', stylers: [{ color: '#52657a' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#f5f9fd' }] },
-  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
-  { featureType: 'transit.station', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#d9e5f2' }] },
-  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'on' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#d4e8ff' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cde9f8' }] },
-] as const;
 
 const styles = StyleSheet.create({
   container: {
@@ -338,12 +318,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: 'rgba(247,251,255,0.94)',
+    backgroundColor: '#071A31',
   },
   progressBadge: {
-    position: 'absolute',
-    left: 16,
-    bottom: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
     maxWidth: '72%',
     paddingHorizontal: 13,
     paddingVertical: 9,
@@ -371,7 +350,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: '#F7FBFF',
+    backgroundColor: '#071A31',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

@@ -1,6 +1,6 @@
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import { memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
   type AssistLiveRoutePoint,
@@ -53,7 +53,7 @@ function buildInfoContent(marker: GoogleMapsLiveMarker, demoMode: boolean): stri
       : null,
   ].filter(Boolean);
   const coordinates = `${marker.latitude.toFixed(5)}, ${marker.longitude.toFixed(5)}`;
-  return `<div style="box-sizing:border-box;min-width:240px;max-width:320px;padding:12px 14px;font-family:${CARESUITE_FONT_STACK};font-size:13px;line-height:1.55;color:#102A43;background:#FFFFFF"><div style="margin-bottom:6px;font-size:14px;font-weight:800;color:#071F3D">${parts[0] ?? ''}</div><div style="color:#334E68">${parts.slice(1).join('<br/>')}</div><div style="margin-top:8px;padding-top:7px;border-top:1px solid #D7E6F2;color:#486581;font-family:${CARESUITE_FONT_STACK};font-size:11px">GPS ${escapeHtml(coordinates)}</div></div>`;
+  return `<div style="box-sizing:border-box;min-width:160px;max-width:280px;padding:12px 14px;font-family:${CARESUITE_FONT_STACK};font-size:13px;line-height:1.55;color:#102A43;background:#FFFFFF"><div style="margin-bottom:6px;font-size:14px;font-weight:800;color:#071F3D">${parts[0] ?? ''}</div><div style="color:#334E68">${parts.slice(1).join('<br/>')}</div><div style="margin-top:8px;padding-top:7px;border-top:1px solid #D7E6F2;color:#486581;font-family:${CARESUITE_FONT_STACK};font-size:11px">GPS ${escapeHtml(coordinates)}</div></div>`;
 }
 
 function escapeHtml(value: string): string {
@@ -101,10 +101,11 @@ function GoogleMapsLiveMapInner({
   onVisiblePoll,
 }: GoogleMapsLiveMapProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const fittedRouteRef = useRef<string | null>(null);
 
   const resolvedMarkers = useMemo(
-    () => resolveMarkers(markers, position, markerLabel),
+    () => resolveMarkers(markers, position, markerLabel).filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude) && Math.abs(row.latitude) <= 90 && Math.abs(row.longitude) <= 180),
     [markers, position, markerLabel],
   );
 
@@ -150,6 +151,8 @@ function GoogleMapsLiveMapInner({
 
   const { map, google, ready, error: mapError } = useStableGoogleMap({
     apiKey,
+    tenantId,
+    retryKey,
     containerRef: mapContainerRef,
     center,
     zoom: resolvedMarkers.length === 1 ? 15 : 13,
@@ -224,26 +227,6 @@ function GoogleMapsLiveMapInner({
     );
   }
 
-  if (!apiKey) {
-    return (
-      <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
-        <Text style={styles.fallbackText}>
-          Google Maps ist nicht konfiguriert — Kartenansicht nicht verfügbar.
-        </Text>
-      </View>
-    );
-  }
-
-  if (mapError) {
-    return (
-      <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
-        <Text style={styles.fallbackText}>{mapError}</Text>
-      </View>
-    );
-  }
-
   const updated = primaryMarker?.capturedAt
     ? formatMapLastUpdated(primaryMarker.capturedAt)
     : position?.capturedAt
@@ -254,7 +237,7 @@ function GoogleMapsLiveMapInner({
     <View style={styles.container}>
       <View style={[styles.mapFrame, { height }]}>
         <div ref={mapContainerRef as unknown as Ref<HTMLDivElement>} style={{ width: '100%', height: '100%' }} />
-        {!ready ? (
+        {!ready && !mapError ? (
           <View style={styles.loadingOverlay}>
             <Text style={styles.loadingText}>Karte wird geladen…</Text>
           </View>
@@ -265,7 +248,9 @@ function GoogleMapsLiveMapInner({
           </View>
         ) : null}
       </View>
+      {mapError ? <View style={styles.fallback}><Text style={styles.fallbackText}>Karte nicht erreichbar. GPS-Daten bleiben erhalten.</Text><Pressable accessibilityRole="button" onPress={() => { fittedRouteRef.current=null; setRetryKey(v=>v+1); }}><Text style={styles.meta}>Erneut versuchen</Text></Pressable>{resolvedMarkers.map(marker=><Text key={marker.id} style={styles.meta}>{marker.label}: {marker.latitude.toFixed(5)}, {marker.longitude.toFixed(5)}</Text>)}</View> : null}
       <View style={styles.metaRow}>
+        {plannedRoutePoints.length > 1 ? <Text style={styles.meta}>Routing: FOSSGIS · © OpenStreetMap-Mitwirkende · <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer" style={{color:'#79C9FF'}}>Kartenfehler melden</a></Text> : null}
         {primaryMarker?.label ? <Text style={styles.meta}>{primaryMarker.label}</Text> : null}
         {updated ? (
           <Text style={styles.meta}>

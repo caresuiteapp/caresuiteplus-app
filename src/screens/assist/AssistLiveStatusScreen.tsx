@@ -25,7 +25,7 @@ import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMoni
 import type { AssistLiveMonitoringRow } from '@/features/assistLive/getAssistLiveMonitoring';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { getAssistMapDemoPosition, isGoogleMapsConfigured } from '@/lib/assist/assistMapProvider';
+import { getAssistMapDemoPosition } from '@/lib/assist/assistMapProvider';
 import {
   GPS_TRACKING_DEMO_MESSAGE,
   GPS_TRACKING_BACKEND_EMPTY_MESSAGE,
@@ -212,6 +212,7 @@ export function AssistLiveStatusScreen() {
 
   const plannedRoutePoints = useMemo(() => {
     const reference = mapRow?.tracking?.googleRouteReference;
+    if(reference?.provider !== 'osm')return [];
     return decodeGooglePolyline(reference?.encodedPolyline).map((point) => ({
       ...point,
       capturedAt: reference?.requestedAt ?? '',
@@ -407,7 +408,7 @@ export function AssistLiveStatusScreen() {
                         </Text>
                         {row.route.distanceStatus === 'incomplete' ? (
                           <Text style={styles.warning}>
-                            Kilometer unvollständig: {row.route.unresolvedGapCount} GPS-Lücke{row.route.unresolvedGapCount === 1 ? '' : 'n'} konnten noch nicht über eine Google-Straßenroute ergänzt werden.
+                            Kilometer unvollständig: {row.route.unresolvedGapCount} GPS-Lücke{row.route.unresolvedGapCount === 1 ? '' : 'n'} konnten noch nicht über eine berechnete Straßenroute ergänzt werden.
                           </Text>
                         ) : null}
                       </View>
@@ -495,7 +496,7 @@ export function AssistLiveStatusScreen() {
                 {mapRow.route.unresolvedGapCount > 0
                   ? `${mapRow.route.unresolvedGapCount} Lücke${mapRow.route.unresolvedGapCount === 1 ? '' : 'n'} ungeklärt`
                   : mapRow.route.resolvedGapCount > 0
-                    ? `${mapRow.route.resolvedGapCount} Lücke${mapRow.route.resolvedGapCount === 1 ? '' : 'n'} per Google ergänzt`
+                    ? `${mapRow.route.resolvedGapCount} Lücke${mapRow.route.resolvedGapCount === 1 ? '' : 'n'} per Straßenroute ergänzt`
                     : 'Spur durchgängig'}
               </Text>
             </View>
@@ -508,7 +509,7 @@ export function AssistLiveStatusScreen() {
             </View>
             {mapRow.tracking?.googleRouteReference ? (
               <View style={styles.routeAuditCell}>
-                <Text style={styles.routeAuditLabel}>Google-Sollroute</Text>
+                <Text style={styles.routeAuditLabel}>{mapRow.tracking.googleRouteReference.provider === 'osm' ? 'OSM-Sollroute' : 'Google-Sollroute (historisch)'}</Text>
                 <Text style={styles.routeAuditValue}>
                   {mapRow.tracking.googleRouteReference.distanceMeters != null
                     ? formatDistance(mapRow.tracking.googleRouteReference.distanceMeters / 1000)
@@ -552,7 +553,7 @@ export function AssistLiveStatusScreen() {
               <Text style={styles.routeAuditValue}>{formatDistance(mapRow.route.measuredDistanceKm)}</Text>
             </View>
             <View style={styles.routeAuditCell}>
-              <Text style={styles.routeAuditLabel}>Google-Straßenrouten für GPS-Lücken</Text>
+              <Text style={styles.routeAuditLabel}>berechnete Straßenrouten für GPS-Lücken</Text>
               <Text style={styles.routeAuditValue}>
                 {formatDistance(mapRow.route.googleGapDistanceKm)} · {mapRow.route.resolvedGapCount} ergänzt
               </Text>
@@ -569,8 +570,8 @@ export function AssistLiveStatusScreen() {
             <Text style={[styles.routeAuditNoticeText, mapRow.route.unresolvedGapCount > 0 && styles.routeAuditNoticeTextWarning]}>
               {mapRow.route.gapCount > 0
                 ? mapRow.route.unresolvedGapCount > 0
-                  ? 'Der angezeigte GPS-Wert ist ausdrücklich keine Gesamtstrecke. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Fehlende Intervalle werden ausschließlich über eine echte orange gestrichelte Google-Sollroute ergänzt; ungeklärte Lücken bleiben offen und dürfen nicht abgerechnet werden.'
-                  : 'Alle GPS-Unterbrechungen wurden über echte Google-Straßenrouten zwischen den jeweiligen letzten und nächsten GPS-Punkten ergänzt. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden; die orange gestrichelte Google-Sollroute bleibt als prüfbarer Straßennachweis sichtbar.'
+                  ? 'Der angezeigte GPS-Wert ist ausdrücklich keine Gesamtstrecke. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Fehlende Intervalle werden ausschließlich über eine echte orange gestrichelte berechnete Sollroute ergänzt; ungeklärte Lücken bleiben offen und dürfen nicht abgerechnet werden.'
+                  : 'Alle GPS-Unterbrechungen wurden über echte berechnete Straßenrouten zwischen den jeweiligen letzten und nächsten GPS-Punkten ergänzt. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden; die orange gestrichelte berechnete Sollroute bleibt als prüfbarer Straßennachweis sichtbar.'
                 : 'Die blaue Linie zeigt die zeitlich zusammenhängende GPS-Spur. Manuelles Zoomen und Verschieben bleiben bei Live-Aktualisierungen erhalten.'}
             </Text>
           </View>
@@ -656,7 +657,7 @@ export function AssistLiveStatusScreen() {
             <LiveMetric
               label="Kartendienst"
               value={mapProviderReady ? 'Bereit' : 'Offline'}
-              detail={isGoogleMapsConfigured() ? 'Google Maps verbunden' : 'Kartenansicht vorbereitet'}
+              detail={'Kostenlose Kartenansicht'}
               tone={mapProviderReady ? 'blue' : 'neutral'}
             />
           </View>

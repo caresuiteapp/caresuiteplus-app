@@ -12,7 +12,7 @@ export type AssistRouteGapLeg = {
   endedAt: string;
   gapSeconds: number;
   distanceKm: number | null;
-  source: 'google' | 'unresolved';
+  source: 'google' | 'osm' | 'unresolved';
 };
 
 export type AssistRouteGapReconciliation = {
@@ -54,7 +54,9 @@ export async function reconcileAssistLiveRouteGaps(
     })
     .filter((value): value is NonNullable<typeof value> => Boolean(value));
 
-  const legs = await Promise.all(boundaries.map(async ({ previous, current, gapSeconds }) => {
+  const legs: AssistRouteGapLeg[] = [];
+  for (const { previous, current, gapSeconds } of boundaries) {
+    legs.push(await (async () => {
     try {
       const route = await fetchTravelTime({
         tenantId,
@@ -63,7 +65,7 @@ export async function reconcileAssistLiveRouteGaps(
         transportMode: 'car',
         includeRouteGeometry: false,
       });
-      const distanceKm = route.source === 'google' && route.distanceMeters != null
+      const distanceKm = (route.source === 'google' || route.source === 'osm') && route.distanceMeters != null
         ? route.distanceMeters / 1000
         : null;
       const accepted = distanceKm != null && distanceKm >= 0 && distanceKm <= MAX_ROAD_GAP_KM;
@@ -72,7 +74,7 @@ export async function reconcileAssistLiveRouteGaps(
         endedAt: current.capturedAt,
         gapSeconds,
         distanceKm: accepted ? distanceKm : null,
-        source: accepted ? 'google' as const : 'unresolved' as const,
+        source: accepted ? route.source as 'google' | 'osm' : 'unresolved' as const,
       };
     } catch {
       return {
@@ -83,11 +85,12 @@ export async function reconcileAssistLiveRouteGaps(
         source: 'unresolved' as const,
       };
     }
-  }));
+    })());
+  }
 
   return {
     googleGapDistanceKm: legs.reduce((sum, leg) => sum + (leg.distanceKm ?? 0), 0),
-    resolvedGapCount: legs.filter((leg) => leg.source === 'google').length,
+    resolvedGapCount: legs.filter((leg) => leg.source === 'google' || leg.source === 'osm').length,
     unresolvedGapCount:
       legs.filter((leg) => leg.source === 'unresolved').length +
       Math.max(0, segments.length - 1 - legs.length),

@@ -1,0 +1,10 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+import {fetchTravelTime,resetTravelTimeCache} from '@/lib/maps/googleMapsTravelService';
+import {invokeEdgeFunction} from '@/lib/supabase/edgeFunctions';
+vi.mock('@/lib/supabase/edgeFunctions',()=>({invokeEdgeFunction:vi.fn()}));
+const route={ok:true as const,data:{ok:true,durationMinutes:10,distanceMeters:3200,source:'osm',googleMode:'driving',note:'Ohne Live-Verkehr'}};
+const input={tenantId:'one',origin:'A',destination:'B',transportMode:'car' as const};
+beforeEach(()=>{resetTravelTimeCache();vi.mocked(invokeEdgeFunction).mockReset();});
+it('deduplicates concurrent requests inside one tenant without crossing tenants',async()=>{vi.mocked(invokeEdgeFunction).mockResolvedValue(route);const [a,b]=await Promise.all([fetchTravelTime(input),fetchTravelTime(input)]);expect(a).toEqual(b);expect(a.source).toBe('osm');expect(invokeEdgeFunction).toHaveBeenCalledTimes(1);await fetchTravelTime({...input,tenantId:'two'});expect(invokeEdgeFunction).toHaveBeenCalledTimes(2);});
+it('preserves the transit explanation and never caches a heuristic as a street route',async()=>{vi.mocked(invokeEdgeFunction).mockResolvedValue({ok:true,data:{ok:true,source:'unavailable',durationMinutes:null,distanceMeters:null,googleMode:'transit',note:'ÖPNV nicht verfügbar'}});const result=await fetchTravelTime({...input,transportMode:'transit',allowHeuristicFallback:true});expect(result).toMatchObject({source:'unavailable',durationMinutes:null,note:'ÖPNV nicht verfügbar'});});
+it('isolates opt-in heuristic calls from real-route-only calls',async()=>{vi.mocked(invokeEdgeFunction).mockResolvedValue({ok:false,error:'Ausfall'});const estimated=await fetchTravelTime({...input,allowHeuristicFallback:true});expect(estimated.source).toBe('heuristic');const realOnly=await fetchTravelTime({...input,allowHeuristicFallback:false});expect(realOnly.source).toBe('unavailable');expect(invokeEdgeFunction).toHaveBeenCalledTimes(2);});
