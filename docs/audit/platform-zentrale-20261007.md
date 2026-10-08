@@ -1,9 +1,13 @@
 # CareSuite – Prüfung der gesamten Plattformverwaltung
 
+Nachtrag: Die hier zunächst als unverbunden festgehaltenen Einstellungen für Wartung, Firmenregistrierung und Plattformhinweise sind im [Bericht zur Betriebssteuerung](platform-betriebssteuerung-20261007.md) aktualisiert. Die ursprünglichen Befunde bleiben als damaliger Prüfstand nachvollziehbar.
+
 Stand: 7. Oktober 2026. Bestandsabfrage: 15:12 Uhr, Europe/Berlin.
 Projekt: caresuiteapp/caresuiteplus-app. Produktiver Server: euagyyztvmemuaiumvxm.
 
 ## Ergebnis
+
+**Fortschreibung:** Die zusätzliche Erfassung wurde anschließend ausdrücklich freigegeben. Servereinrichtung, Prüfungen und der Stand der Webveröffentlichung werden in [platform-erfassung-20261007.md](platform-erfassung-20261007.md) dokumentiert. Die nachstehenden Angaben zur ausstehenden Freigabe beschreiben den ursprünglichen Basisstand dieses Berichts.
 
 Die Plattformverwaltung ist vorhanden und mit wesentlichen Unternehmens-, Konto- und Supportfunktionen verbunden. Sie ist noch keine vollständige Betriebszentrale für die gesamte Software und Website. Besonders Live-Nutzung, Registrierungsabbrüche, automatische Fehlerauswertung und die durchgängige Umsetzung allgemeiner Systemeinstellungen fehlten bisher.
 

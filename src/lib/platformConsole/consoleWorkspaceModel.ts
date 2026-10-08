@@ -1,6 +1,7 @@
 /** Pure presentation/validation helpers; no network or platform privileges. */
 export type ConsoleRow = Record<string, unknown>;
 export const CONSOLE_LABELS: Record<string, string> = {
+  true: 'Ja', false: 'Nein',
   enabled: 'Freigegeben', beta_enabled: 'Erprobung freigegeben', free_active: 'Kostenlos', pending_confirmation: 'Bestätigung ausstehend',
   active: 'Aktiv', available: 'Verfügbar', disabled: 'Deaktiviert', revoked: 'Entzogen',
   suspended: 'Gesperrt', locked: 'Gesperrt', terminated: 'Deaktiviert', deleted_soft: 'Gelöscht', deleted: 'Gelöscht', blocked: 'Gesperrt',

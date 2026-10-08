@@ -55,3 +55,7 @@ verify_jwt = false
 # platform role in the user-scoped database operation before touching Auth.
 [functions.platform-tenant-account]
 verify_jwt = false
+
+# Public, limited operational observations. Optional user JWTs are verified in Auth.
+[functions.platform-observation]
+verify_jwt = false

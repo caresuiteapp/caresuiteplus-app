@@ -27,6 +27,9 @@ import { recordLoginAuditEvent } from './loginAuditService';
 import { hashSecret, verifySecret } from './passwordHash';
 import { generateTemporaryPassword } from './temporaryPassword';
 import { pickUniqueUsername } from './usernameGenerator';
+import { finishRegistrationObservation,prepareRegistrationObservation } from '@/lib/platformConsole/platformObservation.web';
+import { refreshPlatformRuntime } from '@/lib/platformConsole/platformRuntime.web';
+import { platformRegistrationError } from '@/lib/platformConsole/platformRuntimePolicy';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -42,6 +45,9 @@ export async function registerBusinessTenant(
   const validationError = validateCompanyRegistrationSelection(input) ?? validateBusinessRegistration(input);
   if (validationError) return { ok: false, error: validationError };
   if (getServiceMode() === 'supabase') {
+    const runtimeError = platformRegistrationError(await refreshPlatformRuntime());
+    if (runtimeError) return { ok: false, error: runtimeError };
+    const platformObservation=await prepareRegistrationObservation();
     const registration = await invokeEdgeFunction<{
       tenantId: string;
       owner: {
@@ -54,7 +60,8 @@ export async function registerBusinessTenant(
       };
       credentials: { username: string };
       welcomeEmailQueued?: boolean;
-    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined });
+    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined, ...(platformObservation?{platformObservation}:{}) });
+    finishRegistrationObservation(registration.ok);
 
     if (!registration.ok) {
       return { ok: false, error: registration.error };

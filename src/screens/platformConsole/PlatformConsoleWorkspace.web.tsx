@@ -13,6 +13,8 @@ import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { isRetiredPlatformSection } from '@/lib/platformConsole/platformFreePolicy';
 import { PlatformFreeUsagePanel } from '@/components/platformConsole/PlatformFreeUsagePanel.web';
 import { PlatformOperationsPanel } from '@/components/platformConsole/PlatformOperationsPanel.web';
+import { PlatformRuntimeStatus } from '@/components/platformConsole/PlatformRuntimeBoundary.web';
+import { refreshPlatformRuntime } from '@/lib/platformConsole/platformRuntime.web';
 
 const INITIAL:ConsoleData={rows:[],tenants:[],related:[],warnings:[],hasMore:false};
 const STATUS_FILTERS:Partial<Record<ConsoleSection,string[]>>={tenants:['active','suspended','locked','terminated','deleted_soft'],billing:['draft','open','paid','past_due','partially_paid','failed','cancelled','refunded'],payments:['pending','succeeded','failed','cancelled','refunded','chargeback'],modules:['available','beta','internal','deprecated','disabled'],plans:['active','inactive','archived'],addons:['active','beta','deprecated','disabled'],discounts:['active','scheduled','expired','revoked'],users:['active','disabled','revoked'],releases:['planned','building','ready','failed','rolled_back'],'feature-flags':['true','false']};
@@ -79,14 +81,14 @@ function ActivePlatformConsoleWorkspace({section}:{section:ConsoleSection}){
   const filtersActive=Boolean(search||status||tenantId||start||end);
   function resetFilters(){setSearch('');setStatus('');setTenantId('');setStart('');setEnd('');setOffset(0);setPage(0);}
   function open(row:ConsoleRow){if(section==='tenants'){const id=String(row.tenantId??'');if(id)router.push(`/platform/tenants/${encodeURIComponent(id)}` as never);return;}setSelected(row);}
-  const afterSave=async()=>{setAction(null);setNotice('Änderung gespeichert und protokolliert. Die Übersicht wird aktualisiert.');await load();};
+  const afterSave=async()=>{setAction(null);setNotice('Änderung gespeichert und protokolliert. Die Übersicht wird aktualisiert.');await load();if(section==='system')await refreshPlatformRuntime();};
   return <PlatformShellLayout title={info.title} subtitle={info.subtitle}>
     <div className="cs-console"><ConsoleStyle />
       <section className="cs-hero"><div><div className="cs-eyebrow">CareSuite HealthOS · Verwaltung</div><h2>{info.subtitle}</h2><p>{info.description}</p></div>{['dashboard','plans','tenants'].includes(section)&&<div className="cs-price"><strong>0 €</strong><small>Plattformnutzung</small></div>}</section>
       {!allowed?<div className="cs-notice" role="status">Ihre Rolle hat keinen Zugriff auf diesen Bereich.</div>:<>
       {getServiceMode()==='demo'&&<div className="cs-notice">Demomodus: Beispieldaten. Änderungen sind in dieser Vorschau gesperrt.</div>}
       {section==='feature-flags'&&<div className="cs-notice">Diese Freigaben werden gespeichert. Ihre Anwendung in den einzelnen Funktionen ist noch nicht vollständig eingerichtet. Freischaltungen für ein Unternehmen verwalten Sie in dessen Akte unter „Funktionen“.</div>}
-      {section==='system'&&<div className="cs-notice">Die Einstellungen für Wartung, Firmenregistrierung und Plattformhinweise sind gespeichert. Die automatische Umsetzung in Website und Software ist noch nicht vollständig eingerichtet.</div>}
+      {section==='system'&&<PlatformRuntimeStatus />}
       {notice&&<div className="cs-notice success" role="status">{notice}</div>}
       {data.warnings.map(warning=><div className="cs-notice" role="status" key={warning}>{warning}</div>)}
       {error&&<div className="cs-notice error" role="alert"><strong>Aktualisierung fehlgeschlagen.</strong> {error} <button className="cs-link" onClick={()=>void load()} disabled={loading}>Erneut versuchen</button>{updated&&<p>Die angezeigten Daten stammen vom {consoleDate(updated)}.</p>}</div>}
@@ -124,7 +126,7 @@ function pageStats(section:ConsoleSection,rows:ConsoleRow[],related:ConsoleRow[]
   if(section==='users')return[base,{label:'Aktive Zugriffe',value:count('status','active')},{label:'Aktive Inhaber',value:rows.filter(row=>row.role==='platform_owner'&&row.status==='active').length},{label:'Deaktiviert / entzogen',value:rows.filter(row=>row.status!=='active').length}];
   if(section==='tenants')return[base,{label:'Aktiv',value:count('status','active'),hint:'Auf dieser Datenseite'},{label:'In Einrichtung',value:count('lifecycleStatus','onboarding'),hint:'Auf dieser Datenseite'},{label:'Kostenlose Nutzung',value:rows.length,hint:'Auf dieser Datenseite'}];
   if(section==='feature-flags')return[base,{label:'Aktiviert',value:count('enabled',true)},{label:'Plattformweit',value:count('scope','global')},{label:'Mandantenbezogen',value:count('scope','tenant')}];
-  if(section==='system')return[base,{label:'Geschützte Werte',value:rows.filter(isSensitiveSetting).length},{label:'Wartungseinstellung',value:rows.find(row=>row.setting_key==='maintenance_mode')?.value===true?'Gespeichert: ein':rows.some(row=>row.setting_key==='maintenance_mode')?'Gespeichert: aus':'Nicht hinterlegt'}];
+  if(section==='system')return[base,{label:'Geschützte Werte',value:rows.filter(isSensitiveSetting).length},{label:'Wartung',value:rows.find(row=>row.setting_key==='maintenance_mode')?.value===true?'Eingeschaltet':rows.some(row=>row.setting_key==='maintenance_mode')?'Ausgeschaltet':'Nicht hinterlegt'}];
   if(section==='releases')return[base,{label:'Bereit',value:count('status','ready')},{label:'Fehlgeschlagen',value:count('status','failed')},{label:'Produktion',value:count('environment','production')}];
   if(section==='discounts')return[base,{label:'Aktive Konditionen',value:count('status','active')},{label:'Zuweisungen',value:related.length},{label:'Aktive Zuweisungen',value:related.filter(row=>row.status==='active').length}];
   if(section==='modules')return[base,{label:'Verfügbar',value:count('status','available')},{label:'In Beta',value:count('status','beta')},{label:'Grundfunktionen',value:count('is_core',true)}];
