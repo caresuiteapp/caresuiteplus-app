@@ -13,7 +13,9 @@ import type {
   EmployeePortalDocumentationInput,
   EmployeePortalAssignmentDetail,
   EmployeePortalSignatureCaptureInput,
+  EmployeePortalTaskItem,
 } from '@/types/modules/employeePortalExecution';
+import { mergeConfirmedOptionalTasks } from '@/lib/portal/mergeConfirmedVisitTasks';
 import type {
   EmployeePortalGpsPermissionStatus,
   EmployeePortalTrackingSnapshot,
@@ -277,6 +279,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const signatureScopeRef = useRef(signatureScopeKey);
   signatureScopeRef.current = signatureScopeKey;
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
+  const confirmedTaskAdditionsRef = useRef<{ scope: string; tasks: EmployeePortalTaskItem[] } | null>(null);
   const skipContextRefreshRef = useRef(false);
   const serviceStartRepairRef = useRef<string | null>(null);
   executionContextRef.current = executionContext;
@@ -287,6 +290,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     workflowInFlight.current = false;
     pendingWorkflowConfirmationRef.current = null;
     executionContextRef.current = null;
+    confirmedTaskAdditionsRef.current = null;
     setExecutionContext(null);
     setLiveContext(null);
     setWorkflowConfirmationPending(false);
@@ -686,6 +690,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const syncAfterWorkflow = useCallback(
     async (ctx: AssistExecutionContext) => {
+      const additions = confirmedTaskAdditionsRef.current;
+      if (additions?.scope === signatureScopeRef.current && ctx.tenantId === tenantId
+        && ctx.employeeId === employeeId && ctx.assignmentId === assignmentId)
+        ctx = { ...ctx, detail: { ...ctx.detail, tasks: mergeConfirmedOptionalTasks(ctx.detail.tasks, additions.tasks) } };
       const terminalStatuses: AssignmentStatus[] = ['abgeschlossen', 'storniert', 'nicht_erschienen'];
       const isTerminalStatus =
         terminalStatuses.includes(ctx.assignmentStatus) ||
@@ -788,8 +796,26 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       }
       return synced;
     },
-    [query, tenantId, employeeId],
+    [query, tenantId, employeeId, assignmentId],
   );
+
+  // The web task editor calls this only with the checked server receipt. Keep
+  // execution, documentation/proof and cached detail on the same task set.
+  const acceptConfirmedTaskAdditions = useCallback((
+    scope: { tenantId: string; employeeId: string; assignmentId: string },
+    additions: EmployeePortalTaskItem[],
+  ) => {
+    const current = executionContextRef.current;
+    if (signatureScopeRef.current !== signatureScopeKey || !current
+      || scope.tenantId !== tenantId || scope.employeeId !== employeeId || scope.assignmentId !== assignmentId
+      || current.tenantId !== scope.tenantId || current.employeeId !== scope.employeeId || current.assignmentId !== scope.assignmentId)
+      return false;
+    const previous = confirmedTaskAdditionsRef.current;
+    confirmedTaskAdditionsRef.current = { scope: signatureScopeKey,
+      tasks: mergeConfirmedOptionalTasks(previous?.scope === signatureScopeKey ? previous.tasks : [], additions) };
+    void syncAfterWorkflow(current);
+    return true;
+  }, [signatureScopeKey, tenantId, employeeId, assignmentId, syncAfterWorkflow]);
 
   const checkPendingWorkflowConfirmation = useCallback(async () => {
     const pending = pendingWorkflowConfirmationRef.current;
@@ -898,6 +924,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         if (ctx.tenantId !== tenantId || ctx.employeeId !== employeeId || ctx.assignmentId !== assignmentId) {
           return { ok: false, error: 'Die Einsatzdaten werden noch aktualisiert. Bitte den aktuellen Einsatz erneut prüfen.', errorCode: 'WORKFLOW_SCOPE_CHANGED' };
         }
+
+        const confirmedTasks = confirmedTaskAdditionsRef.current;
+        if (confirmedTasks?.scope === scopeKey)
+          ctx = { ...ctx, detail: { ...ctx.detail, tasks: mergeConfirmedOptionalTasks(ctx.detail.tasks, confirmedTasks.tasks) } };
 
         const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
         if (!isCurrentAttempt()) {
@@ -1633,6 +1663,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     refetchWarning,
     taskSaving: taskDrafts.saving,
     taskSaveError: taskDrafts.saveError,
+    acceptConfirmedTaskAdditions,
     refresh,
     grantConsent,
     startDriveTracking,
