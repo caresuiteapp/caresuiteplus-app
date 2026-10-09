@@ -15,19 +15,8 @@ case "$caresuite_build_phase" in all|--checks-only|--build-only) ;; *) echo 'Ung
 : "${GITHUB_SHA:?GitHub-Quellcommit fehlt}"
 [[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]] || { echo 'Quellcommit stimmt nicht mit dem Workflow überein.' >&2; exit 1; }
 if [[ $caresuite_build_phase != --build-only ]]; then
-  node scripts/verify-healthos-full-production.mjs
-  npm run typecheck
-  npm run audit:portal-update -- --maxWorkers=2
-  npm run audit:android-update
-  npm run audit:assignment-workflow-gate -- --maxWorkers=2 --testTimeout=15000
-  node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs
+  bash scripts/check-healthos-full-release.sh
   python3 scripts/verify-github-aab.test.py
-  node scripts/store-readiness-check.mjs
-  node scripts/audit-android-api36.mjs
-  node scripts/audit-android-release-performance.mjs
-  node --test scripts/configure-healthos-gradle-memory.test.mjs
-  npm run healthos-full:export
-  npm run healthos-full:export:audit
   export CARESUITE_FULL_SOURCE_VERIFIED="$GITHUB_SHA"
   if [[ $caresuite_build_phase == --checks-only ]]; then
     : "${GITHUB_ENV:?GitHub-Umgebungsübergabe fehlt}"
@@ -73,7 +62,10 @@ if [[ ${#caresuite_aab_candidates[@]} -ne 1 ]]; then
 fi
 cp -- "${caresuite_aab_candidates[0]}" "$CARESUITE_AAB_DIR/CareSuite-HealthOS.aab"
 test -s "$CARESUITE_AAB_DIR/CareSuite-HealthOS.aab"
-# Retain additional EAS artifacts, including the exact R8 mapping for this build.
-for caresuite_extra_artifact in "$caresuite_eas_artifacts"/*.tar.gz; do
-  cp -- "$caresuite_extra_artifact" "$CARESUITE_AAB_DIR/R8-build-artifacts.tar.gz"
-done
+# Retain exactly one archive containing the mapping and merged configuration.
+caresuite_r8_candidates=("$caresuite_eas_artifacts"/*.tar.gz)
+if [[ ${#caresuite_r8_candidates[@]} -ne 1 ]]; then
+  echo "FEHLER: Genau ein R8-Archiv erwartet, gefunden: ${#caresuite_r8_candidates[@]}." >&2
+  exit 1
+fi
+cp -- "${caresuite_r8_candidates[0]}" "$CARESUITE_AAB_DIR/R8-build-artifacts.tar.gz"

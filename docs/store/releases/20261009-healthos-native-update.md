@@ -4,7 +4,7 @@ Stand: 9. Oktober 2026 (Europe/Berlin). Paket `app.caresuitehealthos`, Produktio
 
 ## Herkunft und Vollständigkeit
 
-Basis ist der aktuelle Git-Hauptzweig `e07d24024f6c9e340d9e826c6ee4d3f021a96a6f`. Er enthält die letzten Änderungen an optionalen Einsatzaufgaben, kostenlosen Karten, Plattformsteuerung, Registrierung/Systemmail und Workflow-Korrekturen. Die älteren umfangreichen nativen 0.3.7-Arbeiten waren dort teilweise noch nicht integriert. Diese wurden anhand des ursprünglichen vollständigen Updatepakets gegen dessen Basisstand abgeglichen und in den aktuellen Code übernommen.
+Die ursprüngliche Basis war `e07d24024f6c9e340d9e826c6ee4d3f021a96a6f` mit optionalen Einsatzaufgaben, kostenlosen Karten, Plattformsteuerung, Registrierung/Systemmail und Workflow-Korrekturen. Vor dem Git-Bash-Paket wurde der inzwischen aktuelle Hauptzweig `fc3e4e184cfe82564b2f836b14d976798012fcd4` vollständig zusammengeführt. Dessen neue Mandantenakte und Einrichtungsfortschritt wurden zusätzlich als native App-Oberfläche umgesetzt. Die älteren umfangreichen nativen 0.3.7-Arbeiten waren auf der ursprünglichen Basis teilweise noch nicht integriert und wurden anhand des vollständigen Updatepakets gegen dessen Basisstand abgeglichen.
 
 Zusätzlich wurden die vorhandenen Updatepakete vom 1.–8. Oktober geprüft. Ein vollständiger Chat-Abgleich konnte nicht durchgeführt werden: Die persönliche Gesprächssuche meldet für diese Unterhaltung fehlende Verfügbarkeit. Diese Einschränkung ist ausdrücklich kein Nachweis, dass andere Chats keine weiteren Änderungen enthalten.
 
@@ -15,6 +15,7 @@ Der Ambulant-Zwischenstand ist eine unvollständig freigegebene fachliche Erarbe
 | Bereich | Umsetzung im nativen Android-Stand |
 |---|---|
 | Verwaltung/Desktop | Native Arbeitsfläche, linke Navigation auf breiten Fenstern, mobile Navigationsdialoge, Module mit Berechtigungsprüfung, Apps-, Widget-, Workflow- und Hintergrundauswahl |
+| Plattform-Mandantenakte | Neue Hauptzweig-Funktion nativ: tatsächlicher Einrichtungsstand, Firmenlogo/-daten, alle Klient:innen/Mitarbeitenden mit serverseitiger Suche/Seitenzählung, zugehörige Personenakten, gespeicherte Schritte und Vorher-/Nachher-Werte. Vollständige Akte nur für aktive Plattforminhaber; laufende fremde Antworten werden beim Wechsel verworfen |
 | Desktop-Einstellungen | Speichern pro Person/Mandant/Modul; Reihenfolge, Entfernen, Hinzufügen, maximal zwölf Widgets, bewusst leerer Desktop, Fehler und Wiederholen |
 | Wetter/Uhr | Echte BrightSky-/DWD-Daten, gerundete Koordinaten, native Orts-/Postleitzahlauswahl und nachvollziehbare Fehlerzustände |
 | Google Workspace | Native Übersicht, Dienste, Suche, Details, Aktionen und Dateien; bestehende autorisierte API; OAuth-Rückkehr in die App |
@@ -52,18 +53,20 @@ Der native Desktop berücksichtigt tatsächliche Fensterbreite, seitliche Safe A
 | Workflow-Freigabepaket | 376 Prüfungen bestanden |
 | Geteilte Web-/Native-Desktop-, Google- und Recovery-Verträge | 59 Prüfungen bestanden |
 | Zusätzliche Aufgabenprüfung | 20 Prüfungen bestanden |
-| AAB-Manifest-/Versions-, Hermes- und R8-Prüfung | 7 Prüfungen bestanden |
+| AAB-Manifest-/Versions-, Hermes- und R8-Prüfung | 10 Python-Prüfungen bestanden, einschließlich Mapping über 125 MB und Abgleich zum signierten AAB-Mapping |
+| Windows-Buildlogik und Compilerbudget | 32 Node-Prüfungen bestanden; tatsächlicher Windows-/SDK-Build hier nicht ausgeführt |
+| Neue Mandantenakte | 6 Modell-, 8 PostgreSQL-, 8 Web- und 8 native Interaktionsprüfungen bestanden |
 | API 36 und Leistungs-Konfiguration | Bestanden |
-| Frischer Android-Export gegen aktuelle Quellen | Bestanden: 700 Android-Routen, 4.114 erreichbare App-Quellen; keine erreichbare WebView-/iframe-Oberfläche |
-| Signierter AAB mit R8-Mapping | Noch nicht gebaut; bestehende Expo-Signierung wird auf GitHub benötigt |
+| Frischer Android-Export gegen aktuelle Quellen | Bestanden: 700 Android-Routen, 4.121 erreichbare App-Quellen; 4.147 exportierte App-Quellen mit dem aktuellen Arbeitsstand abgeglichen, keine erreichbare WebView-/iframe-Oberfläche |
+| Native Kompilierung und Signatur | GitHub-Lauf 37878272375 erfolgreich kompiliert und signiert; R8-Artefaktprüfung scheiterte am zu engen Größenlimit. Kein verfügbares Release-AAB-Artefakt. Prüfung korrigiert; neue lokale AAB erforderlich |
 | Gerätebild, Systemschrift/Tastatur, Speicher-/Low-Memory-Messung | Offen; hier kein Android-Gerät verfügbar |
 | Play-Update über vorhandene Installation und neuer Vorabbericht | Offen |
 | Vollständige Suche sämtlicher Chats | Technisch nicht verfügbar |
 
-Der konkrete Exportnachweis steht in `20261009-android-export-verification.json`. Er bestätigt den Abgleich von 4.140 exportierten App-Quellen mit dem Arbeitsstand, alle sechs Video-Prüfsummen und die Originalschrift. Der Hermes-Bundle hat SHA-256 `0e31cd7fb99df8de946efa9a5825a560b6032f82c487444b625f65eb30a82e93`; fünf native Oberflächenkennungen wurden direkt in der Binärdatei geprüft. Der Export enthält 175,2 MiB an Runtime-Dateien. Diese Größe ist kein installierter RAM-Verbrauch und keine AAB-/Play-Downloadgröße. Browser-PDF-Vorschauen in gemeinsamen Dateien werden nur dann ausgeschlossen, wenn ihre Plattformbedingung für Android nachweislich falsch ist; unbekannte Bedingungen bleiben gesperrt.
+Der ursprüngliche Exportnachweis steht in `20261009-android-export-verification.json`. Er bestätigt 4.140 damalige App-Quellen, sechs Video-Prüfsummen und die Originalschrift. Nach dem Hauptzweig-Abgleich wird ein neuer Android-Export gegen die nun aktuellen Quellen erstellt; der konkrete Git-Bash-Nachweis steht in `20261009-gitbash-android-export-verification.json`. Runtime-Größe ist kein installierter RAM-Verbrauch und keine AAB-/Play-Downloadgröße. Browser-PDF-Vorschauen in gemeinsamen Dateien werden nur dann ausgeschlossen, wenn ihre Plattformbedingung für Android nachweislich falsch ist; unbekannte Bedingungen bleiben gesperrt.
 
 ## Release-Ablauf
 
-Der bereitgestellte Installer importiert ausschließlich den geprüften Release-Commit in ein separates Git-Arbeitsverzeichnis. Der vorhandene Checkout wird nicht überschrieben. Ein normaler Push auf den eigenen Releasezweig startet den vorhandenen GitHub-Build mit den bisherigen Expo-Zugangsdaten; kein EAS-Cloud-Build und kein automatischer Play-Rollout. Der Workflow prüft produktive Konfiguration, Mindestcode 41, tatsächlichen Android-Quellgraph, Originalmedien und Signatur des AAB. Zusätzlich wird das R8-Mapping aufbewahrt.
+Das aktuelle Git-Bash-Paket aktualisiert den bereits separat angelegten nativen Releaseordner von `ec438d83` auf den geprüften Gesamtstand. Es kontrolliert Prüfsumme, Projekt, sauberen Checkout, Releasebasis und frisch abgerufenen Hauptzweig. Danach prüft es vorhandene Windows-Werkzeuge und baut mit dem nativen Gradle-Wrapper. Es erfolgt kein automatischer Push, GitHub-Build oder Play-Rollout. Produktionskonfiguration, reservierter höherer Code, aktueller nativer Quellgraph, Originalmedien, bestehende Uploadsignatur und tatsächliches R8-Mapping bleiben verbindliche Prüfungen. Cache, AAB und Nachweise bleiben unter `.healthos-gitbash` erhalten. Der genaue Ablauf steht in `GITHUB-ACTIONS.md`.
 
 Push, signierter AAB und Play-Einreichung sind erst durch ihre tatsächlichen Ergebnisse nachgewiesen. Dieser Bericht behauptet weder eine bereits veröffentlichte Play-Version noch eine zu 100 % optisch geprüfte App.

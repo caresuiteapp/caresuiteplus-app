@@ -17,20 +17,29 @@ import { resolvePlatformTenantDetailId } from '@/lib/platformConsole';
 import { listPlatformCompanies } from '@/lib/platformConsole/platformCompanyDirectoryService';
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
+import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
+import { getTenantDossierSummaries } from '@/lib/platformConsole/tenantDossierService.web';
+import { buildTenantSetup, safeDossierLogo, type TenantDossier } from '@/lib/platformConsole/tenantDossierModel';
 
 const COMPANY_COLUMN_WIDTHS: Record<string, number> = {
   tenantName: 210, environment: 150, status: 96, freeUsage: 132,
   createdAt: 116, lifecycleStatus: 188, actions: 96,
+  clients: 102, employees: 112,
 };
-const MIN_COMPANY_TABLE_WIDTH = Object.values(COMPANY_COLUMN_WIDTHS).reduce((sum, width) => sum + width, 0);
+const COMPANY_TABLE_WIDTH = Object.entries(COMPANY_COLUMN_WIDTHS).filter(([key]) => !['clients', 'employees'].includes(key)).reduce((sum, [, width]) => sum + width, 0);
 
 export function PlatformTenantsScreen() {
   const router = useRouter();
+  const { platformUser } = usePlatformAuth();
+  const dossierOwner = platformUser?.role === 'platform_owner';
+  const minTableWidth = COMPANY_TABLE_WIDTH + (dossierOwner ? COMPANY_COLUMN_WIDTHS.clients + COMPANY_COLUMN_WIDTHS.employees : 0);
+  const [dossierSummaries, setDossierSummaries] = useState<Record<string, TenantDossier>>({});
+  const [dossierError, setDossierError] = useState<string | null>(null);
   const { width: windowWidth } = useWindowDimensions();
   const [listWidth, setListWidth] = useState<number | null>(null);
   // Measure the space left by the sidebar; use the viewport until layout is ready.
-  const compactList = listWidth === null ? windowWidth < 1280 : listWidth < MIN_COMPANY_TABLE_WIDTH + 2;
-  const tableWidth = Math.max(MIN_COMPANY_TABLE_WIDTH, (listWidth ?? MIN_COMPANY_TABLE_WIDTH) - 2);
+  const compactList = listWidth === null ? windowWidth < 1280 : listWidth < minTableWidth + 2;
+  const tableWidth = Math.max(minTableWidth, (listWidth ?? minTableWidth) - 2);
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -56,6 +65,7 @@ export function PlatformTenantsScreen() {
     const request = ++requestNumber.current;
     setLoading(true);
     setError(null);
+    setDossierError(null); setDossierSummaries({});
     try {
       const result = await listPlatformCompanies({
         search: search.trim() || undefined,
@@ -65,14 +75,21 @@ export function PlatformTenantsScreen() {
       if (request !== requestNumber.current) return;
       if (!result.ok) throw new Error(result.error);
       setHasMore(result.data.items.length > 50);
-      setItems(result.data.items.slice(0, 50));
+      const visible = result.data.items.slice(0, 50);
+      setItems(visible);
+      if (dossierOwner) {
+        const summaries = await getTenantDossierSummaries(visible.map(row => resolvePlatformTenantDetailId(row)).filter((id): id is string => !!id));
+        if (request !== requestNumber.current) return;
+        if (summaries.ok) setDossierSummaries(Object.fromEntries(summaries.data.map(item => [item.tenantId, item])));
+        else setDossierError(summaries.error);
+      }
     } catch (cause) {
       if (request !== requestNumber.current) return;
       setError(cause instanceof Error ? cause.message : 'Unternehmen konnten nicht geladen werden.');
     } finally {
       if (request === requestNumber.current) setLoading(false);
     }
-  }, [environmentFilter, search, statusFilter, offset]);
+  }, [environmentFilter, search, statusFilter, offset, dossierOwner]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 300);
@@ -84,9 +101,11 @@ export function PlatformTenantsScreen() {
       {
         key: 'tenantName',
         label: 'Mandant',
-        render: (row: PlatformTenantListItem) => (
-          <Text style={styles.cellPrimary}>{row.tenantName}</Text>
-        ),
+        render: (row: PlatformTenantListItem) => {
+          const summary = dossierOwner ? dossierSummaries[resolvePlatformTenantDetailId(row) ?? ''] : undefined;
+          const logo = safeDossierLogo(summary?.branding?.logo_url);
+          return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>{logo ? <img src={logo} alt={`Logo ${row.tenantName}`} referrerPolicy="no-referrer" style={{ width: 38, height: 38, objectFit: 'contain', borderRadius: 8 }} onError={event => { event.currentTarget.hidden = true; }} /> : null}<Text style={[styles.cellPrimary, { flexShrink: 1 }]}>{row.tenantName}</Text></View>;
+        },
       },
       {
         key: 'environment',
@@ -96,7 +115,15 @@ export function PlatformTenantsScreen() {
       { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.status} /> },
       { key: 'freeUsage', label: 'Nutzung', render: () => 'Kostenlos · 0 €' },
       { key: 'createdAt', label: 'Registriert', render: (row: PlatformTenantListItem) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('de-DE') : '—' },
-      { key: 'lifecycleStatus', label: 'Einrichtung', render: (row: PlatformTenantListItem) => row.lifecycleStatus === 'onboarding' ? 'Neu · Einrichtung läuft' : row.lifecycleStatus === 'live' ? 'Im Betrieb' : row.lifecycleStatus },
+      { key: 'lifecycleStatus', label: 'Einrichtung', render: (row: PlatformTenantListItem) => {
+        const summary = dossierOwner ? dossierSummaries[resolvePlatformTenantDetailId(row) ?? ''] : undefined;
+        if (summary) { const setup = buildTenantSetup(summary); return `${setup.percentage}% · ${setup.complete}/${setup.applicable} Schritte`; }
+        return row.lifecycleStatus === 'onboarding' ? 'Neu · Einrichtung läuft' : row.lifecycleStatus === 'live' ? 'Im Betrieb' : row.lifecycleStatus;
+      } },
+      ...(dossierOwner ? [
+        { key: 'clients', label: 'Klient:innen', render: (row: PlatformTenantListItem) => String(dossierSummaries[resolvePlatformTenantDetailId(row) ?? '']?.counts.clients.total ?? '—') },
+        { key: 'employees', label: 'Mitarbeitende', render: (row: PlatformTenantListItem) => String(dossierSummaries[resolvePlatformTenantDetailId(row) ?? '']?.counts.employees.total ?? '—') },
+      ] : []),
       {
         key: 'actions',
         label: 'Aktion',
@@ -117,11 +144,12 @@ export function PlatformTenantsScreen() {
         },
       },
     ],
-    [openTenantDetail],
+    [openTenantDetail, dossierOwner, dossierSummaries],
   );
 
   return (
     <DesktopPlatformShell title="Unternehmen" subtitle="Neue Registrierungen, Ansprechpartner und Unternehmensverwaltung">
+      {dossierOwner && dossierError ? <View style={styles.toolbar}><Text accessibilityRole="alert" style={styles.muted}>Zusätzliche Aktenübersicht: {dossierError}</Text><Pressable accessibilityRole="button" style={styles.searchBtn} onPress={() => void load()}><Text style={styles.searchBtnText}>Erneut laden</Text></Pressable></View> : null}
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}
@@ -172,7 +200,7 @@ export function PlatformTenantsScreen() {
             ) : items.map((row, index) => (
               <View key={resolvePlatformTenantDetailId(row) ?? `tenant-${index}`} style={styles.companyCard}>
                 <View style={styles.cardHeader}>
-                  <Text style={[styles.cellPrimary, styles.cardName]}>{row.tenantName}</Text>
+                  <View style={styles.cardName}>{columns[0].render(row)}</View>
                   {columns[columns.length - 1].render(row)}
                 </View>
                 <View style={styles.cardFacts}>
@@ -196,7 +224,7 @@ export function PlatformTenantsScreen() {
               columns={columns.map((col) => ({
                 ...col,
                 // Explicit widths keep headers and every row on the same grid.
-                width: COMPANY_COLUMN_WIDTHS[col.key] * tableWidth / MIN_COMPANY_TABLE_WIDTH,
+                width: COMPANY_COLUMN_WIDTHS[col.key] * tableWidth / minTableWidth,
               }))}
               data={items}
               keyExtractor={(row, index) => resolvePlatformTenantDetailId(row) ?? `tenant-${index}`}

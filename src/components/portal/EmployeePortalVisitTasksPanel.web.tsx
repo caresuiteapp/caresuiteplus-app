@@ -22,7 +22,7 @@ import { useWebVisualViewport } from '@/hooks/useWebVisualViewport.web';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import { cleanOptionalTaskTitle, optionalTaskTitleKey, searchOptionalTaskChoices, validateOptionalTaskDrafts,
   OPTIONAL_TASK_BATCH_LIMIT, OPTIONAL_TASK_TITLE_LIMIT, type OptionalVisitTaskDraft } from '@/lib/portal/optionalVisitTasks';
-import type { OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTasks.web';
+import type { OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTaskService.web';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import { colors, spacing, typography } from '@/theme';

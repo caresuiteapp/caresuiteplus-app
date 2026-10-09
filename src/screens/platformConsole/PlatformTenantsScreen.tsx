@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import {
   PlatformDataTable,
@@ -11,12 +12,24 @@ import {
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
-import { listPlatformTenants, resolvePlatformTenantDetailId } from '@/lib/platformConsole';
+import { resolvePlatformTenantDetailId } from '@/lib/platformConsole';
+import { listPlatformCompanies } from '@/lib/platformConsole/platformCompanyDirectoryService';
+import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
+import { getTenantDossierSummaries } from '@/lib/platformConsole/tenantDossierService';
+import { buildTenantSetup, safeDossierLogo, type TenantDossier } from '@/lib/platformConsole/tenantDossierModel';
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 
 export function PlatformTenantsScreen() {
   const router = useRouter();
+  const { platformUser } = usePlatformAuth();
+  const dossierOwner = platformUser?.role === 'platform_owner';
+  const [summaries, setSummaries] = useState<Record<string, TenantDossier>>({});
+  const [dossierError, setDossierError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0), [hasMore, setHasMore] = useState(false), [listWidth, setListWidth] = useState(0);
+  const { width, fontScale } = useWindowDimensions();
+  const compact = (listWidth || width) < (dossierOwner ? 1280 : 1000) * Math.max(1, fontScale);
+  const requestNumber = useRef(0);
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -35,28 +48,38 @@ export function PlatformTenantsScreen() {
   );
 
   const load = useCallback(async () => {
+    const request = ++requestNumber.current;
     setLoading(true);
     setError(null);
-    const result = await listPlatformTenants({
+    setDossierError(null); setSummaries({});
+    try {
+    const result = await listPlatformCompanies({
       search: search.trim() || undefined,
       status: statusFilter || undefined,
       billingStatus: billingFilter || undefined,
+      environment: environmentFilter || undefined, limit: 51, offset,
     });
+    if (request !== requestNumber.current) return;
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
       return;
     }
-    setItems(
-      environmentFilter
-        ? result.data.items.filter((item) => item.environmentMode === environmentFilter)
-        : result.data.items,
-    );
-    setLoading(false);
-  }, [billingFilter, environmentFilter, search, statusFilter]);
+    const visible = result.data.items.slice(0, 50);
+    setHasMore(result.data.items.length > 50); setItems(visible);
+    if (dossierOwner) {
+      const summary = await getTenantDossierSummaries(visible.map(resolvePlatformTenantDetailId).filter((id): id is string => !!id));
+      if (request !== requestNumber.current) return;
+      if (summary.ok) setSummaries(Object.fromEntries(summary.data.map(item => [item.tenantId, item])));
+      else setDossierError(summary.error);
+    }
+    } catch (cause) { if (request === requestNumber.current) setError(cause instanceof Error ? cause.message : 'Unternehmen konnten nicht geladen werden.'); }
+    finally { if (request === requestNumber.current) setLoading(false); }
+  }, [billingFilter, environmentFilter, search, statusFilter, offset, dossierOwner]);
 
   useEffect(() => {
-    void load();
+    const timer = setTimeout(() => void load(), 300);
+    return () => { clearTimeout(timer); requestNumber.current++; };
   }, [load]);
 
   const columns = useMemo(
@@ -64,9 +87,11 @@ export function PlatformTenantsScreen() {
       {
         key: 'tenantName',
         label: 'Mandant',
-        render: (row: PlatformTenantListItem) => (
-          <Text style={styles.cellPrimary}>{row.tenantName}</Text>
-        ),
+        render: (row: PlatformTenantListItem) => {
+          const summary = dossierOwner ? summaries[resolvePlatformTenantDetailId(row) ?? ''] : undefined;
+          const raw = safeDossierLogo(summary?.branding?.logo_url), logo = raw?.startsWith('/') ? 'https://www.caresuiteplus.app' + raw : raw;
+          return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>{logo ? <Image source={{ uri: logo }} style={{ width: 38, height: 38 }} contentFit="contain" cachePolicy="memory" allowDownscaling recyclingKey={String(summary?.tenantId) + logo} accessibilityLabel={`Logo ${row.tenantName}`} /> : null}<Text style={[styles.cellPrimary, { flexShrink: 1 }]}>{row.tenantName}</Text></View>;
+        },
       },
       {
         key: 'environment',
@@ -74,12 +99,16 @@ export function PlatformTenantsScreen() {
         render: (row: PlatformTenantListItem) => <PlatformTenantEnvironmentBadge mode={row.environmentMode} />,
       },
       { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.status} /> },
-      { key: 'planKey', label: 'Tarif', render: (row: PlatformTenantListItem) => row.planKey ?? '—' },
-      {
-        key: 'billingStatus',
-        label: 'Billing',
-        render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.billingStatus} />,
-      },
+      { key: 'freeUsage', label: 'Nutzung', render: () => 'Kostenlos · 0 €' },
+      { key: 'setup', label: 'Einrichtung', render: (row: PlatformTenantListItem) => {
+        const summary = dossierOwner ? summaries[resolvePlatformTenantDetailId(row) ?? ''] : undefined;
+        if (summary) { const setup = buildTenantSetup(summary); return `${setup.percentage}% · ${setup.complete}/${setup.applicable} Schritte`; }
+        return row.lifecycleStatus === 'onboarding' ? 'Neu · Einrichtung läuft' : row.lifecycleStatus === 'live' ? 'Im Betrieb' : row.lifecycleStatus;
+      } },
+      ...(dossierOwner ? [
+        { key: 'clients', label: 'Klient:innen', render: (row: PlatformTenantListItem) => String(summaries[resolvePlatformTenantDetailId(row) ?? '']?.counts.clients.total ?? '—') },
+        { key: 'employees', label: 'Mitarbeitende', render: (row: PlatformTenantListItem) => String(summaries[resolvePlatformTenantDetailId(row) ?? '']?.counts.employees.total ?? '—') },
+      ] : []),
       {
         key: 'activeModuleCount',
         label: 'Module',
@@ -105,16 +134,17 @@ export function PlatformTenantsScreen() {
         },
       },
     ],
-    [openTenantDetail],
+    [openTenantDetail, dossierOwner, summaries],
   );
 
   return (
     <PlatformShellLayout title="Mandanten" subtitle="Suche, Filter und Verwaltung aller Mandanten">
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}
           value={search}
-          onChangeText={setSearch}
+          onChangeText={value => { setSearch(value); setOffset(0); }}
           placeholder="Name, Kürzel oder E-Mail…"
           placeholderTextColor={PLATFORM_COLORS.muted}
           onSubmitEditing={() => void load()}
@@ -130,7 +160,7 @@ export function PlatformTenantsScreen() {
             {[
               ['', 'Alle'], ['production', 'Echt / Produktion'], ['pilot', 'Fiktive Piloten'],
               ['demo', 'Demo'], ['internal_test', 'Interne Tests'], ['sandbox', 'Sandbox'], ['unclassified', 'Ungeklärt'],
-            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={environmentFilter === key} onPress={() => setEnvironmentFilter(key)} />)}
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={environmentFilter === key} onPress={() => { setEnvironmentFilter(key); setOffset(0); }} />)}
           </PlatformFilterChipRow>
         </View>
         <View style={styles.filterGroup}>
@@ -138,7 +168,7 @@ export function PlatformTenantsScreen() {
           <PlatformFilterChipRow>
             {[
               ['', 'Alle'], ['active', 'Aktiv'], ['suspended', 'Gesperrt'], ['locked', 'Blockiert'], ['terminated', 'Beendet'],
-            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={statusFilter === key} onPress={() => setStatusFilter(key)} />)}
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={statusFilter === key} onPress={() => { setStatusFilter(key); setOffset(0); }} />)}
           </PlatformFilterChipRow>
         </View>
         <View style={styles.filterGroup}>
@@ -146,16 +176,21 @@ export function PlatformTenantsScreen() {
           <PlatformFilterChipRow>
             {[
               ['', 'Alle'], ['active', 'Aktiv'], ['trial', 'Testphase'], ['past_due', 'Überfällig'], ['failed', 'Fehlgeschlagen'],
-            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={billingFilter === key} onPress={() => setBillingFilter(key)} />)}
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={billingFilter === key} onPress={() => { setBillingFilter(key); setOffset(0); }} />)}
           </PlatformFilterChipRow>
         </View>
       </View>
+      {dossierOwner && dossierError ? <View style={styles.toolbar}><Text accessibilityRole="alert" style={styles.muted}>{dossierError}</Text><Pressable accessibilityRole="button" style={styles.searchBtn} onPress={() => void load()}><Text style={styles.searchBtnText}>Erneut laden</Text></Pressable></View> : null}
+      <View onLayout={event => setListWidth(event.nativeEvent.layout.width)}>
       {loading ? (
         <LoadingState message="Mandanten werden geladen…" />
       ) : error ? (
         <ErrorState title="Liste nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
-        <PlatformDataTable
+        compact ? items.length ? <View style={{ gap: 12 }}>{items.map((row, index) => <View key={resolvePlatformTenantDetailId(row) ?? String(index)} style={styles.companyCard}>{columns.map(column => {
+          const value = column.render(row);
+          return <View key={column.key} style={{ gap: 5, minWidth: 0 }}>{column.label ? <Text style={styles.filterLabel}>{column.label}</Text> : null}{typeof value === 'string' || typeof value === 'number' ? <Text style={styles.cellPrimary}>{value}</Text> : value}</View>;
+        })}</View>)}</View> : <Text style={styles.muted}>Keine passenden Mandanten. Bitte Suche und Filter prüfen.</Text> : <PlatformDataTable
             columns={columns.map((col) => ({
               ...col,
               minWidth: col.key === 'actions' ? 88 : col.key === 'tenantName' ? 180 : 110,
@@ -166,11 +201,15 @@ export function PlatformTenantsScreen() {
             emptyMessage="Passen Sie die Suche an oder prüfen Sie die Berechtigungen."
           />
       )}
+      </View>
+      <View style={[styles.toolbar, { marginTop: 14, flexWrap: 'wrap' }]}><Text style={styles.muted}>Seite {Math.floor(offset / 50) + 1} · {items.length} Unternehmen</Text><Pressable accessibilityRole="button" disabled={loading || offset === 0} style={styles.searchBtn} onPress={() => setOffset(value => Math.max(0, value - 50))}><Text style={styles.searchBtnText}>Zurück</Text></Pressable><Pressable accessibilityRole="button" disabled={loading || !hasMore} style={styles.searchBtn} onPress={() => setOffset(value => value + 50)}><Text style={styles.searchBtnText}>Weitere Unternehmen</Text></Pressable></View>
+      </ScrollView>
     </PlatformShellLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  companyCard: { backgroundColor: PLATFORM_COLORS.panel, borderColor: PLATFORM_COLORS.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 12 },
   toolbar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   filters: { gap: spacing.sm, marginBottom: spacing.md },
   filterGroup: { gap: 5 },
@@ -186,6 +225,8 @@ const styles = StyleSheet.create({
     backgroundColor: PLATFORM_COLORS.panel,
   },
   searchBtn: {
+    minHeight: 44,
+    paddingVertical: 10,
     backgroundColor: PLATFORM_COLORS.panel,
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.border,

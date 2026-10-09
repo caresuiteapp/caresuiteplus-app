@@ -10,6 +10,42 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = nodeModule.createRequire(path.join(root, 'package.json'));
+const { resolve: metroResolve } = require('metro-resolver');
+const { resolver: metroConfig } = require('./metro.config.js');
+
+/** Use Metro for the requested platform, including platform-specific siblings. */
+function resolvePlatformSource(specifier, parent, platform = 'web') {
+  const request = specifier.startsWith('@/')
+    ? path.join(root, 'src', specifier.slice(2))
+    : specifier;
+  const resolution = metroResolve({
+    originModulePath: parent,
+    sourceExts: metroConfig.sourceExts,
+    assetExts: new Set(metroConfig.assetExts),
+    preferNativePlatform: platform !== 'web',
+    mainFields: metroConfig.resolverMainFields,
+    doesFileExist: filename => {
+      try { return fs.statSync(filename).isFile(); } catch { return false; }
+    },
+    getPackage: filename => {
+      try { return JSON.parse(fs.readFileSync(filename, 'utf8')); } catch { return null; }
+    },
+    getPackageForModule: () => null,
+    redirectModulePath: value => value,
+    fileSystemLookup: filename => {
+      try {
+        const stat = fs.statSync(filename);
+        return { exists: true, type: stat.isFile() ? 'f' : 'd', realPath: fs.realpathSync(filename) };
+      } catch {
+        return { exists: false };
+      }
+    },
+    unstable_enablePackageExports: false,
+  }, request, platform);
+  assert.equal(resolution.type, 'sourceFile');
+  return resolution.filePath;
+}
+const resolveWebSource = (specifier, parent) => resolvePlatformSource(specifier, parent, 'web');
 let transform, parseSource;
 try {
   const babel = require('@babel/core');
@@ -27,7 +63,7 @@ try {
 }
 if (!vm.SourceTextModule) throw new Error('Bitte diese Prüfung mit node --experimental-vm-modules starten.');
 
-async function loadSource(entry, mocks = {}, globals = {}) {
+async function loadSource(entry, mocks = {}, globals = {}, platform = 'web') {
   const context = vm.createContext({ console, AbortController, setTimeout, clearTimeout, Uint8Array, crypto: webcrypto, ...globals });
   const cache = new Map();
   function get(filename) {
@@ -48,10 +84,10 @@ async function loadSource(entry, mocks = {}, globals = {}) {
       }
       return cache.get(specifier);
     }
-    const base = specifier.startsWith('@/') ? path.join(root, 'src', specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier);
-    const filename = [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts')].find(file => fs.existsSync(file) && fs.statSync(file).isFile());
-    if (!filename) throw new Error(`Unerwartete Abhängigkeit: ${specifier}`);
-    return get(filename);
+    if (!specifier.startsWith('@/') && !specifier.startsWith('.')) {
+      throw new Error(`Unerwartete Abhängigkeit: ${specifier}`);
+    }
+    return get(resolvePlatformSource(specifier, parent.identifier, platform));
   });
   await module.evaluate(); return module.namespace;
 }
@@ -60,6 +96,54 @@ const uid = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const model = await loadSource('src/lib/portal/optionalVisitTasks.ts');
 const draft = (title = 'Briefkasten leeren', n = 21) => ({ id: uid(n), title });
 const task = (title = 'Briefkasten leeren', n = 21) => ({ ...draft(title,n), status: 'open', required: false, description: '', completionNote: null, requiresNote: true });
+
+test('Metro stellt im Web die Aufgabenhilfen für Einsatzansicht und Aufgabenauswahl bereit', async () => {
+  for (const consumer of [
+    'src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx',
+    'src/components/portal/EmployeePortalVisitTasksPanel.web.tsx',
+  ]) {
+    const filename = resolveWebSource('@/lib/portal/optionalVisitTasks', path.join(root, consumer));
+    assert.equal(filename, path.join(root, 'src/lib/portal/optionalVisitTasks.ts'));
+    const helpers = await loadSource(path.relative(root, filename));
+    assert.equal(typeof helpers.mergeConfirmedOptionalTasks, 'function');
+    assert.equal(typeof helpers.searchOptionalTaskChoices, 'function');
+    assert.equal(typeof helpers.validateOptionalTaskDrafts, 'function');
+    assert.equal(helpers.mergeConfirmedOptionalTasks([], []).length, 0);
+    assert.ok(helpers.searchOptionalTaskChoices('').length > 10);
+  }
+});
+
+function runtimeImport(consumer, name) {
+  const file = path.join(root, consumer), ast = parseSource(fs.readFileSync(file, 'utf8'), file);
+  const declaration = ast.program.body.find(node => node.type === 'ImportDeclaration' && node.importKind !== 'type'
+    && node.specifiers.some(specifier => specifier.type === 'ImportSpecifier' && specifier.importKind !== 'type' && specifier.imported.name === name));
+  assert.ok(declaration, `${consumer} muss ${name} zur Laufzeit importieren`);
+  return declaration.source.value;
+}
+
+test('Android löst die tatsächlichen Aufgabenimporte der Einsatzansicht und des Hooks auf', async () => {
+  for (const consumer of ['src/screens/portal/EmployeePortalVisitExecutionScreen.tsx', 'src/hooks/useEmployeePortalVisitExecution.ts']) {
+    const name = runtimeImport(consumer, 'mergeConfirmedOptionalTasks');
+    const file = resolvePlatformSource(name, path.join(root, consumer), 'android');
+    assert.doesNotMatch(file, /\.web\./);
+    const helpers = await loadSource(path.relative(root, file), {}, {}, 'android');
+    assert.equal(typeof helpers.mergeConfirmedOptionalTasks, 'function');
+    const existing = { ...task(), status: 'done', completionNote: 'Vorhandene Notiz' };
+    const merged = helpers.mergeConfirmedOptionalTasks([existing], [task(), task('Post sortieren', 22)]);
+    assert.equal(merged.length, 2); assert.strictEqual(merged[0], existing);
+    assert.equal(merged[0].completionNote, 'Vorhandene Notiz');
+  }
+});
+
+test('Android stellt dem nativen Aufgabenpanel echte Such- und Validierungsfunktionen bereit', async () => {
+  const consumer = 'src/components/portal/EmployeePortalVisitTasksPanel.tsx';
+  const file = resolvePlatformSource(runtimeImport(consumer, 'searchOptionalTaskChoices'), path.join(root, consumer), 'android');
+  assert.equal(file, path.join(root, 'src/lib/portal/optionalVisitTasks.ts'));
+  const helpers = await loadSource(path.relative(root, file), {}, {}, 'android');
+  assert.ok(helpers.searchOptionalTaskChoices('wäsche').length > 0);
+  assert.equal(helpers.validateOptionalTaskDrafts([draft()]).ok, true);
+  assert.equal(helpers.validateOptionalTaskDrafts([draft('')]).ok, false);
+});
 
 test('Vorlagen sind vorhanden, deutsch beschriftet und über mehrere Suchwörter auffindbar', () => {
   assert.ok(model.OPTIONAL_TASK_CHOICES.length > 10);
@@ -88,15 +172,32 @@ async function serviceFixture(options = {}) {
   const scope = { tenantId:uid(1), employeeId:uid(3), assignmentId:`${uid(9)}::2026-10-08`, portalSession:{ id:'portal-fixture' } };
   const source = options.source ?? 'assist_visits', parent = uid(source === 'assignments' ? 11 : 10);
   const response = options.response ?? { release:model.OPTIONAL_VISIT_TASKS_RELEASE, source, parentId:parent, inserted:1, tasks:[task()] };
-  const service = await loadSource('src/lib/portal/optionalVisitTasks.web.ts', {
+  const platform = options.platform || 'web';
+  const serviceFile = resolvePlatformSource('@/lib/portal/optionalVisitTaskService', path.join(root, 'src/screens/portal/EmployeePortalVisitExecutionScreen' + (platform === 'web' ? '.web' : '') + '.tsx'), platform);
+  if (platform === 'android') assert.equal(serviceFile, path.join(root, 'src/lib/portal/optionalVisitTaskService.ts'));
+  const service = await loadSource(path.relative(root, serviceFile), {
     '@/lib/services/mode':{ getServiceMode:() => options.mode ?? 'supabase' },
     '@/lib/auth/portalSupabaseAuth':{ ensurePortalWriteSession:async value => { calls.push(['session',value]); return options.session ?? { ok:true }; } },
     '@/lib/assist/visitService':{ resolveExecutableVisitId:async (...args) => { calls.push(['occurrence',...args]); return options.executable ?? { ok:true,data:{ visitId:uid(10) } }; } },
     '@/features/liveTracking/resolveLiveAssignment':{ resolveLiveAssignment:async args => { calls.push(['resolve',args]); return options.resolved ?? { ok:true,data:{ detail:{ tenantId:uid(1) }, employeeId:uid(3), visitId:uid(10), assignmentId:uid(11), persistenceSource:source } }; } },
     '@/lib/supabase/client':{ getSupabaseClient:() => options.noClient ? null : { rpc:(name,params) => { calls.push(['rpc',name,params]); return { abortSignal:signal => { calls.push(['signal',signal]); return options.reject ? Promise.reject(Error('network')) : Promise.resolve({ data:response,error:options.error ?? null }); } }; } } },
-  }, { setTimeout:callback => { timers.add(callback); return callback; }, clearTimeout:timer => timers.delete(timer) });
+  }, { setTimeout:callback => { timers.add(callback); return callback; }, clearTimeout:timer => timers.delete(timer) }, platform);
   return { save:input => service.addEmployeeOptionalVisitTasks(scope,input ?? [draft()]), calls, timers };
 }
+
+test('Der native Speicherdienst bestätigt beide Einsatzquellen und verweigert fremde Zuordnungen', async () => {
+  const consumer = 'src/screens/portal/EmployeePortalVisitExecutionScreen.tsx';
+  assert.equal(resolvePlatformSource(runtimeImport(consumer, 'addEmployeeOptionalVisitTasks'), path.join(root, consumer), 'android'), path.join(root, 'src/lib/portal/optionalVisitTaskService.ts'));
+  for (const source of ['assist_visits', 'assignments']) {
+    const f = await serviceFixture({ platform: 'android', source });
+    assert.equal((await f.save()).ok, true);
+    const params = f.calls.find(call => call[0] === 'rpc')[2];
+    assert.equal(params.p_source, source); assert.equal(params.p_parent_id, uid(source === 'assist_visits' ? 10 : 11));
+    assert.equal(f.timers.size, 0);
+  }
+  const foreign = await serviceFixture({ platform: 'android', resolved: { ok: true, data: { detail: { tenantId: uid(1) }, employeeId: uid(99), visitId: uid(10), persistenceSource: 'assist_visits' } } });
+  assert.equal((await foreign.save()).ok, false); assert.ok(!foreign.calls.some(call => call[0] === 'rpc'));
+});
 test('Serientermin wird einzeln aufgelöst; nur bestätigte Serverdaten ergeben Erfolg', async () => {
   const f = await serviceFixture(), result = await f.save();
   assert.equal(result.ok,true); assert.equal(result.inserted,1);

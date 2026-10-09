@@ -13,6 +13,7 @@ docs/
 public/bodymap3d/
 
 # Generated web/native exports and local build artifacts.
+.healthos-gitbash/
 dist/
 dist-*/
 web-build/
@@ -45,6 +46,7 @@ tmp-*.json
 .env.*.local
 .vercel/
 secrets/
+credentials.json
 *.jks
 *.keystore
 *.p8

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check the downloadable bundle, including all six approved intro videos."""
 import hashlib
+import codecs
 import json
 import os
 from pathlib import Path
@@ -120,19 +121,35 @@ def verify_native_bundle(data):
     return len(expected)
 
 
-def verify_r8_artifacts(path):
+def verify_r8_artifacts(path, expected_mapping_sha256=None):
     if not path.is_file():
         raise ValueError('Das R8-Mapping-Archiv des tatsächlichen Builds fehlt')
     with tarfile.open(path, 'r:gz') as archive:
-        def read_one(name):
+        def one_member(name, limit):
             files = [item for item in archive.getmembers() if item.isfile() and Path(item.name).name == name]
-            if len(files) != 1 or not 0 < files[0].size < 50 * 1024 * 1024:
-                raise ValueError('Kein eindeutiges vollständiges R8-Artefakt: ' + name)
-            return archive.extractfile(files[0]).read().decode('utf-8')
-        mapping = read_one('mapping.txt')
-        configuration = read_one('configuration.txt')
-        if not re.search(r'^#\s*compiler:\s*r8\b', mapping, re.M | re.I):
+            if len(files) != 1:
+                raise ValueError(f'R8-Artefakt {name}: genau eine Datei erwartet, gefunden: {len(files)}')
+            if not 0 < files[0].size <= limit:
+                raise ValueError(f'R8-Artefakt {name}: unzulässige Größe {files[0].size} Bytes (Maximum {limit})')
+            return files[0]
+        # The actual full build produces a 125 MB mapping. Validate/hash it in
+        # bounded chunks instead of loading it into memory or rejecting 50 MB.
+        mapping_member = one_member('mapping.txt', 512 * 1024 * 1024)
+        mapping_hash = hashlib.sha256()
+        mapping_header = bytearray()
+        decoder = codecs.getincrementaldecoder('utf-8')()
+        with archive.extractfile(mapping_member) as source:
+            while chunk := source.read(256 * 1024):
+                mapping_hash.update(chunk)
+                decoder.decode(chunk)
+                mapping_header.extend(chunk[:max(0, 65536 - len(mapping_header))])
+            decoder.decode(b'', final=True)
+        if not re.search(r'^#\s*compiler:\s*r8\b', mapping_header.decode('utf-8', errors='ignore'), re.M | re.I):
             raise ValueError('Das Mapping gehört nicht zu einem R8-Build')
+        if expected_mapping_sha256 and mapping_hash.hexdigest() != expected_mapping_sha256:
+            raise ValueError('R8-Mapping stimmt nicht mit dem signierten Mapping im AAB überein')
+        with archive.extractfile(one_member('configuration.txt', 50 * 1024 * 1024)) as source:
+            configuration = source.read().decode('utf-8')
         if re.search(r'^\s*-(?:dontoptimize|dontshrink|dontobfuscate)\b', configuration, re.M):
             raise ValueError('Die tatsächlich zusammengeführten R8-Regeln deaktivieren Release-Optimierungen')
     with path.open('rb') as source:
@@ -156,6 +173,11 @@ def verify(bundle):
         if len(native_bundles) != 1:
             raise ValueError('Genau ein nativer JavaScript/Hermes-Bundle erwartet')
         native_markers = verify_native_bundle(archive.read(native_bundles[0]))
+        mapping_entry = 'BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map'
+        if names.count(mapping_entry) != 1:
+            raise ValueError('Das signierte R8-Mapping im AAB fehlt oder ist nicht eindeutig')
+        with archive.open(mapping_entry) as source:
+            mapping_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
         video_hashes = {
             hashlib.sha256(archive.read(name)).hexdigest()
             for name in names if name.startswith('base/') and name.lower().endswith('.mp4')
@@ -165,7 +187,7 @@ def verify(bundle):
             raise ValueError('Intro im AAB fehlt oder wurde verändert: ' + ', '.join(missing))
     subprocess.run(['jarsigner', '-verify', str(bundle)], check=True)
     upload_fingerprint = verify_upload_certificate(bundle, signing['uploadCertificateSha256'])
-    r8_archive_sha256 = verify_r8_artifacts(bundle.parent / 'R8-build-artifacts.tar.gz')
+    r8_archive_sha256 = verify_r8_artifacts(bundle.parent / 'R8-build-artifacts.tar.gz', mapping_sha256)
     baseline = json.loads((bundle.parent / 'EAS-VERSION-BASELINE.json').read_text())['versionCode']
     if not str(baseline).isdigit() or int(baseline) < 40 or identity['versionCode'] <= int(baseline):
         raise ValueError('AAB-Versionscode liegt nicht über der vor dem Build gelesenen EAS-Version')
@@ -187,6 +209,7 @@ def verify(bundle):
         'verifiedNativeSurfaceMarkers': native_markers,
         'uploadCertificateSha256': upload_fingerprint,
         'r8ArtifactArchiveSha256': r8_archive_sha256,
+        'r8MappingSha256': mapping_sha256,
         'r8MergedOptimizationsVerified': True,
         'previousEasVersionCode': int(baseline),
         **identity,

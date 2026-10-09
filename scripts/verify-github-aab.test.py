@@ -5,6 +5,8 @@ import unittest
 import io
 import tarfile
 import tempfile
+import hashlib
+import json
 
 spec = importlib.util.spec_from_file_location('aab_verify', Path(__file__).with_name('verify-github-aab.py'))
 verify = importlib.util.module_from_spec(spec)
@@ -90,6 +92,61 @@ class ManifestGate(unittest.TestCase):
             archive_file(path, '-keepattributes SourceFile\n', '# compiler: ProGuard\n')
             with self.assertRaises(ValueError):
                 verify.verify_r8_artifacts(path)
+
+
+    def test_full_mapping_over_old_50_mib_limit(self):
+        # Reproduce the release's 125 MB mapping without holding it in RAM.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mapping = root / 'mapping.txt'
+            digest = hashlib.sha256()
+            with mapping.open('wb') as out:
+                header = b'# compiler: R8\n# compiler_version: 8.12\n'
+                out.write(header)
+                digest.update(header)
+                chunk = b'# native release mapping\n' * 4096
+                for _ in range(1300):
+                    out.write(chunk)
+                    digest.update(chunk)
+            self.assertGreater(mapping.stat().st_size, 125 * 1000 * 1000)
+            path = root / 'R8-build-artifacts.tar.gz'
+            configuration = b'-keepattributes SourceFile,LineNumberTable\n'
+            with tarfile.open(path, 'w:gz') as archive:
+                archive.add(mapping, arcname='release/mapping.txt')
+                info = tarfile.TarInfo('release/configuration.txt')
+                info.size = len(configuration)
+                archive.addfile(info, io.BytesIO(configuration))
+            self.assertRegex(verify.verify_r8_artifacts(path, digest.hexdigest()), r'^[a-f0-9]{64}$')
+            with self.assertRaisesRegex(ValueError, 'signierten Mapping'):
+                verify.verify_r8_artifacts(path, '0' * 64)
+
+    def test_mapping_archive_uniqueness_and_missing_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'R8.tar.gz'
+            def write(names):
+                with tarfile.open(path, 'w:gz') as archive:
+                    for name, data in names:
+                        info = tarfile.TarInfo(name)
+                        info.size = len(data)
+                        archive.addfile(info, io.BytesIO(data))
+            mapping = b'# compiler: R8\n'
+            configuration = b'-keepattributes SourceFile\n'
+            write([('release/mapping.txt', mapping)])
+            with self.assertRaisesRegex(ValueError, 'configuration.txt.*gefunden: 0'):
+                verify.verify_r8_artifacts(path)
+            write([('a/mapping.txt', mapping), ('b/mapping.txt', mapping), ('configuration.txt', configuration)])
+            with self.assertRaisesRegex(ValueError, 'mapping.txt.*gefunden: 2'):
+                verify.verify_r8_artifacts(path)
+            write([('mapping.txt', mapping + b'\xff'), ('configuration.txt', configuration)])
+            with self.assertRaises(UnicodeDecodeError):
+                verify.verify_r8_artifacts(path)
+
+    def test_full_android_profile_collects_mapping_and_configuration(self):
+        profile = json.loads((Path(__file__).resolve().parent.parent / 'eas.json').read_text())['build']['healthos-full-aab']
+        paths = profile['android']['buildArtifactPaths']
+        self.assertIn('android/app/build/outputs/mapping/release/*', paths)
+        self.assertEqual(paths, profile['buildArtifactPaths'])
+        self.assertFalse(any('aab' in item or 'apk' in item for item in paths))
 
 
 if __name__ == '__main__':

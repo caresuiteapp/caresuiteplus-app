@@ -76,12 +76,17 @@ import {
 } from './PlatformTenantOperatorTabs';
 
 import { spacing } from '@/theme';
+import { TenantDossierDataBrowser, TenantDossierHeader, TenantDossierHistory, TenantDossierOverview, TenantSetupPanel, useTenantDossier, type DossierView } from './TenantDossierWorkspace.native';
 
 
 
 const TAB_GROUPS = [
   { key: 'record', label: 'Mandantenakte', tabs: [
     { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
+    { key: 'company', label: 'Alle Unternehmensdaten' }, { key: 'setup', label: 'Einrichtung & Prozentstand' },
+  ] },
+  { key: 'people', label: 'Personen & Akten', tabs: [
+    { key: 'clients', label: 'Alle Klient:innen' }, { key: 'employees', label: 'Alle Mitarbeitenden' },
   ] },
   { key: 'contract', label: 'Vertrag & Produkte', tabs: [
     { key: 'subscription', label: 'Vertrag' }, { key: 'modules', label: 'Module' },
@@ -97,6 +102,7 @@ const TAB_GROUPS = [
     { key: 'users', label: 'Benutzer' }, { key: 'support', label: 'Support' },
   ] },
   { key: 'operations', label: 'Betrieb & Prüfung', tabs: [
+    { key: 'history', label: 'Schritte & Verlauf' },
     { key: 'diagnosis', label: 'Diagnose' }, { key: 'audit', label: 'Audit' },
   ] },
 ] as const;
@@ -108,12 +114,22 @@ type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 export function PlatformTenantDetailScreen() {
 
   const { tenantId } = useLocalSearchParams<{ tenantId: string }>();
+  return <TenantDetailContent key={String(tenantId)} tenantId={String(tenantId)} />;
+}
+
+function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   const { platformUser } = usePlatformAuth();
 
   const [detail, setDetail] = useState<PlatformTenantDetail | null>(null);
 
   const [tab, setTab] = useState<TabKey>('overview');
+  const dossierOwner = platformUser?.role === 'platform_owner';
+  const ownerTabs: readonly string[] = ['company', 'setup', 'clients', 'employees', 'history'];
+  const visibleGroups = TAB_GROUPS.map(group => ({ ...group, tabs: group.tabs.filter(item => !ownerTabs.includes(item.key) || dossierOwner) })).filter(group => group.tabs.length);
+  const visibleTab = !dossierOwner && ownerTabs.includes(tab) ? 'overview' : tab;
+  const dossier = useTenantDossier(tenantId, dossierOwner && detail != null, detail);
+  const [dossierSection, setDossierSection] = useState('tenants');
 
   const [loading, setLoading] = useState(true);
 
@@ -250,7 +266,7 @@ export function PlatformTenantDetailScreen() {
 
   const tid = String(tenantId);
 
-  const activeGroup = TAB_GROUPS.find((group) => group.tabs.some((item) => item.key === tab)) ?? TAB_GROUPS[0];
+  const activeGroup = visibleGroups.find((group) => group.tabs.some((item) => item.key === visibleTab)) ?? visibleGroups[0];
 
 
 
@@ -260,10 +276,10 @@ export function PlatformTenantDetailScreen() {
 
       <View style={styles.navigation}>
         <View style={styles.groupTabs}>
-          {TAB_GROUPS.map((group) => {
+          {visibleGroups.map((group) => {
             const active = group.key === activeGroup.key;
             return (
-              <Pressable key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => setTab(group.tabs[0].key)}>
+              <Pressable key={group.key} accessibilityRole="button" accessibilityState={{ selected: active }} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => setTab(group.tabs[0].key)}>
                 <Text style={[styles.groupTabText, active && styles.groupTabTextActive]}>{group.label}</Text>
               </Pressable>
             );
@@ -272,8 +288,8 @@ export function PlatformTenantDetailScreen() {
         {activeGroup.tabs.length > 1 ? (
           <View style={styles.subTabs}>
             {activeGroup.tabs.map((item) => (
-              <Pressable key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => setTab(item.key)}>
-                <Text style={[styles.subTabText, item.key === tab && styles.subTabTextActive]}>{item.label}</Text>
+              <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: item.key === visibleTab }} style={[styles.subTab, item.key === visibleTab && styles.subTabActive]} onPress={() => setTab(item.key)}>
+                <Text style={[styles.subTabText, item.key === visibleTab && styles.subTabTextActive]}>{item.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -297,8 +313,17 @@ export function PlatformTenantDetailScreen() {
 
 
       <ScrollView contentContainerStyle={styles.content}>
+        {dossierOwner && dossier.loading ? <LoadingState message="Vollständige Mandantenakte wird geprüft…" /> : null}
+        {dossierOwner && dossier.error ? <ErrorState title="Mandantenakte nicht verfügbar" message={dossier.error} onRetry={dossier.reload} /> : null}
+        {dossierOwner && dossier.data ? <TenantDossierHeader dossier={dossier.data} onOpen={setTab} /> : null}
+        {dossierOwner && dossier.data && visibleTab === 'overview' ? <TenantDossierOverview dossier={dossier.data} onOpen={(view: DossierView) => { if (view === 'company') setDossierSection('tenants'); setTab(view); }} /> : null}
+        {dossierOwner && dossier.data && visibleTab === 'company' ? <TenantDossierDataBrowser dossier={dossier.data} scope={dossier.data.sections.find(section => section.key === dossierSection)?.scope ?? 'company'} initialSection={dossierSection} /> : null}
+        {dossierOwner && dossier.data && visibleTab === 'clients' ? <TenantDossierDataBrowser dossier={dossier.data} scope="clients" initialSection="clients" /> : null}
+        {dossierOwner && dossier.data && visibleTab === 'employees' ? <TenantDossierDataBrowser dossier={dossier.data} scope="employees" initialSection="employees" /> : null}
+        {dossierOwner && dossier.data && visibleTab === 'setup' ? <TenantSetupPanel dossier={dossier.data} onSection={section => { setDossierSection(section); setTab(section === 'clients' || section === 'employees' ? section : 'company'); }} /> : null}
+        {dossierOwner && visibleTab === 'history' ? <TenantDossierHistory tenantId={tenantId} /> : null}
 
-        {tab === 'overview' ? (
+        {visibleTab === 'overview' ? (
 
           <OverviewTab
 
@@ -354,7 +379,7 @@ export function PlatformTenantDetailScreen() {
 
         ) : null}
 
-        {tab === 'recordEdit' ? (
+        {visibleTab === 'recordEdit' ? (
           <TenantRecordEditTab
             detail={detail}
             canWrite={canEditRecord}
@@ -372,15 +397,15 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'subscription' ? (
+        {visibleTab === 'subscription' ? (
           <TenantSubscriptionTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
         ) : null}
 
-        {tab === 'entitlements' ? (
+        {visibleTab === 'entitlements' ? (
           <TenantEntitlementsTab tenantId={tid} role={platformUser?.role} />
         ) : null}
 
-        {tab === 'modules' ? (
+        {visibleTab === 'modules' ? (
 
           <ModulesTab
 
@@ -416,7 +441,7 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'billing' ? (
+        {visibleTab === 'billing' ? (
 
           <TenantInvoicesTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
 
@@ -424,15 +449,15 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'preview' ? (
+        {visibleTab === 'preview' ? (
           <TenantBillingPreviewTab tenantId={tid} role={platformUser?.role} />
         ) : null}
 
-        {tab === 'credits' ? (
+        {visibleTab === 'credits' ? (
           <TenantCreditsTab tenantId={tid} role={platformUser?.role} onReload={load} />
         ) : null}
 
-        {tab === 'payments' ? (
+        {visibleTab === 'payments' ? (
 
           <TenantPaymentsTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
 
@@ -440,7 +465,7 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'discounts' ? (
+        {visibleTab === 'discounts' ? (
 
           <TenantDiscountsTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
 
@@ -448,7 +473,7 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'support' ? (
+        {visibleTab === 'support' ? (
 
           <TenantSupportTab tenantId={tid} role={platformUser?.role} onReload={load} />
 
@@ -456,7 +481,7 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'flags' ? (
+        {visibleTab === 'flags' ? (
 
           <TenantFeatureFlagsTab tenantId={tid} role={platformUser?.role} />
 
@@ -464,13 +489,13 @@ export function PlatformTenantDetailScreen() {
 
 
 
-        {tab === 'limits' ? <TenantLimitsTab detail={detail} /> : null}
+        {visibleTab === 'limits' ? <TenantLimitsTab detail={detail} /> : null}
 
-        {tab === 'users' ? <TenantUsersTab tenantId={tid} /> : null}
+        {visibleTab === 'users' ? <TenantUsersTab tenantId={tid} /> : null}
 
-        {tab === 'diagnosis' ? <TenantDiagnosisTab tenantId={tid} detail={detail} /> : null}
+        {visibleTab === 'diagnosis' ? <TenantDiagnosisTab tenantId={tid} detail={detail} /> : null}
 
-        {tab === 'audit' ? <TenantAuditTab tenantId={tid} /> : null}
+        {visibleTab === 'audit' ? <TenantAuditTab tenantId={tid} /> : null}
 
       </ScrollView>
 
