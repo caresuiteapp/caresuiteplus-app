@@ -1,98 +1,83 @@
-# Android-AAB mit GitHub Actions
+# Vollständige native HealthOS-App mit GitHub Actions bauen
 
-Der neue Standard-Build läuft auf einem GitHub-Linux-Runner. Er enthält den
-aktuellen Portal-Stand und das achtsekündige Startintro 1.3 in sechs Formaten.
-Der große EAS-Cloud-Upload vom Laptop entfällt.
+Der Workflow **CareSuite Android AAB** baut die vollständige native App 0.4.0 mit
+Verwaltung, Desktop, Widgets, Registrierung und beiden Portalen. Das Profil ist
+**healthos-full-aab**, der Router **app**, das Paket weiterhin **app.caresuitehealthos**.
+Der durch den App-Inhaber belegte bisherige Play-Stand ist 0.3.7 mit Code 40.
+Der neue tatsächlich gebaute AAB muss einen höheren Code haben.
 
-## Voraussetzung: Quellcode auf GitHub
+## Geprüften Quellstand bereitstellen
 
-Der geprüfte App-Stand einschließlich dieser Einrichtung muss zuerst auf GitHub
-bereitgestellt werden. Der Workflow muss auf dem Standardbranch `main` vorhanden
-sein, damit GitHub die Schaltfläche zum manuellen Start anbietet. Ein nur lokal
-installierter Stand ist auf GitHub noch nicht verfügbar.
+Der Releasezweig heißt release/android-0.4.0-20261009. Ein normaler Push auf
+diesen Zweig startet den Workflow automatisch. Änderungen auf main lösen
+diesen Release-Build nicht automatisch aus. Für einen manuellen Start muss der
+Workflow auf dem Standardzweig vorhanden sein; anschließend den gewünschten
+veröffentlichten Releasezweig auswählen.
 
-Das Repository ist öffentlich. Die Veröffentlichung des derzeit nur lokal
-vorhandenen App-Updates ist zum Zeitpunkt dieser Anleitung noch nicht erfolgt
-und wartet auf die ausdrücklich angeforderte Freigabe. Der lokale Installer
-dieses Einrichtungspakets führt keinen GitHub-Upload aus.
+Wenn der Quellstand als Release-ZIP vorliegt, das gesamte Paket entpacken und
+den darin enthaltenen Installer in der vorhandenen Bash-/Git-Bash-Shell mit
+dem Pfad zum bestehenden CareSuite-Projekt starten. Er überprüft Projekt,
+Prüfsumme, Commit und frisch abgerufenen Hauptzweig. Er importiert in ein
+separates Arbeitsverzeichnis und erhält Änderungen im bestehenden Checkout.
+Bei neueren Hauptzweig-Änderungen stoppt er für einen erneuten Abgleich.
 
-## Einmalig einrichten — nach Bereitstellung auf GitHub
+## Bestehende Zugänge verwenden
 
-1. Bei [Expo Access Tokens](https://expo.dev/settings/access-tokens) mit dem
-   bisherigen Expo-Konto anmelden. Einen Token namens `CareSuite GitHub Actions`
-   anlegen. Das Konto muss Zugriff auf das vorhandene CareSuite-Projekt haben.
-2. In [GitHub: Actions-Secrets](https://github.com/caresuiteapp/caresuiteplus-app/settings/secrets/actions)
-   auf **New repository secret** klicken. Name: **EXPO_TOKEN**. Den Expo-Token
-   als Secret einfügen und speichern. Er gehört weder in eine Datei noch in den Chat.
-3. [CareSuite Android AAB](https://github.com/caresuiteapp/caresuiteplus-app/actions/workflows/android-aab.yml)
-   öffnen. **Run workflow** anklicken, den aktuellen veröffentlichten Branch
-   auswählen und starten. Nach Übernahme aller Änderungen nach `main` diesen wählen.
+Das vorhandene Repository-Secret **EXPO_TOKEN** muss Zugriff auf das bisherige
+Expo-Projekt und dessen verwaltete Uploadsignierung haben. Das Projekt bleibt
+567bda34-8356-4de8-9349-a0de3143567e. Die produktiven Servervariablen werden aus
+der bestehenden Expo-Umgebung production gelesen und vor dem Build geprüft.
+Ein fehlender Zugang oder eine fehlende Live-Konfiguration führt zum Abbruch.
+Tokens gehören in die bestehenden Secrets, niemals in Quellcode oder Chat.
 
-## Bauen und herunterladen
+Der Build nutzt **eas build --local --freeze-credentials** auf dem GitHub-Runner.
+Der Compiler läuft auf GitHub; es wird kein EAS-Cloud-Build gestartet. Die
+bisherige Uploadsignierung wird verwendet. Ein Schlüsselwechsel ist kein
+Bestandteil dieses Updates.
 
-Der Workflow prüft den Expo-Zugang, die produktive Serverkonfiguration,
-TypeScript, die Portal-/Introtests und den Android-Export. Danach baut er einen
-signierten **AAB**. Nach erfolgreichem Lauf den Downloadlink in der
-Zusammenfassung oder unter **Artifacts → CareSuite-Portal-AAB-…** öffnen.
+## Prüfen, bauen und herunterladen
 
-Die heruntergeladene ZIP enthält:
+Der Workflow führt TypeScript-, Android-, Portal-, Workflow- und
+Aufgabenprüfungen aus. Anschließend prüft er API 36, Bild-/R8-Konfiguration und
+einen frischen Android-Export gegen die aktuellen Quellen. Die erreichbaren
+App-Routen müssen die nativen Implementierungen enthalten; eingebettete
+WebView-/iframe-Oberflächen werden abgewiesen. Originalvideos und Schrift
+werden anhand ihrer tatsächlichen Exportdateien geprüft.
 
-- `CareSuite-Portal.aab` für die vorhandene Google-Play-App;
-- `SHA256SUMS.txt` zur Integritätsprüfung;
-- `BUILD-INFO.json` mit Quellcode-Commit, Build-ID und Introprüfung.
+Vor dem Build wird die zentrale EAS-Versionsbasis gelesen. Sie muss mindestens
+40 sein. Das Profil erhöht den Versionscode; der AAB-Prüfer verlangt anschließend
+einen Code über 40 und über der vor dem Build gelesenen EAS-Basis. Parallele
+Produktionsbuilds werden durch den Workflow serialisiert.
 
-Die Dateien bleiben sieben Tage auf GitHub verfügbar. Den AAB rechtzeitig lokal
-sichern. Der Workflow veröffentlicht nichts automatisch bei Google Play.
+Nach einem erfolgreichen Lauf unter
+[CareSuite Android AAB](https://github.com/caresuiteapp/caresuiteplus-app/actions/workflows/android-aab.yml)
+das Artefakt **CareSuite-HealthOS-AAB-…** herunterladen. Es enthält:
 
-Der bekannte Befehl im Projektordner bleibt:
+- CareSuite-HealthOS.aab;
+- SHA256SUMS.txt für den AAB;
+- BUILD-INFO.json mit Commit, Manifestversion, tatsächlicher Signatur und Medienprüfung;
+- EAS-VERSION-BASELINE.json mit der vor dem Build gelesenen Version;
+- R8-build-artifacts.tar.gz mit Mapping und tatsächlich zusammengeführten Regeln.
 
-```bash
-bash scripts/build-portal-update-aab.sh
-```
+Der AAB wird gegen das bestätigte Uploadzertifikat
+2D:44:96:38:4E:A1:60:C5:EB:6C:F1:86:2F:48:70:C1:CE:18:5C:8E:98:0C:8D:73:7C:34:E5:71:BF:A0:F5:B0
+geprüft. Das davon getrennte Play-App-Signaturzertifikat und die vorbereiteten
+App-Link-Dateien stehen in docs/store/android-signing-identity.json und
+public/.well-known/assetlinks.json.
 
-Mit installierter und angemeldeter [GitHub CLI](https://cli.github.com/) startet
-er den Workflow für den aktuellen Branch. Er prüft, dass lokaler Commit und
-GitHub-Commit übereinstimmen. Ohne GitHub CLI zeigt er den Link zum manuellen
-Start. Der frühere `download-portal-update-aab.sh` ist ausschließlich für alte
-EAS-Cloud-Build-IDs gedacht; neue AABs werden über GitHub heruntergeladen.
+Die Artefakte bleiben sieben Tage verfügbar. Der Workflow reicht die App
+nicht bei Google Play ein. Die historischen Portal-Skripte und Profile sind
+kein Nachweis für den vollständigen 0.4.0-Build.
 
-## Signierung, Live-Konfiguration und Versionsnummer
+## Geräte- und Play-Freigabe
 
-Der Workflow nutzt `eas build --local` auf GitHub. Expo stellt dabei die bereits
-vorhandene verwaltete Android-Upload-Signierung bereit. Der eigentliche Build
-läuft auf dem GitHub-Rechner und verbraucht kein EAS-Cloud-Build-Kontingent.
-Es wird kein neuer Upload-Schlüssel erzeugt. Fehlende Berechtigungen oder
-Signierungsdaten müssen im bestehenden Expo-Projekt korrigiert werden.
+Ein erfolgreicher Export belegt keinen signierten AAB und keine optische
+Gerätefreigabe. Nach dem echten Build zuerst die bisherige 0.3.7-Installation
+im internen Play-Test aktualisieren. Telefon/Tablet, beide Ausrichtungen,
+große Systemschrift, Tastatur und die betroffenen nativen Abläufe prüfen.
+Speicherverhalten und neuer Play-Vorabbericht müssen am tatsächlichen AAB
+kontrolliert werden.
 
-Das bisherige Profil `portal-only-aab` bleibt aktiv: Paket
-`app.caresuitehealthos`, Produktionsmodus und `production`-Umgebung. Die dort
-gespeicherten Variablen mit Sichtbarkeit Plain text oder Sensitive werden
-übernommen. EAS-Variablen mit Sichtbarkeit Secret stehen lokalen Builds nicht
-automatisch zur Verfügung; falls später solche benötigt werden, müssen sie
-gezielt als GitHub-Secrets eingerichtet werden.
-
-`versionCode` wird weiterhin zentral über Expo erhöht. Der abgebrochene
-Cloud-Auftrag hatte bereits 35 reserviert; der nächste Build erhält den nächsten
-verfügbaren Wert. Eine übersprungene Buildnummer ist normal. GitHub serialisiert
-die AAB-Jobs; keine parallelen alten Cloud-Aufträge starten.
-
-## Kosten und Fehler
-
-Der Workflow verwendet den Standardrunner `ubuntu-24.04`. Solche Runner sind
-bei öffentlichen Repositories kostenlos. Wird das Repository privat, gelten
-die enthaltenen Minuten und Speichergrenzen des jeweiligen GitHub-Tarifs.
-Die Sichtbarkeit des Repositories wird durch diese Einrichtung nicht geändert.
-
-- `EXPO_TOKEN fehlt`: das Repository-Secret aus Schritt 2 speichern.
-- Anmeldung/Projektzugriff fehlgeschlagen: Token des bisherigen Expo-Kontos prüfen.
-- Live-Konfiguration fehlt: `production` in Expo prüfen; keine Dummywerte einsetzen.
-- Signierung fehlt: bestehende Google-Play-Upload-Signierung in Expo prüfen.
-- Roter Build: den ersten fehlgeschlagenen Schritt öffnen und dessen Meldung lesen.
-- Kein Download: der Build muss erfolgreich abgeschlossen sein; abgelaufene
-  Artefakte erfordern einen neuen Build.
-
-Der erste native Build und der anschließende Gerätetest stehen noch aus.
-
-Quellen: [Expo lokale Builds](https://docs.expo.dev/build-reference/local-builds/),
-[Expo-Zugriffstoken](https://docs.expo.dev/accounts/programmatic-access/),
-[GitHub Actions Abrechnung](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+Der konkrete Quell-/Exportnachweis und die offenen Punkte stehen in
+docs/store/releases/20261009-healthos-native-update.md. Zum Zeitpunkt seiner
+Erstellung sind signierter AAB, Geräteprüfung und Play-Einreichung offen.
