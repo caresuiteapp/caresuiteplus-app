@@ -26,8 +26,11 @@ export interface PushTransport {
 }
 const TITLES: Record<string, string> = {
   visit: 'Ihr Einsatzplan wurde aktualisiert',
+  visit_reminder: 'Ihr nächster Einsatz beginnt bald',
+  visit_overdue: 'Bitte den geplanten Einsatzstart prüfen',
   message: 'Neue CareSuite-Nachricht',
   proof: 'Ein Leistungsnachweis ist verfügbar',
+  proof_signature: 'Ihre Unterschrift wird benötigt',
   proof_signed: 'Eine Unterschrift ist eingegangen',
   document: 'Ein Dokument wartet auf Sie',
   notice: 'Neue CareSuite-Mitteilung',
@@ -48,9 +51,6 @@ export function notificationFor(
     ttl: Math.max(0, Math.min(86400, Math.floor((Date.parse(work.expires_at) - now) / 1000))),
     data: {
       notificationId: work.id,
-      route: target.route,
-      accountId: target.account_id,
-      tenantId: target.tenant_id,
     },
   };
 }

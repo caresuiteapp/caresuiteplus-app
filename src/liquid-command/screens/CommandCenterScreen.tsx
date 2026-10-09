@@ -1,22 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Image,
-  ImageBackground,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text as NativeText,
-  TextInput,
-  useWindowDimensions,
-  View,
-  type ImageSourcePropType,
-  type TextProps,
-} from "react-native";
+import { AccessibilityInfo, Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, Text as NativeText, TextInput, useWindowDimensions, View, type ImageSourcePropType, type TextProps } from 'react-native';
+import { CareSuiteImage as Image, CareSuiteImageBackground as ImageBackground } from '@/components/images/CareSuiteImage';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";

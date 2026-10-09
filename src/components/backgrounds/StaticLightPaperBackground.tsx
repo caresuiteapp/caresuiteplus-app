@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Image, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle, Image as NativeImage } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 
 const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
@@ -23,7 +24,7 @@ function resolveWebAssetUri(asset: AssetRef): string | null {
     if (typeof asset.uri === 'string') return asset.uri;
     if (typeof asset.default === 'string') return asset.default;
   }
-  const resolve = Image.resolveAssetSource as
+  const resolve = NativeImage.resolveAssetSource as
     | ((source: AssetRef) => { uri?: string } | null | undefined)
     | undefined;
   if (typeof resolve === 'function') {

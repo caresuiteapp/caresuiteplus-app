@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-09",
+  "projectId": "euagyyztvmemuaiumvxm",
+  "functions": [
+    {
+      "name": "google-workspace-auth",
+      "version": 9,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "sourceMatches": true,
+      "sha256": "d83a07f885ad7ce81ed7dbd2e54051c8d3d04b3ae78de588a2538cd1ce7c5df0"
+    },
+    {
+      "name": "business-password-recovery",
+      "version": 5,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "sourceMatches": true,
+      "sha256": "a52c93fef2971c7ee702d825e51da0594d19ec8d15411583e8164ad225751692"
+    }
+  ],
+  "readOnlyHttpChecks": [
+    {
+      "check": "Recovery rejects unsupported GET",
+      "status": 405,
+      "passed": true
+    },
+    {
+      "check": "Google OAuth start rejects missing authenticated session",
+      "status": 401,
+      "passed": true
+    }
+  ],
+  "testAccountsCreated": false,
+  "recoveryEmailsRequested": false,
+  "googleMessagesSent": false
+}

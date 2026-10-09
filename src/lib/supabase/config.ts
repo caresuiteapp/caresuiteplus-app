@@ -8,7 +8,7 @@ export function isDemoMode(): boolean {
   // The Google-Play edition is a production portal. A stale EAS cloud variable
   // must never be able to switch an already installed employee app onto the
   // in-memory demo repositories while a real portal session is restored.
-  if (process.env?.EXPO_PUBLIC_APP_EDITION === 'portal-only') return false;
+  if (['portal-only', 'full'].includes(process.env?.EXPO_PUBLIC_APP_EDITION ?? '')) return false;
 
   return process.env?.EXPO_PUBLIC_DEMO_MODE === 'true';
 }

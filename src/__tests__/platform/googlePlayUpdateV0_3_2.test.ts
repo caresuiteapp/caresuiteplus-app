@@ -61,7 +61,7 @@ describe('Google Play portal-only update 0.3.2', () => {
     expect(read('app.config.ts')).toContain("root: isPortalOnlyEdition ? 'app-portal' : 'app'");
     const notes = read('docs/store/reviewer-notes.md');
     expect(notes).toContain('Portal-only');
-    expect(notes).toContain('keine Business-/Office-/Admin-Oberfläche');
+    expect(notes).toContain('keine native Business-/Office-/Admin-Oberfläche');
   });
 
   it('documents every sensitive Android data path for Play review', () => {

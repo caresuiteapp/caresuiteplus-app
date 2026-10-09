@@ -56,7 +56,7 @@ let root: Root, host: HTMLDivElement;
 const label = (text: string) => host.querySelector(`[aria-label="${text}"]`) as HTMLButtonElement | null;
 const button = (text: string) => [...host.querySelectorAll<HTMLElement>('button, [role="button"]')].find(b => b.textContent === text)!;
 const render = async () => { await act(async () => root.render(<Desktop />)); };
-const click = async (b: HTMLElement | null) => { expect(b).toBeTruthy(); await act(async () => b!.click()); };
+const click = async (b: HTMLElement | null | undefined) => { expect(b).toBeTruthy(); await act(async () => b!.click()); };
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   memory.clear(); api.owner = 'a'; api.width = 1440; api.scale = 1; vi.clearAllMocks();
@@ -109,7 +109,7 @@ describe('Web desktop preferences and navigation', () => {
   it('keeps text-size controls reachable in narrow windows and offers recovery from an empty search', async () => {
     api.width = 780; api.scale = 1.5; await render(); expect(button('Textgröße ändern')).toBeTruthy();
     expect(host.querySelector('[data-testid=desktop-clock-weather]')).not.toBeNull();
-    expect(label('Standort für Wetter verwenden')).not.toBeNull();
+    expect(label('Wetterort ändern')).not.toBeNull();
     await click(label('Apps und Widgets öffnen'));
     const field = label('Apps durchsuchen') as unknown as HTMLInputElement;
     await act(async () => { field.value = 'KeinTreffer123'; field.dispatchEvent(new Event('input', { bubbles: true })); });

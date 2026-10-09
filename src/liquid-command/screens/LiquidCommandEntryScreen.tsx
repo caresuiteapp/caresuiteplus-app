@@ -1,33 +1,25 @@
 import { Redirect } from 'expo-router';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/auth/context';
+import { RequireRole } from '@/lib/auth/RequireRole';
+import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
 import { AccessHubScreen } from './AccessScreens';
-import { CommandCenterScreen } from './CommandCenterScreen';
-import { PortalHomeScreen } from './PortalHomeScreen';
-import { LiquidBackdrop, LiquidState } from '../components/LiquidPrimitives';
 
 export function LiquidCommandEntryScreen() {
-  const { authReady, isAuthenticated, portalSession, profile } = useAuth();
+  const auth = useAuth();
 
-  if (!authReady) {
-    return (
-      <LiquidBackdrop>
-        <LiquidState
-          kind="loading"
-          title="System wird gestartet"
-          message="Sitzung, Rolle und Mandantenkontext werden sicher wiederhergestellt."
-        />
-      </LiquidBackdrop>
-    );
+  if (!auth.authReady) {
+    return <FullScreenLoader message="Sitzung wird wiederhergestellt…" />;
   }
 
-  if (!isAuthenticated) return <AccessHubScreen />;
+  if (!auth.isAuthenticated) return <AccessHubScreen />;
 
-  const roleKey = portalSession?.roleKey ?? profile?.roleKey ?? null;
-  if (roleKey === 'employee_portal') {
-    return <Redirect href="/portal/employee" />;
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget(auth);
+  if (canRedirectHome && homePath !== '/') {
+    return <Redirect href={homePath as never} />;
   }
-  if (roleKey === 'client_portal') return <PortalHomeScreen portal="client" />;
-  if (roleKey === 'family_portal') return <PortalHomeScreen portal="family" />;
 
-  return <CommandCenterScreen />;
+  // Native administration lives in its protected dashboard, not the web desktop.
+  // Keep an unresolved restored session behind the existing role recovery gate.
+  return <RequireRole><FullScreenLoader message="Zugang wird geprüft…" /></RequireRole>;
 }

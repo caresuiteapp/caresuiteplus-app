@@ -132,6 +132,47 @@
         "EXPO_PUBLIC_APP_EDITION": "portal-only",
         "EXPO_PUBLIC_FOLDER": "public-portal"
       }
+    },
+    "healthos-full-apk": {
+      "extends": "production",
+      "environment": "production",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "full",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      },
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
+    },
+    "healthos-full-aab": {
+      "extends": "production",
+      "environment": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "credentialsSource": "remote",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "full",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      },
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
     }
   },
   "submit": {
@@ -151,6 +192,27 @@
         "applicationId": "app.caresuitehealthos",
         "track": "internal",
         "releaseStatus": "completed"
+      }
+    },
+    "portal-only-production-draft": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    },
+    "healthos-full-internal": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    },
+    "healthos-full-production-draft": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "production",
+        "releaseStatus": "draft"
       }
     }
   }

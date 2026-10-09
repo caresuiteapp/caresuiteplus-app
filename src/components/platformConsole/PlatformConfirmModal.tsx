@@ -5,7 +5,7 @@ import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
-type PlatformConfirmModalProps = {
+export type PlatformConfirmModalProps = {
   visible: boolean;
   title: string;
   description: string;
@@ -14,6 +14,7 @@ type PlatformConfirmModalProps = {
   requireReason?: boolean;
   danger?: boolean;
   loading?: boolean;
+  error?: string | null;
   onCancel: () => void;
   onConfirm: (reason: string) => void;
 };
@@ -27,6 +28,7 @@ export function PlatformConfirmModal({
   requireReason = true,
   danger = false,
   loading = false,
+  error,
   onCancel,
   onConfirm,
 }: PlatformConfirmModalProps) {
@@ -61,6 +63,7 @@ export function PlatformConfirmModal({
         },
         title: { color: PLATFORM_COLORS.text, fontSize: 18, fontWeight: '700' },
         desc: { color: PLATFORM_COLORS.muted, fontSize: 14, lineHeight: 20 },
+        error: { color: PLATFORM_COLORS.danger, fontSize: 14, lineHeight: 20 },
         label: { color: PLATFORM_COLORS.muted, fontSize: 12, marginBottom: 4 },
         input: {
           borderWidth: 1,
@@ -95,6 +98,7 @@ export function PlatformConfirmModal({
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.desc}>{description}</Text>
+          {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
           {requireReason ? (
             <View>
               <Text style={styles.label}>Grund (Pflicht)</Text>

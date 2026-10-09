@@ -10,7 +10,7 @@ describe('Google Play portal-only update 0.3.6', () => {
   it('preserves the existing Android identity and raises the release baseline', () => {
     const app = readJson('app.json').expo;
     expect(app.android.package).toBe('app.caresuitehealthos');
-    expect(app.version).toBe('0.3.6');
+    expect(app.version.localeCompare('0.3.6', undefined, { numeric: true })).toBeGreaterThanOrEqual(0);
     expect(app.android.versionCode).toBeGreaterThanOrEqual(27);
   });
 
@@ -57,11 +57,12 @@ describe('Google Play portal-only update 0.3.6', () => {
     });
   });
 
-  it('keeps Office, Business and administration outside the store edition', () => {
+  it('preserves the historical portal profile and documents the current full native release', () => {
     expect(read('app.config.ts')).toContain("root: isPortalOnlyEdition ? 'app-portal' : 'app'");
     const notes = read('docs/store/reviewer-notes.md');
-    expect(notes).toContain('Portal-only');
-    expect(notes).toContain('keine Business-/Office-/Admin-Oberfläche');
+    expect(notes).toContain('vollständige native Ausgabe');
+    expect(notes).toContain('Firmenregistrierung');
+    expect(notes).not.toContain('keine native Business-/Office-/Admin-Oberfläche');
   });
 
   it('documents every sensitive Android data path for Play review', () => {

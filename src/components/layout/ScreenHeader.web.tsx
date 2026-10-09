@@ -1,5 +1,6 @@
+import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { type ReactNode, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as Trail } from '@/types/navigation/breadcrumbs';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -15,7 +16,7 @@ export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true
   const [width, setWidth] = useState(0);
   const narrow = width > 0 ? width < 640 : isPhone;
   const back = () => onBack ? onBack() : router.canGoBack() ? router.back() : router.replace('/' as never);
-  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} dataSet={{ csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' }}>
+  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} {...{ dataSet: { csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' } }}>
     {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><Text style={styles.backText}>← Zurück</Text></Pressable> : null}
     <View style={[styles.copy, narrow && styles.phoneCopy]}>
       {breadcrumbTrail && (!narrow || !simplifyOnPhone) ? <BreadcrumbTrail trail={breadcrumbTrail} /> : null}

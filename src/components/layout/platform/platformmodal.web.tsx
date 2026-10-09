@@ -140,7 +140,7 @@ export function PlatformModal({
           backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           ...Platform.select({
             web: {
-              position: 'fixed' as const,
+              position: 'fixed' as ViewStyle['position'],
               top: viewportOffsetTop,
               left: viewportOffsetLeft,
               width: visibleWidth,
@@ -162,7 +162,7 @@ export function PlatformModal({
           justifyContent: 'flex-end',
           ...Platform.select({
             web: {
-              position: 'fixed' as const,
+              position: 'fixed' as ViewStyle['position'],
               top: viewportOffsetTop,
               left: viewportOffsetLeft,
               width: visibleWidth,

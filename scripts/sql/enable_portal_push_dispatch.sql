@@ -1,5 +1,7 @@
 -- Run only after portal-push-dispatch, portal-push-register and office-push-send
 -- have been deployed to euagyyztvmemuaiumvxm. Never prints or returns the token.
+-- Production activation requires explicit approval. Review the concrete scope in
+-- docs/store/releases/20261002-automatic-push-activation-review.md first.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
@@ -15,7 +17,8 @@ BEGIN
   SELECT decrypted_secret INTO worker_secret FROM vault.decrypted_secrets WHERE id=secret_id;
  END IF;
  IF worker_secret !~ '^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'Invalid worker secret'; END IF;
- UPDATE public.portal_push_runtime SET worker_token_hash=encode(extensions.digest(worker_secret,'sha256'),'hex'),enabled=true,updated_at=now() WHERE singleton;
+ UPDATE public.portal_push_runtime SET worker_token_hash=encode(extensions.digest(worker_secret,'sha256'),'hex'),enabled=true,
+   reminders_enabled=true,reminders_started_at=coalesce(reminders_started_at,now()),updated_at=now() WHERE singleton;
 END $$;
 CREATE OR REPLACE FUNCTION public.portal_push_tick() RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
@@ -29,7 +32,6 @@ BEGIN
   headers:=jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||worker_secret),
   body:='{}'::jsonb,timeout_milliseconds:=90000
  );
- DELETE FROM portal_push_outbox WHERE id IN (SELECT id FROM portal_push_outbox WHERE state IN ('delivered','failed','cancelled') AND created_at<now()-interval '30 days' ORDER BY created_at LIMIT 2000);
 END $$;
 REVOKE ALL ON FUNCTION public.portal_push_tick() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.portal_push_tick() TO service_role;
@@ -39,6 +41,7 @@ DO $$ BEGIN
 END $$;
 COMMIT;
 SELECT enabled AS automatischer_push_aktiv,
+       reminders_enabled AS einsatz_erinnerungen_aktiv,
        (worker_token_hash IS NOT NULL) AS dienst_geschuetzt,
        EXISTS(SELECT 1 FROM cron.job WHERE jobname='caresuite-portal-push-minute' AND active) AS zeitplan_aktiv
 FROM public.portal_push_runtime;

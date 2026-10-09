@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
       token_hash: hash,
     });
     if (authError || allowed !== true) return jsonResponse({ error: 'Unauthorized' }, 401);
+    const { error: reminderError } = await db.rpc('portal_push_queue_assignment_reminders');
+    if (reminderError) throw reminderError;
     const queue: PushQueue = {
       async claim() {
         const { data, error } = await db.rpc('portal_push_claim', { batch_size: 50 });

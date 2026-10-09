@@ -1,5 +1,6 @@
+import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { usePortalPremiumTheme } from '@/design/tokens/portalPremium.web';
 
@@ -22,7 +23,7 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, style, layout = 'scro
   }, [activeKey, layout]);
   const rowCount = layout === 'wrap' ? Math.min(tabs.length || 1, Math.max(1, Math.floor(rows ?? 1))) : 1;
   const chunkSize = Math.max(1, Math.ceil(tabs.length / rowCount));
-  return <View style={[styles.root, style]} dataSet={{ csWorkspaceComponent: 'tabs', csWorkspaceTone: dark ? 'dark' : 'light' }}>
+  return <View style={[styles.root, style]} {...{ dataSet: { csWorkspaceComponent: 'tabs', csWorkspaceTone: dark ? 'dark' : 'light' } }}>
     <div ref={host} role="tablist" aria-label="Bereiche" style={{ display: 'flex', flexWrap: layout === 'wrap' ? 'wrap' : 'nowrap', gap: 8,
       minWidth: 0, maxWidth: '100%', overflowX: layout === 'scroll' ? 'auto' : undefined, padding: '4px 2px 8px', scrollbarWidth: 'thin' }}>
       {tabs.map((tab, index) => <button key={tab.key} ref={node => { if (node) buttons.current.set(tab.key, node); else buttons.current.delete(tab.key); }}

@@ -11,7 +11,13 @@ fi
 
 node scripts/verify-portal-production-env.mjs
 npm run typecheck
-npm run audit:portal-update
+npm run audit:portal-update -- --maxWorkers=2
+npm run audit:android-update
+npm run audit:assignment-workflow-gate -- --maxWorkers=2 --testTimeout=15000
+node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs
+python3 scripts/verify-github-aab.test.py
+node scripts/store-readiness-check.mjs
+node scripts/audit-android-api36.mjs
 npm run portal-only:export
 npm run portal-only:export:audit
 

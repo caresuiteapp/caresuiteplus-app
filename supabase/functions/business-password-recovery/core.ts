@@ -35,7 +35,7 @@ function matches(user:Identity|null,target:Target) {
 
 /** No identity or token is ever returned to the public request endpoint. */
 export async function deliverBusinessRecovery(
-  client:BusinessRecoveryAdmin,config:RegistrationWelcomeConfig,email:string,fetcher:typeof fetch=fetch,
+  client:BusinessRecoveryAdmin,config:RegistrationWelcomeConfig,email:string,fetcher:typeof fetch=fetch,delivery:'web'|'native'='web',
 ) {
   const target=await targetFor(client,email);
   if(!target) return {accepted:false};
@@ -47,7 +47,7 @@ export async function deliverBusinessRecovery(
     || generated.data.properties.verification_type!=='recovery' || !isRecoveryTokenHash(generated.data.properties.hashed_token)) {
     throw new Error('business_recovery_link_unconfirmed');
   }
-  const link=new URL('/auth/reset-password',config.appUrl);
+  const link=delivery==='native' ? new URL('caresuiteplus:///auth/reset-password') : new URL('/auth/reset-password',config.appUrl);
   const registered=await client.rpc('business_register_recovery_delivery',{p_token_digest:await recoveryDigest(generated.data.properties.hashed_token),p_auth_user_id:target.authUserId,p_email:target.email});
   if(registered.error||registered.data!==true) throw new Error('business_recovery_delivery_binding_unconfirmed');
   link.hash=new URLSearchParams({token_hash:generated.data.properties.hashed_token,type:'recovery'}).toString();

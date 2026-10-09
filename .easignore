@@ -6,12 +6,11 @@
 .expo-*/
 node_modules/
 
-# Desktop-Office-only documentation and heavy 3D/HealthOS assets are not part
-# of the employee/client portal Android edition. Vercel is unaffected because
-# .easignore is read only when EAS prepares a native build archive.
+# Documentation and web GLB models are not required by native bundles.
+# Native BodyMap uses ParametricBodyModel. HealthOS artwork stays available
+# for the full native route tree; Metro includes only each edition's imports.
 docs/
 public/bodymap3d/
-assets/healthos/
 
 # Generated web/native exports and local build artifacts.
 dist/

@@ -36,7 +36,7 @@ function LiquidModuleStack() {
 
 const MODULE_ROOTS: Record<LiquidModuleKey, readonly string[]> = {
   home: ['/'],
-  office: ['/office'],
+  office: ['/office', '/business'],
   assist: ['/assist'],
   pflege: ['/pflege'],
   stationaer: ['/stationaer'],

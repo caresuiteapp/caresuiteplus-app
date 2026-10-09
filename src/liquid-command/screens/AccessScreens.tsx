@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   completeFirstLogin,
@@ -18,6 +19,13 @@ import {
   registerBusinessTenant,
   useAuth,
 } from '@/lib/auth';
+import { FREE_REGISTRATION_PRODUCTS, validateBusinessRegistration } from '@/lib/auth/businessRegistrationPolicy';
+import { resolveBusinessDashboardRoute } from '@/lib/auth/authNavigation';
+import { markBusinessWelcomePending } from '@/lib/auth/businessWelcomeSession';
+import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
+import { canonicalCompanyContactFunction, validateCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
+import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
+import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect';
 import type { BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import {
   loginClientPortal,
@@ -25,11 +33,8 @@ import {
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
-import { requestBusinessPasswordReset } from '@/lib/auth/passwordResetService';
 import {
-  getSession,
   signOut as supabaseSignOut,
-  updatePassword,
 } from '@/lib/supabase/authService';
 import {
   LiquidBackdrop,
@@ -53,23 +58,29 @@ type AccessShellProps = {
   subtitle: string;
   children: ReactNode;
   backRoute?: string;
+  backDisabled?: boolean;
+  scrollKey?: string | number;
   side?: ReactNode;
   compact?: boolean;
 };
 
-function AccessShell({
+export function AccessShell({
   eyebrow,
   title,
   subtitle,
   children,
   backRoute,
+  backDisabled = false,
+  scrollKey,
   side,
   compact = false,
 }: AccessShellProps) {
   const router = useRouter();
   const layout = useLiquidLayout();
   const insets = useSafeAreaInsets();
-  const stacked = layout.isPhone || (layout.isTablet && layout.isPortrait);
+  const scroll = useRef<ScrollView>(null);
+  useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); }, [scrollKey]);
+  const stacked = layout.width < 1100;
   return (
     <LiquidBackdrop>
       <KeyboardAvoidingView
@@ -86,12 +97,14 @@ function AccessShell({
                 label="Zurück"
                 icon="‹"
                 variant="ghost"
-                onPress={() => router.replace(backRoute as never)}
+                disabled={backDisabled}
+                onPress={() => { if (!backDisabled) router.replace(backRoute as never); }}
               />
             ) : null}
           </View>
         ) : null}
         <ScrollView
+          ref={scroll}
           style={styles.accessScrollViewport}
           contentContainerStyle={[
             styles.accessScroll,
@@ -182,7 +195,8 @@ export function BusinessAccessScreen() {
         return;
       }
       await signInWithSupabaseSession(result.data.supabaseSession);
-      router.replace('/' as never);
+      markBusinessWelcomePending();
+      router.replace(resolveBusinessDashboardRoute());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
@@ -274,6 +288,7 @@ export function EmployeeAccessScreen() {
         return;
       }
       await signInPortalSession(completed.data.portalSession);
+      if (!completed.data.portalSession.mustChangePassword) markPortalWelcomePending('employee');
       router.replace(
         result.data.mustChangePassword
           ? '/auth/employee-first-login'
@@ -358,6 +373,7 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         return;
       }
       await signInPortalSession(completed.data.portalSession);
+      markPortalWelcomePending('client');
       router.replace('/portal/client' as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
@@ -405,15 +421,6 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
   );
 }
 
-const registrationModules = [
-  ['office', 'Office'],
-  ['assist', 'Assist'],
-  ['pflege', 'Pflege'],
-  ['stationaer', 'Stationär'],
-  ['beratung', 'Beratung'],
-  ['akademie', 'Akademie'],
-] as const;
-
 const REGISTRATION_DRAFT_KEY = 'caresuite.liquid.registration.v1';
 
 const EMPTY_REGISTRATION: BusinessRegistrationInput = {
@@ -437,16 +444,15 @@ const EMPTY_REGISTRATION: BusinessRegistrationInput = {
   adminEmail: '',
   adminPhone: '',
   adminPassword: '',
-  selectedModules: ['office', 'assist'],
+  selectedModules: FREE_REGISTRATION_PRODUCTS,
 };
 
 const registrationSteps = [
   ['Organisation', 'Stammdaten und Leistungsbereich'],
   ['Anschrift', 'Adresse und Erreichbarkeit'],
   ['Verantwortung', 'Kontakt und Administrationskonto'],
-  ['Module', 'Versorgungsbereiche aktivieren'],
   ['Sicherheit', 'Passwort und Datenschutz'],
-  ['Prüfung', 'Angaben kontrollieren und starten'],
+  ['Prüfung', 'Kostenlos starten · keine Kreditkarte'],
 ] as const;
 
 export function RegisterOrganizationScreen() {
@@ -458,42 +464,65 @@ export function RegisterOrganizationScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ username?: string } | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const submitLock = useRef(false);
+  const completed = useRef(false);
+  const draftWrites = useRef<Promise<unknown>>(Promise.resolve());
+  const [draftError, setDraftError] = useState(false);
+  const registrationLayout = useLiquidLayout();
 
   useEffect(() => {
+    if (!loading) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => submitLock.current);
+    return () => subscription.remove();
+  }, [loading]);
+
+  useEffect(() => {
+    let mounted = true;
     void AsyncStorage.getItem(REGISTRATION_DRAFT_KEY).then((value) => {
-      if (!value) return;
+      if (!mounted || !value) return;
       try {
         const parsed = JSON.parse(value) as Partial<BusinessRegistrationInput>;
-        setForm((current) => ({ ...current, ...parsed, adminPassword: '' }));
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+        setForm((current) => {
+          const restored = Object.fromEntries(Object.keys(current).filter(key => key !== 'adminPassword' && typeof parsed[key as keyof BusinessRegistrationInput] === 'string').map(key => [key, String(parsed[key as keyof BusinessRegistrationInput]).slice(0, 200)]));
+          return { ...current, ...restored, selectedModules: FREE_REGISTRATION_PRODUCTS, adminPassword: '' };
+        });
       } catch {
         // A damaged local draft is ignored; the user can continue with clean fields.
       }
-    });
+    }).catch(() => undefined).finally(() => { if (mounted) setDraftReady(true); });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
-    const safeDraft = { ...form, adminPassword: '' };
-    void AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft));
-  }, [form]);
+    if (!draftReady || success) return;
+    const { adminPassword: _password, ...safeDraft } = form;
+    draftWrites.current = draftWrites.current.catch(() => undefined)
+      .then(() => AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft)))
+      .then(() => setDraftError(false), () => setDraftError(true));
+  }, [draftReady, form, success]);
 
   const update = <K extends keyof BusinessRegistrationInput>(
     key: K,
     value: BusinessRegistrationInput[K],
-  ) => setForm((current) => ({ ...current, [key]: value }));
-
-  const toggleModule = (module: BusinessRegistrationInput['selectedModules'][number]) => {
-    if (module === 'office') return;
-    setForm((current) => ({
-      ...current,
-      selectedModules: current.selectedModules.includes(module)
-        ? current.selectedModules.filter((entry) => entry !== module)
-        : [...current.selectedModules, module],
-    }));
-  };
+  ) => { if (!submitLock.current) setForm((current) => ({ ...current, [key]: value })); };
 
   const stepError = useMemo(() => {
+    const fieldsByStep = [
+      ['companyName', 'legalForm', 'industry', 'ikNumber'],
+      ['street', 'zip', 'city', 'phone', 'email', 'website'],
+      ['adminFirstName', 'adminLastName', 'adminEmail', 'adminPhone', 'contactFirstName', 'contactLastName', 'contactRole'],
+    ] as const;
+    if (step < fieldsByStep.length && fieldsByStep[step].some(key => (form[key]?.length ?? 0) > 200)) {
+      return 'Bitte Angaben auf höchstens 200 Zeichen begrenzen.';
+    }
     if (step === 0 && (!form.companyName.trim() || !form.legalForm.trim() || !form.industry.trim())) {
       return 'Firmenname, Rechtsform und Einrichtungstyp sind erforderlich.';
+    }
+    if (step === 0) {
+      const selectionError = validateCompanyRegistrationSelection(form);
+      if (selectionError) return selectionError;
     }
     if (step === 1 && (!form.street.trim() || !form.zip.trim() || !form.city.trim() || !form.phone.trim() || !form.email.trim())) {
       return 'Anschrift, Telefon und Organisations-E-Mail sind erforderlich.';
@@ -501,8 +530,18 @@ export function RegisterOrganizationScreen() {
     if (step === 2 && (!form.adminFirstName.trim() || !form.adminLastName.trim() || !form.adminEmail.trim())) {
       return 'Vorname, Nachname und E-Mail der Administration sind erforderlich.';
     }
-    if (step === 4) {
-      if (form.adminPassword.length < 10) return 'Das Admin-Passwort muss mindestens 10 Zeichen haben.';
+    if (step === 2) {
+      const functionError = validateCompanyContactFunction(form.contactRole);
+      if (functionError) return functionError;
+    }
+    if ((step === 1 || step === 2) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((step === 1 ? form.email : form.adminEmail).trim())) {
+      return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+    }
+    if (step === 1 && form.website?.trim() && !/^https?:\/\/[^\s]+$/i.test(form.website.trim())) {
+      return 'Die Website muss mit https:// oder http:// beginnen.';
+    }
+    if (step === 3) {
+      if (form.adminPassword.length < 10 || form.adminPassword.length > 128) return 'Das Admin-Passwort muss 10 bis 128 Zeichen lang sein.';
       if (form.adminPassword !== confirmPassword) return 'Die Passwörter stimmen nicht überein.';
       if (!accepted) return 'Datenschutz- und Nutzungsbedingungen müssen bestätigt werden.';
     }
@@ -510,31 +549,48 @@ export function RegisterOrganizationScreen() {
   }, [accepted, confirmPassword, form, step]);
 
   const next = () => {
+    if (!draftReady || submitLock.current || completed.current) return;
     setError(null);
     if (stepError) {
       setError(stepError);
       return;
     }
-    setStep((current) => Math.min(current + 1, registrationSteps.length - 1));
+    setStep((current) => current === step ? Math.min(current + 1, registrationSteps.length - 1) : current);
   };
 
   const submit = async () => {
+    if (!draftReady || submitLock.current || completed.current) return;
+    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration(form);
+    if (validation || !accepted || form.adminPassword !== confirmPassword) {
+      setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
+      return;
+    }
+    submitLock.current = true;
     setError(null);
     setLoading(true);
     try {
-      const result = await registerBusinessTenant(form);
+      const result = await registerBusinessTenant({ ...form, termsAccepted: accepted });
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY);
-      setSuccess({ username: result.data.credentials?.username || result.data.owner.username });
+      completed.current = true;
+      await draftWrites.current;
+      await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
+      setSuccess({ username: result.data.owner.email });
+      setForm(current => ({ ...current, adminPassword: '' }));
+      setConfirmPassword('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Registrierung fehlgeschlagen.');
     } finally {
+      submitLock.current = false;
       setLoading(false);
     }
   };
+
+  if (!draftReady) {
+    return <AccessShell eyebrow="REGISTRIERUNG" title="Kostenloses Unternehmen anlegen" subtitle="Gespeicherte Angaben werden geladen…"><LiquidState kind="loading" title="Registrierung wird vorbereitet" message="Ihre gespeicherten Angaben stehen gleich zur Verfügung." /></AccessShell>;
+  }
 
   if (success) {
     return (
@@ -547,7 +603,7 @@ export function RegisterOrganizationScreen() {
         <LiquidState
           kind="success"
           title="Registrierung erfolgreich"
-          message={success.username ? `Administrations-Benutzername: ${success.username}` : 'Administrationskonto erstellt.'}
+          message={success.username ? `Ihre E-Mail für die Anmeldung: ${success.username}` : 'Administrationskonto erstellt.'}
         />
         <LiquidButton fullWidth label="Zur Anmeldung" onPress={() => router.replace('/auth/business-login' as never)} />
       </AccessShell>
@@ -560,16 +616,18 @@ export function RegisterOrganizationScreen() {
       title={registrationSteps[step][0]}
       subtitle={registrationSteps[step][1]}
       backRoute="/auth"
-      side={
+      backDisabled={loading}
+      scrollKey={step}
+      side={registrationLayout.width < 1100 ? undefined : (
         <LiquidSurface active contentStyle={styles.stepCard}>
           <LiquidText variant="kicker">FORTSCHRITT</LiquidText>
           {registrationSteps.map(([label, detail], index) => (
             <Pressable
               key={label}
               accessibilityRole="button"
-              accessibilityState={{ selected: step === index, disabled: index > step }}
-              disabled={index > step}
-              onPress={() => setStep(index)}
+              accessibilityState={{ selected: step === index, disabled: loading || index > step }}
+              disabled={loading || index > step}
+              onPress={() => { if (!submitLock.current) { setError(null); setStep(index); } }}
               style={[styles.stepRow, step === index && styles.stepRowActive]}
             >
               <View style={[styles.stepNumber, index <= step && styles.stepNumberActive]}>
@@ -585,17 +643,20 @@ export function RegisterOrganizationScreen() {
               </View>
             </Pressable>
           ))}
-          <LiquidStatus label="Automatisch gespeichert" tone="success" />
+          <LiquidStatus label="Kostenlos · 0 €" tone="success" />
+          <LiquidText variant="body">Kostenlos starten. Keine Kreditkarte erforderlich.</LiquidText>
         </LiquidSurface>
-      }
+      )}
     >
+      {registrationLayout.width < 1100 ? <View style={styles.registrationProgress} accessibilityLabel={`Schritt ${step + 1} von 5: ${registrationSteps[step][0]}`}><View style={styles.registrationProgressTrack}><View style={[styles.registrationProgressFill, { width: `${((step + 1) / registrationSteps.length) * 100}%` }]} /></View><Text style={styles.registrationProgressText}>Schritt {step + 1} von {registrationSteps.length} · {registrationSteps[step][0]}</Text></View> : null}
       <LiquidSurface active contentStyle={styles.formCard}>
-        {error ? <LiquidState kind="error" title="Angaben prüfen" message={error} /> : null}
+        <LiquidStatus label="Kostenlos · 0 € · keine Kreditkarte" tone="success" />
+        {error ? <LiquidState kind="error" title={step === 4 ? 'Registrierung nicht abgeschlossen' : 'Angaben prüfen'} message={error} /> : null}
         {step === 0 ? (
           <>
             <LiquidField label="Firmenname" value={form.companyName} onChangeText={(value) => update('companyName', value)} required />
-            <LiquidField label="Rechtsform" value={form.legalForm} onChangeText={(value) => update('legalForm', value)} required />
-            <LiquidField label="Einrichtungstyp / Branche" value={form.industry} onChangeText={(value) => update('industry', value)} required />
+            <CompanyRegistrationSelect kind="legal_form" label="Rechtsform" value={form.legalForm} onChange={(value) => update('legalForm', value)} disabled={loading} showError={Boolean(error)} />
+            <CompanyRegistrationSelect kind="industry" label="Einrichtungstyp / Branche" value={form.industry} onChange={(value) => update('industry', value)} disabled={loading} showError={Boolean(error)} />
             <LiquidField label="IK-Nummer" value={form.ikNumber ?? ''} onChangeText={(value) => update('ikNumber', value)} />
           </>
         ) : null}
@@ -621,32 +682,10 @@ export function RegisterOrganizationScreen() {
             <LiquidField label="Admin Telefon" value={form.adminPhone ?? ''} onChangeText={(value) => update('adminPhone', value)} keyboardType="phone-pad" />
             <LiquidField label="Ansprechperson Vorname" value={form.contactFirstName} onChangeText={(value) => update('contactFirstName', value)} />
             <LiquidField label="Ansprechperson Nachname" value={form.contactLastName} onChangeText={(value) => update('contactLastName', value)} />
-            <LiquidField label="Funktion" value={form.contactRole} onChangeText={(value) => update('contactRole', value)} />
+            <CompanyRegistrationSelect kind="contact_function" label="Funktion" value={form.contactRole} onChange={(value) => update('contactRole', value)} disabled={loading} showError={Boolean(error)} />
           </>
         ) : null}
         {step === 3 ? (
-          <View style={styles.moduleGrid}>
-            {registrationModules.map(([key, label]) => {
-              const selected = form.selectedModules.includes(key);
-              return (
-                <Pressable
-                  key={key}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected, disabled: key === 'office' }}
-                  onPress={() => toggleModule(key)}
-                  style={[styles.moduleOption, selected && styles.moduleOptionSelected]}
-                >
-                  <LiquidGlyph active={selected} glyph={selected ? '✓' : '○'} size={20} />
-                  <View style={styles.moduleCopy}>
-                    <Text style={styles.moduleLabel}>{label}</Text>
-                    <Text style={styles.moduleDetail}>{key === 'office' ? 'Immer aktiv' : 'Kostenlos aktivieren'}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-        {step === 4 ? (
           <>
             <LiquidField
               label="Admin-Passwort"
@@ -654,13 +693,15 @@ export function RegisterOrganizationScreen() {
               onChangeText={(value) => update('adminPassword', value)}
               secureTextEntry
               required
-              hint="Mindestens 10 Zeichen; keine Wiederverwendung eines Einmalpassworts."
+              hint="10 bis 128 Zeichen; keine Wiederverwendung eines Einmalpassworts."
             />
-            <LiquidField label="Passwort bestätigen" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry required />
+            <LiquidField label="Passwort bestätigen" value={confirmPassword} onChangeText={(value) => { if (!submitLock.current) setConfirmPassword(value); }} secureTextEntry required />
+            <Link href="/datenschutz" style={{ color: '#1D4ED8', fontSize: 15, textDecorationLine: 'underline' }}>Datenschutzhinweise lesen</Link>
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{ checked: accepted }}
-              onPress={() => setAccepted((current) => !current)}
+              disabled={loading}
+              onPress={() => { if (!submitLock.current) setAccepted((current) => !current); }}
               style={[styles.acceptRow, accepted && styles.acceptRowSelected]}
             >
               <LiquidGlyph active={accepted} glyph={accepted ? '✓' : '○'} size={20} />
@@ -670,13 +711,20 @@ export function RegisterOrganizationScreen() {
             </Pressable>
           </>
         ) : null}
-        {step === 5 ? (
+        {step === 4 ? (
           <View style={styles.reviewFacts}>
             {[
               ['Organisation', `${form.companyName} · ${form.legalForm}`],
+              ['Einrichtung', form.industry],
+              ...(form.ikNumber?.trim() ? [['IK-Nummer', form.ikNumber]] : []),
               ['Standort', `${form.street}, ${form.zip} ${form.city}`],
+              ['Erreichbarkeit', `${form.email} · ${form.phone}`],
+              ...(form.website?.trim() ? [['Website', form.website]] : []),
               ['Administration', `${form.adminFirstName} ${form.adminLastName} · ${form.adminEmail}`],
-              ['Module', form.selectedModules.join(', ')],
+              ...(form.adminPhone?.trim() ? [['Telefon Administration', form.adminPhone]] : []),
+              ...([form.contactFirstName, form.contactLastName].some(value => value?.trim()) ? [['Ansprechperson', [form.contactFirstName, form.contactLastName].filter(Boolean).join(' · ')]] : []),
+              ['Funktion', canonicalCompanyContactFunction(form.contactRole) ?? form.contactRole],
+              ['Kosten', 'Kostenlos · 0 €'],
               ['Sicherheit', 'Passwort gesetzt · Bedingungen bestätigt'],
             ].map(([label, value]) => (
               <View key={label} style={styles.reviewFact}>
@@ -686,14 +734,15 @@ export function RegisterOrganizationScreen() {
             ))}
           </View>
         ) : null}
+        <Text accessibilityRole={draftError ? "alert" : undefined} style={styles.registrationDraftHint}>{draftError ? "Die Angaben konnten auf diesem Gerät nicht zwischengespeichert werden. Bitte lassen Sie die Seite bis zur Registrierung geöffnet." : "Ihre Angaben werden auf diesem Gerät zwischengespeichert. Passwörter werden nicht gespeichert."}</Text>
         <View style={styles.registrationActions}>
           {step > 0 ? (
-            <LiquidButton label="Zurück" variant="secondary" onPress={() => setStep((current) => current - 1)} />
+            <LiquidButton label="Zurück" variant="secondary" disabled={loading} onPress={() => { if (!submitLock.current) { setError(null); setStep((current) => current - 1); } }} />
           ) : null}
           {step < registrationSteps.length - 1 ? (
-            <LiquidButton label="Weiter" onPress={next} />
+            <LiquidButton label="Weiter" disabled={loading} onPress={next} />
           ) : (
-            <LiquidButton label="Organisation registrieren" loading={loading} onPress={() => void submit()} />
+            <LiquidButton label="Unternehmen kostenlos registrieren" loading={loading} onPress={() => void submit()} />
           )}
         </View>
       </LiquidSurface>
@@ -701,119 +750,7 @@ export function RegisterOrganizationScreen() {
   );
 }
 
-export function PasswordRecoveryScreen() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-    const result = await requestBusinessPasswordReset(email);
-    setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setSuccess(result.data.message);
-  };
-
-  return (
-    <AccessShell
-      eyebrow="PASSWORT-WIEDERHERSTELLUNG"
-      title="Zugang sicher wiederherstellen."
-      subtitle="Ein Rücksetz-Link wird ausschließlich an das verknüpfte Administrationskonto gesendet."
-      backRoute="/auth/business-login"
-      side={<SecuritySide />}
-    >
-      <LiquidSurface active contentStyle={styles.formCard}>
-        {error ? <LiquidState kind="error" title="Versand nicht möglich" message={error} /> : null}
-        {success ? <LiquidState kind="success" title="E-Mail geprüft" message={success} /> : null}
-        <LiquidField
-          label="E-Mail"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          required
-        />
-        <LiquidButton fullWidth label="Rücksetz-Link anfordern" loading={loading} onPress={() => void submit()} />
-        <LiquidButton fullWidth label="Zur Anmeldung" variant="secondary" onPress={() => router.replace('/auth/business-login' as never)} />
-      </LiquidSurface>
-    </AccessShell>
-  );
-}
-
-export function PasswordResetScreen() {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    void getSession().then((result) => {
-      setHasSession(result.ok && Boolean(result.data));
-      setReady(true);
-    });
-  }, []);
-
-  const submit = async () => {
-    setError(null);
-    if (password.length < 10) {
-      setError('Das neue Passwort muss mindestens 10 Zeichen haben.');
-      return;
-    }
-    if (password !== confirm) {
-      setError('Die Passwörter stimmen nicht überein.');
-      return;
-    }
-    setLoading(true);
-    const result = await updatePassword(password);
-    if (!result.ok) {
-      setLoading(false);
-      setError(result.error);
-      return;
-    }
-    await supabaseSignOut();
-    setLoading(false);
-    router.replace('/auth/business-login' as never);
-  };
-
-  return (
-    <AccessShell
-      eyebrow="NEUES PASSWORT"
-      title="Sitzung schützen."
-      subtitle="Vergeben Sie ein neues Passwort für das bestätigte Konto."
-      backRoute="/auth/business-login"
-      side={<SecuritySide />}
-    >
-      {!ready ? (
-        <LiquidState kind="loading" title="Rücksetz-Link wird geprüft" message="Die sichere Sitzung wird wiederhergestellt." />
-      ) : !hasSession ? (
-        <LiquidState
-          kind="locked"
-          title="Link ungültig oder abgelaufen"
-          message="Fordern Sie einen neuen Rücksetz-Link an."
-          actionLabel="Neuen Link anfordern"
-          onAction={() => router.replace('/auth/forgot-password' as never)}
-        />
-      ) : (
-        <LiquidSurface active contentStyle={styles.formCard}>
-          {error ? <LiquidState kind="error" title="Passwort nicht gespeichert" message={error} /> : null}
-          <LiquidField label="Neues Passwort" value={password} onChangeText={setPassword} secureTextEntry required />
-          <LiquidField label="Passwort bestätigen" value={confirm} onChangeText={setConfirm} secureTextEntry required />
-          <LiquidButton fullWidth label="Passwort speichern" loading={loading} onPress={() => void submit()} />
-        </LiquidSurface>
-      )}
-    </AccessShell>
-  );
-}
+export { NativeBusinessPasswordRecoveryScreen as PasswordRecoveryScreen, NativeBusinessPasswordResetScreen as PasswordResetScreen } from '@/screens/auth/BusinessPasswordRecovery.native';
 
 export function EmployeeFirstLoginScreen() {
   const router = useRouter();
@@ -844,6 +781,7 @@ export function EmployeeFirstLoginScreen() {
       return;
     }
     await updatePortalSession({ mustChangePassword: false });
+    markPortalWelcomePending('employee');
     router.replace('/portal/employee' as never);
   };
 
@@ -866,7 +804,13 @@ export function EmployeeFirstLoginScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
+  registrationProgress: { gap: 8 },
+  registrationProgressTrack: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: '#D8E7FA' },
+  registrationProgressFill: { height: '100%', backgroundColor: '#076BE4', borderRadius: 3 },
+  registrationProgressText: { color: '#38546F', fontSize: 15, lineHeight: 22, fontWeight: '600' },
+  registrationDraftHint: { color: '#526B82', fontSize: 14, lineHeight: 21 },
   accessRoot: {
     flex: 1,
     minHeight: 0,
@@ -1199,49 +1143,6 @@ const styles = StyleSheet.create({
   cityField: {
     minWidth: 200,
     flex: 2,
-  },
-  moduleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  moduleOption: {
-    minWidth: 190,
-    flex: 1,
-    minHeight: 76,
-    padding: 14,
-    borderRadius: liquidRadius.small,
-    borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: liquidColors.white08,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  moduleOptionSelected: {
-    borderColor: liquidColors.blue500,
-    backgroundColor: 'rgba(20,120,255,0.14)',
-  },
-  moduleCheck: {
-    color: liquidColors.blue200,
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '800',
-  },
-  moduleCopy: {
-    minWidth: 0,
-    flex: 1,
-  },
-  moduleLabel: {
-    color: liquidColors.white,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  moduleDetail: {
-    color: liquidColors.white56,
-    fontSize: 12,
-    lineHeight: 17,
   },
   acceptRow: {
     minHeight: 70,

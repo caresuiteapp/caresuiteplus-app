@@ -1,8 +1,4 @@
-# Google Play Store-Texte – CareSuite HealthOS 0.3.2
-
-**Paket-ID:** `app.caresuitehealthos`
-
-**Stand:** 2026-09-02
+# Google Play Store-Texte – CareSuite HealthOS 0.4.0
 
 ## App-Name
 
@@ -10,37 +6,34 @@ CareSuite HealthOS
 
 ## Kurzbeschreibung
 
-Sichere Einsatz-, Dokumentations- und Portal-App für ambulante Versorgung.
+Verwaltung, Einsätze und sichere Portale – gemeinsam in einer nativen App.
 
 ## Vollständige Beschreibung
 
-CareSuite HealthOS verbindet Mitarbeitende und Klient:innen sicher mit ihrem Pflegedienst oder Versorgungsträger.
+CareSuite HealthOS verbindet Verwaltung, Mitarbeitende und Klient:innen mit ihrem Pflegedienst oder Versorgungsträger.
 
-Mitarbeitende sehen ihre freigegebenen Einsätze, werden Schritt für Schritt durch den Einsatztag geführt und können notwendige Nachweise direkt mobil erfassen. Dazu gehören Mobilitätsauswahl, An- und Zwischenfahrten, Fahrtenbuch, Einsatzdokumentation, Medien und Unterschriften. Aufgaben können optional bestätigt werden; Dokumentation und der vorgesehene Unterschriftsnachweis bleiben Teil des Abschlusses. Kann eine Klientin oder ein Klient vor Ort nicht unterschreiben, kann die Unterschrift über das geschützte Klient:innenportal nachgeholt werden.
+Die Verwaltung arbeitet in einer nativen App-Oberfläche mit Desktop, Widgets und modulbezogener Navigation. Auf dem Telefon passen sich Navigation und Arbeitsbereich an die verfügbare Fläche an; auf Tablets bietet die App eine breite Arbeitsfläche. Funktionen richten sich nach Rolle, Mandant und Freigabe.
 
-Die GPS-Aufzeichnung wird ausschließlich für eine aktiv gestartete dienstliche Fahrt bzw. einen aktiv gestarteten Einsatztag verwendet. Damit Anfahrt, Zwischenfahrten und Rückfahrt vollständig erfasst werden können, kann die Aufzeichnung während dieses Zeitraums auch im Hintergrund weiterlaufen. Eine sichtbare Android-Systemmitteilung zeigt die laufende Aufzeichnung an.
+Firmen registrieren sich kostenlos über die App. Anmeldung, Verwaltungspasswort-Wiederherstellung und öffentlicher Support verwenden App-Formulare. Verbundenes Google Workspace bietet autorisierte Nachrichten, Termine, Dateien und Aufgaben. Neo unterstützt Navigation über Touch, Texteingabe und verfügbare lokale Sprachfunktionen.
 
-Foto-, Video- und Datei-Uploads unterstützen die freigegebene Einsatzdokumentation. Kamera, Mikrofon, Medien und Standort werden nur nach der jeweiligen Berechtigungsfreigabe verwendet.
+Mitarbeitende sehen ihre freigegebenen Einsätze. Mobilitätsauswahl, Anfahrt, Zwischenfahrten, Fahrtenbuch, Dokumentation, Medien und Unterschriften unterstützen den mobilen Arbeitsablauf. Optionale Aufgaben lassen sich suchen, auswählen und ergänzen. Die App zeigt bestätigte Speicherungen und erkennbare Fehlerzustände.
 
-Klient:innen können ihre freigegebenen Informationen, Dokumente und offenen Unterschriften in einem eigenen geschützten Zugang einsehen.
+Klient:innen erhalten einen eigenen Zugang zu ihren freigegebenen Informationen und Dokumenten. Vorgesehene offene Unterschriften können im geschützten Portal nachgeholt werden.
 
-CareSuite HealthOS ist eine geschlossene B2B-Anwendung. Ein Zugang wird durch den jeweiligen Pflegedienst oder Träger bereitgestellt. Es gibt keine öffentliche Selbstregistrierung. Rollen, Mandantentrennung und geschützte Sitzungen begrenzen den Zugriff auf die jeweils freigegebenen Inhalte.
+Dienstliche Standortaufzeichnung startet durch eine bewusste Aktion. Damit aktive Fahrten bei gesperrtem Display vollständig bleiben, kann die Aufnahme im Hintergrund weiterlaufen. Eine Android-Systemmitteilung zeigt die laufende Aufzeichnung. Nach Ende des aktiven Fahrt-/Tageskontexts wird sie beendet. Die native Karte zeigt vorhandene Positionen und Strecken.
 
-## Was ist neu – Version 0.3.2
+Kamera, Fotos, Videos, Dateien und Mikrofon werden im jeweiligen, freigegebenen Arbeitsablauf verwendet. Rollen, Mandantentrennung und geschützte Sitzungen begrenzen den Zugriff. Onlinefunktionen benötigen eine Internetverbindung. Mitarbeitenden- und Klient:innenzugänge werden durch den jeweiligen Träger bereitgestellt.
 
-- Neuer geführter mobiler Einsatztag mit Mobilitätsauswahl
-- Fahrtenbuch für Anfahrt, Zwischenfahrten und Rückfahrt verbessert
-- GPS-Aufzeichnung und Wiederaufnahme stabilisiert
-- Foto-, Video- und Datei-Uploads robuster gemacht
-- Dokumentation und Unterschrift klarer abgesichert
-- Nachträgliche Unterschrift über das Klient:innenportal
-- Mobile Einsatzliste und Tablet-Bedienung korrigiert
-- Nachrichten schreiben und sichere Portalsitzungen repariert
-- Biometrische Entsperrung und Passwortmanager verbessert
-- Einheitliche Navigationssymbole und bessere Fehlerdiagnose
+## Was ist neu – Version 0.4.0
+
+Native Verwaltung mit Desktop, Widgets und Navigation.
+Registrierung, Wiederherstellung und Support als App-Formulare.
+Google Workspace, Neo und Karten nativ integriert.
+Aktuelle Korrekturen für Aufgaben, Abschluss, Signaturen und Fahrtenbuch.
+Bildspeicher und R8-Optimierung verbessert.
 
 ## Support
 
-- Hilfe: https://caresuiteplus.de/hilfe
-- Datenschutz: https://caresuiteplus.de/datenschutz
-- E-Mail: support@caresuiteplus.de
+Hilfe: https://www.caresuiteplus.app/support
+Datenschutz: https://www.caresuiteplus.app/datenschutz
+E-Mail: caresuiteapp@gmail.com

@@ -52,7 +52,7 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
   };
   return <SurfaceContrastProvider tone={tone}><View style={styles.root}
     onLayout={event => setWidth(event.nativeEvent.layout.width)}
-    dataSet={{ csWorkspaceComponent: 'data-table', csWorkspaceTone: tone, csWorkspaceSolid: String(solidSurface) }}>
+    {...{ dataSet: { csWorkspaceComponent: 'data-table', csWorkspaceTone: tone, csWorkspaceSolid: String(solidSurface) } }}>
     {!data.length ? <View style={[styles.empty, darkSurface && styles.darkCard]}><Text style={[styles.value, { color: muted }]}>{emptyMessage}</Text></View> : compact ? <>
       {onSortColumn && columns.some(col => col.sortable) ? <View style={styles.sortBar}>
         <Text style={[styles.label, { color: muted }]}>Sortieren:</Text>
@@ -62,7 +62,7 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
         const id = keyExtractor(item);
         return <View key={id} style={[styles.card, dense && styles.denseCard, darkSurface && styles.darkCard, selectedId === id && (darkSurface ? styles.darkSelected : styles.selected)]}>
           <View style={[styles.fields, dense && styles.denseFields, { gridTemplateColumns: width >= 560 ? 'repeat(2,minmax(0,1fr))' : 'minmax(0,1fr)' } as unknown as ViewStyle]}>
-            {columns.map((col, index) => <View key={col.key} style={[styles.field, dense && styles.denseField, index === 0 && styles.firstField]} dataSet={{ csWorkspaceCell: 'true' }}>
+            {columns.map((col, index) => <View key={col.key} style={[styles.field, dense && styles.denseField, index === 0 && styles.firstField]} {...{ dataSet: { csWorkspaceCell: 'true' } }}>
               <Text style={[styles.label, { color: muted }]}>{col.label || 'Aktionen'}</Text>
               {renderCell(col, item)}
             </View>)}
@@ -72,9 +72,9 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
           </Pressable> : null}
         </View>;
       })}</View>
-    </> : <View accessibilityRole="table" style={[styles.table, darkSurface && styles.darkCard]} testID="table-container">
-      <View accessibilityRole="row" style={[styles.header, grid, darkSurface && styles.darkHeader]}>
-        {columns.map(col => <View accessibilityRole="columnheader" key={col.key} style={styles.cell}
+    </> : <View role="table" style={[styles.table, darkSurface && styles.darkCard]} testID="table-container">
+      <View role="row" style={[styles.header, grid, darkSurface && styles.darkHeader]}>
+        {columns.map(col => <View role="columnheader" key={col.key} style={styles.cell}
           {...{ 'aria-sort': sortColumnKey === col.key ? (sortDirection === 'desc' ? 'descending' : 'ascending') : undefined }}>
           {col.sortable && onSortColumn ? sortButton(col) : <Text style={[styles.label, { color: muted, textAlign: col.align ?? 'left' }]}>{col.label}</Text>}
         </View>)}
@@ -92,7 +92,7 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
               event.preventDefault(); onRowPress(item);
             }
           }}>
-          {columns.map(col => <View accessibilityRole="cell" key={col.key} dataSet={{ csWorkspaceCell: 'true' }}
+          {columns.map(col => <View role="cell" key={col.key} {...{ dataSet: { csWorkspaceCell: 'true' } }}
             style={[styles.cell, { alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'stretch' }]}>
             {renderCell(col, item)}
           </View>)}

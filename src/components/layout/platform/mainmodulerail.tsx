@@ -1,13 +1,6 @@
 import { useMemo } from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useRouter } from 'expo-router';
 import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import {

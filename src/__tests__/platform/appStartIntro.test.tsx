@@ -141,7 +141,7 @@ describe('Native app startup intro', () => {
     await render();
     expect(host.textContent).toContain('Sitzung lädt parallel');
     expect(model.sources).toEqual([101]);
-    expect(model.player).toMatchObject({ muted: false, loop: false, volume: 1, staysActiveInBackground: false });
+    expect(model.player).toMatchObject({ muted: false, loop: false, volume: 1, audioMixingMode: 'doNotMix', staysActiveInBackground: false });
     expect(model.play).toHaveBeenCalledOnce();
     expect(model.hideSplash).toHaveBeenCalled();
     await act(async () => vi.advanceTimersByTime(7900));

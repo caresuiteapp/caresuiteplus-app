@@ -1,3 +1,6 @@
+import { addEmployeeOptionalVisitTasks, type OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTaskService';
+import { mergeConfirmedOptionalTasks, type OptionalVisitTaskDraft } from '@/lib/portal/optionalVisitTaskModel';
+import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { EmployeeOpenVisitTimeEditor } from '@/components/portal/EmployeeOpenVisitTimeEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -166,6 +169,7 @@ export function EmployeePortalVisitExecutionScreen() {
     refetchWarning,
     taskSaving,
     taskSaveError,
+    acceptConfirmedTaskAdditions,
     refresh,
     consent,
     grantConsent,
@@ -197,7 +201,7 @@ export function EmployeePortalVisitExecutionScreen() {
   } = useEmployeePortalVisitExecution(id);
 
   const { tenantId: portalTenantId, employeeId: portalEmployeeId } = usePortalActor();
-  const { user, profile } = useAuth();
+  const { user, profile, portalSession } = useAuth();
   const actorId = user?.id ?? profile?.id ?? portalEmployeeId ?? '';
 
   const effectiveStatus: AssignmentStatus =
@@ -230,6 +234,10 @@ export function EmployeePortalVisitExecutionScreen() {
   const [closeSignatureCaptureRequest, setCloseSignatureCaptureRequest] = useState(0);
   const restoredAssignmentRef = useRef<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const optionalTaskScope = `${portalTenantId ?? ''}:${portalEmployeeId ?? ''}:${id ?? ''}`;
+  const activeOptionalTaskScope = useRef(optionalTaskScope);
+  activeOptionalTaskScope.current = optionalTaskScope;
+  const [confirmedOptionalTasks, setConfirmedOptionalTasks] = useState<{ scope: string; tasks: EmployeePortalTaskItem[] }>({ scope: optionalTaskScope, tasks: [] });
   const [documentationOpen, setDocumentationOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
@@ -360,8 +368,8 @@ export function EmployeePortalVisitExecutionScreen() {
     });
   }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
   const visitTasks = useMemo(
-    () => (Array.isArray(visit?.tasks) ? visit.tasks : []),
-    [visit?.tasks],
+    () => mergeConfirmedOptionalTasks(Array.isArray(visit?.tasks) ? visit.tasks : [], confirmedOptionalTasks.scope === optionalTaskScope ? confirmedOptionalTasks.tasks : []),
+    [visit?.tasks, confirmedOptionalTasks, optionalTaskScope],
   );
 
   useEffect(() => {
@@ -566,6 +574,30 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
   const showTasks = uiState?.showTasks ?? false;
+  const canAddOptionalTasks = canExecute && !isLocked && !readOnlyExecution && !actionLoading && !taskSaving && !workflowConfirmationPending
+    && ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen'].includes(effectiveStatus)
+    && !['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '');
+  const saveOptionalTasks = useCallback(async (drafts: OptionalVisitTaskDraft[]): Promise<OptionalTaskSaveResult> => {
+    if (!canAddOptionalTasks || !portalTenantId || !portalEmployeeId || !id)
+      return { ok: false, error: 'In diesem Einsatz können derzeit keine neuen Aufgaben ergänzt werden.' };
+    const scope = optionalTaskScope;
+    const result = await addEmployeeOptionalVisitTasks({ tenantId: portalTenantId, assignmentId: id, employeeId: portalEmployeeId, portalSession }, drafts);
+    if (activeOptionalTaskScope.current !== scope)
+      return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte die Aufgaben im ursprünglichen Einsatz prüfen.' };
+    if (!result.ok) return result;
+    setConfirmedOptionalTasks(current => ({ scope, tasks: mergeConfirmedOptionalTasks(current.scope === scope ? current.tasks : [], result.tasks) }));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([refresh(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('readback pending')), 15_000); })]);
+    } catch {
+      if (activeOptionalTaskScope.current === scope) setLocalWarning('Die Aufgaben sind auf dem Server gespeichert. Der weitere Einsatzstatus konnte noch nicht aktualisiert werden. Bitte den Einsatz vor dem Abschluss neu laden.');
+    } finally { if (timer) clearTimeout(timer); }
+    if (activeOptionalTaskScope.current !== scope)
+      return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte die Aufgaben im ursprünglichen Einsatz prüfen.' };
+    if (!acceptConfirmedTaskAdditions({ tenantId: portalTenantId, employeeId: portalEmployeeId, assignmentId: id }, result.tasks))
+      setLocalWarning('Die Aufgaben sind gespeichert. Bitte den Einsatz erneut öffnen, damit auch Dokumentation und Abschluss aktualisiert werden.');
+    return result;
+  }, [canAddOptionalTasks, portalTenantId, portalEmployeeId, id, portalSession, optionalTaskScope, refresh, acceptConfirmedTaskAdditions]);
   const documentationSubmitted = uiState?.documentationSubmitted ?? false;
   const signatureCaptured = uiState?.signatureCaptured ?? false;
   const signatureDeferred = uiState?.signatureDeferred ?? false;
@@ -1872,14 +1904,18 @@ export function EmployeePortalVisitExecutionScreen() {
         </PortalKeyboardScrollView>
       </View>
 
-      {showTasks && visitTasks.length > 0 ? (
+      {showTasks ? (
         <EmployeePortalVisitTasksPanel
+          key={optionalTaskScope}
           tasks={visitTasks}
           disabled={isLocked}
           loading={taskSaving}
           visible={tasksOpen}
           onClose={() => setTasksOpen(false)}
           onUpdateTask={saveTask}
+          saveError={taskSaveError}
+          canAdd={canAddOptionalTasks}
+          onAddTasks={saveOptionalTasks}
         />
       ) : null}
 

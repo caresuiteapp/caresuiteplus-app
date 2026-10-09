@@ -77,7 +77,35 @@ function setup() {
   return { queue, transport };
 }
 describe('Server queue delivery behavior', () => {
-  it('hands a neutral scoped payload to Expo and saves the ticket', async () => {
+  it('uses neutral reminders and signature requests without document or client details', () => {
+    const now = Date.now();
+    for (const [kind, title] of [
+      ['visit_reminder', 'Ihr nächster Einsatz beginnt bald'],
+      ['visit_overdue', 'Bitte den geplanten Einsatzstart prüfen'],
+      ['proof_signature', 'Ihre Unterschrift wird benötigt'],
+    ]) {
+      const payload = notificationFor(
+        { ...work, event_kind: kind, expires_at: new Date(now + 5 * 60_000).toISOString() },
+        target,
+        now,
+      );
+      expect(payload.title).toBe(title);
+      expect(payload.ttl).toBe(300);
+      expect(payload.data).toEqual({ notificationId: uid });
+      expect(Object.keys(payload)).not.toContain('clientName');
+      expect(Object.keys(payload)).not.toContain('documentContent');
+    }
+  });
+  it('cancels reminders that expire while waiting, before contacting Expo', async () => {
+    const { queue, transport } = setup();
+    const now = Date.now();
+    const expired = { ...work, event_kind: 'visit_reminder', expires_at: new Date(now - 1).toISOString() };
+    queue.claim.mockResolvedValue([expired]);
+    await processPortalPush(queue, transport, now);
+    expect(transport.send).not.toHaveBeenCalled();
+    expect(queue.finish).toHaveBeenCalledWith(expired, 'cancelled', null, 'no_longer_accessible');
+  });
+  it('hands only an opaque notification reference to Expo and keeps account and route inside CareSuite', async () => {
     const { queue, transport } = setup();
     await processPortalPush(queue, transport);
     expect(queue.finish).toHaveBeenCalledWith(work, 'accepted', 'ticket', null);
@@ -86,10 +114,10 @@ describe('Server queue delivery behavior', () => {
     expect(JSON.stringify(payload)).not.toContain('password');
     expect(payload?.[0].data).toEqual({
       notificationId: uid,
-      route: data.route,
-      accountId: 'account',
-      tenantId: 'tenant',
     });
+    expect(JSON.stringify(payload)).not.toContain(data.route);
+    expect(JSON.stringify(payload)).not.toContain('account');
+    expect(JSON.stringify(payload)).not.toContain('tenant');
   });
   it('does not send if the recipient loses access between enqueue and delivery', async () => {
     const { queue, transport } = setup();

@@ -2,6 +2,7 @@
 .expo/
 dist/
 dist-portal-only/
+dist-healthos-full/
 dist-bodymap3d/
 web-build/
 expo-env.d.ts

@@ -1,5 +1,6 @@
+import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, type ViewStyle } from 'react-native';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { SurfaceContrastProvider, useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { usePortalPremiumTheme } from '@/design/tokens/portalPremium.web';
@@ -20,7 +21,7 @@ export function SectionPanel({ title, subtitle, children, headerAlign = 'left', 
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
   return <SurfaceContrastProvider tone={dark ? 'dark' : 'light'}>
     <View style={[styles.panel, dark && styles.dark, open && styles.open, fillHeight && styles.fill]}
-      dataSet={{ csWorkspaceComponent: 'section', csWorkspaceTone: dark ? 'dark' : 'light' }}>
+      {...{ dataSet: { csWorkspaceComponent: 'section', csWorkspaceTone: dark ? 'dark' : 'light' } }}>
       <View style={[styles.header, dense && styles.denseHeader, open && styles.openHeader, { alignItems: headerAlign === 'center' ? 'center' : 'flex-start', borderBottomColor: dark ? '#31526E' : '#DCE8F2' }]}>
         <View pointerEvents="none" style={[styles.rail, { backgroundColor: accentColor ?? (dark ? '#69D7FF' : '#1477D6') }]} />
         <Text accessibilityRole="header" style={[styles.title, headerVariant === 'hero' && styles.hero, { color: dark ? '#F3F8FF' : '#102B49', textAlign: headerAlign }]}>{title}</Text>

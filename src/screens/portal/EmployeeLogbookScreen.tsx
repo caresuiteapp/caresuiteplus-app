@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import * as DocumentPicker from 'expo-document-picker';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { CareEntitySelect } from '@/components/inputs/CareEntitySelect';

@@ -148,12 +148,14 @@ export function InvoiceDetailScreen({ invoiceId, embedded = false }: InvoiceDeta
     }
     try {
       const prepared = await generateInvoicePdf(context.data);
-      if (mode === 'preview') previewPreparedInvoicePdf(prepared, previewWindow);
-      else downloadPreparedInvoicePdf(prepared);
+      if (mode === 'preview') await previewPreparedInvoicePdf(prepared, previewWindow);
+      else await downloadPreparedInvoicePdf(prepared);
       setPdfNotice(
         prepared.validation.warnings.length > 0
           ? prepared.validation.warnings.join(' ')
-          : mode === 'preview'
+          : Platform.OS !== 'web'
+            ? 'Die PDF-Datei wurde zum Öffnen, Speichern oder Teilen bereitgestellt.'
+            : mode === 'preview'
             ? 'PDF-Vorschau wurde geöffnet.'
             : `PDF ${prepared.fileName} wurde heruntergeladen.`,
       );
@@ -244,14 +246,14 @@ export function InvoiceDetailScreen({ invoiceId, embedded = false }: InvoiceDeta
         >
           <View style={styles.pdfActions}>
             <PremiumButton
-              title="PDF-Vorschau"
+              title={Platform.OS === 'web' ? 'PDF-Vorschau' : 'PDF öffnen / teilen'}
               variant="secondary"
               loading={pdfLoading === 'preview'}
               disabled={Boolean(pdfLoading)}
               onPress={() => handlePdf('preview')}
             />
             <PremiumButton
-              title="PDF herunterladen"
+              title={Platform.OS === 'web' ? 'PDF herunterladen' : 'PDF speichern / teilen'}
               loading={pdfLoading === 'download'}
               disabled={Boolean(pdfLoading)}
               onPress={() => handlePdf('download')}
@@ -399,4 +401,3 @@ const styles = StyleSheet.create({
   pdfActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   pdfHint: { ...typography.caption, color: colors.textMuted },
 });
-

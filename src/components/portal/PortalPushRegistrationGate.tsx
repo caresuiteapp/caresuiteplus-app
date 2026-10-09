@@ -5,7 +5,8 @@ import { AppState, Linking, Modal, Platform, Pressable, StyleSheet, Text, View }
 import { useAuth } from '@/lib/auth/context';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { ensurePortalPushRegistration, type PortalPushRegistrationResult } from '@/lib/portal/portalPushNotifications';
-import { consumePortalPushResponse, portalPushDestination } from '@/lib/portal/portalPushNavigation';
+import { consumePortalPushResponse } from '@/lib/portal/portalPushNavigation';
+import { resolvePortalPushDestination } from '@/lib/portal/resolvePortalPushDestination';
 
 const dismissed = new Set<string>();
 export function PortalPushRegistrationGate() {
@@ -50,13 +51,16 @@ export function PortalPushRegistrationGate() {
   }, []);
   useEffect(() => {
     if (!portalActive || !navigation?.key || !response) return;
-    const destination = portalPushDestination(response.notification.request.content.data, portalSession);
-    if (!destination) return;
-    const id = String(response.notification.request.content.data?.notificationId ?? response.notification.request.identifier);
-    if (consumePortalPushResponse(id)) router.push(destination as never);
-    setResponse(null);
-    void Notifications.clearLastNotificationResponseAsync().catch(() => {});
-  }, [navigation?.key, portalActive, portalSession, response, router]);
+    let active = true;
+    void resolvePortalPushDestination(response.notification.request.content.data, portalSession).then(destination => {
+      if (!active || currentAccount.current !== accountKey || !destination) return;
+      const id = String(response.notification.request.content.data?.notificationId ?? response.notification.request.identifier);
+      if (consumePortalPushResponse(id)) router.push(destination as never);
+      setResponse(null);
+      void Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [accountKey, navigation?.key, portalActive, portalSession, response, router]);
   if (Platform.OS === 'web' || !portalActive || hidden || !result || result.ok || result.permissionStatus === 'granted') return null;
   const close = () => { dismissed.add(accountKey); setHidden(true); };
   return <Modal visible transparent animationType="fade" onRequestClose={close}>

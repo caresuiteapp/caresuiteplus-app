@@ -31,7 +31,8 @@
     },
     "types": [
       "vitest/globals"
-    ]
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "**/*.ts",

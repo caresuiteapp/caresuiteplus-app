@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
+const platform = vi.hoisted(() => ({ os: 'android' }));
+vi.mock('react-native', async (importOriginal) => {
+  const native = await importOriginal<typeof import('react-native')>();
+  return {
+    ...native,
+    Platform: { ...native.Platform, get OS() { return platform.os; } },
+  };
+});
 import { APP_START_ENTRIES } from '@/data/landing/appStartEntries';
 import {
   BUSINESS_TABS,
@@ -12,6 +21,7 @@ import { resolveSessionHomeRoute, shouldShowPortalChoice } from '@/lib/navigatio
 import { resolveVoiceFlowVisibility } from '@/lib/ui/voiceFlowVisibility';
 
 const root = path.join(__dirname, '..', '..', '..');
+afterEach(() => { platform.os = 'android'; vi.resetModules(); });
 
 function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
@@ -47,6 +57,16 @@ describe('Native app structure (Prompt 110)', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     expect(start).toContain('resolveAuthSessionTarget');
     expect(start).toContain('router.replace(homePath');
+  });
+
+  it('keeps the web business session on the central desktop', async () => {
+    platform.os = 'web';
+    vi.resetModules();
+    const webRouting = await import('@/lib/navigation/sessionRouting');
+    expect(webRouting.resolveSessionHomeRoute('business_admin')).toBe('/');
+    expect(webRouting.resolveSessionHomeRoute('business_manager')).toBe('/');
+    expect(webRouting.resolveSessionHomeRoute('employee_portal')).toBe('/portal/employee');
+    expect(webRouting.resolveSessionHomeRoute('client_portal')).toBe('/portal/client');
   });
 
   it('3. employee session → employee dashboard', () => {

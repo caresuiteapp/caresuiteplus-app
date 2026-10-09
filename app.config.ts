@@ -12,6 +12,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const easProjectId =
     process.env.EAS_PROJECT_ID ?? '567bda34-8356-4de8-9349-a0de3143567e';
   const isHealthOSCoreEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'healthos-core';
+  const isFullEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'full';
   const isPortalOnlyEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'portal-only';
   const liveConfigPresent = Boolean(
     process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() &&
@@ -25,15 +26,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'Portal-only AAB abgebrochen: EXPO_PUBLIC_SUPABASE_URL und Publishable-/Anon-Key fehlen im EAS-Environment production.',
     );
   }
+  if (process.env.EAS_BUILD === 'true' && isFullEdition && !liveConfigPresent) {
+    throw new Error('HealthOS Full AAB abgebrochen: produktive Supabase-URL und Publishable-/Anon-Key fehlen.');
+  }
   const releaseId =
     process.env.EAS_BUILD_GIT_COMMIT_HASH?.slice(0, 12) ||
     process.env.CARESUITE_RELEASE_ID?.trim() ||
     'local';
   return {
   ...config,
-  name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
+  name: isFullEdition || isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.3.6',
+  version: '0.4.0',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -72,7 +76,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 27,
+    versionCode: 41,
+    intentFilters: [{"action": "VIEW", "autoVerify": true, "category": ["BROWSABLE", "DEFAULT"], "data": [{"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}]}],
     predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',
@@ -98,6 +103,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         root: isPortalOnlyEdition ? 'app-portal' : 'app',
       },
     ],
+    './plugins/withAndroidReleaseOptimization.cjs',
+    '@maplibre/maplibre-react-native',
     'expo-asset',
     'expo-font',
     [
@@ -138,12 +145,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           compileSdkVersion: 36,
           targetSdkVersion: 36,
           minSdkVersion: 24,
-          enableProguardInReleaseBuilds: true,
+          enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
           extraProguardRules: ANDROID_PROGUARD_RULES,
         },
       },
     ],
+    ["expo-speech-recognition", {"microphonePermission": "CareSuite benötigt das Mikrofon für einen von Ihnen gestarteten Neo-Sprachbefehl.", "speechRecognitionPermission": "CareSuite verwendet die lokale Spracherkennung für Neo-Sprachbefehle.", "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox", "com.google.android.tts"]}],
     'expo-background-task',
     ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     [

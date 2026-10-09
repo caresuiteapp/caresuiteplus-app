@@ -2,7 +2,7 @@
   "expo": {
     "name": "CareSuite+",
     "slug": "caresuite-plus",
-    "version": "0.3.6",
+    "version": "0.4.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
@@ -20,7 +20,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "package": "app.caresuitehealthos",
-      "versionCode": 27,
+      "versionCode": 41,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
@@ -34,7 +34,49 @@
         "FOREGROUND_SERVICE_LOCATION"
       ],
       "googleServicesFile": "./google-services.json",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.caresuiteplus.app",
+              "pathPrefix": "/auth/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "www.caresuiteplus.app",
+              "pathPrefix": "/liquid-command/access/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "www.caresuiteplus.app",
+              "pathPrefix": "/business/connect/google-workspace"
+            },
+            {
+              "scheme": "https",
+              "host": "caresuiteplus.app",
+              "pathPrefix": "/auth/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "caresuiteplus.app",
+              "pathPrefix": "/liquid-command/access/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "caresuiteplus.app",
+              "pathPrefix": "/business/connect/google-workspace"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +84,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withAndroidReleaseOptimization.cjs",
+      "@maplibre/maplibre-react-native",
       [
         "expo-router",
         {
@@ -77,8 +121,8 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
-            "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
@@ -105,6 +149,17 @@
           "supportsBackgroundPlayback": false,
           "supportsPictureInPicture": false
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "CareSuite benötigt das Mikrofon für einen von Ihnen gestarteten Neo-Sprachbefehl.",
+          "speechRecognitionPermission": "CareSuite verwendet die lokale Spracherkennung für Neo-Sprachbefehle.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.tts"
+          ]
+        }
       ]
     ],
     "experiments": {
@@ -113,11 +168,11 @@
     },
     "extra": {
       "supportLinks": {
-        "help": "https://caresuiteplus.de/hilfe",
-        "privacy": "https://caresuiteplus.de/datenschutz",
-        "imprint": "https://caresuiteplus.de/impressum",
-        "terms": "https://caresuiteplus.de/nutzungsbedingungen",
-        "supportEmail": "support@caresuiteplus.de"
+        "help": "https://www.caresuiteplus.app/support",
+        "privacy": "https://www.caresuiteplus.app/datenschutz",
+        "imprint": "https://www.caresuiteplus.app/impressum",
+        "terms": "https://www.caresuiteplus.app/nutzungsbedingungen",
+        "supportEmail": "caresuiteapp@gmail.com"
       },
       "router": {
         "origin": false

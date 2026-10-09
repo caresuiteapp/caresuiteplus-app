@@ -1,3 +1,4 @@
+import type { ViewStyle } from 'react-native';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -85,7 +86,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
 }
 const styles = StyleSheet.create({
   viewport: {
-    position: 'fixed',
+    position: 'fixed' as ViewStyle['position'],
     zIndex: 2147483000,
     overflow: 'scroll',
     backgroundColor: '#f3f7fc',

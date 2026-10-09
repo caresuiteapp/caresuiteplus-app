@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { colors, typography } from '@/theme';

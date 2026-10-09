@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';

@@ -42,7 +42,7 @@ describe('liveSupabaseAuthServices', () => {
     expect(getServiceMode()).toBe('supabase');
   });
 
-  it('registers business tenant via edge function and signs in', async () => {
+  it('confirms business registration without automatically signing in', async () => {
     invokeEdgeFunction.mockResolvedValue({
       ok: true,
       data: {
@@ -58,15 +58,10 @@ describe('liveSupabaseAuthServices', () => {
         credentials: { username: 'helfe.kevi.reinhar' },
       },
     });
-    signInWithPassword.mockResolvedValue({
-      ok: true,
-      data: { user: { id: 'auth-1' }, access_token: 'token' },
-    });
-
     const result = await registerBusinessTenant({
       companyName: 'Helferhasen+ UG',
       legalForm: 'UG',
-      industry: 'Betreuung',
+      industry: 'Alltagsbegleitung',
       street: 'Test 1',
       zip: '10115',
       city: 'Berlin',
@@ -74,17 +69,19 @@ describe('liveSupabaseAuthServices', () => {
       email: 'info@helferhasen.app',
       contactFirstName: 'Kevin',
       contactLastName: 'Reinhardt',
-      contactRole: 'GF',
+      contactRole: 'Geschäftsführung',
       adminFirstName: 'Kevin',
       adminLastName: 'Reinhardt',
       adminEmail: 'kevin@helferhasen.app',
       adminPassword: 'SecurePass1',
       selectedModules: ['assist'],
+      termsAccepted: true,
     });
 
     expect(invokeEdgeFunction).toHaveBeenCalledWith('register-business-tenant', expect.any(Object));
-    expect(signInWithPassword).toHaveBeenCalledWith('kevin@helferhasen.app', 'SecurePass1');
+    expect(signInWithPassword).not.toHaveBeenCalled();
     expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.owner.email).toBe('kevin@helferhasen.app');
   });
 
   it('logs in employee portal via edge function', async () => {

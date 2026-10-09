@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { portalPremium } from '@/design/tokens/portalPremium';
 

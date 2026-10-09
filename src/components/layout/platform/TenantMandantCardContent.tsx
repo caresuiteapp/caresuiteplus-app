@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Image, Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { CareSuiteLogo } from '@/components/brand';
 import { SpaceMandantIcon } from '@/components/icons/space';
 import { withAlpha } from '@/design/tokens/motion';

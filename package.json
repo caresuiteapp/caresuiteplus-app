@@ -106,11 +106,15 @@
     "calendar:reader:prepare": "node scripts/prepare-calendar-reader.mjs",
     "preweb": "npm run calendar:reader:prepare",
     "calendar:reader:verify": "npm run calendar:reader:prepare && node scripts/verify-calendar-reader.mjs",
-    "build:web:production": "node scripts/audit-vercel-config.mjs && node scripts/prepare-calendar-reader.mjs && node scripts/prepare-neo-voice.mjs && EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear --max-workers 2 && node scripts/audit-neo-voice-export.mjs dist && node scripts/audit-calendar-reader-export.mjs dist && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist"
+    "build:web:production": "node scripts/audit-vercel-config.mjs && node scripts/prepare-calendar-reader.mjs && node scripts/prepare-neo-voice.mjs && EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear --max-workers 2 && node scripts/audit-neo-voice-export.mjs dist && node scripts/audit-calendar-reader-export.mjs dist && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist",
+    "audit:android-update": "vitest run --maxWorkers=2 src/__tests__/portal/optionalVisitTaskNativeInteraction.test.tsx src/__tests__/platform/portalOnlyEdition.test.ts src/__tests__/platform/storeConfig.test.ts src/__tests__/platform/googlePlayUpdateV0_3_6.test.ts src/__tests__/platform/androidApi36R14B.test.ts src/__tests__/platform/portalAppSecurityR14C.test.ts src/__tests__/platform/portalPushNotificationsR14D.test.ts src/__tests__/liveTracking/employeeGpsNativeEffects.test.ts src/__tests__/liveTracking/nativeTrackingLifecycleR14D.test.ts src/__tests__/portal/visitWorkflowNativePersistence.test.ts src/__tests__/offline/nativePortalDataR14D.test.ts src/__tests__/inputs/nativeFullscreenSignatureR14D.test.ts src/__tests__/maps/freeGeoEngine.test.ts src/__tests__/maps/freeGeoDatabase.test.ts src/__tests__/platform/healthosFullAndroidRelease.test.ts src/__tests__/auth/nativeBusinessRegistration.test.tsx src/__tests__/auth/nativeLiquidCommandEntry.test.tsx src/__tests__/tenant/tenantNotificationSettingsScreen.test.tsx src/__tests__/tenant/tenantNotificationSettingsService.test.ts src/__tests__/office/officeInvoiceNativePdf.test.ts src/__tests__/platform/portalPushPrivateNavigation.test.ts src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/auth/businessRegistrationPlatforms.test.ts src/__tests__/connect/googleWorkspaceNativeReturn.test.ts src/__tests__/auth/nativeAdditionalFlows.test.tsx src/__tests__/auth/nativeBusinessRecoveryService.test.ts src/__tests__/auth/businessRecoveryEdge.test.ts src/__tests__/ui/nativeImageLoading.test.ts src/__tests__/liveTracking/nativeAssistMap.test.tsx src/__tests__/platform/androidReleasePerformance.test.ts src/__tests__/platform/healthosFullExportAudit.test.ts src/__tests__/platform/healthosFullBuildResult.test.ts",
+    "healthos-full:export": "node scripts/export-healthos-full.mjs",
+    "healthos-full:export:audit": "node scripts/audit-healthos-full-export.mjs dist-healthos-full --verify-current-sources"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
     "@expo/vector-icons": "^15.0.3",
+    "@maplibre/maplibre-react-native": "11.5.0",
     "@opentelemetry/api": "^1.9.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
@@ -128,10 +132,12 @@
     "expo-build-properties": "~57.0.17",
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.17",
+    "expo-crypto": "~57.0.3",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.6",
     "expo-font": "~57.0.3",
     "expo-gl": "~57.0.2",
+    "expo-image": "~57.0.5",
     "expo-image-picker": "~57.0.16",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.9",
@@ -142,6 +148,8 @@
     "expo-router": "~57.0.19",
     "expo-secure-store": "~57.0.3",
     "expo-sharing": "~57.0.18",
+    "expo-speech": "57.0.2",
+    "expo-speech-recognition": "57.1.1",
     "expo-splash-screen": "~57.0.8",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",
@@ -162,10 +170,10 @@
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.21.0",
+    "react-native-webview": "14.0.1",
     "react-native-worklets": "0.10.1",
     "three": "^0.170.0",
-    "zustand": "^5.0.14",
-    "react-native-webview": "14.0.1"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

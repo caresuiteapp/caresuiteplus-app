@@ -1,0 +1,7 @@
+{
+  "applicationId": "app.caresuitehealthos",
+  "minimumNewVersionCode": 41,
+  "uploadCertificateSha256": "2D:44:96:38:4E:A1:60:C5:EB:6C:F1:86:2F:48:70:C1:CE:18:5C:8E:98:0C:8D:73:7C:34:E5:71:BF:A0:F5:B0",
+  "playAppSigningCertificateSha256": "21:37:5B:D0:2E:0E:30:76:46:F0:61:6E:53:B7:59:79:6A:B4:EF:6D:5B:40:79:94:75:8D:FD:C6:09:DE:7F:6B",
+  "source": "Play Console supplied by the app owner on 2026-10-09; Play app certificate independently matched against certificates.zip/deployment_cert.der"
+}

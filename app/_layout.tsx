@@ -11,13 +11,15 @@ import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/Them
 import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effects';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
-import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
+import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
 import { BusinessWelcomeGate } from '@/product-workflows/components/auth/BusinessWelcomeGate';
 import { PortalWelcomeGate } from '@/product-workflows/components/auth/PortalWelcomeGate';
+import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
+import { PortalPushRegistrationGate } from '@/components/portal/PortalPushRegistrationGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
 import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiagnostics';
 import { useHydrated } from '@/hooks/useHydrated';
@@ -178,7 +180,11 @@ function RouteScopedLegacyOverlays() {
   const startupReady = useAppStartIntroReady();
   const pathname = usePathname();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  if (!startupReady || isLiquidCommandRoute) return null;
+  if (!startupReady) return null;
+  if (Platform.OS !== 'web' && pathname !== '/' && !isAuthRoutePath(pathname)) {
+    return isPortalRoutePath(pathname) ? <PortalWelcomeGate /> : <BusinessWelcomeGate />;
+  }
+  if (isLiquidCommandRoute) return null;
   return (
     <>
       <BusinessWelcomeGate />
@@ -200,9 +206,12 @@ export default function RootLayout() {
                     <ModalStackProvider>
                       <ScreensaverSettingsProvider>
                         <HealthOSStoreEditionGuard>
-                          <RouteScopedLegacyOverlays />
-                          <GlobalScreensaver />
-                          <RootShell />
+                          <PortalBiometricGate>
+                            <RouteScopedLegacyOverlays />
+                            <GlobalScreensaver />
+                            <RootShell />
+                            <PortalPushRegistrationGate />
+                          </PortalBiometricGate>
                         </HealthOSStoreEditionGuard>
                       </ScreensaverSettingsProvider>
                     </ModalStackProvider>
