@@ -55,6 +55,8 @@ Der erste erweiterte GitHub-Prüflauf fand zwei Node-20-Inkompatibilitäten in v
 
 Die native Router-Prüfung berücksichtigt außerdem die neue Plattformkonfiguration ausdrücklich: Web lädt Bereiche nach Bedarf, Android und iOS müssen synchron bleiben. Der gezielte Lauf dieser zehn Releaseprüfungen besteht.
 
+Der zusätzliche Beobachtungs-Prüflauf verwendet für das Laden seiner TypeScript-Quelldateien jetzt den bereits gesicherten Projektcompiler statt der erst in neueren Node-Versionen verfügbaren Typentfernung. Alle 16 Assertions bleiben erhalten und bestehen. Der vollständige native Android-Prüflauf besteht lokal mit 363 Tests; ein erfolgreicher GitHub-Gesamtlauf bleibt Voraussetzung für die neue AAB.
+
 Der neue GitHub-Lauf muss zusätzlich die bisherigen vollständigen Portal-, Android-, Mandantenakten-, Einsatz-, Aufgaben-, Toolchain- und Exportprüfungen bestehen. Erst der erfolgreiche signierte AAB-Build belegt, dass die neue Datei diese Ergänzungen enthält.
 
 ## Genau abgegrenzte offene Punkte
