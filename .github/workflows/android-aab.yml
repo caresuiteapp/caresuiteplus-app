@@ -81,10 +81,20 @@ jobs:
             echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
           } >> "$GITHUB_ENV"
 
-      - name: Vollständige native App prüfen und AAB auf GitHub bauen
+      - name: Vollständige native App und frischen Android-Export prüfen
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas env:exec production --non-interactive 'bash scripts/build-healthos-full-aab-on-runner.sh'
+        run: eas env:exec production --non-interactive 'bash scripts/build-healthos-full-aab-on-runner.sh --checks-only'
+
+      - name: Gradle-Speicher für den vollständigen R8-Build einrichten
+        run: |
+          node scripts/configure-healthos-gradle-memory.mjs "$RUNNER_TEMP/caresuite-healthos-gradle" "$CARESUITE_AAB_DIR/BUILD-MEMORY.json"
+          printf 'GRADLE_USER_HOME=%s\n' "$RUNNER_TEMP/caresuite-healthos-gradle" >> "$GITHUB_ENV"
+
+      - name: Vollständige native AAB mit R8 auf GitHub kompilieren
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas env:exec production --non-interactive 'bash scripts/build-healthos-full-aab-on-runner.sh --build-only'
 
       - name: Signierte AAB und enthaltenes Intro prüfen
         run: python3 scripts/verify-github-aab.py "$CARESUITE_AAB_DIR/CareSuite-HealthOS.aab"
@@ -100,6 +110,8 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-INFO.json
             ${{ env.CARESUITE_AAB_DIR }}/EAS-VERSION-BASELINE.json
             ${{ env.CARESUITE_AAB_DIR }}/R8-build-artifacts.tar.gz
+            ${{ env.CARESUITE_AAB_DIR }}/BUILD-MEMORY.json
+            ${{ env.CARESUITE_AAB_DIR }}/GRADLE-MEMORY-VERIFIED.json
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -117,3 +129,14 @@ jobs:
             echo
             echo 'Gebaut auf GitHub mit vorhandener Expo-Signierung. Keine automatische Google-Play-Einreichung.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Speicherdiagnose des tatsächlichen Builds aufbewahren
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-HealthOS-Builddiagnose-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.CARESUITE_AAB_DIR }}/BUILD-MEMORY.json
+            ${{ env.CARESUITE_AAB_DIR }}/GRADLE-MEMORY-VERIFIED.json
+          if-no-files-found: ignore
+          retention-days: 7

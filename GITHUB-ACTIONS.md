@@ -69,6 +69,35 @@ Die Artefakte bleiben sieben Tage verfügbar. Der Workflow reicht die App
 nicht bei Google Play ein. Die historischen Portal-Skripte und Profile sind
 kein Nachweis für den vollständigen 0.4.0-Build.
 
+## Java-Speicher für den vollständigen R8-Build
+
+Der tatsächliche Lauf 37871940756 hat alle 107 Portal-, 363 Android- und 376
+Workflow-Prüfungen sowie den frischen Android-Export bestanden. Die native
+Kompilierung erreichte R8, das mit 2 GiB Java-Heap und 512 MiB Metaspace wegen
+`Java heap space` abbrach. `NODE_OPTIONS` vergrößert den Java-Heap nicht.
+
+Der Workflow trennt jetzt App-Prüfung, Speicher-Einrichtung und Kompilierung.
+Die Kompilierung verlangt die erfolgreiche Prüfung desselben unveränderten
+Git-Commits. Ein eigener temporärer Gradle-Benutzerordner erhält das Budget:
+6 GiB Heap bei mindestens 12 GiB verfügbarem Gesamtspeicher, andernfalls
+4 GiB; cgroup-Grenzen werden berücksichtigt. Metaspace ist auf 1 GiB begrenzt,
+der Parallel-GC aktiviert und maximal zwei Worker erlaubt (ein Worker auf
+kleineren Runnern). Parallele Projektkompilierung ist ausgeschaltet. Zu kleine
+Runner stoppen vor dem Build. Diese Limits betreffen den Compiler auf GitHub,
+nicht das RAM-Budget der installierten App.
+
+Ein Gradle-Init-Skript liest die tatsächlichen JVM-Flags und die effektiven
+Worker-Einstellungen direkt im Compilerprozess. Ein ignoriertes Budget wird
+vor der nativen Kompilierung abgewiesen. `BUILD-MEMORY.json` und
+`GRADLE-MEMORY-VERIFIED.json` dokumentieren Planung und tatsächlichen Prozess;
+die Daten werden auch bei einem späteren Buildfehler als Diagnose aufbewahrt.
+Alle R8-, Ressourcen-, Signatur- und Medienprüfungen bleiben aktiv.
+
+Die Konfiguration folgt den dokumentierten Gradle-Benutzereinstellungen und
+Android-Empfehlungen zu Heap, Metaspace und Garbage Collector:
+https://docs.gradle.org/9.3.1/userguide/build_environment.html
+https://developer.android.com/build/optimize-your-build
+
 ## Geräte- und Play-Freigabe
 
 Ein erfolgreicher Export belegt keinen signierten AAB und keine optische

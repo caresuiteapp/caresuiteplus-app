@@ -9,18 +9,41 @@ fi
 : "${EXPO_TOKEN:?Repository-Secret EXPO_TOKEN fehlt}"
 : "${CARESUITE_AAB_DIR:?Ausgabeordner fehlt}"
 
-node scripts/verify-healthos-full-production.mjs
-npm run typecheck
-npm run audit:portal-update -- --maxWorkers=2
-npm run audit:android-update
-npm run audit:assignment-workflow-gate -- --maxWorkers=2 --testTimeout=15000
-node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs
-python3 scripts/verify-github-aab.test.py
-node scripts/store-readiness-check.mjs
-node scripts/audit-android-api36.mjs
-node scripts/audit-android-release-performance.mjs
-npm run healthos-full:export
-npm run healthos-full:export:audit
+caresuite_build_phase="${1:-all}"
+case "$caresuite_build_phase" in all|--checks-only|--build-only) ;; *) echo 'Ungültige Buildphase.' >&2; exit 1 ;; esac
+[[ $# -le 1 ]] || { echo 'Zu viele Buildargumente.' >&2; exit 1; }
+: "${GITHUB_SHA:?GitHub-Quellcommit fehlt}"
+[[ $(git rev-parse HEAD) == "$GITHUB_SHA" ]] || { echo 'Quellcommit stimmt nicht mit dem Workflow überein.' >&2; exit 1; }
+if [[ $caresuite_build_phase != --build-only ]]; then
+  node scripts/verify-healthos-full-production.mjs
+  npm run typecheck
+  npm run audit:portal-update -- --maxWorkers=2
+  npm run audit:android-update
+  npm run audit:assignment-workflow-gate -- --maxWorkers=2 --testTimeout=15000
+  node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs
+  python3 scripts/verify-github-aab.test.py
+  node scripts/store-readiness-check.mjs
+  node scripts/audit-android-api36.mjs
+  node scripts/audit-android-release-performance.mjs
+  node --test scripts/configure-healthos-gradle-memory.test.mjs
+  npm run healthos-full:export
+  npm run healthos-full:export:audit
+  export CARESUITE_FULL_SOURCE_VERIFIED="$GITHUB_SHA"
+  if [[ $caresuite_build_phase == --checks-only ]]; then
+    : "${GITHUB_ENV:?GitHub-Umgebungsübergabe fehlt}"
+    printf 'CARESUITE_FULL_SOURCE_VERIFIED=%s\n' "$GITHUB_SHA" >> "$GITHUB_ENV"
+    exit 0
+  fi
+fi
+if [[ $caresuite_build_phase == all ]]; then
+  : "${RUNNER_TEMP:?GitHub-Temporärordner fehlt}"
+  export GRADLE_USER_HOME="$RUNNER_TEMP/caresuite-healthos-gradle"
+  node scripts/configure-healthos-gradle-memory.mjs "$GRADLE_USER_HOME" "$CARESUITE_AAB_DIR/BUILD-MEMORY.json"
+fi
+[[ ${CARESUITE_FULL_SOURCE_VERIFIED:-} == "$GITHUB_SHA" ]] || { echo 'Die vollständige App-Prüfung für diesen Quellstand fehlt.' >&2; exit 1; }
+[[ -z $(git status --porcelain=v1 --untracked-files=all) ]] || { echo 'Der geprüfte Quellstand wurde lokal verändert.' >&2; exit 1; }
+: "${GRADLE_USER_HOME:?Geprüftes Gradle-Speicherbudget fehlt}"
+test -s "$CARESUITE_AAB_DIR/BUILD-MEMORY.json"
 
 mkdir -p "$CARESUITE_AAB_DIR"
 eas build:version:get --platform android --profile healthos-full-aab --non-interactive --json > "$CARESUITE_AAB_DIR/EAS-VERSION-BASELINE.json"
@@ -40,6 +63,7 @@ echo 'Baue den produktiven AAB lokal auf dem GitHub-Runner.'
 env -u EAS_LOCAL_BUILD_ARTIFACT_PATH \
   EAS_LOCAL_BUILD_ARTIFACTS_DIR="$caresuite_eas_artifacts" \
   eas build --local --platform android --profile healthos-full-aab --non-interactive --freeze-credentials
+node scripts/configure-healthos-gradle-memory.mjs --verify "$CARESUITE_AAB_DIR/BUILD-MEMORY.json"
 
 shopt -s nullglob
 caresuite_aab_candidates=("$caresuite_eas_artifacts"/*.aab)
