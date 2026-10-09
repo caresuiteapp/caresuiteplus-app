@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   OFFLINE_DB_NAME,
   OFFLINE_DB_VERSION,
@@ -58,6 +58,7 @@ class MemoryTransaction {
 }
 
 class MemoryDatabase {
+  closed = false;
   version = OFFLINE_DB_VERSION;
   private stores = new Map<string, MemoryObjectStore>();
 
@@ -87,7 +88,7 @@ class MemoryDatabase {
   }
 
   close(): void {
-    /* no-op */
+    this.closed = true;
   }
 }
 
@@ -132,6 +133,7 @@ function installMemoryIndexedDb(): { databases: Map<string, MemoryDatabase> } {
           } as unknown as IDBVersionChangeEvent);
         }
         request.result = db;
+        db.closed = false;
         request.onsuccess?.({ target: request } as unknown as Event);
       });
 
@@ -147,6 +149,10 @@ function installMemoryIndexedDb(): { databases: Map<string, MemoryDatabase> } {
       };
 
       queueMicrotask(() => {
+        if (databases.get(name)?.closed === false) {
+          request.onblocked?.({ target: request } as unknown as Event);
+          return;
+        }
         databases.delete(name);
         request.onsuccess?.({ target: request } as unknown as Event);
       });
@@ -165,6 +171,7 @@ describe('offline IndexedDB foundation', () => {
     resetOfflineDbCacheForTests();
     installMemoryIndexedDb();
   });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
   it('opens CareSuiteOfflineDB with all v1 stores', async () => {
     const db = await openOfflineDb();
@@ -196,11 +203,53 @@ describe('offline IndexedDB foundation', () => {
   });
 
   it('clearOfflineDb deletes the database', async () => {
-    await openOfflineDb();
+    const db = await openOfflineDb();
+    const close = vi.spyOn(db!, 'close');
     expect(await clearOfflineDb()).toBe(true);
+    expect(close).toHaveBeenCalledOnce();
     resetOfflineDbCacheForTests();
     const health = await getOfflineDbHealth();
     expect(health.status).toBe('available');
+  });
+  it('closes another tab connection on versionchange so logout can delete the cache', async () => {
+    const db = await openOfflineDb();
+    const close = vi.spyOn(db!, 'close');
+    db!.onversionchange!.call(db!, {} as IDBVersionChangeEvent);
+    expect(close).toHaveBeenCalledOnce();
+    const reopened = await openOfflineDb();
+    expect(reopened).not.toBeNull();
+  });
+  it('finishes a deletion blocked by an older tab instead of leaving sign-out pending forever', async () => {
+    const request = {} as IDBOpenDBRequest;
+    vi.spyOn(indexedDB, 'deleteDatabase').mockReturnValue(request);
+    const pending = clearOfflineDb();
+    await Promise.resolve();
+    request.onblocked!.call(request, {} as IDBVersionChangeEvent);
+    expect(await pending).toBe(false);
+  });
+  it('bounds a deletion that never receives an IndexedDB event', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(indexedDB, 'deleteDatabase').mockReturnValue({} as IDBOpenDBRequest);
+    const pending = clearOfflineDb();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(await pending).toBe(false);
+  });
+  it('falls back from a blocked open and closes a late connection instead of leaking it', async () => {
+    const db = { close: vi.fn() } as unknown as IDBDatabase;
+    const request = { result: db } as IDBOpenDBRequest;
+    vi.spyOn(indexedDB, 'open').mockReturnValue(request);
+    const pending = openOfflineDb();
+    request.onblocked!.call(request, {} as IDBVersionChangeEvent);
+    expect(await pending).toBeNull();
+    request.onsuccess!.call(request, {} as Event);
+    expect(db.close).toHaveBeenCalledOnce();
+  });
+  it('bounds a stalled open so network-backed pages can continue without an offline cache', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(indexedDB, 'open').mockReturnValue({} as IDBOpenDBRequest);
+    const pending = openOfflineDb();
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(await pending).toBeNull();
   });
 
   it('returns unavailable health when indexedDB is missing', async () => {

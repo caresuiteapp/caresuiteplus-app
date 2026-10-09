@@ -89,7 +89,8 @@
       [
         "expo-router",
         {
-          "root": "app"
+          "root": "app",
+          "asyncRoutes": { "web": true, "android": false, "ios": false, "default": false }
         }
       ],
       "expo-asset",

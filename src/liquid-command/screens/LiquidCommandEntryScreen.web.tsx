@@ -10,7 +10,7 @@ import { CommandCenterScreen } from './CommandCenterScreen';
 export function LiquidCommandEntryScreen() {
   const auth = useAuth();
   if (!auth.authReady) {
-    return <FullScreenLoader message="Sitzung wird wiederhergestellt…" />;
+    return <FullScreenLoader message={auth.isInitialized ? 'Abmeldung wird abgeschlossen…' : 'Sitzung wird wiederhergestellt…'} />;
   }
   if (!auth.isAuthenticated) return <AccessHubScreen />;
 
