@@ -53,6 +53,8 @@ Der produktive Web-Stand ist weiterhin `3ad95a70`. Die Übernahme in diesen Andr
 
 Der erste erweiterte GitHub-Prüflauf fand zwei Node-20-Inkompatibilitäten in vorhandenen Test-Promises und einen Demo-Test, der die produktive Android-Edition geerbt hatte. Die Promises verwenden jetzt den vorhandenen portablen Testansatz; der Demo-Test setzt seine eigene Edition ausdrücklich. Die produktive Sperre für Demo-Modus in der vollständigen Android-App bleibt erhalten. Die Assertions wurden nicht abgeschwächt; der vollständige Lauf ist erneut erforderlich.
 
+Die native Router-Prüfung berücksichtigt außerdem die neue Plattformkonfiguration ausdrücklich: Web lädt Bereiche nach Bedarf, Android und iOS müssen synchron bleiben. Der gezielte Lauf dieser zehn Releaseprüfungen besteht.
+
 Der neue GitHub-Lauf muss zusätzlich die bisherigen vollständigen Portal-, Android-, Mandantenakten-, Einsatz-, Aufgaben-, Toolchain- und Exportprüfungen bestehen. Erst der erfolgreiche signierte AAB-Build belegt, dass die neue Datei diese Ergänzungen enthält.
 
 ## Genau abgegrenzte offene Punkte

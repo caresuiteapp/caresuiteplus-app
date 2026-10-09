@@ -29,7 +29,10 @@ describe('HealthOS full native Android release', () => {
     expect(config.extra?.eas?.projectId).toBe('567bda34-8356-4de8-9349-a0de3143567e');
     expect(config.extra?.router?.root).toBe('app');
     expect(config.extra?.runtime?.appEdition).toBe('full');
-    expect(config.plugins).toContainEqual(['expo-router', { root: 'app' }]);
+    expect(config.plugins).toContainEqual(['expo-router', {
+      root: 'app',
+      asyncRoutes: { web: true, android: false, ios: false, default: false },
+    }]);
   });
 
   it.each(['url', 'key', 'both'])('refuses a full EAS build with missing live %s', missing => {
