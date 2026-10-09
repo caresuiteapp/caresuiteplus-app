@@ -10,6 +10,41 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = nodeModule.createRequire(path.join(root, 'package.json'));
+const { resolve: metroResolve } = require('metro-resolver');
+const { resolver: metroConfig } = require('./metro.config.js');
+
+/** Match the production web resolver, including platform-specific siblings. */
+function resolveWebSource(specifier, parent) {
+  const request = specifier.startsWith('@/')
+    ? path.join(root, 'src', specifier.slice(2))
+    : specifier;
+  const resolution = metroResolve({
+    originModulePath: parent,
+    sourceExts: metroConfig.sourceExts,
+    assetExts: new Set(metroConfig.assetExts),
+    preferNativePlatform: false,
+    mainFields: metroConfig.resolverMainFields,
+    doesFileExist: filename => {
+      try { return fs.statSync(filename).isFile(); } catch { return false; }
+    },
+    getPackage: filename => {
+      try { return JSON.parse(fs.readFileSync(filename, 'utf8')); } catch { return null; }
+    },
+    getPackageForModule: () => null,
+    redirectModulePath: value => value,
+    fileSystemLookup: filename => {
+      try {
+        const stat = fs.statSync(filename);
+        return { exists: true, type: stat.isFile() ? 'f' : 'd', realPath: fs.realpathSync(filename) };
+      } catch {
+        return { exists: false };
+      }
+    },
+    unstable_enablePackageExports: false,
+  }, request, 'web');
+  assert.equal(resolution.type, 'sourceFile');
+  return resolution.filePath;
+}
 let transform, parseSource;
 try {
   const babel = require('@babel/core');
@@ -48,10 +83,10 @@ async function loadSource(entry, mocks = {}, globals = {}) {
       }
       return cache.get(specifier);
     }
-    const base = specifier.startsWith('@/') ? path.join(root, 'src', specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier);
-    const filename = [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts')].find(file => fs.existsSync(file) && fs.statSync(file).isFile());
-    if (!filename) throw new Error(`Unerwartete Abhängigkeit: ${specifier}`);
-    return get(filename);
+    if (!specifier.startsWith('@/') && !specifier.startsWith('.')) {
+      throw new Error(`Unerwartete Abhängigkeit: ${specifier}`);
+    }
+    return get(resolveWebSource(specifier, parent.identifier));
   });
   await module.evaluate(); return module.namespace;
 }
@@ -60,6 +95,22 @@ const uid = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const model = await loadSource('src/lib/portal/optionalVisitTasks.ts');
 const draft = (title = 'Briefkasten leeren', n = 21) => ({ id: uid(n), title });
 const task = (title = 'Briefkasten leeren', n = 21) => ({ ...draft(title,n), status: 'open', required: false, description: '', completionNote: null, requiresNote: true });
+
+test('Metro stellt im Web die Aufgabenhilfen für Einsatzansicht und Aufgabenauswahl bereit', async () => {
+  for (const consumer of [
+    'src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx',
+    'src/components/portal/EmployeePortalVisitTasksPanel.web.tsx',
+  ]) {
+    const filename = resolveWebSource('@/lib/portal/optionalVisitTasks', path.join(root, consumer));
+    assert.equal(filename, path.join(root, 'src/lib/portal/optionalVisitTasks.ts'));
+    const helpers = await loadSource(path.relative(root, filename));
+    assert.equal(typeof helpers.mergeConfirmedOptionalTasks, 'function');
+    assert.equal(typeof helpers.searchOptionalTaskChoices, 'function');
+    assert.equal(typeof helpers.validateOptionalTaskDrafts, 'function');
+    assert.equal(helpers.mergeConfirmedOptionalTasks([], []).length, 0);
+    assert.ok(helpers.searchOptionalTaskChoices('').length > 10);
+  }
+});
 
 test('Vorlagen sind vorhanden, deutsch beschriftet und über mehrere Suchwörter auffindbar', () => {
   assert.ok(model.OPTIONAL_TASK_CHOICES.length > 10);
@@ -88,7 +139,7 @@ async function serviceFixture(options = {}) {
   const scope = { tenantId:uid(1), employeeId:uid(3), assignmentId:`${uid(9)}::2026-10-08`, portalSession:{ id:'portal-fixture' } };
   const source = options.source ?? 'assist_visits', parent = uid(source === 'assignments' ? 11 : 10);
   const response = options.response ?? { release:model.OPTIONAL_VISIT_TASKS_RELEASE, source, parentId:parent, inserted:1, tasks:[task()] };
-  const service = await loadSource('src/lib/portal/optionalVisitTasks.web.ts', {
+  const service = await loadSource('src/lib/portal/optionalVisitTaskService.web.ts', {
     '@/lib/services/mode':{ getServiceMode:() => options.mode ?? 'supabase' },
     '@/lib/auth/portalSupabaseAuth':{ ensurePortalWriteSession:async value => { calls.push(['session',value]); return options.session ?? { ok:true }; } },
     '@/lib/assist/visitService':{ resolveExecutableVisitId:async (...args) => { calls.push(['occurrence',...args]); return options.executable ?? { ok:true,data:{ visitId:uid(10) } }; } },

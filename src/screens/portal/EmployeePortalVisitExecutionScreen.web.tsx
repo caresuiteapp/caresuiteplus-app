@@ -37,8 +37,9 @@ import {
   EmployeePortalVisitSummaryPanel,
 } from '@/components/portal';
 import { EmployeePortalVisitTasksPanel } from '@/components/portal/EmployeePortalVisitTasksPanel.web';
-import { addEmployeeOptionalVisitTasks, type OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTasks.web';
-import { mergeConfirmedOptionalTasks, type OptionalVisitTaskDraft } from '@/lib/portal/optionalVisitTasks';
+import { addEmployeeOptionalVisitTasks, type OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTaskService.web';
+import { mergeConfirmedOptionalTasks } from '@/lib/portal/mergeConfirmedVisitTasks';
+import type { OptionalVisitTaskDraft } from '@/lib/portal/optionalVisitTasks';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import { EmployeePortalLocationConsentBanner } from '@/components/portal/EmployeePortalLocationConsentBanner';
 import { PortalNewChatModal } from '@/components/portal/PortalNewChatModal';

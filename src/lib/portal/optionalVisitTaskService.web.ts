@@ -1,3 +1,4 @@
+// Keep a distinct stem: Metro must not replace optionalVisitTasks.ts with this service.
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { getServiceMode } from '@/lib/services/mode';
 import { ensurePortalWriteSession } from '@/lib/auth/portalSupabaseAuth';
