@@ -32,9 +32,11 @@ case "${caresuite_origin%/}" in
 esac
 
 if [[ $caresuite_verify_only == false ]]; then
-  git -C "$caresuite_repo" fetch --no-tags origin main
+  git -C "$caresuite_repo" fetch --no-tags origin refs/heads/main
+  caresuite_main="$(git -C "$caresuite_repo" rev-parse --verify FETCH_HEAD)"
+else
+  caresuite_main="$(git -C "$caresuite_repo" rev-parse --verify refs/remotes/origin/main 2>/dev/null)" || caresuite_fail 'Der geprüfte Hauptzweig fehlt. origin/main zuerst abrufen.'
 fi
-caresuite_main="$(git -C "$caresuite_repo" rev-parse --verify refs/remotes/origin/main 2>/dev/null)" || caresuite_fail 'Der geprüfte Hauptzweig fehlt. origin/main zuerst abrufen.'
 [[ $caresuite_main == "$caresuite_base_sha" ]] || caresuite_fail 'Seit dem geprüften Stand gibt es weitere Hauptzweig-Änderungen. Vor dem App-Build muss dieser Release damit abgeglichen werden.'
 git -C "$caresuite_repo" cat-file -e "$caresuite_base_sha^{commit}" || caresuite_fail 'Die gemeinsame Basis fehlt.'
 git -C "$caresuite_repo" bundle verify "$caresuite_bundle"
