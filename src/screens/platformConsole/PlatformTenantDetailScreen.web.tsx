@@ -75,13 +75,18 @@ import { TenantAccountsTab } from './TenantAccountsTab.web';
 import { PlatformFreeUsagePanel } from '@/components/platformConsole/PlatformFreeUsagePanel.web';
 import { managePlatformTenantAccess } from '@/lib/platformConsole/platformAccessService';
 import { PLATFORM_ACCESS_RELEASE, TENANT_ACCESS_ACTIONS, tenantAccessActions, tenantAccessConfirmation, tenantAccessDescription, type PlatformTenantAccessAction } from '@/lib/platformConsole/platformAccessLifecycle';
+import { TenantDossierDataBrowser, TenantDossierHeader, TenantDossierHistory, TenantDossierOverview, TenantSetupPanel, useTenantDossier, type DossierView } from './TenantDossierWorkspace.web';
 
 
 
 const TAB_GROUPS = [
   { key: 'record', label: 'Mandantenakte', tabs: [
     { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
+    { key: 'company', label: 'Alle Unternehmensdaten' }, { key: 'setup', label: 'Einrichtung & Prozentstand' },
     { key: 'usage', label: 'Kostenlose Nutzung' },
+  ] },
+  { key: 'people', label: 'Personen & Akten', tabs: [
+    { key: 'clients', label: 'Alle Klient:innen' }, { key: 'employees', label: 'Alle Mitarbeitenden' },
   ] },
   { key: 'functions', label: 'Funktionen & Freigaben', tabs: [
     { key: 'entitlements', label: 'Funktionsbereiche' }, { key: 'flags', label: 'Funktionsfreigaben' },
@@ -90,16 +95,23 @@ const TAB_GROUPS = [
     { key: 'users', label: 'Anmeldung & E-Mails' }, { key: 'support', label: 'Support' },
   ] },
   { key: 'operations', label: 'Betrieb & Prüfung', tabs: [
+    { key: 'history', label: 'Schritte & Verlauf' },
     { key: 'diagnosis', label: 'Diagnose' }, { key: 'audit', label: 'Änderungsprotokoll' },
   ] },
 ] as const;
 
 type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 const TAB_CAPABILITIES: Record<TabKey, PlatformCapability> = {
+  company:'tenants.read',setup:'tenants.read',clients:'tenants.read',employees:'tenants.read',history:'tenants.read',
   overview:'tenants.read',recordEdit:'tenants.write',usage:'tenants.read',entitlements:'modules.read',
   flags:'flags.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
 };
 const TAB_DESCRIPTIONS: Record<TabKey,string> = {
+  company:'Alle gespeicherten Unternehmensangaben, Logo, Konfigurationen und zugehörigen Datenbereiche einsehen.',
+  setup:'Den berechneten Einrichtungsstand mit erfüllten Kriterien, fehlenden Angaben und Datenquellen prüfen.',
+  clients:'Sämtliche Klient:innen mit Stammdaten und zugehörigen Akten durchsuchen und seitenweise öffnen.',
+  employees:'Sämtliche Mitarbeitenden mit Personalangaben und zugehörigen Akten durchsuchen und seitenweise öffnen.',
+  history:'Erledigte Schritte anhand gespeicherter Aktionen, Zeitpunkte und Vorher-/Nachher-Werte nachvollziehen.',
   overview:'Unternehmensstatus, Kontaktdaten und aktivierte Funktionen im Zusammenhang prüfen.',
   recordEdit:'Rechtliche Angaben, Ansprechpartner, E-Mail-Adressen und Datenumgebung verbindlich pflegen.',
   usage:'CareSuite HealthOS ist vollständig kostenlos nutzbar. Alle derzeit bereitgestellten Funktionen sind kostenlos.',
@@ -129,8 +141,13 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
   const [detail, setDetail] = useState<PlatformTenantDetail | null>(null);
 
   const [tab, setTab] = useState<TabKey>('overview');
-  const visibleGroups=TAB_GROUPS.map(group=>({...group,tabs:group.tabs.filter(item=>platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[item.key]))})).filter(group=>group.tabs.length>0);
+  const dossierOwner = platformUser?.role === 'platform_owner';
+  const ownerTabs: readonly string[] = ['company','setup','clients','employees','history'];
+  const visibleGroups=TAB_GROUPS.map(group=>({...group,tabs:group.tabs.filter(item=>platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[item.key]) && (!ownerTabs.includes(item.key) || dossierOwner))})).filter(group=>group.tabs.length>0);
   useEffect(()=>{if(!platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[tab]))setTab('overview');},[platformUser?.role,tab]);
+  useEffect(()=>{if(!dossierOwner && ownerTabs.includes(tab))setTab('overview');},[dossierOwner,tab]);
+  const dossier = useTenantDossier(tenantId, dossierOwner && detail != null, detail);
+  const [dossierSection, setDossierSection] = useState('tenants');
 
   const [loading, setLoading] = useState(true);
 
@@ -327,6 +344,9 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
       <ScrollView contentContainerStyle={styles.content}>
+        {dossierOwner && dossier.loading ? <div className="cs-console"><div role="status" className="cs-notice">Vollständige Mandantenakte und Einrichtungsstand werden geprüft…</div></div> : null}
+        {dossierOwner && dossier.error ? <div className="cs-console"><div role="alert" className="cs-notice error">{dossier.error}</div><button className="cs-btn" onClick={dossier.reload}>Mandantenakte erneut laden</button></div> : null}
+        {dossierOwner && dossier.data ? <TenantDossierHeader dossier={dossier.data} onOpen={view => void changeTab(view)} /> : null}
         <div className="cs-console"><ConsoleStyle /><section className="cs-hero" style={{padding:'20px 24px'}}><div>
           <div className="cs-eyebrow">Unternehmensakte · {activeGroup?.label??'Übersicht'}</div>
           <h2>{activeGroup?.tabs.find(item=>item.key===tab)?.label??'Übersicht'}</h2>
@@ -335,7 +355,11 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
         </div></section></div>
 
         {tab === 'overview' ? (
-
+          <>
+          {dossierOwner && dossier.data ? <TenantDossierOverview dossier={dossier.data} onOpen={(view: DossierView) => {
+            if (view === 'company') setDossierSection('tenants');
+            void changeTab(view);
+          }} /> : null}
           <OverviewTab
 
             detail={detail}
@@ -360,8 +384,17 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
             }}
 
           />
-
+          </>
         ) : null}
+
+        {dossierOwner && dossier.data && tab === 'company' ? <TenantDossierDataBrowser key={`company:${dossierSection}`} dossier={dossier.data} scope={dossier.data.sections.find(section => section.key === dossierSection)?.scope ?? 'company'} initialSection={dossierSection} /> : null}
+        {dossierOwner && dossier.data && tab === 'clients' ? <TenantDossierDataBrowser key="clients" dossier={dossier.data} scope="clients" initialSection="clients" /> : null}
+        {dossierOwner && dossier.data && tab === 'employees' ? <TenantDossierDataBrowser key="employees" dossier={dossier.data} scope="employees" initialSection="employees" /> : null}
+        {dossierOwner && dossier.data && tab === 'setup' ? <TenantSetupPanel dossier={dossier.data} onSection={section => {
+          setDossierSection(section);
+          void changeTab(section === 'clients' || section === 'employees' ? section : 'company');
+        }} /> : null}
+        {dossierOwner && tab === 'history' ? <TenantDossierHistory key={tid} tenantId={tid} /> : null}
 
         {tab === 'recordEdit' ? (
           <TenantRecordEditTab

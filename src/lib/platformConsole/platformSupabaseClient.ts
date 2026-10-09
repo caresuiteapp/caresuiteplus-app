@@ -6,6 +6,11 @@ type RpcResult<T> = {
 };
 
 const PLATFORM_ERROR_MESSAGES: Record<string, string> = {
+  dossier_owner_required: 'Die vollständige Mandantenakte ist dem aktiven Plattforminhaberkonto vorbehalten.',
+  dossier_section_invalid: 'Dieser Datenbereich ist für die Mandantenakte nicht freigegeben.',
+  dossier_record_not_found: 'Der Datensatz gehört nicht zum geöffneten Unternehmen oder ist nicht mehr verfügbar.',
+  dossier_search_invalid: 'Bitte höchstens 200 Zeichen für die Suche verwenden.',
+  dossier_page_invalid: 'Bitte höchstens 50 Unternehmen je Seite laden.',
   platform_forbidden: 'Ihre aktuelle Rolle darf diese Aktion nicht ausführen.',
   access_record_changed: 'Die Akte wurde zwischenzeitlich geändert. Bitte neu laden und den aktuellen Stand prüfen.',
   access_confirmation_required: 'Die eingegebene Bestätigung stimmt nicht mit der ausgewählten Aktion überein.',
