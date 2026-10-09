@@ -30,6 +30,8 @@ describe('live dashboard snapshots', () => {
   });
 
   it('returns demo data only in demo mode', async () => {
+    // This fixture is local demo mode; the native production edition rejects it.
+    vi.stubEnv('EXPO_PUBLIC_APP_EDITION', '');
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
 
     const result = await fetchDashboardSnapshot(DEMO_TENANT_ID, 'business_admin', 'business');

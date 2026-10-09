@@ -36,6 +36,10 @@ Die einmalige Bereinigung bestimmter Testdateien vom 2. Oktober ist eine ausgef�
 
 Die produktiven Funktionen `register-business-tenant`, `business-password-recovery`, `registration-welcome-dispatch` und `public-support-ticket` wurden mit allen 17 zurückgelieferten Quelldateien verglichen: keine Abweichung. Insgesamt meldete das produktive Projekt 31 aktive Edge Functions. Der aktive Willkommensmail-Scheduler ist eingerichtet. Die aggregierte Versandhistorie enthält vier als versandt bestätigte Nachrichten, zuletzt am 8. Oktober um 21:28:43 UTC; keine anderen Warteschlangenstatus wurden in dieser Abfrage gefunden. Es wurde keine neue Nachricht versandt.
 
+Zusätzlich stimmen die produktiven Mitarbeiter-, Klienten- und Code-Anmeldungen, Sitzungsverlängerung, Push-Registrierung, Push-Dispatcher, Office-Push und Zustellbelege, kostenloses Geocoding/Routing, Google-Workspace-Anbindung sowie Beobachtungserfassung mit allen 49 je Bereitstellung geprüften Dateien exakt überein. Insgesamt wurden damit 17 für die aktuellen Änderungen relevante produktive Funktionen mit 66 Dateivergleichen ohne Abweichung geprüft. Die korrigierte Statistikfunktion erfasst produktiv seit 20:18:35 UTC wieder Ereignisse; ihre letzte Erfassung lag beim Abgleich um 20:50:34 UTC.
+
+**Automatischer System-Push ist serverseitig weiterhin ausgeschaltet.** Die lesende Prüfung bestätigt sechs verbundene Ereignistrigger und geschützte authentifizierte Zielauflösung. Die Laufzeitfreigabe, Einsatz-Erinnerungen und der Worker-Schlüssel sind jedoch nicht aktiviert/eingerichtet; die Outbox ist leer. Eine vorhandene native Push-Oberfläche und installierte SQL-Dateien belegen daher keinen aktiven automatischen Versand. Die Datenbank-Kapazitätskorrektur aktiviert diese Funktionen nicht.
+
 Der produktive Web-Stand ist weiterhin `3ad95a70`. Die Übernahme in diesen Android-Release veröffentlicht die beiden offenen Korrektur-PRs nicht automatisch auf dem Web-Hauptzweig.
 
 ## Prüfungen vor dem neuen Build
@@ -46,6 +50,8 @@ Der produktive Web-Stand ist weiterhin `3ad95a70`. Die Übernahme in diesen Andr
 - Android-API-36- und Release-Performance-Konfigurationsaudits bestanden.
 - Git-Diff ohne Konflikte oder Whitespacefehler.
 - Die 120 Prüfungen und 16 Beobachtungsprüfungen sind zusätzlich in das bestehende vollständige Release-Prüfskript aufgenommen.
+
+Der erste erweiterte GitHub-Prüflauf fand zwei Node-20-Inkompatibilitäten in vorhandenen Test-Promises und einen Demo-Test, der die produktive Android-Edition geerbt hatte. Die Promises verwenden jetzt den vorhandenen portablen Testansatz; der Demo-Test setzt seine eigene Edition ausdrücklich. Die produktive Sperre für Demo-Modus in der vollständigen Android-App bleibt erhalten. Die Assertions wurden nicht abgeschwächt; der vollständige Lauf ist erneut erforderlich.
 
 Der neue GitHub-Lauf muss zusätzlich die bisherigen vollständigen Portal-, Android-, Mandantenakten-, Einsatz-, Aufgaben-, Toolchain- und Exportprüfungen bestehen. Erst der erfolgreiche signierte AAB-Build belegt, dass die neue Datei diese Ergänzungen enthält.
 
