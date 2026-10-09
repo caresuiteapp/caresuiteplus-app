@@ -19,6 +19,8 @@ export type AuthContextValue = {
   portalSession: PortalSessionRecord | null;
   /** Set when Supabase profile/role bootstrap fails after sign-in. */
   profileBootstrapError: string | null;
+  /** Web logout failure, surfaced by the global feedback layer. */
+  signOutError?: string | null;
   signInWithSupabaseSession: (session: Session) => Promise<void>;
   signInPortalSession: (session: PortalSessionRecord) => Promise<void>;
   updatePortalSession: (patch: Partial<PortalSessionRecord>) => Promise<void>;

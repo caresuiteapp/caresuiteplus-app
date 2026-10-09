@@ -287,6 +287,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [portalSession, setPortalSession] = useState<PortalSessionRecord | null>(null);
   const [profileBootstrapError, setProfileBootstrapError] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const profileRepairAttemptedRef = useRef(false);
   const signOutRequestedRef = useRef(false);
   const authGenerationRef = useRef(0);
@@ -613,6 +614,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     authGenerationRef.current += 1;
     signOutRequestedRef.current = true;
+    if (Platform.OS === 'web') setSignOutError(null);
     setIsLoading(true);
     cancelAssignmentDetailPrefetch();
     let signedOut = false;
@@ -624,6 +626,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await supabaseSignOut();
       if (Platform.OS === 'web' && !result.ok) throw new Error(result.error);
       signedOut = true;
+    } catch (cause) {
+      if (Platform.OS === 'web') {
+        setSignOutError(cause instanceof Error ? cause.message : 'Abmeldung konnte nicht abgeschlossen werden.');
+      }
+      throw cause;
     } finally {
       try {
         if (signedOut || Platform.OS !== 'web') {
@@ -658,6 +665,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       portalSession,
       profileBootstrapError,
+      signOutError,
       signInWithSupabaseSession,
       signInPortalSession,
       updatePortalSession,
@@ -674,6 +682,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       portalSession,
       profileBootstrapError,
+      signOutError,
       signInWithSupabaseSession,
       signInPortalSession,
       updatePortalSession,

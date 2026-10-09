@@ -87,9 +87,11 @@ describe('web session bootstrap', () => {
     await act(async () => { await expect(latestAuth.signOut()).rejects.toThrow('Abmeldung hat zu lange gedauert'); });
     expect(latestAuth.authReady).toBe(true);
     expect(latestAuth.isAuthenticated).toBe(true);
+    expect(latestAuth.signOutError).toBe('Abmeldung hat zu lange gedauert.');
     expect(mock.clearOffline).not.toHaveBeenCalled();
     await act(async () => latestAuth.signOut());
     expect(latestAuth.isAuthenticated).toBe(false);
+    expect(latestAuth.signOutError).toBeNull();
   });
   it('stops automatic repairs after one failed retry of a roleless saved session', async () => {
     mock.bootstrap.mockResolvedValue({ ok: false, error: 'Benutzerrolle konnte nicht geladen werden.' });
