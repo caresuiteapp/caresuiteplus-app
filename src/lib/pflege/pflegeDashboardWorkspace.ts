@@ -45,7 +45,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       subValue: emptySubValue(stats.visitsToday, 'Keine Einsätze heute', (n) => `${n} geplant`),
       icon: '📅',
       accentColor: accent,
-      route: '/pflege/calendar?date=today',
+      route: '/pflege/tourenplanung',
     },
     {
       id: 'pflege-ws-kpi-running',
@@ -54,7 +54,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       subValue: emptySubValue(stats.runningNow, 'Kein laufender Einsatz', (n) => `${n} in Durchführung`),
       icon: '▶️',
       accentColor: stats.runningNow > 0 ? '#22C55E' : accent,
-      route: '/pflege/dienstplaene?status=running',
+      route: '/pflege/tourenplanung',
     },
     {
       id: 'pflege-ws-kpi-active-plans',
@@ -70,7 +70,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
     },
     {
       id: 'pflege-ws-kpi-due-measures',
-      label: 'Maßnahmen fällig',
+      label: 'Maßnahmen prüfen',
       value: stats.dueMeasuresCount,
       subValue: emptySubValue(stats.dueMeasuresCount, 'Keine fälligen Maßnahmen', (n) => `${n} offen`),
       icon: '✅',
@@ -115,7 +115,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
     },
     {
       id: 'pflege-ws-kpi-wounds',
-      label: 'Wunddoku offen',
+      label: 'Offene Wundfälle',
       value: stats.openWoundDocsCount,
       subValue: emptySubValue(stats.openWoundDocsCount, 'Keine offenen Wundfälle', (n) => `${n} offen`),
       icon: '🩹',
@@ -149,7 +149,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       accentColor: stats.openReportsCount > 0 ? warn : accent,
       route: '/pflege/berichte?status=open',
     },
-  ];
+  ].map((kpi) => stats.unavailableKpiIds?.includes(kpi.id) ? { ...kpi, value: '—', subValue: 'Nicht ermittelt' } : kpi);
 }
 
 export const PFLEGE_HEADER_PRIMARY_ACTIONS: DashboardQuickAction[] = [
@@ -233,7 +233,7 @@ export function buildPflegeDashboardPriorities(stats: PflegeDashboardStats): Pfl
   if (stats.dueMeasuresCount > 0) {
     items.push({
       id: 'priority-due-measures',
-      label: 'Maßnahmen fällig',
+      label: 'Maßnahmen prüfen',
       description: `${stats.dueMeasuresCount} Maßnahme(n) sind heute fällig.`,
       route: '/pflege/massnahmen?filter=due',
       severity: 'high',

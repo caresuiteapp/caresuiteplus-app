@@ -1,3 +1,4 @@
+import { EmployeeCareToursPanel } from '@/components/pflege/PortalCarePanels';
 import { useState } from 'react';
 import { EmployeePortalDashboardScreen } from '@/screens/portal/EmployeePortalDashboardScreen';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
@@ -18,6 +19,7 @@ export function EmployeePortalOverviewScreen() {
 
   return (
     <PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>
+      <EmployeeCareToursPanel />
       <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {

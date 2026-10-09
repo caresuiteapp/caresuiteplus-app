@@ -3,9 +3,11 @@ import type { ShiftScheduleListItem } from '@/lib/pflege/shiftScheduleDemo';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
+import { ShiftScheduleActions } from './ShiftScheduleActions';
 
 type ShiftScheduleListCardProps = {
   item: ShiftScheduleListItem;
+  onSaved?: () => void | Promise<unknown>;
 };
 
 function statusVariant(status: ShiftScheduleListItem['status']) {
@@ -20,7 +22,7 @@ function statusVariant(status: ShiftScheduleListItem['status']) {
   }
 }
 
-export function ShiftScheduleListCard({ item }: ShiftScheduleListCardProps) {
+export function ShiftScheduleListCard({ item, onSaved }: ShiftScheduleListCardProps) {
   return (
     <PremiumCard style={styles.card} accentColor={colors.violet}>
       <View style={styles.header}>
@@ -37,6 +39,7 @@ export function ShiftScheduleListCard({ item }: ShiftScheduleListCardProps) {
         · {item.startTime}–{item.endTime}
       </Text>
       <Text style={styles.location}>{item.location}</Text>
+      <ShiftScheduleActions item={item} onSaved={onSaved} />
     </PremiumCard>
   );
 }

@@ -1,0 +1,57 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { PGlite } from '@electric-sql/pglite';
+const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const tenant = '11111111-1111-4111-8111-111111111111';
+const foreign = '22222222-2222-4222-8222-222222222222';
+const actor = '33333333-3333-4333-8333-333333333333';
+const employee = '44444444-4444-4444-8444-444444444444';
+const client = '55555555-5555-4555-8555-555555555555';
+const foreignClient = '66666666-6666-4666-8666-666666666666';
+const functionSource = (sql: string, name: string) => sql.slice(sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`), sql.indexOf('END $$;', sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`)) + 'END $$;'.length);
+export async function setupAmbulatoryDatabase(operations = false): Promise<PGlite> {
+  let db: PGlite;
+    db = new PGlite();
+    await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
+      CREATE TABLE auth.users(id uuid PRIMARY KEY);
+      CREATE TABLE public.tenants(id uuid PRIMARY KEY);
+      CREATE TABLE public.clients(id uuid PRIMARY KEY,tenant_id uuid,first_name text,last_name text,street text,house_number text,postal_code text,city text,active boolean DEFAULT true);
+      CREATE TABLE public.employees(id uuid PRIMARY KEY,tenant_id uuid,first_name text,last_name text,qualification text,deleted_at timestamptz,status text,allowed_products text[]);
+      CREATE TABLE public.inventory_items(id uuid PRIMARY KEY);
+      CREATE TABLE public.clinical_documentation_entries(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid,client_id uuid,entry_type text,title text,content text,observations text,interventions text,result text,deviation text,escalation text,recorded_by uuid,recorded_by_name text);
+      CREATE TABLE public.care_audit_events(id uuid DEFAULT gen_random_uuid(),tenant_id uuid,client_id uuid,entity_type text,entity_id uuid,action text,summary text,before_data jsonb,after_data jsonb,actor_id uuid,actor_name text);
+      CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$SELECT NULLIF(current_setting('test.actor',true),'')::uuid$$;
+      CREATE FUNCTION public.current_tenant_id() RETURNS uuid LANGUAGE sql AS $$SELECT NULLIF(current_setting('test.tenant',true),'')::uuid$$;
+      CREATE FUNCTION public.has_permission(p text) RETURNS boolean LANGUAGE sql AS $$SELECT p=ANY(string_to_array(current_setting('test.permissions',true),','))$$;
+      CREATE FUNCTION public.is_active_pfleger_client(p uuid) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$SELECT EXISTS(SELECT 1 FROM public.clients WHERE id=p AND tenant_id=public.current_tenant_id() AND active)$$;
+      CREATE FUNCTION public.clinical_actor_id() RETURNS uuid LANGUAGE sql AS $$SELECT auth.uid()$$;
+      CREATE FUNCTION public.clinical_actor_name() RETURNS text LANGUAGE sql AS $$SELECT 'Test actor'::text$$;
+      INSERT INTO auth.users VALUES('${actor}'); INSERT INTO public.tenants VALUES('${tenant}'),('${foreign}');
+      INSERT INTO public.employees VALUES('${employee}','${tenant}','Test','Pflegekraft','Pflegefachkraft',NULL,'active',ARRAY['pfleger']);
+      INSERT INTO public.clients(id,tenant_id,first_name,last_name) VALUES('${client}','${tenant}','Test','Klient'),('${foreignClient}','${foreign}','Fremd','Klient');
+      SELECT set_config('test.actor','${actor}',false),set_config('test.tenant','${tenant}',false),set_config('test.permissions','pflege.plans.view,pflege.plans.manage,pflege.documentation.create,pflege.proofs.create',false);`);
+    const billing = read('supabase/migrations/20260812193000_pfleger_proofs_billing_acceptance_live_r1.sql');
+    await db.exec(billing.slice(billing.indexOf('CREATE TABLE IF NOT EXISTS public.pfleger_service_proofs('), billing.indexOf('CREATE INDEX IF NOT EXISTS idx_pfleger_proofs_queue')));
+    await db.exec(functionSource(billing, 'create_pfleger_service_proof'));
+    await db.exec(functionSource(billing, 'advance_pfleger_service_proof'));
+    await db.exec(functionSource(read('supabase/migrations/20260812101500_pfleger_clinical_documentation_r2.sql'), 'create_clinical_documentation'));
+    await db.exec(read('supabase/migrations/20260812210000_pfleger_operations_workspace_live_r1.sql'));
+    await db.exec(read('supabase/patches/ambulatory_care_tour_workflow.sql'));
+    await db.exec(read('supabase/patches/ambulatory_care_tour_workflow.sql'));
+    if (operations) {
+      await db.exec(billing.slice(billing.indexOf('CREATE INDEX IF NOT EXISTS idx_pfleger_proofs_queue'), billing.indexOf('CREATE OR REPLACE FUNCTION public.create_pfleger_service_proof(')));
+      await db.exec(`CREATE TABLE public.calendar_employee_month_plans(tenant_id uuid,employee_id uuid,month date,slots jsonb);
+        CREATE TABLE public.workforce_absences(id uuid DEFAULT gen_random_uuid(),tenant_id uuid,employee_id uuid,status text,starts_at timestamptz,ends_at timestamptz);
+        INSERT INTO public.calendar_employee_month_plans VALUES('${tenant}','${employee}',date_trunc('month',clock_timestamp() AT TIME ZONE 'Europe/Berlin')::date,jsonb_build_array(jsonb_build_object('kind','available','date',(clock_timestamp() AT TIME ZONE 'Europe/Berlin')::date,'startTime','00:00','endTime','24:00')));`);
+      await db.exec(functionSource(billing, 'create_pfleger_invoice_foundation'));
+      await db.exec(functionSource(billing, 'release_pfleger_billing_case'));
+      await db.exec('CREATE TABLE public.care_plans(id uuid PRIMARY KEY);');
+      const core = read('supabase/migrations/20260812043000_pfleger_live_core_r1.sql');
+      await db.exec(core.slice(core.indexOf('CREATE TABLE IF NOT EXISTS public.care_medical_orders ('), core.indexOf('CREATE TABLE IF NOT EXISTS public.care_plan_versions (')));
+      await db.exec(read('supabase/patches/ambulatory_care_operations.sql'));
+      await db.exec(read('supabase/patches/ambulatory_care_operations.sql'));
+      await db.exec("SELECT set_config('test.permissions','pflege.plans.view,pflege.plans.manage,pflege.documentation.create,pflege.proofs.create,pflege.proofs.view,pflege.invoices.manage,pflege.orders.view,pflege.orders.manage,pflege.audit.view',false);");
+    }
+    await db.exec('GRANT USAGE ON SCHEMA auth TO authenticated; GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated; SET ROLE authenticated;');
+  return db;
+}
