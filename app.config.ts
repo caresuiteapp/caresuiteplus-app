@@ -96,6 +96,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-router',
       {
         root: isPortalOnlyEdition ? 'app-portal' : 'app',
+        // Load Web areas on demand; native release bundles stay synchronous.
+        asyncRoutes: { web: true, android: false, ios: false, default: false },
       },
     ],
     'expo-asset',

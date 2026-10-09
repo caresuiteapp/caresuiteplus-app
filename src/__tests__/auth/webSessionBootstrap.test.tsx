@@ -6,25 +6,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mock = vi.hoisted(() => ({
   platform: { OS: 'web' }, getSession: vi.fn(), bootstrap: vi.fn(), loadPortal: vi.fn(),
   listener: undefined as undefined | ((event: string, session: unknown) => void),
-  unsubscribe: vi.fn(), permissions: vi.fn(),
+  unsubscribe: vi.fn(), permissions: vi.fn(), signOut: vi.fn(), clearOffline: vi.fn(), clearPortal: vi.fn(),
 }));
 vi.mock('react-native', () => ({ Platform: mock.platform }));
 vi.mock('@/lib/react/runAppTransition', () => ({ runAppTransition: (fn: () => void) => fn() }));
 vi.mock('@/lib/supabase', () => ({
-  resolveAuthMode: () => 'supabase', getSession: mock.getSession, signOut: vi.fn(),
+  resolveAuthMode: () => 'supabase', getSession: mock.getSession, signOut: mock.signOut,
   onAuthStateChange: (callback: typeof mock.listener) => { mock.listener = callback; return { unsubscribe: mock.unsubscribe }; },
 }));
 vi.mock('@/lib/supabase/tenantService', () => ({ bootstrapTenantContext: mock.bootstrap }));
 vi.mock('@/lib/supabase/permissionRepository', () => ({ fetchRuntimePermissions: mock.permissions }));
 vi.mock('@/lib/modules/moduleAccessHydration', () => ({ hydrateTenantModulesFromSupabase: vi.fn() }));
 vi.mock('@/lib/tenant/tenantModuleSettingsHydration', () => ({ hydrateTenantModuleSettings: vi.fn() }));
-vi.mock('@/lib/auth/portalSessionStore', () => ({ loadPortalSession: mock.loadPortal, clearPortalSession: vi.fn(), savePortalSession: vi.fn() }));
+vi.mock('@/lib/auth/portalSessionStore', () => ({ loadPortalSession: mock.loadPortal, clearPortalSession: mock.clearPortal, savePortalSession: vi.fn() }));
 vi.mock('@/lib/auth/portalSessionSecurityService', () => ({ revokePortalSession: vi.fn() }));
 vi.mock('@/lib/auth/businessWelcomeSession', () => ({ clearBusinessWelcomePending: vi.fn() }));
-vi.mock('@/lib/offline/idb', () => ({ clearOfflineDb: vi.fn() }));
+vi.mock('@/lib/offline/idb', () => ({ clearOfflineDb: mock.clearOffline }));
 vi.mock('@/lib/offline/portalBackgroundRefresh', () => ({ configurePortalBackgroundRefresh: vi.fn() }));
 vi.mock('@/lib/offline/assignmentDetailPrefetch', () => ({ cancelAssignmentDetailPrefetch: vi.fn() }));
-vi.mock('@/lib/portal/portalPushNotifications', () => ({ unregisterPortalPushDeviceBeforeLogout: vi.fn() }));
+vi.mock('@/lib/portal/portalPushNotifications', () => ({ unregisterPortalPushDeviceBeforeLogout: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('@/lib/auth/portalSupabaseAuth', () => ({ ensurePortalWriteSession: vi.fn() }));
 
 import { AuthProvider } from '@/lib/auth/AuthProvider';
@@ -55,6 +55,8 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks(); mock.platform.OS = 'web'; mock.listener = undefined; states = [];
   mock.loadPortal.mockResolvedValue(null);
+  mock.signOut.mockResolvedValue({ ok: true, data: null });
+  mock.clearOffline.mockResolvedValue(true); mock.clearPortal.mockResolvedValue(undefined);
   mock.getSession.mockResolvedValue({ ok: true, data: liveSession });
   mock.bootstrap.mockResolvedValue(identity);
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -62,6 +64,33 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('web session bootstrap', () => {
+  it('does not restore a stale profile response after sign-out has finished', async () => {
+    await render();
+    const stale = deferred<any>(); mock.bootstrap.mockReturnValueOnce(stale.promise);
+    await act(async () => mock.listener?.('SIGNED_IN', liveSession));
+    await act(async () => latestAuth.signOut());
+    expect(latestAuth.authReady).toBe(true);
+    expect(latestAuth.isAuthenticated).toBe(false);
+    await act(async () => stale.resolve(identity));
+    expect(latestAuth.isAuthenticated).toBe(false);
+    expect(latestAuth.profile).toBeNull();
+  });
+  it('releases the loading state even when browser cache cleanup fails after a confirmed sign-out', async () => {
+    await render(); mock.clearOffline.mockRejectedValueOnce(new Error('cache unavailable'));
+    await act(async () => { await expect(latestAuth.signOut()).rejects.toThrow('cache unavailable'); });
+    expect(latestAuth.authReady).toBe(true);
+    expect(latestAuth.isAuthenticated).toBe(false);
+    expect(latestAuth.session).toBeNull();
+  });
+  it('does not claim to have signed out when server logout fails, and keeps the page usable for retry', async () => {
+    await render(); mock.signOut.mockResolvedValueOnce({ ok: false, error: 'Abmeldung hat zu lange gedauert.' });
+    await act(async () => { await expect(latestAuth.signOut()).rejects.toThrow('Abmeldung hat zu lange gedauert'); });
+    expect(latestAuth.authReady).toBe(true);
+    expect(latestAuth.isAuthenticated).toBe(true);
+    expect(mock.clearOffline).not.toHaveBeenCalled();
+    await act(async () => latestAuth.signOut());
+    expect(latestAuth.isAuthenticated).toBe(false);
+  });
   it('stops automatic repairs after one failed retry of a roleless saved session', async () => {
     mock.bootstrap.mockResolvedValue({ ok: false, error: 'Benutzerrolle konnte nicht geladen werden.' });
     await render();

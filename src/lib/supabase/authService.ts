@@ -7,6 +7,7 @@ import type {
 import { getSupabaseClient } from './client';
 import { getAuthRedirectBaseUrl, isDemoMode, isSupabaseConfigured } from './config';
 import { clearTvDeviceSession, getAuthSignOutOptions } from './authSignOutScope';
+import { Platform } from 'react-native';
 
 export type AuthServiceResult<T> =
   | { ok: true; data: T }
@@ -133,7 +134,16 @@ export async function signOut(): Promise<AuthServiceResult<null>> {
   } catch (cause) {
     return { ok: false, error: toGermanAuthError(cause instanceof Error ? cause : null) };
   }
-  const { error } = await (options ? client.auth.signOut(options) : client.auth.signOut());
+  let result: Awaited<ReturnType<typeof client.auth.signOut>>;
+  try {
+    const request = options ? client.auth.signOut(options) : client.auth.signOut();
+    result = Platform.OS === 'web'
+      ? await withAuthRequestTimeout(request, 'Abmeldung')
+      : await request;
+  } catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : 'Abmeldung konnte nicht abgeschlossen werden.' };
+  }
+  const { error } = result;
   if (error) {
     return { ok: false, error: toGermanAuthError(error) };
   }
