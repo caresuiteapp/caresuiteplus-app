@@ -141,6 +141,7 @@ export async function signOut(): Promise<AuthServiceResult<null>> {
       ? await withAuthRequestTimeout(request, 'Abmeldung')
       : await request;
   } catch (cause) {
+    if (Platform.OS !== 'web') throw cause;
     return { ok: false, error: cause instanceof Error ? cause.message : 'Abmeldung konnte nicht abgeschlossen werden.' };
   }
   const { error } = result;

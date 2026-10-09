@@ -632,23 +632,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       throw cause;
     } finally {
-      try {
-        if (signedOut || Platform.OS !== 'web') {
-          await configurePortalBackgroundRefresh(false);
-          await clearPortalSession();
-          await clearOfflineDb();
-        }
-      } finally {
-        if (signedOut || Platform.OS !== 'web') {
-          clearBusinessWelcomePending();
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-          setPortalSession(null);
-          setProfileBootstrapError(null);
-        }
+      if (Platform.OS !== 'web') {
+        await configurePortalBackgroundRefresh(false);
+        await clearPortalSession();
+        await clearOfflineDb();
+        clearBusinessWelcomePending();
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+        setPortalSession(null);
+        setProfileBootstrapError(null);
         signOutRequestedRef.current = false;
         setIsLoading(false);
+      } else {
+        try {
+          if (signedOut) {
+            await configurePortalBackgroundRefresh(false);
+            await clearPortalSession();
+            await clearOfflineDb();
+          }
+        } finally {
+          if (signedOut) {
+            clearBusinessWelcomePending();
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            setPortalSession(null);
+            setProfileBootstrapError(null);
+          }
+          signOutRequestedRef.current = false;
+          setIsLoading(false);
+        }
       }
     }
   }, [portalSession]);

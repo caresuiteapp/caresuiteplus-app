@@ -64,6 +64,21 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('web session bootstrap', () => {
+  it('preserves native logout error propagation and its existing cleanup', async () => {
+    mock.platform.OS = 'android';
+    const restored = deferred<any>();
+    mock.bootstrap.mockReturnValueOnce(restored.promise);
+    await render();
+    await act(async () => restored.resolve(identity));
+    expect(latestAuth.profile?.roleKey).toBe('business_admin');
+    mock.getSession.mockResolvedValue({ ok: true, data: null });
+    mock.signOut.mockRejectedValueOnce(new Error('native logout unavailable'));
+    await act(async () => { await expect(latestAuth.signOut()).rejects.toThrow('native logout unavailable'); });
+    expect(latestAuth.isAuthenticated).toBe(false);
+    expect(latestAuth.authReady).toBe(true);
+    expect(mock.clearOffline).toHaveBeenCalledOnce();
+    expect(latestAuth.signOutError).toBeNull();
+  });
   it('does not restore a stale profile response after sign-out has finished', async () => {
     await render();
     const stale = deferred<any>(); mock.bootstrap.mockReturnValueOnce(stale.promise);
