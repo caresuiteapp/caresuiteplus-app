@@ -633,6 +633,7 @@ export async function getEmployeePortalTeamCalendarEvents(
     options?.rangeStart,
     options?.rangeEnd,
   );
+  if (!result.ok) return result;
   if (result.ok && result.data.length > 0) {
     const events = recordsToUiEvents(result.data);
     const merged = await mergePortalAssistRecurrenceEvents(
@@ -659,8 +660,9 @@ export async function getEmployeePortalTeamCalendarEvents(
     const events: CalendarEvent[] = live.data
       .filter((item) => {
         const t = new Date(item.startsAt).getTime();
-        if (rangeStartMs != null && t < rangeStartMs) return false;
-        if (rangeEndMs != null && t > rangeEndMs) return false;
+        const end = new Date(item.endsAt).getTime();
+        if (rangeStartMs != null && end < rangeStartMs) return false;
+        if (rangeEndMs != null && t >= rangeEndMs) return false;
         return true;
       })
       .map((item) => {
@@ -677,13 +679,15 @@ export async function getEmployeePortalTeamCalendarEvents(
           moduleKey: 'assist' as const,
           href: `${hrefBase}/${item.id}`,
           clientName: item.clientName ?? undefined,
+          employeeId: item.employeeId ?? undefined,
+          employeeName: item.employeeName ?? undefined,
+          status: item.assignmentStatus ?? item.status,
         };
       });
 
     return { ok: true, data: events };
   }
 
-  if (!result.ok) return { ok: false, error: result.error };
   return { ok: true, data: [] };
 }
 

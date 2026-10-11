@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { AppNotification, NotificationCenterTab } from '@/types/office/broadcast';
+import type { NotificationCenterTab } from '@/types/office/broadcast';
 import { useAuth } from '@/lib/auth/context';
 import { subscribeToNotificationChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { useAsyncQuery } from '@/hooks/core';
 import {
   fetchUnreadNotificationCount,
   fetchUserNotifications,
@@ -10,56 +11,26 @@ import {
 
 export function useNotifications(tab: NotificationCenterTab = 'all') {
   const tenantId = useServiceTenantId();
-  const { user, profile } = useAuth();
-  const userId = user?.id ?? profile?.id ?? null;
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLiveConnected, setIsLiveConnected] = useState(false);
-
-  const refresh = useCallback(async () => {
-    if (!tenantId || !userId) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const [listResult, countResult] = await Promise.all([
-      fetchUserNotifications(tenantId, userId, null, tab),
-      fetchUnreadNotificationCount(tenantId, userId),
+  const { user, profile, portalSession } = useAuth();
+  const actor = usePortalActor();
+  const userId = user?.id ?? profile?.id ?? portalSession?.accountId ?? null;
+  const employeeId = actor.roleKey === 'employee_portal' ? actor.employeeId : null;
+  const enabled = !!tenantId && !!userId && (actor.roleKey !== 'employee_portal' || !!employeeId);
+  const query = useAsyncQuery(async () => {
+    const [list, count] = await Promise.all([
+      fetchUserNotifications(tenantId!, userId!, employeeId, tab),
+      fetchUnreadNotificationCount(tenantId!, userId!, employeeId).catch(() => null),
     ]);
-
-    setLoading(false);
-
-    if (listResult.ok) setNotifications(listResult.data);
-    else setError(listResult.error);
-
-    if (countResult.ok) setUnreadCount(countResult.data);
-  }, [tenantId, userId, tab]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!tenantId || !userId) {
-      setIsLiveConnected(false);
-      return;
-    }
-
-    const unsubscribe = subscribeToNotificationChanges(tenantId, () => {
-      void refresh();
-    });
-    setIsLiveConnected(true);
-    return () => {
-      unsubscribe();
-      setIsLiveConnected(false);
-    };
-  }, [tenantId, userId, refresh]);
+    if (!list.ok) return list;
+    return { ok: true as const, data: { notifications: list.data,
+      unreadCount: count?.ok ? count.data : list.data.filter((item) => !item.isRead).length } };
+  }, [tenantId, userId, employeeId, tab], {
+    enabled,
+    queryKey: JSON.stringify(['notifications', tenantId, userId, employeeId, tab]),
+    live: tenantId && userId ? { tenantId,
+      subscribe: (tid, handler) => subscribeToNotificationChanges(tid, handler) } : undefined,
+  });
+  const notifications = query.data?.notifications ?? [];
 
   const hasUrgent = notifications.some(
     (n) => !n.isRead && (n.priority === 'urgent' || n.priority === 'critical'),
@@ -67,13 +38,14 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
 
   return {
     notifications,
-    unreadCount,
-    loading,
-    error,
+    unreadCount: query.data?.unreadCount ?? 0,
+    loading: query.loading,
+    error: query.error ?? query.refreshError,
     hasUrgent,
-    refresh,
-    isLiveConnected,
+    refresh: query.refresh,
+    isLiveConnected: query.isLiveConnected,
     tenantId,
     userId,
+    employeeId,
   };
 }

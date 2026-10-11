@@ -1,0 +1,2301 @@
+{
+  "capturedAt": "2026-10-11",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "BEGIN READ ONLY system catalogs only; no business/auth rows",
+  "enums": [
+    {
+      "type": "assignment_status",
+      "value": "planned"
+    },
+    {
+      "type": "assignment_status",
+      "value": "confirmed"
+    },
+    {
+      "type": "assignment_status",
+      "value": "on_the_way"
+    },
+    {
+      "type": "assignment_status",
+      "value": "arrived"
+    },
+    {
+      "type": "assignment_status",
+      "value": "started"
+    },
+    {
+      "type": "assignment_status",
+      "value": "paused"
+    },
+    {
+      "type": "assignment_status",
+      "value": "finished"
+    },
+    {
+      "type": "assignment_status",
+      "value": "documentation_open"
+    },
+    {
+      "type": "assignment_status",
+      "value": "signature_open"
+    },
+    {
+      "type": "assignment_status",
+      "value": "completed"
+    },
+    {
+      "type": "assignment_status",
+      "value": "cancelled"
+    },
+    {
+      "type": "assignment_status",
+      "value": "no_show"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "planned_start"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "planned_end"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "on_the_way"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "arrived"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "started"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "paused"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "resumed"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "finished"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "manual_correction"
+    },
+    {
+      "type": "time_entry_type",
+      "value": "system"
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "product_key",
+      "type": "product_key",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "assignment_date",
+      "type": "date",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "planned_start_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "planned_end_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "actual_start_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "actual_end_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "status",
+      "type": "assignment_status",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "recurrence_type",
+      "type": "recurrence_type",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "recurrence_rule",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "parent_assignment_id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "address_snapshot",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "route_notes",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "employee_notes",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "client_visible_notes",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "internal_notes",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "cancellation_reason",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "cancelled_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "cancelled_by",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "created_by",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "updated_by",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "on_the_way_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "arrived_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "finished_at",
+      "type": "timestamp with time zone",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "documentation_notes",
+      "type": "text",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "assignment_profile_id",
+      "type": "uuid",
+      "table": "assignments",
+      "notNull": false
+    },
+    {
+      "name": "operational_context",
+      "type": "jsonb",
+      "table": "assignments",
+      "notNull": true
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "current_step",
+      "type": "text",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "assignment_status",
+      "type": "text",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "no_show_note",
+      "type": "text",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "tasks_complete",
+      "type": "boolean",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "documentation_complete",
+      "type": "boolean",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "signature_complete",
+      "type": "boolean",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "proof_generated",
+      "type": "boolean",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "finalized_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "metadata",
+      "type": "jsonb",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": true
+    },
+    {
+      "name": "travel_started_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "travel_ended_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "service_started_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "service_ended_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "workflow_consistency_status",
+      "type": "text",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "last_auto_repair_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "last_repair_reason",
+      "type": "text",
+      "table": "assist_visit_execution_state",
+      "notNull": false
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "signature_id",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "proof_number",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "storage_path",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "payload_snapshot",
+      "type": "jsonb",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "payload_hash",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "generated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "generated_by",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "approved_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "approved_by",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "billing_released",
+      "type": "boolean",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "metadata",
+      "type": "jsonb",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "created_by",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "updated_by",
+      "type": "uuid",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "portal_visible",
+      "type": "boolean",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "released_to_portal_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "portal_release_status",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": true
+    },
+    {
+      "name": "approval_note",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "rejection_reason",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "pdf_storage_path",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "pdf_hash",
+      "type": "text",
+      "table": "assist_visit_proofs",
+      "notNull": false
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "signer_name",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "signer_role",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "storage_path",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "payload_hash",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "signature_hash",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "signed_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "signed_by_profile_id",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": false
+    },
+    {
+      "name": "is_valid",
+      "type": "boolean",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "invalidated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signatures",
+      "notNull": false
+    },
+    {
+      "name": "invalidation_reason",
+      "type": "text",
+      "table": "assist_visit_signatures",
+      "notNull": false
+    },
+    {
+      "name": "metadata",
+      "type": "jsonb",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "created_by",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": false
+    },
+    {
+      "name": "updated_by",
+      "type": "uuid",
+      "table": "assist_visit_signatures",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signatures",
+      "notNull": true
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "legacy_assignment_id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "service_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "service_name",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "assignment_date",
+      "type": "date",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "planned_start_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "planned_end_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "duration_minutes",
+      "type": "integer",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "actual_start_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "actual_end_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "on_the_way_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "arrived_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "finished_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "address_snapshot",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "location_notes",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "route_notes",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "internal_notes",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "employee_notes",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "client_visible_notes",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "planning_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "execution_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "documentation_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "proof_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "billing_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "portal_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "canonical_status",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "portal_release_enabled",
+      "type": "boolean",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "portal_released_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "employee_portal_visible",
+      "type": "boolean",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "budget_amount_cents",
+      "type": "integer",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "budget_currency",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "budget_warning",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "is_at_risk",
+      "type": "boolean",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "is_incomplete",
+      "type": "boolean",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "error_code",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "error_message",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "created_by",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "updated_by",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "subject_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "assignment_type_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "service_category_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "task_package_id",
+      "type": "uuid",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "billing_budget_source_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "priority_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "recurrence_json",
+      "type": "jsonb",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "documentation_template_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "proof_template_key",
+      "type": "text",
+      "table": "assist_visits",
+      "notNull": false
+    },
+    {
+      "name": "risk_flag_keys",
+      "type": "jsonb",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "catalog_snapshot_json",
+      "type": "jsonb",
+      "table": "assist_visits",
+      "notNull": true
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "product_key",
+      "type": "product_key",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "status",
+      "type": "documentation_status",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "free_text",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "special_incidents",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "client_condition_notes",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "office_notes",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "internal_review_notes",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "employee_completed_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "submitted_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "reviewed_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "reviewed_by",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "rejected_reason",
+      "type": "text",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "created_by_employee_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "updated_by_profile_id",
+      "type": "uuid",
+      "table": "documentation_entries",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "documentation_entries",
+      "notNull": true
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "vehicle_id",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "route_type",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "purpose",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "manual_reason",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "started_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "ended_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "start_address",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "end_address",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "start_latitude",
+      "type": "numeric(10,7)",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "start_longitude",
+      "type": "numeric(10,7)",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "end_latitude",
+      "type": "numeric(10,7)",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "end_longitude",
+      "type": "numeric(10,7)",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "distance_gps_km",
+      "type": "numeric(10,2)",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "distance_final_km",
+      "type": "numeric(10,2)",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "duration_seconds",
+      "type": "integer",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "counts_as_work_time",
+      "type": "boolean",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "worktime_deduction_minutes",
+      "type": "integer",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "mileage_rate_cents",
+      "type": "integer",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "mileage_amount_cents",
+      "type": "integer",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "gps_captured",
+      "type": "boolean",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "navigation_provider",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "source",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "correction_reason",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "corrected_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "corrected_by",
+      "type": "uuid",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "previous_values",
+      "type": "jsonb",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "distance_source",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "google_route_distance_km",
+      "type": "numeric(10,3)",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "google_route_duration_minutes",
+      "type": "integer",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "google_route_polyline",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "google_route_captured_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "route_quality_status",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": true
+    },
+    {
+      "name": "employee_confirmed_at",
+      "type": "timestamp with time zone",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "employee_confirmation_reason",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "route_calculation_provider",
+      "type": "text",
+      "table": "employee_logbook_trips",
+      "notNull": false
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "documentation_entry_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "signature_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "product_key",
+      "type": "product_key",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "record_number",
+      "type": "text",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "service_date",
+      "type": "date",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "service_month",
+      "type": "date",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "planned_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "actual_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "billable_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "hourly_rate",
+      "type": "numeric(10,2)",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "total_amount",
+      "type": "numeric(10,2)",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "status",
+      "type": "service_record_status",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "pdf_url",
+      "type": "text",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "approved_by",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "approved_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "billed_invoice_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "notNull": true
+    },
+    {
+      "name": "assist_visit_id",
+      "type": "uuid",
+      "table": "service_records",
+      "notNull": false
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "documentation_entry_id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "status",
+      "type": "signature_status",
+      "table": "signatures",
+      "notNull": true
+    },
+    {
+      "name": "signer_name",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signer_type",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signer_relationship",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signature_data",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signature_image_url",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signed_at",
+      "type": "timestamp with time zone",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signed_ip_address",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "signed_user_agent",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "declaration_text",
+      "type": "text",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "is_client_portal_signature",
+      "type": "boolean",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "is_employee_portal_signature",
+      "type": "boolean",
+      "table": "signatures",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "signatures",
+      "notNull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "signatures",
+      "notNull": true
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "time_entries",
+      "notNull": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "time_entries",
+      "notNull": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "time_entries",
+      "notNull": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "entry_type",
+      "type": "time_entry_type",
+      "table": "time_entries",
+      "notNull": true
+    },
+    {
+      "name": "event_at",
+      "type": "timestamp with time zone",
+      "table": "time_entries",
+      "notNull": true
+    },
+    {
+      "name": "latitude",
+      "type": "numeric(10,7)",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "longitude",
+      "type": "numeric(10,7)",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "accuracy_meters",
+      "type": "numeric(10,2)",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "source",
+      "type": "text",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "device_info",
+      "type": "text",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "note",
+      "type": "text",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "corrected_by",
+      "type": "uuid",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "corrected_at",
+      "type": "timestamp with time zone",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "correction_reason",
+      "type": "text",
+      "table": "time_entries",
+      "notNull": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "time_entries",
+      "notNull": true
+    }
+  ],
+  "functions": [
+    {
+      "args": "",
+      "name": "guard_assignment_execution_regression",
+      "definition": "CREATE OR REPLACE FUNCTION public.guard_assignment_execution_regression()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN\n  IF NEW.status::TEXT IN ('planned','confirmed','on_the_way','arrived')\n     AND NEW.actual_start_at IS NOT NULL THEN\n    IF OLD.status::TEXT IN ('completed','cancelled','no_show') THEN\n      NEW.status := OLD.status;\n      RETURN NEW;\n    END IF;\n    IF NEW.actual_end_at IS NOT NULL OR NEW.finished_at IS NOT NULL THEN\n      IF OLD.status::TEXT IN ('finished','documentation_open','signature_open','completed') THEN\n        NEW.status := OLD.status;\n      ELSE\n        NEW.status := 'finished'::public.assignment_status;\n      END IF;\n    ELSE\n      NEW.status := CASE WHEN OLD.status::TEXT = 'paused' THEN 'paused'::public.assignment_status ELSE 'started'::public.assignment_status END;\n    END IF;\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n",
+      "anonExecute": true,
+      "authenticatedExecute": true
+    },
+    {
+      "args": "",
+      "name": "resolve_current_employee_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_current_employee_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN public.current_portal_type() IS NOT NULL THEN public.current_employee_id()\r\n    ELSE COALESCE(public.current_employee_id(), public.current_employee_id_from_profile())\r\n  END\r\n$function$\n",
+      "anonExecute": true,
+      "authenticatedExecute": true
+    },
+    {
+      "args": "input_assignment_id uuid, input_status assignment_status, input_employee_id uuid, input_latitude numeric, input_longitude numeric, input_note text",
+      "name": "set_assignment_status",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_assignment_status(input_assignment_id uuid, input_status assignment_status, input_employee_id uuid DEFAULT NULL::uuid, input_latitude numeric DEFAULT NULL::numeric, input_longitude numeric DEFAULT NULL::numeric, input_note text DEFAULT NULL::text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\r\ndeclare\r\n  v_assignment public.assignments;\r\n  v_time_entry_type public.time_entry_type;\r\nbegin\r\n  select *\r\n  into v_assignment\r\n  from public.assignments\r\n  where id = input_assignment_id;\r\n\r\n  if not found then\r\n    raise exception 'Einsatz wurde nicht gefunden.';\r\n  end if;\r\n\r\n  update public.assignments\r\n  set\r\n    status = input_status,\r\n    actual_start_at = case\r\n      when input_status = 'started' and actual_start_at is null then now()\r\n      else actual_start_at\r\n    end,\r\n    actual_end_at = case\r\n      when input_status in ('finished','completed') and actual_end_at is null then now()\r\n      else actual_end_at\r\n    end,\r\n    updated_at = now()\r\n  where id = input_assignment_id;\r\n\r\n  v_time_entry_type :=\r\n    case input_status\r\n      when 'on_the_way' then 'on_the_way'::public.time_entry_type\r\n      when 'arrived' then 'arrived'::public.time_entry_type\r\n      when 'started' then 'started'::public.time_entry_type\r\n      when 'paused' then 'paused'::public.time_entry_type\r\n      when 'finished' then 'finished'::public.time_entry_type\r\n      when 'completed' then 'finished'::public.time_entry_type\r\n      else 'system'::public.time_entry_type\r\n    end;\r\n\r\n  insert into public.time_entries (\r\n    tenant_id,\r\n    assignment_id,\r\n    employee_id,\r\n    entry_type,\r\n    event_at,\r\n    latitude,\r\n    longitude,\r\n    source,\r\n    note\r\n  )\r\n  values (\r\n    v_assignment.tenant_id,\r\n    input_assignment_id,\r\n    coalesce(input_employee_id, v_assignment.employee_id),\r\n    v_time_entry_type,\r\n    now(),\r\n    input_latitude,\r\n    input_longitude,\r\n    'rpc',\r\n    input_note\r\n  );\r\n\r\n  return input_assignment_id;\r\nend;\r\n$function$\n",
+      "anonExecute": false,
+      "authenticatedExecute": true
+    },
+    {
+      "args": "",
+      "name": "sync_assignment_mirror_from_assist_visit",
+      "definition": "CREATE OR REPLACE FUNCTION public.sync_assignment_mirror_from_assist_visit()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n  IF NEW.planning_status = 'draft' THEN\n    RETURN NEW;\n  END IF;\n\n  INSERT INTO public.assignments (\n    id, tenant_id, client_id, employee_id, assignment_date,\n    planned_start_at, planned_end_at, title, description, address_snapshot,\n    internal_notes, client_visible_notes, status, product_key, created_by,\n    created_at, updated_at, on_the_way_at, arrived_at, actual_start_at,\n    actual_end_at, finished_at\n  )\n  VALUES (\n    NEW.id, NEW.tenant_id, NEW.client_id, NEW.employee_id, NEW.assignment_date,\n    NEW.planned_start_at, NEW.planned_end_at, NEW.title, NEW.description, NEW.address_snapshot,\n    NEW.internal_notes, NEW.client_visible_notes,\n    CASE NEW.canonical_status\n      WHEN 'planned' THEN 'planned'::public.assignment_status\n      WHEN 'confirmed' THEN 'confirmed'::public.assignment_status\n      WHEN 'on_the_way' THEN 'on_the_way'::public.assignment_status\n      WHEN 'arrived' THEN 'arrived'::public.assignment_status\n      WHEN 'started' THEN 'started'::public.assignment_status\n      WHEN 'paused' THEN 'paused'::public.assignment_status\n      WHEN 'finished' THEN 'finished'::public.assignment_status\n      WHEN 'documentation_open' THEN 'documentation_open'::public.assignment_status\n      WHEN 'signature_open' THEN 'signature_open'::public.assignment_status\n      WHEN 'completed' THEN 'completed'::public.assignment_status\n      WHEN 'cancelled' THEN 'cancelled'::public.assignment_status\n      WHEN 'no_show' THEN 'no_show'::public.assignment_status\n      WHEN 'scheduled' THEN 'planned'::public.assignment_status\n      ELSE 'planned'::public.assignment_status\n    END,\n    'assist'::public.product_key, NEW.created_by, NEW.created_at, NEW.updated_at,\n    NEW.on_the_way_at, NEW.arrived_at, NEW.actual_start_at, NEW.actual_end_at, NEW.finished_at\n  )\n  ON CONFLICT (id) DO UPDATE SET\n    client_id = EXCLUDED.client_id, employee_id = EXCLUDED.employee_id,\n    assignment_date = EXCLUDED.assignment_date, planned_start_at = EXCLUDED.planned_start_at,\n    planned_end_at = EXCLUDED.planned_end_at, title = EXCLUDED.title,\n    description = EXCLUDED.description, address_snapshot = EXCLUDED.address_snapshot,\n    internal_notes = EXCLUDED.internal_notes, client_visible_notes = EXCLUDED.client_visible_notes,\n    status = EXCLUDED.status, on_the_way_at = EXCLUDED.on_the_way_at,\n    arrived_at = EXCLUDED.arrived_at, actual_start_at = EXCLUDED.actual_start_at,\n    actual_end_at = EXCLUDED.actual_end_at, finished_at = EXCLUDED.finished_at,\n    updated_at = EXCLUDED.updated_at;\n\n  IF NEW.legacy_assignment_id IS NULL OR NEW.legacy_assignment_id <> NEW.id THEN\n    UPDATE public.assist_visits SET legacy_assignment_id = NEW.id\n    WHERE id = NEW.id AND tenant_id = NEW.tenant_id;\n  END IF;\n\n  RETURN NEW;\nEND;\n$function$\n",
+      "anonExecute": true,
+      "authenticatedExecute": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "assignments_assignment_profile_id_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (assignment_profile_id) REFERENCES client_assignment_profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assignments_cancelled_by_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (cancelled_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assignments_client_id_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assignments_created_by_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assignments_employee_id_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assignments_parent_assignment_id_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (parent_assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assignments_pkey",
+      "table": "assignments",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "assignments_planned_time_check",
+      "table": "assignments",
+      "definition": "CHECK ((planned_end_at > planned_start_at))"
+    },
+    {
+      "name": "assignments_tenant_id_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assignments_updated_by_fkey",
+      "table": "assignments",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_execution_state_pkey",
+      "table": "assist_visit_execution_state",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "assist_visit_execution_state_step_check",
+      "table": "assist_visit_execution_state",
+      "definition": "CHECK ((current_step = ANY (ARRAY['consent'::text, 'en_route'::text, 'arrived'::text, 'in_service'::text, 'paused'::text, 'tasks'::text, 'documentation'::text, 'signature'::text, 'finalize'::text, 'completed'::text, 'no_show'::text, 'locked'::text])))"
+    },
+    {
+      "name": "assist_visit_execution_state_tenant_id_fkey",
+      "table": "assist_visit_execution_state",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visit_execution_state_tenant_visit_unique",
+      "table": "assist_visit_execution_state",
+      "definition": "UNIQUE (tenant_id, visit_id)"
+    },
+    {
+      "name": "assist_visit_execution_state_visit_id_fkey",
+      "table": "assist_visit_execution_state",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visit_proofs_approved_by_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_proofs_created_by_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_proofs_generated_by_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (generated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_proofs_pkey",
+      "table": "assist_visit_proofs",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "assist_visit_proofs_portal_release_status_check",
+      "table": "assist_visit_proofs",
+      "definition": "CHECK ((portal_release_status = ANY (ARRAY['none'::text, 'released'::text, 'pending_client_signature'::text, 'revoked'::text])))"
+    },
+    {
+      "name": "assist_visit_proofs_signature_id_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (signature_id) REFERENCES assist_visit_signatures(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_proofs_status_check",
+      "table": "assist_visit_proofs",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'pending_review'::text, 'approved'::text, 'exported'::text, 'archived'::text, 'rejected'::text])))"
+    },
+    {
+      "name": "assist_visit_proofs_tenant_id_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visit_proofs_updated_by_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_proofs_visit_id_fkey",
+      "table": "assist_visit_proofs",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visit_signatures_created_by_fkey",
+      "table": "assist_visit_signatures",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_signatures_payload_hash_nonempty",
+      "table": "assist_visit_signatures",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM payload_hash)) > 0))"
+    },
+    {
+      "name": "assist_visit_signatures_pkey",
+      "table": "assist_visit_signatures",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "assist_visit_signatures_signature_hash_nonempty",
+      "table": "assist_visit_signatures",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM signature_hash)) > 0))"
+    },
+    {
+      "name": "assist_visit_signatures_signed_by_profile_id_fkey",
+      "table": "assist_visit_signatures",
+      "definition": "FOREIGN KEY (signed_by_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_signatures_signer_name_nonempty",
+      "table": "assist_visit_signatures",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM signer_name)) > 0))"
+    },
+    {
+      "name": "assist_visit_signatures_storage_path_nonempty",
+      "table": "assist_visit_signatures",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM storage_path)) > 0))"
+    },
+    {
+      "name": "assist_visit_signatures_tenant_id_fkey",
+      "table": "assist_visit_signatures",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visit_signatures_updated_by_fkey",
+      "table": "assist_visit_signatures",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visit_signatures_visit_id_fkey",
+      "table": "assist_visit_signatures",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visits_client_id_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visits_created_by_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visits_employee_id_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visits_legacy_assignment_id_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (legacy_assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visits_pkey",
+      "table": "assist_visits",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "assist_visits_r11_catalog_snapshot_object",
+      "table": "assist_visits",
+      "definition": "CHECK ((jsonb_typeof(catalog_snapshot_json) = 'object'::text))"
+    },
+    {
+      "name": "assist_visits_r11_risk_flags_array",
+      "table": "assist_visits",
+      "definition": "CHECK ((jsonb_typeof(risk_flag_keys) = 'array'::text))"
+    },
+    {
+      "name": "assist_visits_task_package_id_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (task_package_id) REFERENCES catalog_items(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "assist_visits_tenant_id_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "assist_visits_updated_by_fkey",
+      "table": "assist_visits",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "documentation_entries_assignment_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "documentation_entries_client_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "documentation_entries_created_by_employee_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (created_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "documentation_entries_employee_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "documentation_entries_pkey",
+      "table": "documentation_entries",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "documentation_entries_reviewed_by_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "documentation_entries_tenant_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "documentation_entries_updated_by_profile_id_fkey",
+      "table": "documentation_entries",
+      "definition": "FOREIGN KEY (updated_by_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "documentation_unique_assignment",
+      "table": "documentation_entries",
+      "definition": "UNIQUE (assignment_id)"
+    },
+    {
+      "name": "employee_logbook_trips_assignment_or_reason_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK (((assignment_id IS NOT NULL) OR (client_id IS NOT NULL) OR (char_length(TRIM(BOTH FROM COALESCE(manual_reason, ''::text))) >= 3)))"
+    },
+    {
+      "name": "employee_logbook_trips_check1",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK (((ended_at IS NULL) OR (ended_at >= started_at)))"
+    },
+    {
+      "name": "employee_logbook_trips_client_id_fkey",
+      "table": "employee_logbook_trips",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "employee_logbook_trips_corrected_by_fkey",
+      "table": "employee_logbook_trips",
+      "definition": "FOREIGN KEY (corrected_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "employee_logbook_trips_distance_final_km_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((distance_final_km >= (0)::numeric))"
+    },
+    {
+      "name": "employee_logbook_trips_distance_gps_km_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((distance_gps_km >= (0)::numeric))"
+    },
+    {
+      "name": "employee_logbook_trips_distance_source_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((distance_source = ANY (ARRAY['gps'::text, 'google_fallback'::text, 'osm_fallback'::text, 'manual'::text, 'office_corrected'::text])))"
+    },
+    {
+      "name": "employee_logbook_trips_duration_seconds_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((duration_seconds >= 0))"
+    },
+    {
+      "name": "employee_logbook_trips_employee_id_fkey",
+      "table": "employee_logbook_trips",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "employee_logbook_trips_id_tenant_id_employee_id_key",
+      "table": "employee_logbook_trips",
+      "definition": "UNIQUE (id, tenant_id, employee_id)"
+    },
+    {
+      "name": "employee_logbook_trips_mileage_amount_cents_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((mileage_amount_cents >= 0))"
+    },
+    {
+      "name": "employee_logbook_trips_mileage_rate_cents_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((mileage_rate_cents >= 0))"
+    },
+    {
+      "name": "employee_logbook_trips_pkey",
+      "table": "employee_logbook_trips",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "employee_logbook_trips_purpose_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM purpose)) >= 3))"
+    },
+    {
+      "name": "employee_logbook_trips_route_quality_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((route_quality_status = ANY (ARRAY['measured'::text, 'estimated_due_to_gps_gap'::text, 'manual'::text, 'corrected'::text])))"
+    },
+    {
+      "name": "employee_logbook_trips_route_type_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((route_type = ANY (ARRAY['home_to_office'::text, 'office_to_home'::text, 'home_to_client'::text, 'client_to_home'::text, 'office_to_client'::text, 'client_to_office'::text, 'client_to_client'::text, 'with_client'::text, 'other_business'::text, 'private_non_business'::text])))"
+    },
+    {
+      "name": "employee_logbook_trips_status_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((status = ANY (ARRAY['recording'::text, 'confirmation_required'::text, 'review_required'::text, 'completed'::text, 'corrected'::text, 'confirmed'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "employee_logbook_trips_tenant_id_fkey",
+      "table": "employee_logbook_trips",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "employee_logbook_trips_vehicle_id_tenant_id_employee_id_fkey",
+      "table": "employee_logbook_trips",
+      "definition": "FOREIGN KEY (vehicle_id, tenant_id, employee_id) REFERENCES employee_logbook_vehicles(id, tenant_id, employee_id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "employee_logbook_trips_worktime_deduction_minutes_check",
+      "table": "employee_logbook_trips",
+      "definition": "CHECK ((worktime_deduction_minutes >= 0))"
+    },
+    {
+      "name": "service_records_approved_by_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_assignment_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_assist_visit_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (assist_visit_id) REFERENCES assist_visits(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_billed_invoice_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (billed_invoice_id) REFERENCES invoices(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_client_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "service_records_documentation_entry_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (documentation_entry_id) REFERENCES documentation_entries(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_employee_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_pkey",
+      "table": "service_records",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "service_records_signature_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (signature_id) REFERENCES signatures(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "service_records_tenant_id_fkey",
+      "table": "service_records",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "service_records_unique_record_number_per_tenant",
+      "table": "service_records",
+      "definition": "UNIQUE (tenant_id, record_number)"
+    },
+    {
+      "name": "signatures_assignment_id_fkey",
+      "table": "signatures",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "signatures_client_id_fkey",
+      "table": "signatures",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "signatures_documentation_entry_id_fkey",
+      "table": "signatures",
+      "definition": "FOREIGN KEY (documentation_entry_id) REFERENCES documentation_entries(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "signatures_employee_id_fkey",
+      "table": "signatures",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "signatures_pkey",
+      "table": "signatures",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "signatures_tenant_id_fkey",
+      "table": "signatures",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "time_entries_assignment_id_fkey",
+      "table": "time_entries",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "time_entries_corrected_by_fkey",
+      "table": "time_entries",
+      "definition": "FOREIGN KEY (corrected_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "time_entries_employee_id_fkey",
+      "table": "time_entries",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "time_entries_pkey",
+      "table": "time_entries",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "time_entries_tenant_id_fkey",
+      "table": "time_entries",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    }
+  ]
+}

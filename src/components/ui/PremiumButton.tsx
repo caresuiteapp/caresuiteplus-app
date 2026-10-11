@@ -13,7 +13,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
-import { useAccessibility } from '@/hooks/useAccessibility';
 import { buttonHeights, motion, radius } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -102,7 +101,6 @@ function OrbitPremiumButton({
   leadingIcon,
   trailingIcon,
 }: Props) {
-  const { scaleFontSize } = useAccessibility();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const scale = useSharedValue(1);
@@ -115,13 +113,14 @@ function OrbitPremiumButton({
     () =>
       StyleSheet.create({
         button: {
-          height: dimensions.height,
-          minHeight: dimensions.height,
-          maxHeight: dimensions.height,
+          height: Platform.OS === 'web' ? dimensions.height : undefined,
+          minHeight: Platform.OS === 'web' ? dimensions.height : Math.max(44, dimensions.height),
+          maxHeight: Platform.OS === 'web' ? dimensions.height : undefined,
+          maxWidth: '100%',
           minWidth: fullWidth ? undefined : dimensions.minWidth,
           width: fullWidth ? '100%' : undefined,
           paddingHorizontal: dimensions.padding,
-          paddingVertical: 0,
+          paddingVertical: Platform.OS === 'web' ? 0 : 10,
           borderWidth: 1,
           borderColor: hovered && !isDisabled ? colors.borderHover : colors.border,
           borderRadius: dimensions.radius,
@@ -149,18 +148,19 @@ function OrbitPremiumButton({
         },
         label: {
           color: colors.label,
-          fontSize: Platform.OS === 'web' ? dimensions.fontSize : scaleFontSize(dimensions.fontSize),
-          lineHeight: Platform.OS === 'web' ? dimensions.lineHeight : scaleFontSize(dimensions.lineHeight),
+          fontSize: dimensions.fontSize,
+          lineHeight: dimensions.lineHeight,
           fontWeight: '700',
           letterSpacing: -0.12,
           textAlign: 'center',
+          flexShrink: 1,
         },
       }),
-    [colors, dimensions, focused, fullWidth, hovered, isDisabled, scaleFontSize, variant],
+    [colors, dimensions, focused, fullWidth, hovered, isDisabled, variant],
   );
 
   return (
-    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth]} pointerEvents="box-none">
+    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth, Platform.OS !== 'web' && { maxWidth: '100%', flexShrink: 1 }]} pointerEvents="box-none">
       <Pressable
         disabled={isDisabled}
         onPress={onPress}
@@ -195,7 +195,7 @@ function OrbitPremiumButton({
           {loading ? (
             <ActivityIndicator color={colors.label} />
           ) : (
-            <Text allowFontScaling style={localStyles.label} numberOfLines={1}>
+            <Text allowFontScaling style={localStyles.label} numberOfLines={Platform.OS === 'web' ? 1 : undefined}>
               {title}
             </Text>
           )}
@@ -219,7 +219,6 @@ function PortalPremiumButton({
   accessibilityLabel,
   testID,
 }: Props) {
-  const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isDisabled = disabled || loading;
@@ -263,13 +262,13 @@ function PortalPremiumButton({
             portalVariant === 'primary'
               ? portalPremium.text.onStrong
               : portalPremium.accent.blueDark,
-          fontSize: Platform.OS === 'web' ? 16 : scaleFontSize(16),
-          lineHeight: Platform.OS === 'web' ? 21 : scaleFontSize(21),
+          fontSize: 16,
+          lineHeight: 21,
           fontWeight: '800',
           textAlign: 'center',
         },
       }),
-    [fullWidth, height, portalVariant, resolvedSize, scaleFontSize],
+    [fullWidth, height, portalVariant, resolvedSize],
   );
 
   const content = (
@@ -306,7 +305,7 @@ function PortalPremiumButton({
   );
 
   return (
-    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth]} pointerEvents="box-none">
+    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth, Platform.OS !== 'web' && { maxWidth: '100%', flexShrink: 1 }]} pointerEvents="box-none">
       <Pressable
         disabled={isDisabled}
         onPress={onPress}

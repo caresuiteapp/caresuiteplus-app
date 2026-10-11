@@ -22,8 +22,12 @@ describe('useSupabaseSessionProbe', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     const authIndex = readSrc('src/liquid-command/screens/LiquidCommandEntryScreen.tsx');
     expect(start).toContain('sessionPending');
-    expect(authIndex).toContain('if (!authReady)');
-    expect(authIndex).toContain('System wird gestartet');
+    expect(authIndex).toContain('if (!auth.authReady)');
+    expect(authIndex).toContain('Sitzung wird wiederhergestellt');
+    expect(authIndex.indexOf('if (!auth.authReady)')).toBeLessThan(authIndex.indexOf('resolveAuthSessionTarget(auth)'));
+    expect(authIndex).toContain('if (!auth.isAuthenticated) return <AccessHubScreen />');
+    expect(authIndex).toContain('canRedirectHome && homePath !==');
+    expect(authIndex).toContain('<RequireRole>');
     expect(authIndex).not.toContain('<Redirect href="/" as never />');
   });
 });

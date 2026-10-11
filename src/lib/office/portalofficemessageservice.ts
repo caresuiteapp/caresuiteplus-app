@@ -278,13 +278,17 @@ export async function fetchPortalOfficeThreads(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const categoriesResult = await fetchPortalOfficeCategories(tenantId, actor);
-  if (!categoriesResult.ok) return categoriesResult;
-
-  const threadsResult = await fetchPortalThreadsLive(tenantId, actor);
+  const [threadsResult, categoriesResult] = await Promise.all([
+    fetchPortalThreadsLive(tenantId, actor),
+    // Categories only supply optional display labels. Their availability must
+    // not prevent a permitted conversation from loading.
+    fetchPortalOfficeCategories(tenantId, actor).catch(() => null),
+  ]);
   if (!threadsResult.ok) return threadsResult;
 
-  const byId = new Map(categoriesResult.data.map((category) => [category.id, category.label]));
+  const byId = new Map(
+    (categoriesResult?.ok ? categoriesResult.data : []).map((category) => [category.id, category.label]),
+  );
   const enriched = sortThreads(
     filterByInbox(threadsResult.data, filter).map((thread) => ({
       ...thread,

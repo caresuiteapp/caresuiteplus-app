@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -27,9 +27,15 @@ import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePermissions } from '@/hooks/usePermissions';
+import { fetchClientList } from '@/lib/office/clientListService';
+import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
+import type { CareEntityOption } from '@/components/inputs/CareEntitySelect';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import {
   createCalendarEventFromForm,
   updateCalendarEventFromForm,
+  resolveCalendarFormWritePermission,
 } from '@/lib/calendar/calendarEventSaveService';
 import { CalendarEventForm } from './CalendarEventForm';
 
@@ -96,28 +102,62 @@ export function CalendarEventCreateModal({
   const { width, height } = useWindowDimensions();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const { can, isReadOnly } = usePermissions();
   const isEdit = !!editEvent;
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visible, sourceContext, moduleKey, calendarScope, editEvent?.record?.sourceId ?? editEvent?.id]);
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const mounted = useRef(false);
+  const saveRequest = useRef(0);
+  const savingRef = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const steps = useMemo(() => resolveSteps(moduleKey, isEdit), [moduleKey, isEdit]);
   const [stepIndex, setStepIndex] = useState(0);
   const [template, setTemplate] = useState<CalendarEventTemplate | null>(preselectedTemplate);
   const [form, setForm] = useState(() => createDefaultFormState(moduleKey));
+  const writePermission = resolveCalendarFormWritePermission({ sourceContext, moduleKey, sourceType: form.sourceType });
+  const canSave = !isReadOnly && (!writePermission || can(writePermission));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [persistedSourceId, setPersistedSourceId] = useState<string | null>(null);
+  const [formScope, setFormScope] = useState(scope);
+  const [clients, setClients] = useState<CareEntityOption[]>([]);
+  const [employees, setEmployees] = useState<CareEntityOption[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const latestInitial = useRef({ editEvent, preselectedTemplate }); latestInitial.current = { editEvent, preselectedTemplate };
 
   const step = steps[stepIndex] ?? 'template';
 
   const reset = useCallback(() => {
     setStepIndex(0);
-    setTemplate(preselectedTemplate);
-    setForm(editEvent ? eventToForm(editEvent) : createDefaultFormState(moduleKey));
+    setTemplate(latestInitial.current.preselectedTemplate);
+    setForm(latestInitial.current.editEvent ? eventToForm(latestInitial.current.editEvent) : createDefaultFormState(moduleKey));
     setError(null);
-  }, [editEvent, moduleKey, preselectedTemplate]);
+  }, [moduleKey]);
 
   useEffect(() => {
+    saveRequest.current += 1; savingRef.current = false; setSaving(false);
+    setFormScope(scope); setPersistedSourceId(null); setClients([]); setEmployees([]); setPeopleLoading(false);
     if (!visible) return;
     reset();
-  }, [visible, reset]);
+    if (!tenantId) return;
+    let cancelled = false;
+    setPeopleLoading(true);
+    void Promise.all([fetchClientList(tenantId, profile?.roleKey, { lifecycleFilter: 'active' }), fetchAssignmentEmployeeList(tenantId, profile?.roleKey)]).then(([clientResult, employeeResult]) => {
+      if (cancelled) return;
+      if (!clientResult.ok || !employeeResult.ok) {
+        setError(!clientResult.ok ? clientResult.error : !employeeResult.ok ? employeeResult.error : 'Personenauswahl fehlgeschlagen.'); return;
+      }
+      const clientOptions = clientResult.data.map(person => ({ value: person.id, label: `${person.firstName} ${person.lastName}`.trim() }));
+      const employeeOptions = employeeResult.data.map(person => ({ value: person.id, label: `${person.firstName} ${person.lastName}`.trim() }));
+      const record = latestInitial.current.editEvent?.record;
+      if (record?.relatedClientId && !clientOptions.some(person => person.value === record.relatedClientId)) clientOptions.push({ value: record.relatedClientId, label: 'Bisherige Zuordnung (nicht in aktiver Liste)' });
+      if (record?.relatedEmployeeId && !employeeOptions.some(person => person.value === record.relatedEmployeeId)) employeeOptions.push({ value: record.relatedEmployeeId, label: 'Bisherige Zuordnung (nicht in aktiver Liste)' });
+      setClients(clientOptions); setEmployees(employeeOptions);
+    }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Personenauswahl fehlgeschlagen.'); })
+      .finally(() => { if (!cancelled) setPeopleLoading(false); });
+    return () => { cancelled = true; };
+  }, [scope, visible, tenantId, profile?.roleKey, reset]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -183,11 +223,12 @@ export function CalendarEventCreateModal({
   );
 
   const handleSelectTemplate = (next: CalendarEventTemplate) => {
+    if (savingRef.current) return;
     setTemplate(next);
     setForm((prev) => ({
       ...prev,
       title: prev.title || next.label,
-      sourceType: next.sourceType,
+      sourceType: sourceContext === 'appointment_management' ? 'appointment' : next.sourceType,
       eventType: next.eventType,
       allDay: next.allDay,
       templateKey: next.templateKey,
@@ -220,6 +261,7 @@ export function CalendarEventCreateModal({
   };
 
   const handleSave = async () => {
+    if (savingRef.current || !canSave || peopleLoading) return;
     if (!tenantId) {
       setError('Kein Mandant am Profil hinterlegt.');
       return;
@@ -228,7 +270,12 @@ export function CalendarEventCreateModal({
       setError('Bitte Titel ausfüllen.');
       return;
     }
-    setSaving(true);
+    if ((form.relatedClientId && !clients.some(person => person.value === form.relatedClientId)) || (form.relatedEmployeeId && !employees.some(person => person.value === form.relatedEmployeeId))) {
+      setError('Bitte eine verfügbare Person aus der aktuellen Auswahl wählen.'); return;
+    }
+    const submittedScope = scope; const request = ++saveRequest.current;
+    const canCommit = () => mounted.current && scopeRef.current === submittedScope && saveRequest.current === request;
+    savingRef.current = true; setSaving(true);
     setError(null);
 
     const payload = {
@@ -257,26 +304,32 @@ export function CalendarEventCreateModal({
       isModuleVisible: form.isModuleVisible,
       isClientPortalVisible: form.isClientPortalVisible,
       isEmployeePortalVisible: form.isEmployeePortalVisible,
-      existingSourceId: editEvent?.record?.sourceId ?? editEvent?.id ?? null,
+      existingSourceId: persistedSourceId ?? editEvent?.record?.sourceId ?? editEvent?.id ?? null,
       existingEventId: editEvent?.record?.id ?? null,
     };
 
-    const result = isEdit
+    try {
+    const result = isEdit || persistedSourceId
       ? await updateCalendarEventFromForm(payload, profile?.roleKey)
       : await createCalendarEventFromForm(payload, profile?.roleKey);
 
-    setSaving(false);
+    if (!canCommit()) return;
     if (!result.ok) {
       setError(result.error);
+      setPersistedSourceId(result.persistedSourceId ?? persistedSourceId);
       return;
     }
     onCreated?.();
     onClose();
+    } catch (cause) {
+      if (canCommit()) setError(cause instanceof Error ? cause.message : 'Speicherung konnte nicht bestätigt werden.');
+    } finally { if (canCommit()) { savingRef.current = false; setSaving(false); } }
   };
 
   const modalTitle = isEdit ? 'Kalendereintrag bearbeiten' : 'Neuen Kalendereintrag planen';
 
   if (!visible) return null;
+  if (formScope !== scope) return null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -295,23 +348,28 @@ export function CalendarEventCreateModal({
               </View>
             </View>
             <ScrollView contentContainerStyle={styles.body}>
-              <CalendarEventForm
+              <SurfaceContrastProvider tone="light"><CalendarEventForm
                 step={step}
                 moduleKey={moduleKey}
                 form={form}
                 template={template}
                 accentColor={accentColor}
-                onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+                clients={clients}
+                employees={employees}
+                peopleLoading={peopleLoading}
+                disabled={saving || !canSave}
+                onChange={(patch) => { if (!savingRef.current && canSave) setForm((prev) => ({ ...prev, ...patch })); }}
                 onSelectTemplate={handleSelectTemplate}
                 onContinueWithoutTemplate={handleContinueWithoutTemplate}
                 onChooseCalendarEntry={goNext}
                 onAssistEinsatzLink={() => {
                   onClose();
-                  router.push('/assist/einsaetze/new' as never);
+                  router.push('/assist/assignments?create=1' as never);
                 }}
-              />
+              /></SurfaceContrastProvider>
             </ScrollView>
             {error ? <View style={styles.errorBanner}><Text style={styles.error}>{error}</Text></View> : null}
+            {!canSave ? <View style={styles.errorBanner}><Text style={styles.error}>Keine Schreibberechtigung für diesen Kalender.</Text></View> : null}
             <View style={styles.actions}>
               {stepIndex > 0 ? (
                 <PremiumButton title="Zurück" variant="secondary" onPress={goBack} />
@@ -320,9 +378,9 @@ export function CalendarEventCreateModal({
               )}
               {step === 'preview' ? (
                 <PremiumButton
-                  title={saving ? 'Speichern…' : isEdit ? 'Aktualisieren' : 'Speichern'}
+                  title={saving ? 'Speichern…' : persistedSourceId ? 'Abgleich erneut versuchen' : isEdit ? 'Aktualisieren' : 'Speichern'}
                   onPress={handleSave}
-                  disabled={saving}
+                  disabled={saving || !canSave || peopleLoading}
                 />
               ) : step === 'template' || step === 'type' ? null : (
                 <PremiumButton title="Weiter" onPress={goNext} />

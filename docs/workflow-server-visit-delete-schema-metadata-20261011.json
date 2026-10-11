@@ -1,0 +1,3147 @@
+{
+  "capturedAt": "2026-10-11T12:15:31.497Z",
+  "scope": "Read-only schema/constraints/indexes, no business rows",
+  "columns": [
+    {
+      "table": "assignment_budget_allocations",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "budget_account_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "catalog_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "legal_basis",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "allocation_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'planned'::text"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "planned_amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "reserved_amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "final_amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "priority_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "99"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "is_manual_override",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "override_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assignments",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assignments",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "product_key",
+      "data_type": "USER-DEFINED",
+      "udt_name": "product_key",
+      "is_nullable": "NO",
+      "column_default": "'assist'::product_key"
+    },
+    {
+      "table": "assignments",
+      "column": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "assignment_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "planned_start_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "planned_end_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "actual_start_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "actual_end_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "assignment_status",
+      "is_nullable": "NO",
+      "column_default": "'planned'::assignment_status"
+    },
+    {
+      "table": "assignments",
+      "column": "recurrence_type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "recurrence_type",
+      "is_nullable": "YES",
+      "column_default": "'none'::recurrence_type"
+    },
+    {
+      "table": "assignments",
+      "column": "recurrence_rule",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "parent_assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "address_snapshot",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "route_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "employee_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "client_visible_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "internal_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "cancellation_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "cancelled_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "cancelled_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assignments",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assignments",
+      "column": "on_the_way_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "arrived_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "finished_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "documentation_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "assignment_profile_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assignments",
+      "column": "operational_context",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_time_events",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_time_events",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "session_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "event_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "occurred_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_time_events",
+      "column": "recorded_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "duration_seconds",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_time_events",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_time_events",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "signature_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "proof_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'draft'::text"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "storage_path",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "payload_snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "payload_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "generated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "generated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "approved_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "approved_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "billing_released",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "portal_visible",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "released_to_portal_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "portal_release_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'none'::text"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "approval_note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "rejection_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "pdf_storage_path",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_proofs",
+      "column": "pdf_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "signer_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "signer_role",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "storage_path",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "payload_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "signature_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "signed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "signed_by_profile_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "is_valid",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "invalidated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "invalidation_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visits",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_visits",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "legacy_assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "service_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "service_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "assignment_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "planned_start_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "planned_end_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "duration_minutes",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "actual_start_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "actual_end_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "on_the_way_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "arrived_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "finished_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "address_snapshot",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "location_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "route_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "internal_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "employee_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "client_visible_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "planning_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'draft'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "execution_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'pending'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "documentation_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'none'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "proof_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'none'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "billing_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'none'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "portal_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'hidden'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "canonical_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'planned'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "portal_release_enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visits",
+      "column": "portal_released_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "employee_portal_visible",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table": "assist_visits",
+      "column": "budget_amount_cents",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "budget_currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'EUR'::text"
+    },
+    {
+      "table": "assist_visits",
+      "column": "budget_warning",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "is_at_risk",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visits",
+      "column": "is_incomplete",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visits",
+      "column": "error_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "error_message",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visits",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visits",
+      "column": "subject_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "assignment_type_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "service_category_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "task_package_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "billing_budget_source_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "priority_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "recurrence_json",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visits",
+      "column": "documentation_template_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "proof_template_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visits",
+      "column": "risk_flag_keys",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb"
+    },
+    {
+      "table": "assist_visits",
+      "column": "catalog_snapshot_json",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "catalog_template_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "catalog_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "catalog_year",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "period",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "period_start",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "period_end",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "allocated_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "used_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "reserved_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "is_individual_override",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "individual_amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "catalog_snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "billing_priority",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "99"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "standard_amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "locked",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "lock_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "is_enabled",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table": "client_budget_accounts",
+      "column": "external_sachleistung_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "budget_account_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "transaction_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "amount_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "balance_after_cents",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "reference_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "reference_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "lifecycle_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "client_budget_transactions",
+      "column": "invoice_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "documentation_entries",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "product_key",
+      "data_type": "USER-DEFINED",
+      "udt_name": "product_key",
+      "is_nullable": "NO",
+      "column_default": "'assist'::product_key"
+    },
+    {
+      "table": "documentation_entries",
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "documentation_status",
+      "is_nullable": "NO",
+      "column_default": "'draft'::documentation_status"
+    },
+    {
+      "table": "documentation_entries",
+      "column": "free_text",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "special_incidents",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "client_condition_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "office_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "internal_review_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "employee_completed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "submitted_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "completed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "reviewed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "reviewed_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "rejected_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "created_by_employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "updated_by_profile_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "documentation_entries",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "documentation_entries",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "service_records",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "service_records",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "documentation_entry_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "signature_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "product_key",
+      "data_type": "USER-DEFINED",
+      "udt_name": "product_key",
+      "is_nullable": "NO",
+      "column_default": "'assist'::product_key"
+    },
+    {
+      "table": "service_records",
+      "column": "record_number",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "service_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "service_month",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "planned_minutes",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "actual_minutes",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "billable_minutes",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "hourly_rate",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "total_amount",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "service_record_status",
+      "is_nullable": "NO",
+      "column_default": "'draft'::service_record_status"
+    },
+    {
+      "table": "service_records",
+      "column": "pdf_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "approved_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "approved_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "billed_invoice_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_records",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "service_records",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "service_records",
+      "column": "assist_visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "signatures",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "documentation_entry_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "signature_status",
+      "is_nullable": "NO",
+      "column_default": "'pending'::signature_status"
+    },
+    {
+      "table": "signatures",
+      "column": "signer_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signer_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signer_relationship",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signature_data",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signature_image_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signed_ip_address",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "signed_user_agent",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "signatures",
+      "column": "declaration_text",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "'Ich bestätige die Durchführung des oben genannten Einsatzes.'::text"
+    },
+    {
+      "table": "signatures",
+      "column": "is_client_portal_signature",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "false"
+    },
+    {
+      "table": "signatures",
+      "column": "is_employee_portal_signature",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "true"
+    },
+    {
+      "table": "signatures",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "signatures",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "time_entries",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "time_entries",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "assignment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "employee_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "entry_type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "time_entry_type",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "event_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "time_entries",
+      "column": "latitude",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "longitude",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "accuracy_meters",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "source",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "'portal'::text"
+    },
+    {
+      "table": "time_entries",
+      "column": "device_info",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "corrected_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "corrected_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "correction_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "time_entries",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "constraints": [
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_allocation_status_check",
+      "type": "c",
+      "definition": "CHECK ((allocation_status = ANY (ARRAY['planned'::text, 'reserved'::text, 'executed'::text, 'finalized'::text, 'released'::text, 'storniert'::text])))"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_budget_account_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (budget_account_id) REFERENCES client_budget_accounts(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_final_amount_cents_check",
+      "type": "c",
+      "definition": "CHECK (((final_amount_cents IS NULL) OR (final_amount_cents >= 0)))"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_planned_amount_cents_check",
+      "type": "c",
+      "definition": "CHECK ((planned_amount_cents >= 0))"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_reserved_amount_cents_check",
+      "type": "c",
+      "definition": "CHECK ((reserved_amount_cents >= 0))"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_assignment_profile_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assignment_profile_id) REFERENCES client_assignment_profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_cancelled_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (cancelled_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_created_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_parent_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (parent_assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_planned_time_check",
+      "type": "c",
+      "definition": "CHECK ((planned_end_at > planned_start_at))"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_updated_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_duration_nonneg",
+      "type": "c",
+      "definition": "CHECK (((duration_seconds IS NULL) OR (duration_seconds >= 0)))"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_recorded_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (recorded_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_session_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (session_id) REFERENCES assist_tracking_sessions(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_type_check",
+      "type": "c",
+      "definition": "CHECK ((event_type = ANY (ARRAY['drive_start'::text, 'drive_end'::text, 'service_start'::text, 'service_end'::text, 'pause_start'::text, 'pause_end'::text, 'arrive'::text, 'depart'::text, 'arrived_without_gps'::text, 'arrived_manual'::text])))"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_visit_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_approved_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_created_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_generated_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (generated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_portal_release_status_check",
+      "type": "c",
+      "definition": "CHECK ((portal_release_status = ANY (ARRAY['none'::text, 'released'::text, 'pending_client_signature'::text, 'revoked'::text])))"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_signature_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (signature_id) REFERENCES assist_visit_signatures(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_status_check",
+      "type": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'pending_review'::text, 'approved'::text, 'exported'::text, 'archived'::text, 'rejected'::text])))"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_updated_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_visit_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_created_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_payload_hash_nonempty",
+      "type": "c",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM payload_hash)) > 0))"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_signature_hash_nonempty",
+      "type": "c",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM signature_hash)) > 0))"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_signed_by_profile_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (signed_by_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_signer_name_nonempty",
+      "type": "c",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM signer_name)) > 0))"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_storage_path_nonempty",
+      "type": "c",
+      "definition": "CHECK ((char_length(TRIM(BOTH FROM storage_path)) > 0))"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_updated_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_visit_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_created_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_legacy_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (legacy_assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_r11_catalog_snapshot_object",
+      "type": "c",
+      "definition": "CHECK ((jsonb_typeof(catalog_snapshot_json) = 'object'::text))"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_r11_risk_flags_array",
+      "type": "c",
+      "definition": "CHECK ((jsonb_typeof(risk_flag_keys) = 'array'::text))"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_task_package_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (task_package_id) REFERENCES catalog_items(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_updated_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_catalog_template_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (catalog_template_id) REFERENCES budget_template_catalog(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_external_sachleistung_nonnegative",
+      "type": "c",
+      "definition": "CHECK ((external_sachleistung_cents >= 0))"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_period_check",
+      "type": "c",
+      "definition": "CHECK ((period = ANY (ARRAY['monthly'::text, 'yearly'::text, 'quarterly'::text])))"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_status_check",
+      "type": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'closed'::text, 'suspended'::text])))"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_budget_account_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (budget_account_id) REFERENCES client_budget_accounts(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_created_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_lifecycle_check",
+      "type": "c",
+      "definition": "CHECK (((lifecycle_status IS NULL) OR (lifecycle_status = ANY (ARRAY['geplant'::text, 'durchgefuehrt'::text, 'nachgewiesen'::text, 'freigegeben'::text, 'abgerechnet'::text, 'storniert'::text]))))"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_type_check",
+      "type": "c",
+      "definition": "CHECK ((transaction_type = ANY (ARRAY['allocation'::text, 'usage'::text, 'reservation'::text, 'release'::text, 'adjustment'::text, 'reversal'::text])))"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_created_by_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (created_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_reviewed_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_updated_by_profile_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (updated_by_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_unique_assignment",
+      "type": "u",
+      "definition": "UNIQUE (assignment_id)"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_approved_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_assist_visit_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assist_visit_id) REFERENCES assist_visits(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_billed_invoice_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (billed_invoice_id) REFERENCES invoices(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_documentation_entry_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (documentation_entry_id) REFERENCES documentation_entries(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_signature_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (signature_id) REFERENCES signatures(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_unique_record_number_per_tenant",
+      "type": "u",
+      "definition": "UNIQUE (tenant_id, record_number)"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_client_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_documentation_entry_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (documentation_entry_id) REFERENCES documentation_entries(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_assignment_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_corrected_by_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (corrected_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_employee_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    }
+  ],
+  "indexes": [
+    {
+      "table": "assignment_budget_allocations",
+      "name": "assignment_budget_allocations_pkey",
+      "definition": "CREATE UNIQUE INDEX assignment_budget_allocations_pkey ON public.assignment_budget_allocations USING btree (id)"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "idx_assignment_budget_allocations_client",
+      "definition": "CREATE INDEX idx_assignment_budget_allocations_client ON public.assignment_budget_allocations USING btree (tenant_id, client_id, allocation_status)"
+    },
+    {
+      "table": "assignment_budget_allocations",
+      "name": "idx_assignment_budget_allocations_visit",
+      "definition": "CREATE INDEX idx_assignment_budget_allocations_visit ON public.assignment_budget_allocations USING btree (tenant_id, assignment_id, priority_order)"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_pkey",
+      "definition": "CREATE UNIQUE INDEX assignments_pkey ON public.assignments USING btree (id)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_client",
+      "definition": "CREATE INDEX idx_assignments_client ON public.assignments USING btree (client_id)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_employee",
+      "definition": "CREATE INDEX idx_assignments_employee ON public.assignments USING btree (employee_id)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_product",
+      "definition": "CREATE INDEX idx_assignments_product ON public.assignments USING btree (product_key)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_status",
+      "definition": "CREATE INDEX idx_assignments_status ON public.assignments USING btree (status)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_tenant_date",
+      "definition": "CREATE INDEX idx_assignments_tenant_date ON public.assignments USING btree (tenant_id, assignment_date)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_tenant_employee_date",
+      "definition": "CREATE INDEX idx_assignments_tenant_employee_date ON public.assignments USING btree (tenant_id, employee_id, assignment_date DESC) WHERE (employee_id IS NOT NULL)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignments_assignment_profile",
+      "definition": "CREATE INDEX idx_assignments_assignment_profile ON public.assignments USING btree (tenant_id, assignment_profile_id)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignment_profile_release_overlap_employee",
+      "definition": "CREATE INDEX idx_assignment_profile_release_overlap_employee ON public.assignments USING btree (tenant_id, employee_id, planned_start_at, planned_end_at)"
+    },
+    {
+      "table": "assignments",
+      "name": "idx_assignment_profile_release_overlap_client",
+      "definition": "CREATE INDEX idx_assignment_profile_release_overlap_client ON public.assignments USING btree (tenant_id, client_id, planned_start_at, planned_end_at)"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "assist_time_events_pkey",
+      "definition": "CREATE UNIQUE INDEX assist_time_events_pkey ON public.assist_time_events USING btree (id)"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "idx_assist_time_events_session",
+      "definition": "CREATE INDEX idx_assist_time_events_session ON public.assist_time_events USING btree (tenant_id, session_id, occurred_at DESC) WHERE (session_id IS NOT NULL)"
+    },
+    {
+      "table": "assist_time_events",
+      "name": "idx_assist_time_events_tenant_visit",
+      "definition": "CREATE INDEX idx_assist_time_events_tenant_visit ON public.assist_time_events USING btree (tenant_id, visit_id, occurred_at DESC)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "assist_visit_proofs_pkey",
+      "definition": "CREATE UNIQUE INDEX assist_visit_proofs_pkey ON public.assist_visit_proofs USING btree (id)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "idx_assist_visit_proofs_tenant_portal",
+      "definition": "CREATE INDEX idx_assist_visit_proofs_tenant_portal ON public.assist_visit_proofs USING btree (tenant_id, portal_visible) WHERE (portal_visible = true)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "idx_assist_visit_proofs_tenant_portal_release",
+      "definition": "CREATE INDEX idx_assist_visit_proofs_tenant_portal_release ON public.assist_visit_proofs USING btree (tenant_id, portal_release_status)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "idx_assist_visit_proofs_tenant_status",
+      "definition": "CREATE INDEX idx_assist_visit_proofs_tenant_status ON public.assist_visit_proofs USING btree (tenant_id, status)"
+    },
+    {
+      "table": "assist_visit_proofs",
+      "name": "idx_assist_visit_proofs_tenant_visit",
+      "definition": "CREATE INDEX idx_assist_visit_proofs_tenant_visit ON public.assist_visit_proofs USING btree (tenant_id, visit_id, created_at DESC)"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "assist_visit_signatures_pkey",
+      "definition": "CREATE UNIQUE INDEX assist_visit_signatures_pkey ON public.assist_visit_signatures USING btree (id)"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "idx_assist_visit_signatures_tenant_valid",
+      "definition": "CREATE INDEX idx_assist_visit_signatures_tenant_valid ON public.assist_visit_signatures USING btree (tenant_id, visit_id) WHERE (is_valid = true)"
+    },
+    {
+      "table": "assist_visit_signatures",
+      "name": "idx_assist_visit_signatures_tenant_visit",
+      "definition": "CREATE INDEX idx_assist_visit_signatures_tenant_visit ON public.assist_visit_signatures USING btree (tenant_id, visit_id, signed_at DESC)"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_pkey",
+      "definition": "CREATE UNIQUE INDEX assist_visits_pkey ON public.assist_visits USING btree (id)"
+    },
+    {
+      "table": "assist_visits",
+      "name": "idx_assist_visits_subject_key",
+      "definition": "CREATE INDEX idx_assist_visits_subject_key ON public.assist_visits USING btree (tenant_id, subject_key) WHERE (subject_key IS NOT NULL)"
+    },
+    {
+      "table": "assist_visits",
+      "name": "idx_assist_visits_r11_assignment_profile",
+      "definition": "CREATE INDEX idx_assist_visits_r11_assignment_profile ON public.assist_visits USING btree (tenant_id, ((catalog_snapshot_json ->> 'assignmentProfileId'::text))) WHERE (catalog_snapshot_json ? 'assignmentProfileId'::text)"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visit_push_unstarted_time",
+      "definition": "CREATE INDEX assist_visit_push_unstarted_time ON public.assist_visits USING btree (planned_start_at) WHERE ((actual_start_at IS NULL) AND (actual_end_at IS NULL) AND (finished_at IS NULL) AND employee_portal_visible)"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "client_budget_accounts_pkey",
+      "definition": "CREATE UNIQUE INDEX client_budget_accounts_pkey ON public.client_budget_accounts USING btree (id)"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "idx_client_budget_accounts_client",
+      "definition": "CREATE INDEX idx_client_budget_accounts_client ON public.client_budget_accounts USING btree (tenant_id, client_id, catalog_year, period_start DESC)"
+    },
+    {
+      "table": "client_budget_accounts",
+      "name": "idx_client_budget_accounts_period_unique",
+      "definition": "CREATE UNIQUE INDEX idx_client_budget_accounts_period_unique ON public.client_budget_accounts USING btree (tenant_id, client_id, catalog_key, period_start, period_end) WHERE (status = 'active'::text)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "client_budget_transactions_pkey",
+      "definition": "CREATE UNIQUE INDEX client_budget_transactions_pkey ON public.client_budget_transactions USING btree (id)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "idx_client_budget_transactions_account",
+      "definition": "CREATE INDEX idx_client_budget_transactions_account ON public.client_budget_transactions USING btree (tenant_id, budget_account_id, created_at DESC)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "idx_client_budget_transactions_client",
+      "definition": "CREATE INDEX idx_client_budget_transactions_client ON public.client_budget_transactions USING btree (tenant_id, client_id, created_at DESC)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "idx_client_budget_transactions_lifecycle",
+      "definition": "CREATE INDEX idx_client_budget_transactions_lifecycle ON public.client_budget_transactions USING btree (tenant_id, reference_type, reference_id, lifecycle_status) WHERE (reference_id IS NOT NULL)"
+    },
+    {
+      "table": "client_budget_transactions",
+      "name": "idx_client_budget_tx_visit_reservation_active",
+      "definition": "CREATE UNIQUE INDEX idx_client_budget_tx_visit_reservation_active ON public.client_budget_transactions USING btree (tenant_id, reference_type, reference_id, budget_account_id) WHERE ((reference_type = 'assist_visit'::text) AND (transaction_type = 'reservation'::text) AND (COALESCE(lifecycle_status, 'geplant'::text) <> ALL (ARRAY['storniert'::text, 'nachgewiesen'::text, 'freigegeben'::text, 'abgerechnet'::text])))"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_entries_pkey",
+      "definition": "CREATE UNIQUE INDEX documentation_entries_pkey ON public.documentation_entries USING btree (id)"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "documentation_unique_assignment",
+      "definition": "CREATE UNIQUE INDEX documentation_unique_assignment ON public.documentation_entries USING btree (assignment_id)"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "idx_documentation_assignment",
+      "definition": "CREATE INDEX idx_documentation_assignment ON public.documentation_entries USING btree (assignment_id)"
+    },
+    {
+      "table": "documentation_entries",
+      "name": "idx_documentation_tenant_status",
+      "definition": "CREATE INDEX idx_documentation_tenant_status ON public.documentation_entries USING btree (tenant_id, status)"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_pkey",
+      "definition": "CREATE UNIQUE INDEX service_records_pkey ON public.service_records USING btree (id)"
+    },
+    {
+      "table": "service_records",
+      "name": "service_records_unique_record_number_per_tenant",
+      "definition": "CREATE UNIQUE INDEX service_records_unique_record_number_per_tenant ON public.service_records USING btree (tenant_id, record_number)"
+    },
+    {
+      "table": "service_records",
+      "name": "idx_service_records_assist_visit",
+      "definition": "CREATE INDEX idx_service_records_assist_visit ON public.service_records USING btree (tenant_id, assist_visit_id) WHERE (assist_visit_id IS NOT NULL)"
+    },
+    {
+      "table": "service_records",
+      "name": "idx_service_records_client",
+      "definition": "CREATE INDEX idx_service_records_client ON public.service_records USING btree (client_id)"
+    },
+    {
+      "table": "service_records",
+      "name": "idx_service_records_employee",
+      "definition": "CREATE INDEX idx_service_records_employee ON public.service_records USING btree (employee_id)"
+    },
+    {
+      "table": "service_records",
+      "name": "idx_service_records_month",
+      "definition": "CREATE INDEX idx_service_records_month ON public.service_records USING btree (service_month)"
+    },
+    {
+      "table": "service_records",
+      "name": "idx_service_records_tenant_status",
+      "definition": "CREATE INDEX idx_service_records_tenant_status ON public.service_records USING btree (tenant_id, status)"
+    },
+    {
+      "table": "signatures",
+      "name": "signatures_pkey",
+      "definition": "CREATE UNIQUE INDEX signatures_pkey ON public.signatures USING btree (id)"
+    },
+    {
+      "table": "signatures",
+      "name": "idx_signatures_assignment",
+      "definition": "CREATE INDEX idx_signatures_assignment ON public.signatures USING btree (assignment_id)"
+    },
+    {
+      "table": "signatures",
+      "name": "idx_signatures_tenant_status",
+      "definition": "CREATE INDEX idx_signatures_tenant_status ON public.signatures USING btree (tenant_id, status)"
+    },
+    {
+      "table": "time_entries",
+      "name": "time_entries_pkey",
+      "definition": "CREATE UNIQUE INDEX time_entries_pkey ON public.time_entries USING btree (id)"
+    },
+    {
+      "table": "time_entries",
+      "name": "idx_time_entries_assignment_event",
+      "definition": "CREATE INDEX idx_time_entries_assignment_event ON public.time_entries USING btree (assignment_id, event_at)"
+    },
+    {
+      "table": "time_entries",
+      "name": "idx_time_entries_employee_event",
+      "definition": "CREATE INDEX idx_time_entries_employee_event ON public.time_entries USING btree (employee_id, event_at)"
+    }
+  ]
+}

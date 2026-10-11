@@ -1,5 +1,5 @@
 import { portalBackgroundRefreshStatus } from '@/lib/offline/portalBackgroundRefresh';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { PremiumButton } from '@/components/ui';
@@ -8,9 +8,15 @@ import {
   forgetRememberedPortalLogin,
   getRememberedPortalMetadata,
 } from '@/lib/auth/rememberedPortalLogin';
-import { ensurePortalPushRegistration } from '@/lib/portal/portalPushNotifications';
+import { ensurePortalPushRegistration, toPortalPushUserMessage } from '@/lib/portal/portalPushNotifications';
 import { portalPremium } from '@/design/tokens/portalPremium';
 export function PortalDeviceSettingsCard() {
+  const { portalSession } = useAuth();
+  return <PortalDeviceSettingsContent key={JSON.stringify([portalSession?.tenantId, portalSession?.accountId, portalSession?.roleKey])} />;
+}
+
+function PortalDeviceSettingsContent() {
+  const registrationLock = useRef(false);
   const { portalSession } = useAuth();
   const { pushUpdate } = useLocalSearchParams<{ pushUpdate?: string }>();
   const kind = portalSession?.roleKey === 'employee_portal' ? 'employee' : 'client';
@@ -21,7 +27,7 @@ export function PortalDeviceSettingsCard() {
     let active = true;
     void portalBackgroundRefreshStatus().then((value) => {
       if (active) setBackground(value);
-    });
+    }).catch(() => { if (active) setBackground('restricted'); });
     return () => {
       active = false;
     };
@@ -70,7 +76,8 @@ export function PortalDeviceSettingsCard() {
         title="Benachrichtigungen einrichten / prüfen"
         loading={busy}
         onPress={() => {
-          if (busy) return;
+          if (registrationLock.current) return;
+          registrationLock.current = true;
           setBusy(true);
           void ensurePortalPushRegistration(true)
             .then((result) =>
@@ -78,7 +85,8 @@ export function PortalDeviceSettingsCard() {
                 result.ok ? 'Dieses Gerät ist für Benachrichtigungen registriert.' : result.error,
               ),
             )
-            .finally(() => setBusy(false));
+            .catch((cause) => setMessage(toPortalPushUserMessage(cause)))
+            .finally(() => { registrationLock.current = false; setBusy(false); });
         }}
       />
       <PremiumButton

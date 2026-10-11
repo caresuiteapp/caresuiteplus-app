@@ -1,15 +1,14 @@
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import { leftPad } from '@/lib/runtime/runtimeSafeCollections';
+import { berlinDateKey } from '@/lib/employeeLogbook/employeeLogbookDate';
 
 export type EmployeeReturnTripDestination = 'home' | 'office';
 
 const TERMINAL_ASSIGNMENT_STATUSES = new Set(['storniert', 'nicht_erschienen']);
 
 function localDayKey(value: string): string | null {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  return berlinDateKey(value) || null;
 }
 
 /**

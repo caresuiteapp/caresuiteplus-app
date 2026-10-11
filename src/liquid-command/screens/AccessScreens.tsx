@@ -171,21 +171,44 @@ function SecuritySide() {
 
 export function BusinessAccessScreen() {
   const router = useRouter();
-  const { signInWithSupabaseSession } = useAuth();
+  const { signInWithSupabaseSession, user } = useAuth();
+  const loginLifecycle = useRef({ mounted: true, generation: 0, userId: user?.id, expectedUserId: undefined as string | undefined });
+  const loginLock = useRef(false);
+  if (loginLifecycle.current.userId !== user?.id) {
+    loginLifecycle.current.userId = user?.id;
+    if (user?.id !== loginLifecycle.current.expectedUserId) loginLifecycle.current.generation += 1;
+  }
+  useEffect(() => {
+    loginLifecycle.current.mounted = true;
+    return () => { loginLifecycle.current.mounted = false; loginLifecycle.current.generation += 1; };
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (user?.id === loginLifecycle.current.expectedUserId) return;
+    loginLock.current = false;
+    setLoading(false);
+    setPassword('');
+    setError(null);
+  }, [user?.id]);
+
   const submit = async () => {
+    if (loginLock.current || !loginLifecycle.current.mounted) return;
     setError(null);
     if (!email.trim() || !password) {
       setError('E-Mail und Passwort sind erforderlich.');
       return;
     }
     setLoading(true);
+    loginLock.current = true;
+    const generation = loginLifecycle.current.generation;
+    const isCurrent = () => loginLifecycle.current.mounted && loginLifecycle.current.generation === generation;
     try {
       const result = await loginBusinessUser(email, password);
+      if (!isCurrent()) return;
       if (!result.ok) {
         setError(result.error);
         return;
@@ -194,13 +217,15 @@ export function BusinessAccessScreen() {
         setError('Die Anmeldung lieferte keine sichere Sitzung. Bitte den Zugang prüfen.');
         return;
       }
+      loginLifecycle.current.expectedUserId = result.data.supabaseSession.user?.id;
       await signInWithSupabaseSession(result.data.supabaseSession);
+      if (!isCurrent()) return;
       markBusinessWelcomePending();
       router.replace(resolveBusinessDashboardRoute());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
-      setLoading(false);
+      if (isCurrent()) { loginLock.current = false; setLoading(false); }
     }
   };
 
@@ -457,12 +482,21 @@ const registrationSteps = [
 
 export function RegisterOrganizationScreen() {
   const router = useRouter();
+  const { user, portalSession } = useAuth();
+  const authIdentity = `${user?.id ?? ''}:${portalSession?.accountId ?? ''}:${portalSession?.sessionToken ?? ''}`;
+  const lifecycle = useRef({ mounted: true, identity: authIdentity, generation: 0 });
+  if (lifecycle.current.identity !== authIdentity) {
+    lifecycle.current.identity = authIdentity;
+    lifecycle.current.generation += 1;
+  }
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<BusinessRegistrationInput>(EMPTY_REGISTRATION);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackSequence, setFeedbackSequence] = useState(0);
+  const showError = (message: string) => { setError(message); setFeedbackSequence(current => current + 1); };
   const [success, setSuccess] = useState<{ username?: string } | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const submitLock = useRef(false);
@@ -470,6 +504,22 @@ export function RegisterOrganizationScreen() {
   const draftWrites = useRef<Promise<unknown>>(Promise.resolve());
   const [draftError, setDraftError] = useState(false);
   const registrationLayout = useLiquidLayout();
+
+  useEffect(() => {
+    lifecycle.current.mounted = true;
+    return () => { lifecycle.current.mounted = false; lifecycle.current.generation += 1; };
+  }, []);
+
+  useEffect(() => {
+    submitLock.current = false;
+    completed.current = false;
+    setLoading(false);
+    setError(null);
+    setSuccess(null);
+    setForm(current => ({ ...current, adminPassword: '' }));
+    setConfirmPassword('');
+    setAccepted(false);
+  }, [authIdentity]);
 
   useEffect(() => {
     if (!loading) return;
@@ -498,9 +548,11 @@ export function RegisterOrganizationScreen() {
   useEffect(() => {
     if (!draftReady || success) return;
     const { adminPassword: _password, ...safeDraft } = form;
+    const generation = lifecycle.current.generation;
+    const isCurrent = () => lifecycle.current.mounted && lifecycle.current.generation === generation && !completed.current;
     draftWrites.current = draftWrites.current.catch(() => undefined)
-      .then(() => AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft)))
-      .then(() => setDraftError(false), () => setDraftError(true));
+      .then(() => isCurrent() ? AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft)) : undefined)
+      .then(() => { if (isCurrent()) setDraftError(false); }, () => { if (isCurrent()) setDraftError(true); });
   }, [draftReady, form, success]);
 
   const update = <K extends keyof BusinessRegistrationInput>(
@@ -552,7 +604,7 @@ export function RegisterOrganizationScreen() {
     if (!draftReady || submitLock.current || completed.current) return;
     setError(null);
     if (stepError) {
-      setError(stepError);
+      showError(stepError);
       return;
     }
     setStep((current) => current === step ? Math.min(current + 1, registrationSteps.length - 1) : current);
@@ -560,31 +612,33 @@ export function RegisterOrganizationScreen() {
 
   const submit = async () => {
     if (!draftReady || submitLock.current || completed.current) return;
-    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration(form);
+    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration({ ...form, termsAccepted: accepted });
     if (validation || !accepted || form.adminPassword !== confirmPassword) {
-      setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
+      showError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
       return;
     }
     submitLock.current = true;
+    const generation = lifecycle.current.generation;
+    const isCurrent = () => lifecycle.current.mounted && lifecycle.current.generation === generation;
     setError(null);
     setLoading(true);
     try {
       const result = await registerBusinessTenant({ ...form, termsAccepted: accepted });
+      if (!isCurrent()) return;
       if (!result.ok) {
-        setError(result.error);
+        showError(result.error);
         return;
       }
       completed.current = true;
-      await draftWrites.current;
-      await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
       setSuccess({ username: result.data.owner.email });
       setForm(current => ({ ...current, adminPassword: '' }));
       setConfirmPassword('');
+      await draftWrites.current;
+      if (isCurrent()) await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Registrierung fehlgeschlagen.');
+      if (isCurrent() && !completed.current) showError(cause instanceof Error ? cause.message : 'Registrierung fehlgeschlagen.');
     } finally {
-      submitLock.current = false;
-      setLoading(false);
+      if (isCurrent()) { submitLock.current = false; setLoading(false); }
     }
   };
 
@@ -595,6 +649,7 @@ export function RegisterOrganizationScreen() {
   if (success) {
     return (
       <AccessShell
+        scrollKey="registration-complete"
         eyebrow="ORGANISATION AKTIV"
         title="Ihre Organisation ist bereit."
         subtitle="Das Administrationskonto wurde angelegt. Melden Sie sich an und führen Sie das Onboarding fort."
@@ -617,7 +672,7 @@ export function RegisterOrganizationScreen() {
       subtitle={registrationSteps[step][1]}
       backRoute="/auth"
       backDisabled={loading}
-      scrollKey={step}
+      scrollKey={`${step}:${feedbackSequence}`}
       side={registrationLayout.width < 1100 ? undefined : (
         <LiquidSurface active contentStyle={styles.stepCard}>
           <LiquidText variant="kicker">FORTSCHRITT</LiquidText>
@@ -760,29 +815,64 @@ export function EmployeeFirstLoginScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const scope = portalSession ? JSON.stringify([
+    portalSession.tenantId, portalSession.accountId, portalSession.loginType, portalSession.sessionToken,
+  ]) : null;
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const mountedRef = useRef(false);
+  const pendingScopeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  useEffect(() => {
+    pendingScopeRef.current = null;
+    setLoading(false);
+    setError(null);
+    setCurrentPassword('');
+    setPassword('');
+    setConfirm('');
+  }, [scope]);
 
   const submit = async () => {
+    if (pendingScopeRef.current) return;
     if (!portalSession || portalSession.loginType !== 'employee_portal') {
       setError('Die Mitarbeitenden-Sitzung ist abgelaufen. Bitte erneut anmelden.');
       return;
     }
+    const submittedScope = scope;
+    pendingScopeRef.current = submittedScope;
+    const canCommit = () => mountedRef.current && scopeRef.current === submittedScope &&
+      pendingScopeRef.current === submittedScope;
     setError(null);
     setLoading(true);
-    const result = await completeFirstLogin({
-      accountId: portalSession.accountId,
-      sessionToken: portalSession.sessionToken,
-      currentPassword,
-      newPassword: password,
-      confirmPassword: confirm,
-    });
-    setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await completeFirstLogin({
+        accountId: portalSession.accountId,
+        sessionToken: portalSession.sessionToken,
+        currentPassword,
+        newPassword: password,
+        confirmPassword: confirm,
+      });
+      if (!canCommit()) return;
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      await updatePortalSession({ mustChangePassword: false });
+      if (!canCommit()) return;
+      markPortalWelcomePending('employee');
+      router.replace('/portal/employee' as never);
+    } catch {
+      if (canCommit()) setError('Passwort konnte nicht bestätigt werden. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.');
+    } finally {
+      if (canCommit()) {
+        pendingScopeRef.current = null;
+        setLoading(false);
+      }
     }
-    await updatePortalSession({ mustChangePassword: false });
-    markPortalWelcomePending('employee');
-    router.replace('/portal/employee' as never);
   };
 
   return (
@@ -791,6 +881,7 @@ export function EmployeeFirstLoginScreen() {
       title="Persönliches Passwort festlegen."
       subtitle="Das Einmalpasswort wird nach erfolgreichem Abschluss ungültig."
       backRoute="/auth/employee-login"
+      backDisabled={loading}
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>

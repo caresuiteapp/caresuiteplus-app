@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { reportDeviceOffline } from '@/lib/offline/connectivity';
 
 const { getSession, setSession, invokeEdgeFunction, runtimeProbe } = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -58,12 +59,21 @@ const alignedSession = {
 
 describe('portal write-session recovery R20.4', () => {
   beforeEach(() => {
+    reportDeviceOffline(false);
     getSession.mockReset();
     setSession.mockReset();
     invokeEdgeFunction.mockReset();
     runtimeProbe.mockReset();
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); reportDeviceOffline(false); });
+
+  it('rejects offline writes before accepting an otherwise aligned cached JWT', async () => {
+    reportDeviceOffline(true);
+    getSession.mockResolvedValue({ data: { session: alignedSession }, error: null });
+    const result = await ensurePortalWriteSession(portalSession, 'workflow');
+    expect(result.ok).toBe(false);
+    expect(getSession).not.toHaveBeenCalled(); expect(setSession).not.toHaveBeenCalled();
+  });
 
   function successfulRepair() {
     invokeEdgeFunction.mockResolvedValue({

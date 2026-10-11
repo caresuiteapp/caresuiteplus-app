@@ -14,7 +14,7 @@ import {
   HealthOSStatusBadge,
 } from '@/components/healthos';
 import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/healthosShellLayoutRules';
-import { PremiumListRow, CachedDataBanner } from '@/components/ui';
+import { PremiumListRow, CachedDataBanner, PremiumButton, ErrorState, SuccessState } from '@/components/ui';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
@@ -45,6 +45,9 @@ type Props = {
   onRefresh: () => void;
   fromCache?: boolean;
   cachedAt?: string | null;
+  refreshing?: boolean;
+  refreshError?: string | null;
+  showSuccess?: boolean;
 };
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
@@ -207,6 +210,7 @@ function MetricsSection({
 }) {
   return (
     <AdaptiveKpiGrid
+      phoneLayout="grid"
       columns={{ phone: 2, tablet: 2, desktop: columns, wide: columns }}
       items={metrics.map((metric) => ({
         id: metric.id,
@@ -310,6 +314,9 @@ export function HealthOSEmployeePortalTodayView({
   onRefresh,
   fromCache = false,
   cachedAt = null,
+  refreshing = false,
+  refreshError,
+  showSuccess,
 }: Props) {
   const router = useRouter();
   const { width } = useHydrationSafeWindowDimensions();
@@ -318,7 +325,7 @@ export function HealthOSEmployeePortalTodayView({
   const moduleAccent = useMainModuleAccent();
   useShellHostsAurora();
   const navigate = (route?: string) => {
-    if (route) router.push(route as never);
+    if (route) router.push((fromCache && route.endsWith('/execute') ? route.slice(0, -'/execute'.length) : route) as never);
   };
 
   const model = useMemo(
@@ -359,7 +366,12 @@ export function HealthOSEmployeePortalTodayView({
 
   return (
     <HealthOSPage scroll testID="healthos-employee-portal-today">
+      <PremiumButton title={refreshing ? 'Wird aktualisiert…' : 'Übersicht aktualisieren'} variant="secondary" disabled={refreshing} onPress={onRefresh} />
+      {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={onRefresh} /> : null}
+      {showSuccess && !refreshError ? <SuccessState message="Übersicht aktualisiert." /> : null}
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
+      {dashboard.signatureDocumentsError ? <ErrorState title="Dokumentunterschriften nicht verfügbar" message={dashboard.signatureDocumentsError} onRetry={onRefresh} /> : null}
+      {dashboard.messagesError ? <ErrorState title="Nachrichtenstatus nicht verfügbar" message={dashboard.messagesError} onRetry={onRefresh} /> : null}
       <EmployeePremiumWelcome displayName={displayName} model={model} onNavigate={navigate} />
       {/* A: Tagesübersicht */}
       <SpatialPortalSection
@@ -447,8 +459,8 @@ export function HealthOSEmployeePortalTodayView({
           </>
         ) : (
           <SpatialPortalPearlState
-            title="Alles erledigt"
-            message="Keine offenen Dokumentationen oder Unterschriften."
+            title={dashboard.signatureDocumentsError ? 'Unterschriftenstatus nicht verfügbar' : 'Alles erledigt'}
+            message={dashboard.signatureDocumentsError ? 'Der aktuelle Stand Ihrer Dokumentunterschriften konnte nicht geprüft werden. Öffnen Sie Ihre Dokumente oder aktualisieren Sie die Übersicht.' : 'Keine offenen Dokumentationen oder Unterschriften.'}
           />
         )}
       </SpatialPortalSection>

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartup } from '@/components/brand/AppStartup';
@@ -11,7 +12,7 @@ import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/Them
 import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effects';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
-import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
+import { isAuthRoutePath, isLightPortalRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
@@ -63,8 +64,15 @@ function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const compactPopup = width < 780;
+  const nativeCompactPopup = Platform.OS !== 'web' && compactPopup;
+  const nativeChromeHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const popupContentTop = nativeCompactPopup ? nativeChromeHeight + 14 : compactPopup ? 62 : 86;
+  const popupFrameTop = nativeCompactPopup ? nativeChromeHeight + 8 : compactPopup ? 56 : 78;
+  const insets = useSafeAreaInsets();
+  const nativeTop = Platform.OS === 'web' ? 0 : insets.top;
+  const nativeBottom = Platform.OS === 'web' ? 0 : insets.bottom;
   const currentRouteIsPopup = isHealthOSContextualPopupRoute(pathname);
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
@@ -99,7 +107,7 @@ function RootShell() {
 
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
-  const isDark = isPortalRoutePath(pathname) && mode === 'dark';
+  const isDark = isPortalRoutePath(pathname) && !isLightPortalRoutePath(pathname) && mode === 'dark';
   const navigationTheme = isDark
     ? {
         ...DarkTheme,
@@ -126,7 +134,7 @@ function RootShell() {
             </View>
           ) : null}
           <View style={styles.foregroundLayer} pointerEvents="box-none">
-            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <StatusBar style={hostsGlobalBackground || isDark ? 'light' : 'dark'} />
             <Stack
               screenOptions={({ route }) => {
                 const contextualPopup = isHealthOSContextualPopupRoute(route.name);
@@ -135,8 +143,8 @@ function RootShell() {
                   contentStyle: contextualPopup
                     ? {
                         backgroundColor: 'rgba(0, 7, 20, 0.74)',
-                        paddingTop: compactPopup ? 62 : 86,
-                        paddingBottom: compactPopup ? 8 : 24,
+                        paddingTop: popupContentTop + nativeTop,
+                        paddingBottom: (compactPopup ? 8 : 24) + nativeBottom,
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
                     : { backgroundColor: SURFACE_COLOR },
@@ -147,12 +155,12 @@ function RootShell() {
             />
             {currentRouteIsPopup ? (
               <>
-                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact]} />
-                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact]}>
-                  <View style={styles.centralPopupChromeCopy}>
-                    <Text numberOfLines={1} style={styles.centralPopupBrand}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
+                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact, { top: popupFrameTop + nativeTop, bottom: (compactPopup ? 4 : 24) + nativeBottom }]} />
+                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact, nativeCompactPopup && { height: nativeChromeHeight }, { top: (compactPopup ? 7 : 15) + nativeTop }]}>
+                  <View style={[styles.centralPopupChromeCopy, nativeCompactPopup && { flexDirection: 'column', alignItems: 'flex-start', gap: 0 }]}>
+                    <Text numberOfLines={1} style={[styles.centralPopupBrand, compactPopup && { fontSize: 14, lineHeight: 18, flexShrink: 1 }]}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
                     {!compactPopup ? <View style={styles.centralPopupDivider} /> : null}
-                    <Text numberOfLines={1} style={styles.centralPopupTitle}>{popupTitle(pathname)}</Text>
+                    <Text numberOfLines={1} style={[styles.centralPopupTitle, nativeCompactPopup && { flex: 0, fontSize: 12, lineHeight: 16, maxWidth: '100%' }]}>{popupTitle(pathname)}</Text>
                   </View>
                   <Pressable
                     accessibilityRole="button"
@@ -161,10 +169,11 @@ function RootShell() {
                     style={({ pressed }) => [
                       styles.centralPopupGlobalClose,
                       compactPopup && styles.centralPopupGlobalCloseCompact,
+                      nativeCompactPopup && { width: 44, height: 44, borderRadius: 22 },
                       pressed && styles.centralPopupGlobalClosePressed,
                     ]}
                   >
-                    <Text style={styles.centralPopupGlobalCloseText}>×</Text>
+                    <Text allowFontScaling={false} style={styles.centralPopupGlobalCloseText}>×</Text>
                   </Pressable>
                 </View>
               </>

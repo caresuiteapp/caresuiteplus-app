@@ -29,7 +29,7 @@ import {
 } from '@/lib/assist/assistVisitProofPersistenceService';
 import {
   isStoredVisitProofComplete,
-  visitProofNeedsRefresh,
+  visitProofSnapshotsMatch,
 } from '@/lib/assist/visitProofCompleteness';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -333,30 +333,44 @@ export async function persistEmployeePortalVisitProof(
   }
 
   const existing = await fetchLatestVisitProof(ctx.tenantId, visitId);
+  if (!existing.ok) return { ok: false, error: existing.error };
   if (existing.ok && existing.data) {
     const complete = isStoredVisitProofComplete(existing.data, {
       requireSignature: Boolean(signatureId),
     });
-    if (complete) {
+    const signatureMatches = (signatureId ?? null) === existing.data.signatureId;
+    if (complete && signatureMatches && visitProofSnapshotsMatch(existing.data.payloadSnapshot, snapshot)) {
       return { ok: true };
     }
-    if (!visitProofNeedsRefresh(existing.data, { requireSignature: Boolean(signatureId) })) {
-      return { ok: true };
+    if (['approved', 'exported', 'archived'].includes(existing.data.status)
+      || existing.data.billingReleased || existing.data.portalVisible) {
+      return { ok: false, error: 'Der veröffentlichte Leistungsnachweis kann nicht durch eine neue Einsatzfassung ersetzt werden. Bitte die Verwaltung informieren.' };
     }
     const payloadHash = await computeVisitProofPayloadHash(snapshot);
     const supabase = getSupabaseClient();
     if (supabase) {
-      const { error: updateError } = await fromUnknownTable(supabase, 'assist_visit_proofs')
+      const { data: receipt, error: updateError } = await fromUnknownTable(supabase, 'assist_visit_proofs')
         .update({
-          signature_id: signatureId ?? existing.data.signatureId,
+          signature_id: signatureId ?? null,
           payload_snapshot: snapshot,
           payload_hash: payloadHash,
+          storage_path: null,
+          pdf_storage_path: null,
+          pdf_hash: null,
           updated_at: new Date().toISOString(),
         })
         .eq('tenant_id', ctx.tenantId)
-        .eq('id', existing.data.id);
+        .eq('id', existing.data.id)
+        .eq('visit_id', visitId)
+        .select('id, tenant_id, visit_id, payload_hash, signature_id')
+        .maybeSingle();
       if (updateError) {
         return { ok: false, error: toGermanSupabaseError(updateError) };
+      }
+      if (!receipt || receipt.id !== existing.data.id || receipt.tenant_id !== ctx.tenantId
+        || receipt.visit_id !== visitId || receipt.payload_hash !== payloadHash
+        || receipt.signature_id !== (signatureId ?? null)) {
+        return { ok: false, error: 'Die aktualisierte Fassung des Leistungsnachweises wurde vom Server noch nicht bestätigt. Bitte erneut prüfen.' };
       }
       return { ok: true };
     }

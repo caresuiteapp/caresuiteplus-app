@@ -19,6 +19,23 @@ const H5_EMPLOYEE_FILES = [
   'src/lib/portal/employee/employeePortalTodayModel.ts',
 ];
 
+describe('Unavailable dashboard counters', () => {
+  it('distinguishes unavailable message and signature counts from a successful zero', () => {
+    const model = buildEmployeePortalTodayModel({ dashboard: makeSampleDashboard({ messageCountUnavailable: true, signatureDocumentsError: 'Unbekannt', openSignatureDocumentCount: 0 }), displayName: 'Anna' });
+    expect(model.tagesübersicht.find((metric) => metric.id === 'today-messages')?.value).toBe('—');
+    expect(model.openSignatures?.value).toBe('—');
+    expect(model.openSignatures?.subValue).toContain('nicht verfügbar');
+  });
+  it('counts only the portion of an overnight appointment planned for today', () => {
+    const now = new Date();
+    const dashboard = makeSampleDashboard();
+    dashboard.todayAssignments = [dashboard.todayAssignments[0]!];
+    dashboard.todayAssignments[0]!.plannedStartAt = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23).toISOString();
+    dashboard.todayAssignments[0]!.plannedEndAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 1).toISOString();
+    expect(pickEmployeePortalTodayReadMetrics(dashboard).hoursWorked).toBe('1 Std.');
+  });
+});
+
 const FORBIDDEN_IMPORTS = [
   '@/features/assistWorkflow',
   'finalizeVisit',

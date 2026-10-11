@@ -1,3 +1,4 @@
+import { businessRegistrationFailure, isBusinessRegistrationReceipt, REGISTRATION_UNCONFIRMED_MESSAGE } from './businessRegistrationReceipt';
 import { canonicalCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { refreshPlatformRuntime } from '@/lib/platformConsole/platformRuntime';
 import { platformRegistrationError } from '@/lib/platformConsole/platformRuntimePolicy';
@@ -9,6 +10,7 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
+import { checkBusinessAccess } from './businessAccessService';
 import { signInWithPassword } from '@/lib/supabase/authService';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type {
@@ -39,7 +41,7 @@ function createId(prefix: string): string {
 
 export async function registerBusinessTenant(
   input: BusinessRegistrationInput,
-): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal }>> {
+): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal; welcomeEmailQueued?: boolean }>> {
   const validationError = validateCompanyRegistrationSelection(input) ?? validateBusinessRegistration(input);
   if (validationError) return { ok: false, error: validationError };
   if (getServiceMode() === 'supabase') {
@@ -56,11 +58,14 @@ export async function registerBusinessTenant(
         displayName: string;
       };
       credentials: { username: string };
+      welcomeEmailQueued?: boolean;
     }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined });
 
     if (!registration.ok) {
-      return { ok: false, error: registration.error };
+      return { ok: false, error: businessRegistrationFailure(registration.error) };
     }
+
+    if (!isBusinessRegistrationReceipt(registration.data, input.adminEmail)) return { ok: false, error: REGISTRATION_UNCONFIRMED_MESSAGE };
 
     const owner: TenantUser = {
       id: registration.data.owner.id,
@@ -90,6 +95,7 @@ export async function registerBusinessTenant(
         tenantId: registration.data.tenantId,
         owner,
         credentials: registration.data.credentials,
+        welcomeEmailQueued: registration.data.welcomeEmailQueued === true,
       },
     };
   }
@@ -166,6 +172,9 @@ export async function loginBusinessUser(
       });
       return { ok: false, error: sessionResult.error };
     }
+
+    const access = await checkBusinessAccess(sessionResult.data.user.id);
+    if (!access.ok) return { ok: false, error: access.error };
 
     void recordLoginAuditEvent({
       tenantId: null,

@@ -4,6 +4,8 @@ import { provisionBusinessRegistration, validateRegistrationBody } from './provi
 import { dispatchRegistrationWelcomeEmails, REGISTRATION_WELCOME_ENV_KEYS, type RegistrationWelcomeClient } from '../registration-welcome-dispatch/worker.ts';
 import { confirmRegistrationObservation } from '../platform-observation/core.ts';
 import { readPlatformRuntimeSettings, registrationRuntimeError } from '../_shared/platformRuntime.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { verifyRegistrationIdentity } from '../_shared/companyRegistrationIdentity.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
@@ -26,7 +28,12 @@ serve(async req => {
     const runtimeError = registrationRuntimeError(runtime);
     if (runtimeError) return jsonResponse({ ok: false, ...runtimeError }, 503);
     const { platformObservation, ...registrationBody } = body;
-    const result = await provisionBusinessRegistration(service, registrationBody);
+    const result = await provisionBusinessRegistration(service, registrationBody, {
+      verifyExistingIdentity: (email, password) => verifyRegistrationIdentity(createClient(
+        Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+      ), email, password),
+    });
     const observation=confirmRegistrationObservation(service,platformObservation,result.status,result.body);
     if(typeof EdgeRuntime!=='undefined')EdgeRuntime.waitUntil(observation);
     else await observation;

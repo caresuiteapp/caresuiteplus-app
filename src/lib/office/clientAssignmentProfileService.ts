@@ -12,6 +12,7 @@ import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import type { AssistAssignmentTaskDraft } from '@/types/assistCatalog';
 import { assignmentProfileEndAt } from '@/lib/office/clientAssignmentProfileDuration';
 import { isDefiniteAssignmentScheduleRejection } from '@/lib/office/clientAssignmentScheduleOutcome';
+import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
 
 type ProfileRow = {
   id: string;
@@ -194,7 +195,7 @@ export function validateClientAssignmentProfileInput(
   if (!input.subjectKey.trim() && !input.assignmentTitle.trim()) {
     return 'Einsatz-Betreff oder Einsatzbezeichnung ist erforderlich.';
   }
-  if (input.durationMinutes < 15 || input.durationMinutes > 720) {
+  if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 15 || input.durationMinutes > 720) {
     return 'Die Dauer muss zwischen 15 Minuten und 12 Stunden liegen.';
   }
   if (
@@ -265,8 +266,9 @@ export async function saveClientAssignmentProfile(
   const now = new Date().toISOString();
   if (getServiceMode() !== 'supabase') {
     const existingIndex = profileId
-      ? demoProfiles.findIndex((profile) => profile.id === profileId)
+      ? demoProfiles.findIndex((profile) => profile.id === profileId && profile.tenantId === tenantId && profile.clientId === input.clientId)
       : -1;
+    if (profileId && existingIndex < 0) return { ok: false, error: 'Einsatzprofil nicht gefunden oder nicht mehr bearbeitbar.' };
     const profile: ClientAssignmentProfile = {
       id: profileId ?? `assignment-profile-${Date.now()}`,
       tenantId,
@@ -355,6 +357,7 @@ export async function saveClientAssignmentProfile(
     ? fromUnknownTable(client, 'client_assignment_profiles')
         .update(payload)
         .eq('tenant_id', tenantId)
+        .eq('client_id', input.clientId)
         .eq('id', profileId)
     : fromUnknownTable(client, 'client_assignment_profiles').insert(payload);
 
@@ -368,18 +371,23 @@ export async function archiveClientAssignmentProfile(
   profileId: string,
   actorProfileId?: string | null,
 ): Promise<ServiceResult<void>> {
+  const tenantError = assertTenantForMode(tenantId);
+  if (tenantError) return tenantError;
+  if (!profileId.trim()) return { ok: false, error: 'Einsatzprofil fehlt.' };
   if (getServiceMode() !== 'supabase') {
     const profile = demoProfiles.find((item) => item.id === profileId && item.tenantId === tenantId);
-    if (profile) profile.isActive = false;
+    if (!profile) return { ok: false, error: 'Einsatzprofil nicht gefunden.' };
+    profile.isActive = false;
     return { ok: true, data: undefined };
   }
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Datenbankverbindung nicht verfügbar.' };
-  const { error } = await fromUnknownTable(client, 'client_assignment_profiles')
+  const { data, error } = await fromUnknownTable(client, 'client_assignment_profiles')
     .update({ is_active: false, updated_by: actorProfileId ?? null, updated_at: new Date().toISOString() })
     .eq('tenant_id', tenantId)
-    .eq('id', profileId);
+    .eq('id', profileId).select('id').single();
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (!data) return { ok: false, error: 'Das Entfernen des Einsatzprofils konnte nicht bestätigt werden. Bitte die Liste erneut laden.' };
   return { ok: true, data: undefined };
 }
 
@@ -389,18 +397,24 @@ export async function scheduleClientAssignmentProfile(
   assignmentDate: string,
   startTime: string,
 ): Promise<ServiceResult<ScheduledClientAssignment> & { uncertain?: boolean }> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate)) {
+  const tenantError = assertTenantForMode(tenantId);
+  if (tenantError) return tenantError;
+  if (!profileId.trim()) return { ok: false, error: 'Einsatzprofil fehlt.' };
+  const date = new Date(`${assignmentDate}T12:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate) || !Number.isFinite(+date) || date.toISOString().slice(0, 10) !== assignmentDate) {
     return { ok: false, error: 'Datum ist ungültig.' };
   }
-  if (!/^\d{2}:\d{2}$/.test(startTime)) {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)) {
     return { ok: false, error: 'Uhrzeit ist ungültig.' };
   }
+  let startAt: string;
+  try { startAt = berlinTimestamp(assignmentDate, startTime); }
+  catch { return { ok: false, error: 'Diese Ortszeit existiert wegen der Zeitumstellung nicht. Bitte Uhrzeit anpassen.' }; }
   if (getServiceMode() !== 'supabase') {
     const profile = demoProfiles.find(
       (item) => item.id === profileId && item.tenantId === tenantId && item.isActive,
     );
     if (!profile) return { ok: false, error: 'Einsatzprofil nicht gefunden.' };
-    const startAt = new Date(`${assignmentDate}T${startTime}:00`).toISOString();
     const endAt = assignmentProfileEndAt(startAt, profile.durationMinutes);
     return {
       ok: true,
@@ -435,5 +449,11 @@ export async function scheduleClientAssignmentProfile(
       uncertain: true,
     };
   }
-  return { ok: true, data: data as unknown as ScheduledClientAssignment };
+  const receipt = data as unknown as ScheduledClientAssignment;
+  if (typeof receipt.assignmentId !== 'string' || !receipt.assignmentId.trim() || receipt.profileId !== profileId || receipt.status !== 'confirmed'
+    || !Number.isFinite(Date.parse(receipt.startAt)) || !Number.isFinite(Date.parse(receipt.endAt))
+    || Date.parse(receipt.endAt) <= Date.parse(receipt.startAt)) {
+    return { ok: false, error: 'Die Freigabe konnte nicht vollständig bestätigt werden. Bitte zuerst den Kalender prüfen.', uncertain: true };
+  }
+  return { ok: true, data: receipt };
 }

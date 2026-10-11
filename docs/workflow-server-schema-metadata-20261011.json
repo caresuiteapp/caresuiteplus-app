@@ -1,0 +1,4025 @@
+{
+  "capturedAt": "2026-10-11",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "read-only schema catalogue; no business rows",
+  "columns": [
+    {
+      "table": "client_addresses",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_addresses",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "address_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'hauptwohnsitz'::text"
+    },
+    {
+      "table": "client_addresses",
+      "column": "street",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "zip",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "city",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "country",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'DE'::text"
+    },
+    {
+      "table": "client_addresses",
+      "column": "is_primary",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_addresses",
+      "column": "access_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "floor",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "door_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_addresses",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_addresses",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_addresses",
+      "column": "apartment_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "home_access",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "key_status",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "key_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "key_safe_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "door_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "bell_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "floor",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "elevator_available",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "parking_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "access_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "hazard_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "pets",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "smoker_household",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "aids_on_site",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "hygiene_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "infection_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "family_doctor",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_ambulatory_details",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "billing_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "hourly_rate_cents",
+      "type": "int4",
+      "nullable": "NO",
+      "default": "0"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "service_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'betreuung'::text"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "invoice_recipient",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "payment_terms_days",
+      "type": "int4",
+      "nullable": "NO",
+      "default": "14"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "cost_bearer_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "cost_bearer_reference",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_billing_profiles",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "context_key",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "is_primary",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_care_contexts",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_care_levels",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_care_levels",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "grade",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "valid_from",
+      "type": "date",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "valid_until",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "care_fund_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "care_fund_member_id",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "md_assessment_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_care_levels",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_care_levels",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_consent_status",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_consent_status",
+      "column": "privacy_status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'not_started'::text"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "contract_status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'not_started'::text"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "assignment_status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'not_started'::text"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "privacy_finalized_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_consent_status",
+      "column": "contract_finalized_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_consent_status",
+      "column": "updated_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_consent_status",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_consent_status",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_contacts",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_contacts",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "contact_type",
+      "type": "client_contact_type",
+      "nullable": "YES",
+      "default": "'relative'::client_contact_type"
+    },
+    {
+      "table": "client_contacts",
+      "column": "first_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "last_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "full_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "organization_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "relationship",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "mobile",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "street",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "house_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "postal_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "city",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "country",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Deutschland'::text"
+    },
+    {
+      "table": "client_contacts",
+      "column": "is_primary_contact",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "is_emergency_contact",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "is_legal_representative",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "can_receive_documents",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "can_receive_invoices",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "portal_enabled",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contacts",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_contacts",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_contacts",
+      "column": "is_portal_user",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_contacts",
+      "column": "portal_permissions",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "contract_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "selected_template_key",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "updated_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_contract_selection",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_document_events",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_document_events",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "event_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "summary",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "metadata_json",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "client_document_events",
+      "column": "actor_profile_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_document_events",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "document_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "signer_role",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "signature_data",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "signed_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "signer_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_document_signatures",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_documents",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_documents",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "file_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "mime_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'application/pdf'::text"
+    },
+    {
+      "table": "client_documents",
+      "column": "category",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'sonstige'::text"
+    },
+    {
+      "table": "client_documents",
+      "column": "storage_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'aktiv'::text"
+    },
+    {
+      "table": "client_documents",
+      "column": "sensitivity",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'care'::text"
+    },
+    {
+      "table": "client_documents",
+      "column": "uploaded_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "valid_until",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_documents",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_documents",
+      "column": "intake_document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "size_bytes",
+      "type": "int8",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "source",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'upload'::text"
+    },
+    {
+      "table": "client_documents",
+      "column": "module_visibility",
+      "type": "_text",
+      "nullable": "NO",
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "client_documents",
+      "column": "portal_visible",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_documents",
+      "column": "signed_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "signature_required",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_documents",
+      "column": "service_record_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_documents",
+      "column": "service_month",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "care_level",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "care_level_status",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "care_level_valid_from",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "care_level_applied",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "decision_available",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "care_fund_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "health_insurance",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "cost_bearer_ik",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "insurance_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "billing_type",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "self_pay",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "relief_budget_prepared",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "substitution_prepared",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "prevention_prepared",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "is_primary",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "true"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_insurance_profiles",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "template_key",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "document_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'not_started'::text"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "is_required",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "version",
+      "type": "int4",
+      "nullable": "NO",
+      "default": "1"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "source",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'system'::text"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "tenant_template_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "preview_html",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "finalized_html",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "rendered_pdf_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "missing_placeholders",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'[]'::jsonb"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "preview_opened_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "finalized_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "updated_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_intake_documents",
+      "column": "generated_document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "contact_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'eingeladen'::text"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "last_login_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "invited_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "modules_enabled",
+      "type": "_text",
+      "nullable": "NO",
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "two_factor_enabled",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "portal_username",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "portal_access_code_hash",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "portal_enabled",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_portal_access",
+      "column": "code_created_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "code_rotated_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_portal_access",
+      "column": "auth_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "facility_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "facility_location",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "care_area",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "floor",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "room_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "bed_position",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "admission_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "resident_status",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "room_status",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "primary_nurse",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "area_manager",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "cost_form",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "meal_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "daily_structure",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_stationary_details",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "support_wishes",
+      "type": "_text",
+      "nullable": "NO",
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "preferred_times",
+      "type": "_text",
+      "nullable": "NO",
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "excluded_times",
+      "type": "_text",
+      "nullable": "NO",
+      "default": "'{}'::text[]"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "mobility",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "orientation",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "communication",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "special_wishes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_support_preferences",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "event_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "icon",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'📋'::text"
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "subtitle",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'aktiv'::text"
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "actor_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "is_internal",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "metadata",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "client_timeline_events",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "clients",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "clients",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "client_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "first_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "last_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "full_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "date_of_birth",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "gender",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "mobile",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "street",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "house_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "postal_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "city",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "country",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Deutschland'::text"
+    },
+    {
+      "table": "clients",
+      "column": "floor",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "doorbell_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "access_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "status",
+      "type": "client_status",
+      "nullable": "NO",
+      "default": "'lead'::client_status"
+    },
+    {
+      "table": "clients",
+      "column": "care_level",
+      "type": "care_level",
+      "nullable": "YES",
+      "default": "'unknown'::care_level"
+    },
+    {
+      "table": "clients",
+      "column": "insurance_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "insurance_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "cost_bearer",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "billing_party",
+      "type": "billing_party",
+      "nullable": "YES",
+      "default": "'care_insurance'::billing_party"
+    },
+    {
+      "table": "clients",
+      "column": "default_product_key",
+      "type": "product_key",
+      "nullable": "YES",
+      "default": "'assist'::product_key"
+    },
+    {
+      "table": "clients",
+      "column": "emergency_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "allergies",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "diagnoses_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "mobility_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "pets",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "key_management_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "internal_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "visible_notes_for_employee",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "portal_enabled",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "true"
+    },
+    {
+      "table": "clients",
+      "column": "admission_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "discharge_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "updated_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "clients",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "clients",
+      "column": "apartment_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "deleted_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "salutation",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "service_start",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "housing_form",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "special_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "clients",
+      "column": "preferred_contact",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "request_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signer_role",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signer_person_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signer_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'pending'::text"
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signature_data_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signature_file_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signed_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signed_ip",
+      "type": "inet",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "signed_user_agent",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "audit_payload",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "cs_document_request_signatures",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "owner_tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "template_version_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "source_template_key",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "recipient_scope",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "employee_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "representative_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "payor_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "assignment_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "invoice_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "priority",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'normal'::text"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'draft'::text"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "due_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "required_before_service",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "portal_visible",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "true"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "context_snapshot",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "rendered_html",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "completed_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "cs_document_requests",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "employee_documents",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "employee_documents",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "employee_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "category",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'other'::text"
+    },
+    {
+      "table": "employee_documents",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "file_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "storage_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "sensitive",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "employee_documents",
+      "column": "released_to_portal",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "employee_documents",
+      "column": "valid_until",
+      "type": "date",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "employee_documents",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "employee_documents",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_requests",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_requests",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "portal_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "module_key",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'assist'::text"
+    },
+    {
+      "table": "portal_requests",
+      "column": "request_type",
+      "type": "portal_request_type",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "status",
+      "type": "portal_request_status",
+      "nullable": "NO",
+      "default": "'offen'::portal_request_status"
+    },
+    {
+      "table": "portal_requests",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "description",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_requests",
+      "column": "payload",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "portal_requests",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_requests",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "actor_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "actor_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "event_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "summary",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "metadata_json",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'{}'::jsonb"
+    },
+    {
+      "table": "portal_signature_audit_events",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "document_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "signer_role",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "signer_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "signer_profile_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "storage_path",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "signature_hash",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "payload_hash",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "signed_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "device_info",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "browser",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "captured_ip",
+      "type": "inet",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "audit_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_signature_captures",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "title",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "document_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "recipient_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "employee_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "client_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "signature_requirement",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'employee'::text"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "due_date",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "priority",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'normal'::text"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "required_before_assignment",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "assignment_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'new'::text"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "source_document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "storage_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "preview_html",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "version_number",
+      "type": "int4",
+      "nullable": "NO",
+      "default": "1"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "employee_signed",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "client_signed",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "next_signer_role",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "allow_download",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "true"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "final_storage_path",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "final_pdf_hash",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "is_immutable",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "creator_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "sent_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "completed_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "withdrawn_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "signature_fields_json",
+      "type": "jsonb",
+      "nullable": "NO",
+      "default": "'[]'::jsonb"
+    },
+    {
+      "table": "portal_signature_documents",
+      "column": "document_source_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'office_write'::text"
+    },
+    {
+      "table": "portal_uploads",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "portal_uploads",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "client_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "portal_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "portal_request_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "storage_path",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "file_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "mime_type",
+      "type": "text",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "size_bytes",
+      "type": "int8",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "category",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "message",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "status",
+      "type": "portal_upload_status",
+      "nullable": "NO",
+      "default": "'hochgeladen'::portal_upload_status"
+    },
+    {
+      "table": "portal_uploads",
+      "column": "reviewed_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "reviewed_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "review_note",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "client_document_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_uploads",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "portal_uploads",
+      "column": "employee_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "portal_uploads",
+      "column": "upload_context",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'klient'::text"
+    },
+    {
+      "table": "profiles",
+      "column": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "profiles",
+      "column": "tenant_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "role_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "auth_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "first_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "last_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "full_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "position",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "avatar_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "status",
+      "type": "profile_status",
+      "nullable": "NO",
+      "default": "'invited'::profile_status"
+    },
+    {
+      "table": "profiles",
+      "column": "last_login_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "invited_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "activated_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "locked_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "locked_reason",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "preferred_product_key",
+      "type": "product_key",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "theme_preference",
+      "type": "theme_mode",
+      "nullable": "YES",
+      "default": "'system'::theme_mode"
+    },
+    {
+      "table": "profiles",
+      "column": "locale",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'de-DE'::text"
+    },
+    {
+      "table": "profiles",
+      "column": "timezone",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Europe/Berlin'::text"
+    },
+    {
+      "table": "profiles",
+      "column": "mfa_enabled",
+      "type": "bool",
+      "nullable": "YES",
+      "default": "false"
+    },
+    {
+      "table": "profiles",
+      "column": "terms_accepted_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "privacy_accepted_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "profiles",
+      "column": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "profiles",
+      "column": "display_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "profiles",
+      "column": "is_active",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "true"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "client_addresses_address_type_check",
+      "table": "client_addresses",
+      "definition": "CHECK ((address_type = ANY (ARRAY['hauptwohnsitz'::text, 'pflegeheim'::text, 'ferien'::text, 'rechnung'::text, 'sonstige'::text])))"
+    },
+    {
+      "name": "client_addresses_client_id_fkey",
+      "table": "client_addresses",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_addresses_pkey",
+      "table": "client_addresses",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_addresses_tenant_id_fkey",
+      "table": "client_addresses",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_ambulatory_details_client_id_fkey",
+      "table": "client_ambulatory_details",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_ambulatory_details_client_id_key",
+      "table": "client_ambulatory_details",
+      "definition": "UNIQUE (client_id)"
+    },
+    {
+      "name": "client_ambulatory_details_pkey",
+      "table": "client_ambulatory_details",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_ambulatory_details_tenant_id_fkey",
+      "table": "client_ambulatory_details",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_billing_profiles_billing_type_check",
+      "table": "client_billing_profiles",
+      "definition": "CHECK ((billing_type = ANY (ARRAY['selbstzahler'::text, 'pflegekasse'::text, 'beihilfe'::text, 'kombi'::text, 'sonstige'::text])))"
+    },
+    {
+      "name": "client_billing_profiles_client_id_fkey",
+      "table": "client_billing_profiles",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_billing_profiles_pkey",
+      "table": "client_billing_profiles",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_billing_profiles_service_type_check",
+      "table": "client_billing_profiles",
+      "definition": "CHECK ((service_type = ANY (ARRAY['sachleistung'::text, 'verhinderungspflege'::text, 'betreuung'::text, 'haushalt'::text, 'sonstige'::text])))"
+    },
+    {
+      "name": "client_billing_profiles_tenant_id_fkey",
+      "table": "client_billing_profiles",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_care_contexts_client_id_fkey",
+      "table": "client_care_contexts",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_care_contexts_context_key_check",
+      "table": "client_care_contexts",
+      "definition": "CHECK ((context_key = ANY (ARRAY['daily_assistance'::text, 'support_care'::text, 'companionship'::text, 'ambulatory_care'::text, 'stationary_care'::text, 'consulting'::text, 'academy_prepared'::text])))"
+    },
+    {
+      "name": "client_care_contexts_pkey",
+      "table": "client_care_contexts",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_care_contexts_tenant_id_client_id_context_key_key",
+      "table": "client_care_contexts",
+      "definition": "UNIQUE (tenant_id, client_id, context_key)"
+    },
+    {
+      "name": "client_care_contexts_tenant_id_fkey",
+      "table": "client_care_contexts",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_care_levels_client_id_fkey",
+      "table": "client_care_levels",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_care_levels_grade_check",
+      "table": "client_care_levels",
+      "definition": "CHECK ((grade = ANY (ARRAY['kein'::text, 'pg1'::text, 'pg2'::text, 'pg3'::text, 'pg4'::text, 'pg5'::text, 'hospiz'::text])))"
+    },
+    {
+      "name": "client_care_levels_pkey",
+      "table": "client_care_levels",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_care_levels_tenant_id_fkey",
+      "table": "client_care_levels",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_consent_status_client_id_fkey",
+      "table": "client_consent_status",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_consent_status_pkey",
+      "table": "client_consent_status",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_consent_status_tenant_id_client_id_key",
+      "table": "client_consent_status",
+      "definition": "UNIQUE (tenant_id, client_id)"
+    },
+    {
+      "name": "client_consent_status_tenant_id_fkey",
+      "table": "client_consent_status",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_consent_status_updated_by_fkey",
+      "table": "client_consent_status",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_contacts_client_id_fkey",
+      "table": "client_contacts",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_contacts_pkey",
+      "table": "client_contacts",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_contacts_tenant_id_fkey",
+      "table": "client_contacts",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_contract_selection_client_id_fkey",
+      "table": "client_contract_selection",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_contract_selection_pkey",
+      "table": "client_contract_selection",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_contract_selection_tenant_id_client_id_key",
+      "table": "client_contract_selection",
+      "definition": "UNIQUE (tenant_id, client_id)"
+    },
+    {
+      "name": "client_contract_selection_tenant_id_fkey",
+      "table": "client_contract_selection",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_contract_selection_updated_by_fkey",
+      "table": "client_contract_selection",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_document_events_actor_profile_id_fkey",
+      "table": "client_document_events",
+      "definition": "FOREIGN KEY (actor_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_document_events_client_id_fkey",
+      "table": "client_document_events",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_document_events_document_id_fkey",
+      "table": "client_document_events",
+      "definition": "FOREIGN KEY (document_id) REFERENCES client_intake_documents(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_document_events_pkey",
+      "table": "client_document_events",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_document_events_tenant_id_fkey",
+      "table": "client_document_events",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_document_signatures_client_id_fkey",
+      "table": "client_document_signatures",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_document_signatures_document_id_fkey",
+      "table": "client_document_signatures",
+      "definition": "FOREIGN KEY (document_id) REFERENCES client_intake_documents(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_document_signatures_document_id_signer_role_key",
+      "table": "client_document_signatures",
+      "definition": "UNIQUE (document_id, signer_role)"
+    },
+    {
+      "name": "client_document_signatures_pkey",
+      "table": "client_document_signatures",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_document_signatures_signer_role_check",
+      "table": "client_document_signatures",
+      "definition": "CHECK ((signer_role = ANY (ARRAY['client'::text, 'employee'::text, 'legal_representative'::text])))"
+    },
+    {
+      "name": "client_document_signatures_tenant_id_fkey",
+      "table": "client_document_signatures",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_documents_category_check",
+      "table": "client_documents",
+      "definition": "CHECK ((category = ANY (ARRAY['vertrag'::text, 'pflegeplan'::text, 'arztbrief'::text, 'md_gutachten'::text, 'einwilligung'::text, 'sonstige'::text, 'datenschutz'::text, 'vollmacht'::text, 'betreuerausweis'::text, 'pflegegradbescheid'::text, 'kassenbescheid'::text, 'rezept'::text, 'verordnung'::text, 'ueberweisung'::text, 'medikationsplan'::text, 'leistungsnachweis'::text, 'rechnung'::text, 'mahnung'::text, 'beratungsprotokoll'::text, 'pflegebericht'::text, 'vitalwerte'::text, 'wunddokumentation'::text, 'foto'::text, 'scan'::text, 'ausweis'::text, 'schluesselprotokoll'::text, 'sonstiges'::text])))"
+    },
+    {
+      "name": "client_documents_client_id_fkey",
+      "table": "client_documents",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_documents_intake_document_id_fkey",
+      "table": "client_documents",
+      "definition": "FOREIGN KEY (intake_document_id) REFERENCES client_intake_documents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_documents_pkey",
+      "table": "client_documents",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_documents_sensitivity_check",
+      "table": "client_documents",
+      "definition": "CHECK ((sensitivity = ANY (ARRAY['public'::text, 'internal'::text, 'care'::text, 'health'::text, 'restricted'::text])))"
+    },
+    {
+      "name": "client_documents_service_record_id_fkey",
+      "table": "client_documents",
+      "definition": "FOREIGN KEY (service_record_id) REFERENCES service_records(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_documents_tenant_id_fkey",
+      "table": "client_documents",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_documents_uploaded_by_fkey",
+      "table": "client_documents",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_insurance_profiles_client_id_fkey",
+      "table": "client_insurance_profiles",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_insurance_profiles_pkey",
+      "table": "client_insurance_profiles",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_insurance_profiles_tenant_id_fkey",
+      "table": "client_insurance_profiles",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_intake_documents_client_id_fkey",
+      "table": "client_intake_documents",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_intake_documents_generated_document_id_fkey",
+      "table": "client_intake_documents",
+      "definition": "FOREIGN KEY (generated_document_id) REFERENCES generated_documents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_intake_documents_pkey",
+      "table": "client_intake_documents",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_intake_documents_source_check",
+      "table": "client_intake_documents",
+      "definition": "CHECK ((source = ANY (ARRAY['system'::text, 'tenant'::text])))"
+    },
+    {
+      "name": "client_intake_documents_status_check",
+      "table": "client_intake_documents",
+      "definition": "CHECK ((status = ANY (ARRAY['not_started'::text, 'preview_open'::text, 'pending_signature'::text, 'signed'::text, 'declined'::text, 'skipped_optional'::text, 'finalized'::text, 'revoked'::text, 'replaced'::text])))"
+    },
+    {
+      "name": "client_intake_documents_tenant_id_client_id_template_key_key",
+      "table": "client_intake_documents",
+      "definition": "UNIQUE (tenant_id, client_id, template_key)"
+    },
+    {
+      "name": "client_intake_documents_tenant_id_fkey",
+      "table": "client_intake_documents",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_intake_documents_tenant_template_id_fkey",
+      "table": "client_intake_documents",
+      "definition": "FOREIGN KEY (tenant_template_id) REFERENCES tenant_document_templates(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_intake_documents_updated_by_fkey",
+      "table": "client_intake_documents",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_portal_access_auth_user_id_fkey",
+      "table": "client_portal_access",
+      "definition": "FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_portal_access_client_id_fkey",
+      "table": "client_portal_access",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_portal_access_contact_id_fkey",
+      "table": "client_portal_access",
+      "definition": "FOREIGN KEY (contact_id) REFERENCES client_contacts(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "client_portal_access_pkey",
+      "table": "client_portal_access",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_portal_access_status_check",
+      "table": "client_portal_access",
+      "definition": "CHECK ((status = ANY (ARRAY['aktiv'::text, 'nicht_eingerichtet'::text, 'gesperrt'::text, 'deaktiviert'::text, 'eingeladen'::text])))"
+    },
+    {
+      "name": "client_portal_access_tenant_id_fkey",
+      "table": "client_portal_access",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_stationary_details_client_id_fkey",
+      "table": "client_stationary_details",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_stationary_details_client_id_key",
+      "table": "client_stationary_details",
+      "definition": "UNIQUE (client_id)"
+    },
+    {
+      "name": "client_stationary_details_pkey",
+      "table": "client_stationary_details",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_stationary_details_tenant_id_fkey",
+      "table": "client_stationary_details",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_support_preferences_client_id_fkey",
+      "table": "client_support_preferences",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_support_preferences_client_id_key",
+      "table": "client_support_preferences",
+      "definition": "UNIQUE (client_id)"
+    },
+    {
+      "name": "client_support_preferences_pkey",
+      "table": "client_support_preferences",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_support_preferences_tenant_id_fkey",
+      "table": "client_support_preferences",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_timeline_events_client_id_fkey",
+      "table": "client_timeline_events",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "client_timeline_events_event_type_check",
+      "table": "client_timeline_events",
+      "definition": "CHECK ((event_type = ANY (ARRAY['status'::text, 'einsatz'::text, 'dokument'::text, 'rechnung'::text, 'einwilligung'::text, 'notiz'::text, 'pflegeplan'::text, 'kontakt'::text, 'portal'::text, 'sonstige'::text])))"
+    },
+    {
+      "name": "client_timeline_events_pkey",
+      "table": "client_timeline_events",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "client_timeline_events_tenant_id_fkey",
+      "table": "client_timeline_events",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "clients_created_by_fkey",
+      "table": "clients",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "clients_pkey",
+      "table": "clients",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "clients_tenant_id_fkey",
+      "table": "clients",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "clients_unique_client_number_per_tenant",
+      "table": "clients",
+      "definition": "UNIQUE (tenant_id, client_number)"
+    },
+    {
+      "name": "clients_updated_by_fkey",
+      "table": "clients",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "cs_document_request_signatures_pkey",
+      "table": "cs_document_request_signatures",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "cs_document_request_signatures_request_id_fkey",
+      "table": "cs_document_request_signatures",
+      "definition": "FOREIGN KEY (request_id) REFERENCES cs_document_requests(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "cs_document_request_signatures_signer_role_check",
+      "table": "cs_document_request_signatures",
+      "definition": "CHECK ((signer_role = ANY (ARRAY['employee'::text, 'client'::text, 'office'::text, 'representative'::text, 'payor'::text])))"
+    },
+    {
+      "name": "cs_document_request_signatures_status_check",
+      "table": "cs_document_request_signatures",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'signed'::text, 'declined'::text, 'not_required'::text])))"
+    },
+    {
+      "name": "cs_document_requests_pkey",
+      "table": "cs_document_requests",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "cs_document_requests_priority_check",
+      "table": "cs_document_requests",
+      "definition": "CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text])))"
+    },
+    {
+      "name": "cs_document_requests_recipient_scope_check",
+      "table": "cs_document_requests",
+      "definition": "CHECK ((recipient_scope = ANY (ARRAY['employee'::text, 'client'::text, 'both'::text, 'office'::text, 'payor'::text, 'internal'::text])))"
+    },
+    {
+      "name": "cs_document_requests_status_check",
+      "table": "cs_document_requests",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'sent'::text, 'opened'::text, 'partially_signed'::text, 'completed'::text, 'rejected'::text, 'expired'::text, 'archived'::text])))"
+    },
+    {
+      "name": "cs_document_requests_template_version_id_fkey",
+      "table": "cs_document_requests",
+      "definition": "FOREIGN KEY (template_version_id) REFERENCES cs_document_template_versions(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "employee_documents_employee_id_fkey",
+      "table": "employee_documents",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "employee_documents_pkey",
+      "table": "employee_documents",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "employee_documents_tenant_id_fkey",
+      "table": "employee_documents",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_requests_client_id_fkey",
+      "table": "portal_requests",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_requests_pkey",
+      "table": "portal_requests",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "portal_requests_portal_user_id_fkey",
+      "table": "portal_requests",
+      "definition": "FOREIGN KEY (portal_user_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_requests_tenant_id_fkey",
+      "table": "portal_requests",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_signature_audit_events_actor_user_id_fkey",
+      "table": "portal_signature_audit_events",
+      "definition": "FOREIGN KEY (actor_user_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_audit_events_document_id_fkey",
+      "table": "portal_signature_audit_events",
+      "definition": "FOREIGN KEY (document_id) REFERENCES portal_signature_documents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_audit_events_event_type_check",
+      "table": "portal_signature_audit_events",
+      "definition": "CHECK ((event_type = ANY (ARRAY['document_created'::text, 'document_sent'::text, 'document_viewed'::text, 'signature_captured'::text, 'document_completed'::text, 'document_withdrawn'::text, 'document_resent'::text, 'reminder_sent'::text, 'document_archived'::text, 'status_changed'::text])))"
+    },
+    {
+      "name": "portal_signature_audit_events_pkey",
+      "table": "portal_signature_audit_events",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "portal_signature_audit_events_tenant_id_fkey",
+      "table": "portal_signature_audit_events",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_signature_captures_document_id_fkey",
+      "table": "portal_signature_captures",
+      "definition": "FOREIGN KEY (document_id) REFERENCES portal_signature_documents(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_signature_captures_pkey",
+      "table": "portal_signature_captures",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "portal_signature_captures_signer_profile_id_fkey",
+      "table": "portal_signature_captures",
+      "definition": "FOREIGN KEY (signer_profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_captures_signer_role_check",
+      "table": "portal_signature_captures",
+      "definition": "CHECK ((signer_role = ANY (ARRAY['employee'::text, 'client'::text])))"
+    },
+    {
+      "name": "portal_signature_captures_tenant_id_fkey",
+      "table": "portal_signature_captures",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_signature_documents_assignment_id_fkey",
+      "table": "portal_signature_documents",
+      "definition": "FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_documents_client_id_fkey",
+      "table": "portal_signature_documents",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_documents_created_by_fkey",
+      "table": "portal_signature_documents",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_documents_document_source_type_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((document_source_type = ANY (ARRAY['template'::text, 'pdf_upload'::text, 'office_write'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_document_type_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((document_type = ANY (ARRAY['arbeitsvertrag'::text, 'zusatzvereinbarung'::text, 'belehrung'::text, 'datenschutz'::text, 'schweigepflicht'::text, 'dienstanweisung'::text, 'empfangsbestaetigung'::text, 'schulungsnachweis'::text, 'einwilligung'::text, 'leistungsnachweis'::text, 'pflegeunterlage'::text, 'kostentraegerformular'::text, 'sonstiges'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_employee_id_fkey",
+      "table": "portal_signature_documents",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_signature_documents_next_signer_role_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK (((next_signer_role IS NULL) OR (next_signer_role = ANY (ARRAY['employee'::text, 'client'::text]))))"
+    },
+    {
+      "name": "portal_signature_documents_pkey",
+      "table": "portal_signature_documents",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "portal_signature_documents_priority_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_recipient_type_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((recipient_type = ANY (ARRAY['employee'::text, 'client'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_signature_requirement_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((signature_requirement = ANY (ARRAY['employee'::text, 'client'::text, 'both_sequential'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_status_check",
+      "table": "portal_signature_documents",
+      "definition": "CHECK ((status = ANY (ARRAY['new'::text, 'open'::text, 'in_progress'::text, 'partially_signed'::text, 'fully_signed'::text, 'completed'::text, 'withdrawn'::text, 'expired'::text])))"
+    },
+    {
+      "name": "portal_signature_documents_tenant_id_fkey",
+      "table": "portal_signature_documents",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_uploads_client_document_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (client_document_id) REFERENCES client_documents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_uploads_client_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "portal_uploads_context_check",
+      "table": "portal_uploads",
+      "definition": "CHECK ((upload_context = ANY (ARRAY['mitarbeiter'::text, 'klient'::text])))"
+    },
+    {
+      "name": "portal_uploads_employee_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_uploads_pkey",
+      "table": "portal_uploads",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "portal_uploads_portal_request_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (portal_request_id) REFERENCES portal_requests(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_uploads_portal_user_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (portal_user_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_uploads_reviewed_by_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "portal_uploads_tenant_id_fkey",
+      "table": "portal_uploads",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "profiles_auth_user_id_key",
+      "table": "profiles",
+      "definition": "UNIQUE (auth_user_id)"
+    },
+    {
+      "name": "profiles_pkey",
+      "table": "profiles",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "profiles_role_id_fkey",
+      "table": "profiles",
+      "definition": "FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "profiles_tenant_id_fkey",
+      "table": "profiles",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    }
+  ]
+}

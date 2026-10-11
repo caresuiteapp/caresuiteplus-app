@@ -39,7 +39,8 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
   it('zeigt die vollständige monatliche Prüfkette und alle Hauptaktionen', () => {
     const screen = read('src/components/wfm/TimeTrackingTeamScreen.tsx');
 
-    expect(screen).toContain('Arbeitszeit- und Gehaltsvorbereitung');
+    expect(screen).toContain('Vom Einsatz bis zur Gehaltsstatistik');
+    expect(screen).toContain('anschließend Zeitkonten prüfen und den freigegebenen Monat');
     expect(screen).toContain('Einsatzzeiten & Korrekturen');
     expect(screen).toContain('Urlaub & Abwesenheiten');
     expect(screen).toContain('Offene Prüfungen');
@@ -66,6 +67,10 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     expect(screen).toContain('compactHeader');
     expect(screen).toContain('<MessengerTabs');
     expect(composer).toContain("textAlignVertical: 'top'");
-    expect(composer).toContain('minHeight: 66');
+    expect(composer).toContain('minHeight: isCompact ? 46 : 66');
+    expect(composer).toContain('minHeight: isCompact ? 62 : 82');
+    expect(composer).toContain('multiline');
+    expect(composer).toContain('fontSize: 16');
+    expect(composer).toContain('minHeight: 44');
   });
 });

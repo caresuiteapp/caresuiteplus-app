@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
@@ -41,13 +41,14 @@ type AdaptivePortalOverviewProps = {
 
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
   const router = useRouter();
-  const { context, loading, error, refresh } = usePortalContext();
+  const { context, loading, error, refreshWithResult } = usePortalContext();
   const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
     ? params.module
     : null;
   const routeSection = typeof params.section === 'string' ? params.section : null;
   const [activeModule, setActiveModule] = useState<PortalModuleKey | 'all'>(routeModule ?? 'all');
+  useEffect(() => setActiveModule(routeModule ?? 'all'), [routeModule]);
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
@@ -67,8 +68,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   }, [context, effectiveModule]);
 
   const handleRefresh = async () => {
-    await refresh();
-    onRefresh?.();
+    if (await refreshWithResult()) onRefresh?.();
   };
 
   if (loading && !context) {
@@ -114,7 +114,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     );
   }
 
-  if (context.primaryModule === 'assist') {
+  if (routeModule === 'assist' || (!routeModule && routeSection in ASSIST_PORTAL_SECTIONS)) {
     if (routeSection) {
       const featureKey = ASSIST_PORTAL_SECTIONS[routeSection];
       if (!featureKey || !canAccessPortalFeature(context, 'assist', featureKey)) {

@@ -22,6 +22,29 @@ const BASE: PortalAppointmentItem = {
 };
 
 describe('employeePortalLiveOverviewService', () => {
+  it('never turns a calendar-only entry into a visit execution or planned visit hours', () => {
+    const now = new Date().toISOString();
+    const overview = buildEmployeePortalOverviewFromAppointments([{ ...BASE, id: 'calendar:central-1', startsAt: now, endsAt: now }]);
+    expect(overview.todayAssignments).toEqual([]);
+    expect(overview.nextAssignments).toEqual([]);
+  });
+  it('never promotes a stale preserved list row into a current dashboard assignment', () => {
+    const now = new Date().toISOString();
+    const item = { ...BASE, startsAt: now, endsAt: now, cacheStale: true };
+    expect(buildEmployeePortalOverviewFromAppointments([item]).todayAssignments).toEqual([]);
+  });
+  it('prefers actual ongoing execution over an earlier merely confirmed appointment', () => {
+    const confirmed = mapPortalAppointmentToListItem({ ...BASE, id: 'confirmed', assignmentStatus: 'bestaetigt' });
+    const ongoing = mapPortalAppointmentToListItem({ ...BASE, id: 'ongoing', assignmentStatus: 'gestartet' });
+    expect(resolveDashboardCurrentAssignment([confirmed, ongoing])?.assignmentId).toBe('ongoing');
+  });
+  it('keeps an overnight assignment visible on the day it continues', () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 1);
+    const overview = buildEmployeePortalOverviewFromAppointments([{ ...BASE, startsAt: start.toISOString(), endsAt: end.toISOString(), assignmentStatus: 'gestartet' }]);
+    expect(overview.todayAssignments).toHaveLength(1);
+  });
   it('shows one card and one KPI entry for duplicate technical series rows', () => {
     const start = new Date();
     start.setHours(9, 50, 0, 0);

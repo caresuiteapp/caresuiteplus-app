@@ -13,7 +13,6 @@ import {
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
 import { serializeHomeAccessValues } from '@/lib/clients/clientIntakeHomeAccess';
 import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
-import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { setClientFundingSources } from '@/lib/clients/clientFundingSourceService';
 
 function getClient() {
@@ -66,7 +65,6 @@ async function upsertSupportPreferences(
     .eq('client_id', clientId)
     .maybeSingle();
   if (existingError) {
-    if (isMissingTableError(existingError)) return { ok: true, data: undefined };
     return { ok: false, error: toGermanSupabaseError(existingError) };
   }
   if (existing && typeof existing === 'object' && 'id' in existing) {
@@ -78,7 +76,6 @@ async function upsertSupportPreferences(
     return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
   }
   const { error } = await fromUnknownTable(supabase, 'client_support_preferences').insert(payload);
-  if (error && isMissingTableError(error)) return { ok: true, data: undefined };
   return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
 }
 
@@ -154,12 +151,13 @@ export async function persistIntakeClientExtendedData(
   });
   if (billingError) return { ok: false, error: toGermanSupabaseError(billingError) };
 
-  const { data: existingInsurance } = await fromUnknownTable(supabase, 'client_insurance_profiles')
+  const { data: existingInsurance, error: existingInsuranceReadError } = await fromUnknownTable(supabase, 'client_insurance_profiles')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('is_primary', true)
     .maybeSingle();
+  if (existingInsuranceReadError) return { ok: false, error: toGermanSupabaseError(existingInsuranceReadError) };
 
   if (!existingInsurance) {
     const { error: insuranceError } = await fromUnknownTable(supabase, 'client_insurance_profiles').insert({
@@ -337,12 +335,13 @@ async function upsertPrimaryAddress(
     door_code: form.doorCode.trim() || null,
   };
 
-  const { data: existing } = await fromUnknownTable(supabase, 'client_addresses')
+  const { data: existing, error: existingReadError } = await fromUnknownTable(supabase, 'client_addresses')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('is_primary', true)
     .maybeSingle();
+  if (existingReadError) return { ok: false, error: toGermanSupabaseError(existingReadError) };
 
   if (existing && typeof existing === 'object' && 'id' in existing) {
     const { error } = await fromUnknownTable(supabase, 'client_addresses')
@@ -369,12 +368,13 @@ async function upsertContactByType(
   const supabase = getClient();
   if (!supabase) return unavailable();
 
-  const { data: existing } = await fromUnknownTable(supabase, 'client_contacts')
+  const { data: existing, error: existingReadError } = await fromUnknownTable(supabase, 'client_contacts')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('contact_type', contactType)
     .maybeSingle();
+  if (existingReadError) return { ok: false, error: toGermanSupabaseError(existingReadError) };
 
   if (!name.trim() && !phone.trim()) {
     if (existing && typeof existing === 'object' && 'id' in existing) {
@@ -449,12 +449,13 @@ export async function syncIntakeClientExtendedData(
     (shouldPersist('kostentraeger') || shouldPersist('versorgung'))
     && form.careLevel.trim()
   ) {
-    const { data: existingLevels } = await fromUnknownTable(supabase, 'client_care_levels')
+    const { data: existingLevels, error: existingLevelsReadError } = await fromUnknownTable(supabase, 'client_care_levels')
       .select('id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .order('valid_from', { ascending: false })
       .limit(1);
+  if (existingLevelsReadError) return { ok: false, error: toGermanSupabaseError(existingLevelsReadError) };
 
     const latest = Array.isArray(existingLevels) ? existingLevels[0] : null;
     const carePayload = {
@@ -500,11 +501,12 @@ export async function syncIntakeClientExtendedData(
       notes: form.billingTypes.join(', ') || null,
     };
 
-    const { data: existingBilling } = await fromUnknownTable(supabase, 'client_billing_profiles')
+    const { data: existingBilling, error: existingBillingReadError } = await fromUnknownTable(supabase, 'client_billing_profiles')
       .select('id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .maybeSingle();
+  if (existingBillingReadError) return { ok: false, error: toGermanSupabaseError(existingBillingReadError) };
 
     if (existingBilling && typeof existingBilling === 'object' && 'id' in existingBilling) {
       const { error } = await fromUnknownTable(supabase, 'client_billing_profiles')
@@ -523,12 +525,13 @@ export async function syncIntakeClientExtendedData(
   }
 
   if (shouldPersist('kostentraeger')) {
-    const { data: existingInsurance } = await fromUnknownTable(supabase, 'client_insurance_profiles')
+    const { data: existingInsurance, error: existingInsuranceReadError } = await fromUnknownTable(supabase, 'client_insurance_profiles')
       .select('id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .eq('is_primary', true)
       .maybeSingle();
+  if (existingInsuranceReadError) return { ok: false, error: toGermanSupabaseError(existingInsuranceReadError) };
 
     const insurancePayload = {
       care_level: form.careLevel.trim() || null,
@@ -608,11 +611,12 @@ export async function syncIntakeClientExtendedData(
       family_doctor: form.familyDoctor.trim() || null,
     };
 
-    const { data: existingAmbulatory } = await fromUnknownTable(supabase, 'client_ambulatory_details')
+    const { data: existingAmbulatory, error: existingAmbulatoryReadError } = await fromUnknownTable(supabase, 'client_ambulatory_details')
       .select('id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .maybeSingle();
+  if (existingAmbulatoryReadError) return { ok: false, error: toGermanSupabaseError(existingAmbulatoryReadError) };
 
     if (existingAmbulatory && typeof existingAmbulatory === 'object' && 'id' in existingAmbulatory) {
       const { error } = await fromUnknownTable(supabase, 'client_ambulatory_details')
@@ -650,11 +654,12 @@ export async function syncIntakeClientExtendedData(
       daily_structure: form.dailyStructure.trim() || null,
     };
 
-    const { data: existingStationary } = await fromUnknownTable(supabase, 'client_stationary_details')
+    const { data: existingStationary, error: existingStationaryReadError } = await fromUnknownTable(supabase, 'client_stationary_details')
       .select('id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .maybeSingle();
+  if (existingStationaryReadError) return { ok: false, error: toGermanSupabaseError(existingStationaryReadError) };
 
     if (existingStationary && typeof existingStationary === 'object' && 'id' in existingStationary) {
       const { error } = await fromUnknownTable(supabase, 'client_stationary_details')

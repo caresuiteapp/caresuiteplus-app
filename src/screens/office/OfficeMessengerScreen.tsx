@@ -82,9 +82,9 @@ function MessengerTabs({
 }
 
 const compactStyles = StyleSheet.create({
-  segmented: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  segmented: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   segment: {
-    minHeight: 32,
+    minHeight: 44,
     paddingHorizontal: 11,
     borderRadius: 16,
     borderWidth: 1,
@@ -231,7 +231,7 @@ export function OfficeMessengerScreen() {
           flexShrink: 0,
         },
         createButton: {
-          minHeight: 32,
+          minHeight: 44,
           paddingHorizontal: 12,
           borderRadius: 16,
           alignItems: 'center',

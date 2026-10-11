@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-11",
+  "kind": "read_only_public_browser",
+  "environment": {
+    "origin": "https://www.caresuiteplus.app",
+    "viewport": {
+      "width": 1363,
+      "height": 936
+    },
+    "authenticated": false,
+    "credentialsEntered": false,
+    "accountsCreated": false,
+    "emailsSent": false,
+    "productionWrites": false,
+    "branchUnderReview": false
+  },
+  "observations": [
+    {
+      "path": "/auth",
+      "result": "All three portal entry buttons and business registration link visible."
+    },
+    {
+      "path": "/auth/register-business",
+      "result": "Deployed build redirected to /auth; visible registration entry opened /auth/register. Current branch aliases inspected separately; this is a deployed-version observation."
+    },
+    {
+      "path": "/auth/register",
+      "action": "Continue without values on organisation step 1",
+      "result": "Required company/legal form/facility validation visible, German error above form, invalid controls highlighted after settled render."
+    },
+    {
+      "path": "/auth/business-login",
+      "action": "Submit without values",
+      "result": "Visible German required email/password error."
+    },
+    {
+      "path": "/auth/employee-login",
+      "action": "Submit without values",
+      "result": "Visible German required username/password error."
+    },
+    {
+      "path": "/auth/client-login",
+      "action": "Submit without values",
+      "result": "Visible German required username error."
+    },
+    {
+      "path": "/auth/forgot-password",
+      "action": "Open from business login",
+      "result": "Email form, return and support links reachable; no reset submitted."
+    }
+  ],
+  "limits": [
+    "Deployed public pages only; no signed-in portal or modified branch browser verification.",
+    "No narrow viewport or actual Android device checks.",
+    "No successful registration, login, password reset, file upload or signature completion executed.",
+    "Tool screenshots viewed; cloud screenshot file did not synchronize into workspace and is not supplied as a durable artifact."
+  ]
+}

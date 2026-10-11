@@ -2,12 +2,14 @@ import type { AssistTimeEventType } from '@/types/assistExecutionPersistence';
 import type { ServiceResult } from '@/types';
 import type { WfmEventType, WfmSessionStatus, WfmDisplayStatus } from '@/types/modules/wfm';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
-import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { deriveWfmRecordedDayTotals } from './wfmRecordedDayTotals';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { createSingleFlight } from '@/lib/services/singleFlight';
 import {
   fetchSessionForDate,
+  fetchSessionEvents,
   hasAssistWfmEvent,
   insertTimeEvent,
   insertWorkSession,
@@ -29,6 +31,7 @@ const ASSIST_TO_WFM: Record<AssistTimeEventType, WfmEventType | null> = {
   arrived_manual: 'visit_arrived',
   depart: 'visit_ended',
 };
+const runEventMirror = createSingleFlight();
 
 const ASSIST_SESSION_STATUS: Partial<Record<AssistTimeEventType, WfmSessionStatus>> = {
   drive_start: 'driving',
@@ -61,27 +64,20 @@ function newUuid(): string {
   );
 }
 
-function serviceMinutesFromEvents(
-  events: { eventType: string; occurredAt: string }[],
-): { grossMinutes: number; netMinutes: number; pauseMinutes: number } {
-  const times = calculateVisitTimes(events, 'beendet');
-  const serviceSeconds = times.serviceSeconds ?? 0;
-  const pauseSeconds = times.pauseSeconds ?? 0;
-  const grossMinutes = Math.max(1, Math.ceil(serviceSeconds / 60));
-  const pauseMinutes = pauseSeconds > 0 ? Math.ceil(pauseSeconds / 60) : 0;
-  return {
-    grossMinutes,
-    netMinutes: Math.max(0, grossMinutes - pauseMinutes),
-    pauseMinutes,
-  };
-}
-
 export function mapAssistEventToWfm(eventType: AssistTimeEventType): WfmEventType | null {
   return ASSIST_TO_WFM[eventType] ?? null;
 }
 
 /** Spiegelt Assist-Zeitstempel in workforce_time_events + Session-Status. */
-export async function syncAssistTimeEventToWfm(
+export function syncAssistTimeEventToWfm(
+  tenantId: string, employeeId: string | null, userId: string | null,
+  visitId: string, assistEventType: AssistTimeEventType, occurredAt?: string,
+): Promise<ServiceResult<void>> {
+  const time = occurredAt ?? new Date().toISOString();
+  return runEventMirror(`${tenantId}:${employeeId ?? userId}:${visitId}:${assistEventType}:${time}`,
+    () => syncAssistTimeEventToWfmOnce(tenantId,employeeId,userId,visitId,assistEventType,time));
+}
+async function syncAssistTimeEventToWfmOnce(
   tenantId: string,
   employeeId: string | null,
   userId: string | null,
@@ -105,7 +101,10 @@ export async function syncAssistTimeEventToWfm(
   const now = occurredAt ?? new Date().toISOString();
   const workDate = workDateFromIso(now);
 
-  if (await hasAssistWfmEvent(tenantId, empId, wfmEventType, visitId)) {
+  let alreadyMirrored: boolean;
+  try { alreadyMirrored = await hasAssistWfmEvent(tenantId, empId, wfmEventType, visitId, now); }
+  catch (cause) { return {ok:false,error:cause instanceof Error?cause.message:'Arbeitszeit-Synchronisation konnte nicht geprüft werden.'}; }
+  if (alreadyMirrored) {
     if (assistEventType === 'service_end') {
       return applyAssistServiceEndToWfmSession(tenantId, empId, visitId, workDate);
     }
@@ -238,15 +237,20 @@ export async function applyAssistServiceEndToWfmSession(
   if (!sessionResult.ok) return sessionResult;
   if (!sessionResult.data) return { ok: true, data: undefined };
 
-  const minutes = serviceMinutesFromEvents(eventsResult.data);
+  const dayEvents = await fetchSessionEvents(tenantId, sessionResult.data.id);
+  if (!dayEvents.ok) return dayEvents;
+  let minutes: ReturnType<typeof deriveWfmRecordedDayTotals>;
+  try { minutes = deriveWfmRecordedDayTotals(dayEvents.data, resolvedWorkDate, new Date().toISOString()); }
+  catch (cause) { return { ok: false, error: cause instanceof Error ? cause.message : 'Arbeitszeit konnte nicht aus den Ereignissen ermittelt werden.' }; }
   const updated = await updateWorkSession(sessionResult.data.id, {
     grossMinutes: minutes.grossMinutes,
     netMinutes: minutes.netMinutes,
     pauseMinutes: minutes.pauseMinutes,
-    isOnline: false,
-    status: 'clocked_in',
+    isOnline: minutes.isOnline,
+    endedAt: minutes.endedAt,
+    status: minutes.isOnline ? 'clocked_in' : 'ended',
     displayStatus: 'buero',
-    lastEventAt: serviceEnd?.occurredAt ?? sessionResult.data.lastEventAt,
+    lastEventAt: minutes.lastEventAt ?? sessionResult.data.lastEventAt,
   });
   if (!updated.ok) return updated;
 
@@ -276,7 +280,8 @@ async function syncAssistVisitTimesToWfmViaRpc(
   // The RPC is idempotent: zero inserted rows means all matching events were
   // already mirrored. Authorization and assignment mismatches are raised as
   // explicit RPC errors by migration 0225 and must not be inferred from zero.
-  const inserted = typeof data === 'number' ? data : Number(data ?? 0);
+  const inserted = typeof data === 'number' ? data : typeof data === 'string' && /^\d+$/.test(data) ? Number(data) : NaN;
+  if (!Number.isSafeInteger(inserted) || inserted < 0) return { ok: false, error: 'Arbeitszeit-Synchronisation wurde vom Server nicht bestätigt.' };
   return { ok: true, data: inserted };
 }
 
@@ -296,28 +301,13 @@ export async function syncAssistVisitTimesToWfm(
   const eventsResult = await fetchTimeEventsForVisit(tenantId, visitId, 50);
   if (!eventsResult.ok) return { ok: false, error: eventsResult.error };
 
-  const syncOrder: AssistTimeEventType[] = [
-    'drive_start',
-    'drive_end',
-    'arrive',
-    'service_start',
-    'pause_start',
-    'pause_end',
-    'service_end',
-    'depart',
-  ];
-
-  const present = new Set(eventsResult.data.map((e) => e.eventType));
-  for (const eventType of syncOrder) {
-    if (!present.has(eventType)) continue;
-    const row = eventsResult.data.find((e) => e.eventType === eventType);
-    if (!row) continue;
+  for (const row of eventsResult.data) {
     const synced = await syncAssistTimeEventToWfm(
       tenantId,
       employeeId,
       userId,
       visitId,
-      eventType as AssistTimeEventType,
+      row.eventType,
       row.occurredAt,
     );
     if (!synced.ok) return synced;

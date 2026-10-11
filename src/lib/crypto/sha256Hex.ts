@@ -100,6 +100,11 @@ function bytesToHex(bytes: Uint8Array): string {
     .join('');
 }
 
+/** Hash the actual binary content without decoding or re-encoding PDF bytes. */
+export function sha256BinaryHex(content: Uint8Array): string {
+  return bytesToHex(sha256Bytes(content));
+}
+
 /** Returns lowercase hex SHA-256 digest (no prefix). */
 export function sha256Hex(content: string): string {
   const encoded =

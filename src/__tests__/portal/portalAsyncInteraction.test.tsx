@@ -164,6 +164,29 @@ describe('Portal data lifecycle on a mounted React tree', () => {
     expect(fetcher).not.toHaveBeenCalled();
     expect(host.textContent).toBe('false');
   });
+  it('reports the queued manual refresh failure even when the preceding background read succeeded', async () => {
+    const flight = deferred<ReturnType<typeof ok>>();
+    const fetcher = vi.fn().mockResolvedValueOnce(ok('visible'))
+      .mockImplementationOnce(() => flight.promise)
+      .mockResolvedValue({ ok: false, error: 'Aktualisieren fehlgeschlagen.' });
+    let q!: ReturnType<typeof useAsyncQuery<string>>;
+    function Probe() {
+      q = useAsyncQuery(fetcher, []);
+      return <div>{q.data}</div>;
+    }
+    await render(<Probe />);
+    let manual!: Promise<boolean>;
+    await act(async () => {
+      void q.refresh();
+      manual = q.refreshWithResult();
+    });
+    await act(async () => {
+      flight.resolve(ok('background-value'));
+      expect(await manual).toBe(false);
+    });
+    expect(q.data).toBe('background-value');
+    expect(q.refreshError).toBe('Aktualisieren fehlgeschlagen.');
+  });
   it('releases the save lock after a thrown network error so a user can retry', async () => {
     const mutate = vi
       .fn()

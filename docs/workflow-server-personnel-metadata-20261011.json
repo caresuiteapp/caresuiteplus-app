@@ -1,0 +1,5003 @@
+{
+  "capturedAt": "2026-10-11",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "read-only metadata, no business rows",
+  "helpers": [
+    {
+      "name": "current_portal_account_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_account_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN COALESCE(auth.jwt()->'app_metadata'->>'portal_account_id', '') ~*\r\n      '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'\r\n    THEN (auth.jwt()->'app_metadata'->>'portal_account_id')::uuid\r\n    ELSE NULL\r\n  END\r\n$function$\n"
+    },
+    {
+      "name": "current_portal_type",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_type()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT NULLIF(auth.jwt()->'app_metadata'->>'portal_type', '')\r\n$function$\n"
+    },
+    {
+      "name": "is_active_employee_portal_actor",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_active_employee_portal_actor(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_portal_type() = 'employee'\r\n    AND public.current_employee_id() IS NOT NULL\r\n    AND public.current_tenant_id() = COALESCE(p_tenant_id, public.current_tenant_id())\r\n$function$\n"
+    },
+    {
+      "name": "is_tenant_admin",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_tenant_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.profiles p\n    JOIN public.roles r ON r.id = p.role_id\n    WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid())\n      AND p.status IN ('active', 'invited')\n      AND (\n        COALESCE(r.is_admin_role, FALSE) = TRUE\n        OR r.key IN (\n          'owner',\n          'admin',\n          'management',\n          'geschaeftsfuehrung',\n          'business_admin'\n        )\n      )\n  )\n$function$\n"
+    },
+    {
+      "name": "resolve_current_employee_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_current_employee_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN public.current_portal_type() IS NOT NULL THEN public.current_employee_id()\r\n    ELSE COALESCE(public.current_employee_id(), public.current_employee_id_from_profile())\r\n  END\r\n$function$\n"
+    }
+  ],
+  "personnel": [
+    {
+      "name": "employee_absences",
+      "rls": true,
+      "select": false,
+      "insert": false,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_access_revocations",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_audit_events",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_background_checks",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_consent_bundle",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_contract_settings",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_data_scopes",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_documents",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_expense_claims",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_final_clearance",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_location_consents",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_logbook_audit_events",
+      "rls": true,
+      "select": true,
+      "insert": false,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_logbook_daily_confirmations",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_logbook_points",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_logbook_profiles",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_logbook_prompt_decisions",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_logbook_receipts",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_logbook_segments",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_logbook_trips",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_logbook_vehicles",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_mobility_settings",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_module_assignments",
+      "rls": true,
+      "select": true,
+      "insert": false,
+      "update": false,
+      "delete": false
+    },
+    {
+      "name": "employee_offboarding_checks",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_offboarding_sessions",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_offboarding_steps",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_payroll_settings",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_permission_overrides",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_permission_states",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_portal_accounts",
+      "rls": true,
+      "select": false,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_qualifications",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_role_assignments",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_secondary_employments",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_social_insurance",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_tax_settings",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "name": "employee_visit_mobility_selections",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employee_work_settings",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "name": "employees",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_profiles",
+      "policyname": "employee_logbook_profiles_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_vehicles",
+      "policyname": "employee_logbook_vehicles_office_delete",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_vehicles",
+      "policyname": "employee_logbook_vehicles_office_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_vehicles",
+      "policyname": "employee_logbook_vehicles_office_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_vehicles",
+      "policyname": "employee_logbook_vehicles_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_trips",
+      "policyname": "employee_logbook_trips_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(employee_logbook_own_employee(tenant_id, employee_id) AND ((NOT is_employee_portal_rls_context(tenant_id)) OR ((status = 'recording'::text) AND (source = 'employee_portal'::text))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_trips",
+      "policyname": "employee_logbook_trips_office_delete",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_trips",
+      "policyname": "employee_logbook_trips_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_trips",
+      "policyname": "employee_logbook_trips_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_segments",
+      "policyname": "employee_logbook_segments_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(employee_logbook_own_employee(tenant_id, employee_id) AND ((NOT is_employee_portal_rls_context(tenant_id)) OR (EXISTS ( SELECT 1\n   FROM employee_logbook_trips trip\n  WHERE ((trip.id = employee_logbook_segments.trip_id) AND (trip.tenant_id = employee_logbook_segments.tenant_id) AND (trip.employee_id = employee_logbook_segments.employee_id) AND (trip.status = 'recording'::text))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_segments",
+      "policyname": "employee_logbook_segments_office_delete",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_segments",
+      "policyname": "employee_logbook_segments_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_segments",
+      "policyname": "employee_logbook_segments_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND ((NOT is_employee_portal_rls_context(tenant_id)) OR ((employee_id = resolve_current_employee_id()) AND (EXISTS ( SELECT 1\n   FROM employee_logbook_trips trip\n  WHERE ((trip.id = employee_logbook_segments.trip_id) AND (trip.tenant_id = employee_logbook_segments.tenant_id) AND (trip.employee_id = employee_logbook_segments.employee_id) AND (trip.status = ANY (ARRAY['recording'::text, 'confirmation_required'::text, 'completed'::text]))))))))",
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_receipts",
+      "policyname": "employee_logbook_receipts_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_receipts",
+      "policyname": "employee_logbook_receipts_office_delete",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_receipts",
+      "policyname": "employee_logbook_receipts_office_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_receipts",
+      "policyname": "employee_logbook_receipts_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_points",
+      "policyname": "employee_logbook_points_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ((NOT ( SELECT is_employee_portal_rls_context(current_tenant_id()) AS is_employee_portal_rls_context)) OR (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_points",
+      "policyname": "employee_logbook_points_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ((NOT ( SELECT is_employee_portal_rls_context(current_tenant_id()) AS is_employee_portal_rls_context)) OR (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_daily_confirmations",
+      "policyname": "employee_logbook_confirmations_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_daily_confirmations",
+      "policyname": "employee_logbook_confirmations_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_audit_events",
+      "policyname": "employee_logbook_audit_internal_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (NOT is_employee_portal_rls_context(tenant_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_prompt_decisions",
+      "policyname": "employee_logbook_prompt_decisions_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_prompt_decisions",
+      "policyname": "employee_logbook_prompt_decisions_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_logbook_prompt_decisions",
+      "policyname": "employee_logbook_prompt_decisions_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_visit_mobility_selections",
+      "policyname": "employee_visit_mobility_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_visit_mobility_selections",
+      "policyname": "employee_visit_mobility_write",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "employee_logbook_own_employee(tenant_id, employee_id)",
+      "with_check": "employee_logbook_own_employee(tenant_id, employee_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_access",
+      "policyname": "client_portal_access_portal_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((auth_user_id = auth.uid()) AND (portal_enabled = true))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_access",
+      "policyname": "client_portal_access_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.clients.view'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_access",
+      "policyname": "client_portal_access_write_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.clients.edit'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.clients.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_codes",
+      "policyname": "client_portal_codes_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_codes",
+      "policyname": "client_portal_codes_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "client_portal_codes",
+      "policyname": "client_portal_codes_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_absences",
+      "policyname": "employee_absences_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_data_scopes",
+      "policyname": "employee_data_scopes_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_audit_events",
+      "policyname": "employee_audit_events_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_background_checks",
+      "policyname": "employee_background_checks_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_consent_bundle",
+      "policyname": "employee_consent_bundle_office_assist_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_member(tenant_id) AND (current_role_key() <> 'employee_portal'::text) AND (current_role_key() <> 'client_portal'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_consent_bundle",
+      "policyname": "employee_consent_bundle_portal_employee_all",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_contract_settings",
+      "policyname": "employee_contract_settings_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_location_consents",
+      "policyname": "employee_location_consents_office_assist_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_member(tenant_id) AND (current_role_key() <> 'employee_portal'::text) AND (current_role_key() <> 'client_portal'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_location_consents",
+      "policyname": "employee_location_consents_portal_employee_all",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_mobility_settings",
+      "policyname": "employee_mobility_settings_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_mobility_settings",
+      "policyname": "employee_mobility_settings_portal_self",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND (employee_id = resolve_current_employee_id()) AND (current_role_key() = 'employee_portal'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND (employee_id = resolve_current_employee_id()) AND (current_role_key() = 'employee_portal'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_module_assignments",
+      "policyname": "employee_module_assignments_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.access'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_documents",
+      "policyname": "employee_documents_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_permission_overrides",
+      "policyname": "employee_permission_overrides_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_payroll_settings",
+      "policyname": "employee_payroll_settings_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_permission_states",
+      "policyname": "employee_permission_states_office_assist_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_member(tenant_id) AND (current_role_key() <> 'employee_portal'::text) AND (current_role_key() <> 'client_portal'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_permission_states",
+      "policyname": "employee_permission_states_portal_employee_all",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (employee_id = resolve_current_employee_id()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((auth_user_id = auth.uid()) AND (status = ANY (ARRAY['active'::text, 'pending_first_login'::text, 'password_reset_required'::text])))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_tax_settings",
+      "policyname": "employee_tax_settings_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_qualifications",
+      "policyname": "employee_qualifications_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_role_assignments",
+      "policyname": "employee_role_assignments_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_secondary_employments",
+      "policyname": "employee_secondary_employments_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_social_insurance",
+      "policyname": "employee_social_insurance_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.view'::text))",
+      "with_check": "((tenant_id = current_tenant_id()) AND has_permission('office.employees.edit'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.create'::text) AS has_permission))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_portal_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_portal_team_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = ( SELECT current_tenant_id() AS current_tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (( SELECT has_permission('office.employees.view'::text) AS has_permission) OR ( SELECT has_permission('assist.assignments.manage'::text) AS has_permission)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_soft_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (( SELECT has_permission('office.employees.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (status = 'deleted'::employee_status) AND (( SELECT has_permission('office.employees.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.edit'::text) AS has_permission))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.edit'::text) AS has_permission))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_work_settings",
+      "policyname": "employee_work_settings_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_expense_claims",
+      "policyname": "payroll_expenses_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND (((employee_id = resolve_current_employee_id()) AND (status = ANY (ARRAY['draft'::text, 'submitted'::text])) AND (approved_amount_cents IS NULL) AND (reviewed_at IS NULL) AND (reviewed_by IS NULL) AND (office_note IS NULL) AND (rejection_reason IS NULL) AND (tax_treatment = 'review'::text) AND (created_by = auth.uid())) OR has_permission('office.employees.edit'::text) OR is_tenant_admin()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_expense_claims",
+      "policyname": "payroll_expenses_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND ((employee_id = resolve_current_employee_id()) OR has_permission('office.employees.view'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_expense_claims",
+      "policyname": "payroll_expenses_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND ((employee_id = resolve_current_employee_id()) OR has_permission('office.employees.edit'::text) OR is_tenant_admin()))",
+      "with_check": "((tenant_id = current_tenant_id()) AND ((employee_id = resolve_current_employee_id()) OR has_permission('office.employees.edit'::text) OR is_tenant_admin()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "relative_portal_codes",
+      "policyname": "relative_portal_codes_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "relative_portal_codes",
+      "policyname": "relative_portal_codes_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "relative_portal_codes",
+      "policyname": "relative_portal_codes_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_memberships",
+      "policyname": "tenant_memberships_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "is_tenant_member(tenant_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_execution_storage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'assist'::text) AND ((storage.foldername(name))[4] = 'visits'::text) AND is_tenant_member(current_tenant_id()))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_execution_storage_portal_client_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'assist'::text) AND ((storage.foldername(name))[4] = 'visits'::text) AND (((storage.foldername(name))[5])::uuid IN ( SELECT portal_client_pending_signature_visit_ids(current_tenant_id()) AS portal_client_pending_signature_visit_ids)) AND is_client_portal_rls_context(current_tenant_id()))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_execution_storage_portal_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'assist'::text) AND ((storage.foldername(name))[4] = 'visits'::text) AND (((storage.foldername(name))[5])::uuid IN ( SELECT portal_employee_assigned_visit_ids(current_tenant_id()) AS portal_employee_assigned_visit_ids)) AND ((storage.foldername(name))[6] = ANY (ARRAY['attachments'::text, 'signatures'::text, 'proofs'::text])) AND is_employee_portal_rls_context(current_tenant_id()))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_execution_storage_portal_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'assist'::text) AND ((storage.foldername(name))[4] = 'visits'::text) AND (((storage.foldername(name))[5])::uuid IN ( SELECT portal_employee_assigned_visit_ids(current_tenant_id()) AS portal_employee_assigned_visit_ids)) AND ((storage.foldername(name))[6] = ANY (ARRAY['attachments'::text, 'signatures'::text, 'proofs'::text])) AND is_employee_portal_rls_context(current_tenant_id()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_execution_storage_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'assist'::text) AND ((storage.foldername(name))[4] = 'visits'::text) AND is_tenant_member(current_tenant_id()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_proof_client_recovery_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND client_portal_can_upload_proof_recovery(name))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "assist_signature_client_read",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND client_portal_can_read_assist_signature(name))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "bodymap_clinical_media_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'bodymap-clinical-media'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "bodymap_clinical_media_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'bodymap-clinical-media'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'bodymap'::text)) OR (((storage.foldername(name))[3] = 'subjects'::text) AND ((storage.foldername(name))[4] = 'resident'::text) AND ((storage.foldername(name))[6] = 'bodymap'::text))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "bodymap_clinical_media_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'bodymap-clinical-media'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'bodymap'::text)) OR (((storage.foldername(name))[3] = 'subjects'::text) AND ((storage.foldername(name))[4] = 'resident'::text) AND ((storage.foldername(name))[6] = 'bodymap'::text))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "bodymap_clinical_media_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'bodymap-clinical-media'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'bodymap-clinical-media'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "caresuite_public_assets_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'caresuite-public-assets'::text) AND (((storage.foldername(name))[1] = 'public'::text) OR (((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "caresuite_tenant_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (((bucket_id = 'caresuite-documents'::text) AND (has_permission('office.documents.upload'::text) OR has_permission('qm.create_document'::text))) OR ((bucket_id = 'caresuite-exports'::text) AND has_permission('qm.export_qm_documents'::text)) OR ((bucket_id = 'caresuite-imports'::text) AND is_tenant_admin()) OR ((bucket_id = 'caresuite-media'::text) AND has_permission('office.documents.upload'::text)) OR (bucket_id = 'caresuite-signatures'::text) OR ((bucket_id = 'caresuite-support'::text) AND has_permission('communication.view_center'::text)) OR ((bucket_id = 'caresuite-public-assets'::text) AND is_tenant_admin())))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "caresuite_tenant_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = ANY (ARRAY['caresuite-documents'::text, 'caresuite-signatures'::text, 'caresuite-exports'::text, 'caresuite-imports'::text, 'caresuite-media'::text, 'caresuite-support'::text])) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "caresuite_tenant_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = ANY (ARRAY['caresuite-documents'::text, 'caresuite-signatures'::text, 'caresuite-exports'::text, 'caresuite-imports'::text, 'caresuite-media'::text, 'caresuite-support'::text, 'caresuite-public-assets'::text])) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = ANY (ARRAY['caresuite-documents'::text, 'caresuite-signatures'::text, 'caresuite-exports'::text, 'caresuite-imports'::text, 'caresuite-media'::text, 'caresuite-support'::text, 'caresuite-public-assets'::text])) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_attachments_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'communication-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND has_permission('communication.upload_attachment'::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_attachments_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'communication-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_attachments_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'communication-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'communication-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_images_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'communication-images'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND has_permission('communication.upload_attachment'::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_images_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'communication-images'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_images_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'communication-images'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'communication-images'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_voice_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'communication-voice'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND has_permission('communication.upload_attachment'::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_voice_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'communication-voice'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "comm_voice_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'communication-voice'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'communication-voice'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_avatars_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'employee-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND has_permission('office.employees.edit'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_avatars_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'employee-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('office.employees.create'::text) OR has_permission('office.employees.edit'::text)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_avatars_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'employee-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_avatars_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'employee-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('office.employees.create'::text) OR has_permission('office.employees.edit'::text)))",
+      "with_check": "((bucket_id = 'employee-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_logbook_storage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'employee-logbook'::text) AND ((storage.foldername(name))[1] = (current_tenant_id())::text) AND ((NOT is_employee_portal_rls_context(current_tenant_id())) OR ((storage.foldername(name))[2] = (resolve_current_employee_id())::text)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "employee_logbook_storage_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'employee-logbook'::text) AND ((storage.foldername(name))[1] = (current_tenant_id())::text) AND ((NOT is_employee_portal_rls_context(current_tenant_id())) OR ((storage.foldername(name))[2] = (resolve_current_employee_id())::text)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "message_attachments_delete",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'message-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND has_permission('office.access'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "message_attachments_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'message-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'threads'::text) AND (EXISTS ( SELECT 1\n   FROM message_threads accessible_thread\n  WHERE (((accessible_thread.id)::text = (storage.foldername(objects.name))[4]) AND (accessible_thread.tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR (accessible_thread.client_id = current_client_id()) OR (accessible_thread.employee_id = resolve_current_employee_id()) OR (EXISTS ( SELECT 1\n           FROM message_thread_employee_participants participant\n          WHERE ((participant.thread_id = accessible_thread.id) AND (participant.tenant_id = accessible_thread.tenant_id) AND (participant.employee_id = resolve_current_employee_id()) AND (participant.is_active = true)))))))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "message_attachments_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'message-attachments'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'threads'::text) AND (EXISTS ( SELECT 1\n   FROM message_threads accessible_thread\n  WHERE (((accessible_thread.id)::text = (storage.foldername(objects.name))[4]) AND (accessible_thread.tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR (accessible_thread.client_id = current_client_id()) OR (accessible_thread.employee_id = resolve_current_employee_id()) OR (EXISTS ( SELECT 1\n           FROM message_thread_employee_participants participant\n          WHERE ((participant.thread_id = accessible_thread.id) AND (participant.tenant_id = accessible_thread.tenant_id) AND (participant.employee_id = resolve_current_employee_id()) AND (participant.is_active = true)))))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('office.documents.upload'::text) OR (has_permission('office.clients.edit'::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'documents'::text))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "payroll_documents_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((EXISTS ( SELECT 1\n   FROM payroll_month_statements statement\n  WHERE ((statement.pdf_path = objects.name) AND (statement.tenant_id = current_tenant_id()) AND\n        CASE\n            WHEN (is_tenant_admin() OR has_permission('office.employees.view'::text)) THEN true\n            ELSE (statement.employee_id = resolve_current_employee_id())\n        END))) OR (EXISTS ( SELECT 1\n   FROM employee_expense_claims expense\n  WHERE ((expense.receipt_path = objects.name) AND (expense.tenant_id = current_tenant_id()) AND\n        CASE\n            WHEN (is_tenant_admin() OR has_permission('office.employees.view'::text)) THEN true\n            ELSE (expense.employee_id = resolve_current_employee_id())\n        END)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "payroll_employee_documents_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = (current_tenant_id())::text) AND ((((storage.foldername(name))[2] = 'payroll'::text) AND ((storage.foldername(name))[3] = 'expenses'::text) AND (((storage.foldername(name))[4] = (resolve_current_employee_id())::text) OR has_permission('office.employees.view'::text) OR is_tenant_admin())) OR (((storage.foldername(name))[2] = 'generated'::text) AND (EXISTS ( SELECT 1\n   FROM payroll_month_statements statement\n  WHERE ((statement.tenant_id = current_tenant_id()) AND (statement.pdf_path = objects.name) AND ((statement.employee_id = resolve_current_employee_id()) OR has_permission('office.employees.view'::text) OR is_tenant_admin())))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "payroll_employee_receipts_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = (current_tenant_id())::text) AND ((storage.foldername(name))[2] = 'payroll'::text) AND ((storage.foldername(name))[3] = 'expenses'::text) AND ((storage.foldername(name))[4] = (resolve_current_employee_id())::text) AND (lower(storage.extension(name)) = ANY (ARRAY['pdf'::text, 'jpg'::text, 'jpeg'::text, 'png'::text, 'webp'::text, 'heic'::text, 'heif'::text])))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_signature_storage_portal_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'portal'::text) AND ((storage.foldername(name))[4] = 'signatures'::text) AND is_employee_portal_rls_context(current_tenant_id()))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_signature_storage_portal_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'portal'::text) AND ((storage.foldername(name))[4] = 'signatures'::text) AND (is_tenant_member(current_tenant_id()) OR is_employee_portal_rls_context(current_tenant_id())))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_signature_storage_staff_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'portal'::text) AND is_tenant_member(current_tenant_id()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_signature_storage_staff_upsert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'portal'::text) AND ((storage.foldername(name))[4] = 'signatures'::text) AND is_tenant_member(current_tenant_id()) AND (current_role_key() <> ALL (ARRAY['employee_portal'::text, 'client_portal'::text, 'family_portal'::text])))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_employee_client_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND is_employee_portal_rls_context(current_tenant_id()) AND (resolve_current_employee_id() IS NOT NULL) AND (((storage.foldername(name))[4])::uuid IN ( SELECT assignment.client_id\n   FROM assignments assignment\n  WHERE ((assignment.tenant_id = current_tenant_id()) AND (assignment.employee_id = resolve_current_employee_id())))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_employee_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND is_employee_portal_rls_context(current_tenant_id()) AND (resolve_current_employee_id() IS NOT NULL) AND (((storage.foldername(name))[4])::uuid IN ( SELECT assignment.client_id\n   FROM assignments assignment\n  WHERE ((assignment.tenant_id = current_tenant_id()) AND (assignment.employee_id = resolve_current_employee_id())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_employee_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'employees'::text) AND ((storage.foldername(name))[4] = (resolve_current_employee_id())::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND is_employee_portal_rls_context(current_tenant_id()) AND (resolve_current_employee_id() IS NOT NULL))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'employees'::text) AND ((storage.foldername(name))[4] = (resolve_current_employee_id())::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND is_employee_portal_rls_context(current_tenant_id()) AND (resolve_current_employee_id() IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[4] = (current_client_id())::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND (current_client_id() IS NOT NULL))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_select_office",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND has_permission('office.access'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "portal_uploads_select_portal",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[4] = (current_client_id())::text) AND ((storage.foldername(name))[5] = 'portal-uploads'::text) AND (current_client_id() IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "storage_service_role_all",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "service_role"
+      ],
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "support_ticket_file_delete_draft",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'support-ticket-attachments'::text) AND (EXISTS ( SELECT 1\n   FROM support_attachments a\n  WHERE ((a.storage_path = objects.name) AND (a.created_by = auth.uid()) AND (a.message_id IS NULL) AND support_can_write_ticket(a.ticket_id)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "support_ticket_file_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'support-ticket-attachments'::text) AND (EXISTS ( SELECT 1\n   FROM support_attachments a\n  WHERE ((a.storage_path = objects.name) AND (a.created_by = auth.uid()) AND (a.state = 'uploading'::text) AND (a.message_id IS NULL) AND support_can_write_ticket(a.ticket_id)))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "support_ticket_file_read",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'support-ticket-attachments'::text) AND (EXISTS ( SELECT 1\n   FROM support_attachments a\n  WHERE ((a.storage_path = objects.name) AND support_can_read_ticket(a.ticket_id) AND (((a.state = 'ready'::text) AND (a.message_id IS NOT NULL)) OR (a.created_by = auth.uid()))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "tenant_branding_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'tenant-branding'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('business.tenant.manage'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "tenant_branding_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'tenant-branding'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('business.tenant.manage'::text) OR is_tenant_admin()))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "tenant_branding_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'tenant-branding'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "tenant_branding_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'tenant-branding'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('business.tenant.manage'::text) OR is_tenant_admin()))",
+      "with_check": "((bucket_id = 'tenant-branding'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "user_avatars_delete_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((bucket_id = 'user-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'users'::text) AND ((storage.foldername(name))[4] = (auth.uid())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "user_avatars_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'user-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'users'::text) AND ((storage.foldername(name))[4] = (auth.uid())::text))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "user_avatars_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'user-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "user_avatars_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'user-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'users'::text) AND ((storage.foldername(name))[4] = (auth.uid())::text))",
+      "with_check": "((bucket_id = 'user-avatars'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND ((storage.foldername(name))[3] = 'users'::text) AND ((storage.foldername(name))[4] = (auth.uid())::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_offboarding_sessions",
+      "policyname": "employee_offboarding_sessions_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_offboarding_steps",
+      "policyname": "employee_offboarding_steps_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_offboarding_checks",
+      "policyname": "employee_offboarding_checks_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_access_revocations",
+      "policyname": "employee_access_revocations_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_final_clearance",
+      "policyname": "employee_final_clearance_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    }
+  ],
+  "columns": [
+    {
+      "table": "employee_logbook_profiles",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "default_vehicle_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "mileage_rate_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "gps_consent",
+      "type": "bool"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "gps_consent_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "license_front_path",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "license_back_path",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_profiles",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "ownership",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "plate",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "make",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "model",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "active",
+      "type": "bool"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_vehicles",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "assignment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "vehicle_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "route_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "purpose",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "manual_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "started_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "ended_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "start_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "end_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "start_latitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "start_longitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "end_latitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "end_longitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "distance_gps_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "distance_final_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "duration_seconds",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "counts_as_work_time",
+      "type": "bool"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "worktime_deduction_minutes",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "mileage_rate_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "mileage_amount_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "gps_captured",
+      "type": "bool"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "navigation_provider",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "source",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "correction_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "corrected_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "corrected_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "previous_values",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "distance_source",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "google_route_distance_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "google_route_duration_minutes",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "google_route_polyline",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "google_route_captured_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "route_quality_status",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "employee_confirmed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "employee_confirmation_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_trips",
+      "name": "route_calculation_provider",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "trip_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "sequence_no",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "assignment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "stop_kind",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "label",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "start_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "end_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "started_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "ended_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "distance_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_segments",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "trip_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "category",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "amount_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "expense_date",
+      "type": "date"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "storage_path",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "file_name",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "mime_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_receipts",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "id",
+      "type": "int8"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "trip_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "segment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "latitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "longitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "accuracy",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "altitude",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "speed",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "heading",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "recorded_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "source",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_points",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "work_date",
+      "type": "date"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "signer_name",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "signature_data",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "trip_count",
+      "type": "int4"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "distance_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "confirmed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_daily_confirmations",
+      "name": "confirmation_hash",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "id",
+      "type": "int8"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "trip_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "action",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "previous_values",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "new_values",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "actor_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_audit_events",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "assignment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "prompt_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "decision",
+      "type": "text"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "decided_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_logbook_prompt_decisions",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "assignment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "transport_mode",
+      "type": "text"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "selected_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_visit_mobility_selections",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "contact_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "email",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "last_login_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "invited_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "modules_enabled",
+      "type": "_text"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "two_factor_enabled",
+      "type": "bool"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "portal_username",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "portal_access_code_hash",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "portal_enabled",
+      "type": "bool"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "code_created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "code_rotated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_access",
+      "name": "auth_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "code_hash",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "expires_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "last_used_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "blocked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "blocked_by",
+      "type": "uuid"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "regenerated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "client_portal_codes",
+      "name": "auth_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "absence_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "starts_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "ends_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "all_day",
+      "type": "bool"
+    },
+    {
+      "table": "employee_absences",
+      "name": "internal_notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "employee_visible_note",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "sick_details",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "au_document_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "certificate_document_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "replacement_required",
+      "type": "bool"
+    },
+    {
+      "table": "employee_absences",
+      "name": "hide_details_from_admin",
+      "type": "bool"
+    },
+    {
+      "table": "employee_absences",
+      "name": "requested_days",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_absences",
+      "name": "approved_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "approved_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "rejected_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "rejected_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "rejection_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_absences",
+      "name": "cancelled_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "qualification_updated",
+      "type": "bool"
+    },
+    {
+      "table": "employee_absences",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "updated_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_absences",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_absences",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "action",
+      "type": "text"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "actor_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "actor_role",
+      "type": "text"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "summary",
+      "type": "text"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "field_changes",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_audit_events",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "present",
+      "type": "bool"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "issue_date",
+      "type": "date"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "verified_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "verified_by",
+      "type": "text"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "follow_up_due_at",
+      "type": "date"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "document_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_background_checks",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "bundle_version",
+      "type": "text"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "completed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "explained_permissions",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "location_internal_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "metadata",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_consent_bundle",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "job_title_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "education_degrees",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "work_days",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "work_on_holidays",
+      "type": "bool"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "annual_vacation_days",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_contract_settings",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "module",
+      "type": "text"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "scope_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "scope_value",
+      "type": "text"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_data_scopes",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_documents",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_documents",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_documents",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_documents",
+      "name": "category",
+      "type": "text"
+    },
+    {
+      "table": "employee_documents",
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "table": "employee_documents",
+      "name": "file_name",
+      "type": "text"
+    },
+    {
+      "table": "employee_documents",
+      "name": "storage_path",
+      "type": "text"
+    },
+    {
+      "table": "employee_documents",
+      "name": "sensitive",
+      "type": "bool"
+    },
+    {
+      "table": "employee_documents",
+      "name": "released_to_portal",
+      "type": "bool"
+    },
+    {
+      "table": "employee_documents",
+      "name": "valid_until",
+      "type": "date"
+    },
+    {
+      "table": "employee_documents",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_documents",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "active_assignments",
+      "type": "int8"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "overdue_returns",
+      "type": "int8"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "open_return_requests",
+      "type": "int8"
+    },
+    {
+      "table": "employee_equipment_summary",
+      "name": "last_issued_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "consent_granted_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "consent_explained_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "revoked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_location_consents",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "transport_mode",
+      "type": "text"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "route_start_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "route_end_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "route_start_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "route_end_address",
+      "type": "text"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_mobility_settings",
+      "name": "transport_modes",
+      "type": "_text"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "module_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "role_in_module",
+      "type": "text"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "assigned_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_module_assignments",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "compensation_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "compensation_amount",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "payout_interval",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "payout_method",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "iban",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "bank_name",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "account_holder",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "alternate_account_holder",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "max_payout_hours_month",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "overflow_to_time_account",
+      "type": "bool"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "mileage_rate_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "payroll_notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_payroll_settings",
+      "name": "travel_policy_override",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "permission_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "allowed",
+      "type": "bool"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "valid_from",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "valid_until",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_overrides",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "permission_kind",
+      "type": "text"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "browser_status",
+      "type": "text"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "last_checked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "last_requested_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "explained_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "metadata",
+      "type": "jsonb"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_permission_states",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "username",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "must_change_password",
+      "type": "bool"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "first_login_completed",
+      "type": "bool"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_hash",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_expires_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "last_login_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "auth_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "username",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "must_change_password",
+      "type": "bool"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "first_login_completed",
+      "type": "bool"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "temporary_password_created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "temporary_password_expires_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "last_login_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "blocked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "blocked_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_portal_accounts_mgmt",
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "qualification_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "issuing_organization",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "issued_at",
+      "type": "date"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "valid_until",
+      "type": "date"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "document_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "verified_by",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "verified_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_qualifications",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "role_template_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "role_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "is_primary",
+      "type": "bool"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "assigned_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "assigned_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_role_assignments",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "employer_name",
+      "type": "text"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "gross_monthly_income",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "sort_order",
+      "type": "int4"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_secondary_employments",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "insurance_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "health_insurance_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "pension_fund_registered",
+      "type": "bool"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "social_security_number",
+      "type": "text"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "employer_relationship",
+      "type": "bool"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_social_insurance",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "tax_calculation_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "tax_id",
+      "type": "text"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_tax_settings",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "home_office_enabled",
+      "type": "bool"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_work_settings",
+      "name": "time_tracking_mode",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employees",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employees",
+      "name": "profile_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employees",
+      "name": "employee_number",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "first_name",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "last_name",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "full_name",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "date_of_birth",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "email",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "phone",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "mobile",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "street",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "house_number",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "postal_code",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "city",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "country",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "status",
+      "type": "employee_status"
+    },
+    {
+      "table": "employees",
+      "name": "employment_type",
+      "type": "employee_employment_type"
+    },
+    {
+      "table": "employees",
+      "name": "role_title",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "qualification",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "qualification_notes",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "weekly_hours",
+      "type": "numeric"
+    },
+    {
+      "table": "employees",
+      "name": "entry_date",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "exit_date",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "has_driver_license",
+      "type": "bool"
+    },
+    {
+      "table": "employees",
+      "name": "driver_license_class",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "has_police_clearance",
+      "type": "bool"
+    },
+    {
+      "table": "employees",
+      "name": "police_clearance_date",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "police_clearance_valid_until",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "has_first_aid_certificate",
+      "type": "bool"
+    },
+    {
+      "table": "employees",
+      "name": "first_aid_valid_until",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "must_keep_mileage_log",
+      "type": "bool"
+    },
+    {
+      "table": "employees",
+      "name": "mileage_log_required_from",
+      "type": "date"
+    },
+    {
+      "table": "employees",
+      "name": "portal_enabled",
+      "type": "bool"
+    },
+    {
+      "table": "employees",
+      "name": "allowed_products",
+      "type": "_product_key"
+    },
+    {
+      "table": "employees",
+      "name": "emergency_contact_name",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "emergency_contact_phone",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "internal_notes",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employees",
+      "name": "updated_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employees",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employees",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employees",
+      "name": "avatar_url",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "department",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "deleted_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employees",
+      "name": "salutation",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "academic_title",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "nationality",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "address_supplement",
+      "type": "text"
+    },
+    {
+      "table": "employees",
+      "name": "cost_center",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "expense_date",
+      "type": "date"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "category",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "description",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "amount_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "approved_amount_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "currency",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "assignment_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "payment_method",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "receipt_number",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "receipt_path",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "mileage_km",
+      "type": "numeric"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "mileage_rate_cents",
+      "type": "int4"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "origin",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "destination",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "vehicle_label",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "business_purpose",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "tax_treatment",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "office_note",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "rejection_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "submitted_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "reviewed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "reviewed_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "reimbursed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "driving_log_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "travel_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_expense_claims",
+      "name": "automatic_source",
+      "type": "bool"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "client_id",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "relative_contact_id",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "code_hash",
+      "type": "text"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "expires_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "last_used_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "created_by",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "blocked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "blocked_by",
+      "type": "uuid"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "blocked_reason",
+      "type": "text"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "regenerated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "relative_portal_codes",
+      "name": "auth_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "role",
+      "type": "text"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "permissions",
+      "type": "jsonb"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "is_active",
+      "type": "bool"
+    },
+    {
+      "table": "tenant_memberships",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "overall_status",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "current_step_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "exit_date",
+      "type": "date"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "termination_type",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "internal_reason",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "responsible_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "started_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "completed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "last_saved_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_sessions",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "session_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "step_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "responsible_user_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "completed_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_steps",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "session_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "check_key",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "message",
+      "type": "text"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "count_value",
+      "type": "int4"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "evaluated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_offboarding_checks",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "session_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "kind",
+      "type": "text"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "status",
+      "type": "text"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "provider_connected",
+      "type": "bool"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "prepared_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "locked_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "actor_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_access_revocations",
+      "name": "updated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "session_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "tenant_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "employee_id",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "cleared_by",
+      "type": "uuid"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "cleared_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "protocol_document_id",
+      "type": "text"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "protocol_generated_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "archived_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "employment_status_after",
+      "type": "text"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "notes",
+      "type": "text"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "created_at",
+      "type": "timestamptz"
+    },
+    {
+      "table": "employee_final_clearance",
+      "name": "updated_at",
+      "type": "timestamptz"
+    }
+  ]
+}

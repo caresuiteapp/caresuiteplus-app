@@ -52,6 +52,9 @@ export function syncIntakeDocumentsWithTemplates(
   return templates.map((template) => {
     const prev = existing.get(template.templateKey);
     if (prev) {
+      // A new template may change an unsigned draft. It cannot relabel an
+      // existing signature as approval of a different template or version.
+      if (prev.status === 'finalized' || hasDocumentSignature(prev)) return prev;
       return {
         ...prev,
         title: template.title,
@@ -64,6 +67,24 @@ export function syncIntakeDocumentsWithTemplates(
     }
     return createInitialDocumentState(template);
   });
+}
+
+const ORIGINAL_CHANGED_ERROR = 'Der unterschriebene Dokumentinhalt oder die Vorlage wurde geändert. Bitte eine neue Dokumentfassung prüfen und erneut unterschreiben; die vorhandene Unterschrift bleibt beim Original.';
+
+function hasDocumentSignature(doc: IntakeDocumentState): boolean {
+  return Object.values(doc.signatures).some(signature => Boolean(signature?.dataUrl));
+}
+
+function matchesSignedOriginal(
+  doc: IntakeDocumentState,
+  template: IntakeDocumentTemplate,
+  form: ClientIntakeFormData,
+  tenantDisplay?: IntakeTenantDisplay,
+): boolean {
+  return doc.templateKey === template.templateKey && doc.version === template.version
+    && doc.source === template.source && (doc.tenantTemplateId ?? null) === (template.tenantTemplateId ?? null)
+    && Boolean(doc.previewHtml)
+    && renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, tenantDisplay), doc.signatures).html === doc.previewHtml;
 }
 
 export function openDocumentPreview(
@@ -85,6 +106,12 @@ export function openDocumentPreview(
     };
   }
 
+  if (existing && hasDocumentSignature(existing)) {
+    return matchesSignedOriginal(existing, template, form, tenantDisplay)
+      ? existing
+      : { ...existing, missingPlaceholders: [ORIGINAL_CHANGED_ERROR] };
+  }
+
   const signatures = existing?.signatures ?? {};
   const preview = renderIntakeDocumentHtml(template, context, signatures);
 
@@ -99,8 +126,8 @@ export function openDocumentPreview(
 }
 
 /**
- * Repairs legacy intake drafts that already contain every required signature
- * but were left in `signed`, `pending_signature` or `preview_open` state.
+ * Finishes an unchanged signed preview. An unbound legacy signature or a
+ * changed form/template requires renewed review instead of content repair.
  */
 export function finalizeReadyIntakeDocuments(
   form: ClientIntakeFormData,
@@ -114,6 +141,7 @@ export function finalizeReadyIntakeDocuments(
       (item) => item.templateKey === template.templateKey,
     );
     if (!doc || doc.status === 'finalized' || doc.status === 'skipped_optional') continue;
+    if (!matchesSignedOriginal(doc, template, nextForm, tenantDisplay)) continue;
 
     const allRequiredSigned = template.signatureSlots
       .filter((slot) => slot.required)
@@ -148,6 +176,19 @@ export function applyDocumentSignature(
   signature: IntakeDocumentSignature,
   tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
+  if (doc.status === 'finalized') return doc;
+  if (hasDocumentSignature(doc) && !matchesSignedOriginal(doc, template, form, tenantDisplay)) {
+    return { ...doc, missingPlaceholders: [ORIGINAL_CHANGED_ERROR] };
+  }
+  if (!template.signatureSlots.some(slot => slot.role === role) || signature.role !== role) {
+    return { ...doc, missingPlaceholders: ['Diese Unterschriftsrolle gehört nicht zu diesem Dokument.'] };
+  }
+  const signatureLabels = new Set(Object.entries(template.placeholderSchema)
+    .filter(([key]) => key.startsWith('signature.')).map(([, meta]) => meta.label));
+  const unsignedPreview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, tenantDisplay), doc.signatures);
+  const missingData = unsignedPreview.missingPlaceholders.filter(label =>
+    !signatureLabels.has(label) && !label.startsWith('Unterschrift '));
+  if (missingData.length > 0) return { ...doc, missingPlaceholders: missingData };
   const signatures = { ...doc.signatures, [role]: signature };
   const context = buildIntakePlaceholderContext(form, tenantDisplay);
   const preview = renderIntakeDocumentHtml(template, context, signatures);
@@ -258,6 +299,16 @@ export function applySharedClientSignatureToDocuments(
       signature,
       tenantDisplay,
     );
+    if (signed.signatures.client !== signature) {
+      if (signed.status === 'finalized') {
+        finalizedTemplateKeys.push(template.templateKey);
+      } else {
+        errors.push({ templateKey: template.templateKey, title: template.title,
+          error: signed.missingPlaceholders.join(', ') || ORIGINAL_CHANGED_ERROR });
+      }
+      nextForm = updateIntakeDocumentInForm(nextForm, signed);
+      continue;
+    }
     signedTemplateKeys.push(template.templateKey);
 
     const finalized = finalizeDocument(signed, template, nextForm, tenantDisplay);
@@ -285,6 +336,12 @@ export function finalizeDocument(
   form: ClientIntakeFormData,
   tenantDisplay?: IntakeTenantDisplay,
 ): { ok: true; document: IntakeDocumentState } | { ok: false; error: string } {
+  if (doc.status === 'finalized' && doc.finalizedHtml && doc.finalizedAt) {
+    return { ok: true, document: doc };
+  }
+  if (hasDocumentSignature(doc) && !matchesSignedOriginal(doc, template, form, tenantDisplay)) {
+    return { ok: false, error: ORIGINAL_CHANGED_ERROR };
+  }
   if (doc.missingPlaceholders.length > 0) {
     return { ok: false, error: 'Pflichtangaben fehlen — bitte vorherige Schritte vervollständigen.' };
   }

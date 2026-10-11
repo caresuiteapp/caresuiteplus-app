@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
@@ -280,6 +280,8 @@ export function AssistClientsWorkspace({
   onReload,
 }: AssistClientsWorkspaceProps) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = Platform.OS !== 'web' && width < 600;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AssistClientFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -340,7 +342,7 @@ export function AssistClientsWorkspace({
 
       <LiquidSurface contentStyle={styles.listCard}>
         <View style={styles.listToolbar}>
-          <View style={styles.searchWrap}>
+          <View style={[styles.searchWrap, compact && { minWidth: 0, flexBasis: '100%' }]}>
             <LiquidField
               label="Klient:innen durchsuchen"
               placeholder="Name, Pflegegrad, Ort, Kostenträger oder Mitarbeitende"
@@ -413,6 +415,7 @@ export function AssistClientsWorkspace({
                   onPress={() => setSelectedId(assignment.clientId)}
                   style={({ pressed }) => [
                     styles.clientRow,
+                    compact && { gap: 10, padding: 12 },
                     selectedRow && styles.clientRowSelected,
                     pressed && styles.pressed,
                   ]}
@@ -423,7 +426,7 @@ export function AssistClientsWorkspace({
                     size={50}
                     ringColor={context.needsAttention ? liquidColors.warning : liquidColors.blue400}
                   />
-                  <View style={styles.clientMain}>
+                  <View style={[styles.clientMain, compact && { minWidth: 0, flexBasis: '65%' }]}>
                     <View style={styles.clientTitleRow}>
                       <Text numberOfLines={1} style={styles.clientName}>{assignment.clientName}</Text>
                       <LiquidStatus label={careStatus.label} tone={careStatus.tone} />
@@ -435,7 +438,7 @@ export function AssistClientsWorkspace({
                       {[client?.street, client?.zip, client?.city].filter(Boolean).join(' ') || 'Einsatzadresse unvollständig'}
                     </Text>
                   </View>
-                  <View style={styles.planningSummary}>
+                  <View style={[styles.planningSummary, compact && { minWidth: 0, width: '100%', marginLeft: 0, alignItems: 'flex-start', paddingLeft: 60 }]}>
                     <Text style={styles.planningLabel}>{upcomingVisits.length} geplant</Text>
                     <Text numberOfLines={1} style={styles.planningValue}>
                       {nextVisit ? formatDate(nextVisit.scheduledStart, true) : 'Kein nächster Einsatz'}

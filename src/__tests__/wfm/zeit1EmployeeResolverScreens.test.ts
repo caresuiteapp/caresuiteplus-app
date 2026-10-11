@@ -35,7 +35,7 @@ describe('ZEIT.1 portal employeeId preference on WFM screens', () => {
     const service = readSrc('src/lib/wfm/wfmPortalTimesService.ts');
     expect(service).toContain("PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS = 60");
     expect(service).toContain(".eq('employee_id', employeeId)");
-    expect(service).toContain(".in('visit_id', employeeVisitIds)");
+    expect(service).toContain(".in('visit_id', ids)");
   });
 
   it('WfmAbsencePortalScreen prefers portal employeeId over profile', () => {

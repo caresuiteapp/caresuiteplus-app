@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  InfoBanner,
   PremiumBadge,
   PremiumButton,
   SectionPanel,
@@ -97,6 +98,7 @@ export function WfmAbsencePortalScreen({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const mutationLock = useRef(false);
 
   const canView = can('portal.employee.absences.view');
   const canRequest = can('portal.employee.absences.request');
@@ -107,6 +109,7 @@ export function WfmAbsencePortalScreen({
       return listWfmAbsencesForEmployee(tenantId, userId, roleKey, { employeeId });
     }, [tenantId, userId, roleKey, canView, employeeId]),
     [tenantId, userId, roleKey, canView, employeeId],
+    { enabled: !!tenantId && !!userId && canView, queryKey: `absence:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}` },
   );
 
   const visibleAbsences = useMemo(
@@ -115,62 +118,36 @@ export function WfmAbsencePortalScreen({
   );
 
   const handleSubmit = async () => {
-    if (!tenantId || !userId) return;
-    setSubmitting(true);
-    setError(null);
-    setMessage(null);
-
-    if (!startsAt.trim() || !endsAt.trim()) {
-      setError('Bitte Start- und Enddatum angeben.');
-      setSubmitting(false);
-      return;
-    }
-
+    if (!tenantId || !userId || !canRequest || mutationLock.current) return;
+    setError(null); setMessage(null);
     const parsed = parseWfmAbsenceDateRange(startsAt, endsAt);
-    if (!parsed.ok) {
-      setError(parsed.error);
-      setSubmitting(false);
-      return;
-    }
-
-    const result = await requestWfmAbsence(tenantId, userId, roleKey, {
-      absenceType: selectedType,
-      startsAt: parsed.startsAt,
-      endsAt: parsed.endsAt,
-      employeeNote: note,
-      employeeId,
-    });
-
-    setSubmitting(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setMessage('Antrag wurde eingereicht und zur Genehmigung weitergeleitet.');
-    setStartsAt('');
-    setEndsAt('');
-    setNote('');
-    await listQuery.refresh();
+    if (!parsed.ok) { setError(parsed.error); return; }
+    mutationLock.current = true; setSubmitting(true);
+    try {
+      const result = await requestWfmAbsence(tenantId, userId, roleKey, {
+        absenceType: selectedType, startsAt: parsed.startsAt, endsAt: parsed.endsAt,
+        employeeNote: note, employeeId,
+      });
+      if (!result.ok) { setError(result.error); return; }
+      setStartsAt(''); setEndsAt(''); setNote('');
+      const refreshed = await listQuery.refreshWithResult();
+      setMessage(refreshed === false
+        ? 'Antrag wurde eingereicht. Die Übersicht konnte noch nicht aktualisiert werden.'
+        : 'Antrag wurde eingereicht und zur Genehmigung weitergeleitet.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht eingereicht werden. Bitte erneut versuchen.'); }
+    finally { mutationLock.current = false; setSubmitting(false); }
   };
 
   const handleWithdraw = async (absenceId: string) => {
-    if (!tenantId || !userId) return;
-    setWithdrawingId(absenceId);
-    setError(null);
-    const result = await withdrawWfmAbsenceRequest(
-      tenantId,
-      userId,
-      roleKey,
-      absenceId,
-      employeeId,
-    );
-    setWithdrawingId(null);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setMessage('Antrag wurde zurückgezogen.');
-    await listQuery.refresh();
+    if (!tenantId || !userId || !canRequest || mutationLock.current) return;
+    mutationLock.current = true; setWithdrawingId(absenceId); setError(null); setMessage(null);
+    try {
+      const result = await withdrawWfmAbsenceRequest(tenantId, userId, roleKey, absenceId, employeeId);
+      if (!result.ok) { setError(result.error); return; }
+      const refreshed = await listQuery.refreshWithResult();
+      setMessage(refreshed === false ? 'Antrag wurde zurückgezogen. Die Übersicht konnte noch nicht aktualisiert werden.' : 'Antrag wurde zurückgezogen.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht zurückgezogen werden. Bitte erneut versuchen.'); }
+    finally { mutationLock.current = false; setWithdrawingId(null); }
   };
 
   if (!canView) {
@@ -226,7 +203,7 @@ export function WfmAbsencePortalScreen({
             onChangeText={setNote}
             multiline
           />
-          <PremiumButton title="Antrag einreichen" onPress={() => void handleSubmit()} disabled={submitting} />
+          <PremiumButton title="Antrag einreichen" onPress={() => void handleSubmit()} loading={submitting} disabled={submitting || Boolean(withdrawingId)} />
         </SectionPanel>
       ) : null}
 
@@ -234,9 +211,10 @@ export function WfmAbsencePortalScreen({
         {listQuery.loading && !listQuery.data ? (
           <LoadingState message="Abwesenheiten werden geladen…" />
         ) : null}
-        {visibleAbsences.length === 0 ? (
+        {listQuery.error || listQuery.refreshError ? <ErrorState title="Abwesenheiten nicht aktuell" message={listQuery.error ?? listQuery.refreshError!} onRetry={() => void listQuery.refresh()} /> : null}
+        {visibleAbsences.length === 0 && !listQuery.loading && !listQuery.error ? (
           <EmptyState title="Keine Einträge" message="Es liegen keine Anträge vor." />
-        ) : (
+        ) : visibleAbsences.length ? (
           visibleAbsences.map((absence) => (
             <View key={absence.id} style={styles.row}>
               <View style={styles.rowHeader}>
@@ -268,16 +246,17 @@ export function WfmAbsencePortalScreen({
                   title="Zurückziehen"
                   variant="ghost"
                   onPress={() => void handleWithdraw(absence.id)}
-                  disabled={withdrawingId === absence.id}
+                  loading={withdrawingId === absence.id}
+                  disabled={submitting || Boolean(withdrawingId)}
                 />
               ) : null}
             </View>
           ))
-        )}
+        ) : null}
       </SectionPanel>
 
       <WorkflowToast message={message} onDismiss={() => setMessage(null)} />
-      {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
+      {error ? <InfoBanner title="Aktion fehlgeschlagen" message={error} variant="error" /> : null}
     </PortalTabScreen>
   );
 }
@@ -300,6 +279,6 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
   row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: portalPremium.borderSoft },
-  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },
-  rowTitle: { ...typography.body, fontWeight: '600' },
+  rowHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },
+  rowTitle: { ...typography.body, fontWeight: '600', flexShrink: 1 },
 });

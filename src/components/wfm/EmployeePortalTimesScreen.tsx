@@ -10,6 +10,7 @@ import {
   PremiumButton,
   SectionPanel,
   PremiumCard,
+  InfoBanner,
 } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -60,7 +61,7 @@ export function EmployeePortalTimesScreen() {
       });
     }, [tenantId, userId, roleKey, canView, employeeId]),
     [tenantId, userId, roleKey, canView, employeeId],
-    { enabled: !!tenantId && !!userId && canView },
+    { enabled: !!tenantId && !!userId && canView, queryKey: `employee-times:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}` },
   );
 
   if (!canView) {
@@ -102,6 +103,7 @@ export function EmployeePortalTimesScreen() {
       subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
       scroll
     >
+      {query.refreshError ? <InfoBanner variant="warning" message={`Fahrten und Zeiten konnten nicht aktualisiert werden: ${query.refreshError}`} /> : null}
       {canViewAbsences ? (
         <SectionPanel
           title="Urlaub & Abwesenheiten"

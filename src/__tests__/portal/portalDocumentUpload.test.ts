@@ -9,6 +9,7 @@ const mockStorageDownload = vi.fn();
 const mockPortalUploadInsert = vi.fn();
 const mockPortalUploadSelect = vi.fn();
 const mockPortalUploadSingle = vi.fn();
+vi.mock('expo-crypto', () => ({ randomUUID: () => 'native-upload-uuid' }));
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
@@ -67,6 +68,7 @@ vi.mock('@/lib/portal/assist/portalRequestService', () => ({
       id: 'req-upload-1',
       tenantId: 'tenant-1',
       clientId: 'client-1',
+      portalUserId: 'authenticated-profile',
       requestType: 'upload',
     },
   }),
@@ -126,6 +128,9 @@ describe('portal document upload', () => {
     expect(result.ok).toBe(true);
     expect(mockStorageUpload).toHaveBeenCalled();
     expect(mockPortalUploadInsert).toHaveBeenCalled();
+    expect(mockPortalUploadInsert).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'native-upload-uuid', portal_user_id: 'authenticated-profile',
+    }));
     if (result.ok) {
       expect(result.data.fileName).toBe('file.pdf');
       expect(result.data.status).toBe('hochgeladen');

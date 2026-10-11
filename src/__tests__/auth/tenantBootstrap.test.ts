@@ -141,6 +141,30 @@ describe('tenant bootstrap role resolution', () => {
     expect(roleKey).toBe('client_portal');
   });
 
+  it.each(['business_admin', 'employee_portal', 'client_portal'])('does not authorize editable user_metadata role %s', async (roleKey) => {
+    const client = { from: () => ({ select: () => ({ eq: () => ({
+      maybeSingle: async () => ({ data: null, error: null }),
+    }) }) }) };
+    const role = await resolveProfileRoleKey(client as never, {
+      id: 'profile', tenant_id: 'tenant', role_id: null, first_name: null, last_name: null,
+      full_name: null, email: null, phone: null, avatar_url: null,
+      created_at: '2026-01-01', updated_at: '2026-01-01', roles: null,
+    }, { user: { app_metadata: {}, user_metadata: { role_key: roleKey } } } as never);
+    expect(role).toBeNull();
+  });
+
+  it('does not let editable portal-role metadata override the verified profile role', async () => {
+    const client = { from: () => ({ select: () => ({ eq: () => ({
+      maybeSingle: async () => ({ data: null, error: null }),
+    }) }) }) };
+    const role = await resolveProfileRoleKey(client as never, {
+      id: 'profile', tenant_id: 'tenant', role_id: 'verified-role', first_name: null, last_name: null,
+      full_name: null, email: null, phone: null, avatar_url: null,
+      created_at: '2026-01-01', updated_at: '2026-01-01', roles: { key: 'caregiver' },
+    }, { user: { app_metadata: {}, user_metadata: { role_key: 'employee_portal' } } } as never);
+    expect(role).toBe('caregiver');
+  });
+
   it('RedirectIfAuthenticated waits for session target before redirect', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('canRedirectHome');
@@ -194,7 +218,7 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('reconcileLiveSession');
     expect(provider).toContain('authReady: isInitialized && !isLoading');
     expect(provider).toContain('withAuthBootstrapTimeout');
-    expect(provider).toContain('void restoreSupabaseSession');
+    expect(provider).toContain('const restoration = restoreSupabaseSession');
     expect(provider).toContain("'Portal-Sitzung'");
     expect(provider).toContain('4_000');
     expect(provider).toContain("'Portal-Sitzung löschen'");
@@ -214,11 +238,13 @@ describe('tenant bootstrap role resolution', () => {
     expect(audit).toContain('setTimeout(resolve, LOGIN_AUDIT_TIMEOUT_MS)');
   });
 
-  it('auth index never sends authenticated users to public start', () => {
+  it('native auth index resolves the current role home and preserves the recovery gate', () => {
     const authIndex = readSrc('src/liquid-command/screens/LiquidCommandEntryScreen.tsx');
     expect(authIndex).toContain('authReady');
-    expect(authIndex).toContain('Redirect href="/portal/employee"');
-    expect(authIndex).toContain('CommandCenterScreen');
+    expect(authIndex).toContain('resolveAuthSessionTarget');
+    expect(authIndex).toContain('Redirect href={homePath');
+    expect(authIndex).toContain('<RequireRole');
+    expect(authIndex).not.toContain('CommandCenterScreen');
     expect(authIndex).not.toContain('Redirect href="/"');
   });
 

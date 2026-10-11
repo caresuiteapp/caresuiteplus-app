@@ -24,6 +24,7 @@ import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supaba
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
 
 type ProofDbRow = {
   id: string;
@@ -147,7 +148,11 @@ export async function persistVisitProof(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const proofId = crypto.randomUUID?.() ?? `proof-${Date.now()}`;
+  const actor = await resolveAuthenticatedProfileId(tenantId);
+  if (!actor.ok) return actor;
+  const proofId = typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
+    : (await import('expo-crypto')).randomUUID();
   const payloadHash =
     input.payloadHash ?? (await computeVisitProofPayloadHash(input.payloadSnapshot));
   const snapshotJson = JSON.stringify(input.payloadSnapshot);
@@ -180,7 +185,7 @@ export async function persistVisitProof(
       payload_snapshot: input.payloadSnapshot,
       payload_hash: payloadHash,
       generated_at: now,
-      generated_by: generatedBy ?? null,
+      generated_by: actor.data,
     })
     .select('*')
     .single();
@@ -190,6 +195,11 @@ export async function persistVisitProof(
       return { ok: false, error: 'assist_visit_proofs (0156) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  if (!data || data.id !== proofId || data.tenant_id !== tenantId || data.visit_id !== input.visitId
+    || data.payload_hash !== payloadHash || data.signature_id !== (input.signatureId ?? null)) {
+    return { ok: false, error: 'Der Leistungsnachweis wurde vom Server noch nicht eindeutig bestätigt. Bitte den Einsatzstatus erneut prüfen.' };
   }
 
   return { ok: true, data: mapProofRow(data as ProofDbRow) };

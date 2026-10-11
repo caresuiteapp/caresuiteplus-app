@@ -14,6 +14,11 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
   return new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd);
 }
 
+export type AssignmentConflictCandidate = Pick<
+  AssignmentWorkflowRecord,
+  'id' | 'tenantId' | 'clientId' | 'employeeId' | 'plannedStartAt' | 'plannedEndAt' | 'canonicalStatus' | 'title'
+>;
+
 export function detectAssignmentConflicts(input: {
   assignment: Pick<
     AssignmentWorkflowRecord,
@@ -27,10 +32,12 @@ export function detectAssignmentConflicts(input: {
     | 'tasks'
     | 'serviceType'
   >;
-  existing: AssignmentWorkflowRecord[];
+  existing: AssignmentConflictCandidate[];
   employeeAbsences?: PlanningAbsenceBlock[];
   employeeAvailability?: { employeeId: string; startsAt: string; endsAt: string }[];
   actorRoleKey?: RoleKey | null;
+  /** Live callers must not treat an unloaded personnel cache as missing staff. */
+  checkEmployeeEligibility?: boolean;
 }): AssignmentConflict[] {
   const conflicts: AssignmentConflict[] = [];
   const { assignment, existing } = input;
@@ -127,7 +134,7 @@ export function detectAssignmentConflicts(input: {
     }
   }
 
-  if (assignment.employeeId) {
+  if (assignment.employeeId && input.checkEmployeeEligibility !== false) {
     const absent = input.employeeAbsences?.some(
       (absence) =>
         absence.employeeId === assignment.employeeId &&

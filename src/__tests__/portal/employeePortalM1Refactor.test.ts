@@ -115,7 +115,7 @@ describe('employee portal M.1 refactor', () => {
   });
 
   it('upload service creates office intake via portal_uploads', () => {
-    const service = readSrc('src/lib/portal/employeePortalUploadService.ts');
+    const service = readSrc('src/lib/portal/employeePortalUploadServiceCore.ts');
     expect(service).toContain('portal_uploads');
     expect(service).toContain('createPortalRequest');
     expect(service).toContain('upload_context');

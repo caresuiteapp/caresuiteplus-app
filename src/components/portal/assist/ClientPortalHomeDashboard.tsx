@@ -30,6 +30,7 @@ type ClientPortalHomeDashboardProps = {
   budgetReleased: boolean;
   proofsReleased: boolean;
   requestsReleased: boolean;
+  uploadReleased?: boolean;
   activitiesReleased: boolean;
   onRequestChange: () => void;
   onRequestExtra: () => void;
@@ -288,6 +289,7 @@ export function ClientPortalHomeDashboard({
   budgetReleased,
   proofsReleased,
   requestsReleased,
+  uploadReleased = false,
   activitiesReleased,
   onRequestChange,
   onRequestExtra,
@@ -400,8 +402,8 @@ export function ClientPortalHomeDashboard({
         <View style={styles.appointmentColumn}>
           <PortalNextAppointmentHero
             appointment={data.nextAppointment}
-            onRequestChange={onRequestChange}
-            onRequestExtra={onRequestExtra}
+            onRequestChange={requestsReleased ? onRequestChange : undefined}
+            onRequestExtra={requestsReleased ? onRequestExtra : undefined}
             emptyActionLabel="Einsatz anfragen"
           />
         </View>
@@ -418,14 +420,14 @@ export function ClientPortalHomeDashboard({
           <Text style={[type.caption, styles.quickEyebrow]}>SCHNELL ERLEDIGT</Text>
           <Text style={[type.cardTitle, styles.quickTitle]}>Was möchten Sie tun?</Text>
           <View style={styles.quickTasks}>
-            <QuickTask icon="add-circle-outline" label="Einsatz anfragen" onPress={onRequestExtra} />
+            {requestsReleased ? <QuickTask icon="add-circle-outline" label="Einsatz anfragen" onPress={onRequestExtra} /> : null}
             <QuickTask
               icon="chatbubble-ellipses-outline"
               label="Nachricht schreiben"
               onPress={() => router.push('/portal/client/messages?compose=1' as never)}
             />
-            <QuickTask icon="cloud-upload-outline" label="Dokument hochladen" onPress={onUpload} />
-            <QuickTask icon="call-outline" label="Rückruf anfordern" onPress={onRequestCallback} />
+            {uploadReleased ? <QuickTask icon="cloud-upload-outline" label="Dokument hochladen" onPress={onUpload} /> : null}
+            {requestsReleased ? <QuickTask icon="call-outline" label="Rückruf anfordern" onPress={onRequestCallback} /> : null}
           </View>
         </View>
       </View>

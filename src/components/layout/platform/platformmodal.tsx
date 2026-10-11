@@ -122,8 +122,8 @@ export function PlatformModal({
   }, [maxWidth, minWidth, screenWidth, variant]);
 
   const sheetMaxHeight = useMemo(
-    () => resolvePlatformModalMaxHeight(screenHeight, variant, maxHeightRatio, spacing.lg * 2),
-    [maxHeightRatio, screenHeight, variant],
+    () => resolvePlatformModalMaxHeight(Math.max(1, screenHeight - insets.top - insets.bottom), variant, maxHeightRatio, spacing.lg * 2),
+    [insets.bottom, insets.top, maxHeightRatio, screenHeight, variant],
   );
 
   const styles = useMemo(

@@ -1,4 +1,4 @@
-import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useMemo } from 'react';
 import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
@@ -6,6 +6,7 @@ import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { breakpoints } from '@/design/tokens/breakpoints';
 import { spacing } from '@/theme';
+import { NativeDocumentPreview } from './NativeDocumentHtmlPreview';
 
 function resolvePreviewHeight(viewportHeight: number, isCompact: boolean): number {
   const vhRatio = isCompact ? 0.6 : 0.7;
@@ -85,13 +86,7 @@ export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: Docum
     );
   }
 
-  return (
-    <ScrollView style={styles.textPreview}>
-      <Text style={styles.previewText}>
-        {previewHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2500)}
-      </Text>
-    </ScrollView>
-  );
+  return <View style={styles.previewFrame}><NativeDocumentPreview key={previewHtml} html={previewHtml} height={previewHeight} /></View>;
 }
 
 export function documentPreviewFallback(document: PortalDocumentListItem): string {

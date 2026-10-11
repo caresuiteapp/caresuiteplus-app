@@ -143,6 +143,14 @@ function isWorkflowConfirmationPending(errorCode: unknown): boolean {
 }
 
 export function EmployeePortalVisitExecutionScreen() {
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { tenantId, employeeId } = usePortalActor();
+  const { portalSession, profile } = useAuth();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  return <EmployeePortalVisitExecutionContent key={JSON.stringify([tenantId, employeeId, portalSession?.accountId, profile?.id, id])} />;
+}
+
+function EmployeePortalVisitExecutionContent() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
@@ -247,6 +255,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
   const documentationEditedRef = useRef(false);
+  const [documentationDirty, setDocumentationDirty] = useState(false);
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
   const [documentationDeviations, setDocumentationDeviations] = useState('');
   const [documentationDeviationJustification, setDocumentationDeviationJustification] =
@@ -391,6 +400,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const appendDocumentationNote = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    documentationEditedRef.current = true;
+    setDocumentationDirty(true);
     setDocumentationSpecialNotes((prev) => (prev.trim() ? `${prev.trim()}\n${trimmed}` : trimmed));
     setDocumentationOpen(true);
   }, []);
@@ -490,6 +501,7 @@ export function EmployeePortalVisitExecutionScreen() {
       }
       if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationDraftText === 'string') {
         setDocumentationDraftText(snapshot.documentationDraftText);
+        if (snapshot.documentationDraftText.trim()) setDocumentationDirty(true);
       }
       if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationSpecialNotes === 'string') {
         setDocumentationSpecialNotes(snapshot.documentationSpecialNotes);
@@ -906,10 +918,10 @@ export function EmployeePortalVisitExecutionScreen() {
       signatureModalOpen: false,
       showNoShowForm,
       documentationSubmitted,
-      documentationDraftText: documentationSubmitted ? null : documentationDraftText,
-      documentationSpecialNotes: documentationSubmitted ? null : documentationSpecialNotes,
-      documentationDeviations: documentationSubmitted ? null : documentationDeviations,
-      documentationDeviationJustification: documentationSubmitted
+      documentationDraftText: documentationSubmitted && !documentationDirty ? null : documentationDraftText,
+      documentationSpecialNotes: documentationSubmitted && !documentationDirty ? null : documentationSpecialNotes,
+      documentationDeviations: documentationSubmitted && !documentationDirty ? null : documentationDeviations,
+      documentationDeviationJustification: documentationSubmitted && !documentationDirty
         ? null
         : documentationDeviationJustification,
       signatureCaptured,
@@ -924,6 +936,7 @@ export function EmployeePortalVisitExecutionScreen() {
     showNoShowForm,
     documentationSubmitted,
     documentationDraftText,
+    documentationDirty,
     documentationSpecialNotes,
     documentationDeviations,
     documentationDeviationJustification,
@@ -1847,6 +1860,7 @@ export function EmployeePortalVisitExecutionScreen() {
               }}
             >
               <EmployeePortalVisitSignaturePanel
+                key={signatureViewScope}
                 clientName={visit.clientName}
                 loading={actionLoading}
                 confirmationPending={signatureConfirmationPending}
@@ -1869,7 +1883,9 @@ export function EmployeePortalVisitExecutionScreen() {
                     signatureConfirmationPending: true,
                     awaitingSignature: true,
                   });
+                  const submitScope = signatureViewScope;
                   const r = await saveSignature(sig);
+                  if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
                   if (r.ok) {
                     setSignatureConfirmationPending(true);
                     setAwaitingSignature(true);
@@ -1908,7 +1924,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <EmployeePortalVisitTasksPanel
           key={optionalTaskScope}
           tasks={visitTasks}
-          disabled={isLocked}
+          disabled={isLocked || readOnlyExecution || actionLoading || workflowConfirmationPending || ['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '')}
           loading={taskSaving}
           visible={tasksOpen}
           onClose={() => setTasksOpen(false)}
@@ -1921,6 +1937,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
       {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
+          key={signatureViewScope}
           ref={docPanelRef}
           disabled={isLocked || readOnlyExecution}
           loading={actionLoading}
@@ -1928,6 +1945,8 @@ export function EmployeePortalVisitExecutionScreen() {
           visible={documentationOpen}
           onClose={() => setDocumentationOpen(false)}
           lastSavedAt={docLastSavedAt}
+          initialDraftUnsaved={documentationDirty}
+          onDirtyChange={setDocumentationDirty}
           initialShortDescription={documentationDraftText}
           initialSpecialNotes={documentationSpecialNotes}
           initialDeviations={documentationDeviations}
@@ -1943,11 +1962,15 @@ export function EmployeePortalVisitExecutionScreen() {
           openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
             setLocalError(null);
+            const submitScope = signatureViewScope;
             const r = await saveDocumentation(doc);
+            if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
             if (r.ok) {
               setDocumentationDraftText(doc.shortDescription);
               setDocumentationSpecialNotes(doc.specialNotes ?? '');
               setDocLastSavedAt(new Date().toISOString());
+              documentationEditedRef.current = false;
+              setDocumentationDirty(false);
               const savedDocumentation = 'data' in r ? r.data : undefined;
               const needsSignature =
                 visit.requiresSignature ||

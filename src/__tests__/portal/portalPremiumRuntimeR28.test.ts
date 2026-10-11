@@ -17,7 +17,7 @@ describe('portal premium runtime R28', () => {
   });
 
   it('places bright portal HealthOS rules after the generic dark important rules', () => {
-    const css = read('src/design/web/healthOSPageContractCss.ts');
+    const css = read('src/design/web/healthOSPageContractCss.web.ts');
     const genericDarkSection = css.indexOf('[data-cs-healthos-component="section"] {');
     const portalSection = css.indexOf(
       'html[data-cs-portal-premium] [data-cs-healthos-component="section"] {',
@@ -30,8 +30,15 @@ describe('portal premium runtime R28', () => {
     expect(genericDarkSection).toBeGreaterThan(-1);
     expect(portalSection).toBeGreaterThan(genericDarkSection);
     expect(portalModal).toBeGreaterThan(genericDarkModal);
-    expect(css).toContain('html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input::placeholder');
+    expect(css).toContain('html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:not([data-cs-healthos-surface="dark"])::placeholder');
     expect(css).toContain('color: #061B35 !important');
+    expect(css).toContain('color: #647D94 !important');
+    expect(css).toContain(':is(input, textarea, select)[data-cs-healthos-surface="dark"]');
+    const inverseStart = css.indexOf(':is(input, textarea, select)[data-cs-healthos-surface="dark"] {');
+    expect(inverseStart).toBeGreaterThan(-1);
+    const inverse = css.slice(inverseStart, css.indexOf('}', inverseStart));
+    expect(inverse).toContain('color: #F7FBFF !important');
+    expect(inverse).toContain('background: #071A31 !important');
   });
 
   it('wins the final LLGAN cascade on desktop and performance mobile modes', () => {

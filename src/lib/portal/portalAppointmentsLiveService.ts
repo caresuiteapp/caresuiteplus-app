@@ -17,6 +17,9 @@ import type { PortalAppointmentItem } from './appointmentService';
 import { PORTAL_ACTIVE_LIVE_ASSIGNMENT_STATUSES } from '@/lib/portal/portalAssignmentStatusFilters';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isVirtualRecurringOccurrenceId } from '@/lib/assist/visitRecurrenceExecution';
+import { canClientPortalSeeFeature, fetchClientPortalSettingsResolved } from '@/lib/client/clientPortalSettingsService';
+import { calendarEventRepository } from '@/lib/calendar/calendarEventRepository';
+import type { WorkflowStatus } from '@/types/core/base';
 
 const ACTIVE_ASSIGNMENT_SELECT = `
   id, tenant_id, client_id, employee_id,
@@ -158,6 +161,7 @@ export async function fetchActiveLivePortalAssignmentForClient(
     startsAt: string;
     endsAt: string;
     caregiverName: string | null;
+    portalReleaseEnabled: boolean;
   } | null>
 > {
   return runService(async () => {
@@ -168,15 +172,16 @@ export async function fetchActiveLivePortalAssignmentForClient(
     if (!tenantId.trim() || !clientId.trim()) {
       return { ok: true, data: null };
     }
+    const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
+    if (!settings.ok) return settings;
+    if (!canClientPortalSeeFeature(settings.data, 'appointments')) return { ok: true, data: null };
 
     const { data, error } = await fromUnknownTable(supabase, 'assignments')
       .select(ACTIVE_ASSIGNMENT_SELECT)
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .in('status', [...ACTIVE_LIVE_STATUSES])
-      .order('planned_start_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order('planned_start_at', { ascending: true });
 
     if (error) {
       if (!isMissingTableError(error)) {
@@ -184,23 +189,32 @@ export async function fetchActiveLivePortalAssignmentForClient(
       }
       return { ok: false, error: 'Aktiver Einsatz konnte nicht geladen werden.' };
     }
-    if (!data) {
-      return { ok: true, data: null };
+    for (const row of (data ?? []) as unknown as AssignmentLiveListRow[]) {
+      // Assignments are readable for the client's schedule even when GPS is not
+      // released. The canonical visit owns the separate live-location release.
+      const { data: visit, error: releaseError } = await fromUnknownTable(supabase, 'assist_visits')
+        .select('id, portal_release_enabled')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .neq('planning_status', 'draft')
+        .or(`id.eq.${row.id},legacy_assignment_id.eq.${row.id}`)
+        .maybeSingle();
+      if (releaseError) return { ok: false, error: 'Die Freigabe der Live-Anfahrt konnte nicht geprüft werden.' };
+      if (visit?.portal_release_enabled !== true) continue;
+      return {
+        ok: true,
+        data: {
+          id: String(visit.id),
+          title: row.title?.trim() || 'Einsatz',
+          status: remoteStatusToAssignment(row.status),
+          startsAt: row.planned_start_at,
+          endsAt: row.planned_end_at,
+          caregiverName: personName(row.employees),
+          portalReleaseEnabled: visit.portal_release_enabled === true,
+        },
+      };
     }
-
-    const row = data as unknown as AssignmentLiveListRow;
-    const assignmentStatus = remoteStatusToAssignment(row.status);
-    return {
-      ok: true,
-      data: {
-        id: row.id,
-        title: row.title?.trim() || 'Einsatz',
-        status: assignmentStatus,
-        startsAt: row.planned_start_at,
-        endsAt: row.planned_end_at,
-        caregiverName: personName(row.employees),
-      },
-    };
+    return { ok: true, data: null };
   });
 }
 
@@ -245,11 +259,49 @@ export async function fetchLivePortalClientAppointmentDetail(
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
+    // Calendar-only entries have their own identity. Read through the existing
+    // client-scoped repository and expose only public notes, never internal text.
+    const readCalendarDetail = async (): Promise<ServiceResult<PortalClientAppointmentDetail>> => {
+      const calendarId = assignmentId.startsWith('calendar:') ? assignmentId.slice('calendar:'.length) : assignmentId;
+      const calendar = await calendarEventRepository.listForPortal(tenantId, {
+        portalType: 'client', clientId,
+      });
+      if (!calendar.ok) return { ok: false, error: calendar.error };
+      const matches = calendar.data.filter((candidate) =>
+        (candidate.id === calendarId || (!assignmentId.startsWith('calendar:') && candidate.sourceId === calendarId)) &&
+        candidate.tenantId === tenantId &&
+        candidate.relatedClientId === clientId &&
+        candidate.isClientPortalVisible && !candidate.archivedAt,
+      );
+      if (matches.length !== 1) return { ok: false, error: 'Einsatz nicht gefunden.' };
+      const event = matches[0];
+      const status = remoteStatusToAssignment(event.status);
+      return { ok: true, data: {
+        id: `calendar:${event.id}`,
+        moduleKey: event.moduleKey,
+        title: event.title,
+        startsAt: event.startAt,
+        endsAt: event.endAt,
+        status: event.status as WorkflowStatus,
+        assignmentStatus: status,
+        location: event.locationName || event.address || null,
+        caregiverName: null,
+        caregiverPhone: null,
+        serviceType: event.title,
+        preparationNotes: event.publicNote?.trim() || null,
+        canRequestChange: PLANNED_CHANGE_STATUSES.has(status) && new Date(event.endAt).getTime() >= Date.now(),
+        liveVisit: null,
+      } };
+    };
+    if (assignmentId.startsWith('calendar:')) return readCalendarDetail();
+
     const visibleFallback = async (): Promise<PortalClientAppointmentDetail | null> => {
       const visible = await fetchLivePortalAppointmentsForClient(tenantId, clientId);
-      if (!visible.ok) return null;
-      const item = visible.data.find((candidate) => candidate.id === assignmentId);
-      if (!item) return null;
+      const item = visible.ok ? visible.data.find((candidate) => candidate.id === assignmentId) : null;
+      if (!item) {
+        const calendar = await readCalendarDetail();
+        return calendar.ok ? calendar.data : null;
+      }
       const status = item.assignmentStatus ?? remoteStatusToAssignment(item.status);
       return {
         id: item.id,
@@ -257,6 +309,7 @@ export async function fetchLivePortalClientAppointmentDetail(
         startsAt: item.startsAt,
         endsAt: item.endsAt,
         status: item.status,
+        assignmentStatus: status,
         location: item.location || null,
         caregiverName: item.employeeName || null,
         caregiverPhone: null,
@@ -293,10 +346,12 @@ export async function fetchLivePortalClientAppointmentDetail(
 
     const portalDetail: PortalClientAppointmentDetail = {
       id: detail.id,
+      moduleKey: 'assist',
       title: detail.title,
       startsAt: detail.scheduledStart,
       endsAt: detail.scheduledEnd,
       status: detail.status,
+      assignmentStatus,
       location: detail.location || null,
       caregiverName: detail.employeeName || null,
       caregiverPhone: null,

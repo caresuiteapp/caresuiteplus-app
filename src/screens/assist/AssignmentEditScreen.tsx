@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssignmentEditForm } from '@/components/assist/AssignmentEditForm';
 import { ScreenShell } from '@/components/layout';
@@ -11,7 +11,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 /** /assist/einsaetze/[id]/edit */
 export function AssignmentEditScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(routeId) ? routeId[0] : routeId;
   const router = useRouter();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
@@ -21,12 +22,27 @@ export function AssignmentEditScreen() {
   const [visit, setVisit] = useState<VisitDispositionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, id]);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const [loadedScope, setLoadedScope] = useState(scope);
+  const navigationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!id || !tenantId) return;
-    setLoading(true);
+    let cancelled = false;
+    setLoadedScope(scope);
+    setVisit(null);
+    setSaved(false);
     setError(null);
+    if (!id || !tenantId) {
+      setLoading(false);
+      setError(!id ? 'Keine Einsatz-ID angegeben.' : 'Kein Mandant verfügbar.');
+      return;
+    }
+    setLoading(true);
     void fetchVisitDispositionDetail(id, tenantId, profile?.roleKey).then((result) => {
+      if (cancelled) return;
       if (result.ok && result.data) {
         setVisit(result.data);
       } else {
@@ -34,10 +50,19 @@ export function AssignmentEditScreen() {
         setError(result.ok ? 'Einsatz nicht gefunden.' : result.error);
       }
       setLoading(false);
+    }).catch((cause) => {
+      if (cancelled) return;
+      setError(cause instanceof Error ? cause.message : 'Einsatz konnte nicht geladen werden.');
+      setLoading(false);
     });
-  }, [id, tenantId, profile?.roleKey]);
+    return () => { cancelled = true; };
+  }, [id, tenantId, profile?.id, profile?.roleKey, scope, retryKey]);
+  useEffect(() => () => {
+    if (navigationTimer.current) clearTimeout(navigationTimer.current);
+  }, [scope]);
+  const returnToDetail = () => router.replace(id ? `/assist/assignments/${id}` as never : '/assist/assignments');
 
-  if (loading) {
+  if (loading || loadedScope !== scope) {
     return (
       <ScreenShell title="Einsatz bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Einsatz wird geladen…" />
@@ -55,8 +80,8 @@ export function AssignmentEditScreen() {
 
   if (error || !visit || !id) {
     return (
-      <ScreenShell title="Einsatz bearbeiten" subtitle={roleLabel ?? 'Assist'} onBack={() => router.back()}>
-        <ErrorState message={error ?? 'Einsatz nicht gefunden.'} />
+      <ScreenShell title="Einsatz bearbeiten" subtitle={roleLabel ?? 'Assist'} onBack={() => router.replace('/assist/assignments')}>
+        <ErrorState message={error ?? 'Einsatz nicht gefunden.'} onRetry={() => setRetryKey(key => key + 1)} />
       </ScreenShell>
     );
   }
@@ -65,15 +90,18 @@ export function AssignmentEditScreen() {
     <ScreenShell
       title="Einsatz bearbeiten"
       subtitle={`${visit.clientName} · ${roleLabel ?? 'Assist'}`}
-      onBack={() => router.back()}
+      onBack={returnToDetail}
     >
       <AssignmentEditForm
         visitId={id}
         initialVisit={visit}
-        onCancel={() => router.back()}
-        onSaved={() => {
+        onCancel={returnToDetail}
+        onSaved={(savedId) => {
+          const savedScope = scope;
           setSaved(true);
-          setTimeout(() => router.replace(`/assist/assignments/${id}` as never), 900);
+          navigationTimer.current = setTimeout(() => {
+            if (scopeRef.current === savedScope) router.replace(`/assist/assignments/${savedId}` as never);
+          }, 900);
         }}
       />
     </ScreenShell>

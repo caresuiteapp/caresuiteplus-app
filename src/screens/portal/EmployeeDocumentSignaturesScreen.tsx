@@ -23,13 +23,13 @@ const FILTER_OPTIONS = [
 export function EmployeeDocumentSignaturesScreen() {
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const { employeeId, roleKey, isLinkedReady } = usePortalActor();
+  const { employeeId, roleKey, isLinkedReady, isResolvingEmployeeLink } = usePortalActor();
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
 
   const query = useAsyncQuery(
     useCallback(async () => {
-      if (!tenantId || !employeeId) return { ok: true as const, data: [] };
+      if (!tenantId || !employeeId) return { ok: false as const, error: 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden.' };
       return fetchPortalCsDocumentRequests({
         tenantId,
         roleKey: roleKey ?? 'employee_portal',
@@ -38,8 +38,9 @@ export function EmployeeDocumentSignaturesScreen() {
       });
     }, [tenantId, employeeId, roleKey, filter]),
     [tenantId, employeeId, roleKey, filter],
-    { enabled: isLinkedReady && roleKey === 'employee_portal' },
+    { enabled: isLinkedReady && roleKey === 'employee_portal', queryKey: JSON.stringify([tenantId, employeeId, roleKey, filter]) },
   );
+  const loadError = !isResolvingEmployeeLink && !employeeId ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.' : query.error ?? query.refreshError;
 
   const items =
     filter === 'open'
@@ -70,9 +71,9 @@ export function EmployeeDocumentSignaturesScreen() {
           layout="wrap"
         />
       </View>
-      {query.loading && !query.data ? <LoadingState message="Wird geladen…" /> : null}
-      {query.error ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
-      {items.length === 0 && !query.loading ? (
+      {(isResolvingEmployeeLink || query.loading) && !query.data ? <LoadingState message="Wird geladen…" /> : null}
+      {loadError ? <ErrorState message={loadError} onRetry={query.refresh} /> : null}
+      {items.length === 0 && !isResolvingEmployeeLink && !query.loading && !loadError ? (
         <EmptyState
           title={filter === 'open' ? 'Alles erledigt' : 'Noch keine erledigten Dokumente'}
           message={
@@ -88,7 +89,7 @@ export function EmployeeDocumentSignaturesScreen() {
               key={item.id}
               item={item}
               compact
-              openLabel="Öffnen und unterschreiben"
+              openLabel={filter === 'done' ? 'Dokument ansehen' : 'Öffnen und unterschreiben'}
               onOpen={() => router.push(`/portal/employee/documents/signatures/${item.id}` as never)}
             />
           ))}

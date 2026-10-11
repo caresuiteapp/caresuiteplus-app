@@ -441,35 +441,35 @@ function getQuickActions(roleKey: RoleKey, scope: DashboardScope): DashboardQuic
         id: 'qa-msg',
         label: 'Nachrichten',
         icon: '💬',
-        route: '/portal/relative/messages',
+        route: '/liquid-command/portal/family?section=messages',
         variant: 'primary',
       },
       {
         id: 'qa-info',
         label: 'Geteilte Informationen',
         icon: '📋',
-        route: '/portal/relative',
+        route: '/liquid-command/portal/family',
         variant: 'secondary',
       },
     ];
   }
   const actions: DashboardQuickAction[] = [
     { id: 'qa-client', label: 'Klient:innen', icon: '👤', route: '/office/clients', variant: 'primary' },
-    { id: 'qa-assign', label: 'Einsatz planen', icon: '📅', route: '/assist', variant: 'secondary' },
-    { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office', variant: 'secondary' },
+    { id: 'qa-assign', label: 'Einsatz planen', icon: '📅', route: '/assist/assignments/new', variant: 'secondary' },
+    { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/create', variant: 'secondary' },
   ];
   if (roleKey === 'billing') {
     return [
-      { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office', variant: 'primary' },
+      { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/create', variant: 'primary' },
       { id: 'qa-export', label: 'Export', icon: '📤', variant: 'secondary' },
       { id: 'qa-remind', label: 'Mahnungen', icon: '⚠️', variant: 'secondary' },
     ];
   }
   if (roleKey === 'dispatch') {
     return [
-      { id: 'qa-plan', label: 'Einsatzplan', icon: '📅', route: '/assist', variant: 'primary' },
-      { id: 'qa-tour', label: 'Touren', icon: '🚗', variant: 'secondary' },
-      { id: 'qa-staff', label: 'Verfügbarkeit', icon: '👥', variant: 'secondary' },
+      { id: 'qa-plan', label: 'Einsatzplan', icon: '📅', route: '/assist/calendar', variant: 'primary' },
+      { id: 'qa-tour', label: 'Touren', icon: '🚗', route: '/assist/touren', variant: 'secondary' },
+      { id: 'qa-staff', label: 'Verfügbarkeit', icon: '👥', route: '/assist/calendar', variant: 'secondary' },
     ];
   }
   return actions;

@@ -12,13 +12,33 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { executionSupabaseRepository } from '@/lib/services/repositories/executionRepository.supabase';
-import { resolveExecutableVisitId } from '@/lib/assist/visitService';
-import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
+import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 
 function tenantDenied<T>(tenantId: string): ServiceResult<T> | null {
   const block = guardServiceTenant(tenantId);
   if (block) return block;
   return null;
+}
+
+/** Canonical visit fields are authoritative; updated_at is never a work timestamp. */
+function mapVisitExecution(visit: VisitDispositionDetail): AssignmentExecution {
+  const phase: AssignmentExecution['phase'] = visit.assignmentStatus === 'abgeschlossen' ? 'completed'
+    : ['storniert', 'nicht_erschienen'].includes(visit.assignmentStatus) ? 'cancelled'
+    : ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.assignmentStatus) ? 'in_progress'
+    : visit.assignmentStatus === 'angekommen' ? 'checked_in' : 'pending';
+  return {
+    assignmentId: visit.id, tenantId: visit.tenantId, status: visit.assignmentStatus, phase,
+    plannedStartAt: visit.scheduledStart, plannedEndAt: visit.scheduledEnd,
+    onTheWayAt: visit.onTheWayAt, arrivedAt: visit.arrivedAt,
+    checkedInAt: visit.arrivedAt, checkedOutAt: visit.actualEndAt,
+    actualStartAt: visit.actualStartAt, actualEndAt: visit.actualEndAt, finishedAt: visit.finishedAt,
+    documentationNotes: visit.documentationNotes ?? null, activityNote: visit.documentationNotes ?? null,
+    durationMinutes: visit.durationMinutes ?? null, locationNote: visit.locationNotes ?? null,
+    tasks: visit.tasks.map(task => ({ id: task.id, title: task.title, status: task.status,
+      isRequired: task.isRequired, notDoneReason: task.notDoneReason, requiresNoteIfNotDone: task.isRequired })),
+    allowedTransitions: visit.allowedStatusTransitions, serviceRecordId: null, updatedAt: visit.updatedAt,
+  };
 }
 
 export async function fetchActiveExecutions(
@@ -38,16 +58,16 @@ export async function fetchActiveExecutions(
     const result = await executionSupabaseRepository.list(tenantId);
     if (!result.ok) return result;
     const data: ActiveExecutionItem[] = result.data
-      .filter((row) => row.status === 'in_bearbeitung' || row.status === 'aktiv')
+      .filter((row) => ['on_the_way', 'arrived', 'started', 'paused'].includes(row.status))
       .map((row) => ({
         assignmentId: row.id,
         title: row.title,
         clientName: row.title,
         location: '—',
-        scheduledStart: row.created_at,
-        scheduledEnd: row.updated_at,
-        phase: row.status === 'in_bearbeitung' ? 'in_progress' : 'checked_in',
-        assignmentStatus: row.status as ActiveExecutionItem['assignmentStatus'],
+        scheduledStart: row.planned_start_at,
+        scheduledEnd: row.planned_end_at,
+        phase: row.status === 'started' || row.status === 'paused' ? 'in_progress' : row.status === 'arrived' ? 'checked_in' : 'pending',
+        assignmentStatus: 'in_bearbeitung',
       }));
     return { ok: true, data };
   }
@@ -68,42 +88,10 @@ export async function fetchAssignmentExecution(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const result = await executionSupabaseRepository.getById(tenantId, assignmentId);
+    const result = await fetchVisitDispositionDetail(assignmentId, tenantId, actorRoleKey);
     if (!result.ok) return result;
-    if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
-    const row = result.data;
-    const phase =
-      row.status === 'abgeschlossen'
-        ? 'completed'
-        : row.status === 'in_bearbeitung'
-          ? 'in_progress'
-          : 'pending';
-    return {
-      ok: true,
-      data: {
-        assignmentId: row.id,
-        tenantId: row.tenant_id,
-        status: remoteStatusToAssignment(row.status),
-        phase,
-        plannedStartAt: null,
-        plannedEndAt: null,
-        onTheWayAt: null,
-        arrivedAt: null,
-        checkedInAt: row.status !== 'entwurf' ? row.updated_at : null,
-        checkedOutAt: row.status === 'abgeschlossen' ? row.updated_at : null,
-        actualStartAt: row.status === 'in_bearbeitung' ? row.updated_at : null,
-        actualEndAt: row.status === 'abgeschlossen' ? row.updated_at : null,
-        finishedAt: row.status === 'abgeschlossen' ? row.updated_at : null,
-        documentationNotes: null,
-        durationMinutes: null,
-        locationNote: null,
-        activityNote: null,
-        tasks: [],
-        allowedTransitions: [],
-        serviceRecordId: null,
-        updatedAt: row.updated_at,
-      },
-    };
+    if (result.data.tenantId !== tenantId) return { ok: false, error: 'Der Einsatz konnte diesem Mandanten nicht zugeordnet werden.' };
+    return { ok: true, data: mapVisitExecution(result.data) };
   }
 
   await new Promise((r) => setTimeout(r, 200));
@@ -126,22 +114,9 @@ export async function checkInAssignment(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
-    if (!executable.ok) return executable;
-    const executableAssignmentId = executable.data.visitId;
-
-    const existing = await executionSupabaseRepository.getById(tenantId, executableAssignmentId);
-    if (!existing.ok) return existing;
-    if (!existing.data) {
-      return { ok: false, error: 'Einsatz nicht gefunden.' };
-    }
-    const updated = await executionSupabaseRepository.updateStatus(
-      tenantId,
-      executableAssignmentId,
-      'aktiv',
-    );
-    if (!updated.ok) return updated;
-    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
+    // The former direct assignment update skipped visit events, documentation,
+    // signature and proof receipts. Live execution uses the guided visit route.
+    return { ok: false, error: 'Bitte die eigene Einsatzdurchführung öffnen. Ankunft, Arbeitszeit, Dokumentation und Unterschrift werden dort gemeinsam bestätigt.' };
   }
 
   await new Promise((r) => setTimeout(r, 350));
@@ -170,22 +145,9 @@ export async function startAssignmentWork(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
-    if (!executable.ok) return executable;
-    const executableAssignmentId = executable.data.visitId;
-
-    const existing = await executionSupabaseRepository.getById(tenantId, executableAssignmentId);
-    if (!existing.ok) return existing;
-    if (!existing.data || existing.data.status === 'entwurf') {
-      return { ok: false, error: 'Einsatz kann nur nach Check-in gestartet werden.' };
-    }
-    const updated = await executionSupabaseRepository.updateStatus(
-      tenantId,
-      executableAssignmentId,
-      'in_bearbeitung',
-    );
-    if (!updated.ok) return updated;
-    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
+    // The former direct assignment update skipped visit events, documentation,
+    // signature and proof receipts. Live execution uses the guided visit route.
+    return { ok: false, error: 'Bitte die eigene Einsatzdurchführung öffnen. Ankunft, Arbeitszeit, Dokumentation und Unterschrift werden dort gemeinsam bestätigt.' };
   }
 
   await new Promise((r) => setTimeout(r, 280));
@@ -214,17 +176,9 @@ export async function checkOutAssignment(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
-    if (!executable.ok) return executable;
-    const executableAssignmentId = executable.data.visitId;
-
-    const updated = await executionSupabaseRepository.updateStatus(
-      tenantId,
-      executableAssignmentId,
-      'abgeschlossen',
-    );
-    if (!updated.ok) return updated;
-    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
+    // The former direct assignment update skipped visit events, documentation,
+    // signature and proof receipts. Live execution uses the guided visit route.
+    return { ok: false, error: 'Bitte die eigene Einsatzdurchführung öffnen. Ankunft, Arbeitszeit, Dokumentation und Unterschrift werden dort gemeinsam bestätigt.' };
   }
 
   await new Promise((r) => setTimeout(r, 400));

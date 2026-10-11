@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: auroraGlass.border,
   },
-  time: { width: 92, fontSize: 11, paddingTop: 6 },
+  time: { width: 92, fontSize: Platform.OS === 'web' ? 11 : 12, paddingTop: 6 },
   chipWrap: { flex: 1 },
 });

@@ -1,17 +1,16 @@
 import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
 import { ClientFundingSourceSelector } from '@/components/office/ClientFundingSourceSelector';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
-import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CareCatalogSelect,
   CareAddressSearch,
   CareCostBearerTypeFields,
   CareDateInput,
-  CareDocumentUpload,
   CareIntakeDocumentsStepPanel,
   CareMultiCatalogSelect,
-  CarePhotoCapturePrepared,
 } from '@/components/inputs';
 import {
   ErrorState,
@@ -29,7 +28,7 @@ import {
   ClientWorkspacePanel,
 } from '@/components/office/ClientWorkspacePrimitives';
 import { useClientIntakeWizard, type ClientIntakeWizardMode } from '@/hooks/useClientIntakeWizard';
-import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import { getRequiredFieldsForClientContext, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import {
   COST_BEARER_FIELD_ERRORS,
   hasGkvCostBearerSelected,
@@ -46,11 +45,17 @@ function ClientIntakeJourneyHeader({
   stepLabels,
   stepStatuses,
   isEditMode,
+  draftSaving,
+  draftSaveFeedback,
+  draftIsSaved,
 }: {
   stepIndex: number;
   stepLabels: string[];
   stepStatuses: ('pending' | 'active' | 'completed' | 'error')[];
   isEditMode: boolean;
+  draftSaving: boolean;
+  draftSaveFeedback: { message: string; variant: 'success' | 'warning' } | null;
+  draftIsSaved: boolean;
 }) {
   const completedSteps = stepStatuses.filter((status) => status === 'completed').length;
   const progress = Math.max(4, Math.round(((stepIndex + 1) / Math.max(stepLabels.length, 1)) * 100));
@@ -64,8 +69,8 @@ function ClientIntakeJourneyHeader({
       compact
       accessory={
         <ClientWorkspaceLiveBadge
-          label={hasErrors ? 'Angaben prüfen' : 'Automatisch gesichert'}
-          connected={!hasErrors}
+          label={hasErrors ? 'Angaben prüfen' : isEditMode ? 'Aktenpflege' : draftSaving ? 'Entwurf wird gesichert' : draftIsSaved ? 'Entwurf gesichert' : draftSaveFeedback?.variant === 'warning' ? 'Sicherung prüfen' : 'Noch nicht gesichert'}
+          connected={!hasErrors && draftIsSaved}
         />
       }
     >
@@ -128,8 +133,8 @@ export function ClientIntakeSectionContent({
         <CareDateInput label="Geburtsdatum *" value={form.dateOfBirth} onChange={(v) => updateField('dateOfBirth', v)} error={errors.dateOfBirth} />
         <CareCatalogSelect catalogKey="gender" label="Geschlecht" value={form.gender} onChange={(v) => updateField('gender', v)} />
         <CareCatalogSelect catalogKey="housing_form" label="Wohnform" value={form.housingForm} onChange={(v) => updateField('housingForm', v)} />
-        <CareDateInput label="Aufnahmedatum" value={form.admissionDate} onChange={(v) => updateField('admissionDate', v)} />
-        <CareDateInput label="Leistungsbeginn *" value={form.serviceStart} onChange={(v) => updateField('serviceStart', v)} error={errors.serviceStart} />
+        <CareDateInput label="Aufnahmedatum" value={form.admissionDate} onChange={(v) => updateField('admissionDate', v)} error={errors.admissionDate} />
+        <CareDateInput label={getRequiredFieldsForClientContext(form.careContexts).includes('serviceStart') ? 'Leistungsbeginn *' : 'Leistungsbeginn'} value={form.serviceStart} onChange={(v) => updateField('serviceStart', v)} error={errors.serviceStart} />
         <PremiumInput label="Interne Hinweise" value={form.specialNotes} onChangeText={(v) => updateField('specialNotes', v)} multiline hint="Nur für Office sichtbar" />
       </SectionPanel>
     );
@@ -148,9 +153,9 @@ export function ClientIntakeSectionContent({
           }}
           errors={{ street: errors.street, zip: errors.zip, city: errors.city }}
         />
-        <PremiumInput label="Telefon" value={form.phone} onChangeText={(v) => updateField('phone', v)} error={errors.phone} />
-        <PremiumInput label="Mobil" value={form.mobile} onChangeText={(v) => updateField('mobile', v)} />
-        <PremiumInput label="E-Mail" value={form.email} onChangeText={(v) => updateField('email', v)} />
+        <PremiumInput label="Telefon" value={form.phone} onChangeText={(v) => updateField('phone', v)} error={errors.phone} keyboardType="phone-pad" />
+        <PremiumInput label="Mobil" value={form.mobile} onChangeText={(v) => updateField('mobile', v)} keyboardType="phone-pad" />
+        <PremiumInput label="E-Mail" value={form.email} onChangeText={(v) => updateField('email', v)} error={errors.email} keyboardType="email-address" autoCapitalize="none" />
         <CareCatalogSelect catalogKey="contact_method" label="Bevorzugter Kontaktweg" value={form.preferredContact} onChange={(v) => updateField('preferredContact', v)} />
       </SectionPanel>
     );
@@ -163,7 +168,7 @@ export function ClientIntakeSectionContent({
           <>
             <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
             <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
-            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} error={errors.careLevelValidFrom} />
           </>
         ) : null}
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
@@ -193,7 +198,7 @@ export function ClientIntakeSectionContent({
           <>
             <CareCatalogSelect catalogKey="care_level" label="Pflegegrad *" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
             <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
-            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} error={errors.careLevelValidFrom} />
           </>
         ) : null}
         <ClientFundingSourceSelector
@@ -277,7 +282,7 @@ export function ClientIntakeSectionContent({
         <PremiumInput label="Zugangshinweise" value={form.accessNotes} onChangeText={(v) => updateField('accessNotes', v)} multiline />
         <PremiumInput label="Gefahren / Sturzgefahr" value={form.hazardNotes} onChangeText={(v) => updateField('hazardNotes', v)} multiline />
         <PremiumInput label="Einrichtung" value={form.facilityName} onChangeText={(v) => updateField('facilityName', v)} error={errors.facilityName} />
-        <CareCatalogSelect catalogKey="stationary_areas" label="Wohnbereich" value={form.careArea} onChange={(v) => updateField('careArea', v)} />
+        <CareCatalogSelect catalogKey="stationary_areas" label="Wohnbereich" value={form.careArea} onChange={(v) => updateField('careArea', v)} error={errors.careArea} />
         <PremiumInput label="Zimmernummer" value={form.roomNumber} onChangeText={(v) => updateField('roomNumber', v)} error={errors.roomNumber} />
         <CareCatalogSelect catalogKey="pets" label="Haustiere" value={form.pets} onChange={(v) => updateField('pets', v)} />
         <FilterChipGroup
@@ -308,8 +313,12 @@ export function ClientIntakeSectionContent({
     return (
       <>
         <SectionPanel {...panelCtx} title="Dokumente">
-          <CareDocumentUpload label="Dokument hochladen" onPicked={(f) => updateField('documentCategories', [...form.documentCategories, f.name])} />
-          <CarePhotoCapturePrepared />
+          <InfoBanner variant="warning" message="Externe Dateien können in diesem Aufnahmeformular derzeit nicht gespeichert werden. Die Dokumentvorlagen unten und die unterschriebenen Aufnahmedokumente werden getrennt verarbeitet." />
+          {form.documentCategories.length ? (
+            <Text style={contentStyles.caption}>
+              Dateinamen aus dem Entwurf (keine gespeicherten Dateien): {form.documentCategories.join(', ')}
+            </Text>
+          ) : null}
         </SectionPanel>
         <DocumentModuleTemplatesPanel
           tenantId={tenantId}
@@ -356,11 +365,14 @@ export function ClientIntakeWizardForm({
   showHero = true,
 }: ClientIntakeWizardFormProps) {
   const wizard = useClientIntakeWizard({ mode, clientId });
+  const insets = useSafeAreaInsets();
+  const contentScroll = useRef<ScrollView>(null);
+  useEffect(() => { contentScroll.current?.scrollTo({ y: 0, animated: false }); }, [wizard.currentSection]);
   const contentStyles = useAdaptiveContentStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1 },
+        root: { flex: 1, minHeight: 0 },
         scroll: { flex: 1 },
         scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
         journey: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
@@ -370,6 +382,7 @@ export function ClientIntakeWizardForm({
           borderTopWidth: 1,
           borderTopColor: 'rgba(22, 131, 255, 0.24)',
           padding: spacing.md,
+          paddingBottom: Math.max(spacing.md, insets.bottom),
           backgroundColor: '#FFFFFF',
         },
         footerRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' },
@@ -377,7 +390,7 @@ export function ClientIntakeWizardForm({
         footerSpacer: { flex: 1, minWidth: spacing.lg },
         successWrap: { padding: spacing.md },
       }),
-    [],
+    [insets.bottom],
   );
   const {
     steps,
@@ -400,6 +413,9 @@ export function ClientIntakeWizardForm({
     discardDraft,
     draftRestored,
     draftSaveFeedback,
+    draftSaving,
+    discardingDraft,
+    retryLoad,
     isFirstStep,
     isLastStep,
     isSuccess,
@@ -421,7 +437,7 @@ export function ClientIntakeWizardForm({
   }
 
   if (notFound || loadError) {
-    return <ErrorState title={notFound ? 'Nicht gefunden' : 'Fehler'} message={loadError ?? 'Der Datensatz existiert nicht.'} />;
+    return <View><ErrorState title={notFound ? 'Nicht gefunden' : 'Fehler'} message={loadError ?? 'Der Datensatz existiert nicht.'} onRetry={retryLoad} />{onCancel ? <ClientWorkspaceButton label="Schließen" onPress={onCancel} /> : null}</View>;
   }
 
   if (isSuccess && createdId) {
@@ -437,15 +453,21 @@ export function ClientIntakeWizardForm({
   if (submitting) {
     return <LoadingState message={isEditMode ? 'Änderungen werden gespeichert…' : 'Aufnahme wird gespeichert…'} />;
   }
+  if (discardingDraft) {
+    return <LoadingState message="Entwurf wird entfernt…" />;
+  }
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView style={styles.root} enabled={Platform.OS !== 'web'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.journey}>
         <ClientIntakeJourneyHeader
           stepIndex={stepIndex}
           stepLabels={stepLabels}
           stepStatuses={stepStatuses}
           isEditMode={isEditMode}
+          draftSaving={draftSaving}
+          draftSaveFeedback={draftSaveFeedback}
+          draftIsSaved={wizard.draftIsSaved}
         />
       </View>
       <ScrollView
@@ -464,16 +486,18 @@ export function ClientIntakeWizardForm({
         </View>
       </ScrollView>
       <ScrollView
+        ref={contentScroll}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
       >
         {draftRestored ? (
           <InfoBanner message="Entwurf geladen" />
         ) : null}
         {draftSaveFeedback ? (
           <InfoBanner
+            variant={draftSaveFeedback.variant}
             message={draftSaveFeedback.variant === 'warning' ? draftSaveFeedback.message : 'Entwurf gespeichert'}
           />
         ) : null}
@@ -482,13 +506,13 @@ export function ClientIntakeWizardForm({
             Schritt {stepIndex + 1} von {steps.length} · {isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in aufnehmen'}
           </Text>
         ) : null}
-        <ClientIntakeSectionContent section={currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} />
+        <ClientIntakeSectionContent key={wizard.identityKey} section={currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.footerRow}>
-          {!isEditMode ? <ClientWorkspaceButton label="Als Entwurf speichern" variant="ghost" compact onPress={() => void saveDraft()} style={styles.actionBtn} /> : null}
-          {!isEditMode ? <ClientWorkspaceButton label="Neu beginnen" variant="ghost" compact onPress={() => void discardDraft()} style={styles.actionBtn} /> : null}
+          {!isEditMode ? <ClientWorkspaceButton label="Als Entwurf speichern" variant="ghost" compact loading={draftSaving} disabled={discardingDraft} onPress={() => void saveDraft()} style={styles.actionBtn} /> : null}
+          {!isEditMode ? <ClientWorkspaceButton label="Neu beginnen" variant="ghost" compact loading={discardingDraft} disabled={draftSaving} onPress={() => void discardDraft()} style={styles.actionBtn} /> : null}
           <View style={styles.footerSpacer} />
           {!isFirstStep ? (
             <ClientWorkspaceButton label="← Zurück" compact onPress={prevStep} style={styles.actionBtn} />
@@ -509,7 +533,7 @@ export function ClientIntakeWizardForm({
           )}
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

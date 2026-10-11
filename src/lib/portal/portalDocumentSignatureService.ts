@@ -157,6 +157,7 @@ export async function composeOfficeSignatureDocumentForPortal(
 export async function resolvePortalSignatureStorageUrl(
   storagePath: string,
   roleKey: RoleKey | null,
+  scope: { tenantId: string; employeeId: string; documentId: string },
 ): Promise<ServiceResult<string>> {
   const denied = enforcePermission<string>(roleKey, 'portal.employee.signatures.view');
   if (denied) return denied;
@@ -164,7 +165,7 @@ export async function resolvePortalSignatureStorageUrl(
   const liveBlock = requireLiveMode<string>();
   if (liveBlock) return liveBlock;
 
-  return resolveLivePortalSignatureStorageUrl(storagePath);
+  return resolveLivePortalSignatureStorageUrl(storagePath, scope);
 }
 
 export async function fetchOfficeSignatureDocuments(

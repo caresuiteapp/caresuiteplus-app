@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
@@ -15,6 +15,18 @@ import { careSpacing } from '@/design/tokens/spacing';
 function resolveRouteParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0]?.trim() || null;
   return value?.trim() || null;
+}
+
+function useDirectConversationBack(audience: 'client' | 'employee', active: boolean) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!active || Platform.OS === 'web') return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace(`/portal/${audience}/messages` as never);
+      return true;
+    });
+    return () => listener.remove();
+  }, [active, audience, router]);
 }
 
 function ClientPortalVerwaltungMessages() {
@@ -102,13 +114,15 @@ export function ClientPortalOfficeConversationScreen() {
   const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
+  const screenFocused = useIsFocused();
   const showMobileChrome = !useMasterDetail && !!resolvedId;
+  useDirectConversationBack('client', screenFocused && showMobileChrome);
 
   useEffect(() => {
-    if (!resolvedId || useMasterDetail) return;
+    if (!screenFocused || !resolvedId || useMasterDetail) return;
     setMessengerFocusActive(true);
     return () => setMessengerFocusActive(false);
-  }, [resolvedId, useMasterDetail, setMessengerFocusActive]);
+  }, [screenFocused, resolvedId, useMasterDetail, setMessengerFocusActive]);
 
   if (!can('portal.client.messages.view')) {
     return (
@@ -136,7 +150,13 @@ export function ClientPortalOfficeConversationScreen() {
             </Pressable>
           </View>
         ) : null}
-        <PortalOfficeThread threadId={resolvedId} variant="glass" hideHeader={showMobileChrome} />
+        <PortalOfficeThread
+          threadId={resolvedId}
+          variant="glass"
+          hideHeader={showMobileChrome}
+          onNewThreadStarted={(newThreadId) =>
+            router.replace(`/portal/client/messages/${newThreadId}` as never)}
+        />
       </View>
     </PortalTabScreen>
   );
@@ -149,13 +169,15 @@ export function EmployeePortalOfficeConversationScreen() {
   const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
+  const screenFocused = useIsFocused();
   const showMobileChrome = !useMasterDetail && !!resolvedId;
+  useDirectConversationBack('employee', screenFocused && showMobileChrome);
 
   useEffect(() => {
-    if (!resolvedId || useMasterDetail) return;
+    if (!screenFocused || !resolvedId || useMasterDetail) return;
     setMessengerFocusActive(true);
     return () => setMessengerFocusActive(false);
-  }, [resolvedId, useMasterDetail, setMessengerFocusActive]);
+  }, [screenFocused, resolvedId, useMasterDetail, setMessengerFocusActive]);
 
   if (!can('portal.employee.messages.view')) {
     return (
@@ -183,7 +205,12 @@ export function EmployeePortalOfficeConversationScreen() {
             </Pressable>
           </View>
         ) : null}
-        <PortalOfficeThread threadId={resolvedId} hideHeader={showMobileChrome} />
+        <PortalOfficeThread
+          threadId={resolvedId}
+          hideHeader={showMobileChrome}
+          onNewThreadStarted={(newThreadId) =>
+            router.replace(`/portal/employee/messages/${newThreadId}` as never)}
+        />
       </View>
     </PortalTabScreen>
   );

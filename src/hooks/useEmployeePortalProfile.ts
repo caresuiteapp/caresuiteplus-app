@@ -22,13 +22,15 @@ export function useEmployeePortalProfile() {
   const profileQuery = useAsyncQuery(
     () => fetchEmployeePortalProfile(profileId, roleKey, portalContext),
     [profileId, roleKey, tenantId, employeeId],
-    { enabled: isReady && !!profileId && !!roleKey, live: liveConfig },
+    { enabled: isReady && !!profileId && !!roleKey && !!employeeId, live: liveConfig,
+      queryKey: JSON.stringify(['employee-profile', tenantId, profileId, roleKey, employeeId]) },
   );
 
   const timesheetQuery = useAsyncQuery(
     () => fetchEmployeeTimesheet(profileId, roleKey, portalContext),
     [profileId, roleKey, tenantId, employeeId],
-    { enabled: isReady && !!profileId && !!roleKey, live: liveConfig },
+    { enabled: isReady && !!profileId && !!roleKey && !!employeeId, live: liveConfig,
+      queryKey: JSON.stringify(['employee-profile-timesheet', tenantId, profileId, roleKey, employeeId]) },
   );
 
   const refresh = useCallback(async () => {

@@ -1,3 +1,4 @@
+import { businessRegistrationFailure, isBusinessRegistrationReceipt, REGISTRATION_UNCONFIRMED_MESSAGE } from './businessRegistrationReceipt';
 import { canonicalCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { normalizeCompanyRegistrationSelection, validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { FREE_REGISTRATION_PRODUCTS, validateBusinessRegistration } from './businessRegistrationPolicy';
@@ -64,8 +65,10 @@ export async function registerBusinessTenant(
     finishRegistrationObservation(registration.ok);
 
     if (!registration.ok) {
-      return { ok: false, error: registration.error };
+      return { ok: false, error: businessRegistrationFailure(registration.error) };
     }
+
+    if (!isBusinessRegistrationReceipt(registration.data, input.adminEmail)) return { ok: false, error: REGISTRATION_UNCONFIRMED_MESSAGE };
 
     const owner: TenantUser = {
       id: registration.data.owner.id,
@@ -173,7 +176,7 @@ export async function loginBusinessUser(
       return { ok: false, error: sessionResult.error };
     }
 
-    const access = await checkBusinessAccess();
+    const access = await checkBusinessAccess(sessionResult.data.user.id);
     if (!access.ok) return { ok: false, error: access.error };
 
     void recordLoginAuditEvent({

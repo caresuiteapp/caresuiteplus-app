@@ -6,6 +6,7 @@ import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { createSingleFlight } from '@/lib/services/singleFlight';
 import type { PortalSessionRecord } from './portalSessionStore';
+import { isDeviceOffline } from '@/lib/offline/connectivity';
 
 export type PortalSupabaseTokens = {
   accessToken: string;
@@ -47,23 +48,30 @@ function expectedPortalType(portalSession: PortalSessionRecord): string {
   return 'relative';
 }
 
-export function isPortalSupabaseSessionAligned(
+export function isPortalSupabaseIdentityAligned(
   session: Session | null | undefined,
   portalSession: PortalSessionRecord,
-  nowMs = Date.now(),
 ): boolean {
   if (!session) return false;
   const metadata = session.user.app_metadata ?? {};
-  const expiresAtMs = session.expires_at ? session.expires_at * 1_000 : null;
   const expectedRole = portalSession.roleKey;
 
   return (
     metadata.tenant_id === portalSession.tenantId &&
     metadata.role_key === expectedRole &&
     metadata.portal_type === expectedPortalType(portalSession) &&
-    metadata.portal_account_id === portalSession.accountId &&
-    (expiresAtMs === null || expiresAtMs > nowMs + 60_000)
+    metadata.portal_account_id === portalSession.accountId
   );
+}
+
+export function isPortalSupabaseSessionAligned(
+  session: Session | null | undefined,
+  portalSession: PortalSessionRecord,
+  nowMs = Date.now(),
+): boolean {
+  if (!isPortalSupabaseIdentityAligned(session, portalSession)) return false;
+  const expiresAtMs = session?.expires_at ? session.expires_at * 1_000 : null;
+  return expiresAtMs === null || expiresAtMs > nowMs + 60_000;
 }
 
 /** Establishes authenticated Supabase session after portal edge login (required for RLS). */
@@ -175,6 +183,9 @@ export async function ensurePortalWriteSession(
   portalSession: PortalSessionRecord | null | undefined,
   capability: PortalWriteCapability = 'session',
 ): Promise<AuthServiceResult<Session>> {
+  if (isDeviceOffline()) {
+    return { ok: false, error: 'Offline können Sie gespeicherte Daten ansehen. Änderungen erfordern eine bestätigte Online-Verbindung.' };
+  }
   if (!portalSession) {
     return { ok: false, error: 'Keine aktive Portalsitzung gefunden. Bitte erneut anmelden.' };
   }

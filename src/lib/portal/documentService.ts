@@ -13,10 +13,12 @@ import {
 } from './portalDocumentsLiveService';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';
 import { portalAudienceForRole } from './portalAudience';
+import { fetchEmployeePortalDocuments, fetchEmployeePortalDocumentDetail, downloadEmployeePortalDocument } from './employeeDocumentsLiveService';
 
 export type PortalDocumentsPortalContext = {
   tenantId?: string | null;
   clientId?: string | null;
+  employeeId?: string | null;
 };
 
 const SIMULATED_DELAY_MS = 350;
@@ -84,6 +86,7 @@ export async function fetchPortalDocuments(
   const clientId = portalContext?.clientId ?? null;
 
   if (getServiceMode() === 'supabase') {
+    if (audience === 'employee') return fetchEmployeePortalDocuments(tenantId ?? '', portalContext?.employeeId ?? '', roleKey);
     if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
       return fetchLivePortalDocumentsForClient(tenantId, clientId);
     }
@@ -175,6 +178,7 @@ export async function fetchPortalDocumentDetail(
   const clientId = portalContext?.clientId ?? null;
 
   if (getServiceMode() === 'supabase') {
+    if (audience === 'employee') return fetchEmployeePortalDocumentDetail(tenantId ?? '', portalContext?.employeeId ?? '', documentId, roleKey);
     if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
       return fetchLivePortalDocumentDetail(tenantId, clientId, documentId);
     }
@@ -211,7 +215,7 @@ export async function downloadPortalDocument(
   roleKey: RoleKey | null,
   portalContext?: PortalDocumentsPortalContext,
 ): Promise<ServiceResult<{ fileName: string; mimeType: string; downloadUrl?: string }>> {
-  if (roleKey === 'employee_portal') {
+  if (portalAudienceForRole(roleKey) === 'employee') {
     const denied = enforcePermission<{ fileName: string; mimeType: string }>(
       roleKey,
       'portal.employee.documents.download',
@@ -232,6 +236,10 @@ export async function downloadPortalDocument(
 
   if (!detail.data.downloadReady) {
     return { ok: false, error: 'Dieses Dokument steht aktuell nicht zum Download bereit.' };
+  }
+
+  if (getServiceMode() === 'supabase' && portalAudienceForRole(roleKey) === 'employee') {
+    return downloadEmployeePortalDocument(portalContext?.tenantId ?? '', portalContext?.employeeId ?? '', documentId, roleKey);
   }
 
   if (getServiceMode() === 'supabase' && isClientPortalRole(roleKey)) {

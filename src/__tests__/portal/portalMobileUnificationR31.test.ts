@@ -25,9 +25,12 @@ describe('portal mobile unification R31', () => {
     expect(shell).toContain("maxWidth: '20%'");
     expect(shell).toContain('flexBasis: 0');
     expect(shell).toContain('minWidth: 0');
-    expect(shell).toContain('adjustsFontSizeToFit');
-    expect(shell).toContain('minimumFontScale={0.72}');
-    expect(shell).toContain('numberOfLines={1}');
+    const footerStart = shell.indexOf('testID="portal-bottom-navigation"');
+    const footer = shell.slice(footerStart, shell.indexOf('<Modal', footerStart));
+    expect(footer.match(/numberOfLines=\{2\}/g)).toHaveLength(2);
+    expect(footer).not.toContain('minimumFontScale');
+    expect(footer).not.toContain('adjustsFontSizeToFit');
+    expect(shell).toMatch(/bottomLabel:\s*\{[\s\S]*?color: portalPremium.text.secondary,[\s\S]*?fontSize: webScaledFontMetric\(11\)/);
   });
 
   it('uses compact bottom sheets for both appointment previews on phones', () => {

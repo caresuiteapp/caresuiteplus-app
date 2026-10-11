@@ -50,9 +50,10 @@ describe('R14-D native GPS and logbook lifecycle', () => {
     const automation = read('src/lib/employeeLogbook/employeeLogbookAutomation.ts');
     const returnTrip = read('src/lib/portal/employeePortalReturnTrip.ts');
 
-    expect(automation.indexOf('await stopNativeBackgroundTracking();')).toBeLessThan(
-      automation.indexOf('await flushLogbookPointQueue();', automation.indexOf('finishActiveVisitLogbookTrip')),
-    );
+    const finishActive = automation.slice(automation.indexOf('export async function finishActiveVisitLogbookTrip'));
+    const freezeActive = finishActive.indexOf('await stopAutomaticLogbookTracking(active.id);');
+    expect(freezeActive).toBeGreaterThan(-1);
+    expect(finishActive.indexOf('await flushLogbookPointQueue();')).toBeGreaterThan(freezeActive);
     // Return trips now use the same completion path as the logbook. Inspect
     // that path rather than requiring its internals to be copied here.
     expect(returnTrip).toContain('await finishEmployeeLogbookRecording({');

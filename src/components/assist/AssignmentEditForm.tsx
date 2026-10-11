@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from 'expo-router';
 import { CareDateInput, CareTimeInput } from "@/components/inputs";
 import { AssistCatalogGroupedChipSelect } from "@/components/office/assistCatalog/AssistCatalogGroupedChipSelect";
 import {
@@ -164,6 +165,7 @@ export function AssignmentEditForm({
 }: AssignmentEditFormProps) {
   const text = useAuroraAdaptiveText();
   const tenantId = useServiceTenantId();
+  const router = useRouter();
   const { profile } = useAuth();
   const { can, isReadOnly } = usePermissions();
   const {
@@ -172,6 +174,11 @@ export function AssignmentEditForm({
     error: optionsError,
   } = useAssistAssignmentOptions();
   const canManage = can("assist.assignments.manage") && !isReadOnly;
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visitId, initialVisit.id]);
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const mounted = useRef(false); const submitScope = useRef<string | null>(null);
+  const submitRequest = useRef(0);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const [form, setForm] = useState<VisitEditFormData>(() =>
     mapVisitDetailToEditForm(initialVisit),
@@ -184,6 +191,9 @@ export function AssignmentEditForm({
   const [seriesScope, setSeriesScope] =
     useState<VisitSeriesMutationScope>("this_only");
   const [error, setError] = useState<string | null>(null);
+  const [persistedVisitId, setPersistedVisitId] = useState<string | null>(null);
+  const [formScope, setFormScope] = useState(scope);
+  const latestVisit = useRef(initialVisit); latestVisit.current = initialVisit;
   const [section, setSection] = useState<EditSectionKey>("overview");
 
   const patch = useCallback((partial: Partial<VisitEditFormData>) => {
@@ -191,13 +201,19 @@ export function AssignmentEditForm({
   }, []);
 
   useEffect(() => {
-    setForm(mapVisitDetailToEditForm(initialVisit));
-  }, [initialVisit]);
+    submitRequest.current += 1; submitScope.current = null; setSaving(false); setError(null); setPersistedVisitId(null);
+    setFormScope(scope);
+    setSeriesScope('this_only'); setSection('overview');
+    setForm(mapVisitDetailToEditForm(latestVisit.current));
+  }, [scope]);
 
   useEffect(() => {
+    let cancelled = false;
+    setClients([]); setEmployees([]); setServices([]); setListsLoading(false);
     if (!tenantId) return;
     setListsLoading(true);
     void (async () => {
+      try {
       const [clientRes, employeeRes, catalogRes] = await Promise.all([
         fetchClientList(tenantId, profile?.roleKey, {
           lifecycleFilter: "active",
@@ -205,6 +221,9 @@ export function AssignmentEditForm({
         fetchAssignmentEmployeeList(tenantId, profile?.roleKey),
         fetchTenantServiceCatalog(tenantId, profile?.roleKey),
       ]);
+      if (cancelled) return;
+      const failed = [clientRes, employeeRes, catalogRes].find(result => !result.ok);
+      if (failed && !failed.ok) setError(failed.error);
       if (clientRes.ok) {
         setClients(
           clientRes.data.map((client) => ({
@@ -228,9 +247,12 @@ export function AssignmentEditForm({
             .map((item) => ({ value: item.serviceKey, label: item.name })),
         );
       }
-      setListsLoading(false);
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Auswahldaten konnten nicht geladen werden.');
+      } finally { if (!cancelled) setListsLoading(false); }
     })();
-  }, [tenantId, profile?.roleKey]);
+    return () => { cancelled = true; };
+  }, [tenantId, profile?.id, profile?.roleKey]);
 
   const subjectOptions = useMemo(
     () =>
@@ -264,7 +286,11 @@ export function AssignmentEditForm({
   ).length;
 
   const handleSave = async () => {
-    if (!tenantId || !canManage) return;
+    if (!tenantId || !canManage || submitScope.current || persistedVisitId || listsLoading) return;
+    if ((form.clientId !== initialVisit.clientId && !clients.some(client => client.value === form.clientId)) ||
+      (form.employeeId && form.employeeId !== initialVisit.employeeId && !employees.some(employee => employee.value === form.employeeId))) {
+      setError('Bitte eine verfügbare Person aus den aktuellen Auswahllisten wählen.'); return;
+    }
     const validation = validateAssignmentCreateForm({
       clientId: form.clientId,
       employeeId: form.employeeId,
@@ -279,7 +305,10 @@ export function AssignmentEditForm({
       return;
     }
     setSaving(true);
+    const submittedScope = scope; const request = ++submitRequest.current; submitScope.current = submittedScope;
+    const canCommit = () => mounted.current && scopeRef.current === submittedScope && submitScope.current === submittedScope && submitRequest.current === request;
     setError(null);
+    try {
     const result = await updateVisitFromWizard(
       tenantId,
       visitId,
@@ -287,14 +316,19 @@ export function AssignmentEditForm({
       profile?.roleKey,
       seriesScope,
     );
-    setSaving(false);
+    if (!canCommit()) return;
     if (result.ok) {
       onSaved?.(result.data.id);
     } else {
       setError(result.error);
+      setPersistedVisitId(result.persistedVisitId ?? null);
     }
+    } catch (cause) {
+      if (canCommit()) setError(cause instanceof Error ? cause.message : 'Speichern fehlgeschlagen. Bitte Verbindung prüfen.');
+    } finally { if (canCommit()) { submitScope.current = null; setSaving(false); } }
   };
 
+  if (formScope !== scope) return <InfoBanner message="Einsatzdaten werden aktualisiert…" />;
   if (!canManage) {
     return (
       <InfoBanner
@@ -311,6 +345,7 @@ export function AssignmentEditForm({
       keyboardShouldPersistTaps="handled"
     >
       {error ? <ErrorState message={error} /> : null}
+      {persistedVisitId ? <PremiumButton title="Gespeicherten Einsatz prüfen" onPress={() => { onCancel(); router.push(`/assist/assignments/${persistedVisitId}` as never); }} /> : null}
       <AssignmentStudioScaffold
         steps={EDIT_STUDIO_STEPS}
         activeStep={section}
@@ -351,7 +386,7 @@ export function AssignmentEditForm({
             <PremiumButton
               title="Änderungen speichern"
               loading={saving}
-              disabled={saving || !form.title.trim() || !form.clientId}
+              disabled={saving || listsLoading || Boolean(persistedVisitId) || !form.title.trim() || !form.clientId}
               onPress={() => void handleSave()}
             />
           </>

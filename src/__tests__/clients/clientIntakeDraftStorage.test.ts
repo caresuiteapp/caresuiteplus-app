@@ -144,13 +144,38 @@ describe('Client intake draft storage', () => {
   });
 
   it('merged neue Formularfelder in ältere Entwürfe', () => {
-    const merged = mergeIntakeFormWithDefaults({ firstName: 'Tom', billingTypes: ['pflegekasse'] });
+    const merged = mergeIntakeFormWithDefaults({ firstName: 'Tom', billingTypes: ['pflegekasse'], fundingSources: ['selbstzahler', 'umwandlung'] });
     expect(merged.billingTypes).toEqual(['pflegekasse']);
     expect(merged.costBearerTypes).toEqual([]);
+    expect(merged.fundingSources).toEqual(['selbstzahler', 'umwandlung']);
   });
 
   it('entfernt Entwurf explizit', async () => {
     await clearClientIntakeDraft(userId, tenantId);
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith(storageKey);
+  });
+  it('behält auch einen Entwurf mit ausschließlich späteren Sicherheits- oder Dokumentfeldern', () => {
+    expect(hasIntakeDraftContent({ form: { ...createEmptyIntakeForm(), keySafeCode: '4711' }, stepIndex: 0 })).toBe(true);
+    expect(hasIntakeDraftContent({ form: { ...createEmptyIntakeForm(), specialNotes: 'Arbeit erhalten' }, stepIndex: 0 })).toBe(true);
+  });
+  it('weist beschädigte Feldtypen zurück und lässt gültige Fachwerte lesbar', async () => {
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify({ form: { firstName: 'Anna', lastName: 7, careContexts: ['ambulatory_care', null], homeAccess: 5, fundingSources: 'not-an-array' }, stepIndex: 2, schemaVersion: 2 }));
+    const draft = await loadClientIntakeDraft(userId, tenantId);
+    expect(draft?.form.firstName).toBe('Anna'); expect(draft?.form.lastName).toBe('');
+    expect(draft?.form.careContexts).toEqual(['ambulatory_care']); expect(draft?.form.homeAccess).toEqual([]);
+    expect(draft?.form.fundingSources).toEqual([]);
+  });
+  it('stellt alte Dokumententwürfe ohne Absturz wieder her und erhält gültige Unterschriften', async () => {
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify({
+      form: { firstName: 'Anna', intakeDocuments: [null, { templateKey: 'privacy_consent_default', status: 'signed',
+        missingPlaceholders: null, unresolvedKeys: ['client.name', 7],
+        signatures: { client: { role: 'client', dataUrl: 'data:image/png;base64,signed', signedAt: '2026-10-11' }, employee: null, extra: { dataUrl: 'bad' } },
+      }] }, stepIndex: 6, schemaVersion: 2,
+    }));
+    const draft = await loadClientIntakeDraft(userId, tenantId);
+    expect(draft?.form.intakeDocuments).toHaveLength(1);
+    expect(draft?.form.intakeDocuments[0]?.missingPlaceholders).toEqual(['Gespeichertes Dokument prüfen']);
+    expect(draft?.form.intakeDocuments[0]?.unresolvedKeys).toEqual(['client.name']);
+    expect(draft?.form.intakeDocuments[0]?.signatures).toEqual({ client: { role: 'client', dataUrl: 'data:image/png;base64,signed', signedAt: '2026-10-11' } });
   });
 });

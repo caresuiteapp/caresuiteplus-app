@@ -10,7 +10,7 @@ import { resolveContractTemplateKey } from './buildIntakeDocumentContext';
 export type IntakeDocumentsValidation = {
   ok: boolean;
   errors: Record<string, string>;
-  /** Non-blocking hints for mandatory docs that may be completed later in the employee portal. */
+  /** Additional hints; required evidence remains blocking until complete. */
   warnings: Record<string, string>;
   checklist: { key: string; label: string; complete: boolean }[];
 };
@@ -21,7 +21,6 @@ function docByKey(documents: IntakeDocumentState[], templateKey: string): Intake
 
 function isDocComplete(doc: IntakeDocumentState | undefined, template: IntakeDocumentTemplate | undefined): boolean {
   if (!doc || !template) return false;
-  if (doc.status === 'skipped_optional') return true;
   if (doc.status !== 'finalized') return false;
   if (doc.missingPlaceholders.length > 0) return false;
 
@@ -71,8 +70,7 @@ export function validateIntakeDocumentsStep(
     complete: privacyOk,
   });
   if (!privacyOk) {
-    warnings.intakePrivacy =
-      'Datenschutz-Einwilligung ist noch offen — kann nach dem Speichern im Mitarbeiter-Portal abgeschlossen werden.';
+    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
 
   const contractKey = resolveContractTemplateKey(form);
@@ -87,8 +85,7 @@ export function validateIntakeDocumentsStep(
     complete: contractOk,
   });
   if (!contractOk) {
-    warnings.intakeContract =
-      'Kundenvertrag ist noch offen — kann nach dem Speichern im Mitarbeiter-Portal abgeschlossen werden.';
+    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie können die Aufnahme als Entwurf speichern.`;
   }
 
   if (form.intakeAssignmentEnabled) {

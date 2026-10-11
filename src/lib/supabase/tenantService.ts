@@ -55,11 +55,8 @@ function readSessionRoleHint(session: Session): string | null {
     return appRole.trim();
   }
 
-  const userRole = session.user.user_metadata?.role_key;
-  if (typeof userRole === 'string' && userRole.trim()) {
-    return userRole.trim();
-  }
-
+  // user_metadata is editable by the account owner. It may supply display
+  // labels, but never a role when the verified profile/JWT has none.
   return null;
 }
 
