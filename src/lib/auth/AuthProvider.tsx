@@ -35,7 +35,7 @@ import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
 import { withAuthBootstrapTimeout } from './authBootstrapTimeout';
 import { unregisterPortalPushDeviceBeforeLogout } from '@/lib/portal/portalPushNotifications';
-import { ensurePortalWriteSession } from './portalSupabaseAuth';
+import { ensurePortalWriteSession, isPortalSupabaseIdentityAligned } from './portalSupabaseAuth';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -205,6 +205,9 @@ async function hydrateSupabaseSession(
   portalRecord?: PortalSessionRecord | null,
   canCommit: () => boolean = () => true,
 ): Promise<HydrateSupabaseSessionResult> {
+  if (portalRecord && !isPortalSupabaseIdentityAligned(supabaseSession, portalRecord)) {
+    return { ok: false, error: 'Die sichere Sitzung gehört nicht zum aktiven Portal. Bitte erneut anmelden.' };
+  }
   try {
     const bootstrap = await withAuthBootstrapTimeout(
       bootstrapTenantContext(supabaseSession),
@@ -286,6 +289,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [portalSession, setPortalSession] = useState<PortalSessionRecord | null>(null);
+  const portalSessionRef = useRef(portalSession);
+  portalSessionRef.current = portalSession;
   const [profileBootstrapError, setProfileBootstrapError] = useState<string | null>(null);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const profileRepairAttemptedRef = useRef(false);
@@ -327,6 +332,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           : await getSession();
         if (!canRestore()) return;
 
+        const verifiedPortal = restoredPortal && sessionResult.ok &&
+          isPortalSupabaseIdentityAligned(sessionResult.data, restoredPortal)
+          ? restoredPortal : null;
+        if (restoredPortal && !verifiedPortal) {
+          await clearPortalSession();
+          if (!canRestore()) return;
+        }
+        if (verifiedPortal) {
+          portalSessionRef.current = verifiedPortal;
+          setPortalSession(verifiedPortal);
+        }
+
         if (sessionResult.ok && sessionResult.data) {
           const hydrated = await hydrateSupabaseSession(
             sessionResult.data,
@@ -334,7 +351,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setProfile,
             setSession,
             setProfileBootstrapError,
-            restoredPortal,
+            verifiedPortal,
             canRestore,
           );
           if (canRestore() && !hydrated.ok) {
@@ -364,12 +381,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } catch {
           restoredPortal = null;
         }
-        if (canRestore() && restoredPortal) {
+        // Live sessions are published only after their signed identity matches
+        // the persisted record. A saved access account cannot relabel a user.
+        if (authMode !== 'supabase' && canRestore() && restoredPortal) {
+          portalSessionRef.current = restoredPortal;
           setPortalSession(restoredPortal);
         }
 
         if (authMode === 'supabase') {
-          const restoration = restoreSupabaseSession(restoredPortal);
+          let pendingPortalRestore = restoredPortal;
+          const restoration = restoreSupabaseSession(restoredPortal).finally(() => {
+            pendingPortalRestore = null;
+          });
 
           const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
             if (cancelled) return;
@@ -390,13 +413,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
             void (async () => {
               try {
                 if (supabaseSession) {
+                  const currentPortal = portalSessionRef.current;
+                  // Session repair can emit SIGNED_IN before restoration returns.
+                  // Publish its saved first-login state only if this signed event
+                  // verifies that pending account, then retire the candidate.
+                  const candidatePortal = currentPortal ?? pendingPortalRestore;
+                  const alignedPortal = candidatePortal && isPortalSupabaseIdentityAligned(supabaseSession, candidatePortal)
+                    ? candidatePortal : null;
+                  pendingPortalRestore = null;
+                  if (alignedPortal && !currentPortal) {
+                    portalSessionRef.current = alignedPortal;
+                    setPortalSession(alignedPortal);
+                  }
+                  if (currentPortal && !alignedPortal) {
+                    portalSessionRef.current = null;
+                    setPortalSession(null);
+                  }
                   const result = await hydrateSupabaseSession(
                     supabaseSession,
                     setUser,
                     setProfile,
                     setSession,
                     setProfileBootstrapError,
-                    restoredPortal,
+                    alignedPortal,
                     canCommitEvent,
                   );
                   if (!result.ok && canCommitEvent()) {
@@ -410,6 +449,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 }
 
                 if (!cancelled) {
+                  pendingPortalRestore = null;
+                  portalSessionRef.current = null;
+                  setPortalSession(null);
                   setUser(null);
                   setProfile(null);
                   setSession(null);
@@ -541,6 +583,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const generation = ++authGenerationRef.current;
     profileRepairAttemptedRef.current = false;
     const canCommit = () => canCommitGeneration(generation);
+    portalSessionRef.current = null;
     try {
       await withAuthBootstrapTimeout(clearPortalSession(), 'Portal-Sitzung löschen', 4_000);
     } catch {
@@ -597,11 +640,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const generation = ++authGenerationRef.current;
     profileRepairAttemptedRef.current = false;
     const canCommit = () => canCommitGeneration(generation);
+    const sessionResult = await getSession();
+    if (!canCommit()) return;
+    if (authMode === 'supabase' && (!sessionResult.ok ||
+      !isPortalSupabaseIdentityAligned(sessionResult.data, record))) {
+      throw new Error('Die sichere Sitzung gehört nicht zum aktiven Portal. Bitte erneut anmelden.');
+    }
     await savePortalSession(record);
     if (!canCommit()) return;
+    portalSessionRef.current = record;
     setPortalSession(record);
 
-    const sessionResult = await getSession();
     if (!canCommit() || !sessionResult.ok || !sessionResult.data) return;
 
     await hydrateSupabaseSession(
@@ -613,12 +662,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       record,
       canCommit,
     );
-  }, [canCommitGeneration]);
+  }, [authMode, canCommitGeneration]);
 
   const updatePortalSession = useCallback(async (patch: Partial<PortalSessionRecord>) => {
+    const target = portalSessionRef.current;
     setPortalSession((current) => {
-      if (!current) return current;
+      if (!current || !target || current.accountId !== target.accountId ||
+          current.tenantId !== target.tenantId || current.sessionToken !== target.sessionToken) return current;
       const next = { ...current, ...patch };
+      portalSessionRef.current = next;
       void savePortalSession(next);
       return next;
     });
@@ -673,6 +725,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
           setProfile(null);
           setSession(null);
+          portalSessionRef.current = null;
           setPortalSession(null);
           setProfileBootstrapError(null);
           signOutRequestedRef.current = false;
@@ -691,6 +744,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(null);
             setProfile(null);
             setSession(null);
+            portalSessionRef.current = null;
             setPortalSession(null);
             setProfileBootstrapError(null);
           }

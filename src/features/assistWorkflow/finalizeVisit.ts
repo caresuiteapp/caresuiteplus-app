@@ -10,7 +10,9 @@ import { assistProofProjectionKey } from './internal/workflowProjectionKeys';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { fetchLatestVisitProof } from '@/lib/assist/assistVisitProofPersistenceService';
-import { isStoredVisitProofComplete } from '@/lib/assist/visitProofCompleteness';
+import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { isStoredVisitProofComplete, visitProofSnapshotsMatch } from '@/lib/assist/visitProofCompleteness';
+import { buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import type { AssistExecutionContext } from './types';
 import {
@@ -85,10 +87,24 @@ export async function finalizeVisit(
   // bounded moment for that projection and reuse it instead of repeating the
   // expensive signature download, orientation probe and proof upload.
   await proofProjection;
-  const existingProof = await fetchLatestVisitProof(ctx.tenantId, ctx.assistVisitId);
+  const [existingProof, currentSignature] = await Promise.all([
+    fetchLatestVisitProof(ctx.tenantId, ctx.assistVisitId),
+    fetchValidVisitSignature(ctx.tenantId, ctx.assistVisitId),
+  ]);
+  const currentSnapshot = buildServiceRecordSnapshot({ detail: ctx.detail, visitTimes: ctx.visitTimes,
+    documentationText: docText, visitId: ctx.assistVisitId, employeeId: ctx.employeeId,
+    serviceName: ctx.detail.title,
+    signatureSummary: existingProof.ok && existingProof.data?.payloadSnapshot?.signature
+      ? existingProof.data.payloadSnapshot.signature as { signerName: string; signedAt: string; signerRole?: string | null }
+      : null });
   const reusableProof =
     existingProof.ok &&
     existingProof.data &&
+    currentSignature.ok && currentSignature.data &&
+    currentSignature.data.tenantId === ctx.tenantId && currentSignature.data.visitId === ctx.assistVisitId &&
+    existingProof.data.signatureId === currentSignature.data.id &&
+    existingProof.data.tenantId === ctx.tenantId && existingProof.data.visitId === ctx.assistVisitId &&
+    visitProofSnapshotsMatch(existingProof.data.payloadSnapshot, currentSnapshot) &&
     isStoredVisitProofComplete(existingProof.data, {
       requireSignature: true,
     });
@@ -97,7 +113,7 @@ export async function finalizeVisit(
         ok: true as const,
         data: { serviceRecordId: null, proofPersisted: true, html: '' },
       }
-    : await generateServiceRecord(ctx, docText);
+    : await generateServiceRecord(ctx, docText, { requireSignature: true });
 
   if (getServiceMode() === 'supabase' && (!record.ok || !record.data.proofPersisted)) {
     return assistWorkflowErrorToResult(

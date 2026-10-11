@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { buildEmployeePersonnelFileFromLiveRows } from '@/lib/office/employeePersonnelFileMapper';
 
 function readSource(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8');
@@ -21,9 +22,30 @@ describe('Mitarbeitenden-Portal Zugangsdatenvertrag', () => {
     expect(panel).toContain("account.status === 'active' && account.firstLoginCompleted");
   });
 
-  it('leitet die Einsatzfähigkeit aus dem vorhandenen Portalkonto ab', () => {
-    const mapper = readSource('src/lib/office/employeePersonnelFileMapper.ts');
-    expect(mapper).toContain('portalActive: portalAccount');
-    expect(mapper).toContain("portalAccount.status !== 'blocked' && portalAccount.status !== 'archived'");
+  it.each([
+    ['active', false, true],
+    ['pending_first_login', false, true],
+    ['password_reset_required', false, true],
+    ['blocked', true, false],
+    ['archived', true, false],
+  ])('uses the %s account status ahead of the legacy portal_enabled=%s flag', (status, legacy, expected) => {
+    const file = buildEmployeePersonnelFileFromLiveRows({
+      employee: {
+        id: 'employee', tenant_id: 'tenant', first_name: 'Test', last_name: 'Person',
+        status: 'active', portal_enabled: legacy, created_at: '2026-01-01', updated_at: '2026-01-01',
+      },
+      portalAccount: { status },
+    });
+    expect(file.portalAccess.portalActive).toBe(expected);
+  });
+
+  it.each([true, false])('uses the legacy portal flag %s only when no account exists', (legacy) => {
+    const file = buildEmployeePersonnelFileFromLiveRows({
+      employee: {
+        id: 'employee', tenant_id: 'tenant', first_name: 'Test', last_name: 'Person',
+        status: 'active', portal_enabled: legacy, created_at: '2026-01-01', updated_at: '2026-01-01',
+      },
+    });
+    expect(file.portalAccess.portalActive).toBe(legacy);
   });
 });

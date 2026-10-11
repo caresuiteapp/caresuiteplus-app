@@ -125,6 +125,8 @@ export function PortalAppointmentsTab({
     });
     if (
       detailBasePath &&
+      !appt.id.startsWith('calendar:') &&
+      !fromCache && !(appt as CachedPortalAppointmentItem).cacheStale &&
       shouldNavigateEmployeePortalAssignmentToExecution({
         status,
         documentationPending: pending.documentationPending,
@@ -226,7 +228,7 @@ export function PortalAppointmentsTab({
                   cacheStale={cachedItem.cacheStale}
                   onPreview={() => openEmployeeAssignment(appt)}
                   onStartTrip={
-                    detailBasePath
+                    detailBasePath && !appt.id.startsWith('calendar:') && !fromCache && !cachedItem.cacheStale
                       ? () => router.push(`${detailBasePath}/${appt.id}/execute` as never)
                       : undefined
                   }

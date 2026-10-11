@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import { randomUUID } from 'expo-crypto';
 import type {
   OfficeCreateSignatureDocumentInput,
   PortalSignatureCapture,
@@ -30,13 +31,14 @@ import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supaba
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
-import { toStorageUploadError } from '@/lib/storage/storagePaths';
+import { isTenantStoragePath, toStorageUploadError } from '@/lib/storage/storagePaths';
+import { fetchAllPortalRows } from './portalRowPagination';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
+import { fetchPortalEmployeeIdForAuthUser } from './resolvePortalEmployeeLink';
 
-async function getAuthProfileId(): Promise<string | null> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+async function getAuthProfileId(tenantId: string): Promise<string | null> {
+  const profile = await resolveAuthenticatedProfileId(tenantId);
+  return profile.ok ? profile.data : null;
 }
 
 async function insertAuditEvent(input: {
@@ -49,7 +51,7 @@ async function insertAuditEvent(input: {
 }): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
-  const actorUserId = await getAuthProfileId();
+  const actorUserId = await getAuthProfileId(input.tenantId);
   await fromUnknownTable(supabase, PORTAL_SIGNATURE_TABLES.audit).insert({
     tenant_id: input.tenantId,
     document_id: input.documentId,
@@ -77,39 +79,36 @@ function mapDocumentTypeToClientCategory(
 async function archiveCompletedDocument(
   doc: PortalSignatureDocument,
   finalStoragePath: string,
-): Promise<void> {
+): Promise<ServiceResult<void>> {
   const supabase = getSupabaseClient();
-  if (!supabase) return;
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const fileName = `${doc.title.replace(/[^\w\-äöüÄÖÜß ]/g, '').trim() || 'dokument'}.pdf`;
 
-  if (doc.recipientType === 'employee' && doc.employeeId) {
-    await fromUnknownTable(supabase, 'employee_documents').insert({
-      tenant_id: doc.tenantId,
-      employee_id: doc.employeeId,
-      category: doc.documentType,
-      title: doc.title,
-      file_name: fileName,
-      storage_path: finalStoragePath,
-      sensitive: false,
-      released_to_portal: true,
-    });
+  const archives: { table: string; ownerKey: 'employee_id' | 'client_id'; ownerId: string; row: Record<string, unknown> }[] = [];
+  if (doc.recipientType === 'employee' && doc.employeeId) archives.push({ table: 'employee_documents', ownerKey: 'employee_id', ownerId: doc.employeeId, row: {
+    id: doc.id, tenant_id: doc.tenantId, employee_id: doc.employeeId, category: doc.documentType,
+    title: doc.title, file_name: fileName, storage_path: finalStoragePath, sensitive: false, released_to_portal: true,
+  } });
+  if (doc.clientId) archives.push({ table: 'client_documents', ownerKey: 'client_id', ownerId: doc.clientId, row: {
+    id: doc.id, tenant_id: doc.tenantId, client_id: doc.clientId, title: doc.title, file_name: fileName,
+    mime_type: 'application/pdf', storage_path: finalStoragePath, category: mapDocumentTypeToClientCategory(doc.documentType),
+    status: 'abgeschlossen', portal_visible: true, sensitivity: 'care',
+  } });
+  for (const archive of archives) {
+    const load = () => fromUnknownTable(supabase, archive.table).select(archive.ownerKey === 'employee_id' ? 'id, employee_id, storage_path' : 'id, client_id, storage_path')
+      .eq('tenant_id', doc.tenantId).eq('id', doc.id).maybeSingle();
+    const exists = await load();
+    const matches = (row: Record<string, unknown> | null) => row?.[archive.ownerKey] === archive.ownerId && row?.storage_path === finalStoragePath;
+    if (exists.error || (exists.data && !matches(exists.data))) return { ok: false, error: 'Die Dokumentablage ist nicht eindeutig. Bitte die Verwaltung informieren.' };
+    if (exists.data) continue;
+    const inserted = await fromUnknownTable(supabase, archive.table).insert(archive.row);
+    if (inserted.error) {
+      const recovered = await load();
+      if (recovered.error || !matches(recovered.data)) return { ok: false, error: 'Die Unterschrift ist gespeichert. Die Dokumentablage konnte noch nicht bestätigt werden. Bitte die Fertigstellung erneut versuchen.' };
+    }
   }
-
-  if (doc.clientId) {
-    await fromUnknownTable(supabase, 'client_documents').insert({
-      tenant_id: doc.tenantId,
-      client_id: doc.clientId,
-      title: doc.title,
-      file_name: fileName,
-      mime_type: 'application/pdf',
-      storage_path: finalStoragePath,
-      category: mapDocumentTypeToClientCategory(doc.documentType),
-      status: 'abgeschlossen',
-      portal_visible: true,
-      sensitivity: 'care',
-    });
-  }
+  return { ok: true, data: undefined };
 }
 
 async function loadDocumentDetail(
@@ -184,25 +183,20 @@ export async function fetchLivePortalSignatureDocuments(
 ): Promise<ServiceResult<PortalSignatureDocument[]>> {
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (await fetchPortalEmployeeIdForAuthUser(tenantId) !== employeeId) return { ok: false, error: 'Mitarbeitende sehen nur die eigenen Signaturdokumente.' };
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, PORTAL_SIGNATURE_TABLES.documents)
-    .select('*')
+  const result = await fetchAllPortalRows<Record<string, unknown> & { id: string }>((from, to) => fromUnknownTable(supabase, PORTAL_SIGNATURE_TABLES.documents)
+    .select('*', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)
     .neq('status', 'withdrawn')
-    .order('due_date', { ascending: true, nullsFirst: false });
+    .order('due_date', { ascending: true, nullsFirst: false }).order('id', { ascending: true }).range(from, to));
+  if (!result.ok) return result;
 
-  if (error) {
-    if (isSupabaseMissingTableError(error)) {
-      return { ok: false, error: 'portal_signature_documents (0227) nicht verfügbar.' };
-    }
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  const docs = (data ?? []).map((row) =>
+  const docs = result.data.map((row) =>
     mapPortalSignatureDocumentRow(row as Record<string, unknown>),
   );
   return { ok: true, data: filterPortalSignatureDocuments(docs, tab) };
@@ -215,6 +209,7 @@ export async function fetchLivePortalSignatureDocumentDetail(
 ): Promise<ServiceResult<PortalSignatureDocumentDetail>> {
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (await fetchPortalEmployeeIdForAuthUser(tenantId) !== employeeId) return { ok: false, error: 'Mitarbeitende sehen nur die eigenen Signaturdokumente.' };
 
   const detail = await loadDocumentDetail(tenantId, documentId);
   if (!detail.ok || !detail.data) return detail;
@@ -238,6 +233,7 @@ export async function signLivePortalDocument(
 ): Promise<ServiceResult<PortalSignatureDocumentDetail>> {
   const tenantBlock = guardServiceTenant(input.tenantId);
   if (tenantBlock) return tenantBlock;
+  if (await fetchPortalEmployeeIdForAuthUser(input.tenantId) !== input.employeeId) return { ok: false, error: 'Dieses Signaturdokument gehört nicht zu Ihrem Mitarbeitendenprofil.' };
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -255,66 +251,39 @@ export async function signLivePortalDocument(
   if (doc.nextSignerRole !== input.signerRole) {
     return { ok: false, error: 'Diese Unterschrift ist aktuell nicht erforderlich.' };
   }
+  if (doc.documentSourceType === 'pdf_upload') return { ok: false, error: 'Die hochgeladene Original-PDF kann derzeit noch nicht vollständig mit einer Unterschrift abgeschlossen werden. Bitte wenden Sie sich an die Verwaltung.' };
+  if (input.expectedVersionNumber != null && input.expectedVersionNumber !== doc.versionNumber) return { ok: false, error: 'Das Dokument wurde geändert. Bitte laden und prüfen Sie die neue Fassung.' };
 
-  const parsed = parseSignatureDataUrl(input.signatureDataUrl);
-  if (!parsed) {
-    return { ok: false, error: 'Signaturbild ungültig — bitte erneut erfassen.' };
-  }
-
-  const captureId = crypto.randomUUID?.() ?? `cap-${Date.now()}`;
-  const auditId = crypto.randomUUID?.() ?? `audit-${Date.now()}`;
-  const signedAt = new Date().toISOString();
-  const storagePath = buildPortalSignatureCaptureStoragePath(
-    input.tenantId,
-    input.documentId,
-    captureId,
-  );
-
-  const { error: uploadError } = await supabase.storage
-    .from(PORTAL_SIGNATURE_STORAGE_BUCKET)
-    .upload(storagePath, parsed.bytes, {
-      contentType: parsed.mimeType || 'image/png',
-      upsert: false,
-    });
-  if (uploadError) {
-    return { ok: false, error: toStorageUploadError(uploadError.message) };
-  }
-
-  const hashPayload = [
-    input.tenantId,
-    input.documentId,
-    input.signerRole,
-    input.signerName,
-    signedAt,
-    storagePath,
-  ].join('|');
-  const signatureHash = computeDocumentContentHash(hashPayload);
-  const payloadHash = computeDocumentContentHash(
-    `${doc.id}:${doc.versionNumber}:${doc.previewHtml ?? ''}`,
-  );
-
-  const { error: captureInsertError } = await fromUnknownTable(
-    supabase,
-    PORTAL_SIGNATURE_TABLES.captures,
-  ).insert({
-    id: captureId,
-    tenant_id: input.tenantId,
-    document_id: input.documentId,
-    signer_role: input.signerRole,
-    signer_name: input.signerName.trim(),
-    signer_profile_id: signerProfileId ?? null,
-    storage_path: storagePath,
-    signature_hash: signatureHash,
-    payload_hash: payloadHash,
-    signed_at: signedAt,
-    device_info: input.deviceInfo ?? null,
-    browser: input.browser ?? null,
-    captured_ip: input.capturedIp ?? null,
-    audit_id: auditId,
-  });
-
-  if (captureInsertError) {
-    return { ok: false, error: toGermanSupabaseError(captureInsertError) };
+  const payloadHash = computeDocumentContentHash(`${doc.id}:${doc.versionNumber}:${doc.previewHtml ?? ''}`);
+  const reusable = doc.captures.find(capture => capture.signerRole === input.signerRole && capture.payloadHash === payloadHash);
+  if (!reusable && !input.signerName.trim()) return { ok: false, error: 'Bitte den Namen der unterzeichnenden Person angeben.' };
+  const parsed = reusable ? null : parseSignatureDataUrl(input.signatureDataUrl);
+  if (!reusable && (!parsed || parsed.mimeType !== 'image/png')) return { ok: false, error: 'Signaturbild ungültig — bitte erneut erfassen.' };
+  const verifiedProfile = await resolveAuthenticatedProfileId(input.tenantId);
+  if (!verifiedProfile.ok) return verifiedProfile;
+  const captureId = reusable?.id ?? randomUUID();
+  const auditId = reusable?.auditId ?? randomUUID();
+  const signedAt = reusable?.signedAt ?? new Date().toISOString();
+  const storagePath = reusable?.storagePath ?? buildPortalSignatureCaptureStoragePath(input.tenantId, input.documentId, captureId);
+  const signatureHash = reusable?.signatureHash ?? computeDocumentContentHash([input.tenantId, input.documentId, input.signerRole, input.signerName, signedAt, storagePath].join('|'));
+  if (!reusable && parsed) {
+    const uploaded = await supabase.storage.from(PORTAL_SIGNATURE_STORAGE_BUCKET).upload(storagePath, parsed.bytes.slice().buffer as ArrayBuffer, { contentType: 'image/png', upsert: false });
+    if (uploaded.error) return { ok: false, error: toStorageUploadError(uploaded.error.message) };
+    let captureError: unknown = null;
+    try {
+      const persisted = await fromUnknownTable(supabase, PORTAL_SIGNATURE_TABLES.captures).insert({
+        id: captureId, tenant_id: input.tenantId, document_id: input.documentId,
+        signer_role: input.signerRole, signer_name: input.signerName.trim(), signer_profile_id: verifiedProfile.data,
+        storage_path: storagePath, signature_hash: signatureHash, payload_hash: payloadHash,
+        signed_at: signedAt, device_info: input.deviceInfo ?? null, browser: input.browser ?? null,
+        captured_ip: input.capturedIp ?? null, audit_id: auditId,
+      });
+      captureError = persisted.error;
+    } catch (cause) { captureError = cause; }
+    if (captureError) {
+      const recovered = await loadDocumentDetail(input.tenantId, input.documentId);
+      if (!recovered.ok || !recovered.data.captures.some(capture => capture.id === captureId && capture.payloadHash === payloadHash)) return { ok: false, error: 'Die Unterschrift konnte noch nicht bestätigt werden. Bitte den Dokumentstatus erneut laden.' };
+    }
   }
 
   const updatedDoc: PortalSignatureDocument = {
@@ -335,16 +304,17 @@ export async function signLivePortalDocument(
     documentId: input.documentId,
     tenantId: input.tenantId,
     signerRole: input.signerRole,
-    signerName: input.signerName.trim(),
+    signerName: reusable?.signerName ?? input.signerName.trim(),
     signedAt,
     signatureHash,
+    payloadHash,
     auditId,
     deviceInfo: input.deviceInfo ?? null,
     browser: input.browser ?? null,
     capturedIp: input.capturedIp ?? null,
     storagePath,
   };
-  const allCaptures = [...doc.captures, newCapture];
+  const allCaptures = reusable ? doc.captures : [...doc.captures, newCapture];
 
   if (updatedDoc.status === 'completed') {
     const pdfResult = await finalizePortalSignatureDocumentPdf({
@@ -357,7 +327,8 @@ export async function signLivePortalDocument(
     finalPdfHash = pdfResult.data.pdfHash;
     completedAt = signedAt;
     isImmutable = true;
-    await archiveCompletedDocument(updatedDoc, finalStoragePath);
+    const archived = await archiveCompletedDocument(updatedDoc, finalStoragePath);
+    if (!archived.ok) return archived;
   }
 
   const { error: updateError } = await fromUnknownTable(
@@ -376,7 +347,8 @@ export async function signLivePortalDocument(
       updated_at: signedAt,
     })
     .eq('tenant_id', input.tenantId)
-    .eq('id', input.documentId);
+    .eq('id', input.documentId).eq('version_number', doc.versionNumber).eq('status', doc.status)
+    .select('id').single();
 
   if (updateError) {
     return { ok: false, error: toGermanSupabaseError(updateError) };
@@ -402,15 +374,17 @@ export async function signLivePortalDocument(
     });
   }
 
-  return loadDocumentDetail(input.tenantId, input.documentId);
+  const confirmed = await loadDocumentDetail(input.tenantId, input.documentId);
+  if (!confirmed.ok) return confirmed;
+  if (confirmed.data.status !== updatedDoc.status || !confirmed.data.captures.some(capture => capture.id === captureId) ||
+      (updatedDoc.status === 'completed' && confirmed.data.previewPdfUrl !== finalStoragePath)) return { ok: false, error: 'Die Fertigstellung wurde noch nicht bestätigt. Bitte den Dokumentstatus erneut laden.' };
+  return confirmed;
 }
 
 export async function fetchLivePortalSignatureDashboardCounts(
   tenantId: string,
   employeeId: string,
 ): Promise<ServiceResult<PortalSignatureDashboardCounts>> {
-  const result = await fetchLivePortalSignatureDocuments(tenantId, employeeId, 'open');
-  if (!result.ok) return result;
   const all = await fetchLivePortalSignatureDocuments(tenantId, employeeId, 'open');
   if (!all.ok) return all;
   return { ok: true, data: countPortalSignatureDashboard(all.data ?? []) };
@@ -456,7 +430,7 @@ export async function createLiveOfficeSignatureDocument(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const documentId = input.documentId ?? crypto.randomUUID?.() ?? `psd-${Date.now()}`;
+  const documentId = input.documentId ?? randomUUID();
   const sentAt = new Date().toISOString();
   const nextSignerRole = resolveInitialNextSignerRole(input.signatureRequirement);
 
@@ -577,9 +551,20 @@ export async function recordLivePortalSignatureView(
 
 export async function resolveLivePortalSignatureStorageUrl(
   storagePath: string,
+  scope: { tenantId: string; employeeId: string; documentId: string },
 ): Promise<ServiceResult<string>> {
-  if (!storagePath.trim()) {
+  if (!isTenantStoragePath(storagePath, scope.tenantId)) {
     return { ok: false, error: 'Keine Datei verfügbar.' };
+  }
+  const denied = guardServiceTenant(scope.tenantId);
+  if (denied) return denied;
+  if (await fetchPortalEmployeeIdForAuthUser(scope.tenantId) !== scope.employeeId) return { ok: false, error: 'Dieses Dokument gehört nicht zu Ihrem Mitarbeitendenprofil.' };
+  const document = await loadDocumentDetail(scope.tenantId, scope.documentId);
+  if (!document.ok) return document;
+  if (document.data.employeeId !== scope.employeeId ||
+      !((document.data.status === 'completed' && document.data.allowDownload && document.data.previewPdfUrl === storagePath) ||
+        (document.data.documentSourceType === 'pdf_upload' && document.data.storagePath === storagePath && document.data.status !== 'withdrawn'))) {
+    return { ok: false, error: 'Diese Datei ist nicht für Ihr Dokument freigegeben.' };
   }
 
   const supabase = getSupabaseClient();
@@ -587,7 +572,7 @@ export async function resolveLivePortalSignatureStorageUrl(
 
   const { data, error } = await supabase.storage
     .from(PORTAL_SIGNATURE_STORAGE_BUCKET)
-    .createSignedUrl(storagePath, 3600);
+    .createSignedUrl(storagePath, 300);
 
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? 'Vorschau konnte nicht geladen werden.' };

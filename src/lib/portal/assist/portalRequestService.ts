@@ -13,6 +13,7 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
 
 const REQUEST_TYPE_LABELS: Record<PortalRequestType, string> = {
   termin_aendern: 'Einsatzänderung',
@@ -135,13 +136,9 @@ export async function createPortalRequest(
       input.title.trim() ||
       resolvePortalRequestTypeLabel(input.requestType);
 
-    // profiles.id is the auth user id; a portal access account is a different
-    // identity. Never trust a caller's account id for this profile foreign key.
-    const { data: auth, error: authError } = await supabase.auth.getUser();
-    if (authError || !auth.user?.id) {
-      return { ok: false, error: 'Ihre Anmeldung konnte nicht bestätigt werden. Bitte melden Sie sich erneut an.' };
-    }
-    const authorProfileId = auth.user.id;
+    const author = await resolveAuthenticatedProfileId(input.tenantId);
+    if (!author.ok) return author;
+    const authorProfileId = author.data;
 
     const { data, error } = await fromUnknownTable(supabase, 'portal_requests')
       .insert({

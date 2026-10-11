@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Native UUID generation is outside this IndexedDB/cache integration contract.
+vi.mock('expo-crypto', () => ({ randomUUID: () => '00000000-0000-4000-8000-000000000001' }));
 import { OFFLINE_DB_VERSION, OFFLINE_STORE_NAMES } from '@/lib/offline/types';
 import { resetOfflineDbCacheForTests } from '@/lib/offline/idb';
 import {

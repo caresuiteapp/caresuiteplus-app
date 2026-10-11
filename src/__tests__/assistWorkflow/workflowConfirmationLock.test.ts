@@ -37,9 +37,10 @@ function fixture() {
   const workflowAttemptRef = { current: 0 }, signatureScopeRef = { current: 'scope' };
   const pendingWorkflowConfirmationRef = { current: null as null | { complete: () => void } };
   const readWorkflowActionConfirmation = vi.fn(async (): Promise<{ state: string; context?: typeof ctx }> => ({ state: 'pending' }));
-  const deps = { ...timeouts, workflowInFlight, workflowAttemptRef, signatureScopeRef, pendingWorkflowConfirmationRef,
+  const deps = { ...timeouts, workflowInFlight, workflowAttemptRef, signatureScopeRef, signatureScopeKey: 'scope', pendingWorkflowConfirmationRef,
     readWorkflowActionConfirmation, tenantId: ctx.tenantId, employeeId: ctx.employeeId, assignmentId: ctx.assignmentId,
     executionContextRef: { current: ctx }, executionContext: ctx, query: { data: ctx.detail },
+    confirmedTaskAdditionsRef: { current: null }, mergeConfirmedOptionalTasks: (tasks: unknown) => tasks,
     portalSession: {}, ensurePortalWriteSession, syncAfterWorkflow, refreshExecutionContext, runCanonicalMutation: createSingleFlight(),
     setWorkflowConfirmationPending: (value: boolean) => { state.pending = value; },
     setStartServiceLoading: (value: boolean) => { state.loading = value; },
@@ -53,6 +54,15 @@ function fixture() {
     pendingWorkflowConfirmationRef, readWorkflowActionConfirmation, syncAfterWorkflow, refreshExecutionContext, ensurePortalWriteSession };
 }
 afterEach(() => vi.useRealTimers());
+
+it('rejects a callback retained after its execution screen was detached before another write starts', async () => {
+  const f = fixture();
+  f.signatureScopeRef.current = '';
+  const action = vi.fn(async () => ({ ok: true, data: f.ctx }));
+  expect((await f.run(action)).errorCode).toBe('WORKFLOW_SCOPE_CHANGED');
+  expect(action).not.toHaveBeenCalled();
+  expect(f.ensurePortalWriteSession).not.toHaveBeenCalled();
+});
 
 it('keeps one submission locked through timeout, late success, and final reconciliation', async () => {
   vi.useFakeTimers(); const f = fixture(), write = deferred<Result>(), sync = deferred<typeof f.ctx>();
@@ -147,4 +157,20 @@ it('ignores the old visit response after the workflow scope changes', async () =
   expect((await first).errorCode).toBe('WORKFLOW_SCOPE_CHANGED');
   expect(f.syncAfterWorkflow).not.toHaveBeenCalled();
   expect(f.state.loading).toBe(true);
+});
+
+it('keeps an ambiguous settled RPC locked until its durable read receipt arrives', async () => {
+  const f = fixture();
+  const action = vi.fn(async () => ({ ok: false, errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED' }));
+  expect((await f.run(action, { recoveryAction: 'start_service' })).ok).toBe(false);
+  expect(f.state.loading).toBe(false);
+  expect(f.state.pending).toBe(true);
+  expect(f.workflowInFlight.current).toBe(true);
+  expect((await f.run(action, { recoveryAction: 'start_service' })).ok).toBe(false);
+  expect(action).toHaveBeenCalledTimes(1);
+  f.readWorkflowActionConfirmation.mockResolvedValue({ state: 'confirmed', context: f.ctx });
+  await f.check();
+  expect(f.state.pending).toBe(false);
+  expect(f.workflowInFlight.current).toBe(false);
+  expect(f.syncAfterWorkflow).toHaveBeenCalledTimes(1);
 });

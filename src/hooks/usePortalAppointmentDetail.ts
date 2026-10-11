@@ -7,7 +7,7 @@ import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 
 export function usePortalAppointmentDetail(appointmentId: string | undefined) {
-  const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const { tenantId, employeeId, actorId, roleKey, isReady, isResolvingEmployeeLink } = usePortalActor();
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
 
@@ -29,7 +29,7 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
     },
     [appointmentId, profileId, roleKey, tenantId, employeeId, isOffline],
     {
-      enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
+      enabled: !!appointmentId && isReady && !isResolvingEmployeeLink && !!profileId && !!roleKey && !!tenantId && !!employeeId,
       queryKey: JSON.stringify([tenantId, employeeId, roleKey, profileId, appointmentId]),
       initialCache:
         Platform.OS !== 'web' && appointmentId && tenantId && employeeId
@@ -57,8 +57,10 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
 
   return {
     data: query.data,
-    loading: query.loading && !query.data,
-    error: query.error,
+    loading: !isReady || Boolean(isResolvingEmployeeLink) || (query.loading && !query.data),
+    error: isReady && !isResolvingEmployeeLink && !employeeId
+      ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.' : query.error,
+    refreshError: query.refreshError,
     refresh,
     notFound: !query.loading && !query.error && !query.data && !!appointmentId,
     isLiveConnected: query.isLiveConnected,

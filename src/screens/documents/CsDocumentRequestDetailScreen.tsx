@@ -23,6 +23,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
+  EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE,
   fetchCsDocumentRequestDetail,
   fetchPortalCsDocumentRequestDetail,
   markCsDocumentRequestOpened,
@@ -123,13 +124,15 @@ export function CsDocumentRequestDetailScreen({
       });
     },
     [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
-    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady) },
+    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId]) },
   );
 
   const item = query.data;
   const effectiveSignerRole = resolvePortalDocumentSignerRole({ mode, roleKey: portalActor.roleKey, pendingRoles: item?.pendingSignatureRoles ?? [], defaultRole: signerRole });
+  const employeeSigningBlocked = mode === 'employee' && portalActor.roleKey === 'employee_portal';
   const canSign =
-    item
+    !employeeSigningBlocked
+    && item
     && item.pendingSignatureRoles.includes(effectiveSignerRole)
     && ['sent', 'opened', 'partially_signed'].includes(item.status);
 
@@ -197,10 +200,10 @@ export function CsDocumentRequestDetailScreen({
     }
     setSignModal(false);
     setSignSuccess(true);
-    await Promise.all([query.refresh(), attention.refresh()]);
     } catch {
       setActionError("Ihre Unterschrift konnte nicht bestätigt werden. Bitte prüfen Sie das Dokument und versuchen Sie es erneut.");
     } finally {
+      await Promise.allSettled([query.refresh(), attention.refresh()]);
       signing.current = false;
       setWorking(false);
     }
@@ -258,6 +261,7 @@ export function CsDocumentRequestDetailScreen({
         canSign={Boolean(canSign)}
         onSign={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}
       >
+        {employeeSigningBlocked ? <InfoBanner variant="warning" message={EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE} /> : null}
         {isPortal && canSign ? (
           <ClientPortalGuide
             compact

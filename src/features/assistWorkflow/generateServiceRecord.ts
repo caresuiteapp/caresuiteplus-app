@@ -19,11 +19,16 @@ export type GenerateServiceRecordResult = {
 export async function generateServiceRecord(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
+  options: { requireSignature?: boolean } = {},
 ): Promise<ServiceResult<GenerateServiceRecordResult>> {
   let signatureSummary: { signerName: string; signedAt: string; signerRole?: string | null } | null =
     null;
   let signatureImageUrl: string | null = null;
   const sig = await fetchValidVisitSignature(ctx.tenantId, ctx.assistVisitId);
+  if (!sig.ok) return { ok: false, error: sig.error ?? 'Die gespeicherte Unterschrift konnte nicht geprüft werden. Bitte erneut versuchen.' };
+  if (options.requireSignature && !sig.data) {
+    return { ok: false, error: 'Die Unterschrift für diese Einsatzfassung fehlt. Bitte erneut unterschreiben, bevor der Leistungsnachweis abgeschlossen wird.' };
+  }
   if (sig.ok && sig.data) {
     signatureSummary = {
       signerName: sig.data.signerName,

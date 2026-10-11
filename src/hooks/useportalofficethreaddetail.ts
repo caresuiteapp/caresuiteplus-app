@@ -45,7 +45,8 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       return fetchPortalOfficeThreadDetail(tenantId, threadId, actorResult.data);
     },
     [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId],
-    { enabled: !!tenantId && !!threadId && isLinkedReady },
+    { enabled: !!tenantId && !!threadId && isLinkedReady,
+      queryKey: JSON.stringify(['portal-chat', tenantId, actorProfileId, actorRoleKey, actorClientId, actorEmployeeId, threadId]) },
   );
 
   const queryRefresh = query.refresh;
@@ -181,6 +182,8 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     sendMessage,
     startNewChat,
     markAsRead,
+    actorClientId,
+    actorEmployeeId,
     isResolvingClientLink,
   };
 }

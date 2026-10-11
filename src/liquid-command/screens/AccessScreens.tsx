@@ -760,29 +760,64 @@ export function EmployeeFirstLoginScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const scope = portalSession ? JSON.stringify([
+    portalSession.tenantId, portalSession.accountId, portalSession.loginType, portalSession.sessionToken,
+  ]) : null;
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const mountedRef = useRef(false);
+  const pendingScopeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  useEffect(() => {
+    pendingScopeRef.current = null;
+    setLoading(false);
+    setError(null);
+    setCurrentPassword('');
+    setPassword('');
+    setConfirm('');
+  }, [scope]);
 
   const submit = async () => {
+    if (pendingScopeRef.current) return;
     if (!portalSession || portalSession.loginType !== 'employee_portal') {
       setError('Die Mitarbeitenden-Sitzung ist abgelaufen. Bitte erneut anmelden.');
       return;
     }
+    const submittedScope = scope;
+    pendingScopeRef.current = submittedScope;
+    const canCommit = () => mountedRef.current && scopeRef.current === submittedScope &&
+      pendingScopeRef.current === submittedScope;
     setError(null);
     setLoading(true);
-    const result = await completeFirstLogin({
-      accountId: portalSession.accountId,
-      sessionToken: portalSession.sessionToken,
-      currentPassword,
-      newPassword: password,
-      confirmPassword: confirm,
-    });
-    setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await completeFirstLogin({
+        accountId: portalSession.accountId,
+        sessionToken: portalSession.sessionToken,
+        currentPassword,
+        newPassword: password,
+        confirmPassword: confirm,
+      });
+      if (!canCommit()) return;
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      await updatePortalSession({ mustChangePassword: false });
+      if (!canCommit()) return;
+      markPortalWelcomePending('employee');
+      router.replace('/portal/employee' as never);
+    } catch {
+      if (canCommit()) setError('Passwort konnte nicht bestätigt werden. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.');
+    } finally {
+      if (canCommit()) {
+        pendingScopeRef.current = null;
+        setLoading(false);
+      }
     }
-    await updatePortalSession({ mustChangePassword: false });
-    markPortalWelcomePending('employee');
-    router.replace('/portal/employee' as never);
   };
 
   return (
@@ -791,6 +826,7 @@ export function EmployeeFirstLoginScreen() {
       title="Persönliches Passwort festlegen."
       subtitle="Das Einmalpasswort wird nach erfolgreichem Abschluss ungültig."
       backRoute="/auth/employee-login"
+      backDisabled={loading}
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>

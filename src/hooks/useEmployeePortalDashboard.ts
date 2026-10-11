@@ -6,7 +6,7 @@ import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { loadDashboardProjectionWithCache } from '@/lib/offline/assignmentCacheService';
 
 export function useEmployeePortalDashboard() {
-  const { tenantId, employeeId, roleKey, actorId, isReady } = usePortalActor();
+  const { tenantId, employeeId, roleKey, actorId, isReady, isResolvingEmployeeLink } = usePortalActor();
 
   const live = useMemo(() => tenantId && employeeId ? {
     tenantId,
@@ -32,7 +32,7 @@ export function useEmployeePortalDashboard() {
     },
     [tenantId, employeeId, roleKey, actorId],
     {
-      enabled: isReady && Boolean(tenantId && employeeId),
+      enabled: isReady && !isResolvingEmployeeLink && Boolean(tenantId && employeeId),
       initialCache:
         Platform.OS !== 'web' && tenantId && employeeId
           ? async () => {
@@ -59,8 +59,11 @@ export function useEmployeePortalDashboard() {
 
   return {
     dashboard: query.data ?? null,
-    loading: query.loading && !query.data,
-    error: query.error,
+    loading: !isReady || Boolean(isResolvingEmployeeLink) || (query.loading && !query.data),
+    error: isReady && !isResolvingEmployeeLink && !employeeId
+      ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.' : query.error,
+    refreshError: query.refreshError,
+    refreshWithResult: query.refreshWithResult,
     refreshing: query.refreshing,
     refresh,
     isReady,

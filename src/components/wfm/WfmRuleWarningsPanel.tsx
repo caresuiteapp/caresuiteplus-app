@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, SectionPanel } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumBadge, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -35,6 +35,7 @@ type WfmRuleWarningsPanelProps = {
   employeeId?: string | null;
   compact?: boolean;
   teamView?: boolean;
+  refreshKey?: number;
 };
 
 function ViolationRow({ violation }: { violation: WfmRuleViolation }) {
@@ -57,6 +58,7 @@ export function WfmRuleWarningsPanel({
   employeeId,
   compact = false,
   teamView = false,
+  refreshKey = 0,
 }: WfmRuleWarningsPanelProps) {
   const text = useAuroraAdaptiveText();
   const workDate = todayWorkDate();
@@ -89,7 +91,8 @@ export function WfmRuleWarningsPanel({
           : evaluateAndStoreArbzgForToday(tenantId, userId, roleKey, { employeeId }),
       [tenantId, userId, roleKey, employeeId, teamView],
     ),
-    [tenantId, userId, roleKey, employeeId, teamView],
+    [tenantId, userId, roleKey, employeeId, teamView, refreshKey, workDate],
+    { queryKey: `work-rules:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}:${teamView}:${workDate}` },
   );
 
   const storedQuery = useAsyncQuery(
@@ -100,8 +103,8 @@ export function WfmRuleWarningsPanel({
           : listWfmRuleViolationsForDate(tenantId, roleKey, workDate, { employeeId }),
       [tenantId, roleKey, workDate, employeeId, teamView],
     ),
-    [tenantId, roleKey, workDate, employeeId, teamView],
-    { enabled: !teamView || true },
+    [tenantId, roleKey, workDate, employeeId, teamView, refreshKey],
+    { queryKey: `stored-work-rules:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}:${teamView}:${workDate}` },
   );
 
   const liveViolations = evalQuery.data?.violations ?? [];
@@ -124,19 +127,21 @@ export function WfmRuleWarningsPanel({
 
   const trafficLight: WfmTrafficLight = evalQuery.data?.trafficLight ?? (violations.length > 0 ? 'yellow' : 'green');
 
-  if (compact && violations.length === 0 && trafficLight === 'green') return null;
+  const readError = evalQuery.error ?? evalQuery.refreshError ?? storedQuery.error ?? storedQuery.refreshError;
+  const initialLoading = (evalQuery.loading && !evalQuery.data) || (storedQuery.loading && !storedQuery.data);
+  if (compact && !readError && !initialLoading && violations.length === 0 && trafficLight === 'green') return null;
 
   return (
     <SectionPanel title="ArbZG-Prüfung" subtitle={compact ? undefined : 'Arbeitszeitgesetz — automatische Hinweise'}>
-      <PremiumBadge label={AMPEL_LABELS[trafficLight]} variant={AMPEL_VARIANT[trafficLight]} />
+      {readError ? <ErrorState title="Arbeitszeitprüfung nicht aktuell" message={readError} onRetry={() => void Promise.all([evalQuery.refresh(), storedQuery.refresh()])} /> : initialLoading ? <LoadingState message="Arbeitszeitregeln werden geprüft…" /> : <PremiumBadge label={AMPEL_LABELS[trafficLight]} variant={AMPEL_VARIANT[trafficLight]} />}
 
-      {violations.length === 0 ? (
+      {violations.length === 0 && !readError && !initialLoading ? (
         <Text style={{ color: text.secondary, ...typography.caption, marginTop: careSpacing.sm }}>
           Keine Regelverstöße für heute erkannt.
         </Text>
-      ) : (
+      ) : violations.length ? (
         violations.map((v) => <ViolationRow key={v.id} violation={v} />)
-      )}
+      ) : null}
     </SectionPanel>
   );
 }

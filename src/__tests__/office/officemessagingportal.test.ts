@@ -11,6 +11,9 @@ import {
 } from '@/lib/office/messageattachmentservice';
 import {
   fetchPortalOfficeThreads,
+  fetchPortalOfficeThreadDetail,
+  sendPortalOfficeMessage,
+  startNewPortalThreadFromClosed,
   filterThreadsForPortalActor,
   resolvePortalActor,
 } from '@/lib/office/portalofficemessageservice';
@@ -70,6 +73,15 @@ const threads: OfficeMessageThread[] = [
     clientName: null,
     employeeId: EMPLOYEE_A,
     employeeName: 'Clara',
+  },
+  {
+    ...baseThread,
+    id: 't-employee-b',
+    threadType: 'employee_office',
+    clientId: null,
+    clientName: null,
+    employeeId: EMPLOYEE_B,
+    employeeName: 'Daniel',
   },
   {
     ...baseThread,
@@ -201,6 +213,29 @@ describe('Portal Office Messaging Phase 2B', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it.each(['t-client-a', 't-client-b', 't-internal', 't-employee-b'])('blocks employee detail, reply and restart before message access for %s', async (threadId) => {
+    const actor = { audience: 'employee' as const, roleKey: 'employee_portal' as const,
+      employeeId: EMPLOYEE_A, clientId: null, profileId: 'account-a', displayName: 'Clara' };
+    expect((await fetchPortalOfficeThreadDetail(TENANT_ID, threadId, actor)).ok).toBe(false);
+    expect((await sendPortalOfficeMessage(TENANT_ID, threadId, actor, 'Unzulässig')).ok).toBe(false);
+    expect((await startNewPortalThreadFromClosed(TENANT_ID, threadId, actor)).ok).toBe(false);
+    expect(mockFrom).not.toHaveBeenCalledWith('messages');
+    expect(mockFrom).not.toHaveBeenCalledWith('message_attachments');
+  });
+
+  it('loads only visible messages for the linked employee direct conversation', async () => {
+    const normalFrom = mockFrom.getMockImplementation()!;
+    mockFrom.mockImplementation((table: string) => table === 'messages' ? createQueryChain([
+      { id: 'visible', body: 'Sichtbare Nachricht', tenant_id: TENANT_ID, thread_id: 't-employee-a', is_internal_note: false, status: 'sent' },
+      { id: 'internal', body: 'Interne Aktennotiz', tenant_id: TENANT_ID, thread_id: 't-employee-a', is_internal_note: true, status: 'sent' },
+      { id: 'system', body: 'System', tenant_id: TENANT_ID, thread_id: 't-employee-a', is_system_message: true, status: 'sent' },
+    ]) : normalFrom(table));
+    const result = await fetchPortalOfficeThreadDetail(TENANT_ID, 't-employee-a', {
+      audience: 'employee', roleKey: 'employee_portal', employeeId: EMPLOYEE_A, clientId: null, profileId: 'account-a', displayName: 'Clara',
+    });
+    expect(result.ok && result.data.messages.map((message) => message.id)).toEqual(['visible']);
   });
 
   it('Klient:in sieht nur eigene client_office-Threads', () => {

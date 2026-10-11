@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, PremiumKpiCard, SectionPanel } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumKpiCard, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -27,19 +27,22 @@ type WfmTimeAccountPanelProps = {
   userId: string;
   roleKey: RoleKey | null;
   employeeId?: string | null;
+  refreshKey?: number;
 };
 
-export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: WfmTimeAccountPanelProps) {
+export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId, refreshKey = 0 }: WfmTimeAccountPanelProps) {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
-  const now = useMemo(() => new Date(), []);
+  const now = useMemo(() => new Date(), [refreshKey]);
+  const scope = `${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}`;
 
   const todayQuery = useAsyncQuery(
     useCallback(
       () => getWfmTodayAmpel(tenantId, userId, roleKey, { employeeId }),
       [tenantId, userId, roleKey, employeeId],
     ),
-    [tenantId, userId, roleKey, employeeId],
+    [tenantId, userId, roleKey, employeeId, refreshKey],
+    { queryKey: `time-account-today:${scope}:${now.toDateString()}` },
   );
 
   const monthQuery = useAsyncQuery(
@@ -50,7 +53,8 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: W
         }),
       [tenantId, userId, roleKey, now, employeeId],
     ),
-    [tenantId, userId, roleKey, employeeId],
+    [tenantId, userId, roleKey, employeeId, refreshKey],
+    { queryKey: `time-account-month:${scope}:${now.getFullYear()}:${now.getMonth() + 1}` },
   );
 
   const today = todayQuery.data;
@@ -58,6 +62,8 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: W
 
   return (
     <SectionPanel title="Zeitkonto" subtitle={`Monat ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`}>
+      {todayQuery.error || todayQuery.refreshError ? <ErrorState title="Tageskonto nicht aktuell" message={todayQuery.error ?? todayQuery.refreshError!} onRetry={() => void todayQuery.refresh()} /> : null}
+      {monthQuery.error || monthQuery.refreshError ? <ErrorState title="Monatskonto nicht aktuell" message={monthQuery.error ?? monthQuery.refreshError!} onRetry={() => void monthQuery.refresh()} /> : null}
       <View style={styles.kpiRow}>
         <PremiumKpiCard
           label="Heute (Min.)"
@@ -84,9 +90,8 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: W
             />
           ) : null}
         </View>
-      ) : (
-        <Text style={{ color: text.secondary, ...typography.caption }}>Zeitkonto wird berechnet…</Text>
-      )}
+      ) : monthQuery.loading ? <LoadingState message="Zeitkonto wird berechnet…" /> : null}
+      <PremiumButton title="Zeitkonto aktualisieren" variant="ghost" onPress={() => void Promise.all([todayQuery.refresh(), monthQuery.refresh()])} />
     </SectionPanel>
   );
 }

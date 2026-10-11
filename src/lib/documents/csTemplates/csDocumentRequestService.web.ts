@@ -28,6 +28,8 @@ import { validateTemplateForSend } from './csTemplateValidation';
 
 const DEMO_REQUESTS = new Map<string, CsDocumentRequestListItem>();
 
+export const EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE = 'Die Unterzeichnung ist vorübergehend gesperrt, da der vollständige Dokumentabschluss noch nicht sicher bestätigt werden kann. Bitte wenden Sie sich an die Verwaltung. Das Original können Sie weiterhin lesen.';
+
 /** Test seam — seeds demo requests when service mode is not supabase. */
 export function seedDemoCsDocumentRequestForTests(item: CsDocumentRequestListItem): void {
   DEMO_REQUESTS.set(item.id, item);
@@ -575,6 +577,12 @@ export async function signCsDocumentRequest(input: {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
+    // The installed employee path writes capture and request separately and has
+    // no version-bound receipt for recovering existing partial captures.
+    if (input.portalActor?.roleKey === 'employee_portal') {
+      return { ok: false, error: EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE };
+    }
+
     if (input.portalActor) {
       const allowed = await fetchPortalCsDocumentRequests({
         tenantId: input.tenantId,
@@ -638,7 +646,7 @@ export async function signCsDocumentRequest(input: {
       })
       .eq('request_id', input.requestId)
       .eq('signer_role', input.signerRole)
-      .eq('status', 'pending');
+      .eq('status', 'pending').select('id').single();
 
     if (sigError) throw sigError;
 
@@ -660,9 +668,9 @@ export async function signCsDocumentRequest(input: {
         updated_at: signedAt,
       })
       .eq('id', input.requestId)
-      .eq('owner_tenant_id', input.tenantId);
+      .eq('owner_tenant_id', input.tenantId).eq('updated_at', detail.data.updatedAt).select('id').single();
 
-    if (reqError) throw reqError;
+    if (reqError) return { ok: false, error: 'Die Unterschrift ist gespeichert, der Dokumentabschluss konnte noch nicht bestätigt werden. Bitte den Status neu laden und die Verwaltung informieren.' };
 
     await logCsDocumentRequestAudit({
       tenantId: input.tenantId,

@@ -342,8 +342,15 @@ export async function approvePortalUpload(
       }
 
       const title = input.title?.trim() || upload.fileName.replace(/\.[^.]+$/, '') || upload.fileName;
-      const employeeDocumentId = crypto.randomUUID?.() ?? `employee-doc-${Date.now()}`;
-      const { error: employeeDocumentError } = await fromUnknownTable(supabase, 'employee_documents').insert({
+      // The upload id is a UUID and remains stable across uncertain responses and retries.
+      const employeeDocumentId = upload.id;
+      const existingDocument = await fromUnknownTable(supabase, 'employee_documents').select('id, employee_id, storage_path')
+        .eq('tenant_id', upload.tenantId).eq('id', employeeDocumentId).maybeSingle();
+      if (existingDocument.error) return { ok: false, error: 'Die Zuordnung zur Personalakte konnte nicht geprüft werden. Bitte erneut laden.' };
+      if (existingDocument.data && (existingDocument.data.employee_id !== upload.employeeId || existingDocument.data.storage_path !== upload.storagePath)) {
+        return { ok: false, error: 'Die Dokumentenzuordnung ist nicht eindeutig. Bitte die Verwaltung informieren.' };
+      }
+      const inserted = existingDocument.data ? { error: null } : await fromUnknownTable(supabase, 'employee_documents').insert({
         id: employeeDocumentId,
         tenant_id: upload.tenantId,
         employee_id: upload.employeeId,
@@ -354,8 +361,12 @@ export async function approvePortalUpload(
         sensitive: false,
         released_to_portal: true,
       });
-      if (employeeDocumentError) {
-        return { ok: false, error: toGermanSupabaseError(employeeDocumentError) };
+      if (inserted.error) {
+        const recovered = await fromUnknownTable(supabase, 'employee_documents').select('id, employee_id, storage_path')
+          .eq('tenant_id', upload.tenantId).eq('id', employeeDocumentId).maybeSingle();
+        if (recovered.error || !recovered.data || recovered.data.employee_id !== upload.employeeId || recovered.data.storage_path !== upload.storagePath) {
+          return { ok: false, error: 'Die Zuordnung zur Personalakte konnte noch nicht bestätigt werden. Bitte den Upload erneut laden.' };
+        }
       }
 
       const now = new Date().toISOString();
@@ -369,6 +380,7 @@ export async function approvePortalUpload(
         })
         .eq('tenant_id', input.tenantId)
         .eq('id', input.uploadId)
+        .in('status', ['hochgeladen', 'wird_geprueft'])
         .select('*')
         .single();
       if (updateError || !updated) {
@@ -377,6 +389,7 @@ export async function approvePortalUpload(
           error: updateError ? toGermanSupabaseError(updateError) : 'Upload konnte nicht abgeschlossen werden.',
         };
       }
+      if (String(updated.status) !== 'freigegeben') return { ok: false, error: 'Die Freigabe wurde noch nicht bestätigt. Bitte erneut laden.' };
       return { ok: true, data: mapUploadRow(updated as Record<string, unknown>) };
     }
 
@@ -391,7 +404,7 @@ export async function approvePortalUpload(
       return { ok: false, error: toStorageUploadError(downloadError?.message) };
     }
 
-    const docId = crypto.randomUUID?.() ?? `doc-${Date.now()}`;
+    const docId = randomUUID();
     const targetPath = buildClientDocumentStoragePath(
       upload.tenantId,
       upload.clientId,

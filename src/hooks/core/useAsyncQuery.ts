@@ -118,7 +118,8 @@ export function useAsyncQuery<T>(
         const result = await runQueryWithRetry(fetcher, options?.retryCount ?? 1);
         if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return false;
         if (result.ok) {
-          succeeded = true;
+          const cachedRefreshError = (result as { refreshError?: string | null }).refreshError ?? null;
+          succeeded = !cachedRefreshError;
           applyCacheMeta(result);
           dataRef.current = result.data;
           setDataState(result.data);
@@ -130,8 +131,8 @@ export function useAsyncQuery<T>(
           setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
           setTableMissing(Boolean(previewResult.tableMissing));
           setError(null);
-          setRefreshError(null);
-          options?.onSuccess?.();
+          setRefreshError(cachedRefreshError);
+          if (succeeded) options?.onSuccess?.();
         } else if (dataRef.current === null) {
           setDataState(null);
           setPreviewData(false);

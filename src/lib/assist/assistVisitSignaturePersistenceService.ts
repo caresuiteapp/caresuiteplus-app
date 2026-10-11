@@ -29,6 +29,7 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
 
 export { fetchValidVisitSignature, isAssistExecutionPersistenceReady };
 
@@ -127,6 +128,9 @@ export async function saveVisitSignaturePersistent(
     return { ok: true, data: existing.data };
   }
 
+  const actor = await resolveAuthenticatedProfileId(tenantId);
+  if (!actor.ok) return actor;
+
   const signatureId = typeof globalThis.crypto?.randomUUID === 'function'
     ? globalThis.crypto.randomUUID()
     : (await import('expo-crypto')).randomUUID();
@@ -164,24 +168,44 @@ export async function saveVisitSignaturePersistent(
       payload_hash: input.payloadHash,
       signature_hash: input.signatureHash,
       signed_at: input.signedAt,
-      signed_by_profile_id: input.signedByProfileId ?? null,
+      signed_by_profile_id: actor.data,
       is_valid: true,
       metadata: input.metadata ?? {},
     })
     .select('*')
     .single();
 
+  let saved = data ? mapSignatureRow(data as SignatureDbRow) : null;
   if (error) {
-    if (input.signatureDataUrl?.trim() && storagePath) {
-      await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).remove([storagePath]);
+    // A transport error may arrive after the INSERT committed. Removing the
+    // image then would destroy a persisted signature. Verify this receipt
+    // before any cleanup; unknown outcomes retain the uploaded image.
+    const confirmedFailure = isSupabaseMissingTableError(error)
+      || /^(?:22\w{3}|23\w{3}|42\w{3}|PGRST20[45])$/.test(error.code ?? '');
+    if (!confirmedFailure) {
+      const recovered = await fetchValidVisitSignature(tenantId, input.visitId).catch(() => null);
+      if (recovered?.ok && recovered.data?.id === signatureId
+        && recovered.data.storagePath === storagePath && recovered.data.payloadHash === input.payloadHash
+        && recovered.data.signatureHash === input.signatureHash) saved = recovered.data;
     }
-    if (isSupabaseMissingTableError(error)) {
-      return { ok: false, error: 'assist_visit_signatures (0156) nicht verfügbar.' };
+    if (!saved && confirmedFailure && input.signatureDataUrl?.trim() && storagePath) {
+      await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).remove([storagePath]).catch(() => undefined);
     }
-    return { ok: false, error: toGermanSupabaseError(error) };
+    if (!saved) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: false, error: 'assist_visit_signatures (0156) nicht verfügbar.' };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
   }
 
-  if (existing.data && existing.data.id !== (data as SignatureDbRow).id) {
+  if (!saved || saved.id !== signatureId || saved.tenantId !== tenantId || saved.visitId !== input.visitId
+    || saved.storagePath !== storagePath || saved.payloadHash !== input.payloadHash || saved.signatureHash !== input.signatureHash
+    || !saved.isValid || saved.signedByProfileId !== actor.data) {
+    return { ok: false, error: 'Die Unterschrift wurde vom Server noch nicht eindeutig bestätigt. Bitte den Einsatzstatus prüfen; die Erfassung bleibt erhalten.' };
+  }
+
+  if (existing.data && existing.data.id !== saved.id) {
     const invalidated = await invalidateVisitSignature(
       tenantId,
       existing.data.id,
@@ -199,7 +223,7 @@ export async function saveVisitSignaturePersistent(
     }
   }
 
-  return { ok: true, data: mapSignatureRow(data as SignatureDbRow) };
+  return { ok: true, data: saved };
 }
 
 /** Invalidate signature when visit payload changes after signing. */

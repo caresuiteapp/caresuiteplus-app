@@ -7,15 +7,18 @@ export async function readClientPortalAnnouncement(
   tenantId: string,
   userId: string,
   item: AppNotification,
+  employeeId?: string | null,
 ): Promise<ServiceResult<{ body: string; readWarning: string | null }>> {
   if (!item.relatedBroadcastId) return { ok: false, error: 'Der Volltext dieser Mitteilung ist nicht mehr verfügbar.' };
   try {
     const detail = await fetchBroadcastForNotification(tenantId, item.relatedBroadcastId);
     if (!detail.ok) return { ok: false, error: 'Diese Mitteilung ist nicht mehr freigegeben oder konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.' };
     let readWarning: string | null = null;
-    if (!item.isRead) {
+    if (!item.isRead || employeeId) {
       try {
-        const read = await markNotificationRead(tenantId, item.id, userId);
+        const read = employeeId
+          ? await markNotificationRead(tenantId, item.id, userId, employeeId)
+          : await markNotificationRead(tenantId, item.id, userId);
         if (!read.ok) readWarning = 'Die Mitteilung wurde geöffnet. Der Lesestatus konnte gerade nicht gespeichert werden.';
       } catch {
         readWarning = 'Die Mitteilung wurde geöffnet. Der Lesestatus konnte gerade nicht gespeichert werden.';

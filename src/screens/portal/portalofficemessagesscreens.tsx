@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
@@ -15,6 +15,18 @@ import { careSpacing } from '@/design/tokens/spacing';
 function resolveRouteParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0]?.trim() || null;
   return value?.trim() || null;
+}
+
+function useDirectConversationBack(audience: 'client' | 'employee', active: boolean) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!active || Platform.OS === 'web') return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace(`/portal/${audience}/messages` as never);
+      return true;
+    });
+    return () => listener.remove();
+  }, [active, audience, router]);
 }
 
 function ClientPortalVerwaltungMessages() {
@@ -104,6 +116,7 @@ export function ClientPortalOfficeConversationScreen() {
   const { c } = useCareLightPalette();
   const screenFocused = useIsFocused();
   const showMobileChrome = !useMasterDetail && !!resolvedId;
+  useDirectConversationBack('client', screenFocused && showMobileChrome);
 
   useEffect(() => {
     if (!screenFocused || !resolvedId || useMasterDetail) return;
@@ -158,6 +171,7 @@ export function EmployeePortalOfficeConversationScreen() {
   const { c } = useCareLightPalette();
   const screenFocused = useIsFocused();
   const showMobileChrome = !useMasterDetail && !!resolvedId;
+  useDirectConversationBack('employee', screenFocused && showMobileChrome);
 
   useEffect(() => {
     if (!screenFocused || !resolvedId || useMasterDetail) return;

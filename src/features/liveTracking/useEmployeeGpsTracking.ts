@@ -145,6 +145,14 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   const lastCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
   const latestSnapshotRef = useRef<EmployeeGpsSnapshot | null>(null);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
+  const mountedRef = useRef(true);
+  const watchRunRef = useRef(0);
+  const scopeKey = JSON.stringify([options.tenantId, options.employeeId, options.assistVisitId, options.sessionId]);
+  const activeScopeRef = useRef(scopeKey);
+  activeScopeRef.current = scopeKey;
+  const enabledRef = useRef(options.enabled);
+  enabledRef.current = options.enabled;
+  const lastAssistScopeRef = useRef<{ tenantId: string; employeeId: string; assistSessionId: string; assistVisitId: string } | null>(null);
 
   const [state, setState] = useState<EmployeeGpsTrackingState>({
     watching: false,
@@ -169,6 +177,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 
   const persistSnapshot = useCallback(
     async (snapshot: EmployeeGpsSnapshot, force = false): Promise<boolean> => {
+      if (!mountedRef.current || activeScopeRef.current !== scopeKey) return false;
       if (!options.tenantId || !options.assistVisitId || !options.sessionId) return false;
       latestSnapshotRef.current = snapshot;
 
@@ -204,10 +213,13 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
         recordedAt: snapshot.capturedAt,
         source: 'device' as const,
       };
-      const result = await appendLocationPoint(options.tenantId, point);
+      const result = await appendLocationPoint(options.tenantId, point).catch((error: unknown) => ({
+        ok: false as const, error: error instanceof Error ? error.message : String(error),
+      }));
 
       if (!result.ok) {
         const queuedPointCount = await enqueueAssistLocationPoint(options.tenantId, point);
+        if (!mountedRef.current || activeScopeRef.current !== scopeKey) return true;
         const err = createLiveTrackingError('LIVE_LOCATION_INSERT_FAILED', {
           tenantId: options.tenantId,
           assistVisitId: options.assistVisitId,
@@ -225,6 +237,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       }
 
       await updateSessionLastLocation(options.tenantId, options.sessionId, snapshot.capturedAt);
+      if (!mountedRef.current || activeScopeRef.current !== scopeKey) return true;
       lastWriteRef.current = now;
       lastCoordsRef.current = { lat: snapshot.latitude, lon: snapshot.longitude };
 
@@ -241,11 +254,12 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 
       return true;
     },
-    [options.tenantId, options.assistVisitId, options.sessionId],
+    [options.tenantId, options.assistVisitId, options.sessionId, scopeKey],
   );
 
   const captureOnce = useCallback(async (): Promise<EmployeeGpsSnapshot | null> => {
     const snap = await captureGeolocationOnce();
+    if (!mountedRef.current || activeScopeRef.current !== scopeKey) return null;
     if (!snap) {
       setState((prev) => ({
         ...prev,
@@ -263,9 +277,12 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       errorMessage: null,
     }));
     return snapshot;
-  }, []);
+  }, [scopeKey]);
 
   const stopWatching = useCallback(() => {
+    watchRunRef.current += 1;
+    startingWatchRef.current = false;
+    writeInFlightRef.current = false;
     releaseWatchRef.current?.();
     releaseWatchRef.current = null;
     if (heartbeatTimerRef.current) {
@@ -288,22 +305,50 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   }, []);
 
   const stopAssistBackgroundTracking = useCallback(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || !options.tenantId || !options.employeeId) return;
+    const previous = lastAssistScopeRef.current;
+    const scope = options.sessionId && options.assistVisitId
+      ? { tenantId: options.tenantId, employeeId: options.employeeId,
+          assistSessionId: options.sessionId, assistVisitId: options.assistVisitId }
+      : previous?.tenantId === options.tenantId && previous.employeeId === options.employeeId
+        && (!options.assistVisitId || previous.assistVisitId === options.assistVisitId) ? previous : null;
+    if (!scope) return;
     void import('@/lib/employeeLogbook/employeeLogbookTracking')
-      .then(({ stopNativeAssistBackgroundTracking }) => stopNativeAssistBackgroundTracking())
-      .catch(() => undefined);
-  }, []);
+      .then(({ stopNativeAssistBackgroundTracking }) => stopNativeAssistBackgroundTracking(scope))
+      .catch(() => {
+        if (!mountedRef.current || activeScopeRef.current !== scopeKey) return;
+        setState((prev) => ({ ...prev, errorCode: 'LIVE_SESSION_UPDATE_FAILED',
+          errorMessage: 'Die Hintergrundaufzeichnung konnte noch nicht beendet werden. Bitte erneut prüfen.' }));
+      });
+  }, [options.tenantId, options.employeeId, options.sessionId, options.assistVisitId, scopeKey]);
+
+  const reportPersistFailure = useCallback((error: unknown, operation: string) => {
+    if (!mountedRef.current || activeScopeRef.current !== scopeKey || !enabledRef.current) return;
+    const failure = createLiveTrackingError('LIVE_LOCATION_INSERT_FAILED', {
+      tenantId: options.tenantId, employeeId: options.employeeId, assistVisitId: options.assistVisitId,
+      operation, supabaseMessage: error instanceof Error ? error.message : String(error),
+    });
+    logLiveTrackingError(failure);
+    setState((prev) => ({ ...prev, errorCode: failure.code,
+      errorMessage: 'Die GPS-Übertragung konnte nicht bestätigt werden. Bereits gesicherte Punkte bleiben erhalten; die Übertragung wird erneut versucht.' }));
+  }, [scopeKey, options.tenantId, options.employeeId, options.assistVisitId]);
 
   const startWatching = useCallback(async (): Promise<boolean> => {
+    if (!mountedRef.current || activeScopeRef.current !== scopeKey) return false;
     if (!options.enabled || !options.sessionId) return false;
     if (startingWatchRef.current) return true;
 
-    startingWatchRef.current = true;
     stopWatching();
+    const run = watchRunRef.current;
+    const isCurrent = () => mountedRef.current && activeScopeRef.current === scopeKey &&
+      watchRunRef.current === run && enabledRef.current;
+    startingWatchRef.current = true;
     try {
       const first = await captureOnce();
+      if (!isCurrent()) return false;
       if (first) {
         await persistSnapshot(first, true);
+        if (!isCurrent()) return false;
       }
 
       if (options.tenantId && options.employeeId && options.assistVisitId) {
@@ -311,13 +356,23 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
           import('@/lib/employeeLogbook/employeeLogbookTracking'),
           import('@/lib/employeeLogbook/employeeLogbookAutomation'),
         ]);
-        await linkActiveLogbookToAssistSession({
+        if (!isCurrent()) return false;
+        const assistScope = {
           tenantId: options.tenantId,
           employeeId: options.employeeId,
           assistSessionId: options.sessionId,
           assistVisitId: options.assistVisitId,
-        });
+        };
+        lastAssistScopeRef.current = assistScope;
+        const linked = await linkActiveLogbookToAssistSession(assistScope, { shouldContinue: isCurrent });
+        if (!isCurrent()) return false;
+        if (!linked) {
+          setState((prev) => ({ ...prev, watching: false, trackingActive: prev.dbSessionActive,
+            errorCode: 'LIVE_SESSION_CREATE_FAILED', errorMessage: 'Die GPS-Aufzeichnung im Hintergrund konnte nicht gestartet werden. Bitte die Standortfreigabe prüfen und erneut versuchen.' }));
+          return false;
+        }
         await resumeActiveEmployeeLogbookTracking(options.tenantId, options.employeeId).catch(() => null);
+        if (!isCurrent()) return false;
       }
 
       const sessionKey = `${options.tenantId ?? 't'}:employee:${options.employeeId ?? options.sessionId}`;
@@ -326,9 +381,13 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
         sessionKey,
         enabled: true,
         onSnapshot: (snap) => {
-          void persistSnapshot(snapshotFromGeolocation(snap));
+          if (!isCurrent()) return;
+          void persistSnapshot(snapshotFromGeolocation(snap)).catch((error) => {
+            if (isCurrent()) reportPersistFailure(error, 'useEmployeeGpsTracking.watch.persist');
+          });
         },
         onError: (code) => {
+          if (!isCurrent()) return;
           const mapped = mapGeolocationError(code);
           const err = createLiveTrackingError(mapped, {
             operation: 'useEmployeeGpsTracking.watchPosition',
@@ -348,12 +407,14 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       // unchanged or cached coordinates.
       if (Platform.OS === 'web') {
         routeSamplingTimerRef.current = setInterval(() => {
+          if (!isCurrent()) return;
           if (writeInFlightRef.current) return;
           writeInFlightRef.current = true;
           void captureOnce()
             .then((snapshot) => snapshot ? persistSnapshot(snapshot) : false)
+            .catch((error) => { if (isCurrent()) reportPersistFailure(error, 'useEmployeeGpsTracking.routeSampling'); })
             .finally(() => {
-              writeInFlightRef.current = false;
+              if (watchRunRef.current === run) writeInFlightRef.current = false;
             });
         }, EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS);
       }
@@ -361,13 +422,16 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       // The heartbeat proves that the producer is connected. It never creates
       // a new location row from an old coordinate.
       heartbeatTimerRef.current = setInterval(() => {
+        if (!isCurrent()) return;
         if (writeInFlightRef.current) return;
         writeInFlightRef.current = true;
         void (async () => {
           if (options.tenantId && options.sessionId) {
             await touchTrackingSessionHeartbeat(options.tenantId, options.sessionId);
           }
+          if (!isCurrent()) return;
           const flush = await flushAssistLocationPointQueue();
+          if (!isCurrent()) return;
           setState((prev) => ({ ...prev, queuedPointCount: flush.remaining }));
           const lastFixMs = latestSnapshotRef.current
             ? new Date(latestSnapshotRef.current.capturedAt).getTime()
@@ -377,8 +441,10 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
             const fresh = await captureOnce();
             if (fresh) await persistSnapshot(fresh, true);
           }
-        })().finally(() => {
-          writeInFlightRef.current = false;
+        })().catch((error) => {
+          if (isCurrent()) reportPersistFailure(error, 'useEmployeeGpsTracking.heartbeat');
+        }).finally(() => {
+          if (watchRunRef.current === run) writeInFlightRef.current = false;
         });
       }, EMPLOYEE_LIVE_LOCATION_INTERVAL_MS);
 
@@ -386,10 +452,16 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
         const wakeLockNavigator = navigator as Navigator & {
           wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
         };
-        wakeLockRef.current = await wakeLockNavigator.wakeLock?.request('screen').catch(() => null) ?? null;
+        const wakeLock = await wakeLockNavigator.wakeLock?.request('screen').catch(() => null) ?? null;
+        if (!isCurrent()) {
+          await wakeLock?.release().catch(() => undefined);
+          return false;
+        }
+        wakeLockRef.current = wakeLock;
       }
 
       const queuedPointCount = await getQueuedAssistLocationPointCount();
+      if (!isCurrent()) return false;
 
       setState((prev) => ({
         ...prev,
@@ -400,6 +472,8 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 
       return true;
     } catch (error) {
+      if (!isCurrent()) return false;
+      stopWatching();
       const err = createLiveTrackingError('LIVE_GPS_POSITION_UNAVAILABLE', {
         operation: 'useEmployeeGpsTracking.startWatching',
         supabaseMessage: error instanceof Error ? error.message : String(error),
@@ -414,14 +488,19 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       }));
       return false;
     } finally {
-      startingWatchRef.current = false;
+      if (watchRunRef.current === run) startingWatchRef.current = false;
     }
-  }, [options.enabled, options.sessionId, options.tenantId, options.employeeId, options.assistVisitId, captureOnce, persistSnapshot, stopWatching]);
+  }, [options.enabled, options.sessionId, options.tenantId, options.employeeId, options.assistVisitId, scopeKey, captureOnce, persistSnapshot, stopWatching, reportPersistFailure]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (options.enabled && options.sessionId) {
       if (!releaseWatchRef.current) void startWatching();
-      return;
+      return () => stopWatching();
     }
     stopWatching();
     stopAssistBackgroundTracking();
@@ -449,12 +528,12 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
     ) return;
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !options.enabled || !options.sessionId) return;
+      const run = watchRunRef.current;
       // Browsers throttle hidden tabs. On resume, immediately obtain a fresh
       // point and make sure the singleton watch is still attached.
       if (!releaseWatchRef.current) void startWatching();
-      void captureOnce().then((snapshot) => {
-        if (snapshot) void persistSnapshot(snapshot, true);
-      });
+      void captureOnce().then((snapshot) => snapshot ? persistSnapshot(snapshot, true) : false)
+        .catch((error) => { if (watchRunRef.current === run) reportPersistFailure(error, 'useEmployeeGpsTracking.visibilityResume'); });
       if ('wakeLock' in navigator && !wakeLockRef.current) {
         const wakeLockNavigator = navigator as Navigator & {
           wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
@@ -466,7 +545,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [options.enabled, options.sessionId, captureOnce, persistSnapshot, startWatching]);
+  }, [options.enabled, options.sessionId, captureOnce, persistSnapshot, startWatching, reportPersistFailure]);
 
   useEffect(() => {
     // React Native defines `window`, but not browser online/offline listeners.

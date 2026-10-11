@@ -68,6 +68,9 @@ export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListIte
     status: string;
   }[];
   portalDocuments: EmployeePortalClientRecordDocument[];
+  documentsError?: string | null;
+  contactsError?: string | null;
+  accessError?: string | null;
 };
 
 const CLIENT_LIST_SELECT =
@@ -159,7 +162,20 @@ function mapListItemFromClient(
 function isActiveAssignmentStatus(status: string | null | undefined): boolean {
   if (!status) return false;
   const assignmentStatus = remoteStatusToAssignment(status);
-  return assignmentStatus === 'gestartet' || assignmentStatus === 'bestaetigt' || assignmentStatus === 'unterwegs';
+  return ['gestartet', 'bestaetigt', 'unterwegs', 'angekommen', 'pausiert'].includes(assignmentStatus);
+}
+
+/** Read every page; the server's row cap must not silently truncate a directory. */
+async function readRecordPages<T>(query: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>): Promise<ServiceResult<T[]>> {
+  const rows: T[] = [];
+  const pageSize = 500;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await query(from, from + pageSize - 1);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, data: rows };
+  }
 }
 
 async function loadTeamClientVisits(
@@ -168,20 +184,14 @@ async function loadTeamClientVisits(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+  return readRecordPages<VisitClientRow>((from, to) => fromUnknownTable(supabase, 'assist_visits')
     .select('id, client_id, planned_start_at, canonical_status, client_visible_notes, title')
     .eq('tenant_id', tenantId)
-    .eq('employee_portal_visible', true)
+    .not('employee_id', 'is', null)
     .neq('planning_status', 'draft')
     .order('planned_start_at', { ascending: false })
-    .limit(500);
-
-  if (error) {
-    if (isMissingTableError(error)) return { ok: true, data: [] };
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  return { ok: true, data: (data ?? []) as VisitClientRow[] };
+    .order('id', { ascending: true })
+    .range(from, to));
 }
 
 async function loadAllTenantClients(
@@ -191,7 +201,7 @@ async function loadAllTenantClients(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, 'clients')
+  const result = await readRecordPages<ClientRow>((from, to) => fromUnknownTable(supabase, 'clients')
     .select(detail ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
     .eq('tenant_id', tenantId)
     // Die Mitarbeitendenakte ist ein operatives Verzeichnis. Intake-Entwürfe,
@@ -201,15 +211,12 @@ async function loadAllTenantClients(
     .is('deleted_at', null)
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true })
-    .limit(2000);
-
-  if (error) {
-    if (isMissingTableError(error)) return { ok: true, data: new Map() };
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
+    .order('id', { ascending: true })
+    .range(from, to));
+  if (!result.ok) return result;
 
   const map = new Map<string, ClientRow>();
-  for (const row of (data ?? []) as unknown as ClientRow[]) map.set(row.id, row);
+  for (const row of result.data) map.set(row.id, row);
   return { ok: true, data: map };
 }
 
@@ -268,18 +275,13 @@ function aggregateClientRecords(
 
   const now = Date.now();
   for (const visit of visits) {
-    if (!visit.client_id) continue;
-    const entry = byClient.get(visit.client_id) ?? {
-      clientId: visit.client_id,
-      activeCount: 0,
-      lastAt: null,
-      nextAt: null,
-      hints: null,
-    };
+    const entry = byClient.get(visit.client_id);
+    if (!entry) continue;
     if (visit.client_visible_notes?.trim() && !entry.hints) {
       entry.hints = visit.client_visible_notes.trim();
     }
     const startMs = new Date(visit.planned_start_at).getTime();
+    if (!Number.isFinite(startMs)) continue;
     if (isActiveAssignmentStatus(visit.canonical_status)) {
       entry.activeCount += 1;
     }
@@ -288,7 +290,7 @@ function aggregateClientRecords(
         !entry.lastAt || startMs > new Date(entry.lastAt).getTime()
           ? visit.planned_start_at
           : entry.lastAt;
-    } else {
+    } else if (!['storniert', 'nicht_erschienen'].includes(remoteStatusToAssignment(visit.canonical_status ?? ''))) {
       entry.nextAt =
         !entry.nextAt || startMs < new Date(entry.nextAt).getTime()
           ? visit.planned_start_at
@@ -310,6 +312,7 @@ export async function fetchEmployeePortalClientRecords(
   _employeeId: string,
 ): Promise<ServiceResult<EmployeePortalClientRecordListItem[]>> {
   return runService(async () => {
+    if (!tenantId.trim() || !_employeeId.trim()) return { ok: false, error: 'Mitarbeitendenprofil konnte nicht verknüpft werden.' };
     const [visitsResult, allClientsResult] = await Promise.all([
       loadTeamClientVisits(tenantId),
       loadAllTenantClients(tenantId),
@@ -329,12 +332,8 @@ export async function fetchEmployeePortalClientRecords(
       }
       const now = Date.now();
       for (const item of appts.data) {
-        if (!item.clientId) continue;
-        const entry = byClient.get(item.clientId) ?? {
-          activeCount: 0,
-          lastAt: null,
-          nextAt: null,
-        };
+        const entry = byClient.get(item.clientId);
+        if (!entry) continue;
         const startMs = new Date(item.startsAt).getTime();
         if (item.status === 'aktiv' || item.assignmentStatus === 'gestartet') {
           entry.activeCount += 1;
@@ -342,7 +341,7 @@ export async function fetchEmployeePortalClientRecords(
         if (startMs <= now) {
           entry.lastAt =
             !entry.lastAt || startMs > new Date(entry.lastAt).getTime() ? item.startsAt : entry.lastAt;
-        } else {
+        } else if (!['storniert', 'nicht_erschienen'].includes(item.assignmentStatus ?? remoteStatusToAssignment(item.status))) {
           entry.nextAt =
             !entry.nextAt || startMs < new Date(entry.nextAt).getTime() ? item.startsAt : entry.nextAt;
         }
@@ -377,11 +376,11 @@ function mapPortalDocuments(items: PortalDocumentListItem[]): EmployeePortalClie
 async function loadClientContacts(
   tenantId: string,
   clientId: string,
-): Promise<EmployeePortalClientContact[]> {
+): Promise<ServiceResult<EmployeePortalClientContact[]>> {
   const supabase = getSupabaseClient();
-  if (!supabase) return [];
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, 'client_contacts')
+  const result = await readRecordPages<Record<string, unknown>>((from, to) => fromUnknownTable(supabase, 'client_contacts')
     .select(
       'id, full_name, first_name, last_name, phone, mobile, relationship, is_emergency_contact, is_primary_contact',
     )
@@ -389,11 +388,12 @@ async function loadClientContacts(
     .eq('client_id', clientId)
     .order('is_primary_contact', { ascending: false })
     .order('is_emergency_contact', { ascending: false })
-    .limit(12);
+    .order('id', { ascending: true })
+    .range(from, to));
 
-  if (error || !data) return [];
+  if (!result.ok) return result;
 
-  return (data as Record<string, unknown>[]).map((row) => {
+  return { ok: true, data: result.data.map((row) => {
     const displayName =
       String(row.full_name ?? '').trim() ||
       `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() ||
@@ -407,7 +407,7 @@ async function loadClientContacts(
       isEmergencyContact: row.is_emergency_contact === true,
       isPrimaryContact: row.is_primary_contact === true,
     };
-  });
+  }) };
 }
 
 export async function fetchEmployeePortalClientRecordDetail(
@@ -427,7 +427,6 @@ export async function fetchEmployeePortalClientRecordDetail(
     const history = appts.data
       .filter((item) => item.clientId === clientId)
       .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())
-      .slice(0, 25)
       .map((item) => ({
         assignmentId: item.id,
         title: item.title,
@@ -438,12 +437,13 @@ export async function fetchEmployeePortalClientRecordDetail(
     const clientsResult = await loadClientsByIds(tenantId, [clientId], true);
     if (!clientsResult.ok) return clientsResult;
     const row = clientsResult.data.get(clientId) ?? null;
+    if (!row) return { ok: true, data: null };
 
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
     let accessHint: string | null = null;
-    const { data: addressRows } = await fromUnknownTable(supabase, 'client_addresses')
+    const { data: addressRows, error: addressError } = await fromUnknownTable(supabase, 'client_addresses')
       .select('access_notes, street, house_number, postal_code, city, floor, apartment_number, doorbell_name')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
@@ -455,8 +455,9 @@ export async function fetchEmployeePortalClientRecordDetail(
       accessHint = address.access_notes ? String(address.access_notes).trim() : null;
     }
 
-    const contacts = await loadClientContacts(tenantId, clientId);
-    const documentsResult = await fetchEmployeePortalClientDocuments(tenantId, clientId);
+    const [contactsResult, documentsResult] = await Promise.all([
+      loadClientContacts(tenantId, clientId), fetchEmployeePortalClientDocuments(tenantId, clientId),
+    ]);
     const portalDocuments = documentsResult.ok ? mapPortalDocuments(documentsResult.data) : [];
 
     const care = resolveCareGrade(row);
@@ -493,7 +494,10 @@ export async function fetchEmployeePortalClientRecordDetail(
         pets: row?.pets?.trim() ?? null,
         keyManagementNotes: row?.key_management_notes?.trim() ?? null,
         accessHint: accessParts.length > 0 ? accessParts.join('\n') : null,
-        contacts,
+        contacts: contactsResult.ok ? contactsResult.data : [],
+        contactsError: contactsResult.ok ? null : contactsResult.error,
+        documentsError: documentsResult.ok ? null : documentsResult.error,
+        accessError: addressError ? toGermanSupabaseError(addressError) : null,
         assignmentHistory: history,
         portalDocuments,
       }) as EmployeePortalClientRecordDetail,

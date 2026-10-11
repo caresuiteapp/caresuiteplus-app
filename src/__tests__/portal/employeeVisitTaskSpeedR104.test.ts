@@ -27,10 +27,11 @@ describe('employee visit task speed R10.4', () => {
 
   it('never leaves the saving state stuck and preserves newer taps during a pending write', () => {
     const drafts = read('src/hooks/useTaskResultDrafts.ts');
-    expect(drafts).toContain('revision: ++revisionRef.current');
-    expect(drafts).toContain('pendingRef.current[taskId]?.revision === savedDraft.revision');
-    expect(drafts).toContain('finally {');
-    expect(drafts).toContain('setSaving(false)');
+    expect(drafts).toContain('revision: ++scope.revision');
+    expect(drafts).toMatch(/if\s*\(scope\.pending\[taskId\]\?\.revision === savedDraft\.revision\)\s*\{\s*delete scope\.pending\[taskId\];/);
+    expect(drafts).toContain('const current = () => mounted.current && activeScope.current === scope;');
+    expect(drafts).toMatch(/finally\s*\{\s*scope\.flushing = null;\s*if\s*\(current\(\)\)\s*setSaveState\(\(previous\) => previous\.scope === scope\s*\?\s*\{ \.\.\.previous, saving: false \}\s*:\s*previous\)/);
+    expect(drafts).toContain('const saving = saveState.scope === scope && saveState.saving;');
   });
 
   it('keeps optional tasks out of the blocking step and guides directly to documentation', () => {

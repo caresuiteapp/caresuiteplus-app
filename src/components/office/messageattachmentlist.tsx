@@ -90,6 +90,7 @@ export function MessageAttachmentList({
   const [listError, setListError] = useState<string | null>(null);
   const [urlById, setUrlById] = useState<Record<string, AttachmentUrlState>>({});
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [listAttempt, setListAttempt] = useState(0);
   const loadingAttachmentIdsRef = useRef<Set<string>>(new Set());
   const urlByIdRef = useRef<Record<string, AttachmentUrlState>>({});
   const roleKey = resolveAttachmentRoleKey(profile?.roleKey, portalSession?.roleKey);
@@ -219,27 +220,19 @@ export function MessageAttachmentList({
     return () => {
       cancelled = true;
     };
-  }, [tenantId, messageId, roleKey]);
+  }, [tenantId, messageId, roleKey, listAttempt]);
 
   const loadUrl = useCallback(
     async (attachment: MessageAttachment, force = false) => {
       if (!tenantId) return;
 
-      let shouldLoad = force;
-      setUrlById((prev) => {
-        const current = prev[attachment.id];
-        if (!force && (current?.loading || current?.url || current?.error)) {
-          shouldLoad = false;
-          return prev;
-        }
-        shouldLoad = true;
-        loadingAttachmentIdsRef.current.add(attachment.id);
-        return {
-          ...prev,
-          [attachment.id]: { url: null, loading: true, error: null },
-        };
-      });
-      if (!shouldLoad) return;
+      const current = urlByIdRef.current[attachment.id];
+      if (loadingAttachmentIdsRef.current.has(attachment.id)
+        || (!force && (current?.url || current?.error))) return;
+      loadingAttachmentIdsRef.current.add(attachment.id);
+      setUrlById((prev) => ({ ...prev,
+        [attachment.id]: { url: null, loading: true, error: null },
+      }));
 
       let resolved: Awaited<ReturnType<typeof resolveMessageAttachmentUrl>>;
       try {
@@ -310,29 +303,28 @@ export function MessageAttachmentList({
 
   const openAttachment = async (attachment: MessageAttachment) => {
     if (!tenantId) return;
-
-    let url = urlById[attachment.id]?.url;
-    if (!url) {
-      const resolved = await resolveMessageAttachmentUrl(tenantId, attachment);
-      if (!resolved.ok) return;
-      url = resolved.data;
-      setUrlById((prev) => ({
-        ...prev,
-        [attachment.id]: { url, loading: false, error: null },
-      }));
+    try {
+      let url = urlById[attachment.id]?.url;
+      if (!url || Platform.OS !== 'web') {
+        const resolved = await withMessagingTimeout(resolveMessageAttachmentUrl(tenantId, attachment),
+          VOICE_URL_RESOLVE_TIMEOUT_MS, 'URL resolve timeout');
+        if (!resolved.ok) throw new Error(resolved.error);
+        url = resolved.data;
+        setUrlById((prev) => ({ ...prev, [attachment.id]: { url, loading: false, error: null } }));
+      }
+      if (isImageMimeType(attachment.mimeType)) {
+        setPreview({ attachment, url, mode: 'image' });
+        return;
+      }
+      if (isPdfMimeType(attachment.mimeType) && Platform.OS === 'web') {
+        setPreview({ attachment, url, mode: 'pdf' });
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      setUrlById((prev) => ({ ...prev,
+        [attachment.id]: { url: null, loading: false, error: toUserFacingAttachmentError() } }));
     }
-
-    if (isImageMimeType(attachment.mimeType)) {
-      setPreview({ attachment, url, mode: 'image' });
-      return;
-    }
-
-    if (isPdfMimeType(attachment.mimeType) && Platform.OS === 'web') {
-      setPreview({ attachment, url, mode: 'pdf' });
-      return;
-    }
-
-    await Linking.openURL(url);
   };
 
   if (listLoading) {
@@ -347,11 +339,13 @@ export function MessageAttachmentList({
   }
 
   if (listError) {
-    if (!attachmentOnly) return null;
     return (
       <View style={styles.rowWrap}>
         <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-          <Text style={styles.errorText}>Anhänge konnten nicht geladen werden</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Anhänge erneut laden"
+            onPress={() => setListAttempt((current) => current + 1)}>
+            <Text style={styles.errorText}>Anhänge konnten nicht geladen werden. Erneut laden</Text>
+          </Pressable>
         </View>
       </View>
     );

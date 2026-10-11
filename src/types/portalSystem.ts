@@ -97,6 +97,9 @@ export type EmployeePortalDashboardProjection = {
   openSignatureDocumentCount: number;
   overdueSignatureDocumentCount: number;
   messageCount: number;
+  messageCountUnavailable?: boolean;
+  messagesError?: string | null;
+  signatureDocumentsError?: string | null;
 };
 
 /** Full client portal projection bundle. */

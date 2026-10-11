@@ -25,7 +25,7 @@ vi.mock('@/lib/offline/idb', () => ({ clearOfflineDb: mock.clearOffline }));
 vi.mock('@/lib/offline/portalBackgroundRefresh', () => ({ configurePortalBackgroundRefresh: vi.fn() }));
 vi.mock('@/lib/offline/assignmentDetailPrefetch', () => ({ cancelAssignmentDetailPrefetch: vi.fn() }));
 vi.mock('@/lib/portal/portalPushNotifications', () => ({ unregisterPortalPushDeviceBeforeLogout: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('@/lib/auth/portalSupabaseAuth', () => ({ ensurePortalWriteSession: vi.fn() }));
+vi.mock('@/lib/auth/portalSupabaseAuth', () => ({ ensurePortalWriteSession: vi.fn(), isPortalSupabaseIdentityAligned: () => true }));
 
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { useAuth } from '@/lib/auth/context';

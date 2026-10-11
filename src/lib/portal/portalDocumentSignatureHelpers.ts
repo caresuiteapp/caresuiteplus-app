@@ -211,6 +211,7 @@ export function mapPortalSignatureCaptureRow(row: Record<string, unknown>) {
     signerName: String(row.signer_name),
     signedAt: String(row.signed_at),
     signatureHash: String(row.signature_hash),
+    payloadHash: row.payload_hash ? String(row.payload_hash) : undefined,
     auditId: String(row.audit_id),
     deviceInfo: row.device_info ? String(row.device_info) : null,
     browser: row.browser ? String(row.browser) : null,

@@ -57,7 +57,7 @@ export function usePortalOfficeMessages(
       clientId,
       employeeId,
     ],
-    { enabled: enabled && !!tenantId && isLinkedReady, queryKey: JSON.stringify([tenantId, portalAccountId, roleKey, clientId, employeeId, filter]) },
+    { enabled: enabled && !!tenantId && isLinkedReady, queryKey: JSON.stringify([tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter]) },
   );
 
   const refresh = query.refresh;
@@ -81,6 +81,9 @@ export function usePortalOfficeMessages(
       : null,
     refreshing: query.refreshing,
     refresh,
+    refreshWithResult: query.refreshWithResult,
+    refreshError: query.refreshError ? toPortalUserFacingError(query.refreshError,
+      'Ihre Nachrichten konnten gerade nicht aktualisiert werden. Bitte versuchen Sie es erneut.') : null,
     isEmpty: !query.loading && !query.error && (query.data?.length ?? 0) === 0,
   };
 }

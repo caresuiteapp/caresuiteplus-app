@@ -39,7 +39,7 @@ describe('CareSuite App P0 quality gate R20', () => {
     expect(screen.indexOf("title={sessionActive ? 'Aktuelle Tätigkeit'")).toBeLessThan(
       screen.indexOf('<WfmCheckinScanPanel'),
     );
-    expect(screen).toContain('formatDuration(session.netMinutes || session.grossMinutes)');
+    expect(screen).toContain('formatDuration(session.netMinutes ?? session.grossMinutes)');
   });
 
   it('uses the secure system biometric prompt with device fallback', () => {

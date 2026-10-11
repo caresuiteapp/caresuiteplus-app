@@ -113,7 +113,7 @@ export function EmployeeProfileScreen() {
     );
   }
 
-  if (!profile || !personnelView) {
+  if (!profile) {
     return (
       <PortalTabScreen title="Profil" hideHeaderOnPhone scroll={false}>
         <EmptyState
@@ -142,15 +142,18 @@ export function EmployeeProfileScreen() {
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />
         </View>
 
-         <SegmentedTabs
+        {personnelView ? <SegmentedTabs
            tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
            activeKey={activeTab}
            onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
            layout={tabLayout}
            rows={isWide ? 2 : undefined}
-         />
+         /> : null}
 
-        <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
+        {personnelView ? <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
+          : personnelError ? <ErrorState title="Weitere Profildaten nicht verfügbar"
+            message="Ihre zusätzlichen Personalangaben konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut."
+            onRetry={refreshPersonnel} /> : <LoadingState message="Weitere Profildaten werden geladen…" />}
       </ScrollView>
     </PortalTabScreen>
   );

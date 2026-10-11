@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
@@ -22,7 +22,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
-import { ensureTimeTrackingSettings } from '@/lib/timeTracking';
+import { fetchPortalTimeTrackingSettings } from '@/lib/timeTracking/timeTrackingSettingsService';
 import {
   formatWfmStatusLabel,
   getWfmTodayStatus,
@@ -96,6 +96,8 @@ export function TimeTrackingEmployeeScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const actionLock = useRef(false);
+  const [accountRevision, setAccountRevision] = useState(0);
 
   const canView = can('time.tracking.own.view');
   const canStart = can('time.tracking.own.start');
@@ -126,15 +128,16 @@ export function TimeTrackingEmployeeScreen() {
       return getWfmTodayStatus(tenantId, userId, roleKey, wfmOptions);
     }, [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee]),
     [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee],
-    { enabled: !!tenantId && !!userId && canView },
+    { enabled: !!tenantId && !!userId && canView, queryKey: `workday:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}` },
   );
 
   const settingsQuery = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
-      return ensureTimeTrackingSettings(tenantId, roleKey);
+      return fetchPortalTimeTrackingSettings(tenantId, roleKey);
     }, [tenantId, roleKey]),
     [tenantId, roleKey],
+    { enabled: !!tenantId && canView, queryKey: `workday-settings:${tenantId}:${userId}:${roleKey ?? ''}` },
   );
 
   const session = statusQuery.data?.session ?? null;
@@ -151,22 +154,25 @@ export function TimeTrackingEmployeeScreen() {
 
   const refresh = useCallback(async () => {
     await statusQuery.refresh();
+    setAccountRevision((value) => value + 1);
   }, [statusQuery]);
 
   const runAction = async (action: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setActionLoading(true);
     setError(null);
-    const result = await action();
-    setActionLoading(false);
-    if (!result.ok) {
-      setError(result.error ?? 'Aktion fehlgeschlagen.');
-      return;
-    }
-    await refresh();
+    setMessage(null);
+    try {
+      const result = await action();
+      if (!result.ok) { setError(result.error ?? 'Aktion fehlgeschlagen.'); return; }
+      await refresh();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Aktion fehlgeschlagen. Bitte erneut versuchen.'); }
+    finally { actionLock.current = false; setActionLoading(false); }
   };
 
   const handleStart = async () => {
-    if (!tenantId || !userId) return;
+    if (!tenantId || !userId || !settingsQuery.data?.moduleEnabled || settingsQuery.loading || settingsQuery.error || settingsQuery.refreshError) return;
     await runAction(async () => {
       const result = await wfmClockIn(tenantId, userId, roleKey, selectedWorkType, wfmOptions);
       if (result.ok) setMessage('Arbeitstag gestartet.');
@@ -293,13 +299,15 @@ export function TimeTrackingEmployeeScreen() {
 
   return (
     <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
+      {statusQuery.refreshError ? <ErrorState title="Arbeitszeit nicht aktuell" message={statusQuery.refreshError} onRetry={() => void refresh()} /> : null}
+      {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
       <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
         <View style={styles.kpiRow}>
           <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
           <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
           <PremiumKpiCard
             label="Netto"
-            value={session ? formatDuration(session.netMinutes || session.grossMinutes) : '—'}
+            value={session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—'}
             accentColor={accent}
           />
         </View>
@@ -323,7 +331,7 @@ export function TimeTrackingEmployeeScreen() {
             onPress={() =>
               startBlockedByPrivacy ? setShowPrivacyModal(true) : void handleStart()
             }
-            disabled={!canStart || actionLoading}
+            disabled={!canStart || actionLoading || settingsQuery.loading || !settingsQuery.data?.moduleEnabled || Boolean(settingsQuery.error || settingsQuery.refreshError)}
           />
         ) : null}
         {sessionActive && !sessionPaused ? (
@@ -383,6 +391,7 @@ export function TimeTrackingEmployeeScreen() {
           userId={userId}
           roleKey={roleKey}
           employeeId={employeeId}
+          refreshKey={accountRevision}
         />
       ) : null}
 
@@ -392,6 +401,7 @@ export function TimeTrackingEmployeeScreen() {
           userId={userId}
           roleKey={roleKey}
           employeeId={employeeId}
+          refreshKey={accountRevision}
         />
       ) : null}
 

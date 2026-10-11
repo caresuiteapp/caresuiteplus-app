@@ -17,6 +17,7 @@ const h = vi.hoisted(() => ({
   composer: null as any,
   send: vi.fn(), restart: vi.fn(), read: vi.fn(), replace: vi.fn(),
   threadId: 'a', masterDetail: true, appState: 'active', focused: true,
+  actorId: 'account-a',
   appListener: null as ((state: string) => void) | null,
   backListener: null as (() => boolean) | null,
 }));
@@ -79,7 +80,8 @@ vi.mock('@/components/office/officemessagecomposer', () => ({
     return <div data-testid="composer">{props.text}:{props.pendingAttachments.map((attachment: any) => attachment.id).join(',')}</div>;
   },
 }));
-vi.mock('@/components/communication/ChatBubble', () => ({ ChatBubble: ({ message }: any) => <div>{message.bodyText}</div> }));
+vi.mock('@/components/communication/ChatBubble', () => ({ ChatBubble: ({ message, isOwn, showStatus }: any) =>
+  <div data-message-id={message.id} data-own={String(isOwn)} data-status={String(showStatus)}>{message.bodyText}</div> }));
 vi.mock('@/components/office/messageattachmentlist', () => ({ MessageAttachmentList: () => null }));
 vi.mock('@/components/portal/portalofficestatuscard', () => ({ PortalOfficeStatusCard: () => null }));
 vi.mock('@/components/portal/assist/PortalEmptyState', () => ({ PortalEmptyState: ({ title }: any) => <div>{title}</div> }));
@@ -88,11 +90,14 @@ vi.mock('@/hooks/useportalofficethreaddetail', () => ({
     detail: h.details.get(threadId), loading: false, error: null, sending: false,
     sendMessage: (body: string, attachments: unknown[]) => h.send(threadId, body, attachments),
     startNewChat: () => h.restart(threadId), refresh: vi.fn(), markAsRead: h.read,
+    actorClientId: 'client', actorEmployeeId: 'employee-a',
   }),
 }));
-vi.mock('@/lib/office/employeeGroupChatService', () => ({ isEmployeeGroupChatThread: () => false }));
+vi.mock('@/lib/office/employeeGroupChatService', () => ({ isEmployeeGroupChatThread: (thread: any) => thread.threadType === 'employee_group_office' }));
 vi.mock('@/lib/office/portalofficemessageservice', () => ({ getPortalStatusLabel: () => 'Offen' }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => true, check: () => ({}) }) }));
+vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ tenantId: 'tenant', actorId: h.actorId,
+  roleKey: 'employee_portal', employeeId: h.actorId === 'account-a' ? 'employee-a' : 'employee-b', clientId: 'client' }) }));
 vi.mock('@/hooks/platform/usePlatformLayout', () => ({ usePlatformLayout: () => ({ useMasterDetail: h.masterDetail }) }));
 vi.mock('@/screens/portal/PortalTabScreen', () => ({ PortalTabScreen: ({ children }: any) => <div>{children}</div> }));
 vi.mock('@/components/portal/assist/PortalGlassHero', () => ({ PortalGlassHero: () => null }));
@@ -122,7 +127,10 @@ vi.mock('@/liquid-command/components/LiquidPrimitives', () => {
   };
 });
 vi.mock('@/components/portal/accessibility/PortalTextSizeControls', () => ({ PortalTextSizeControls: () => null }));
-vi.mock('@/design/tokens/portalPremium', () => ({ PortalPremiumProvider: ({ children }: any) => children }));
+vi.mock('@/design/tokens/portalPremium', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/design/tokens/portalPremium')>(),
+  PortalPremiumProvider: ({ children }: any) => children,
+}));
 
 function FocusControls() {
   const focus = usePortalMessengerFocus();
@@ -170,6 +178,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   h.details = new Map([['a', detail('a')], ['b', detail('b')]]);
   h.composer = null; h.threadId = 'a'; h.masterDetail = true; h.appState = 'active'; h.focused = true;
+  h.actorId = 'account-a';
   h.appListener = null; h.backListener = null;
   h.read.mockResolvedValue({ ok: true, data: undefined });
   h.send.mockResolvedValue({ ok: true }); h.restart.mockResolvedValue({ ok: true, data: detail('new') });
@@ -178,6 +187,62 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('portal conversation lifecycle on a mounted React tree', () => {
+  it('clears private composer contents when a different employee opens the same group thread', async () => {
+    await render(<PortalOfficeThread threadId="a" />);
+    await act(async () => { h.composer.onChangeText('Privat A'); h.composer.onPendingAttachmentsChange([{ id: 'private-a' }]); });
+    h.actorId = 'account-b'; await render(<PortalOfficeThread threadId="a" />);
+    expect(h.composer.text).toBe(''); expect(h.composer.pendingAttachments).toEqual([]);
+  });
+  it('returns a direct employee chat deep link to the inbox on Android Back and removes the handler on blur', async () => {
+    h.masterDetail = false;
+    await render(<PortalMessengerFocusProvider><EmployeePortalOfficeConversationScreen /></PortalMessengerFocusProvider>);
+    await act(async () => expect(h.backListener?.()).toBe(true));
+    expect(h.replace).toHaveBeenCalledWith('/portal/employee/messages');
+    h.focused = false;
+    await render(<PortalMessengerFocusProvider><EmployeePortalOfficeConversationScreen /></PortalMessengerFocusProvider>);
+    expect(h.backListener).toBeNull();
+  });
+  it('distinguishes a colleague group contribution from the signed-in employee message', async () => {
+    const own = { ...message('own'), senderType: 'employee_portal' as const, senderProfileId: null, senderEmployeeId: 'employee-a' };
+    const colleague = { ...own, id: 'colleague', senderEmployeeId: 'employee-b' };
+    h.details.set('a', { ...detail('a', [own, colleague]), threadType: 'employee_group_office' });
+    await render(<PortalOfficeThread threadId="a" />);
+    expect(host.querySelector('[data-message-id="own"]')?.getAttribute('data-own')).toBe('true');
+    expect(host.querySelector('[data-message-id="colleague"]')?.getAttribute('data-own')).toBe('false');
+    expect(host.querySelector('[data-message-id="colleague"]')?.getAttribute('data-status')).toBe('false');
+  });
+
+  it('blocks two send calls in the same turn and preserves newly edited draft and attachments', async () => {
+    const flight = deferred<{ ok: true }>(); h.send.mockReturnValueOnce(flight.promise);
+    await render(<PortalOfficeThread threadId="a" />);
+    await act(async () => { h.composer.onChangeText('Gesendet'); h.composer.onPendingAttachmentsChange([{ id: 'sent-file' }]); });
+    let pending!: Promise<void>;
+    await act(async () => { pending = h.composer.onSend(); void h.composer.onSend(); });
+    expect(h.send).toHaveBeenCalledTimes(1);
+    await act(async () => { h.composer.onChangeText('Nächster Entwurf'); h.composer.onPendingAttachmentsChange([{ id: 'sent-file' }, { id: 'new-file' }]); });
+    await act(async () => { flight.resolve({ ok: true }); await pending; });
+    expect(h.composer.text).toBe('Nächster Entwurf');
+    expect(h.composer.pendingAttachments).toEqual([{ id: 'new-file' }]);
+  });
+
+  it('keeps the text and attachment after failure and sends the same payload on retry', async () => {
+    h.send.mockResolvedValueOnce({ ok: false, error: 'Offline' });
+    await render(<PortalOfficeThread threadId="a" />);
+    await act(async () => { h.composer.onChangeText('Entwurf'); h.composer.onPendingAttachmentsChange([{ id: 'file' }]); });
+    await act(async () => h.composer.onSend());
+    expect(h.composer.text).toBe('Entwurf'); expect(h.composer.pendingAttachments).toEqual([{ id: 'file' }]);
+    await press('Erneut senden');
+    expect(h.send).toHaveBeenLastCalledWith('a', 'Entwurf', [{ id: 'file' }]);
+    expect(h.composer.text).toBe(''); expect(h.composer.pendingAttachments).toEqual([]);
+  });
+
+  it('does not offer a new private-thread restart for a closed group chat', async () => {
+    h.details.set('a', { ...detail('a', [], true), threadType: 'employee_group_office' });
+    await render(<PortalOfficeThread threadId="a" />);
+    expect(host.textContent).toContain('Gruppen-Chat ist abgeschlossen');
+    expect(host.textContent).not.toContain('Verwaltung anschreiben');
+    expect(h.restart).not.toHaveBeenCalled();
+  });
   it('does not move an unsent draft or attachment between tablet conversations', async () => {
     await render(<PortalMessengerFocusProvider><SelectionControls /></PortalMessengerFocusProvider>);
     await press('A');

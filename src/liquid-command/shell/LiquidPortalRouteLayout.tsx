@@ -24,7 +24,7 @@ import {
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
-import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
+import { PortalPremiumProvider, portalPremium } from '@/design/tokens/portalPremium';
 import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { PortalViewportContext } from '@/lib/portal/portalViewportContext';
 import {
@@ -252,9 +252,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   size={20}
                 />
                 <Text
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.72}
-                  numberOfLines={1}
+                  numberOfLines={2}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
                   {item.id === 'open-assignments' ? 'Offen' : item.label}
@@ -280,9 +278,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 size={20}
               />
               <Text
-                adjustsFontSizeToFit
-                minimumFontScale={0.72}
-                numberOfLines={1}
+                numberOfLines={2}
                 style={[
                   styles.bottomLabel,
                   moreNavigation.some((item) => item.id === activeId) && styles.bottomLabelActive,
@@ -330,6 +326,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     <Pressable
                       key={item.id}
                       accessibilityRole="menuitem"
+                      accessibilityLabel={navigationLabel(item.id, item.label)}
                       onPress={() => {
                         setMoreOpen(false);
                         router.replace(item.route as never);
@@ -652,17 +649,17 @@ const styles = StyleSheet.create({
     top: 1,
     right: 4,
     minWidth: 34,
-    height: 18,
+    minHeight: 18,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: liquidColors.blue500,
+    backgroundColor: portalPremium.accent.blueDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomUnreadBadgeText: {
     color: liquidColors.onAccent,
-    fontSize: webScaledFontMetric(8),
-    lineHeight: webScaledFontMetric(10),
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(14),
     fontWeight: '900',
   },
   bottomGlyph: {
@@ -675,9 +672,9 @@ const styles = StyleSheet.create({
   },
   bottomLabel: {
     width: '100%',
-    color: liquidColors.white56,
-    fontSize: webScaledFontMetric(9),
-    lineHeight: webScaledFontMetric(12),
+    color: portalPremium.text.secondary,
+    fontSize: webScaledFontMetric(11),
+    lineHeight: webScaledFontMetric(15),
     fontWeight: '600',
     textAlign: 'center',
   },

@@ -14,7 +14,7 @@ import { spacing, typography } from '@/theme';
 
 const QUICK_BLOCKS = [
   'Klient:in war anwesend und kooperativ.',
-  'Haushaltliche Unterstützung wurde durchgeführt.',
+  'Hauswirtschaftliche Unterstützung wurde durchgeführt.',
   'Begleitung wurde wie geplant erbracht.',
   'Keine besonderen Vorkommnisse.',
 ];
@@ -27,6 +27,8 @@ type EmployeePortalVisitDocumentationPanelProps = {
   onClose?: () => void;
   embedded?: boolean;
   lastSavedAt?: string | null;
+  initialDraftUnsaved?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
   initialShortDescription?: string;
   initialSpecialNotes?: string;
   initialDeviations?: string;
@@ -58,6 +60,8 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     onClose,
     embedded = false,
     lastSavedAt = null,
+    initialDraftUnsaved = false,
+    onDirtyChange,
     initialShortDescription = '',
     initialSpecialNotes = '',
     initialDeviations = '',
@@ -84,32 +88,49 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const [showAiModal, setShowAiModal] = useState(false);
   const lastAiRequest = useRef(0);
   const shortDescriptionRef = useRef(initialShortDescription);
+  const editedRef = useRef(false);
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [dirty, setDirty] = useState(initialDraftUnsaved);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(lastSavedAt);
+  const onDraftChangeRef = useRef(onDraftChange);
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  const busy = loading || submitting;
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => { onDraftChangeRef.current = onDraftChange; onDirtyChangeRef.current = onDirtyChange; }, [onDraftChange, onDirtyChange]);
+  useEffect(() => { onDirtyChangeRef.current?.(dirty); }, [dirty]);
+  useEffect(() => { if (initialDraftUnsaved) setDirty(true); }, [initialDraftUnsaved]);
+  useEffect(() => { if (lastSavedAt) setConfirmedAt(lastSavedAt); }, [lastSavedAt]);
+  const markEdited = () => { editedRef.current = true; setDirty(true); setLocalError(null); };
 
   useEffect(() => {
+    if (editedRef.current) return;
     shortDescriptionRef.current = initialShortDescription;
     setShortDescription(initialShortDescription);
   }, [initialShortDescription]);
 
   useEffect(() => {
-    setSpecialNotes(initialSpecialNotes);
+    if (!editedRef.current) setSpecialNotes(initialSpecialNotes);
   }, [initialSpecialNotes]);
 
   useEffect(() => {
-    setDeviations(initialDeviations);
+    if (!editedRef.current) setDeviations(initialDeviations);
   }, [initialDeviations]);
 
   useEffect(() => {
-    setDeviationJustification(initialDeviationJustification);
+    if (!editedRef.current) setDeviationJustification(initialDeviationJustification);
   }, [initialDeviationJustification]);
 
   useEffect(() => {
-    onDraftChange?.({
+    if (!editedRef.current || !dirty) return;
+    onDraftChangeRef.current?.({
       shortDescription,
       specialNotes,
       deviations,
       deviationJustification,
     });
-  }, [deviationJustification, deviations, onDraftChange, shortDescription, specialNotes]);
+  }, [deviationJustification, deviations, dirty, shortDescription, specialNotes]);
 
   useEffect(() => {
     if (openAiRequest <= lastAiRequest.current) return;
@@ -156,6 +177,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   }, [shortDescription]);
 
   const handleSubmit = useCallback(async () => {
+    if (disabled || loading || submittingRef.current) return;
     const effectiveShort = resolveShortDescription();
     const effectiveNotes = specialNotes.trim();
     if (!effectiveShort) {
@@ -167,6 +189,9 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       return;
     }
     setLocalError(null);
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
     const result = await onSubmit({
       shortDescription: effectiveShort,
       specialNotes: effectiveNotes || undefined,
@@ -176,10 +201,22 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       emergencyOrProblem: false,
       photoReferences: photoReferences.length ? photoReferences : undefined,
     });
+    if (!mountedRef.current) return;
     if (!result.ok) {
-      setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden.');
+      setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden. Ihre Eingaben bleiben erhalten.');
+    } else {
+      editedRef.current = false;
+      setDirty(false);
+      onDirtyChangeRef.current?.(false);
+      setConfirmedAt(new Date().toISOString());
     }
-  }, [deviationJustification, deviations, onSubmit, photoReferences, resolveShortDescription, specialNotes]);
+    } catch {
+      if (mountedRef.current) setLocalError('Die Speicherung konnte nicht bestätigt werden. Ihre Eingaben bleiben in diesem Fenster erhalten.');
+    } finally {
+      submittingRef.current = false;
+      if (mountedRef.current) setSubmitting(false);
+    }
+  }, [disabled, loading, deviationJustification, deviations, onSubmit, photoReferences, resolveShortDescription, specialNotes]);
 
   useImperativeHandle(
     ref,
@@ -189,15 +226,14 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     [handleSubmit],
   );
 
-  const statusLabel = shortDescription.trim()
-    ? lastSavedAt
-      ? `Gespeichert · zuletzt ${new Date(lastSavedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
-      : 'Begonnen'
-    : 'Offen';
+  const statusLabel = busy ? 'Dokumentation wird gespeichert …'
+    : dirty ? 'Änderungen noch nicht auf dem Server gespeichert'
+      : confirmedAt ? `Gespeichert · zuletzt ${new Date(confirmedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+        : shortDescription.trim() ? 'Dokumentation geladen' : 'Noch keine Dokumentation';
 
   const form = (
     <View style={styles.form} testID="employee-visit-documentation-form">
-      <Text style={styles.status}>{statusLabel}</Text>
+      <Text style={styles.status} accessibilityLiveRegion="polite">{statusLabel}</Text>
       <View style={styles.fields}>
         <View style={styles.privacyBox}>
           <Text style={styles.privacyTitle}>Klientensichtbare Dokumentation</Text>
@@ -211,24 +247,27 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
           accessibilityLabel="Kurzbeschreibung Eingabe"
           value={shortDescription}
           onChangeText={(value) => {
+            markEdited();
             shortDescriptionRef.current = value;
             setShortDescription(value);
           }}
           placeholder="Sachlich beschreiben, welche vereinbarten Leistungen durchgeführt wurden …"
           multiline
-          editable={!disabled}
+          editable={!disabled && !busy}
         />
         <View style={styles.toolbar}>
           <PremiumButton
             title="Schnellbausteine"
             variant="ghost"
             size="sm"
+            disabled={disabled || busy}
             onPress={() => setShowQuickBlocks((v) => !v)}
           />
           <PremiumButton
             title="KI-Hilfe"
             variant="ghost"
             size="sm"
+            disabled={disabled || busy}
             onPress={() => setShowAiModal(true)}
           />
         </View>
@@ -240,7 +279,9 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
                 title={block}
                 variant="secondary"
                 size="sm"
+                disabled={disabled || busy}
                 onPress={() => {
+                  markEdited();
                   const next = shortDescription.trim()
                     ? `${shortDescription.trim()}\n${block}`
                     : block;
@@ -265,25 +306,25 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         <PremiumInput
           label="Interne Nachricht an die Verwaltung"
           value={specialNotes}
-          onChangeText={setSpecialNotes}
+          onChangeText={(value) => { markEdited(); setSpecialNotes(value); }}
           placeholder="Interne Hinweise, Rückfragen oder Beobachtungen – niemals klientensichtbar"
           multiline
-          editable={!disabled}
+          editable={!disabled && !busy}
         />
         <PremiumInput
           label="Abweichungen"
           value={deviations}
-          onChangeText={setDeviations}
+          onChangeText={(value) => { markEdited(); setDeviations(value); }}
           multiline
-          editable={!disabled}
+          editable={!disabled && !busy}
         />
         {deviations.trim() ? (
           <PremiumInput
             label="Interne Begründung der Abweichung *"
             value={deviationJustification}
-            onChangeText={setDeviationJustification}
+            onChangeText={(value) => { markEdited(); setDeviationJustification(value); }}
             multiline
-            editable={!disabled}
+            editable={!disabled && !busy}
           />
         ) : null}
         {!disabled ? (
@@ -291,13 +332,14 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
             title="Dokumentation und interne Angaben sicher speichern"
             testID="portal-doc-save-button"
             fullWidth
-            loading={loading}
+            loading={busy}
+            disabled={busy}
             onPress={() => {
               void handleSubmit();
             }}
           />
         ) : null}
-        {localError ? <Text style={styles.error}>{localError}</Text> : null}
+        {localError ? <Text style={styles.error} accessibilityRole="alert">{localError}</Text> : null}
       </View>
     </View>
   );
@@ -309,6 +351,8 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       sourceText={shortDescription}
       onClose={() => setShowAiModal(false)}
       onAccept={(textValue) => {
+        if (disabled || submittingRef.current || loading) return;
+        markEdited();
         shortDescriptionRef.current = textValue;
         setShortDescription(textValue);
         setShowAiModal(false);
@@ -330,7 +374,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       <PlatformModal
         visible={visible}
         title="Dokumentation"
-        onClose={onClose ?? (() => {})}
+        onClose={() => { if (!busy) onClose?.(); }}
         variant={useBottomSheet ? 'bottomSheet' : 'center'}
         animationType={useBottomSheet ? 'slide' : 'fade'}
         maxWidth={600}

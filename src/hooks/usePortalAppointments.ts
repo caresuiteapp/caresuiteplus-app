@@ -24,6 +24,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     roleKey,
     isLinkedReady,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
   } = usePortalActor();
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
@@ -125,15 +126,19 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     !scopedClientId;
 
   const portalRoleMismatch = authReady && Boolean(roleKey) && !roleMatchesAudience;
+  const missingEmployeeLink = authReady && !isResolvingEmployeeLink && audience === 'employee' && roleMatchesAudience && !scopedEmployeeId;
 
   return {
     items,
     loading:
       !authReady ||
       (audience === 'client' && isResolvingClientLink) ||
+      (audience === 'employee' && Boolean(isResolvingEmployeeLink)) ||
       (queryEnabled && query.loading && items.length === 0),
     error: portalRoleMismatch
       ? 'Diese Sitzung gehört zu einem anderen Portal. Bitte öffnen Sie den für Ihre Anmeldung vorgesehenen Bereich.'
+      : missingEmployeeLink
+      ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : missingClientLink
       ? 'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : query.error

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EmployeePortalDashboardScreen } from '@/screens/portal/EmployeePortalDashboardScreen';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LoadingState } from '@/components/ui';
@@ -7,6 +7,8 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 export function EmployeePortalOverviewScreen() {
   const { isReady } = usePortalActor();
   const [showSuccess, setShowSuccess] = useState(false);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (successTimer.current) clearTimeout(successTimer.current); }, []);
 
   if (!isReady) {
     return (
@@ -17,12 +19,13 @@ export function EmployeePortalOverviewScreen() {
   }
 
   return (
-    <PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>
+    <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
       <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {
           setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 2000);
+          if (successTimer.current) clearTimeout(successTimer.current);
+          successTimer.current = setTimeout(() => setShowSuccess(false), 2000);
         }}
       />
     </PortalTabScreen>

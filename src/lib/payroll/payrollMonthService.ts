@@ -16,6 +16,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { readEmployeePortalMediaBytes } from '@/lib/portal/employeePortalMediaBytes';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
@@ -520,10 +521,14 @@ export async function loadEmployeePayrollMonth(
   ]);
   if (statementRes.error) return { ok: false, error: toGermanSupabaseError(statementRes.error) };
   if (expenseRes.error) return { ok: false, error: toGermanSupabaseError(expenseRes.error) };
+  // This RPC is present in the deployed schema but not in the generated types.
+  const rateReply: { data: unknown; error: unknown } = mileageRateRes;
+  if (rateReply.error) return { ok: false, error: toGermanSupabaseError(rateReply.error) };
+  if (rateReply.data == null || !Number.isFinite(Number(rateReply.data)) || Number(rateReply.data) < 0) return { ok: false, error: 'Der Kilometersatz konnte nicht verlässlich geladen werden. Bitte erneut versuchen.' };
   return { ok: true, data: {
     statement: statementRes.data ? mapStatement(statementRes.data as Row) : null,
     expenses: ((expenseRes.data ?? []) as Row[]).map(mapExpense),
-    mileageRateCents: mileageRateRes.error ? 30 : Math.max(0, asNumber(mileageRateRes.data) || 30),
+    mileageRateCents: Number(rateReply.data),
   } };
 }
 
@@ -617,6 +622,8 @@ export async function decidePayrollStatement(statementId: string, decision: 'con
 }
 
 export async function createExpenseClaim(input: CreateExpenseClaimInput): Promise<ServiceResult<PayrollExpenseClaim>> {
+  const expenseDay = new Date(`${input.expenseDate}T12:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate) || !Number.isFinite(expenseDay.getTime()) || expenseDay.toISOString().slice(0, 10) !== input.expenseDate) return { ok: false, error: 'Bitte ein gültiges Auslagendatum angeben.' };
   if (!Number.isFinite(input.amountCents) || input.amountCents <= 0) return { ok: false, error: 'Der Auslagenbetrag muss größer als 0,00 EUR sein.' };
   if (input.description.trim().length < 3 || input.businessPurpose.trim().length < 3) return { ok: false, error: 'Beschreibung und geschäftlicher Zweck sind Pflichtangaben.' };
   if (input.category === 'mileage' && (!input.mileageKm || !input.mileageRateCents)) return { ok: false, error: 'Für die Kilometerpauschale sind Kilometer und Kilometersatz erforderlich.' };
@@ -644,10 +651,10 @@ export async function createExpenseClaim(input: CreateExpenseClaimInput): Promis
 export async function uploadExpenseReceipt(input: { tenantId: string; employeeId: string; uri: string; fileName: string; mimeType?: string | null }): Promise<ServiceResult<{ path: string }>> {
   const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   try {
-    const response = await fetch(input.uri); const blob = await response.blob();
+    const bytes = await readEmployeePortalMediaBytes(input.uri);
     const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${input.tenantId}/payroll/expenses/${input.employeeId}/${Date.now()}-${safeName}`;
-    const { error } = await supabase.storage.from('office-documents').upload(path, blob, { contentType: input.mimeType ?? blob.type ?? 'application/octet-stream', upsert: false });
+    const { error } = await supabase.storage.from('office-documents').upload(path, bytes.slice().buffer as ArrayBuffer, { contentType: input.mimeType ?? 'application/octet-stream', upsert: false });
     if (error) {
       const message = error.message.toLowerCase().includes('row-level security')
         ? 'Der persönliche Belegordner ist noch nicht freigeschaltet. Bitte die Payroll-Sicherheitsmigration anwenden.'

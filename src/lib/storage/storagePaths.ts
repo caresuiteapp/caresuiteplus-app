@@ -6,6 +6,13 @@ export function buildTenantStoragePath(tenantId: string, ...segments: string[]):
   return [TENANT_STORAGE_PREFIX, tenantId, ...segments.filter(Boolean)].join('/');
 }
 
+/** Only canonical object keys within the requested tenant can be delivered. */
+export function isTenantStoragePath(path: string | null | undefined, tenantId: string): boolean {
+  return Boolean(tenantId.trim() && path?.startsWith(`${buildTenantStoragePath(tenantId)}/`) &&
+    !/[\\]|%(?:2f|5c|2e)/i.test(path) &&
+    !path.split('/').some(segment => !segment || segment === '.' || segment === '..'));
+}
+
 /** ASCII file extension from original name (Supabase-safe segment). */
 export function extractStorageFileExtension(fileName: string): string {
   const trimmed = fileName.trim();

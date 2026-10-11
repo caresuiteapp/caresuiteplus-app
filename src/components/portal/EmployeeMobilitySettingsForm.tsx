@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ErrorState,
   FilterChipGroup,
@@ -57,10 +57,18 @@ export function EmployeeMobilitySettingsForm({
 
   const [draft, setDraft] = useState<EmployeeMobilitySettings | null>(null);
   const [saved, setSaved] = useState(false);
+  const dirty = useRef(false);
+  const draftScope = useRef(`${tenantId}:${employeeId}`);
 
   useEffect(() => {
-    if (settings) setDraft(settings);
-  }, [settings]);
+    const scope = `${tenantId}:${employeeId}`;
+    if (draftScope.current !== scope) { dirty.current = false; setDraft(null); setSaved(false); draftScope.current = scope; }
+    if (settings && settings.tenantId === tenantId && settings.employeeId === employeeId && !dirty.current) setDraft(settings);
+  }, [settings, tenantId, employeeId]);
+  const changeDraft = (next: EmployeeMobilitySettings) => {
+    if (readOnly || saving) return;
+    dirty.current = true; setSaved(false); setDraft(next);
+  };
 
   const previewStart = useMemo(() => {
     if (!draft || !addressContext) return '—';
@@ -96,13 +104,14 @@ export function EmployeeMobilitySettingsForm({
   async function handleSave() {
     setSaved(false);
     const result = await save(draft!);
-    if (result.ok) setSaved(true);
+    if (result.ok) { dirty.current = false; setDraft(result.data); setSaved(true); }
   }
 
   return (
     <View style={styles.wrap}>
       {showSuccessBanner && saved ? <SuccessState message="Mobilitätseinstellungen gespeichert." /> : null}
       {saveError ? <ErrorState message={saveError} /> : null}
+      {error ? <ErrorState title="Einstellungen nicht aktuell" message={error} onRetry={refresh} /> : null}
 
       <InfoBanner
         message="Fahrzeiten zu Einsätzen werden über Google Maps berechnet. Ohne API-Schlüssel erscheint eine Schätzung oder „—“."
@@ -115,7 +124,7 @@ export function EmployeeMobilitySettingsForm({
           options={TRANSPORT_OPTIONS}
           value={draft.transportModes}
           onChange={(value) =>
-            setDraft({ ...draft, transportModes: value as EmployeeTransportMode[] })
+            changeDraft({ ...draft, transportModes: value as EmployeeTransportMode[] })
           }
           wrap
         />
@@ -132,7 +141,7 @@ export function EmployeeMobilitySettingsForm({
           options={START_OPTIONS}
           value={draft.routeStartType}
           onChange={(value) =>
-            setDraft({ ...draft, routeStartType: value as EmployeeRouteStartType })
+            changeDraft({ ...draft, routeStartType: value as EmployeeRouteStartType })
           }
           wrap
         />
@@ -140,7 +149,7 @@ export function EmployeeMobilitySettingsForm({
           <PremiumInput
             label="Eigene Startadresse"
             value={draft.routeStartAddress ?? ''}
-            onChangeText={(value) => setDraft({ ...draft, routeStartAddress: value })}
+            onChangeText={(value) => changeDraft({ ...draft, routeStartAddress: value })}
             placeholder="Straße, PLZ Ort"
             editable={!readOnly}
           />
@@ -153,14 +162,14 @@ export function EmployeeMobilitySettingsForm({
         <FilterChipGroup
           options={END_OPTIONS}
           value={draft.routeEndType}
-          onChange={(value) => setDraft({ ...draft, routeEndType: value as EmployeeRouteEndType })}
+          onChange={(value) => changeDraft({ ...draft, routeEndType: value as EmployeeRouteEndType })}
           wrap
         />
         {draft.routeEndType === 'custom' ? (
           <PremiumInput
             label="Eigene Zieladresse"
             value={draft.routeEndAddress ?? ''}
-            onChangeText={(value) => setDraft({ ...draft, routeEndAddress: value })}
+            onChangeText={(value) => changeDraft({ ...draft, routeEndAddress: value })}
             placeholder="Straße, PLZ Ort"
             editable={!readOnly}
           />
@@ -169,7 +178,7 @@ export function EmployeeMobilitySettingsForm({
       </SectionPanel>
 
       {!readOnly ? (
-        <PremiumButton title="Speichern" onPress={handleSave} loading={saving} />
+        <PremiumButton title="Speichern" onPress={handleSave} loading={saving} disabled={saving} />
       ) : null}
     </View>
   );
