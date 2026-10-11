@@ -1,4 +1,5 @@
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
+import { Platform } from 'react-native';
 
 export type LiquidGlobalShortcut = {
   id: string;
@@ -8,6 +9,13 @@ export type LiquidGlobalShortcut = {
   route: string;
   keywords: string;
 };
+const centralCatalogShortcut: LiquidGlobalShortcut = {
+  id: 'document-catalog', label: 'Dokumentenkatalog',
+  description: 'Neue Vorlagen, Datenübernahme, PDF und Aktenablage im Office',
+  glyph: '▤', route: '/business/office/document-catalog',
+  keywords: 'vorlagen zentral dokumentenkatalog vertrag formular pflege betreuung pdf',
+};
+const centralCatalogWorkArea: LiquidWorkArea = { id: 'document-catalog', label: 'Dokumentenkatalog', description: 'Zentrale neue Vorlagen für alle Module', pageType: 'work-list', route: '/business/office/document-catalog' };
 
 /**
  * Productive cross-module destinations that must remain reachable from every
@@ -15,6 +23,7 @@ export type LiquidGlobalShortcut = {
  * Liquid Command is the navigation owner, not a parallel demo catalogue.
  */
 export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
+  ...(Platform.OS === 'web' ? [centralCatalogShortcut] : []),
   {
     id: 'today',
     label: 'Heute',
@@ -187,6 +196,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: '/?area=decisions' },
   ],
   office: [
+    ...(Platform.OS === 'web' ? [centralCatalogWorkArea] : []),
     { id: 'company', label: 'Unternehmen', description: 'Stammdaten, Standorte und Organisation', pageType: 'record', route: '/business/office/dashboard' },
     { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/business/office/clients' },
     { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/business/office/employees' },

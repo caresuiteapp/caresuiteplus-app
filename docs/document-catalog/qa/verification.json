@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-11",
+  "state": "development-draft-not-deployed",
+  "tests": {
+    "passed": 64,
+    "files": 8
+  },
+  "pdf": {
+    "rendered": 430,
+    "samples": [
+      {
+        "name": "contract",
+        "title": "Ambulanter Pflegevertrag",
+        "pages": 3,
+        "orientation": "portrait",
+        "hash": "cbf85c4359de41ab1730deea488b373a089785368e910ad5d197cbfb146a4a7e"
+      },
+      {
+        "name": "wound-form",
+        "title": "Wundassessment",
+        "pages": 1,
+        "orientation": "portrait",
+        "hash": "4d30732d91e9dbefa1ef56319fd4db9d14045c30a4c0e8de9f7e27f75a520676"
+      },
+      {
+        "name": "service-proof",
+        "title": "Leistungsnachweis mit Leistungsbestätigung",
+        "pages": 6,
+        "orientation": "landscape",
+        "hash": "4efcf520f51a2aaeb0096e61ab664fa386ed45b7964c92f0868a51c3e9aacc0e"
+      },
+      {
+        "name": "window-letter",
+        "title": "Schriftverkehr mit Pflegekassen, Krankenkassen und Behörden",
+        "pages": 1,
+        "orientation": "portrait",
+        "hash": "bd50b7373e6bf1697d813c6cde6d2d552fbff4b33af3856da979090b2afe2676"
+      }
+    ]
+  },
+  "pdfTextChecks": [
+    {
+      "file": "contract.pdf",
+      "pages": 3,
+      "draftOnEveryPage": true,
+      "charactersOutsidePage": [],
+      "proofHeaderPages": []
+    },
+    {
+      "file": "service-proof.pdf",
+      "pages": 6,
+      "draftOnEveryPage": true,
+      "charactersOutsidePage": [],
+      "proofHeaderPages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "file": "window-letter.pdf",
+      "pages": 1,
+      "draftOnEveryPage": true,
+      "charactersOutsidePage": [],
+      "proofHeaderPages": []
+    },
+    {
+      "file": "wound-form.pdf",
+      "pages": 1,
+      "draftOnEveryPage": true,
+      "charactersOutsidePage": [],
+      "proofHeaderPages": []
+    }
+  ],
+  "typeScript": {
+    "scope": "feature and real dependencies",
+    "introduced": [],
+    "outsideChangedLines": [
+      "src/components/layout/ScreenHeader.web.tsx(18,158): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(628,9): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(635,13): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(641,13): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(676,49): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(677,39): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(682,53): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(683,55): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(690,161): error TS2322: Type '{ children: Element[]; accessibilityRole: \"button\"; accessibilityLabel: string; onPress: () => void; style: { borderRadius: number; borderWidth: number; borderStyle: \"dashed\"; borderColor: string; backgroundColor: string; alignItems: \"center\"; justifyContent: \"center\"; }; dataSet: { ...; }; }' is not assignable to type 'IntrinsicAttributes & PressableProps & RefAttributes<View>'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(699,82): error TS2339: Property 'place' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(699,114): error TS2339: Property 'preferenceError' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(700,27): error TS2339: Property 'choosePlace' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'."
+    ],
+    "fullRepositoryCheck": "exceeded executor memory"
+  },
+  "browser": {
+    "verified": false,
+    "reason": "Installed Playwright has no Chromium executable; cloud browser cannot reach local host. No installation performed."
+  },
+  "liveSupabaseEndToEnd": {
+    "verified": false,
+    "reason": "Prepared SQL and Edge Function were not applied/deployed."
+  },
+  "realDataUsedInFixtures": false
+}

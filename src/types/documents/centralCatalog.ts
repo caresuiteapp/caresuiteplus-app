@@ -1,0 +1,67 @@
+export type CentralDocumentTarget = 'client' | 'employee' | 'company';
+export type CentralDocumentLayout = 'letter' | 'contract' | 'form' | 'table' | 'checklist';
+export type CentralDocumentField = {
+  key: string;
+  label: string;
+  type: 'text' | 'multiline' | 'date';
+  required: boolean;
+  sourcePath?: string;
+  defaultValue?: string;
+};
+export type CentralDocumentDefinition = {
+  key: string;
+  categoryKey: string;
+  categoryName: string;
+  title: string;
+  version: number;
+  modules: readonly string[];
+  target: CentralDocumentTarget;
+  sourceMode: 'create' | 'original';
+  layout: CentralDocumentLayout;
+  orientation: 'portrait' | 'landscape';
+  fields: CentralDocumentField[];
+  columns: string[];
+  reviewStatus: 'draft' | 'approved';
+  legalReviewRequired: boolean;
+  clinicalReviewRequired: boolean;
+  instructions: string;
+  sections: { key: string; heading: string; text: string }[];
+};
+export type CentralDocumentContext = {
+  tenantId: string;
+  target: CentralDocumentTarget;
+  entityId: string;
+  company: Record<string, string>;
+  subject: Record<string, string>;
+  representative: Record<string, string>;
+  payor: Record<string, string>;
+  employee: Record<string, string>;
+  sourceFetchedAt: string;
+};
+export type CentralDocumentSnapshot = {
+  definition: CentralDocumentDefinition;
+  context: CentralDocumentContext;
+  values: Record<string, string>;
+  fieldOrigins: Record<string, 'stored' | 'manual' | 'default' | 'empty'>;
+  tableRows: string[][];
+  additionalText: string;
+  sectionTexts: Record<string, string>;
+  createdAt: string;
+  documentId: string;
+  revision: number;
+  parentDocumentId?: string;
+};
+export type CentralDocumentStored = {
+  id: string;
+  tenantId: string;
+  title: string;
+  templateKey: string;
+  revision: number;
+  snapshot: CentralDocumentSnapshot;
+  state: 'draft' | 'issued';
+  pdfPath: string | null;
+  pdfHash: string | null;
+  createdAt: string;
+  originalPath?: string | null;
+  originalHash?: string | null;
+};

@@ -262,6 +262,10 @@ const BACKGROUNDS: readonly BackgroundDefinition[] = [
 ] as const;
 
 const WIDGETS: readonly WidgetDefinition[] = [
+  { id: "document-catalog", label: "Dokumentenkatalog", description: "430 neue Katalogeinträge · Editor, PDF und Aktenablage", category: "Verwaltung", route: "/business/office/document-catalog", images: {
+    small: require("../../../assets/healthos/widgets-premium/document-catalog.png"),
+    medium: require("../../../assets/healthos/widgets-premium/document-catalog.png"),
+    large: require("../../../assets/healthos/widgets-premium/document-catalog.png") } },
   { id: "google-workspace", label: "Google Workspace", description: "Verbindung, freigegebene Dienste und Ihr Google-Arbeitsplatz", category: "Workspace", route: "/business/connect/google-workspace", workspaceService: "overview" },
   { id: "google-gmail", label: "Gmail", description: "Aktuelle E-Mails aus dem verbundenen Google-Postfach", category: "Workspace", route: "/business/connect/google-workspace?service=gmail", workspaceService: "gmail" },
   { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },
@@ -499,7 +503,7 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
   const moduleApps = apps.filter(app => desktopModuleForRoute(app.route) === moduleKey);
   const moduleWidgets = useMemo(() => WIDGETS.filter(widget => desktopModuleForRoute(widget.route) === moduleKey), [moduleKey]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
-  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id)).map(widget => widget.id), [moduleWidgets]);
+  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => widget.id === 'document-catalog' || DEFAULT_DESKTOP_IDS.some(id => id === widget.id)).map(widget => widget.id), [moduleWidgets]);
   const filteredApps = moduleApps.filter(app => app.category === category && matchesSearch(app, query));
   const filteredWidgets = moduleWidgets.filter(widget => widget.category === category && matchesSearch(widget, query));
   const navigationGroups = buildModuleDesktopNavigation(moduleApps, moduleKey, navigationQuery);

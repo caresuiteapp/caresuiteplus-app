@@ -108,3 +108,8 @@ export function sha256Hex(content: string): string {
       : Uint8Array.from(Array.from(content).map((char) => char.charCodeAt(0)));
   return bytesToHex(sha256Bytes(encoded));
 }
+
+/** Hashes the actual file bytes; never convert PDF bytes into a UTF-8 string. */
+export function sha256FileHex(bytes: Uint8Array): string {
+  return bytesToHex(sha256Bytes(bytes));
+}
