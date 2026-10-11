@@ -1,5 +1,5 @@
 import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View, type KeyboardTypeOptions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { ActivityIndicator, useWindowDimensions, Platform, Pressable, StyleSheet, Text, TextInput, View, type KeyboardTypeOptions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -487,6 +487,8 @@ export function LiquidStatus({
   detail?: string;
 }) {
   const orbit = useLiquidVisualMode() === 'orbit';
+  const { width, fontScale } = useWindowDimensions();
+  const compactMetric = Platform.OS !== 'web' && width < 600;
   const color = tone === 'neutral'
     ? orbit ? '#475569' : liquidClassicColors.white72
     : toneColor(tone);
@@ -517,11 +519,13 @@ export function LiquidMetric({
   glyph?: string;
 }) {
   const orbit = useLiquidVisualMode() === 'orbit';
+  const { width, fontScale } = useWindowDimensions();
+  const compactMetric = Platform.OS !== 'web' && width < 600;
   const color = tone === 'neutral'
     ? orbit ? '#475569' : liquidClassicColors.white72
     : toneColor(tone);
   return (
-    <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={[styles.metric, orbit && styles.orbitMetric]}>
+    <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={[styles.metric, orbit && styles.orbitMetric, compactMetric && { flexBasis: fontScale >= 1.6 ? '100%' : '45%', minWidth: 0, padding: 12 }]}>
       <View style={styles.metricHeader}>
         {glyph ? <LiquidGlyph color={color} glyph={glyph} size={16} /> : null}
         <Text style={[styles.metricLabel, orbit && styles.orbitMutedText]}>{label}</Text>
@@ -967,6 +971,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   metricLabel: {
+    flex: 1,
+    minWidth: 0,
     color: liquidClassicColors.white72,
     fontSize: 13,
     lineHeight: 18,

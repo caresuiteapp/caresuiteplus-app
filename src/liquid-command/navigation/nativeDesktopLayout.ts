@@ -4,10 +4,12 @@ export function nativeDesktopLayout(width: number, fontScale = 1) {
   const sidebar = width >= 980 * scale;
   const sidebarWidth = Math.min(360, Math.round(280 * scale));
   const padding = width < 600 ? 16 : 24;
-  const gap = 16;
+  const gap = width < 600 ? 10 : 16;
   const pane = Math.max(1, width - (sidebar ? sidebarWidth + gap : 0));
   const available = Math.max(1, pane - padding * 2);
-  const columns = Math.max(1, Math.min(4, Math.floor((available + gap) / (230 * scale + gap))));
+  const columns = width < 600
+    ? (available >= 260 && scale < 1.6 ? 2 : 1)
+    : Math.max(1, Math.min(4, Math.floor((available + gap) / (230 * scale + gap))));
   return { sidebar, sidebarWidth, padding, gap, columns, cardWidth: Math.max(1, (available - gap * (columns - 1)) / columns) };
 }
 

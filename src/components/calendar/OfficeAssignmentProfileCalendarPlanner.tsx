@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
   },
   profileList: { gap: 9 },
-  profileListCompact: { flexDirection: 'row', flexWrap: 'wrap' },
+  profileListCompact: { flexDirection: 'column', alignItems: 'stretch' },
   employeeGroup: {
     borderRadius: 17,
     borderWidth: 1,

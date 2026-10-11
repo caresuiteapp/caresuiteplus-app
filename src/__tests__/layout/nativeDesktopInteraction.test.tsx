@@ -50,6 +50,8 @@ describe('Native administration desktop interactions', () => {
   it('clears the previous desktop on a tenant or account switch', async () => { memory.set(key(), '["clients"]'); await render(); api.owner = 'b'; api.tenant = 'tenant-b'; memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('Ihr Desktop ist frei'); expect(memory.get(moduleDesktopStorageKey('tenant-a', 'a', 'office'))).toBe('["clients"]'); });
 });
 describe('Native desktop geometry', () => {
+  it.each([320, 360, 390, 412, 480])('uses two widget columns on a %d pixel phone', width => { expect(nativeDesktopLayout(width).columns).toBe(2); });
+  it('provides a single column for enlarged accessibility text', () => { expect(nativeDesktopLayout(360, 2).columns).toBe(1); });
   it.each([320, 360, 390, 600, 768, 844, 1024, 1280, 1920].flatMap(width => [1, 1.3, 1.6, 2].map(scale => [width, scale])))('fits width %d with font scale %d without clipping the grid', (width, scale) => { const layout = nativeDesktopLayout(width, scale); const occupied = layout.cardWidth * layout.columns + layout.gap * (layout.columns - 1) + 2 * layout.padding + (layout.sidebar ? layout.sidebarWidth + layout.gap : 0); expect(occupied).toBeLessThanOrEqual(width + 0.001); expect(layout.cardWidth).toBeGreaterThan(0); if (width < 980 * scale) expect(layout.sidebar).toBe(false); });
   it('keeps widget ordering intact at both boundaries', () => { expect(moveNativeDesktopWidget(['a', 'b'], 'a', -1)).toEqual(['a', 'b']); expect(moveNativeDesktopWidget(['a', 'b'], 'b', 1)).toEqual(['a', 'b']); });
 });

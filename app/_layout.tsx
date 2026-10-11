@@ -1,3 +1,5 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LiquidVisualModeProvider } from '@/liquid-command/components/LiquidPrimitives';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartup } from '@/components/brand/AppStartup';
@@ -65,6 +67,9 @@ function RootShell() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compactPopup = width < 780;
+  const insets = useSafeAreaInsets();
+  const nativeTop = Platform.OS === 'web' ? 0 : insets.top;
+  const nativeBottom = Platform.OS === 'web' ? 0 : insets.bottom;
   const currentRouteIsPopup = isHealthOSContextualPopupRoute(pathname);
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
@@ -117,6 +122,7 @@ function RootShell() {
       };
 
   return (
+    <LiquidVisualModeProvider mode={hostsGlobalBackground ? 'classic' : 'orbit'}>
     <ThemeProvider value={navigationTheme}>
       <View style={styles.root}>
         <View style={styles.contentLayer} pointerEvents="box-none">
@@ -126,7 +132,7 @@ function RootShell() {
             </View>
           ) : null}
           <View style={styles.foregroundLayer} pointerEvents="box-none">
-            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <StatusBar style={hostsGlobalBackground || isDark ? 'light' : 'dark'} />
             <Stack
               screenOptions={({ route }) => {
                 const contextualPopup = isHealthOSContextualPopupRoute(route.name);
@@ -135,8 +141,8 @@ function RootShell() {
                   contentStyle: contextualPopup
                     ? {
                         backgroundColor: 'rgba(0, 7, 20, 0.74)',
-                        paddingTop: compactPopup ? 62 : 86,
-                        paddingBottom: compactPopup ? 8 : 24,
+                        paddingTop: (compactPopup ? 62 : 86) + nativeTop,
+                        paddingBottom: (compactPopup ? 8 : 24) + nativeBottom,
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
                     : { backgroundColor: SURFACE_COLOR },
@@ -147,10 +153,10 @@ function RootShell() {
             />
             {currentRouteIsPopup ? (
               <>
-                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact]} />
-                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact]}>
+                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact, { top: (compactPopup ? 56 : 78) + nativeTop, bottom: (compactPopup ? 4 : 24) + nativeBottom }]} />
+                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact, { top: (compactPopup ? 7 : 15) + nativeTop }]}>
                   <View style={styles.centralPopupChromeCopy}>
-                    <Text numberOfLines={1} style={styles.centralPopupBrand}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
+                    <Text numberOfLines={1} style={[styles.centralPopupBrand, compactPopup && { fontSize: 14, lineHeight: 18, flexShrink: 1 }]}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
                     {!compactPopup ? <View style={styles.centralPopupDivider} /> : null}
                     <Text numberOfLines={1} style={styles.centralPopupTitle}>{popupTitle(pathname)}</Text>
                   </View>
@@ -173,6 +179,7 @@ function RootShell() {
         </View>
       </View>
     </ThemeProvider>
+    </LiquidVisualModeProvider>
   );
 }
 

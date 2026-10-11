@@ -127,18 +127,18 @@ function NativeModuleDesktop({ tenantId, module, modules, onModuleChange, select
   if (!ready) return <SafeAreaView style={styles.loading}><View style={ui.surface}><Text style={ui.title}>Desktop wird vorbereitet</Text>{error ? <><Text style={ui.error}>{error}</Text><NativeAction label="Erneut laden" onPress={() => setAttempt(value => value + 1)} /></> : <ActivityIndicator color="#8dc8ff" />}</View></SafeAreaView>;
   return <ImageBackground source={selectedBackground.image} resizeMode="cover" style={styles.root} testID="native-administration-desktop">
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={styles.brand} resizeMode="contain" />
-        <View style={ui.row}>{!layout.sidebar ? <NativeAction label="Navigation" onPress={() => setNavigationOpen(true)} /> : null}<NativeAction label="Apps" primary onPress={() => openCenter('apps')} /><NativeAction label={auth.profile?.displayName || auth.user?.displayName || 'Mein Profil'} onPress={() => setProfileOpen(true)} /></View>
+      <View style={[styles.header, width < 600 && { paddingHorizontal: 12, paddingVertical: 8 }]}>
+        {width >= 600 ? <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={styles.brand} resizeMode="contain" /> : null}
+        <View style={ui.row}>{!layout.sidebar ? <NativeAction label="Navigation" onPress={() => setNavigationOpen(true)} /> : null}<NativeAction label="Apps" primary onPress={() => openCenter('apps')} /><NativeAction label={width < 600 ? 'Profil' : auth.profile?.displayName || auth.user?.displayName || 'Mein Profil'} accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} /></View>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moduleBar} contentContainerStyle={styles.moduleContent}>{modules.map(item => <NativeAction key={item.key} label={item.label} selected={item.key === module} onPress={() => onModuleChange(item.key)} />)}</ScrollView>
       <View style={styles.workarea}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 16, gap: 16 }}>{navigation}</ScrollView> : null}
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: layout.padding, gap: 20, paddingBottom: 48 }}>
-          <View style={[ui.surface, styles.welcome]}>
-            <Text style={styles.group}>{moduleLabel.toLocaleUpperCase('de-DE')}</Text><Text accessibilityRole="header" style={ui.title}>Mein Desktop</Text>
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: layout.padding, gap: 12, paddingBottom: 48 }}>
+          <View style={[ui.surface, styles.welcome, width < 600 && { padding: 12, gap: 8 }]}>
+            <Text style={styles.group}>{moduleLabel.toLocaleUpperCase('de-DE')}</Text><Text accessibilityRole="header" style={[ui.title, width < 600 && { fontSize: 20, lineHeight: 26 }]}>Mein Desktop</Text>
             <Text style={ui.body}>{now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text>
-            <View style={ui.row}><NativeAction label={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} selected={edit} onPress={() => setEdit(!edit)} /><NativeAction label="Widgets hinzufügen" onPress={() => openCenter('widgets')} /><NativeAction label="Hintergrund" onPress={() => openCenter('backgrounds')} /></View>
+            <View style={ui.row}><NativeAction label={edit ? 'Bearbeitung beenden' : 'Bearbeiten'} accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} selected={edit} onPress={() => setEdit(!edit)} /><NativeAction label="Widgets hinzufügen" onPress={() => openCenter('widgets')} /><NativeAction label="Hintergrund" onPress={() => openCenter('backgrounds')} /></View>
             <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={ui.body}>{weather.data ? `${weather.data.glyph} ${weather.data.temperature} °C · ${weather.data.label}` : weather.message}</Text><Text style={ui.muted}>{weather.data ? `${weather.message} · ${weather.data.station}` : 'Stadt oder Postleitzahl auswählen'} ›</Text></Pressable>
             {saving ? <Text accessibilityLiveRegion="polite" style={ui.muted}>Desktop wird gespeichert …</Text> : null}
             {error || selectionError ? <View style={ui.stack}><Text accessibilityRole="alert" style={ui.error}>{error || selectionError}</Text>{error ? <NativeAction label="Erneut speichern" onPress={() => persist(current.current)} /> : null}</View> : null}
@@ -176,7 +176,7 @@ function NativeModuleDesktop({ tenantId, module, modules, onModuleChange, select
 function NativeWidget({ widget, onOpen }: { widget: WidgetDefinition; onOpen: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, pressed && ui.pressed]}>
     {widget.images ? <Image source={widget.images.medium} resizeMode="contain" resizeMethod="resize" style={styles.widgetImage} accessible={false} /> : null}
-    <Text style={ui.label}>{widget.label}</Text><Text style={ui.muted}>{widget.description}</Text>
+    <Text style={styles.widgetTitle}>{widget.label}</Text><Text style={styles.widgetDescription}>{widget.description}</Text>
   </Pressable>;
 }
 
@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#071629' },
   header: { paddingHorizontal: 16, paddingVertical: 12, gap: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(6,17,33,0.9)' },
   brand: { width: 210, height: 48 }, moduleBar: { flexGrow: 0, flexShrink: 0, backgroundColor: 'rgba(6,17,33,0.85)' }, moduleContent: { padding: 12, gap: 10 },
-  workarea: { flex: 1, flexDirection: 'row', gap: 16 }, sidebar: { backgroundColor: 'rgba(6,17,33,0.94)', borderRightWidth: 1, borderColor: '#3d5d7b' },
+  workarea: { flex: 1, minHeight: 0, flexDirection: 'row' }, sidebar: { backgroundColor: 'rgba(6,17,33,0.94)', borderRightWidth: 1, borderColor: '#3d5d7b' },
   group: { color: '#90c9f3', fontSize: 14, lineHeight: 22, fontWeight: '700' }, navItem: { minHeight: 48, padding: 12, gap: 4, borderRadius: 12, backgroundColor: '#0d2843' },
   welcome: { gap: 12 }, weather: { gap: 5, paddingTop: 12, borderTopWidth: 1, borderColor: '#34516e', minHeight: 48 },
-  widget: { borderRadius: 22, borderWidth: 1, borderColor: '#6985a1', backgroundColor: 'rgba(7,25,45,0.9)', overflow: 'hidden' }, widgetBody: { padding: 18, gap: 8, flex: 1 }, widgetImage: { width: '100%', aspectRatio: 2.07 },
+  widget: { borderRadius: 22, borderWidth: 1, borderColor: '#6985a1', backgroundColor: 'rgba(7,25,45,0.9)', overflow: 'hidden' }, widgetTitle: { color: '#f3f8ff', fontSize: 14, lineHeight: 20, fontWeight: '700', flexShrink: 1 }, widgetDescription: { color: '#bdd1e5', fontSize: 12, lineHeight: 17, flexShrink: 1 }, widgetBody: { padding: 12, gap: 6 }, widgetImage: { width: '100%', aspectRatio: 2.07 },
   widgetEdit: { padding: 12, gap: 10, borderTopWidth: 1, borderColor: '#34516e' }, backgroundChoice: { borderRadius: 18, overflow: 'hidden', borderWidth: 2, borderColor: '#34516e' }, backgroundPreview: { width: '100%', height: 150 }, selected: { borderColor: '#88c8ff' },
 });
