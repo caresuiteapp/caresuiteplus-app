@@ -15,6 +15,7 @@ type IntakeDocumentRow = {
   finalized_at: string | null;
   created_at: string;
   updated_at: string;
+  rendered_pdf_path?: string | null;
 };
 
 type StoredDocumentRow = {
@@ -50,13 +51,13 @@ function mapIntakeStatusToWorkflow(status: string): WorkflowStatus {
 }
 
 function resolveIntakeDocumentHtml(row: Pick<IntakeDocumentRow, 'finalized_html' | 'preview_html'>): string | null {
-  return row.finalized_html ?? row.preview_html;
+  return row.finalized_html?.trim() || row.preview_html?.trim() || null;
 }
 
 type IntakeDocumentHtmlSource = Pick<
   IntakeDocumentRow,
   'id' | 'template_key' | 'document_type' | 'title' | 'status' | 'finalized_html' | 'preview_html'
->;
+> & Pick<Partial<IntakeDocumentRow>, 'tenant_id' | 'client_id' | 'rendered_pdf_path'>;
 
 function enrichStoredDocumentWithIntakeHtml(
   doc: ClientDocumentRecord,
@@ -66,13 +67,17 @@ function enrichStoredDocumentWithIntakeHtml(
   const templateKey =
     resolveIntakeTemplateKey(doc)
     ?? (isIntakeTemplateFileName(doc.fileName) ? doc.fileName.replace(/\.html$/i, '') : null);
-  const intakeRow =
-    (doc.intakeDocumentId ? intakeById.get(doc.intakeDocumentId) : undefined)
-    ?? (templateKey ? intakeByTemplateKey.get(templateKey) : undefined);
+  const intakeRow = doc.intakeDocumentId
+    ? intakeById.get(doc.intakeDocumentId)
+    : templateKey ? intakeByTemplateKey.get(templateKey) : undefined;
 
   if (!intakeRow) return doc;
+  if ((intakeRow.tenant_id && intakeRow.tenant_id !== doc.tenantId)
+    || (intakeRow.client_id && intakeRow.client_id !== doc.clientId)) return doc;
 
-  const previewHtml = doc.previewHtml ?? resolveIntakeDocumentHtml(intakeRow);
+  const previewHtml = resolveIntakeDocumentHtml(intakeRow) || doc.previewHtml?.trim() || null;
+  const storedPdf = !previewHtml ? intakeRow.rendered_pdf_path?.trim() : null;
+  const missingContent = !previewHtml && !storedPdf && !doc.storagePath;
   const title =
     doc.title?.trim() && !isTechnicalIntakeDocumentTitle(doc.title, doc.fileName)
       ? doc.title
@@ -82,6 +87,8 @@ function enrichStoredDocumentWithIntakeHtml(
     ...doc,
     title,
     previewHtml,
+    ...(storedPdf ? { storagePath: storedPdf, mimeType: 'application/pdf' } : {}),
+    ...(missingContent ? { status: 'fehlerhaft' as const } : {}),
     documentSource: doc.documentSource ?? 'intake',
     intakeDocumentId: doc.intakeDocumentId ?? intakeRow.id,
     intakeDocumentType: doc.intakeDocumentType ?? intakeRow.document_type,
@@ -91,16 +98,17 @@ function enrichStoredDocumentWithIntakeHtml(
 
 export function mapIntakeDocumentRow(row: IntakeDocumentRow): ClientDocumentRecord {
   const html = resolveIntakeDocumentHtml(row);
+  const pdfPath = !html ? row.rendered_pdf_path?.trim() : null;
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,
     title: row.title,
     fileName: `${row.template_key}.html`,
-    mimeType: 'text/html',
+    mimeType: pdfPath ? 'application/pdf' : 'text/html',
     category: mapIntakeDocumentTypeToCategory(row.document_type),
-    storagePath: null,
-    status: mapIntakeStatusToWorkflow(row.status),
+    storagePath: pdfPath || null,
+    status: html || pdfPath ? mapIntakeStatusToWorkflow(row.status) : 'fehlerhaft',
     sensitivity: 'care',
     uploadedBy: null,
     validUntil: null,
@@ -140,7 +148,10 @@ export function enrichClientDocumentWithIntakeRows(
   intakeRows: IntakeDocumentHtmlSource[],
 ): ClientDocumentRecord {
   const intakeById = new Map(intakeRows.map((row) => [row.id, row]));
-  const intakeByTemplateKey = new Map(intakeRows.map((row) => [row.template_key, row]));
+  const intakeByTemplateKey = new Map(intakeRows
+    .filter((row) => (!row.tenant_id || row.tenant_id === doc.tenantId)
+      && (!row.client_id || row.client_id === doc.clientId))
+    .map((row) => [row.template_key, row]));
   return enrichStoredDocumentWithIntakeHtml(doc, intakeById, intakeByTemplateKey);
 }
 
@@ -149,22 +160,23 @@ export function mergeClientRecordDocuments(
   intakeRows: IntakeDocumentRow[],
 ): ClientDocumentRecord[] {
   const intakeById = new Map(intakeRows.map((row) => [row.id, row]));
-  const intakeByTemplateKey = new Map(intakeRows.map((row) => [row.template_key, row]));
   const enrichedStored = stored.map((doc) =>
-    enrichStoredDocumentWithIntakeHtml(doc, intakeById, intakeByTemplateKey),
+    enrichStoredDocumentWithIntakeHtml(doc, intakeById, new Map(intakeRows
+      .filter((row) => row.tenant_id === doc.tenantId && row.client_id === doc.clientId)
+      .map((row) => [row.template_key, row]))),
   );
 
   const promotedIntakeIds = new Set(
     enrichedStored.map((doc) => doc.intakeDocumentId).filter(Boolean) as string[],
   );
   const storedTemplateKeys = new Set(
-    enrichedStored.map((doc) => doc.fileName.replace(/\.html$/i, '')),
+    enrichedStored.map((doc) => `${doc.tenantId}:${doc.clientId}:${doc.fileName.replace(/\.html$/i, '')}`),
   );
 
   const intakeDocs = intakeRows
     .filter((row) => !['not_started', 'declined', 'revoked', 'replaced'].includes(row.status))
     .filter((row) => !promotedIntakeIds.has(row.id))
-    .filter((row) => !storedTemplateKeys.has(row.template_key))
+    .filter((row) => !storedTemplateKeys.has(`${row.tenant_id}:${row.client_id}:${row.template_key}`))
     .map(mapIntakeDocumentRow);
 
   const seenIds = new Set<string>();

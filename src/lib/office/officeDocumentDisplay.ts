@@ -1,4 +1,5 @@
 import { getSystemIntakeTemplateByKey } from '@/features/intakeDocuments/intakeDocumentSystemTemplates';
+import { isIntakeDocumentContentMissing, MISSING_DOCUMENT_CONTENT_MESSAGE } from '@/lib/documents/documentPdfLogic';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { CLIENT_DOCUMENT_CATEGORY_LABELS } from '@/types/modules/client/clientDocuments';
 import {
@@ -200,14 +201,16 @@ export function buildDocumentPreviewFallbackLabel(
 }
 
 export function buildClientDocumentPreviewFallback(doc: ClientDocumentRecord): string {
+  if (isIntakeDocumentContentMissing(doc)) return MISSING_DOCUMENT_CONTENT_MESSAGE;
   return buildDocumentPreviewFallbackLabel(
     mapClientDocumentToPortalItemForTest(doc),
   );
 }
 
 function documentPreviewStatusLabel(
-  doc: Pick<ClientDocumentRecord, 'status' | 'intakeStatus'>,
+  doc: ClientDocumentRecord,
 ): string {
+  if (isIntakeDocumentContentMissing(doc)) return 'Inhalt fehlt';
   if (doc.intakeStatus === 'finalized') return 'Finalisiert';
   if (doc.status === 'abgeschlossen') return 'Finalisiert';
   if (doc.status === 'aktiv') return 'Aktiv';
