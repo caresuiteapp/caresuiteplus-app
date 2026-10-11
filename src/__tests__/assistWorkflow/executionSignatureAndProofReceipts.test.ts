@@ -28,6 +28,7 @@ vi.mock('@/lib/assist/assistExecutionPersistenceService', () => ({
 vi.mock('@/lib/async/deferredTask', () => ({ scheduleDeferredTask: vi.fn() }));
 
 import { saveVisitSignaturePersistent } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { saveVisitSignaturePersistent as saveWebSignature } from '@/lib/assist/assistVisitSignaturePersistenceService.web';
 import { persistVisitProof } from '@/lib/assist/assistVisitProofPersistenceService';
 import { visitProofSnapshotsMatch } from '@/lib/assist/visitProofCompleteness';
 
@@ -52,9 +53,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('on-device signature write receipt', () => {
+describe.each([['native', saveVisitSignaturePersistent], ['web', saveWebSignature]] as const)('%s signature write receipt', (_, saveSignature) => {
   it('resolves the real profile foreign key instead of submitting an auth-user or portal-account id', async () => {
-    expect((await saveVisitSignaturePersistent('tenant', signature())).ok).toBe(true);
+    expect((await saveSignature('tenant', signature())).ok).toBe(true);
     expect(h.user).toHaveBeenCalledTimes(1);
     expect(h.rpc).toHaveBeenCalledWith('resolve_current_profile_id');
     expect(h.row?.signed_by_profile_id).toBe(h.actor);
@@ -63,30 +64,35 @@ describe('on-device signature write receipt', () => {
   it.each(['signed out', 'unresolved profile'])('blocks %s before uploading an image', async (failure) => {
     if (failure === 'signed out') h.user.mockResolvedValue({ data: { user: null }, error: null });
     else h.rpc.mockResolvedValue({ data: null, error: null });
-    expect((await saveVisitSignaturePersistent('tenant', signature())).ok).toBe(false);
+    expect((await saveSignature('tenant', signature())).ok).toBe(false);
     expect(h.upload).not.toHaveBeenCalled(); expect(h.row).toBeNull();
+  });
+  it('keeps the image and verifies the row after a rejected network insert promise', async () => {
+    h.result.mockRejectedValue(new Error('offline'));
+    expect((await saveSignature('tenant', signature())).ok).toBe(false);
+    expect(h.remove).not.toHaveBeenCalled(); expect(h.existing).toHaveBeenCalledTimes(2);
   });
   it('does not destroy an image when a lost insert reply could hide a committed signature', async () => {
     h.result.mockReturnValue({ data: null, error: { message: 'Failed to fetch' } });
-    const result = await saveVisitSignaturePersistent('tenant', signature());
+    const result = await saveSignature('tenant', signature());
     expect(result.ok).toBe(false); expect(h.remove).not.toHaveBeenCalled();
     expect(h.existing).toHaveBeenCalledTimes(2);
   });
   it('recovers an identical committed row after the transport reply is lost', async () => {
     h.result.mockReturnValue({ data: null, error: { message: 'Failed to fetch' } });
     h.existing.mockResolvedValueOnce({ ok: true, data: null }).mockImplementationOnce(async () => ({ ok: true, data: readSavedSignature() }));
-    const result = await saveVisitSignaturePersistent('tenant', signature());
+    const result = await saveSignature('tenant', signature());
     expect(result.ok).toBe(true); expect(h.remove).not.toHaveBeenCalled();
     expect(h.upload).toHaveBeenCalledTimes(1);
   });
   it('cleans up only a definitively denied new insert', async () => {
     h.result.mockReturnValue({ data: null, error: { code: '42501', message: 'RLS denied' } });
-    expect((await saveVisitSignaturePersistent('tenant', signature())).ok).toBe(false);
+    expect((await saveSignature('tenant', signature())).ok).toBe(false);
     expect(h.remove).toHaveBeenCalledWith([h.row?.storage_path]);
   });
   it.each(['tenant_id', 'visit_id', 'signed_by_profile_id', 'signature_hash'])('rejects a mismatched %s receipt', async (field) => {
     h.result.mockImplementation(() => ({ data: { ...h.row, [field]: 'other' }, error: null }));
-    expect((await saveVisitSignaturePersistent('tenant', signature())).ok).toBe(false);
+    expect((await saveSignature('tenant', signature())).ok).toBe(false);
   });
 });
 

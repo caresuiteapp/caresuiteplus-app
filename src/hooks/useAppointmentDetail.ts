@@ -15,8 +15,8 @@ export function useAppointmentDetail(appointmentId: string | undefined) {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       return fetchAppointmentDetail(appointmentId, tenantId, profile?.roleKey);
     },
-    [appointmentId, tenantId, profile?.roleKey],
-    { enabled: Boolean(appointmentId) && !!tenantId },
+    [appointmentId, tenantId, profile?.id, profile?.roleKey],
+    { enabled: Boolean(appointmentId) && !!tenantId, queryKey: JSON.stringify([tenantId, profile?.id, profile?.roleKey, appointmentId]) },
   );
 
   const notFound =

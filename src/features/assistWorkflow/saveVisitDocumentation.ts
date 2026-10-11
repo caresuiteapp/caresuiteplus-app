@@ -21,6 +21,7 @@ import {
 } from './assistWorkflowErrors';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
+import { buildVisitDocumentationContent } from './visitDocumentationContent';
 
 export type SaveVisitDocumentationInput = {
   ctx: AssistExecutionContext;
@@ -66,18 +67,7 @@ async function persistDocumentationToAssistVisit(
 
   const now = new Date().toISOString();
   const payload = {
-    short_description: doc.shortDescription.trim(),
-    special_notes: doc.specialNotes?.trim() ?? null,
-    deviations: doc.deviations?.trim() ?? null,
-    deviation_justification: doc.deviationJustification?.trim() ?? null,
-    referral_required: doc.referralRequired,
-    emergency_or_problem: doc.emergencyOrProblem,
-    sis_notes: doc.sisNotes?.trim() ?? null,
-    vitals_summary: doc.vitalsSummary?.trim() ?? null,
-    body_map_notes: doc.bodyMapNotes?.trim() ?? null,
-    medication_notes: doc.medicationNotes?.trim() ?? null,
-    care_report_notes: doc.careReportNotes?.trim() ?? null,
-    photo_references: doc.photoReferences ?? [],
+    ...buildVisitDocumentationContent(doc),
     submitted_at: now,
     submitted_by: profileId,
     locked: false,

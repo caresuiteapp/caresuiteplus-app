@@ -33,11 +33,13 @@ import { getAllowedAssignmentTransitions } from '@/lib/assist/assignmentStatusMa
 import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
+import { visitPlanningFollowUpFailure, type VisitPlanningResult } from '@/lib/assist/visitPlanningResult';
 import {
   hasAssignmentProductionErrors,
   validateAssignmentCreateForm,
 } from '@/lib/assist/assignmentProductionValidation';
-import { detectAssignmentConflicts } from '@/lib/assist/assignmentConflictService';
+import { detectAssignmentConflicts, type AssignmentConflictCandidate } from '@/lib/assist/assignmentConflictService';
+import { buildVisitPlanningPeriods, type VisitPlanningPeriod } from '@/lib/assist/visitPlanningConflicts';
 import {
   expandVisitRecurrenceDates,
 } from '@/lib/assist/assignmentBudgetAllocationService';
@@ -65,7 +67,6 @@ import {
 } from '@/lib/assist/visitRecurrenceExecution';
 import {
   buildVisitUpdateInputFromEditForm,
-  mapVisitDetailToEditForm,
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
 
@@ -278,6 +279,7 @@ export async function fetchVisitDispositionList(
     if (visitResult.ok) {
       return visitResult;
     }
+    if (!visitResult.missingVisitSchema) return visitResult;
     const fallback = await assignmentSupabaseRepository.list(tenantId);
     if (!fallback.ok) return fallback;
     return {
@@ -751,7 +753,7 @@ export async function createVisitFromWizard(
   tenantId: string,
   wizard: VisitCreateWizardData,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<{ id: string; conflicts: string[] }>> {
+): Promise<VisitPlanningResult<{ id: string; conflicts: string[] }>> {
   const denied = enforcePermission<{ id: string; conflicts: string[] }>(
     actorRoleKey,
     'assist.assignments.manage',
@@ -791,6 +793,32 @@ export async function createVisitFromWizard(
     title: wizard.title,
     tasks: wizard.tasks,
   });
+
+  if (wizard.recurrencePattern !== 'none' && !wizard.recurrenceEndDate && !wizard.recurrenceOccurrenceCount) {
+    return { ok: false, error: 'Bitte für die Serie ein Enddatum oder eine Anzahl Termine angeben.' };
+  }
+  let planningPeriods: VisitPlanningPeriod[];
+  try {
+    planningPeriods = buildVisitPlanningPeriods(wizard);
+  } catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : 'Serientermine konnten nicht geprüft werden.' };
+  }
+  let existingCandidates: AssignmentConflictCandidate[] = [];
+  if (getServiceMode() === 'supabase') {
+    try {
+      const existing = await visitSupabaseRepository.listPlanningConflictCandidates(tenantId, {
+        clientId: wizard.clientId,
+        employeeId: wizard.employeeId || null,
+        periods: planningPeriods,
+      });
+      if (!existing.ok) {
+        return { ok: false, error: `Bestehende Einsatzplanung konnte nicht geprüft werden: ${existing.error}` };
+      }
+      existingCandidates = existing.data;
+    } catch (cause) {
+      return { ok: false, error: `Bestehende Einsatzplanung konnte nicht geprüft werden: ${cause instanceof Error ? cause.message : 'Lesefehler'}` };
+    }
+  }
 
   const taskTitles =
     wizard.taskDrafts.length > 0
@@ -878,14 +906,13 @@ export async function createVisitFromWizard(
       ? budgetAllocation.statutoryAmountCents + (budgetAllocation.selfPayerAmountCents ?? 0)
       : wizard.budgetAmountCents;
 
-  const conflicts = detectAssignmentConflicts({
+  const conflicts = [...new Set(planningPeriods.flatMap(period => detectAssignmentConflicts({
     assignment: {
       id: 'new',
       tenantId,
       clientId: wizard.clientId,
       employeeId: wizard.employeeId,
-      plannedStartAt,
-      plannedEndAt,
+      ...period,
       locationAddress: wizard.addressSnapshot,
       tasks: taskTitles.map((title, index) => ({
         id: `new-task-${index}`,
@@ -903,9 +930,10 @@ export async function createVisitFromWizard(
       })),
       serviceType: wizard.serviceKey,
     },
-    existing: [],
+    existing: existingCandidates,
     actorRoleKey,
-  }).map((c) => c.message);
+    checkEmployeeEligibility: getServiceMode() !== 'supabase',
+  }).map((c) => c.message)))];
 
   const input: VisitCreateInput = {
     clientId: wizard.clientId,
@@ -946,46 +974,37 @@ export async function createVisitFromWizard(
     budgetManualOverride: wizard.budgetManualOverride ?? null,
   };
 
-  if (
-    wizard.recurrencePattern !== 'none'
-    && !wizard.recurrenceEndDate
-    && !wizard.recurrenceOccurrenceCount
-  ) {
-    return {
-      ok: false,
-      error: 'Bitte für die Serie ein Enddatum oder eine Anzahl Termine angeben.',
-    };
-  }
-
   if (getServiceMode() === 'supabase') {
     const created = await visitSupabaseRepository.create(tenantId, input);
     if (!created.ok) return created;
 
-    if (wizard.recurrencePattern !== 'none') {
-      const occurrenceDates = expandVisitRecurrenceDates({
-        assignmentDate: wizard.assignmentDate,
-        recurrencePattern: wizard.recurrencePattern,
-        recurrenceWeekdays: wizard.recurrenceWeekdays,
-        recurrenceEndDate: wizard.recurrenceEndDate || null,
-        recurrenceOccurrenceCount: wizard.recurrenceOccurrenceCount,
-        maxOccurrences: wizard.recurrenceOccurrenceCount ?? 366,
-      });
+    try {
+      if (wizard.recurrencePattern !== 'none') {
+        const occurrenceDates = expandVisitRecurrenceDates({
+          assignmentDate: wizard.assignmentDate,
+          recurrencePattern: wizard.recurrencePattern,
+          recurrenceWeekdays: wizard.recurrenceWeekdays,
+          recurrenceEndDate: wizard.recurrenceEndDate || null,
+          recurrenceOccurrenceCount: wizard.recurrenceOccurrenceCount,
+          maxOccurrences: wizard.recurrenceOccurrenceCount ?? 366,
+        });
 
-      for (const occurrenceDate of occurrenceDates.slice(1)) {
-        const materialized = await visitSupabaseRepository.materializeOccurrence(
-          tenantId,
-          created.data.id,
-          occurrenceDate,
-        );
-        if (!materialized.ok) {
-          return {
-            ok: false,
-            error: `Serie konnte für ${occurrenceDate} nicht vollständig angelegt werden: ${materialized.error}`,
-          };
+        for (const occurrenceDate of occurrenceDates.slice(1)) {
+          const materialized = await visitSupabaseRepository.materializeOccurrence(
+            tenantId,
+            created.data.id,
+            occurrenceDate,
+          );
+          if (!materialized.ok) {
+            return visitPlanningFollowUpFailure(created.data.id,
+              `Serie konnte für ${occurrenceDate} nicht vollständig angelegt werden: ${materialized.error}`);
+          }
         }
       }
+      return { ok: true, data: { id: created.data.id, conflicts } };
+    } catch (cause) {
+      return visitPlanningFollowUpFailure(created.data.id, cause);
     }
-    return { ok: true, data: { id: created.data.id, conflicts } };
   }
 
   await new Promise((r) => setTimeout(r, 320));
@@ -998,13 +1017,25 @@ export async function updateVisitFromWizard(
   form: VisitEditFormData,
   actorRoleKey?: RoleKey | null,
   scope: VisitSeriesMutationScope = 'this_only',
-): Promise<ServiceResult<{ id: string }>> {
+): Promise<VisitPlanningResult<{ id: string }>> {
   const denied = enforcePermission<{ id: string }>(actorRoleKey, 'assist.assignments.manage');
   if (denied) return denied;
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  const validationErrors = validateAssignmentCreateForm({
+    ...form,
+    tasks: form.taskDrafts.length ? form.taskDrafts.map(task => task.title) : form.tasks,
+  });
+  // Existing plans can have legacy/empty task sets or no employee yet. Their
+  // lifecycle checks below remain authoritative; validate date parsing here.
+  delete validationErrors.employeeId;
+  delete validationErrors.title;
+  delete validationErrors.tasks;
+  if (hasAssignmentProductionErrors(validationErrors)) {
+    return { ok: false, error: Object.values(validationErrors)[0] ?? 'Bitte Pflichtfelder prüfen.' };
+  }
   const payload = buildVisitUpdateInputFromEditForm(form);
   const { assignmentStatus, ...input } = payload;
 
@@ -1012,7 +1043,7 @@ export async function updateVisitFromWizard(
     if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
     const masterVisitId = resolveVisitMasterId(visitId);
-    const existing = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+    let existing = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -1020,102 +1051,112 @@ export async function updateVisitFromWizard(
     const completionError = validateVisitEditCompletion(existing.data, assignmentStatus);
     if (completionError) return { ok: false, error: completionError };
 
-    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
-    const targetVisitId = resolvedId ?? masterVisitId;
+    const { occurrenceDate } = parseVisitOccurrenceId(visitId);
+    let targetVisitId: string;
+    if (occurrenceDate) {
+      const resolvedMaster = await visitSupabaseRepository.resolveVisitId(tenantId, masterVisitId);
+      const materialized = await visitSupabaseRepository.materializeOccurrence(tenantId, resolvedMaster ?? masterVisitId, occurrenceDate);
+      if (!materialized.ok) return materialized;
+      targetVisitId = materialized.data.id;
+      existing = await fetchVisitDispositionDetail(targetVisitId, tenantId, actorRoleKey);
+      if (!existing.ok) return visitPlanningFollowUpFailure(targetVisitId, existing.error);
+      if (!existing.data) return visitPlanningFollowUpFailure(targetVisitId, 'Serientermin konnte nicht geladen werden.');
+    } else {
+      const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+      targetVisitId = resolvedId ?? masterVisitId;
+    }
 
-    const existingRecurrence = parseVisitRecurrenceJson(existing.data.recurrenceJson);
-    const seriesMasterId = existingRecurrence.parentSeriesId
-      ?? (existingRecurrence.pattern !== 'none' ? existing.data.id : null);
+    let persistedId: string | undefined;
+    try {
+      const existingRecurrence = parseVisitRecurrenceJson(existing.data.recurrenceJson);
+      const seriesMasterId = existingRecurrence.parentSeriesId
+        ?? (existingRecurrence.pattern !== 'none' ? existing.data.id : null);
 
-    if (scope === 'this_and_following' && seriesMasterId) {
-      const series = await visitSupabaseRepository.listSeriesOccurrences(
-        tenantId,
-        seriesMasterId,
-      );
-      if (!series.ok) return series;
-
-      const selectedKey = visitOccurrenceDate(existing.data);
-      const originalDate =
-        existing.data.assignmentDate ?? existing.data.scheduledStart.slice(0, 10);
-      const dayDelta = dateKeyDelta(originalDate, input.assignmentDate);
-      const targets = series.data
-        .filter((candidate) => visitOccurrenceDate(candidate) >= selectedKey)
-        .filter((candidate) => (
-          candidate.id === targetVisitId || !isProtectedSeriesHistory(candidate)
-        ))
-        .sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart));
-
-      for (const candidate of targets) {
-        const completionError = validateVisitEditCompletion(candidate, assignmentStatus);
-        if (completionError) return { ok: false, error: completionError };
-      }
-
-      const updatedSnapshots: VisitDispositionDetail[] = [];
-      for (const candidate of targets) {
-        const candidateDate =
-          candidate.assignmentDate ?? candidate.scheduledStart.slice(0, 10);
-        const candidateForm: VisitEditFormData = {
-          ...form,
-          assignmentDate:
-            candidate.id === targetVisitId
-              ? input.assignmentDate
-              : shiftDateKey(candidateDate, dayDelta),
-          originalRecurrenceJson: parseVisitRecurrenceJson(candidate.recurrenceJson),
-        };
-        const { assignmentStatus: candidateStatus, ...candidateBaseInput } =
-          buildVisitUpdateInputFromEditForm(candidateForm);
-        const candidateInput = preserveMasterSeriesAnchor(candidate, candidateBaseInput);
-        const updated = await visitSupabaseRepository.update(
+      if (scope === 'this_and_following' && seriesMasterId) {
+        const series = await visitSupabaseRepository.listSeriesOccurrences(
           tenantId,
-          candidate.id,
-          candidateInput,
+          seriesMasterId,
         );
-        if (!updated.ok) {
-          for (const snapshot of updatedSnapshots.reverse()) {
-            const rollbackForm = mapVisitDetailToEditForm(snapshot);
-            const { assignmentStatus: rollbackStatus, ...rollbackInput } =
-              buildVisitUpdateInputFromEditForm(rollbackForm);
-            await visitSupabaseRepository.update(tenantId, snapshot.id, rollbackInput);
-            if (rollbackStatus !== snapshot.assignmentStatus) {
-              await visitSupabaseRepository.updateAssignmentStatus(
-                tenantId,
-                snapshot.id,
-                snapshot.assignmentStatus,
-              );
-            }
-          }
-          return updated;
+        if (!series.ok) return series;
+
+        const selectedKey = visitOccurrenceDate(existing.data);
+        const originalDate =
+          existing.data.assignmentDate ?? existing.data.scheduledStart.slice(0, 10);
+        const dayDelta = dateKeyDelta(originalDate, input.assignmentDate);
+        const targets = series.data
+          .filter((candidate) => visitOccurrenceDate(candidate) >= selectedKey)
+          .filter((candidate) => (
+            candidate.id === targetVisitId || !isProtectedSeriesHistory(candidate)
+          ))
+          .sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart));
+
+        for (const candidate of targets) {
+          const completionError = validateVisitEditCompletion(candidate, assignmentStatus);
+          if (completionError) return { ok: false, error: completionError };
         }
-        updatedSnapshots.push(candidate);
-        if (candidateStatus !== candidate.assignmentStatus) {
-          const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+
+        for (const candidate of targets) {
+          const candidateDate =
+            candidate.assignmentDate ?? candidate.scheduledStart.slice(0, 10);
+          const candidateForm: VisitEditFormData = {
+            ...form,
+            assignmentDate:
+              candidate.id === targetVisitId
+                ? input.assignmentDate
+                : shiftDateKey(candidateDate, dayDelta),
+            originalRecurrenceJson: parseVisitRecurrenceJson(candidate.recurrenceJson),
+          };
+          const { assignmentStatus: candidateStatus, ...candidateBaseInput } =
+            buildVisitUpdateInputFromEditForm(candidateForm);
+          const candidateInput = preserveMasterSeriesAnchor(candidate, candidateBaseInput);
+          const updated = await visitSupabaseRepository.update(
             tenantId,
             candidate.id,
-            candidateStatus,
+            candidateInput,
           );
-          if (!statusResult.ok) return statusResult;
+          if (!updated.ok) {
+            // These writes include task, budget, calendar and status effects.
+            // They cannot be safely undone by replaying an older form snapshot.
+            return persistedId
+              ? visitPlanningFollowUpFailure(targetVisitId, updated.error)
+              : updated;
+          }
+          persistedId = targetVisitId;
+          if (candidateStatus !== candidate.assignmentStatus) {
+            const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+              tenantId,
+              candidate.id,
+              candidateStatus,
+            );
+            if (!statusResult.ok) return visitPlanningFollowUpFailure(targetVisitId, statusResult.error);
+          }
         }
+        return { ok: true, data: { id: targetVisitId } };
       }
-      return { ok: true, data: { id: visitId } };
-    }
 
-    const updated = await visitSupabaseRepository.update(
-      tenantId,
-      targetVisitId,
-      preserveMasterSeriesAnchor(existing.data, input),
-    );
-    if (!updated.ok) return updated;
-
-    if (assignmentStatus !== existing.data.assignmentStatus) {
-      const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+      const updated = await visitSupabaseRepository.update(
         tenantId,
         targetVisitId,
-        assignmentStatus,
+        preserveMasterSeriesAnchor(existing.data, input),
       );
-      if (!statusResult.ok) return statusResult;
-    }
+      if (!updated.ok) return updated;
+      persistedId = targetVisitId;
 
-    return { ok: true, data: { id: visitId } };
+      if (assignmentStatus !== existing.data.assignmentStatus) {
+        const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+          tenantId,
+          targetVisitId,
+          assignmentStatus,
+        );
+        if (!statusResult.ok) return visitPlanningFollowUpFailure(targetVisitId, statusResult.error);
+      }
+
+      return { ok: true, data: { id: targetVisitId } };
+    } catch (cause) {
+      return persistedId
+        ? visitPlanningFollowUpFailure(persistedId, cause)
+        : { ok: false, error: cause instanceof Error ? cause.message : 'Einsatz konnte nicht gespeichert werden.' };
+    }
   }
 
   await new Promise((r) => setTimeout(r, 280));

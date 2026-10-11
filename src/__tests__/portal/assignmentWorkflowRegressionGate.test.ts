@@ -180,7 +180,7 @@ describe('assignment workflow regression gate', () => {
   });
 
   it('makes on-site signature persistence idempotent and prevents parallel capture submits', () => {
-    const persistence = readSrc('src/lib/assist/assistVisitSignaturePersistenceService.ts');
+    const persistence = readSrc('src/lib/assist/assistVisitSignaturePersistenceService.shared.ts');
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
     expect(persistence).toContain('existing.data.signatureHash === input.signatureHash');
     expect(persistence).toContain('return { ok: true, data: existing.data }');

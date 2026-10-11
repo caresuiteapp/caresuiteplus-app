@@ -337,13 +337,8 @@ export async function fetchLocationPointsForVisit(
 }
 
 /**
- * Latest time events for a visit.
- *
- * Recurring assignments can reuse a visit id across many cycles. Limiting an
- * ascending query returned the oldest rows and caused a freshly saved
- * administrative correction to disappear again during the following refresh.
- * Fetch newest first, apply the limit there, then restore chronological order
- * for callers that render or process the returned sequence.
+ * Complete visit time history in chronological order. The limit parameter is
+ * a page size; early starts, later corrections and every pause remain present.
  */
 export async function fetchTimeEventsForVisit(
   tenantId: string,
@@ -353,28 +348,38 @@ export async function fetchTimeEventsForVisit(
   const supabase = getSupabaseClient();
   if (!supabase) return unavailable();
 
-  const { data, error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.timeEvents)
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('visit_id', visitId)
-    .order('occurred_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    if (isSupabaseMissingTableError(error)) {
-      return { ok: true, data: [], tableMissing: true };
+  // The historical limit is now a page size. Timers/signatures require all
+  // events, including early starts and every pause. Keyset paging cannot shift
+  // existing rows when another event is appended during the read.
+  const pageSize = Number.isSafeInteger(limit) && limit > 0 ? Math.min(limit,500) : 50;
+  try {
+    const high = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.timeEvents)
+      .select('created_at').eq('tenant_id',tenantId).eq('visit_id',visitId)
+      .order('created_at',{ascending:false}).limit(1);
+    if (high.error) {
+      if (isSupabaseMissingTableError(high.error)) return { ok:true,data:[],tableMissing:true };
+      return { ok:false,error:toGermanSupabaseError(high.error) };
     }
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  const rows = ((data ?? []) as TimeEventDbRow[])
-    .map(mapTimeEventRow)
-    .sort(
-      (left, right) =>
-        new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
-    );
-
-  return { ok: true, data: rows };
+    const highWatermark = (high.data as {created_at:string}[] | null)?.[0]?.created_at;
+    if (!highWatermark) return { ok:true,data:[] };
+    const rows: TimeEventDbRow[] = [];
+    let cursor: TimeEventDbRow | undefined;
+    while (true) {
+      let query = fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.timeEvents)
+        .select('*').eq('tenant_id',tenantId).eq('visit_id',visitId)
+        .lte('created_at',highWatermark).order('created_at',{ascending:true}).order('id',{ascending:true}).limit(pageSize);
+      if (cursor) query=query.or(`created_at.gt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.gt.${cursor.id})`);
+      const {data,error} = await query;
+      if (error) return {ok:false,error:toGermanSupabaseError(error)};
+      const page = (data ?? []) as TimeEventDbRow[];
+      rows.push(...page);
+      if (page.length < pageSize) break;
+      const next=page[page.length-1];
+      if (!next.created_at || (cursor && next.id===cursor.id)) return {ok:false,error:'Einsatzzeiten konnten nicht vollständig geladen werden.'};
+      cursor=next;
+    }
+    return {ok:true,data:rows.map(mapTimeEventRow).sort((a,b)=>a.occurredAt.localeCompare(b.occurredAt)||a.id.localeCompare(b.id))};
+  } catch (error) { return {ok:false,error:toGermanSupabaseError(error)}; }
 }
 
 /** Start session after employee portal consent. */

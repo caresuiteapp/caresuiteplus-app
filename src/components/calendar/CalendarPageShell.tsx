@@ -104,7 +104,7 @@ export function CalendarPageShell({
     return { rangeStart: new Date(Math.min(+start, +monthStart)).toISOString(), rangeEnd: new Date(Math.max(+end, +monthEnd)).toISOString() };
   }, [anchor, viewMode]);
 
-  const { events, allEvents, calendarReady, loading, error, refresh } = useCalendarEvents(
+  const { events, allEvents, calendarReady, loading, error, refresh, refreshWithResult } = useCalendarEvents(
     range.rangeStart,
     range.rangeEnd,
     config,
@@ -292,7 +292,7 @@ export function CalendarPageShell({
     || config.moduleKey === 'assist'
   ) {
     return (
-      <OfficeAssignmentProfileCalendarPlanner employeeIdFilter={employeeId} onScheduled={() => { planning.refresh(); return refresh(); }}>
+      <OfficeAssignmentProfileCalendarPlanner employeeIdFilter={employeeId} readOnly={!can('assist.assignments.manage')} onScheduled={() => { planning.refresh(); return refreshWithResult(); }}>
         {({ selectedProfileId, onProfileDrop }) =>
           renderCalendar({ selectedProfileId, onProfileDrop })
         }

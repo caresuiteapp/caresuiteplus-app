@@ -127,6 +127,14 @@ function buildFull(detail: ClientDetail): ClientFullDetail {
 }
 
 describe('mapClientEditLoadToIntakeForm', () => {
+  it('preserves intake dates, all cost bearer selections and a zero rate rather than deriving unrelated values', () => {
+    const detail = { ...buildDetail(), admissionDate: '2023-01-12' };
+    const full = buildFull(detail); full.billingProfile!.hourlyRateCents = 0;
+    const intake = mapClientEditLoadToIntakeForm({ detail, fullClient: full, careContexts: ['daily_assistance'], form: EMPTY_CLIENT_EDIT_FORM,
+      intakeSnapshot: { serviceStart: '2023-02-04', costBearerTypes: ['krankenkasse', 'sozialamt'] } });
+    expect(intake.admissionDate).toBe('2023-01-12'); expect(intake.serviceStart).toBe('2023-02-04');
+    expect(intake.costBearerTypes).toEqual(['krankenkasse', 'sozialamt']); expect(intake.hourlyRate).toBe('0');
+  });
   it('maps core client fields into intake wizard defaults', () => {
     const detail = buildDetail();
     const full = buildFull(detail);

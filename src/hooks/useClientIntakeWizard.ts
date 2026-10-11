@@ -12,7 +12,6 @@ import {
   saveClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
 import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
-import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { getServiceMode } from '@/lib/services/mode';
 import {
   clearCostBearerTypeFields,
@@ -66,11 +65,23 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const includeIntakeDocuments = Boolean(
     editSections?.includes('vertraege_einwilligungen'),
   );
-  const isEditMode = mode === 'edit' && !!editClientId;
+  const isEditMode = mode === 'edit';
 
   const { user, profile } = useAuth();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? null;
+  const scopeKey = JSON.stringify([tenantId, userId, profile?.id, profile?.roleKey, mode, editClientId, editSections]);
+  const scope = useMemo(() => ({
+    submitLock: { current: false }, skipNextSave: { current: false }, needsRemoteSyncOnLoad: { current: false },
+    clientId: null as string | null, epoch: 0, completed: false, discarding: false,
+    savedSnapshot: '',
+    draftTail: Promise.resolve() as Promise<unknown>,
+  }), [scopeKey]);
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const current = useCallback(() => mounted.current && activeScope.current === scope, [scope]);
 
   const [form, setForm] = useState<ClientIntakeFormData>(createEmptyIntakeForm());
   const [stepIndex, setStepIndex] = useState(0);
@@ -81,22 +92,35 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const [loading, setLoading] = useState(isEditMode);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(!isEditMode);
+  const [loadRevision, setLoadRevision] = useState(0);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
-  const [draftClientId, setDraftClientId] = useState<string | null>(null);
   const [draftSaveFeedback, setDraftSaveFeedback] = useState<{
     message: string;
     variant: 'success' | 'warning';
   } | null>(null);
-  const submitLock = useRef(false);
-  const skipNextSave = useRef(false);
-  const needsRemoteSyncOnLoad = useRef(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [discardingDraft, setDiscardingDraft] = useState(false);
+  const submitLock = scope.submitLock;
+  const skipNextSave = scope.skipNextSave;
+  const needsRemoteSyncOnLoad = scope.needsRemoteSyncOnLoad;
   const draftFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [dbSectionsLoaded, setDbSectionsLoaded] = useState(false);
   const [dbSectionKeys, setDbSectionKeys] = useState<
     { sectionKey: string; isRequired: boolean; sortOrder: number }[]
   >([]);
+  const previousScope = useRef(scope);
+  if (previousScope.current !== scope) {
+    previousScope.current = scope;
+    if (draftFeedbackTimerRef.current) clearTimeout(draftFeedbackTimerRef.current);
+    setForm(createEmptyIntakeForm()); setStepIndex(0); setErrors({});
+    setSubmitting(false); setSubmitError(null); setCreatedId(null);
+    setLoading(isEditMode); setLoadError(null); setNotFound(false);
+    setDraftLoaded(false); setDraftRestored(false);
+    setDraftSaveFeedback(null); setDraftSaving(false); setDiscardingDraft(false);
+    setDbSectionsLoaded(false); setDbSectionKeys([]);
+  }
 
   useEffect(() => {
     if (!tenantId || form.careContexts.length === 0) {
@@ -105,18 +129,20 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
       return;
     }
     let cancelled = false;
+    setDbSectionsLoaded(false);
+    setDbSectionKeys([]);
     const keys = careContextsToServiceTypeKeys(form.careContexts);
     void getServiceIntakeSections(tenantId, keys).then((result) => {
-      if (cancelled) return;
+      if (cancelled || !current()) return;
       if (result.ok) {
         setDbSectionKeys(result.data);
       }
       setDbSectionsLoaded(true);
-    });
+    }).catch(() => { if (!cancelled && current()) setDbSectionsLoaded(true); });
     return () => {
       cancelled = true;
     };
-  }, [tenantId, form.careContexts]);
+  }, [tenantId, form.careContexts, current]);
 
   const steps = useMemo(() => {
     if (!dbSectionsLoaded || form.careContexts.length === 0) {
@@ -138,15 +164,16 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     }
 
     let cancelled = false;
+    setDraftLoaded(false);
 
     void loadClientIntakeDraft(userId, tenantId).then((draft) => {
-      if (cancelled) return;
+      if (cancelled || !current()) return;
 
       if (draft) {
         skipNextSave.current = true;
         setForm(draft.form);
         setStepIndex(clampStepIndex(draft.stepIndex, draft.form.careContexts));
-        setDraftClientId(draft.clientId ?? null);
+        scope.clientId = draft.clientId ?? null;
         setDraftRestored(true);
 
         if (
@@ -159,12 +186,16 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
       }
 
       setDraftLoaded(true);
+    }).catch(() => {
+      if (!cancelled && current()) {
+        setLoadError('Gespeicherter Entwurf konnte nicht geladen werden. Ihre gespeicherten Angaben werden nicht überschrieben. Bitte erneut versuchen.');
+      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [userId, tenantId, isEditMode]);
+  }, [userId, tenantId, isEditMode, scope, current, loadRevision]);
 
   useEffect(() => {
     if (!isEditMode || !editClientId || !tenantId) {
@@ -183,7 +214,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     void fetchClientIntakeEditData(editClientId, tenantId, profile?.roleKey, {
       includeIntakeDocuments,
     }).then((result) => {
-      if (cancelled) return;
+      if (cancelled || !current()) return;
       setLoading(false);
       if (!result.ok) {
         if (result.error.includes('nicht gefunden') || result.error.includes('existiert nicht')) {
@@ -196,106 +227,76 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
       skipNextSave.current = true;
       setForm(result.data);
       setStepIndex(0);
+    }).catch(() => {
+      if (!cancelled && current()) { setLoading(false); setLoadError('Klient:in konnte nicht geladen werden. Bitte erneut versuchen.'); }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [isEditMode, editClientId, includeIntakeDocuments, tenantId, profile?.roleKey]);
+  }, [isEditMode, editClientId, includeIntakeDocuments, tenantId, profile?.roleKey, current, loadRevision]);
 
   const persistDraft = useCallback(
     async (options?: { showFeedback?: boolean }) => {
-      if (!userId || !tenantId) {
-        if (options?.showFeedback) {
-          setDraftSaveFeedback({
-            message: 'Entwurf konnte nicht gespeichert werden.',
-            variant: 'warning',
-          });
-        }
+      if (isEditMode || !current() || scope.completed || scope.discarding || submitLock.current) return false;
+      if (!userId || !tenantId || !hasIntakeDraftContent({ form, stepIndex })) {
+        if (options?.showFeedback) setDraftSaveFeedback({ message: 'Kein Entwurf zum Speichern oder keine aktive Mandantensitzung.', variant: 'warning' });
         return false;
       }
-
-      const hasContent = hasIntakeDraftContent({ form, stepIndex });
-      if (!hasContent) {
-        if (options?.showFeedback) {
-          setDraftSaveFeedback({
-            message: 'Kein Entwurf zum Speichern.',
-            variant: 'warning',
-          });
-        }
-        return false;
-      }
-
-      let nextClientId = draftClientId;
-
-      if (getServiceMode() === 'supabase') {
-        const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
-          clientId: draftClientId,
-          actorProfileId: profile?.id ?? user?.id ?? null,
-        });
-
-        if (!remoteResult.ok) {
-          if (options?.showFeedback) {
-            setDraftSaveFeedback({
-              message: remoteResult.error ?? 'Entwurf konnte nicht gespeichert werden.',
-              variant: 'warning',
-            });
+      const epoch = scope.epoch;
+      const usable = () => current() && scope.epoch === epoch && !scope.completed && !scope.discarding;
+      const write = scope.draftTail.then(async () => {
+        if (!usable()) return false;
+        setDraftSaving(true);
+        let localSaved = false;
+        try {
+          if (getServiceMode() === 'supabase' && !scope.clientId) {
+            const draftId = (await import('expo-crypto')).randomUUID();
+            if (!usable()) return false;
+            scope.clientId = draftId;
           }
-          return false;
-        }
-
-        nextClientId = remoteResult.data.id;
-        if (nextClientId !== draftClientId) {
-          setDraftClientId(nextClientId);
-        }
-
-        const containsSignedDocument = form.intakeDocuments.some((document) =>
-          Object.values(document.signatures).some((signature) => Boolean(signature?.dataUrl)),
-        );
-        if (containsSignedDocument) {
-          const documentResult = await persistClientIntakeDocuments(
-            tenantId,
-            nextClientId,
-            form,
-            profile?.id ?? user?.id ?? null,
-          );
-          if (!documentResult.ok) {
-            if (options?.showFeedback) {
-              setDraftSaveFeedback({
-                message: documentResult.error ?? 'Unterschriften konnten nicht gespeichert werden.',
-                variant: 'warning',
-              });
+          // The full form survives a server/document failure, not just its name.
+          await saveClientIntakeDraft(userId, tenantId, { form, stepIndex, clientId: scope.clientId });
+          localSaved = true;
+          if (!usable()) return false;
+          if (getServiceMode() === 'supabase') {
+            const containsSignedDocument = form.intakeDocuments.some((document) =>
+              document.status === 'signed' || document.status === 'finalized' || Boolean(document.finalizedAt || document.finalizedHtml) ||
+              Object.values(document.signatures).some((signature) => Boolean(signature?.dataUrl)));
+            if (containsSignedDocument) {
+              throw new Error('Die Serversicherung unterschriebener oder finaler Aufnahmeunterlagen ist gesperrt, bis der verifizierte atomare Serverabschluss angebunden ist. Unterschriften und Formular bleiben in diesem lokalen Entwurf erhalten.');
             }
-            return false;
+            const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
+              clientId: scope.clientId, actorProfileId: profile?.id ?? user?.id ?? null,
+            });
+            if (!usable()) return false;
+            if (!remoteResult.ok) throw new Error(remoteResult.error ?? 'Serversicherung nicht bestätigt.');
+            scope.clientId = remoteResult.data.id;
+            await saveClientIntakeDraft(userId, tenantId, { form, stepIndex, clientId: scope.clientId });
+            if (!usable()) return false;
           }
+          if (!usable()) return false;
+          scope.savedSnapshot = JSON.stringify([form, stepIndex]);
+          setDraftSaveFeedback({ message: 'Entwurf gespeichert.', variant: 'success' });
+          return true;
+        } catch (error) {
+          if (usable()) setDraftSaveFeedback({
+            message: `${localSaved ? 'Entwurf lokal erhalten. ' : 'Entwurf konnte nicht lokal gespeichert werden. '}${error instanceof Error ? error.message : 'Bitte erneut speichern.'}`,
+            variant: 'warning',
+          });
+          return false;
+        } finally {
+          if (current()) setDraftSaving(false);
         }
-      }
-
-      await saveClientIntakeDraft(userId, tenantId, {
-        form,
-        stepIndex,
-        clientId: nextClientId,
       });
-
-      if (options?.showFeedback) {
-        setDraftSaveFeedback({
-          message: 'Entwurf gespeichert.',
-          variant: 'success',
-        });
-
-        if (draftFeedbackTimerRef.current) {
-          clearTimeout(draftFeedbackTimerRef.current);
-        }
-        draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
-      }
-
-      return true;
+      scope.draftTail = write.catch(() => false);
+      return write;
     },
-    [draftClientId, form, profile?.id, stepIndex, tenantId, user?.id, userId],
+    [current, form, isEditMode, profile?.id, scope, stepIndex, tenantId, user?.id, userId],
   );
 
   useEffect(() => {
-    if (isEditMode || !draftLoaded || !userId || !tenantId || createdId) return;
+    if (isEditMode || !draftLoaded || !userId || !tenantId || createdId || submitting || discardingDraft) return;
 
     if (skipNextSave.current) {
       skipNextSave.current = false;
@@ -307,7 +308,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     }, DRAFT_SAVE_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft, isEditMode]);
+  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft, isEditMode, submitting, discardingDraft]);
 
   useEffect(() => {
     if (!draftLoaded || !needsRemoteSyncOnLoad.current) return;
@@ -484,19 +485,33 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setErrors({});
     setSubmitError(null);
     setDraftRestored(false);
-    setDraftClientId(null);
-  }, []);
+    scope.clientId = null;
+    scope.completed = false;
+    scope.savedSnapshot = '';
+    setCreatedId(null);
+    setDraftSaveFeedback(null);
+  }, [scope]);
 
   const discardDraft = useCallback(async () => {
-    if (userId && tenantId) {
-      await clearClientIntakeDraft(userId, tenantId);
-    }
+    if (!current() || submitLock.current || scope.discarding) return;
+    scope.epoch++; scope.discarding = true; setDiscardingDraft(true);
     skipNextSave.current = true;
-    resetWizard();
-  }, [resetWizard, tenantId, userId]);
+    try {
+      await scope.draftTail;
+      if (!current()) return;
+      if (userId && tenantId) await clearClientIntakeDraft(userId, tenantId);
+      if (!current()) return;
+      resetWizard();
+    } catch {
+      if (current()) setDraftSaveFeedback({ message: 'Entwurf konnte nicht entfernt werden. Ihre Angaben bleiben erhalten.', variant: 'warning' });
+    } finally {
+      scope.discarding = false;
+      if (current()) setDiscardingDraft(false);
+    }
+  }, [current, resetWizard, scope, tenantId, userId]);
 
   const saveDraft = useCallback(async () => {
-    await persistDraft({ showFeedback: true });
+    return persistDraft({ showFeedback: true });
   }, [persistDraft]);
 
   const nextStep = useCallback(() => {
@@ -533,8 +548,10 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   }, [form, stepIndex, steps]);
 
   const submit = useCallback(async (sectionsOverride?: IntakeSectionKey[]) => {
-    if (submitLock.current || submitting || !tenantId) return null;
-    if (isEditMode && !editClientId) return null;
+    if (!current() || submitLock.current || submitting || scope.completed || scope.discarding || !draftLoaded && !isEditMode || loading || notFound || loadError) return null;
+    if (!tenantId || (isEditMode && !editClientId)) {
+      setSubmitError('Mandant oder Klienten-ID fehlt. Bitte den Datensatz erneut öffnen.'); return null;
+    }
     submitLock.current = true;
     setSubmitting(true);
     setSubmitError(null);
@@ -549,7 +566,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
         const stepErrors = validateIntakeStep(section, form);
         if (hasIntakeErrors(stepErrors)) {
           setErrors(stepErrors);
-          setStepIndex(steps.indexOf(section));
+          setStepIndex(Math.max(0, steps.indexOf(section)));
           setSubmitting(false);
           submitLock.current = false;
           return null;
@@ -558,6 +575,8 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     }
 
     try {
+      await scope.draftTail;
+      if (!current()) return null;
       const result = isEditMode
         ? await submitClientIntakeUpdate(tenantId, editClientId!, form, {
             actorProfileId: profile?.id ?? user?.id ?? null,
@@ -566,39 +585,47 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
           })
         : await submitClientIntake(tenantId, form, {
             actorProfileId: profile?.id ?? user?.id ?? null,
-            draftClientId,
+            draftClientId: scope.clientId,
             actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
           });
 
+      if (!current()) return null;
       if (result.ok) {
-        if (!isEditMode && userId) {
-          await clearClientIntakeDraft(userId, tenantId);
-        }
+        scope.completed = true;
         skipNextSave.current = true;
         setCreatedId(result.data.id);
-        return result.data.id;
+        if (!isEditMode && userId) {
+          try { await clearClientIntakeDraft(userId, tenantId); }
+          catch { if (current()) setDraftSaveFeedback({ message: 'Aufnahme gespeichert; der lokale Entwurf konnte nicht entfernt werden.', variant: 'warning' }); }
+        }
+        return current() ? result.data.id : null;
       }
-      setSubmitError(result.error);
+      if (!isEditMode && 'recoverableClientId' in result && typeof result.recoverableClientId === 'string') {
+        scope.clientId = result.recoverableClientId;
+        if (userId) await saveClientIntakeDraft(userId, tenantId, { form, stepIndex, clientId: scope.clientId });
+      }
+      if (current()) setSubmitError(result.error);
       return null;
     } catch (error) {
-      setSubmitError(
+      if (current()) setSubmitError(
         error instanceof Error
           ? error.message
           : 'Änderungen konnten nicht gespeichert werden.',
       );
       return null;
     } finally {
-      setSubmitting(false);
+      if (current()) setSubmitting(false);
       submitLock.current = false;
     }
   }, [
-    draftClientId,
+    current, scope, draftLoaded, loading, notFound, loadError,
     editClientId,
     editSections,
     form,
     isEditMode,
     profile?.id,
     profile?.roleKey,
+    stepIndex,
     steps,
     submitting,
     tenantId,
@@ -609,6 +636,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   ]);
 
   return {
+    identityKey: scopeKey,
     form,
     errors,
     steps,
@@ -620,13 +648,17 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     submitting,
     submitError,
     createdId,
-    loading,
+    loading: loading || (!isEditMode && !draftLoaded && !loadError),
     loadError,
+    retryLoad: () => { setLoadError(null); setLoadRevision((value) => value + 1); },
     notFound,
     isEditMode,
     draftLoaded,
     draftRestored,
     draftSaveFeedback,
+    draftSaving,
+    draftIsSaved: scope.savedSnapshot === JSON.stringify([form, stepIndex]),
+    discardingDraft,
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
     updateBillingTypes,

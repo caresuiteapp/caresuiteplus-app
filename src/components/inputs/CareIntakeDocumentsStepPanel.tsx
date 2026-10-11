@@ -153,6 +153,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const [signatureModalVisible, setSignatureModalVisible] = useState(false);
   const [sharedSignatureModalVisible, setSharedSignatureModalVisible] = useState(false);
   const [sharedSignatureMessage, setSharedSignatureMessage] = useState<string | null>(null);
+  const templateScope = JSON.stringify([tenantId, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
 
   const contractOptions = useMemo(
     () => listAvailableContractTypes(form.careContexts).map((key) => ({
@@ -163,11 +164,15 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setTemplates(listApplicableIntakeTemplates(form));
+    setLoadError(null);
     if (!tenantId || getServiceMode() !== 'supabase') {
       setTemplates(listApplicableIntakeTemplates(form));
       return;
     }
     void loadIntakeDocumentTemplates(tenantId, form).then((result) => {
+      if (cancelled) return;
       if (result.ok) {
         setTemplates(result.data);
         setLoadError(null);
@@ -175,8 +180,9 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
         setLoadError(result.error);
         setTemplates(listApplicableIntakeTemplates(form));
       }
-    });
-  }, [tenantId, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents, form]);
+    }).catch(() => { if (!cancelled) setLoadError('Dokumentvorlagen konnten nicht geladen werden. Bitte erneut öffnen.'); });
+    return () => { cancelled = true; };
+  }, [templateScope]);
 
   useEffect(() => {
     const synced = syncIntakeDocumentsWithTemplates(form, templates);
@@ -334,6 +340,8 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   return (
     <View style={styles.wrap}>
       {loadError ? <InfoBanner variant="warning" message={loadError} /> : null}
+      {errors.intakePrivacy ? <InfoBanner variant="warning" message={errors.intakePrivacy} /> : null}
+      {errors.intakeContract ? <InfoBanner variant="warning" message={errors.intakeContract} /> : null}
 
       <SectionPanel {...panelCtx} title="Vertragsart">
         <FilterChipGroup

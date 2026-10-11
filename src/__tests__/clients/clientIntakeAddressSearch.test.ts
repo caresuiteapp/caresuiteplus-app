@@ -21,7 +21,9 @@ describe('Client intake step 3 — Adresse & Kontakt', () => {
   it('Adresssuche nutzt Photon-Geocoder-Service', () => {
     const service = readSrc('lib/geo/addressAutocompleteService.ts');
     expect(service).toContain('photon.komoot.io');
-    expect(service).toContain('EXPO_PUBLIC_GOOGLE_PLACES_API_KEY');
+    expect(service).toContain("lang: 'de'");
+    expect(service).toContain('bbox: GERMANY_BBOX');
+    expect(service).toContain('signal:controller.signal');
   });
 
   it('CareAddressSearch debounced Suche und deutsche Statusmeldungen', () => {

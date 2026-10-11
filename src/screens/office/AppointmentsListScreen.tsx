@@ -20,9 +20,10 @@ export function AppointmentsListScreen({
   const router = useRouter();
   const params = useLocalSearchParams<{ create?: string }>();
   const { can, isReadOnly } = usePermissions();
-  const canCreate = can('office.appointments.view') && !isReadOnly;
+  const canCreate = can('office.appointments.edit') && !isReadOnly;
   const officeAccent = moduleColor('office');
   const [createOpen, setCreateOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (params.create === '1' && canCreate) {
@@ -37,6 +38,7 @@ export function AppointmentsListScreen({
     return (
       <>
         <AppointmentsListView
+          externalRefreshKey={refreshKey}
           onAppointmentPress={onAppointmentPress}
           selectedId={selectedId}
           embedded
@@ -49,7 +51,7 @@ export function AppointmentsListScreen({
           moduleKey="office"
           accentColor={officeAccent}
           onClose={() => setCreateOpen(false)}
-          onCreated={() => setCreateOpen(false)}
+          onCreated={() => { setCreateOpen(false); setRefreshKey(key => key + 1); }}
         />
       </>
     );
@@ -69,7 +71,8 @@ export function AppointmentsListScreen({
       >
         <View style={styles.content}>
           <AppointmentsListView
-            onAppointmentPress={onAppointmentPress}
+            externalRefreshKey={refreshKey}
+          onAppointmentPress={onAppointmentPress}
             selectedId={selectedId}
             onCreatePress={canCreate ? openCreate : undefined}
           />
@@ -82,7 +85,7 @@ export function AppointmentsListScreen({
         moduleKey="office"
         accentColor={officeAccent}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => setCreateOpen(false)}
+        onCreated={() => { setCreateOpen(false); setRefreshKey(key => key + 1); }}
       />
     </>
   );

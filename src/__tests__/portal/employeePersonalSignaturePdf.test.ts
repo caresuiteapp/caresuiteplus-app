@@ -14,6 +14,8 @@ describe('final personal signature PDFs', () => {
     const finalized = await finalizePortalSignatureDocumentPdf(input);
     expect(finalized.ok).toBe(true); expect(h.render.mock.calls[0][0]).toContain('Alle Vertragsinhalte'); expect(h.render.mock.calls[0][0]).toContain('https://example.test/signature.png');
     expect(h.upload.mock.calls[0][1]).toBeInstanceOf(ArrayBuffer); expect(new Uint8Array(h.upload.mock.calls[0][1])).toEqual(new Uint8Array([37, 80, 68, 70]));
+    expect(h.upload.mock.calls[0][0]).toBe(`tenant/tenant/portal/signatures/document/versions/1/final-${sha256BinaryHex(new Uint8Array([37,80,68,70]))}.pdf`);
+    expect(h.upload.mock.calls[0][2]).toEqual({ contentType: 'application/pdf', upsert: false });
   });
   it('hashes actual PDF bytes rather than only their length', async () => {
     const first = await finalizePortalSignatureDocumentPdf(input);
@@ -21,7 +23,16 @@ describe('final personal signature PDFs', () => {
     const second = await finalizePortalSignatureDocumentPdf(input);
     if (!first.ok || !second.ok) throw new Error('finalization failed');
     expect(first.data.pdfHash).not.toBe(second.data.pdfHash);
+    expect(first.data.storagePath).not.toBe(second.data.storagePath);
     expect(sha256BinaryHex(new Uint8Array([97, 98, 99]))).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  });
+  it('does not overwrite an existing or unknown-commit final PDF, or claim it was confirmed', async () => {
+    h.upload.mockResolvedValue({ error: { message: 'The resource already exists' } });
+    expect((await finalizePortalSignatureDocumentPdf(input)).ok).toBe(false);
+    expect(h.upload.mock.calls[0][2].upsert).toBe(false);
+    h.upload.mockResolvedValue({ error: { message: 'Network timeout' } });
+    expect((await finalizePortalSignatureDocumentPdf(input)).ok).toBe(false);
+    expect(h.upload.mock.calls[1][0]).toBe(h.upload.mock.calls[0][0]);
   });
   it('refuses PDF composition and unavailable signature images before rendering a false final document', async () => {
     expect((await finalizePortalSignatureDocumentPdf({ ...input, document: { ...document, documentSourceType: 'pdf_upload' } })).ok).toBe(false);

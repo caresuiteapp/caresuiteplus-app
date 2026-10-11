@@ -13,6 +13,7 @@ import { fetchLatestVisitProof } from '@/lib/assist/assistVisitProofPersistenceS
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
 import { isStoredVisitProofComplete, visitProofSnapshotsMatch } from '@/lib/assist/visitProofCompleteness';
 import { buildServiceRecordSnapshot } from './buildServiceRecordHtml';
+import { signatureMatchesVisitContent } from './signatureMatchesVisitContent';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import type { AssistExecutionContext } from './types';
 import {
@@ -94,14 +95,15 @@ export async function finalizeVisit(
   const currentSnapshot = buildServiceRecordSnapshot({ detail: ctx.detail, visitTimes: ctx.visitTimes,
     documentationText: docText, visitId: ctx.assistVisitId, employeeId: ctx.employeeId,
     serviceName: ctx.detail.title,
-    signatureSummary: existingProof.ok && existingProof.data?.payloadSnapshot?.signature
-      ? existingProof.data.payloadSnapshot.signature as { signerName: string; signedAt: string; signerRole?: string | null }
+    signatureSummary: currentSignature.ok && currentSignature.data
+      ? { signerName: currentSignature.data.signerName, signedAt: currentSignature.data.signedAt, signerRole: currentSignature.data.signerRole }
       : null });
   const reusableProof =
     existingProof.ok &&
     existingProof.data &&
     currentSignature.ok && currentSignature.data &&
     currentSignature.data.tenantId === ctx.tenantId && currentSignature.data.visitId === ctx.assistVisitId &&
+    await signatureMatchesVisitContent(ctx, currentSignature.data, docText) &&
     existingProof.data.signatureId === currentSignature.data.id &&
     existingProof.data.tenantId === ctx.tenantId && existingProof.data.visitId === ctx.assistVisitId &&
     visitProofSnapshotsMatch(existingProof.data.payloadSnapshot, currentSnapshot) &&

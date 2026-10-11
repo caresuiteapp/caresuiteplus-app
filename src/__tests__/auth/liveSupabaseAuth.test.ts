@@ -24,6 +24,11 @@ const signInWithPassword = vi.fn();
 vi.mock('@/lib/supabase/authService', () => ({
   signInWithPassword: (...args: unknown[]) => signInWithPassword(...args),
 }));
+// The live registration gate is a separate read-only server contract; these
+// account-service tests must never depend on an external health request.
+vi.mock('@/lib/platformConsole/platformRuntime', () => ({ refreshPlatformRuntime: vi.fn().mockResolvedValue({
+  status: 'ready', settings: { maintenanceMode: false, registrationEnabled: true, notice: '' },
+}) }));
 
 describe('liveSupabaseAuthServices', () => {
   beforeEach(() => {

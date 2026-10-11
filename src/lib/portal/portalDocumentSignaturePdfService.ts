@@ -128,14 +128,14 @@ export async function finalizePortalSignatureDocumentPdf(input: {
     };
   }
 
-  const storagePath = buildPortalSignatureFinalPdfPath(input.tenantId, input.document.id);
   const pdfHash = `sha256:${sha256BinaryHex(pdfBytes)}`;
+  const storagePath = buildPortalSignatureFinalPdfPath(input.tenantId, input.document.id, input.document.versionNumber, pdfHash);
 
   const { error: uploadError } = await supabase.storage
     .from(PORTAL_SIGNATURE_STORAGE_BUCKET)
     .upload(storagePath, pdfBytes.slice().buffer as ArrayBuffer, {
       contentType: 'application/pdf',
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {

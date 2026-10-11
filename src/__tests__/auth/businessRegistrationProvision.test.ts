@@ -7,7 +7,7 @@ function setup(responses: Array<unknown | Error>, owner: unknown = null) {
   const createUser=vi.fn().mockResolvedValue({ data:{user:{id:'new-user'}},error:null });
   const deleteUser=vi.fn().mockResolvedValue({ error:null });
   const rpc=vi.fn().mockImplementation(async()=>{const value=responses.shift();if(value instanceof Error)throw value;return value;});
-  const from=vi.fn((table:string)=>{const query={select:()=>query,eq:()=>query,maybeSingle:async()=>({error:null,data:table==='tenant_users'?owner:{tenant_id:null}})};return query;});
+  const from=vi.fn((table:string)=>{const query={select:()=>query,eq:()=>query,maybeSingle:async()=>({error:null,data:table==='tenant_users'?owner:table==='roles'?{key:'owner',tenant_id:'company'}:table==='profiles'&&owner?{tenant_id:'company',role_id:'owner-role',status:'active',is_active:true}:{tenant_id:null}})};return query;});
   const client={auth:{admin:{createUser,deleteUser}},rpc,from};
   return {client:client as never,rpc,createUser,deleteUser};
 }
@@ -42,6 +42,31 @@ describe('company registration provisioning',()=>{
     const c=setup([new Error('network'),new Error('network')]);
     expect((await provisionBusinessRegistration(c.client,body)).status).toBe(503);
     expect(c.deleteUser).not.toHaveBeenCalled();
+  });
+  it('resumes the same verified identity after an HTTP retry encounters an existing email',async()=>{
+    const c=setup([{data:{ok:true,tenantId:'company'},error:null}]);
+    c.createUser.mockResolvedValue({data:{user:null},error:{code:'email_exists'}});
+    const verify=vi.fn().mockResolvedValue('previously-created-user');
+    const result=await provisionBusinessRegistration(c.client,body,{verifyExistingIdentity:verify});
+    expect(result.status).toBe(201); expect(verify).toHaveBeenCalledWith(body.adminEmail,body.adminPassword);
+    expect(c.rpc.mock.calls[0][1].p_auth_user_id).toBe('previously-created-user'); expect(c.deleteUser).not.toHaveBeenCalled();
+  });
+  it('never resumes an existing account without successful credential verification',async()=>{
+    const c=setup([]); c.createUser.mockResolvedValue({data:{user:null},error:{code:'email_exists'}});
+    expect((await provisionBusinessRegistration(c.client,body,{verifyExistingIdentity:async()=>null})).status).toBe(409);
+    expect(c.rpc).not.toHaveBeenCalled(); expect(c.deleteUser).not.toHaveBeenCalled();
+  });
+  it('never deletes an existing identity after a failed repeat provision',async()=>{
+    const failure={data:null,error:{code:'23514',message:'check failure'}}; const c=setup([failure,failure]);
+    c.createUser.mockResolvedValue({data:{user:null},error:{code:'email_exists'}});
+    expect((await provisionBusinessRegistration(c.client,body,{verifyExistingIdentity:async()=>'existing-user'})).status).toBe(503);
+    expect(c.deleteUser).not.toHaveBeenCalled();
+  });
+  it('does not report a lone owner row as a completed workspace after an uncertain RPC response',async()=>{
+    const c=setup([new Error('network'),new Error('network')],{id:'owner-row',tenant_id:'company',username:'admin',email:body.adminEmail,role_key:'owner',display_name:'Test Owner'});
+    const client=c.client as any; const original=client.from;
+    client.from=(table:string)=>{ if(table!=='profiles')return original(table); const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({error:null,data:{tenant_id:'other-company',role_id:'foreign-role',status:'active',is_active:true}})};return q; };
+    expect((await provisionBusinessRegistration(client,body)).status).toBe(503);expect(c.deleteUser).not.toHaveBeenCalled();
   });
   it('removes only the newly created unprovisioned identity after confirmed database rollback',async()=>{
     const failure={data:null,error:{code:'23514',message:'check failure'}};

@@ -7,7 +7,7 @@ import * as timeouts from '@/features/assistWorkflow/internal/withWorkflowTimeou
 import { createSingleFlight } from '@/lib/services/singleFlight';
 
 type Result = { ok: boolean; data?: unknown; errorCode?: string };
-type Run = (fn: () => Promise<Result>, options?: { timeoutMs?: number; recoveryAction?: string; onLateFailure?: (message: string) => void }) => Promise<Result>;
+type Run = (fn: () => Promise<Result>, options?: { timeoutMs?: number; recoveryAction?: string; onLateFailure?: (message: string) => void; buildRecoveryExpectation?: () => unknown; preferExistingContext?: boolean }) => Promise<Result>;
 // Execute the actual callback with controlled service boundaries, avoiding a copy of its logic.
 const source = readFileSync(path.join(__dirname, '../../hooks/useEmployeePortalVisitExecution.ts'), 'utf8');
 const ast = ts.createSourceFile('hook.ts', source, ts.ScriptTarget.Latest, true);
@@ -34,6 +34,7 @@ function fixture() {
   const syncAfterWorkflow = vi.fn(async () => ctx);
   const refreshExecutionContext = vi.fn(async (): Promise<typeof ctx | null> => null);
   const ensurePortalWriteSession = vi.fn(async () => ({ ok: true }));
+  const resolveAssistExecutionContext = vi.fn(async () => ({ ok: true, data: ctx }));
   const workflowAttemptRef = { current: 0 }, signatureScopeRef = { current: 'scope' };
   const pendingWorkflowConfirmationRef = { current: null as null | { complete: () => void } };
   const readWorkflowActionConfirmation = vi.fn(async (): Promise<{ state: string; context?: typeof ctx }> => ({ state: 'pending' }));
@@ -41,7 +42,7 @@ function fixture() {
     readWorkflowActionConfirmation, tenantId: ctx.tenantId, employeeId: ctx.employeeId, assignmentId: ctx.assignmentId,
     executionContextRef: { current: ctx }, executionContext: ctx, query: { data: ctx.detail },
     confirmedTaskAdditionsRef: { current: null }, mergeConfirmedOptionalTasks: (tasks: unknown) => tasks,
-    portalSession: {}, ensurePortalWriteSession, syncAfterWorkflow, refreshExecutionContext, runCanonicalMutation: createSingleFlight(),
+    portalSession: {}, ensurePortalWriteSession, syncAfterWorkflow, refreshExecutionContext, resolveAssistExecutionContext, authProfileId: 'profile', roleKey: 'employee_portal', runCanonicalMutation: createSingleFlight(),
     setWorkflowConfirmationPending: (value: boolean) => { state.pending = value; },
     setStartServiceLoading: (value: boolean) => { state.loading = value; },
     setWorkflowLoading: (value: boolean) => { state.loading = value; }, setRefetchWarning: vi.fn(),
@@ -51,9 +52,18 @@ function fixture() {
   const runDeps = { ...deps, checkPendingWorkflowConfirmation: check };
   const run = new Function(...Object.keys(runDeps), js + '; return run;')(...Object.values(runDeps)) as Run;
   return { run, check, ctx, state, workflowInFlight, workflowAttemptRef, signatureScopeRef,
-    pendingWorkflowConfirmationRef, readWorkflowActionConfirmation, syncAfterWorkflow, refreshExecutionContext, ensurePortalWriteSession };
+    pendingWorkflowConfirmationRef, readWorkflowActionConfirmation, syncAfterWorkflow, refreshExecutionContext, ensurePortalWriteSession, resolveAssistExecutionContext };
 }
 afterEach(() => vi.useRealTimers());
+it('finalizes only from a fresh read and never uses the cached fallback when that read failed', async () => {
+  const f = fixture(), action = vi.fn(async () => ({ ok: true, data: f.ctx }));
+  f.resolveAssistExecutionContext.mockResolvedValueOnce({ ok: false, error: 'fresh read unavailable' } as never);
+  expect((await f.run(action, { preferExistingContext: false })).errorCode).toBe('WORKFLOW_FINAL_CONTENT_UNAVAILABLE');
+  expect(action).not.toHaveBeenCalled(); expect(f.refreshExecutionContext).not.toHaveBeenCalled();
+  await f.run(action, { preferExistingContext: false });
+  expect(f.resolveAssistExecutionContext).toHaveBeenLastCalledWith(expect.objectContaining({ autoRepair: false }));
+  expect(action).toHaveBeenCalledOnce();
+});
 
 it('rejects a callback retained after its execution screen was detached before another write starts', async () => {
   const f = fixture();
@@ -173,4 +183,34 @@ it('keeps an ambiguous settled RPC locked until its durable read receipt arrives
   expect(f.state.pending).toBe(false);
   expect(f.workflowInFlight.current).toBe(false);
   expect(f.syncAfterWorkflow).toHaveBeenCalledTimes(1);
+});
+
+it('passes the attempted content version into failure recovery instead of accepting an older submitted flag', async () => {
+  const f = fixture(); const expected = { kind: 'documentation', content: { short_description: 'Korrigiert' } };
+  const result = await f.run(async () => ({ ok: false, errorCode: 'NETWORK' }), {
+    recoveryAction: 'save_documentation', buildRecoveryExpectation: () => expected,
+  });
+  expect(result.ok).toBe(false);
+  expect(f.readWorkflowActionConfirmation).toHaveBeenCalledWith(f.ctx, 'save_documentation', expected);
+  expect(f.syncAfterWorkflow).not.toHaveBeenCalled();
+});
+
+it('retains the expected signature version while the original write is still awaiting confirmation', async () => {
+  vi.useFakeTimers(); const f = fixture(), write = deferred<Result>();
+  const expected = { kind: 'signature', signature: { signatureHash: 'new-image', payloadHash: 'new-content' } };
+  const first = f.run(() => write.promise, { timeoutMs: 10, recoveryAction: 'save_signature', buildRecoveryExpectation: () => expected });
+  await vi.advanceTimersByTimeAsync(10); await first;
+  expect(f.readWorkflowActionConfirmation).toHaveBeenCalledWith(f.ctx, 'save_signature', expected);
+  expect(f.workflowInFlight.current).toBe(true);
+  await f.check(); expect(f.workflowInFlight.current).toBe(true);
+  write.resolve({ ok: true, data: f.ctx }); await vi.advanceTimersByTimeAsync(0);
+});
+
+it('does not submit an old account after asynchronously preparing its signature hashes', async () => {
+  const f = fixture(), prepared = deferred<unknown>(), action = vi.fn(async () => ({ ok: true, data: f.ctx }));
+  const first = f.run(action, { recoveryAction: 'save_signature', buildRecoveryExpectation: () => prepared.promise });
+  await Promise.resolve(); await Promise.resolve();
+  f.signatureScopeRef.current = 'new-account'; f.workflowAttemptRef.current++;
+  prepared.resolve({ kind: 'signature' });
+  expect((await first).errorCode).toBe('WORKFLOW_SCOPE_CHANGED'); expect(action).not.toHaveBeenCalled();
 });

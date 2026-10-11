@@ -33,6 +33,7 @@ export function CareAddressSearch({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<({ id: string; label: string } & AddressFieldValues)[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!focused || query.trim().length < ADDRESS_SEARCH_MIN_QUERY_LENGTH) {
@@ -62,13 +63,19 @@ export function CareAddressSearch({
 
         setSuggestions(result.data);
         setSearchError(null);
+      }).catch(() => {
+        if (controller.signal.aborted) return;
+        setLoading(false); setSuggestions([]);
+        setSearchError('Adresssuche konnte nicht geladen werden. Felder können manuell ausgefüllt werden.');
       });
     }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
+      abortRef.current?.abort();
     };
   }, [query, focused]);
+  useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current); }, []);
 
   const showPanel =
     focused && query.trim().length >= ADDRESS_SEARCH_MIN_QUERY_LENGTH && (loading || searchError || suggestions.length > 0 || !loading);
@@ -102,8 +109,8 @@ export function CareAddressSearch({
         label="Adresse suchen"
         value={query}
         onChangeText={setQuery}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onFocus={() => { if (blurTimer.current) clearTimeout(blurTimer.current); setFocused(true); }}
+        onBlur={() => { blurTimer.current = setTimeout(() => setFocused(false), 150); }}
         placeholder="Straße, PLZ oder Ort eingeben …"
         hint={hint}
       />
@@ -126,6 +133,7 @@ export function CareAddressSearch({
                   key={entry.id}
                   style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
                   onPress={() => handleSelect(entry)}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.resultName}>{entry.label}</Text>
                   {entry.label !== [entry.street, entry.houseNumber].filter(Boolean).join(' ').trim() ? (
@@ -161,6 +169,8 @@ export function CareAddressSearch({
               value={values.zip}
               onChangeText={(value) => updateField('zip', value)}
               error={errors.zip}
+              keyboardType="number-pad"
+              maxLength={5}
             />
           </View>
           <View style={styles.city}>
@@ -195,6 +205,7 @@ const styles = StyleSheet.create({
   },
   resultsList: { maxHeight: 220 },
   resultRow: {
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,

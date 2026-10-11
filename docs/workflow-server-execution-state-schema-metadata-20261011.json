@@ -1,0 +1,206 @@
+{
+  "capturedAt": "2026-10-11T12:17:09.499Z",
+  "scope": "Read-only schema and constraints; no business data",
+  "columns": [
+    {
+      "table": "assist_visit_execution_state",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "current_step",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'consent'::text"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "assignment_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "no_show_note",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "tasks_complete",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "documentation_complete",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "signature_complete",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "proof_generated",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "finalized_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "travel_started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "travel_ended_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "service_started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "service_ended_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "workflow_consistency_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "last_auto_repair_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "column": "last_repair_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "constraints": [
+    {
+      "table": "assist_visit_execution_state",
+      "name": "assist_visit_execution_state_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "name": "assist_visit_execution_state_step_check",
+      "type": "c",
+      "definition": "CHECK ((current_step = ANY (ARRAY['consent'::text, 'en_route'::text, 'arrived'::text, 'in_service'::text, 'paused'::text, 'tasks'::text, 'documentation'::text, 'signature'::text, 'finalize'::text, 'completed'::text, 'no_show'::text, 'locked'::text])))"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "name": "assist_visit_execution_state_tenant_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "name": "assist_visit_execution_state_tenant_visit_unique",
+      "type": "u",
+      "definition": "UNIQUE (tenant_id, visit_id)"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "name": "assist_visit_execution_state_visit_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (visit_id) REFERENCES assist_visits(id) ON DELETE CASCADE"
+    }
+  ]
+}

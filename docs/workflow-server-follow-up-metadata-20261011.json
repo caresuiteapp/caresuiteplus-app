@@ -1,0 +1,354 @@
+{
+  "capturedAt": "2026-10-11",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "BEGIN READ ONLY catalog defs/columns only; no business rows",
+  "columns": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "status",
+      "type": "assignment_task_status",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "is_required",
+      "type": "boolean",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "requires_note_if_not_done",
+      "type": "boolean",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "sort_order",
+      "type": "integer",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "not_done_reason",
+      "type": "text",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp with time zone",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "completed_by_employee_id",
+      "type": "uuid",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assignment_tasks"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "action",
+      "type": "text",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "previous_value",
+      "type": "jsonb",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "new_value",
+      "type": "jsonb",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "reason",
+      "type": "text",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "actor_user_id",
+      "type": "uuid",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_admin_audit"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "proof_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "service_date",
+      "type": "date",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "service_name",
+      "type": "text",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "planned_start_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "planned_end_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "actual_start_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "actual_end_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "proof_preview",
+      "type": "jsonb",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "requested_by",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "requested_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "signed_by_profile_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "signed_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "signature_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "revoked_by",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "revoked_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "revocation_reason",
+      "type": "text",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "request_reason",
+      "type": "text",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "decision_by_profile_id",
+      "type": "uuid",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "decision_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "decision_reason",
+      "type": "text",
+      "table": "assist_visit_signature_requests"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "visit_id",
+      "type": "uuid",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "is_required",
+      "type": "boolean",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "requires_note_if_not_done",
+      "type": "boolean",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "not_done_reason",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "sort_order",
+      "type": "integer",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "completed_by",
+      "type": "uuid",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "catalog_item_id",
+      "type": "uuid",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "item_key",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "not_completed_reason_key",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "note",
+      "type": "text",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "is_optional",
+      "type": "boolean",
+      "table": "assist_visit_tasks"
+    },
+    {
+      "name": "payload_json",
+      "type": "jsonb",
+      "table": "assist_visit_tasks"
+    }
+  ],
+  "functions": [
+    {
+      "args": "p_visit_id uuid, p_source_task_id uuid",
+      "name": "resolve_admin_visit_task_ids",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_admin_visit_task_ids(p_visit_id uuid, p_source_task_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nDECLARE\n v public.assist_visits%ROWTYPE;\n v_assignment_id uuid;\n v_visit_task_id uuid;\n v_assignment_task_id uuid;\n v_title text;\n v_sort_order integer;\n v_candidates uuid[];\n v_source_count integer;\nBEGIN\n IF NOT (public.is_tenant_admin() OR public.has_permission('assist.execution.manage')) THEN\n  RAISE EXCEPTION 'Keine Berechtigung für administrative Nachbearbeitung';\n END IF;\n SELECT * INTO v FROM public.assist_visits\n WHERE id=p_visit_id AND tenant_id=public.current_tenant_id() FOR UPDATE;\n IF NOT FOUND THEN RAISE EXCEPTION 'Einsatz nicht gefunden'; END IF;\n v_assignment_id:=coalesce(v.legacy_assignment_id,v.id);\n SELECT id,title,sort_order INTO v_visit_task_id,v_title,v_sort_order\n FROM public.assist_visit_tasks WHERE tenant_id=v.tenant_id AND visit_id=v.id AND id=p_source_task_id FOR UPDATE;\n IF v_visit_task_id IS NULL THEN\n  SELECT id,title,sort_order INTO v_assignment_task_id,v_title,v_sort_order\n  FROM public.assignment_tasks WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND id=p_source_task_id FOR UPDATE;\n END IF;\n IF v_visit_task_id IS NULL AND v_assignment_task_id IS NULL THEN RETURN '{}'::jsonb; END IF;\n IF v_visit_task_id IS NOT NULL THEN\n  SELECT id INTO v_assignment_task_id FROM public.assignment_tasks\n  WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND id=p_source_task_id FOR UPDATE;\n  IF v_assignment_task_id IS NULL THEN\n   SELECT array_agg(q.id) INTO v_candidates FROM (\n    SELECT id FROM public.assignment_tasks\n    WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND title=v_title AND sort_order IS NOT DISTINCT FROM v_sort_order\n    ORDER BY id FOR UPDATE\n   ) q;\n   IF coalesce(cardinality(v_candidates),0)>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n   IF coalesce(cardinality(v_candidates),0)=1 THEN\n    SELECT count(*) INTO v_source_count FROM public.assist_visit_tasks\n    WHERE tenant_id=v.tenant_id AND visit_id=v.id AND title=v_title AND sort_order IS NOT DISTINCT FROM v_sort_order;\n    IF v_source_count<>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n    v_assignment_task_id:=v_candidates[1];\n   ELSE\n    SELECT count(*) INTO v_source_count FROM public.assist_visit_tasks\n    WHERE tenant_id=v.tenant_id AND visit_id=v.id AND title=v_title;\n    SELECT array_agg(q.id) INTO v_candidates FROM (\n     SELECT id FROM public.assignment_tasks WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND title=v_title ORDER BY id FOR UPDATE\n    ) q;\n    IF coalesce(cardinality(v_candidates),0)>0 THEN\n     IF cardinality(v_candidates)<>1 OR v_source_count<>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n     v_assignment_task_id:=v_candidates[1];\n    END IF;\n   END IF;\n  END IF;\n ELSE\n  SELECT id INTO v_visit_task_id FROM public.assist_visit_tasks\n  WHERE tenant_id=v.tenant_id AND visit_id=v.id AND id=p_source_task_id FOR UPDATE;\n  IF v_visit_task_id IS NULL THEN\n   SELECT array_agg(q.id) INTO v_candidates FROM (\n    SELECT id FROM public.assist_visit_tasks\n    WHERE tenant_id=v.tenant_id AND visit_id=v.id AND title=v_title AND sort_order IS NOT DISTINCT FROM v_sort_order\n    ORDER BY id FOR UPDATE\n   ) q;\n   IF coalesce(cardinality(v_candidates),0)>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n   IF coalesce(cardinality(v_candidates),0)=1 THEN\n    SELECT count(*) INTO v_source_count FROM public.assignment_tasks\n    WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND title=v_title AND sort_order IS NOT DISTINCT FROM v_sort_order;\n    IF v_source_count<>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n    v_visit_task_id:=v_candidates[1];\n   ELSE\n    SELECT count(*) INTO v_source_count FROM public.assignment_tasks\n    WHERE tenant_id=v.tenant_id AND assignment_id=v_assignment_id AND title=v_title;\n    SELECT array_agg(q.id) INTO v_candidates FROM (\n     SELECT id FROM public.assist_visit_tasks WHERE tenant_id=v.tenant_id AND visit_id=v.id AND title=v_title ORDER BY id FOR UPDATE\n    ) q;\n    IF coalesce(cardinality(v_candidates),0)>0 THEN\n     IF cardinality(v_candidates)<>1 OR v_source_count<>1 THEN RAISE EXCEPTION 'Aufgabe nicht eindeutig zuordenbar: %',v_title; END IF;\n     v_visit_task_id:=v_candidates[1];\n    END IF;\n   END IF;\n  END IF;\n END IF;\n RETURN jsonb_build_object('visit_task_id',v_visit_task_id,'assignment_task_id',v_assignment_task_id,'title',v_title);\nEND;\n$function$\n"
+    }
+  ]
+}

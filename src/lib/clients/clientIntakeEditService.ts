@@ -9,18 +9,20 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
 import { loadPersistedIntakeDocumentsForClient } from '@/features/intakeDocuments/intakeDocumentRepository';
 import { getClientFundingSelection } from '@/lib/clients/clientFundingSourceService';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 async function fetchIntakeSnapshot(
   tenantId: string,
   clientId: string,
-): Promise<Partial<ClientIntakeFormData>> {
+): Promise<ServiceResult<Partial<ClientIntakeFormData>>> {
   const supabase = getSupabaseClient();
-  if (!supabase) return {};
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const [clientResult, supportResult, ambulatoryResult, stationaryResult, insuranceResult, fundingResult] =
     await Promise.all([
       fromUnknownTable(supabase, 'clients')
-        .select('admission_date, service_start, birth_place, nationality, language, marital_status, housing_form, special_notes, preferred_contact')
+        .select('admission_date, service_start, housing_form, special_notes, preferred_contact')
         .eq('tenant_id', tenantId)
         .eq('id', clientId)
         .maybeSingle(),
@@ -48,7 +50,13 @@ async function fetchIntakeSnapshot(
       getClientFundingSelection(tenantId, clientId),
     ]);
 
-  const client = (clientResult.data ?? {}) as Record<string, unknown>;
+  for (const result of [clientResult, supportResult, ambulatoryResult, stationaryResult, insuranceResult]) {
+    if (result.error) return { ok: false, error: toGermanSupabaseError(result.error) };
+  }
+  if (!fundingResult.ok) return fundingResult;
+  if (!clientResult.data) return { ok: false, error: 'Die Aufnahme konnte nicht geladen werden. Bitte erneut laden.' };
+
+  const client = clientResult.data as Record<string, unknown>;
   const support = (supportResult.data ?? {}) as Record<string, unknown>;
   const ambulatory = (ambulatoryResult.data ?? {}) as Record<string, unknown>;
   const stationary = (stationaryResult.data ?? {}) as Record<string, unknown>;
@@ -58,13 +66,9 @@ async function fetchIntakeSnapshot(
   const strings = (row: Record<string, unknown>, key: string) =>
     Array.isArray(row[key]) ? (row[key] as unknown[]).filter((value): value is string => typeof value === 'string') : [];
 
-  return {
+  return { ok: true, data: {
     admissionDate: text(client, 'admission_date'),
     serviceStart: text(client, 'service_start'),
-    birthPlace: text(client, 'birth_place'),
-    nationality: text(client, 'nationality') || 'DE',
-    language: text(client, 'language') || 'de',
-    maritalStatus: text(client, 'marital_status'),
     housingForm: text(client, 'housing_form'),
     specialNotes: text(client, 'special_notes'),
     preferredContact: text(client, 'preferred_contact'),
@@ -112,8 +116,8 @@ async function fetchIntakeSnapshot(
     costBearerIk: text(insurance, 'cost_bearer_ik'),
     insuranceNumber: text(insurance, 'insurance_number'),
     selfPay: insurance.self_pay === true,
-    fundingSources: fundingResult.ok ? fundingResult.data?.sources ?? [] : [],
-  };
+    fundingSources: fundingResult.data?.sources ?? [],
+  } };
 }
 
 /** Loads an existing client into intake wizard form defaults for edit mode. */
@@ -135,8 +139,8 @@ export async function fetchClientIntakeEditData(
   const editResult = await fetchClientEditData(clientId, tenantId, actorRoleKey);
   if (!editResult.ok) return editResult;
 
-  const [intakeSnapshot, persistedDocumentsResult] = isDemoClientBackend()
-    ? [{}, { ok: true as const, data: [] }]
+  const [snapshotResult, persistedDocumentsResult] = isDemoClientBackend()
+    ? [{ ok: true as const, data: {} as Partial<ClientIntakeFormData> }, { ok: true as const, data: [] }]
     : await Promise.all([
         fetchIntakeSnapshot(tenantId, clientId),
         options?.includeIntakeDocuments
@@ -144,6 +148,8 @@ export async function fetchClientIntakeEditData(
           : Promise.resolve({ ok: true as const, data: [] }),
       ]);
   if (!persistedDocumentsResult.ok) return persistedDocumentsResult;
+  if (!snapshotResult.ok) return snapshotResult;
+  const intakeSnapshot = snapshotResult.data;
 
   return {
     ok: true,

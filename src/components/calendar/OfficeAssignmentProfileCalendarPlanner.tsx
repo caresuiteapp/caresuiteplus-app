@@ -57,8 +57,9 @@ type PlannerRenderState = {
 
 type Props = {
   children: (state: PlannerRenderState) => ReactNode;
-  onScheduled: () => void | Promise<void>;
+  onScheduled: () => void | boolean | Promise<void | boolean>;
   employeeIdFilter?: string;
+  readOnly?: boolean;
 };
 
 const ASSIGNMENT_DROP_DATE_DATA_KEY = 'csAssignmentDropDate';
@@ -171,7 +172,7 @@ export function buildAssignmentProfileDropTargetProps(
   };
 }
 
-export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, employeeIdFilter }: Props) {
+export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, employeeIdFilter, readOnly = false }: Props) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 1100;
@@ -208,7 +209,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   const dragScrollFrame = useRef<number | null>(null);
   const savingRef = useRef(false);
   const mounted = useRef(true);
-  const scopeKey = JSON.stringify([tenantId, employeeIdFilter ?? null]);
+  const scopeKey = JSON.stringify([tenantId, employeeIdFilter ?? null, readOnly]);
   const currentScope = useRef({ key: scopeKey });
   if (currentScope.current.key !== scopeKey) currentScope.current = { key: scopeKey };
   useEffect(() => {
@@ -231,6 +232,8 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
     setUncertainSave(false);
     setError(null);
     setNotice(null);
+    setSaving(false);
+    savingRef.current = false;
   }, [scopeKey]);
   const employeeGroups = useMemo<EmployeeProfileGroup[]>(() => {
     const normalizedSearch = profileSearch.trim().toLocaleLowerCase('de-DE');
@@ -263,17 +266,17 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
 
   const selectDate = useCallback((date: Date, clickCount: number, time?: string) => {
-    if (savingRef.current || pendingProfileId || Number.isNaN(date.getTime())) return;
+    if (readOnly || savingRef.current || pendingProfileId || Number.isNaN(date.getTime())) return;
     setSelectedDateKeys((current) => selectAssignmentProfileDate(current, toDateKey(date), clickCount));
     if (time) setStartTime(time);
     setNotice(null);
-  }, [pendingProfileId]);
+  }, [pendingProfileId, readOnly]);
 
   const dateSelection = useMemo(() => Platform.OS === 'web' ? {
     selectedDateKeys,
-    disabled: saving || Boolean(pendingProfileId),
+    disabled: readOnly || saving || Boolean(pendingProfileId),
     selectDate,
-  } : null, [selectedDateKeys, saving, pendingProfileId, selectDate]);
+  } : null, [selectedDateKeys, saving, pendingProfileId, selectDate, readOnly]);
 
   const toggleEmployee = useCallback((employeeName: string) => {
     setExpandedEmployees((current) => {
@@ -285,7 +288,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   }, []);
 
   const handleDrop = useCallback((profileId: string, date: Date, time?: string) => {
-    if (savingRef.current || pendingProfileId) return;
+    if (readOnly || savingRef.current || pendingProfileId || Number.isNaN(date.getTime())) return;
     if (!profiles.some((profile) => profile.id === profileId)) return;
     const dateKey = toDateKey(date);
     const dates = Platform.OS === 'web' && selectedDateKeys.includes(dateKey)
@@ -299,7 +302,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
     setStartTime(time ?? suggestedStartTime());
     setError(null);
     setNotice(null);
-  }, [profiles, selectedDateKeys, pendingProfileId]);
+  }, [profiles, selectedDateKeys, pendingProfileId, readOnly]);
 
   const stopBrowserDrag = useCallback(() => {
     activeDragProfileId.current = null;
@@ -313,7 +316,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   }, []);
 
   const beginBrowserDrag = useCallback((profileId: string, pointerX: number, pointerY: number) => {
-    if (savingRef.current) return;
+    if (readOnly || savingRef.current) return;
     activeDragProfileId.current = profileId;
     dragPointer.current = { x: pointerX, y: pointerY };
     setSelectedProfileId(profileId);
@@ -331,7 +334,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
       };
       dragScrollFrame.current = requestAnimationFrame(tick);
     }
-  }, []);
+  }, [readOnly]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -389,7 +392,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   }
 
   function openSelectedDates() {
-    if (savingRef.current || !selectedProfile || !selectedDateKeys.length) return;
+    if (readOnly || savingRef.current || !selectedProfile || !selectedDateKeys.length) return;
     setPendingProfileId(selectedProfile.id);
     setPendingDateKeys([...selectedDateKeys]);
     setConfirmedDateKeys([]);
@@ -408,7 +411,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
   }
 
   async function handleSchedule() {
-    if (savingRef.current || uncertainSave || !tenantId || !pendingProfile || !pendingDateKeys.length) return;
+    if (readOnly || savingRef.current || uncertainSave || !tenantId || !pendingProfile || !pendingDateKeys.length) return;
     const normalizedStartTime = normalizeTimeInput(startTime);
     if (!isNormalizedTimeInput(normalizedStartTime)) {
       setError('Bitte eine gültige Uhrzeit im Format HH:MM eingeben.');
@@ -452,7 +455,10 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
       // A refresh error must never put already saved days back into the retry set.
       if (result.confirmedDates.length || result.uncertain) {
         try {
-          await onScheduled();
+          const refreshed = await onScheduled();
+          if (refreshed === false && currentScope.current === batchScope) {
+            setNotice('Der Kalender konnte nicht aktualisiert werden. Bitte die Ansicht neu laden; bereits bestätigte Einsätze bleiben gespeichert.');
+          }
         } catch {
           if (currentScope.current === batchScope) {
             setNotice('Der Kalender konnte nicht aktualisiert werden. Bitte die Ansicht neu laden; bereits bestätigte Einsätze bleiben gespeichert.');
@@ -460,8 +466,10 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
         }
       }
     } finally {
-      savingRef.current = false;
-      if (mounted.current) setSaving(false);
+      if (currentScope.current === batchScope) {
+        savingRef.current = false;
+        if (mounted.current) setSaving(false);
+      }
     }
   }
 
@@ -516,7 +524,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
                 size="sm"
                 fullWidth
                 onPress={openSelectedDates}
-                disabled={saving || !selectedProfile || !selectedDateKeys.length}
+                disabled={readOnly || saving || !selectedProfile || !selectedDateKeys.length}
               />
               {selectedDateKeys.length ? (
                 <Pressable
@@ -530,7 +538,8 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
               ) : null}
             </View>
           ) : null}
-          {Platform.OS === 'web' && notice ? <Text style={styles.planningNotice} accessibilityLiveRegion="polite">{notice}</Text> : null}
+          {notice ? <Text style={styles.planningNotice} accessibilityLiveRegion="polite">{notice}</Text> : null}
+          {readOnly ? <Text style={styles.paletteHint}>Einsatzprofile sind lesbar. Die Freigabe ist für Ihre Rolle nicht verfügbar.</Text> : null}
           <View style={styles.paletteStats}>
             <View style={styles.paletteStat}>
               <Text style={styles.paletteStatValue}>{employeeGroups.length}</Text>
@@ -552,6 +561,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
           />
           {query.loading && !query.data ? <LoadingState message="Profile werden geladen…" /> : null}
           {query.error && !query.data ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
+          {query.refreshError ? <ErrorState message={query.refreshError} onRetry={query.refresh} /> : null}
           {!query.loading && !query.error && profiles.length === 0 ? (
             <EmptyState
               title="Keine Einsatzprofile"
@@ -599,7 +609,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
                             key={profile.id}
                             profile={profile}
                             selected={selectedProfileId === profile.id}
-                            disabled={saving || Boolean(pendingProfileId)}
+                            disabled={readOnly || saving || Boolean(pendingProfileId)}
                             onSelect={() =>
                               setSelectedProfileId((current) => (current === profile.id ? null : profile.id))
                             }
@@ -644,7 +654,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
           {
             title: pendingDateKeys.length > 1 ? `${pendingDateKeys.length} Einsätze freigeben` : 'Einsatz direkt freigeben',
             loading: saving,
-            disabled: saving || uncertainSave || !pendingProfile || !pendingDateKeys.length || !isNormalizedTimeInput(normalizeTimeInput(startTime)),
+            disabled: readOnly || saving || uncertainSave || !pendingProfile || !pendingDateKeys.length || !isNormalizedTimeInput(normalizeTimeInput(startTime)),
             onPress: handleSchedule,
           },
         ]}
@@ -670,7 +680,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
                 ) : null}
               </View>
             ) : null}
-            {Platform.OS === 'web' && (saving || confirmedDateKeys.length > 0) ? (
+            {saving || confirmedDateKeys.length > 0 ? (
               <Text style={styles.summaryDates}>Gemeinsame Startzeit: {startTime} Uhr</Text>
             ) : (
               <CareTimeInput
@@ -684,6 +694,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
               />
             )}
             <Text style={styles.releaseHint}>
+              Alle Uhrzeiten gelten für Deutschland (Europe/Berlin).{' '}
               {pendingDateKeys.length > 1
                 ? 'Die Startzeit gilt für alle ausgewählten Tage. Nach Bestätigung werden die Einsätze einzeln freigegeben, im Assist-Kalender veröffentlicht und dem Mitarbeitendenportal bereitgestellt.'
                 : 'Nach Bestätigung wird der Einsatz unmittelbar als bestätigt gespeichert, im Assist-Kalender veröffentlicht und dem Mitarbeitendenportal bereitgestellt.'}

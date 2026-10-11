@@ -6,8 +6,9 @@ import * as webService from '@/lib/auth/businessAuthService.web';
 
 const mocks = vi.hoisted(() => ({
   mode: 'supabase' as 'supabase' | 'demo',
-  invoke: vi.fn(), signIn: vi.fn(), activate: vi.fn(), save: vi.fn(), setHash: vi.fn(),
+  access: vi.fn(), invoke: vi.fn(), signIn: vi.fn(), activate: vi.fn(), save: vi.fn(), setHash: vi.fn(),
 }));
+vi.mock('@/lib/auth/businessAccessService.shared', () => ({ checkBusinessAccess: mocks.access }));
 vi.mock('@/lib/platformConsole/platformRuntime', () => ({ refreshPlatformRuntime: vi.fn().mockResolvedValue({ status: 'ready', settings: { maintenanceMode: false, registrationEnabled: true, notice: '' } }) }));
 vi.mock('@/lib/platformConsole/platformRuntime.web', () => ({ refreshPlatformRuntime: vi.fn().mockResolvedValue({ status: 'ready', settings: { maintenanceMode: false, registrationEnabled: true, notice: '' } }) }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => mocks.mode }));
@@ -38,7 +39,7 @@ const response = {
   },
 };
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.mode = 'supabase'; mocks.invoke.mockResolvedValue(response);
+  vi.clearAllMocks(); mocks.mode = 'supabase'; mocks.invoke.mockResolvedValue(response); mocks.access.mockResolvedValue({ ok: true, data: null });
 });
 
 describe.each([['native', nativeService], ['web', webService]] as const)('%s business registration contract', (_platform, service) => {
@@ -73,6 +74,23 @@ describe.each([['native', nativeService], ['web', webService]] as const)('%s bus
     const result = await service.registerBusinessTenant({ ...input, industry: 'Unbekannt' });
     expect(result.ok).toBe(false);
     expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+
+  it.each([{ termsAccepted: false }, { website: 'a'.repeat(201) }, { adminPhone: 'a'.repeat(201) }, { contactRole: 'unbekannt' }, { adminPassword: undefined }])('rejects the same invalid fields before account submission: %s', async (changed) => {
+    const result = await service.registerBusinessTenant({ ...input, ...changed } as unknown as BusinessRegistrationInput);
+    expect(result.ok).toBe(false); expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+  it.each([{ tenantId: 'different-company' }, { owner: { ...response.data.owner, tenantId: 'other-company' } }, { owner: { ...response.data.owner, email: 'other@example.test' } }, { owner: { ...response.data.owner, roleKey: 'employee' } }, { owner: null }])('requires a confirmed matching owner/workspace receipt: %s', async (changed) => {
+    mocks.invoke.mockResolvedValue({ ok: true, data: { ...response.data, ...changed } });
+    const result = await service.registerBusinessTenant(input); expect(result.ok).toBe(false); expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+  it('gives safe login-first recovery guidance after an ambiguous registration timeout', async () => {
+    mocks.invoke.mockResolvedValue({ ok: false, error: 'Die Anfrage antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.' });
+    const result = await service.registerBusinessTenant(input); expect(result).toMatchObject({ ok: false, error: expect.stringContaining('zuerst die Anmeldung') });
+  });
+  it('rejects a disabled business workspace on both platforms after credential verification', async () => {
+    mocks.signIn.mockResolvedValue({ ok: true, data: { user: { id: 'auth' } } }); mocks.access.mockResolvedValue({ ok: false, error: 'Unternehmen gesperrt.' });
+    expect(await service.loginBusinessUser(input.adminEmail, input.adminPassword)).toEqual({ ok: false, error: 'Unternehmen gesperrt.' }); expect(mocks.access).toHaveBeenCalledOnce();
   });
 
   it('grants every free area in demo mode even if an older caller supplied a selection', async () => {

@@ -132,7 +132,16 @@ export type TenantServiceTypeBillingRule = {
   isActive: boolean;
 };
 
+/** Server receipt for an immutable signed proof with actual recorded times. */
+export type ConfirmedBillingProofSource = {
+  version: 'workflow-assignment-record-v1'; tenant_id: string; visit_id: string; proof_id: string;
+  proof_payload_hash: string; signature_id: string; signature_payload_hash: string;
+  client_id: string; employee_id: string | null; service_started_at: string; service_ended_at: string; actual_minutes: number;
+  pdf_storage_path: string; pdf_sha256: string; attested_at: string;
+};
+
 export type ProofBillingSourceSnapshot = {
+  confirmedSource?: ConfirmedBillingProofSource;
   proofId: string;
   visitId: string;
   clientId: string | null;

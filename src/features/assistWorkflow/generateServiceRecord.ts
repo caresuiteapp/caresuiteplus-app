@@ -9,6 +9,7 @@ import { resolveVisitSignatureImageUrl } from '@/lib/assist/visitSignatureImageS
 import { probeSignatureImageDimensions } from '@/lib/signatures/signatureOrientation';
 import { buildServiceRecordHtml, buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 import type { AssistExecutionContext } from './types';
+import { signatureMatchesVisitContent } from './signatureMatchesVisitContent';
 
 export type GenerateServiceRecordResult = {
   serviceRecordId: string | null;
@@ -30,6 +31,9 @@ export async function generateServiceRecord(
     return { ok: false, error: 'Die Unterschrift für diese Einsatzfassung fehlt. Bitte erneut unterschreiben, bevor der Leistungsnachweis abgeschlossen wird.' };
   }
   if (sig.ok && sig.data) {
+    if (!await signatureMatchesVisitContent(ctx, sig.data, documentationText)) {
+      return { ok: false, error: 'Die gespeicherte Unterschrift gehört zu einer früheren Einsatzfassung. Bitte die aktuelle Dokumentation und Aufgaben prüfen und erneut unterschreiben.' };
+    }
     signatureSummary = {
       signerName: sig.data.signerName,
       signedAt: sig.data.signedAt,

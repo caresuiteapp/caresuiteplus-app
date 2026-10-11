@@ -96,8 +96,10 @@ import {
 } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import { isStaleWorkflowTransitionError } from '@/features/assistWorkflow/internal/isStaleWorkflowTransitionError';
 import { readWorkflowActionConfirmation } from '@/features/assistWorkflow/readWorkflowActionConfirmation';
+import { buildVisitDocumentationContent } from '@/features/assistWorkflow/visitDocumentationContent';
+import { buildSignatureWriteExpectation, type SignatureWriteExpectation, type WorkflowWriteExpectation } from '@/features/assistWorkflow/workflowWriteExpectation';
+import { loadVisitSignatureWriteVersion, storeVisitSignatureWriteVersion } from '@/lib/portal/visitSignatureWriteVersionStorage';
 import {
-  didWorkflowActionReachPostcondition,
   type RecoverableWorkflowAction,
 } from '@/features/assistWorkflow/workflowRecoveryVerification';
 
@@ -107,6 +109,7 @@ const runSignatureSubmission = createSingleFlight();
 type PendingWorkflowConfirmation = {
   before: AssistExecutionContext;
   action: RecoverableWorkflowAction;
+  expected?: WorkflowWriteExpectation;
   scopeKey: string;
   checking: boolean;
   complete: () => void;
@@ -242,7 +245,7 @@ function mergeVisitTimesFromPortalDetail(
   };
 }
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
-  const { profile, portalSession } = useAuth();
+  const { profile, portalSession, user } = useAuth();
   const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey, actorId } =
     usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
@@ -275,7 +278,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
   const [signatureSaveError, setSignatureSaveError] = useState<string | null>(null);
   const signatureSaveAttempt = useRef(0);
-  const signatureScopeKey = JSON.stringify([tenantId, employeeId, authProfileId, assignmentId]);
+  const signatureWriteExpectationRef = useRef<{ scope: string; signature: SignatureWriteExpectation } | null>(null);
+  const signatureScopeKey = JSON.stringify([tenantId, employeeId, authProfileId, actorId, user?.id, assignmentId]);
   const signatureScopeRef = useRef(signatureScopeKey);
   signatureScopeRef.current = signatureScopeKey;
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
@@ -292,6 +296,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     pendingWorkflowConfirmationRef.current = null;
     executionContextRef.current = null;
     confirmedTaskAdditionsRef.current = null;
+    signatureWriteExpectationRef.current = null;
+    setSignatureSaveError(null);
     setExecutionContext(null);
     setLiveContext(null);
     setWorkflowConfirmationPending(false);
@@ -826,7 +832,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     if (!pending || pending.checking) return;
     pending.checking = true;
     try {
-      const confirmation = await readWorkflowActionConfirmation(pending.before, pending.action);
+      const confirmation = await readWorkflowActionConfirmation(pending.before, pending.action, pending.expected);
       if (
         pendingWorkflowConfirmationRef.current !== pending ||
         signatureScopeRef.current !== pending.scopeKey
@@ -880,6 +886,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         timeoutMs?: number;
         preferExistingContext?: boolean;
         recoveryAction?: RecoverableWorkflowAction;
+        buildRecoveryExpectation?: (ctx: AssistExecutionContext) => Promise<WorkflowWriteExpectation> | WorkflowWriteExpectation;
         onLateFailure?: (message: string) => void;
       },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
@@ -919,6 +926,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           options?.preferExistingContext !== false && executionContextRef.current
             ? executionContextRef.current
             : null;
+        if (options?.preferExistingContext === false) {
+          if (!tenantId || !assignmentId || !employeeId) return { ok: false, error: 'Die aktuelle Einsatzzuordnung fehlt. Bitte erneut anmelden und den Einsatz laden.', errorCode: 'WORKFLOW_FINAL_CONTENT_UNAVAILABLE' };
+          const fresh = await withWorkflowTimeout(resolveAssistExecutionContext({
+            tenantId, assignmentId, employeeId, profileId: authProfileId, roleKey, autoRepair: false,
+          }), WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS, 'workflowFinalContentRead');
+          if (!isCurrentAttempt()) return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Einsatz prüfen.', errorCode: 'WORKFLOW_SCOPE_CHANGED' };
+          if (!fresh.ok) return { ok: false, error: fresh.error ?? 'Die aktuelle Einsatzfassung konnte nicht geprüft werden. Bitte erneut laden.', errorCode: 'WORKFLOW_FINAL_CONTENT_UNAVAILABLE' };
+          ctx = fresh.data;
+        }
         if (!ctx) {
           ctx = await refreshExecutionContext(query.data ?? undefined);
         }
@@ -947,6 +963,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             errorCode: 'PORTAL_WRITE_SESSION_INVALID',
           };
         }
+        const expected = await options?.buildRecoveryExpectation?.(ctx);
+        if (!isCurrentAttempt()) return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Einsatz prüfen.', errorCode: 'WORKFLOW_SCOPE_CHANGED' };
         const operation = options?.recoveryAction
           ? runCanonicalMutation(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:${options.recoveryAction}`, () => fn(ctx!))
           : fn(ctx);
@@ -954,6 +972,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           pendingConfirmation = {
             before: ctx,
             action: options.recoveryAction,
+            expected,
             scopeKey,
             checking: false,
             complete: completeConfirmation,
@@ -966,19 +985,19 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             await syncAfterWorkflow(confirmedContext);
             return;
           }
-          const recovered = await refreshExecutionContext();
+          const recovered = options?.recoveryAction ? await readWorkflowActionConfirmation(ctx!, options.recoveryAction, expected) : null;
           if (confirmationResolved || !isCurrentAttempt()) return;
-          if (recovered && options?.recoveryAction && didWorkflowActionReachPostcondition(options.recoveryAction, ctx!, recovered)) {
-            await syncAfterWorkflow(recovered);
+          if (recovered?.state === 'confirmed') {
+            await syncAfterWorkflow(recovered.context);
           } else if (!settled.ok) {
             options?.onLateFailure?.(settled.error ?? 'Die Speicherung wurde nicht bestätigt. Bitte den Status prüfen.');
           }
         }, async () => {
           if (confirmationResolved || !isCurrentAttempt()) return;
-          const recovered = await refreshExecutionContext();
+          const recovered = options?.recoveryAction ? await readWorkflowActionConfirmation(ctx!, options.recoveryAction, expected) : null;
           if (confirmationResolved || !isCurrentAttempt()) return;
-          if (recovered && options?.recoveryAction && didWorkflowActionReachPostcondition(options.recoveryAction, ctx!, recovered)) {
-            await syncAfterWorkflow(recovered);
+          if (recovered?.state === 'confirmed') {
+            await syncAfterWorkflow(recovered.context);
           } else {
             options?.onLateFailure?.('Die Übertragung wurde unterbrochen. Bitte den Status prüfen, bevor du erneut speicherst.');
           }
@@ -1024,20 +1043,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           // back before showing an error. If the requested postcondition is
           // durable, treat the tap as successful and never make the employee
           // repeat an already completed step.
-          const refreshed = await withWorkflowTimeout(
-            refreshExecutionContext(),
-            WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
-            'workflowRecoveryReadback',
-          ).catch(() => null);
-          if (refreshed) {
-            await syncAfterWorkflow(refreshed);
-            if (
-              options?.recoveryAction &&
-              didWorkflowActionReachPostcondition(options.recoveryAction, ctx, refreshed)
-            ) {
-              return { ok: true, data: refreshed as T };
-            }
+          const recovered = options?.recoveryAction
+            ? await readWorkflowActionConfirmation(ctx, options.recoveryAction, expected)
+            : null;
+          if (!isCurrentAttempt()) return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Einsatz prüfen.', errorCode: 'WORKFLOW_SCOPE_CHANGED' };
+          if (recovered?.state === 'confirmed') {
+            await syncAfterWorkflow(recovered.context);
+            return { ok: true, data: recovered.context as T };
           }
+          if (recovered?.state === 'pending' && recovered.context) await syncAfterWorkflow(recovered.context);
+          if (!options?.recoveryAction) await refreshExecutionContext();
           if (result.errorCode === 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED' && pendingConfirmation) {
             // The RPC can return an ambiguous network/receipt failure after
             // committing. Its promise being settled is not proof of failure.
@@ -1084,7 +1099,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         }
       }
     },
-    [executionContext, query.data, refreshExecutionContext, syncAfterWorkflow, portalSession, checkPendingWorkflowConfirmation, tenantId, employeeId, assignmentId, signatureScopeKey],
+    [executionContext, query.data, refreshExecutionContext, syncAfterWorkflow, portalSession, checkPendingWorkflowConfirmation, tenantId, employeeId, assignmentId, signatureScopeKey, authProfileId, roleKey],
   );
 
   const acceptTaskResults = useCallback((saved: AssistExecutionContext) => {
@@ -1409,6 +1424,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         timeoutLabel: 'saveDocumentation',
         timeoutMs: WORKFLOW_END_SERVICE_TIMEOUT_MS,
         recoveryAction: 'save_documentation',
+        buildRecoveryExpectation: () => ({ kind: 'documentation', content: buildVisitDocumentationContent(documentation) }),
       });
     },
     [runWorkflow, flushTaskDrafts],
@@ -1421,6 +1437,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       setSignatureSaveError(null);
       return runWorkflow((ctx) => saveClientSignature({ ctx, signature }), {
         recoveryAction: 'save_signature',
+        buildRecoveryExpectation: async (ctx) => {
+          const expected = await buildSignatureWriteExpectation(ctx, signature);
+          await storeVisitSignatureWriteVersion(signatureScopeKey, expected);
+          if (signatureScopeRef.current === signatureScopeKey && signatureSaveAttempt.current === attempt)
+            signatureWriteExpectationRef.current = { scope: signatureScopeKey, signature: expected };
+          return { kind: 'signature', signature: expected };
+        },
         onLateFailure: (message) => {
           if (signatureScopeRef.current === signatureScopeKey && signatureSaveAttempt.current === attempt) setSignatureSaveError(message);
         },
@@ -1437,9 +1460,19 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     ) {
       return { state: 'unavailable', message: 'Die Unterschrift kann gerade nicht geprüft werden. Bitte den Einsatz bei bestehender Verbindung erneut öffnen.' };
     }
+    let expectedSignature = signatureWriteExpectationRef.current?.scope === signatureScopeKey ? signatureWriteExpectationRef.current.signature : undefined;
+    if (!expectedSignature) {
+      try { expectedSignature = await loadVisitSignatureWriteVersion(signatureScopeKey) ?? undefined; }
+      catch { return { state: 'unavailable', message: 'Die zuletzt eingereichte Unterschriftsfassung konnte nicht gelesen werden. Bitte erneut prüfen; sie wird nicht durch eine frühere Unterschrift bestätigt.' }; }
+      if (signatureScopeRef.current !== signatureScopeKey) return { state: 'unavailable', message: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Status erneut prüfen.' };
+    }
+    if (!expectedSignature) {
+      return { state: 'missing', message: 'Die zuletzt eingereichte Unterschriftsfassung konnte nicht zugeordnet werden. Bitte die Unterschrift erneut erfassen; eine frühere Unterschrift bestätigt diese Speicherung nicht.' };
+    }
     const result = await readVisitSignatureConfirmation({
       tenantId: ctx.tenantId,
       visitId: ctx.assistVisitId,
+      expectedSignature,
       isWritePending: () => runSignatureSubmission.isPending(signatureScopeKey) ||
         runCanonicalMutation.isPending(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:save_signature`),
     });
@@ -1481,6 +1514,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       // must be confirmed before the immutable proof records their results.
       if (!await flushTaskDrafts()) return { ok: false, error: 'Die bearbeiteten Aufgaben sind noch nicht gespeichert. Ihre Auswahl bleibt erhalten. Bitte erneut speichern, bevor der Nachweis abgeschlossen wird.' };
       return runWorkflow((ctx) => finalizeVisit(ctx), {
+        preferExistingContext: false,
         recoveryAction: 'finalize',
         timeoutLabel: 'finalizeVisit',
         timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
@@ -1493,6 +1527,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     async (approvalReason: string) => {
       if (!await flushTaskDrafts()) return { ok: false, error: 'Die bearbeiteten Aufgaben sind noch nicht gespeichert. Ihre Auswahl bleibt erhalten. Bitte erneut speichern, bevor die Unterschriftsanfrage freigegeben wird.' };
       return runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx, null, approvalReason), {
+        preferExistingContext: false,
         recoveryAction: 'finalize_deferred',
         timeoutLabel: 'finalizeVisitDeferred',
         timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,

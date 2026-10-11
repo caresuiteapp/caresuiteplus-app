@@ -40,8 +40,14 @@ export function buildPortalSignatureCaptureStoragePath(
 export function buildPortalSignatureFinalPdfPath(
   tenantId: string,
   documentId: string,
+  versionNumber: number,
+  pdfHash: string,
 ): string {
-  return `tenant/${tenantId}/portal/signatures/${documentId}/final.pdf`;
+  const hash=pdfHash.replace(/^sha256:/,'');
+  if (!Number.isSafeInteger(versionNumber) || versionNumber<1 || !/^[a-f0-9]{64}$/.test(hash)) {
+    throw new Error('Dokumentversion oder PDF-Prüfsumme fehlt.');
+  }
+  return `tenant/${tenantId}/portal/signatures/${documentId}/versions/${versionNumber}/final-${hash}.pdf`;
 }
 
 export function parseSignatureDataUrl(dataUrl: string): { bytes: Uint8Array; mimeType: string } | null {

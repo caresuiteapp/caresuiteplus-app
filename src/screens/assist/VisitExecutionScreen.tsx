@@ -29,6 +29,7 @@ import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import {
   buildVisitProofPreview,
   hasVisitSignature,
@@ -69,6 +70,7 @@ export function VisitExecutionScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const actor = usePortalActor();
   const { can, check, roleLabel } = usePermissions();
   const canManage = can('assist.execution.manage');
 
@@ -266,6 +268,14 @@ export function VisitExecutionScreen() {
           >
             <Text style={styles.internalNote}>{visit.employeeInternalNotes}</Text>
           </SectionPanel>
+        ) : null}
+
+        {actor.employeeId && visit.employeeId === actor.employeeId && actor.tenantId === tenantId ? (
+          <PremiumButton
+            title={isLocked ? 'Eigene Durchführung ansehen' : 'Eigene Durchführung öffnen'}
+            fullWidth
+            onPress={() => router.push(`/portal/employee/assignments/${visit.id}/execute` as never)}
+          />
         ) : null}
 
         {showAdministrativeFollowUp && tenantId ? <AdministrativeVisitFollowUpPanel key={visit.id} onTaskDraftsChange={setAdministrativeTaskDrafts} visit={visit} tenantId={tenantId} onSaved={refreshAfterSave} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}

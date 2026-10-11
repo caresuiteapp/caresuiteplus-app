@@ -1,0 +1,2122 @@
+{
+  "capturedAt": "2026-10-11",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "read-only system catalogs only; no business/auth rows",
+  "functions": [
+    {
+      "name": "current_role_key",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_role_key()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'employee' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.id = public.current_portal_account_id()\r\n        AND epa.auth_user_id = auth.uid()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n    ) THEN 'employee_portal'::text ELSE NULL END\r\n    WHEN 'client' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.client_portal_access cpa\r\n      WHERE cpa.id = public.current_portal_account_id()\r\n        AND cpa.auth_user_id = auth.uid()\r\n        AND cpa.portal_enabled = TRUE\r\n        AND cpa.status = 'aktiv'\r\n    ) OR EXISTS (\r\n      SELECT 1\r\n      FROM public.client_portal_codes cpc\r\n      WHERE cpc.id = public.current_portal_account_id()\r\n        AND cpc.auth_user_id = auth.uid()\r\n        AND cpc.status = 'active'\r\n        AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n    ) THEN 'client_portal'::text ELSE NULL END\r\n    WHEN 'relative' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n    ) THEN 'family_portal'::text ELSE NULL END\r\n    ELSE CASE\r\n      WHEN public.current_portal_type() IS NULL OR public.current_portal_type() = 'business'\r\n      THEN COALESCE(\r\n        (\r\n          SELECT r.key\r\n          FROM public.profiles p\r\n          JOIN public.roles r ON r.id = p.role_id\r\n          WHERE p.id = auth.uid() OR p.auth_user_id = auth.uid()\r\n          ORDER BY (p.id = auth.uid()) DESC\r\n          LIMIT 1\r\n        ),\r\n        NULLIF(auth.jwt()->'app_metadata'->>'role_key', '')\r\n      )\r\n      ELSE NULL\r\n    END\r\n  END\r\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "handle_new_user",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nDECLARE\n  v_role_id  UUID;\n  v_raw_name TEXT;\n  v_first    TEXT;\n  v_last     TEXT;\nBEGIN\n  -- Rolle ermitteln\n  SELECT id INTO v_role_id FROM public.roles WHERE key = 'owner' LIMIT 1;\n  IF v_role_id IS NULL THEN\n    SELECT id INTO v_role_id FROM public.roles ORDER BY created_at LIMIT 1;\n  END IF;\n\n  -- Namen aus Meta-Daten lesen\n  v_raw_name := COALESCE(\n    NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),\n    NULLIF(TRIM(NEW.raw_user_meta_data->>'display_name'), ''),\n    NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),\n    split_part(NEW.email, '@', 1)\n  );\n\n  -- Namen in first_name / last_name aufteilen\n  -- full_name ist GENERATED ALWAYS und darf NICHT explizit gesetzt werden\n  v_first := split_part(v_raw_name, ' ', 1);\n  v_last  := NULLIF(TRIM(SUBSTRING(v_raw_name FROM POSITION(' ' IN v_raw_name))), '');\n\n  INSERT INTO public.profiles (\n    auth_user_id,\n    email,\n    first_name,\n    last_name,\n    role_id,\n    status\n  )\n  VALUES (\n    NEW.id,\n    NEW.email,\n    v_first,\n    v_last,\n    v_role_id,\n    'invited'\n  )\n  ON CONFLICT (auth_user_id) DO NOTHING;\n\n  RETURN NEW;\nEND;\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "has_permission",
+      "args": "p_permission_key text",
+      "definition": "CREATE OR REPLACE FUNCTION public.has_permission(p_permission_key text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.profiles pr\n    JOIN public.role_permissions rp ON rp.role_id = pr.role_id\n    WHERE (pr.id = auth.uid() OR pr.auth_user_id = auth.uid())\n      AND (\n        rp.permission_key = p_permission_key\n        OR (\n          rp.permission_key = split_part(p_permission_key, '.', 2)\n          AND (\n            (p_permission_key LIKE '%.view' AND COALESCE(rp.can_view, FALSE))\n            OR (p_permission_key LIKE '%.create' AND COALESCE(rp.can_create, FALSE))\n            OR (p_permission_key LIKE '%.upload' AND COALESCE(rp.can_create, FALSE))\n            OR (\n              (p_permission_key LIKE '%.edit' OR p_permission_key LIKE '%.update')\n              AND COALESCE(rp.can_update, FALSE)\n            )\n            OR (p_permission_key LIKE '%.delete' AND COALESCE(rp.can_delete, FALSE))\n            OR (\n              p_permission_key LIKE '%.manage'\n              AND COALESCE(rp.can_update, FALSE)\n            )\n          )\n        )\n        OR (\n          p_permission_key LIKE 'communication.%'\n          AND rp.permission_key = 'messages'\n          AND (\n            (p_permission_key LIKE '%.view%' AND COALESCE(rp.can_view, FALSE))\n            OR (\n              p_permission_key NOT LIKE '%.view%'\n              AND COALESCE(rp.can_create, FALSE)\n            )\n          )\n        )\n      )\n  )\n  OR (\n    p_permission_key = 'business.tenant.manage'\n    AND public.is_tenant_admin()\n  )\n  OR (\n    p_permission_key = 'messages.broadcast.create'\n    AND public.is_tenant_admin()\n  )\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "is_client_portal_rls_context",
+      "args": "p_tenant_id uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_client_portal_rls_context(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_role_key() IN ('client_portal', 'family_portal')\r\n    AND public.current_client_id() IS NOT NULL\r\n    AND public.current_tenant_id() = COALESCE(p_tenant_id, public.current_tenant_id())\r\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "is_employee_portal_rls_context",
+      "args": "p_tenant_id uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_employee_portal_rls_context(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_role_key() = 'employee_portal'\r\n    AND public.is_active_employee_portal_actor(p_tenant_id)\r\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "set_assignment_status",
+      "args": "input_assignment_id uuid, input_status assignment_status, input_employee_id uuid, input_latitude numeric, input_longitude numeric, input_note text",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_assignment_status(input_assignment_id uuid, input_status assignment_status, input_employee_id uuid DEFAULT NULL::uuid, input_latitude numeric DEFAULT NULL::numeric, input_longitude numeric DEFAULT NULL::numeric, input_note text DEFAULT NULL::text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\r\ndeclare\r\n  v_assignment public.assignments;\r\n  v_time_entry_type public.time_entry_type;\r\nbegin\r\n  select *\r\n  into v_assignment\r\n  from public.assignments\r\n  where id = input_assignment_id;\r\n\r\n  if not found then\r\n    raise exception 'Einsatz wurde nicht gefunden.';\r\n  end if;\r\n\r\n  update public.assignments\r\n  set\r\n    status = input_status,\r\n    actual_start_at = case\r\n      when input_status = 'started' and actual_start_at is null then now()\r\n      else actual_start_at\r\n    end,\r\n    actual_end_at = case\r\n      when input_status in ('finished','completed') and actual_end_at is null then now()\r\n      else actual_end_at\r\n    end,\r\n    updated_at = now()\r\n  where id = input_assignment_id;\r\n\r\n  v_time_entry_type :=\r\n    case input_status\r\n      when 'on_the_way' then 'on_the_way'::public.time_entry_type\r\n      when 'arrived' then 'arrived'::public.time_entry_type\r\n      when 'started' then 'started'::public.time_entry_type\r\n      when 'paused' then 'paused'::public.time_entry_type\r\n      when 'finished' then 'finished'::public.time_entry_type\r\n      when 'completed' then 'finished'::public.time_entry_type\r\n      else 'system'::public.time_entry_type\r\n    end;\r\n\r\n  insert into public.time_entries (\r\n    tenant_id,\r\n    assignment_id,\r\n    employee_id,\r\n    entry_type,\r\n    event_at,\r\n    latitude,\r\n    longitude,\r\n    source,\r\n    note\r\n  )\r\n  values (\r\n    v_assignment.tenant_id,\r\n    input_assignment_id,\r\n    coalesce(input_employee_id, v_assignment.employee_id),\r\n    v_time_entry_type,\r\n    now(),\r\n    input_latitude,\r\n    input_longitude,\r\n    'rpc',\r\n    input_note\r\n  );\r\n\r\n  return input_assignment_id;\r\nend;\r\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "is_internal_tenant_actor",
+      "args": "p_tenant_id uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_internal_tenant_actor(p_tenant_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT coalesce(v.allowed,false) AND public.platform_tenant_access_allowed(p_tenant_id,false) FROM (\r\n  SELECT\r\n    COALESCE(public.current_role_key(), '') NOT IN (\r\n      'employee_portal',\r\n      'client_portal',\r\n      'family_portal'\r\n    )\r\n    AND (\r\n      EXISTS (\r\n        SELECT 1\r\n        FROM public.profiles p\r\n        WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid())\r\n          AND p.tenant_id = p_tenant_id\r\n      )\r\n      OR EXISTS (\r\n        SELECT 1\r\n        FROM public.tenant_memberships tm\r\n        WHERE tm.user_id = auth.uid()\r\n          AND tm.tenant_id = p_tenant_id\r\n          AND tm.is_active = TRUE\r\n      )\r\n    )\r\n) v(allowed)$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": false
+    },
+    {
+      "name": "resolve_current_profile_id",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_current_profile_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  SELECT p.id\n  FROM public.profiles p\n  WHERE p.id = auth.uid()\n     OR p.auth_user_id = auth.uid()\n  ORDER BY CASE WHEN p.id = auth.uid() THEN 0 ELSE 1 END\n  LIMIT 1\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": false
+    },
+    {
+      "name": "current_tenant_id",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_tenant_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT CASE WHEN public.platform_tenant_access_allowed(v.tenant_id,false) THEN v.tenant_id ELSE NULL END FROM (\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'employee' THEN (\r\n      SELECT epa.tenant_id\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.id = public.current_portal_account_id()\r\n        AND epa.auth_user_id = auth.uid()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n      LIMIT 1\r\n    )\r\n    WHEN 'client' THEN COALESCE(\r\n      (\r\n        SELECT cpa.tenant_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.id = public.current_portal_account_id()\r\n          AND cpa.auth_user_id = auth.uid()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.tenant_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.id = public.current_portal_account_id()\r\n          AND cpc.auth_user_id = auth.uid()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n    WHEN 'relative' THEN (\r\n      SELECT rpc.tenant_id\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n      LIMIT 1\r\n    )\r\n    ELSE CASE\r\n      WHEN public.current_portal_type() IS NULL OR public.current_portal_type() = 'business'\r\n      THEN COALESCE(\r\n        (\r\n          SELECT p.tenant_id\r\n          FROM public.profiles p\r\n          WHERE p.id = auth.uid() OR p.auth_user_id = auth.uid()\r\n          ORDER BY (p.id = auth.uid()) DESC\r\n          LIMIT 1\r\n        ),\r\n        CASE\r\n          WHEN COALESCE(auth.jwt()->'app_metadata'->>'tenant_id', '') ~*\r\n            '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'\r\n          THEN (auth.jwt()->'app_metadata'->>'tenant_id')::uuid\r\n          ELSE NULL\r\n        END\r\n      )\r\n      ELSE NULL\r\n    END\r\n  END\r\n) v(tenant_id)$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "guard_employee_open_visit_documentation",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.guard_employee_open_visit_documentation()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\r\nDECLARE v public.assist_visits%ROWTYPE;\r\nBEGIN\r\n  IF TG_OP = 'UPDATE' AND (NEW.tenant_id IS DISTINCT FROM OLD.tenant_id\r\n      OR NEW.visit_id IS DISTINCT FROM OLD.visit_id OR NEW.id IS DISTINCT FROM OLD.id) THEN\r\n    IF public.is_employee_portal_rls_context(OLD.tenant_id) THEN\r\n      RAISE EXCEPTION 'Die Dokumentation darf keinem anderen Einsatz zugeordnet werden.';\r\n    END IF;\r\n  END IF;\r\n  IF NOT public.is_employee_portal_rls_context(NEW.tenant_id) THEN RETURN NEW; END IF;\r\n  -- A pure lock/metadata update is not a new employee submission.\r\n  IF TG_OP = 'UPDATE' AND\r\n    (to_jsonb(NEW)-ARRAY['updated_at','locked','metadata']) IS NOT DISTINCT FROM\r\n    (to_jsonb(OLD)-ARRAY['updated_at','locked','metadata']) THEN RETURN NEW; END IF;\r\n  SELECT * INTO v FROM public.assist_visits WHERE id=NEW.visit_id\r\n    AND tenant_id=NEW.tenant_id AND tenant_id=public.current_tenant_id() FOR UPDATE;\r\n  IF NOT FOUND OR v.employee_id IS DISTINCT FROM public.resolve_current_employee_id() THEN\r\n    RAISE EXCEPTION 'Dieser Einsatz ist Ihnen nicht zugeordnet.';\r\n  END IF;\r\n  IF v.canonical_status IN ('completed','cancelled','no_show') OR v.planning_status IN ('cancelled','draft')\r\n    OR EXISTS (SELECT 1 FROM public.assist_visit_execution_state es WHERE es.tenant_id=v.tenant_id\r\n      AND es.visit_id=v.id AND es.finalized_at IS NOT NULL)\r\n    OR EXISTS (SELECT 1 FROM public.assignments a WHERE a.tenant_id=v.tenant_id\r\n      AND a.id=v.legacy_assignment_id AND a.status::text IN ('completed','cancelled','no_show')) THEN\r\n    RAISE EXCEPTION 'Dieser Einsatz ist bereits abgeschlossen oder nicht zur Bearbeitung freigegeben.';\r\n  END IF;\r\n  UPDATE public.assist_visit_signatures SET is_valid=FALSE,invalidated_at=now(),\r\n    invalidation_reason='Dokumentation vor Einsatzabschluss erneut gespeichert.',updated_at=now()\r\n    WHERE tenant_id=v.tenant_id AND visit_id=v.id AND is_valid;\r\n  UPDATE public.assist_visit_proofs SET signature_id=NULL,portal_visible=FALSE,\r\n    portal_release_status='none',updated_at=now() WHERE tenant_id=v.tenant_id AND visit_id=v.id;\r\n  UPDATE public.assist_visit_execution_state SET signature_complete=FALSE,proof_generated=FALSE,updated_at=now()\r\n    WHERE tenant_id=v.tenant_id AND visit_id=v.id;\r\n  IF TG_OP='UPDATE' THEN\r\n    INSERT INTO public.assist_visit_admin_audit(tenant_id,visit_id,action,previous_value,new_value,reason)\r\n    VALUES(v.tenant_id,v.id,'documentation_updated',to_jsonb(OLD),\r\n      to_jsonb(NEW)||jsonb_build_object('actor_kind','employee_open_visit_edit'),\r\n      'Dokumentation vom Mitarbeitenden vor Abschluss erneut gespeichert.');\r\n  END IF;\r\n  RETURN NEW;\r\nEND;\r\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": true,
+      "anon_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "register_business_workspace",
+      "args": "p_auth_user_id uuid, p_data jsonb",
+      "definition": "CREATE OR REPLACE FUNCTION public.register_business_workspace(p_auth_user_id uuid, p_data jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nDECLARE\n  v_tenant uuid;\n  v_role uuid;\n  v_owner public.tenant_users%ROWTYPE;\n  v_email text := lower(trim(p_data->>'adminEmail'));\n  v_name text := trim(p_data->>'companyName');\n  v_slug text;\n  v_key text;\n  v_products public.product_key[];\nBEGIN\n  IF p_auth_user_id IS NULL OR NOT EXISTS (\n    SELECT 1 FROM auth.users WHERE id = p_auth_user_id AND lower(email) = v_email\n  ) THEN RAISE EXCEPTION 'registration_identity_invalid' USING ERRCODE='22023'; END IF;\n  FOREACH v_key IN ARRAY ARRAY['companyName','legalForm','industry','street','zip','city','phone','email','adminFirstName','adminLastName','adminEmail'] LOOP\n    IF coalesce(length(trim(p_data->>v_key)),0) NOT BETWEEN 1 AND 200 THEN\n      RAISE EXCEPTION 'registration_required_field: %', v_key USING ERRCODE='22023';\n    END IF;\n  END LOOP;\n  IF p_data->>'termsAccepted' IS DISTINCT FROM 'true' THEN\n    RAISE EXCEPTION 'registration_terms_required' USING ERRCODE='22023';\n  END IF;\n  PERFORM pg_advisory_xact_lock(hashtextextended(p_auth_user_id::text, 1700));\n  -- Safe retry after a lost HTTP response: never create a second workspace.\n  SELECT * INTO v_owner FROM public.tenant_users WHERE auth_user_id=p_auth_user_id AND role_key='owner' AND status='active' LIMIT 1;\n  IF NOT FOUND THEN\n    IF EXISTS (SELECT 1 FROM public.profiles WHERE auth_user_id=p_auth_user_id AND tenant_id IS NOT NULL) THEN\n      RAISE EXCEPTION 'registration_existing_account' USING ERRCODE='23505';\n    END IF;\n    SELECT array_agg(product_key ORDER BY sort_order) INTO v_products FROM public.products WHERE is_active;\n    IF v_products IS NULL OR NOT ('office'::public.product_key = ANY(v_products)) THEN\n      RAISE EXCEPTION 'registration_products_unavailable';\n    END IF;\n    v_tenant := gen_random_uuid();\n    v_slug := left(trim(both '-' from regexp_replace(lower(v_name), '[^a-z0-9]+', '-', 'g')), 35) || '-' || left(v_tenant::text,8);\n    INSERT INTO public.tenants(id,name,legal_name,slug,legal_form,industry,street,postal_code,city,phone,email,website,ik_number,tax_number,vat_id,status,billing_email,representative_name)\n    VALUES(v_tenant,v_name,v_name,v_slug,trim(p_data->>'legalForm'),trim(p_data->>'industry'),trim(p_data->>'street'),trim(p_data->>'zip'),trim(p_data->>'city'),trim(p_data->>'phone'),lower(trim(p_data->>'email')),nullif(trim(p_data->>'website'),''),nullif(trim(p_data->>'ikNumber'),''),nullif(trim(p_data->>'taxNumber'),''),nullif(trim(p_data->>'vatId'),''),'active',v_email,trim(p_data->>'adminFirstName')||' '||trim(p_data->>'adminLastName'));\n    INSERT INTO public.roles(tenant_id,key,name,is_admin_role,can_manage_tenant,can_manage_users,can_manage_roles,can_manage_products,can_manage_clients,can_manage_employees,can_manage_assignments,can_manage_documentation,can_manage_service_records,can_manage_signatures,can_manage_documents,can_manage_messages,can_manage_billing,can_view_reports,can_view_audit_logs,can_manage_support,can_use_ai_assistant,allowed_products)\n    VALUES(v_tenant,'owner','Geschäftsführung',true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,v_products) RETURNING id INTO v_role;\n    INSERT INTO public.profiles(auth_user_id,tenant_id,role_id,first_name,last_name,email,phone,status,is_active,activated_at,terms_accepted_at,privacy_accepted_at)\n    VALUES(p_auth_user_id,v_tenant,v_role,trim(p_data->>'adminFirstName'),trim(p_data->>'adminLastName'),v_email,nullif(trim(p_data->>'adminPhone'),''),'active',true,now(),now(),now())\n    ON CONFLICT(auth_user_id) DO UPDATE SET tenant_id=EXCLUDED.tenant_id,role_id=EXCLUDED.role_id,first_name=EXCLUDED.first_name,last_name=EXCLUDED.last_name,email=EXCLUDED.email,phone=EXCLUDED.phone,status=EXCLUDED.status,is_active=true,activated_at=now(),terms_accepted_at=now(),privacy_accepted_at=now(),updated_at=now();\n    INSERT INTO public.tenant_users(tenant_id,auth_user_id,display_name,first_name,last_name,email,username,role_key,status,must_change_password,first_login_completed,last_password_change_at)\n    VALUES(v_tenant,p_auth_user_id,trim(p_data->>'adminFirstName')||' '||trim(p_data->>'adminLastName'),trim(p_data->>'adminFirstName'),trim(p_data->>'adminLastName'),v_email,'admin.'||left(replace(v_tenant::text,'-',''),14),'owner','active',false,true,now()) RETURNING * INTO v_owner;\n    INSERT INTO public.tenant_addresses(tenant_id,street,zip,city) VALUES(v_tenant,trim(p_data->>'street'),trim(p_data->>'zip'),trim(p_data->>'city'));\n    INSERT INTO public.tenant_contacts(tenant_id,first_name,last_name,role,email,phone,is_primary)\n    VALUES(v_tenant,coalesce(nullif(trim(p_data->>'contactFirstName'),''),trim(p_data->>'adminFirstName')),coalesce(nullif(trim(p_data->>'contactLastName'),''),trim(p_data->>'adminLastName')),coalesce(nullif(trim(p_data->>'contactRole'),''),'Geschäftsführung'),v_email,nullif(trim(p_data->>'adminPhone'),''),true);\n    INSERT INTO public.tenant_products(tenant_id,product_id,product_key,status,is_active,activated_at,access_source,access_type,billing_status,price_cents,monthly_price,premium_ready,is_default,is_visible_in_switcher)\n    SELECT v_tenant,id,product_key,'active',true,now(),'free_active','free','free_active',0,0,false,product_key='office',true FROM public.products WHERE is_active;\n    INSERT INTO public.tenant_subscriptions(tenant_id,status,billing_email,metadata)\n    VALUES(v_tenant,'active',v_email,jsonb_build_object('plan_key','free_platform','price_cents',0,'registration_version','2026-09-07'));\n    INSERT INTO public.platform_tenants(tenant_id,tenant_name,legal_name,slug,status,lifecycle_status,billing_status,plan_key,industry_type,primary_contact_name,primary_contact_email,primary_contact_phone,activated_at)\n    VALUES(v_tenant,v_name,v_name,v_slug,'active','onboarding','manual_free','free_platform',trim(p_data->>'industry'),v_owner.display_name,v_email,nullif(trim(p_data->>'adminPhone'),''),now())\n    ON CONFLICT(tenant_id) DO UPDATE SET tenant_name=EXCLUDED.tenant_name,legal_name=EXCLUDED.legal_name,slug=EXCLUDED.slug,status='active',lifecycle_status='onboarding',billing_status='manual_free',plan_key='free_platform',industry_type=EXCLUDED.industry_type,primary_contact_name=EXCLUDED.primary_contact_name,primary_contact_email=EXCLUDED.primary_contact_email,primary_contact_phone=EXCLUDED.primary_contact_phone,trial_starts_at=NULL,trial_ends_at=NULL,activated_at=now(),updated_at=now();\n    INSERT INTO public.tenant_environment_settings(tenant_id,mode,is_pilot_tenant,provider_sandbox_only,notes)\n    VALUES(v_tenant,'production',false,false,'Kostenlose Unternehmensregistrierung')\n    ON CONFLICT(tenant_id) DO NOTHING;\n    INSERT INTO public.platform_tenant_modules(tenant_id,module_key,status,is_trial,enabled_at)\n    SELECT v_tenant,module_key,'enabled',false,now() FROM public.platform_modules WHERE status='available'\n    ON CONFLICT(tenant_id,module_key) DO UPDATE SET status='enabled',is_trial=false,trial_ends_at=NULL,enabled_at=now();\n    INSERT INTO public.registration_welcome_outbox(tenant_id,tenant_user_id,auth_user_id,recipient_email)\n    VALUES(v_owner.tenant_id,v_owner.id,p_auth_user_id,v_email);\n  END IF;\n  RETURN jsonb_build_object('ok',true,'tenantId',v_owner.tenant_id,'owner',jsonb_build_object('id',v_owner.id,'tenantId',v_owner.tenant_id,'username',v_owner.username,'email',v_owner.email,'roleKey',v_owner.role_key,'displayName',v_owner.display_name),'credentials',jsonb_build_object('username',v_owner.username),'welcomeEmailQueued',EXISTS(SELECT 1 FROM public.registration_welcome_outbox q WHERE q.tenant_user_id=v_owner.id AND q.state IN ('pending','sending','sent')));\nEND;\n$function$\n",
+      "owner": "postgres",
+      "security_definer": true,
+      "auth_execute": false,
+      "anon_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "guard_assist_execution_state_regression",
+      "args": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.guard_assist_execution_state_regression()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN\n  IF NEW.assignment_status IN ('geplant','bestaetigt','unterwegs','angekommen')\n     AND NEW.service_started_at IS NOT NULL THEN\n    IF OLD.assignment_status IN ('abgeschlossen','storniert','nicht_erschienen') THEN\n      NEW.assignment_status := OLD.assignment_status;\n      NEW.current_step := OLD.current_step;\n      RETURN NEW;\n    END IF;\n    IF NEW.service_ended_at IS NOT NULL OR NEW.finalized_at IS NOT NULL THEN\n      IF OLD.assignment_status IN ('beendet','dokumentation_offen','unterschrift_offen','abgeschlossen') THEN\n        NEW.assignment_status := OLD.assignment_status;\n        NEW.current_step := OLD.current_step;\n      ELSE\n        NEW.assignment_status := 'beendet';\n        NEW.current_step := 'documentation';\n      END IF;\n    ELSE\n      NEW.assignment_status := CASE WHEN OLD.assignment_status = 'pausiert' THEN 'pausiert' ELSE 'gestartet' END;\n      NEW.current_step := CASE WHEN OLD.assignment_status = 'pausiert' THEN OLD.current_step ELSE 'in_service' END;\n    END IF;\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n",
+      "owner": "postgres",
+      "security_definer": false,
+      "auth_execute": true,
+      "anon_execute": true,
+      "service_execute": true
+    }
+  ],
+  "triggers": [
+    {
+      "table": "auth.users",
+      "name": "on_auth_user_created",
+      "definition": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()",
+      "function": "handle_new_user()"
+    },
+    {
+      "table": "assignments",
+      "name": "audit_assignments",
+      "definition": "CREATE TRIGGER audit_assignments AFTER INSERT OR DELETE OR UPDATE ON public.assignments FOR EACH ROW EXECUTE FUNCTION create_audit_log()",
+      "function": "create_audit_log()"
+    },
+    {
+      "table": "profiles",
+      "name": "audit_profiles",
+      "definition": "CREATE TRIGGER audit_profiles AFTER INSERT OR DELETE OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION create_audit_log()",
+      "function": "create_audit_log()"
+    },
+    {
+      "table": "assignments",
+      "name": "trg_assignments_updated_at",
+      "definition": "CREATE TRIGGER trg_assignments_updated_at BEFORE UPDATE ON public.assignments FOR EACH ROW EXECUTE FUNCTION set_updated_at()",
+      "function": "set_updated_at()"
+    },
+    {
+      "table": "profiles",
+      "name": "trg_profiles_updated_at",
+      "definition": "CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()",
+      "function": "set_updated_at()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "trg_sync_assignment_mirror_from_assist_visit",
+      "definition": "CREATE TRIGGER trg_sync_assignment_mirror_from_assist_visit AFTER INSERT OR UPDATE ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION sync_assignment_mirror_from_assist_visit()",
+      "function": "sync_assignment_mirror_from_assist_visit()"
+    },
+    {
+      "table": "assignments",
+      "name": "assignments_profile_duration_on_insert",
+      "definition": "CREATE TRIGGER assignments_profile_duration_on_insert BEFORE INSERT OR UPDATE OF assignment_profile_id, planned_start_at, planned_end_at ON public.assignments FOR EACH ROW EXECUTE FUNCTION enforce_assignment_profile_duration_on_insert()",
+      "function": "enforce_assignment_profile_duration_on_insert()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "assist_visits_profile_duration_on_insert",
+      "definition": "CREATE TRIGGER assist_visits_profile_duration_on_insert BEFORE INSERT OR UPDATE OF legacy_assignment_id, planned_start_at, planned_end_at, duration_minutes ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION enforce_assist_profile_duration_on_insert()",
+      "function": "enforce_assist_profile_duration_on_insert()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "normalize_assist_visit_updated_by_trigger",
+      "definition": "CREATE TRIGGER normalize_assist_visit_updated_by_trigger BEFORE INSERT OR UPDATE OF updated_by ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION normalize_assist_visit_updated_by()",
+      "function": "normalize_assist_visit_updated_by()"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "name": "guard_employee_open_visit_documentation",
+      "definition": "CREATE TRIGGER guard_employee_open_visit_documentation BEFORE INSERT OR UPDATE ON public.assist_visit_documentation FOR EACH ROW EXECUTE FUNCTION guard_employee_open_visit_documentation()",
+      "function": "guard_employee_open_visit_documentation()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "trg_preserve_recorded_assist_visit_times",
+      "definition": "CREATE TRIGGER trg_preserve_recorded_assist_visit_times BEFORE UPDATE ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION preserve_recorded_assist_visit_times()",
+      "function": "preserve_recorded_assist_visit_times()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "trg_zz_guard_assist_visit_execution_regression",
+      "definition": "CREATE TRIGGER trg_zz_guard_assist_visit_execution_regression BEFORE UPDATE OF canonical_status, execution_status, actual_start_at, actual_end_at, finished_at ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION guard_assist_visit_execution_regression()",
+      "function": "guard_assist_visit_execution_regression()"
+    },
+    {
+      "table": "assignments",
+      "name": "trg_guard_assignment_execution_regression",
+      "definition": "CREATE TRIGGER trg_guard_assignment_execution_regression BEFORE UPDATE OF status, actual_start_at, actual_end_at, finished_at ON public.assignments FOR EACH ROW EXECUTE FUNCTION guard_assignment_execution_regression()",
+      "function": "guard_assignment_execution_regression()"
+    },
+    {
+      "table": "assist_visit_execution_state",
+      "name": "trg_guard_assist_execution_state_regression",
+      "definition": "CREATE TRIGGER trg_guard_assist_execution_state_regression BEFORE UPDATE OF assignment_status, current_step, service_started_at, service_ended_at, finalized_at ON public.assist_visit_execution_state FOR EACH ROW EXECUTE FUNCTION guard_assist_execution_state_regression()",
+      "function": "guard_assist_execution_state_regression()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "trg_guard_assist_visit_execution_regression",
+      "definition": "CREATE TRIGGER trg_guard_assist_visit_execution_regression BEFORE UPDATE OF canonical_status, execution_status, actual_start_at, actual_end_at, finished_at ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION guard_assist_visit_execution_regression()",
+      "function": "guard_assist_visit_execution_regression()"
+    },
+    {
+      "table": "assist_visits",
+      "name": "portal_push_visit",
+      "definition": "CREATE TRIGGER portal_push_visit AFTER INSERT OR UPDATE ON public.assist_visits FOR EACH ROW EXECUTE FUNCTION portal_push_source_changed()",
+      "function": "portal_push_source_changed()"
+    }
+  ],
+  "columns": [
+    {
+      "table": "employee_portal_accounts",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "username",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'pending_first_login'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "must_change_password",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "true",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "first_login_completed",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_hash",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_created_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "temporary_password_expires_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "last_login_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "blocked_reason",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "auth_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "profile_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "employee_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "first_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "last_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "full_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "date_of_birth",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "mobile",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "street",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "house_number",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "postal_code",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "city",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "country",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Deutschland'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "status",
+      "type": "USER-DEFINED",
+      "nullable": "NO",
+      "default": "'draft'::employee_status",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "employment_type",
+      "type": "USER-DEFINED",
+      "nullable": "YES",
+      "default": "'part_time'::employee_employment_type",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "role_title",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "qualification",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "qualification_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "weekly_hours",
+      "type": "numeric",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "entry_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "exit_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "has_driver_license",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "driver_license_class",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "has_police_clearance",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "police_clearance_date",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "police_clearance_valid_until",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "has_first_aid_certificate",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "first_aid_valid_until",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "must_keep_mileage_log",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "mileage_log_required_from",
+      "type": "date",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "portal_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "allowed_products",
+      "type": "ARRAY",
+      "nullable": "YES",
+      "default": "ARRAY[]::product_key[]",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "emergency_contact_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "emergency_contact_phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "internal_notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "updated_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "avatar_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "department",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "deleted_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "salutation",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "academic_title",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "nationality",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'DE'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "address_supplement",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "employees",
+      "name": "cost_center",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "role_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "auth_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "first_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "last_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "full_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "email",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "phone",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "position",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "avatar_url",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "status",
+      "type": "USER-DEFINED",
+      "nullable": "NO",
+      "default": "'invited'::profile_status",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "last_login_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "invited_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "activated_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "locked_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "locked_reason",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "preferred_product_key",
+      "type": "USER-DEFINED",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "theme_preference",
+      "type": "USER-DEFINED",
+      "nullable": "YES",
+      "default": "'system'::theme_mode",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "locale",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'de-DE'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "timezone",
+      "type": "text",
+      "nullable": "YES",
+      "default": "'Europe/Berlin'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "mfa_enabled",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "terms_accepted_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "privacy_accepted_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "display_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "profiles",
+      "name": "is_active",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "true",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "role_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "permission_key",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "permission_name",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "product_key",
+      "type": "USER-DEFINED",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_view",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_create",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_update",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_delete",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_export",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "can_approve",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "restrictions",
+      "type": "jsonb",
+      "nullable": "YES",
+      "default": "'{}'::jsonb",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "role_permissions",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "key",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "description",
+      "type": "text",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "is_system_role",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "is_admin_role",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_tenant",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_users",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_roles",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_products",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_clients",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_employees",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_assignments",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_documentation",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_service_records",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_signatures",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_documents",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_messages",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_billing",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_view_reports",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_view_audit_logs",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_manage_support",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "can_use_ai_assistant",
+      "type": "boolean",
+      "nullable": "YES",
+      "default": "true",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "allowed_products",
+      "type": "ARRAY",
+      "nullable": "YES",
+      "default": "ARRAY[]::product_key[]",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "roles",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "auth_user_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "employee_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "display_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "first_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "last_name",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "email",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "username",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "role_key",
+      "type": "text",
+      "nullable": "NO",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "status",
+      "type": "text",
+      "nullable": "NO",
+      "default": "'active'::text",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "must_change_password",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "first_login_completed",
+      "type": "boolean",
+      "nullable": "NO",
+      "default": "false",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "last_login_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "last_password_change_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "nullable": "NO",
+      "default": "now()",
+      "auth_update": true,
+      "auth_insert": true
+    },
+    {
+      "table": "tenant_users",
+      "name": "archived_at",
+      "type": "timestamp with time zone",
+      "nullable": "YES",
+      "default": null,
+      "auth_update": true,
+      "auth_insert": true
+    }
+  ],
+  "constraints": [
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_portal_accounts_auth_user_id_fkey",
+      "definition": "FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_portal_accounts_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_portal_accounts_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'blocked'::text, 'pending_first_login'::text, 'password_reset_required'::text, 'expired'::text, 'archived'::text])))"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_portal_accounts_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "employee_portal_accounts",
+      "name": "employee_portal_accounts_tenant_id_username_key",
+      "definition": "UNIQUE (tenant_id, username)"
+    },
+    {
+      "table": "employees",
+      "name": "employees_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "employees",
+      "name": "employees_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "employees",
+      "name": "employees_profile_id_fkey",
+      "definition": "FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "employees",
+      "name": "employees_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "employees",
+      "name": "employees_unique_employee_number_per_tenant",
+      "definition": "UNIQUE (tenant_id, employee_number)"
+    },
+    {
+      "table": "employees",
+      "name": "employees_updated_by_fkey",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_auth_user_id_key",
+      "definition": "UNIQUE (auth_user_id)"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_role_id_fkey",
+      "definition": "FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "role_permissions",
+      "name": "role_permissions_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "role_permissions",
+      "name": "role_permissions_role_id_fkey",
+      "definition": "FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "role_permissions",
+      "name": "role_permissions_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "role_permissions",
+      "name": "role_permissions_unique_permission_per_role",
+      "definition": "UNIQUE (role_id, permission_key)"
+    },
+    {
+      "table": "roles",
+      "name": "roles_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "roles",
+      "name": "roles_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "roles",
+      "name": "roles_unique_key_per_tenant",
+      "definition": "UNIQUE (tenant_id, key)"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_auth_user_id_fkey",
+      "definition": "FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'blocked'::text, 'pending_first_login'::text, 'password_reset_required'::text, 'expired'::text, 'archived'::text])))"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_tenant_id_email_key",
+      "definition": "UNIQUE (tenant_id, email)"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_tenant_id_fkey",
+      "definition": "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "tenant_users",
+      "name": "tenant_users_tenant_id_username_key",
+      "definition": "UNIQUE (tenant_id, username)"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((auth_user_id = auth.uid()) AND (status = ANY (ARRAY['active'::text, 'pending_first_login'::text, 'password_reset_required'::text])))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.create'::text) AS has_permission))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_portal_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_portal_team_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = ( SELECT current_tenant_id() AS current_tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (( SELECT has_permission('office.employees.view'::text) AS has_permission) OR ( SELECT has_permission('assist.assignments.manage'::text) AS has_permission)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_soft_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (( SELECT has_permission('office.employees.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (status = 'deleted'::employee_status) AND (( SELECT has_permission('office.employees.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employees",
+      "policyname": "employees_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.edit'::text) AS has_permission))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.employees.edit'::text) AS has_permission))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_admin_manage_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_select_own_auth_user",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((auth_user_id = auth.uid()) OR (id = auth.uid()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_select_same_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_update_own_auth_user",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((auth_user_id = auth.uid()) OR (id = auth.uid()))",
+      "with_check": "((auth_user_id = auth.uid()) OR (id = auth.uid()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_update_own_or_admin",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((auth_user_id = auth.uid()) OR ((tenant_id = current_tenant_id()) AND is_tenant_admin()))",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "role_permissions",
+      "policyname": "role_permissions_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "role_permissions",
+      "policyname": "role_permissions_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "roles",
+      "policyname": "roles_admin_manage_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "roles",
+      "policyname": "roles_select_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) OR (tenant_id IS NULL) OR (id IN ( SELECT pr.role_id\n   FROM profiles pr\n  WHERE ((pr.role_id IS NOT NULL) AND ((pr.auth_user_id = auth.uid()) OR (pr.id = auth.uid()))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_users",
+      "policyname": "tenant_users_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_users",
+      "policyname": "tenant_users_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_users",
+      "policyname": "tenant_users_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))"
+    }
+  ],
+  "grants": [
+    {
+      "table": "employee_portal_accounts",
+      "rls": true,
+      "select": false,
+      "insert": true,
+      "update": true,
+      "delete": false
+    },
+    {
+      "table": "employees",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "table": "profiles",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "table": "role_permissions",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "table": "roles",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": true
+    },
+    {
+      "table": "tenant_users",
+      "rls": true,
+      "select": true,
+      "insert": true,
+      "update": true,
+      "delete": false
+    }
+  ]
+}

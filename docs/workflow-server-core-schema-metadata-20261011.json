@@ -1,0 +1,508 @@
+{
+  "capturedAt": "2026-10-11T11:58:52.954Z",
+  "project": "production",
+  "scope": "Read-only schema and effective role privileges; no business rows",
+  "columns": [
+    {
+      "table": "assist_visit_documentation",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "visit_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "short_description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "special_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "deviations",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "deviation_justification",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "referral_required",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "emergency_or_problem",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "sis_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "vitals_summary",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "body_map_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "medication_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "care_report_notes",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "photo_references",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "submitted_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "submitted_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "locked",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "assist_visit_documentation",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "service_record_items",
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table": "service_record_items",
+      "column": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_record_items",
+      "column": "service_record_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_record_items",
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table": "service_record_items",
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": "1"
+    },
+    {
+      "table": "service_record_items",
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "'Minute'::text"
+    },
+    {
+      "table": "service_record_items",
+      "column": "unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_record_items",
+      "column": "total_amount",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table": "service_record_items",
+      "column": "sort_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": "0"
+    },
+    {
+      "table": "service_record_items",
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table": "service_record_items",
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "effectivePrivileges": [
+    {
+      "table": "assignments",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assignments",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "assignments",
+      "role": "service_role",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_documentation",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_documentation",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_documentation",
+      "role": "service_role",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_proofs",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_proofs",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_proofs",
+      "role": "service_role",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_signatures",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_signatures",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_signatures",
+      "role": "service_role",
+      "can_select": true,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_tasks",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_tasks",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visit_tasks",
+      "role": "service_role",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visits",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visits",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "assist_visits",
+      "role": "service_role",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "clients",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "clients",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "clients",
+      "role": "service_role",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "service_record_items",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "service_record_items",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "service_record_items",
+      "role": "service_role",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "service_records",
+      "role": "anon",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    },
+    {
+      "table": "service_records",
+      "role": "authenticated",
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_truncate": true
+    },
+    {
+      "table": "service_records",
+      "role": "service_role",
+      "can_select": false,
+      "can_insert": false,
+      "can_update": false,
+      "can_delete": false,
+      "can_truncate": true
+    }
+  ]
+}
