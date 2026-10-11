@@ -55,6 +55,17 @@ describe('PDF export recovery with the real jsPDF writer', () => {
     expect(atob(result.data.base64)).toBe('%PDF-1.7 original stored bytes');
     expect(f.canvas).not.toHaveBeenCalled();
   });
+  it('rejects scripts and event handlers in stored HTML before attaching a render element', async () => {
+    for (const html of ['<script>alert(1)</script>', '<img src="missing" onerror="alert(1)">', '<svg><a href="java&#10;script:alert(1)">Test</a></svg>']) {
+      const bytes = new TextEncoder().encode(html);
+      f.download.mockResolvedValue({ data: { arrayBuffer: async () => bytes.buffer }, error: null });
+      const result = await prepareDocumentPdf({ doc: doc({ storagePath: 'tenant/upload.html' }) });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toContain('ausführbare Inhalte');
+    }
+    expect(f.canvas).not.toHaveBeenCalled();
+    expect(document.body.children).toHaveLength(0);
+  });
   it('fails clearly for a missing original and never generates a replacement contract', async () => {
     f.load.mockResolvedValue({ ok: true, data: doc({ intakeStatus: 'not_started' }) });
     const result = await prepareDocumentPdf({ doc: doc() });

@@ -86,6 +86,24 @@ async function fetchStoredDocumentBytes(storagePath: string): Promise<ServiceRes
   return { ok: true, data: new Uint8Array(buffer) };
 }
 
+function assertStoredHtmlIsPassive(html: string): void {
+  if (typeof DOMParser === 'undefined') {
+    throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
+  }
+  // Uploaded HTML is parsed in an inert document before it can enter the render DOM.
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const blockedElements = new Set(['script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'base', 'animate', 'set']);
+  const fail = () => { throw new Error('Diese HTML-Datei enthält ausführbare Inhalte. Bitte eine PDF-Datei verwenden.'); };
+  for (const element of Array.from(parsed.querySelectorAll('*'))) {
+    if (blockedElements.has(element.localName)
+      || (element.localName === 'meta' && element.getAttribute('http-equiv')?.toLowerCase() === 'refresh')) fail();
+    for (const attribute of Array.from(element.attributes)) {
+      if (/^on/i.test(attribute.name) || attribute.name.toLowerCase() === 'srcdoc'
+        || /^(javascript|vbscript):/i.test(attribute.value.replace(/[\s\u0000-\u001f]/g, ''))) fail();
+    }
+  }
+}
+
 export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
@@ -250,6 +268,7 @@ export async function prepareDocumentPdf(input: {
     if (source === 'stored_html') {
       const html = new TextDecoder('utf-8').decode(stored.data).trim();
       if (!html) return { ok: false, error: MISSING_DOCUMENT_CONTENT_MESSAGE };
+      assertStoredHtmlIsPassive(html);
       const bytes = await renderHtmlToPdfBytes(html);
       return { ok: true, data: { fileName, mimeType: 'application/pdf', base64: bytesToBase64(bytes) } };
     }
