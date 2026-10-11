@@ -52,7 +52,8 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
   };
   const next = () => { pdf.addPage('a4', d.orientation); header(true); y = 44; };
   const room = (needed: number) => { if (y + needed > bottom) next(); };
-  const paragraph = (value: string, size = 10, leading = 5.2) => {
+  const longText = d.layout === 'contract' || d.categoryKey === 'software' || d.categoryKey === 'datenschutz';
+  const paragraph = (value: string, size = longText ? 11 : 10, leading = longText ? 5.8 : 5.2) => {
     const lines = wrap(value || '[Noch auszufüllen]', contentWidth, size);
     let index = 0;
     while (index < lines.length) {
@@ -69,7 +70,7 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
   };
   const heading = (value: string, size = 11) => {
     const lines = wrap(value, contentWidth, size);
-    room(lines.length * 5 + 12);
+    room(lines.length * 5 + 18);
     font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * 5 + 3;
   };
   const field = (label: string, value: string) => {

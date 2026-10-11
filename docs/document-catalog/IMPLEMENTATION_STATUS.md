@@ -1,20 +1,20 @@
 # CareSuite HealthOS — neues Office-Widget „Dokumentenkatalog“
 
-Stand: 11.10.2026. Entwicklungsstand zur Prüfung, nicht veröffentlicht. Zielbild: [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). Vollständige Liste: [CATALOG_430.md](CATALOG_430.md).
+Stand: 11.10.2026. Entwicklungsstand zur Prüfung, nicht veröffentlicht. Zielbild: [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). Vollständige Liste: [CATALOG.md](CATALOG.md).
 
 ## Ergebnis und Umfang
 
-Ein eigenes Office-Widget und eine zentrale Weboberfläche sind implementiert. Alle **430 vereinbarten Dokumenttypen in 24 Fachbereichen** sind auswählbar. Der Katalog wurde unabhängig von den bisherigen HTML-Vorlagen erstellt. Neue Inhalte, Feldschemata, Layouts und PDF-Ausgabe liegen in eigenen Dateien. Bestehende technische Rechte-, Schrift-, Daten- und Aktenfunktionen werden angebunden. Historisch ausgestellte Dateien werden erhalten.
+Ein eigenes Office-Widget und eine zentrale Weboberfläche sind implementiert. Alle **450 Dokumenttypen in 25 Fachbereichen** sind auswählbar. Der Katalog wurde unabhängig von den bisherigen HTML-Vorlagen erstellt. Neue Inhalte, Feldschemata, Layouts und PDF-Ausgabe liegen in eigenen Dateien. Bestehende technische Rechte-, Schrift-, Daten- und Aktenfunktionen werden angebunden. Historisch ausgestellte Dateien werden erhalten. Die 430 ursprünglichen Kennungen bleiben erhalten; 20 eigene CareSuite-Software- und App-Dokumente ergänzen den Bestand. Softwarebezogene Datenschutz-, Vertrags- und Mitarbeiterinhalte sind neu ausgearbeitet und mit den belegten Plattformangaben gefüllt. Geänderte bestehende Vorlagen verwenden Version 2; unveränderte Vorlagen behalten Version 1. Bereits gespeicherte Datenstände werden nicht verändert.
 
-Die 430 Einträge sind **bearbeitbare Entwicklungsentwürfe**. Viele verwenden ein gemeinsames Fachbereichsgrundschema; ausgewählte Dokumenttypen besitzen eigene Felder und Tabellen. Verträge und Erklärungen enthalten neu verfasste Ausgangsabschnitte. Dokumentweise vollständige Fachinhalte, geprüfte Vertragsvarianten, regionale Regeln und nachgewiesene Freigaben stehen aus. Der gesamte Katalog wird in der Oberfläche entsprechend gekennzeichnet.
+Die 450 Einträge sind **bearbeitbare Entwicklungsentwürfe**. Viele verwenden ein gemeinsames Fachbereichsgrundschema; ausgewählte Dokumenttypen besitzen eigene Felder und Tabellen. Verträge und Erklärungen enthalten neu verfasste Ausgangsabschnitte. Dokumentweise vollständige Fachinhalte, geprüfte Vertragsvarianten, regionale Regeln und nachgewiesene Freigaben stehen aus. Der gesamte Katalog wird in der Oberfläche entsprechend gekennzeichnet.
 
 | Teil | Implementierter Stand |
 | --- | --- |
 | Office | Eigenes Widget mit eigener Grafik, Office-Navigation und modulübergreifendem Schnellzugriff im Web |
 | Module | Gemeinsame Route `/business/office/document-catalog`; Kontextparameter `module`, `clientId`, `employeeId`, `templateKey` und wiederverwendbare Aktion |
-| Suche | Suche nach mehreren Begriffen, Fachbereich und Modul; alle 430 Einträge über Filter erreichbar |
-| Zielakten | 307 Klienten-/Patienteneinträge, 22 Personaleinträge, 101 Unternehmens-/Standorteinträge |
-| Layouts | 5 Fensterbriefe, 40 Verträge/Erklärungen, 238 Formulare, 142 Tabellen im Querformat, 5 Checklisten |
+| Suche | Suche nach mehreren Begriffen, Fachbereich und Modul; alle 450 Einträge über Filter erreichbar |
+| Zielakten | 308 Klienten-/Patienteneinträge, 29 Personaleinträge, 113 Unternehmens-/Standorteinträge |
+| Layouts | 5 Fensterbriefe, 45 Verträge/Erklärungen, 253 Formulare, 142 Tabellen im Querformat, 5 Checklisten |
 | Originale | 38 Dokumenttypen als Originalunterlage mit neuem Zuordnungsblatt; PDF-Ausstellerunterlagen werden erhalten |
 | Editor | Felder, Herkunftskennzeichnung, Textabschnitte, Tabellenzeilen und getrennte individuelle Zusatztexte |
 | Ausgabe | Ein gemeinsamer Vektor-PDF-Renderer für Vorschau, Download, Druck und Ablage; eingebettete bestehende CareSuite-Schrift |
@@ -54,6 +54,8 @@ Die neue Druckfamilie nutzt Weiß, Dunkelblau, dezentes Blau, klare Überschrift
 
 Die vier erzeugten Prüfdokumente sind ausschließlich Gestaltungstests mit erfundenen Daten und `example.test`-Kontakten; sie begrenzen den implementierten Katalog nicht auf vier Vorlagen. Alle PDF-Ausgaben tragen **ENTWURF**. Die Prüfung gegen die maßgebliche DIN-Normfassung sowie ein Ausdruck bei 100 Prozent mit Faltung und tatsächlichem Umschlag stehen aus.
 
+Die Softwaretexte behandeln kostenlose Nutzung, die drei Portale, Auftraggeber und Auftragsverarbeiter, Datenarten, Geräte und dienstlichen Standort, optionale Schnittstellen und KI, Betroffenenrechte, Support, Export und Vertragsende. Unbelegte Betriebszusagen und individuelle Fristen bleiben ausdrücklich offen. Quellen und Prüfumfang: [SOFTWARE_CONTENT.md](SOFTWARE_CONTENT.md).
+
 Vertragsausgangstexte ersetzen keine vollständige Ausarbeitung der jeweiligen Vertragsart. Insbesondere ambulante Pflege, Wohn-/Betreuungsverträge, Kurzzeitpflege, Arbeits-/Honorarverträge, Datenschutzinformationen, Einwilligungen, Abtretung und SEPA benötigen dokumentweise Ausgestaltung und fachkundige Prüfung. Pflegeassessments benötigen die passenden freigegebenen Instrumente und gegebenenfalls Nutzungsrechte. Vorgeschriebene Formulare und fremde Ausstellerunterlagen werden als Originale aufgenommen.
 
 Die ID und Prüfwerte belegen Zuordnung und Integrität. Das Herkunftsmanifest bezeichnet ausschließlich `stored_file_integrity`. Eine optional konfigurierte HMAC-Signatur ist technisch vorbereitet; Schlüsselbetrieb, Rotation, Verifikationsdienst und belastbare Nachweiskette sind noch offen. Externe Zertifikate, qualifizierte Signaturen, PDF/A-Konformität und ein absoluter Schutz vor Kopieren oder Diebstahl werden nicht behauptet.
@@ -65,8 +67,8 @@ Primäre Grundlagen für die weitere Prüfung: [DIN zu DIN 5008](https://www.din
 | Prüfung | Ergebnis / Grenze |
 | --- | --- |
 | Modell, Eingangsvalidierung, Datenübernahme, Navigation und bestehender Katalog | Vorhandene Vitest-Prüfungen und neue relevante Fälle; genaue Ergebnisse in `qa/verification.json` |
-| SQL und Seed | Lokales PGlite: alle 430 Definitionen exakt gleich zum UI, transaktionale richtige Aktenzuordnung, fremde Mandanten/gefälschte Versionen abgewiesen, RLS-/Storage- und Unveränderlichkeitsfälle |
-| PDF-Renderer | Alle 430 Einträge mit Testdaten gerendert; vier Stress-/Layoutdokumente mit tatsächlichen PDF-Dateien und SHA-256 geprüft |
+| SQL und Seed | Lokales PGlite: alle 450 Definitionen exakt gleich zum UI, transaktionale richtige Aktenzuordnung, fremde Mandanten/gefälschte Versionen abgewiesen, RLS-/Storage- und Unveränderlichkeitsfälle |
+| PDF-Renderer | Die ursprünglichen 430 Einträge mit Testdaten gerendert; der erweiterte 450er Export wird separat geprüft; vier Stress-/Layoutdokumente mit tatsächlichen PDF-Dateien und SHA-256 geprüft |
 | PDF-Gestaltung | Fensterbrief, Vertrag, Nachweistabelle und Wundformular als PDF gerendert und visuell geprüft; Textprüfung der Beispielseiten ohne Zeichen außerhalb der Seite, Entwurfskennzeichnung auf jeder Seite |
 | TypeScript | Feature und tatsächliche Imports: keine Diagnose in neuen/geänderten Zeilen; zwölf Diagnosen außerhalb dieser Zeilen. Gesamtprojektprüfung überschreitet den verfügbaren Arbeitsspeicher |
 | Edge Function | Erfolgreich gebündelt und Eingangsvalidierung lokal getestet; tatsächlicher Deno-/Supabase-Lauf noch nicht nachgewiesen |

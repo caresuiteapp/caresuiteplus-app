@@ -26,7 +26,7 @@ const groups = [...new Set(catalog.map((d)=>d.categoryKey))];
 const cell = (text) => String(text).replaceAll('|','\\|');
 const inventory = ['# CareSuite HealthOS — vollständiger Katalog im Office-Widget','',
   'Automatisch erzeugt mit `node scripts/build-central-document-catalog.mjs` aus denselben Definitionen wie Oberfläche und Datenbankseed.',
-  '',`${catalog.length} Einträge in ${groups.length} Fachbereichen. Alle Einträge sind **neue Entwicklungsentwürfe**, keine freigegebenen Fachformulare oder rechtsverbindlich geprüften Verträge. Kategorie-Grundschemata und neu verfasste Ausgangstexte müssen dokumentweise ausgearbeitet und geprüft werden. Vollständige Titelabdeckung bedeutet keine inhaltliche oder juristische Vollfreigabe.`,
+  '',`${catalog.length} Einträge in ${groups.length} Fachbereichen. Die ursprünglichen 430 Einträge bleiben erhalten; 20 eigene Software- und App-Dokumente ergänzen den Katalog. Softwarebezogene Datenschutz-, Vertrags- und Mitarbeitertexte sind mit belegten CareSuite-Angaben ausgearbeitet. Alle Einträge sind **Entwürfe**, keine freigegebenen Fachformulare oder rechtsverbindlich geprüften Verträge. Weitere Kategorie-Grundschemata müssen dokumentweise ausgearbeitet und geprüft werden. Vollständige Titelabdeckung bedeutet keine inhaltliche oder juristische Vollfreigabe.`,
   '', 'Die Kennungen sind dauerhaft vergeben; Umordnen von Titeln ändert sie nicht. Bereits vergebene Kennungen dürfen nicht wiederverwendet werden.',
   '', 'Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente ausstellender Stellen, geschützte Instrumente und bestehende ärztliche beziehungsweise gerichtliche Unterlagen werden nicht als eigene Urkunden nachgebaut.',
   '', '| Fachbereich | Einträge |', '| --- | ---: |',
@@ -38,5 +38,5 @@ for (const key of groups) {
     ...entries.map((d)=>`| \`${d.key}\` | ${cell(d.title)} | ${targets[d.target]} | ${layouts[d.layout]} | ${d.sourceMode==='original'?'Original + neues Begleitblatt':'Neuer bearbeitbarer Entwurf'} |`), '');
 }
 await mkdir('docs/document-catalog',{recursive:true});
-await writeFile('docs/document-catalog/CATALOG_430.md',inventory.join('\n'));
+await writeFile('docs/document-catalog/CATALOG.md',inventory.join('\n'));
 console.log(JSON.stringify({ documents: catalog.length, categories: groups.length, originals:catalog.filter((d)=>d.sourceMode==='original').length, targets:Object.fromEntries(Object.keys(targets).map((key)=>[key,catalog.filter((d)=>d.target===key).length])), layouts:Object.fromEntries(Object.keys(layouts).map((key)=>[key,catalog.filter((d)=>d.layout===key).length])), sharedDefinitions: bases.size, seedBytes: Buffer.byteLength(sql) }));

@@ -15,11 +15,12 @@ export const context = mapCentralContext({ tenantId, target: 'client', entityId:
 });
 
 describe('new central document catalogue', () => {
-  it('includes every listed entry, unique stable IDs and all 24 categories', () => {
-    expect(CENTRAL_DOCUMENT_CATALOG).toHaveLength(430);
-    expect(CENTRAL_CATALOG_GROUPS).toHaveLength(24);
-    expect(new Set(CENTRAL_DOCUMENT_CATALOG.map((d) => d.key)).size).toBe(430);
-    expect(new Set(CENTRAL_DOCUMENT_CATALOG.map((d) => d.categoryKey)).size).toBe(24);
+  it('preserves all 430 existing entries and adds 20 software documents with unique IDs', () => {
+    expect(CENTRAL_DOCUMENT_CATALOG).toHaveLength(450);
+    expect(CENTRAL_CATALOG_GROUPS).toHaveLength(25);
+    expect(CENTRAL_DOCUMENT_CATALOG.filter((d)=>d.categoryKey!=='software')).toHaveLength(430);
+    expect(new Set(CENTRAL_DOCUMENT_CATALOG.map((d) => d.key)).size).toBe(450);
+    expect(new Set(CENTRAL_DOCUMENT_CATALOG.map((d) => d.categoryKey)).size).toBe(25);
     for (const d of CENTRAL_DOCUMENT_CATALOG) {
       expect(d.fields.every((f) => f.label && f.key)).toBe(true);
       expect(new Set(d.fields.map((f) => f.key)).size).toBe(d.fields.length);
@@ -27,6 +28,23 @@ describe('new central document catalogue', () => {
       expect(d.orientation).toBe(d.layout === 'table' ? 'landscape' : 'portrait');
       expect(d.modules.length).toBeGreaterThan(0);
     }
+  });
+  it('uses known software defaults without replacing the tenant or missing approvals', () => {
+    const definition = CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_software_001')!;
+    const tenantContext={...context,target:'company' as const,entityId:tenantId,subject:{name:context.company.name,address:context.company.address}};
+    const snapshot=createCentralSnapshot(definition,tenantContext,'Anna Fachkraft');
+    expect(snapshot.values.companyName).toBe('Pflege am Park GmbH');
+    expect(snapshot.values.cs_provider).toContain('Kevin Reinhardt');
+    expect(snapshot.fieldOrigins.cs_provider).toBe('default');
+    expect(centralMissingFields(snapshot)).toContain('Nutzungsbeginn und einbezogene Anlagen');
+    expect(snapshot.definition.reviewStatus).toBe('draft');
+    const employeePrivacy=CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_datenschutz_005')!;
+    expect(employeePrivacy.target).toBe('employee');
+    expect(employeePrivacy.version).toBe(2);
+    expect(CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_software_005')!.fields.some(f=>f.key==='insuranceNumber')).toBe(false);
+    const careContract=CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_vertraege_001')!;
+    expect(careContract.version).toBe(2);
+    expect(careContract.sections.find(s=>s.key==='cs_contract')!.text).toContain('Leistungen der im Dokument bezeichneten Organisation');
   });
   it('filters multiple search words, category and actual module context', () => {
     expect(filterCentralDocuments({ query: 'Leistungs nachweis' }).length).toBeGreaterThan(3);

@@ -8,6 +8,7 @@ export type CentralDocumentField = {
   sourcePath?: string;
   defaultValue?: string;
 };
+export type CentralDocumentSection = { key: string; heading: string; text: string };
 export type CentralDocumentDefinition = {
   key: string;
   categoryKey: string;
@@ -25,7 +26,7 @@ export type CentralDocumentDefinition = {
   legalReviewRequired: boolean;
   clinicalReviewRequired: boolean;
   instructions: string;
-  sections: { key: string; heading: string; text: string }[];
+  sections: CentralDocumentSection[];
 };
 export type CentralDocumentContext = {
   tenantId: string;

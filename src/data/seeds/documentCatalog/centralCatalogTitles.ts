@@ -456,4 +456,25 @@ export const CENTRAL_CATALOG_GROUPS = [
 010|Abschlusskontrolle der Akte
 011|Archivierungsvermerk
 012|Dokumentation der Löschung nach Ablauf maßgeblicher Fristen` },
+  { key: 'software', name: 'CareSuite Software und App', target: 'company', modules: ['office', 'assist', 'pflege', 'stationaer'], titles: `
+001|Nutzungsvereinbarung CareSuite HealthOS
+002|Leistungsbeschreibung und Funktionsabgrenzung der Software
+003|Nutzungsregeln für das Verwaltungsportal
+004|Nutzungsregeln für das Mitarbeiterportal
+005|Nutzungsregeln für das Klientenportal
+006|Datenschutzerklärung für Website Plattform und App
+007|Vereinbarung zur dienstlichen App-Nutzung
+008|Unterweisung zur Nutzung von CareSuite HealthOS
+009|Information zur Standort- und Fahrtenaufzeichnung
+010|Freigabe optionaler Integrationen und KI-Funktionen
+011|Register technischer Dienstleister und Unterauftragsverarbeiter
+012|Betriebsvereinbarung zur digitalen Arbeitsorganisation
+013|Vereinbarung zur Nutzung privater Endgeräte
+014|Vereinbarung zum sicheren Supportzugriff
+015|Weisungen zur Auftragsverarbeitung
+016|Plattformwechsel Datenherausgabe und Vertragsende
+017|Impressum und Anbieterkennzeichnung
+018|Sicherheitsinformation beim Erstzugang
+019|Empfangsbestätigung Nutzungs- und Datenschutzunterlagen
+020|Softwarefreigabe und Änderungsbewertung` },
 ] as const;

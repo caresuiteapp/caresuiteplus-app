@@ -122,7 +122,7 @@ describe('central catalogue transactional database and RLS', () => {
     try {
       expect((await db.query('SELECT * FROM public.central_document_records')).rows).toHaveLength(0);
       expect((await db.query('SELECT * FROM storage.objects')).rows).toHaveLength(0);
-      expect((await db.query('SELECT * FROM public.central_document_catalog')).rows).toHaveLength(430);
+      expect((await db.query('SELECT * FROM public.central_document_catalog')).rows).toHaveLength(450);
     } finally {await db.exec('RESET ROLE');}
   });
 });

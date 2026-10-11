@@ -8,10 +8,10 @@ const props: CentralCatalogWorkspaceProps = {
   loadContext:vi.fn(),save:vi.fn(),download:vi.fn(),onSaved:vi.fn(),onRefresh:vi.fn(),
 };
 describe('central catalogue UI content (no visual layout assertion)',()=>{
-  it('exposes all 430 entries through one new accessible catalogue',()=>{
+  it('exposes all 450 entries through one new accessible catalogue',()=>{
     const html=renderToStaticMarkup(<CentralCatalogWorkspace {...props}/>);
-    expect((html.match(/class="csdc-template /g)??[]).length).toBe(430);
-    expect(html).toContain('Alle 24 Fachbereiche');
+    expect((html.match(/class="csdc-template /g)??[]).length).toBe(450);
+    expect(html).toContain('Alle 25 Fachbereiche');
     expect(html).toContain('Original + Begleitblatt');
     expect(html).toContain('Vorlagenkatalog');
   });

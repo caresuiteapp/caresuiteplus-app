@@ -1,5 +1,6 @@
 import { CENTRAL_CATALOG_GROUPS } from './centralCatalogTitles';
 import { centralDocumentSections } from './centralDocumentSections';
+import { careSuiteRelatedSections, careSuiteSoftwareContent } from './careSuiteSoftwareContent';
 import type { CentralDocumentDefinition, CentralDocumentField, CentralDocumentLayout, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 
 const CATEGORY_FIELDS: Record<string, string[]> = {
@@ -103,20 +104,25 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
     const match = entry.match(/^(\d{3})\|(.+)$/);
     if (!match) throw new Error(`Dokument ohne feste Katalog-ID in ${group.key}.`);
     const [, stableNumber, title] = match;
+    const key = `csdc_${group.key}_${stableNumber}`;
+    const content = careSuiteSoftwareContent(key);
     const sourceMode = ORIGINAL_TITLES.has(title) ? 'original' : 'create';
-    const layout = sourceMode === 'original' ? 'form' : inferLayout(title, group.key);
-    const target = (['Tourenplan', 'Dienst- und Einsatzplan', 'Rufbereitschaftsplan', 'Fahrzeugübergabe- und Fahrzeugkontrollbogen', 'Belegungs- und Zimmerübersicht', 'Hausordnung'].includes(title) ? 'company' : group.target) as CentralDocumentTarget;
+    const layout = sourceMode === 'original' ? 'form' : content?.layout ?? (group.key === 'software' ? 'form' : inferLayout(title, group.key));
+    const target = (content?.target ?? (['Tourenplan', 'Dienst- und Einsatzplan', 'Rufbereitschaftsplan', 'Fahrzeugübergabe- und Fahrzeugkontrollbogen', 'Belegungs- und Zimmerübersicht', 'Hausordnung'].includes(title) ? 'company' : group.target)) as CentralDocumentTarget;
     const clinicalReviewRequired = ['pflegeplanung', 'risiken', 'behandlungspflege', 'medikamente', 'wunden', 'palliativ'].includes(group.key);
-    const fields = layout === 'letter' ? [
+    const fields = content?.fields ?? (layout === 'letter' ? [
       { key: 'letterSubject', label: 'Betreff', type: 'text', required: true, defaultValue: title } as CentralDocumentField,
       { key: 'reference', label: 'Aktenzeichen / Ihr Zeichen', type: 'text', required: false } as CentralDocumentField,
       { key: 'enclosures', label: 'Anlagen', type: 'multiline', required: false } as CentralDocumentField,
     ] : sourceMode === 'original'
       ? ['Aussteller und Ausstellungsdatum', 'Aktenzeichen und Gültigkeit', 'Erforderliche Folgemaßnahmen', 'Originaldatei und Aufbewahrungsort'].map((label, n) => field(label, n, n === 0))
-      : documentFields(title, group.key).map((label, n) => field(label, n, n === 0));
+      : documentFields(title, group.key).map((label, n) => field(label, n, n === 0)));
+    const related = content ? [] : careSuiteRelatedSections(title, group.key, layout, sourceMode);
+    const replacesGeneric = /Datenschutzinformation|Kommunikationsvereinbarung|Verpflichtung auf Vertraulichkeit/.test(title);
+    const sections = content?.sections ?? [...(replacesGeneric ? [] : centralDocumentSections(title, group.key, layout, sourceMode)), ...related];
     return {
-      key: `csdc_${group.key}_${stableNumber}`,
-      categoryKey: group.key, categoryName: group.name, title, version: 1, modules: group.modules,
+      key,
+      categoryKey: group.key, categoryName: group.name, title, version: group.key !== 'software' && (content || related.length) ? 2 : 1, modules: group.modules,
       target, sourceMode, layout, orientation: layout === 'table' ? 'landscape' : 'portrait',
       fields: [
         { key: 'date', label: 'Dokumentdatum', type: 'date', required: true },
@@ -125,7 +131,7 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
         { key: 'companyAddress', label: 'Unternehmensanschrift', type: 'multiline', required: true, sourcePath: 'company.address' },
         { key: 'subjectName', label: layout === 'letter' ? 'Empfänger:in / Stelle' : target === 'employee' ? 'Mitarbeiter:in' : target === 'company' ? 'Organisation / Standort' : 'Klient:in / Patient:in', type: 'text', required: true, sourcePath: 'subject.name' },
         { key: 'subjectAddress', label: layout === 'letter' ? 'Empfängeranschrift' : 'Anschrift der zugeordneten Person / Organisation', type: 'multiline', required: layout === 'letter' || layout === 'contract', sourcePath: 'subject.address' },
-        ...(target === 'client' && layout !== 'letter' ? [
+        ...(target === 'client' && layout !== 'letter' && group.key !== 'software' ? [
           { key: 'birthDate', label: 'Geburtsdatum', type: 'date', required: false, sourcePath: 'subject.birthDate' } as CentralDocumentField,
           { key: 'careLevel', label: 'Pflegegrad', type: 'text', required: false, sourcePath: 'subject.careLevel' } as CentralDocumentField,
           { key: 'payorName', label: 'Kostenträger', type: 'text', required: false, sourcePath: 'payor.name' } as CentralDocumentField,
@@ -138,9 +144,9 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
       ],
       columns: layout === 'table' || layout === 'checklist' ? columns(title) : [],
       reviewStatus: 'draft',
-      legalReviewRequired: layout === 'contract' || ['vollmachten', 'zulassung', 'datenschutz'].includes(group.key),
+      legalReviewRequired: layout === 'contract' || ['vollmachten', 'zulassung', 'datenschutz', 'software'].includes(group.key),
       clinicalReviewRequired,
-      sections: centralDocumentSections(title, group.key, layout, sourceMode),
+      sections,
       instructions: sourceMode === 'original'
         ? 'Originalunterlage der ausstellenden Stelle hinterlegen. Das CareSuite-Begleitblatt ersetzt dieses Original nicht.'
         : clinicalReviewRequired
