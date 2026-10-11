@@ -34,6 +34,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   const contentWidth = width - margin * 2;
   const bottom = height - 31;
   let y = 43;
+  let lastPageLines = 0;
   const font = (size = 10, bold = false, color = INK) => { pdf.setFont(CARESUITE_PDF_FONT, bold ? 'bold' : 'normal'); pdf.setFontSize(size); pdf.setTextColor(color); };
   const wrap = (value: string, availableWidth = contentWidth, size = 10): string[] => {
     font(size);
@@ -55,7 +56,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     font(8, true, BLUE); text('ENTWURF', width - margin, 33, { align: 'right' });
     pdf.setDrawColor(RULE); pdf.setLineWidth(0.3); pdf.line(margin, 36, width - margin, 36);
   };
-  const next = () => { pdf.addPage('a4', d.orientation); header(true); y = 44; };
+  const next = () => { pdf.addPage('a4', d.orientation); header(true); y = 44; lastPageLines = 0; };
   const room = (needed: number) => { if (y + needed > bottom) next(); };
   const longText = d.layout === 'contract' || d.categoryKey === 'software' || d.categoryKey === 'datenschutz';
   const bodySize = longText && d.orientation === 'portrait' ? 11 : 10;
@@ -70,7 +71,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
       let take = Math.min(slots, remaining);
       if (remaining - take === 1 && take > 1) take--;
       if (take === 1 && remaining > 1) { next(); continue; }
-      for (let i = 0; i < take; i++) { font(size); text(lines[index++], margin, y); y += leading; }
+      for (let i = 0; i < take; i++) { font(size); text(lines[index++], margin, y); y += leading; lastPageLines++; }
       if (index < lines.length) next();
     }
     y += longText ? (compactClosing ? 1.5 : 2) : 3;
@@ -79,6 +80,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     const lines = wrap(value, contentWidth, size);
     room(lines.length * 5 + (compactClosing ? 13 : 18));
     font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * 5 + (compactClosing ? 2 : 3);
+    lastPageLines += lines.length;
   };
   const field = (label: string, value: string) => {
     const lines = wrap(value || '[Noch auszufüllen]', contentWidth - 8, 9.5);
@@ -86,10 +88,11 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     const fieldLeading = compactClosing ? 4.8 : 5.2;
     room(labelLines.length * 5 + Math.min(lines.length, 2) * fieldLeading + 5);
     font(9, true, NAVY); text(labelLines, margin, y, { lineHeightFactor: 1.3 });
+    lastPageLines += labelLines.length;
     y += labelLines.length * 5 + (longText ? (compactClosing ? 0.5 : 1.5) : 3);
     for (const line of lines) {
       room(fieldLeading); pdf.setFillColor(LIGHT); pdf.rect(margin, y - 3.9, contentWidth, fieldLeading + 0.2, 'F');
-      font(9.5); text(line, margin + 4, y); y += fieldLeading;
+      font(9.5); text(line, margin + 4, y); y += fieldLeading; lastPageLines++;
     }
     y += longText ? (compactClosing ? 2 : 3) : 4;
   };
@@ -126,6 +129,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
       const cardHeight = Math.max(...lines.map((l) => l.length))*(compactClosing ? 4.8 : 5.2)+(compactClosing ? 6 : 8);
       room(cardHeight+4);
       lines.forEach((line,i) => { pdf.setFillColor(LIGHT); pdf.rect(margin+i*(cardWidth+6),y,cardWidth,cardHeight,'F'); font(9.5); text(line,margin+i*(cardWidth+6)+4,y+(compactClosing ? 5 : 6),{lineHeightFactor:compactClosing ? 1.43 : 1.55}); });
+      lastPageLines += Math.max(...lines.map((line) => line.length));
       y += cardHeight+(compactClosing ? 7 : 9);
     } else if (d.layout === 'table') paragraph(identity.replace(/\n/g,' · '),8.5,4.3);
     else field('Zuordnung', identity);
@@ -153,6 +157,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     const tableHeader = () => {
       pdf.setFillColor(NAVY); pdf.rect(margin, y, contentWidth, headerHeight, 'F');
       headerLines.forEach((lines, i) => { font(8, true, '#FFFFFF'); text(lines, margin + offsets[i] + 2.5, y + 4.5, { lineHeightFactor: 1.45 }); });
+      lastPageLines += Math.max(...headerLines.map((lines) => lines.length));
       y += headerHeight;
     };
     const minimumRowHeight = 8.2;
@@ -172,6 +177,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
         for (const offsetX of [...offsets,contentWidth]) pdf.line(margin + offsetX, y, margin + offsetX, y + rowHeight);
         pdf.line(margin, y + rowHeight, width - margin, y + rowHeight);
         cellLines.forEach((lines, i) => { const chunk = lines.slice(offset, offset + take); if (chunk.length) { font(8); text(chunk, margin + offsets[i] + 2.5, y + 4.2, { lineHeightFactor: 1.48 }); } });
+        lastPageLines += take;
         y += rowHeight; offset += take;
         if (offset < maxLines) { next(); tableHeader(); }
       }
@@ -183,10 +189,13 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   if (d.layout === 'contract') {
     room(22); y += 10; pdf.setDrawColor(RULE); pdf.line(margin, y, margin + contentWidth * 0.43, y); pdf.line(margin + contentWidth * 0.55, y, width - margin, y);
     font(8, false, MUTED); text('Ort, Datum · Unternehmen', margin, y + 5); text('Ort, Datum · berechtigte Person', margin + contentWidth * 0.55, y + 5);
+    lastPageLines += 2;
   }
-  // Keep closing fields with the contract where modest spacing changes suffice.
+  // Balance short final pages and keep closing fields with the contract.
   // Retry once, preserving the body font size and every supplied text.
-  if (d.layout === 'contract' && !compactClosing && pdf.getNumberOfPages() > pageBeforeClosing) {
+  const splitClosing = d.layout === 'contract' && pdf.getNumberOfPages() > pageBeforeClosing;
+  const shortFinalPage = longText && pdf.getNumberOfPages() > 1 && lastPageLines < 8;
+  if (!compactClosing && (splitClosing || shortFinalPage)) {
     return renderCentralDocumentPdfLayout(snapshot, options, true);
   }
   const pages = pdf.getNumberOfPages();
