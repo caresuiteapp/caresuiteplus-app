@@ -11,6 +11,7 @@ const MUTED = '#566B80';
 const LIGHT = '#F1F6FC';
 const RULE = '#D6E1EE';
 export const CENTRAL_PDF_LAYOUT = { letterWindow: { x: 20, y: 45, width: 85, height: 45, addressY: 62.7 }, portraitMargin: 20, landscapeMargin: 15 } as const;
+type CentralPdfResult = { bytes: Uint8Array; hash: string; pageCount: number; orientation: CentralDocumentSnapshot['definition']['orientation'] };
 
 function displayDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').reverse().join('.') : value;
@@ -18,6 +19,10 @@ function displayDate(value: string) {
 
 /** One vector renderer for preview, download, print and archive. No raster screenshots. */
 export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, options: { logoDataUrl?: string } = {}) {
+  return renderCentralDocumentPdfLayout(snapshot, options, false);
+}
+
+function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, options: { logoDataUrl?: string }, compactClosing: boolean): CentralPdfResult {
   if (JSON.stringify(snapshot).length > 1000000 || snapshot.tableRows.length > 1500) throw new Error('Der Dokumentinhalt ist zu groß. Bitte den Zeitraum oder die Anzahl der Tabellenzeilen reduzieren.');
   const { definition: d, values: v, context: c } = snapshot;
   const pdf = new jsPDF({ orientation: d.orientation, unit: 'mm', format: 'a4', compress: true });
@@ -53,7 +58,9 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
   const next = () => { pdf.addPage('a4', d.orientation); header(true); y = 44; };
   const room = (needed: number) => { if (y + needed > bottom) next(); };
   const longText = d.layout === 'contract' || d.categoryKey === 'software' || d.categoryKey === 'datenschutz';
-  const paragraph = (value: string, size = longText ? 11 : 10, leading = longText ? 5.8 : 5.2) => {
+  const bodySize = longText && d.orientation === 'portrait' ? 11 : 10;
+  const bodyLeading = longText ? (d.orientation === 'landscape' ? 4.5 : compactClosing ? 4.7 : 5) : 5.2;
+  const paragraph = (value: string, size = bodySize, leading = bodyLeading) => {
     const lines = wrap(value || '[Noch auszufüllen]', contentWidth, size);
     let index = 0;
     while (index < lines.length) {
@@ -66,21 +73,25 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
       for (let i = 0; i < take; i++) { font(size); text(lines[index++], margin, y); y += leading; }
       if (index < lines.length) next();
     }
-    y += 3;
+    y += longText ? (compactClosing ? 1.5 : 2) : 3;
   };
   const heading = (value: string, size = 11) => {
     const lines = wrap(value, contentWidth, size);
-    room(lines.length * 5 + 18);
-    font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * 5 + 3;
+    room(lines.length * 5 + (compactClosing ? 13 : 18));
+    font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * 5 + (compactClosing ? 2 : 3);
   };
   const field = (label: string, value: string) => {
     const lines = wrap(value || '[Noch auszufüllen]', contentWidth - 8, 9.5);
-    heading(label, 9);
+    const labelLines = wrap(label, contentWidth, 9);
+    const fieldLeading = compactClosing ? 4.8 : 5.2;
+    room(labelLines.length * 5 + Math.min(lines.length, 2) * fieldLeading + 5);
+    font(9, true, NAVY); text(labelLines, margin, y, { lineHeightFactor: 1.3 });
+    y += labelLines.length * 5 + (longText ? (compactClosing ? 0.5 : 1.5) : 3);
     for (const line of lines) {
-      room(5.2); pdf.setFillColor(LIGHT); pdf.rect(margin, y - 3.9, contentWidth, 5.4, 'F');
-      font(9.5); text(line, margin + 4, y); y += 5.2;
+      room(fieldLeading); pdf.setFillColor(LIGHT); pdf.rect(margin, y - 3.9, contentWidth, fieldLeading + 0.2, 'F');
+      font(9.5); text(line, margin + 4, y); y += fieldLeading;
     }
-    y += 4;
+    y += longText ? (compactClosing ? 2 : 3) : 4;
   };
   header();
   if (d.layout === 'letter') {
@@ -112,10 +123,10 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
       const cardWidth = (contentWidth-6)/2;
       const parties = [`${v.companyName}\n${v.companyAddress}`,identity];
       const lines = parties.map((value) => wrap(value,cardWidth-8,9.5));
-      const cardHeight = Math.max(...lines.map((l) => l.length))*5.2+8;
+      const cardHeight = Math.max(...lines.map((l) => l.length))*(compactClosing ? 4.8 : 5.2)+(compactClosing ? 6 : 8);
       room(cardHeight+4);
-      lines.forEach((line,i) => { pdf.setFillColor(LIGHT); pdf.rect(margin+i*(cardWidth+6),y,cardWidth,cardHeight,'F'); font(9.5); text(line,margin+i*(cardWidth+6)+4,y+6,{lineHeightFactor:1.55}); });
-      y += cardHeight+9;
+      lines.forEach((line,i) => { pdf.setFillColor(LIGHT); pdf.rect(margin+i*(cardWidth+6),y,cardWidth,cardHeight,'F'); font(9.5); text(line,margin+i*(cardWidth+6)+4,y+(compactClosing ? 5 : 6),{lineHeightFactor:compactClosing ? 1.43 : 1.55}); });
+      y += cardHeight+(compactClosing ? 7 : 9);
     } else if (d.layout === 'table') paragraph(identity.replace(/\n/g,' · '),8.5,4.3);
     else field('Zuordnung', identity);
     paragraph(`Datum: ${displayDate(v.date || '')}    Verantwortlich: ${v.author || '[ergänzen]'}`, 8, 4.5);
@@ -144,14 +155,15 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
       headerLines.forEach((lines, i) => { font(8, true, '#FFFFFF'); text(lines, margin + offsets[i] + 2.5, y + 4.5, { lineHeightFactor: 1.45 }); });
       y += headerHeight;
     };
-    room(headerHeight + 12); tableHeader();
+    const minimumRowHeight = 8.2;
+    room(headerHeight + minimumRowHeight); tableHeader();
     const rows = snapshot.tableRows.length ? snapshot.tableRows : [d.columns.map(() => '')];
     rows.forEach((row, rowIndex) => {
       const cellLines = d.columns.map((_, i) => wrap(row[i] || '—', widths[i] - 5, 8));
       let offset = 0;
       const maxLines = Math.max(...cellLines.map((lines) => lines.length));
       while (offset < maxLines) {
-        if (bottom - y < 10) { next(); tableHeader(); }
+        if (bottom - y + 0.000001 < minimumRowHeight) { next(); tableHeader(); }
         const available = Math.max(1, Math.floor((bottom - y - 4) / 4.2));
         const take = Math.min(maxLines - offset, available);
         const rowHeight = take * 4.2 + 4;
@@ -166,10 +178,16 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
     });
     y += 10;
   }
+  const pageBeforeClosing = pdf.getNumberOfPages();
   if (snapshot.additionalText.trim()) { heading('Individuelle Ergänzungen / Vereinbarungen'); paragraph(snapshot.additionalText); }
   if (d.layout === 'contract') {
-    room(28); y += 10; pdf.setDrawColor(RULE); pdf.line(margin, y, margin + contentWidth * 0.43, y); pdf.line(margin + contentWidth * 0.55, y, width - margin, y);
+    room(22); y += 10; pdf.setDrawColor(RULE); pdf.line(margin, y, margin + contentWidth * 0.43, y); pdf.line(margin + contentWidth * 0.55, y, width - margin, y);
     font(8, false, MUTED); text('Ort, Datum · Unternehmen', margin, y + 5); text('Ort, Datum · berechtigte Person', margin + contentWidth * 0.55, y + 5);
+  }
+  // Keep closing fields with the contract where modest spacing changes suffice.
+  // Retry once, preserving the body font size and every supplied text.
+  if (d.layout === 'contract' && !compactClosing && pdf.getNumberOfPages() > pageBeforeClosing) {
+    return renderCentralDocumentPdfLayout(snapshot, options, true);
   }
   const pages = pdf.getNumberOfPages();
   for (let page = 1; page <= pages; page++) {
