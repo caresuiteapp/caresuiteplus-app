@@ -12,7 +12,7 @@ describe('Datenquelle des Monatsarchivs', () => {
 
   it('fragt nur die gewählte Klientenakte ab und übernimmt echte Ausführungszeiten', async () => {
     const row = {
-      id: 'visit-1', tenantId: 'tenant-1', clientId: 'client-1', employeeId: 'employee-1', title: 'Begleitung',
+      id: 'visit-1', tenantId: 'tenant-1', clientId: 'client-1', employeeId: 'employee-1', title: 'Begleitung', serviceName: 'Begleitung',
       scheduledStart: '2026-09-11T07:00:00Z', scheduledEnd: '2026-09-11T09:00:00Z',
       status: 'in_bearbeitung', assignmentStatus: 'unterschrift_offen', planningStatus: 'confirmed',
       executionStatus: 'completed', documentationStatus: 'complete', proofStatus: 'pending', billingStatus: 'none',

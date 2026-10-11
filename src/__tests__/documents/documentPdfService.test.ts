@@ -75,4 +75,16 @@ describe('documentPdfService', () => {
     expect(resolveDocumentPdfSource(doc)).toBe('none');
     expect(isDocumentPdfDownloadSupported(doc)).toBe(false);
   });
+
+  it('does not offer an export for HTML metadata without the actual content', () => {
+    const doc = sampleDoc({ previewHtml: ' ', intakeDocumentId: 'signed-intake' });
+    expect(resolveDocumentPdfSource(doc)).toBe('none');
+    expect(isDocumentPdfDownloadSupported(doc)).toBe(false);
+  });
+
+  it('recognizes stored HTML with an explicit UTF-8 MIME parameter', () => {
+    const doc = sampleDoc({ previewHtml: null, mimeType: 'text/html; charset=utf-8', storagePath: 'tenant/original.html' });
+    expect(resolveDocumentPdfSource(doc)).toBe('stored_html');
+    expect(isDocumentPdfDownloadSupported(doc)).toBe(true);
+  });
 });

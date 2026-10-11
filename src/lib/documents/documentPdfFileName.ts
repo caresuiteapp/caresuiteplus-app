@@ -44,5 +44,5 @@ export function isDirectImageDownloadMimeType(mimeType: string): boolean {
 }
 
 export function isHtmlDocumentMimeType(mimeType: string): boolean {
-  return mimeType.trim().toLowerCase() === 'text/html';
+  return mimeType.split(';')[0]?.trim().toLowerCase() === 'text/html';
 }
