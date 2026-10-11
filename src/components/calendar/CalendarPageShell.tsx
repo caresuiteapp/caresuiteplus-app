@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import type { CalendarViewConfig } from '@/types/calendar';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -58,6 +58,8 @@ export function CalendarPageShell({
   showCreateAction = true,
   showSettings = true,
 }: CalendarPageShellProps) {
+  const { width } = useWindowDimensions();
+  const phone = Platform.OS !== 'web' && width < 600;
   const accent = config.moduleColor ?? '#62F3FF';
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
@@ -69,14 +71,14 @@ export function CalendarPageShell({
   useEffect(() => { setEmployeeId(''); setPlanningOpen(false); }, [tenantId]);
   const settingsScope = resolveSettingsScope(config);
   const { settings, form, saving, save, loading: settingsLoading } = useTenantCalendarSettings(settingsScope);
-  const [viewMode, setViewMode] = useState<CalendarViewMode>(config.defaultView ?? 'month');
+  const [viewMode, setViewMode] = useState<CalendarViewMode>(phone && (!config.defaultView || config.defaultView === 'month') ? 'agenda' : config.defaultView ?? 'month');
   const [anchor, setAnchor] = useState(() => new Date());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
-    if (settings?.defaultView) setViewMode(settings.defaultView);
-  }, [settings?.defaultView]);
+    if (settings?.defaultView) setViewMode(phone && settings.defaultView === 'month' ? 'agenda' : settings.defaultView);
+  }, [settings?.defaultView, phone]);
 
   const range = useMemo(() => {
     const start = new Date(anchor);
@@ -321,6 +323,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(118,211,255,0.24)',
     backgroundColor: 'rgba(4,25,50,0.72)',
   },
-  legend: { flex: 1, minWidth: 280, gap: 8 },
+  legend: { flex: 1, minWidth: Platform.OS === 'web' ? 280 : 0, gap: 8 },
   legendTitle: { color: '#7FDFFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
 });

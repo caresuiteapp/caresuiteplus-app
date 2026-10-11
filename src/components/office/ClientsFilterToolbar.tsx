@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import { PremiumInput } from '@/components/ui';
 import { ClientWorkspaceButton, ClientWorkspacePanel } from './ClientWorkspacePrimitives';
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     flexWrap: 'wrap',
   },
-  searchInput: { flex: 1, minWidth: 240 },
+  searchInput: { flex: 1, minWidth: Platform.OS === 'web' ? 240 : 0 },
   resultBadge: {
     minWidth: 84,
     paddingHorizontal: careSpacing.md,

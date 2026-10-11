@@ -11,9 +11,10 @@ describe('HealthOS central popup design contract', () => {
     expect(layout).toContain("document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup)");
   });
 
-  it('renders one embedded dark workspace instead of a second legacy modal', () => {
+  it('renders one embedded workspace with platform-specific contrast instead of a second legacy modal', () => {
     const shell = read('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('<SurfaceContrastProvider tone="dark">');
+    expect(shell).toContain("<SurfaceContrastProvider tone={Platform.OS === 'web' ? 'dark' : 'light'}>");
+    expect(shell).toContain("backgroundColor: Platform.OS === 'web' ? 'rgba(4,17,37,0.96)' : '#F6FAFF'");
     expect(shell).toContain("csCentralPopupWorkspace: 'true'");
     expect(shell).toContain("csCentralPopupPageHeader: 'true'");
     expect(shell).not.toContain("import { PlatformModal } from './platform/platformmodal'");

@@ -1,5 +1,4 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LiquidVisualModeProvider } from '@/liquid-command/components/LiquidPrimitives';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartup } from '@/components/brand/AppStartup';
@@ -65,8 +64,12 @@ function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const compactPopup = width < 780;
+  const nativeCompactPopup = Platform.OS !== 'web' && compactPopup;
+  const nativeChromeHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const popupContentTop = nativeCompactPopup ? nativeChromeHeight + 14 : compactPopup ? 62 : 86;
+  const popupFrameTop = nativeCompactPopup ? nativeChromeHeight + 8 : compactPopup ? 56 : 78;
   const insets = useSafeAreaInsets();
   const nativeTop = Platform.OS === 'web' ? 0 : insets.top;
   const nativeBottom = Platform.OS === 'web' ? 0 : insets.bottom;
@@ -122,7 +125,6 @@ function RootShell() {
       };
 
   return (
-    <LiquidVisualModeProvider mode={hostsGlobalBackground ? 'classic' : 'orbit'}>
     <ThemeProvider value={navigationTheme}>
       <View style={styles.root}>
         <View style={styles.contentLayer} pointerEvents="box-none">
@@ -141,7 +143,7 @@ function RootShell() {
                   contentStyle: contextualPopup
                     ? {
                         backgroundColor: 'rgba(0, 7, 20, 0.74)',
-                        paddingTop: (compactPopup ? 62 : 86) + nativeTop,
+                        paddingTop: popupContentTop + nativeTop,
                         paddingBottom: (compactPopup ? 8 : 24) + nativeBottom,
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
@@ -153,12 +155,12 @@ function RootShell() {
             />
             {currentRouteIsPopup ? (
               <>
-                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact, { top: (compactPopup ? 56 : 78) + nativeTop, bottom: (compactPopup ? 4 : 24) + nativeBottom }]} />
-                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact, { top: (compactPopup ? 7 : 15) + nativeTop }]}>
-                  <View style={styles.centralPopupChromeCopy}>
+                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact, { top: popupFrameTop + nativeTop, bottom: (compactPopup ? 4 : 24) + nativeBottom }]} />
+                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact, nativeCompactPopup && { height: nativeChromeHeight }, { top: (compactPopup ? 7 : 15) + nativeTop }]}>
+                  <View style={[styles.centralPopupChromeCopy, nativeCompactPopup && { flexDirection: 'column', alignItems: 'flex-start', gap: 0 }]}>
                     <Text numberOfLines={1} style={[styles.centralPopupBrand, compactPopup && { fontSize: 14, lineHeight: 18, flexShrink: 1 }]}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
                     {!compactPopup ? <View style={styles.centralPopupDivider} /> : null}
-                    <Text numberOfLines={1} style={styles.centralPopupTitle}>{popupTitle(pathname)}</Text>
+                    <Text numberOfLines={1} style={[styles.centralPopupTitle, nativeCompactPopup && { flex: 0, fontSize: 12, lineHeight: 16, maxWidth: '100%' }]}>{popupTitle(pathname)}</Text>
                   </View>
                   <Pressable
                     accessibilityRole="button"
@@ -167,10 +169,11 @@ function RootShell() {
                     style={({ pressed }) => [
                       styles.centralPopupGlobalClose,
                       compactPopup && styles.centralPopupGlobalCloseCompact,
+                      nativeCompactPopup && { width: 44, height: 44, borderRadius: 22 },
                       pressed && styles.centralPopupGlobalClosePressed,
                     ]}
                   >
-                    <Text style={styles.centralPopupGlobalCloseText}>×</Text>
+                    <Text allowFontScaling={false} style={styles.centralPopupGlobalCloseText}>×</Text>
                   </Pressable>
                 </View>
               </>
@@ -179,7 +182,6 @@ function RootShell() {
         </View>
       </View>
     </ThemeProvider>
-    </LiquidVisualModeProvider>
   );
 }
 

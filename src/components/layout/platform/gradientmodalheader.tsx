@@ -160,7 +160,7 @@ export function GradientModalHeader({
             <Text style={[styles.iconLabel, { color: iconColor }]}>←</Text>
           </Pressable>
         ) : null}
-        <Text style={[styles.title, titleStyle]} numberOfLines={1}>
+        <Text style={[styles.title, titleStyle]} numberOfLines={Platform.OS === 'web' ? 1 : undefined}>
           {title}
         </Text>
       </View>

@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktopModel';
+import { DESKTOP_MODULES, buildModuleDesktopNavigation, moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktopModel';
 import { moveNativeDesktopWidget, nativeDesktopLayout } from '@/liquid-command/navigation/nativeDesktopLayout';
 const memory = new Map<string, string>();
 const api = { owner: 'a', tenant: 'tenant-a', width: 390, scale: 1, modules: ['office', 'assist'], push: vi.fn(), signOut: vi.fn(), getItem: vi.fn(), multiGet: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
@@ -29,8 +29,12 @@ const dependencies: Record<string, unknown> = {
 const compiled = buildSync({ entryPoints: ['src/liquid-command/screens/CommandCenterScreen.native.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', loader: { '.png': 'empty', '.jpg': 'empty' }, external: Object.keys(dependencies) }).outputFiles[0].text;
 const loaded = { exports: {} as any }; new Function('require', 'module', 'exports', compiled)((id: string) => { if (!(id in dependencies)) throw new Error(`Unexpected dependency ${id}`); return dependencies[id]; }, loaded, loaded.exports);
 const Desktop = loaded.exports.CommandCenterScreen;
+const catalogBundle = buildSync({ stdin: { contents: "export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel'; export { WIDGETS } from './src/liquid-command/screens/administrationDesktopCatalog';", resolveDir: process.cwd(), loader: 'ts' }, bundle: true, write: false, format: 'cjs', platform: 'node', loader: { '.png': 'empty', '.jpg': 'empty' }, external: ['react-native'] }).outputFiles[0].text;
+const catalog = { exports: {} as any };
+new Function('require', 'module', 'exports', catalogBundle)((id: string) => { if (id === 'react-native') return native; throw new Error(`Unexpected catalog dependency ${id}`); }, catalog, catalog.exports);
+const navigationCases = DESKTOP_MODULES.flatMap(module => buildModuleDesktopNavigation(catalog.exports.buildDesktopApps(catalog.exports.WIDGETS, 'business_admin'), module.key).flatMap(group => group.items.map(app => ({ module, app }))));
 let root: Root, host: HTMLDivElement;
-const button = (label: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === label || item.textContent === label);
+const button = (label: string) => [...(host.querySelector('[role="dialog"]') ?? host).querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === label || item.textContent === label);
 const click = async (label: string) => { expect(button(label), label).toBeTruthy(); await act(async () => button(label)!.click()); };
 const key = (module: 'office' | 'assist' = 'office') => moduleDesktopStorageKey(api.tenant, api.owner, module);
 const render = async () => { await act(async () => root.render(<Desktop />)); };
@@ -42,6 +46,15 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 describe('Native administration desktop interactions', () => {
+  it.each(navigationCases)('opens $app.label in $module.label through the actual native navigation', async ({ module, app }) => {
+    api.modules = DESKTOP_MODULES.map(item => item.key);
+    await render();
+    await click(module.label);
+    await click('Navigation');
+    await click(`${app.label} öffnen`);
+    expect(api.push).toHaveBeenLastCalledWith(app.route);
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+  });
   it('opens the current native desktop and searches its module navigation', async () => { await render(); expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy(); await click('Navigation'); const input = host.querySelector<HTMLInputElement>('[aria-label="Seiten suchen"]')!; await act(async () => { input.value = 'Rechnungen'; input.dispatchEvent(new Event('input', { bubbles: true })); }); await click('Rechnungen öffnen'); expect(api.push).toHaveBeenCalledWith('/business/office/invoices'); });
   it('preserves a deliberately empty desktop', async () => { memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('Ihr Desktop ist frei'); expect(api.multiSet).not.toHaveBeenCalled(); });
   it('does not overwrite saved selections after a storage failure and supports retry', async () => { memory.set(key(), '["clients"]'); api.multiGet.mockRejectedValueOnce(new Error('storage locked')); await render(); expect(host.textContent).toContain('gespeicherte Auswahl bleibt erhalten'); expect(api.multiSet).not.toHaveBeenCalled(); await click('Erneut laden'); expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy(); expect(memory.get(key())).toBe('["clients"]'); });

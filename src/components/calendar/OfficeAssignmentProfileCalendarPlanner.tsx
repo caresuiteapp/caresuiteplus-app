@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   paletteTitleWrap: { flex: 1, minWidth: 0 },
-  paletteEyebrow: { color: '#72DEFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
+  paletteEyebrow: { color: '#72DEFF', fontSize: Platform.OS === 'web' ? 9 : 12, fontWeight: '900', letterSpacing: 1.6 },
   paletteTitle: { ...typography.h3, color: '#FFFFFF', fontSize: 23, lineHeight: 28, marginTop: 3 },
   paletteHint: { ...typography.caption, color: '#9EB9CE', marginTop: 4, lineHeight: 17 },
   dateSelection: {
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   },
   paletteStat: { flex: 1, alignItems: 'center' },
   paletteStatValue: { color: '#FFFFFF', fontSize: 19, lineHeight: 23, fontWeight: '900' },
-  paletteStatLabel: { color: '#91ADC3', fontSize: 9, lineHeight: 12, fontWeight: '700', marginTop: 2 },
+  paletteStatLabel: { color: '#91ADC3', fontSize: Platform.OS === 'web' ? 9 : 12, lineHeight: Platform.OS === 'web' ? 12 : 17, fontWeight: '700', marginTop: 2 },
   paletteStatDivider: { width: 1, height: 30, backgroundColor: 'rgba(133,215,255,0.2)' },
   profileSearch: {
     minHeight: 44,
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   employeeAvatarText: { color: '#EAFBFF', fontSize: 12, fontWeight: '900' },
   employeeCopy: { flex: 1, minWidth: 0 },
   employeeName: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '900' },
-  employeeMeta: { color: '#9EB9CE', fontSize: 10, lineHeight: 14, fontWeight: '600', marginTop: 2 },
+  employeeMeta: { color: '#9EB9CE', fontSize: Platform.OS === 'web' ? 10 : 12, lineHeight: Platform.OS === 'web' ? 14 : 17, fontWeight: '600', marginTop: 2 },
   employeeCount: {
     minWidth: 25,
     height: 25,
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  employeeCountText: { color: '#7FE4FF', fontSize: 10, fontWeight: '900' },
+  employeeCountText: { color: '#7FE4FF', fontSize: Platform.OS === 'web' ? 10 : 12, fontWeight: '900' },
   employeeChevron: { color: '#88DFFF', fontSize: 17, width: 16, textAlign: 'center' },
   employeeProfiles: { gap: 8, padding: 9, paddingTop: 4 },
   profilePressable: {
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   profileMeta: { ...typography.caption, color: '#587089', marginTop: spacing.xs },
   noSearchResult: { padding: 18, alignItems: 'center' },
   noSearchResultTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  noSearchResultText: { color: '#91ADC3', fontSize: 11, marginTop: 4, textAlign: 'center' },
+  noSearchResultText: { color: '#91ADC3', fontSize: Platform.OS === 'web' ? 11 : 12, marginTop: 4, textAlign: 'center' },
   calendar: { flex: 1, minWidth: 0 },
   timeForm: { gap: spacing.md },
   summary: { gap: spacing.xs },

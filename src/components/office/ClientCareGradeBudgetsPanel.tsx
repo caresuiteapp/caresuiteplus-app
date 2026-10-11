@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   EmptyState,
   ErrorState,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   heroFactValue: { color: '#0B1220', fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 4, textTransform: 'capitalize' },
   fundingPanel: { gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.14)' },
   fundingActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  fundingHint: { ...typography.caption, flex: 1, minWidth: 240 },
+  fundingHint: { ...typography.caption, flex: 1, minWidth: Platform.OS === 'web' ? 240 : 0 },
   actionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.14)' },
   actionCopy: { gap: 2 },
   actionTitle: { ...typography.label, fontSize: 16 },

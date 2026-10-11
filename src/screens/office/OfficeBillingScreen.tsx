@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OfficeBillingHero } from '@/components/office';
 import { InvoiceDetailModal } from '@/components/office/invoicedetailmodal';
@@ -48,6 +48,8 @@ function InvoicesWorkspace({ moduleKey }: { moduleKey: InvoiceWorkspaceKey }) {
 }
 
 export function OfficeBillingScreen() {
+  const { width } = useWindowDimensions();
+  const compact = Platform.OS !== 'web' && width < 600;
   const router = useRouter();
   const [workspace, setWorkspace] = useState<BillingWorkspace>('dashboard');
   const { profile } = useAuth();
@@ -127,7 +129,7 @@ export function OfficeBillingScreen() {
               return (
                 <PremiumCard
                   key={module.key}
-                  style={styles.moduleCard}
+                  style={[styles.moduleCard, compact && { minWidth: 0, flexBasis: '100%' }]}
                   accentColor={module.accent}
                   onPress={() => setWorkspace(module.key)}
                 >

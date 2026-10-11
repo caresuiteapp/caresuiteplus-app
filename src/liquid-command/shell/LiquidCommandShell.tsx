@@ -720,7 +720,7 @@ export function LiquidCommandShell({
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
-  const boundedPopup = Platform.OS === 'web' && pathname !== '/' && contentMode === 'fill';
+  const boundedPopup = pathname !== '/' && contentMode === 'fill';
   const measuredFillHeight =
     !boundedPopup && contentMode === 'fill' && pageScrollHeight > 0
       ? Math.max(320, pageScrollHeight + fillContentOffset)
@@ -791,7 +791,7 @@ export function LiquidCommandShell({
         <View
           style={[
             styles.contentFill,
-            { padding: boundedPopup && layout.isPhone ? 0 : layout.contentPadding },
+            { padding: boundedPopup && (layout.isPhone || !showPageHeader) ? 0 : layout.contentPadding },
             !layout.isDesktop && !boundedPopup && styles.contentFillCompact,
           ]}
         >
@@ -837,8 +837,8 @@ export function LiquidCommandShell({
                 </LiquidText>
                 <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
               </View>
-              {!layout.isPhone ? (
-                <LiquidButton label={actionLabel} icon="+" onPress={action} />
+              {(!layout.isPhone || Platform.OS !== 'web') ? (
+                <LiquidButton compact={layout.isPhone} label={actionLabel} icon="+" onPress={action} />
               ) : null}
             </View>
           ) : null}
@@ -849,8 +849,8 @@ export function LiquidCommandShell({
             ]}
           >
             <View style={styles.contentPrimary}>{children}</View>
-            {aside && layout.isDesktop ? (
-              <View style={[styles.contentAside, { width: asideWidth }]}>{aside}</View>
+            {aside && (layout.isDesktop || Platform.OS !== 'web') ? (
+              <View style={[styles.contentAside, { width: layout.isDesktop ? asideWidth : '100%' }, !layout.isDesktop && { marginTop: 16 }]}>{aside}</View>
             ) : null}
           </View>
         </View>
@@ -877,7 +877,7 @@ export function LiquidCommandShell({
           contentContainerStyle={styles.centralPopupScrollContent}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
         >
           {workspaceContent}
         </ScrollView>}
@@ -959,9 +959,9 @@ const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
     ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
-    backgroundColor: 'rgba(4, 17, 37, 0.96)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(4, 17, 37, 0.96)' : '#F6FAFF',
     overflow: 'hidden',
-    borderRadius: 28,
+    borderRadius: Platform.OS === 'web' ? 28 : 18,
     borderWidth: 1,
     borderColor: 'rgba(132, 213, 255, 0.5)',
     shadowColor: '#071A37',
@@ -1567,10 +1567,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   contentPhone: {
-    paddingBottom: 112,
+    paddingBottom: Platform.OS === 'web' ? 112 : 24,
   },
   pageHeader: {
     flexDirection: 'row',
+    flexWrap: Platform.OS === 'web' ? 'nowrap' : 'wrap',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 16,
