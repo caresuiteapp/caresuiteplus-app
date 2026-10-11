@@ -1,3 +1,3 @@
-import { PflegeSettingsScreen } from '@/product-workflows/screens/pflege/PflegeSettingsScreen';
+import { AmbulatoryConfigurationScreen } from '@/screens/pflege/AmbulatoryConfigurationScreen';
 
-export default PflegeSettingsScreen;
+export default AmbulatoryConfigurationScreen;

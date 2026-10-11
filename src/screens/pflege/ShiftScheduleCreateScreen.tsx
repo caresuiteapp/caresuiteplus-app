@@ -14,7 +14,11 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { SHIFT_LOCATIONS, SHIFT_STAFF } from '@/data/demo/generators/pflegeDemoGenerators';
+import { fetchCareTourResources } from '@/lib/pflege/careTourPlanningService';
+import { useAsyncQuery } from '@/hooks/core';
+import { CareClientPicker } from './AmbulatoryOperationsScreen';
+import { berlinCalendarDate } from '@/lib/pflege/careTourWorkflow';
+import { hasPermission } from '@/lib/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -30,30 +34,38 @@ export function ShiftScheduleCreateScreen() {
   const { isReadOnly, roleLabel } = usePermissions();
   const writeReady = isShiftScheduleLiveReady();
 
-  const defaultStaff = SHIFT_STAFF[0]!;
-  const [employeeName, setEmployeeName] = useState(defaultStaff.name);
-  const [roleLabelField, setRoleLabelField] = useState(defaultStaff.role);
-  const [shiftDate, setShiftDate] = useState(new Date().toISOString().slice(0, 10));
+  const canManage = hasPermission(profile?.roleKey, 'pflege.plans.manage');
+  const resources = useAsyncQuery(() => tenantId ? fetchCareTourResources(tenantId, profile?.roleKey) : Promise.resolve({ ok: false as const, error: 'Kein Mandant.' }), [tenantId, profile?.roleKey], { enabled: !!tenantId && canManage });
+  const [employeeId, setEmployeeId] = useState('');
+  const employee = resources.data?.employees.find((v) => v.id === employeeId);
+  const employeeName = employee?.name ?? '';
+  const roleLabelField = employee?.qualification ?? '';
+  const [shiftDate, setShiftDate] = useState(berlinCalendarDate());
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('15:00');
-  const [location, setLocation] = useState(SHIFT_LOCATIONS[0] ?? 'Ambulant Nord');
+  const [location, setLocation] = useState('');
+  const [pause, setPause] = useState('30');
+  const [pauseAt, setPauseAt] = useState('11:00');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!writeReady || isReadOnly || !tenantId || !employeeName.trim()) return;
+    if (!writeReady || isReadOnly || !canManage || !tenantId || !employeeId || saving) return;
     setSaving(true);
     setError(null);
     const result = await createShiftScheduleEntry(
       tenantId,
       {
         employeeName: employeeName.trim(),
+        employeeId,
         roleLabel: roleLabelField.trim(),
         shiftDate,
         startTime,
         endTime,
         location: location.trim(),
+        breakMinutes: Number(pause),
+        breakStart: pauseAt,
       },
       profile?.roleKey,
     );
@@ -108,17 +120,13 @@ export function ShiftScheduleCreateScreen() {
           ) : null}
 
           <SectionPanel title="Schicht" subtitle="Pflichtfelder">
-            <PremiumInput
-              label="Mitarbeitende *"
-              value={employeeName}
-              onChangeText={setEmployeeName}
-              editable={!isReadOnly && writeReady}
-            />
+            {resources.loading ? <LoadingState message="Pflegekräfte werden geladen…" /> : null}
+            {resources.error ? <ErrorState message={resources.error} onRetry={resources.refresh} /> : null}
+            <CareClientPicker options={(resources.data?.employees ?? []).map((v) => ({ id: v.id, label: `${v.name} · ${v.qualification}` }))} value={employeeId} onChange={setEmployeeId} disabled={isReadOnly || !writeReady || !canManage} label="Pflegekraft" />
             <PremiumInput
               label="Funktion / Rolle"
               value={roleLabelField}
-              onChangeText={setRoleLabelField}
-              editable={!isReadOnly && writeReady}
+              editable={false}
             />
             <PremiumInput
               label="Datum (YYYY-MM-DD)"
@@ -128,6 +136,8 @@ export function ShiftScheduleCreateScreen() {
             />
             <PremiumInput label="Beginn" value={startTime} onChangeText={setStartTime} editable={!isReadOnly && writeReady} />
             <PremiumInput label="Ende" value={endTime} onChangeText={setEndTime} editable={!isReadOnly && writeReady} />
+            <PremiumInput label="Geplante Pause in Minuten" value={pause} onChangeText={setPause} keyboardType="numeric" editable={!isReadOnly && canManage} />
+            <PremiumInput label="Pausenbeginn (HH:MM)" value={pauseAt} onChangeText={setPauseAt} editable={!isReadOnly && canManage} />
             <PremiumInput
               label="Einsatzort"
               value={location}
@@ -141,7 +151,7 @@ export function ShiftScheduleCreateScreen() {
           <PremiumButton
             title="Schicht speichern"
             fullWidth
-            disabled={!writeReady || isReadOnly || !employeeName.trim()}
+            disabled={!writeReady || isReadOnly || !canManage || !employeeId}
             onPress={handleSave}
           />
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />

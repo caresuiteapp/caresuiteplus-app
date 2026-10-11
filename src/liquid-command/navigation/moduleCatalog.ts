@@ -127,8 +127,8 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
   },
   {
     key: 'pflege',
-    label: 'Pflege',
-    shortLabel: 'Pflege',
+    label: 'Pflegedienst Ambulant',
+    shortLabel: 'Ambulant',
     glyph: '✚',
     route: '/pflege',
     description: 'Pflegeprozess, klinische Dokumentation, Qualität, Leistungsnachweise und Abrechnung.',

@@ -101,7 +101,7 @@ export function ShiftScheduleListScreen() {
               message="Für diesen Zeitraum sind noch keine Dienstpläne hinterlegt."
             />
           ) : (
-            <ShiftScheduleListTable items={items} />
+            <ShiftScheduleListTable items={items} onSaved={query.refresh} />
           )}
         </ScrollView>
       </ScreenShell>
@@ -120,7 +120,7 @@ export function ShiftScheduleListScreen() {
             message="Für diesen Zeitraum sind noch keine Dienstpläne hinterlegt."
           />
         }
-        renderItem={({ item }) => <ShiftScheduleListCard item={item} />}
+        renderItem={({ item }) => <ShiftScheduleListCard item={item} onSaved={query.refresh} />}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
