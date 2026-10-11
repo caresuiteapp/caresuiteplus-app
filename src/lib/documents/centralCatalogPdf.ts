@@ -124,7 +124,7 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
   else if (d.legalReviewRequired) { paragraph('Vorlagenentwurf · Die rechtliche Freigabe für den konkreten Anwendungsbereich steht aus.', 8, 4.5); }
   else if (d.clinicalReviewRequired) { paragraph('Fachlicher Entwurf · Angaben und Maßnahmen durch die zuständige qualifizierte Person prüfen.', 8, 4.5); }
   if (d.layout !== 'letter') for (const f of d.fields.filter((item) => !CENTRAL_COMMON_FIELDS.has(item.key))) {
-    if (d.layout === 'table') { heading(f.label,8.5); paragraph(v[f.key],8.5,4.3); }
+    if (d.layout === 'table') paragraph(`${f.label}: ${v[f.key] || '[Noch auszufüllen]'}`,8.5,4.3);
     else field(f.label, v[f.key]);
   }
   for (const section of d.sections) { if (d.layout !== 'letter') heading(section.heading); paragraph(snapshot.sectionTexts[section.key] ?? section.text); }
