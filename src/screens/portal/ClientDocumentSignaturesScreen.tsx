@@ -57,7 +57,7 @@ export function ClientDocumentSignaturesScreen() {
     {
       enabled:
         isLinkedReady &&
-        roleKey === 'client_portal' &&
+        (roleKey === 'client_portal' || roleKey === 'family_portal') &&
         !!tenantId &&
         !!clientId,
       queryKey: JSON.stringify([tenantId, clientId, roleKey, filter]),

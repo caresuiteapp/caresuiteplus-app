@@ -8,12 +8,12 @@ describe('Klientenportal Abschluss-Gate', () => {
   });
 
   it('verwendet beim Signieren einen null-sicheren Dokumentdatensatz', () => {
-    const detail = readFileSync('src/screens/portal/PortalClientDocumentDetailScreen.tsx', 'utf8');
+    const detail = readFileSync('src/screens/portal/PortalClientDocumentDetailScreenCore.tsx', 'utf8');
     expect(detail).toContain("data?.clientName ?? 'Klient:in'");
   });
 
   it('liefert Leistungsnachweise mit einem gültigen Portal-Sichtbarkeitswert', () => {
-    const proofs = readFileSync('src/lib/portal/assist/portalAssistVisitProofService.ts', 'utf8');
+    const proofs = readFileSync('src/lib/portal/assist/portalAssistVisitProofService.core.ts', 'utf8');
     expect(proofs).toContain("visibility: 'shared'");
     expect(proofs).not.toContain("visibility: 'portal'");
   });

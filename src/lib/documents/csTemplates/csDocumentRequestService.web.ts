@@ -533,6 +533,7 @@ export async function signCsDocumentRequest(input: {
   signatureDataUrl: string;
   anchorToken?: string;
   userAgent?: string | null;
+  expectedUpdatedAt?: string;
   portalActor?: {
     roleKey: RoleKey;
     employeeId?: string | null;
@@ -599,6 +600,9 @@ export async function signCsDocumentRequest(input: {
         })
       : await fetchCsDocumentRequestDetail(input.tenantId, input.requestId);
     if (!detail.ok) return detail;
+    if (input.portalActor && input.expectedUpdatedAt && input.expectedUpdatedAt !== detail.data.updatedAt) {
+      return { ok: false, error: 'Das Dokument wurde geändert. Bitte laden Sie es neu und prüfen Sie die neue Fassung, bevor Sie unterschreiben.' };
+    }
 
     const signedAt = new Date().toISOString();
     const anchor = input.anchorToken ?? `${input.signerRole}_signature`;
@@ -615,7 +619,7 @@ export async function signCsDocumentRequest(input: {
         p_tenant_id: input.tenantId, p_request_id: input.requestId,
         p_signer_role: input.signerRole, p_signer_name: input.signerName.trim(),
         p_signature_data_url: input.signatureDataUrl,
-        p_expected_updated_at: detail.data.updatedAt,
+        p_expected_updated_at: input.expectedUpdatedAt ?? detail.data.updatedAt,
       } as never);
       if (receipt.error) throw receipt.error;
       if (receipt.data !== input.requestId) throw new Error('Unterschrift wurde nicht bestätigt. Bitte den Status erneut laden.');

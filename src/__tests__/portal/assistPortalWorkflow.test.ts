@@ -13,6 +13,7 @@ const mockSingle = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
     from: (table: string) => {
       if (table === 'portal_requests') {
         return {

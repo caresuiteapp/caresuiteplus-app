@@ -1366,7 +1366,7 @@ export const APP_ROUTES: AppRoute[] = [
     label: 'Klient:innenportal',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal'],
+    allowedRoles: ['client_portal', 'family_portal'],
     children: [
       '/portal/client/appointments',
       '/portal/client/documents',
@@ -1379,28 +1379,28 @@ export const APP_ROUTES: AppRoute[] = [
     label: 'Termine',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal'],
+    allowedRoles: ['client_portal', 'family_portal'],
   },
   {
     path: '/portal/client/documents',
     label: 'Dokumente',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal'],
+    allowedRoles: ['client_portal', 'family_portal'],
   },
   {
     path: '/portal/client/messages',
     label: 'Nachrichten',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal'],
+    allowedRoles: ['client_portal', 'family_portal'],
   },
   {
     path: '/portal/client/announcements',
     label: 'Mitteilungen',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal'],
+    allowedRoles: ['client_portal', 'family_portal'],
   },
 
   // Platform Console — eigene Guard-Kette (PlatformRouteGuard), keine Mandantenrollen

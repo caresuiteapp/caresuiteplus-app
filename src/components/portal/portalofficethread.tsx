@@ -1,6 +1,8 @@
 import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused } from 'expo-router';
 import {
+  AppState,
   Platform,
   ScrollView,
   StyleSheet,
@@ -46,7 +48,13 @@ type PortalOfficeThreadProps = {
   hideHeader?: boolean;
 };
 
-export function PortalOfficeThread({
+export function PortalOfficeThread(props: PortalOfficeThreadProps) {
+  // A conversation owns its composer and any pending send. Changing only the
+  // hook argument would retain another thread's unsent text and attachments.
+  return <PortalOfficeThreadContent key={props.threadId ?? 'empty'} {...props} />;
+}
+
+function PortalOfficeThreadContent({
   threadId,
   onNewThreadStarted,
   onThreadTitleResolved,
@@ -65,20 +73,41 @@ export function PortalOfficeThread({
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const restartLock = useRef(false);
+  const mounted = useRef(true);
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+  const screenFocused = useIsFocused();
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh, markAsRead } =
     usePortalOfficeThreadDetail(threadId);
 
-  const markedThreadRef = useRef<string | null>(null);
+  const markedReadBatchRef = useRef<string | null>(null);
+  const unreadOfficeMessages = detail?.messages
+    .filter((message) => message.senderType === 'office_profile' && !message.readAt && message.status === 'sent')
+    .map((message) => message.id)
+    .join('|') ?? '';
 
   useEffect(() => {
-    markedThreadRef.current = null;
-  }, [threadId]);
+    mounted.current = true;
+    const subscription = AppState.addEventListener('change', (state) => setAppActive(state === 'active'));
+    return () => {
+      mounted.current = false;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
-    if (!threadId || !detail || markedThreadRef.current === threadId) return;
-    markedThreadRef.current = threadId;
-    void markAsRead();
-  }, [threadId, detail, markAsRead]);
+    if (!appActive || !screenFocused || !threadId || !unreadOfficeMessages || markedReadBatchRef.current === unreadOfficeMessages) return;
+    const batch = unreadOfficeMessages;
+    markedReadBatchRef.current = batch;
+    const allowRetry = () => {
+      if (mounted.current && markedReadBatchRef.current === batch) markedReadBatchRef.current = null;
+    };
+    void markAsRead().then((result) => {
+      if (!result.ok) allowRetry();
+    }).catch(allowRetry);
+  }, [appActive, screenFocused, threadId, detail, unreadOfficeMessages, markAsRead]);
 
   useEffect(() => {
     if (!detail) return;
@@ -209,9 +238,23 @@ export function PortalOfficeThread({
   };
 
   const handleStartNewChat = async () => {
-    const result = await startNewChat();
-    if (result.ok && result.data) {
-      onNewThreadStarted?.(result.data.id);
+    if (restartLock.current) return;
+    restartLock.current = true;
+    setRestarting(true);
+    setRestartError(null);
+    try {
+      const result = await startNewChat();
+      if (!mounted.current) return;
+      if (result.ok && result.data) {
+        onNewThreadStarted?.(result.data.id);
+      } else {
+        setRestartError(toUserFacingSendError(result.error));
+      }
+    } catch {
+      if (mounted.current) setRestartError(toUserFacingSendError());
+    } finally {
+      restartLock.current = false;
+      if (mounted.current) setRestarting(false);
     }
   };
 
@@ -282,11 +325,12 @@ export function PortalOfficeThread({
                 ? 'Dieser Gruppen-Chat ist abgeschlossen und schreibgeschützt.'
                 : 'Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie der Verwaltung erneut.'}
             </Text>
+            {restartError ? <Text accessibilityRole="alert" style={styles.sendErrorText}>{restartError}</Text> : null}
             {!isGroup ? (
               useLightUi ? (
-                <CareLightButton title="Verwaltung anschreiben" onPress={() => void handleStartNewChat()} />
+                <CareLightButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               ) : (
-                <PremiumButton title="Verwaltung anschreiben" onPress={() => void handleStartNewChat()} />
+                <PremiumButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               )
             ) : null}
           </View>

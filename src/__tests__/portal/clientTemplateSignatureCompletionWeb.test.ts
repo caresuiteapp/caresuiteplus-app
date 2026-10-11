@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ request: {} as Record<string, unknown>, signatures: [] as Record<string, unknown>[], rpc: vi.fn(), update: vi.fn(), signatureError: false }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => null }));
@@ -22,7 +22,8 @@ vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unkn
     then: (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve),
   }; return query;
 } }));
-import { signCsDocumentRequest, fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates/csDocumentRequestService.web';
+import * as web from '@/lib/documents/csTemplates/csDocumentRequestService.web';
+import * as native from '@/lib/documents/csTemplates/csDocumentRequestService';
 const input = { tenantId: 't', requestId: 'r', signerRole: 'client' as const, signerName: 'Testperson', signatureDataUrl: 'data:image/png;base64,AAAA', portalActor: { roleKey: 'client_portal' as const, clientId: 'c' } };
 beforeEach(() => {
   vi.clearAllMocks(); f.signatureError = false;
@@ -30,6 +31,7 @@ beforeEach(() => {
   f.signatures = [{ id: 's', request_id: 'r', signer_role: 'client', status: 'pending' }];
   f.rpc.mockImplementation(async () => { f.signatures[0].status = 'signed'; f.request.status = 'completed'; return { data: 'r', error: null }; });
 });
+describe.each([['web', web], ['native', native]] as const)('%s template signing', (_platform, { signCsDocumentRequest, fetchPortalCsDocumentRequests }) => {
 it('uses one atomic call and removes the client role from pending tasks after its receipt', async () => {
   const result = await signCsDocumentRequest(input);
   expect(result.ok).toBe(true); if (result.ok) expect(result.data.pendingSignatureRoles).toEqual([]);
@@ -41,6 +43,12 @@ it('does not clear the task when the atomic write fails', async () => {
   expect((await signCsDocumentRequest(input)).ok).toBe(false);
   expect(f.signatures[0].status).toBe('pending'); expect(f.update).not.toHaveBeenCalled();
 });
+it('refuses a document changed since the client reviewed it before writing', async () => {
+  const result = await signCsDocumentRequest({ ...input, expectedUpdatedAt: '2026-09-11T08:00:00Z' });
+  expect(result.ok).toBe(false);
+  expect(f.rpc).not.toHaveBeenCalled();
+  expect(f.update).not.toHaveBeenCalled();
+});
 it('fails visibly when signature rows cannot be loaded', async () => {
   f.signatureError = true;
   expect((await fetchPortalCsDocumentRequests({ tenantId: 't', clientId: 'c', roleKey: 'client_portal' })).ok).toBe(false);
@@ -50,4 +58,6 @@ it('includes representative tasks for a family portal account', async () => {
   const result = await fetchPortalCsDocumentRequests({ tenantId: 't', clientId: 'c', roleKey: 'family_portal' });
   if (!result.ok) throw new Error(result.error);
   expect(result.data[0].pendingSignatureRoles).toEqual(['representative']);
+});
+
 });

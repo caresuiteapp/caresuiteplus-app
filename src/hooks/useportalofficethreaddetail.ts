@@ -64,7 +64,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
   }, [tenantId, threadId, refresh]);
 
   const markAsRead = useCallback(async () => {
-    if (!tenantId || !threadId) return;
+    if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
     const actorResult = resolvePortalActor(
       actorRoleKey,
       portalSession,
@@ -72,9 +72,10 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       actorDisplayName,
       { clientId: actorClientId, employeeId: actorEmployeeId },
     );
-    if (!actorResult.ok) return;
-    await markPortalThreadMessagesRead(tenantId, threadId, actorResult.data);
-    await silentRefresh();
+    if (!actorResult.ok) return actorResult;
+    const result = await markPortalThreadMessagesRead(tenantId, threadId, actorResult.data);
+    if (result.ok) await silentRefresh();
+    return result;
   }, [
     tenantId,
     threadId,
@@ -141,9 +142,17 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     );
     if (!actorResult.ok) return actorResult;
 
-    const result = await startNewPortalThreadFromClosed(tenantId, threadId, actorResult.data);
-    if (result.ok) await refresh();
-    return result;
+    try {
+      const writableSession = await ensurePortalWriteSession(portalSession, 'messages');
+      if (!writableSession.ok) return writableSession;
+      return await withMessagingTimeout(
+        startNewPortalThreadFromClosed(tenantId, threadId, actorResult.data),
+        VOICE_SEND_TIMEOUT_MS,
+        'Send timeout',
+      );
+    } catch {
+      return { ok: false as const, error: toUserFacingSendError() };
+    }
   }, [
     tenantId,
     threadId,

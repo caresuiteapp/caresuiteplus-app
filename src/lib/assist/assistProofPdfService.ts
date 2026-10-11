@@ -155,7 +155,18 @@ async function loadPdfRenderer(): Promise<PdfRenderer> {
 
 export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
+    const { printToFileAsync } = await import('expo-print');
+    const file = await printToFileAsync({ html, base64: true });
+    try {
+      if (!file.base64) throw new Error('Der Leistungsnachweis konnte nicht als PDF erstellt werden.');
+      return Uint8Array.from(atob(file.base64), (character) => character.charCodeAt(0));
+    } finally {
+      // Only this renderer's temporary file is removed; the upload uses the returned bytes.
+      try {
+        const { File } = await import('expo-file-system');
+        new File(file.uri).delete();
+      } catch { /* A cache cleanup failure must not lose an already rendered PDF. */ }
+    }
   }
 
   const container = document.createElement('div');

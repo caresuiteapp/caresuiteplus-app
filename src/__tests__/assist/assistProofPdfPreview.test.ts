@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
-import { resolveAssistProofPdfPreviewUrl } from '@/lib/assist/assistProofPdfService';
+import { renderAssistProofPdfBytes, resolveAssistProofPdfPreviewUrl } from '@/lib/assist/assistProofPdfService';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -65,10 +65,14 @@ function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitP
 }
 
 const mockCreateSignedUrl = vi.fn();
+const mockPrintToFile = vi.fn();
+const mockRemovePrintedFile = vi.fn();
 
 vi.mock('react-native', () => ({
-  Platform: { OS: 'web' },
+  Platform: { OS: 'android' },
 }));
+vi.mock('expo-print', () => ({ printToFileAsync: mockPrintToFile }));
+vi.mock('expo-file-system', () => ({ File: class { delete = mockRemovePrintedFile; } }));
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
@@ -130,9 +134,26 @@ describe('buildAssistProofPdfPayload enriched HTML', () => {
 describe('resolveAssistProofPdfPreviewUrl', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrintToFile.mockResolvedValue({ uri: 'file:///cache/source-preview.pdf', base64: 'JVBERg==' });
   });
 
-  it('renders dynamic blob preview from source data (layout v2)', async () => {
+  it('renders native PDF bytes from source data with the installed system renderer (layout v2)', async () => {
+    const bytes = await renderAssistProofPdfBytes(
+      sampleProof({ pdfStoragePath: 'tenant/t1/stale-proof.pdf' }),
+    );
+
+    expect(Array.from(bytes)).toEqual([37, 80, 68, 70]);
+    expect(mockPrintToFile).toHaveBeenCalledOnce();
+    const input = mockPrintToFile.mock.calls[0][0];
+    expect(input.base64).toBe(true);
+    expect(input.html).toContain('Heinz-Peter Reinhardt');
+    expect(input.html).toContain('Kevin Reinhardt');
+    expect(input.html).toContain('Erledigt');
+    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    expect(mockRemovePrintedFile).toHaveBeenCalledOnce();
+  });
+
+  it('keeps browser blob preview URLs out of the native workflow', async () => {
     const result = await resolveAssistProofPdfPreviewUrl(
       'tenant-1',
       sampleProof({ pdfStoragePath: 'tenant/t1/proof.pdf' }),
@@ -142,6 +163,8 @@ describe('resolveAssistProofPdfPreviewUrl', () => {
     if (!result.ok) {
       expect(result.error).toContain('Web-Browser');
     }
+    expect(mockPrintToFile).not.toHaveBeenCalled();
+    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
   });
 });
 

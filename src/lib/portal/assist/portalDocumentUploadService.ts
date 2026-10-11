@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import { randomUUID } from 'expo-crypto';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import type {
   ApprovePortalUploadInput,
@@ -92,7 +93,7 @@ export async function uploadPortalDocument(
       return { ok: false, error: 'Dateiinhalt fehlt — bitte Dokument erneut auswählen.' };
     }
 
-    const uploadId = crypto.randomUUID?.() ?? `upload-${Date.now()}`;
+    const uploadId = randomUUID();
     const storagePath = buildPortalUploadStoragePath(
       input.tenantId,
       input.clientId,
@@ -132,7 +133,7 @@ export async function uploadPortalDocument(
         id: uploadId,
         tenant_id: input.tenantId,
         client_id: input.clientId,
-        portal_user_id: input.portalUserId ?? null,
+        portal_user_id: requestResult.data.portalUserId ?? null,
         portal_request_id: requestResult.data.id,
         storage_path: storagePath,
         file_name: input.fileName,
@@ -157,7 +158,7 @@ export async function uploadPortalDocument(
     await logPortalActivity({
       tenantId: input.tenantId,
       clientId: input.clientId,
-      portalUserId: input.portalUserId,
+      portalUserId: requestResult.data.portalUserId,
       moduleKey: input.moduleKey ?? 'assist',
       activityType: 'document_uploaded',
       title: `Dokument hochgeladen: ${input.fileName}`,

@@ -28,6 +28,11 @@ vi.mock('@/lib/auth', () => ({
   RequireAuth: 'RequireAuth', RequireEmployeePasswordSetup: 'RequireEmployeePasswordSetup', RequireRole: 'RequireRole',
 }));
 vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [] }) }));
+vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: null }) }));
+vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
+  PortalMessengerFocusProvider: 'MessengerFocus',
+  usePortalMessengerFocus: () => ({ active: false }),
+}));
 vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ isReady: true, tenantId: 'tenant', employeeId: 'employee' }) }));
 vi.mock('@/liquid-command/foundation/useLiquidLayout', () => ({ useLiquidLayout: () => ({ width: state.width, isPhone: state.width < 600 }) }));
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({

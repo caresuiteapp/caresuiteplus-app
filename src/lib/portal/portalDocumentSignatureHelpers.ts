@@ -5,6 +5,21 @@ import type {
   PortalSignatureField,
   PortalSignatureFilterTab,
 } from '@/types/portal/documentSignatures';
+import type { CsSignerRole } from '@/types/documents/csTemplateDatabase';
+import type { RoleKey } from '@/types';
+
+export function resolvePortalDocumentSignerRole(input: {
+  mode: 'office' | 'employee' | 'client';
+  roleKey: RoleKey | null;
+  pendingRoles: CsSignerRole[];
+  defaultRole: CsSignerRole;
+}): CsSignerRole {
+  if (input.mode === 'client' && input.pendingRoles.includes('representative') &&
+      (input.roleKey === 'family_portal' || !input.pendingRoles.includes('client'))) {
+    return 'representative';
+  }
+  return input.defaultRole;
+}
 
 export const PORTAL_SIGNATURE_TABLES = {
   documents: 'portal_signature_documents',

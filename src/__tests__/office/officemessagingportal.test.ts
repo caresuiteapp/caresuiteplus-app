@@ -340,6 +340,27 @@ describe('Portal Office Messaging Phase 2B', () => {
     }
   });
 
+  it.each(['error', 'throw'] as const)('keeps permitted chats available when optional categories %s', async (failure) => {
+    const normalFrom = mockFrom.getMockImplementation()!;
+    mockFrom.mockImplementation((table: string) => {
+      if (table !== 'message_categories') return normalFrom(table);
+      if (failure === 'throw') throw new Error('Network request failed');
+      return createQueryChain([], { message: 'Categories unavailable' });
+    });
+    const actorResult = resolvePortalActor('client_portal', {
+      sessionToken: 'tok', tenantId: TENANT_ID, loginType: 'client_portal', roleKey: 'client_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z', accountId: 'acc-a', clientId: CLIENT_A,
+    });
+    expect(actorResult.ok).toBe(true);
+    if (!actorResult.ok) return;
+    const result = await fetchPortalOfficeThreads(TENANT_ID, actorResult.data, 'open');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.map((thread) => thread.id)).toEqual(['t-client-a']);
+      expect(result.data[0]?.categoryLabel).toBeNull();
+    }
+  });
+
   it('fetchPortalOfficeThreads liefert Gruppen-Chat für Mitglied mit UI-Metadaten', async () => {
     mockParticipantSelect.mockResolvedValueOnce({
       data: [

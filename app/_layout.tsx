@@ -12,7 +12,7 @@ import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/Them
 import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effects';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
-import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
+import { isAuthRoutePath, isLightPortalRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
@@ -107,7 +107,7 @@ function RootShell() {
 
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
-  const isDark = isPortalRoutePath(pathname) && mode === 'dark';
+  const isDark = isPortalRoutePath(pathname) && !isLightPortalRoutePath(pathname) && mode === 'dark';
   const navigationTheme = isDark
     ? {
         ...DarkTheme,

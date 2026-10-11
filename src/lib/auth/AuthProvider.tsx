@@ -292,7 +292,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOutRequestedRef = useRef(false);
   const authGenerationRef = useRef(0);
   const canCommitGeneration = useCallback((generation: number) =>
-    Platform.OS !== 'web' || (generation === authGenerationRef.current && !signOutRequestedRef.current), []);
+    generation === authGenerationRef.current && !signOutRequestedRef.current, []);
 
   const applyMinimalAuthOnBootstrapFailure = useCallback(
     (supabaseSession: Session, error: string) => {
@@ -301,10 +301,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setProfile(null);
       setSession(minimal.session);
       setProfileBootstrapError(error);
-      // Keep the single automatic web repair marked as attempted. Resetting
+      // Keep the single automatic repair marked as attempted. Resetting
       // it on every failure restarted this effect indefinitely for roleless
       // profiles and repeatedly replaced the state while recovery was open.
-      if (Platform.OS !== 'web') profileRepairAttemptedRef.current = false;
     },
     [],
   );
@@ -374,12 +373,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
             if (cancelled) return;
-            if (Platform.OS === 'web' && event === 'SIGNED_OUT') authGenerationRef.current += 1;
-            if (Platform.OS === 'web' && supabaseSession && signOutRequestedRef.current) return;
+            if (supabaseSession && signOutRequestedRef.current) return;
             if (event === 'TOKEN_REFRESHED') return;
             // Web already restores explicitly. INITIAL_SESSION used to run a
             // second profile/tenant bootstrap while the first was still pending.
             if (Platform.OS === 'web' && event === 'INITIAL_SESSION') return;
+            // Account switches and logout invalidate pending identity requests
+            // on every platform, including native background restoration.
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+              authGenerationRef.current += 1;
+              profileRepairAttemptedRef.current = false;
+            }
             const eventGeneration = authGenerationRef.current;
             const canCommitEvent = () => !cancelled && canCommitGeneration(eventGeneration);
 
@@ -453,13 +457,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Web awaits its initial restore and stays subscribed to auth changes.
     if (Platform.OS === 'web') return;
     if (authMode !== 'supabase' || !isInitialized || isLoading) return;
+    if (signOutRequestedRef.current) return;
     if (Boolean((user && session) || portalSession)) return;
 
     let cancelled = false;
+    const generation = authGenerationRef.current;
+    const canCommit = () => !cancelled && canCommitGeneration(generation);
 
     async function reconcileLiveSession() {
       const sessionResult = await getSession();
-      if (cancelled || !sessionResult.ok || !sessionResult.data) return;
+      if (!canCommit() || !sessionResult.ok || !sessionResult.data) return;
 
       const hydrated = await hydrateSupabaseSession(
         sessionResult.data,
@@ -468,8 +475,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession,
         setProfileBootstrapError,
         portalSession,
+        canCommit,
       );
-      if (cancelled) return;
+      if (!canCommit()) return;
       if (hydrated.ok) return;
 
       applyMinimalAuthOnBootstrapFailure(sessionResult.data, hydrated.error);
@@ -480,18 +488,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [applyMinimalAuthOnBootstrapFailure, authMode, isInitialized, isLoading, portalSession, session, user]);
+  }, [applyMinimalAuthOnBootstrapFailure, authMode, canCommitGeneration, isInitialized, isLoading, portalSession, session, user]);
 
   useEffect(() => {
     if (authMode !== 'supabase' || !isInitialized || isLoading) return;
+    if (signOutRequestedRef.current) return;
     if (!user || !session || profile?.roleKey || profileRepairAttemptedRef.current) return;
 
     profileRepairAttemptedRef.current = true;
     let cancelled = false;
+    const generation = authGenerationRef.current;
+    const canCommit = () => !cancelled && canCommitGeneration(generation);
 
     async function repairProfileFromSession() {
       const sessionResult = await getSession();
-      if (cancelled || !sessionResult.ok || !sessionResult.data) return;
+      if (!canCommit() || !sessionResult.ok || !sessionResult.data) return;
 
       const result = await hydrateSupabaseSession(
         sessionResult.data,
@@ -500,8 +511,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession,
         setProfileBootstrapError,
         portalSession,
+        canCommit,
       );
-      if (cancelled) return;
+      if (!canCommit()) return;
       if (result.ok) return;
 
       applyMinimalAuthOnBootstrapFailure(sessionResult.data, result.error);
@@ -515,6 +527,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [
     applyMinimalAuthOnBootstrapFailure,
     authMode,
+    canCommitGeneration,
     isInitialized,
     isLoading,
     user,
@@ -524,11 +537,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   ]);
 
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
+    if (signOutRequestedRef.current) return;
+    const generation = ++authGenerationRef.current;
+    profileRepairAttemptedRef.current = false;
+    const canCommit = () => canCommitGeneration(generation);
     try {
       await withAuthBootstrapTimeout(clearPortalSession(), 'Portal-Sitzung löschen', 4_000);
     } catch {
-      setPortalSession(null);
+      if (canCommit()) setPortalSession(null);
     }
+    if (!canCommit()) return;
     setPortalSession(null);
     setProfileBootstrapError(null);
 
@@ -538,17 +556,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setProfile,
       setSession,
       setProfileBootstrapError,
+      null,
+      canCommit,
     );
-    if (!hydrated.ok) {
+    if (!hydrated.ok && canCommit()) {
       applyMinimalAuthOnBootstrapFailure(supabaseSession, hydrated.error);
     }
-  }, [applyMinimalAuthOnBootstrapFailure]);
+  }, [applyMinimalAuthOnBootstrapFailure, canCommitGeneration]);
 
   const retryProfileBootstrap = useCallback(async () => {
+    const generation = authGenerationRef.current;
+    const canCommit = () => canCommitGeneration(generation);
+    if (!canCommit()) return;
     setProfileBootstrapError(null);
-    profileRepairAttemptedRef.current = Platform.OS === 'web';
+    profileRepairAttemptedRef.current = true;
 
     const sessionResult = await getSession();
+    if (!canCommit()) return;
     if (!sessionResult.ok || !sessionResult.data) {
       setProfileBootstrapError('Keine aktive Sitzung gefunden.');
       return;
@@ -561,18 +585,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession,
       setProfileBootstrapError,
       portalSession,
+      canCommit,
     );
-    if (!result.ok) {
+    if (!result.ok && canCommit()) {
       applyMinimalAuthOnBootstrapFailure(sessionResult.data, result.error);
     }
-  }, [applyMinimalAuthOnBootstrapFailure, portalSession]);
+  }, [applyMinimalAuthOnBootstrapFailure, canCommitGeneration, portalSession]);
 
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
+    if (signOutRequestedRef.current) return;
+    const generation = ++authGenerationRef.current;
+    profileRepairAttemptedRef.current = false;
+    const canCommit = () => canCommitGeneration(generation);
     await savePortalSession(record);
+    if (!canCommit()) return;
     setPortalSession(record);
 
     const sessionResult = await getSession();
-    if (!sessionResult.ok || !sessionResult.data) return;
+    if (!canCommit() || !sessionResult.ok || !sessionResult.data) return;
 
     await hydrateSupabaseSession(
       sessionResult.data,
@@ -581,8 +611,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession,
       setProfileBootstrapError,
       record,
+      canCommit,
     );
-  }, []);
+  }, [canCommitGeneration]);
 
   const updatePortalSession = useCallback(async (patch: Partial<PortalSessionRecord>) => {
     setPortalSession((current) => {
@@ -633,17 +664,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw cause;
     } finally {
       if (Platform.OS !== 'web') {
-        await configurePortalBackgroundRefresh(false);
-        await clearPortalSession();
-        await clearOfflineDb();
-        clearBusinessWelcomePending();
-        setUser(null);
-        setProfile(null);
-        setSession(null);
-        setPortalSession(null);
-        setProfileBootstrapError(null);
-        signOutRequestedRef.current = false;
-        setIsLoading(false);
+        try {
+          await configurePortalBackgroundRefresh(false);
+          await clearPortalSession();
+          await clearOfflineDb();
+        } finally {
+          clearBusinessWelcomePending();
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+          setPortalSession(null);
+          setProfileBootstrapError(null);
+          signOutRequestedRef.current = false;
+          setIsLoading(false);
+        }
       } else {
         try {
           if (signedOut) {

@@ -1,6 +1,7 @@
 // Static Expo route existence check; authorization, dynamic values and layout require separate verification.
 const fs = require("fs"), path = require("path"), ts = require(process.cwd() + "/node_modules/typescript"), { buildSync } = require(process.cwd() + "/node_modules/esbuild");
 const root = process.cwd();
+const clientScope = process.argv.includes('--client');
 const config = ts.readConfigFile("tsconfig.json", ts.sys.readFile);
 const options = ts.parseJsonConfigFileContent(config.config, ts.sys, root).options;
 function walk(d) {
@@ -12,15 +13,17 @@ function match(url) {
   const bare = url.split(/[?#]/)[0].replace(/\/\([^/]+\)/g, "");
   return routes.filter((r) => new RegExp("^" + r.route.split("/").map((s) => /^\[\.\.\./.test(s) ? ".*" : /^\[/.test(s) ? "[^/]+" : s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("/") + "/?$").test(bare));
 }
-const bundle = buildSync({ entryPoints: ["src/liquid-command/navigation/desktopAppCatalogModel.ts"], bundle: true, write: false, platform: "node", format: "cjs", external: ["react-native"] }).outputFiles[0].text;
+const bundle = buildSync({ entryPoints: [clientScope ? "src/liquid-command/navigation/portalCatalog.ts" : "src/liquid-command/navigation/desktopAppCatalogModel.ts"], bundle: true, write: false, platform: "node", format: "cjs", external: ["react-native"] }).outputFiles[0].text;
 const m = { exports: {} };
 new Function("require", "module", "exports", bundle)((id) => id === "react-native" ? { Platform: { OS: "android" } } : require(id), m, m.exports);
-const apps = m.exports.buildDesktopApps([], "business_admin");
+const apps = clientScope ? m.exports.liquidPortalNavigation.client : m.exports.buildDesktopApps([], "business_admin");
 const inspected = /* @__PURE__ */ new Set(), links = [], missing = [], dynamic = [], unresolved = [];
 const queue = apps.flatMap((a) => match(a.route).map((r) => r.file));
+if (clientScope) queue.push(...walk('app/portal/client').filter((p) => /\.tsx$/.test(p) && !/\.web\./.test(p)), 'src/lib/navigation/clientPortalNavigation.ts');
 const text = (n) => ts.isAsExpression(n) || ts.isTypeAssertionExpression(n) || ts.isParenthesizedExpression(n) ? text(n.expression) : ts.isObjectLiteralExpression(n) ? n.properties.some((p) => ts.isPropertyAssignment(p) && p.name.getText() === "pathname") ? text(n.properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText() === "pathname").initializer) : null : ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) ? n.text : ts.isTemplateExpression(n) ? n.head.text + n.templateSpans.map((s) => "example-id" + s.literal.text).join("") : null;
 function check(url, file, line) {
   if (!url || !url.startsWith("/") || url.startsWith("//")) return;
+  if (clientScope && !/^\/portal\/client(?:[/?#]|$)/.test(url)) return;
   let hits = match(url);
   if (!hits.length && url.includes("example-id")) {
     const pattern = new RegExp("^" + url.split(/[?#]/)[0].split("/").map((part) => part === "example-id" ? "[^/]+" : part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("/") + "/?$");
@@ -68,8 +71,8 @@ while (queue.length) {
   const src = ts.createSourceFile(file, fs.readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, file.endsWith("tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   visit2(src);
 }
-const result = { generatedAt: (/* @__PURE__ */ new Date()).toISOString(), catalogEntries: apps.length, reachableSourceFiles: inspected.size, linksChecked: links.length, missing, dynamic, unresolved, catalog: apps.map((a) => ({ label: a.label, route: a.route, targets: match(a.route).map((r) => r.file) })), links };
-const output = process.argv[2];
+const result = { generatedAt: (/* @__PURE__ */ new Date()).toISOString(), scope: clientScope ? 'client-portal' : 'administration', catalogEntries: apps.length, reachableSourceFiles: inspected.size, linksChecked: links.length, missing, dynamic, unresolved, catalog: apps.map((a) => ({ label: a.label, route: a.route, targets: match(a.route).map((r) => r.file) })), links };
+const output = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
 if (output) fs.writeFileSync(output, JSON.stringify(result, null, 2));
 console.log(JSON.stringify({ ...result, links: void 0, catalog: void 0 }, null, 2));
 if (missing.length) process.exitCode = 1;

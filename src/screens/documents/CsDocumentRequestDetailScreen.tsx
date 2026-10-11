@@ -1,3 +1,4 @@
+import { resolvePortalDocumentSignerRole } from '@/lib/portal/portalDocumentSignatureHelpers';
 import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -95,6 +96,7 @@ export function CsDocumentRequestDetailScreen({
   const router = useRouter();
   const attention = useClientSignatureAttention();
   const signing = useRef(false);
+  const reviewedDocumentVersion = useRef<string | undefined>(undefined);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const portalActor = usePortalActor();
@@ -125,9 +127,10 @@ export function CsDocumentRequestDetailScreen({
   );
 
   const item = query.data;
+  const effectiveSignerRole = resolvePortalDocumentSignerRole({ mode, roleKey: portalActor.roleKey, pendingRoles: item?.pendingSignatureRoles ?? [], defaultRole: signerRole });
   const canSign =
     item
-    && item.pendingSignatureRoles.includes(signerRole)
+    && item.pendingSignatureRoles.includes(effectiveSignerRole)
     && ['sent', 'opened', 'partially_signed'].includes(item.status);
 
   const signedEntries = item?.signatures.filter((sig) => sig.status === 'signed') ?? [];
@@ -168,10 +171,11 @@ export function CsDocumentRequestDetailScreen({
     const result = await signCsDocumentRequest({
       tenantId,
       requestId: id,
-      signerRole,
+      signerRole: effectiveSignerRole,
       signerName: signerNameDefault ?? profile?.displayName ?? 'Unterzeichner:in',
       signatureDataUrl: dataUrl,
-      anchorToken: `${signerRole}_signature`,
+      expectedUpdatedAt: reviewedDocumentVersion.current,
+      anchorToken: `${effectiveSignerRole}_signature`,
       portalActor: isPortal && portalActor.roleKey
         ? {
             roleKey: portalActor.roleKey,
@@ -252,7 +256,7 @@ export function CsDocumentRequestDetailScreen({
         subtitle={statusLabel}
         accent={accent}
         canSign={Boolean(canSign)}
-        onSign={() => setSignModal(true)}
+        onSign={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}
       >
         {isPortal && canSign ? (
           <ClientPortalGuide
@@ -313,6 +317,7 @@ export function CsDocumentRequestDetailScreen({
       </RequestDetailShell>
 
       <CareSignatureModal
+        statusMessage={actionError}
         visible={signModal}
         label="Unterschrift bestätigen"
         onConfirm={(dataUrl) => void handleSign(dataUrl)}

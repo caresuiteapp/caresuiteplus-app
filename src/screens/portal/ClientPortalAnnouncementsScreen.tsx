@@ -5,10 +5,7 @@ import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useNotifications } from '@/hooks/usenotifications';
-import {
-  fetchBroadcastForNotification,
-  markNotificationRead,
-} from '@/lib/office/notificationservice';
+import { readClientPortalAnnouncement } from '@/lib/portal/clientAnnouncementReadService';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { radius, typography } from '@/theme';
@@ -20,27 +17,33 @@ export function ClientPortalAnnouncementsScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullBodies, setFullBodies] = useState<Record<string, string>>({});
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
+  const [detailErrors, setDetailErrors] = useState<Record<string, string | undefined>>({});
 
   const openAnnouncement = useCallback(async (item: AppNotification) => {
-    if (selectedId === item.id) {
+    if (detailLoadingId === item.id) return;
+    if (selectedId === item.id && !detailErrors[item.id]) {
       setSelectedId(null);
       return;
     }
 
     setSelectedId(item.id);
-    if (tenantId && userId && !item.isRead) {
-      await markNotificationRead(tenantId, item.id, userId);
-      void refresh();
+    if (!tenantId || !userId) {
+      setDetailErrors((current) => ({ ...current, [item.id]: 'Ihre Anmeldung konnte gerade nicht zugeordnet werden. Bitte melden Sie sich erneut an.' }));
+      return;
     }
-
-    if (!tenantId || !item.relatedBroadcastId || fullBodies[item.id]) return;
+    setDetailErrors((current) => ({ ...current, [item.id]: undefined }));
     setDetailLoadingId(item.id);
-    const detail = await fetchBroadcastForNotification(tenantId, item.relatedBroadcastId);
-    setDetailLoadingId(null);
-    if (detail.ok) {
-      setFullBodies((current) => ({ ...current, [item.id]: detail.data.body }));
+    const result = await readClientPortalAnnouncement(tenantId, userId, item);
+    setDetailLoadingId((current) => current === item.id ? null : current);
+    if (result.ok) {
+      setFullBodies((current) => ({ ...current, [item.id]: result.data.body }));
+      if (result.data.readWarning) setDetailErrors((current) => ({ ...current, [item.id]: result.data.readWarning! }));
+      else void refresh();
+    } else {
+      setFullBodies((current) => { const next = { ...current }; delete next[item.id]; return next; });
+      setDetailErrors((current) => ({ ...current, [item.id]: result.error }));
     }
-  }, [fullBodies, refresh, selectedId, tenantId, userId]);
+  }, [detailErrors, detailLoadingId, refresh, selectedId, tenantId, userId]);
 
   return (
     <PortalTabScreen title="Mitteilungen" hideHeaderOnPhone>
@@ -69,11 +72,8 @@ export function ClientPortalAnnouncementsScreen() {
           const selected = selectedId === item.id;
           const isUrgent = item.priority === 'urgent' || item.priority === 'critical';
           return (
-            <Pressable
+            <View
               key={item.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Mitteilung ${item.title}`}
-              onPress={() => void openAnnouncement(item)}
               style={[
                 styles.card,
                 {
@@ -82,14 +82,15 @@ export function ClientPortalAnnouncementsScreen() {
                 },
               ]}
             >
-              <View style={styles.cardHeader}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Mitteilung ${item.title}`}
+                accessibilityState={{ expanded: selected }} onPress={() => void openAnnouncement(item)} style={styles.cardHeader}>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>{item.title}</Text>
                 {!item.isRead ? (
                   <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                     <Text style={styles.badgeText}>Neu</Text>
                   </View>
                 ) : null}
-              </View>
+              </Pressable>
               <Text style={[styles.meta, { color: colors.textSecondary }]}>
                 {item.senderDisplayName ?? 'Verwaltung'} ·{' '}
                 {new Date(item.createdAt).toLocaleString('de-DE', {
@@ -107,13 +108,16 @@ export function ClientPortalAnnouncementsScreen() {
                 {fullBodies[item.id] ?? item.bodyPreview ?? 'Mitteilung öffnen'}
               </Text>
               {detailLoadingId === item.id ? <LoadingState message="Mitteilung wird geöffnet…" /> : null}
+              {selected && detailErrors[item.id] ? <Text accessibilityRole="alert"
+                style={[styles.body, { color: colors.danger }]}>{detailErrors[item.id]}</Text> : null}
               <PremiumButton
-                title={selected ? 'Weniger anzeigen' : 'Vollständig lesen'}
+                title={selected && detailErrors[item.id] ? 'Erneut versuchen' : selected ? 'Weniger anzeigen' : 'Vollständig lesen'}
                 size="sm"
                 variant="secondary"
+                loading={detailLoadingId === item.id}
                 onPress={() => void openAnnouncement(item)}
               />
-            </Pressable>
+            </View>
           );
         })}
       </View>
@@ -133,6 +137,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   cardHeader: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

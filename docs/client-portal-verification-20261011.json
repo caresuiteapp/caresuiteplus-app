@@ -1,0 +1,602 @@
+{
+  "generatedAt": "2026-10-11T09:12:06.715097+00:00",
+  "startingCommit": "252cb69f3e494eaabfa2a8822fb7dbc5a013e72d",
+  "releaseBaseline": "78e6f2c14b613271f044977b35f14b32bd8ee3c0",
+  "releaseApproval": false,
+  "productionDataChanged": false,
+  "storePublished": false,
+  "tests": {
+    "files": 274,
+    "total": 1986,
+    "passed": 1974,
+    "failed": 12,
+    "allPassed": false,
+    "newFailuresComparedWithBaseline": [],
+    "baselineFailures": [
+      {
+        "file": "auth/employeePortalCredentialContract.test.ts",
+        "test": "Mitarbeitenden-Portal Zugangsdatenvertrag leitet die Einsatzfähigkeit aus dem vorhandenen Portalkonto ab"
+      },
+      {
+        "file": "auth/liveSupabaseAuth.test.ts",
+        "test": "liveSupabaseAuthServices confirms business registration without automatically signing in"
+      },
+      {
+        "file": "auth/supabaseSessionProbe.test.ts",
+        "test": "useSupabaseSessionProbe AppStartScreen probes while the canonical liquid entry waits for auth"
+      },
+      {
+        "file": "auth/tenantBootstrap.test.ts",
+        "test": "tenant bootstrap role resolution AuthProvider reconciles live Supabase session when context is behind"
+      },
+      {
+        "file": "auth/tenantBootstrap.test.ts",
+        "test": "tenant bootstrap role resolution auth index never sends authenticated users to public start"
+      },
+      {
+        "file": "navigation/healthOSCentralPopupDesign.test.ts",
+        "test": "HealthOS central popup design contract themes every canonical page building block inside the central popup"
+      },
+      {
+        "file": "portal/employeeLogbookGpsRecoveryR16.test.ts",
+        "test": "Fahrtenbuch R16 · GPS-Wahrheit und Bestandsnachholung öffnet den Verwaltungszeitraum ab 24.08. und weist ungeklärte Kilometer aus"
+      },
+      {
+        "file": "portal/employeePortalMobileTabletParityR108.test.ts",
+        "test": "employee portal mobile/tablet parity R10.8 redirects an authenticated employee at the main address to the canonical dashboard"
+      },
+      {
+        "file": "portal/employeeVisitConfirmationStabilityR109.test.ts",
+        "test": "employee visit confirmation stability R10.9 keeps the signature in a calm pending state until server readback confirms it"
+      },
+      {
+        "file": "portal/employeeVisitConfirmationStabilityR109.test.ts",
+        "test": "employee visit confirmation stability R10.9 does not present transient readback failures as a signature error"
+      },
+      {
+        "file": "portal/employeeVisitConfirmationStabilityR109.test.ts",
+        "test": "employee visit confirmation stability R10.9 makes completed state authoritative over stale synchronization warnings"
+      },
+      {
+        "file": "portal/portalPremiumRuntimeR28.test.ts",
+        "test": "portal premium runtime R28 places bright portal HealthOS rules after the generic dark important rules"
+      }
+    ],
+    "unloadedFiles": [
+      {
+        "file": "navigation/webEntryRouting.test.tsx",
+        "error": "__DEV__ is not defined"
+      }
+    ]
+  },
+  "typescript": {
+    "command": "NODE_OPTIONS=--max-old-space-size=6144 npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "sqlDraftTest": {
+    "command": "node --test supabase/tests/client_portal_release_draft.test.mjs",
+    "passed": 13,
+    "failed": 0,
+    "appliedMigration": false,
+    "productionRlsVerified": false
+  },
+  "routes": {
+    "generatedAt": "2026-10-11T09:06:38.905Z",
+    "scope": "client-portal",
+    "catalogEntries": 11,
+    "reachableSourceFiles": 1432,
+    "linksChecked": 112,
+    "missing": [],
+    "dynamic": [],
+    "unresolved": [
+      {
+        "file": "src/screens/portal/ClientDocumentSignaturesScreen.tsx",
+        "line": 113,
+        "expression": "proof.route as never"
+      },
+      {
+        "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "line": 124,
+        "expression": "item.route as never"
+      },
+      {
+        "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "line": 192,
+        "expression": "kind === 'employee'\n                        ? '/portal/employee/messages'\n                        : kind === 'client'\n                          ? '/portal/client/messages'\n                          : '/portal/relative/messages' as never"
+      },
+      {
+        "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "line": 205,
+        "expression": "profileRoute as never"
+      },
+      {
+        "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "line": 245,
+        "expression": "item.route as never"
+      },
+      {
+        "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "line": 334,
+        "expression": "item.route as never"
+      },
+      {
+        "file": "src/components/portal/ClientPortalAttentionPrompt.tsx",
+        "line": 38,
+        "expression": "(signatures.items.length === 1 ? signatures.items[0].route : '/portal/client/documents/signatures') as never"
+      },
+      {
+        "file": "src/components/portal/ClientPortalAttentionPrompt.tsx",
+        "line": 42,
+        "expression": "(unread.length === 1 ? `/portal/client/messages/${unread[0].id}` : '/portal/client/messages') as never"
+      },
+      {
+        "file": "src/components/ui/CareLightBottomNav.tsx",
+        "line": 34,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/components/ui/RequireProductAccess.tsx",
+        "line": 26,
+        "expression": "decision.target"
+      },
+      {
+        "file": "src/components/portal/EmployeePortalCalendarScreen.tsx",
+        "line": 95,
+        "expression": "event.href as never"
+      },
+      {
+        "file": "src/components/portal/EmployeePortalAssignmentPreviewSheet.tsx",
+        "line": 75,
+        "expression": "executionRoute as never"
+      },
+      {
+        "file": "src/components/portal/PortalNavigation.tsx",
+        "line": 32,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/lib/auth/RequireAuth.tsx",
+        "line": 44,
+        "expression": "target as never"
+      },
+      {
+        "file": "src/lib/auth/RequireRole.tsx",
+        "line": 49,
+        "expression": "decision.target"
+      },
+      {
+        "file": "src/lib/auth/RequireRole.tsx",
+        "line": 106,
+        "expression": "getLoginRedirectForPath(pathname) as never"
+      },
+      {
+        "file": "src/lib/auth/RequireEmployeePasswordSetup.tsx",
+        "line": 26,
+        "expression": "resolveEmployeeFirstLoginHref(portalSession.accountId) as never"
+      },
+      {
+        "file": "src/lib/auth/usePostLoginNavigation.ts",
+        "line": 27,
+        "expression": "pendingRoute"
+      },
+      {
+        "file": "src/components/layout/BreadcrumbTrail.tsx",
+        "line": 67,
+        "expression": "item.path as never"
+      },
+      {
+        "file": "src/components/office/calendar/OfficeCalendarEventChip.tsx",
+        "line": 85,
+        "expression": "event.href as never"
+      },
+      {
+        "file": "src/components/adaptive/AdaptiveModuleDashboard.tsx",
+        "line": 96,
+        "expression": "pilotRoute as never"
+      },
+      {
+        "file": "src/components/dashboard/DashboardView.tsx",
+        "line": 53,
+        "expression": "action.route as never"
+      },
+      {
+        "file": "src/components/dashboard/ModuleOverviewDashboard.tsx",
+        "line": 223,
+        "expression": "route as never"
+      },
+      {
+        "file": "src/components/dashboard/OfficeDashboardView.tsx",
+        "line": 74,
+        "expression": "route as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalLeftNav.tsx",
+        "line": 189,
+        "expression": "item.href as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalLeftNav.tsx",
+        "line": 203,
+        "expression": "hilfe.href as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalTopBar.tsx",
+        "line": 165,
+        "expression": "item.href as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalTopBar.tsx",
+        "line": 249,
+        "expression": "item.href as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalNavigationDrawer.tsx",
+        "line": 105,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/components/portal/ClientSignatureAttentionBanner.tsx",
+        "line": 21,
+        "expression": "(items.length === 1\n                  ? items[0].route\n                  : '/portal/client/documents/signatures') as never"
+      },
+      {
+        "file": "src/components/healthos/shell/HealthOSDesktopSidebar.tsx",
+        "line": 64,
+        "expression": "item.href as never"
+      },
+      {
+        "file": "src/components/healthos/shell/HealthOSMobileBottomNav.tsx",
+        "line": 82,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/components/healthos/office/HealthOSOfficeCommandCenterView.tsx",
+        "line": 129,
+        "expression": "route as never"
+      },
+      {
+        "file": "src/components/healthos/assist/HealthOSAssistOperationsView.tsx",
+        "line": 164,
+        "expression": "route as never"
+      },
+      {
+        "file": "src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx",
+        "line": 321,
+        "expression": "route as never"
+      },
+      {
+        "file": "src/components/layout/portal/PortalTabLeftNav.tsx",
+        "line": 71,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/components/layout/PortalMobileNav.tsx",
+        "line": 57,
+        "expression": "tab.href as never"
+      },
+      {
+        "file": "src/hooks/usePortalSidebarData.ts",
+        "line": 131,
+        "expression": "href as never"
+      },
+      {
+        "file": "src/components/layout/platform/breadcrumbbar.tsx",
+        "line": 36,
+        "expression": "segment.href as never"
+      }
+    ]
+  },
+  "androidExport": {
+    "status": "ok",
+    "export": "dist-healthos-full",
+    "platform": "android",
+    "routerRoot": "app",
+    "bundle": "_expo/static/js/android/entry-ed786a10df6c359da8028a5d25e93b37.hbc",
+    "sourceMap": "_expo/static/js/android/entry-ed786a10df6c359da8028a5d25e93b37.hbc.map",
+    "bundleBytes": 26450472,
+    "runtimeBytes": 183755948,
+    "runtimeSizeMb": 175.2,
+    "runtimeFiles": 464,
+    "bundledSources": 7426,
+    "requiredRoutes": 23,
+    "nativeUiWithoutWebViews": true,
+    "selectedAndroidRoutes": 701,
+    "selectedAndroidSources": 4139,
+    "importAnalysis": "Selected Android/native/default routes; static imports and literal dynamic imports; known Platform.OS branches evaluated for Android.",
+    "routes": {
+      "business": 259,
+      "office": 73,
+      "portal/employee": 32,
+      "portal/client": 17
+    },
+    "selectedNativeRouteImplementations": [
+      "src/liquid-command/screens/LiquidCommandEntryScreen.tsx",
+      "src/liquid-command/screens/AccessHubBaseScreen.tsx",
+      "src/liquid-command/screens/AccessScreens.tsx",
+      "src/lib/auth/businessAuthService.ts",
+      "src/liquid-command/screens/ModuleWorkspaceScreen.tsx",
+      "src/liquid-command/components/CompanyRegistrationSelect.tsx",
+      "src/liquid-command/screens/CommandCenterScreen.native.tsx",
+      "src/screens/support/PublicSupportScreen.native.tsx",
+      "src/screens/connect/GoogleWorkspaceScreen.native.tsx",
+      "src/ai/robot/RobotNavigationAssistant.native.tsx",
+      "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+      "src/components/images/CareSuiteImage.native.tsx",
+      "src/screens/settings/TenantNotificationSettingsScreen.tsx"
+    ],
+    "portalSecurityGates": true,
+    "authenticationAndRolePolicy": true,
+    "reachableWebImplementations": [],
+    "inactiveWebCandidates": [
+      "app/_layout.web.tsx",
+      "src/design/tokens/portalPremium.web.tsx",
+      "src/components/brand/WebStartDestination.web.tsx",
+      "src/lib/navigation/deviceLoginRoute.web.ts",
+      "src/lib/platformConsole/platformObservation.web.ts",
+      "src/components/platformConsole/PlatformRuntimeBoundary.web.tsx",
+      "app/device/confirm.web.tsx",
+      "src/lib/auth/tvDeviceLoginReturn.web.ts",
+      "src/lib/auth/tvDeviceLogin.web.ts",
+      "src/components/auth/tvDeviceLoginStyles.web.ts",
+      "app/device/tv.web.tsx",
+      "app/index.web.tsx",
+      "src/components/brand/webStartChoiceStyles.web.ts",
+      "app/support/index.web.tsx",
+      "src/components/platformConsole/PlatformObservationMount.web.tsx",
+      "src/lib/platformConsole/platformRuntime.web.ts",
+      "src/components/auth/PhoneDeviceApproval.web.tsx",
+      "src/components/auth/TvDeviceLogin.web.tsx",
+      "src/components/brand/WebStartChoice.web.tsx",
+      "src/screens/support/PublicSupportScreen.web.tsx",
+      "src/liquid-command/components/PublicAccessShell.web.tsx"
+    ],
+    "currentSourceIdentity": true,
+    "verifiedCurrentSources": 4165,
+    "currentSourceIdentityScope": "Mapped app/src text only; BOM/CRLF normalized. Other input content identity is not asserted by this field.",
+    "easArchiveAssets": {
+      "ignoreFile": ".easignore",
+      "checkedFiles": 4598,
+      "includedCheckedSourcesAndAssets": true
+    },
+    "introAssets": [
+      {
+        "format": "phone-portrait",
+        "bytes": 1108450,
+        "sha256": "5ae93754a6f4488072afdd93e5f968b0539a50cdb1fb9184d261dace375bb9e2",
+        "packaged": "assets/bcdc3f0d393ae16bc583ed387157219b"
+      },
+      {
+        "format": "phone-landscape",
+        "bytes": 825183,
+        "sha256": "7cdbcb0ec05416754dd3d27b48fcc0b503025b4550185b41e9535ac55c170513",
+        "packaged": "assets/d0cb6df3af0c03ab4db6415e19169bba"
+      },
+      {
+        "format": "tablet43-portrait",
+        "bytes": 1589777,
+        "sha256": "58c986fdfb8a146a483757b620c533df49409d96ca78125c74a7b0a64da745e5",
+        "packaged": "assets/438535dd8daf27c6a4fcf70ee3f4d86e"
+      },
+      {
+        "format": "tablet43-landscape",
+        "bytes": 1156447,
+        "sha256": "989d5ed9f8a6178ce0aa0410a92d11959aa81e8bc1891b7f20260ec050cbb998",
+        "packaged": "assets/74bc5ba130a1a8a7f5aef762e1dad923"
+      },
+      {
+        "format": "tablet1610-portrait",
+        "bytes": 1248939,
+        "sha256": "8272e7ffa381a27b016b86933dc7776f9722a7a9d94ae0b848710897aa8b94da",
+        "packaged": "assets/4c93ef5551621e27f6a31eab6b66f874"
+      },
+      {
+        "format": "tablet1610-landscape",
+        "bytes": 901254,
+        "sha256": "a314ae46ec38fd91f4c0948a8266e7d0343b894e0dc9563fc4bc6a98cd7c5042",
+        "packaged": "assets/1b18df434d20909341e55cb089a0537b"
+      }
+    ],
+    "nativeFont": {
+      "bytes": 137568,
+      "sha256": "64654e2515da88ca0c470c69b45341a0dda7f066a5f0c72cd6f2a929cdedd461",
+      "packaged": "assets/09f6b2ba02572f19a7d7dd2b5f6494ad"
+    },
+    "packagedAssets": 460,
+    "packagedAssetBytes": 157276005,
+    "largestAssets": [
+      {
+        "path": "assets/60b71ace71a096d2548ca0659f45de18",
+        "type": "png",
+        "bytes": 4098621
+      },
+      {
+        "path": "assets/b6919b129a09f0c260a93a8f59dc8f6e",
+        "type": "png",
+        "bytes": 3934593
+      },
+      {
+        "path": "assets/7d81b73f97b8a4590e9cc51bc927b3a1",
+        "type": "png",
+        "bytes": 3728030
+      },
+      {
+        "path": "assets/6291de3d823dc21ac71408b3164e6b99",
+        "type": "png",
+        "bytes": 3696967
+      },
+      {
+        "path": "assets/1eb47722069505d76501f5cefb9f85f6",
+        "type": "png",
+        "bytes": 3530872
+      },
+      {
+        "path": "assets/5683f2c38c12e1f135a5f0bdbab19a49",
+        "type": "png",
+        "bytes": 3504368
+      },
+      {
+        "path": "assets/4d0ce4c15b1397f19759ae2ccd608ca7",
+        "type": "png",
+        "bytes": 3483472
+      },
+      {
+        "path": "assets/caffd235dc8de69051ff5161c9614748",
+        "type": "png",
+        "bytes": 3456184
+      },
+      {
+        "path": "assets/2aa2cc8a45632488690a1a8db64e883c",
+        "type": "png",
+        "bytes": 3455006
+      },
+      {
+        "path": "assets/1da6971fcbfdc02c8c1d190252d9d00e",
+        "type": "png",
+        "bytes": 3447754
+      },
+      {
+        "path": "assets/5d63a23be65d452135abd437bb9e32ec",
+        "type": "png",
+        "bytes": 3437455
+      },
+      {
+        "path": "assets/7deaa25723a4a048f33ab9687fb4eddc",
+        "type": "png",
+        "bytes": 3402901
+      }
+    ]
+  },
+  "limits": [
+    "No Android device or emulator",
+    "No executable browser for visual QA",
+    "No signed AAB or Store release",
+    "Production RPC/Storage/RLS not verified",
+    "GPS raw-history projection missing",
+    "Mixed unmirrored legacy service_records unresolved",
+    "Upload compensation and Office finalization still incomplete"
+  ],
+  "changedRuntimeSourceSha256": {
+    "app/_layout.tsx": "a874db5fcf992bdc1f650e373b87ba7e99f1bef353076e60a97dd60d6515b149",
+    "app/portal/client/budget/index.tsx": "c107fbe61d43dad9aa540a87673147b33b0d5a9661b244aedf48ea8082913fda",
+    "scripts/audit-administration-routes.cjs": "bac9270ee1b2012532b01a2d91ed90b9305b9de1db10fb095a3006ac6e8ad3cc",
+    "src/__tests__/assist/assistProofEnrichmentGate.test.ts": "aae76f886da72a599e1e9cb87d610b523fc8a85bcedab719cf8ca4c8c8bc25f1",
+    "src/__tests__/assist/assistProofPdfPreview.test.ts": "baf0ee848a8b297cbc90e38178a7706dafa7c7aaa5bbbdf5f3aff2e98460a480",
+    "src/__tests__/assist/assistProofToPortalFlow.test.ts": "ada700e94a2c29d6e191492e22fd7a9b769f1600549bedb6dee0b00d73ced920",
+    "src/__tests__/assist/nativeAssistProofPdf.test.ts": "f7070bb867e7e356f2227d8975775208667945852825d9e13f9a653975e1dd6c",
+    "src/__tests__/auth/nativeAuthLifecycleRace.test.tsx": "b3e0c4443819646e06b90b08e8758a0a0827de3438b57b913a4b84f0aaf70ccc",
+    "src/__tests__/auth/requireRoleRedirect.test.ts": "1e78ea55b6287d58aee4a7c686f1d9906f500546e153a1939c98f85887777481",
+    "src/__tests__/inputs/nativeSignaturePersistence.test.ts": "0631d1c474fbeefdd8a97076d2f362a24b30c943db48d57d530e86422e0b5788",
+    "src/__tests__/inputs/nativeSignaturePng.test.ts": "cd8116e7bc6e873fc9c8b80cbbc5653495de15ecb85dd19388bd13e3f2bcec8d",
+    "src/__tests__/mocks/expoRouter.ts": "75fd4ebc738fc866ee06862e9f4d96a526fdd8ae60d1aa28c3d0e4b9f7274e34",
+    "src/__tests__/navigation/lightPortalRoutes.test.ts": "3bcf7d642012bafd31e4535f2d9f2d35b5ef5960ac210f3f8958a07b739020c6",
+    "src/__tests__/office/officemessagingportal.test.ts": "feb5edd02eadc0fb3644402552d511ded503eaa6f2d7103751b17166503f782a",
+    "src/__tests__/portal/assistPortalWorkflow.test.ts": "867f22c4efba618c64005922b27d31292ff73d7b50a0158bf81b50932e4b8463",
+    "src/__tests__/portal/clientAnnouncementRead.test.ts": "6d68545f20b62ee1cf16104f51aaf6fdee7161ebda6a06e8e49014306bac0151",
+    "src/__tests__/portal/clientAppointmentChangeRepair.test.ts": "5297c0c56f1d155b4dbb8a0bb23af7462902aa2d7742402d8b974f5ddff637f5",
+    "src/__tests__/portal/clientAppointmentsRefreshRepair.test.tsx": "aa90ead33f327e128743f5299153440cfdbcbc6dc4edfa24fd6e0ff9789cccf4",
+    "src/__tests__/portal/clientAssistSecondaryModuleRoute.test.tsx": "494ca520fa9c7898a2c77eec77be80a4f38f9814d11259ba7c8cf04ff0ba736d",
+    "src/__tests__/portal/clientBudgetAndLiveRelease.test.ts": "ff21cfea9c7c8c3b21a4955d54aa3da573461895e80beccc6ef04d02da73e4ee",
+    "src/__tests__/portal/clientCalendarAppointmentRepair.test.ts": "fedcca007932042d8a0e7877832fdc26704f66e5ece348ce1860af298a957d91",
+    "src/__tests__/portal/clientDocumentSignerRole.test.ts": "37fdc10b5160d4d912542a8ed828a73e9f4cdcf880b59339fd2ba9c060fd5cf8",
+    "src/__tests__/portal/clientPortalAssistProofSignature.test.ts": "ab64d808413b0bba13ebe694fca799233e853014c44bfbe749bd6b615fc6bacf",
+    "src/__tests__/portal/clientPortalExperienceRecovery.test.ts": "5bd9ab87d7cae7e33fc486239db1e887ecb22513290d67fb4b7c7eb3abd819b2",
+    "src/__tests__/portal/clientPortalFinalGate.test.ts": "d04b5642c23746bd9e92e15786cfb27f20787c0525656d953cbc7d09fbf0f8c3",
+    "src/__tests__/portal/clientPortalHistoryAndSections.test.ts": "e55f042be51f4b0ad73443b1ecf81426ab5568e6399dfcb328a16c05a35ed505",
+    "src/__tests__/portal/clientPortalRemainingStabilityR21.test.ts": "f10e4e1bfa0b63abadafe628d47067fc29b8cd9b8a0dbce2fc783c7d07bbe842",
+    "src/__tests__/portal/clientProfilePartialRead.test.ts": "07c57519a2f98f8f6eeaeeaea1c11b4c69e7e22ad6691f0efd6d335880e3b1d6",
+    "src/__tests__/portal/clientProofSignatureCompletionWeb.test.ts": "2cd10ae80ff137705f56ae33396a341e628ae4324a1a1280f42b9fdf09e80985",
+    "src/__tests__/portal/clientTemplateSignatureCompletionWeb.test.ts": "85b5e17602c4aa0e677496855fab9a6d8b2b4f2665e1cf11fb42e492bf10b2d3",
+    "src/__tests__/portal/employeeLogbookAutomaticWorkflowR11.test.ts": "51e44ff142fab0e656156efea543731883ed85c3f81b9c7b76d7d69529874f98",
+    "src/__tests__/portal/employeePortalNavigationAccess.test.tsx": "159055ffe12c7175c93c20cd99b2a863b141978867d0c5658601d05837896994",
+    "src/__tests__/portal/finalEmployeeWorkflowR10.test.ts": "3a6acfd5d6f91a7597b4c8b6632e04df3109260de0e9bb0a41a2a34088f22604",
+    "src/__tests__/portal/nativeDocumentPreview.test.tsx": "0351f3c5bc052bb7316e413e2c36934f218e5ec86a648965c0049b233831f03a",
+    "src/__tests__/portal/portalAnnouncementsHero.test.ts": "c46954e881ee8c10e11d405367eb174437ccba72163e455b57efd46db278fd22",
+    "src/__tests__/portal/portalAsyncInteraction.test.tsx": "e84ea97b97c4d58b0b271d26dde0c7690571fbbc9de8dd0e68477646dde9cb81",
+    "src/__tests__/portal/portalConversationLifecycle.test.tsx": "7f9234a14d86343cd42bd6bf859e2fff3094261e4aed882241e3dcf7adf7fe58",
+    "src/__tests__/portal/portalDocumentDetailHero.test.ts": "ec5d82e83c901abababf2dc4501b77c7aca3b8b265cb1a1f98d2ad8521088ac3",
+    "src/__tests__/portal/portalDocumentUpload.test.ts": "c5b069703b5ed1440c74ed8a9d9b95729a1843241c0c12bff910b6c817fd02b4",
+    "src/__tests__/portal/portalDocumentsLive.test.ts": "0216253ce1908afdc4e72a5f8f73c0e0bcfbee5c3cae900e093a7391a9c7b360",
+    "src/__tests__/portal/portalProofListReconciliationWeb.test.ts": "0c30868fdc75a35d640933d31ec8bc311a02ddf0da93261ca02ad7ddd96e7320",
+    "src/__tests__/portal/portalRequestActorIntegrity.test.ts": "48751268fe630cb7b6172624f1f27c47766adda632dc218a2159ab7cd1b7b858",
+    "src/__tests__/portal/portalServiceProofs.test.ts": "54e7b79bdc2960790cfada4d32cbd142032840c57ad64792e3bf1b833787c029",
+    "src/components/inputs/CareSignatureCanvas.tsx": "e927bcf60820a2f4d3f1f7e40e7b5239630de81f2df141ae5d0cada240dc901c",
+    "src/components/office/DocumentHtmlPreview.tsx": "02659c9df482b1d362451ff8c930973a268f9d1d9d9cc6b905952623d22a746a",
+    "src/components/office/NativeDocumentHtmlPreview.native.tsx": "a30437600c9623bbd57f11be5e82419a81053e159256f127628b9ce5a042aec1",
+    "src/components/office/NativeDocumentHtmlPreview.tsx": "d6a5847603ba4fd9f9c3be78677dc817fde24eed9333207df003fb4a379c3b4a",
+    "src/components/office/NativeDocumentHtmlPreview.web.tsx": "bee9cbc15276bf367a15058cbf9e11739a22bc4adfdd0f3c28d5bab29ce9d487",
+    "src/components/portal/AdaptivePortalOverview.tsx": "334f8b75e3abffc1a4ef0ef60458fadd6edcfd33102c35dc5863fd601a37ea18",
+    "src/components/portal/ClientPortalAssignmentPreviewSheet.tsx": "c6ce538a0dc643482e1a69ab1fb9baf6be481ad02b441d2b318329320f72f97c",
+    "src/components/portal/ClientSignatureAttentionProvider.tsx": "5a07ac7d12a612f74cd84f08321292be2ae7c8a1868e1e7822877b226823e676",
+    "src/components/portal/ClientSignatureAttentionProvider.web.tsx": "5a07ac7d12a612f74cd84f08321292be2ae7c8a1868e1e7822877b226823e676",
+    "src/components/portal/ClientSignatureAttentionProviderCore.tsx": "7e54002dfff01ee30480e7fdbb6bc373f76b21eb8f3f7a4748de74ef2f276474",
+    "src/components/portal/PortalAppointmentDetailHero.tsx": "fb88ca602c57c82b402e4e97e7a62aed9862d99a3486356fda256dcdb358ca5a",
+    "src/components/portal/PortalAppointmentsTab.tsx": "256cdcd98a37716e9af8a548539b7e5b51c58d3c4d9da62344a5fdd5fe8bcd26",
+    "src/components/portal/assist/AssistPortalOverview.tsx": "c2f8f7e64fd6794490f43871f86b0f2c01e1bedfbe54f14a93130b83009d51b2",
+    "src/components/portal/assist/AssistPortalSectionView.tsx": "85b395329feb71c026ef77e88350266c77cd9ebe1084177e5ac61cff7cb680e8",
+    "src/components/portal/assist/ClientPortalHomeDashboard.tsx": "71dad7168112eac1672a0f661e643f56779abdd01cd6bd12cd7844358a8f6ab7",
+    "src/components/portal/assist/MobilePortalDashboard.tsx": "5a0fcefc2e212b26f91b6e5c917dcd4fc27dc9db15f3515b000dab82b7584b6d",
+    "src/components/portal/assist/PortalNextAppointmentHero.tsx": "7d824fe28fb78eac586cdbe76ae4b1dfad569be5eaa30a25dfc81ea2ef51f276",
+    "src/components/portal/portalofficemessenger.tsx": "4bfab2d09ac6036c759896029d0827639248f9e105b8c137a5101cb1ea31c943",
+    "src/components/portal/portalofficethread.tsx": "50a2f54631dade3d4b11b98ffccb5e98c2fbbaf286eb99a914b9ff125ce1afd3",
+    "src/features/liveTracking/getClientLiveVisitLocation.ts": "5bde544d1699a4f149fd7a99d032fbd1e43da54e7981db2803498efd41624e90",
+    "src/hooks/core/useAsyncQuery.ts": "5616c4decfd74a8ce2a7fbffb4e665fe6021132ed6897ec1955eaa9498f5d236",
+    "src/hooks/useClientPortalProfile.ts": "fc620a16fb23f0bc2d4c5de63fcfb938c0cdc2834c937d79b9c2c1f8b9060f7a",
+    "src/hooks/useClientPortalSettings.ts": "d9acc92495859430a06bf2427c84b3d769e1ca15bc3666a9f58809f56b759e2c",
+    "src/hooks/usePortalAppointments.ts": "1f53b0fb080ac8f2acc38c1da4342d02e10cd60d9e8db84361d203e8ca801d09",
+    "src/hooks/usePortalClientLiveTracking.ts": "d101552b9aa840296794bfb53c7d65203ce080b07f98f8c1812d238e1e63e467",
+    "src/hooks/usePortalContext.ts": "14ed2b508067e7c80e3957aef44548951171bd1a0ddc2ad312afcae4df376dba",
+    "src/hooks/useportalofficethreaddetail.ts": "3e12ee33f3d0c26bfb4ec79cd74c46e3f2f571d325f24f95cce5ad860411ed2a",
+    "src/lib/assist/assistProofPdfService.ts": "66fcba759dc4486646de47ecad2d444d1f2477bbf09db9b3f2925d0fe09924c2",
+    "src/lib/assist/assistVisitSignaturePersistenceService.ts": "563e61d146e12639b6455dd60cad2aaf6b321123231d4219fc291765940f0ae0",
+    "src/lib/auth/AuthProvider.tsx": "5402a0734956f56cae6d43814063cb3facf3f742e0a504188677e9c7af576fcc",
+    "src/lib/client/clientPortalFeatureVisibility.ts": "c0e0599509c8bccc0034eca7f3406792d3ef1f189f732622a8776901c3311386",
+    "src/lib/client/clientPortalSettingsService.ts": "d695610221eaef228b31f588ab5221c364664bf71e19b8600ec54042bb22fce2",
+    "src/lib/documents/csTemplates/csDocumentRequestService.ts": "e669a41bbfd9c7d45815eb7aaf07cf515c1c34e337ca2a5f67dc94325e45f611",
+    "src/lib/documents/csTemplates/csDocumentRequestService.web.ts": "290a7947bfdd58579ad59580fe16fa622428b65ba657e684e9100badd89973b1",
+    "src/lib/documents/nativeDocumentContent.ts": "ce43b19211feb28c6df3077cac44ad7838c4af371a323624cb1fa69cdf5d8d1b",
+    "src/lib/navigation/isPortalRoute.ts": "95e5f800eb35867235c88be8f4bcc688cfb5c15ac7a9d6af7b79e14a528c3b61",
+    "src/lib/navigation/routes.ts": "dd6b73814a6fd2878cadb8aa7fe1ff1baff845ac57ec47a78df94794fe731c03",
+    "src/lib/office/portalofficemessageservice.ts": "0141df611fac344ac9e5c38ca186876f191a38e8fa5afb4f823fe989ff3c3919",
+    "src/lib/portal/appointmentService.ts": "ae70c7a95d45ff7c6c23ebf09b8fe001d6844eb71688543665929202b490c4d3",
+    "src/lib/portal/assist/portalAssistVisitProofService.core.ts": "49e7188d07da67454024682fad2f6da8dd8c75180049992ce6758ff2f9be36e2",
+    "src/lib/portal/assist/portalAssistVisitProofService.ts": "37c04962ddad058993b6848d076dc2919fd6be453ee708837b3fb71e65da3e80",
+    "src/lib/portal/assist/portalAssistVisitProofService.web.ts": "37c04962ddad058993b6848d076dc2919fd6be453ee708837b3fb71e65da3e80",
+    "src/lib/portal/assist/portalBudgetService.ts": "4101eba6bcdc81668459752c32de2abbaa7984004c3cf7a07676db38b501bf90",
+    "src/lib/portal/assist/portalDocumentUploadService.ts": "a881d6446baf87491f33d4c24569c40abebe27675f8c1514538e3ae74ae61a02",
+    "src/lib/portal/assist/portalRequestService.ts": "f1b8fde42447f32a7fcec5b8d774883afc35e228ae680f6858d8345e6ca61205",
+    "src/lib/portal/assist/portalServiceProofService.core.ts": "49f30c1935c7cee233fa4161c453af85339e78ea84c0f3d1c7400e75a6e8ad53",
+    "src/lib/portal/assist/portalServiceProofService.ts": "b1008aaf10f7f67b1884ad261229571e3166b6d810435bfa9c80c1920452f35b",
+    "src/lib/portal/assist/portalServiceProofService.web.ts": "b1008aaf10f7f67b1884ad261229571e3166b6d810435bfa9c80c1920452f35b",
+    "src/lib/portal/clientAnnouncementReadService.ts": "ae235ed26f0622fe7960b7bf0b305292d2de8ae42fea6829b2c99dbd9877dcae",
+    "src/lib/portal/clientPortalAssistProofSignatureService.ts": "fe5e05c75367a0696083c4d82177dc226a227c6382b3743439b47b6594d12394",
+    "src/lib/portal/clientPortalAssistProofSignatureService.web.ts": "fe5e05c75367a0696083c4d82177dc226a227c6382b3743439b47b6594d12394",
+    "src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts": "da8b67c8fb2a07b4593f081d5a2401eeeb252419bd4645be9d433e1233ce0a73",
+    "src/lib/portal/clientSignatureAttention.ts": "ab1ab783492b2624e266d4d8947dc4411beb6a55fee3687cc1268e9afedb45b3",
+    "src/lib/portal/clientSignatureAttention.web.ts": "ab1ab783492b2624e266d4d8947dc4411beb6a55fee3687cc1268e9afedb45b3",
+    "src/lib/portal/clientSignatureAttentionCore.ts": "03f4238726380e45b5148afde8ef69bebcbea4061eea8339204de9153dcf8888",
+    "src/lib/portal/fetchAllPortalRows.web.ts": "3d496cd5001a9ee3de7abe3d6bd32b3ba859dc4126e76ac6bc47cda89f2bc41b",
+    "src/lib/portal/groupPortalAppointmentsByTime.ts": "5a3b5df2ccd843c6b7a449170529b565dba498f63a76fd1c425463b9af94723d",
+    "src/lib/portal/portalAppointmentsLiveService.ts": "339a0a7319c2d43a7e393b2f168b17ce2348abe7de38496ceaeaee943272e715",
+    "src/lib/portal/portalDocumentSignatureHelpers.ts": "57fdb7b9214381e2656a9f21ece4b610fa0262401b2dc6c3fffd34045aa1f70e",
+    "src/lib/portal/portalOverviewAction.ts": "846becfa423be3354c3179e4a8e9a7c52a84fd269376ea9ee5072a6d76af7b6b",
+    "src/lib/portal/portalRowPagination.ts": "ef920619ca48a8a0d14ef77062533265cea7b29d36566561708782909d8f3ff9",
+    "src/lib/portal/portalSectionAppointments.ts": "7de799f6bbef4121c9a2a44e18d6e212322925ceca64127b0e076d89ce51fddb",
+    "src/lib/signatures/nativeSignaturePng.ts": "9d6601c1cb83f479cc55d13155c37cf4f1f2175438675f07a544c3d2922e6d92",
+    "src/liquid-command/navigation/portalCatalog.ts": "83b459ea5a759e7a100b286ea0e1a1a0a8fc9d29c4b88da99f83a9b619f3c779",
+    "src/liquid-command/shell/LiquidPortalRouteLayout.tsx": "e3cf8a61122fc5465a5f0fa7f3a24dab601d3e45381c66a5c7891c1ee3f9a697",
+    "src/liquid-command/shell/LiquidPortalRouteLayout.web.tsx": "54c4eb5df69cd648165075209fa640c20258d1cd9523727138a32aa293b1e432",
+    "src/screens/documents/CsDocumentRequestDetailScreen.tsx": "5eb765e6fb4ec6f150f8b2d9c395f60c3869483178b36365e27377d7de026da9",
+    "src/screens/documents/CsDocumentRequestDetailScreen.web.tsx": "54cdbf3c99c580b0819486c742127f29a455d21b427cc2ea7380c235143f4aab",
+    "src/screens/portal/ClientDocumentSignaturesScreen.tsx": "72fd2f868a44e2008b3e60e51080c8648b73450ba71ab8d1316402086dbf22ff",
+    "src/screens/portal/ClientPortalAnnouncementsScreen.tsx": "655d5fcbf712e9543d62c306053437186b6d19a6b0919e76d96c321e7fc42534",
+    "src/screens/portal/ClientPortalHelpScreen.tsx": "1813f2939d91f3391a5971c8286a9768dc4e7936c19ea9050939b997e3b41b07",
+    "src/screens/portal/ClientPortalProfileScreen.tsx": "386cdc31f43b7318c3e4d2225492e52e9c64f09bdfddb43eb144ce0baca98a8e",
+    "src/screens/portal/PortalClientAppointmentDetailScreen.tsx": "2fe87a3ba7e5dcf8cbb581040ac18321c832b152bca7c092637ded46aa256a86",
+    "src/screens/portal/PortalClientDocumentDetailScreen.tsx": "833654bc70f7ce712ac53728337dc5c8d8e69a1a6abb583fc15574b31e1464f4",
+    "src/screens/portal/PortalClientDocumentDetailScreen.web.tsx": "833654bc70f7ce712ac53728337dc5c8d8e69a1a6abb583fc15574b31e1464f4",
+    "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx": "6f1162ca986dbc0a4973a452e8f47065d4309b3b0977c39ed5ad7abcd6988765",
+    "src/screens/portal/portalofficemessagesscreens.tsx": "eaa7324cc237e655b98f6ab9c402f417411e9630be32237c5ad933f458ba9f24",
+    "src/types/portal/client.ts": "2c0a7ae62835724447004e7a59125e067b6969eeabad0688c80e4d0442c4a21e",
+    "src/types/portal/documents.ts": "d03b5a424b6a68e674091d3d10c72825a8c8dba9104b2b482099711ff92daa8e"
+  }
+}

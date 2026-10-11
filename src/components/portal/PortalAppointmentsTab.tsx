@@ -10,13 +10,14 @@ import { EmployeePortalAssignmentPreviewSheet } from '@/components/portal/Employ
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { groupPortalAppointmentsByTime } from '@/lib/portal/groupPortalAppointmentsByTime';
+import { groupPortalAppointmentsByTime, groupPortalPastAppointmentsByMonth } from '@/lib/portal/groupPortalAppointmentsByTime';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
   SuccessState,
   CachedDataBanner,
+  ListFilterSelect,
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
@@ -54,6 +55,7 @@ export function PortalAppointmentsTab({
   const type = resolveGalaxyTypography(width);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [clientView, setClientView] = useState<'upcoming' | 'past'>('upcoming');
+  const [historyMonth, setHistoryMonth] = useState('all');
 
   const {
     items,
@@ -68,12 +70,15 @@ export function PortalAppointmentsTab({
     isResolvingClientLink,
     missingClientLink,
     supabaseSessionReady,
+    refreshError,
   } = usePortalAppointments(audience);
 
   const appointmentGroups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
   const clientUpcoming = appointmentGroups.find((group) => group.key === 'upcoming')?.items ?? [];
   const clientPast = appointmentGroups.find((group) => group.key === 'past')?.items ?? [];
-  const clientVisibleItems = clientView === 'upcoming' ? clientUpcoming : clientPast;
+  const historyMonths = groupPortalPastAppointmentsByMonth(clientPast);
+  const selectedHistoryMonth = historyMonths.find((group) => group.key === historyMonth);
+  const clientVisibleItems = clientView === 'upcoming' ? clientUpcoming : selectedHistoryMonth?.items ?? clientPast;
 
   if ((loading || isResolvingClientLink || !supabaseSessionReady) && items.length === 0) {
     return (
@@ -146,6 +151,8 @@ export function PortalAppointmentsTab({
         <SuccessState message={`${appointmentsLabel} aktualisiert.`} />
       ) : null}
 
+      {refreshError ? <ErrorState title="Aktualisieren nicht möglich" message={refreshError} onRetry={refresh} /> : null}
+
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
 
       {!isEmployeePortal ? <ClientPortalLiveTrackingSection /> : null}
@@ -181,6 +188,16 @@ export function PortalAppointmentsTab({
             </Text>
           </Pressable>
         </View>
+      ) : null}
+
+      {!isEmployeePortal && clientView === 'past' && historyMonths.length > 0 ? (
+        <ListFilterSelect
+          label="Monat der Einsatzhistorie"
+          value={selectedHistoryMonth?.key ?? 'all'}
+          options={[{ key: 'all', label: 'Alle Monate' }, ...historyMonths.map(({ key, label }) => ({ key, label }))]}
+          onChange={setHistoryMonth}
+          style={{ width: '100%', minWidth: 0 }}
+        />
       ) : null}
 
       {isEmpty ? (
@@ -232,7 +249,7 @@ export function PortalAppointmentsTab({
       ) : (
         <View>
           <Text style={[type.label, { color: text.primary, marginBottom: careSpacing.sm }]}>
-            {clientView === 'upcoming' ? 'Kommende Einsätze' : 'Vergangene Einsätze'}
+            {clientView === 'upcoming' ? 'Kommende Einsätze' : selectedHistoryMonth?.label ?? 'Vergangene Einsätze'}
           </Text>
           {clientVisibleItems.map((appt) => {
               const cachedItem = appt as CachedPortalAppointmentItem;

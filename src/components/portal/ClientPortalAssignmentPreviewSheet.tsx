@@ -54,7 +54,7 @@ export function ClientPortalAssignmentPreviewSheet({
   const router = useRouter();
   const { isPhone } = useDeviceClass();
   const tenantId = useServiceTenantId();
-  const { data, loading, error, refresh } = usePortalClientAppointmentDetail(
+  const { data, loading, error, refresh, notFound } = usePortalClientAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
 
@@ -92,10 +92,10 @@ export function ClientPortalAssignmentPreviewSheet({
     >
       {loading && !data ? (
         <LoadingState message="Ihr Einsatz wird geladen…" />
-      ) : error && !data ? (
+      ) : (error || notFound) && !data ? (
         <ErrorState
           title="Einsatz konnte nicht geladen werden"
-          message={error}
+          message={error ?? 'Dieser Einsatz ist nicht mehr verfügbar. Bitte öffnen Sie die Einsatzübersicht erneut.'}
           onRetry={refresh}
         />
       ) : data ? (

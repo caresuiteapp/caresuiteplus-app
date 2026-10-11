@@ -3,6 +3,7 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -65,7 +66,7 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
       </View>
       <View style={styles.badges}>
         <PremiumBadge
-          label={WORKFLOW_STATUS_LABELS[appointment.status]}
+          label={appointment.assignmentStatus ? ASSIGNMENT_STATUS_LABELS[appointment.assignmentStatus] : WORKFLOW_STATUS_LABELS[appointment.status] ?? 'Termin'}
           variant={statusVariant(appointment.status)}
           dot
         />

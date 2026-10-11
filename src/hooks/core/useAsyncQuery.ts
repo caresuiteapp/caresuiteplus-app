@@ -74,7 +74,7 @@ export function useAsyncQuery<T>(
   // Requests belonging to a previous filter/account may finish after the new one.
   // Give each fetcher generation its own flight lock and reject stale results.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const requestState = useMemo(() => ({ inFlight: false, queued: false, waiters: [] as (() => void)[] }), [...deps, options?.enabled, options?.queryKey]);
+  const requestState = useMemo(() => ({ inFlight: false, queued: false, waiters: [] as ((succeeded: boolean) => void)[] }), [...deps, options?.enabled, options?.queryKey]);
   const currentRequest = useRef(requestState);
   currentRequest.current = requestState;
   const enabledRef = useRef(options?.enabled !== false);
@@ -98,15 +98,16 @@ export function useAsyncQuery<T>(
   }
 
   const load = useCallback(
-    async (silent = false) => {
-      if (!enabledRef.current || !mounted.current || currentRequest.current !== requestState) return;
+    async (silent = false): Promise<boolean> => {
+      if (!enabledRef.current || !mounted.current || currentRequest.current !== requestState) return false;
       if (requestState.inFlight) {
         requestState.queued = true;
-        return new Promise<void>((resolve) => requestState.waiters.push(resolve));
+        return new Promise<boolean>((resolve) => requestState.waiters.push(resolve));
       }
       requestState.inFlight = true;
 
       const isInitialLoad = dataRef.current === null;
+      let succeeded = false;
       if (!silent && isInitialLoad) {
         setLoading(true);
         setError(null);
@@ -115,8 +116,9 @@ export function useAsyncQuery<T>(
       try {
         requestState.queued = false;
         const result = await runQueryWithRetry(fetcher, options?.retryCount ?? 1);
-        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return;
+        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return false;
         if (result.ok) {
+          succeeded = true;
           applyCacheMeta(result);
           dataRef.current = result.data;
           setDataState(result.data);
@@ -139,7 +141,7 @@ export function useAsyncQuery<T>(
           setRefreshError(result.error);
         }
       } catch (cause) {
-        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return;
+        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return false;
         if (dataRef.current === null) {
           setDataState(null);
           setPreviewData(false);
@@ -161,12 +163,13 @@ export function useAsyncQuery<T>(
         }
         if (current && runTrailingRefresh) {
           queueMicrotask(() => {
-            void load(true).finally(() => waiters.forEach((resolve) => resolve()));
+            void load(true).then((result) => waiters.forEach((resolve) => resolve(result)));
           });
         } else {
-          waiters.forEach((resolve) => resolve());
+          waiters.forEach((resolve) => resolve(current && succeeded));
         }
       }
+      return succeeded;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [...deps, options?.enabled, options?.queryKey],
@@ -218,14 +221,16 @@ export function useAsyncQuery<T>(
     return () => subscription.remove();
   }, [load, options?.enabled, options?.live, options?.refreshOnAppFocus]);
 
-  const refresh = useCallback(async () => {
+  const refreshWithResult = useCallback(async () => {
     setRefreshing(true);
     try {
-      await load(true);
+      return await load(true);
     } finally {
       setRefreshing(false);
     }
   }, [load]);
+  const refresh = useCallback(async () => { await refreshWithResult(); }, [refreshWithResult]);
+  const reload = useCallback(async (silent = false) => { await load(silent); }, [load]);
 
   const liveEnabled =
     options?.enabled !== false &&
@@ -273,8 +278,9 @@ export function useAsyncQuery<T>(
     tableMissing,
     refreshing,
     refresh,
+    refreshWithResult,
     silentRefresh,
-    reload: load,
+    reload,
     isLiveConnected,
     cacheMeta,
     isEmpty: !loading && !error && data === null,

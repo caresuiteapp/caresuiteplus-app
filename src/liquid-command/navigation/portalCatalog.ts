@@ -1,4 +1,6 @@
 import type { LiquidPortalKey } from '../types';
+import type { ClientPortalSettingsResolved } from '@/types/clientCore';
+import { canClientPortalSeeFeature } from '@/lib/client/clientPortalFeatureVisibility';
 
 export type LiquidPortalNavigationItem = {
   id: string;
@@ -55,3 +57,12 @@ export const liquidPortalNavigation: Record<
     { id: 'profile', label: 'Profil', glyph: '♙', route: '/portal/client/profile', group: 'account' },
   ],
 };
+
+export function releasedLiquidPortalNavigation(
+  kind: ProductPortalKind,
+  settings?: ClientPortalSettingsResolved | null,
+): readonly LiquidPortalNavigationItem[] {
+  if (kind !== 'client') return liquidPortalNavigation[kind];
+  return liquidPortalNavigation.client.filter((item) => item.id !== 'budget'
+    || (settings != null && canClientPortalSeeFeature(settings, 'budget')));
+}

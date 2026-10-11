@@ -1,3 +1,4 @@
+import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   CsDocumentRequest,
@@ -522,6 +523,7 @@ export async function signCsDocumentRequest(input: {
   signatureDataUrl: string;
   anchorToken?: string;
   userAgent?: string | null;
+  expectedUpdatedAt?: string;
   portalActor?: {
     roleKey: RoleKey;
     employeeId?: string | null;
@@ -588,6 +590,9 @@ export async function signCsDocumentRequest(input: {
         })
       : await fetchCsDocumentRequestDetail(input.tenantId, input.requestId);
     if (!detail.ok) return detail;
+    if (input.portalActor && input.expectedUpdatedAt && input.expectedUpdatedAt !== detail.data.updatedAt) {
+      return { ok: false, error: 'Das Dokument wurde geändert. Bitte laden Sie es neu und prüfen Sie die neue Fassung, bevor Sie unterschreiben.' };
+    }
 
     const signedAt = new Date().toISOString();
     const anchor = input.anchorToken ?? `${input.signerRole}_signature`;
@@ -598,6 +603,21 @@ export async function signCsDocumentRequest(input: {
       input.signerName,
       signedAt,
     );
+
+    if (input.portalActor?.roleKey === 'client_portal' || input.portalActor?.roleKey === 'family_portal') {
+      const receipt = await supabase.rpc('client_portal_sign_document_request' as never, {
+        p_tenant_id: input.tenantId,
+        p_request_id: input.requestId,
+        p_signer_role: input.signerRole,
+        p_signer_name: input.signerName.trim(),
+        p_signature_data_url: input.signatureDataUrl,
+        p_expected_updated_at: input.expectedUpdatedAt ?? detail.data.updatedAt,
+      } as never);
+      if (receipt.error) throw receipt.error;
+      if (receipt.data !== input.requestId) throw new Error('Unterschrift wurde nicht bestätigt. Bitte den Status erneut laden.');
+      invalidatePortalProofCache();
+      return fetchCsDocumentRequestDetail(input.tenantId, input.requestId, undefined, { portalMode: true });
+    }
 
     const { error: sigError } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
       .update({
@@ -614,11 +634,12 @@ export async function signCsDocumentRequest(input: {
 
     if (sigError) throw sigError;
 
-    const { data: remaining } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
+    const { data: remaining, error: remainingError } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
       .select('id')
       .eq('request_id', input.requestId)
       .eq('status', 'pending');
 
+    if (remainingError) throw remainingError;
     const allDone = (remaining ?? []).length === 0;
     const nextStatus: CsDocumentRequestStatus = allDone ? 'completed' : 'partially_signed';
 

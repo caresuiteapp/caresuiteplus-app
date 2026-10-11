@@ -62,7 +62,7 @@ describe('Portal documents live wiring', () => {
     expect(display).toContain('isTechnicalIntakeDocumentTitle');
     expect(display).toContain('mapClientDocumentToPortalListItem');
 
-    const detail = readSrc('src/screens/portal/PortalClientDocumentDetailScreen.tsx');
+    const detail = readSrc('src/screens/portal/PortalClientDocumentDetailScreenCore.tsx');
     expect(detail).toContain('DocumentHtmlPreview');
     expect(detail).toContain('viewReady');
   });

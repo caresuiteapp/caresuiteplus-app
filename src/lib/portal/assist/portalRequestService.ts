@@ -135,11 +135,19 @@ export async function createPortalRequest(
       input.title.trim() ||
       resolvePortalRequestTypeLabel(input.requestType);
 
+    // profiles.id is the auth user id; a portal access account is a different
+    // identity. Never trust a caller's account id for this profile foreign key.
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user?.id) {
+      return { ok: false, error: 'Ihre Anmeldung konnte nicht bestätigt werden. Bitte melden Sie sich erneut an.' };
+    }
+    const authorProfileId = auth.user.id;
+
     const { data, error } = await fromUnknownTable(supabase, 'portal_requests')
       .insert({
         tenant_id: input.tenantId,
         client_id: input.clientId,
-        portal_user_id: input.portalUserId ?? null,
+        portal_user_id: authorProfileId,
         module_key: input.moduleKey ?? 'assist',
         request_type: input.requestType,
         status: 'offen',
@@ -159,27 +167,31 @@ export async function createPortalRequest(
 
     const request = mapRequestRow(data as Record<string, unknown>);
 
-    await fromUnknownTable(supabase, 'portal_request_status_history').insert({
-      tenant_id: input.tenantId,
-      request_id: request.id,
-      from_status: null,
-      to_status: 'offen',
-      changed_by: input.portalUserId ?? null,
-      note: 'Anfrage erstellt',
-    });
+    // The request is already persisted. Optional office/audit recording must
+    // not report it as unsent and invite a duplicate submission on retry.
+    await Promise.allSettled([
+      Promise.resolve(fromUnknownTable(supabase, 'portal_request_status_history').insert({
+        tenant_id: input.tenantId,
+        request_id: request.id,
+        from_status: null,
+        to_status: 'offen',
+        changed_by: authorProfileId,
+        note: 'Anfrage erstellt',
+      })),
 
-    await logPortalActivity({
-      tenantId: input.tenantId,
-      clientId: input.clientId,
-      portalUserId: input.portalUserId,
-      moduleKey: input.moduleKey ?? 'assist',
-      activityType: 'request_created',
-      title: `Anfrage: ${title}`,
-      description: input.description ?? null,
-      metadata: { requestId: request.id, requestType: input.requestType },
-    });
+      logPortalActivity({
+        tenantId: input.tenantId,
+        clientId: input.clientId,
+        portalUserId: authorProfileId,
+        moduleKey: input.moduleKey ?? 'assist',
+        activityType: 'request_created',
+        title: `Anfrage: ${title}`,
+        description: input.description ?? null,
+        metadata: { requestId: request.id, requestType: input.requestType },
+      }),
 
-    await stubEmployeeNotificationForRequest(request);
+      stubEmployeeNotificationForRequest(request),
+    ]);
 
     return { ok: true, data: request };
   });

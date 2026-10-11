@@ -127,7 +127,9 @@ export async function saveVisitSignaturePersistent(
     return { ok: true, data: existing.data };
   }
 
-  const signatureId = crypto.randomUUID?.() ?? `sig-${Date.now()}`;
+  const signatureId = typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
+    : (await import('expo-crypto')).randomUUID();
   let storagePath = input.storagePath;
 
   if (input.signatureDataUrl?.trim()) {
@@ -138,7 +140,7 @@ export async function saveVisitSignaturePersistent(
     storagePath = buildAssistVisitSignatureStoragePath(tenantId, input.visitId, signatureId);
     const { error: uploadError } = await supabase.storage
       .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-      .upload(storagePath, parsed.bytes, {
+      .upload(storagePath, parsed.bytes.slice().buffer as ArrayBuffer, {
         contentType: parsed.mimeType || 'image/png',
         upsert: false,
       });

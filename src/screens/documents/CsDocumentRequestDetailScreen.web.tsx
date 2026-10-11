@@ -1,3 +1,4 @@
+import { resolvePortalDocumentSignerRole } from '@/lib/portal/portalDocumentSignatureHelpers';
 import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -95,6 +96,7 @@ export function CsDocumentRequestDetailScreen({
   const router = useRouter();
   const attention = useClientSignatureAttention();
   const signing = useRef(false);
+  const reviewedDocumentVersion = useRef<string | undefined>(undefined);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const portalActor = usePortalActor();
@@ -125,7 +127,7 @@ export function CsDocumentRequestDetailScreen({
   );
 
   const item = query.data;
-  const effectiveSignerRole = mode === 'client' && !item?.pendingSignatureRoles.includes('client') && item?.pendingSignatureRoles.includes('representative') ? 'representative' : signerRole;
+  const effectiveSignerRole = resolvePortalDocumentSignerRole({ mode, roleKey: portalActor.roleKey, pendingRoles: item?.pendingSignatureRoles ?? [], defaultRole: signerRole });
   const canSign =
     item
     && item.pendingSignatureRoles.includes(effectiveSignerRole)
@@ -172,6 +174,7 @@ export function CsDocumentRequestDetailScreen({
       signerRole: effectiveSignerRole,
       signerName: signerNameDefault ?? profile?.displayName ?? 'Unterzeichner:in',
       signatureDataUrl: dataUrl,
+      expectedUpdatedAt: reviewedDocumentVersion.current,
       anchorToken: `${effectiveSignerRole}_signature`,
       portalActor: isPortal && portalActor.roleKey
         ? {
@@ -255,7 +258,7 @@ export function CsDocumentRequestDetailScreen({
         subtitle={statusLabel}
         accent={accent}
         canSign={Boolean(canSign)}
-        onSign={() => setSignModal(true)}
+        onSign={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}
       >
         {isPortal && canSign ? (
           <ClientPortalGuide

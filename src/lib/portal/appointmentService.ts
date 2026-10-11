@@ -36,6 +36,7 @@ import {
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
 import { dedupePortalAppointmentOccurrences } from './employeePortalAppointmentIdentity';
 import { portalAudienceForRole } from './portalAudience';
+import { createPortalRequest } from './assist/portalRequestService';
 
 export type PortalAppointmentsPortalContext = {
   tenantId?: string | null;
@@ -66,8 +67,10 @@ export type PortalAppointmentItem = Pick<
 const SIMULATED_DELAY_MS = 350;
 
 function mapCalendarToPortalItems(events: CalendarEvent[]): PortalAppointmentItem[] {
-  return portalEventsToAppointmentItems(events).map((item) => ({
-    id: item.id,
+  return portalEventsToAppointmentItems(events).map((item, index) => ({
+    id: events[index].record && events[index].sourceType !== 'assist_visit'
+      ? `calendar:${events[index].record!.id}`
+      : item.id,
     title: item.title,
     startsAt: item.startsAt,
     endsAt: item.endsAt,
@@ -406,7 +409,10 @@ export async function fetchPortalClientAppointmentDetail(
   const tenantId = portalContext?.tenantId ?? null;
   const clientId = portalContext?.clientId ?? null;
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim() || !clientId?.trim()) {
+      return { ok: false, error: 'Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
+    }
     return fetchLivePortalClientAppointmentDetail(tenantId, clientId, appointmentId, onBasicDetail);
   }
 
@@ -494,6 +500,32 @@ export async function requestPortalAppointmentChange(
 
     if (!detail.data.canRequestChange) {
       return { ok: false, error: 'Für diesen Einsatz kann keine Änderung angefragt werden.' };
+    }
+
+    if (getServiceMode() === 'supabase') {
+      const tenantId = portalContext?.tenantId?.trim();
+      const clientId = portalContext?.clientId?.trim();
+      if (!tenantId || !clientId) {
+        return { ok: false, error: 'Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
+      }
+      const request = await createPortalRequest({
+        tenantId,
+        clientId,
+        portalUserId: profileId,
+        moduleKey: detail.data.moduleKey ?? 'assist',
+        requestType: 'termin_aendern',
+        title: `Änderungswunsch: ${detail.data.title}`,
+        description: reason.trim(),
+        payload: {
+          appointmentId: detail.data.id,
+          appointmentLabel: detail.data.title,
+          startsAt: detail.data.startsAt,
+          endsAt: detail.data.endsAt,
+          nachricht: reason.trim(),
+        },
+      });
+      if (!request.ok) return request;
+      return { ok: true, data: { requestId: request.data.id } };
     }
 
     return {
