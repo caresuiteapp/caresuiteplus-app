@@ -72,7 +72,7 @@ export function createPdfUploadHandler(dependencies: Dependencies) {
       return dependencies.respond({ ok: false, error: 'Keine aktive Berechtigung für diesen Mandanten.' }, 403);
     }
     const role = await service.from('roles').select('*').eq('id', actor.data.role_id).single();
-    if (role.error || !role.data || ['employee_portal', 'client_portal', 'family_portal', 'employee', 'caregiver', 'nurse', 'client', 'family', 'relative'].includes(String(role.data.key))
+    if (role.error || !role.data || ['employee_portal', 'client_portal', 'family_portal', 'employee', 'caregiver', 'nurse', 'client', 'family', 'relative'].includes(String(role.data.key).toLowerCase())
       || role.data.tenant_id != null && role.data.tenant_id !== input.tenantId) {
       return dependencies.respond({ ok: false, error: 'Keine Verwaltungsberechtigung für diesen Upload.' }, 403);
     }
