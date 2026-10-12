@@ -1794,6 +1794,8 @@ function EmployeePortalVisitExecutionContent() {
           ref={scrollRef}
           contentContainerStyle={[styles.focusStageContent, { paddingBottom: bottomPadding }]}
           keyboardShouldPersistTaps="handled"
+          disableScrollViewPanResponder
+          scrollEnabled
           nestedScrollEnabled
           showsVerticalScrollIndicator
           style={styles.focusStageViewport}
@@ -2226,10 +2228,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     width: '100%',
+    height: '100%',
+    overflow: 'hidden',
     backgroundColor: employeePortalExecutionSurface.background,
   },
   focusStageViewport: {
     flex: 1,
+    // Give Safari a definite flex base: long cards must overflow this viewport,
+    // rather than expand it behind the fixed action bar.
+    flexBasis: 0,
+    flexShrink: 1,
+    height: 0,
     minWidth: 0,
     minHeight: 0,
     width: '100%',
@@ -2246,6 +2255,7 @@ const styles = StyleSheet.create({
   },
   focusStageContent: {
     flexGrow: 1,
+    flexShrink: 0,
     width: '100%',
     maxWidth: 1600,
     alignSelf: 'center',
