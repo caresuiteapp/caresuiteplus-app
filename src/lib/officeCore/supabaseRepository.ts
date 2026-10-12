@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { readAllVisitPages } from '@/lib/assist/repositories/visitListPagination';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -19,10 +20,10 @@ function createAssignmentRepo(table: string): TableRepo {
     async list(tenantId: string) {
       const supabase = getSupabaseClient();
       if (!supabase) return unavailable();
-      const { data, error } = await fromUnknownTable(supabase, table)
+      const { data, error } = await readAllVisitPages((from, to) => fromUnknownTable(supabase, table)
         .select('*')
         .eq('tenant_id', tenantId)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false }).order('id', { ascending: true }).range(from, to));
       if (error) return { ok: false, error: toGermanSupabaseError(error) };
       return { ok: true, data: (data ?? []) as Record<string, unknown>[] };
     },

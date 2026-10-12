@@ -144,6 +144,14 @@ function isWorkflowConfirmationPending(errorCode: unknown): boolean {
 }
 
 export function EmployeePortalVisitExecutionScreen() {
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { tenantId, employeeId } = usePortalActor();
+  const { portalSession, profile } = useAuth();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  return <EmployeePortalVisitExecutionContent key={JSON.stringify([tenantId, employeeId, portalSession?.accountId, profile?.id, id])} />;
+}
+
+function EmployeePortalVisitExecutionContent() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
@@ -1845,6 +1853,7 @@ export function EmployeePortalVisitExecutionScreen() {
               }}
             >
               <EmployeePortalVisitSignaturePanel
+                key={signatureViewScope}
                 clientName={visit.clientName}
                 loading={actionLoading}
                 confirmationPending={signatureConfirmationPending}
@@ -1867,7 +1876,9 @@ export function EmployeePortalVisitExecutionScreen() {
                     signatureConfirmationPending: true,
                     awaitingSignature: true,
                   });
+                  const submitScope = signatureViewScope;
                   const r = await saveSignature(sig);
+                  if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
                   if (r.ok) {
                     setSignatureConfirmationPending(true);
                     setAwaitingSignature(true);
@@ -1964,7 +1975,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <EmployeePortalVisitTasksPanel
           key={optionalTaskScope}
           tasks={visitTasks}
-          disabled={isLocked || readOnlyExecution}
+          disabled={isLocked || readOnlyExecution || actionLoading || workflowConfirmationPending || ['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '')}
           loading={taskSaving}
           visible={tasksOpen}
           onClose={() => setTasksOpen(false)}
@@ -1977,6 +1988,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
       {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
+          key={signatureViewScope}
           ref={docPanelRef}
           disabled={isLocked || readOnlyExecution}
           loading={actionLoading}
@@ -2001,7 +2013,9 @@ export function EmployeePortalVisitExecutionScreen() {
           openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
             setLocalError(null);
+            const submitScope = signatureViewScope;
             const r = await saveDocumentation(doc);
+            if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
             if (r.ok) {
               setDocumentationDraftText(doc.shortDescription);
               setDocumentationSpecialNotes(doc.specialNotes ?? '');

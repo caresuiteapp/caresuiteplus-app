@@ -76,14 +76,19 @@ describe('client portal remaining stability R21', () => {
 
   it('regenerates the PDF after a client signature instead of silently accepting stale output', () => {
     const signatureService = readSrc(
-      'src/lib/portal/clientPortalAssistProofSignatureService.ts',
+      'src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts',
     );
     const pdfService = readSrc('src/lib/assist/assistProofPdfService.ts');
 
-    expect(signatureService).toContain('generateAssistProofPdf');
-    expect(signatureService).toContain('finishSignedProofDelivery');
+    expect(signatureService).toContain('renderAssistProofPdfBytes(signedProof');
+    expect(signatureService).toContain('clientPortalPdfSignatureId: signature.id');
+    expect(signatureService).toContain('upsert: false');
+    expect(signatureService).toContain("'client_portal_finalize_assist_proof'");
+    expect(signatureService).toContain('p_expected_payload_hash: proof.payloadHash');
+    expect(signatureService).toContain('receipt.proofPersisted !== true');
+    expect(signatureService.indexOf('renderAssistProofPdfBytes(signedProof')).toBeLessThan(signatureService.indexOf('.upload(pdfPath'));
+    expect(signatureService.indexOf('.upload(pdfPath')).toBeLessThan(signatureService.indexOf("'client_portal_finalize_assist_proof'"));
     expect(signatureService).not.toContain('PDF / mirror is best-effort');
-    expect(pdfService).toContain('upsert: true');
     expect(pdfService).toContain('buildEnrichedAssistProofPdfPayload');
   });
 });

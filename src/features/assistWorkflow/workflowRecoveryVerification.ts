@@ -55,12 +55,16 @@ export function didWorkflowActionReachPostcondition(
     case 'start_service':
       return Boolean(after.visitTimes?.serviceStartedAt || after.detail.actualStartAt) && statusAtLeast(after, 'gestartet');
     case 'start_pause':
-      return after.assignmentStatus === 'pausiert' || after.derivedStatus === 'pausiert' || after.visitTimes?.activeTimer === 'pause';
+      return after.visitTimes?.activeTimer === 'pause' && Boolean(after.visitTimes.pauseStartedAt)
+        && after.timeEvents.some((event) => event.eventType === 'pause_start' && event.occurredAt === after.visitTimes?.pauseStartedAt);
     case 'end_pause':
       return (
         (before.assignmentStatus === 'pausiert' || before.derivedStatus === 'pausiert') &&
         after.assignmentStatus !== 'pausiert' &&
         after.derivedStatus !== 'pausiert' &&
+        Boolean(before.visitTimes?.pauseStartedAt) &&
+        after.timeEvents.some((event) => event.eventType === 'pause_end'
+          && new Date(event.occurredAt).getTime() >= new Date(before.visitTimes!.pauseStartedAt!).getTime()) &&
         (after.visitTimes?.activeTimer === 'service' || statusAtLeast(after, 'beendet'))
       );
     case 'end_service':
@@ -73,7 +77,10 @@ export function didWorkflowActionReachPostcondition(
     case 'save_signature':
       return after.detail.signatureStatus === 'captured';
     case 'finalize':
-      return statusAtLeast(after, 'abgeschlossen') && after.detail.signatureStatus !== 'deferred_to_client_portal';
+      return statusAtLeast(after, 'abgeschlossen')
+        && ['captured', 'locked'].includes(after.detail.signatureStatus)
+        && ['submitted', 'locked'].includes(after.detail.documentationStatus)
+        && Boolean(after.visitTimes?.serviceEndedAt || after.detail.actualEndAt);
     case 'finalize_deferred':
       return (
         statusAtLeast(after, 'abgeschlossen') &&

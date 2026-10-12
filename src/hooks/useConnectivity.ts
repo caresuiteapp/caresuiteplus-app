@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import { reportDeviceOffline } from '@/lib/offline/connectivity';
 
 export type ConnectivitySource = 'web' | 'native' | 'unknown';
 
@@ -122,7 +123,7 @@ export function useConnectivity(): ConnectivityState {
     if (Platform.OS === 'web') {
       if (typeof window === 'undefined') return;
 
-      const sync = () => setState(readWebState());
+      const sync = () => { const next = readWebState(); reportDeviceOffline(next.isOffline); setState(next); };
       sync();
       window.addEventListener('online', sync);
       window.addEventListener('offline', sync);
@@ -147,6 +148,7 @@ export function useConnectivity(): ConnectivityState {
     }) => {
       if (!active) return;
       const isConnected = snapshot.isConnected !== false;
+      reportDeviceOffline(!isConnected);
       setState(
         buildState(
           isConnected,

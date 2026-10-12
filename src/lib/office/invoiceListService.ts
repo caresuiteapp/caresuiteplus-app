@@ -1,6 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { InvoiceListItem } from '@/types/modules/billing';
-import { demoBudgets } from '@/data/demo/budgets';
+import type { BudgetListItem, InvoiceListItem } from '@/types/modules/billing';
 import { demoClients } from '@/data/demo/clients';
 import { demoInvoices } from '@/data/demo/invoices';
 import { enforcePermission } from '@/lib/permissions';
@@ -9,6 +8,7 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';
 import { runService } from '@/lib/services/serviceRunner';
 import { mapLegacyWorkflowToInvoiceStatus } from './invoiceStatus';
+import { fetchBudgetList } from './budgetListService';
 
 const SIMULATED_DELAY_MS = 400;
 
@@ -86,15 +86,14 @@ export async function fetchInvoiceList(
 export async function fetchBudgetSummary(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<typeof demoBudgets>> {
-  const denied = enforcePermission<typeof demoBudgets>(actorRoleKey, 'office.invoices.view');
+): Promise<ServiceResult<BudgetListItem[]>> {
+  const denied = enforcePermission<BudgetListItem[]>(actorRoleKey, 'office.invoices.view');
   if (denied) return denied;
 
   return runService(async () => {
-    await delay(SIMULATED_DELAY_MS);
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
-    return { ok: true, data: demoBudgets };
+    return fetchBudgetList(tenantId, actorRoleKey);
   });
 }
 

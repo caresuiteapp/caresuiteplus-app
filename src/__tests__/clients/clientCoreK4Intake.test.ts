@@ -7,12 +7,12 @@ import { careContextsToServiceTypeKeys } from '@/lib/client/clientServiceTypeSer
 const ROOT = resolve(__dirname, '../../..');
 
 describe('Client Core K.4 — intake mapping smoke', () => {
-  it('submitClientIntake calls syncClientCoreAfterIntake', () => {
+  it('section edits retain the client core synchronization', () => {
     const intake = readFileSync(resolve(ROOT, 'src/lib/clients/clientIntakeService.ts'), 'utf8');
     expect(intake).toContain('syncClientCoreAfterIntake');
   });
 
-  it('keeps a new intake as lead until all related writes succeed', () => {
+  it('keeps draft leads and blocks unverified live activation before split writes', () => {
     const intake = readFileSync(resolve(ROOT, 'src/lib/clients/clientIntakeService.ts'), 'utf8');
     const repository = readFileSync(
       resolve(ROOT, 'src/lib/clients/repositories/clientIntakeRepository.supabase.ts'),
@@ -20,13 +20,10 @@ describe('Client Core K.4 — intake mapping smoke', () => {
     );
     expect(repository).toContain("buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead')");
     expect(repository).toContain('export async function activateClientFromIntake');
-    expect(intake).toContain("{ eventMode: 'create' }");
-    expect(intake.indexOf('persistClientIntakeDocuments')).toBeLessThan(
-      intake.lastIndexOf('activateClientFromIntake'),
-    );
-    expect(intake.indexOf('syncClientCoreAfterIntake')).toBeLessThan(
-      intake.lastIndexOf('activateClientFromIntake'),
-    );
+    expect(intake).toContain('verifizierte atomare Serverabschluss');
+    expect(intake).toContain('recoverableClientId');
+    expect(intake).not.toContain('await activateClientFromIntake(');
+    expect(intake).not.toContain('await createClientFromIntake(');
   });
 
   it('uses retry-safe extended writes without blocking on derived care entitlement errors', () => {

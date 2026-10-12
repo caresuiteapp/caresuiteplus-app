@@ -17,46 +17,50 @@ export function usePortalDocumentDetail(
   const {
     tenantId,
     clientId,
+    employeeId,
     actorId,
     roleKey,
     isLinkedReady,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
   } = usePortalActor();
   const profileId = actorId ?? '';
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
   const scopedRoleKey = roleMatchesAudience ? roleKey : null;
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
+  const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
+  const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
 
   const query = useAsyncQuery(
     () =>
       fetchPortalDocumentDetail(documentId ?? '', profileId, scopedRoleKey, {
         tenantId,
         clientId: scopedClientId,
+        employeeId: scopedEmployeeId,
       }),
-    [documentId, profileId, scopedRoleKey, tenantId, scopedClientId],
+    [documentId, profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId],
     {
-      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, documentId]),
+      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, documentId]),
       enabled:
         !!documentId &&
         isLinkedReady &&
         roleMatchesAudience &&
-        (audience !== 'client' || Boolean(scopedClientId)),
+        (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)),
     },
   );
 
   const downloadMutation = useMutation(
-    (_: null) =>
-      downloadPortalDocument(documentId ?? '', profileId, scopedRoleKey, {
+    async (_: null) => {
+      const result = await downloadPortalDocument(documentId ?? '', profileId, scopedRoleKey, {
         tenantId,
         clientId: scopedClientId,
-      }),
+        employeeId: scopedEmployeeId,
+      });
+      if (result.ok && result.data.downloadUrl) await Linking.openURL(result.data.downloadUrl);
+      return result;
+    },
     {
       successMessage: isDemoMode() ? 'Download vorbereitet.' : 'Download gestartet.',
-      onSuccess: async (data) => {
-        if (data.downloadUrl) {
-          await Linking.openURL(data.downloadUrl);
-        }
-      },
     },
   );
 
@@ -68,14 +72,16 @@ export function usePortalDocumentDetail(
 
   return {
     data: query.data,
-    loading: isResolvingClientLink || (query.loading && !query.data),
+    loading: resolvingLink || (query.loading && !query.data),
     error: !roleMatchesAudience && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
       : audience === 'client' && !isResolvingClientLink && !scopedClientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
-        : query.error
+        : audience === 'employee' && !resolvingLink && !scopedEmployeeId
+          ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+        : (query.error ?? query.refreshError)
           ? toPortalUserFacingError(
-              query.error,
+              (query.error ?? query.refreshError)!,
               'Das Dokument konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
             )
           : null,
@@ -91,6 +97,8 @@ export function usePortalDocumentDetail(
     successMessage: downloadMutation.successMessage,
     notFound:
       isLinkedReady &&
+      roleMatchesAudience &&
+      (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)) &&
       !query.loading &&
       !query.error &&
       !query.data &&

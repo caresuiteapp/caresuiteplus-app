@@ -5,6 +5,8 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { formatCurrency } from '@/lib/office/invoiceListService';
+import { getServiceMode } from '@/lib/services/mode';
+import { fetchLiveInvoiceRuns, fetchLiveInvoicePayments, fetchLiveDunningCases } from './invoiceFinanceRepository';
 
 export type InvoiceRunItem = {
   id: string;
@@ -57,7 +59,8 @@ export async function fetchInvoiceRuns(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Live-Abrechnungsläufe: Repository erweitern.' };
+  if (getServiceMode() === 'supabase') return fetchLiveInvoiceRuns(tenantId);
+  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Kein freigegebener Demonstrationsmandant.' };
   await demoDelay();
   const now = Date.now();
   return {
@@ -93,7 +96,8 @@ export async function fetchInvoicePayments(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Live-Zahlungen: Repository erweitern.' };
+  if (getServiceMode() === 'supabase') return fetchLiveInvoicePayments(tenantId);
+  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Kein freigegebener Demonstrationsmandant.' };
   await demoDelay();
   return {
     ok: true,
@@ -122,7 +126,8 @@ export async function fetchInvoiceDunningCases(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Live-Mahnlauf: Repository erweitern.' };
+  if (getServiceMode() === 'supabase') return fetchLiveDunningCases(tenantId);
+  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Kein freigegebener Demonstrationsmandant.' };
   await demoDelay();
   return {
     ok: true,

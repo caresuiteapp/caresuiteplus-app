@@ -134,6 +134,7 @@ function AssignmentsListViewContent({
     filteredCount,
     loading,
     error,
+    refreshError,
     refreshing,
     showSuccess,
     search,
@@ -474,6 +475,9 @@ function AssignmentsListViewContent({
 
       {showSuccess ? (
         <SuccessState message="Liste erfolgreich aktualisiert." />
+      ) : null}
+      {refreshError ? (
+        <ErrorState message={`Die Liste konnte nicht aktualisiert werden: ${refreshError}`} onRetry={refresh} />
       ) : null}
 
       <View style={styles.commandBar}>

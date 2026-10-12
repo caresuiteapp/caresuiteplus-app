@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 /** Matches inbox filter chips + search field height for aligned empty states across columns */
 export const OFFICE_MESSENGER_INBOX_CHROME_MIN_HEIGHT = 120;
@@ -9,20 +9,10 @@ export const OFFICE_MESSENGER_MIN_HEIGHT = 560;
 /** Shell chrome above the messenger grid (header, toggles, action row). */
 export const OFFICE_MESSENGER_SHELL_CHROME_ESTIMATE = 280;
 
-export function officeMessengerContainerHeight(viewportHeight: number) {
-  if (Platform.OS === 'web') {
-    return {
-      flex: 1,
-      // The popup and page header have already reserved their chrome. A viewport
-      // estimate here pushes the message composer below the visible workspace.
-      minHeight: 0,
-    };
-  }
-
-  return {
-    flex: 1,
-    minHeight: Math.max(OFFICE_MESSENGER_MIN_HEIGHT, viewportHeight - OFFICE_MESSENGER_SHELL_CHROME_ESTIMATE),
-  };
+export function officeMessengerContainerHeight(_viewportHeight: number) {
+  // The enclosing workspace already reserves header, navigation and safe areas.
+  // A second viewport estimate pushes the composer outside short phone screens.
+  return { flex: 1, minHeight: 0 };
 }
 
 export const officeMessengerColumnStyles = StyleSheet.create({

@@ -214,6 +214,8 @@ describe('Office Broadcast (Spec Testfälle 1–8)', () => {
               data: {
                 related_broadcast_id: BROADCAST_ID,
                 metadata: { requireAcknowledgement: true },
+                recipient_user_id: USER_EMPLOYEE,
+                recipient_employee_id: EMPLOYEE_ID,
               },
               error: null,
             }),

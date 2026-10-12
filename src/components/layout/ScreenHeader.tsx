@@ -36,16 +36,15 @@ export function ScreenHeader({
   const { isPhone } = useDeviceClass();
   const { colors, mode } = useLegacyTheme();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
-  const leftInsetWidth = showBack ? 88 : 0;
-  const sideInsetWidth = isPhone
-    ? Math.max(leftInsetWidth, rightSlot ? 88 : 0)
-    : leftInsetWidth;
+  const leftInsetWidth = showBack ? (isPhone ? 44 : 88) : 0;
+  const sideInsetWidth = leftInsetWidth;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flexDirection: 'row',
+          flexWrap: isPhone ? 'wrap' : 'nowrap',
           alignItems: 'center',
           paddingHorizontal: spacing.md,
           paddingVertical: compact ? 6 : spacing.md,
@@ -70,9 +69,10 @@ export function ScreenHeader({
           minWidth: 0,
         },
         right: {
-          width: isPhone ? sideInsetWidth : undefined,
-          minWidth: isPhone ? sideInsetWidth : rightSlot ? 120 : 0,
-          maxWidth: isPhone ? 88 : 360,
+          width: isPhone && rightSlot ? '100%' : isPhone ? 0 : undefined,
+          minWidth: isPhone ? 0 : rightSlot ? 120 : 0,
+          maxWidth: isPhone ? '100%' : 360,
+          marginTop: isPhone && rightSlot ? 8 : 0,
           alignItems: 'flex-end',
           flexShrink: 0,
         },
@@ -127,8 +127,8 @@ export function ScreenHeader({
     >
       <View style={styles.left}>
         {showBack ? (
-          <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
-            <Text style={styles.backText}>← Zurück</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={handleBack} style={styles.backButton} hitSlop={12}>
+            <Text style={styles.backText}>{isPhone ? '←' : '← Zurück'}</Text>
           </Pressable>
         ) : null}
       </View>

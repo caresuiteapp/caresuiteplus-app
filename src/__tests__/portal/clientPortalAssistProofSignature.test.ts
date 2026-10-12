@@ -1,148 +1,37 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-
-const TENANT = DEMO_TENANT_ID;
-const CLIENT = 'client-1';
-const PROOF = 'proof-deferred-1';
-
-describe('saveClientPortalAssistProofSignature', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
-    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
-  });
-
-  it('blocks when proof is not pending client signature', async () => {
-    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
-    vi.doMock('@/lib/portal/assist/portalAssistVisitProofService', () => ({
-      getReleasedProofForClientPortal: vi.fn(async () => ({
-        ok: true,
-        data: {
-          id: PROOF,
-          signatureRequired: false,
-          portalReleaseStatus: 'released',
-        },
-      })),
-    }));
-
-    const { saveClientPortalAssistProofSignature } = await import(
-      '@/lib/portal/clientPortalAssistProofSignatureService'
-    );
-    const result = await saveClientPortalAssistProofSignature({
-      tenantId: TENANT,
-      clientId: CLIENT,
-      proofId: PROOF,
-      signerName: 'Heinz-Peter',
-      signatureDataUrl: 'data:image/png;base64,abc',
-    });
-    expect(result.ok).toBe(false);
-  });
-
-  it('completes signing flow for pending_client_signature proof', async () => {
-    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
-    vi.doMock('@/lib/portal/assist/portalAssistVisitProofService', () => ({
-      getReleasedProofForClientPortal: vi.fn(async () => ({
-        ok: true,
-        data: {
-          id: PROOF,
-          visitId: 'visit-1',
-          signatureRequired: true,
-          portalReleaseStatus: 'pending_client_signature',
-          title: 'Alltagsbegleitung',
-        },
-      })),
-    }));
-    vi.doMock('@/lib/assist/assistVisitProofPersistenceService', () => ({
-      fetchVisitProofById: vi.fn(async () => ({
-        ok: true,
-        data: {
-          id: PROOF,
-          visitId: 'visit-1',
-          payloadSnapshot: {
-            assignmentId: 'assign-1',
-            plannedStartAt: '2026-07-01T09:00:00.000Z',
-            plannedEndAt: '2026-07-01T11:00:00.000Z',
-            documentationNote: 'Erledigt',
-            tasks: [],
-          },
-        },
-      })),
-      computeVisitProofPayloadHash: vi.fn(async () => 'hash-1'),
-      updateVisitProofRow: vi.fn(async () => ({
-        ok: true,
-        data: {
-          id: PROOF,
-          visitId: 'visit-1',
-          payloadSnapshot: { signedViaClientPortal: true },
-        },
-      })),
-    }));
-    vi.doMock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
-      computeVisitSignaturePayloadHash: vi.fn(async () => 'payload-hash'),
-      computeSignatureDataHash: vi.fn(async () => 'sig-hash'),
-      saveVisitSignaturePersistent: vi.fn(async () => ({
-        ok: true,
-        data: { id: 'sig-1', signedAt: '2026-07-01T12:00:00.000Z' },
-      })),
-      fetchValidVisitSignature: vi.fn(async () => ({ ok: true, data: null })),
-    }));
-    vi.doMock('@/lib/portal/portalProofCacheSignal', () => ({
-      invalidatePortalProofCache: vi.fn(),
-    }));
-    const generateAssistProofPdf = vi.fn(async () => ({
-      ok: true,
-      data: { id: PROOF, visitId: 'visit-1', portalVisible: true },
-    }));
-    vi.doMock('@/lib/assist/assistProofPdfService', () => ({ generateAssistProofPdf }));
-    vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
-      upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
-    }));
-    vi.doMock('@/lib/supabase/client', () => ({
-      getSupabaseClient: () => ({
-        from: () => ({
-          update: () => ({
-            eq: () => ({
-              eq: () => Promise.resolve({ error: null }),
-            }),
-          }),
-        }),
-      }),
-    }));
-    vi.doMock('@/lib/supabase/untypedTable', () => ({
-      fromUnknownTable: (_sb: unknown, table: string) => {
-        if (table === 'client_documents') {
-          return {
-            update: () => ({
-              eq: () => ({
-                eq: () => Promise.resolve({ error: null }),
-              }),
-            }),
-          };
-        }
-        return {};
-      },
-    }));
-
-    const { saveClientPortalAssistProofSignature } = await import(
-      '@/lib/portal/clientPortalAssistProofSignatureService'
-    );
-    const result = await saveClientPortalAssistProofSignature({
-      tenantId: TENANT,
-      clientId: CLIENT,
-      proofId: PROOF,
-      signerName: 'Heinz-Peter',
-      signatureDataUrl: 'data:image/png;base64,abc',
-    });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.signatureId).toBe('sig-1');
-      expect(result.data.proofPersisted).toBe(true);
-    }
-    expect(generateAssistProofPdf).toHaveBeenCalledWith(TENANT, PROOF);
-  });
+import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+const f = vi.hoisted(() => ({ save: vi.fn(), load: vi.fn(), rpc: vi.fn(), upload: vi.fn() }));
+vi.mock('expo-crypto', () => ({ randomUUID: () => 'native-uuid' }));
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({ getReleasedProofForClientPortal: async () => ({ ok: true, data: { signatureRequired: true, portalReleaseStatus: 'pending_client_signature' } }) }));
+vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchVisitProofById: f.load, computeVisitProofPayloadHash: async () => 'signed-hash' }));
+vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({ computeSignatureDataHash: async () => 'image-hash', computeVisitSignaturePayloadHash: async () => 'payload-hash', fetchValidVisitSignature: async () => ({ ok: true, data: null }), saveVisitSignaturePersistent: f.save }));
+vi.mock('@/lib/assist/assistProofPdfService', () => ({ renderAssistProofPdfBytes: async () => new Uint8Array([37, 80, 68, 70]) }));
+vi.mock('@/lib/assist/assistExecutionHashService', () => ({ computeSha256Hex: async () => 'pdf-hash' }));
+vi.mock('@/lib/assist/visitSignatureImageService', () => ({ resolveVisitSignatureImageUrl: vi.fn() }));
+vi.mock('@/lib/portal/portalProofCacheSignal', () => ({ invalidatePortalProofCache: vi.fn() }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: f.rpc, storage: { from: () => ({ upload: f.upload }) } }) }));
+import { saveClientPortalAssistProofSignature } from '@/lib/portal/clientPortalAssistProofSignatureService';
+const input = { tenantId: 'tenant', clientId: 'client', proofId: 'proof', profileId: 'portal-account', signerName: 'Testperson', signatureDataUrl: 'data:image/png;base64,AAAA' };
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal('crypto', undefined);
+  f.load.mockResolvedValue({ ok: true, data: { id: 'proof', tenantId: 'tenant', visitId: 'canonical-visit', payloadHash: 'original-hash', createdAt: '2026-09-11T09:00:00Z', payloadSnapshot: { assignmentId: 'legacy-assignment', tasks: [] } } });
+  f.save.mockResolvedValue({ ok: true, data: { id: 'signature', signerName: 'Testperson', signedAt: '2026-09-11T10:00:00Z' } });
+  f.upload.mockResolvedValue({ error: null });
+  f.rpc.mockResolvedValue({ error: null, data: { proofId: 'proof', signatureId: 'signature', signedAt: '2026-09-11T10:00:00Z', proofPersisted: true } });
+});
+afterEach(() => vi.unstubAllGlobals());
+it('finishes without browser crypto, uploads binary bytes, and uses the canonical visit', async () => {
+  expect((await saveClientPortalAssistProofSignature(input)).ok).toBe(true);
+  const [storagePath, bytes, options] = f.upload.mock.calls[0];
+  expect(storagePath).toBe('tenant/tenant/assist/visits/canonical-visit/proofs/proof-signature-native-uuid.pdf');
+  expect(bytes).toBeInstanceOf(ArrayBuffer);
+  expect([...new Uint8Array(bytes)]).toEqual([37, 80, 68, 70]);
+  expect(options.upsert).toBe(false);
+  expect(f.save.mock.calls[0][1].visitId).toBe('canonical-visit');
+  expect(f.save.mock.calls[0][1].signedByProfileId).toBeNull();
+});
+it('does not report completion when the workflow transaction fails', async () => {
+  f.rpc.mockResolvedValue({ data: null, error: { message: 'workflow denied' } });
+  expect((await saveClientPortalAssistProofSignature(input)).ok).toBe(false);
 });

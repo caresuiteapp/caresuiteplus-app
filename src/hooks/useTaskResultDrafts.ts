@@ -20,6 +20,14 @@ type DraftEntry = {
 };
 
 type DraftMap = Record<string, DraftEntry>;
+type DraftScope = {
+  key: string | null;
+  pending: DraftMap;
+  revision: number;
+  flushing: Promise<boolean> | null;
+  flushAgain: boolean;
+  timer: ReturnType<typeof setTimeout> | null;
+};
 
 function taskDraftStorageKey(ctx: AssistExecutionContext): string {
   return `employee-execution-task-drafts:${ctx.tenantId}:${ctx.employeeId}:${ctx.assignmentId}`;
@@ -49,15 +57,20 @@ export function useTaskResultDrafts(
   serverTasks: EmployeePortalTaskItem[],
   executionContext: AssistExecutionContext | null,
   onContextSynced: (ctx: AssistExecutionContext) => void,
+  datasetKey?: string,
 ) {
-  const [drafts, setDrafts] = useState<DraftMap>({});
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const pendingRef = useRef<DraftMap>({});
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revisionRef = useRef(0);
-  const flushingRef = useRef(false);
-  const flushAgainRef = useRef(false);
+  const scopeKey = datasetKey ?? (executionContext ? taskDraftStorageKey(executionContext) : null);
+  const scope = useMemo<DraftScope>(() => ({ key: scopeKey, pending: {}, revision: 0,
+    flushing: null, flushAgain: false, timer: null }), [scopeKey]);
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const [draftState, setDraftState] = useState<{ scope: DraftScope; value: DraftMap }>({ scope, value: {} });
+  const [saveState, setSaveState] = useState<{ scope: DraftScope; saving: boolean; error: string | null }>({ scope, saving: false, error: null });
+  const drafts = useMemo(() => draftState.scope === scope ? draftState.value : {}, [draftState, scope]);
+  const saving = saveState.scope === scope && saveState.saving;
+  const saveError = saveState.scope === scope ? saveState.error : null;
   const flushRef = useRef<() => Promise<boolean>>(async () => true);
   const storageKey = executionContext ? taskDraftStorageKey(executionContext) : null;
 
@@ -72,13 +85,16 @@ export function useTaskResultDrafts(
   }, [storageKey]);
 
   const flush = useCallback(async () => {
-    if (flushingRef.current) {
-      flushAgainRef.current = true;
-      return false;
+    if (activeScope.current !== scope || !mounted.current) return false;
+    if (scope.flushing) {
+      scope.flushAgain = true;
+      const saved = await scope.flushing;
+      if (!saved || activeScope.current !== scope || !mounted.current) return false;
+      return flushRef.current();
     }
 
     const ctx = executionContext;
-    const pending = { ...pendingRef.current };
+    const pending = { ...scope.pending };
     if (Object.keys(pending).length === 0) return true;
     if (!ctx) return false;
 
@@ -88,108 +104,107 @@ export function useTaskResultDrafts(
       completionNote: d.note,
     }));
 
-    flushingRef.current = true;
-    setSaving(true);
+    setSaveState({ scope, saving: true, error: null });
+    const current = () => mounted.current && activeScope.current === scope;
+    const write = (async () => {
     try {
       const result = await saveTaskResultsBatch({ ctx, updates });
 
       if (!result.ok) {
-        setSaveError(result.error ?? 'Aufgaben konnten nicht gespeichert werden.');
-        await persistPending(pendingRef.current);
+        if (current()) setSaveState({ scope, saving: true, error: result.error ?? 'Aufgaben konnten nicht gespeichert werden.' });
+        await persistPending(scope.pending);
         return false;
       } else {
         for (const [taskId, savedDraft] of Object.entries(pending)) {
-          if (pendingRef.current[taskId]?.revision === savedDraft.revision) {
-            delete pendingRef.current[taskId];
+          if (scope.pending[taskId]?.revision === savedDraft.revision) {
+            delete scope.pending[taskId];
           }
         }
-        setDrafts((prev) => {
-          const next = { ...prev };
-          for (const [taskId, savedDraft] of Object.entries(pending)) {
-            if (next[taskId]?.revision === savedDraft.revision) {
-              delete next[taskId];
-            }
-          }
-          return next;
-        });
-        setSaveError(null);
-        await persistPending(pendingRef.current);
-        onContextSynced(result.data);
-        return Object.keys(pendingRef.current).length === 0;
+        if (current()) setDraftState({ scope, value: { ...scope.pending } });
+        await persistPending(scope.pending);
+        if (current()) onContextSynced(result.data);
+        return Object.keys(scope.pending).length === 0;
       }
     } catch {
-      setSaveError('Aufgaben konnten nicht gespeichert werden. Die Auswahl bleibt erhalten.');
-      await persistPending(pendingRef.current);
+      if (current()) setSaveState({ scope, saving: true, error: 'Aufgaben konnten nicht gespeichert werden. Die Auswahl bleibt erhalten.' });
+      await persistPending(scope.pending);
       return false;
     } finally {
-      flushingRef.current = false;
-      setSaving(false);
+      scope.flushing = null;
+      if (current()) setSaveState((previous) => previous.scope === scope
+        ? { ...previous, saving: false } : previous);
 
-      if (flushAgainRef.current) {
-        flushAgainRef.current = false;
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          timerRef.current = null;
+      if (scope.flushAgain && current()) {
+        scope.flushAgain = false;
+        if (scope.timer) clearTimeout(scope.timer);
+        scope.timer = setTimeout(() => {
+          scope.timer = null;
           void flushRef.current();
         }, DEBOUNCE_MS);
       }
     }
-  }, [executionContext, onContextSynced, persistPending]);
+    })();
+    scope.flushing = write;
+    return write;
+  }, [executionContext, onContextSynced, persistPending, scope]);
 
   useEffect(() => {
     flushRef.current = flush;
   }, [flush]);
 
   const scheduleFlush = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
+    if (activeScope.current !== scope || !mounted.current) return;
+    if (scope.timer) clearTimeout(scope.timer);
+    scope.timer = setTimeout(() => {
+      scope.timer = null;
       void flushRef.current();
     }, DEBOUNCE_MS);
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     if (!storageKey) return;
     let cancelled = false;
     void AsyncStorage.getItem(storageKey).then((raw) => {
-      if (cancelled) return;
+      if (cancelled || activeScope.current !== scope || !mounted.current) return;
       const restored = parseDrafts(raw);
       if (Object.keys(restored).length === 0) return;
-      const merged = { ...pendingRef.current };
+      const merged = { ...scope.pending };
       for (const [taskId, entry] of Object.entries(restored)) {
         if (!merged[taskId] || entry.revision > merged[taskId].revision) {
           merged[taskId] = entry;
         }
       }
-      pendingRef.current = merged;
-      setDrafts((current) => ({ ...current, ...merged }));
+      scope.pending = merged;
+      scope.revision = Math.max(scope.revision, ...Object.values(merged).map((entry) => entry.revision));
+      setDraftState({ scope, value: { ...merged } });
       scheduleFlush();
     }).catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [storageKey, scheduleFlush]);
+  }, [storageKey, scheduleFlush, scope]);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (scope.timer) clearTimeout(scope.timer);
     };
-  }, []);
+  }, [scope]);
 
   const updateTask = useCallback(
     (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) => {
+      if (activeScope.current !== scope || !mounted.current) return { ok: false as const };
       const entry: DraftEntry = {
         status,
         note: note?.trim() || undefined,
-        revision: ++revisionRef.current,
+        revision: ++scope.revision,
       };
-      pendingRef.current[taskId] = entry;
-      setDrafts((prev) => ({ ...prev, [taskId]: entry }));
-      void persistPending(pendingRef.current);
+      scope.pending[taskId] = entry;
+      setDraftState({ scope, value: { ...scope.pending } });
+      void persistPending(scope.pending);
       scheduleFlush();
       return { ok: true as const };
     },
-    [persistPending, scheduleFlush],
+    [persistPending, scheduleFlush, scope],
   );
 
   const optimisticTasks = useMemo(() => {

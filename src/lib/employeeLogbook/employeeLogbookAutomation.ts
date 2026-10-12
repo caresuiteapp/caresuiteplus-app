@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
-  buildDefaultMobilitySettings,
   fetchEmployeeMobilitySettings,
 } from '@/lib/office/employeeMobilityService';
 import type { TravelRouteType } from '@/types/modules/travelCompensation';
@@ -19,6 +18,7 @@ import {
   requestLogbookLocationPermission,
   startNativeBackgroundTracking,
   stopNativeBackgroundTracking,
+  type LogbookTrackingOptions,
 } from './employeeLogbookTracking';
 import {
   acquireGeolocationWatch,
@@ -61,7 +61,21 @@ export type AutomaticLogbookResult = {
 
 export type EmployeeGpsWatchHandle = { remove: () => void };
 
-const foregroundWatchers = new Map<string, EmployeeGpsWatchHandle>();
+const foregroundWatchers = new Map<string, { handle: EmployeeGpsWatchHandle; tenantId: string; employeeId: string; shouldContinue: () => boolean; onError?: (error: Error) => void; onPointPersisted?: () => void }>();
+const foregroundConsumers = new Set<{ tripId: string; tenantId: string; employeeId: string; remove: () => void }>();
+const scopeEpochs = new Map<string, number>();
+const tripStopRevisions = new Map<string, number>();
+let stopRevision = 0;
+
+export function createEmployeeLogbookTrackingGuard(tenantId: string, employeeId: string, options?: LogbookTrackingOptions): () => boolean {
+  const scope = `${tenantId}:${employeeId}`;
+  const epoch = scopeEpochs.get(scope) ?? 0;
+  return () => (scopeEpochs.get(scope) ?? 0) === epoch && options?.shouldContinue?.() !== false;
+}
+
+function requireTrackingScope(shouldContinue: () => boolean): void {
+  if (!shouldContinue()) throw new Error('Das Mitarbeitendenkonto oder die Fahrtansicht hat sich geändert. Die Aufzeichnung wurde nicht weitergeführt.');
+}
 
 function pointFromSnapshot(location: GeolocationSnapshot): LogbookPoint {
   return {
@@ -80,60 +94,122 @@ export function acquireEmployeeLogbookForegroundTracking(input: {
   tenantId: string;
   employeeId: string;
   onPoint?: (point: LogbookPoint) => void;
+  shouldContinue?: () => boolean;
+  onError?: (error: Error) => void;
+  onPointPersisted?: () => void;
 }): EmployeeGpsWatchHandle {
-  void flushLogbookPointQueue();
+  if (input.shouldContinue?.() === false) return { remove: () => undefined };
+  let active = true;
+  let pointAttempt = 0;
+  let lastSettledAttempt = 0;
+  void flushLogbookPointQueue().catch(() => undefined);
   const release = acquireGeolocationWatch({
     sessionKey: `${input.tenantId}:employee:${input.employeeId}`,
     enabled: true,
     enableHighAccuracy: true,
     onSnapshot: (snapshot) => {
+      if (!active || input.shouldContinue?.() === false) return;
       const point = pointFromSnapshot(snapshot);
       input.onPoint?.(point);
-      void persistLogbookPointDurably({ ...input, point });
+      const attempt = ++pointAttempt;
+      void persistLogbookPointDurably({ ...input, point }).then(() => {
+        if (!active || input.shouldContinue?.() === false || attempt < lastSettledAttempt) return;
+        lastSettledAttempt = attempt;
+        input.onPointPersisted?.();
+      }, (cause) => {
+        if (!active || input.shouldContinue?.() === false || attempt < lastSettledAttempt) return;
+        lastSettledAttempt = attempt;
+        input.onError?.(cause instanceof Error ? cause : new Error('GPS-Punkt konnte nicht sicher gespeichert werden.'));
+      });
     },
   });
-  return { remove: release };
+  const consumer = { tripId: input.tripId, tenantId: input.tenantId, employeeId: input.employeeId, remove: () => {
+    if (!active) return; active = false; release(); foregroundConsumers.delete(consumer);
+  } };
+  foregroundConsumers.add(consumer);
+  return { remove: consumer.remove };
 }
 
 async function startForegroundPersistence(
   tripId: string,
   tenantId: string,
   employeeId: string,
+  shouldContinue: () => boolean = () => true,
+  onError?: (error: Error) => void,
+  onPointPersisted?: () => void,
 ): Promise<void> {
-  if (Platform.OS !== 'web' || foregroundWatchers.has(tripId)) return;
-  const watcher = acquireEmployeeLogbookForegroundTracking({ tripId, tenantId, employeeId });
-  foregroundWatchers.set(tripId, watcher);
+  if (!shouldContinue() || Platform.OS !== 'web') return;
+  const existing = foregroundWatchers.get(tripId);
+  if (existing?.shouldContinue()) {
+    if (onError) existing.onError = onError;
+    if (onPointPersisted) existing.onPointPersisted = onPointPersisted;
+    return;
+  }
+  existing?.handle.remove();
+  const entry = { handle: { remove: () => undefined } as EmployeeGpsWatchHandle, tenantId, employeeId, shouldContinue, onError, onPointPersisted };
+  const handle = acquireEmployeeLogbookForegroundTracking({ tripId, tenantId, employeeId, shouldContinue, onError: error => entry.onError?.(error), onPointPersisted: () => entry.onPointPersisted?.() });
+  if (!shouldContinue()) { handle.remove(); return; }
+  entry.handle = handle; foregroundWatchers.set(tripId, entry);
 }
 
 /** Restores an interrupted/reloaded portal without requiring the logbook page. */
 export async function resumeActiveEmployeeLogbookTracking(
   tenantId: string,
   employeeId: string,
+  options?: LogbookTrackingOptions,
 ): Promise<LogbookTrip | null> {
+  const startedBeforeRevision = stopRevision;
+  const shouldContinue = createEmployeeLogbookTrackingGuard(tenantId, employeeId, options);
+  if (!shouldContinue()) return null;
   const bundle = await loadEmployeeLogbook(tenantId, employeeId);
+  if (!shouldContinue()) return null;
   const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
   if (!active) return null;
+  if ((tripStopRevisions.get(active.id) ?? 0) > startedBeforeRevision) return null;
   // Never revive an orphaned recording from an earlier Berlin calendar day.
   // The Office repair keeps its raw points and moves it to review_required;
   // the portal must meanwhile stop presenting or feeding it as a live trip.
   if (berlinDateKey(active.startedAt) < berlinToday()) {
     stopForegroundPersistence(active.id);
-    await stopNativeBackgroundTracking();
+    await stopNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId });
     return null;
   }
-  await startNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId });
-  await startForegroundPersistence(active.id, tenantId, employeeId);
+  const started = await startNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId }, { shouldContinue });
+  if (started === false || !shouldContinue()) return null;
+  await startForegroundPersistence(active.id, tenantId, employeeId, shouldContinue, options?.onError, options?.onPointPersisted);
+  if (!shouldContinue()) {
+    const watcher = foregroundWatchers.get(active.id);
+    if (watcher?.shouldContinue === shouldContinue) stopForegroundPersistence(active.id);
+    // The scope cleanup invalidated and stopped this producer already. A
+    // second late stop could erase a newer recovery of the same trip.
+    return null;
+  }
   return active;
 }
 
 function stopForegroundPersistence(tripId: string): void {
-  foregroundWatchers.get(tripId)?.remove();
+  foregroundWatchers.get(tripId)?.handle.remove();
   foregroundWatchers.delete(tripId);
+  for (const consumer of [...foregroundConsumers]) if (consumer.tripId === tripId) consumer.remove();
 }
 
 export async function stopAutomaticLogbookTracking(tripId: string): Promise<void> {
+  tripStopRevisions.set(tripId, ++stopRevision);
   stopForegroundPersistence(tripId);
-  await stopNativeBackgroundTracking();
+  await stopNativeBackgroundTracking({ tripId });
+}
+
+/** Cancels pending recovery and removes producers without changing trip data. */
+export async function stopEmployeeLogbookTrackingForScope(tenantId: string, employeeId: string): Promise<void> {
+  const scope = `${tenantId}:${employeeId}`;
+  scopeEpochs.set(scope, (scopeEpochs.get(scope) ?? 0) + 1);
+  for (const consumer of [...foregroundConsumers]) {
+    if (consumer.tenantId === tenantId && consumer.employeeId === employeeId) consumer.remove();
+  }
+  for (const [tripId, watcher] of foregroundWatchers) {
+    if (watcher.tenantId === tenantId && watcher.employeeId === employeeId) foregroundWatchers.delete(tripId);
+  }
+  await stopNativeBackgroundTracking({ tenantId, employeeId });
 }
 
 /** One completion path for the logbook, return journey and stale-trip recovery. */
@@ -174,9 +250,8 @@ export async function resolveEmployeeLogbookEligibility(
     loadedBundle ?? loadEmployeeLogbook(tenantId, employeeId),
     fetchEmployeeMobilitySettings(tenantId, employeeId),
   ]);
-  const mobility = mobilityResult.ok
-    ? mobilityResult.data
-    : buildDefaultMobilitySettings(tenantId, employeeId);
+  if (!mobilityResult.ok) throw new Error(mobilityResult.error);
+  const mobility = mobilityResult.data;
   const hasCarMode = selectedTransportMode
     ? selectedTransportMode === 'car'
     : mobility.transportModes.includes('car');
@@ -206,7 +281,9 @@ function startAutomaticTrip(input: {
   startAddress?: string | null;
   transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
+  const shouldContinue = createEmployeeLogbookTrackingGuard(input.tenantId, input.employeeId);
   return runTripStart(`${input.tenantId}:${input.employeeId}:${resolveVisitMasterId(input.assignmentId)}:${input.routeType}`, async () => {
+    requireTrackingScope(shouldContinue);
     if (input.transportMode && input.transportMode !== 'car') {
       return {
         eligible: false,
@@ -223,30 +300,38 @@ function startAutomaticTrip(input: {
       input.employeeId,
       input.transportMode,
     );
+    requireTrackingScope(shouldContinue);
     if (!eligibility.eligible) {
       return { ...eligibility, started: false, resumed: false, trip: null };
     }
 
     const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
+    requireTrackingScope(shouldContinue);
     const assignmentId = resolveVisitMasterId(input.assignmentId);
     const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
     if (active) {
       if (active.assignmentId !== assignmentId || active.routeType !== input.routeType) {
         throw new Error('Es läuft bereits eine andere PKW-Fahrt. Bitte diese zuerst abschließen.');
       }
-      await startNativeBackgroundTracking({
+      const started = await startNativeBackgroundTracking({
         tripId: active.id,
         tenantId: input.tenantId,
         employeeId: input.employeeId,
-      });
-      await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
+      }, { shouldContinue });
+      if (started === false) requireTrackingScope(() => false);
+      requireTrackingScope(shouldContinue);
+      await startForegroundPersistence(active.id, input.tenantId, input.employeeId, shouldContinue);
+      requireTrackingScope(shouldContinue);
       return { ...eligibility, started: true, resumed: true, trip: active };
     }
 
-    await requestLogbookLocationPermission();
+    await requestLogbookLocationPermission(shouldContinue);
+    requireTrackingScope(shouldContinue);
     const firstPoint = await captureLogbookEndpoint();
+    requireTrackingScope(shouldContinue);
     if (!bundle.profile.gpsConsent) {
       await saveLogbookProfile({ ...bundle.profile, gpsConsent: true });
+      requireTrackingScope(shouldContinue);
     }
     const trip = await createLogbookTrip({
       tenantId: input.tenantId,
@@ -258,13 +343,18 @@ function startAutomaticTrip(input: {
       purpose: input.purpose,
       startAddress: input.startAddress ?? null,
     });
+    requireTrackingScope(shouldContinue);
     if (firstPoint) await persistLogbookPointDurably({ tripId: trip.id, tenantId: input.tenantId, employeeId: input.employeeId, point: firstPoint });
-    await startNativeBackgroundTracking({
+    requireTrackingScope(shouldContinue);
+    const started = await startNativeBackgroundTracking({
       tripId: trip.id,
       tenantId: input.tenantId,
       employeeId: input.employeeId,
-    });
-    await startForegroundPersistence(trip.id, input.tenantId, input.employeeId);
+    }, { shouldContinue });
+    if (started === false) requireTrackingScope(() => false);
+    requireTrackingScope(shouldContinue);
+    await startForegroundPersistence(trip.id, input.tenantId, input.employeeId, shouldContinue);
+    requireTrackingScope(shouldContinue);
     return { ...eligibility, started: true, resumed: false, trip };
   });
 }
@@ -278,10 +368,11 @@ export async function startVisitApproachLogbook(input: {
   startAddress?: string | null;
   transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
+  const shouldContinue = createEmployeeLogbookTrackingGuard(input.tenantId, input.employeeId);
   const mobilityResult = await fetchEmployeeMobilitySettings(input.tenantId, input.employeeId);
-  const mobility = mobilityResult.ok
-    ? mobilityResult.data
-    : buildDefaultMobilitySettings(input.tenantId, input.employeeId);
+  requireTrackingScope(shouldContinue);
+  if (!mobilityResult.ok) throw new Error(mobilityResult.error);
+  const mobility = mobilityResult.data;
   return startAutomaticTrip({
     ...input,
     routeType: resolveApproachRouteType(mobility.routeStartType),
@@ -321,6 +412,7 @@ export async function finishActiveVisitLogbookTrip(input: {
   notes?: string | null;
   allowedRouteTypes?: TravelRouteType[];
 }): Promise<LogbookTrip | null> {
+  const shouldContinue = createEmployeeLogbookTrackingGuard(input.tenantId, input.employeeId);
   return runTripFinish(`${input.tenantId}:${input.employeeId}:${resolveVisitMasterId(input.assignmentId)}`, async () => {
     const assignmentId = resolveVisitMasterId(input.assignmentId);
     const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
@@ -334,8 +426,7 @@ export async function finishActiveVisitLogbookTrip(input: {
 
     // Freeze the trip producer before flushing so no late background callback
     // can arrive between distance calculation and the completed status write.
-    stopForegroundPersistence(active.id);
-    await stopNativeBackgroundTracking();
+    await stopAutomaticLogbookTracking(active.id);
     try {
       const queue = await flushLogbookPointQueue();
       if (queue.remaining > 0) throw new Error('GPS-Punkte warten noch auf die Übertragung. Bitte die Verbindung prüfen und den Fahrtenbuchabschluss erneut versuchen.');
@@ -357,12 +448,13 @@ export async function finishActiveVisitLogbookTrip(input: {
       const saved = readback?.trips.find((trip) => trip.id === active.id);
       if (saved && saved.status !== 'recording') return saved;
       if (!saved) throw error;
+      if (!shouldContinue()) throw error;
       await startNativeBackgroundTracking({
         tripId: active.id,
         tenantId: input.tenantId,
         employeeId: input.employeeId,
-      }).catch(() => undefined);
-      await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
+      }, { shouldContinue }).catch(() => undefined);
+      if (shouldContinue()) await startForegroundPersistence(active.id, input.tenantId, input.employeeId, shouldContinue);
       throw error;
     }
     const refreshed = await loadEmployeeLogbook(input.tenantId, input.employeeId);

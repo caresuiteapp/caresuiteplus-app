@@ -48,7 +48,7 @@ async function resolveActiveLiveTracking(
       status: active.status,
       plannedStartAt: active.startsAt,
       plannedEndAt: active.endsAt,
-      portalReleaseEnabled: true,
+      portalReleaseEnabled: active.portalReleaseEnabled,
     }),
   ) as unknown as ClientPortalAssistLiveVisitProjection;
 
@@ -110,14 +110,14 @@ export function usePortalClientLiveTracking() {
   }, [query]);
 
   return {
-    state: query.data as PortalClientLiveTrackingState | undefined,
+    state: query.refreshError ? undefined : query.data as PortalClientLiveTrackingState | undefined,
     loading: isResolvingClientLink || query.loading,
     error:
       !isResolvingClientLink && !clientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
-        : query.error
+        : query.error || query.refreshError
           ? toPortalUserFacingError(
-              query.error,
+              query.error ?? query.refreshError,
               'Die Live-Anfahrt konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
             )
           : null,

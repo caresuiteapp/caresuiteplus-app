@@ -151,7 +151,7 @@ export function PortalNextAppointmentHero({
           </View>
           <View style={[styles.emptyCopy, compact && styles.emptyCopyPhone]}>
             <Text style={[type.bodyStrong, styles.emptyTitle]}>Aktuell ist kein weiterer Einsatz geplant.</Text>
-            <Text style={[type.body, styles.emptyMessage]}>Wenn Sie Unterstützung benötigen, können Sie direkt einen neuen Einsatz anfragen.</Text>
+            <Text style={[type.body, styles.emptyMessage]}>{onRequestExtra ? 'Wenn Sie Unterstützung benötigen, können Sie direkt einen neuen Einsatz anfragen.' : 'Sobald ein weiterer Einsatz geplant ist, sehen Sie ihn hier. Bei Fragen wenden Sie sich an Ihr Betreuungsteam.'}</Text>
           </View>
           {onRequestExtra ? (
             <AppointmentButton

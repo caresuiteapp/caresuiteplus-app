@@ -140,10 +140,10 @@ describe('Liquid Command foundation', () => {
         'Arbeitszeit',
         'Dokumente',
         'Portale & Zugänge',
-        'BodyMap',
         'Profil',
       ]),
     );
+    expect(liquidGlobalShortcuts.some((shortcut) => /bodymap/i.test(shortcut.route))).toBe(false);
     expect(liquidGlobalShortcuts.find((shortcut) => shortcut.label === 'Gehaltsstatistik')?.route)
       .toBe('/business/office/payroll');
     expect(liquidGlobalShortcuts.find((shortcut) => shortcut.label === 'Profil')?.route)
@@ -157,9 +157,9 @@ describe('Liquid Command foundation', () => {
     expect(getLiquidPrimaryWorkflowRoute('assist', 'assignments')).toBe(
       '/assist/einsaetze/new',
     );
-    expect(getLiquidPrimaryWorkflowRoute('pflege', 'wounds')).toBe('/pflege/bodymap');
+    expect(getLiquidPrimaryWorkflowRoute('pflege', 'wounds')).toBe('/pflege/wunden/new');
     expect(getLiquidPrimaryWorkflowRoute('stationaer', 'services')).toBe(
-      '/stationaer/bodymap',
+      '/stationaer/tagesstruktur',
     );
   });
 });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARESUITE_VISIT_GUIDE_MASCOT } from '@/components/brand/brandassets';
 import { PremiumBadge, PremiumButton } from '@/components/ui';

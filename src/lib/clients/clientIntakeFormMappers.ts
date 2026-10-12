@@ -66,7 +66,8 @@ export function mapClientEditLoadToIntakeForm(input: {
     parsedStreet.street = edit.street;
   }
 
-  const costBearerTypes = inferCostBearerTypes(edit);
+  const costBearerTypes = intakeSnapshot?.costBearerTypes
+    ? [...intakeSnapshot.costBearerTypes] : inferCostBearerTypes(edit);
 
   return {
     ...createEmptyIntakeForm(),
@@ -79,8 +80,8 @@ export function mapClientEditLoadToIntakeForm(input: {
     dateOfBirth: edit.dateOfBirth,
     status: edit.status,
     specialNotes: edit.notes,
-    admissionDate: EMPTY_CLIENT_INTAKE_FORM.admissionDate,
-    serviceStart: careLevel?.validFrom ?? intakeSnapshot?.serviceStart ?? '',
+    admissionDate: detail.admissionDate ?? intakeSnapshot?.admissionDate ?? '',
+    serviceStart: intakeSnapshot?.serviceStart ?? '',
     street: parsedStreet.street,
     houseNumber: parsedStreet.houseNumber,
     zip: primaryAddress?.zip ?? edit.zip,
@@ -110,7 +111,7 @@ export function mapClientEditLoadToIntakeForm(input: {
     emergencyContactPhone: emergency?.phone ?? edit.emergencyContactPhone,
     assignedModules:
       edit.portalModules.length > 0 ? [...edit.portalModules] : [...EMPTY_CLIENT_INTAKE_FORM.assignedModules],
-    hourlyRate: billing?.hourlyRateCents ? String(billing.hourlyRateCents / 100) : '',
+    hourlyRate: billing?.hourlyRateCents != null ? String(billing.hourlyRateCents / 100) : '',
     mobility: fullClient.preferences?.mobilityNotes ?? (edit.mobilityNotes || intakeSnapshot?.mobility || ''),
     communication: edit.communicationNotes || intakeSnapshot?.communication || '',
     consentDatenschutz: fullClient.consents.some((c) => c.consentType === 'datenschutz' && c.granted),

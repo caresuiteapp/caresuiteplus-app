@@ -68,7 +68,7 @@ describe('robot replies', () => {
   });
   it('only returns fixed phrases without interpolating personal data', () => {
     const pick = createReplyPicker();
-    for (const key of Object.keys(ROBOT_REPLIES) as Array<keyof typeof ROBOT_REPLIES>) {
+    for (const key of Object.keys(ROBOT_REPLIES) as (keyof typeof ROBOT_REPLIES)[]) {
       const reply = pick(key);
       expect((ROBOT_REPLIES[key] as readonly string[]).includes(reply.text)).toBe(true);
     }

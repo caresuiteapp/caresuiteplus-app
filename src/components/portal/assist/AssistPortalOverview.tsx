@@ -27,6 +27,7 @@ import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assi
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { resolvePortalOverviewAction } from '@/lib/portal/portalOverviewAction';
 
 type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
@@ -93,6 +94,7 @@ function AssistPortalOverviewDesktop({
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
+  const uploadReleased = canAccessPortalFeature(context, 'assist', 'documents');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
   const clearModalRoute = useCallback(() => {
@@ -129,7 +131,7 @@ function AssistPortalOverviewDesktop({
   }, [activitiesReleased, initialModal, params.modal, requestsReleased]);
 
   useEffect(() => {
-    const action = typeof params.action === 'string' ? params.action : null;
+    const action = resolvePortalOverviewAction(params.action, { requestsReleased, proofsReleased, uploadReleased });
     if (!action) return;
 
     if (action === 'upload') {
@@ -139,7 +141,7 @@ function AssistPortalOverviewDesktop({
     } else if (action === 'termin_aendern' || action === 'zusatztermin' || action === 'rueckruf') {
       setRequestModal(action as PortalRequestType);
     }
-  }, [params.action, router]);
+  }, [params.action, router, uploadReleased, proofsReleased, requestsReleased]);
 
   const loadDashboard = useCallback(async (silent = false) => {
     if (!silent) {
@@ -160,6 +162,7 @@ function AssistPortalOverviewDesktop({
     if (!silent) {
       setLoading(false);
     }
+    return result.ok;
   }, [context]);
 
   useEffect(() => {
@@ -171,15 +174,14 @@ function AssistPortalOverviewDesktop({
   });
 
   const handleRefresh = async () => {
-    await loadDashboard();
-    onRefresh?.();
+    if (await loadDashboard()) onRefresh?.();
   };
 
   const submitRequest = async (
     requestType: PortalRequestType,
     structuredPayload?: PortalStructuredRequestPayload,
   ) => {
-    if (submitting) return;
+    if (submitting || !requestsReleased) return;
     setSubmitting(true);
     setRequestError(null);
     const description =
@@ -231,9 +233,8 @@ function AssistPortalOverviewDesktop({
   return (
     <AssistPortalShell>
       <View style={styles.container}>
-        {showSuccess || localSuccess ? (
-          <SuccessState message="Ihre Anfrage wurde übermittelt." />
-        ) : null}
+        {showSuccess ? <SuccessState message="Daten aktualisiert." /> : null}
+        {localSuccess ? <SuccessState message="Ihre Anfrage wurde übermittelt." /> : null}
         {uploadSuccess ? (
           <SuccessState message="Dokument wurde hochgeladen und zur Prüfung gesendet." />
         ) : null}
@@ -245,6 +246,7 @@ function AssistPortalOverviewDesktop({
           budgetReleased={budgetReleased}
           proofsReleased={proofsReleased}
           requestsReleased={requestsReleased}
+          uploadReleased={uploadReleased}
           activitiesReleased={activitiesReleased}
           onRequestChange={() => setRequestModal('termin_aendern')}
           onRequestExtra={openZusatzterminRequest}

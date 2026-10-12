@@ -15,7 +15,7 @@ describe("assignment studio readability", () => {
     const list = read("../../components/assist/AssignmentsListView.tsx");
     const table = read("../../components/assist/AssignmentsListTable.tsx");
     expect(list).toContain('tone="dark"');
-    expect(list).toContain('color: "#CBE2F4"');
+    expect(list).toMatch(/filterLabel:\s*\{[\s\S]*?color: "#EAF7FF"/);
     expect(list).toContain('color: "#AFC7DA"');
     expect(table).toContain('color: "#F7FBFF"');
     expect(table).toContain('color: "#B8CEE0"');

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import {
@@ -77,11 +77,11 @@ export function ClientFundingSourceSelector({
 const styles = StyleSheet.create({
   root: { gap: spacing.sm },
   headingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  headingCopy: { flex: 1, minWidth: 240, gap: 2 },
+  headingCopy: { flex: 1, minWidth: Platform.OS === 'web' ? 240 : 0, gap: 2 },
   title: { ...typography.label, fontSize: 15 },
   subtitle: { ...typography.caption, lineHeight: 18 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  card: { flexBasis: 250, flexGrow: 1, minHeight: 96, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(22,131,255,0.16)', backgroundColor: 'rgba(255,255,255,0.9)' },
+  card: { maxWidth: Platform.OS === 'web' ? undefined : '100%', flexShrink: Platform.OS === 'web' ? 0 : 1, flexBasis: 250, flexGrow: 1, minHeight: 96, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(22,131,255,0.16)', backgroundColor: 'rgba(255,255,255,0.9)' },
   cardSelected: { borderColor: colors.cyan, backgroundColor: 'rgba(30,150,255,0.16)' },
   cardPressed: { opacity: 0.82 },
   cardDisabled: { opacity: 0.58 },

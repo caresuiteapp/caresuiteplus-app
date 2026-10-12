@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSession, signInWithPassword } from '../../lib/supabase/authService';
+import { getSession, signInWithPassword, signOut } from '../../lib/supabase/authService';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));
 
-const { signInWithPasswordRequest, getSessionRequest } = vi.hoisted(() => ({
+const { signInWithPasswordRequest, getSessionRequest, signOutRequest } = vi.hoisted(() => ({
   signInWithPasswordRequest: vi.fn(),
   getSessionRequest: vi.fn(),
+  signOutRequest: vi.fn(),
 }));
 
 vi.mock('../../lib/supabase/client', () => ({
@@ -13,6 +14,7 @@ vi.mock('../../lib/supabase/client', () => ({
     auth: {
       signInWithPassword: signInWithPasswordRequest,
       getSession: getSessionRequest,
+      signOut: signOutRequest,
     },
   }),
 }));
@@ -23,6 +25,7 @@ describe('auth service request timeouts', () => {
     vi.useFakeTimers();
     signInWithPasswordRequest.mockReset();
     getSessionRequest.mockReset();
+    signOutRequest.mockReset(); signOutRequest.mockImplementation(() => new Promise(() => {}));
     signInWithPasswordRequest.mockImplementation(() => new Promise(() => {}));
     getSessionRequest.mockImplementation(() => new Promise(() => {}));
   });
@@ -52,5 +55,10 @@ describe('auth service request timeouts', () => {
     if (!result.ok) {
       expect(result.error).toContain('zu lange gedauert');
     }
+  });
+  it('ends a stalled web logout instead of leaving the application in a permanent loader', async () => {
+    const pending = signOut();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toEqual({ ok: false, error: 'Abmeldung hat zu lange gedauert.' });
   });
 });

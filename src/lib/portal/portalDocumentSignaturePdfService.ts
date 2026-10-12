@@ -1,8 +1,7 @@
 import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
-import { Platform } from 'react-native';
 import type { PortalSignatureCapture, PortalSignatureDocument } from '@/types/portal/documentSignatures';
-import { computeDocumentContentHash } from '@/lib/documents/documentHashService';
+import { sha256BinaryHex } from '@/lib/crypto/sha256Hex';
 import { renderHtmlToPdfBytes } from '@/lib/assist/assistProofPdfService';
 import {
   buildPortalSignatureFinalPdfPath,
@@ -99,8 +98,8 @@ export async function finalizePortalSignatureDocumentPdf(input: {
   document: PortalSignatureDocument;
   captures: PortalSignatureCapture[];
 }): Promise<ServiceResult<{ storagePath: string; pdfHash: string }>> {
-  if (Platform.OS !== 'web') {
-    return { ok: false, error: 'PDF-Finalisierung ist nur im Web verfügbar.' };
+  if (input.document.documentSourceType === 'pdf_upload') {
+    return { ok: false, error: 'Die hochgeladene Original-PDF kann derzeit noch nicht vollständig mit der Unterschrift zusammengeführt werden. Bitte wenden Sie sich an die Verwaltung.' };
   }
 
   const supabase = getSupabaseClient();
@@ -111,6 +110,7 @@ export async function finalizePortalSignatureDocumentPdf(input: {
       capture.storagePath ? resolveSignatureImageUrl(capture.storagePath) : null,
     ),
   );
+  if (signatureImageUrls.some(url => !url)) return { ok: false, error: 'Ein Signaturbild konnte noch nicht geladen werden. Bitte die Fertigstellung erneut versuchen.' };
 
   const html = buildPortalSignatureFinalHtml({
     document: input.document,
@@ -128,16 +128,14 @@ export async function finalizePortalSignatureDocumentPdf(input: {
     };
   }
 
-  const storagePath = buildPortalSignatureFinalPdfPath(input.tenantId, input.document.id);
-  const pdfHash = computeDocumentContentHash(
-    `${input.document.id}:${input.document.versionNumber}:${pdfBytes.byteLength}`,
-  );
+  const pdfHash = `sha256:${sha256BinaryHex(pdfBytes)}`;
+  const storagePath = buildPortalSignatureFinalPdfPath(input.tenantId, input.document.id, input.document.versionNumber, pdfHash);
 
   const { error: uploadError } = await supabase.storage
     .from(PORTAL_SIGNATURE_STORAGE_BUCKET)
-    .upload(storagePath, pdfBytes, {
+    .upload(storagePath, pdfBytes.slice().buffer as ArrayBuffer, {
       contentType: 'application/pdf',
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {

@@ -23,6 +23,9 @@ export async function fetchEmployeePortalPersonnelView(
     roleKey,
     'portal.employee.profile.view',
   );
+  if (roleKey !== 'employee_portal' && roleKey !== 'caregiver' && roleKey !== 'nurse') {
+    return denied ?? { ok: false, error: 'Kein Zugriff auf das Mitarbeitendenprofil.' };
+  }
   if (denied && roleKey === 'employee_portal') return denied;
 
   const tenantId = portalContext?.tenantId ?? null;
@@ -32,7 +35,8 @@ export async function fetchEmployeePortalPersonnelView(
     return { ok: false, error: 'Kein Mitarbeiterprofil mit diesem Portal verknüpft.' };
   }
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim()) return { ok: false, error: 'Profildaten konnten nicht geladen werden.' };
     return fetchLiveEmployeePortalPersonnelView(tenantId, employeeId);
   }
 

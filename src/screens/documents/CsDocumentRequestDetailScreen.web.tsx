@@ -1,3 +1,4 @@
+import { resolvePortalDocumentSignerRole } from '@/lib/portal/portalDocumentSignatureHelpers';
 import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -22,6 +23,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
+  EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE,
   fetchCsDocumentRequestDetail,
   fetchPortalCsDocumentRequestDetail,
   markCsDocumentRequestOpened,
@@ -95,6 +97,7 @@ export function CsDocumentRequestDetailScreen({
   const router = useRouter();
   const attention = useClientSignatureAttention();
   const signing = useRef(false);
+  const reviewedDocumentVersion = useRef<string | undefined>(undefined);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const portalActor = usePortalActor();
@@ -121,13 +124,15 @@ export function CsDocumentRequestDetailScreen({
       });
     },
     [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
-    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady), queryKey: JSON.stringify([tenantId, id, mode, portalActor.actorId, portalActor.clientId]) },
+    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId]) },
   );
 
   const item = query.data;
-  const effectiveSignerRole = mode === 'client' && !item?.pendingSignatureRoles.includes('client') && item?.pendingSignatureRoles.includes('representative') ? 'representative' : signerRole;
+  const effectiveSignerRole = resolvePortalDocumentSignerRole({ mode, roleKey: portalActor.roleKey, pendingRoles: item?.pendingSignatureRoles ?? [], defaultRole: signerRole });
+  const employeeSigningBlocked = mode === 'employee' && portalActor.roleKey === 'employee_portal';
   const canSign =
-    item
+    !employeeSigningBlocked
+    && item
     && item.pendingSignatureRoles.includes(effectiveSignerRole)
     && ['sent', 'opened', 'partially_signed'].includes(item.status);
 
@@ -172,6 +177,7 @@ export function CsDocumentRequestDetailScreen({
       signerRole: effectiveSignerRole,
       signerName: signerNameDefault ?? profile?.displayName ?? 'Unterzeichner:in',
       signatureDataUrl: dataUrl,
+      expectedUpdatedAt: reviewedDocumentVersion.current,
       anchorToken: `${effectiveSignerRole}_signature`,
       portalActor: isPortal && portalActor.roleKey
         ? {
@@ -198,8 +204,7 @@ export function CsDocumentRequestDetailScreen({
     } catch {
       setActionError("Ihre Unterschrift konnte nicht bestätigt werden. Bitte prüfen Sie das Dokument und versuchen Sie es erneut.");
     } finally {
-      setSignModal(false);
-      await Promise.all([query.refresh(), attention.refresh()]);
+      await Promise.allSettled([query.refresh(), attention.refresh()]);
       signing.current = false;
       setWorking(false);
     }
@@ -255,8 +260,9 @@ export function CsDocumentRequestDetailScreen({
         subtitle={statusLabel}
         accent={accent}
         canSign={Boolean(canSign)}
-        onSign={() => setSignModal(true)}
+        onSign={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}
       >
+        {employeeSigningBlocked ? <InfoBanner variant="warning" message={EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE} /> : null}
         {isPortal && canSign ? (
           <ClientPortalGuide
             compact
@@ -316,6 +322,7 @@ export function CsDocumentRequestDetailScreen({
       </RequestDetailShell>
 
       <CareSignatureModal
+        statusMessage={actionError}
         visible={signModal}
         label="Unterschrift bestätigen"
         onConfirm={(dataUrl) => void handleSign(dataUrl)}

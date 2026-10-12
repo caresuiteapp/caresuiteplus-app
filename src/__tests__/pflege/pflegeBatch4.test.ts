@@ -42,11 +42,12 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(screen).not.toContain('eMP abgleichen');
   });
 
-  it('Wunddetail verlinkt BodyMap wenn demo-funktional', () => {
+  it('Wunddetail zeigt keinen entfernten Bodymap-Zugang', () => {
     const screen = readSrc('src/screens/pflege/WoundDocumentationDetailScreen.tsx');
-    expect(screen).toContain('BodyMap öffnen');
-    expect(screen).toContain('/pflege/bodymap');
-    expect(screen).toContain('bodyMapReady');
+    expect(screen).not.toContain('BodyMap öffnen');
+    expect(screen).not.toContain('/pflege/bodymap');
+    expect(screen).not.toContain('bodyMapReady');
+    expect(screen).toContain('Wundverlauf');
   });
 
   it('Dienstpläne erklären den ausstehenden Import, ohne wirkungslosen Button', () => {

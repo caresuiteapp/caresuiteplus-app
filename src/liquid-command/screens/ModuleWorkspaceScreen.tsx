@@ -863,7 +863,7 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
       contextDetail={`${activeArea.label} · ${state.tenantId ? 'Mandant aktiv' : 'kein Mandantenkontext'}`}
       primaryActionLabel={module.primaryAction}
       onPrimaryAction={() => openCreate()}
-      aside={layout.isPhone || activeArea.pageType === 'planning' ? undefined : aside}
+      aside={activeArea.pageType === 'planning' ? undefined : aside}
     >
       <PatternHeader
         area={activeArea}

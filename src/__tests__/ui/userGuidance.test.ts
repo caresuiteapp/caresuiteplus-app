@@ -64,12 +64,13 @@ describe('User guidance — public auth surfaces', () => {
     expect(source).not.toContain('AuthLoginHero');
   });
 
-  it('registration shows Office always included', () => {
+  it('registration offers free registration without module promotion', () => {
     const source = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(source).toContain('ScreenShell');
-    expect(source).toContain('Office ist immer enthalten');
-    expect(source).toContain('immer enthalten');
-    expect(source).toContain('Kostenlos registrieren');
+    expect(source).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).toContain('Unternehmen kostenlos registrieren');
+    expect(shared).not.toContain('MODULE_OPTIONS');
+    expect(shared).not.toContain('Office ist immer enthalten');
   });
 
   it('public auth screens expose no raw preparedOnly strings', () => {

@@ -1,5 +1,6 @@
 import { fetchValidVisitSignature } from '@/lib/assist/assistExecutionPersistenceService';
 import { withWorkflowTimeout } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
+import type { SignatureWriteExpectation } from '@/features/assistWorkflow/workflowWriteExpectation';
 
 export type VisitSignatureConfirmation =
   | { state: 'confirmed' }
@@ -18,6 +19,7 @@ export async function readVisitSignatureConfirmation(input: {
   tenantId: string;
   visitId: string;
   isWritePending: () => boolean;
+  expectedSignature?: SignatureWriteExpectation;
 }): Promise<VisitSignatureConfirmation> {
   if (!input.tenantId || !input.visitId) {
     return { state: 'unavailable', message: UNAVAILABLE_MESSAGE };
@@ -42,6 +44,11 @@ export async function readVisitSignatureConfirmation(input: {
       !signature.isValid || !signature.storagePath || !signature.signatureHash
     ) {
       return { state: 'unavailable', message: UNAVAILABLE_MESSAGE };
+    }
+    const expected = input.expectedSignature;
+    if (expected && (signature.signatureHash !== expected.signatureHash || signature.payloadHash !== expected.payloadHash
+      || signature.signerName !== expected.signerName || signature.signerRole !== expected.signerRole)) {
+      return { state: 'missing', message: 'Die neu erfasste Unterschrift ist noch nicht bestätigt. Bitte die Erfassung erneut speichern; eine frühere Unterschrift bestätigt diese Änderung nicht.' };
     }
     return { state: 'confirmed' };
   } catch {

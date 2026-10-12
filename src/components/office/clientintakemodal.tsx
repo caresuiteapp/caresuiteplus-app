@@ -95,6 +95,7 @@ export function ClientIntakeModal({
         sheetHost: {
           width: isBottomSheet ? ('100%' as const) : sheetWidth,
           maxHeight: sheetMaxHeight,
+          height: sheetMaxHeight,
           flex: isBottomSheet ? undefined : 1,
           ...Platform.select({
             web: ({ boxShadow: '0 28px 86px rgba(0,0,0,0.56)' } as unknown as undefined),
@@ -109,7 +110,7 @@ export function ClientIntakeModal({
     [isBottomSheet, sheetMaxHeight, sheetWidth],
   );
 
-  const isEditMode = mode === 'edit' && !!clientId;
+  const isEditMode = mode === 'edit';
 
   const handleCreated = (id: string) => {
     onCreated?.(id);

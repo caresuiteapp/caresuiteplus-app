@@ -7,12 +7,17 @@ import { buildPersonnelAccessContext } from '@/lib/office/employeePersonnelAcces
 import { runService } from '@/lib/services/serviceRunner';
 import { fetchLiveEmployeePortalProfile } from './employeeProfileLiveService';
 import { projectEmployeePersonnelForPortal } from './employeePortalPersonnelProjection';
+import { fetchPortalEmployeeIdForAuthUser } from './resolvePortalEmployeeLink';
 
 export async function fetchLiveEmployeePortalPersonnelView(
   tenantId: string,
   employeeId: string,
 ): Promise<ServiceResult<PortalEmployeePersonnelView>> {
   return runService(async () => {
+    const ownEmployeeId = await fetchPortalEmployeeIdForAuthUser(tenantId);
+    if (!ownEmployeeId || ownEmployeeId !== employeeId) {
+      return { ok: false, error: 'Mitarbeitende sehen nur die eigene freigegebene Personalakte.' };
+    }
     const [fileResult, profileResult] = await Promise.all([
       loadEmployeePersonnelFileLive(tenantId, employeeId),
       fetchLiveEmployeePortalProfile(tenantId, employeeId),

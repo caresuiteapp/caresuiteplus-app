@@ -39,7 +39,7 @@ function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitP
       signerName: 'Max Mustermann',
       tasks: [{ title: 'Begleitung', status: 'done' }],
     },
-    payloadHash: null,
+    payloadHash: 'sha256:proof-version',
     generatedAt: '2026-06-01T10:00:00.000Z',
     generatedBy: 'user-1',
     approvedAt: '2026-06-01T11:00:00.000Z',
@@ -57,6 +57,14 @@ function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitP
     ...overrides,
   };
 }
+
+const confirmedSource = {
+  version: 'workflow-assignment-record-v1' as const, tenant_id: 'tenant-1', visit_id: 'visit-1', proof_id: 'proof-1',
+  proof_payload_hash: 'sha256:proof-version', signature_id: 'sig-1', signature_payload_hash: 'sha256:signature-version',
+  client_id: 'client-1', employee_id: 'employee-1', service_started_at: '2026-06-01T08:00:00.000Z',
+  service_ended_at: '2026-06-01T09:30:00.000Z', actual_minutes: 90,
+  pdf_storage_path: 'own/proof.pdf', pdf_sha256: 'ab'.repeat(32), attested_at: '2026-06-01T12:00:00Z',
+};
 
 describe('K.5 — proof billing mapper', () => {
   it('maps tasks from proof snapshot', () => {
@@ -78,6 +86,7 @@ describe('K.5 — proof billing mapper', () => {
     const proof = sampleProof();
     const visit = {
       id: 'visit-1',
+      tenant_id: 'tenant-1',
       client_id: 'client-1',
       service_key: 'alltagsbegleitung',
       service_name: 'Alltagsbegleitung',
@@ -88,6 +97,7 @@ describe('K.5 — proof billing mapper', () => {
     };
     const mapped = mapApprovedProofToBillingCandidate('tenant-1', proof, visit, {
       rateAmount: 35,
+      confirmedSource,
       serviceTypeId: 'type-1',
     });
     expect('clientId' in mapped && mapped.clientId).toBe('client-1');
@@ -98,7 +108,7 @@ describe('K.5 — proof billing mapper', () => {
   });
 
   it('builds source snapshot with signed/approved flags', () => {
-    const snap = getProofBillingSourceSnapshot(sampleProof(), null);
+    const snap = getProofBillingSourceSnapshot(sampleProof(), null, confirmedSource);
     expect(snap.signed).toBe(true);
     expect(snap.approved).toBe(true);
     expect(snap.durationMinutes).toBe(90);

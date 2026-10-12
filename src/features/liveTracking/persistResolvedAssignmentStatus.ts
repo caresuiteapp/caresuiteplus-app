@@ -45,6 +45,7 @@ export async function persistResolvedAssignmentStatus(
     {
       actorProfileId: input.profileId ?? undefined,
       actorEmployeeId: input.employeeId,
+      expectedAssignedEmployeeId: input.employeeId,
       knownExistingDetail: input.resolution.detail,
       // A status button may only report success after a server readback. The
       // former optimistic fast path could hide an RLS-filtered zero-row write.

@@ -183,7 +183,7 @@ describe('buildAssistProofPdfPayload pure snapshot path', () => {
 
 describe('runtime wiring enrichment gate', () => {
   it('portal document detail uses buildEnrichedAssistProofPdfPayload', () => {
-    const portal = readSrc('src/lib/portal/assist/portalAssistVisitProofService.ts');
+    const portal = readSrc('src/lib/portal/assist/portalAssistVisitProofService.core.ts');
     expect(portal).toContain('buildEnrichedAssistProofPdfPayload');
     expect(portal).not.toContain('buildAssistProofPdfPayload(fullProof)');
   });

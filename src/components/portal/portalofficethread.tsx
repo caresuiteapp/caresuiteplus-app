@@ -1,6 +1,8 @@
 import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused } from 'expo-router';
 import {
+  AppState,
   Platform,
   ScrollView,
   StyleSheet,
@@ -28,6 +30,7 @@ import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
 import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 import { usePortalOfficeThreadDetail } from '@/hooks/useportalofficethreaddetail';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
 import {
   mapOfficeMessageToChatBubble,
@@ -35,6 +38,7 @@ import {
   resolveOfficeThreadParticipantName,
 } from '@/lib/office/officemessagemappers';
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import type { OfficeMessage } from '@/types/office/messaging';
 import { getPortalStatusLabel } from '@/lib/office/portalofficemessageservice';
 import { toUserFacingSendError } from '@/lib/office/voicemessageutils';
 
@@ -46,7 +50,15 @@ type PortalOfficeThreadProps = {
   hideHeader?: boolean;
 };
 
-export function PortalOfficeThread({
+export function PortalOfficeThread(props: PortalOfficeThreadProps) {
+  const { tenantId, actorId, roleKey, clientId, employeeId } = usePortalActor();
+  // A conversation owns its composer and any pending send. Changing only the
+  // hook argument would retain another thread's unsent text and attachments.
+  const scope = JSON.stringify([tenantId, actorId, roleKey, clientId, employeeId, props.threadId]);
+  return <PortalOfficeThreadContent key={scope} {...props} />;
+}
+
+function PortalOfficeThreadContent({
   threadId,
   onNewThreadStarted,
   onThreadTitleResolved,
@@ -65,20 +77,42 @@ export function PortalOfficeThread({
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
-  const { detail, loading, error, sending, sendMessage, startNewChat, refresh, markAsRead } =
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const restartLock = useRef(false);
+  const sendLock = useRef(false);
+  const mounted = useRef(true);
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+  const screenFocused = useIsFocused();
+  const { detail, loading, error, sending, sendMessage, startNewChat, refresh, markAsRead, actorClientId, actorEmployeeId } =
     usePortalOfficeThreadDetail(threadId);
 
-  const markedThreadRef = useRef<string | null>(null);
+  const markedReadBatchRef = useRef<string | null>(null);
+  const unreadOfficeMessages = detail?.messages
+    .filter((message) => message.senderType === 'office_profile' && !message.readAt && message.status === 'sent')
+    .map((message) => message.id)
+    .join('|') ?? '';
 
   useEffect(() => {
-    markedThreadRef.current = null;
-  }, [threadId]);
+    mounted.current = true;
+    const subscription = AppState.addEventListener('change', (state) => setAppActive(state === 'active'));
+    return () => {
+      mounted.current = false;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
-    if (!threadId || !detail || markedThreadRef.current === threadId) return;
-    markedThreadRef.current = threadId;
-    void markAsRead();
-  }, [threadId, detail, markAsRead]);
+    if (!appActive || !screenFocused || !threadId || !unreadOfficeMessages || markedReadBatchRef.current === unreadOfficeMessages) return;
+    const batch = unreadOfficeMessages;
+    markedReadBatchRef.current = batch;
+    const allowRetry = () => {
+      if (mounted.current && markedReadBatchRef.current === batch) markedReadBatchRef.current = null;
+    };
+    void markAsRead().then((result) => {
+      if (!result.ok) allowRetry();
+    }).catch(allowRetry);
+  }, [appActive, screenFocused, threadId, detail, unreadOfficeMessages, markAsRead]);
 
   useEffect(() => {
     if (!detail) return;
@@ -197,26 +231,53 @@ export function PortalOfficeThread({
   }
 
   const handleSend = async () => {
-    const result = await sendMessage(draft, pendingAttachments);
-    if (result.ok) {
-      setDraft('');
-      setPendingAttachments([]);
-      setAttachmentError(null);
-      scrollRef.current?.scrollToEnd({ animated: true });
-    } else {
-      setAttachmentError(toUserFacingSendError(result.error));
+    if (sendLock.current) return;
+    sendLock.current = true;
+    const sentDraft = draft;
+    const sentAttachments = pendingAttachments;
+    try {
+      const result = await sendMessage(sentDraft, sentAttachments);
+      if (!mounted.current) return;
+      if (result.ok) {
+        setDraft((current) => current === sentDraft ? '' : current);
+        const sentIds = new Set(sentAttachments.map((attachment) => attachment.id));
+        setPendingAttachments((current) => current.filter((attachment) => !sentIds.has(attachment.id)));
+        setAttachmentError(null);
+        scrollRef.current?.scrollToEnd({ animated: true });
+      } else {
+        setAttachmentError(toUserFacingSendError(result.error));
+      }
+    } catch {
+      if (mounted.current) setAttachmentError(toUserFacingSendError());
+    } finally {
+      sendLock.current = false;
     }
   };
 
   const handleStartNewChat = async () => {
-    const result = await startNewChat();
-    if (result.ok && result.data) {
-      onNewThreadStarted?.(result.data.id);
+    if (restartLock.current) return;
+    restartLock.current = true;
+    setRestarting(true);
+    setRestartError(null);
+    try {
+      const result = await startNewChat();
+      if (!mounted.current) return;
+      if (result.ok && result.data) {
+        onNewThreadStarted?.(result.data.id);
+      } else {
+        setRestartError(toUserFacingSendError(result.error));
+      }
+    } catch {
+      if (mounted.current) setRestartError(toUserFacingSendError());
+    } finally {
+      restartLock.current = false;
+      if (mounted.current) setRestarting(false);
     }
   };
 
-  const isOwnMessage = (senderType: string) =>
-    senderType === 'client_portal' || senderType === 'employee_portal';
+  const isOwnMessage = (message: OfficeMessage) =>
+    (message.senderType === 'client_portal' && !!actorClientId && message.senderClientId === actorClientId)
+    || (message.senderType === 'employee_portal' && !!actorEmployeeId && message.senderEmployeeId === actorEmployeeId);
 
   const isGroup = isEmployeeGroupChatThread(detail);
   const headerTitle = resolveOfficeThreadParticipantName(detail);
@@ -250,7 +311,7 @@ export function PortalOfficeThread({
         >
           {detail.messages.map((message) => {
             const isVoiceOnly = message.body === '🎤 Sprachnachricht';
-            const isOwn = isOwnMessage(message.senderType);
+            const isOwn = isOwnMessage(message);
             return (
               <View key={message.id}>
                 {!isVoiceOnly ? (
@@ -282,11 +343,12 @@ export function PortalOfficeThread({
                 ? 'Dieser Gruppen-Chat ist abgeschlossen und schreibgeschützt.'
                 : 'Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie der Verwaltung erneut.'}
             </Text>
+            {restartError ? <Text accessibilityRole="alert" style={styles.sendErrorText}>{restartError}</Text> : null}
             {!isGroup ? (
               useLightUi ? (
-                <CareLightButton title="Verwaltung anschreiben" onPress={() => void handleStartNewChat()} />
+                <CareLightButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               ) : (
-                <PremiumButton title="Verwaltung anschreiben" onPress={() => void handleStartNewChat()} />
+                <PremiumButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               )
             ) : null}
           </View>
@@ -296,9 +358,9 @@ export function PortalOfficeThread({
               <View style={styles.sendErrorWrap}>
                 <Text style={styles.sendErrorText}>{attachmentError}</Text>
                 {useLightUi ? (
-                  <CareLightButton title="Erneut senden" variant="secondary" onPress={() => void handleSend()} />
+                  <CareLightButton title="Erneut senden" variant="secondary" disabled={sending} onPress={() => void handleSend()} />
                 ) : (
-                  <PremiumButton title="Erneut senden" size="sm" onPress={() => void handleSend()} />
+                  <PremiumButton title="Erneut senden" size="sm" disabled={sending} onPress={() => void handleSend()} />
                 )}
               </View>
             ) : null}
@@ -308,6 +370,7 @@ export function PortalOfficeThread({
                 onChangeText={setDraft}
                 onSend={handleSend}
                 sending={sending}
+                disabled={sending}
                 onDarkSurface={onDarkSurface}
                 pendingAttachments={pendingAttachments}
                 onPendingAttachmentsChange={setPendingAttachments}

@@ -9,7 +9,7 @@ const observation = (temperature: unknown = 0, timestamp = new Date().toISOStrin
   weather: { temperature, timestamp, icon: 'clear-night', source_ids: { temperature: 1 } },
   sources: [{ id: 1, station_name: 'Teststation' }],
 });
-function Probe({ owner = 'test' }) { result = useDesktopWeather(owner); return <span>{result.message}</span>; }
+function Probe({ owner = 'test' }) { const weather = useDesktopWeather(owner); React.useLayoutEffect(() => { result = weather; }); return <span>{weather.message}</span>; }
 const render = async (owner = 'test') => { await act(async () => root.render(<Probe owner={owner} />)); };
 const refresh = async () => { await act(async () => { await result.refresh(); }); };
 beforeEach(() => {

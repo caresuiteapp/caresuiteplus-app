@@ -1,5 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { WfmTimeAccount, WfmTrafficLight } from '@/types/modules/wfm';
+import type { WfmTimeAccount, WfmTrafficLight, WfmWorkSession } from '@/types/modules/wfm';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
@@ -8,13 +8,15 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
-  fetchEmployeeEventsInRange,
-  listSessionsForDate,
+  fetchSessionForDate,
+  fetchSessionEvents,
+  todayWorkDate,
   resolveEmployeeIdForUser,
 } from './wfmWorkSessionRepository';
+import { calculateContractTargetMinutesForRange } from './wfmContractTarget';
+import { deriveWfmTimelineTotals } from './wfmTimeline';
 
 const TABLE = 'workforce_time_accounts';
-const DEFAULT_TARGET_MINUTES = 8 * 60;
 
 type AccountRow = {
   id: string;
@@ -90,8 +92,6 @@ export async function getWfmTimeAccountForMonth(
   const key = accountKey(tenantId, employeeId, year, month);
 
   if (getServiceMode() !== 'supabase') {
-    const cached = demoAccounts.get(key);
-    if (cached) return { ok: true, data: cached };
     const computed = await aggregateWfmTimeAccount(tenantId, employeeId, year, month);
     if (!computed.ok) return computed;
     demoAccounts.set(key, computed.data);
@@ -126,30 +126,25 @@ async function aggregateWfmTimeAccount(
   year: number,
   month: number,
 ): Promise<ServiceResult<WfmTimeAccount>> {
-  const from = new Date(year, month - 1, 1).toISOString();
-  const to = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
-
+  const fromDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const toDate = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const contract = await loadContractWorkDays(tenantId, employeeId);
+  if (!contract.ok) return contract;
   let actualMinutes = 0;
   let pauseMinutes = 0;
-
-  const daysInMonth = new Date(year, month, 0).getDate();
   for (let day = 1; day <= daysInMonth; day++) {
     const workDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const sessionsResult = await listSessionsForDate(tenantId, workDate);
-    if (!sessionsResult.ok) continue;
-    const session = sessionsResult.data.find((s) => s.employeeId === employeeId);
-    if (session) {
-      actualMinutes += session.netMinutes || session.grossMinutes;
-      pauseMinutes += session.pauseMinutes;
+    const sessionResult = await fetchSessionForDate(tenantId, employeeId, workDate);
+    if (!sessionResult.ok) return sessionResult;
+    if (sessionResult.data) {
+      const totals = await readSessionTotals(tenantId, sessionResult.data);
+      if (!totals.ok) return totals;
+      actualMinutes += totals.data.netMinutes;
+      pauseMinutes += totals.data.pauseMinutes;
     }
   }
-
-  const eventsResult = await fetchEmployeeEventsInRange(tenantId, employeeId, from, to);
-  if (eventsResult.ok && actualMinutes === 0) {
-    actualMinutes = Math.round(eventsResult.data.length * 15);
-  }
-
-  const targetMinutes = DEFAULT_TARGET_MINUTES * 22;
+  const targetMinutes = calculateContractTargetMinutesForRange(contract.data, fromDate, toDate);
   const diff = actualMinutes - targetMinutes;
   const account: WfmTimeAccount = {
     id: accountKey(tenantId, employeeId, year, month),
@@ -177,17 +172,53 @@ export async function getWfmTodayAmpel(
   actorRoleKey: RoleKey | null,
   options?: { employeeId?: string | null },
 ): Promise<ServiceResult<{ trafficLight: WfmTrafficLight; actualMinutes: number; targetMinutes: number }>> {
-  const now = new Date();
-  const sessionResult = await listSessionsForDate(tenantId, now.toISOString().slice(0, 10));
-  if (!sessionResult.ok) return sessionResult;
-
+  const denied = enforcePermission(actorRoleKey, 'time.tracking.own.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
   const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, options?.employeeId);
   if (!employeeResult.ok) return employeeResult;
-
-  const session = sessionResult.data.find((s) => s.employeeId === employeeResult.data);
-  const actualMinutes = session?.netMinutes ?? session?.grossMinutes ?? 0;
-  const targetMinutes = DEFAULT_TARGET_MINUTES;
+  const workDate = todayWorkDate();
+  const [sessionResult, contract] = await Promise.all([
+    fetchSessionForDate(tenantId, employeeResult.data, workDate),
+    loadContractWorkDays(tenantId, employeeResult.data),
+  ]);
+  if (!sessionResult.ok) return sessionResult;
+  if (!contract.ok) return contract;
+  const session = sessionResult.data;
+  const totals = session ? await readSessionTotals(tenantId, session) : { ok: true as const, data: { netMinutes: 0 } };
+  if (!totals.ok) return totals;
+  const actualMinutes = totals.data.netMinutes;
+  const targetMinutes = calculateContractTargetMinutesForRange(contract.data, workDate, workDate);
   const trafficLight = computeTrafficLight(actualMinutes, targetMinutes);
-
   return { ok: true, data: { trafficLight, actualMinutes, targetMinutes } };
+}
+
+async function readSessionTotals(tenantId: string, session: WfmWorkSession): Promise<ServiceResult<{ netMinutes: number; pauseMinutes: number }>> {
+  // Closed sessions can include approved corrections. Active sessions store
+  // their elapsed totals only at clock-out, so read the same real timeline as
+  // the workday controls instead of reporting their initial zero indefinitely.
+  if (session.isOnline && !session.endedAt && session.id) {
+    const events = await fetchSessionEvents(tenantId, session.id);
+    if (!events.ok) return events;
+    const totals = deriveWfmTimelineTotals(events.data, { session });
+    if (totals.blockCount === 0) return { ok: false, error: 'Die laufende Arbeitszeit konnte nicht aus den Zeitereignissen ermittelt werden. Bitte erneut laden.' };
+    return { ok: true, data: totals };
+  }
+  // A zero net duration is valid, for example a fully paused session.
+  return { ok: true, data: { netMinutes: session.netMinutes ?? session.grossMinutes, pauseMinutes: session.pauseMinutes } };
+}
+
+async function loadContractWorkDays(tenantId: string, employeeId: string): Promise<ServiceResult<Record<string, unknown>>> {
+  if (getServiceMode() !== 'supabase') return { ok: true, data: {} };
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+  const { data, error } = await fromUnknownTable(supabase, 'employee_contract_settings')
+    .select('work_days').eq('tenant_id', tenantId).eq('employee_id', employeeId).maybeSingle();
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  const schedule = (data as { work_days?: unknown } | null)?.work_days;
+  if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) {
+    return { ok: false, error: 'Die vertragliche Sollzeit ist noch nicht hinterlegt oder nicht freigegeben. Bitte die Verwaltung kontaktieren.' };
+  }
+  return { ok: true, data: schedule as Record<string, unknown> };
 }

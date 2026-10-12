@@ -80,14 +80,6 @@ export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
     keywords: 'portal zugang login codes mitarbeiter klient angehörige benutzer',
   },
   {
-    id: 'bodymap',
-    label: 'BodyMap',
-    description: 'Körperkarte, Wunden, Dekubitus und Verlaufskontrolle',
-    glyph: '⌾',
-    route: '/pflege/bodymap',
-    keywords: 'körper bodymap wunde dekubitus pflege',
-  },
-  {
     id: 'profile',
     label: 'Profil',
     description: 'Persönliche Angaben, Sicherheit und Sitzung',
@@ -221,7 +213,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'medication', label: 'Medikation', description: 'Plan, Gabe und Abweichung', pageType: 'review', route: '/pflege/medikation' },
     { id: 'diagnoses', label: 'Diagnosen', description: 'Ärztliche Angaben und Pflegerelevanz', pageType: 'record', route: '/pflege/diagnosen' },
     { id: 'orders', label: 'Verordnungen', description: 'Gültigkeit, Genehmigung und Durchführung', pageType: 'record', route: '/pflege/verordnungen' },
-    { id: 'wounds', label: 'Wunden', description: 'BodyMap, Dekubitus und Verlauf', pageType: 'editor', route: '/pflege/bodymap' },
+    { id: 'wounds', label: 'Wunden', description: 'Wundfälle, Dekubitus und Verlauf', pageType: 'editor', route: '/pflege/wunddokumentation' },
     { id: 'vitals', label: 'Vitalwerte', description: 'Erfassung, Verlauf und Grenzwerte', pageType: 'analytics', route: '/pflege/vitalwerte' },
     { id: 'reports', label: 'Pflegeberichte', description: 'Chronologie und Freigabe', pageType: 'work-list', route: '/pflege/berichte' },
     { id: 'treatment', label: 'Behandlungspflege', description: 'Verordnete Durchführung und Nachweis', pageType: 'work-list', route: '/pflege/behandlungspflege' },

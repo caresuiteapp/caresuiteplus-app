@@ -60,6 +60,12 @@ function isSameDay(iso: string, ref: Date): boolean {
   );
 }
 
+function overlapsDay(startAt: string, endAt: string, ref: Date): boolean {
+  const dayStart = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()).getTime();
+  const dayEnd = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 1).getTime();
+  return new Date(startAt).getTime() < dayEnd && new Date(endAt).getTime() > dayStart;
+}
+
 function isSameWeek(iso: string, ref: Date): boolean {
   const d = new Date(iso);
   const start = new Date(ref);
@@ -135,12 +141,13 @@ export function buildEmployeePortalOverviewFromAppointments(
   items: PortalAppointmentItem[],
 ): EmployeePortalOverview {
   const assignments = filterEmployeePortalAppointments(dedupeEmployeePortalAppointments(items))
+    .filter((item) => !item.id.startsWith('calendar:') && !(item as { cacheStale?: boolean }).cacheStale)
     .map(mapPortalAppointmentToListItem)
     .sort((a, b) => a.plannedStartAt.localeCompare(b.plannedStartAt));
   const now = new Date();
 
   return {
-    todayAssignments: assignments.filter((item) => isSameDay(item.plannedStartAt, now)),
+    todayAssignments: assignments.filter((item) => isSameDay(item.plannedStartAt, now) || overlapsDay(item.plannedStartAt, item.plannedEndAt, now)),
     nextAssignments: assignments
       .filter((item) => new Date(item.plannedStartAt) > now && !item.isLocked)
       .slice(0, 5),
@@ -183,7 +190,7 @@ export function isCompletedEmployeeAssignment(status: AssignmentStatus): boolean
 export function resolveDashboardCurrentAssignment(
   todayAssignments: EmployeePortalAssignmentListItem[],
 ): EmployeePortalAssignmentListItem | null {
-  const active = todayAssignments.find((item) => isActiveEmployeeAssignment(item.status));
+  const active = todayAssignments.find((item) => ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(item.status));
   if (active) return active;
 
   const documentationPending = todayAssignments.find(

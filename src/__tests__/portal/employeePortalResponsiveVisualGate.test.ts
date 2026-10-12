@@ -177,10 +177,11 @@ describe('employee portal responsive visual gate', () => {
   });
 
   it('sizes proof previews from the current viewport instead of a fixed mobile height', () => {
-    const signatures = read('src/components/portal/PortalSignatureCapturePanel.tsx');
+    const signatures = read('src/components/portal/PortalSignatureCapturePanelCore.tsx');
     expect(signatures).toContain('const previewHeight = Math.max(');
     expect(signatures).toContain('viewportWidth < 720 ? 0.46 : 0.56');
-    expect(signatures).toContain('height: previewHeight');
+    expect(signatures).toContain('height={previewHeight}');
+    expect(read('src/components/portal/PortalSignaturePdfFrame.web.tsx')).toContain("style={{ width: '100%', height,");
     expect(signatures).not.toContain('minHeight: 480');
   });
 

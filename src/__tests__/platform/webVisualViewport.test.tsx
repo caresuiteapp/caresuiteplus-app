@@ -7,7 +7,7 @@ import { useWebVisualViewport } from '@/hooks/useWebVisualViewport.web';
 let root: Root, host: HTMLDivElement;
 let visual: EventTarget & { height: number; width: number; offsetTop: number; offsetLeft: number; scale: number };
 let state: ReturnType<typeof useWebVisualViewport>;
-function Probe() { state = useWebVisualViewport(); return <textarea aria-label="Nachricht" />; }
+function Probe() { const result = useWebVisualViewport(); React.useLayoutEffect(() => { state = result; }); return <textarea aria-label="Nachricht" />; }
 async function update(values: Partial<typeof visual> = {}, event = 'resize') {
   Object.assign(visual, values);
   await act(async () => { visual.dispatchEvent(new Event(event)); vi.advanceTimersByTime(20); });

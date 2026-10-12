@@ -70,10 +70,11 @@ export async function fetchBillingDashboardStats(
     ]);
 
     if (!invoiceResult.ok) return invoiceResult;
+    if (!budgetResult.ok) return budgetResult;
 
     const closedStatuses = new Set<string>(['paid', 'cancelled', 'written_off']);
     const open = invoiceResult.data.filter((i) => !closedStatuses.has(i.status));
-    const budgets = budgetResult.ok ? budgetResult.data : [];
+    const budgets = budgetResult.data;
     const activeBudgets = budgets.filter(
       (b) => b.status === 'aktiv' || b.status === 'in_bearbeitung',
     );
@@ -87,7 +88,7 @@ export async function fetchBillingDashboardStats(
           (sum, inv) => sum + Math.round((inv.total_amount ?? 0) * 100),
           0,
         ),
-        overdueCount: 0,
+        overdueCount: open.filter(invoice => invoice.status !== 'draft' && invoice.due_date && invoice.due_date < new Date().toISOString().slice(0, 10)).length,
         activeBudgetsCount: activeBudgets.length,
         budgetsNearLimitCount: nearLimit.length,
       },

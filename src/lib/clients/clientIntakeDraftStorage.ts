@@ -3,6 +3,7 @@ import { createEmptyIntakeForm } from '@/lib/clients/clientIntakeService';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
 import { isUuid } from '@/lib/validation/uuid';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import type { IntakeDocumentState } from '@/features/intakeDocuments/intakeDocumentTypes';
 
 const STORAGE_PREFIX = 'caresuite:client-intake-draft';
 const CLIENT_INTAKE_DRAFT_SCHEMA_VERSION = 2;
@@ -22,11 +23,19 @@ function storageKey(userId: string, tenantId: string): string {
 
 export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormData>): ClientIntakeFormData {
   const base = createEmptyIntakeForm();
-  const merged = { ...base, ...partial };
+  const merged = { ...base };
+  for (const key of Object.keys(base) as (keyof ClientIntakeFormData)[]) {
+    const value = partial[key];
+    if ((typeof base[key] === 'string' && typeof value === 'string') ||
+        (typeof base[key] === 'boolean' && typeof value === 'boolean')) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
 
   const arrayKeys: (keyof ClientIntakeFormData)[] = [
     'careContexts',
     'billingTypes',
+    'fundingSources',
     'costBearerTypes',
     'homeAccess',
     'supportWishes',
@@ -42,20 +51,29 @@ export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormDat
   ];
 
   for (const key of arrayKeys) {
-    if (!Array.isArray(merged[key])) {
-      (merged as Record<string, unknown>)[key] = base[key];
-    }
+    const value = partial[key];
+    if (!Array.isArray(value)) continue;
+    (merged as Record<string, unknown>)[key] = key === 'intakeDocuments'
+      ? value.filter((entry): entry is IntakeDocumentState => typeof entry === 'object' && entry !== null && !Array.isArray(entry) &&
+          typeof entry.templateKey === 'string' && entry.signatures && typeof entry.signatures === 'object')
+        .map((entry: IntakeDocumentState) => ({ ...entry,
+          missingPlaceholders: Array.isArray(entry.missingPlaceholders) ? entry.missingPlaceholders.filter((value) => typeof value === 'string') : ['Gespeichertes Dokument prüfen'],
+          unresolvedKeys: Array.isArray(entry.unresolvedKeys) ? entry.unresolvedKeys.filter((value) => typeof value === 'string') : [],
+          signatures: Object.fromEntries(Object.entries(entry.signatures).filter(([role, signature]) =>
+            ['client', 'employee', 'legal_representative'].includes(role) && signature && typeof signature.dataUrl === 'string')),
+        }))
+      : value.filter((entry) => typeof entry === 'string');
   }
 
   if (typeof partial.homeAccess === 'string') {
     merged.homeAccess = parseHomeAccessStoredValue(partial.homeAccess);
   }
 
-  if (!merged.costBearerTemplateIds || typeof merged.costBearerTemplateIds !== 'object') {
-    merged.costBearerTemplateIds = base.costBearerTemplateIds;
-  }
-  if (!merged.costBearerDbTypes || typeof merged.costBearerDbTypes !== 'object') {
-    merged.costBearerDbTypes = base.costBearerDbTypes;
+  for (const key of ['costBearerTemplateIds', 'costBearerDbTypes'] as const) {
+    const value = partial[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      merged[key] = Object.fromEntries(Object.entries(value).filter(([, item]) => typeof item === 'string'));
+    }
   }
 
   return merged;
@@ -64,23 +82,12 @@ export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormDat
 export function hasIntakeDraftContent(draft: Pick<ClientIntakeDraft, 'form' | 'stepIndex'>): boolean {
   if (draft.stepIndex > 0) return true;
 
-  const f = draft.form;
-  const careContexts = f.careContexts ?? [];
-  if (careContexts.length > 0) return true;
-
-  const billingTypes = f.billingTypes ?? [];
-
-  return Boolean(
-    f.firstName?.trim()
-    || f.lastName?.trim()
-    || f.street?.trim()
-    || f.phone?.trim()
-    || f.mobile?.trim()
-    || f.email?.trim()
-    || billingTypes.length > 0
-    || f.consentDatenschutz
-    || f.consentVertrag,
-  );
+  const defaults = createEmptyIntakeForm();
+  return (Object.keys(defaults) as (keyof ClientIntakeFormData)[]).some((key) => {
+    const value = draft.form[key];
+    if (typeof value === 'string') return Boolean(value.trim()) && value !== defaults[key];
+    return value != null && JSON.stringify(value) !== JSON.stringify(defaults[key]);
+  });
 }
 
 export async function loadClientIntakeDraft(
@@ -92,7 +99,8 @@ export async function loadClientIntakeDraft(
 
   try {
     const parsed = JSON.parse(raw) as Partial<ClientIntakeDraft>;
-    if (!parsed.form || typeof parsed.stepIndex !== 'number') return null;
+    if (!parsed.form || typeof parsed.form !== 'object' || Array.isArray(parsed.form) ||
+        typeof parsed.stepIndex !== 'number' || !Number.isFinite(parsed.stepIndex)) return null;
 
     const mergedForm = mergeIntakeFormWithDefaults(parsed.form);
     // Vor Version 2 konnten Browser-Passwortmanager Login-Daten in diese beiden
@@ -104,7 +112,7 @@ export async function loadClientIntakeDraft(
 
     const draft: ClientIntakeDraft = {
       form: mergedForm,
-      stepIndex: Math.max(0, parsed.stepIndex),
+      stepIndex: Math.max(0, Math.floor(parsed.stepIndex)),
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
       // Older demo/browser drafts may contain a non-UUID client id. Keep the
       // complete form, but never pass that legacy value into a UUID filter.

@@ -14,6 +14,7 @@ import {
 } from './moduleVisibilityConfig';
 import { getTenantModules, hasEffectiveModuleGateAccess } from './moduleAccessService';
 import { resolveScopeModuleAccessDecision } from './platformTenantModuleAccess';
+import { isUnreleasedModuleKey } from './constants';
 
 function badgeForStatus(status: ModuleVisibilityStatus): string | undefined {
   if (status === 'live') return undefined;
@@ -78,6 +79,10 @@ export function resolveModuleNavState(
 ): ModuleNavState {
   const entry = getCatalogEntry(scopeKey);
   const { tenantId, roleKey } = context;
+  if (isUnreleasedModuleKey(scopeKey)) return {
+    scopeKey, catalogStatus: entry.status, effectiveStatus: 'disabled', isVisible: false,
+    isNavigable: false, isTenantActive: false, blockReason: `${entry.label} ist derzeit nicht verfügbar.`,
+  };
   const canInternal = canAccessDeveloperTools(roleKey);
   const isAdminRole = roleKey === 'business_admin' || roleKey === 'business_manager';
 

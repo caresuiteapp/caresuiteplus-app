@@ -43,6 +43,8 @@ export function useClientPortalProfile() {
   const profileData = profileQuery.data;
   const profile: PortalClientProfile | null = profileData?.profile ?? null;
   const portalAccess: ClientPortalAccessSummary | null = profileData?.portalAccess ?? null;
+  const profileError = profileQuery.error ?? profileQuery.refreshError;
+  const carePlanError = carePlanQuery.error ?? carePlanQuery.refreshError;
 
   return {
     profile,
@@ -50,12 +52,14 @@ export function useClientPortalProfile() {
     carePlans: carePlanQuery.data ?? [],
     loading: isResolvingClientLink || profileQuery.loading || carePlanQuery.loading,
     error:
-      profileQuery.error || carePlanQuery.error
+      profileError || carePlanError
         ? toPortalUserFacingError(
-            profileQuery.error ?? carePlanQuery.error,
+            profileError ?? carePlanError,
             'Ihr Profil konnte gerade nicht vollständig geladen werden. Bitte versuchen Sie es erneut.',
           )
         : null,
+    carePlanError: carePlanError ? toPortalUserFacingError(carePlanError,
+      'Ihre Pflegepläne konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.') : null,
     refresh,
     isReady,
     missingClientLink: isReady && !isResolvingClientLink && !clientId,

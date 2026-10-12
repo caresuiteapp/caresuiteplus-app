@@ -40,7 +40,7 @@ export function PlatformObservationMount() {
     return()=>{alive=false;subscription.data.subscription.unsubscribe();setObservationAccessToken(null);};
   },[]);
   useEffect(()=>{
-    setObservationPage(pathname,Boolean(user)&&!showChoice);
+    setObservationPage(pathname,Boolean(user?.id)&&!showChoice);
     void observeHeartbeat();
   },[pathname,user?.id,authReady,showChoice]);
   useEffect(()=>{

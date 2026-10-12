@@ -46,6 +46,14 @@ describe('signature confirmation after interrupted submission', () => {
     expect(await readVisitSignatureConfirmation(scope)).toMatchObject({ state: 'unavailable' });
   });
 
+  it('keeps a failed replacement unconfirmed when the former signature remains valid', async () => {
+    const expectedSignature = { signatureHash: 'new-image', payloadHash: 'new-content', signerName: 'Name', signerRole: 'client' };
+    read.mockResolvedValue({ ok: true, data: { ...signature, ...expectedSignature, signatureHash: 'old-image' } });
+    expect((await readVisitSignatureConfirmation({ ...scope, expectedSignature })).state).toBe('missing');
+    read.mockResolvedValue({ ok: true, data: { ...signature, ...expectedSignature } });
+    expect((await readVisitSignatureConfirmation({ ...scope, expectedSignature })).state).toBe('confirmed');
+  });
+
   it.each([
     { tenantId: 'tenant-b' }, { visitId: 'visit-b' }, { isValid: false },
     { storagePath: '' }, { signatureHash: '' },

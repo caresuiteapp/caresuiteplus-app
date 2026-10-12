@@ -42,11 +42,12 @@ describe('Design Reset (Prompt 101)', () => {
     expect(source).not.toContain('preparedOnly Auth');
   });
 
-  it('Business register shows Office always active', () => {
+  it('Business register uses the free registration without a module chooser', () => {
     const source = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(source).toContain('immer enthalten');
-    expect(source).toContain("module === 'office'");
-    expect(source).toContain('PremiumButton');
+    expect(source).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).toContain('Unternehmen kostenlos registrieren');
+    expect(shared).not.toContain('MODULE_OPTIONS');
   });
 
   it('PremiumPreparedNotice labels premium connectors', () => {

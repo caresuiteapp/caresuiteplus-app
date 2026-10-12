@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktop.web';
+import { moduleDesktopStorageKey, desktopStorageKey } from '@/liquid-command/navigation/moduleDesktop.web';
 import { resolveDesktopGridLayout } from '@/lib/platform/desktopGridLayout';
 
 const memory = new Map<string, string>();
@@ -50,13 +50,13 @@ new Function('require', 'module', 'exports', compiled)((id: string) => {
   return dependencies[id];
 }, loaded, loaded.exports);
 const Desktop = loaded.exports.CommandCenterScreen;
-const key = (owner = api.owner) => moduleDesktopStorageKey('tenant', owner, 'office');
+const key = (owner = api.owner) => desktopStorageKey('tenant', owner);
 const sidebarKey = (owner = api.owner) => `caresuite.healthos.sidebar-open.v2.${owner}`;
 let root: Root, host: HTMLDivElement;
 const label = (text: string) => host.querySelector(`[aria-label="${text}"]`) as HTMLButtonElement | null;
 const button = (text: string) => [...host.querySelectorAll<HTMLElement>('button, [role="button"]')].find(b => b.textContent === text)!;
 const render = async () => { await act(async () => root.render(<Desktop />)); };
-const click = async (b: HTMLElement | null) => { expect(b).toBeTruthy(); await act(async () => b!.click()); };
+const click = async (b: HTMLElement | null | undefined) => { expect(b).toBeTruthy(); await act(async () => b!.click()); };
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   memory.clear(); api.owner = 'a'; api.width = 1440; api.scale = 1; vi.clearAllMocks();
@@ -77,7 +77,7 @@ describe('Web desktop preferences and navigation', () => {
     await render(); await click(label('Desktop bearbeiten')); await click(label('Klient:innen entfernen'));
     expect(label('Klient:innen öffnen')).toBeNull();
     await act(async () => root.unmount()); root = createRoot(host); await render();
-    expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('7/12 aktiv');
+    expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('11/12 aktiv');
   });
   it('does not expose or overwrite a previous account’s preferences while the next account loads', async () => {
     memory.set(key(), JSON.stringify(['messages'])); await render();
@@ -88,7 +88,7 @@ describe('Web desktop preferences and navigation', () => {
     api.owner = 'b'; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(label('Nachrichten öffnen')).toBeNull(); expect(memory.has(key('b'))).toBe(false);
-    await act(async () => resolve(null)); expect(host.textContent).toContain('8/12 aktiv');
+    await act(async () => resolve(null)); expect(host.textContent).toContain('12/12 aktiv');
     expect(JSON.parse(memory.get(key('a'))!)).toEqual(['messages']);
   });
   it('allows a failed preferences read to be retried without overwriting stored choices', async () => {
@@ -109,7 +109,7 @@ describe('Web desktop preferences and navigation', () => {
   it('keeps text-size controls reachable in narrow windows and offers recovery from an empty search', async () => {
     api.width = 780; api.scale = 1.5; await render(); expect(button('Textgröße ändern')).toBeTruthy();
     expect(host.querySelector('[data-testid=desktop-clock-weather]')).not.toBeNull();
-    expect(label('Standort für Wetter verwenden')).not.toBeNull();
+    expect(label('Wetterort ändern')).not.toBeNull();
     await click(label('Apps und Widgets öffnen'));
     const field = label('Apps durchsuchen') as unknown as HTMLInputElement;
     await act(async () => { field.value = 'KeinTreffer123'; field.dispatchEvent(new Event('input', { bubbles: true })); });
@@ -170,30 +170,30 @@ describe('App centre categories and distinct actions', () => {
 });
 
 
-describe('module switching', () => {
-  it('places the module switch inside the existing desktop header', async () => {
+describe('one desktop with the permitted navigation', () => {
+  it('keeps the header free of a module chooser', async () => {
     await render();
     const header = host.querySelector('[data-testid=desktop-workspace-header]')!;
-    expect(header.querySelector('[aria-label="Desktop-Modul auswählen"]')).not.toBeNull();
+    expect(header.querySelector('[aria-label="Desktop-Modul auswählen"]')).toBeNull();
+    expect(label('Seite Rechnungen öffnen')).not.toBeNull();
+    expect(label('Seite Einsätze öffnen')).not.toBeNull();
   });
   it('keeps an explicitly empty legacy desktop empty during migration', async () => {
     memory.set(`caresuite.healthos.desktop-widgets.v3.${api.owner}`, '[]'); await render();
     expect(JSON.parse(memory.get(key())!)).toEqual([]);
   });
-  it('restores distinct Office and Assist widget choices across switches and reloads', async () => {
-    memory.set(key(), JSON.stringify(['clients']));
-    memory.set(moduleDesktopStorageKey('tenant', api.owner, 'assist'), JSON.stringify(['assignments']));
+  it('merges previous Office and Assist choices and keeps them after a reload', async () => {
+    const office = moduleDesktopStorageKey('tenant', api.owner, 'office');
+    const assist = moduleDesktopStorageKey('tenant', api.owner, 'assist');
+    memory.set(office, '["clients"]'); memory.set(assist, '["assignments"]');
     await render();
     expect(label('Klient:innen öffnen')).not.toBeNull();
-    expect(label('Einsätze öffnen')).toBeNull();
-    await click([...host.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === 'Assist'));
-    expect(label('Klient:innen öffnen')).toBeNull();
     expect(label('Einsätze öffnen')).not.toBeNull();
-    expect(label('Seite Rechnungen öffnen')).toBeNull();
+    expect(JSON.parse(memory.get(key())!)).toEqual(['clients', 'assignments']);
     await act(async () => root.unmount()); root = createRoot(host); await render();
-    expect(label('Einsätze öffnen')).not.toBeNull();
-    await click([...host.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === 'Office'));
     expect(label('Klient:innen öffnen')).not.toBeNull();
-    expect(JSON.parse(memory.get(key())!)).toEqual(['clients']);
+    expect(label('Einsätze öffnen')).not.toBeNull();
+    expect(memory.get(office)).toBe('["clients"]');
+    expect(memory.get(assist)).toBe('["assignments"]');
   });
 });

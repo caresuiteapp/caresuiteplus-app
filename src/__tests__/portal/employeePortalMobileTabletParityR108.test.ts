@@ -8,8 +8,18 @@ const read = (relativePath: string) => readFileSync(path.join(root, relativePath
 describe('employee portal mobile/tablet parity R10.8', () => {
   it('redirects an authenticated employee at the main address to the canonical dashboard', () => {
     const entry = read('src/liquid-command/screens/LiquidCommandEntryScreen.tsx');
-    expect(entry).toContain("roleKey === 'employee_portal'");
-    expect(entry).toContain('<Redirect href="/portal/employee" />');
+    const webEntry = read('src/liquid-command/screens/LiquidCommandEntryScreen.web.tsx');
+    const target = read('src/lib/auth/sessionTarget.ts');
+    const routing = read('src/lib/navigation/sessionRouting.ts');
+    for (const source of [entry, webEntry]) {
+      expect(source).toContain('if (!auth.authReady)');
+      expect(source).toContain('resolveAuthSessionTarget(auth)');
+      expect(source).toContain("canRedirectHome && homePath !== '/'");
+      expect(source).toContain('<Redirect href={homePath as never} />');
+    }
+    expect(target).toContain('resolveSessionHomeRoute(roleKey, input.portalSession)');
+    expect(routing).toContain("['employee_portal', 'caregiver', 'nurse']");
+    expect(routing).toMatch(/EMPLOYEE_HOME_ROLES\.includes\(roleKey\)[\s\S]*?return '\/portal\/employee'/);
     expect(entry).not.toContain('<PortalHomeScreen portal="employee" />');
   });
 

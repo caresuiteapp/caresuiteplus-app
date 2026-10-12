@@ -68,7 +68,6 @@ import {
   transitionReviewStatus,
   upsertReview,
   type WfmTimeEntryReview,
-  type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';
 
 function mergeEntryReviewOverlay(

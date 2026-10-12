@@ -9,6 +9,7 @@ import {
   ErrorState,
   LoadingState,
   SuccessState,
+  InfoBanner,
 } from '@/components/ui';
 import { usePortalDocuments } from '@/hooks/usePortalDocuments';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -96,6 +97,7 @@ export function PortalDocumentsTab({
       />
 
       {showSuccess ? <SuccessState message="Dokumente aktualisiert." /> : null}
+      {error && items.length > 0 ? <InfoBanner variant="warning" message={error} /> : null}
 
       {scope === 'portal_client' || scope === 'portal_family' ? (
         <ClientPortalGuide

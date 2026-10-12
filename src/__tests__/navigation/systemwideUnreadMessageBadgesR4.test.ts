@@ -14,13 +14,14 @@ describe('systemweite Ungelesen-Anzeige R4', () => {
     expect(hook).not.toContain('applyOfficeMessageNavBadgeRouteOverrides');
   });
 
-  it('zeigt den Zähler in Office-Dock, Arbeitsbereich und mobiler Navigation', () => {
+  it('erhält den Office-Zähler in der Arbeitsbereichsnavigation ohne entfernte Modul-Tableiste', () => {
     const shell = read('src/liquid-command/shell/LiquidCommandShell.tsx');
 
     expect(shell).toContain('useOfficeMessageNavBadges(true)');
-    expect(shell).toContain("module.key === 'office' && messageBadge");
+    expect(shell).not.toContain('<OrbitModuleNavigation');
+    expect(shell).toContain('<WorkAreaNavigation');
+    expect(shell).toContain('messageBadge={messageBadge}');
     expect(shell).toContain("area.id === 'communication' && messageBadge");
-    expect(shell).toContain("item.key === 'messages' && messageBadge");
   });
 
   it('zeigt den Datenbank-Zähler im Mitarbeitenden- und Klient:innenportal', () => {

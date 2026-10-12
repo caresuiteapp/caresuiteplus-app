@@ -50,12 +50,12 @@ export function EmployeePortalAssignmentPreviewSheet({
 }: EmployeePortalAssignmentPreviewSheetProps) {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
-  const { data, loading, error, refresh, fromCache } = usePortalAppointmentDetail(
+  const { data, loading, error, refresh, refreshError, fromCache } = usePortalAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
 
-  const canStartExecution = data?.canStartExecution ?? false;
-  const canOpenExecution = data?.canOpenExecution ?? canStartExecution;
+  const canStartExecution = !fromCache && (data?.canStartExecution ?? false);
+  const canOpenExecution = !fromCache && (data?.canOpenExecution ?? canStartExecution);
   const executionRoute = data?.executionRoute;
 
   const openRoute = () => {
@@ -130,8 +130,9 @@ export function EmployeePortalAssignmentPreviewSheet({
         <ErrorState title="Einsatz konnte nicht geladen werden" message={error} onRetry={refresh} />
       ) : data ? (
         <View style={styles.content} testID="employee-assignment-preview-readable-content">
+          {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
           <View style={styles.statusRow}>
-            <HealthOSStatusBadge domain="assignment" technicalValue={String(data.status)} />
+            <HealthOSStatusBadge domain="assignment" technicalValue={String(data.assignmentStatus ?? data.status)} />
             {fromCache ? <Text style={styles.cacheHint}>Offline-Ansicht</Text> : null}
           </View>
 
@@ -149,6 +150,7 @@ export function EmployeePortalAssignmentPreviewSheet({
               <Text style={styles.informationLabel}>Klient:in</Text>
               <Text style={styles.informationValue}>{data.clientName}</Text>
             </View>
+            {data.clientId ? <PremiumButton title="Klientenakte und Kontakte öffnen" variant="secondary" onPress={() => { onClose(); router.push(`/portal/employee/clients/${data.clientId}` as never); }} /> : null}
             {data.location ? (
               <View style={styles.informationRow}>
                 <Text style={styles.informationLabel}>Adresse</Text>

@@ -16,6 +16,10 @@ export function usePathname() {
   return '/';
 }
 
+export function useIsFocused() {
+  return true;
+}
+
 export function useSegments() {
   return [] as string[];
 }

@@ -28,10 +28,10 @@ describe('employee portal execution continuity', () => {
       'ctx.detail.assignmentId || ctx.assignmentId',
     );
     expect(documentation).toContain(
-      "const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen'",
+      "const transitioned = await transitionAssistExecutionStatus(persistenceCtx, 'dokumentation_offen'",
     );
     expect(documentation).not.toContain(
-      "void transitionAssistExecutionStatus(ctx, 'dokumentation_offen'",
+      "void transitionAssistExecutionStatus(persistenceCtx, 'dokumentation_offen'",
     );
   });
 });

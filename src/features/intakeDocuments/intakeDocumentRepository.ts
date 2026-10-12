@@ -156,19 +156,12 @@ export async function loadPersistedIntakeDocumentsForClient(
     ok: true,
     data: rows.map((row) => {
       const signatures = signaturesByDocument.get(row.id) ?? {};
-      const hasClientSignature = Boolean(signatures.client?.dataUrl);
-      const recoveredStatus: IntakeDocumentStatus =
-        hasClientSignature && ['not_started', 'preview_open'].includes(row.status)
-          ? row.finalized_html || row.finalized_at
-            ? 'finalized'
-            : 'signed'
-          : row.status as IntakeDocumentStatus;
       return {
         templateKey: row.template_key,
         documentType: row.document_type as IntakeDocumentType,
         title: row.title,
         isRequired: row.is_required,
-        status: recoveredStatus,
+        status: row.status as IntakeDocumentStatus,
         source: row.source === 'tenant' ? 'tenant' : 'system',
         tenantTemplateId: row.tenant_template_id,
         version: row.version,
@@ -296,6 +289,16 @@ export async function persistIntakeDocumentsForClient(
     finalized_at: string | null;
     updated_at: string;
   }[]).map((row) => [row.template_key, row]));
+  for (const doc of form.intakeDocuments) {
+    const existing = existingByKey.get(doc.templateKey);
+    const captures = Object.values(doc.signatures).some(signature => signature?.dataUrl);
+    const finalClaim = doc.status === 'signed' || doc.status === 'finalized' || Boolean(doc.finalizedAt || doc.finalizedHtml);
+    // A stale final status without a new capture is a read-only no-op only when
+    // its finalized original actually exists in this tenant and client scope.
+    const preserved = existing && (existing.status === 'finalized' || existing.finalized_at)
+      && Boolean(existing.finalized_html?.trim() || existing.preview_html?.trim() || existing.rendered_pdf_path?.trim());
+    if (captures || (finalClaim && !preserved)) return { ok: false, error: 'Signierte Aufnahmeunterlagen benötigen den verifizierten atomaren Serverabschluss. Das vorhandene Original bleibt erhalten.' };
+  }
   const documentsToSave: IntakeDocumentState[] = [];
   for (const doc of form.intakeDocuments) {
     const existing = existingByKey.get(doc.templateKey);
@@ -374,7 +377,7 @@ export async function persistIntakeDocumentsForClient(
         : 'Das Dokument wurde zwischenzeitlich geändert. Bitte die Akte neu laden.' };
     }
 
-    await db.from('client_document_events').insert({
+    const { error: eventError } = await db.from('client_document_events').insert({
       tenant_id: tenantId,
       client_id: clientId,
       document_id: inserted.id,
@@ -382,6 +385,7 @@ export async function persistIntakeDocumentsForClient(
       summary: `${doc.title}: ${doc.status}`,
       actor_profile_id: actorProfileId ?? null,
     });
+    if (eventError) return { ok: false, error: toGermanSupabaseError(eventError) };
 
     for (const [role, signature] of Object.entries(doc.signatures)) {
       if (!signature?.dataUrl) continue;
@@ -510,6 +514,10 @@ async function linkOrInsertPromotedIntakeDocument(
   }
 
   if (existingByFile) {
+    if (existingByFile.source !== 'intake' || existingByFile.intake_document_id !== input.intakeDocumentId
+      || existingByFile.mime_type !== 'text/html') {
+      return { ok: false, error: 'Der Dokumentname gehört bereits zu einer anderen Originaldatei. Die vorhandene Datei wurde nicht ersetzt.' };
+    }
     const { error: linkError } = await db
       .from('client_documents')
       .update(promotedPatch)
@@ -532,14 +540,14 @@ async function linkOrInsertPromotedIntakeDocument(
     file_name: fileName,
     mime_type: 'text/html',
     category: mapIntakeDocCategory(input.documentType),
-    status: 'abgeschlossen',
+    status: clientDocumentStatus,
     sensitivity: 'care',
     source: 'intake',
     intake_document_id: input.intakeDocumentId,
     portal_visible: true,
     uploaded_by: input.actorProfileId ?? null,
   });
-  if (error && error.code !== '23505') {
+  if (error) {
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
@@ -568,9 +576,10 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
   if (form) {
     for (const doc of finalizedDocs) {
       const intakeRowQuery = db.from('client_intake_documents').select('id').eq('tenant_id', tenantId).eq('client_id', clientId).eq('template_key', doc.templateKey);
-      const { data: intakeRow } = await intakeRowQuery.single();
+      const { data: intakeRow, error: intakeRowError } = await intakeRowQuery.single();
+      if (intakeRowError) return { ok: false, error: toGermanSupabaseError(intakeRowError) };
       const intakeDocumentId = (intakeRow as { id?: string } | null)?.id ?? null;
-      if (!intakeDocumentId) continue;
+      if (!intakeDocumentId) return { ok: false, error: 'Die gespeicherte Dokumentfassung wurde nicht bestätigt.' };
 
       const linked = await linkOrInsertPromotedIntakeDocument(db, {
         tenantId,
@@ -631,24 +640,8 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       row.status === 'pending_signature' && hasClientSignature;
     if (!isPersistedComplete && !isPendingAndSigned && !hasClientSignature) continue;
     if (!row.finalized_html && !row.preview_html) continue;
-    const recoveredStatus =
-      hasClientSignature && ['not_started', 'preview_open', 'pending_signature'].includes(row.status)
-        ? row.finalized_html
-          ? 'finalized'
-          : 'signed'
-        : row.status;
-
-    if (recoveredStatus !== row.status) {
-      const { error: recoveryError } = await db
-        .from('client_intake_documents')
-        .update({ status: recoveredStatus })
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .eq('id', row.id);
-      if (recoveryError) {
-        return { ok: false, error: toGermanSupabaseError(recoveryError) };
-      }
-    }
+    // A capture alone cannot prove that all roles signed this exact version.
+    if (!isPersistedComplete && !isPendingAndSigned) continue;
 
     const linked = await linkOrInsertPromotedIntakeDocument(db, {
       tenantId,
@@ -657,7 +650,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       templateKey: row.template_key,
       documentType: row.document_type,
       title: row.title,
-      intakeStatus: recoveredStatus,
+      intakeStatus: row.status,
       actorProfileId,
     });
     if (!linked.ok) return linked;

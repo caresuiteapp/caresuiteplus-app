@@ -18,6 +18,27 @@ type Context = {
 };
 
 type AssistContext = Required<Pick<Context, 'tenantId' | 'employeeId' | 'assistSessionId' | 'assistVisitId'>>;
+export type AssistTrackingScope = Partial<AssistContext>;
+export type LogbookTrackingScope = Partial<Pick<Context, 'tripId' | 'tenantId' | 'employeeId'>>;
+export type LogbookTrackingOptions = { shouldContinue?: () => boolean; onError?: (error: Error) => void; onPointPersisted?: () => void };
+type StartRequest = { context: Context; cancelled: boolean; shouldContinue: () => boolean };
+let currentLogbookStart: StartRequest | null = null;
+let currentAssistStart: { context: AssistContext; cancelled: boolean; shouldContinue: () => boolean } | null = null;
+let contextMutation: Promise<void> = Promise.resolve();
+
+function serializeContextMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const result = contextMutation.then(operation, operation);
+  contextMutation = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+function matchesScope(context: Context | null, scope?: LogbookTrackingScope): boolean {
+  return !!context && (!scope || Object.entries(scope).every(([key, value]) => context[key as keyof Context] === value));
+}
+
+function matchesAssistScope(context: AssistContext | null, scope?: AssistTrackingScope): boolean {
+  return !!context && (!scope || Object.entries(scope).every(([key, value]) => context[key as keyof AssistContext] === value));
+}
 
 function parseContext<T>(raw: string | null): T | null {
   if (!raw) return null;
@@ -62,25 +83,34 @@ if (!TaskManager.isTaskDefined(TASK)) {
   });
 }
 
-export async function requestLogbookLocationPermission() {
+export async function requestLogbookLocationPermission(shouldContinue: () => boolean = () => true): Promise<boolean> {
+  if (!shouldContinue()) return false;
   const existingForeground = await Location.getForegroundPermissionsAsync();
+  if (!shouldContinue()) return false;
   const foreground = existingForeground.status === 'granted'
     ? existingForeground
     : await Location.requestForegroundPermissionsAsync();
+  if (!shouldContinue()) return false;
   if (foreground.status !== 'granted') throw new Error('Standortzugriff wurde nicht freigegeben.');
   if (Platform.OS !== 'web') {
     const existingBackground = await Location.getBackgroundPermissionsAsync();
+    if (!shouldContinue()) return false;
     const background = existingBackground.status === 'granted'
       ? existingBackground
       : await Location.requestBackgroundPermissionsAsync();
+    if (!shouldContinue()) return false;
     if (background.status !== 'granted') throw new Error('Hintergrundstandort ist für die automatische Aufzeichnung erforderlich.');
   }
+  return shouldContinue();
 }
 
-async function ensureNativeTrackingTaskStarted(): Promise<void> {
-  if (Platform.OS === 'web') return;
-  await requestLogbookLocationPermission();
-  if (await Location.hasStartedLocationUpdatesAsync(TASK)) return;
+async function ensureNativeTrackingTaskStarted(shouldContinue: () => boolean = () => true): Promise<boolean> {
+  if (!shouldContinue()) return false;
+  if (Platform.OS === 'web') return true;
+  if (!await requestLogbookLocationPermission(shouldContinue) || !shouldContinue()) return false;
+  const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(TASK);
+  if (!shouldContinue()) return false;
+  if (alreadyStarted) return true;
   await Location.startLocationUpdatesAsync(TASK, {
     accuracy: Location.Accuracy.High,
     distanceInterval: 5,
@@ -94,6 +124,7 @@ async function ensureNativeTrackingTaskStarted(): Promise<void> {
     activityType: Location.ActivityType.AutomotiveNavigation,
     showsBackgroundLocationIndicator: true,
   });
+  return shouldContinue();
 }
 
 async function stopNativeTaskWhenUnused(): Promise<void> {
@@ -108,16 +139,39 @@ async function stopNativeTaskWhenUnused(): Promise<void> {
   }
 }
 
-export async function startNativeBackgroundTracking(context: Context) {
-  await requestLogbookLocationPermission();
+export async function startNativeBackgroundTracking(context: Context, options?: LogbookTrackingOptions): Promise<boolean> {
+  const request: StartRequest = { context, cancelled: false, shouldContinue: options?.shouldContinue ?? (() => true) };
+  currentLogbookStart = request;
+  const canContinue = () => !request.cancelled && currentLogbookStart === request && request.shouldContinue();
+  if (!await requestLogbookLocationPermission(canContinue) || !canContinue()) return false;
   await flushLogbookPointQueue();
-  await AsyncStorage.setItem(CONTEXT, JSON.stringify(context));
-  await ensureNativeTrackingTaskStarted();
+  if (!canContinue()) return false;
+  return serializeContextMutation(async () => {
+    if (!canContinue()) return false;
+    let completed = false;
+    try {
+      await AsyncStorage.setItem(CONTEXT, JSON.stringify(context));
+      if (canContinue() && await ensureNativeTrackingTaskStarted(canContinue) && canContinue()) { completed = true; return true; }
+      return false;
+    } finally {
+      // This cleanup owns only this context. A newer employee's context and
+      // the Assist consumer are preserved, including during a late native start.
+      if (!completed || !canContinue()) {
+        const stored = parseContext<Context>(await AsyncStorage.getItem(CONTEXT));
+        if (matchesScope(stored, context)) await AsyncStorage.removeItem(CONTEXT);
+        await stopNativeTaskWhenUnused();
+      }
+    }
+  });
 }
 
-export async function stopNativeBackgroundTracking() {
-  await AsyncStorage.removeItem(CONTEXT);
-  await stopNativeTaskWhenUnused();
+export async function stopNativeBackgroundTracking(scope?: LogbookTrackingScope) {
+  if (currentLogbookStart && matchesScope(currentLogbookStart.context, scope)) currentLogbookStart.cancelled = true;
+  await serializeContextMutation(async () => {
+    const stored = parseContext<Context>(await AsyncStorage.getItem(CONTEXT));
+    if (matchesScope(stored, scope)) await AsyncStorage.removeItem(CONTEXT);
+    await stopNativeTaskWhenUnused();
+  });
 }
 
 export async function linkActiveLogbookToAssistSession(input: {
@@ -125,14 +179,35 @@ export async function linkActiveLogbookToAssistSession(input: {
   employeeId: string;
   assistSessionId: string;
   assistVisitId: string;
-}): Promise<void> {
-  await AsyncStorage.setItem(ASSIST_CONTEXT, JSON.stringify(input));
-  await ensureNativeTrackingTaskStarted();
+}, options?: LogbookTrackingOptions): Promise<boolean> {
+  const request = { context: input, cancelled: false, shouldContinue: options?.shouldContinue ?? (() => true) };
+  currentAssistStart = request;
+  const canContinue = () => !request.cancelled && currentAssistStart === request && request.shouldContinue();
+  if (!await requestLogbookLocationPermission(canContinue) || !canContinue()) return false;
+  return serializeContextMutation(async () => {
+    if (!canContinue()) return false;
+    let completed = false;
+    try {
+      await AsyncStorage.setItem(ASSIST_CONTEXT, JSON.stringify(input));
+      if (canContinue() && await ensureNativeTrackingTaskStarted(canContinue) && canContinue()) { completed = true; return true; }
+      return false;
+    } finally {
+      if (!completed || !canContinue()) {
+        const stored = parseContext<AssistContext>(await AsyncStorage.getItem(ASSIST_CONTEXT));
+        if (matchesAssistScope(stored, input)) await AsyncStorage.removeItem(ASSIST_CONTEXT);
+        await stopNativeTaskWhenUnused();
+      }
+    }
+  });
 }
 
-export async function stopNativeAssistBackgroundTracking(): Promise<void> {
-  await AsyncStorage.removeItem(ASSIST_CONTEXT);
-  await stopNativeTaskWhenUnused();
+export async function stopNativeAssistBackgroundTracking(scope?: AssistTrackingScope): Promise<void> {
+  if (currentAssistStart && matchesAssistScope(currentAssistStart.context, scope)) currentAssistStart.cancelled = true;
+  await serializeContextMutation(async () => {
+    const stored = parseContext<AssistContext>(await AsyncStorage.getItem(ASSIST_CONTEXT));
+    if (matchesAssistScope(stored, scope)) await AsyncStorage.removeItem(ASSIST_CONTEXT);
+    await stopNativeTaskWhenUnused();
+  });
 }
 
 export async function getCurrentLogbookPoint(): Promise<LogbookPoint> {

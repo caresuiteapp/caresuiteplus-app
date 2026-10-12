@@ -11,6 +11,7 @@ import {
 } from '@/lib/pflege/bodyMap3d/medicalReviewCatalog';
 import { REAL_HUMAN_VISUAL_VARIANTS } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { platformRoleHasCapability } from '@/lib/platformConsole';
+import { isRetiredPlatformCapability } from '@/lib/platformConsole/platformFreePolicy';
 
 describe('Bodymap medical review center', () => {
   it('bindet alle 30 Varianten an einen kryptografischen Asset-Hash', () => {
@@ -102,19 +103,13 @@ describe('Bodymap medical review center', () => {
     expect(vulvaBreasts).toContain('chest-breasts');
   });
 
-  it('reserviert die finale Freigabe ausschließlich für den Platform Owner', () => {
-    expect(
-      platformRoleHasCapability('platform_owner', 'bodymap.review.approve'),
-    ).toBe(true);
-    expect(
-      platformRoleHasCapability('platform_admin', 'bodymap.review.write'),
-    ).toBe(true);
-    expect(
-      platformRoleHasCapability('platform_admin', 'bodymap.review.approve'),
-    ).toBe(false);
-    expect(
-      platformRoleHasCapability('platform_readonly', 'bodymap.review.read'),
-    ).toBe(true);
+  it('hält die entfernten Bodymap-Rechte auch für den Platform Owner geschlossen', () => {
+    expect(isRetiredPlatformCapability('bodymap.review.revoke')).toBe(true);
+    for (const role of ['platform_owner', 'platform_admin', 'platform_readonly'] as const) {
+      for (const capability of ['bodymap.review.read', 'bodymap.review.write', 'bodymap.review.approve'] as const) {
+        expect(platformRoleHasCapability(role, capability)).toBe(false);
+      }
+    }
   });
 
   it('liefert eine Migration mit RLS, Audit und hashgebundener Runtime-Freigabe', () => {

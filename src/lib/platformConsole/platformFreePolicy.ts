@@ -5,6 +5,7 @@ export const PLATFORM_FREE_POLICY_VERSION = 'caresuite-platform-free-only-202610
 
 const RETIRED_SECTIONS = new Set(['plans', 'addons', 'discounts', 'billing', 'payments']);
 const RETIRED_CAPABILITIES = new Set([
+  'bodymap.review.read', 'bodymap.review.write', 'bodymap.review.approve', 'bodymap.review.revoke',
   'plans.read', 'plans.write', 'discounts.read', 'discounts.write',
   'billing.read', 'billing.write', 'payments.read', 'payments.write',
 ]);

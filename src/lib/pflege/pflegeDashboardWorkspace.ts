@@ -425,7 +425,7 @@ export function buildPflegeDashboardSections(
     {
       id: 'wounds',
       title: 'Wunddokumentation',
-      subtitle: 'Wundfälle, BodyMap und Verlauf',
+      subtitle: 'Wundfälle und Verlauf',
       links: [
         {
           id: 'wound-list',

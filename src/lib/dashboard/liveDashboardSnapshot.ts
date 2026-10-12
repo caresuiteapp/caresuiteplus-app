@@ -68,22 +68,22 @@ function getBusinessQuickActions(roleKey: RoleKey, scope: DashboardScope): Dashb
   }
   if (scope === 'portal_family') {
     return [
-      { id: 'qa-msg', label: 'Nachrichten', icon: '💬', route: '/portal/relative/messages', variant: 'primary' },
-      { id: 'qa-info', label: 'Geteilte Informationen', icon: '📋', route: '/portal/relative', variant: 'secondary' },
+      { id: 'qa-msg', label: 'Nachrichten', icon: '💬', route: '/liquid-command/portal/family?section=messages', variant: 'primary' },
+      { id: 'qa-info', label: 'Geteilte Informationen', icon: '📋', route: '/liquid-command/portal/family', variant: 'secondary' },
     ];
   }
   if (roleKey === 'billing') {
     return [
-      { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office', variant: 'primary' },
+      { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/create', variant: 'primary' },
       { id: 'qa-export', label: 'Export', icon: '📤', variant: 'secondary' },
       { id: 'qa-remind', label: 'Mahnungen', icon: '⚠️', variant: 'secondary' },
     ];
   }
   if (roleKey === 'dispatch') {
     return [
-      { id: 'qa-plan', label: 'Einsatzplan', icon: '📅', route: '/assist', variant: 'primary' },
-      { id: 'qa-tour', label: 'Touren', icon: '🚗', variant: 'secondary' },
-      { id: 'qa-staff', label: 'Verfügbarkeit', icon: '👥', variant: 'secondary' },
+      { id: 'qa-plan', label: 'Einsatzplan', icon: '📅', route: '/assist/calendar', variant: 'primary' },
+      { id: 'qa-tour', label: 'Touren', icon: '🚗', route: '/assist/touren', variant: 'secondary' },
+      { id: 'qa-staff', label: 'Verfügbarkeit', icon: '👥', route: '/assist/calendar', variant: 'secondary' },
     ];
   }
   return [
@@ -94,9 +94,9 @@ function getBusinessQuickActions(roleKey: RoleKey, scope: DashboardScope): Dashb
       route: CLIENT_INTAKE_NEW_ROUTE,
       variant: 'primary',
     },
-    { id: 'qa-assign', label: 'Einsatz planen', icon: '📅', route: '/assist', variant: 'secondary' },
+    { id: 'qa-assign', label: 'Einsatz planen', icon: '📅', route: '/assist/assignments/new', variant: 'secondary' },
     { id: 'qa-clients-list', label: 'Klient:innenliste', icon: '👥', route: '/office/clients', variant: 'secondary' },
-    { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office', variant: 'secondary' },
+    { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/create', variant: 'secondary' },
     { id: 'qa-employees', label: 'Mitarbeitende', icon: '👤', route: '/office/employees', variant: 'secondary' },
     { id: 'qa-messages', label: 'Nachrichten', icon: '💬', route: '/office/messages', variant: 'secondary' },
   ];

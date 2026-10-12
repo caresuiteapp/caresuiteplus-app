@@ -1,3 +1,4 @@
+import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
 export type AssignmentCreateFormData = {
   clientId: string;
   employeeId: string;
@@ -22,11 +23,13 @@ export type AssignmentCreateFormErrors = Partial<
 >;
 
 function isValidDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T12:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function isValidTime(value: string): boolean {
-  return /^\d{2}:\d{2}$/.test(value);
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
 export function validateAssignmentCreateForm(
@@ -61,10 +64,11 @@ export function validateAssignmentCreateForm(
     isValidTime(data.plannedStartTime) &&
     isValidTime(data.plannedEndTime)
   ) {
-    const start = new Date(`${data.assignmentDate}T${data.plannedStartTime}:00`);
-    const end = new Date(`${data.assignmentDate}T${data.plannedEndTime}:00`);
-    if (end <= start) {
-      errors.plannedEndTime = 'Endzeit muss nach Startzeit liegen.';
+    try {
+      const { plannedStartAt, plannedEndAt } = buildPlannedTimestamps(data);
+      if (plannedEndAt <= plannedStartAt) errors.plannedEndTime = 'Endzeit muss nach Startzeit liegen.';
+    } catch {
+      errors.plannedStartTime = 'Diese Ortszeit existiert wegen der Zeitumstellung nicht. Bitte Uhrzeit anpassen.';
     }
   }
 
@@ -84,9 +88,7 @@ export function buildPlannedTimestamps(data: AssignmentCreateFormData): {
   plannedStartAt: string;
   plannedEndAt: string;
 } {
-  const plannedStartAt = new Date(
-    `${data.assignmentDate}T${data.plannedStartTime}:00`,
-  ).toISOString();
-  const plannedEndAt = new Date(`${data.assignmentDate}T${data.plannedEndTime}:00`).toISOString();
+  const plannedStartAt = berlinTimestamp(data.assignmentDate, data.plannedStartTime);
+  const plannedEndAt = berlinTimestamp(data.assignmentDate, data.plannedEndTime);
   return { plannedStartAt, plannedEndAt };
 }

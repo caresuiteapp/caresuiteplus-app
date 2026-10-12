@@ -63,16 +63,26 @@ describe('signed intake snapshot preservation', () => {
     expect(result.ok).toBe(false);
     expect(state.writes).toEqual([]);
   });
-  it('persists a new complete snapshot and its real signature', async () => {
+  it('rejects a signature placeholder without creating completion evidence', async () => {
     const result = await save(doc({ status: 'finalized', finalizedHtml: '<p>Vertrag mit echter Signatur</p>', previewHtml: '<p>Vertrag mit echter Signatur</p>',
       signatures: { client: { role: 'client', dataUrl: 'data:image/png;base64,existing', signedAt: '2026-06-17T10:00:00Z' } } }));
-    expect(result.ok).toBe(true);
-    expect(state.rows[0].finalized_html).toContain('echter Signatur');
-    expect(state.writes.find((w) => w.table === 'client_document_signatures')?.patch.signature_data).toBe('data:image/png;base64,existing');
+    expect(result.ok).toBe(false);
+    expect(state.rows).toEqual([]);
+    expect(state.writes).toEqual([]);
+  });
+  it('does not report a new original as completed before trusted atomic server completion exists, even with a real PNG', async () => {
+    // A valid one-pixel PNG proves that the guard does not merely check the
+    // data URL prefix. Image validity alone is no server completion receipt.
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const result = await save(doc({ status: 'finalized', finalizedHtml: `<p>Original<img src="${png}"></p>`,
+      signatures: { client: { role: 'client', dataUrl: png, signedAt: '2026-06-17T10:00:00Z' } } }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('atomaren Serverabschluss');
+    expect(state.writes).toEqual([]);
   });
   it('rejects a concurrent revision change without writing events or signatures', async () => {
     state.rows = [saved({ status: 'preview_open', finalized_html: null, finalized_at: null })]; state.conflict = true;
-    const result = await save(doc({ status: 'signed', previewHtml: '<p>Neu signiert</p>' }));
+    const result = await save(doc({ status: 'preview_open', previewHtml: '<p>Neuer Entwurf</p>' }));
     expect(result.ok).toBe(false);
     const write = state.writes[0];
     expect(write.filters).toContainEqual(['tenant_id', 'tenant-1']);

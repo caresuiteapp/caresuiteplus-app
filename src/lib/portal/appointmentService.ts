@@ -36,6 +36,8 @@ import {
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
 import { dedupePortalAppointmentOccurrences } from './employeePortalAppointmentIdentity';
 import { portalAudienceForRole } from './portalAudience';
+import { createPortalRequest } from './assist/portalRequestService';
+import { calendarEventRepository } from '@/lib/calendar/calendarEventRepository';
 
 export type PortalAppointmentsPortalContext = {
   tenantId?: string | null;
@@ -66,8 +68,10 @@ export type PortalAppointmentItem = Pick<
 const SIMULATED_DELAY_MS = 350;
 
 function mapCalendarToPortalItems(events: CalendarEvent[]): PortalAppointmentItem[] {
-  return portalEventsToAppointmentItems(events).map((item) => ({
-    id: item.id,
+  return portalEventsToAppointmentItems(events).map((item, index) => ({
+    id: events[index].record && events[index].sourceType !== 'assist_visit'
+      ? `calendar:${events[index].record!.id}`
+      : item.id,
     title: item.title,
     startsAt: item.startsAt,
     endsAt: item.endsAt,
@@ -183,7 +187,8 @@ export async function fetchPortalAppointments(
         fetchLivePortalAppointmentsForEmployee(tenantId, employeeId),
         getEmployeeCalendarEvents(tenantId, employeeId),
       ]);
-      if (!live.ok && !calendar.ok) return live;
+      if (!live.ok) return live;
+      if (!calendar.ok) return calendar;
 
       const merged = dedupePortalAppointmentOccurrences([
         ...(live.ok ? live.data : []),
@@ -193,7 +198,7 @@ export async function fetchPortalAppointments(
       );
       return { ok: true, data: merged };
     }
-    return { ok: true, data: [] };
+    return { ok: false, error: 'Ihr Mitarbeitendenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
   }
 
   return runService(async () => {
@@ -270,7 +275,26 @@ export async function fetchPortalAppointmentDetail(
   const tenantId = portalContext?.tenantId ?? null;
   const employeeId = portalContext?.employeeId ?? null;
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim() && employeeId?.trim() && appointmentId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim() || !employeeId?.trim() || !appointmentId?.trim()) {
+      return { ok: false, error: 'Ihr Mitarbeitendenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
+    }
+    if (appointmentId.startsWith('calendar:')) {
+      const calendar = await calendarEventRepository.listForPortal(tenantId, { portalType: 'employee', employeeId });
+      if (!calendar.ok) return calendar;
+      const event = calendar.data.find((item) => item.id === appointmentId.slice('calendar:'.length)
+        && item.tenantId === tenantId && item.relatedEmployeeId === employeeId
+        && item.isEmployeePortalVisible && !item.archivedAt && item.sourceType !== 'assist_visit');
+      if (!event) return { ok: false, error: 'Termin nicht gefunden oder nicht für Sie freigegeben.' };
+      return { ok: true, data: {
+        id: `calendar:${event.id}`, assignmentId: null, title: event.title,
+        startsAt: event.startAt, endsAt: event.endAt,
+        status: event.status === 'cancelled' ? 'fehlerhaft' : event.status as WorkflowStatus,
+        location: event.address || event.locationName || null,
+        clientId: event.relatedClientId ?? '', clientName: 'Kalendertermin', clientPhone: null,
+        notes: event.publicNote, tasks: [], canStartExecution: false, canOpenExecution: false, executionRoute: null,
+      } };
+    }
     const live = await fetchLiveEmployeePortalAssignmentDetail(
       tenantId,
       appointmentId,
@@ -406,7 +430,10 @@ export async function fetchPortalClientAppointmentDetail(
   const tenantId = portalContext?.tenantId ?? null;
   const clientId = portalContext?.clientId ?? null;
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim() || !clientId?.trim()) {
+      return { ok: false, error: 'Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
+    }
     return fetchLivePortalClientAppointmentDetail(tenantId, clientId, appointmentId, onBasicDetail);
   }
 
@@ -494,6 +521,32 @@ export async function requestPortalAppointmentChange(
 
     if (!detail.data.canRequestChange) {
       return { ok: false, error: 'Für diesen Einsatz kann keine Änderung angefragt werden.' };
+    }
+
+    if (getServiceMode() === 'supabase') {
+      const tenantId = portalContext?.tenantId?.trim();
+      const clientId = portalContext?.clientId?.trim();
+      if (!tenantId || !clientId) {
+        return { ok: false, error: 'Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.' };
+      }
+      const request = await createPortalRequest({
+        tenantId,
+        clientId,
+        portalUserId: profileId,
+        moduleKey: detail.data.moduleKey ?? 'assist',
+        requestType: 'termin_aendern',
+        title: `Änderungswunsch: ${detail.data.title}`,
+        description: reason.trim(),
+        payload: {
+          appointmentId: detail.data.id,
+          appointmentLabel: detail.data.title,
+          startsAt: detail.data.startsAt,
+          endsAt: detail.data.endsAt,
+          nachricht: reason.trim(),
+        },
+      });
+      if (!request.ok) return request;
+      return { ok: true, data: { requestId: request.data.id } };
     }
 
     return {

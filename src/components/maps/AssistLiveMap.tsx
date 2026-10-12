@@ -32,7 +32,7 @@ export function AssistLiveMap({ position, markers, routePoints = [], routeSegmen
     useEffect(()=>{readyRef.current=false;if(!hasData)return;const timeout=setTimeout(()=>{if(!readyRef.current)setFailed(true);},15000);return()=>clearTimeout(timeout);},[retry,hasData]);
     const dataRef = useRef(data);
     dataRef.current = data;
-    useEffect(() => { webView.current?.injectJavaScript(mapUpdateScript(data)); }, [position, markers, routePoints, routeSegments, plannedRoutePoints, routeIdentity, selectedMarkerId]);
+    useEffect(() => { webView.current?.injectJavaScript(mapUpdateScript(dataRef.current)); }, [position, markers, routePoints, routeSegments, plannedRoutePoints, routeIdentity, selectedMarkerId]);
     if (!rows.length)
         return <View style={[styles.fallback, { minHeight: height }]}><Text style={styles.fallbackTitle}>Positionsmonitor ist bereit</Text><Text style={styles.fallbackText}>{fallbackMessage}</Text></View>;
     const updated = formatMapLastUpdated(position?.capturedAt ?? rows[0].capturedAt);

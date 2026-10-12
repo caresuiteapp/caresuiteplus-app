@@ -109,6 +109,8 @@ export async function markNotificationRead(
   userId: string,
   employeeId?: string | null,
 ): Promise<ServiceResult<void>> {
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
@@ -118,13 +120,17 @@ export async function markNotificationRead(
     supabase,
     OFFICE_NOTIFICATIONS_TABLE,
   )
-    .select('related_broadcast_id, recipient_employee_id')
+    .select('related_broadcast_id, recipient_user_id, recipient_employee_id')
     .eq('tenant_id', tenantId)
     .eq('id', notificationId)
     .maybeSingle();
 
   if (fetchError) return notificationError(toGermanSupabaseError(fetchError));
   if (!notification) return { ok: false, error: 'Benachrichtigung nicht gefunden.' };
+  if (notification.recipient_user_id !== userId
+    && (!employeeId || notification.recipient_employee_id !== employeeId)) {
+    return { ok: false, error: 'Benachrichtigung nicht gefunden.' };
+  }
 
   const { error } = await fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
     .update({ is_read: true, read_at: now })
@@ -141,11 +147,12 @@ export async function markNotificationRead(
     : null);
 
   if (broadcastId && resolvedEmployeeId) {
-    await fromUnknownTable(supabase, 'notification_broadcast_recipients')
+    const { error: receiptError } = await fromUnknownTable(supabase, 'notification_broadcast_recipients')
       .update({ is_read: true, read_at: now })
       .eq('tenant_id', tenantId)
       .eq('broadcast_id', broadcastId)
       .eq('employee_id', resolvedEmployeeId);
+    if (receiptError) return notificationError(toGermanSupabaseError(receiptError));
 
     await logBroadcastAuditEvent({
       tenantId,
@@ -181,6 +188,8 @@ export async function acknowledgeBroadcastNotification(
   userId: string,
   employeeId: string,
 ): Promise<ServiceResult<void>> {
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
@@ -190,13 +199,16 @@ export async function acknowledgeBroadcastNotification(
     supabase,
     OFFICE_NOTIFICATIONS_TABLE,
   )
-    .select('related_broadcast_id, metadata')
+    .select('related_broadcast_id, metadata, recipient_user_id, recipient_employee_id')
     .eq('tenant_id', tenantId)
     .eq('id', notificationId)
     .maybeSingle();
 
   if (fetchError) return notificationError(toGermanSupabaseError(fetchError));
   if (!notification) return { ok: false, error: 'Benachrichtigung nicht gefunden.' };
+  if (notification.recipient_user_id !== userId && notification.recipient_employee_id !== employeeId) {
+    return { ok: false, error: 'Benachrichtigung nicht gefunden.' };
+  }
 
   const metadata = (notification.metadata as Record<string, unknown> | null) ?? {};
   if (!metadata.requireAcknowledgement) {
@@ -208,16 +220,7 @@ export async function acknowledgeBroadcastNotification(
     : null;
   if (!broadcastId) return { ok: false, error: 'Kein Broadcast verknüpft.' };
 
-  await fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
-    .update({
-      is_read: true,
-      read_at: now,
-      metadata: { ...metadata, isAcknowledged: true },
-    })
-    .eq('tenant_id', tenantId)
-    .eq('id', notificationId);
-
-  await fromUnknownTable(supabase, 'notification_broadcast_recipients')
+  const { error: receiptError } = await fromUnknownTable(supabase, 'notification_broadcast_recipients')
     .update({
       is_read: true,
       read_at: now,
@@ -227,6 +230,17 @@ export async function acknowledgeBroadcastNotification(
     .eq('tenant_id', tenantId)
     .eq('broadcast_id', broadcastId)
     .eq('employee_id', employeeId);
+  if (receiptError) return notificationError(toGermanSupabaseError(receiptError));
+
+  const { error: notificationErrorResult } = await fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
+    .update({
+      is_read: true,
+      read_at: now,
+      metadata: { ...metadata, isAcknowledged: true },
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', notificationId);
+  if (notificationErrorResult) return notificationError(toGermanSupabaseError(notificationErrorResult));
 
   await logBroadcastAuditEvent({
     tenantId,

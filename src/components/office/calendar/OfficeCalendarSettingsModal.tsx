@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import type {
   CalendarEventType,
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   sectionGridCompact: { flexDirection: 'column' },
   sectionCard: {
     flex: 1,
-    minWidth: 310,
+    minWidth: Platform.OS === 'web' ? 310 : 0,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#D3E2EF',

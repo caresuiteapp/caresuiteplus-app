@@ -34,7 +34,8 @@ describe('WorkflowFeedbackOverlay', () => {
     expect(payroll).toContain('<WorkflowFeedbackOverlay');
     expect(payroll).toContain("setBusyMessage('Beleg wird sicher hochgeladen…')");
     expect(payroll).toContain("kind: 'error'");
-    expect(payroll).toContain("kind: 'success'");
+    expect(payroll).toContain("kind: refreshed === false ? 'warning' : 'success'");
+    expect(payroll).toContain('Die Monatsübersicht konnte noch nicht aktualisiert werden.');
     expect(payroll).not.toContain('{message ? <InfoBanner message={message} /> : null}');
   });
 });

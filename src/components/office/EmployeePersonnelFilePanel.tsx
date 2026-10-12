@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -113,6 +113,8 @@ export function EmployeePersonnelFilePanel({
   onOpenOffboarding,
 }: EmployeePersonnelFilePanelProps) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = Platform.OS !== 'web' && width < 600;
   const content = useAdaptiveContentStyles();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -173,7 +175,7 @@ export function EmployeePersonnelFilePanel({
           gap: spacing.md,
           flexWrap: 'wrap',
         },
-        employeeIdentity: { flex: 1, minWidth: 230, gap: 4 },
+        employeeIdentity: { flex: 1, minWidth: compact ? 0 : 230, flexBasis: compact ? '100%' : undefined, gap: 4 },
         employeeEyebrow: { ...content.caption, color: '#0872D9', fontWeight: '800', letterSpacing: 0.8 },
         employeeName: { fontSize: 24, lineHeight: 30, color: '#08213D', fontWeight: '900' },
         employeeMeta: { ...content.body, color: '#526A84' },
@@ -217,7 +219,7 @@ export function EmployeePersonnelFilePanel({
         fieldLabel: { ...content.caption, marginBottom: spacing.xs },
         error: content.error,
       }),
-    [content, embedded],
+    [content, embedded, compact],
   );
 
   const overview = useMemo(() => (file ? buildEmployeePersonnelOverview(file) : null), [file]);

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { intervalText, type DayPlanability } from '@/lib/calendar/employeeMonthPlanning';
 
 export function EmployeePlanabilityBadge({ value }: { value: DayPlanability }) {
@@ -17,6 +17,6 @@ const styles = StyleSheet.create({
   available: { backgroundColor: '#DDF6EA', borderColor: '#65B68F' },
   blocked: { backgroundColor: '#FCE5E8', borderColor: '#DB93A0' },
   unknown: { backgroundColor: '#EDF2F8', borderColor: '#B1C1D4' },
-  label: { color: '#173859', fontSize: 10, fontWeight: '700' },
-  detail: { color: '#52677E', fontSize: 10 }, conflict: { color: '#A91E36', fontSize: 10, fontWeight: '800' },
+  label: { color: '#173859', fontSize: Platform.OS === 'web' ? 10 : 12, fontWeight: '700' },
+  detail: { color: '#52677E', fontSize: 10 }, conflict: { color: '#A91E36', fontSize: Platform.OS === 'web' ? 10 : 12, fontWeight: '800' },
 });

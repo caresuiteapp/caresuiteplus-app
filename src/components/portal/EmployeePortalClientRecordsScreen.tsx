@@ -29,7 +29,7 @@ export function EmployeePortalClientRecordsScreen() {
   const { width, isPhone } = useDeviceClass();
   const compact = isPhone || width < 760;
   const text = portalPremium.text;
-  const { records, loading, error, refresh } = useEmployeePortalClientRecords();
+  const { records, loading, error, refresh, refreshError } = useEmployeePortalClientRecords();
   const [search, setSearch] = useState('');
   const normalizedSearch = search.trim().toLocaleLowerCase('de');
   const visibleRecords = useMemo(() => {
@@ -70,6 +70,8 @@ export function EmployeePortalClientRecordsScreen() {
       keyboardShouldPersistTaps="handled"
       testID="employee-portal-client-records"
     >
+      <PremiumButton title="Klientenakten aktualisieren" variant="secondary" onPress={() => void refresh()} />
+      {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
       <LinearGradient
         colors={['#FFFFFF', '#EEF6FF', '#DCEEFF']}
         start={{ x: 0, y: 0 }}
@@ -113,15 +115,12 @@ export function EmployeePortalClientRecordsScreen() {
       <View style={styles.grid}>
       {visibleRecords.map((record) => {
         const location = [record.street, [record.zip, record.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-        const phone = record.mobile ?? record.phone;
+        const phone = record.mobile?.trim() || record.phone;
 
         return (
-          <Pressable
+          <View
             key={record.clientId}
-            onPress={() => router.push(`/portal/employee/clients/${record.clientId}` as never)}
-            style={({ pressed }) => [styles.cardPressable, compact && styles.cardPressableCompact, pressed && styles.cardPressed, webCursor]}
-            accessibilityRole="button"
-            accessibilityLabel={`Klientenakte ${record.displayName} öffnen`}
+            style={[styles.cardPressable, compact && styles.cardPressableCompact]}
           >
             <LinearGradient
               colors={['#FFFFFF', '#F2F8FF', '#E5F2FF']}
@@ -130,7 +129,9 @@ export function EmployeePortalClientRecordsScreen() {
               style={[styles.card, compact && styles.cardCompact]}
             >
               <View style={styles.cardGlow} pointerEvents="none" />
-              <View style={[styles.cardHeader, compact && styles.cardHeaderCompact]}>
+              <Pressable style={[styles.cardHeader, compact && styles.cardHeaderCompact, webCursor]}
+                accessibilityRole="button" accessibilityLabel={`Klientenakte ${record.displayName} öffnen`}
+                onPress={() => router.push(`/portal/employee/clients/${record.clientId}` as never)}>
                 <ClientAnimalAvatar
                   clientId={record.clientId}
                   clientName={record.displayName}
@@ -147,7 +148,7 @@ export function EmployeePortalClientRecordsScreen() {
                 {record.careGradeLabel ? (
                   <PremiumBadge label={record.careGradeLabel} variant="cyan" />
                 ) : null}
-              </View>
+              </Pressable>
 
               <View style={styles.metaRow}>
                 {record.nextAssignmentAt ? (
@@ -187,7 +188,7 @@ export function EmployeePortalClientRecordsScreen() {
                 />
               </View>
             </LinearGradient>
-          </Pressable>
+          </View>
         );
       })}
       </View>
@@ -220,24 +221,24 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
   },
   directoryCopy: { flex: 1, minWidth: 0, gap: 4 },
-  directoryEyebrow: { color: portalPremium.accent.blueDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.25 },
+  directoryEyebrow: { color: portalPremium.accent.blueDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.6 },
   directoryTitle: { color: portalPremium.text.primary, fontSize: 28, lineHeight: 34, fontWeight: '900', letterSpacing: -0.6 },
   directoryTitleCompact: { fontSize: 24, lineHeight: 29 },
   directoryText: { color: portalPremium.text.secondary, fontSize: 14, lineHeight: 20, fontWeight: '500' },
   directoryMetric: {
-    width: 96, height: 96, borderRadius: 48, borderWidth: 1,
+    minWidth: 96, minHeight: 96, padding: careSpacing.sm, borderRadius: 48, borderWidth: 1,
     borderColor: portalPremium.borderStrong, backgroundColor: 'rgba(5,108,232,0.10)',
     alignItems: 'center', justifyContent: 'center',
   },
   directoryMetricCompact: {
     width: '100%',
-    height: 58,
+    minHeight: 58,
     borderRadius: 17,
     flexDirection: 'row',
     gap: 8,
   },
   directoryMetricValue: { color: portalPremium.text.primary, fontSize: 28, lineHeight: 32, fontWeight: '900' },
-  directoryMetricLabel: { color: portalPremium.accent.blueDark, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  directoryMetricLabel: { color: portalPremium.accent.blueDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   searchBar: {
     minHeight: 58, paddingHorizontal: 17, borderRadius: 18, borderWidth: 1,
     borderColor: portalPremium.border, backgroundColor: portalPremium.surfaceRaised,

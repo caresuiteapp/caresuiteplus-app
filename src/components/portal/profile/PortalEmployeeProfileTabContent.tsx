@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { EmptyState } from '@/components/ui';
+import { useRouter } from 'expo-router';
+import { PremiumButton } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -50,6 +52,7 @@ function FieldsPanel({
 }
 
 export function PortalEmployeeProfileTabContent({ tab, view }: PortalEmployeeProfileTabContentProps) {
+  const router = useRouter();
   const empty = PORTAL_PROFILE_EMPTY_MESSAGES[tab] ?? 'Keine Daten hinterlegt.';
 
   switch (tab) {
@@ -112,6 +115,8 @@ export function PortalEmployeeProfileTabContent({ tab, view }: PortalEmployeePro
               {doc.validUntil ? (
                 <PortalProfileInfoRow label="Gültig bis" value={doc.validUntil} />
               ) : null}
+              <PremiumButton title="Dokument öffnen" size="sm" variant="secondary"
+                onPress={() => router.push(`/portal/employee/documents/${doc.id}` as never)} />
             </View>
           ))}
         </GlassCard>

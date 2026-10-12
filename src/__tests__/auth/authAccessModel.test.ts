@@ -25,7 +25,7 @@ import {
   pdlCanViewCareDocumentation,
   roleHasPermission,
 } from '@/lib/auth/permissionService';
-import { resetModuleAccessStore } from '@/lib/modules';
+import { hasModuleAccess, resetModuleAccessStore } from '@/lib/modules';
 import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
@@ -49,11 +49,11 @@ describe('authAccessModel', () => {
     vi.unstubAllEnvs();
   });
 
-  it('registers a business tenant and activates office', async () => {
+  it('registers a business tenant with the released free areas available', async () => {
     const result = await registerBusinessTenant({
       companyName: 'Helferhasen+ UG',
       legalForm: 'UG',
-      industry: 'Betreuung',
+      industry: 'Alltagsbegleitung',
       street: 'Test 1',
       zip: '10115',
       city: 'Berlin',
@@ -61,18 +61,22 @@ describe('authAccessModel', () => {
       email: 'info@helferhasen.app',
       contactFirstName: 'Kevin',
       contactLastName: 'Reinhardt',
-      contactRole: 'GF',
+      contactRole: 'Geschäftsführung',
       adminFirstName: 'Kevin',
       adminLastName: 'Reinhardt',
       adminEmail: 'kevin@helferhasen.app',
       adminPassword: 'SecurePass1',
       selectedModules: ['assist'],
+      termsAccepted: true,
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.owner.username).toBe('helfe.kevi.reinhar');
       expect(result.data.owner.roleKey).toBe('owner');
+      for (const product of ['office', 'assist'] as const) {
+        expect(hasModuleAccess(product, result.data.tenantId)).toBe(true);
+      }
     }
   });
 

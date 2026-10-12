@@ -53,7 +53,7 @@ const LINK_CATALOG: Record<string, LinkDef> = {
   wounds: {
     id: 'wounds',
     label: 'Wunddokumentation',
-    description: 'Wundfälle und BodyMap',
+    description: 'Wundfälle und Verlauf',
     href: '/pflege/wunddokumentation',
     icon: '🩹',
   },

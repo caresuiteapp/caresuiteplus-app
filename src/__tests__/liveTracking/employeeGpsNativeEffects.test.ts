@@ -77,17 +77,19 @@ const mocks = vi.hoisted(() => ({
   acquire: vi.fn(),
   release: vi.fn(),
   stopBackground: vi.fn(),
+  append: vi.fn(), link: vi.fn(), resume: vi.fn(),
+  enqueue: vi.fn(), retained: [] as unknown[],
 }));
 
 vi.mock('react', () => harness);
 vi.mock('react-native', () => ({ Platform: harness.platform }));
 vi.mock('@/hooks/useConnectivity', () => ({ useConnectivity: () => harness.connection }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => null }));
-vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({ appendLocationPoint: vi.fn() }));
+vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({ appendLocationPoint: mocks.append }));
 vi.mock('@/features/liveTracking/assistLocationPointQueue', () => ({
   flushAssistLocationPointQueue: mocks.flush,
   getQueuedAssistLocationPointCount: async () => 0,
-  enqueueAssistLocationPoint: vi.fn(),
+  enqueueAssistLocationPoint: mocks.enqueue,
 }));
 vi.mock('@/features/liveTracking/useSingleGeolocationWatch', () => ({
   acquireGeolocationWatch: mocks.acquire,
@@ -97,7 +99,9 @@ vi.mock('@/features/liveTracking/useSingleGeolocationWatch', () => ({
 }));
 vi.mock('@/lib/employeeLogbook/employeeLogbookTracking', () => ({
   stopNativeAssistBackgroundTracking: mocks.stopBackground,
+  linkActiveLogbookToAssistSession: mocks.link,
 }));
+vi.mock('@/lib/employeeLogbook/employeeLogbookAutomation', () => ({ resumeActiveEmployeeLogbookTracking: mocks.resume }));
 
 const inactive = {
   tenantId: null,
@@ -137,6 +141,11 @@ describe('employee GPS native passive effects — EINSATZ-MTOUOP8Z-OHGH', () => 
     mocks.capture.mockResolvedValue(null);
     mocks.acquire.mockReturnValue(mocks.release);
     mocks.stopBackground.mockResolvedValue(undefined);
+    mocks.append.mockResolvedValue({ ok: true });
+    mocks.link.mockResolvedValue(true);
+    mocks.resume.mockResolvedValue(null);
+    mocks.retained.length = 0;
+    mocks.enqueue.mockImplementation(async (_tenant, point) => { mocks.retained.push(point); return mocks.retained.length; });
   });
 
   afterEach(async () => {
@@ -249,5 +258,137 @@ describe('employee GPS native passive effects — EINSATZ-MTOUOP8Z-OHGH', () => 
     await settle();
     expect(mocks.acquire).toHaveBeenCalledTimes(2);
     expect(mocks.stopBackground).not.toHaveBeenCalled();
+  });
+
+  it('cancels a pending GPS startup when tracking is disabled before permission resolves', async () => {
+    let finish!: (snapshot: unknown) => void;
+    mocks.capture.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options);
+    render({ ...options, enabled: false });
+    finish({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' });
+    await settle();
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(mocks.append).not.toHaveBeenCalled();
+    expect(mocks.link).not.toHaveBeenCalled();
+    expect(render({ ...options, enabled: false }).state.watching).toBe(false);
+  });
+
+  it('ignores a late GPS fix after the execution screen has unmounted', async () => {
+    let finish!: (snapshot: unknown) => void;
+    mocks.capture.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    render({ ...inactive, sessionId: 'session-A', enabled: true });
+    harness.disconnect();
+    const updates = harness.updateCount();
+    finish({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' });
+    await settle();
+    expect(harness.updateCount()).toBe(updates);
+    expect(mocks.acquire).not.toHaveBeenCalled();
+  });
+
+  it('replaces the foreground watch when its session changes and rejects old callbacks', async () => {
+    const options = { ...inactive, sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    const oldWatch = mocks.acquire.mock.calls[0][0];
+    render({ ...options, sessionId: 'session-B' }); await settle();
+    expect(mocks.release).toHaveBeenCalledTimes(1);
+    expect(mocks.acquire).toHaveBeenCalledTimes(2);
+    const updates = harness.updateCount();
+    oldWatch.onSnapshot({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' });
+    oldWatch.onError(1);
+    await settle();
+    expect(harness.updateCount()).toBe(updates);
+    expect(mocks.stopBackground).not.toHaveBeenCalled();
+  });
+
+  it('retains a watch point when the provider write rejects and allows subsequent writes', async () => {
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    const watch = mocks.acquire.mock.calls[0][0];
+    mocks.append.mockRejectedValueOnce(new Error('offline'));
+    watch.onSnapshot({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' }); await settle();
+    expect(mocks.retained).toHaveLength(1);
+    expect(render(options).state.errorCode).toBe('LIVE_LOCATION_INSERT_FAILED');
+    expect(render(options).state.queuedPointCount).toBe(1);
+    watch.onSnapshot({ latitude: 53, longitude: 14, capturedAt: '2026-10-11T08:01:00Z' }); await settle();
+    expect(render(options).state.writeCount).toBe(1);
+    expect(mocks.retained).toHaveLength(1);
+  });
+
+  it('reports a failed local watch-point enqueue without an unhandled rejection', async () => {
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    mocks.append.mockResolvedValueOnce({ ok: false, error: 'offline' });
+    mocks.enqueue.mockRejectedValueOnce(new Error('storage full'));
+    mocks.acquire.mock.calls[0][0].onSnapshot({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' }); await settle();
+    expect(render(options).state.errorCode).toBe('LIVE_LOCATION_INSERT_FAILED');
+    expect(render(options).state.errorMessage).toContain('Bereits gesicherte Punkte bleiben erhalten');
+  });
+
+  it('reports a rejected heartbeat queue flush and releases busy state for the next timer retry', async () => {
+    const options = { ...inactive, sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    mocks.flush.mockRejectedValueOnce(new Error('queue storage unavailable'));
+    await vi.advanceTimersByTimeAsync(15_000); await settle();
+    expect(render(options).state.errorCode).toBe('LIVE_LOCATION_INSERT_FAILED');
+    const attempts = mocks.flush.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(15_000); await settle();
+    expect(mocks.flush).toHaveBeenCalledTimes(attempts + 1);
+  });
+
+  it('reports a rejected web route sample and continues timer sampling', async () => {
+    harness.platform.OS = 'web';
+    const options = { ...inactive, sessionId: 'session-A', enabled: true };
+    mocks.capture.mockResolvedValueOnce({ latitude: 52, longitude: 13, capturedAt: new Date().toISOString() });
+    render(options); await settle();
+    mocks.capture.mockRejectedValueOnce(new Error('provider unavailable'));
+    await vi.advanceTimersByTimeAsync(15_000); await settle();
+    expect(render(options).state.errorCode).toBe('LIVE_LOCATION_INSERT_FAILED');
+    const attempts = mocks.capture.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(15_000); await settle();
+    expect(mocks.capture.mock.calls.length).toBeGreaterThan(attempts);
+  });
+
+  it('does not report an old watch enqueue failure to a replacement session', async () => {
+    let reject!: (error: Error) => void;
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    mocks.append.mockResolvedValueOnce({ ok: false, error: 'offline' });
+    mocks.enqueue.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail; }));
+    mocks.acquire.mock.calls[0][0].onSnapshot({ latitude: 52, longitude: 13, capturedAt: '2026-10-11T08:00:00Z' }); await settle();
+    const replacement = { ...options, assistVisitId: 'B', sessionId: 'session-B' };
+    render(replacement); await settle();
+    const updates = harness.updateCount();
+    reject(new Error('old storage failure')); await settle();
+    expect(harness.updateCount()).toBe(updates);
+  });
+
+  it('passes a cancellable identity guard to the native Assist link', async () => {
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    const [scope, guard] = mocks.link.mock.calls[0];
+    expect(scope).toEqual({ tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', assistSessionId: 'session-A' });
+    expect(guard.shouldContinue()).toBe(true);
+    render({ ...options, assistVisitId: 'B', sessionId: 'session-B' }); await settle();
+    expect(guard.shouldContinue()).toBe(false);
+  });
+
+  it('scopes a delayed native stop to the visit that requested it', async () => {
+    const old = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: false };
+    render(old);
+    render({ ...old, assistVisitId: 'B', sessionId: 'session-B', enabled: true }); await settle();
+    expect(mocks.stopBackground).toHaveBeenCalledWith({ tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', assistSessionId: 'session-A' });
+    expect(mocks.stopBackground).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not announce successful tracking when native linking returns false', async () => {
+    mocks.link.mockResolvedValueOnce(false);
+    const options = { tenantId: 'tenant', employeeId: 'employee', assistVisitId: 'A', sessionId: 'session-A', enabled: true };
+    render(options); await settle();
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    const state = render(options).state;
+    expect(state.watching).toBe(false);
+    expect(state.errorCode).toBe('LIVE_SESSION_CREATE_FAILED');
+    expect(mocks.resume).not.toHaveBeenCalled();
   });
 });

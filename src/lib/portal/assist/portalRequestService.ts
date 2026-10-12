@@ -13,6 +13,7 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
 
 const REQUEST_TYPE_LABELS: Record<PortalRequestType, string> = {
   termin_aendern: 'Einsatzänderung',
@@ -135,11 +136,15 @@ export async function createPortalRequest(
       input.title.trim() ||
       resolvePortalRequestTypeLabel(input.requestType);
 
+    const author = await resolveAuthenticatedProfileId(input.tenantId);
+    if (!author.ok) return author;
+    const authorProfileId = author.data;
+
     const { data, error } = await fromUnknownTable(supabase, 'portal_requests')
       .insert({
         tenant_id: input.tenantId,
         client_id: input.clientId,
-        portal_user_id: input.portalUserId ?? null,
+        portal_user_id: authorProfileId,
         module_key: input.moduleKey ?? 'assist',
         request_type: input.requestType,
         status: 'offen',
@@ -159,27 +164,31 @@ export async function createPortalRequest(
 
     const request = mapRequestRow(data as Record<string, unknown>);
 
-    await fromUnknownTable(supabase, 'portal_request_status_history').insert({
-      tenant_id: input.tenantId,
-      request_id: request.id,
-      from_status: null,
-      to_status: 'offen',
-      changed_by: input.portalUserId ?? null,
-      note: 'Anfrage erstellt',
-    });
+    // The request is already persisted. Optional office/audit recording must
+    // not report it as unsent and invite a duplicate submission on retry.
+    await Promise.allSettled([
+      Promise.resolve(fromUnknownTable(supabase, 'portal_request_status_history').insert({
+        tenant_id: input.tenantId,
+        request_id: request.id,
+        from_status: null,
+        to_status: 'offen',
+        changed_by: authorProfileId,
+        note: 'Anfrage erstellt',
+      })),
 
-    await logPortalActivity({
-      tenantId: input.tenantId,
-      clientId: input.clientId,
-      portalUserId: input.portalUserId,
-      moduleKey: input.moduleKey ?? 'assist',
-      activityType: 'request_created',
-      title: `Anfrage: ${title}`,
-      description: input.description ?? null,
-      metadata: { requestId: request.id, requestType: input.requestType },
-    });
+      logPortalActivity({
+        tenantId: input.tenantId,
+        clientId: input.clientId,
+        portalUserId: authorProfileId,
+        moduleKey: input.moduleKey ?? 'assist',
+        activityType: 'request_created',
+        title: `Anfrage: ${title}`,
+        description: input.description ?? null,
+        metadata: { requestId: request.id, requestType: input.requestType },
+      }),
 
-    await stubEmployeeNotificationForRequest(request);
+      stubEmployeeNotificationForRequest(request),
+    ]);
 
     return { ok: true, data: request };
   });

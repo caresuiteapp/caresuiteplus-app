@@ -15,7 +15,6 @@ import {
   assignmentStatusToRemote,
   remoteStatusToAssignment,
 } from '@/lib/assist/assignmentStatusBridge';
-import { timestampPatchForStatusTransition } from '@/lib/assist/assignmentLifecycleTimestamps';
 import type { AssignmentMutationContext } from '@/lib/assist/assignmentAuditHelper';
 import { writeAssignmentAudit } from '@/lib/assist/assignmentAuditHelper';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -86,12 +85,13 @@ export type AssignmentDetail = AssignmentPlan & {
 
 type AssignmentStatusMutationContext = AssignmentMutationContext & {
   /**
-   * Optional RLS-scoped detail already loaded by the execution orchestrator.
-   * Avoids a second identical assignment read immediately before the status RPC.
+   * Optional detail supplied by callers; never replaces the scoped write readback.
    */
   knownExistingDetail?: AssignmentDetail;
-  /** Return after the authoritative status/timestamp write; audit/readback are projections. */
+  /** Defer optional audit work; the exact stored status receipt remains mandatory. */
   fastWorkflow?: boolean;
+  /** Execution callers additionally require this employee to remain assigned. */
+  expectedAssignedEmployeeId?: string;
 };
 
 export type AssignmentTaskItem = {
@@ -257,21 +257,9 @@ function mapDetail(row: AssignmentLiveRow & { assignment_tasks?: AssignmentTaskR
   };
 }
 
-function timestampPatchForStatus(
-  to: AssignmentStatus,
-  now: string,
-  existing: AssignmentLifecycleTimestamps = {},
-): Record<string, string | null> {
-  return timestampPatchForStatusTransition(to, now, existing);
-}
 
-type AssignmentLifecycleTimestamps = {
-  on_the_way_at?: string | null;
-  arrived_at?: string | null;
-  actual_start_at?: string | null;
-  actual_end_at?: string | null;
-  finished_at?: string | null;
-};
+
+
 
 function remoteStatusFilter(status: AssignmentStatus): string {
   return assignmentStatusToRemote(status);
@@ -456,14 +444,17 @@ export const assignmentSupabaseRepository = {
     if (!supabase) return unavailable();
 
     const masterAssignmentId = resolveVisitMasterId(assignmentId);
-    const existing = context?.knownExistingDetail
-      ? { ok: true as const, data: context.knownExistingDetail }
-      : await this.getById(tenantId, masterAssignmentId);
+    // Idempotence and validation use a fresh scoped record, never an older UI snapshot.
+    const existing = await this.getById(tenantId, masterAssignmentId);
     if (!existing.ok) return existing;
     if (!existing.data) {
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
+    if (existing.data.id !== masterAssignmentId || existing.data.tenantId !== tenantId
+      || (context?.expectedAssignedEmployeeId && existing.data.employeeId !== context.expectedAssignedEmployeeId)) {
+      return { ok: false, error: 'Die Einsatzzuordnung konnte vor dem Statuswechsel nicht bestätigt werden.' };
+    }
     const fromStatus = existing.data.assignmentStatus;
     if (fromStatus === toStatus) {
       return { ok: true, data: existing.data };
@@ -474,55 +465,24 @@ export const assignmentSupabaseRepository = {
       return { ok: false, error: validation.error };
     }
 
-    const now = new Date().toISOString();
     const remoteStatus = assignmentStatusToRemote(toStatus);
-    const timestampPatch = timestampPatchForStatus(toStatus, now, {
-      on_the_way_at: existing.data.onTheWayAt,
-      arrived_at: existing.data.arrivedAt,
-      actual_start_at: existing.data.actualStartAt,
-      actual_end_at: existing.data.actualEndAt,
-      finished_at: existing.data.finishedAt,
-    });
-
-    const { error: rpcError } = await supabase.rpc('set_assignment_status', {
+    const { data: rpcReceipt, error: rpcError } = await supabase.rpc('set_assignment_status', {
       input_assignment_id: masterAssignmentId,
       input_status: remoteStatus,
       input_note: note,
       input_employee_id: context?.actorEmployeeId,
     });
-
-    if (rpcError) {
-      const patch = {
-        status: remoteStatus,
-        updated_by: context?.actorProfileId ?? null,
-        updated_at: now,
-        ...timestampPatch,
-      };
-
-      const { error: updateError } = await fromUnknownTable(supabase, 'assignments')
-        .update(patch)
-        .eq('tenant_id', tenantId)
-        .eq('id', masterAssignmentId);
-
-      if (updateError) {
-        const minimalUpdate = await fromUnknownTable(supabase, 'assignments')
-          .update({ status: remoteStatus })
-          .eq('tenant_id', tenantId)
-          .eq('id', masterAssignmentId);
-        if (minimalUpdate.error) {
-          return { ok: false, error: diagnosticSupabaseError(minimalUpdate.error) };
-        }
-      }
-    } else if (Object.keys(timestampPatch).length > 0) {
-      // set_assignment_status updates status only — patch lifecycle timestamps separately.
-      const { error: timestampError } = await fromUnknownTable(supabase, 'assignments')
-        .update({ ...timestampPatch, updated_at: now })
-        .eq('tenant_id', tenantId)
-        .eq('id', masterAssignmentId);
-
-      if (timestampError) {
-        console.warn('[assignmentRepository] optionale Lebenszykluszeiten:', timestampError.message);
-      }
+    // A rejected business/permission check must never be retried as a weaker UPDATE.
+    if (rpcError) return { ok: false, error: diagnosticSupabaseError(rpcError) };
+    if (rpcReceipt !== masterAssignmentId) {
+      return { ok: false, error: 'Der Statuswechsel ist noch nicht eindeutig bestätigt. Bitte den Einsatzstatus erneut prüfen.' };
+    }
+    const refreshed = await this.getById(tenantId, masterAssignmentId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data || refreshed.data.id !== masterAssignmentId || refreshed.data.tenantId !== tenantId
+      || refreshed.data.assignmentStatus !== toStatus
+      || (context?.expectedAssignedEmployeeId && refreshed.data.employeeId !== context.expectedAssignedEmployeeId)) {
+      return { ok: false, error: 'Der angeforderte Einsatzstatus wurde vom Server noch nicht bestätigt. Bitte den aktuellen Einsatz erneut laden.' };
     }
 
     const auditInput = {
@@ -535,34 +495,10 @@ export const assignmentSupabaseRepository = {
       actor: context,
     } as const;
 
-    if (context?.fastWorkflow) {
-      scheduleDeferredTask(
-        `assignment-audit:${tenantId}:${masterAssignmentId}`,
-        async () => writeAssignmentAudit(supabase, auditInput),
-      );
-      return {
-        ok: true,
-        data: {
-          ...existing.data,
-          assignmentStatus: toStatus,
-          status: assignmentStatusToWorkflowFilter(toStatus),
-          onTheWayAt: timestampPatch.on_the_way_at ?? existing.data.onTheWayAt,
-          arrivedAt: timestampPatch.arrived_at ?? existing.data.arrivedAt,
-          actualStartAt: timestampPatch.actual_start_at ?? existing.data.actualStartAt,
-          actualEndAt: timestampPatch.actual_end_at ?? existing.data.actualEndAt,
-          finishedAt: timestampPatch.finished_at ?? existing.data.finishedAt,
-          updatedAt: now,
-        },
-      };
-    }
-
-    await writeAssignmentAudit(supabase, auditInput);
-
-    const refreshed = await this.getById(tenantId, masterAssignmentId);
-    if (!refreshed.ok) return refreshed;
-    if (!refreshed.data) {
-      return { ok: false, error: 'Einsatz nach Statuswechsel nicht gefunden.' };
-    }
+    // Audit is secondary; its failure must not turn a verified canonical receipt
+    // into a request to repeat the already completed status transition.
+    scheduleDeferredTask(`assignment-audit:${tenantId}:${masterAssignmentId}`,
+      async () => writeAssignmentAudit(supabase, auditInput));
     return { ok: true, data: refreshed.data };
   },
 
@@ -783,54 +719,49 @@ export const assignmentSupabaseRepository = {
       return { ok: true, data: null };
     }
 
-    const { data: existing } = await supabase
-      .from('service_records')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('assignment_id', assignmentId)
-      .maybeSingle();
-
-    if (existing?.id) {
-      return { ok: true, data: { id: existing.id } };
+    const startMs = Date.parse(detail.data.actualStartAt ?? '');
+    const endMs = Date.parse(detail.data.actualEndAt ?? '');
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs || endMs > Date.now()) {
+      return { ok: false, error: 'Der tatsächliche Leistungsbeginn und das Leistungsende sind noch nicht eindeutig bestätigt.' };
     }
 
-    const startMs = detail.data.actualStartAt
-      ? new Date(detail.data.actualStartAt).getTime()
-      : null;
-    const endMs = detail.data.actualEndAt ? new Date(detail.data.actualEndAt).getTime() : null;
-    const actualMinutes =
-      startMs && endMs ? Math.max(1, Math.round((endMs - startMs) / 60_000)) : null;
-
-    const { data, error } = await supabase
-      .from('service_records')
-      .insert({
-        tenant_id: tenantId,
-        assignment_id: assignmentId,
-        client_id: detail.data.clientId,
-        employee_id: detail.data.employeeId || null,
-        service_date: detail.data.plannedStartAt.slice(0, 10),
-        notes: detail.data.documentationNotes,
-        actual_minutes: actualMinutes,
-        planned_minutes: null,
-        status: 'draft',
-        product_key: 'assist',
-      } as Database['public']['Tables']['service_records']['Insert'])
-      .select('id')
-      .single();
-
-    if (error || !data) {
-      return { ok: false, error: toGermanSupabaseError(error) };
+    // One server transaction owns identity, proof version, uniqueness and the
+    // stored receipt. A missing installation cannot weaken this to direct INSERT.
+    const rpc = supabase.rpc.bind(supabase) as unknown as (name: string, args?: Record<string, unknown>) => Promise<{
+      data: unknown; error: Parameters<typeof toGermanSupabaseError>[0];
+    }>;
+    try {
+      const capability = await rpc('workflow_assignment_record_capability');
+      if (capability.error || capability.data !== 'workflow-assignment-record-v1') {
+        return { ok: false, error: 'Die abgesicherte Nachweisvorbereitung ist auf dem Server noch nicht verfügbar. Bitte die Serverfreigabe prüfen.' };
+      }
+      const { data, error } = await rpc('workflow_prepare_assignment_service_record', {
+        p_tenant_id: tenantId, p_assignment_id: assignmentId,
+      });
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      const receipt = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : null;
+      if (!receipt || receipt.version !== 'workflow-assignment-record-v1'
+        || typeof receipt.id !== 'string' || !receipt.id.trim() || receipt.tenant_id !== tenantId
+        || receipt.assignment_id !== assignmentId || receipt.client_id !== detail.data.clientId
+        || receipt.employee_id !== (detail.data.employeeId || null)
+        || Date.parse(String(receipt.service_started_at ?? '')) !== startMs
+        || Date.parse(String(receipt.service_ended_at ?? '')) !== endMs
+        || !Number.isSafeInteger(receipt.actual_minutes) || Number(receipt.actual_minutes) < 0
+        || Number(receipt.actual_minutes) > Math.round((endMs - startMs) / 60_000)
+        || typeof receipt.pdf_storage_path !== 'string' || !receipt.pdf_storage_path.trim()
+        || typeof receipt.pdf_sha256 !== 'string' || !/^(sha256:)?[0-9a-f]{64}$/.test(receipt.pdf_sha256)
+        || !Number.isFinite(Date.parse(String(receipt.attested_at ?? '')))
+        || Date.parse(String(receipt.attested_at)) > Date.now()) {
+        return { ok: false, error: 'Der vorbereitete Leistungsnachweis wurde vom Server noch nicht eindeutig bestätigt. Bitte den Einsatz erneut prüfen.' };
+      }
+      await writeAssignmentAudit(supabase, {
+        tenantId, assignmentId, action: 'service_record_created',
+        details: `Leistungsnachweis ${receipt.id} vorbereitet`, actor: context,
+      });
+      return { ok: true, data: { id: receipt.id } };
+    } catch {
+      return { ok: false, error: 'Die Nachweisvorbereitung konnte noch nicht eindeutig bestätigt werden. Bitte den Einsatz erneut prüfen.' };
     }
-
-    await writeAssignmentAudit(supabase, {
-      tenantId,
-      assignmentId,
-      action: 'service_record_created',
-      details: `Leistungsnachweis ${data.id} vorbereitet`,
-      actor: context,
-    });
-
-    return { ok: true, data: { id: data.id } };
   },
 
   async delete(tenantId: string, assignmentId: string): Promise<ServiceResult<void>> {

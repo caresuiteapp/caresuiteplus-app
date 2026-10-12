@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -12,6 +13,7 @@ import {
   PremiumBadge,
   PremiumCard,
   PremiumListRow,
+  PremiumButton,
   SectionPanel,
 } from '@/components/ui';
 import { EmployeePortalClientDocumentPreviewSheet } from '@/components/portal/EmployeePortalClientDocumentPreviewSheet';
@@ -21,6 +23,7 @@ import {
 } from '@/components/portal/EmployeePortalClientRecordContactActions';
 import { useEmployeePortalClientRecordDetail } from '@/hooks/useEmployeePortalClientRecords';
 import type { EmployeePortalClientRecordDetail } from '@/lib/portal/employeePortalClientRecordsService';
+import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
@@ -98,7 +101,7 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
       node: (
         <View style={styles.kpiTile}>
           <Text style={[styles.kpiLabel, { color: text.muted }]}>Dokumente</Text>
-          <Text style={[styles.kpiValue, { color: text.primary }]}>{record.portalDocuments.length}</Text>
+          <Text style={[styles.kpiValue, { color: text.primary }]}>{record.documentsError ? 'Nicht verfügbar' : record.portalDocuments.length}</Text>
         </View>
       ),
     });
@@ -131,7 +134,7 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
           <PremiumBadge label={record.careGradeLabel} variant="cyan" />
         ) : null}
       </View>
-      <AdaptiveKpiGrid columns={{ phone: 2, tablet: 4, desktop: 4, wide: 4 }} items={kpiItems} />
+      <AdaptiveKpiGrid phoneLayout="grid" columns={{ phone: 2, tablet: 4, desktop: 4, wide: 4 }} items={kpiItems} />
     </PremiumCard>
   );
 }
@@ -144,8 +147,11 @@ export function EmployeePortalClientRecordDetailScreen({
   clientId,
 }: EmployeePortalClientRecordDetailScreenProps) {
   const text = useAuroraAdaptiveText();
-  const { record, loading, error, refresh, notFound } = useEmployeePortalClientRecordDetail(clientId);
+  const router = useRouter();
+  const { record, loading, error, refresh, refreshError, notFound } = useEmployeePortalClientRecordDetail(clientId);
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null);
+  const [historyLimit, setHistoryLimit] = useState(25);
+  useEffect(() => { setPreviewDocumentId(null); setHistoryLimit(25); }, [clientId]);
 
   if (loading) {
     return <LoadingState message="Klientenakte wird geladen…" />;
@@ -153,11 +159,12 @@ export function EmployeePortalClientRecordDetailScreen({
 
   if (notFound || error) {
     return (
-      <ErrorState
+      <View style={{ gap: careSpacing.md }}><ErrorState
         title="Klientenakte"
         message={error ?? 'Klient:in nicht gefunden oder kein Zugriff.'}
         onRetry={refresh}
       />
+      <PremiumButton title="Zur Klientenübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/clients' as never)} /></View>
     );
   }
 
@@ -174,6 +181,9 @@ export function EmployeePortalClientRecordDetailScreen({
   return (
     <>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <PremiumButton title="Zur Klientenübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/clients' as never)} />
+        <PremiumButton title="Akte aktualisieren" variant="secondary" onPress={() => void refresh()} />
+        {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
         <Text style={[styles.readOnlyHint, { color: text.muted }]}>
           Nur-Lese-Ansicht — Bearbeitung erfolgt im Office.
         </Text>
@@ -201,7 +211,8 @@ export function EmployeePortalClientRecordDetailScreen({
           <InfoBlock label="Klingel" value={record.doorbellName} />
         </SectionPanel>
 
-        {(record.accessHint ||
+        {record.accessError ? <ErrorState title="Zugangshinweise nicht verfügbar" message={record.accessError} onRetry={refresh} /> : null}
+        {(record.hints || record.accessHint ||
           record.keyManagementNotes ||
           record.employeeNotes ||
           record.emergencyNotes) && (
@@ -222,10 +233,11 @@ export function EmployeePortalClientRecordDetailScreen({
           </SectionPanel>
         )}
 
+        {record.contactsError ? <ErrorState title="Ansprechpartner nicht verfügbar" message={record.contactsError} onRetry={refresh} /> : null}
         {record.contacts.length > 0 ? (
           <SectionPanel title="Ansprechpartner">
             {record.contacts.map((contact, index) => {
-              const phone = contact.phone ?? contact.mobile;
+              const phone = contact.phone?.trim() || contact.mobile;
               const badges = [
                 contact.isPrimaryContact ? 'Hauptkontakt' : null,
                 contact.isEmergencyContact ? 'Notfall' : null,
@@ -264,7 +276,7 @@ export function EmployeePortalClientRecordDetailScreen({
         ) : null}
 
         <SectionPanel title="Freigegebene Dokumente">
-          {record.portalDocuments.length === 0 ? (
+          {record.documentsError ? <ErrorState title="Dokumente nicht verfügbar" message={record.documentsError} onRetry={refresh} /> : record.portalDocuments.length === 0 ? (
             <EmptyState title="Keine Dokumente" message="Für diese:n Klient:in sind keine Portal-Dokumente freigegeben." />
           ) : (
             record.portalDocuments.map((doc, index) => (
@@ -285,15 +297,16 @@ export function EmployeePortalClientRecordDetailScreen({
           {record.assignmentHistory.length === 0 ? (
             <EmptyState title="Keine Einsätze" message="Noch keine Einsätze für diese:n Klient:in." />
           ) : (
-            record.assignmentHistory.map((entry) => (
+            record.assignmentHistory.slice(0, historyLimit).map((entry) => (
               <View key={entry.assignmentId} style={styles.historyRow}>
                 <Text style={[styles.historyTitle, { color: text.primary }]}>{entry.title}</Text>
                 <Text style={[styles.historyMeta, { color: text.muted }]}>
-                  {formatDateTime(entry.plannedStartAt)} · {entry.status}
+                  {formatDateTime(entry.plannedStartAt)} · {ASSIGNMENT_STATUS_LABELS[entry.status as AssignmentStatus] ?? entry.status}
                 </Text>
               </View>
             ))
           )}
+          {record.assignmentHistory.length > historyLimit ? <PremiumButton title={`Weitere Einsätze anzeigen (${record.assignmentHistory.length - historyLimit})`} variant="secondary" onPress={() => setHistoryLimit((limit) => limit + 25)} /> : null}
         </SectionPanel>
       </ScrollView>
 

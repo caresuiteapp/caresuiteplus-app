@@ -19,7 +19,6 @@ import {
   LiquidDivider,
   LiquidIconButton,
   LiquidGlyph,
-  LiquidLogo,
   LiquidState,
   LiquidStatus,
   LiquidSurface,
@@ -80,7 +79,7 @@ function RotateDeviceScreen() {
           <LiquidText variant="title" accessibilityRole="header">Smartphone drehen</LiquidText>
           <LiquidText variant="body" style={styles.centerText}>
             CareSuite HealthOS wird auf Smartphones im Hochformat bedient. Für Unterschrift,
-            Kamera, Dokumentenscan, Medien und BodyMap kann Querformat gezielt freigegeben werden.
+            Kamera, Dokumentenscan und Medien kann Querformat gezielt freigegeben werden.
           </LiquidText>
         </LiquidSurface>
       </View>
@@ -88,82 +87,6 @@ function RotateDeviceScreen() {
   );
 }
 
-function ModuleDock({
-  activeModule,
-  messageBadge,
-}: {
-  activeModule: LiquidModuleKey;
-  messageBadge?: string;
-}) {
-  const router = useRouter();
-  const auth = useAuth();
-
-  const signOut = async () => {
-    await auth.signOut();
-    router.replace('/auth' as never);
-  };
-
-  return (
-    <View style={styles.dock}>
-      <View style={styles.dockBrand}>
-        <LiquidLogo compact />
-        <View style={styles.dockBrandCopy}>
-          <Text style={styles.dockKicker}>HEALTHOS DESKTOP</Text>
-          <Text style={styles.dockTitle}>Arbeitsbereiche</Text>
-        </View>
-      </View>
-      <ScrollView
-        accessibilityRole="tablist"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.dockItems}
-      >
-        {editionModules.map((module) => {
-          const selected = activeModule === module.key;
-          return (
-            <Pressable
-              key={module.key}
-              accessibilityRole="tab"
-              accessibilityLabel={`${module.label}. ${module.description}${module.key === 'office' && messageBadge ? `. ${messageBadge}` : ''}`}
-              accessibilityState={{ selected }}
-              onPress={() => router.push(module.route as never)}
-              style={({ pressed }) => [
-                styles.dockItem,
-                selected && styles.dockItemActive,
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.dockGlyph, selected && styles.dockGlyphActive]}>
-                <LiquidGlyph active={selected} glyph={module.glyph} size={19} />
-              </View>
-              <View style={styles.dockItemCopy}>
-                <Text numberOfLines={1} style={[styles.dockLabel, selected && styles.dockLabelActive]}>
-                  {module.label}
-                </Text>
-                {selected ? (
-                  <Text numberOfLines={1} style={styles.dockItemDetail}>Aktiver Bereich</Text>
-                ) : null}
-              </View>
-              {module.key === 'office' && messageBadge ? (
-                <View style={styles.navUnreadBadge}>
-                  <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sicher abmelden"
-        onPress={() => void signOut()}
-        style={({ pressed }) => [styles.dockLogout, pressed && styles.pressed]}
-      >
-        <LiquidGlyph glyph="↪" size={19} />
-        <Text style={styles.dockLogoutLabel}>Abmelden</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 function WorkAreaNavigation({
   moduleKey,
@@ -214,62 +137,6 @@ function WorkAreaNavigation({
   return <ScrollView horizontal showsHorizontalScrollIndicator style={styles.areaHorizontal} contentContainerStyle={styles.areaHorizontalContent}>{items}</ScrollView>;
 }
 
-function OrbitModuleNavigation({
-  activeModule,
-  messageBadge,
-}: {
-  activeModule: LiquidModuleKey;
-  messageBadge?: string;
-}) {
-  const router = useRouter();
-  const layout = useLiquidLayout();
-  const compactNavigation = layout.width < 1700;
-
-  return (
-    <View style={styles.orbitModuleBar}>
-      <ScrollView
-        horizontal
-        accessibilityRole="tablist"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.orbitModuleItems}
-      >
-        {editionModules.map((module) => {
-          const selected = activeModule === module.key;
-          return (
-            <Pressable
-              key={module.key}
-              accessibilityRole="tab"
-              accessibilityLabel={`${module.label}. ${module.description}`}
-              accessibilityState={{ selected }}
-              onPress={() => router.push(module.route as never)}
-              style={({ pressed }) => [
-                styles.orbitModuleItem,
-                compactNavigation && styles.orbitModuleItemCompact,
-                selected && styles.orbitModuleItemActive,
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.orbitModuleGlyph, selected && styles.orbitModuleGlyphActive]}>
-                <LiquidGlyph active={selected} glyph={module.glyph} size={24} />
-              </View>
-              <Text style={[
-                styles.orbitModuleLabel,
-                selected && styles.orbitModuleLabelActive,
-              ]}>
-                {compactNavigation ? module.shortLabel : module.label}
-              </Text>
-              {module.key === 'office' && messageBadge ? (
-                <View style={styles.navUnreadBadge}>
-                  <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
 
 function CommandPalette({
   visible,
@@ -720,7 +587,7 @@ export function LiquidCommandShell({
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
-  const boundedPopup = Platform.OS === 'web' && pathname !== '/' && contentMode === 'fill';
+  const boundedPopup = pathname !== '/' && contentMode === 'fill';
   const measuredFillHeight =
     !boundedPopup && contentMode === 'fill' && pageScrollHeight > 0
       ? Math.max(320, pageScrollHeight + fillContentOffset)
@@ -791,7 +658,7 @@ export function LiquidCommandShell({
         <View
           style={[
             styles.contentFill,
-            { padding: boundedPopup && layout.isPhone ? 0 : layout.contentPadding },
+            { padding: boundedPopup && (layout.isPhone || !showPageHeader) ? 0 : layout.contentPadding },
             !layout.isDesktop && !boundedPopup && styles.contentFillCompact,
           ]}
         >
@@ -837,8 +704,8 @@ export function LiquidCommandShell({
                 </LiquidText>
                 <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
               </View>
-              {!layout.isPhone ? (
-                <LiquidButton label={actionLabel} icon="+" onPress={action} />
+              {(!layout.isPhone || Platform.OS !== 'web') ? (
+                <LiquidButton compact={layout.isPhone} label={actionLabel} icon="+" onPress={action} />
               ) : null}
             </View>
           ) : null}
@@ -849,8 +716,8 @@ export function LiquidCommandShell({
             ]}
           >
             <View style={styles.contentPrimary}>{children}</View>
-            {aside && layout.isDesktop ? (
-              <View style={[styles.contentAside, { width: asideWidth }]}>{aside}</View>
+            {aside && (layout.isDesktop || Platform.OS !== 'web') ? (
+              <View style={[styles.contentAside, { width: layout.isDesktop ? asideWidth : '100%' }, !layout.isDesktop && { marginTop: 16 }]}>{aside}</View>
             ) : null}
           </View>
         </View>
@@ -877,7 +744,7 @@ export function LiquidCommandShell({
           contentContainerStyle={styles.centralPopupScrollContent}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
         >
           {workspaceContent}
         </ScrollView>}
@@ -897,10 +764,6 @@ export function LiquidCommandShell({
             onOpenSearch={() => setPaletteOpen(true)}
             onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenProfile={() => setProfileOpen(true)}
-          />
-          <OrbitModuleNavigation
-            activeModule={activeModule}
-            messageBadge={messageBadge}
           />
           <ScrollView
             testID="liquid-command-page-scroll"
@@ -959,9 +822,9 @@ const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
     ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
-    backgroundColor: 'rgba(4, 17, 37, 0.96)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(4, 17, 37, 0.96)' : '#F6FAFF',
     overflow: 'hidden',
-    borderRadius: 28,
+    borderRadius: Platform.OS === 'web' ? 28 : 18,
     borderWidth: 1,
     borderColor: 'rgba(132, 213, 255, 0.5)',
     shadowColor: '#071A37',
@@ -1567,10 +1430,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   contentPhone: {
-    paddingBottom: 112,
+    paddingBottom: Platform.OS === 'web' ? 112 : 24,
   },
   pageHeader: {
     flexDirection: 'row',
+    flexWrap: Platform.OS === 'web' ? 'nowrap' : 'wrap',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 16,

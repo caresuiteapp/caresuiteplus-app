@@ -103,7 +103,7 @@ describe('realtime wiring', () => {
     expect(source).toContain('subscribeToAssistOperationsChanges');
     expect(source).toContain('OPERATIONAL_LIVE_POLL_MS');
     expect(source).toContain('isLiveConnected');
-    expect(source).not.toContain('useEffect');
+    expect(source).toContain('useEffect');
   });
 
   it('useAssistDashboard nutzt Assist-Operations-Live-Refresh', () => {

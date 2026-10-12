@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -13,6 +13,10 @@ import type { CalendarEventFormState, CalendarFormStep } from '@/types/calendar/
 import { CALENDAR_FORM_STEP_LABELS } from '@/types/calendar/calendarEventForm';
 import { CalendarEventTemplatePicker } from './CalendarEventTemplatePicker';
 import { CalendarEventPreviewStep } from './CalendarEventPreviewStep';
+import { CareEntitySelect, type CareEntityOption } from '@/components/inputs/CareEntitySelect';
+import { CareDateInput } from '@/components/inputs/CareDateInput';
+import { CareTimeInput } from '@/components/inputs/CareTimeInput';
+import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
 
 type CalendarEventFormProps = {
   step: CalendarFormStep;
@@ -25,6 +29,7 @@ type CalendarEventFormProps = {
   onContinueWithoutTemplate: () => void;
   onChooseCalendarEntry?: () => void;
   onAssistEinsatzLink?: () => void;
+  clients?: CareEntityOption[]; employees?: CareEntityOption[]; peopleLoading?: boolean; disabled?: boolean;
 };
 
 const INK = '#0B1F3A';
@@ -34,21 +39,8 @@ const SURFACE = '#FFFFFF';
 const SOFT = '#EDF6FF';
 const BLUE = '#0878F9';
 
-export function CalendarEventForm({
-  step,
-  moduleKey,
-  form,
-  template,
-  accentColor = BLUE,
-  onChange,
-  onSelectTemplate,
-  onContinueWithoutTemplate,
-  onChooseCalendarEntry,
-  onAssistEinsatzLink,
-}: CalendarEventFormProps) {
-  const { width } = useWindowDimensions();
-  const compact = width < 760;
-  const styles = useMemo(() => StyleSheet.create({
+function createFormStyles(compact: boolean) {
+  return StyleSheet.create({
     wrap: { gap: 16 },
     stepHeader: { gap: 4, marginBottom: 2 },
     stepHint: { color: BLUE, fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
@@ -120,17 +112,21 @@ export function CalendarEventForm({
       gap: 12,
     },
     sectionTitle: { color: INK, fontSize: 15, fontWeight: '900' },
-  }), [compact]);
+  });
+}
 
-  const StepHeader = ({ title, description }: { title: string; description: string }) => (
+
+function StepHeader({ title, description, styles, step }: { title: string; description: string; styles: ReturnType<typeof createFormStyles>; step: CalendarFormStep }) { return (
     <View style={styles.stepHeader}>
       <Text style={styles.stepHint}>{CALENDAR_FORM_STEP_LABELS[step].toUpperCase()}</Text>
       <Text style={styles.stepTitle}>{title}</Text>
       <Text style={styles.stepDescription}>{description}</Text>
     </View>
   );
+}
 
-  const Field = ({ label, value, onChangeText, placeholder, full = false, multiline = false, keyboardType, helper }: {
+function Field({ label, value, onChangeText, placeholder, full = false, multiline = false, keyboardType, helper, styles, disabled }: {
+    styles: ReturnType<typeof createFormStyles>; disabled?: boolean;
     label: string;
     value: string;
     onChangeText: (value: string) => void;
@@ -139,12 +135,14 @@ export function CalendarEventForm({
     multiline?: boolean;
     keyboardType?: 'default' | 'numeric';
     helper?: string;
-  }) => (
+  }) { return (
     <View style={[styles.field, full && styles.fieldFull]}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[styles.input, multiline && styles.multiline]}
         value={value}
+        accessibilityLabel={label}
+        editable={!disabled}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#7B8EA8"
@@ -154,13 +152,15 @@ export function CalendarEventForm({
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
     </View>
   );
+}
 
-  const VisibilitySwitch = ({ title, description, value, onValueChange }: {
+function VisibilitySwitch({ title, description, value, onValueChange, styles, disabled }: {
+    styles: ReturnType<typeof createFormStyles>; disabled?: boolean;
     title: string;
     description: string;
     value: boolean;
     onValueChange: (value: boolean) => void;
-  }) => (
+  }) { return (
     <View style={styles.switchCard}>
       <View style={styles.switchCopy}>
         <Text style={styles.switchTitle}>{title}</Text>
@@ -168,17 +168,72 @@ export function CalendarEventForm({
       </View>
       <Switch
         value={value}
+        disabled={disabled}
+        accessibilityLabel={title}
         onValueChange={onValueChange}
         trackColor={{ false: '#C8D8EA', true: '#77BAFF' }}
         thumbColor={value ? BLUE : '#FFFFFF'}
       />
     </View>
   );
+}
+
+
+function dateTimeParts(value: string) {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return { date: '', time: '' };
+  return {
+    date: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(parsed),
+    time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(parsed),
+  };
+}
+
+function CalendarDateTimeField({ value, label, onChange, styles, disabled }: { value: string; label: string; onChange: (value: string) => void; styles: ReturnType<typeof createFormStyles>; disabled?: boolean }) {
+  const [parts, setParts] = useState(() => dateTimeParts(value));
+  const [error, setError] = useState<string | undefined>();
+  const emitted = useRef(value);
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value; setParts(dateTimeParts(value)); setError(undefined);
+  }, [value]);
+  const change = (patch: Partial<typeof parts>) => {
+    if (disabled) return;
+    const next = { ...parts, ...patch }; setParts(next);
+    try {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(next.date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(next.time)) throw new Error('Bitte Datum und Uhrzeit vollständig eingeben.');
+      const timestamp = berlinTimestamp(next.date, next.time);
+      emitted.current = timestamp; setError(undefined); onChange(timestamp);
+    } catch (cause) {
+      emitted.current = ''; onChange(''); setError(cause instanceof Error ? cause.message : 'Datum und Uhrzeit prüfen.');
+    }
+  };
+  return <View style={styles.field}>
+    <CareDateInput label={`${label}: Datum`} value={parts.date} onChange={(date) => change({ date })} viewContext="form" />
+    <CareTimeInput label={`${label}: Uhrzeit`} value={parts.time} onChange={(time) => change({ time })} viewContext="form" onLightSurface error={error} />
+  </View>;
+}
+
+export function CalendarEventForm({
+  step,
+  moduleKey,
+  form,
+  template,
+  accentColor = BLUE,
+  onChange,
+  onSelectTemplate,
+  onContinueWithoutTemplate,
+  onChooseCalendarEntry,
+  onAssistEinsatzLink,
+  clients = [], employees = [], peopleLoading = false, disabled = false,
+}: CalendarEventFormProps) {
+  const { width } = useWindowDimensions();
+  const compact = width < 760;
+  const styles = useMemo(() => createFormStyles(compact), [compact]);
 
   if (step === 'type' && moduleKey === 'assist') {
     return (
       <View style={styles.wrap}>
-        <StepHeader
+        <StepHeader styles={styles} step={step}
           title="Was möchten Sie planen?"
           description="Wählen Sie den passenden Ablauf. Ihre Auswahl öffnet direkt den nächsten sinnvollen Schritt."
         />
@@ -215,7 +270,7 @@ export function CalendarEventForm({
   if (step === 'template') {
     return (
       <View style={styles.wrap}>
-        <StepHeader
+        <StepHeader styles={styles} step={step}
           title="Schnell mit einer Vorlage starten"
           description="Eine Vorlage übernimmt Art und Dauer. Sie können jederzeit ohne Vorlage fortfahren."
         />
@@ -233,15 +288,14 @@ export function CalendarEventForm({
   if (step === 'basics') {
     return (
       <View style={styles.wrap}>
-        <StepHeader title="Grunddaten und Zuordnung" description="Erfassen Sie Anlass und ordnen Sie den Eintrag bei Bedarf direkt zu." />
+        <StepHeader styles={styles} step={step} title="Grunddaten und Zuordnung" description="Erfassen Sie Anlass und ordnen Sie den Eintrag bei Bedarf direkt zu." />
         <View style={styles.grid}>
-          <Field label="Titel *" value={form.title} onChangeText={(title) => onChange({ title })} placeholder="z. B. Teamgespräch" full />
-          <Field label="Beschreibung" value={form.description} onChangeText={(description) => onChange({ description })} placeholder="Was ist geplant?" multiline full />
-          <Field label="Klient:in / Bewohner:in" value={form.relatedClientId} onChangeText={(relatedClientId) => onChange({ relatedClientId })} placeholder="Name oder ID" />
-          <Field label="Mitarbeitende" value={form.relatedEmployeeId} onChangeText={(relatedEmployeeId) => onChange({ relatedEmployeeId })} placeholder="Name oder ID" />
-          <Field label="Fall / Akte" value={form.relatedCaseId} onChangeText={(relatedCaseId) => onChange({ relatedCaseId })} placeholder="Fall-ID" />
-          <Field label="Wohnbereich" value={form.relatedWardId} onChangeText={(relatedWardId) => onChange({ relatedWardId })} placeholder="Wohnbereich" />
-          <Field label="Weitere Beteiligte" value={form.participantNote} onChangeText={(participantNote) => onChange({ participantNote })} placeholder="Namen oder Hinweis" full />
+          <Field styles={styles} disabled={disabled} label="Titel *" value={form.title} onChangeText={(title) => onChange({ title })} placeholder="z. B. Teamgespräch" full />
+          <Field styles={styles} disabled={disabled} label="Beschreibung" value={form.description} onChangeText={(description) => onChange({ description })} placeholder="Was ist geplant?" multiline full />
+          <View style={styles.field}><CareEntitySelect label="Klient:in / Bewohner:in" value={form.relatedClientId} options={[{ value: "", label: "Keine Zuordnung" }, ...clients]} loading={peopleLoading} onChange={(relatedClientId) => { if (!disabled) onChange({ relatedClientId }); }} /></View>
+          <View style={styles.field}><CareEntitySelect label="Mitarbeitende" value={form.relatedEmployeeId} options={[{ value: "", label: "Keine Zuordnung" }, ...employees]} loading={peopleLoading} onChange={(relatedEmployeeId) => { if (!disabled) onChange({ relatedEmployeeId }); }} /></View>
+          {moduleKey === "beratung" ? <Field styles={styles} disabled={disabled} label="Fall / Akte" value={form.relatedCaseId} onChangeText={(relatedCaseId) => onChange({ relatedCaseId })} placeholder="ID einer vorhandenen Akte" /> : null}
+          {moduleKey === "stationaer" ? <Field styles={styles} disabled={disabled} label="Wohnbereich" value={form.relatedWardId} onChangeText={(relatedWardId) => onChange({ relatedWardId })} placeholder="ID eines vorhandenen Wohnbereichs" /> : null}
         </View>
       </View>
     );
@@ -250,16 +304,16 @@ export function CalendarEventForm({
   if (step === 'datetime') {
     return (
       <View style={styles.wrap}>
-        <StepHeader title="Zeit und Ort" description="Legen Sie den vollständigen Zeitraum und den Treffpunkt fest." />
+        <StepHeader styles={styles} step={step} title="Zeit und Ort" description="Legen Sie den vollständigen Zeitraum und den Treffpunkt fest." />
         <View style={styles.grid}>
-          <Field label="Beginn" value={form.startAt} onChangeText={(startAt) => onChange({ startAt })} placeholder="Datum und Uhrzeit" helper="ISO-Zeit wird automatisch gespeichert." />
-          <Field label="Ende" value={form.endAt} onChangeText={(endAt) => onChange({ endAt })} placeholder="Datum und Uhrzeit" />
+          <CalendarDateTimeField styles={styles} disabled={disabled} label="Beginn" value={form.startAt} onChange={(startAt) => onChange({ startAt })} />
+          <CalendarDateTimeField styles={styles} disabled={disabled} label="Ende" value={form.endAt} onChange={(endAt) => onChange({ endAt })} />
           <View style={[styles.field, styles.fieldFull]}>
-            <VisibilitySwitch title="Ganztägiger Eintrag" description="Uhrzeiten im Kalender ausblenden." value={form.allDay} onValueChange={(allDay) => onChange({ allDay })} />
+            <VisibilitySwitch styles={styles} disabled={disabled} title="Ganztägiger Eintrag" description="Uhrzeiten im Kalender ausblenden." value={form.allDay} onValueChange={(allDay) => onChange({ allDay })} />
           </View>
-          <Field label="Ort" value={form.locationName} onChangeText={(locationName) => onChange({ locationName })} placeholder="Einrichtung oder Treffpunkt" />
-          <Field label="Raum" value={form.room} onChangeText={(room) => onChange({ room })} placeholder="Raum / Etage" />
-          <Field label="Adresse" value={form.address} onChangeText={(address) => onChange({ address })} placeholder="Straße, PLZ Ort" full />
+          <Field styles={styles} disabled={disabled} label="Ort" value={form.locationName} onChangeText={(locationName) => onChange({ locationName })} placeholder="Einrichtung oder Treffpunkt" />
+          <Field styles={styles} disabled={disabled} label="Raum" value={form.room} onChangeText={(room) => onChange({ room })} placeholder="Raum / Etage" />
+          <Field styles={styles} disabled={disabled} label="Adresse" value={form.address} onChangeText={(address) => onChange({ address })} placeholder="Straße, PLZ Ort" full />
         </View>
       </View>
     );
@@ -268,19 +322,17 @@ export function CalendarEventForm({
   if (step === 'visibility') {
     return (
       <View style={styles.wrap}>
-        <StepHeader title="Sichtbarkeit und Hinweise" description="Bestimmen Sie bewusst, wo der Eintrag erscheint, und ergänzen Sie optionale Hinweise." />
+        <StepHeader styles={styles} step={step} title="Sichtbarkeit und Hinweise" description="Bestimmen Sie bewusst, wo der Eintrag erscheint, und ergänzen Sie optionale Hinweise." />
         <View style={styles.grid}>
-          <View style={styles.field}><VisibilitySwitch title="Assist-Kalender" description="In der zentralen Planung anzeigen." value={form.isOfficeVisible} onValueChange={(isOfficeVisible) => onChange({ isOfficeVisible })} /></View>
-          <View style={styles.field}><VisibilitySwitch title="Modul-Kalender" description="Im zugehörigen Fachmodul anzeigen." value={form.isModuleVisible} onValueChange={(isModuleVisible) => onChange({ isModuleVisible })} /></View>
-          <View style={styles.field}><VisibilitySwitch title="Klientenportal" description="Für zugeordnete Klient:innen sichtbar." value={form.isClientPortalVisible} onValueChange={(isClientPortalVisible) => onChange({ isClientPortalVisible })} /></View>
-          <View style={styles.field}><VisibilitySwitch title="Mitarbeiterportal" description="Für zugeordnete Mitarbeitende sichtbar." value={form.isEmployeePortalVisible} onValueChange={(isEmployeePortalVisible) => onChange({ isEmployeePortalVisible })} /></View>
+          <View style={styles.field}><VisibilitySwitch styles={styles} disabled={disabled} title="Zentraler Kalender" description="In der zentralen Planung anzeigen." value={form.isOfficeVisible} onValueChange={(isOfficeVisible) => onChange({ isOfficeVisible })} /></View>
+          <View style={styles.field}><VisibilitySwitch styles={styles} disabled={disabled} title="Modul-Kalender" description="Im zugehörigen Fachmodul anzeigen." value={form.isModuleVisible} onValueChange={(isModuleVisible) => onChange({ isModuleVisible })} /></View>
+          <View style={styles.field}><VisibilitySwitch styles={styles} disabled={disabled} title="Klientenportal" description="Für zugeordnete Klient:innen sichtbar." value={form.isClientPortalVisible} onValueChange={(isClientPortalVisible) => onChange({ isClientPortalVisible })} /></View>
+          <View style={styles.field}><VisibilitySwitch styles={styles} disabled={disabled} title="Mitarbeiterportal" description="Für zugeordnete Mitarbeitende sichtbar." value={form.isEmployeePortalVisible} onValueChange={(isEmployeePortalVisible) => onChange({ isEmployeePortalVisible })} /></View>
         </View>
         <View style={styles.divider} />
         <View style={styles.grid}>
-          <Field label="Interne Notiz" value={form.internalNote} onChangeText={(internalNote) => onChange({ internalNote })} placeholder="Nur intern sichtbar" multiline />
-          <Field label="Portal-Notiz" value={form.publicNote} onChangeText={(publicNote) => onChange({ publicNote })} placeholder="Für freigegebene Portale" multiline />
-          <Field label="Erinnerung" value={form.reminderMinutes != null ? String(form.reminderMinutes) : ''} onChangeText={(value) => onChange({ reminderMinutes: value ? Number(value) : null })} placeholder="30" keyboardType="numeric" helper="Minuten vor Beginn" />
-          <Field label="Wiedervorlage" value={form.followUpNote} onChangeText={(followUpNote) => onChange({ followUpNote })} placeholder="Optionaler Folgehinweis" />
+          <Field styles={styles} disabled={disabled} label="Interne Notiz" value={form.internalNote} onChangeText={(internalNote) => onChange({ internalNote })} placeholder="Nur intern sichtbar" multiline />
+          <Field styles={styles} disabled={disabled} label="Portal-Notiz" value={form.publicNote} onChangeText={(publicNote) => onChange({ publicNote })} placeholder="Für freigegebene Portale" multiline />
         </View>
       </View>
     );
@@ -289,10 +341,12 @@ export function CalendarEventForm({
   if (step === 'preview') {
     return (
       <View style={styles.wrap}>
-        <StepHeader title="Prüfen und speichern" description="Kontrollieren Sie die wichtigsten Angaben vor dem Speichern." />
+        <StepHeader styles={styles} step={step} title="Prüfen und speichern" description="Kontrollieren Sie die wichtigsten Angaben vor dem Speichern." />
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Zusammenfassung</Text>
-          <CalendarEventPreviewStep form={form} template={template} moduleKey={moduleKey} />
+          <CalendarEventPreviewStep form={form} template={template} moduleKey={moduleKey}
+            clientLabel={clients.find(person => person.value === form.relatedClientId)?.label}
+            employeeLabel={employees.find(person => person.value === form.relatedEmployeeId)?.label} />
         </View>
       </View>
     );

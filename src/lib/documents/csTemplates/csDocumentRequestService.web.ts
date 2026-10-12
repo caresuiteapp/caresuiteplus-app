@@ -28,6 +28,8 @@ import { validateTemplateForSend } from './csTemplateValidation';
 
 const DEMO_REQUESTS = new Map<string, CsDocumentRequestListItem>();
 
+export const EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE = 'Die Unterzeichnung ist vorübergehend gesperrt, da der vollständige Dokumentabschluss noch nicht sicher bestätigt werden kann. Bitte wenden Sie sich an die Verwaltung. Das Original können Sie weiterhin lesen.';
+
 /** Test seam — seeds demo requests when service mode is not supabase. */
 export function seedDemoCsDocumentRequestForTests(item: CsDocumentRequestListItem): void {
   DEMO_REQUESTS.set(item.id, item);
@@ -533,6 +535,7 @@ export async function signCsDocumentRequest(input: {
   signatureDataUrl: string;
   anchorToken?: string;
   userAgent?: string | null;
+  expectedUpdatedAt?: string;
   portalActor?: {
     roleKey: RoleKey;
     employeeId?: string | null;
@@ -574,6 +577,12 @@ export async function signCsDocumentRequest(input: {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
+    // The installed employee path writes capture and request separately and has
+    // no version-bound receipt for recovering existing partial captures.
+    if (input.portalActor?.roleKey === 'employee_portal') {
+      return { ok: false, error: EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE };
+    }
+
     if (input.portalActor) {
       const allowed = await fetchPortalCsDocumentRequests({
         tenantId: input.tenantId,
@@ -599,6 +608,9 @@ export async function signCsDocumentRequest(input: {
         })
       : await fetchCsDocumentRequestDetail(input.tenantId, input.requestId);
     if (!detail.ok) return detail;
+    if (input.portalActor && input.expectedUpdatedAt && input.expectedUpdatedAt !== detail.data.updatedAt) {
+      return { ok: false, error: 'Das Dokument wurde geändert. Bitte laden Sie es neu und prüfen Sie die neue Fassung, bevor Sie unterschreiben.' };
+    }
 
     const signedAt = new Date().toISOString();
     const anchor = input.anchorToken ?? `${input.signerRole}_signature`;
@@ -615,7 +627,7 @@ export async function signCsDocumentRequest(input: {
         p_tenant_id: input.tenantId, p_request_id: input.requestId,
         p_signer_role: input.signerRole, p_signer_name: input.signerName.trim(),
         p_signature_data_url: input.signatureDataUrl,
-        p_expected_updated_at: detail.data.updatedAt,
+        p_expected_updated_at: input.expectedUpdatedAt ?? detail.data.updatedAt,
       } as never);
       if (receipt.error) throw receipt.error;
       if (receipt.data !== input.requestId) throw new Error('Unterschrift wurde nicht bestätigt. Bitte den Status erneut laden.');
@@ -634,7 +646,7 @@ export async function signCsDocumentRequest(input: {
       })
       .eq('request_id', input.requestId)
       .eq('signer_role', input.signerRole)
-      .eq('status', 'pending');
+      .eq('status', 'pending').select('id').single();
 
     if (sigError) throw sigError;
 
@@ -656,9 +668,9 @@ export async function signCsDocumentRequest(input: {
         updated_at: signedAt,
       })
       .eq('id', input.requestId)
-      .eq('owner_tenant_id', input.tenantId);
+      .eq('owner_tenant_id', input.tenantId).eq('updated_at', detail.data.updatedAt).select('id').single();
 
-    if (reqError) throw reqError;
+    if (reqError) return { ok: false, error: 'Die Unterschrift ist gespeichert, der Dokumentabschluss konnte noch nicht bestätigt werden. Bitte den Status neu laden und die Verwaltung informieren.' };
 
     await logCsDocumentRequestAudit({
       tenantId: input.tenantId,
@@ -769,9 +781,7 @@ export async function inspectBlockingCsDocumentsForAssignment(
 
   try {
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      return { ok: true, data: { hasBlockingDocuments: false, blockingRequests: [], reason: null } };
-    }
+    if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
     const { data, error } = await fromUnknownTable(supabase, 'cs_document_requests')
       .select('id, title, status')
@@ -790,6 +800,7 @@ export async function inspectBlockingCsDocumentsForAssignment(
       const { data: sigData, error: signatureError } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
         .select('signer_role, status')
         .eq('request_id', r.id);
+      if (signatureError) throw signatureError;
       const required = (sigData ?? [])
         .filter((s) => (s as { status: string }).status === 'pending')
         .map((s) => String((s as { signer_role: string }).signer_role));
@@ -813,8 +824,8 @@ export async function inspectBlockingCsDocumentsForAssignment(
           : null,
       },
     };
-  } catch {
-    return { ok: true, data: { hasBlockingDocuments: false, blockingRequests: [], reason: null } };
+  } catch (error) {
+    return { ok: false, error: toGermanSupabaseError(error) };
   }
 }
 
@@ -824,6 +835,6 @@ export async function hasBlockingCsDocumentForAssignment(
   assignmentId: string,
 ): Promise<ServiceResult<boolean>> {
   const result = await inspectBlockingCsDocumentsForAssignment(tenantId, assignmentId);
-  if (!result.ok) return { ok: true, data: false };
+  if (!result.ok) return result;
   return { ok: true, data: result.data.hasBlockingDocuments };
 }

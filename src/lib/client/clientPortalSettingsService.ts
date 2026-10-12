@@ -13,6 +13,8 @@ import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { ensureTenantClientCoreSeeded } from './clientServiceTypeService';
 import { releaseClientDocumentsForPortal } from '@/lib/clients/clientDocumentPortalReleaseService';
+import { canClientPortalSeeFeature } from './clientPortalFeatureVisibility';
+export { canClientPortalSeeFeature } from './clientPortalFeatureVisibility';
 
 function mapTenantDefaults(row: Record<string, unknown>): TenantClientPortalDefaults {
   return {
@@ -162,30 +164,6 @@ export async function listVisiblePortalFeatures(
 
     return { ok: true, data: features };
   });
-}
-
-/** Synchronous guard — GPS/visit_tracking never visible in client portal. */
-export function canClientPortalSeeFeature(
-  settings: ClientPortalSettingsResolved,
-  feature: ClientPortalFeatureKey,
-): boolean {
-  if (!settings.portalEnabled) return false;
-  if (feature === 'visit_tracking') return false;
-
-  switch (feature) {
-    case 'appointments':
-      return settings.showAppointments;
-    case 'messages':
-      return settings.showMessages;
-    case 'documents':
-      return settings.showDocuments;
-    case 'proofs':
-      return settings.showProofs;
-    case 'budget':
-      return settings.showBudget;
-    default:
-      return false;
-  }
 }
 
 export async function canClientPortalSeeServiceFeature(

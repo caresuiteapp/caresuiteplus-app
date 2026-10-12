@@ -128,6 +128,7 @@ export type PortalSignatureCapture = {
   signerName: string;
   signedAt: string;
   signatureHash: string;
+  payloadHash?: string;
   auditId: string;
   deviceInfo: string | null;
   browser: string | null;
@@ -191,4 +192,5 @@ export type PortalSignDocumentInput = {
   deviceInfo?: string | null;
   browser?: string | null;
   capturedIp?: string | null;
+  expectedVersionNumber?: number;
 };

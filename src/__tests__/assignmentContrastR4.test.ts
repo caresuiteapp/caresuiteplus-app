@@ -100,7 +100,7 @@ describe("assignment studio R4 contrast contract", () => {
   it("keeps assignment controls readable inside central contextual popups", () => {
     const central = read("src/design/web/centralHealthOSPopupContractCss.ts");
     const input = read("src/components/ui/PremiumInput.tsx");
-    expect(central).toContain("--central-contrast-release: R8");
+    expect(central).toContain("html[data-cs-central-popup] { color-scheme: light; }");
     expect(central).toContain(
       'html[data-cs-central-popup] [data-cs-healthos-surface="dark"] input',
     );

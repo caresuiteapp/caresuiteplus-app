@@ -1,3 +1,3 @@
-import { ModuleOverviewScreen } from '@/product-workflows/screens';
+import { Redirect } from 'expo-router';
 
-export default ModuleOverviewScreen;
+export default function RetiredModuleSelectionRoute() { return <Redirect href="/" />; }

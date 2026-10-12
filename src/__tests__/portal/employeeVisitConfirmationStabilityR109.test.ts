@@ -8,8 +8,10 @@ const read = (relativePath: string) => readFileSync(path.join(root, relativePath
 describe('employee visit confirmation stability R10.9', () => {
   it('keeps the signature in a calm pending state until server readback confirms it', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain('const retryDelayMs = attempts < 5');
-    expect(screen).toContain('attempts < 5 ? 1_500 : attempts < 15 ? 3_000 : 5_000');
+    // The bounded poller now owns cadence and deadline; its behavior is
+    // exercised by signatureConfirmationPolling.test rather than duplicated.
+    expect(screen).toContain('return pollSignatureConfirmation({');
+    expect(screen).toContain('onUnconfirmed: () => setSignatureConfirmationStalled(true)');
     expect(screen).toMatch(
       /if \(r\.ok\) \{[\s\S]*signatureConfirmationPending: true,[\s\S]*awaitingSignature: true/,
     );
@@ -23,12 +25,12 @@ describe('employee visit confirmation stability R10.9', () => {
     expect(screen).toContain('if (signatureConfirmationPending)');
     expect(screen).toContain("tone: 'info' as const");
     expect(screen).toContain('Unterschrift wird gerade geprüft – bitte warten');
-    expect(screen).toContain('const syncWarning = !queryError && !signatureConfirmationPending');
+    expect(screen).toContain('const syncWarning = !queryError && (!signatureConfirmationPending || signatureConfirmationStalled)');
   });
 
   it('makes completed state authoritative over stale synchronization warnings', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain("!signatureConfirmationPending && phase !== 'completed'");
+    expect(screen).toContain("(!signatureConfirmationPending || signatureConfirmationStalled) && phase !== 'completed'");
     const completedGuide = screen.indexOf("if (phase === 'completed')");
     const blockingError = screen.indexOf('const blockingError = localError ?? taskSaveError');
     expect(completedGuide).toBeGreaterThan(-1);

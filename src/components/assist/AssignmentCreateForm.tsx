@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from 'expo-router';
 import { PlatformModal } from "@/components/layout/platform";
 import {
   InfoBanner,
@@ -28,6 +29,7 @@ import { fetchClientList } from "@/lib/office/clientListService";
 import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeListService";
 import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
 import { createVisitFromWizard } from "@/lib/assist/visitService";
+import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
 import { ClientBillingProfileSummary } from "@/components/office/ClientAssistBillingPanels";
 import { AssignmentBillingBudgetPanel } from "@/components/assist/AssignmentBillingBudgetPanel";
 import {
@@ -213,14 +215,22 @@ export function AssignmentCreateForm({
   const assistAccent = moduleColor("assist");
   const text = useAuroraAdaptiveText();
   const tenantId = useServiceTenantId();
+  const router = useRouter();
   const { profile } = useAuth();
-  const { can } = usePermissions();
+  const { can, isReadOnly } = usePermissions();
   const {
     options,
     loading: optionsLoading,
     error: optionsError,
   } = useAssistAssignmentOptions();
-  const canManage = can("assist.assignments.manage");
+  const canManage = can("assist.assignments.manage") && !isReadOnly;
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visible, initialClientId]);
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const mounted = useRef(false);
+  const submitScope = useRef<string | null>(null);
+  const submitRequest = useRef(0);
+  const packageRequest = useRef(0);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const [section, setSection] = useState<AssignmentCreateSectionKey>("basis");
   const [form, setForm] = useState<VisitCreateWizardData>(
@@ -231,7 +241,11 @@ export function AssignmentCreateForm({
   const [services, setServices] = useState<SelectOption[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [packageLoading, setPackageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [persistedVisitId, setPersistedVisitId] = useState<string | null>(null);
+  const [savedConflicts, setSavedConflicts] = useState<string[]>([]);
+  const [formScope, setFormScope] = useState(scope);
   const [removedTaskKeys, setRemovedTaskKeys] = useState<Set<string>>(
     new Set(),
   );
@@ -245,9 +259,14 @@ export function AssignmentCreateForm({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    submitRequest.current += 1; submitScope.current = null; setLoading(false); setPersistedVisitId(null); setSavedConflicts([]);
+    packageRequest.current += 1; setPackageLoading(false);
+    setFormScope(scope);
+    setClients([]); setEmployees([]); setServices([]); setListsLoading(false);
     if (!visible || !tenantId) return;
     setSection("basis");
-    setForm({ ...EMPTY_VISIT_WIZARD_DATA, clientId: initialClientId ?? "" });
+    setForm({ ...EMPTY_VISIT_WIZARD_DATA, assignmentDate: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()), clientId: initialClientId ?? "" });
     setError(null);
     setRemovedTaskKeys(new Set());
     setBudgetAllocation(null);
@@ -255,6 +274,7 @@ export function AssignmentCreateForm({
     setListsLoading(true);
 
     void (async () => {
+      try {
       const [clientRes, employeeRes, catalogRes] = await Promise.all([
         fetchClientList(tenantId, profile?.roleKey, {
           lifecycleFilter: "active",
@@ -262,6 +282,9 @@ export function AssignmentCreateForm({
         fetchAssignmentEmployeeList(tenantId, profile?.roleKey),
         fetchTenantServiceCatalog(tenantId, profile?.roleKey),
       ]);
+      if (cancelled) return;
+      const failed = [clientRes, employeeRes, catalogRes].find(result => !result.ok);
+      if (failed && !failed.ok) setError(failed.error);
       if (clientRes.ok) {
         setClients(
           clientRes.data.map((c) => ({
@@ -285,9 +308,12 @@ export function AssignmentCreateForm({
             .map((item) => ({ value: item.serviceKey, label: item.name })),
         );
       }
-      setListsLoading(false);
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Auswahldaten konnten nicht geladen werden.');
+      } finally { if (!cancelled) setListsLoading(false); }
     })();
-  }, [initialClientId, visible, tenantId, profile?.roleKey]);
+    return () => { cancelled = true; };
+  }, [scope, initialClientId, profile?.roleKey, tenantId, visible]);
 
   const subjectOptions = useMemo(
     () =>
@@ -306,27 +332,35 @@ export function AssignmentCreateForm({
   }, [form.taskDrafts, options?.taskItems]);
 
   const durationMinutes = useMemo(() => {
-    const start = new Date(
-      `${form.assignmentDate}T${form.plannedStartTime}:00`,
-    );
-    const end = new Date(`${form.assignmentDate}T${form.plannedEndTime}:00`);
-    const diff = end.getTime() - start.getTime();
+    let diff = 0;
+    try { const times = buildPlannedTimestamps(form); diff = Date.parse(times.plannedEndAt) - Date.parse(times.plannedStartAt); } catch { return 0; }
     return diff > 0 ? Math.round(diff / 60000) : 0;
-  }, [form.assignmentDate, form.plannedStartTime, form.plannedEndTime]);
+  }, [form]);
 
   const handlePackageSelect = async (packageId: string) => {
-    if (!tenantId) return;
+    if (!tenantId || submitScope.current) return;
+    const requestedScope = scope;
+    const request = ++packageRequest.current;
+    const canCommit = () => mounted.current && scopeRef.current === requestedScope && packageRequest.current === request;
+    setPackageLoading(true);
     patch({ taskPackageId: packageId });
+    try {
     const res = await loadTaskPackageItems(
       tenantId,
       packageId,
       profile?.roleKey,
     );
+    if (!canCommit()) return;
     if (res.ok) {
       const merged = mergeTaskDrafts(res.data, [], new Set());
       patch({ taskDrafts: merged, tasks: merged.map((t) => t.title) });
       setRemovedTaskKeys(new Set());
+    } else {
+      setError(res.error);
     }
+    } catch (cause) {
+      if (canCommit()) setError(cause instanceof Error ? cause.message : 'Aufgabenpaket konnte nicht geladen werden.');
+    } finally { if (canCommit()) setPackageLoading(false); }
   };
 
   const showRecurrenceWeekdays =
@@ -350,7 +384,10 @@ export function AssignmentCreateForm({
   };
 
   const handleSave = async (asDraft: boolean) => {
-    if (!tenantId || !canManage) return;
+    if (!tenantId || !canManage || submitScope.current || persistedVisitId || listsLoading || packageLoading) return;
+    if (!clients.some(client => client.value === form.clientId) || (form.employeeId && !employees.some(employee => employee.value === form.employeeId))) {
+      setError('Bitte eine verfügbare Person aus den aktuellen Auswahllisten wählen.'); setSection('people'); return;
+    }
     if (!form.clientId) {
       setError("Bitte eine:n Klient:in auswählen.");
       setSection("people");
@@ -378,6 +415,9 @@ export function AssignmentCreateForm({
       return;
     }
     setLoading(true);
+    const submittedScope = scope; const request = ++submitRequest.current;
+    submitScope.current = submittedScope;
+    const canCommit = () => mounted.current && scopeRef.current === submittedScope && submitScope.current === submittedScope && submitRequest.current === request;
     setError(null);
     const payload: VisitCreateWizardData = {
       ...form,
@@ -426,18 +466,35 @@ export function AssignmentCreateForm({
       billingBudgetSourceKey:
         budgetAllocation?.primaryCatalogKey ?? form.billingBudgetSourceKey,
     };
+    try {
     const res = await createVisitFromWizard(
       tenantId,
       payload,
       profile?.roleKey,
     );
-    setLoading(false);
+    if (!canCommit()) return;
     if (res.ok) {
-      onCreated?.(res.data.id);
-      onClose();
+      if (res.data.conflicts?.length) {
+        setPersistedVisitId(res.data.id);
+        setSavedConflicts(res.data.conflicts);
+      } else {
+        onCreated?.(res.data.id);
+        onClose();
+      }
     } else {
       setError(res.error);
+      setPersistedVisitId(res.persistedVisitId ?? null);
     }
+    } catch (cause) {
+      if (canCommit()) setError(cause instanceof Error ? cause.message : 'Speichern fehlgeschlagen. Bitte Verbindung prüfen.');
+    } finally {
+      if (canCommit()) { submitScope.current = null; setLoading(false); }
+    }
+  };
+
+  const finishSavedResult = () => {
+    if (persistedVisitId && savedConflicts.length) onCreated?.(persistedVisitId);
+    onClose();
   };
 
   const renderCatalogSectionHint = () => {
@@ -823,7 +880,7 @@ export function AssignmentCreateForm({
               targetModule="assist"
               targetArea="assignment"
               clientId={form.clientId || undefined}
-              employeeId={form.employeeId || profile?.id}
+              employeeId={form.employeeId || undefined}
               assistOnly
               title="Einsatz-Dokumentvorlagen"
             />
@@ -890,12 +947,12 @@ export function AssignmentCreateForm({
                 title="Entwurf speichern"
                 variant="secondary"
                 onPress={() => void handleSave(true)}
-                disabled={loading}
+                disabled={loading || listsLoading || packageLoading || Boolean(persistedVisitId)}
               />
               <PremiumButton
                 title="Einsatz speichern"
                 onPress={() => void handleSave(false)}
-                disabled={loading || !form.clientId}
+                disabled={loading || listsLoading || packageLoading || Boolean(persistedVisitId) || !form.clientId}
               />
             </View>
           </SectionPanel>
@@ -906,6 +963,7 @@ export function AssignmentCreateForm({
     }
   };
 
+  if (formScope !== scope) return <PlatformModal visible={visible} onClose={onClose} title="Neuer Einsatz"><InfoBanner message="Auswahldaten werden aktualisiert…" /></PlatformModal>;
   if (!canManage) {
     return (
       <PlatformModal visible={visible} onClose={onClose} title="Neuer Einsatz">
@@ -917,7 +975,7 @@ export function AssignmentCreateForm({
   return (
     <PlatformModal
       visible={visible}
-      onClose={onClose}
+      onClose={finishSavedResult}
       title="Neuer Einsatz"
       maxWidth={1240}
       maxHeightRatio={0.95}
@@ -925,6 +983,11 @@ export function AssignmentCreateForm({
       dismissOnBackdrop={false}
     >
       {error ? <InfoBanner message={error} variant="danger" /> : null}
+      {savedConflicts.length ? <InfoBanner message={`Einsatz wurde gespeichert. Bitte Planungshinweise prüfen: ${savedConflicts.join(' · ')}`} variant="warning" /> : null}
+      {persistedVisitId ? <PremiumButton title="Gespeicherten Einsatz prüfen" onPress={() => {
+        finishSavedResult();
+        if (!savedConflicts.length || !onCreated) router.push(`/assist/assignments/${persistedVisitId}` as never);
+      }} /> : null}
       <ScrollView
         style={styles.sectionScroll}
         contentContainerStyle={styles.sectionBody}
@@ -964,9 +1027,9 @@ export function AssignmentCreateForm({
           footer={
             <>
               <PremiumButton
-                title="Abbrechen"
+                title={savedConflicts.length ? "Schließen" : "Abbrechen"}
                 variant="ghost"
-                onPress={onClose}
+                onPress={finishSavedResult}
               />
               <View style={styles.footerActions}>
                 {sectionIndex > 0 ? (
@@ -986,7 +1049,7 @@ export function AssignmentCreateForm({
                     title="Einsatz verbindlich anlegen"
                     onPress={() => void handleSave(false)}
                     loading={loading}
-                    disabled={loading || !form.clientId}
+                    disabled={loading || listsLoading || packageLoading || Boolean(persistedVisitId) || !form.clientId}
                   />
                 )}
               </View>

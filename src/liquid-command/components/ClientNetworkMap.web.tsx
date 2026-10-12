@@ -144,7 +144,7 @@ export function ClientNetworkMap({
     [clients],
   );
 
-  useEffect(() => {
+  useEffect(() => { const cleanupMarkerRefs = markerRefs.current;
     let cancelled = false;
     let providerFailed = false;
     const unsubscribe = subscribeGoogleMapsFailure(() => {
@@ -185,7 +185,7 @@ export function ClientNetworkMap({
     return () => {
       cancelled = true;
       unsubscribe();
-      markerRefs.current.forEach(marker=>marker.setMap(null)); markerRefs.current.clear();fittedRef.current=false;
+      cleanupMarkerRefs.forEach(marker=>marker.setMap(null)); cleanupMarkerRefs.clear();fittedRef.current=false;
       mapRef.current?.dispose?.(); mapRef.current=null;
     };
   }, [clientKey, clients, tenantId, retry]);

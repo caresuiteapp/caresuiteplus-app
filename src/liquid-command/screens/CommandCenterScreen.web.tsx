@@ -1,17 +1,14 @@
+import { WebView as View, WebPressable as Pressable, WebScrollView as ScrollView } from '@/lib/platform/reactNativeWebCompat.web';
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
   Modal,
   Platform,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text as NativeText,
   TextInput,
   useWindowDimensions,
-  View,
-  type ImageSourcePropType,
   type TextProps,
   type ViewStyle,
 } from "react-native";
@@ -20,7 +17,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
 import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls.web";
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
-import { useDesktopWeather } from "@/hooks/useDesktopWeather";
+import { useDesktopWeather } from "@/hooks/useDesktopWeather.web";
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
 import { DesktopWeatherLocationDialog } from "./DesktopWeatherLocationDialog.web";
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
@@ -28,347 +25,19 @@ import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
 import { GoogleWorkspaceWidget } from "@/components/googleWorkspace/GoogleWorkspaceWidget.web";
 import {
   buildDesktopApps,
-  DESKTOP_CATEGORIES,
   type DesktopApp,
   type DesktopCategory,
 } from "../navigation/desktopAppCatalog.web";
 import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
-import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, normalizeModuleWidgets, buildModuleDesktopNavigation } from '../navigation/moduleDesktop.web';
+import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
 import type { ProductKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
-import type { WorkspaceService } from "@/lib/googleWorkspace/workspaceModel";
 
+
+import { BRAND, BACKGROUNDS, WIDGETS, DEFAULT_DESKTOP_IDS, WIDGET_BY_ID, CATEGORIES, WORKFLOWS, DESKTOP_WIDGETS_STORAGE_KEY, PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY, LEGACY_FAVORITES_STORAGE_KEY, SIDEBAR_STORAGE_KEY, BACKGROUND_STORAGE_KEY, DESKTOP_SLOT_COUNT } from './administrationDesktopCatalog';
 type Category = DesktopCategory;
-type CenterTab = "apps" | "widgets" | "workflows" | "backgrounds";
-type WidgetDefinition = {
-  id: string;
-  label: string;
-  description: string;
-  category: Category;
-  route: string;
-  workspaceService?: WorkspaceService | "overview";
-  images?: { small: ImageSourcePropType; medium: ImageSourcePropType; large: ImageSourcePropType };
-};
-type BackgroundDefinition = { id: string; label: string; image: ImageSourcePropType
-  thumbnail?: ImageSourcePropType;
-};
-
-const BRAND = require("../../../assets/healthos/caresuite-healthos-logo.png");
-const DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v3";
-const PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v2";
-const LEGACY_FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
-const SIDEBAR_STORAGE_KEY = "caresuite.healthos.sidebar-open.v2";
-const BACKGROUND_STORAGE_KEY = "caresuite.healthos.desktop-background.v1";
-const DESKTOP_SLOT_COUNT = 12;
-
-const BACKGROUNDS: readonly BackgroundDefinition[] = [
-  { id: "alien-planet", label: "Alien Planet", image: require("../../../assets/healthos/caresuite-alien-planet-no-logo.png") },
-  { id: "silberblueten", label: "Silberblüten", image: require("../../../assets/healthos/backgrounds/01-silberblueten-morgen.png") },
-  { id: "kristallterrassen", label: "Kristallterrassen", image: require("../../../assets/healthos/backgrounds/02-kristallterrassen.png") },
-  { id: "kristallkueste", label: "Kristallküste", image: require("../../../assets/healthos/backgrounds/03-kristallkueste.png") },
-  { id: "pilzwald", label: "Pilzwald", image: require("../../../assets/healthos/backgrounds/04-pilzwald.png") },
-  { id: "galaxiespiegel", label: "Galaxiespiegel", image: require("../../../assets/healthos/backgrounds/05-galaxiespiegel.png") },
-  { id: "kristallhoehle", label: "Kristallhöhle", image: require("../../../assets/healthos/backgrounds/06-kristallhoehle.png") },
-  { id: "ozeanfaelle", label: "Ozeanfälle", image: require("../../../assets/healthos/backgrounds/07-ozeanfaelle.png") },
-  { id: "wolkenplateau", label: "Wolkenplateau", image: require("../../../assets/healthos/backgrounds/08-wolkenplateau.png") },
-  { id: "steinboegen", label: "Steinbögen", image: require("../../../assets/healthos/backgrounds/09-steinboegen.png") },
-  { id: "vulkanwelt", label: "Vulkanwelt", image: require("../../../assets/healthos/backgrounds/10-vulkanwelt.png") },
-  { id: "ringplanet", label: "Ringplanet", image: require("../../../assets/healthos/backgrounds/11-ringplanet-duenen.png") },
-  { id: "kristallboegen", label: "Kristallbögen", image: require("../../../assets/healthos/backgrounds/12-kristallboegen.png") },
-  { id: "schwebende-inseln", label: "Schwebende Inseln", image: require("../../../assets/healthos/backgrounds/13-schwebende-inseln.png") },
-  { id: "nachtwald", label: "Nachtwald", image: require("../../../assets/healthos/backgrounds/14-nachtwald.png") },
-  { id: "eislicht", label: "Eislicht", image: require("../../../assets/healthos/backgrounds/15-eislicht.png") },
-  {
-    id: "premium-alpengold-spiegelsee",
-    label: "Alpengold am Spiegelsee",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/01-alpengold-spiegelsee.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/01-alpengold-spiegelsee.jpg"),
-  },
-  {
-    id: "premium-nordischer-fjord",
-    label: "Nordischer Fjord",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/02-nordischer-fjord.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/02-nordischer-fjord.jpg"),
-  },
-  {
-    id: "premium-alabasterduenen",
-    label: "Alabasterdünen",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/03-alabasterduenen.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/03-alabasterduenen.jpg"),
-  },
-  {
-    id: "premium-perlmuttwellen",
-    label: "Perlmuttwellen",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/04-perlmuttwellen.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/04-perlmuttwellen.jpg"),
-  },
-  {
-    id: "premium-schwarze-kueste",
-    label: "Schwarze Küste",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/05-schwarze-kueste.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/05-schwarze-kueste.jpg"),
-  },
-  {
-    id: "premium-rotfelsenschlucht",
-    label: "Rotfelsenschlucht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/06-rotfelsenschlucht.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/06-rotfelsenschlucht.jpg"),
-  },
-  {
-    id: "premium-winterwald",
-    label: "Winterwald am See",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/07-winterwald.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/07-winterwald.jpg"),
-  },
-  {
-    id: "premium-smaragdtal",
-    label: "Smaragdtal mit Wasserfällen",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/08-smaragdtal-wasserfaelle.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/08-smaragdtal-wasserfaelle.jpg"),
-  },
-  {
-    id: "premium-aquamarin-kueste",
-    label: "Aquamarin-Küste",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/09-aquamarin-kueste.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/09-aquamarin-kueste.jpg"),
-  },
-  {
-    id: "premium-marmor-kupfer-petrol",
-    label: "Marmor · Kupfer · Petrol",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/10-marmor-kupfer-petrol.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/10-marmor-kupfer-petrol.jpg"),
-  },
-  {
-    id: "premium-patagonien",
-    label: "Patagonien im Morgenlicht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/11-patagonien-morgen.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/11-patagonien-morgen.jpg"),
-  },
-  {
-    id: "premium-toskana-nebel",
-    label: "Toskana im Morgennebel",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/12-toskana-nebel.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/12-toskana-nebel.jpg"),
-  },
-  {
-    id: "premium-island-gletscherlagune",
-    label: "Isländische Gletscherlagune",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/13-island-gletscherlagune.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/13-island-gletscherlagune.jpg"),
-  },
-  {
-    id: "premium-japanischer-herbstwald",
-    label: "Japanischer Herbstwald",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/14-japanischer-herbstwald.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/14-japanischer-herbstwald.jpg"),
-  },
-  {
-    id: "premium-lavendelhuegel",
-    label: "Lavendelhügel",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/15-lavendelhuegel.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/15-lavendelhuegel.jpg"),
-  },
-  {
-    id: "premium-namib-duenen",
-    label: "Namib-Dünen",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/16-namib-duenen.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/16-namib-duenen.jpg"),
-  },
-  {
-    id: "premium-dolomiten-sturmlicht",
-    label: "Dolomiten im Sturmlicht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/17-dolomiten-sturmlicht.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/17-dolomiten-sturmlicht.jpg"),
-  },
-  {
-    id: "premium-schottisches-hochland",
-    label: "Schottisches Hochland",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/18-schottisches-hochland.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/18-schottisches-hochland.jpg"),
-  },
-  {
-    id: "premium-korallenriff",
-    label: "Korallenriff im Sonnenlicht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/19-korallenriff.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/19-korallenriff.jpg"),
-  },
-  {
-    id: "premium-regenwald",
-    label: "Regenwald im Morgennebel",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/20-regenwald.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/20-regenwald.jpg"),
-  },
-  {
-    id: "premium-gletscher-tuerkissee",
-    label: "Gletscher am Türkissee",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/21-gletscher-tuerkissee.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/21-gletscher-tuerkissee.jpg"),
-  },
-  {
-    id: "premium-kanadischer-herbstsee",
-    label: "Kanadischer Herbstsee",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/22-kanadischer-herbstsee.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/22-kanadischer-herbstsee.jpg"),
-  },
-  {
-    id: "premium-goldene-savanne",
-    label: "Goldene Savanne",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/23-goldene-savanne.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/23-goldene-savanne.jpg"),
-  },
-  {
-    id: "premium-praerie-gewitterlicht",
-    label: "Prärie im Gewitterlicht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/24-praerie-gewitterlicht.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/24-praerie-gewitterlicht.jpg"),
-  },
-  {
-    id: "premium-verborgene-cenote",
-    label: "Verborgene Cenote",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/25-verborgene-cenote.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/25-verborgene-cenote.jpg"),
-  },
-  {
-    id: "premium-kalksteinschlucht",
-    label: "Weiße Kalksteinschlucht",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/26-kalksteinschlucht.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/26-kalksteinschlucht.jpg"),
-  },
-  {
-    id: "premium-schwarzer-marmor",
-    label: "Schwarzer Marmor",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/27-schwarzer-marmor.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/27-schwarzer-marmor.jpg"),
-  },
-  {
-    id: "premium-papier-nebelhuegel",
-    label: "Nebelhügel auf Papier",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/28-papier-nebelhuegel.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/28-papier-nebelhuegel.jpg"),
-  },
-  {
-    id: "premium-kohle-rost",
-    label: "Kohle und Rost",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/29-kohle-rost.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/29-kohle-rost.jpg"),
-  },
-  {
-    id: "premium-achat-quarz",
-    label: "Achat und Quarz",
-    image: require("../../../assets/healthos/backgrounds/premium-2026/30-achat-quarz.png"),
-    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/30-achat-quarz.jpg"),
-  },
-] as const;
-
-const WIDGETS: readonly WidgetDefinition[] = [
-  { id: "google-workspace", label: "Google Workspace", description: "Verbindung, freigegebene Dienste und Ihr Google-Arbeitsplatz", category: "Workspace", route: "/business/connect/google-workspace", workspaceService: "overview" },
-  { id: "google-gmail", label: "Gmail", description: "Aktuelle E-Mails aus dem verbundenen Google-Postfach", category: "Workspace", route: "/business/connect/google-workspace?service=gmail", workspaceService: "gmail" },
-  { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },
-  { id: "google-drive", label: "Google Drive", description: "Zuletzt bearbeitete Dateien und Dokumente", category: "Workspace", route: "/business/connect/google-workspace?service=drive", workspaceService: "drive" },
-  { id: "google-tasks", label: "Google Tasks", description: "Offene Aufgaben aus Ihrer Google-Standardliste", category: "Workspace", route: "/business/connect/google-workspace?service=tasks", workspaceService: "tasks" },
-  { id: "company", label: "Unternehmen", description: "Steuerung, Kennzahlen und Unternehmensübersicht", category: "Übersicht", route: "/business/office/dashboard", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png") } },
-  { id: "clients", label: "Klient:innen", description: "Stammdaten, Versorgung und Kontakte im Blick", category: "Versorgung", route: "/business/office/clients", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/02-klientinnen.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/02-klientinnen.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/02-klientinnen.png") } },
-  { id: "people", label: "Personal", description: "Teams, Rollen und Mitarbeitende verwalten", category: "Team", route: "/business/office/employees", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/03-personal.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/03-personal.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/03-personal.png") } },
-  { id: "logbook", label: "Fahrtenbuch", description: "Fahrten, Kilometer, Fahrzeuge und Nachweise zentral verwalten", category: "Team", route: "/business/office/fahrtenbuch", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/22-fahrtenbuch.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/22-fahrtenbuch.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/22-fahrtenbuch.png") } },
-  { id: "time", label: "Arbeitszeit", description: "Zeiten, Konten und Freigaben zentral steuern", category: "Team", route: "/business/office/time-tracking", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/04-arbeitszeit.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/04-arbeitszeit.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/04-arbeitszeit.png") } },
-  { id: "salary", label: "Gehaltsstatistik", description: "Lohnentwicklung und Personalaufwand analysieren", category: "Team", route: "/business/office/payroll", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/05-gehaltsstatistik.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/05-gehaltsstatistik.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/05-gehaltsstatistik.png") } },
-  { id: "billing", label: "Rechnungen", description: "Abrechnung, Forderungen und Zahlstatus bearbeiten", category: "Verwaltung", route: "/business/office/invoices", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/06-rechnungen.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/06-rechnungen.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/06-rechnungen.png") } },
-  { id: "documents", label: "Dokumente", description: "Dokumente sicher ablegen, finden und teilen", category: "Verwaltung", route: "/business/office/documents", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/07-dokumente.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/07-dokumente.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/07-dokumente.png") } },
-  { id: "messages", label: "Nachrichten", description: "Sichere Kommunikation mit Team und Beteiligten", category: "Team", route: "/business/messages", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/08-nachrichten.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/08-nachrichten.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/08-nachrichten.png") } },
-  { id: "access", label: "Portale & Zugänge", description: "Zugänge, Einladungen und Portalrollen verwalten", category: "Verwaltung", route: "/business/office/portals", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png") } },
-  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: "/business/office/inventory", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png") } },
-  { id: "audit", label: "Audit", description: "Prüfpfade, Änderungen und Qualität nachvollziehen", category: "Verwaltung", route: "/business/office/audit-log", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/11-audit.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/11-audit.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/11-audit.png") } },
-  { id: "assignments", label: "Einsätze", description: "Laufende und kommende Einsätze sicher koordinieren", category: "Versorgung", route: "/assist/einsaetze", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/12-einsaetze.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/12-einsaetze.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/12-einsaetze.png") } },
-  { id: "calendar", label: "Kalender & Einsatzplanung", description: "Kapazitäten, Termine und Dienste gemeinsam planen", category: "Versorgung", route: "/assist/kalender", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/13-kalender-einsatzplanung.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/13-kalender-einsatzplanung.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/13-kalender-einsatzplanung.png") } },
-  { id: "live", label: "Live-Status", description: "Versorgungslage und Außendienst live verfolgen", category: "Versorgung", route: "/assist/live-status", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/14-live-status.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/14-live-status.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/14-live-status.png") } },
-  { id: "proofs", label: "Nachweise", description: "Dokumentation und Leistungsnachweise prüfen", category: "Versorgung", route: "/assist/nachweise", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/15-nachweise.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/15-nachweise.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/15-nachweise.png") } },
-  { id: "budgets", label: "Budgets", description: "Abrechnungsquellen und Budgets im Blick behalten", category: "Versorgung", route: "/assist/abrechnungsquellen", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/16-budgets.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/16-budgets.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/16-budgets.png") } },
-  { id: "portals", label: "Portale", description: "Versorgungsportale und Beteiligte verbinden", category: "Verwaltung", route: "/assist/portale", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/17-portale.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/17-portale.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/17-portale.png") } },
-  { id: "command", label: "Command Center", description: "Operative Steuerung und Lageübersicht öffnen", category: "Übersicht", route: "/command-center", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/18-command-center.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/18-command-center.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/18-command-center.png") } },
-  { id: "office", label: "Office", description: "Zentrale Verwaltung und Stammdaten öffnen", category: "Übersicht", route: "/office", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/19-office.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/19-office.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/19-office.png") } },
-  { id: "assist", label: "Assist", description: "Operative Versorgung und Einsatzführung öffnen", category: "Übersicht", route: "/assist", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/20-assist.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/20-assist.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/20-assist.png") } },
-  { id: "settings", label: "Einstellungen", description: "HealthOS-Oberfläche und Konto konfigurieren", category: "Verwaltung", route: "/settings", images: {
-    small: require("../../../assets/healthos/widgets-premium/compact/21-einstellungen.png"),
-    medium: require("../../../assets/healthos/widgets-premium/medium/21-einstellungen.png"),
-    large: require("../../../assets/healthos/widgets-premium/large/21-einstellungen.png") } },
-] as const;
-
-const DEFAULT_DESKTOP_IDS = [
-  "clients", "messages", "live", "proofs",
-  "office", "people", "calendar", "assignments",
-  "salary", "logbook", "documents", "billing",
-] as const;
-const WIDGET_BY_ID = new Map(WIDGETS.map((widget) => [widget.id, widget]));
-const CATEGORIES = DESKTOP_CATEGORIES;
-const WORKFLOWS = [
-  { id: "client", glyph: "＋", label: "Klient:in aufnehmen", text: "Stammdaten, Einwilligungen und Versorgung in einem geführten Ablauf", route: "/business/office/clients/new" },
-  { id: "assignment", glyph: "↗", label: "Einsatz planen", text: "Bedarf, Personal und Termin strukturiert zusammenführen", route: "/assist/kalender" },
-  { id: "proof", glyph: "✓", label: "Nachweise prüfen", text: "Offene Leistungsnachweise priorisiert kontrollieren", route: "/assist/nachweise" },
-] as const;
+type CenterTab = 'apps' | 'widgets' | 'workflows' | 'backgrounds';
 const ROLE_LABELS: Record<string, string> = { business_admin: "Geschäftsführung / Admin", tenant_admin: "Mandantenadministration", platform_admin: "Plattformadministration", office_admin: "Office-Administration", admin: "Administration", employee: "Mitarbeitende:r", manager: "Leitung" };
 
 function normalizeDesktopIds(value: unknown) {
@@ -409,44 +78,17 @@ export function CommandCenterScreen() {
   const tenant = permissions.tenantId ?? '';
   const user = auth.user?.id ?? '';
   const identity = JSON.stringify([tenant, user]);
-  const selectionKey = `caresuite.healthos.active-desktop-module.v1.${encodeURIComponent(identity)}`;
   const availableModules = DESKTOP_MODULES.filter(module => permissions.hasModuleGate(module.key) && permissions.can(`${module.key}.access` as PermissionKey));
   const availableSignature = availableModules.map(module => module.key).join(',');
-  const [selection, setSelection] = useState<{ identity: string; module: ProductKey } | null>(null);
-  const [selectionError, setSelectionError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let active = true;
-    setSelectionError(false);
-    if (!tenant || !user || !availableSignature) return;
-    void AsyncStorage.getItem(selectionKey).then(stored => {
-      if (!active) return;
-      const module = availableModules.find(item => item.key === stored)?.key ?? availableModules[0].key;
-      setSelection({ identity, module });
-    }).catch(() => active && setSelectionError(true));
-    return () => { active = false; };
-    // The signature tracks access changes without depending on an unstable array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [identity, selectionKey, availableSignature, attempt]);
-  const changeModule = (module: ProductKey) => {
-    if (!availableModules.some(item => item.key === module)) return;
-    setSelection({ identity, module });
-    void AsyncStorage.setItem(selectionKey, module).catch(() => setSelectionError(true));
-  };
-  if (!selection || selection.identity !== identity || !availableModules.some(module => module.key === selection.module)) {
-    return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
-      <Text style={styles.sidebarTitle}>{selectionError ? 'Modulauswahl konnte nicht geladen werden' : availableSignature ? 'Desktop wird vorbereitet' : 'Keine freigegebenen Arbeitsbereiche'}</Text>
-      <Text style={styles.desktopSubtitle}>{availableSignature ? 'Ihre persönlichen Moduleinstellungen werden geladen.' : 'Für diesen Zugang ist derzeit kein Desktop-Modul verfügbar.'}</Text>
-      {selectionError ? <Pressable onPress={() => setAttempt(value => value + 1)} style={styles.appsButton}><Text style={styles.appsText}>Erneut versuchen</Text></Pressable> : null}
-      <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
-    </View></View>;
-  }
-  return <ModuleDesktopScreen key={`${identity}:${selection.module}`} moduleKey={selection.module} tenantId={tenant} availableModules={availableModules} onModuleChange={changeModule} />;
+  if (!tenant || !user || !availableSignature) return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
+    <Text style={styles.sidebarTitle}>Keine freigegebenen Arbeitsbereiche</Text>
+    <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
+  </View></View>;
+  return <ModuleDesktopScreen key={`${identity}:${availableSignature}`} tenantId={tenant} availableSignature={availableSignature} />;
 }
 
-function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleChange }: {
-  moduleKey: ProductKey; tenantId: string; availableModules: readonly { key: ProductKey; label: string }[]; onModuleChange: (key: ProductKey) => void;
-}) {
+function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: string; availableSignature: string }) {
+  const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
   const router = useRouter();
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
@@ -465,9 +107,9 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
   const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
-  const desktopKey = moduleDesktopStorageKey(tenantId, owner, moduleKey);
+  const desktopKey = desktopStorageKey(tenantId, owner);
   const oldDesktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
-  const moduleLabel = DESKTOP_MODULES.find(module => module.key === moduleKey)?.label ?? moduleKey;
+  const moduleLabel = 'CareSuite HealthOS';
   const previousDesktopKey = `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const sidebarKey = `${SIDEBAR_STORAGE_KEY}.${owner}`;
   const backgroundKey = `${BACKGROUND_STORAGE_KEY}.${owner}`;
@@ -496,13 +138,13 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
   const apps = useMemo(() => buildDesktopApps(WIDGETS, profile?.roleKey), [profile?.roleKey]);
   const matchesSearch = (app: DesktopApp, value: string) =>
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
-  const moduleApps = apps.filter(app => desktopModuleForRoute(app.route) === moduleKey);
-  const moduleWidgets = useMemo(() => WIDGETS.filter(widget => desktopModuleForRoute(widget.route) === moduleKey), [moduleKey]);
+  const moduleApps = apps.filter(app => availableKeys.includes(desktopModuleForRoute(app.route) as ProductKey));
+  const moduleWidgets = useMemo(() => WIDGETS.filter(widget => availableKeys.includes(desktopModuleForRoute(widget.route) as ProductKey)), [availableKeys]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
   const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id)).map(widget => widget.id), [moduleWidgets]);
   const filteredApps = moduleApps.filter(app => app.category === category && matchesSearch(app, query));
   const filteredWidgets = moduleWidgets.filter(widget => widget.category === category && matchesSearch(widget, query));
-  const navigationGroups = buildModuleDesktopNavigation(moduleApps, moduleKey, navigationQuery);
+  const navigationGroups = buildDesktopNavigationGroups(moduleApps, availableKeys, navigationQuery);
   const resultCount = centerTab === "apps" ? filteredApps.length : filteredWidgets.length;
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
@@ -518,20 +160,19 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
     setQuery("");
     setCategory("Übersicht");
     setNavigationQuery("");
-    void Promise.all([AsyncStorage.getItem(desktopKey), AsyncStorage.getItem(oldDesktopKey), AsyncStorage.getItem(previousDesktopKey), AsyncStorage.getItem(legacyKey), AsyncStorage.getItem(sidebarKey), AsyncStorage.getItem(backgroundKey)]).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground]) => {
+    const previousModuleKeys = ['office', 'assist'].map(key => moduleDesktopStorageKey(tenantId, owner, key as ProductKey));
+    void Promise.all([desktopKey, oldDesktopKey, previousDesktopKey, legacyKey, sidebarKey, backgroundKey, ...previousModuleKeys].map(key => AsyncStorage.getItem(key))).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground, ...previousModules]) => {
       if (!active) return;
-      let stored: unknown = null;
-      try { stored = JSON.parse(desktop ?? oldDesktop ?? previousDesktop ?? legacy ?? "null"); } catch { stored = null; }
-      const migrated = desktop ? stored : migrateDesktopIdsToR13(stored, !oldDesktop && Boolean(previousDesktop));
-      const imported = normalizeModuleWidgets(migrated, moduleWidgetIds, moduleDefaults);
-      // A deliberately empty saved desktop stays empty; legacy selections are only imported once.
-      setDesktopIds(desktop || imported.length || (Array.isArray(stored) && stored.length === 0) ? imported : normalizeModuleWidgets(null, moduleWidgetIds, moduleDefaults));
+      const oldValue = oldDesktop ?? previousDesktop ?? legacy;
+      const previous = desktop !== null ? [] : previousModules.some(value => value !== null) ? previousModules
+        : oldValue !== null ? [JSON.stringify(migrateDesktopIdsToR13(JSON.parse(oldValue), !oldDesktop && Boolean(previousDesktop)))] : [];
+      setDesktopIds(restoreDesktopWidgetIds(desktop, previous, moduleWidgetIds, moduleDefaults));
       setSidebarOpen(sidebar !== "false");
       setBackgroundId(storedBackground && BACKGROUNDS.some((item) => item.id === storedBackground) ? storedBackground : BACKGROUNDS[0].id);
       setLoadedOwner(owner);
     }).catch(() => active && setPreferencesError(true));
     return () => { active = false; };
-  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, moduleKey, moduleWidgetIds, moduleDefaults]);
+  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, tenantId, moduleWidgetIds, moduleDefaults]);
   useEffect(() => {
     if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => setPreferencesError(true));
   }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);
@@ -621,20 +262,20 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
       <View style={[styles.workspace, compact && styles.workspaceCompact, {
         gridTemplateColumns: compact ? 'minmax(0, 1fr)' : `${sidebarOpen ? sidebarWidth : railWidth}px minmax(0, 1fr)`,
       } as unknown as ViewStyle, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", height: shortWorkspaceHeight }]}
-        dataSet={{ csDesktopNavigationWorkspace: 'true' }}>
+        {...{ dataSet: { csDesktopNavigationWorkspace: 'true' } }}>
         {!compact ? <View style={styles.navigationColumn}>
           <View nativeID="desktop-home-navigation"
             {...({ inert: !sidebarOpen ? true : undefined, "aria-hidden": !sidebarOpen,
               onKeyDown: (event: { key: string; preventDefault: () => void; stopPropagation: () => void }) => {
                 if (event.key === 'Escape' && sidebarOpen) { event.preventDefault(); event.stopPropagation(); closeNavigation(); }
               } } as object)}
-            dataSet={{ csDesktopNavigationContent: 'true' }}
+            {...{ dataSet: { csDesktopNavigationContent: 'true' } }}
             style={[styles.glass, styles.sidebar, styles.navigationContent, {
               width: sidebarWidth, opacity: sidebarOpen ? 1 : 0, pointerEvents: sidebarOpen ? 'auto' : 'none',
               transform: [{ translateX: sidebarOpen ? 0 : -12 }],
             }]}>{sidebarContent}</View>
           <View {...({ inert: sidebarOpen ? true : undefined, "aria-hidden": sidebarOpen } as object)}
-            dataSet={{ csDesktopNavigationRail: 'true' }}
+            {...{ dataSet: { csDesktopNavigationRail: 'true' } }}
             style={[styles.navigationRail, { opacity: sidebarOpen ? 0 : 1, pointerEvents: sidebarOpen ? 'none' : 'auto' }]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: false }}
               {...({ "aria-controls": "desktop-home-navigation" } as object)}
@@ -656,11 +297,6 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
               <Text style={[styles.eyebrow, mobile && styles.eyebrowMobile]}>{mobile ? "Persönlicher Arbeitsplatz" : "PERSÖNLICHER ARBEITSPLATZ"}</Text>
               {!mobile ? <Text style={styles.desktopTitle}>{moduleLabel} · Mein Desktop</Text> : null}
             </View>
-          <View style={styles.moduleTabs} accessibilityRole="tablist" accessibilityLabel="Desktop-Modul auswählen">
-            {availableModules.map(module => <Pressable key={module.key} accessibilityRole="tab" accessibilityState={{ selected: module.key === moduleKey }} onPress={() => onModuleChange(module.key)} style={[styles.chip, module.key === moduleKey && styles.chipActive]}>
-              <Text style={[styles.chipText, module.key === moduleKey && styles.chipTextActive]}>{module.label}</Text>
-            </Pressable>)}
-          </View>
             <View style={styles.desktopActions}>
               <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
               <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
@@ -669,21 +305,21 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
             </View>
           </View>
           {preferencesError ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Die Einstellungen konnten nicht gespeichert werden. Ihre Auswahl bleibt geöffnet; bitte prüfen Sie den Browserspeicher.</Text> : null}
-          <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
-            <View style={styles.grid} dataSet={{ csDesktopWidgetGrid: "true" }} testID="desktop-widget-grid">
+          <ScrollView style={styles.gridScroll} {...{ dataSet: { csDesktopWidgetViewport: "true" } }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
+            <View style={styles.grid} {...{ dataSet: { csDesktopWidgetGrid: "true" } }} testID="desktop-widget-grid">
               {slots.map((widget, index) => (
                 <View key={widget?.id ?? `empty-${index}`} style={styles.cell}>
                   {widget ? (
                     <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => !editMode && openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && !editMode && styles.widgetPressed, editMode && styles.widgetEditing]}>
-                      <View style={styles.labelBar} dataSet={{ csDesktopWidgetLabel: "true" }}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
-                      <View style={styles.imageStage} dataSet={{ csDesktopWidgetArtwork: "true" }}>
+                      <View style={styles.labelBar} {...{ dataSet: { csDesktopWidgetLabel: "true" } }}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
+                      <View style={styles.imageStage} {...{ dataSet: { csDesktopWidgetArtwork: "true" } }}>
                         <>{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <Image source={widget.images!.medium} resizeMode="contain" style={styles.widgetImage} />}</>
                         {!widget.workspaceService && <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>}
                         {editMode ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} entfernen`} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={styles.removeButton}><Text style={styles.removeText}>×</Text></Pressable> : null}
                       </View>
                     </Pressable>
                   ) : (
-                    <Pressable accessibilityRole="button" accessibilityLabel="Widget hinzufügen" onPress={() => openCenter("widgets")} style={styles.emptyCard} dataSet={{ csDesktopWidgetEmpty: "true" }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>Desktop-Widget auswählen</Text></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Widget hinzufügen" onPress={() => openCenter("widgets")} style={styles.emptyCard} {...{ dataSet: { csDesktopWidgetEmpty: "true" } }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>Desktop-Widget auswählen</Text></Pressable>
                   )}
                 </View>
               ))}
@@ -719,7 +355,7 @@ function ModuleDesktopScreen({ moduleKey, tenantId, availableModules, onModuleCh
             <Text style={styles.centerSubtitle}>Ändern Sie den Suchbegriff oder wählen Sie eine andere Kategorie.</Text>
             <Pressable accessibilityRole="button" onPress={() => setQuery("")} style={styles.appsButton}><Text style={styles.appsText}>Suche zurücksetzen</Text></Pressable>
           </View> : null}
-            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.filter(workflow => desktopModuleForRoute(workflow.route) === moduleKey).map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
+            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.filter(workflow => availableKeys.includes(desktopModuleForRoute(workflow.route) as ProductKey)).map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
               {filteredApps.map(app => <View key={app.route} style={[styles.centerCell, { flexBasis: 300 * fontScale }]}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`App ${app.label} öffnen`} onPress={() => openWidget(app)}
                   style={({ pressed }) => [styles.centerCard, styles.appCard, pressed && styles.widgetPressed]}>

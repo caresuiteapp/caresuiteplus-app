@@ -19,7 +19,7 @@ export function useTenantDossier(tenantId: string, enabled: boolean, revision: u
   const [state, setState] = useState<{ data: TenantDossier | null; error: string | null; loading: boolean }>({ data: null, error: null, loading: false });
   const [retry, setRetry] = useState(0);
   const request = useRef(0);
-  useEffect(() => {
+  useEffect(() => { const cleanupRequest = request;
     const current = ++request.current;
     setState({ data: null, error: null, loading: enabled });
     if (!enabled) return;
@@ -27,7 +27,7 @@ export function useTenantDossier(tenantId: string, enabled: boolean, revision: u
       if (current !== request.current) return;
       setState(result.ok ? { data: result.data, error: null, loading: false } : { data: null, error: result.error, loading: false });
     }).catch(error => { if (current === request.current) setState({ data: null, loading: false, error: error instanceof Error ? error.message : 'Die Mandantenakte konnte nicht geladen werden.' }); });
-    return () => { request.current++; };
+    return () => { cleanupRequest.current++; };
   }, [tenantId, enabled, revision, retry]);
   return { ...state, data: enabled && state.data?.tenantId === tenantId ? state.data : null, reload: () => setRetry(value => value + 1) };
 }
@@ -120,7 +120,7 @@ function useDossierPage(tenantId: string, query: DossierQuery) {
   const [state, setState] = useState<{ key: string; data: DossierPage | null; error: string | null; loading: boolean }>({ key: '', data: null, error: null, loading: true });
   const [retry, setRetry] = useState(0);
   const request = useRef(0);
-  useEffect(() => {
+  useEffect(() => { const cleanupRequest = request;
     const current = ++request.current;
     setState({ key: queryKey, data: null, error: null, loading: true });
     const timer = setTimeout(() => {
@@ -128,8 +128,8 @@ function useDossierPage(tenantId: string, query: DossierQuery) {
         if (current !== request.current) return;
         setState(result.ok ? { key: queryKey, data: result.data, error: null, loading: false } : { key: queryKey, data: null, error: result.error, loading: false });
       }).catch(error => { if (current === request.current) setState({ key: queryKey, data: null, loading: false, error: error instanceof Error ? error.message : 'Die Angaben konnten nicht geladen werden.' }); });
-    }, query.search ? 250 : 0);
-    return () => { clearTimeout(timer); request.current++; };
+    }, JSON.parse(queryKey)[1].search ? 250 : 0);
+    return () => { clearTimeout(timer); cleanupRequest.current++; };
   }, [tenantId, queryKey, retry]);
   return { ...state, data: state.key === queryKey ? state.data : null, loading: state.key !== queryKey || state.loading, reload: () => setRetry(value => value + 1) };
 }

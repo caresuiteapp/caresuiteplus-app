@@ -1,4 +1,4 @@
-type WeatherPayload = { weather?: { source_id?: number; timestamp?: string; temperature?: number | null; icon?: string | null }; sources?: Array<{ id?: number; distance?: number; station_name?: string }> };
+type WeatherPayload = { weather?: { source_id?: number; timestamp?: string; temperature?: number | null; icon?: string | null }; sources?: { id?: number; distance?: number; station_name?: string }[] };
 const conditions: Record<string, string> = { 'clear-day': 'klar', 'clear-night': 'klar', 'partly-cloudy-day': 'teilweise bewölkt', 'partly-cloudy-night': 'teilweise bewölkt', cloudy: 'bewölkt', rain: 'regnerisch', sleet: 'mit Schneeregen', snow: 'verschneit', wind: 'windig', fog: 'neblig', hail: 'mit Hagel', thunderstorm: 'gewittrig' };
 
 export function describeNeoWeather(data: WeatherPayload, now = Date.now()): string {
@@ -20,7 +20,7 @@ function location(signal: AbortSignal): Promise<GeolocationCoordinates> {
   return new Promise((resolve, reject) => {
     signal.throwIfAborted();
     if (!navigator.geolocation || !window.isSecureContext) { reject(new Error('weather-location-unavailable')); return; }
-    const finish = (error?: Error, coordinates?: GeolocationCoordinates) => { signal.removeEventListener('abort', abort); error ? reject(error) : resolve(coordinates!); };
+    const finish = (error?: Error, coordinates?: GeolocationCoordinates) => { signal.removeEventListener('abort', abort); if (error) reject(error); else resolve(coordinates!); };
     const abort = () => finish(new DOMException('Aborted', 'AbortError'));
     signal.addEventListener('abort', abort, { once: true });
     navigator.geolocation.getCurrentPosition(position => finish(undefined, position.coords), error => finish(new Error(error.code === 1 ? 'weather-location-denied' : 'weather-location-unavailable')),

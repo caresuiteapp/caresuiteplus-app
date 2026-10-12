@@ -274,9 +274,6 @@ async function prepareLogo(url: string): Promise<PreparedLogo | null> {
 }
 
 export async function generateInvoicePdf(data: InvoicePdfData): Promise<PreparedInvoicePdf> {
-  if (typeof document === 'undefined') {
-    throw new Error('PDF-Erzeugung ist derzeit im Web-Browser verfügbar.');
-  }
   return renderInvoicePdfDocument(data);
 }
 
@@ -570,28 +567,12 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   return { fileName, bytes: new Uint8Array(pdf.output('arraybuffer')), validation };
 }
 
-function createPdfUrl(bytes: Uint8Array): string {
-  return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
+export async function previewPreparedInvoicePdf(payload: PreparedInvoicePdf, target?: Window | null): Promise<void> {
+  const { previewInvoicePdf } = await import('./invoicePdfDelivery');
+  await previewInvoicePdf(payload, target);
 }
 
-export function previewPreparedInvoicePdf(payload: PreparedInvoicePdf, target?: Window | null): void {
-  const url = createPdfUrl(payload.bytes);
-  const preview = target ?? window.open('', '_blank');
-  if (!preview) {
-    URL.revokeObjectURL(url);
-    throw new Error('PDF-Vorschau wurde vom Browser blockiert. Bitte Pop-ups erlauben.');
-  }
-  preview.location.href = url;
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
-export function downloadPreparedInvoicePdf(payload: PreparedInvoicePdf): void {
-  const url = createPdfUrl(payload.bytes);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = payload.fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+export async function downloadPreparedInvoicePdf(payload: PreparedInvoicePdf): Promise<void> {
+  const { downloadInvoicePdf } = await import('./invoicePdfDelivery');
+  await downloadInvoicePdf(payload);
 }

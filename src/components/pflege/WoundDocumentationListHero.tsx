@@ -11,7 +11,6 @@ import {
 } from '@/components/ui';
 import { buildWoundDocumentationListKpis } from '@/lib/pflege/woundDocumentationListStats';
 import {
-  isWoundBodyMapReady,
   WOUND_DOCUMENTATION_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
 import { ROLE_LABELS } from '@/data/constants';
@@ -108,9 +107,6 @@ export function WoundDocumentationListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {!isWoundBodyMapReady() ? (
-          <PremiumBadge label="BodyMap extern" variant="muted" />
-        ) : null}
       </View>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />

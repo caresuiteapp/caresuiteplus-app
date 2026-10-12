@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { buildAssistLiveRouteSummary } from '@/features/assistLive/getAssistLiveMonitoring';
+import { buildLogbookRecoveryView } from '@/lib/employeeLogbook/employeeLogbookRecoveryView';
+import type { EmployeeLogbookGpsRecoveryCandidate } from '@/lib/employeeLogbook/employeeLogbookAssistGpsRecovery';
 
 const read = (file: string) => readFileSync(file, 'utf8');
 
@@ -54,9 +56,27 @@ describe('Fahrtenbuch R16 · GPS-Wahrheit und Bestandsnachholung', () => {
     const panel = read('src/components/office/EmployeeLogbookOfficePanel.tsx');
     const live = read('src/screens/assist/AssistLiveStatusScreen.tsx');
     expect(panel).toContain('EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10)');
-    expect(panel).toContain('Automatische GPS-Aufzeichnungen seit 24.08.2026');
+    expect(panel).toContain('<EmployeeLogbookGpsRecoveryPanel');
+    expect(panel).toContain('from={from} to={to}');
+    expect(read('src/components/office/EmployeeLogbookGpsRecoveryPanel.tsx')).toContain('title="Automatische GPS-Aufzeichnungen"');
     expect(live).toContain("row.route.distanceStatus === 'incomplete' ? 'GPS-Teilstrecke'");
     expect(live).toContain('noch unvollständig');
     expect(live).not.toContain('<Text style={styles.routeMetricLabel}>Route gesamt</Text>');
+  });
+
+  it('bezieht die Bestandsnachholung tatsächlich auf den gewählten Berliner Zeitraum', () => {
+    const candidate = (sessionId: string, startedAt: string): EmployeeLogbookGpsRecoveryCandidate => ({
+      sessionId, startedAt, visitId: sessionId, assignmentId: sessionId, clientId: null, title: sessionId,
+      endedAt: null, endAddress: null, pointCount: 0, measuredDistanceKm: 0, googleGapDistanceKm: 0, finalDistanceKm: 0,
+      resolvedGapCount: 0, unresolvedGapCount: 0, imported: false, active: false, storedActive: false, stale: false,
+      lastPointAt: null, sessionUpdatedAt: null, legacyImportRequiresReview: false, source: sessionId,
+      points: [], legs: [], transportMode: 'car', carSelectionProven: true,
+    });
+    const view = buildLogbookRecoveryView([
+      candidate('before', '2026-08-23T10:00:00Z'),
+      candidate('since', '2026-08-24T10:00:00Z'),
+      candidate('berlin-next-day', '2026-08-24T22:30:00Z'),
+    ], [], '2026-08-24', '2026-08-24');
+    expect(view.map((item) => item.sessionId)).toEqual(['since']);
   });
 });

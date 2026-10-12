@@ -1,6 +1,6 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { AdaptiveActionBar } from '@/components/adaptive';
 import { AppointmentListCard } from './AppointmentListCard';
@@ -33,6 +33,7 @@ type AppointmentsListViewProps = {
   selectedId?: string | null;
   embedded?: boolean;
   onCreatePress?: () => void;
+  externalRefreshKey?: number;
 };
 
 export function AppointmentsListView({
@@ -40,6 +41,7 @@ export function AppointmentsListView({
   selectedId = null,
   embedded = false,
   onCreatePress,
+  externalRefreshKey = 0,
 }: AppointmentsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -58,7 +60,7 @@ export function AppointmentsListView({
   });
 
   const canView = can('office.appointments.view');
-  const canCreate = can('office.appointments.view') && !isReadOnly;
+  const canCreate = can('office.appointments.edit') && !isReadOnly;
   const handleCreate = onCreatePress ?? (() => router.push('/office/appointments?create=1' as never));
   const roleKey = profile?.roleKey ?? 'business_admin';
 
@@ -68,6 +70,7 @@ export function AppointmentsListView({
     filteredCount,
     loading,
     error,
+    refreshError,
     refreshing,
     showSuccess,
     search,
@@ -87,6 +90,8 @@ export function AppointmentsListView({
     isFilterEmpty,
     allItems,
   } = useAppointmentList();
+
+  useEffect(() => { if (externalRefreshKey > 0) void refresh(); }, [externalRefreshKey, refresh]);
 
   const kpis = useMemo(() => buildAppointmentListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';
@@ -199,6 +204,7 @@ export function AppointmentsListView({
       )}
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
+      {refreshError ? <ErrorState message={`Die Terminliste konnte nicht aktualisiert werden: ${refreshError}`} onRetry={refresh} /> : null}
 
       <PremiumInput
         label="Suche"

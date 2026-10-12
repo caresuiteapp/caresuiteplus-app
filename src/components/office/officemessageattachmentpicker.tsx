@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { auroraGlass, darkGlassSurfaceText, surfaceContrastText } from '@/design/tokens/auroraGlass';
@@ -19,6 +19,7 @@ import {
   openEmployeePortalDocumentPicker,
   openEmployeePortalMediaLibrary,
   readEmployeePortalMediaBytes,
+  releaseEmployeePortalMediaUri,
   type EmployeePortalMediaPickerResult,
 } from '@/lib/portal/employeePortalMediaPicker';
 import type { EmployeePortalPickedMedia } from '@/lib/portal/employeePortalMediaValidation';
@@ -59,6 +60,16 @@ export function OfficeMessageAttachmentPicker({
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const ink = onDarkSurface ? darkGlassSurfaceText : surfaceContrastText(false);
+  const [picking, setPicking] = useState(false);
+  const pickingRef = useRef(false);
+  const mounted = useRef(true);
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const pickerDisabled = disabled || picking;
 
   const styles = useMemo(
     () =>
@@ -66,8 +77,8 @@ export function OfficeMessageAttachmentPicker({
         root: { gap: spacing.xs, alignSelf: 'flex-start', maxWidth: '100%' },
         pickerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
         compactButton: {
-          minHeight: 36,
-          width: 36,
+          minHeight: 44,
+          width: 44,
           paddingHorizontal: 0,
           borderRadius: 18,
           alignItems: 'center',
@@ -112,6 +123,7 @@ export function OfficeMessageAttachmentPicker({
       const validation = validateMessageAttachment({ fileName, mimeType, fileSizeBytes });
       if (!validation.ok) {
         onError?.(validation.error);
+        releaseEmployeePortalMediaUri(media.uri);
         return;
       }
     }
@@ -121,25 +133,30 @@ export function OfficeMessageAttachmentPicker({
       const validated = validateMessageAttachment({
         fileName,
         mimeType,
-        fileSizeBytes: fileSizeBytes || fileData.length,
+        fileSizeBytes: fileData.length,
       });
       if (!validated.ok) {
-        onError?.(validated.error);
+        if (mounted.current) onError?.(validated.error);
         return;
       }
 
+      if (!mounted.current) return;
       onChange([
-        ...attachments,
+        ...attachmentsRef.current,
         {
           id: createAttachmentId(),
           fileName,
           mimeType,
-          fileSizeBytes: fileSizeBytes || fileData.length,
+          fileSizeBytes: fileData.length,
           fileData,
         },
       ]);
     } catch {
-      onError?.('Datei konnte nicht gelesen werden.');
+      if (mounted.current) onError?.('Datei konnte nicht gelesen werden.');
+    } finally {
+      // The composer owns copied bytes, so a browser camera/library blob is
+      // no longer needed for retries once this selection has been read.
+      releaseEmployeePortalMediaUri(media.uri);
     }
   };
 
@@ -152,14 +169,28 @@ export function OfficeMessageAttachmentPicker({
   };
 
   const pickAttachment = async (source: 'camera' | 'library' | 'document') => {
+    if (disabled || pickingRef.current) return;
+    pickingRef.current = true;
+    setPicking(true);
     onError?.(null);
-    const result =
-      source === 'camera'
-        ? await openEmployeePortalCamera()
-        : source === 'library'
-          ? await openEmployeePortalMediaLibrary()
-          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
-    await handlePickerResult(result);
+    try {
+      const result =
+        source === 'camera'
+          ? await openEmployeePortalCamera()
+          : source === 'library'
+            ? await openEmployeePortalMediaLibrary()
+            : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+      if (!mounted.current) {
+        if (result.ok && result.media) releaseEmployeePortalMediaUri(result.media.uri);
+        return;
+      }
+      await handlePickerResult(result);
+    } catch {
+      if (mounted.current) onError?.('Die Dateiauswahl konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.');
+    } finally {
+      pickingRef.current = false;
+      if (mounted.current) setPicking(false);
+    }
   };
 
   const removeAttachment = (id: string) => {
@@ -193,7 +224,7 @@ export function OfficeMessageAttachmentPicker({
           <Pressable
             style={styles.compactButton}
             onPress={() => void pickAttachment('camera')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             accessibilityRole="button"
             accessibilityLabel="Kamera öffnen"
           >
@@ -202,7 +233,7 @@ export function OfficeMessageAttachmentPicker({
           <Pressable
             style={styles.compactButton}
             onPress={() => void pickAttachment('library')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             accessibilityRole="button"
             accessibilityLabel="Foto oder Video aus Galerie hinzufügen"
           >
@@ -211,7 +242,7 @@ export function OfficeMessageAttachmentPicker({
           <Pressable
             style={styles.compactButton}
             onPress={() => void pickAttachment('document')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             accessibilityRole="button"
             accessibilityLabel="Anhang hinzufügen"
           >
@@ -225,7 +256,7 @@ export function OfficeMessageAttachmentPicker({
             size="sm"
             variant="secondary"
             onPress={() => void pickAttachment('camera')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             onDarkSurface={onDarkSurface}
           />
           <PremiumButton
@@ -233,7 +264,7 @@ export function OfficeMessageAttachmentPicker({
             size="sm"
             variant="secondary"
             onPress={() => void pickAttachment('library')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             onDarkSurface={onDarkSurface}
           />
           <PremiumButton
@@ -241,7 +272,7 @@ export function OfficeMessageAttachmentPicker({
             size="sm"
             variant="secondary"
             onPress={() => void pickAttachment('document')}
-            disabled={disabled}
+            disabled={pickerDisabled}
             onDarkSurface={onDarkSurface}
           />
         </View>
