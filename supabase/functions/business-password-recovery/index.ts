@@ -26,7 +26,7 @@ serve(async req=>{
     if(!config.provider) return jsonResponse({ok:false,error:'Der Systemmail-Versand ist momentan nicht verfügbar. Bitte nutzen Sie den öffentlichen Support.'},503);
     const email=body.email.trim().toLowerCase();
     if(!await consumePublicAccessLimit(service,'reset_request',ip,email)) return jsonResponse({ok:false,error:'Zu viele Anfragen. Bitte warten Sie 15 Minuten.'},429);
-    const task=deliverBusinessRecovery(service,config,email).catch(()=>console.error('business_recovery_delivery_unconfirmed'));
+    const task=deliverBusinessRecovery(service,config,email,fetch,body.delivery==='native'?'native':'web').catch(()=>console.error('business_recovery_delivery_unconfirmed'));
     if(typeof EdgeRuntime!=='undefined') EdgeRuntime.waitUntil(task); else await task;
     return jsonResponse({ok:true,message:BUSINESS_RECOVERY_MESSAGE},202);
   } catch { return jsonResponse({ok:false,error:'Die Wiederherstellung konnte nicht bestätigt werden. Bitte fordern Sie erneut einen Link an oder nutzen Sie den öffentlichen Support.'},503); }

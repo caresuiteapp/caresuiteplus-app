@@ -1,3 +1,3 @@
-import { CommandCenterScreen } from '@/liquid-command/screens/LegacyCommandCenterScreen';
+import { Redirect } from 'expo-router';
 
-export default CommandCenterScreen;
+export default function LegacyCommandCenterRoute() { return <Redirect href="/" />; }

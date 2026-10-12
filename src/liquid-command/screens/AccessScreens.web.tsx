@@ -554,7 +554,7 @@ export function RegisterOrganizationScreen() {
 
   const submit = async () => {
     if (!draftReady || submitLock.current) return;
-    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration(form);
+    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration({ ...form, termsAccepted: accepted });
     if (validation || !accepted || form.adminPassword !== confirmPassword) {
       observeRegistrationIssue();
       setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');

@@ -14,6 +14,7 @@ import {
 } from '@/lib/office/employeeCatalogLabels';
 import { fetchLivePortalAppointmentsForEmployee } from './portalAppointmentsLiveService';
 import { mapPortalAppointmentToListItem } from './employeePortalLiveOverviewService';
+import { fetchPortalEmployeeIdForAuthUser } from './resolvePortalEmployeeLink';
 
 const EMPLOYEE_SELECT =
   'id, tenant_id, first_name, last_name, role_title, email, phone, mobile, status, department, weekly_hours, avatar_url, updated_at, entry_date, employment_type, city, qualification, employee_number';
@@ -105,6 +106,10 @@ export async function fetchLiveEmployeePortalProfile(
     if (!tenantId.trim() || !employeeId.trim()) {
       return { ok: false, error: 'Kein Mitarbeiterprofil mit diesem Portal verknüpft.' };
     }
+    const ownEmployeeId = await fetchPortalEmployeeIdForAuthUser(tenantId);
+    if (!ownEmployeeId || ownEmployeeId !== employeeId) {
+      return { ok: false, error: 'Mitarbeitende sehen nur das eigene Profil.' };
+    }
 
     const [employeeResult, appointmentsResult] = await Promise.all([
       fromUnknownTable(supabase, 'employees')
@@ -187,6 +192,10 @@ export async function fetchLiveEmployeeTimesheet(
   employeeId: string,
 ): Promise<ServiceResult<PortalTimesheetEntry[]>> {
   return runService(async () => {
+    const ownEmployeeId = await fetchPortalEmployeeIdForAuthUser(tenantId);
+    if (!ownEmployeeId || ownEmployeeId !== employeeId) {
+      return { ok: false, error: 'Mitarbeitende sehen nur die eigenen Arbeitszeiten.' };
+    }
     const live = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
     if (!live.ok) return live;
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { isAssistExecutionPersistenceReady } from '@/lib/assist/assistExecutionPersistenceService';

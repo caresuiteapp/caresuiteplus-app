@@ -1,7 +1,9 @@
 // https://docs.expo.dev/guides/using-eslint/
 module.exports = {
   extends: 'expo',
-  ignorePatterns: ['/dist*/**/*'],
+  // Built marketing bundles are outputs. The separate marketing package has
+  // its own dependencies and build; checks for it require that package context.
+  ignorePatterns: ['/dist*/**/*', '/public/landingpage/assets/**/*.js', '/marketing/healthos-landingpage/**'],
   rules: {
     // Expo 57's ESLint preset enables React Compiler diagnostics. CareSuite does
     // not enable the React Compiler yet, so these opt-in migration diagnostics
@@ -16,13 +18,23 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['public/platform-runtime.js', 'public/platform-observation.js'],
+      env: { browser: true, es2021: true },
+    },
+    {
+      files: ['public/neo-voice/v1/neo-worker.js'],
+      env: { worker: true, es2021: true },
+      // Loaded by this worker's importScripts calls.
+      globals: { ort: 'readonly', createPiperPhonemize: 'readonly' },
+    },
+    {
       // This serverless API handler runs in Node.js, not in the browser.
       files: ['api/**/*.js'],
       env: { node: true },
     },
     {
       // Expo Router and a few source-contract tests intentionally require modules dynamically.
-      files: ['app/_layout.tsx', 'src/__tests__/**/*.{ts,tsx}'],
+      files: ['app/_layout.tsx', 'app/_layout.web.tsx', 'src/__tests__/**/*.{ts,tsx}'],
       rules: {
         '@typescript-eslint/no-require-imports': 'off',
         'import/first': 'off',

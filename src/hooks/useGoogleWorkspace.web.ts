@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { fetchGoogleWorkspaceStatus, startGoogleWorkspaceConnection, disconnectGoogleWorkspace, type GoogleWorkspaceConnection } from '@/lib/googleWorkspace/googleWorkspaceService';
-import { loadWorkspacePage, type WorkspaceFilter } from '@/lib/googleWorkspace/workspaceData.web';
+import { loadWorkspacePage, type WorkspaceFilter } from '@/lib/googleWorkspace/workspaceData';
 import type { WorkspacePage, WorkspaceService } from '@/lib/googleWorkspace/workspaceModel';
 
 type Snapshot<T> = { data: T | null; loading: boolean; error: string | null; at: number };
@@ -26,13 +26,14 @@ function useResource<T>(key: string, loader: () => Promise<T>, enabled: boolean)
     const request = loaderRef.current().then(data => { if (generation === target.generation) emit(target, { data, at: Date.now(), error: null }); }).catch(error => { if (generation === target.generation) emit(target, { error: error instanceof Error ? error.message : 'Abruf fehlgeschlagen.' }); }).finally(() => { if (generation === target.generation) { target.pending = undefined; emit(target, { loading: false }); } });
     target.pending = request; await request;
   }, [enabled, target]);
+  const initialLoad = snapshot.at === 0;
   useEffect(() => {
     if (!enabled) return;
     if (!target.snapshot.at || Date.now() - target.snapshot.at > 60_000) void refresh();
     const update = () => { if (document.visibilityState === 'visible' && Date.now() - target.snapshot.at > 60_000) void refresh(); };
     const timer = window.setInterval(update, 120_000); window.addEventListener('focus', update);
     return () => { clearInterval(timer); window.removeEventListener('focus', update); };
-  }, [enabled, refresh, target, snapshot.at === 0, target.generation]);
+  }, [enabled, refresh, target, initialLoad]);
   return { ...snapshot, refresh };
 }
 export function useWorkspaceScope() {
@@ -42,6 +43,7 @@ export function useWorkspaceScope() {
 export function useGoogleWorkspace(enabled = true) {
   const scope = useWorkspaceScope();
   const status = useResource(`${scope}|status`, fetchGoogleWorkspaceStatus, enabled && !!scope);
+  const refreshStatus = status.refresh;
   const [actionLoading, setActionLoading] = useState(false); const [actionError, setActionError] = useState<string | null>(null);
   const lock = useRef(false); const scopeRef = useRef(scope); scopeRef.current = scope;
   const act = useCallback(async (kind: 'connect' | 'disconnect') => {
@@ -53,11 +55,11 @@ export function useGoogleWorkspace(enabled = true) {
         if (scopeRef.current === scope) window.location.assign(url);
       } else {
         await disconnectGoogleWorkspace();
-        if (scopeRef.current === scope) { invalidateScope(scope, true); await status.refresh(); }
+        if (scopeRef.current === scope) { invalidateScope(scope, true); await refreshStatus(); }
       }
     } catch (error) { if (scopeRef.current === scope) setActionError(error instanceof Error ? error.message : 'Aktion fehlgeschlagen.'); }
     finally { lock.current = false; setActionLoading(false); }
-  }, [enabled, scope, status.refresh]);
+  }, [enabled, scope, refreshStatus]);
   useEffect(() => { setActionError(null); }, [scope]);
   return { connection: status.data as GoogleWorkspaceConnection | null, loading: status.loading || (!status.data && !status.error && !!scope), error: actionError || status.error, actionLoading, refresh: status.refresh, connect: () => act('connect'), disconnect: () => act('disconnect'), scope };
 }

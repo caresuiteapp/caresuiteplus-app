@@ -54,6 +54,10 @@ export type PortalDocumentDetail = PortalDocumentListItem & {
   signaturePending?: boolean;
   canSign?: boolean;
   signedViaClientPortal?: boolean;
+  /** Version of the proof the client actually reviewed before drawing. */
+  proofPayloadHash?: string;
+  signatureCaptured?: boolean;
+  signatureDeliveryPending?: boolean;
 };
 
 export const PORTAL_DOCUMENT_CATEGORY_LABELS: Record<PortalDocumentCategory, string> = {

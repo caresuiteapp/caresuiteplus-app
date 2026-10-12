@@ -19,7 +19,6 @@ const ROWS: { key: keyof PflegeModuleSettings; label: string }[] = [
   { key: 'sisEnabled', label: 'SIS-Assessments aktiv' },
   { key: 'vitalAlertsEnabled', label: 'Vitalwert-Warnungen' },
   { key: 'woundDocumentationEnabled', label: 'Wunddokumentation' },
-  { key: 'bodyMapEnabled', label: 'BodyMap (vorbereitet)' },
   { key: 'mdkExportPrepared', label: 'MDK-Export vorbereitet' },
   { key: 'autoHandoverHints', label: 'Übergabe-Hinweise' },
 ];

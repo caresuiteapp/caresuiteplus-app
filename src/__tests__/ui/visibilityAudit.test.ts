@@ -184,9 +184,10 @@ describe('Visibility audit — public auth screens', () => {
     expect(login).not.toContain('preparedOnly');
   });
 
-  it('Registration uses friendly prepared notice not raw key', () => {
+  it('Registration has no premium preparation notice', () => {
     const register = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(register).toContain('PremiumPreparedNotice');
+    expect(register).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    expect(readSrc('src/liquid-command/screens/AccessScreens.tsx')).not.toContain('PremiumPreparedNotice');
     expect(register).not.toMatch(/label="preparedOnly"/);
   });
 });

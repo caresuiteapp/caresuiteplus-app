@@ -12,6 +12,8 @@ import { isOpenReviewStatus } from './wfmTimeReviewService';
 import { resolveWfmOfficeTimeDisplay } from './wfmOfficeTimeDisplayResolver';
 import { getWfmOfficeTimeOverview } from './wfmOfficeTimekeepingService';
 
+import { calculateContractTargetMinutesForRange } from './wfmContractTarget';
+
 type Row = Record<string, unknown>;
 
 const numberValue = (value: unknown): number =>
@@ -19,31 +21,7 @@ const numberValue = (value: unknown): number =>
     ? Number(value)
     : 0;
 const stringValue = (value: unknown): string => typeof value === 'string' ? value : '';
-
-const weekdayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
-
-export function calculateContractTargetMinutesForRange(
-  workDays: unknown,
-  fromDate: string,
-  toDate: string,
-): number {
-  if (!workDays || typeof workDays !== 'object') return 0;
-  const schedule = workDays as Record<string, unknown>;
-  const from = new Date(`${fromDate}T00:00:00Z`);
-  const to = new Date(`${toDate}T00:00:00Z`);
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return 0;
-
-  let targetMinutes = 0;
-  const cursor = new Date(from);
-  while (cursor <= to) {
-    const hours = numberValue(schedule[weekdayKeys[cursor.getUTCDay()]]);
-    if (hours > 0) {
-      targetMinutes += Math.round(hours * 60);
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return targetMinutes;
-}
+export { calculateContractTargetMinutesForRange } from './wfmContractTarget';
 
 function monthKey(year: number, month: number): number {
   return year * 12 + month;

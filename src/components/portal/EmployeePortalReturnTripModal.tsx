@@ -201,18 +201,7 @@ export function EmployeePortalReturnTripModal({
       // Keep the reached destination stopped; retry must never create a new trip.
       setMode('error');
     }
-  }, [
-    trip,
-    destination,
-    tenantId,
-    employeeId,
-    assignmentId,
-    clientId,
-    clientName,
-    startAddress,
-    stopWebWatcher,
-    attachWebWatcher,
-  ]);
+  }, [trip, destination, tenantId, employeeId, stopWebWatcher]);
 
   const confirmDistance = useCallback(async () => {
     if (!completedTrip) return;

@@ -8,7 +8,6 @@ import {
   type WoundDocumentationDetail,
 } from '@/lib/pflege/woundDocumentationDetailStats';
 import {
-  isWoundDocumentationLiveReady,
   WOUND_DETAIL_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
 import { ROLE_LABELS } from '@/data/constants';
@@ -95,9 +94,6 @@ export function WoundDocumentationDetailHero({
           dot
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {!isWoundDocumentationLiveReady() ? (
-          <PremiumBadge label="BodyMap extern" variant="orange" dot />
-        ) : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

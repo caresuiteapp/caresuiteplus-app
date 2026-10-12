@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const api=vi.hoisted(()=>({ rpc:vi.fn(), pick:vi.fn(), confirm:vi.fn(), changed:undefined as undefined|(()=>void), queueChanged:undefined as undefined|(()=>void) }));
 vi.mock('react-native',async()=>{
  const React=await import('react');
- const element=(tag:string)=>(props:any)=>React.createElement(tag,{onClick:props.onPress,disabled:props.disabled,'aria-label':props.accessibilityLabel,role:props.accessibilityRole},props.children);
+ const element=(tag:string)=>function NativeElement(props:any){return React.createElement(tag,{onClick:props.onPress,disabled:props.disabled,'aria-label':props.accessibilityLabel,role:props.accessibilityRole},props.children);};
  return {Platform:{OS:'web'},StyleSheet:{create:(styles:any)=>styles},Text:element('span'),View:element('div'),ScrollView:element('div'),Pressable:element('button'),ActivityIndicator:element('span'),TextInput:(props:any)=>React.createElement('textarea',{'aria-label':props.accessibilityLabel,readOnly:props.editable===false,value:props.value,onInput:(event:any)=>props.onChangeText(event.currentTarget.value)})};
 });
 vi.mock('@/lib/platform/confirmAction',()=>({confirmAction:api.confirm}));

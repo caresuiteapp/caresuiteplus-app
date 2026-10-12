@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useIsFocused } from 'expo-router';
+import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { PortalNewChatModal } from '@/components/portal/PortalNewChatModal';
 import { PortalOfficeInbox } from '@/components/portal/portalofficeinbox';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
@@ -29,6 +30,7 @@ export function PortalOfficeMessenger({
   initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { useMasterDetail } = usePlatformLayout();
+  const screenFocused = useIsFocused();
   const { isLight } = useLegacyTheme();
   const useLightGlass = useLightLiquidGlassShell();
   const useLightUi = useLightGlass || isLight;
@@ -42,12 +44,21 @@ export function PortalOfficeMessenger({
     if (initialComposeOpen) setShowNewChat(true);
   }, [initialComposeOpen]);
 
-  const mobileChatActive = !useMasterDetail && (!!selectedThreadId || showNewChat);
+  const mobileChatActive = screenFocused && !useMasterDetail && (!!selectedThreadId || showNewChat);
 
   useEffect(() => {
     setMessengerFocusActive(mobileChatActive);
     return () => setMessengerFocusActive(false);
   }, [mobileChatActive, setMessengerFocusActive]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !screenFocused || useMasterDetail || !selectedThreadId || showNewChat) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeThread();
+      return true;
+    });
+    return () => listener.remove();
+  }, [closeThread, screenFocused, selectedThreadId, showNewChat, useMasterDetail]);
 
   const styles = useMemo(
     () =>

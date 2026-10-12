@@ -152,7 +152,8 @@ export function DashboardView({
           {snapshot.quickActions.map((action) => (
             <PremiumButton
               key={action.id}
-              title={`${action.icon} ${action.label}`}
+              title={`${action.icon} ${action.label}${action.route ? '' : ' (nicht verfügbar)'}`}
+              disabled={!action.route}
               variant={action.variant ?? 'secondary'}
               size="sm"
               onPress={() => handleAction(action)}

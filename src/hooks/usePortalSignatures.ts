@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
 import type { PortalSignatureFilterTab } from '@/types/portal/documentSignatures';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchPortalSignatureDocuments } from '@/lib/portal/portalDocumentSignatureService';
 
 export function usePortalSignatures(tab: PortalSignatureFilterTab = 'open') {
-  const { profile } = useAuth();
+  const actor = usePortalActor();
   const tenantId = useServiceTenantId();
-  const employeeId = profile?.employeeId ?? profile?.id ?? '';
+  const employeeId = actor.employeeId ?? '';
 
   const query = useAsyncQuery(
     () => {
@@ -18,20 +18,21 @@ export function usePortalSignatures(tab: PortalSignatureFilterTab = 'open') {
       return fetchPortalSignatureDocuments(
         tenantId,
         employeeId,
-        profile?.roleKey ?? null,
+        actor.roleKey,
         tab,
       );
     },
-    [tenantId, employeeId, profile?.roleKey, tab],
-    { enabled: !!tenantId && !!employeeId },
+    [tenantId, employeeId, actor.roleKey, tab],
+    { enabled: actor.isLinkedReady && !!tenantId && !!employeeId,
+      queryKey: JSON.stringify([tenantId, employeeId, actor.roleKey, tab]) },
   );
 
   const refresh = useCallback(() => query.refresh(), [query]);
 
   return {
     items: query.data ?? [],
-    loading: query.loading,
-    error: query.error,
+    loading: actor.isResolvingEmployeeLink || query.loading,
+    error: !actor.isResolvingEmployeeLink && !employeeId ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.' : query.error ?? query.refreshError,
     refreshing: query.refreshing,
     refresh,
   };

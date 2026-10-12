@@ -59,8 +59,8 @@ function ActivePlatformConsoleWorkspace({section}:{section:ConsoleSection}){
       setSelected(previous=>previous?response.rows.find(row=>row.id===previous.id)??null:null);
     }catch(cause){if(request===generation.current)setError(cause instanceof Error?cause.message:'Die Daten konnten nicht geladen werden.');}
     finally{if(request===generation.current)setLoading(false);}
-  },[allowed,offset,role,section,serverPaged,serverPaged?search:'',serverPaged?status:'',serverPaged?tenantId:'',serverPaged?start:'',serverPaged?end:'']);
-  useEffect(()=>{const timer=setTimeout(()=>void load(),serverPaged?250:0);return()=>{clearTimeout(timer);generation.current++;};},[load,serverPaged]);
+  },[allowed,offset,role,section,serverPaged,search,status,tenantId,start,end]);
+  useEffect(()=>{ const cleanupGeneration = generation; const timer=setTimeout(()=>void load(),serverPaged?250:0);return()=>{clearTimeout(timer);cleanupGeneration.current++;};},[load,serverPaged]);
   useEffect(()=>{setPage(0);},[search,status,tenantId,start,end,sort]);
   const filtered=useMemo(()=>{
     const q=search.trim().toLocaleLowerCase('de-DE');

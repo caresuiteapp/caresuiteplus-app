@@ -11,6 +11,7 @@ vi.mock('react', async (original) => ({
   ...await original<object>(),
   useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn,
   useEffect: () => undefined,
+  useRef: (value: unknown) => ({ current: value }),
   useState: (value: unknown) => [state.gate && state.slot++ === 0 ? state.trip : value, vi.fn()],
 }));
 vi.mock('react-native', () => ({
@@ -28,6 +29,11 @@ vi.mock('@/lib/auth', () => ({
   RequireAuth: 'RequireAuth', RequireEmployeePasswordSetup: 'RequireEmployeePasswordSetup', RequireRole: 'RequireRole',
 }));
 vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [] }) }));
+vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: null }) }));
+vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
+  PortalMessengerFocusProvider: 'MessengerFocus',
+  usePortalMessengerFocus: () => ({ active: false }),
+}));
 vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ isReady: true, tenantId: 'tenant', employeeId: 'employee' }) }));
 vi.mock('@/liquid-command/foundation/useLiquidLayout', () => ({ useLiquidLayout: () => ({ width: state.width, isPhone: state.width < 600 }) }));
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({
@@ -35,7 +41,7 @@ vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({
   LiquidGlyph: 'Glyph', LiquidLogo: 'Logo', LiquidSurface: 'Surface', LiquidVisualModeProvider: 'Mode',
 }));
 vi.mock('@/components/portal/accessibility/PortalTextSizeControls', () => ({ PortalTextSizeControls: 'TextSize' }));
-vi.mock('@/design/tokens/portalPremium', () => ({ PortalPremiumProvider: 'Theme' }));
+vi.mock('@/design/tokens/portalPremium', async (original) => ({ ...await original<object>(), PortalPremiumProvider: 'Theme' }));
 vi.mock('@/lib/employeeLogbook', () => ({ flushLogbookPointQueue: vi.fn(), resumeActiveEmployeeLogbookTracking: vi.fn() }));
 vi.mock('@/features/liveTracking/assistLocationPointQueue', () => ({ flushAssistLocationPointQueue: vi.fn() }));
 
@@ -62,10 +68,26 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     const navigation = tree.find((node) => node.props.testID === 'portal-bottom-navigation')!;
     expect(navigation).toBeDefined();
     const tabs = nodes(navigation).filter((node) => node.props.accessibilityRole === 'tab');
-    expect(tabs.length).toBeGreaterThanOrEqual(5);
+    expect(tabs).toHaveLength(4);
+    expect(nodes(navigation).filter(node => node.props.accessibilityRole === 'tab' || node.props.accessibilityRole === 'button')).toHaveLength(5);
     for (const tab of tabs) tab.props.onPress();
     expect(state.replace).toHaveBeenCalledTimes(tabs.length);
     expect(nodes(navigation).some((node) => node.props.accessibilityLabel === 'Weitere Portalbereiche öffnen')).toBe(true);
+  });
+  it('keeps readable labels and the open-assignment page accessible in the full menu', () => {
+    state.width = 320;
+    const tree = shell();
+    const navigation = tree.find(node => node.props.testID === 'portal-bottom-navigation')!;
+    const labels = nodes(navigation).filter(node => node.type === 'Text' && flatStyle(node.props.style).fontSize === 11);
+    expect(labels).toHaveLength(5);
+    for (const label of labels) {
+      expect(label.props.numberOfLines).toBe(2);
+      expect(label.props.adjustsFontSizeToFit).toBeUndefined();
+      expect(flatStyle(label.props.style).color).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+    const open = tree.find(node => node.props.accessibilityLabel === 'Offene Einsätze');
+    expect(open).toBeDefined(); open!.props.onPress();
+    expect(state.replace).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
   });
   it.each([0, 24, 48])('reserves the GPS row and navigation above system inset %s', (inset) => {
     state.bottom = inset;

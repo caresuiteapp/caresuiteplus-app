@@ -105,7 +105,7 @@ function ContactCard({ contact }: { contact: PortalClientContactSummary }) {
   return (
     <View style={styles.contactBlock}>
       <View style={styles.contactHeader}>
-        <Text style={[type.bodyStrong, { color: text.primary }]}>{contact.name}</Text>
+        <Text style={[type.bodyStrong, styles.contactName, { color: text.primary }]}>{contact.name}</Text>
         <PremiumBadge label={CONTACT_ROLE_LABELS[contact.role]} variant="cyan" />
       </View>
       {contact.relationship ? (
@@ -277,6 +277,7 @@ export function ClientPortalProfileScreen() {
     carePlans,
     loading,
     error,
+    carePlanError,
     refresh,
     isReady,
     missingClientLink,
@@ -399,6 +400,7 @@ export function ClientPortalProfileScreen() {
 
         <PortalBiometricSettingsCard />
         <PortalDeviceSettingsCard />
+        {error ? <ErrorState title="Profil nicht vollständig aktualisiert" message={error} onRetry={refresh} /> : null}
 
         {requestSuccess ? (
           <GlassCard>
@@ -431,7 +433,9 @@ export function ClientPortalProfileScreen() {
             <Text style={[type.caption, { color: text.muted, marginBottom: careSpacing.sm }]}>
               PFLEGEPLÄNE
             </Text>
-            {carePlans.length === 0 ? (
+            {carePlanError && carePlans.length === 0 ? (
+              <ErrorState title="Pflegepläne konnten nicht geladen werden" message={carePlanError} onRetry={refresh} />
+            ) : carePlans.length === 0 ? (
               <EmptyState
                 title="Keine Pflegepläne"
                 message="Aktuell sind keine Pflegepläne für Sie freigegeben."
@@ -516,10 +520,12 @@ const styles = StyleSheet.create({
   },
   contactHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: careSpacing.sm,
   },
+  contactName: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
   twoColRow: {
     flexDirection: 'row',
     gap: careSpacing.md,

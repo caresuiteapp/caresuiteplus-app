@@ -596,7 +596,7 @@ describe('Unified calendar system', () => {
     const modal = readSrc('src/components/calendar/CalendarEventCreateModal.tsx');
     expect(form).toContain('Assist-Einsatz');
     expect(form).toContain('Einsatz-Wizard');
-    expect(modal).toContain('/assist/einsaetze/new');
+    expect(modal).toContain('/assist/assignments?create=1');
   });
 
 });

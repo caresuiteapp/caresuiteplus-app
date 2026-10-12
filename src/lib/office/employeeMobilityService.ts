@@ -93,7 +93,7 @@ export async function fetchEmployeeMobilitySettings(
 
   if (error) {
     if (isSupabaseMissingTableError(error)) {
-      return { ok: true, data: buildDefaultMobilitySettings(tenantId, employeeId) };
+      return { ok: false, error: 'Mobilitätseinstellungen sind noch nicht verfügbar. Bitte die Verwaltung kontaktieren.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -108,6 +108,9 @@ export async function fetchEmployeeMobilitySettings(
 export async function saveEmployeeMobilitySettings(
   settings: EmployeeMobilitySettings,
 ): Promise<ServiceResult<EmployeeMobilitySettings>> {
+  if (!settings.transportModes.length) return { ok: false, error: 'Bitte mindestens ein Verkehrsmittel auswählen.' };
+  if (settings.routeStartType === 'custom' && !settings.routeStartAddress?.trim()) return { ok: false, error: 'Bitte eine eigene Startadresse eintragen.' };
+  if (settings.routeEndType === 'custom' && !settings.routeEndAddress?.trim()) return { ok: false, error: 'Bitte eine eigene Zieladresse eintragen.' };
   const transportModes = normalizeTransportModes(settings.transportModes);
   const payload = {
     tenant_id: settings.tenantId,

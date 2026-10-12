@@ -1,10 +1,11 @@
 // Polling, subscriptions and manual refreshes share one scope per visible query.
 // A retired scope cannot publish data or errors into a different ticket/filter.
-export function createSupportReadScope() {
+export function createSupportReadScope(key?: string) {
   let active = true;
   let revision = 0;
 
   return {
+    key,
     activate() { active = true; },
     dispose() { active = false; revision += 1; },
     async run<T>(read: () => Promise<T>, onData: (data: T) => void, onError: (cause: unknown) => void): Promise<void> {

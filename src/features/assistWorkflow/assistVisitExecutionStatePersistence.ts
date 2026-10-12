@@ -67,14 +67,14 @@ export async function upsertAssistVisitExecutionState(
   assignmentOrVisitId: string,
   assignmentStatus: AssignmentStatus,
   options?: UpsertExecutionStateOptions,
-): Promise<ServiceResult<{ visitId: string; currentStep: VisitExecutionStep }>> {
+): Promise<ServiceResult<{ visitId: string; currentStep: VisitExecutionStep; updatedAt?: string }>> {
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: { visitId: assignmentOrVisitId, currentStep: assignmentStatusToStep(assignmentStatus) } };
   }
 
   const visitId = await resolveAssistVisitIdForPersistence(tenantId, assignmentOrVisitId);
   if (!visitId) {
-    return { ok: true, data: { visitId: assignmentOrVisitId, currentStep: assignmentStatusToStep(assignmentStatus) } };
+    return { ok: false, error: 'Die Durchführungsfassung konnte keinem kanonischen Einsatz zugeordnet werden.' };
   }
 
   const supabase = getSupabaseClient();
@@ -110,36 +110,11 @@ export async function upsertAssistVisitExecutionState(
   if (options?.proofGenerated != null) payload.proof_generated = options.proofGenerated;
   if (options?.finalizedAt != null) payload.finalized_at = options.finalizedAt;
 
-  const { error } = await fromUnknownTable(supabase, TABLE).upsert(payload, {
+  const { data: receipt, error } = await fromUnknownTable(supabase, TABLE).upsert(payload, {
     onConflict: 'tenant_id,visit_id',
-  });
+  }).select('*').maybeSingle();
 
   if (error) {
-    if (error.code === '42P01' || error.code === '42703') {
-      // Table or 0210 columns missing — degrade gracefully.
-      const { error: legacyError } = await fromUnknownTable(supabase, TABLE).upsert(
-        {
-          tenant_id: tenantId,
-          visit_id: visitId,
-          current_step: currentStep,
-          assignment_status: assignmentStatus,
-          updated_at: now,
-        },
-        { onConflict: 'tenant_id,visit_id' },
-      );
-      if (legacyError && legacyError.code !== '42P01') {
-        return assistWorkflowErrorToResult(
-          assistWorkflowErrorFromSupabase(legacyError, {
-            tenantId,
-            assignmentId: assignmentOrVisitId,
-            assistVisitId: visitId,
-            employeeId: options?.employeeId,
-            operation: 'upsertAssistVisitExecutionState',
-          }),
-        );
-      }
-      return { ok: true, data: { visitId, currentStep } };
-    }
     return assistWorkflowErrorToResult(
       assistWorkflowErrorFromSupabase(error, {
         tenantId,
@@ -151,5 +126,15 @@ export async function upsertAssistVisitExecutionState(
     );
   }
 
-  return { ok: true, data: { visitId, currentStep } };
+  // A trigger may retain a newer step; a 2xx/zero-row response is never a
+  // receipt for this snapshot. Do not silently drop required schema fields.
+  const matches = receipt && Object.entries(payload).every(([field, expected]) => {
+    if (field === 'updated_at') return typeof receipt[field] === 'string' && Number.isFinite(Date.parse(receipt[field]));
+    if (field.endsWith('_at') && typeof expected === 'string')
+      return typeof receipt[field] === 'string' && Date.parse(receipt[field]) === Date.parse(expected);
+    return receipt[field] === expected;
+  });
+  if (!matches) return { ok: false, error: 'Die gespeicherte Durchführungsfassung wurde noch nicht bestätigt. Bitte den aktuellen Einsatzstatus erneut prüfen.' };
+
+  return { ok: true, data: { visitId, currentStep, updatedAt: receipt.updated_at as string } };
 }

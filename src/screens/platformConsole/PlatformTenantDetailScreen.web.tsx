@@ -133,6 +133,8 @@ export function PlatformTenantDetailScreen() {
   return <TenantDetailContent key={id} tenantId={id} />;
 }
 
+const OWNER_TABS: readonly string[] = ['company','setup','clients','employees','history'];
+
 function TenantDetailContent({ tenantId }: { tenantId: string }) {
   const router = useRouter();
 
@@ -142,10 +144,10 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   const [tab, setTab] = useState<TabKey>('overview');
   const dossierOwner = platformUser?.role === 'platform_owner';
-  const ownerTabs: readonly string[] = ['company','setup','clients','employees','history'];
+  const ownerTabs = OWNER_TABS;
   const visibleGroups=TAB_GROUPS.map(group=>({...group,tabs:group.tabs.filter(item=>platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[item.key]) && (!ownerTabs.includes(item.key) || dossierOwner))})).filter(group=>group.tabs.length>0);
   useEffect(()=>{if(!platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[tab]))setTab('overview');},[platformUser?.role,tab]);
-  useEffect(()=>{if(!dossierOwner && ownerTabs.includes(tab))setTab('overview');},[dossierOwner,tab]);
+  useEffect(()=>{if(!dossierOwner && ownerTabs.includes(tab))setTab('overview');},[dossierOwner, ownerTabs, tab]);
   const dossier = useTenantDossier(tenantId, dossierOwner && detail != null, detail);
   const [dossierSection, setDossierSection] = useState('tenants');
 
@@ -214,11 +216,11 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
-  useEffect(() => {
+  useEffect(() => { const cleanupRequestNumber = requestNumber;
     mounted.current = true;
     setConfirm(null); setActionError(null); setActionMessage(null); setLastAuditAction(null);
     void load();
-    return () => { mounted.current = false; requestNumber.current++; };
+    return () => { mounted.current = false; cleanupRequestNumber.current++; };
   }, [load]);
 
 

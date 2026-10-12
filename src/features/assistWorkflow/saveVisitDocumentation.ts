@@ -20,6 +20,8 @@ import {
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
+import { buildVisitDocumentationContent } from './visitDocumentationContent';
 
 export type SaveVisitDocumentationInput = {
   ctx: AssistExecutionContext;
@@ -65,24 +67,13 @@ async function persistDocumentationToAssistVisit(
 
   const now = new Date().toISOString();
   const payload = {
-    short_description: doc.shortDescription.trim(),
-    special_notes: doc.specialNotes?.trim() ?? null,
-    deviations: doc.deviations?.trim() ?? null,
-    deviation_justification: doc.deviationJustification?.trim() ?? null,
-    referral_required: doc.referralRequired,
-    emergency_or_problem: doc.emergencyOrProblem,
-    sis_notes: doc.sisNotes?.trim() ?? null,
-    vitals_summary: doc.vitalsSummary?.trim() ?? null,
-    body_map_notes: doc.bodyMapNotes?.trim() ?? null,
-    medication_notes: doc.medicationNotes?.trim() ?? null,
-    care_report_notes: doc.careReportNotes?.trim() ?? null,
-    photo_references: doc.photoReferences ?? [],
+    ...buildVisitDocumentationContent(doc),
     submitted_at: now,
     submitted_by: profileId,
     locked: false,
   };
 
-  const { error } = await fromUnknownTable(supabase, 'assist_visit_documentation')
+  const { data: receipt, error } = await fromUnknownTable(supabase, 'assist_visit_documentation')
     .upsert(
       {
         tenant_id: tenantId,
@@ -91,10 +82,19 @@ async function persistDocumentationToAssistVisit(
         updated_at: now,
       },
       { onConflict: 'tenant_id,visit_id' },
-    );
+    )
+    .select('tenant_id, visit_id, short_description, special_notes, deviations, deviation_justification, referral_required, emergency_or_problem, sis_notes, vitals_summary, body_map_notes, medication_notes, care_report_notes, photo_references, submitted_by')
+    .single();
 
   if (error) {
     return { ok: false, error: toGermanSupabaseError(error) };
+  }
+  const contentFields = ['short_description', 'special_notes', 'deviations', 'deviation_justification',
+    'referral_required', 'emergency_or_problem', 'sis_notes', 'vitals_summary', 'body_map_notes',
+    'medication_notes', 'care_report_notes', 'photo_references', 'submitted_by'] as const;
+  if (!receipt || receipt.tenant_id !== tenantId || receipt.visit_id !== visitId ||
+      contentFields.some((field) => JSON.stringify(receipt[field]) !== JSON.stringify(payload[field]))) {
+    return { ok: false, error: 'Die gespeicherte Dokumentation konnte nicht bestätigt werden. Ihr Entwurf bleibt erhalten; bitte erneut versuchen.' };
   }
 
   scheduleDeferredTask(`assist-documentation-visit:${tenantId}:${visitId}`, async () => {
@@ -188,6 +188,7 @@ export async function saveVisitDocumentation(
     : 'dokumentation_offen';
   let documentationPersisted = false;
   let wfmSyncFailed = false;
+  let persistenceCtx = ctx;
 
   if (getServiceMode() === 'supabase') {
     const visitId =
@@ -201,11 +202,15 @@ export async function saveVisitDocumentation(
       };
     }
 
+    const actor = await resolveAuthenticatedProfileId(ctx.tenantId);
+    if (!actor.ok) return { ok: false, error: actor.error };
+    persistenceCtx = { ...ctx, profileId: actor.data };
+
     const visitDoc = await persistDocumentationToAssistVisit(
       ctx.tenantId,
       visitId,
       documentation,
-      ctx.profileId,
+      actor.data,
     );
     if (!visitDoc.ok) {
       return { ok: false, error: visitDoc.error };
@@ -222,9 +227,9 @@ export async function saveVisitDocumentation(
     });
   }
 
-  let updatedCtx = ctx;
+  let updatedCtx = persistenceCtx;
   if (documentationPersisted && ctx.assignmentStatus === 'beendet') {
-    const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+    const transitioned = await transitionAssistExecutionStatus(persistenceCtx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
       fastWorkflow: true,
@@ -240,13 +245,13 @@ export async function saveVisitDocumentation(
         transitioned.error,
       );
       updatedCtx = {
-        ...ctx,
+        ...persistenceCtx,
         assignmentStatus: 'dokumentation_offen',
         derivedStatus: 'dokumentation_offen',
       };
     }
   } else if (ctx.assignmentStatus === 'beendet') {
-    const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+    const transitioned = await transitionAssistExecutionStatus(persistenceCtx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
       fastWorkflow: true,

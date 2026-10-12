@@ -76,6 +76,7 @@ export function PortalClientAppointmentDetailScreen() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    setChangeReason('');
   }, [id]);
 
   if (!canView) {
@@ -105,7 +106,7 @@ export function PortalClientAppointmentDetailScreen() {
           message={error ?? 'Bitte öffnen Sie Ihre Einsätze erneut.'}
           onRetry={refresh}
         />
-        <PremiumButton title="Zur Einsatzübersicht" variant="secondary" onPress={() => router.back()} />
+        <PremiumButton title="Zur Einsatzübersicht" variant="secondary" onPress={() => router.replace('/portal/client/appointments' as never)} />
       </PortalTabScreen>
     );
   }
@@ -125,7 +126,7 @@ export function PortalClientAppointmentDetailScreen() {
           title={isPhone ? 'Zurück' : 'Zur Einsatzübersicht'}
           size="sm"
           variant="secondary"
-          onPress={() => router.back()}
+          onPress={() => router.replace('/portal/client/appointments' as never)}
         />
       }
     >
@@ -227,7 +228,10 @@ export function PortalClientAppointmentDetailScreen() {
                 {changeError ? <Text style={styles.error}>{changeError}</Text> : null}
                 <PremiumButton
                   title="Änderungswunsch senden"
-                  onPress={() => requestChange(changeReason)}
+                  onPress={async () => {
+                    const result = await requestChange(changeReason);
+                    if (result) setChangeReason('');
+                  }}
                   loading={changeLoading}
                   disabled={!changeReason.trim()}
                   fullWidth

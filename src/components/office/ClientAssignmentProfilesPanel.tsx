@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
@@ -128,18 +128,20 @@ function durationLabel(minutes: number): string {
 }
 
 function ToggleRow({
+  disabled,
   label,
   value,
   onValueChange,
 }: {
   label: string;
   value: boolean;
+  disabled?: boolean;
   onValueChange: (value: boolean) => void;
 }) {
   return (
     <View style={styles.toggleRow}>
       <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onValueChange} />
+      <Switch value={value} disabled={disabled} onValueChange={onValueChange} accessibilityLabel={label} />
     </View>
   );
 }
@@ -147,12 +149,14 @@ function ToggleRow({
 type Choice = { value: string; label: string };
 
 function ChoiceChips({
+  disabled,
   label,
   options,
   value,
   onChange,
 }: {
   label: string;
+  disabled?: boolean;
   options: Choice[];
   value: string;
   onChange: (value: string) => void;
@@ -170,6 +174,7 @@ function ChoiceChips({
               <TouchableOpacity
                 key={option.value}
                 style={[styles.choice, selected && styles.choiceSelected]}
+                disabled={disabled}
                 onPress={() => onChange(option.value)}
               >
                 <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>
@@ -213,7 +218,14 @@ function optionalTaskDrafts(
 export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
-  const { isReadOnly } = usePermissions();
+  return <ClientAssignmentProfilesPanelBody key={JSON.stringify([tenantId, clientId, profile?.id, profile?.roleKey])} clientId={clientId} fullClient={fullClient} />;
+}
+
+function ClientAssignmentProfilesPanelBody({ clientId, fullClient }: Props) {
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
+  const permissions = usePermissions();
+  const isReadOnly = permissions.isReadOnly || !permissions.can('assist.assignments.manage');
   const employees = useEmployeeList();
   const { options, loading: catalogsLoading, error: catalogsError } = useAssistAssignmentOptions();
   const address = useMemo(() => fullClientAddress(fullClient), [fullClient]);
@@ -225,6 +237,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
     [tenantId, clientId],
     {
       enabled: Boolean(tenantId && clientId),
+      queryKey: JSON.stringify([tenantId, clientId]),
       live: {
         tenantId,
         subscribe: (liveTenantId, handler) =>
@@ -240,6 +253,14 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [services, setServices] = useState<Choice[]>([]);
   const [packageLoading, setPackageLoading] = useState(false);
+  const mounted = useRef(false);
+  const editorGeneration = useRef(0);
+  const packageRequest = useRef(0);
+  const mutation = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; editorGeneration.current += 1; packageRequest.current += 1; };
+  }, []);
   const taskDraftsFromText = useMemo<AssistAssignmentTaskDraft[]>(
     () =>
       tasksText
@@ -275,13 +296,15 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
 
   useEffect(() => {
     if (!editorOpen || editingId) return;
-    setDraft(emptyInput(clientId, address));
-    setTasksText('');
-  }, [address, clientId, editingId, editorOpen]);
+    setDraft((current) => current.locationAddress ? current : { ...current, locationAddress: address });
+  }, [address, editingId, editorOpen]);
 
   useEffect(() => {
     if (!editorOpen || !tenantId) return;
+    let cancelled = false;
+    setServices([]);
     void fetchTenantServiceCatalog(tenantId, profile?.roleKey).then((result) => {
+      if (cancelled) return;
       if (!result.ok) {
         setSaveError(result.error);
         return;
@@ -291,10 +314,13 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
           .filter((item) => item.isActive && item.moduleKey === 'assist')
           .map((item) => ({ value: item.serviceKey, label: item.name })),
       );
-    });
+    }).catch(() => { if (!cancelled) setSaveError('Der Leistungskatalog konnte nicht geladen werden. Bitte den Editor erneut öffnen.'); });
+    return () => { cancelled = true; };
   }, [editorOpen, profile?.roleKey, tenantId]);
 
   function openCreate() {
+    if (mutation.current || isReadOnly) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
     setEditingId(undefined);
     setDraft(emptyInput(clientId, address));
     setTasksText('');
@@ -303,6 +329,8 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
   }
 
   function openEdit(item: ClientAssignmentProfile) {
+    if (mutation.current || isReadOnly || item.tenantId !== tenantId || item.clientId !== clientId) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
     setEditingId(item.id);
     setDraft(profileToInput(item));
     setTasksText(item.taskTitles.join('\n'));
@@ -311,82 +339,124 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
   }
 
   async function handleTaskPackageSelect(packageId: string) {
-    if (!tenantId) return;
+    if (!tenantId || mutation.current || isReadOnly) return;
+    const generation = editorGeneration.current;
+    const request = ++packageRequest.current;
+    const isCurrent = () => mounted.current && generation === editorGeneration.current && request === packageRequest.current;
     setPackageLoading(true);
     setSaveError(null);
-    const result = await loadTaskPackageItems(tenantId, packageId, profile?.roleKey);
-    setPackageLoading(false);
-    if (!result.ok) {
-      setSaveError(result.error);
-      return;
+    try {
+      const result = await loadTaskPackageItems(tenantId, packageId, profile?.roleKey);
+      if (!isCurrent()) return;
+      if (!result.ok) { setSaveError(result.error); return; }
+      const merged = mergeTaskDrafts(result.data, [], new Set());
+      setDraft((current) => applyTaskPackageTasksToAssignmentProfile(current, packageId, merged));
+      setTasksText(merged.map((task) => task.title).join('\n'));
+    } catch {
+      if (isCurrent()) setSaveError('Das Aufgabenpaket konnte nicht geladen werden. Bitte erneut auswählen.');
+    } finally {
+      if (isCurrent()) setPackageLoading(false);
     }
-    const merged = mergeTaskDrafts(result.data, [], new Set());
-    setDraft((current) => applyTaskPackageTasksToAssignmentProfile(current, packageId, merged));
-    setTasksText(merged.map((task) => task.title).join('\n'));
+  }
+
+  function updateDraft(update: (current: ClientAssignmentProfileInput) => ClientAssignmentProfileInput) {
+    if (mutation.current || packageLoading) return;
+    setDraft(update);
+  }
+
+  function changeTasksText(value: string) {
+    if (mutation.current || packageLoading) return;
+    setTasksText(value);
+  }
+
+  function closeEditor() {
+    if (mutation.current) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
+    setEditorOpen(false);
   }
 
   async function handleSave() {
-    if (!tenantId) return;
+    if (!tenantId || mutation.current || packageLoading || isReadOnly || normalizedDraft.clientId !== clientId) return;
     if (validationError) {
       setSaveError(validationError);
       return;
     }
+    mutation.current = true;
+    const generation = editorGeneration.current;
+    const isCurrent = () => mounted.current && generation === editorGeneration.current;
     setSaving(true);
     setSaveError(null);
-    const snapshot = {
-      subjectKey: normalizedDraft.subjectKey,
-      subjectLabel:
-        options?.subjects.find((item) => item.itemKey === normalizedDraft.subjectKey)?.label ?? null,
-      assignmentTypeKey: normalizedDraft.assignmentTypeKey,
-      assignmentTypeLabel:
-        options?.assignmentTypes.find((item) => item.itemKey === normalizedDraft.assignmentTypeKey)?.label ?? null,
-      serviceCategoryKey: normalizedDraft.serviceCategoryKey,
-      serviceCategoryLabel:
-        options?.serviceCategories.find((item) => item.itemKey === normalizedDraft.serviceCategoryKey)?.label ?? null,
-      serviceKey: normalizedDraft.serviceKey,
-      serviceName: normalizedDraft.serviceName,
-      taskPackageId: normalizedDraft.taskPackageId,
-      taskPackageLabel:
-        options?.taskPackages.find((item) => item.id === normalizedDraft.taskPackageId)?.label ?? null,
-      plannedDurationMinutes: normalizedDraft.durationMinutes,
-      durationSource: 'assignment_profile',
-      riskFlagKeys: normalizedDraft.riskFlagKeys,
-      riskFlagLabels: normalizedDraft.riskFlagKeys.map(
-        (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
-      ),
-      documentationTemplateKey: normalizedDraft.documentationTemplateKey || null,
-      proofTemplateKey: normalizedDraft.proofTemplateKey || null,
-    };
-    const result = await saveClientAssignmentProfile(
-      tenantId,
-      { ...normalizedDraft, catalogSnapshotJson: snapshot },
-      editingId,
-      profile?.id,
-    );
-    setSaving(false);
-    if (!result.ok) {
-      setSaveError(result.error);
-      return;
+    try {
+      const snapshot = {
+        subjectKey: normalizedDraft.subjectKey,
+        subjectLabel:
+          options?.subjects.find((item) => item.itemKey === normalizedDraft.subjectKey)?.label ?? null,
+        assignmentTypeKey: normalizedDraft.assignmentTypeKey,
+        assignmentTypeLabel:
+          options?.assignmentTypes.find((item) => item.itemKey === normalizedDraft.assignmentTypeKey)?.label ?? null,
+        serviceCategoryKey: normalizedDraft.serviceCategoryKey,
+        serviceCategoryLabel:
+          options?.serviceCategories.find((item) => item.itemKey === normalizedDraft.serviceCategoryKey)?.label ?? null,
+        serviceKey: normalizedDraft.serviceKey,
+        serviceName: normalizedDraft.serviceName,
+        taskPackageId: normalizedDraft.taskPackageId,
+        taskPackageLabel:
+          options?.taskPackages.find((item) => item.id === normalizedDraft.taskPackageId)?.label ?? null,
+        plannedDurationMinutes: normalizedDraft.durationMinutes,
+        durationSource: 'assignment_profile',
+        riskFlagKeys: normalizedDraft.riskFlagKeys,
+        riskFlagLabels: normalizedDraft.riskFlagKeys.map(
+          (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
+        ),
+        documentationTemplateKey: normalizedDraft.documentationTemplateKey || null,
+        proofTemplateKey: normalizedDraft.proofTemplateKey || null,
+      };
+      const result = await saveClientAssignmentProfile(
+        tenantId,
+        { ...normalizedDraft, catalogSnapshotJson: snapshot },
+        editingId,
+        profile?.id,
+      );
+      if (!isCurrent()) return;
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      setEditorOpen(false);
+      if (!await query.refreshWithResult() && isCurrent()) setSaveError('Das Einsatzprofil wurde gespeichert. Die Liste konnte noch nicht aktualisiert werden. Bitte erneut laden.');
+    } catch {
+      if (isCurrent()) setSaveError('Die Speicherung konnte nicht bestätigt werden. Bitte zuerst die Profil-Liste aktualisieren, bevor Sie erneut speichern.');
+    } finally {
+      mutation.current = false;
+      if (isCurrent()) setSaving(false);
     }
-    setEditorOpen(false);
-    await query.refresh();
   }
 
   async function handleArchive(item: ClientAssignmentProfile) {
-    if (!tenantId) return;
-    const confirmed = await confirmAction({
-      title: 'Einsatzprofil entfernen',
-      message: `„${item.profileName}“ aus der Planung entfernen? Bereits erzeugte Einsätze bleiben unverändert.`,
-      confirmLabel: 'Profil entfernen',
-      cancelLabel: 'Abbrechen',
-    });
-    if (!confirmed) return;
-    const result = await archiveClientAssignmentProfile(tenantId, item.id, profile?.id);
-    if (!result.ok) {
-      setSaveError(result.error);
-      return;
+    if (!tenantId || mutation.current || isReadOnly || item.tenantId !== tenantId || item.clientId !== clientId) return;
+    mutation.current = true;
+    setSaving(true); setSaveError(null);
+    try {
+      const confirmed = await confirmAction({
+        title: 'Einsatzprofil entfernen',
+        message: `„${item.profileName}“ aus der Planung entfernen? Bereits erzeugte Einsätze bleiben unverändert.`,
+        confirmLabel: 'Profil entfernen',
+        cancelLabel: 'Abbrechen',
+      });
+      if (!confirmed || !mounted.current) return;
+      const result = await archiveClientAssignmentProfile(tenantId, item.id, profile?.id);
+      if (!mounted.current) return;
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      if (!await query.refreshWithResult() && mounted.current) setSaveError('Das Profil wurde entfernt. Die Liste konnte noch nicht aktualisiert werden. Bitte erneut laden.');
+    } catch {
+      if (mounted.current) setSaveError('Das Entfernen konnte nicht bestätigt werden. Bitte zuerst die Liste aktualisieren.');
+    } finally {
+      mutation.current = false;
+      if (mounted.current) setSaving(false);
     }
-    await query.refresh();
   }
 
   if (query.loading && !query.data) return <LoadingState message="Einsatzprofile werden geladen…" />;
@@ -403,6 +473,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
         subtitle="Wiederverwendbare Einsatzvorlagen ohne Tag und Uhrzeit"
 
       >
+        {query.refreshError ? <ErrorState message={query.refreshError} onRetry={query.refresh} /> : null}
         {profiles.length === 0 ? (
           <EmptyState
             title="Noch keine Einsatzprofile"
@@ -433,8 +504,8 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
                 </View>
                 {!isReadOnly ? (
                   <View style={styles.actions}>
-                    <PremiumButton title="Bearbeiten" size="sm" variant="secondary" onPress={() => openEdit(item)} />
-                    <PremiumButton title="Entfernen" size="sm" variant="ghost" onPress={() => handleArchive(item)} />
+                    <PremiumButton title="Bearbeiten" size="sm" variant="secondary" disabled={saving} onPress={() => openEdit(item)} />
+                    <PremiumButton title="Entfernen" size="sm" variant="ghost" disabled={saving} onPress={() => handleArchive(item)} />
                   </View>
                 ) : null}
               </PremiumCard>
@@ -442,7 +513,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
           </View>
         )}
         {!isReadOnly && profiles.length > 0 ? (
-          <PremiumButton title="Weiteres Einsatzprofil" variant="secondary" onPress={openCreate} />
+          <PremiumButton title="Weiteres Einsatzprofil" variant="secondary" disabled={saving} onPress={openCreate} />
         ) : null}
         {saveError && !editorOpen ? <Text style={styles.error}>{saveError}</Text> : null}
       </SectionPanel>
@@ -451,21 +522,21 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
         visible={editorOpen}
         title={editingId ? 'Einsatzprofil bearbeiten' : 'Einsatzprofil erstellen'}
         subtitle="Kein Tag und keine Uhrzeit – diese werden erst im Kalender festgelegt."
-        onClose={() => setEditorOpen(false)}
+        onClose={closeEditor}
         maxWidth={980}
         isDirty={Boolean(editingId || draft.profileName.trim() || tasksText.trim())}
         footerActions={[
-          { title: 'Abbrechen', variant: 'secondary', onPress: () => setEditorOpen(false) },
+          { title: 'Abbrechen', variant: 'secondary', disabled: saving, onPress: closeEditor },
           {
             title: 'Einsatzprofil speichern',
             variant: 'primary',
             loading: saving,
-            disabled: Boolean(validationError),
+            disabled: saving || packageLoading || Boolean(validationError),
             onPress: handleSave,
           },
         ]}
       >
-        <View style={styles.form}>
+        <View style={styles.form} pointerEvents={saving || packageLoading ? 'none' : 'auto'}>
           <View style={styles.requiredNotice}>
             <Text style={styles.requiredNoticeTitle}>Pflichtangaben</Text>
             <Text style={styles.requiredNoticeText}>
@@ -479,31 +550,35 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             )}
           </View>
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Profilname"
             value={draft.profileName}
             placeholder="z. B. Haushalt Montag"
-            onChangeText={(profileName) => setDraft((current) => ({ ...current, profileName }))}
+            onChangeText={(profileName) => updateDraft((current) => ({ ...current, profileName }))}
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Einsatzbezeichnung"
             value={draft.assignmentTitle}
-            onChangeText={(assignmentTitle) => setDraft((current) => ({ ...current, assignmentTitle }))}
+            onChangeText={(assignmentTitle) => updateDraft((current) => ({ ...current, assignmentTitle }))}
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Beschreibung"
             value={draft.description}
-            onChangeText={(description) => setDraft((current) => ({ ...current, description }))}
+            onChangeText={(description) => updateDraft((current) => ({ ...current, description }))}
             multiline
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Dauer in Minuten"
             value={String(draft.durationMinutes)}
             keyboardType="number-pad"
             onChangeText={(value) =>
-              setDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
+              updateDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
             }
             hint="Verbindliche Gesamtdauer des Kalenderblocks. Aufgaben-Richtzeiten ändern diesen Wert nicht."
 
@@ -517,9 +592,10 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
                 <PremiumButton
                   key={employee.id}
                   title={`${employee.firstName} ${employee.lastName}`}
+                  disabled={saving || packageLoading}
                   size="sm"
                   variant={draft.employeeId === employee.id ? 'primary' : 'secondary'}
-                  onPress={() => setDraft((current) => ({ ...current, employeeId: employee.id }))}
+                  onPress={() => updateDraft((current) => ({ ...current, employeeId: employee.id }))}
                 />
               ))}
           </View>
@@ -534,6 +610,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             {catalogsLoading ? <Text style={styles.catalogHint}>Vorlagen werden geladen…</Text> : null}
             {catalogsError ? <Text style={styles.error}>{catalogsError}</Text> : null}
             <ChoiceChips
+              disabled={saving || packageLoading}
               label="Einsatz-Betreff"
               options={(options?.subjects ?? []).map((item) => ({
                 value: item.itemKey,
@@ -542,7 +619,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               value={draft.subjectKey}
               onChange={(subjectKey) => {
                 const label = options?.subjects.find((item) => item.itemKey === subjectKey)?.label;
-                setDraft((current) => ({
+                updateDraft((current) => ({
                   ...current,
                   subjectKey,
                   assignmentTitle: label || current.assignmentTitle,
@@ -554,10 +631,11 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               items={options?.assignmentTypes ?? []}
               value={draft.assignmentTypeKey}
               onChange={(assignmentTypeKey) =>
-                setDraft((current) => ({ ...current, assignmentTypeKey }))
+                updateDraft((current) => ({ ...current, assignmentTypeKey }))
               }
             />
             <ChoiceChips
+              disabled={saving || packageLoading}
               label="Leistungskategorie"
               options={(options?.serviceCategories ?? []).map((item) => ({
                 value: item.itemKey,
@@ -565,15 +643,16 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               }))}
               value={draft.serviceCategoryKey}
               onChange={(serviceCategoryKey) =>
-                setDraft((current) => ({ ...current, serviceCategoryKey }))
+                updateDraft((current) => ({ ...current, serviceCategoryKey }))
               }
             />
             <ChoiceChips
+              disabled={saving || packageLoading}
               label="Leistung / Abrechnung"
               options={services}
               value={draft.serviceKey}
               onChange={(serviceKey) =>
-                setDraft((current) => ({
+                updateDraft((current) => ({
                   ...current,
                   serviceKey,
                   serviceName: services.find((service) => service.value === serviceKey)?.label ?? serviceKey,
@@ -597,7 +676,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
                     draft.taskPackageId === item.id && styles.packageCardSelected,
                   ]}
                   onPress={() => void handleTaskPackageSelect(item.id)}
-                  disabled={packageLoading}
+                  disabled={saving || packageLoading}
                 >
                   <Text style={styles.packageTitle}>{item.label}</Text>
                   {item.defaultDurationMinutes ? (
@@ -617,20 +696,21 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               loading={catalogsLoading}
               onChange={(keys) => {
                 const next = optionalTaskDrafts(keys, draft.taskDrafts, options?.taskItems ?? []);
-                setDraft((current) => ({
+                updateDraft((current) => ({
                   ...current,
                   taskDrafts: next,
                   taskTitles: next.map((task) => task.title),
                 }));
-                setTasksText(next.map((task) => task.title).join('\n'));
+                changeTasksText(next.map((task) => task.title).join('\n'));
               }}
             />
           </View>
 
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Aufgaben (vollständige Einsatzliste)"
             value={tasksText}
-            onChangeText={setTasksText}
+            onChangeText={changeTasksText}
             placeholder={'Eine Aufgabe pro Zeile\nEinkaufen\nWohnung reinigen'}
             multiline
             style={styles.multiline}
@@ -641,43 +721,49 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             label="Risiken aus dem Assist-Katalog"
             values={draft.riskFlagKeys}
             loading={catalogsLoading}
-            onChange={(riskFlagKeys) => setDraft((current) => ({ ...current, riskFlagKeys }))}
+            onChange={(riskFlagKeys) => updateDraft((current) => ({ ...current, riskFlagKeys }))}
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Einsatzort"
             value={draft.locationAddress}
-            onChangeText={(locationAddress) => setDraft((current) => ({ ...current, locationAddress }))}
+            onChangeText={(locationAddress) => updateDraft((current) => ({ ...current, locationAddress }))}
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Hinweis zum Einsatzort / Zugang"
             value={draft.locationNotes}
-            onChangeText={(locationNotes) => setDraft((current) => ({ ...current, locationNotes }))}
+            onChangeText={(locationNotes) => updateDraft((current) => ({ ...current, locationNotes }))}
             multiline
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Hinweis für Mitarbeitende"
             value={draft.notesForEmployee}
-            onChangeText={(notesForEmployee) => setDraft((current) => ({ ...current, notesForEmployee }))}
+            onChangeText={(notesForEmployee) => updateDraft((current) => ({ ...current, notesForEmployee }))}
             multiline
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Interne Notiz"
             value={draft.internalNotes}
-            onChangeText={(internalNotes) => setDraft((current) => ({ ...current, internalNotes }))}
+            onChangeText={(internalNotes) => updateDraft((current) => ({ ...current, internalNotes }))}
             multiline
 
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Hinweis für Klientenportal"
             value={draft.clientVisibleNotes}
-            onChangeText={(clientVisibleNotes) => setDraft((current) => ({ ...current, clientVisibleNotes }))}
+            onChangeText={(clientVisibleNotes) => updateDraft((current) => ({ ...current, clientVisibleNotes }))}
             multiline
 
           />
           <ChoiceChips
+              disabled={saving || packageLoading}
             label="Budget-/Abrechnungsquelle"
             options={(options?.budgetSources ?? []).map((item) => ({
               value: item.itemKey,
@@ -685,19 +771,21 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             }))}
             value={draft.billingBudgetSourceKey}
             onChange={(billingBudgetSourceKey) =>
-              setDraft((current) => ({ ...current, billingBudgetSourceKey }))
+              updateDraft((current) => ({ ...current, billingBudgetSourceKey }))
             }
           />
           <PremiumInput
+            editable={!saving && !packageLoading}
             label="Dokumentationsvorlage"
             value={draft.documentationTemplateKey}
             onChangeText={(documentationTemplateKey) =>
-              setDraft((current) => ({ ...current, documentationTemplateKey }))
+              updateDraft((current) => ({ ...current, documentationTemplateKey }))
             }
             placeholder="Vorlagen-Schlüssel"
 
           />
           <ChoiceChips
+              disabled={saving || packageLoading}
             label="Leistungsnachweis"
             options={[
               { value: 'einzel', label: 'Einzel-Einsatznachweis' },
@@ -705,39 +793,45 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             ]}
             value={draft.proofTemplateKey}
             onChange={(proofTemplateKey) =>
-              setDraft((current) => ({ ...current, proofTemplateKey }))
+              updateDraft((current) => ({ ...current, proofTemplateKey }))
             }
           />
           <View style={styles.toggles}>
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Dokumentation erforderlich"
               value={draft.requiresDocumentation}
-              onValueChange={(requiresDocumentation) => setDraft((current) => ({ ...current, requiresDocumentation }))}
+              onValueChange={(requiresDocumentation) => updateDraft((current) => ({ ...current, requiresDocumentation }))}
             />
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Unterschrift erforderlich"
               value={draft.requiresSignature}
-              onValueChange={(requiresSignature) => setDraft((current) => ({ ...current, requiresSignature }))}
+              onValueChange={(requiresSignature) => updateDraft((current) => ({ ...current, requiresSignature }))}
             />
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Abrechnungsrelevant"
               value={draft.billingRelevant}
-              onValueChange={(billingRelevant) => setDraft((current) => ({ ...current, billingRelevant }))}
+              onValueChange={(billingRelevant) => updateDraft((current) => ({ ...current, billingRelevant }))}
             />
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Anfahrt / Route erforderlich"
               value={draft.requiresRoute}
-              onValueChange={(requiresRoute) => setDraft((current) => ({ ...current, requiresRoute }))}
+              onValueChange={(requiresRoute) => updateDraft((current) => ({ ...current, requiresRoute }))}
             />
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Im Mitarbeitendenportal anzeigen"
               value={draft.employeePortalVisible}
-              onValueChange={(employeePortalVisible) => setDraft((current) => ({ ...current, employeePortalVisible }))}
+              onValueChange={(employeePortalVisible) => updateDraft((current) => ({ ...current, employeePortalVisible }))}
             />
             <ToggleRow
+              disabled={saving || packageLoading}
               label="Im Klientenportal anzeigen"
               value={draft.clientPortalVisible}
-              onValueChange={(clientPortalVisible) => setDraft((current) => ({ ...current, clientPortalVisible }))}
+              onValueChange={(clientPortalVisible) => updateDraft((current) => ({ ...current, clientPortalVisible }))}
             />
           </View>
           {saveError ? <Text style={styles.error}>{saveError}</Text> : null}

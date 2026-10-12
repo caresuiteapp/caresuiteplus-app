@@ -7,7 +7,7 @@ export default function EmployeeClientRecordDetailRoute() {
   const clientId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   return (
-    <PortalTabScreen title="Klientenakte" contentOwnsHero>
+    <PortalTabScreen title="Klientenakte" contentOwnsHero scroll={false}>
       <EmployeePortalClientRecordDetailScreen clientId={clientId} />
     </PortalTabScreen>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
@@ -49,6 +49,18 @@ const PAGE_SIZE = 8;
 export function useAssignmentList() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey]);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (successTimer.current) clearTimeout(successTimer.current);
+    };
+  }, []);
   const [showSuccess, setShowSuccess] = useState(false);
   const [hiddenDeletedKeys, setHiddenDeletedKeys] = useState<Set<string>>(
     () => new Set(),
@@ -62,8 +74,9 @@ export function useAssignmentList() {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       return fetchAssignmentList(tenantId, profile?.roleKey);
     },
-    [tenantId, profile?.roleKey],
+    [tenantId, profile?.id, profile?.roleKey],
     {
+      queryKey: scope,
       enabled: !!tenantId,
       live: tenantId
         ? {
@@ -74,7 +87,7 @@ export function useAssignmentList() {
         : undefined,
     },
   );
-  const refreshQuery = query.refresh;
+  const refreshQuery = query.refreshWithResult;
   const setQueryData = query.setData;
   const queryData = query.data;
 
@@ -109,6 +122,16 @@ export function useAssignmentList() {
     sortOptions: ASSIGNMENT_SORT_OPTIONS,
     defaultSortKey: 'time_asc',
   });
+  const resetListFilters = list.resetFilters;
+  useEffect(() => {
+    if (successTimer.current) clearTimeout(successTimer.current);
+    setShowSuccess(false);
+    setHiddenDeletedKeys(new Set());
+    setDateRange('all');
+    setEmployeeFilter('all');
+    setServiceFilter('all');
+    resetListFilters();
+  }, [scope, resetListFilters]);
 
   const filteredItems = useMemo(() => {
     let result = list.filtered;
@@ -152,13 +175,18 @@ export function useAssignmentList() {
   }, [allItems]);
 
   const refresh = useCallback(async () => {
-    await refreshQuery();
+    const refreshedScope = scope;
+    if (successTimer.current) clearTimeout(successTimer.current);
+    setShowSuccess(false);
+    const succeeded = await refreshQuery();
+    if (!mounted.current || scopeRef.current !== refreshedScope || !succeeded) return;
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
-  }, [refreshQuery]);
+    successTimer.current = setTimeout(() => setShowSuccess(false), 2000);
+  }, [refreshQuery, scope]);
 
   const dismissDeletedAssignment = useCallback(
     (assignmentId: string) => {
+      if (scopeRef.current !== scope || !mounted.current) return;
       const item = (queryData ?? []).find((candidate) => candidate.id === assignmentId);
       setHiddenDeletedKeys((current) => {
         const next = new Set(current);
@@ -170,7 +198,7 @@ export function useAssignmentList() {
         current?.filter((candidate) => candidate.id !== assignmentId) ?? current,
       );
     },
-    [deletionIdentity, queryData, setQueryData],
+    [deletionIdentity, queryData, setQueryData, scope],
   );
 
   const resetFilters = useCallback(() => {
@@ -190,6 +218,7 @@ export function useAssignmentList() {
     filteredCount: filteredItems.length,
     loading: query.loading,
     error: query.error,
+    refreshError: query.refreshError,
     refreshing: query.refreshing,
     showSuccess,
     search: list.search,

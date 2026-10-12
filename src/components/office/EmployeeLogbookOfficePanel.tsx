@@ -176,7 +176,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setManualVehicleId((current) => current ?? vehicle?.id ?? null);
   }, [query.data, tenantId, employeeId]);
 
-  useEffect(() => { if (period) { setFrom(period.fromDate); setTo(period.toDate); } }, [period?.fromDate, period?.toDate]);
+  const periodFrom = period?.fromDate; const periodTo = period?.toDate;
+  useEffect(() => { if (periodFrom && periodTo) { setFrom(periodFrom); setTo(periodTo); } }, [periodFrom, periodTo]);
   useEffect(() => { onEditorStateChange?.({ dirty: Boolean(selectedTripId || manualOpen || deleteTripId), busy: saving, childOpen: Boolean(selectedTripId || manualOpen || deleteTripId) }); }, [selectedTripId, manualOpen, deleteTripId, saving, onEditorStateChange]);
   useEffect(() => () => onEditorStateChange?.({ dirty: false, busy: false, childOpen: false }), [onEditorStateChange]);
   const refreshRelated = async () => { notifyWfmOfficeDataChanged(tenantId); await Promise.all([query.refresh(), onChanged?.()]); };

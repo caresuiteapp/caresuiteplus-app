@@ -22,16 +22,16 @@ function read(rel) {
 
 const CORE_CHECKS = [
   {
-    label: 'BodyMap',
-    files: ['src/screens/pflege/BodyMapScreen.tsx', 'src/lib/pflege/bodyMapService.ts'],
-    must: ['createBodyMapMarker', 'fetchBodyMapMarkers', 'PremiumButton'],
-    mustNot: ['onPress={() => undefined}', 'onPress={() => {}}', 'SisPreparedFormScreen'],
+    label: 'Entfernte Bodymap-Zugänge',
+    files: ['app/pflege/bodymap.tsx', 'app/stationaer/bodymap.tsx', 'app/stationaer/bewohner/[id]/bodymap.tsx', 'app/business/office/clients/[id]/bodymap.tsx', 'app/bodymap-mesh-workbench.tsx'],
+    must: ['Redirect', 'href="/"'],
+    mustNot: ['BodyMapScreen', 'StationaerBodyMapHubScreen', 'BodyMapMeshWorkbenchScreen'],
   },
   {
     label: 'Wunddokumentation Create',
     files: ['src/screens/pflege/WoundCreateScreen.tsx', 'src/lib/pflege/woundDocumentationService.ts'],
-    must: ['createWoundDocumentation', 'handleSave', 'createBodyMapMarker'],
-    mustNot: ['WoundDocumentationListScreen', 'onPress={() => undefined}'],
+    must: ['createWoundDocumentation', 'handleSave'],
+    mustNot: ['WoundDocumentationListScreen', 'onPress={() => undefined}', 'createBodyMapMarker'],
   },
   {
     label: 'Wunddokumentation Detail',
@@ -59,8 +59,8 @@ const CORE_CHECKS = [
   },
   {
     label: 'Assist Execution',
-    files: ['src/screens/assist/AssignmentExecutionScreen.tsx', 'app/assist/durchfuehrung/[id].tsx'],
-    must: ['checkIn', 'startWork', 'checkOut', 'createCareRecordFromExecution'],
+    files: ['src/screens/assist/AssignmentExecutionScreen.tsx', 'src/screens/assist/VisitExecutionScreen.tsx', 'app/assist/durchfuehrung/[id].tsx'],
+    must: ['VisitExecutionScreen', 'useVisitDispositionDetail', 'handleSaveDocumentation', 'refreshAfterSave'],
     mustNot: ['onPress={() => undefined}'],
   },
   {
@@ -110,7 +110,7 @@ if (sisNew.includes('SisPreparedFormScreen')) {
   console.log('✓ SIS /new → CareAssessmentWorkspaceScreen');
 }
 
-if (issues > 0) fail(`${issues} Kernfunktionen nicht demo-funktional`);
+if (issues > 0) fail(`${issues} Kernfunktionen erfüllen die aktuellen Anforderungen nicht`);
 
 console.log('\n✓ functional:audit bestanden\n');
 process.exit(0);

@@ -15,7 +15,7 @@ describe('Office + Assist unified experience V33.1', () => {
     expect(background).not.toContain('DarkLiquidGlassBackground');
     expect(css).toContain('color-scheme: dark');
     expect(css).not.toContain('background: #030A18');
-    expect(html).toContain('content="#071225"');
+    expect(html).toContain('content="#f3f8ff"');
   });
 
   it('setzt auf beiden Startseiten dieselbe Seitenschale ein', () => {

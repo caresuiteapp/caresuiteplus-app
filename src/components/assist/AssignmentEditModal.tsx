@@ -23,7 +23,7 @@ export function AssignmentEditModal({
 }: AssignmentEditModalProps) {
   const assistAccent = moduleColor('assist');
 
-  if (!visit) return null;
+  if (!visible || !visit) return null;
 
   const handleSaved = (id: string) => {
     onSaved?.(id);

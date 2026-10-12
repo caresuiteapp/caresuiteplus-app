@@ -10,19 +10,18 @@ const fetchTimeEventsMock = vi.fn();
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
     rpc: (...args: unknown[]) => rpcMock(...args),
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            order: () => ({
-              limit: () => ({
-                maybeSingle: async () => ({ data: null, error: null }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    }),
+    from: (table: string) => {
+      const query = {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
+        maybeSingle: async () => ({ data: table === 'assist_visit_signatures' ? {
+          id: 'signature-current', tenant_id: TENANT, visit_id: VISIT, signer_name: 'Client', signer_role: 'client',
+          storage_path: 'signature.png', payload_hash: 'payload', signature_hash: 'signature',
+          signed_at: '2026-07-02T09:00:00.000Z', signed_by_profile_id: 'auth-user-1', is_valid: true,
+          invalidated_at: null, invalidation_reason: null, metadata: {}, created_at: '2026-07-02T09:00:00.000Z', updated_at: '2026-07-02T09:00:00.000Z',
+        } : null, error: null }),
+      };
+      return query;
+    },
   }),
 }));
 
@@ -219,12 +218,12 @@ describe('finalizeVisit WFM dual-scoring signal', () => {
     vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
       upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
     }));
-    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
-      syncAssistVisitTimesToWfm: vi.fn(async () => ({
+    const deferredWfmSync = vi.fn(async () => ({
         ok: false,
         error: 'sync_assist_visit_times_to_wfm: tenant access denied',
-      })),
-    }));
+      }));
+    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({ syncAssistVisitTimesToWfm: deferredWfmSync }));
+    vi.doMock('@/lib/assist/repositories/assignmentRepository.supabase', () => ({ assignmentSupabaseRepository: { prepareServiceRecord: vi.fn(async () => ({ ok: true })) } }));
 
     const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
     const result = await finalizeVisit(
@@ -291,5 +290,8 @@ describe('finalizeVisit WFM dual-scoring signal', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.wfmSyncFailed).toBe(false);
+    const { flushDeferredTasks } = await import('@/lib/async/deferredTask');
+    await flushDeferredTasks();
+    expect(deferredWfmSync).toHaveBeenCalledWith(TENANT, 'employee-1', 'auth-user-1', VISIT);
   });
 });

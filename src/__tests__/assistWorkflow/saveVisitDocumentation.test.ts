@@ -84,6 +84,9 @@ describe('saveVisitDocumentation — visit resolution', () => {
     vi.resetModules();
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+    vi.doMock('@/lib/auth/resolveAuthenticatedProfile', () => ({
+      resolveAuthenticatedProfileId: vi.fn(async () => ({ ok: true, data: 'canonical-profile' })),
+    }));
   });
 
   afterEach(() => {
@@ -113,7 +116,7 @@ describe('saveVisitDocumentation — visit resolution', () => {
     }
   }, 15000);
   it('requires a fresh signature after an open signed visit is documented again', async () => {
-    const upsert = vi.fn(async () => ({ error: null }));
+    const upsert = vi.fn((payload) => ({ select: () => ({ single: async () => ({ data: payload, error: null }) }) }));
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
     vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert }) }));
@@ -124,6 +127,7 @@ describe('saveVisitDocumentation — visit resolution', () => {
     const result = await saveVisitDocumentation({ ctx, documentation: { shortDescription: 'Leistung ergänzt', referralRequired: false, emergencyOrProblem: false } });
     expect(result.ok).toBe(true);
     expect(upsert).toHaveBeenCalledOnce();
+    expect(upsert.mock.calls[0][0].submitted_by).toBe('canonical-profile');
     if (result.ok) {
       expect(result.data.ctx.detail.signatureStatus).toBe('pending');
       expect(result.data.ctx.allowedActions).not.toContain('finalize_visit');
@@ -131,13 +135,36 @@ describe('saveVisitDocumentation — visit resolution', () => {
     }
   });
   it('does not claim a documentation correction succeeded when persistence rejects it', async () => {
-    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert: async () => ({ error: { message: 'Einsatz abgeschlossen', code: 'P0001' } }) }) }));
+    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert: () => ({ select: () => ({ single: async () => ({ error: { message: 'Einsatz abgeschlossen', code: 'P0001' } }) }) }) }) }));
     const ctx = buildCtx({ assistVisitId: ASSIGNMENT, assignmentStatus: 'unterschrift_offen' });
     ctx.detail.signatureStatus = 'captured';
     const { saveVisitDocumentation } = await import('@/features/assistWorkflow/saveVisitDocumentation');
     const result = await saveVisitDocumentation({ ctx, documentation: { shortDescription: 'Leistung ergänzt', referralRequired: false, emergencyOrProblem: false } });
     expect(result.ok).toBe(false);
     expect(ctx.detail.signatureStatus).toBe('captured');
+  });
+
+  it.each(['missing row', 'wrong visit', 'different documentation'])('keeps the draft when the primary write returns %s', async (failure) => {
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
+    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert: (payload: Record<string, unknown>) => ({ select: () => ({ single: async () => ({
+      data: failure === 'missing row' ? null : { ...payload, ...(failure === 'wrong visit' ? { visit_id: 'other' } : { short_description: 'Nicht gespeichert' }) }, error: null,
+    }) }) }) }) }));
+    const { saveVisitDocumentation } = await import('@/features/assistWorkflow/saveVisitDocumentation');
+    const ctx = buildCtx({ assistVisitId: ASSIGNMENT });
+    const result = await saveVisitDocumentation({ ctx, documentation: { shortDescription: 'Meine Änderung', referralRequired: false, emergencyOrProblem: false } });
+    expect(result.ok).toBe(false);
+    expect(ctx.detail.documentationStatus).toBe('none');
+  });
+
+  it('does not write documentation with an unresolved profile foreign key', async () => {
+    vi.doMock('@/lib/auth/resolveAuthenticatedProfile', () => ({ resolveAuthenticatedProfileId: async () => ({ ok: false, error: 'Profilzuordnung fehlgeschlagen' }) }));
+    const upsert = vi.fn();
+    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert }) }));
+    const { saveVisitDocumentation } = await import('@/features/assistWorkflow/saveVisitDocumentation');
+    const result = await saveVisitDocumentation({ ctx: buildCtx({ assistVisitId: ASSIGNMENT }), documentation: { shortDescription: 'Meine Änderung', referralRequired: false, emergencyOrProblem: false } });
+    expect(result.ok).toBe(false);
+    expect(upsert).not.toHaveBeenCalled();
   });
 
 });

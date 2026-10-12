@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -27,6 +27,7 @@ import {
   openEmployeePortalDocumentPicker,
   openEmployeePortalMediaLibrary,
   readEmployeePortalMediaBytes,
+  releaseEmployeePortalMediaUri,
   recoverEmployeePortalPendingCameraMedia,
   type EmployeePortalMediaPickerResult,
 } from '@/lib/portal/employeePortalMediaPicker';
@@ -45,7 +46,7 @@ export function EmployeePortalUploadScreen() {
   const text = portalText;
   const { tenantId, employeeId } = usePortalActor();
   const { uploads, loading, error, refresh } = useEmployeePortalUploads();
-  const { records: clients } = useEmployeePortalClientRecords();
+  const { records: clients, loading: clientsLoading, error: clientsError, refresh: refreshClients } = useEmployeePortalClientRecords();
 
   const [uploadContext, setUploadContext] = useState<EmployeePortalUploadContext>('mitarbeiter');
   const [clientId, setClientId] = useState<string | null>(null);
@@ -58,6 +59,15 @@ export function EmployeePortalUploadScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const selected = useRef<EmployeePortalPickedMedia | null>(null);
+  const flight = useRef(false);
+  const epoch = useRef(0);
+  useEffect(() => {
+    epoch.current += 1; flight.current = false;
+    setPickedFile(null); setComment(''); setClientId(null); setSubmitting(false); setPicking(false); setSubmitError(null); setSubmitSuccess(false);
+    return () => { epoch.current += 1; releaseEmployeePortalMediaUri(selected.current?.uri); selected.current = null; };
+  }, [tenantId, employeeId]);
+
 
   const categories = useMemo(
     () => (uploadContext === 'mitarbeiter' ? EMPLOYEE_SELF_UPLOAD_CATEGORIES : EMPLOYEE_CLIENT_UPLOAD_CATEGORIES),
@@ -75,87 +85,67 @@ export function EmployeePortalUploadScreen() {
     if (!result.media) return;
     const validation = validateEmployeePortalPickedMedia(result.media, 'portal-upload');
     if (!validation.ok) {
+      releaseEmployeePortalMediaUri(result.media.uri);
       setSubmitError(validation.error);
       return;
     }
     setSettingsRequired(false);
     setPermissionHelp(null);
     setSubmitError(null);
+    releaseEmployeePortalMediaUri(selected.current?.uri);
+    selected.current = result.media;
     setPickedFile(result.media);
+    setSubmitSuccess(false);
   }, []);
 
   const pickFrom = useCallback(async (source: 'camera' | 'library' | 'document') => {
-    setPicking(true);
-    setSubmitError(null);
-    const result =
-      source === 'camera'
-        ? await openEmployeePortalCamera()
-        : source === 'library'
-          ? await openEmployeePortalMediaLibrary()
-          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
-    acceptPickerResult(result);
+    if (flight.current) return;
+    flight.current = true; setPicking(true); setSubmitError(null);
+    const generation = epoch.current;
+    try {
+      const result = source === 'camera' ? await openEmployeePortalCamera()
+        : source === 'library' ? await openEmployeePortalMediaLibrary()
+        : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+      if (epoch.current !== generation) { if (result.ok) releaseEmployeePortalMediaUri(result.media?.uri); return; }
+      acceptPickerResult(result);
+    } catch { if (epoch.current === generation) setSubmitError('Die Dateiauswahl konnte nicht geöffnet werden. Bitte erneut versuchen.'); }
+    finally { if (epoch.current === generation) { flight.current = false; setPicking(false); } }
   }, [acceptPickerResult]);
 
   useEffect(() => {
     let cancelled = false;
+    const generation = epoch.current;
     void recoverEmployeePortalPendingCameraMedia().then((result) => {
-      if (!cancelled && (result.ok ? Boolean(result.media) : true)) acceptPickerResult(result);
+      if (!cancelled && epoch.current === generation && (result.ok ? Boolean(result.media) : true)) acceptPickerResult(result);
     });
     return () => {
       cancelled = true;
     };
   }, [acceptPickerResult]);
 
-  const canSubmit = Boolean(pickedFile) && (uploadContext === 'mitarbeiter' || clientId);
-
+  const canSubmit = Boolean(tenantId && employeeId && pickedFile) && (uploadContext === 'mitarbeiter' || Boolean(clientId));
   const submit = useCallback(async () => {
-    if (!tenantId || !employeeId || !pickedFile || !canSubmit) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    let bytes: Uint8Array;
+    if (flight.current || !tenantId || !employeeId || !pickedFile || !canSubmit) return;
+    flight.current = true; setSubmitting(true); setSubmitError(null); setSubmitSuccess(false);
+    const generation = epoch.current;
     try {
-      bytes = await readEmployeePortalMediaBytes(pickedFile.uri);
-    } catch {
-      setSubmitting(false);
-      setSubmitError('Die ausgewählte Datei konnte nicht gelesen werden. Bitte wählen Sie sie erneut aus.');
-      return;
-    }
-    const validated = validateEmployeePortalPickedMedia(
-      { ...pickedFile, sizeBytes: bytes.length },
-      'portal-upload',
-    );
-    if (!validated.ok) {
-      setSubmitting(false);
-      setSubmitError(validated.error);
-      return;
-    }
-    const result = await uploadEmployeePortalDocument({
-      tenantId,
-      employeeId,
-      uploadContext,
-      clientId: uploadContext === 'klient' ? clientId : null,
-      fileName: pickedFile.fileName,
-      mimeType: pickedFile.mimeType,
-      sizeBytes: bytes.length,
-      bytes,
-      category,
-      message: comment.trim() || null,
-    });
-    setSubmitting(false);
-    if (!result.ok) {
-      setSubmitError(result.error);
-      return;
-    }
-    setSubmitSuccess(true);
-    setPickedFile(null);
-    setComment('');
-    await refresh();
-    setTimeout(() => setSubmitSuccess(false), 3000);
+      const bytes = await readEmployeePortalMediaBytes(pickedFile.uri);
+      if (epoch.current !== generation) return;
+      const valid = validateEmployeePortalPickedMedia({ ...pickedFile, sizeBytes: bytes.length }, 'portal-upload');
+      if (!valid.ok) { setSubmitError(valid.error); return; }
+      const result = await uploadEmployeePortalDocument({ tenantId, employeeId, uploadContext,
+        clientId: uploadContext === 'klient' ? clientId : null, fileName: pickedFile.fileName,
+        mimeType: pickedFile.mimeType, sizeBytes: bytes.length, bytes, category, message: comment.trim() || null });
+      if (epoch.current !== generation) return;
+      if (!result.ok) { setSubmitError(result.error); return; }
+      releaseEmployeePortalMediaUri(selected.current?.uri); selected.current = null;
+      setPickedFile(null); setComment(''); setSubmitSuccess(true);
+      try { const refreshed = await refresh(); if (epoch.current === generation && !refreshed) setSubmitError('Der Upload wurde eingereicht. Die Upload-Liste konnte noch nicht aktualisiert werden. Bitte erneut laden.'); }
+      catch { if (epoch.current === generation) setSubmitError('Das Dokument wurde gespeichert. Die Liste konnte noch nicht aktualisiert werden. Bitte die Liste erneut laden.'); }
+    } catch { if (epoch.current === generation) setSubmitError('Die Speicherung konnte nicht bestätigt werden. Datei und Kommentar bleiben erhalten. Bitte vor erneutem Hochladen die Liste aktualisieren.'); }
+    finally { if (epoch.current === generation) { flight.current = false; setSubmitting(false); } }
   }, [tenantId, employeeId, pickedFile, canSubmit, uploadContext, clientId, category, comment, refresh]);
 
-  if (loading && uploads.length === 0) {
-    return <LoadingState message="Uploads werden geladen…" />;
-  }
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -175,6 +165,8 @@ export function EmployeePortalUploadScreen() {
           ]}
           activeKey={uploadContext}
           onSelect={(value) => {
+            if (flight.current) return;
+            setSubmitSuccess(false);
             setUploadContext(value as EmployeePortalUploadContext);
             setCategory('sonstiges');
             setClientId(null);
@@ -185,7 +177,7 @@ export function EmployeePortalUploadScreen() {
         {uploadContext === 'klient' ? (
           <View style={styles.clientPicker}>
             <Text style={[styles.label, { color: text.secondary }]}>Klient:in</Text>
-            {clients.length === 0 ? (
+            {clientsLoading ? <LoadingState message="Klient:innen werden geladen…" /> : clientsError ? <ErrorState message={clientsError} onRetry={refreshClients} /> : clients.length === 0 ? (
               <Text style={[styles.meta, { color: text.muted }]}>Keine zugeordneten Klient:innen</Text>
             ) : (
               clients.map((client) => (
@@ -195,7 +187,7 @@ export function EmployeePortalUploadScreen() {
                   multiline
                   showChevron={false}
                   trailing={clientId === client.clientId ? <Text>✓</Text> : undefined}
-                  onPress={() => setClientId(client.clientId)}
+                  onPress={() => { if (!flight.current) setClientId(client.clientId); }}
                 />
               ))
             )}
@@ -205,7 +197,7 @@ export function EmployeePortalUploadScreen() {
         <SegmentedTabs
           tabs={categories.map((cat) => ({ key: cat, label: formatCategoryLabel(cat) }))}
           activeKey={category}
-          onSelect={setCategory}
+          onSelect={(value) => { if (!flight.current) setCategory(value); }}
           layout="wrap"
           rows={2}
         />
@@ -272,6 +264,7 @@ export function EmployeePortalUploadScreen() {
           label="Kommentar (optional)"
           value={comment}
           onChangeText={setComment}
+          editable={!submitting}
           multiline
         />
 
@@ -288,7 +281,7 @@ export function EmployeePortalUploadScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: text.primary }]}>Meine Uploads</Text>
-      {error && uploads.length === 0 ? (
+      {loading && uploads.length === 0 ? <LoadingState message="Uploads werden geladen…" /> : error && uploads.length === 0 ? (
         <ErrorState title="Uploads" message={error} onRetry={() => void refresh()} />
       ) : uploads.length === 0 ? (
         <EmptyState title="Noch keine Uploads" message="Reichen Sie Dokumente über das Formular oben ein." />

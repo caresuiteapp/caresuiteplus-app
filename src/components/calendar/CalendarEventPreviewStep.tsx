@@ -11,6 +11,8 @@ type CalendarEventPreviewStepProps = {
   form: CalendarEventFormState;
   template: CalendarEventTemplate | null;
   moduleKey: string;
+  clientLabel?: string;
+  employeeLabel?: string;
 };
 
 function PreviewRow({ label, value, muted }: { label: string; value: string; muted: string }) {
@@ -23,10 +25,10 @@ function PreviewRow({ label, value, muted }: { label: string; value: string; mut
   );
 }
 
-export function CalendarEventPreviewStep({ form, template, moduleKey }: CalendarEventPreviewStepProps) {
+export function CalendarEventPreviewStep({ form, template, moduleKey, clientLabel, employeeLabel }: CalendarEventPreviewStepProps) {
   const text = useAuroraAdaptiveText();
-  const startLabel = new Date(form.startAt).toLocaleString('de-DE');
-  const endLabel = new Date(form.endAt).toLocaleString('de-DE');
+  const startLabel = new Date(form.startAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
+  const endLabel = new Date(form.endAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
   const typeLabel = (CALENDAR_EVENT_TYPE_LABELS as Record<string, string>)[form.eventType] ?? form.eventType;
 
   return (
@@ -41,13 +43,13 @@ export function CalendarEventPreviewStep({ form, template, moduleKey }: Calendar
       <PreviewRow label="Ort" value={form.locationName} muted={text.muted} />
       <PreviewRow label="Raum" value={form.room} muted={text.muted} />
       <PreviewRow label="Beschreibung" value={form.description} muted={text.muted} />
-      <PreviewRow label="Klient" value={form.relatedClientId} muted={text.muted} />
-      <PreviewRow label="Mitarbeiter" value={form.relatedEmployeeId} muted={text.muted} />
+      <PreviewRow label="Klient" value={clientLabel ?? (form.relatedClientId ? 'Zuordnung prüfen' : '')} muted={text.muted} />
+      <PreviewRow label="Mitarbeiter" value={employeeLabel ?? (form.relatedEmployeeId ? 'Zuordnung prüfen' : '')} muted={text.muted} />
       <PreviewRow label="Wohnbereich" value={form.relatedWardId} muted={text.muted} />
 
       <Text style={[styles.section, { color: text.muted }]}>Sichtbarkeit</Text>
       <PreviewRow
-        label="Assist-Kalender"
+        label="Zentraler Kalender"
         value={form.isOfficeVisible ? 'Sichtbar' : 'Ausgeblendet'}
         muted={text.muted}
       />
@@ -67,10 +69,6 @@ export function CalendarEventPreviewStep({ form, template, moduleKey }: Calendar
         muted={text.muted}
       />
 
-      {form.reminderMinutes != null ? (
-        <PreviewRow label="Erinnerung" value={`${form.reminderMinutes} Min. vorher`} muted={text.muted} />
-      ) : null}
-      <PreviewRow label="Nachverfolgung" value={form.followUpNote} muted={text.muted} />
     </View>
   );
 }

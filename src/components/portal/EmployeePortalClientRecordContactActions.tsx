@@ -1,4 +1,4 @@
-import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -10,7 +10,7 @@ const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as V
 export function dialPhoneNumber(phone: string): void {
   const normalized = phone.replace(/[^\d+]/g, '');
   if (!normalized) return;
-  void Linking.openURL(`tel:${normalized}`);
+  void Linking.openURL(`tel:${normalized}`).catch(() => Alert.alert('Anruf nicht möglich', `Die Telefonanwendung konnte nicht geöffnet werden. Telefonnummer: ${phone}`));
 }
 
 type PhoneActionRowProps = {
@@ -23,21 +23,17 @@ export function PhoneActionRow({ label, value, icon = '📞' }: PhoneActionRowPr
   const text = useAuroraAdaptiveText();
 
   return (
-    <Pressable
-      onPress={() => dialPhoneNumber(value)}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} anrufen: ${value}`}
-      style={[styles.row, webCursor]}
-    >
+    <View style={styles.row}>
       <View style={styles.iconWrap}>
         <Text style={styles.icon}>{icon}</Text>
       </View>
-      <View style={styles.copy}>
+      <Pressable style={[styles.copy, webCursor]} onPress={() => dialPhoneNumber(value)}
+        accessibilityRole="button" accessibilityLabel={`${label} anrufen: ${value}`}>
         <Text style={[styles.label, { color: text.muted }]}>{label}</Text>
         <Text style={[styles.value, { color: text.primary }]}>{value}</Text>
-      </View>
+      </Pressable>
       <PremiumButton title="Anrufen" size="sm" variant="secondary" onPress={() => dialPhoneNumber(value)} />
-    </Pressable>
+    </View>
   );
 }
 

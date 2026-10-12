@@ -107,8 +107,22 @@ describe('workflow timeout/stale recovery postconditions', () => {
   it('confirms pause end only when a previous pause is no longer active', () => {
     const before = context('pausiert', {}, { activeTimer: 'pause', pauseStartedAt: '2026-08-02T09:00:00.000Z' });
     const after = context('gestartet', {}, { activeTimer: 'service', pauseSeconds: 300 });
+    after.timeEvents = [{ eventType: 'pause_end', occurredAt: '2026-08-02T09:05:00.000Z' }];
     expect(didWorkflowActionReachPostcondition('end_pause', before, after)).toBe(true);
     expect(didWorkflowActionReachPostcondition('end_pause', before, before)).toBe(false);
+  });
+
+  it('does not confirm a second pause or resume from a status flag before its event was stored', () => {
+    const before = context('gestartet', {}, { activeTimer: 'service' });
+    const statusOnly = context('pausiert', {}, { activeTimer: 'pause', pauseStartedAt: '2026-08-02T10:00:00.000Z' });
+    statusOnly.timeEvents = [{ eventType: 'pause_start', occurredAt: '2026-08-02T09:00:00.000Z' }, { eventType: 'pause_end', occurredAt: '2026-08-02T09:05:00.000Z' }];
+    expect(didWorkflowActionReachPostcondition('start_pause', before, statusOnly)).toBe(false);
+    statusOnly.timeEvents.push({ eventType: 'pause_start', occurredAt: '2026-08-02T10:00:00.000Z' });
+    expect(didWorkflowActionReachPostcondition('start_pause', before, statusOnly)).toBe(true);
+    const resumed = context('gestartet', {}, { activeTimer: 'service' }); resumed.timeEvents = statusOnly.timeEvents;
+    expect(didWorkflowActionReachPostcondition('end_pause', statusOnly, resumed)).toBe(false);
+    resumed.timeEvents = [...resumed.timeEvents, { eventType: 'pause_end', occurredAt: '2026-08-02T10:05:00.000Z' }];
+    expect(didWorkflowActionReachPostcondition('end_pause', statusOnly, resumed)).toBe(true);
   });
 
   it('requires the deferred portal marker for deferred finalization recovery', () => {

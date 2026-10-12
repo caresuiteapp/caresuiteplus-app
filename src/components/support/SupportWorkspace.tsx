@@ -40,8 +40,8 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
   const createNonce = useRef(newSupportNonce());
   const mutationLock = useRef(false);
   const oldestLoaded = useRef(false);
-  const queueReads = useMemo(() => createSupportReadScope(), [offset, search, status]);
-  const detailReads = useMemo(() => createSupportReadScope(), [selected]);
+  const queueReads = useMemo(() => createSupportReadScope(JSON.stringify([offset, search, status])), [offset, search, status]);
+  const detailReads = useMemo(() => createSupportReadScope(selected ?? undefined), [selected]);
   const displayError = error || detailError || queueError;
   const wide = width >= 1040;
 

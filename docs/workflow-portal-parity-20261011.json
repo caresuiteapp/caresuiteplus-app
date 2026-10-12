@@ -1,0 +1,708 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-11",
+  "scope": "Lokale, fokussierte Paritätsstichprobe in Verwaltung, Mitarbeitenden- und Klientenportal plus ausführliche Neuaufnahme-UI/Hook/Draftprüfung.",
+  "startingCommit": "53aa6a47",
+  "branch": "fix/mobile-admin-20261011",
+  "status": "local_samples_passed_with_explicit_release_gaps",
+  "boundaries": {
+    "productionDataUsed": false,
+    "productionMutations": false,
+    "accountsOrEmailsCreated": false,
+    "migrationsApplied": false,
+    "softwareInstalled": false,
+    "commitsCreated": false,
+    "fullTypecheckOrExportByThisAgent": false,
+    "browserVisualInspection": false,
+    "realAndroidIosDeviceInspection": false,
+    "layoutEngineInDomTests": false
+  },
+  "evidenceDefinitions": {
+    "react_dom_lifecycle_with_dependencies_mocked": "Echte React-Commits/Effects/Controlled-Eingaben in happy-dom mit nativen UI-/Serverabhängigkeiten gemockt. Kein Renderlayout.",
+    "mock_react_tree": "Handrenderer mit gemockten Statefunktionen. Erlaubt konkrete Klick-/Callbackvertragsprüfungen, keine echte React-Lifecycle- oder Layoutfreigabe.",
+    "service_behavior": "Produktiver Servicecode gegen lokale Demo-/gemockte Backendverträge. Keine Live-RLS-/Storagebestätigung.",
+    "source_contract": "Pfad/Text/Quell-/Stylevertrag; kein funktionaler Geräteklick oder optischer Nachweis."
+  },
+  "localVerification": {
+    "commandConstraint": "vitest run --maxWorkers=1; nur vorhandene Infrastruktur",
+    "intake": {
+      "report": "/workspace/scratch/06df2d298469/intake-ui-final-tests.json",
+      "status": "passed",
+      "testFiles": 13,
+      "passed": 143,
+      "failed": 0
+    },
+    "portalParity": {
+      "report": "/workspace/scratch/06df2d298469/workflow-portal-parity-tests.json",
+      "passed": 203,
+      "failed": 0,
+      "testFiles": 22
+    },
+    "diffCheck": "passed for owned files"
+  },
+  "parityMatrix": [
+    {
+      "portal": "administration",
+      "area": "navigation",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/liquid-command/screens/LiquidCommandEntryScreen.web.tsx",
+        "app/business/_layout.tsx",
+        "src/lib/navigation/routes.ts",
+        "src/lib/navigation/clientRoutes.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/navigation/webEntryRouting.test.tsx",
+        "src/__tests__/navigation/routesRegistry.test.ts"
+      ],
+      "verified": [
+        "Restoration hält Zugangsseite/Desktop zurück; anonyme Sitzung zeigt Zugang; unbekannte Rolle erhält Recovery; Mitarbeiter-/Klientenrolle führt ins passende Portal.",
+        "Business-Haupteinstieg leitet um, Fachseiten bleiben erreichbar; registrierte Ankündigungsrouten existieren."
+      ],
+      "evidenceKinds": [
+        "react_dom_lifecycle_with_dependencies_mocked",
+        "route_registry_and_source_contract"
+      ],
+      "openGaps": [
+        "Kein vollständiger Klickcrawl jeder Verwaltungsroute.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "administration",
+      "area": "login",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/lib/auth/businessAuthService.ts",
+        "src/lib/auth/businessAuthService.web.ts",
+        "src/lib/auth/businessRegistrationPolicy.ts",
+        "src/liquid-command/screens/AccessScreens.tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/navigation/webEntryRouting.test.tsx"
+      ],
+      "verified": [
+        "Native-/Web-Serviceverträge für kostenlose Registrierung, Antwortidentität, fehlende Berechtigung und Wiederholung nach Zeitüberschreitung.",
+        "Unbekannte Rolle erhält keinen Desktopzugriff."
+      ],
+      "evidenceKinds": [
+        "native_web_service_behavior_with_backend_mocked",
+        "react_dom_lifecycle_with_dependencies_mocked"
+      ],
+      "openGaps": [
+        "Diese Stichprobe belegt die Servicegrenze, nicht die vollständige AccessScreen-Eingabe auf einem Gerät.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "administration",
+      "area": "lists",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/office/ClientsListView.tsx",
+        "src/components/office/ClientsListTable.tsx",
+        "src/components/office/ClientsFilterToolbar.tsx",
+        "src/lib/office/clientListService.ts",
+        "src/lib/office/clientListStats.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/office/officeClientsList.test.ts"
+      ],
+      "verified": [
+        "Lokaler Demolesevertrag, Kennzahlen und Pflegegradfilter.",
+        "Quellvertrag für Lade-/Leer-/Fehlerzustände, neue Aufnahme/Aktenlink, Suche und sortierbare Tabellenspalten."
+      ],
+      "evidenceKinds": [
+        "local_demo_service_behavior",
+        "source_contract"
+      ],
+      "openGaps": [
+        "Kein realer Listen-Such-/Sortier-UIlauf und kein Layoutvergleich mobile Karten gegen Webtabelle.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "administration",
+      "area": "forms",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/hooks/useClientIntakeWizard.ts",
+        "src/components/office/clientintakewizardform.tsx",
+        "src/components/office/clientintakemodal.tsx",
+        "src/lib/clients/clientIntakeValidation.ts",
+        "src/lib/clients/clientIntakeDraftStorage.ts",
+        "src/lib/clients/repositories/clientIntakeDraftRepository.supabase.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeWizardLifecycle.test.tsx",
+        "src/__tests__/clients/clientIntakeFormPlatforms.test.tsx",
+        "src/__tests__/clients/clientIntakeValidationTruth.test.ts",
+        "src/__tests__/clients/clientIntakeDraftStorage.test.ts",
+        "src/__tests__/clients/clientIntakeDraftRepository.test.ts",
+        "src/__tests__/clients/clientIntakeFormMappers.test.ts",
+        "src/__tests__/clients/clientIntakeAddressInteraction.test.tsx"
+      ],
+      "verified": [
+        "Neuaufnahme/Edit A→B und Mandanten-/Kontowechsel verwerfen verspätete Antworten; Ladefehler hat echte Wiederholung.",
+        "Vollständiger Entwurf lokal vor Remote; konkurrierende Sicherungen serialisiert; stabile UUID vor möglichem Insert; Wiederholung verwendet gleiche ID; aktivierte Klienten werden nicht als neue Leads dupliziert.",
+        "Doppelsenden und erneutes Absenden nach bestätigtem Abschluss verhindert; erfolgreicher Commit bleibt bei lokaler Cleanup-Störung erfolgreich.",
+        "Web/Android/iOS kontrollierte Eingabe, Datumfehler sichtbar, tatsächlicher Sicherungsstatus, KeyboardAvoidingView-Vertrag, Scrollreset und Dateispeicherungshinweis."
+      ],
+      "evidenceKinds": [
+        "react_dom_lifecycle_with_dependencies_mocked",
+        "three_platform_prop_and_interaction_contract",
+        "local_storage_and_repository_behavior"
+      ],
+      "openGaps": [
+        "Serverkatalog/atomare Aufnahme- und Dokumentverträge werden separat vom Persistenzagenten geprüft.",
+        "Externe Dateiimporte sind sichtbar gesperrt, bis ein sicherer Archivvertrag existiert.",
+        "Nicht angebotene historische Felder birthPlace/nationality/language/maritalStatus bleiben nur in alten lokalen Entwürfen erhalten; keine dauerhafte Serverpersistenz behauptet.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "administration",
+      "area": "messenger",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/screens/office/officemessagesmessengerscreen.tsx",
+        "src/lib/office/messageservice.ts",
+        "src/lib/office/portalofficemessageservice.ts",
+        "src/lib/office/messagebusinessrules.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/office/officemessagingphase3.test.ts",
+        "src/__tests__/office/officemessagingportal.test.ts"
+      ],
+      "verified": [
+        "Service-/Geschäftsregeln, Portalsichtbarkeit und Actor-Threadzuordnung sowie lokaler Nachrichten-/Realtimevertrag."
+      ],
+      "evidenceKinds": [
+        "service_behavior_with_supabase_mocked",
+        "business_rule_unit_behavior"
+      ],
+      "openGaps": [
+        "Kein vollständiger Verwaltungs-Messenger-Lifecycle in dieser Stichprobe; Client-/Employee-Wechselverhalten wird separat an gemeinsamen Portal-Komponenten geprüft.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "administration",
+      "area": "files",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/office/officemessageattachmentpicker.tsx",
+        "src/components/office/messageattachmentlist.tsx",
+        "src/lib/office/messageattachmentservice.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/office/officemessagingphase3.test.ts",
+        "src/__tests__/office/portalNativeAttachmentTransport.test.ts",
+        "src/__tests__/portal/portalAttachmentDeviceLifecycle.test.tsx"
+      ],
+      "verified": [
+        "MIME-/10MB-Prüfung, gemockte Storage-/Metadatenspeicherung; native ArrayBuffer-Bytes und Browser-Blob werden unterschieden.",
+        "Gemeinsamer Picker unterbindet parallele Auswahl und erhält Removed-Datei nicht durch verspätete Bytes; Fehler beim externen Öffnen bleibt wiederholbar."
+      ],
+      "evidenceKinds": [
+        "service_behavior_with_storage_mocked",
+        "react_dom_lifecycle_shared_attachment_components"
+      ],
+      "openGaps": [
+        "Intake hat weiterhin keinen freigegebenen externen Dateiupload; keine Dateinamenspeicherung als Upload.",
+        "Attachment-Lifecycle-Stichprobe verwendet Portalactor; kein separates Verwaltungs-Nativgerät.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "navigation",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "src/components/portal/EmployeeLogbookLifecycleGate.tsx",
+        "app/portal/employee/messages/[threadId].tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/employeePortalNavigationAccess.test.tsx",
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx",
+        "src/__tests__/navigation/routesRegistry.test.ts",
+        "src/__tests__/navigation/lightPortalRoutes.test.ts"
+      ],
+      "verified": [
+        "Navigationsaktionen bleiben während Einsatz/GPS zugänglich; Desktopleiste und direktes Öffnen aktiver Anfahrt geprüft.",
+        "Direkter Chat-Link/Android Back führt zum Posteingang; Handler wird auf Blur entfernt; Messenger-Fokus beeinflusst Navigation nur während Chat."
+      ],
+      "evidenceKinds": [
+        "mock_react_tree_button_interaction",
+        "react_dom_lifecycle_with_android_back_mocked",
+        "route_and_theme_unit_contract"
+      ],
+      "openGaps": [
+        "Kein vollständiger Crawl aller Mitarbeitendenrouten.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "login",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/lib/auth/AuthProvider.tsx",
+        "src/hooks/usePortalActor.ts",
+        "src/lib/auth/verifiedPortalEmployeeLink.ts",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/lib/auth/rememberedPortalLogin.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/auth/employeePortalSessionIdentity.test.tsx",
+        "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+        "src/__tests__/auth/rememberedPortalLogin.test.ts"
+      ],
+      "verified": [
+        "Keine Anmeldung aus Portalrecord ohne passende verifizierte Authidentität; Logout/Kontowechsel räumen altes Portal weg.",
+        "Authentisch gebundene Offlineidentität wird read-only Actor; Live-Erneuerungsstörung behält aligned cache.",
+        "FirstLogin-Doppeldruck, Unmount und Kontowechsel ignorieren späte Ergebnisse; Geräteprompt-/Credentialspeicherung nach Portalart getrennt, kein Webpasswortspeicher."
+      ],
+      "evidenceKinds": [
+        "react_dom_auth_provider_actor_lifecycle_with_supabase_mocked",
+        "react_dom_first_login_lifecycle",
+        "native_web_sensitive_storage_unit_behavior"
+      ],
+      "openGaps": [
+        "Biometrie, tatsächlicher Android/iOS-KeyStore und Live-JWT-Ausstellung nicht auf Gerät geprüft.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "lists",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/hooks/usenotifications.ts",
+        "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx",
+        "src/hooks/usePortalDocuments.ts",
+        "src/hooks/useEmployeePortalProfile.ts",
+        "src/hooks/useEmployeePortalPersonnelView.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/employeeProfileAnnouncementsLifecycle.test.tsx",
+        "src/__tests__/portal/employeeDocumentInteraction.test.tsx",
+        "src/__tests__/portal/portalAsyncInteraction.test.tsx"
+      ],
+      "verified": [
+        "Broadcast-Volltext und read/ack/reply, wiederholbare Fehler; bei Scopewechsel sofort keine Daten des Vorgängers.",
+        "Dokumentenladen/Linkfehler und Refreshfehler werden nicht als leerer erfolgreicher Zustand gezeigt; zwischengespeicherte Inhalte bleiben bei Refreshfehler sichtbar.",
+        "Gemeinsamer Query-Lifecycle verwirft späte Ergebnisse und bündelt Nachladen ohne false success."
+      ],
+      "evidenceKinds": [
+        "react_dom_hook_and_screen_lifecycle_with_services_mocked"
+      ],
+      "openGaps": [
+        "Keine vollständige Auswahl-/Filterprüfung aller Mitarbeiterlisten.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "forms",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/screens/portal/EmployeeProfileScreen.tsx",
+        "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx",
+        "src/components/auth/PortalDeviceSettingsCard.tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+        "src/__tests__/portal/employeeProfileAnnouncementsLifecycle.test.tsx",
+        "src/__tests__/portal/portalAttachmentDeviceLifecycle.test.tsx"
+      ],
+      "verified": [
+        "FirstLogin-Eingabe/Doppelsubmit und Retry nach unerwarteter Servicerejection.",
+        "Profil-/Avatarwechsel zeigen keine fremden Restdaten; Ankündigungs-Acknowledgement/Antwort und Gerätestatus bieten Fehler-/Retryzustand."
+      ],
+      "evidenceKinds": [
+        "react_dom_lifecycle_with_native_ui_and_service_mocks"
+      ],
+      "openGaps": [
+        "Profil-Schreibformular nicht vollständig native/web durchgespielt; Geräteberechtigung/UI nur Vertrag.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "messenger",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/portal/portalofficethread.tsx",
+        "src/components/portal/portalofficemessenger.tsx",
+        "src/screens/portal/portalofficemessagesscreens.tsx",
+        "src/hooks/useportalofficethreaddetail.ts",
+        "src/lib/office/portalofficemessageservice.ts",
+        "src/components/portal/PortalNewChatModal.tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx",
+        "src/__tests__/portal/portalNewChatInteraction.test.tsx",
+        "src/__tests__/office/officemessagingportal.test.ts"
+      ],
+      "verified": [
+        "Account-/Threadwechsel isolieren Draft/Anhänge; send/retry und ClosedThread-Neustart; Gruppennachrichten korrekt eigener/fremder Actor.",
+        "Read-Marking nur fokussiert+foreground, neue Officeantworten werden genau einmal bestätigt, fehlgeschlagene Bestätigung bleibt wiederholbar.",
+        "Neue Chats verlangen linked+writable Actor; optionale Kategorienfehler blockieren nicht; kein Doppel-/Leersenden."
+      ],
+      "evidenceKinds": [
+        "react_dom_conversation_lifecycle_with_dependencies_mocked",
+        "mock_react_tree_new_chat_interaction",
+        "service_actor_business_rule_behavior"
+      ],
+      "openGaps": [
+        "PortalNewChatInteraction nutzt einen Handrenderer mit gemockten React-Statefunktionen, keine echte Commit-/Effectausführung; Konversation hat echte React-Lifecyclefälle.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "employee",
+      "area": "files",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/office/officemessageattachmentpicker.tsx",
+        "src/components/office/messageattachmentlist.tsx",
+        "src/lib/office/messageattachmentservice.ts",
+        "src/hooks/usePortalDocuments.ts",
+        "src/hooks/usePortalDocumentDetail.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/portalAttachmentDeviceLifecycle.test.tsx",
+        "src/__tests__/office/portalNativeAttachmentTransport.test.ts",
+        "src/__tests__/portal/employeeDocumentInteraction.test.tsx"
+      ],
+      "verified": [
+        "Native TypedArray-Sicht speichert exakte ArrayBufferbytes, Browser speichert MIME-Blob; falscher Tenant wird vor Signing abgewiesen.",
+        "Mehrfachanhänge erhalten getrennte URLs; Datei-/Dokumentdownload meldet externen Öffnungsfehler und erlaubt Retry."
+      ],
+      "evidenceKinds": [
+        "react_dom_attachment_and_document_lifecycle",
+        "native_web_storage_payload_behavior"
+      ],
+      "openGaps": [
+        "Keine echte native Dateiauswahl, PDFapp, Kamera-/Storageberechtigungen und Archiv-RPC-End-to-Endprüfung.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "navigation",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "app/portal/client/messages/index.tsx",
+        "app/portal/client/messages/[threadId].tsx",
+        "src/screens/portal/portalofficemessagesscreens.tsx",
+        "src/lib/navigation/routes.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx",
+        "src/__tests__/portal/clientPortalMessagesVisitsRepair.test.ts",
+        "src/__tests__/navigation/routesRegistry.test.ts",
+        "src/__tests__/navigation/lightPortalRoutes.test.ts",
+        "src/__tests__/navigation/webEntryRouting.test.tsx"
+      ],
+      "verified": [
+        "ClosedThread-Direktroute öffnet tatsächlich die neu bestätigte Client-Konversation; mobile Chatnavigation blendet Chrome aus und beim Verlassen ein.",
+        "Web-Einstieg mit client_portal Rolle leitet ins Klientenportal; Nachrichten-/Termin-/Ankündigungsrouten und helle Statussymbole haben Quell-/Unitnachweise."
+      ],
+      "evidenceKinds": [
+        "react_dom_conversation_navigation_lifecycle",
+        "source_route_contract",
+        "web_entry_lifecycle"
+      ],
+      "openGaps": [
+        "Kein vollständiger Routecrawl inklusive jeder Detail-/Budgetseite.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "login",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/lib/auth/clientPortalAuthService.ts",
+        "src/lib/clients/clientPortalAccessService.ts",
+        "src/lib/auth/rememberedPortalLogin.ts",
+        "src/liquid-command/screens/LiquidCommandEntryScreen.web.tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/auth/clientPortalAccess.test.ts",
+        "src/__tests__/auth/rememberedPortalLogin.test.ts",
+        "src/__tests__/navigation/webEntryRouting.test.tsx"
+      ],
+      "verified": [
+        "Lokaler Demo-Username/Code akzeptiert korrekt und lehnt falschen/rotierten Altcode ab.",
+        "Officezugangserzeugung/-Rotation lokal; gespeicherter Clientlogin bleibt beim Löschen anderer Portalart erhalten; Web-Einstieg routet Clientrolle korrekt."
+      ],
+      "evidenceKinds": [
+        "local_demo_auth_service_behavior",
+        "sensitive_storage_unit_behavior",
+        "web_entry_lifecycle"
+      ],
+      "openGaps": [
+        "Kein Live-Clientlogin über serverausgestellten Portalcode/JWT und keine vollständige Clientlogin-Eingabemaske auf Native.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "lists",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/hooks/usePortalAppointments.ts",
+        "src/hooks/core/useAsyncQuery.ts",
+        "src/components/portal/ClientPortalAttentionPrompt.tsx",
+        "src/lib/portal/clientSignatureAttention.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/clientAppointmentsRefreshRepair.test.tsx",
+        "src/__tests__/portal/portalAsyncInteraction.test.tsx",
+        "src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx"
+      ],
+      "verified": [
+        "Termine behalten Inhalt bei Refreshfehler und melden nur echten Liveerfolg; Offline-Cache wird nicht als neuer Liveabruf ausgegeben.",
+        "Pflichtnachweis-Aufmerksamkeit bleibt bei Dismiss vorhanden; Fehler anderer Datenquelle verhindert exakten Dokumentlink nicht; Accountwechsel räumt alten Task weg."
+      ],
+      "evidenceKinds": [
+        "react_dom_hook_and_attention_lifecycle_with_services_mocked"
+      ],
+      "openGaps": [
+        "Nicht jede Clientdokument-/Budgetliste und keine tatsächliche Layoutberechnung geprüft.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "forms",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/portal/ClientPortalAttentionPrompt.tsx",
+        "src/components/portal/ClientSignatureAttentionProvider.tsx",
+        "src/components/portal/ClientSignatureAttentionProviderCore.tsx",
+        "src/components/portal/portalofficethread.tsx"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx",
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx"
+      ],
+      "verified": [
+        "Nachweisaufforderung weist auf realen offenen Task, öffnet exaktes Dokument und entfernt Kontovorgänger.",
+        "Gemeinsamer Messenger schützt kontrollierte Entwürfe/Senden beim Threadwechsel und Fehler."
+      ],
+      "evidenceKinds": [
+        "react_dom_attention_and_shared_conversation_lifecycle"
+      ],
+      "openGaps": [
+        "Diese Stichprobe belegt Signatur-Aufmerksamkeit/Navigation, nicht Zeichnen/Unterschriftenpersistenz oder alle Clientformulare.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "messenger",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/portal/portalofficethread.tsx",
+        "src/components/portal/portalofficemessenger.tsx",
+        "src/screens/portal/portalofficemessagesscreens.tsx",
+        "src/hooks/useportalofficethreaddetail.ts",
+        "src/lib/office/portalofficemessageservice.ts",
+        "src/lib/office/messagebusinessrules.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx",
+        "src/__tests__/office/officemessagingportal.test.ts",
+        "src/__tests__/portal/portalAsyncInteraction.test.tsx"
+      ],
+      "verified": [
+        "Client-ClosedThread-Route wechselt zu neuem serverbestätigten Thread; gemeinsame Konversation schützt Draft/Anhänge/Read-Marking und Wiederholung.",
+        "Client-Threadfilter zeigt nur eigenen Scope und keine internen Nachrichten; Chatselection räumt Kontovorgänger weg."
+      ],
+      "evidenceKinds": [
+        "react_dom_shared_conversation_lifecycle",
+        "service_actor_business_rule_behavior"
+      ],
+      "openGaps": [
+        "Ein Teil der Send-/Gruppenfälle ist parametrisch Employeeactor; gemeinsame Komponente und separater Clientroutefall sind belegt, kein kompletter Client E2Echat.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    },
+    {
+      "portal": "client",
+      "area": "files",
+      "localStatus": "passed_sample",
+      "sourceFiles": [
+        "src/components/office/officemessageattachmentpicker.tsx",
+        "src/components/office/messageattachmentlist.tsx",
+        "src/lib/office/messageattachmentservice.ts",
+        "src/lib/documents/clientPortalDocumentService.ts"
+      ],
+      "testFiles": [
+        "src/__tests__/portal/portalAttachmentDeviceLifecycle.test.tsx",
+        "src/__tests__/office/portalNativeAttachmentTransport.test.ts",
+        "src/__tests__/office/officemessagingportal.test.ts"
+      ],
+      "verified": [
+        "Gemeinsamer Anhangtransport native/web mit Byte-/MIME-/Tenantprüfung; Listener/Picker/List/URLfehler und Retry.",
+        "Portalclient-Zuordnung und sichtbare Nachrichten/Anhänge haben Servicegrenzennachweise."
+      ],
+      "evidenceKinds": [
+        "shared_component_react_dom_lifecycle",
+        "native_web_storage_payload_behavior",
+        "portal_client_service_business_rule_behavior"
+      ],
+      "openGaps": [
+        "Kein separat parametrisierter Client-Dateidownload-UIlauf und kein Live Client-RLS/Storage-/Signaturdokumentabschluss.",
+        "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt.",
+        "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+      ]
+    }
+  ],
+  "confirmedFixedBugs": [
+    {
+      "id": "late_identity_data",
+      "before": "Vorher konnten späte Klienten-/Accountantworten Formular und Erfolgszustand ersetzen.",
+      "after": "Jetzt scopegebundene Daten, Rückmeldungen und Submit-Ergebnisse; Formunterbaum wird bei Identitätswechsel neu erstellt.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeWizardLifecycle.test.tsx"
+      ]
+    },
+    {
+      "id": "lost_draft_on_server_error",
+      "before": "Vorher konnte Remote-Fehler die lokale Sicherung verhindern.",
+      "after": "Jetzt komplette Formular-/Unterschriftwerte zuerst lokal, sichtbarer Remote-Fehler und sichere Wiederholung.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeWizardLifecycle.test.tsx"
+      ]
+    },
+    {
+      "id": "duplicate_or_recreated_lead",
+      "before": "Vorher konkurrierende Drafts oder UUID-Update ohne Treffer mit neuer ID; unsicherer Insert konnte neue Leads erzeugen.",
+      "after": "Jetzt serialisierte Saves, stabile lokal vorab gesicherte UUID, scoped lead-only Update und active-record Fehler, gleiche ID bei Retry.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeWizardLifecycle.test.tsx",
+        "src/__tests__/clients/clientIntakeDraftRepository.test.ts"
+      ]
+    },
+    {
+      "id": "double_submit_and_cleanup",
+      "before": "Vorher konnte Wiederholung/Fehler der Entwurfsbereinigung bereits gespeicherte Aufnahme erneut auslösen.",
+      "after": "Jetzt synchroner scoped Lock, completion guard, Erfolg bleibt trotz lokaler Cleanupstörung; unmounted/alte Accountcallbacks unterdrückt.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeWizardLifecycle.test.tsx"
+      ]
+    },
+    {
+      "id": "incomplete_and_corrupt_drafts",
+      "before": "Vorher später einzeln befüllte Felder nicht erkannt und beschädigte Werttypen im UI.",
+      "after": "Jetzt Defaults-/Typmerge, alle aktuellen Arrayfelder inklusive Finanzierung und sichere Dokumentarray-/Signaturwiederherstellung.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeDraftStorage.test.ts"
+      ]
+    },
+    {
+      "id": "wrong_edit_mappings",
+      "before": "Vorher Pflegegradgültigkeit als Leistungsbeginn, Aufnahmedatum heute, 0-Euro-Stundensatz leer und Kostenträgertypen verloren.",
+      "after": "Jetzt echte separate Datumswerte, Snapshot-Kostenträger und Nullprüfung des Stundensatzes.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeFormMappers.test.ts"
+      ]
+    },
+    {
+      "id": "validation_and_error_visibility",
+      "before": "Vorher ungültige Kalenderdaten/Email/PLZ und stationären Pflichtwohnbereich unzureichend geprüft; optionale Datefehler unsichtbar.",
+      "after": "Jetzt fachliche Pflichtregeln und echte Datum-/Kontaktvalidierung plus sichtbare Fehler und passende Labels.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeValidationTruth.test.ts",
+        "src/__tests__/clients/clientIntakeFormPlatforms.test.tsx"
+      ]
+    },
+    {
+      "id": "fake_external_upload",
+      "before": "Vorher Dateiauswahl speicherte nur Namen und war als Upload bezeichnet.",
+      "after": "Jetzt kein falscher Uploadbutton; externe Speicherungslücke deutlich, alte Dateinamen als nicht gespeicherte Dateien; sicherer Serverarchivvertrag bleibt Releasegate.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeFormPlatforms.test.tsx"
+      ]
+    },
+    {
+      "id": "false_required_doc_promise",
+      "before": "Vorher fehlende Pflichtdocs nicht blockierend mit unbelegter späterer Mitarbeiterportalzusage.",
+      "after": "Jetzt Datenschutz-/Vertragspapier vor Aktivierung erforderlich, Fehler im Panel sichtbar; Entwurf bleibt möglich.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeDocuments.test.ts"
+      ]
+    },
+    {
+      "id": "address_request_race",
+      "before": "Vorher alte Adressabfrage konnte neue Auswahl überschreiben; unerwartete Ablehnung blockierte ohne Retryhinweis.",
+      "after": "Jetzt sofortiger Abort und Cleanup/Blurtimer; manuelle Adresseingabe bleibt bedienbar und Selection überträgt alle Felder.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeAddressInteraction.test.tsx"
+      ]
+    },
+    {
+      "id": "mobile_form_contract",
+      "before": "Vorher keine sichere Keyboard-/Footer-/Scrollführung und Sicherungsbadge unabhängig vom tatsächlichen Ergebnis.",
+      "after": "Jetzt native KAV, Safebottompadding, Abschnittscrollreset und tatsächlicher Sicherungsstatus; Modalhöhe gebunden.",
+      "testFiles": [
+        "src/__tests__/clients/clientIntakeFormPlatforms.test.tsx"
+      ]
+    }
+  ],
+  "releaseGaps": [
+    {
+      "id": "native_and_web_visual",
+      "blockingFor": "Design-/Gerätefreigabe",
+      "detail": "Keine echte Browser-/Geräterenderung: Pixelabstände, Überlagerung, Systemschrift, reale Tastatur, Safe Areas und Touchbedienung sind damit nicht optisch freigegeben."
+    },
+    {
+      "id": "live_server_contract",
+      "blockingFor": "Produktive Ende-zu-Ende-Freigabe",
+      "detail": "Kein produktiver Schreibtest; Live-Auth/RLS, Storage-Berechtigungen, signierte URLs, Realtime und tatsächliche Dateianwendungen sind nicht Ende-zu-Ende belegt."
+    },
+    {
+      "id": "intake_external_archive",
+      "blockingFor": "Externen Dateiimport in Aufnahme",
+      "detail": "Picker gab nur name/mime/size weiter, keine URI/Bytes; vorhandene Native-Upload-API ist laut Dokumentenreview ohne sicheren atomaren Metadaten-/Storagevertrag. Wizard zeigt Lücke und bietet keinen behaupteten Upload."
+    },
+    {
+      "id": "intake_signature_archive",
+      "blockingFor": "Aufnahme-Aktivierung mit Pflichtdocs",
+      "detail": "Service-/Archivvertrag und Serverkatalog werden separat geprüft. Lokal funktionierende Unterschrift-/Entwurfswerte belegen keinen atomaren Liveabschluss."
+    },
+    {
+      "id": "automatic_portal_account",
+      "blockingFor": "Behaupteten automatischen Portalzugang nach Aufnahme",
+      "detail": "Intake erstellt aktuell keinen belegten Portalaccount-/Signaturauftragworkflow. Keine automatische Zugangserstellung oder spätere Mitarbeiterportal-Finalisierung versprochen."
+    },
+    {
+      "id": "parity_exhaustiveness",
+      "blockingFor": "Vollständige App-A-Z-Abnahme",
+      "detail": "18 Bereiche sind Stichproben, keine vollständige Route-/Formular-/Dateiaktionsabnahme. Jede Zeile enthält konkret nicht geprüfte Geräte-/Server-/UIfälle."
+    }
+  ]
+}

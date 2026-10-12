@@ -20,18 +20,19 @@ describe('assistMapProvider', () => {
     expect(buildAssistMapImageUrl(demo.latitude, demo.longitude)).toContain('staticmap');
   });
 
-  it('prefers google tile source when EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is set', () => {
+  it('keeps the free map provider when an obsolete Google key is present', () => {
     const prev = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = 'test-google-key';
     try {
-      expect(isGoogleMapsConfigured()).toBe(true);
-      expect(getAssistMapTileSource()).toBe('google');
+      expect(isGoogleMapsConfigured()).toBe(false);
+      expect(getAssistMapTileSource()).toBe('osm');
       const demo = getAssistMapDemoPosition();
       const url = buildAssistMapImageUrl(demo.latitude, demo.longitude);
-      expect(url).toContain('maps.googleapis.com');
-      expect(buildGoogleStaticMapUrl(demo.latitude, demo.longitude, 'test-google-key')).toContain(
-        'test-google-key',
-      );
+      expect(url).toContain('staticmap.openstreetmap.de');
+      expect(url).not.toContain('test-google-key');
+      const legacyUrl = buildGoogleStaticMapUrl(demo.latitude, demo.longitude, 'test-google-key');
+      expect(legacyUrl).toContain('staticmap.openstreetmap.de');
+      expect(legacyUrl).not.toContain('test-google-key');
     } finally {
       if (prev === undefined) delete process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
       else process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = prev;

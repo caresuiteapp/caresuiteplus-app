@@ -12,19 +12,20 @@ function read(path: string) {
 }
 
 describe('stationäre 3D-Bodymap-Integration', () => {
-  it('stellt Modulhub und bewohnerbezogene Bodymap-Route bereit', () => {
-    expect(read('app/stationaer/bodymap.tsx')).toContain(
-      'StationaerBodyMapHubScreen',
-    );
-    const route = read('app/stationaer/bewohner/[id]/bodymap.tsx');
-    expect(route).toContain('<BodyMapScreen careContext="stationaer"');
+  it('leitet entfernte Bodymap-Routen zum Desktop weiter', () => {
+    for (const path of ['app/stationaer/bodymap.tsx', 'app/stationaer/bewohner/[id]/bodymap.tsx']) {
+      const route = read(path);
+      expect(route).toContain('<Redirect href="/"');
+      expect(route).not.toContain('BodyMapScreen');
+      expect(route).not.toContain('StationaerBodyMapHubScreen');
+    }
   });
 
-  it('verlinkt die Bodymap in Navigation und Bewohnerakte', () => {
-    expect(read('src/lib/navigation/moduleNav/stationaerNav.ts')).toContain(
+  it('zeigt keinen Bodymap-Zugang in Navigation oder Bewohnerakte', () => {
+    expect(read('src/lib/navigation/moduleNav/stationaerNav.ts')).not.toContain(
       "href: '/stationaer/bodymap'",
     );
-    expect(read('src/screens/stationaer/ResidentDetailScreen.tsx')).toContain(
+    expect(read('src/screens/stationaer/ResidentDetailScreen.tsx')).not.toContain(
       '/bodymap',
     );
   });
@@ -43,11 +44,12 @@ describe('stationäre 3D-Bodymap-Integration', () => {
     expect(migration).toContain('body_map_markers_subject_reference_check');
   });
 
-  it('nutzt dieselbe klinische Engine und keine abweichende Stationär-Kopie', () => {
+  it('bewahrt historische Engine-Daten ohne sie über die entfernte Route zu laden', () => {
     const hub = read('src/screens/stationaer/StationaerBodyMapHubScreen.tsx');
     const residentRoute = read('app/stationaer/bewohner/[id]/bodymap.tsx');
     expect(hub).toContain('Alle 30 technischen Körpervarianten');
-    expect(residentRoute).toContain("@/product-workflows/screens/pflege/BodyMapScreen");
+    expect(residentRoute).not.toContain("@/product-workflows/screens/pflege/BodyMapScreen");
+    expect(residentRoute).toContain('<Redirect href="/"');
   });
 
   it('isoliert im Demo-Lauf identische Pflege- und Bewohner-IDs', async () => {

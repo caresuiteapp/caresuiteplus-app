@@ -36,9 +36,9 @@ describe('Google Play readiness — AppStart & session (Prompt 111)', () => {
     expect(shouldShowPortalChoice(true)).toBe(false);
   });
 
-  it('resolveSessionHomeRoute routes business roles to /business', () => {
-    expect(resolveSessionHomeRoute('business_admin')).toBe('/business');
-    expect(resolveSessionHomeRoute('business_manager')).toBe('/business');
+  it('resolveSessionHomeRoute routes business roles to the unified desktop', () => {
+    expect(resolveSessionHomeRoute('business_admin')).toBe('/');
+    expect(resolveSessionHomeRoute('business_manager')).toBe('/');
   });
 
   it('resolveSessionHomeRoute routes employee roles to employee portal', () => {
@@ -260,16 +260,16 @@ describe('Google Play readiness — store sight', () => {
 
   it('enables R8 minify and ProGuard rules for Play deobfuscation mapping', () => {
     const appConfig = readSrc('app.config.ts');
-    expect(appConfig).toContain('enableProguardInReleaseBuilds: true');
+    expect(appConfig).toContain('enableMinifyInReleaseBuilds: true');
     expect(appConfig).toContain('android-proguard-rules.pro');
     const appJson = JSON.parse(readSrc('app.json'));
     expect(appConfig).toContain(
       `versionCode: ${appJson.expo.android.versionCode}`,
     );
     expect(appConfig).toContain('targetSdkVersion: 36');
-    expect(readFileSync(path.join(root, 'android-proguard-rules.pro'), 'utf8')).toContain(
-      'app.caresuitehealthos',
-    );
+    const rules = readFileSync(path.join(root, 'android-proguard-rules.pro'), 'utf8');
+    expect(rules).toContain('-keepattributes SourceFile,LineNumberTable');
+    expect(rules).not.toMatch(/-keep\s+class\s+app\.caresuitehealthos\.\*\*/);
   });
 
   it('eas.json defines preview and production profiles', () => {

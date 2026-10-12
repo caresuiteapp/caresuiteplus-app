@@ -21,23 +21,15 @@ describe('ORBIT responsive header layout', () => {
     expect(commandBar).toContain('{module.description}');
   });
 
-  it('uses the second row exclusively for evenly distributed module navigation', () => {
-    const moduleNavigation = shell.slice(
-      shell.indexOf('function OrbitModuleNavigation('),
-      shell.indexOf('function CommandPalette('),
-    );
-
-    expect(moduleNavigation).not.toContain('styles.orbitBrand');
-    expect(moduleNavigation).toContain('styles.orbitModuleItems');
-    expect(moduleNavigation).toContain('const compactNavigation = layout.width < 1700');
-    expect(moduleNavigation).toContain('{compactNavigation ? module.shortLabel : module.label}');
-    expect(moduleNavigation).not.toContain('<Text numberOfLines={1} style={[');
-    expect(shell).toContain("minWidth: '100%'");
-    expect(shell).toContain('flexGrow: 1');
-    expect(shell).toContain('flexBasis: 174');
-    expect(shell).toContain('flexBasis: 112');
-    expect(shell).toContain('flexShrink: 0');
-    expect(shell).toContain('size={24}');
+  it('keeps workflow navigation while the retired module row is absent', () => {
+    expect(shell).not.toContain('function OrbitModuleNavigation(');
+    expect(shell).not.toContain('<OrbitModuleNavigation');
+    expect(shell).not.toContain('function ModuleDock(');
+    const areaNavigation = shell.slice(shell.indexOf('function WorkAreaNavigation('), shell.indexOf('function CommandPalette('));
+    expect(areaNavigation).toContain('liquidWorkAreas[moduleKey]');
+    expect(areaNavigation).toContain('router.push(area.route');
+    expect(shell).toContain('<CommandBar');
+    expect(shell).toContain('<WorkAreaNavigation');
   });
 
   it('renders Live at the same 44 pixel control height as the command buttons', () => {

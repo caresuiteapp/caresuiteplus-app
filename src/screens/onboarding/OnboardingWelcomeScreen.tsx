@@ -43,8 +43,8 @@ export function OnboardingWelcomeScreen() {
               Premium-Oberfläche — speziell für ambulante und stationäre Anbieter.
             </Text>
             <Text style={styles.body}>
-              Dieses Onboarding führt Sie durch die Demo-Einrichtung. Es werden keine Daten
-              gespeichert; Sie können jederzeit zur Startseite zurückkehren.
+              Die kostenlose Registrierung legt Ihr Unternehmen und Ihr Administrationskonto an.
+              Anschließend melden Sie sich mit Ihrer E-Mail-Adresse an.
             </Text>
           </PremiumCard>
         </SectionPanel>
@@ -53,19 +53,14 @@ export function OnboardingWelcomeScreen() {
       {step === 1 ? (
         <SectionPanel
           title="Mandant anlegen"
-          subtitle="Organisation, Module und Team — alles aus einer Hand"
+          subtitle="Unternehmensdaten und Administrationskonto"
         >
           <PremiumCard accentColor={colors.cyan}>
             <Text style={styles.body}>
-              Im nächsten Schritt legen Sie Ihren Demo-Mandanten an: Firmenname und die
-              gewünschten CareSuite+-Module.
+              Im nächsten Schritt erfassen Sie Unternehmensdaten, Anschrift und Ihr
+              Administrationskonto. Die Registrierung ist kostenlos.
             </Text>
-            <View style={styles.featureList}>
-              <Text style={styles.feature}>• Office — Verwaltung & Klient:innen</Text>
-              <Text style={styles.feature}>• Assist — Einsätze & Alltagsbegleitung</Text>
-              <Text style={styles.feature}>• Pflege — Pläne & Vitalwerte</Text>
-              <Text style={styles.feature}>• Portale für Team und Klient:innen</Text>
-            </View>
+
           </PremiumCard>
         </SectionPanel>
       ) : null}
@@ -75,8 +70,8 @@ export function OnboardingWelcomeScreen() {
           <PremiumCard accentColor={colors.success}>
             <Text style={styles.lead}>Alles klar — fast geschafft!</Text>
             <Text style={styles.body}>
-              Richten Sie jetzt Ihren Demo-Mandanten ein oder registrieren Sie sich für
-              einen vollständigen Zugang (Demo ohne Speicherung).
+              Registrieren Sie Ihr Unternehmen kostenlos. Nach der bestätigten Einrichtung
+              führt die Anmeldung zu Ihrer Verwaltung.
             </Text>
           </PremiumCard>
         </SectionPanel>

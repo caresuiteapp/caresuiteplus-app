@@ -1,9 +1,16 @@
+import { businessRegistrationFailure, isBusinessRegistrationReceipt, REGISTRATION_UNCONFIRMED_MESSAGE } from './businessRegistrationReceipt';
+import { canonicalCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
+import { refreshPlatformRuntime } from '@/lib/platformConsole/platformRuntime';
+import { platformRegistrationError } from '@/lib/platformConsole/platformRuntimePolicy';
+import { normalizeCompanyRegistrationSelection, validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
+import { FREE_REGISTRATION_PRODUCTS, validateBusinessRegistration } from './businessRegistrationPolicy';
 import type { Session } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
+import { checkBusinessAccess } from './businessAccessService';
 import { signInWithPassword } from '@/lib/supabase/authService';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type {
@@ -34,8 +41,12 @@ function createId(prefix: string): string {
 
 export async function registerBusinessTenant(
   input: BusinessRegistrationInput,
-): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal }>> {
+): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal; welcomeEmailQueued?: boolean }>> {
+  const validationError = validateCompanyRegistrationSelection(input) ?? validateBusinessRegistration(input);
+  if (validationError) return { ok: false, error: validationError };
   if (getServiceMode() === 'supabase') {
+    const runtimeError = platformRegistrationError(await refreshPlatformRuntime());
+    if (runtimeError) return { ok: false, error: runtimeError };
     const registration = await invokeEdgeFunction<{
       tenantId: string;
       owner: {
@@ -47,24 +58,19 @@ export async function registerBusinessTenant(
         displayName: string;
       };
       credentials: { username: string };
-    }>('register-business-tenant', { ...input });
+      welcomeEmailQueued?: boolean;
+    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined });
 
     if (!registration.ok) {
-      return { ok: false, error: registration.error };
+      return { ok: false, error: businessRegistrationFailure(registration.error) };
     }
 
-    const signIn = await signInWithPassword(input.adminEmail.trim(), input.adminPassword);
-    if (!signIn.ok) {
-      return {
-        ok: false,
-        error: `Mandant angelegt, Anmeldung fehlgeschlagen: ${signIn.error}`,
-      };
-    }
+    if (!isBusinessRegistrationReceipt(registration.data, input.adminEmail)) return { ok: false, error: REGISTRATION_UNCONFIRMED_MESSAGE };
 
     const owner: TenantUser = {
       id: registration.data.owner.id,
       tenantId: registration.data.owner.tenantId,
-      authUserId: signIn.data.user.id,
+      authUserId: null,
       employeeId: null,
       displayName: registration.data.owner.displayName,
       firstName: input.adminFirstName.trim(),
@@ -89,6 +95,7 @@ export async function registerBusinessTenant(
         tenantId: registration.data.tenantId,
         owner,
         credentials: registration.data.credentials,
+        welcomeEmailQueued: registration.data.welcomeEmailQueued === true,
       },
     };
   }
@@ -125,7 +132,7 @@ export async function registerBusinessTenant(
 
   saveTenantUser(owner);
   await setPasswordHash(`tenant-user:${owner.id}`, await hashSecret(input.adminPassword));
-  activateRegistrationModules(tenantId, input.selectedModules);
+  activateRegistrationModules(tenantId, FREE_REGISTRATION_PRODUCTS);
 
   return {
     ok: true,
@@ -153,7 +160,7 @@ export async function loginBusinessUser(
   const normalized = identifier.trim().toLowerCase();
 
   if (getServiceMode() === 'supabase') {
-    const sessionResult = await signInWithPassword(normalized, password.trim());
+    const sessionResult = await signInWithPassword(normalized, password);
     if (!sessionResult.ok) {
       await recordLoginAuditEvent({
         tenantId: null,
@@ -165,6 +172,9 @@ export async function loginBusinessUser(
       });
       return { ok: false, error: sessionResult.error };
     }
+
+    const access = await checkBusinessAccess(sessionResult.data.user.id);
+    if (!access.ok) return { ok: false, error: access.error };
 
     void recordLoginAuditEvent({
       tenantId: null,

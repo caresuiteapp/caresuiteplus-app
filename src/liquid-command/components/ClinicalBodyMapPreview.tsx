@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 
 export function ClinicalBodyMapPreview() {
   return (

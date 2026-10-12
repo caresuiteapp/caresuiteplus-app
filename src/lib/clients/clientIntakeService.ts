@@ -1,3 +1,4 @@
+import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types/core/auth';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
@@ -6,31 +7,22 @@ import {
   getVisibleSectionsForClientContext,
   type IntakeSectionKey,
 } from '@/lib/clients/clientIntakeFieldRules';
-import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import { runService } from '@/lib/services/serviceRunner';
 import { enforcePermission } from '@/lib/permissions';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
 import {
-  COST_BEARER_FIELD_ERRORS,
-  getCostBearerFieldValues,
-  hasGkvCostBearerSelected,
-  isCostBearerTypeKey,
   resolvePrimaryCostBearerName,
   resolvePrimaryCostBearerReference,
 } from './clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
-import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierService';
-import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
-import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
+import { persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierService';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { syncCareLevelDependentDocuments } from '@/lib/clients/clientCareLevelDocumentSync';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import {
-  activateClientFromIntake,
-  createClientFromIntake,
-  repairCompletedClientIntakeActivation,
   updateClientFromIntake,
 } from './repositories/clientIntakeRepository.supabase';
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
@@ -42,6 +34,7 @@ import {
   serviceTypeKeysToCareContexts,
 } from '@/lib/client/clientServiceTypeService';
 import { mergeIntakeSectionsFromDbAndRules } from '@/lib/client/clientRecordMappingService';
+import { validateIntakeStep } from './clientIntakeValidation';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -65,112 +58,9 @@ export function getRequiredFieldsForServiceTypes(
 export { getServiceIntakeSections } from '@/lib/client/clientServiceTypeService';
 export { careContextsToServiceTypeKeys, serviceTypeKeysToCareContexts };
 
-export function validateIntakeStep(
-  section: IntakeSectionKey,
-  form: ClientIntakeFormData,
-): ClientIntakeErrors {
-  const errors: ClientIntakeErrors = {};
+export { validateIntakeStep, hasIntakeErrors } from './clientIntakeValidation';
 
-  if (section === 'leistungsart') {
-    if (form.careContexts.length === 0) {
-      errors.careContexts = 'Mindestens eine Leistungsart auswählen.';
-    }
-  }
-
-  if (section === 'stammdaten') {
-    if (!form.firstName.trim()) errors.firstName = 'Vorname ist erforderlich.';
-    if (!form.lastName.trim()) errors.lastName = 'Nachname ist erforderlich.';
-    if (!form.dateOfBirth.trim()) errors.dateOfBirth = 'Geburtsdatum ist erforderlich.';
-    if (!form.serviceStart.trim()) errors.serviceStart = 'Leistungsbeginn ist erforderlich.';
-  }
-
-  if (section === 'adresse_kontakt') {
-    if (!form.street.trim()) errors.street = 'Straße ist erforderlich.';
-    if (!form.zip.trim()) errors.zip = 'PLZ ist erforderlich.';
-    if (!form.city.trim()) errors.city = 'Ort ist erforderlich.';
-    if (!form.phone.trim() && !form.mobile.trim() && !form.email.trim()) {
-      errors.phone = 'Telefon, Mobil oder E-Mail erforderlich.';
-    }
-  }
-
-  const required = getRequiredFieldsForClientContext(form.careContexts);
-
-  if (section === 'kostentraeger') {
-    if (form.fundingSources.length === 0) {
-      errors.fundingSources = 'Mindestens eine Finanzierungsart auswählen.';
-    }
-    if (required.includes('billingTypes') && form.billingTypes.length === 0) {
-      errors.billingTypes = 'Abrechnungsart ist erforderlich.';
-    }
-    if (required.includes('careLevel') && !form.careLevel) {
-      errors.careLevel = 'Pflegegrad ist erforderlich.';
-    }
-
-    for (const type of form.costBearerTypes) {
-      if (!isCostBearerTypeKey(type)) continue;
-      const values = getCostBearerFieldValues(form, type);
-      const entryError = validateCostBearerEntry(type, values);
-      if (entryError) {
-        errors[COST_BEARER_FIELD_ERRORS[type]] = entryError;
-      }
-    }
-
-    if (required.includes('careFund') && form.costBearerTypes.includes('pflegekasse')) {
-      const name = getCostBearerFieldValues(form, 'pflegekasse').name.trim();
-      if (!name) errors.careFundName = 'Pflegekasse ist erforderlich.';
-    }
-    if (required.includes('healthInsurance') && form.costBearerTypes.includes('krankenkasse')) {
-      const name = getCostBearerFieldValues(form, 'krankenkasse').name.trim();
-      if (!name) errors.healthInsurance = 'Krankenkasse ist erforderlich.';
-    }
-    if (required.includes('insuranceNumber') && hasGkvCostBearerSelected(form.costBearerTypes) && !form.insuranceNumber.trim()) {
-      errors.insuranceNumber = 'Versichertennummer ist erforderlich.';
-    }
-  }
-
-  if (section === 'notfall_zugang') {
-    if (required.includes('emergencyContact')) {
-      if (!form.emergencyContactName.trim()) errors.emergencyContactName = 'Notfallkontakt erforderlich.';
-      if (!form.emergencyContactPhone.trim()) errors.emergencyContactPhone = 'Notfall-Telefon erforderlich.';
-    }
-    if (required.includes('homeAccess') && form.homeAccess.length === 0) {
-      errors.homeAccess = 'Wohnungszugang ist erforderlich.';
-    }
-    if (required.includes('facility') && !form.facilityName.trim()) {
-      errors.facilityName = 'Einrichtung ist erforderlich.';
-    }
-    if (required.includes('roomNumber') && !form.roomNumber.trim()) {
-      errors.roomNumber = 'Zimmernummer ist erforderlich.';
-    }
-  }
-
-  if (section === 'versorgung') {
-    if (required.includes('consultingReason') && !form.consultingReason.trim()) {
-      errors.consultingReason = 'Beratungsanlass ist erforderlich.';
-    }
-    if (required.includes('consultingType') && !form.consultingType) {
-      errors.consultingType = 'Beratungsart ist erforderlich.';
-    }
-    if (required.includes('familyDoctor') && !form.familyDoctor.trim()) {
-      errors.familyDoctor = 'Hausarzt ist erforderlich.';
-    }
-    if (required.includes('supportWishes') && form.supportWishes.length === 0) {
-      errors.supportWishes = 'Gewünschte Unterstützung auswählen.';
-    }
-  }
-
-  if (section === 'vertraege_einwilligungen') {
-    const templates = listApplicableIntakeTemplates(form);
-    const docValidation = validateIntakeDocumentsStep(form, templates);
-    Object.assign(errors, docValidation.errors);
-  }
-
-  return errors;
-}
-
-export function hasIntakeErrors(errors: ClientIntakeErrors): boolean {
-  return Object.keys(errors).length > 0;
-}
+export type ClientIntakeSubmissionResult = ServiceResult<{ id: string }> & { recoverableClientId?: string };
 
 export async function submitClientIntake(
   tenantId: string,
@@ -180,73 +70,17 @@ export async function submitClientIntake(
     draftClientId?: string | null;
     actorRoleKey?: RoleKey | null;
   },
-): Promise<ServiceResult<{ id: string }>> {
+): Promise<ClientIntakeSubmissionResult> {
   const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.create');
   if (denied) return denied;
+  const validationErrors = getIntakeStepsForContexts(form.careContexts)
+    .flatMap((section) => Object.values(validateIntakeStep(section, form)));
+  if (validationErrors.length) return { ok: false, error: validationErrors.join(' '), recoverableClientId: options?.draftClientId ?? undefined };
 
-  return runService(async () => {
+  const recoverableClientId = options?.draftClientId ?? undefined;
+  const result = await runService(async () => {
     if (!isDemoClientBackend()) {
-      const clientResult = await createClientFromIntake(
-        tenantId,
-        form,
-        options?.actorProfileId ?? null,
-        options?.draftClientId ?? null,
-      );
-      if (!clientResult.ok) return clientResult;
-
-      // Signed documents are irreplaceable intake evidence. Persist them before
-      // any derived carrier, budget or module write that may fail independently.
-      const documentsResult = await persistClientIntakeDocuments(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!documentsResult.ok) return documentsResult;
-
-      const carrierResult = await persistIntakeCostCarriers(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!carrierResult.ok) return carrierResult;
-
-      const extendedResult = await syncIntakeClientExtendedData(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-        { eventMode: 'create' },
-      );
-      if (!extendedResult.ok) return extendedResult;
-
-      const portalModules = mapIntakeModulesToPortal(form.assignedModules);
-      if (portalModules.length > 0) {
-        const moduleResult = await saveClientModuleAssignments(
-          tenantId,
-          clientResult.data.id,
-          portalModules,
-          options?.actorProfileId ?? null,
-        );
-        if (!moduleResult.ok) {
-          console.warn('[clientIntakeService] portal module sync:', moduleResult.error);
-        }
-      }
-
-      const coreSync = await syncClientCoreAfterIntake(tenantId, clientResult.data.id, form);
-      if (!coreSync.ok) {
-        console.warn('[clientIntakeService] client core sync:', coreSync.error);
-      }
-
-      const activationResult = await activateClientFromIntake(
-        tenantId,
-        clientResult.data.id,
-        options?.actorProfileId ?? null,
-      );
-      if (!activationResult.ok) return activationResult;
-
-      return { ok: true, data: { id: clientResult.data.id } };
+      return { ok: false, error: 'Die Aktivierung ist derzeit gesperrt: Der verifizierte atomare Serverabschluss für Originaldokumente, Unterschriften und Aufnahme ist noch nicht angebunden. Bitte die Aufnahme als Entwurf speichern; vorhandene Originale bleiben lesbar.', recoverableClientId };
     }
 
     const denied = assertDemoTenant(tenantId);
@@ -259,6 +93,7 @@ export async function submitClientIntake(
 
     return { ok: true, data: { id } };
   }, { delayMs: 500 });
+  return !result.ok && recoverableClientId ? { ...result, recoverableClientId } : result;
 }
 
 export async function submitClientIntakeUpdate(
@@ -270,12 +105,19 @@ export async function submitClientIntakeUpdate(
     actorRoleKey?: RoleKey | null;
     sections?: IntakeSectionKey[];
   },
-): Promise<ServiceResult<{ id: string }>> {
+): Promise<ClientIntakeSubmissionResult> {
   const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.edit');
   if (denied) return denied;
 
   return runService(async () => {
     if (!isDemoClientBackend()) {
+      const includesDocuments = !options?.sections?.length || options.sections.includes('vertraege_einwilligungen');
+      if (includesDocuments && form.intakeDocuments.some(doc => doc.status === 'finalized' || Boolean(doc.finalizedAt || doc.finalizedHtml) || Object.values(doc.signatures).some(signature => signature?.dataUrl))) {
+        return { ok: false, error: 'Unterschriebene Aufnahmeunterlagen bleiben unveränderlich. Der sichere atomare Serverabschluss ist noch nicht angebunden; bitte Stammdaten getrennt bearbeiten und das Original lesen.', recoverableClientId: clientId };
+      }
+      const actor = await resolveAuthenticatedProfileId(tenantId);
+      if (!actor.ok) return actor;
+      if (options?.actorProfileId && options.actorProfileId !== actor.data) return { ok: false, error: 'Die handelnde Profilzuordnung stimmt nicht mit Ihrer Anmeldung überein.' };
       const shouldPersist = (section: IntakeSectionKey): boolean =>
         !options?.sections?.length || options.sections.includes(section);
 
@@ -283,13 +125,14 @@ export async function submitClientIntakeUpdate(
       if (shouldPersist('versorgung') || shouldPersist('kostentraeger')) {
         const supabase = getSupabaseClient();
         if (supabase) {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('clients')
             .select('care_level')
             .eq('tenant_id', tenantId)
             .eq('id', clientId)
             .maybeSingle();
-          previousCareLevel = data?.care_level ?? null;
+          if (error || !data) return { ok: false, error: 'Die bisherige Pflegegradeinstufung konnte nicht geladen werden. Bitte erneut laden.' };
+          previousCareLevel = data.care_level ?? null;
         }
       }
 
@@ -297,7 +140,7 @@ export async function submitClientIntakeUpdate(
         tenantId,
         clientId,
         form,
-        options?.actorProfileId ?? null,
+        actor.data,
         options?.sections,
       );
       if (!clientResult.ok) return clientResult;
@@ -307,7 +150,7 @@ export async function submitClientIntakeUpdate(
           tenantId,
           clientId,
           form,
-          options?.actorProfileId ?? null,
+          actor.data,
         );
         if (!carrierResult.ok) return carrierResult;
       }
@@ -325,7 +168,7 @@ export async function submitClientIntakeUpdate(
           tenantId,
           clientId,
           form,
-          options?.actorProfileId ?? null,
+          actor.data,
           { sections: options?.sections },
         );
         if (!extendedResult.ok) return extendedResult;
@@ -337,7 +180,7 @@ export async function submitClientIntakeUpdate(
           clientId,
           previousCareLevel,
           form,
-          actorProfileId: options?.actorProfileId ?? null,
+          actorProfileId: actor.data,
         });
         if (!documentSync.ok) return documentSync;
       }
@@ -347,7 +190,7 @@ export async function submitClientIntakeUpdate(
           tenantId,
           clientId,
           form,
-          options?.actorProfileId ?? null,
+          actor.data,
         );
         if (!documentsResult.ok) return documentsResult;
       }
@@ -358,32 +201,18 @@ export async function submitClientIntakeUpdate(
           tenantId,
           clientId,
           portalModules,
-          options?.actorProfileId ?? null,
+          actor.data,
         );
         if (!moduleResult.ok) return moduleResult;
       }
 
       if (shouldPersist('leistungsart')) {
         const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
-        if (!coreSync.ok) {
-          // Service profiles, budgets and portal defaults are derived data.
-          // A profile change must remain saved even when a derived sync is
-          // temporarily unavailable.
-          console.warn('[clientIntakeService] client core sync:', coreSync.error);
-        }
+        if (!coreSync.ok) return { ...coreSync, recoverableClientId: clientId };
       }
 
-      const activationRepair = await repairCompletedClientIntakeActivation(
-        tenantId,
-        clientId,
-        options?.actorProfileId ?? null,
-      );
-      if (!activationRepair.ok) {
-        console.warn(
-          '[clientIntakeService] intake activation repair:',
-          activationRepair.error,
-        );
-      }
+      // An unrelated section edit cannot prove that a partial intake is complete.
+      // Activation belongs to the explicitly verified intake completion workflow.
 
       return { ok: true, data: { id: clientId } };
     }

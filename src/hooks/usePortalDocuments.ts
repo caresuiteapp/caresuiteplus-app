@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { fetchPortalDocuments } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -13,50 +13,59 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
   const {
     tenantId,
     clientId,
+    employeeId,
     actorId,
     roleKey,
     isLinkedReady,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
   } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
   const scopedRoleKey = roleMatchesAudience ? roleKey : null;
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
+  const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
+  const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
+  const scopeKey = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]);
+  useEffect(() => setShowSuccess(false), [scopeKey]);
 
   const query = useAsyncQuery(
     () =>
       fetchPortalDocuments(profileId, scopedRoleKey, {
         tenantId,
         clientId: scopedClientId,
+        employeeId: scopedEmployeeId,
       }),
-    [profileId, scopedRoleKey, tenantId, scopedClientId],
+    [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId],
     {
+      queryKey: scopeKey,
       enabled:
         isLinkedReady &&
         roleMatchesAudience &&
-        (audience !== 'client' || Boolean(scopedClientId)),
+        (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)),
     },
   );
 
   const items = query.data ?? [];
 
   const refresh = useCallback(async () => {
-    await query.refresh();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+    const succeeded = await query.refreshWithResult();
+    setShowSuccess(succeeded);
   }, [query]);
 
   return {
     items,
-    loading: isResolvingClientLink || query.loading,
+    loading: resolvingLink || query.loading,
     error: !roleMatchesAudience && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
       : audience === 'client' && !isResolvingClientLink && !scopedClientId
       ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
-      : query.error
+      : audience === 'employee' && !resolvingLink && !scopedEmployeeId
+      ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+      : (query.error ?? query.refreshError)
       ? toPortalUserFacingError(
-          query.error,
+          (query.error ?? query.refreshError)!,
           'Ihre Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
         )
       : null,
@@ -66,8 +75,10 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
     isEmpty:
       isLinkedReady &&
       roleMatchesAudience &&
+      (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)) &&
       !query.loading &&
       !query.error &&
+      !query.refreshError &&
       items.length === 0,
   };
 }

@@ -7,6 +7,7 @@ import {
   dedupeAssignmentItemsById,
   formatAssignmentCacheTimestamp,
   loadExecutionDetailWithCache,
+  loadDashboardProjectionWithCache,
   loadPortalAppointmentDetailWithCache,
   loadPortalAppointmentsWithCache,
   MAX_PREFETCH_DETAILS,
@@ -31,6 +32,7 @@ import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePor
 import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
+import { fetchPortalSignatureDashboardCounts } from '@/lib/portal/portalDocumentSignatureService';
 
 type StoreRecord = Record<string, unknown>;
 
@@ -304,6 +306,7 @@ vi.mock('@/lib/portal/employeePortalExecutionLiveService', async (importOriginal
     fetchLiveEmployeePortalAssignmentDetail: vi.fn(),
   };
 });
+vi.mock('@/lib/portal/portalDocumentSignatureService', () => ({ fetchPortalSignatureDashboardCounts: vi.fn() }));
 
 describe('assignmentCacheService', () => {
   beforeEach(() => {
@@ -315,6 +318,8 @@ describe('assignmentCacheService', () => {
     vi.mocked(fetchPortalAppointmentDetail).mockReset();
     vi.mocked(fetchEmployeePortalAssignmentDetail).mockReset();
     vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockReset();
+    vi.mocked(fetchPortalSignatureDashboardCounts).mockReset();
+    vi.mocked(fetchPortalSignatureDashboardCounts).mockResolvedValue({ ok: true, data: { openCount: 2, overdueCount: 1, dueTodayCount: 1 } });
   });
 
   it('writes and reads assignment list cache', async () => {
@@ -484,6 +489,30 @@ describe('assignmentCacheService', () => {
     expect(result.ok).toBe(true);
     expect(result.fromCache).toBe(true);
     expect(result.data).toHaveLength(3);
+    expect(result.refreshError).toBe('Netzwerkfehler');
+  });
+
+  it('loads dashboard document signature counts through the existing employee-scoped service', async () => {
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: sampleItems });
+    const result = await loadDashboardProjectionWithCache('tenant-1', 'emp-1', 'employee_portal', 'profile-1', { skipDetailPrefetch: true });
+    expect(fetchPortalSignatureDashboardCounts).toHaveBeenCalledWith('tenant-1', 'emp-1', 'employee_portal');
+    expect(result).toMatchObject({ ok: true, data: { openSignatureDocumentCount: 2, overdueSignatureDocumentCount: 1 } });
+  });
+
+  it('keeps dashboard cached visits readable and forwards the online failure without inventing signature counts', async () => {
+    await writeAssignmentListCache('tenant-1', 'emp-1', threeSameDay);
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: false, error: 'Serverabruf verweigert.' });
+    const result = await loadDashboardProjectionWithCache('tenant-1', 'emp-1', 'employee_portal', 'profile-1');
+    expect(result).toMatchObject({ ok: true, fromCache: true, refreshError: 'Serverabruf verweigert.', data: { signatureDocumentsError: expect.any(String) } });
+    expect(fetchPortalSignatureDashboardCounts).not.toHaveBeenCalled();
+    expect(await readAssignmentListCache('tenant-1', 'emp-1')).not.toBeNull();
+  });
+
+  it('reports unavailable signature counts separately from zero and prevents a complete refresh success', async () => {
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: sampleItems });
+    vi.mocked(fetchPortalSignatureDashboardCounts).mockResolvedValue({ ok: false, error: 'Signaturen konnten nicht geladen werden.' });
+    const result = await loadDashboardProjectionWithCache('tenant-1', 'emp-1', 'employee_portal', 'profile-1', { skipDetailPrefetch: true });
+    expect(result).toMatchObject({ ok: true, refreshError: 'Signaturen konnten nicht geladen werden.', data: { signatureDocumentsError: 'Signaturen konnten nicht geladen werden.' } });
   });
 
   it('returns honest empty result when online fails and cache is empty', async () => {

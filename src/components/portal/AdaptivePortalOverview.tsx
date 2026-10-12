@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
 import {
@@ -22,16 +22,10 @@ import {
   ASSIST_PORTAL_SECTIONS,
   buildPortalDashboard,
   canAccessPortalFeature,
-  resolveCombinedModuleLabel,
   resolvePortalTerminology,
 } from '@/lib/portal/engine';
 import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
-import {
-  PORTAL_MODULE_ICONS,
-  PORTAL_MODULE_LABELS,
-  isPortalModuleKey,
-} from '@/lib/portal/engine/portalModuleKeys';
-import type { PortalModuleKey } from '@/lib/portal/types';
+import { isPortalModuleKey } from '@/lib/portal/engine/portalModuleKeys';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type AdaptivePortalOverviewProps = {
@@ -41,18 +35,15 @@ type AdaptivePortalOverviewProps = {
 
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
   const router = useRouter();
-  const { context, loading, error, refresh } = usePortalContext();
+  const { context, loading, error, refreshWithResult } = usePortalContext();
   const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
     ? params.module
     : null;
   const routeSection = typeof params.section === 'string' ? params.section : null;
-  const [activeModule, setActiveModule] = useState<PortalModuleKey | 'all'>(routeModule ?? 'all');
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-
-  const effectiveModule = activeModule;
 
   const terminology = useMemo(
     () => resolvePortalTerminology(context?.primaryModule ?? null),
@@ -61,14 +52,11 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
 
   const widgets = useMemo(() => {
     if (!context?.hasModuleAssignments) return [];
-    return buildPortalDashboard(context, {
-      activeModuleFilter: effectiveModule === 'all' ? 'all' : effectiveModule,
-    });
-  }, [context, effectiveModule]);
+    return buildPortalDashboard(context);
+  }, [context]);
 
   const handleRefresh = async () => {
-    await refresh();
-    onRefresh?.();
+    if (await refreshWithResult()) onRefresh?.();
   };
 
   if (loading && !context) {
@@ -114,7 +102,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     );
   }
 
-  if (context.primaryModule === 'assist') {
+  if (routeModule === 'assist' || (!routeModule && routeSection in ASSIST_PORTAL_SECTIONS)) {
     if (routeSection) {
       const featureKey = ASSIST_PORTAL_SECTIONS[routeSection];
       if (!featureKey || !canAccessPortalFeature(context, 'assist', featureKey)) {
@@ -161,7 +149,6 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     );
   }
 
-  const moduleTabs = context.activeModuleKeys;
   const heroLines = resolveClientPortalHeroLines({
     displayName: context.displayName,
     tenantName: context.tenantName,
@@ -177,7 +164,6 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
           titleSecondary={heroLines.nameLine}
           subtitle={heroLines.providerLine}
           meta={terminology.personLabel}
-          badge={PORTAL_MODULE_LABELS[context.primaryModule ?? 'assist']}
           showStatusDot
         />
       ) : (
@@ -195,7 +181,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
             {context.tenantName}
           </Text>
           <Text style={[type.caption, { color: text.muted }]}>
-            {resolveCombinedModuleLabel(context.activeModuleKeys)} ·{' '}
+            Ihre freigegebenen Informationen ·{' '}
             {terminology.appointmentLabelPlural} und {terminology.careTeamLabel} nach Freigabe
           </Text>
         </GlassCard>
@@ -239,32 +225,6 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
         </>
       ) : null}
 
-      {moduleTabs.length > 1 ? (
-        <View style={styles.moduleTabs}>
-          <Pressable
-            onPress={() => setActiveModule('all')}
-            style={[styles.moduleChip, activeModule === 'all' && styles.moduleChipActive]}
-          >
-            <Text style={[type.caption, { color: text.primary }]}>Alle Module</Text>
-          </Pressable>
-          {moduleTabs.map((moduleKey) => (
-            <Pressable
-              key={moduleKey}
-              onPress={() => setActiveModule(moduleKey)}
-              style={[
-                styles.moduleChip,
-                activeModule === moduleKey && styles.moduleChipActive,
-              ]}
-            >
-              <Text style={styles.chipIcon}>{PORTAL_MODULE_ICONS[moduleKey]}</Text>
-              <Text style={[type.caption, { color: text.primary }]}>
-                {PORTAL_MODULE_LABELS[moduleKey]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
       <AdaptivePortalDashboard widgets={widgets} />
 
       <PremiumButton title="Aktualisieren" variant="secondary" onPress={handleRefresh} fullWidth />
@@ -286,29 +246,6 @@ const styles = StyleSheet.create({
   container: {
     gap: careSpacing.md,
     paddingBottom: careSpacing.lg,
-  },
-  moduleTabs: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.xs,
-  },
-  moduleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: careSpacing.sm,
-    paddingVertical: careSpacing.xs,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: portalPremium.borderStrong,
-    backgroundColor: portalPremium.surfaceRaised,
-  },
-  moduleChipActive: {
-    borderColor: 'rgba(255,149,0,0.45)',
-    backgroundColor: 'rgba(255,149,0,0.12)',
-  },
-  chipIcon: {
-    fontSize: 14,
   },
   priorityGrid: {
     gap: careSpacing.sm,

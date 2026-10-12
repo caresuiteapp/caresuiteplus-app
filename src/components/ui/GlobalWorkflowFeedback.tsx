@@ -2,11 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
+import { AuthContext } from '@/lib/auth/context';
 import {
   WorkflowFeedbackOverlay,
   type WorkflowFeedbackKind,
@@ -54,6 +57,9 @@ const noopApi: WorkflowFeedbackApi = {
 const WorkflowFeedbackContext = createContext<WorkflowFeedbackApi>(noopApi);
 
 export function GlobalWorkflowFeedbackProvider({ children }: { children: ReactNode }) {
+  const auth = useContext(AuthContext);
+  const signOutError = auth?.signOutError;
+  const signOut = auth?.signOut;
   const [active, setActive] = useState<ActiveWorkflowFeedback | null>(null);
   const activeRef = useRef<ActiveWorkflowFeedback | null>(null);
   const queueRef = useRef<ActiveWorkflowFeedback[]>([]);
@@ -138,6 +144,13 @@ export function GlobalWorkflowFeedbackProvider({ children }: { children: ReactNo
       }),
     [show],
   );
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !signOutError) return;
+    showError(signOutError, 'Abmeldung nicht abgeschlossen', signOut
+      ? () => { void signOut().catch(() => undefined); }
+      : undefined);
+  }, [showError, signOut, signOutError]);
 
   const api = useMemo<WorkflowFeedbackApi>(
     () => ({

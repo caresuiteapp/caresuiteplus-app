@@ -1,18 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Image,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import { AccessibilityInfo, Animated, Easing, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import {
   downloadPortalDocument,
@@ -746,7 +735,12 @@ export function PortalHomeScreen({
   const auth = useAuth();
   const layout = useLiquidLayout();
   const definition = portalDefinitions[portal];
+  const { section: requestedSection } = useLocalSearchParams<{ section?: string }>();
   const [active, setActive] = useState('today');
+  useEffect(() => {
+    if (portal !== 'family') return;
+    setActive(['appointments', 'live', 'documents', 'messages'].includes(requestedSection ?? '') ? requestedSection! : 'today');
+  }, [portal, requestedSection]);
   const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData(portal);
   const visibleSections = definition.sections;
   const officeMessages = usePortalOfficeMessages('open');
@@ -760,6 +754,10 @@ export function PortalHomeScreen({
     const section = visibleSections.find((item) => item.id === sectionId);
     if (!section || section.id === 'today') {
       setActive('today');
+      return;
+    }
+    if (portal === 'family') {
+      setActive(section.id);
       return;
     }
     router.replace(section.route as never);

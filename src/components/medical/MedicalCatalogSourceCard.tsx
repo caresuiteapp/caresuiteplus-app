@@ -50,7 +50,7 @@ export function MedicalCatalogHubHero({ preparedCount, protectedCount }: Medical
       <MedicalDocumentationDisclaimer compact />
       <Text style={styles.heroTitle}>Medizinische Stammdaten & Dokumentation</Text>
       <Text style={styles.heroSubtitle}>
-        Kodierhilfe · Medikationsübersicht · Vitalzeichen · BodyMap/Wunddokumentation
+        Kodierhilfe · Medikationsübersicht · Vitalzeichen · Wunddokumentation
       </Text>
       <Text style={styles.heroStats}>
         {preparedCount} Quellen vorbereitet · {protectedCount} lizenzgeschützt/deaktiviert

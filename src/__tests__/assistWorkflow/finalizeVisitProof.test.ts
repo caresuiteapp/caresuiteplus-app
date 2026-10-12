@@ -94,6 +94,9 @@ describe('finalizeVisit — proof + completion sync', () => {
     vi.resetModules();
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+    vi.doMock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
+      fetchValidVisitSignature: async () => ({ ok: true, data: { id: 'signature-current', tenantId: TENANT, visitId: ASSIGNMENT } }),
+    }));
   });
 
   afterEach(() => {
@@ -252,5 +255,25 @@ describe('finalizeVisit — proof + completion sync', () => {
     if (result.ok) {
       expect(result.data.proofPersisted).toBe(true);
     }
+  });
+
+  it('regenerates an otherwise matching stored proof after the captured signature was replaced', async () => {
+    const ctx = buildCtx();
+    const { buildServiceRecordSnapshot } = await import('@/features/assistWorkflow/buildServiceRecordHtml');
+    const snapshot = buildServiceRecordSnapshot({ detail: ctx.detail, visitTimes: ctx.visitTimes,
+      documentationText: 'Erledigt', visitId: ctx.assistVisitId, employeeId: ctx.employeeId,
+      serviceName: ctx.detail.title, signatureSummary: null });
+    const generate = vi.fn(async () => ({ ok: true, data: { serviceRecordId: 'new-proof', proofPersisted: true, html: '' } }));
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({ hasPortalPersistedClientSignature: async () => true }));
+    vi.doMock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchLatestVisitProof: async () => ({ ok: true, data: {
+      tenantId: TENANT, visitId: ASSIGNMENT, signatureId: 'signature-replaced', payloadHash: 'hash', payloadSnapshot: snapshot,
+    } }) }));
+    vi.doMock('@/features/assistWorkflow/generateServiceRecord', () => ({ generateServiceRecord: generate }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({ transitionAssistExecutionStatus: async () => ({ ok: true, data: ctx }) }));
+    vi.doMock('@/lib/async/deferredTask', () => ({ scheduleDeferredTask: vi.fn(), waitForDeferredTask: async () => undefined }));
+    const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
+    expect((await finalizeVisit(ctx, 'Erledigt')).ok).toBe(true);
+    expect(generate).toHaveBeenCalledOnce();
   });
 });

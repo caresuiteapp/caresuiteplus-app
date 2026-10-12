@@ -11,13 +11,19 @@ describe('HealthOS central popup design contract', () => {
     expect(layout).toContain("document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup)");
   });
 
-  it('renders one embedded dark workspace instead of a second legacy modal', () => {
+  it('renders one embedded workspace with readable native and canonical web contrast', () => {
     const shell = read('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('<SurfaceContrastProvider tone="dark">');
+    const web = read('src/components/layout/ScreenShell.web.tsx');
+    expect(shell).toContain("<SurfaceContrastProvider tone={Platform.OS === 'web' ? 'dark' : 'light'}>");
+    expect(shell).toContain("backgroundColor: Platform.OS === 'web' ? 'rgba(4,17,37,0.96)' : '#F6FAFF'");
     expect(shell).toContain("csCentralPopupWorkspace: 'true'");
     expect(shell).toContain("csCentralPopupPageHeader: 'true'");
     expect(shell).not.toContain("import { PlatformModal } from './platform/platformmodal'");
     expect(shell).not.toContain('<PlatformModal');
+    expect(web).toContain('<SurfaceContrastProvider tone="light">');
+    expect(web).toContain("csDesktopSurface: 'light'");
+    expect(web).toContain("backgroundColor: '#F2F6FC'");
+    expect(web).not.toContain('<PlatformModal');
   });
 
   it('loads the central contract after the historic contracts', () => {
@@ -36,6 +42,9 @@ describe('HealthOS central popup design contract', () => {
       expect(css).toContain(`data-cs-healthos-component="${component}"`);
     }
     expect(css).toContain('data-cs-central-popup-workspace="true"');
-    expect(css).toContain('data-cs-healthos-zone="content"');
+    expect(css).toContain('[data-cs-healthos-zone] { min-width: 0; }');
+    expect(read('src/components/layout/ScreenShell.web.tsx')).toContain('<HealthOSPageZone kind="content"');
+    expect(css).toContain('min-height: 44px');
+    expect(css).toContain('outline: 3px solid #1477D6 !important');
   });
 });

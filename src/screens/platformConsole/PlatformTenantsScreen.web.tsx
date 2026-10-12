@@ -91,9 +91,9 @@ export function PlatformTenantsScreen() {
     }
   }, [environmentFilter, search, statusFilter, offset, dossierOwner]);
 
-  useEffect(() => {
+  useEffect(() => { const cleanupRequestNumber = requestNumber;
     const timer = setTimeout(() => void load(), 300);
-    return () => { clearTimeout(timer); requestNumber.current++; };
+    return () => { clearTimeout(timer); cleanupRequestNumber.current++; };
   }, [load]);
 
   const columns = useMemo(

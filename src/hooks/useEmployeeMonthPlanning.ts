@@ -16,14 +16,14 @@ export function useEmployeeMonthPlanning(tenantId: string | null, employeeId: st
     }).catch((e: Error) => { if (live) setEmployeeError(e.message); });
     return () => { live = false; };
   }, [tenantId, enabled, version]);
-  useEffect(() => {
+  useEffect(() => { const cleanupRequestId = requestId;
     const id = ++requestId.current;
     if (enabled && tenantId) void loadPlanningSnapshot(tenantId, fromMonth, toMonth, employeeId).then((data) => {
       if (id === requestId.current) setState({ key, data });
     }).catch((e: Error) => {
       if (id === requestId.current) setState({ key, error: e.message });
     });
-    return () => { requestId.current++; };
+    return () => { cleanupRequestId.current++; };
   }, [tenantId, employeeId, fromMonth, toMonth, enabled, key]);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
   const current = enabled && state.key === key ? state : null;

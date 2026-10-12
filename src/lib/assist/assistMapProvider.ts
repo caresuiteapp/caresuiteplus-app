@@ -52,7 +52,7 @@ export function getAssistMapTileSource(): AssistMapTileSource {
   return 'osm';
 }
 
-/** Kartenansicht verfügbar (Google bevorzugt, sonst OSM/Mapbox). */
+/** Kostenlose Kartenansicht ohne API-Schlüssel verfügbar. */
 export function isAssistMapProviderConfigured(): boolean {
   return true;
 }

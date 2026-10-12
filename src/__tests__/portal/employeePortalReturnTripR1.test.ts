@@ -54,6 +54,15 @@ describe('Mitarbeiterportal Rückfahrt nach letztem Tageseinsatz', () => {
     })).toBe(true);
   });
 
+  it('vergleicht Einsätze am Berliner Tag unabhängig von der Gerätezeitzone', () => {
+    const early = appointment('early', '2026-08-24T00:10:00+02:00');
+    const later = appointment('later', '2026-08-24T20:10:00+02:00');
+    expect(isLastScheduledEmployeeAssignmentOfDay({ assignmentId: early.id, plannedStartAt: early.startsAt, appointments: [early, later] })).toBe(false);
+    const late = appointment('late', '2026-08-24T23:10:00+02:00');
+    const nextDay = appointment('next', '2026-08-25T00:10:00+02:00');
+    expect(isLastScheduledEmployeeAssignmentOfDay({ assignmentId: late.id, plannedStartAt: late.startsAt, appointments: [late, nextDay] })).toBe(true);
+  });
+
   it('ordnet Zuhause und Büro den richtigen Fahrtenbucharten zu', () => {
     expect(returnTripRouteType('home')).toBe('client_to_home');
     expect(returnTripRouteType('office')).toBe('client_to_office');

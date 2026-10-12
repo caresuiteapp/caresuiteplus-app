@@ -3,6 +3,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { CorrectLogbookTripInput, CreateManualLogbookTripInput, EmployeeLogbookBundle, LogbookDailyConfirmation, LogbookPoint, LogbookProfile, LogbookReceipt, LogbookSegment, LogbookTrip, LogbookVehicle, StartLogbookTripInput } from '@/types/modules/employeeLogbook';
 import { berlinDateKey, berlinToday } from './employeeLogbookDate';
 import { createSingleFlight } from '@/lib/services/singleFlight';
+import { readEmployeePortalMediaBytes } from '@/lib/portal/employeePortalMediaBytes';
 
 const runTripCompletion = createSingleFlight();
 
@@ -12,7 +13,7 @@ const n = (value: unknown) => typeof value === 'number' && Number.isFinite(value
 const nullable = (value: unknown) => s(value) || null;
 
 function mapProfile(row: Row | null, tenantId: string, employeeId: string): LogbookProfile {
-  return { tenantId, employeeId, defaultVehicleId: nullable(row?.default_vehicle_id), mileageRateCents: n(row?.mileage_rate_cents) || 30, gpsConsent: Boolean(row?.gps_consent), licenseFrontPath: nullable(row?.license_front_path), licenseBackPath: nullable(row?.license_back_path) };
+  return { tenantId, employeeId, defaultVehicleId: nullable(row?.default_vehicle_id), mileageRateCents: row?.mileage_rate_cents == null ? 30 : n(row.mileage_rate_cents), gpsConsent: Boolean(row?.gps_consent), licenseFrontPath: nullable(row?.license_front_path), licenseBackPath: nullable(row?.license_back_path) };
 }
 function mapVehicle(row: Row): LogbookVehicle { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), ownership: row.ownership === 'company' ? 'company' : 'private', plate: s(row.plate), make: nullable(row.make), model: nullable(row.model), active: row.active !== false }; }
 function mapTrip(row: Row): LogbookTrip { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), vehicleId: nullable(row.vehicle_id), routeType: s(row.route_type) as LogbookTrip['routeType'], purpose: s(row.purpose), manualReason: nullable(row.manual_reason), status: s(row.status) as LogbookTrip['status'], startedAt: s(row.started_at), endedAt: nullable(row.ended_at), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), distanceGpsKm: n(row.distance_gps_km), distanceFinalKm: n(row.distance_final_km), durationSeconds: n(row.duration_seconds), countsAsWorkTime: Boolean(row.counts_as_work_time), worktimeDeductionMinutes: n(row.worktime_deduction_minutes), mileageRateCents: n(row.mileage_rate_cents), mileageAmountCents: n(row.mileage_amount_cents), gpsCaptured: Boolean(row.gps_captured), distanceSource: (s(row.distance_source) || 'gps') as LogbookTrip['distanceSource'], routeCalculationProvider: nullable(row.route_calculation_provider) as LogbookTrip['routeCalculationProvider'], googleRouteDistanceKm: row.google_route_distance_km == null ? null : n(row.google_route_distance_km), googleRouteDurationMinutes: row.google_route_duration_minutes == null ? null : n(row.google_route_duration_minutes), routeQualityStatus: (s(row.route_quality_status) || 'measured') as LogbookTrip['routeQualityStatus'], correctedAt: nullable(row.corrected_at), notes: nullable(row.notes), source: nullable(row.source) }; }
@@ -310,21 +311,33 @@ export async function correctLogbookTripDetails(input: CorrectLogbookTripInput) 
 }
 
 export async function confirmLogbookDay(input: { tenantId: string; employeeId: string; workDate: string; signerName: string; signatureData: string; trips: LogbookTrip[] }) {
-  const dayTrips = input.trips.filter((trip) => berlinDateKey(trip.startedAt) === input.workDate && ['completed', 'corrected'].includes(trip.status));
+  if (input.signerName.trim().length < 2 || !input.signatureData.trim()) throw new Error('Bitte Namen und Unterschrift vollständig angeben.');
+  const ownTrips = input.trips.filter((trip) => trip.tenantId === input.tenantId && trip.employeeId === input.employeeId && berlinDateKey(trip.startedAt) === input.workDate);
+  if (ownTrips.some((trip) => ['recording', 'confirmation_required', 'review_required'].includes(trip.status))) throw new Error('Bitte zuerst die offenen Fahrten und Kilometer dieses Tages abschließen oder prüfen lassen.');
+  const dayTrips = ownTrips.filter((trip) => ['completed', 'corrected', 'confirmed'].includes(trip.status));
   if (!dayTrips.length) throw new Error('Für diesen Tag sind keine abgeschlossenen Fahrten vorhanden.');
   const { error } = await fromUnknownTable(db(), 'employee_logbook_daily_confirmations').insert({ tenant_id: input.tenantId, employee_id: input.employeeId, work_date: input.workDate, signer_name: input.signerName.trim(), signature_data: input.signatureData, trip_count: dayTrips.length, distance_km: dayTrips.reduce((sum, trip) => sum + trip.distanceFinalKm, 0), confirmed_at: new Date().toISOString() });
   if (error) throw new Error(error.message);
 }
 
 export async function uploadLogbookFile(input: { tenantId: string; employeeId: string; area: string; uri: string; fileName: string; mimeType?: string | null }) {
-  const response = await fetch(input.uri); const blob = await response.blob();
+  const bytes = await readEmployeePortalMediaBytes(input.uri);
   const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
   const path = `${input.tenantId}/${input.employeeId}/${input.area}/${Date.now()}-${safeName}`;
-  const { error } = await db().storage.from('employee-logbook').upload(path, blob, { contentType: input.mimeType ?? blob.type, upsert: false });
+  const { error } = await db().storage.from('employee-logbook').upload(path, bytes.slice().buffer as ArrayBuffer, { contentType: input.mimeType ?? 'application/octet-stream', upsert: false });
   if (error) throw new Error(error.message); return path;
 }
 
+export function getLogbookReceiptValidationError(input: { amountCents: number; expenseDate: string }): string | null {
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents < 0) return 'Bitte einen gültigen Belegbetrag ab 0 EUR eintragen.';
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate) ? new Date(`${input.expenseDate}T12:00:00Z`) : null;
+  if (!date || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== input.expenseDate) return 'Bitte ein gültiges Belegdatum im Format JJJJ-MM-TT eintragen.';
+  return null;
+}
+
 export async function createLogbookReceipt(input: { tenantId: string; employeeId: string; tripId: string | null; category: string; amountCents: number; expenseDate: string; storagePath: string; fileName: string; mimeType?: string | null; notes?: string }) {
+  const invalid = getLogbookReceiptValidationError(input);
+  if (invalid) throw new Error(invalid);
   const { error } = await fromUnknownTable(db(), 'employee_logbook_receipts').insert({ tenant_id: input.tenantId, employee_id: input.employeeId, trip_id: input.tripId, category: input.category, amount_cents: input.amountCents, expense_date: input.expenseDate, storage_path: input.storagePath, file_name: input.fileName, mime_type: input.mimeType ?? null, notes: input.notes?.trim() || null });
   if (error) throw new Error(error.message);
 }

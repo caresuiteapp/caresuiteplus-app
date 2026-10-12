@@ -35,12 +35,16 @@ export async function fetchEmployeePortalProfile(
     roleKey,
     'portal.employee.profile.view',
   );
+  if (roleKey !== 'employee_portal' && roleKey !== 'caregiver' && roleKey !== 'nurse') {
+    return denied ?? { ok: false, error: 'Kein Zugriff auf das Mitarbeitendenprofil.' };
+  }
   if (denied && roleKey === 'employee_portal') return denied;
 
   const tenantId = portalContext?.tenantId ?? null;
   const employeeId = portalContext?.employeeId ?? null;
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim() && employeeId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim() || !employeeId?.trim()) return { ok: false, error: 'Kein Mitarbeiterprofil mit diesem Portal verknüpft.' };
     return fetchLiveEmployeePortalProfile(tenantId, employeeId);
   }
 
@@ -71,12 +75,16 @@ export async function fetchEmployeeTimesheet(
     roleKey,
     'portal.employee.timesheet.view',
   );
+  if (roleKey !== 'employee_portal' && roleKey !== 'caregiver' && roleKey !== 'nurse') {
+    return denied ?? { ok: false, error: 'Kein Zugriff auf die eigenen Arbeitszeiten.' };
+  }
   if (denied && roleKey === 'employee_portal') return denied;
 
   const tenantId = portalContext?.tenantId ?? null;
   const employeeId = portalContext?.employeeId ?? null;
 
-  if (getServiceMode() === 'supabase' && tenantId?.trim() && employeeId?.trim()) {
+  if (getServiceMode() === 'supabase') {
+    if (!tenantId?.trim() || !employeeId?.trim()) return { ok: false, error: 'Kein Mitarbeiterprofil mit diesem Portal verknüpft.' };
     return fetchLiveEmployeeTimesheet(tenantId, employeeId);
   }
 

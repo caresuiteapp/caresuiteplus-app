@@ -1,4 +1,5 @@
 import type { WorkflowStatus } from '../core/base';
+import type { AssignmentStatus } from '../modules/assignmentStatus';
 
 export type PortalClientContactSummary = {
   id: string;
@@ -55,10 +56,12 @@ export type PortalClientCarePlanSummary = {
 
 export type PortalClientAppointmentDetail = {
   id: string;
+  moduleKey?: string;
   title: string;
   startsAt: string;
   endsAt: string;
   status: WorkflowStatus;
+  assignmentStatus?: AssignmentStatus;
   location: string | null;
   caregiverName: string | null;
   caregiverPhone: string | null;

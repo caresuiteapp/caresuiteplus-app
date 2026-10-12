@@ -14,6 +14,7 @@ vi.mock('expo-router', () => ({
   Redirect: ({ href }: { href: string }) => <span>Weiterleitung: {href}</span>,
 }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => state.auth }));
+vi.mock('@/lib/auth/SessionAccessRecovery.web', () => ({ SessionAccessRecovery: () => <span>Sitzung prüfen</span> }));
 vi.mock('@/lib/auth/RequireRole', () => ({ RequireRole: ({ children }: any) => <>{children}</> }));
 vi.mock('@/components/ui/FullScreenLoader', () => ({ FullScreenLoader: () => <span>Laden</span> }));
 vi.mock('@/liquid-command/screens/AccessScreens', () => ({ AccessHubScreen: () => <span>Zugang</span> }));
@@ -40,6 +41,10 @@ describe('web entry rendering', () => {
   });
   it('shows access for a settled anonymous session', async () => {
     state.auth.authReady = true; await render(); expect(host.textContent).toBe('Zugang');
+  });
+  it('keeps an authenticated session with unknown role out of the desktop', async () => {
+    state.auth = { ...state.auth, authReady: true, isAuthenticated: true };
+    await render(); expect(host.textContent).toBe('Sitzung prüfen'); expect(state.desktop).not.toHaveBeenCalled();
   });
   it.each([['employee_portal', '/portal/employee'], ['client_portal', '/portal/client']])('routes %s without mounting the business desktop', async (role, destination) => {
     state.auth = { ...state.auth, authReady: true, isAuthenticated: true, profile: { roleKey: role } };

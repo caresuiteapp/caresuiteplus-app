@@ -1,4 +1,5 @@
-import { Image, type ImageStyle, type ViewStyle } from 'react-native';
+import { type ImageStyle, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { CARESUITE_ROBOT_LOGO } from './brandassets';
 
 type CareSuiteMascotProps = {

@@ -1,0 +1,383 @@
+{
+  "capturedAt": "2026-10-11",
+  "environment": "CareSuite production",
+  "method": "read-only catalog metadata; no customer rows or writes",
+  "tables": [
+    {
+      "schema_name": "public",
+      "table_name": "employee_contract_settings",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": true
+    },
+    {
+      "schema_name": "public",
+      "table_name": "employee_documents",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": true
+    },
+    {
+      "schema_name": "public",
+      "table_name": "employee_portal_accounts",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": false,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": false
+    },
+    {
+      "schema_name": "storage",
+      "table_name": "objects",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": true
+    },
+    {
+      "schema_name": "public",
+      "table_name": "workforce_time_accounts",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "workforce_work_sessions",
+      "rls_enabled": true,
+      "force_rls": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": false
+    }
+  ],
+  "selectedPolicies": [
+    {
+      "schemaname": "public",
+      "tablename": "employee_documents",
+      "policyname": "employee_documents_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (has_permission('office.access'::text) OR is_tenant_admin()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((auth_user_id = auth.uid()) AND (status = ANY (ARRAY['active'::text, 'pending_first_login'::text, 'password_reset_required'::text])))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "employee_portal_accounts",
+      "policyname": "employee_portal_accounts_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text) AND (has_permission('office.documents.upload'::text) OR (has_permission('office.clients.edit'::text) AND ((storage.foldername(name))[3] = 'clients'::text) AND ((storage.foldername(name))[5] = 'documents'::text))))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "office_docs_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))",
+      "with_check": "((bucket_id = 'office-documents'::text) AND ((storage.foldername(name))[1] = 'tenant'::text) AND ((storage.foldername(name))[2] = (current_tenant_id())::text))"
+    }
+  ],
+  "personnelTenantAllPolicies": [
+    {
+      "tablename": "employee_absences",
+      "policyname": "employee_absences_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_access_revocations",
+      "policyname": "employee_access_revocations_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_audit_events",
+      "policyname": "employee_audit_events_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_background_checks",
+      "policyname": "employee_background_checks_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_data_scopes",
+      "policyname": "employee_data_scopes_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_documents",
+      "policyname": "employee_documents_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_final_clearance",
+      "policyname": "employee_final_clearance_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_offboarding_checks",
+      "policyname": "employee_offboarding_checks_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_offboarding_sessions",
+      "policyname": "employee_offboarding_sessions_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_offboarding_steps",
+      "policyname": "employee_offboarding_steps_tenant_access",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_permission_overrides",
+      "policyname": "employee_permission_overrides_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_qualifications",
+      "policyname": "employee_qualifications_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_role_assignments",
+      "policyname": "employee_role_assignments_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    },
+    {
+      "tablename": "employee_work_settings",
+      "policyname": "employee_work_settings_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": "(tenant_id = current_tenant_id())"
+    }
+  ],
+  "profileIdentityRead": {
+    "policies": [
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_admin_manage_own",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "ALL",
+        "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+        "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_select_own_auth_user",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "((auth_user_id = auth.uid()) OR (id = auth.uid()))",
+        "with_check": null
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_select_same_tenant",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "SELECT",
+        "qual": "(tenant_id = current_tenant_id())",
+        "with_check": null
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_update_own_auth_user",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "UPDATE",
+        "qual": "((auth_user_id = auth.uid()) OR (id = auth.uid()))",
+        "with_check": "((auth_user_id = auth.uid()) OR (id = auth.uid()))"
+      },
+      {
+        "tablename": "profiles",
+        "policyname": "profiles_update_own_or_admin",
+        "permissive": "PERMISSIVE",
+        "roles": [
+          "authenticated"
+        ],
+        "cmd": "UPDATE",
+        "qual": "((auth_user_id = auth.uid()) OR ((tenant_id = current_tenant_id()) AND is_tenant_admin()))",
+        "with_check": "(tenant_id = current_tenant_id())"
+      }
+    ],
+    "grants": {
+      "select": true,
+      "id": true,
+      "tenant_id": true,
+      "auth_user_id": true
+    }
+  },
+  "profileWrites": {
+    "updateTable": true,
+    "updateRoleId": true,
+    "updateTenantId": true,
+    "updateAuthUserId": true,
+    "triggers": [
+      {
+        "tgname": "audit_profiles",
+        "definition": "CREATE TRIGGER audit_profiles AFTER INSERT OR DELETE OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION create_audit_log()"
+      },
+      {
+        "tgname": "trg_profiles_updated_at",
+        "definition": "CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+      }
+    ]
+  },
+  "permissionResolver": "CREATE OR REPLACE FUNCTION public.has_permission(p_permission_key text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.profiles pr\n    JOIN public.role_permissions rp ON rp.role_id = pr.role_id\n    WHERE (pr.id = auth.uid() OR pr.auth_user_id = auth.uid())\n      AND (\n        rp.permission_key = p_permission_key\n        OR (\n          rp.permission_key = split_part(p_permission_key, '.', 2)\n          AND (\n            (p_permission_key LIKE '%.view' AND COALESCE(rp.can_view, FALSE))\n            OR (p_permission_key LIKE '%.create' AND COALESCE(rp.can_create, FALSE))\n            OR (p_permission_key LIKE '%.upload' AND COALESCE(rp.can_create, FALSE))\n            OR (\n              (p_permission_key LIKE '%.edit' OR p_permission_key LIKE '%.update')\n              AND COALESCE(rp.can_update, FALSE)\n            )\n            OR (p_permission_key LIKE '%.delete' AND COALESCE(rp.can_delete, FALSE))\n            OR (\n              p_permission_key LIKE '%.manage'\n              AND COALESCE(rp.can_update, FALSE)\n            )\n          )\n        )\n        OR (\n          p_permission_key LIKE 'communication.%'\n          AND rp.permission_key = 'messages'\n          AND (\n            (p_permission_key LIKE '%.view%' AND COALESCE(rp.can_view, FALSE))\n            OR (\n              p_permission_key NOT LIKE '%.view%'\n              AND COALESCE(rp.can_create, FALSE)\n            )\n          )\n        )\n      )\n  )\n  OR (\n    p_permission_key = 'business.tenant.manage'\n    AND public.is_tenant_admin()\n  )\n  OR (\n    p_permission_key = 'messages.broadcast.create'\n    AND public.is_tenant_admin()\n  )\n$function$\n",
+  "profileRiskAssessment": "Catalog evidence: own-row UPDATE policies and UPDATE on role_id allow changing permission-bearing profile fields; has_permission joins profiles.role_id. No production exploit or write attempted. Requires protected identity/role fields and independent server authorization review before release.",
+  "deferredSignatureTitleSqlFragment": "    ' ÔÇö Unterschrift ausstehend';",
+  "rpcMetadata": [
+    {
+      "name": "current_employee_id",
+      "securityDefiner": true
+    },
+    {
+      "name": "current_role_key",
+      "securityDefiner": true
+    },
+    {
+      "name": "current_tenant_id",
+      "securityDefiner": true
+    },
+    {
+      "name": "employee_portal_release_deferred_signature",
+      "securityDefiner": true
+    },
+    {
+      "name": "web_start_assist_visit_service",
+      "securityDefiner": false
+    }
+  ]
+}

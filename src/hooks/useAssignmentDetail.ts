@@ -14,6 +14,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
+  const scope = JSON.stringify([tenantId, profile?.id, roleKey, assignmentId]);
 
   const query = useAsyncQuery<AssignmentPlan>(
     () => {
@@ -51,9 +52,10 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
         };
       });
     },
-    [tenantId, assignmentId, roleKey],
+    [tenantId, profile?.id, assignmentId, roleKey],
     {
       enabled: Boolean(assignmentId) && !!tenantId,
+      queryKey: scope,
       live: tenantId
         ? {
             tenantId,
@@ -104,6 +106,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
       );
     },
     {
+      scopeKey: scope,
       successMessage: 'Einsatzstatus erfolgreich aktualisiert.',
       onSuccess: (updated: AssignmentPlan) => setData(updated),
     },

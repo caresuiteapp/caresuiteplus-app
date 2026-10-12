@@ -22,7 +22,8 @@ export function useEmployeePortalPersonnelView() {
   const query = useAsyncQuery(
     () => fetchEmployeePortalPersonnelView(profileId, roleKey, portalContext),
     [profileId, roleKey, tenantId, employeeId],
-    { enabled: isReady && !!profileId && !!roleKey && !!employeeId, live: liveConfig },
+    { enabled: isReady && !!profileId && !!roleKey && !!employeeId, live: liveConfig,
+      queryKey: JSON.stringify(['employee-personnel', tenantId, profileId, roleKey, employeeId]) },
   );
 
   const refresh = useCallback(async () => {

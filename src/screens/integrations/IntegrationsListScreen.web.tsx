@@ -18,7 +18,6 @@ import { useIntegrationList } from '@/hooks/useIntegrationList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import {
-  INTEGRATIONS_PREPARED_MESSAGE,
   isIntegrationsLiveReady,
 } from '@/lib/integrations/integrationsModuleConfig';
 import {

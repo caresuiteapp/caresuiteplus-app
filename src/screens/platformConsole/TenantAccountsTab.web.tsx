@@ -24,6 +24,7 @@ export function TenantAccountsTab({tenantId,role,companyStatus='active',onDirtyC
   const [accessConfirm,setAccessConfirm]=useState<{account:PlatformAccount;action:PlatformAccountAccessAction;tenantId:string}|null>(null);
   const [confirm,setConfirm]=useState<{account:PlatformAccount;action:'email_change'|'password_recovery'|'welcome_resend';nonce:string;newEmail?:string}|null>(null);
   const operation=usePlatformOperation();
+  const clearOperation=operation.clear;
   const revision=useRef(0);
   const canWrite=platformRoleHasCapability(role,'tenants.write');
   const canManageAccess=platformRoleHasCapability(role,'tenants.suspend');
@@ -35,7 +36,7 @@ export function TenantAccountsTab({tenantId,role,companyStatus='active',onDirtyC
     if(result.ok)setAccounts(result.data);else {setAccounts([]);setReadError(result.error);}
     setLoading(false);
   },[tenantId,includeDeleted]);
-  useEffect(()=>{setConfirm(null);setAccessConfirm(null);setMessage(null);setEmailAccount(null);setNewEmail('');setAuthorized(false);setIncludeDeleted(false);operation.clear();},[tenantId]);
+  useEffect(()=>{setConfirm(null);setAccessConfirm(null);setMessage(null);setEmailAccount(null);setNewEmail('');setAuthorized(false);setIncludeDeleted(false);clearOperation();},[tenantId,clearOperation]);
   useEffect(()=>{const counter=revision;void load();return()=>{counter.current++;};},[load]);
   useEffect(()=>{onDirtyChange?.(!!newEmail.trim());},[newEmail,onDirtyChange]);
   useEffect(()=>()=>onDirtyChange?.(false),[onDirtyChange]);

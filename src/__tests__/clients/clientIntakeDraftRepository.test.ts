@@ -27,16 +27,17 @@ vi.mock('@/lib/supabase/client', () => ({
     from: mockFrom,
   }),
 }));
+vi.mock('expo-crypto', () => ({ randomUUID: () => '44444444-4444-4444-8444-444444444444' }));
 
 describe('upsertClientIntakeDraft', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockFrom.mockImplementation(() => createQueryChain());
   });
 
-  it('legt neuen Lead an wenn Update auf stale clientId scheitert', async () => {
+  it('legt bei fehlendem Datensatz einen Lead mit derselben Entwurfs-ID an', async () => {
     mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: 'new-lead-id' }, error: null });
+    mockSingle.mockResolvedValueOnce({ data: { id: '11111111-1111-4111-8111-111111111111' }, error: null });
 
     const form = {
       ...createEmptyIntakeForm(),
@@ -51,14 +52,15 @@ describe('upsertClientIntakeDraft', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.id).toBe('new-lead-id');
+      expect(result.data.id).toBe('11111111-1111-4111-8111-111111111111');
     }
-    expect(mockUpdate).toHaveBeenCalled();
-    expect(mockInsert).toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111', status: 'lead' }));
   });
 
   it('aktualisiert bestehenden Lead bei gültiger clientId', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'lead-1' }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: '22222222-2222-4222-8222-222222222222', status: 'lead' }, error: null });
+    mockSingle.mockResolvedValueOnce({ data: { id: '22222222-2222-4222-8222-222222222222' }, error: null });
 
     const form = {
       ...createEmptyIntakeForm(),
@@ -72,13 +74,15 @@ describe('upsertClientIntakeDraft', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.id).toBe('lead-1');
+      expect(result.data.id).toBe('22222222-2222-4222-8222-222222222222');
     }
     expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockEq).toHaveBeenCalledWith('status', 'lead');
   });
 
   it('überspringt bei ungültiger lokaler ID den UUID-Filter und legt sicher neu an', async () => {
-    mockSingle.mockResolvedValueOnce({ data: { id: 'new-safe-lead' }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockSingle.mockResolvedValueOnce({ data: { id: '44444444-4444-4444-8444-444444444444' }, error: null });
 
     const result = await upsertClientIntakeDraft(
       '33333333-3333-4333-8333-333333333333',
@@ -86,9 +90,24 @@ describe('upsertClientIntakeDraft', () => {
       { clientId: 'keine-uuid' },
     );
 
-    expect(result).toEqual({ ok: true, data: { id: 'new-safe-lead' } });
+    expect(result).toEqual({ ok: true, data: { id: '44444444-4444-4444-8444-444444444444' } });
     expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockEq).not.toHaveBeenCalled();
+    expect(mockEq).not.toHaveBeenCalledWith('id', 'keine-uuid');
     expect(mockInsert).toHaveBeenCalled();
+  });
+  it('legt für einen bereits aktivierten Entwurf keinen zweiten Lead an', async () => {
+    const clientId = '11111111-1111-4111-8111-111111111111';
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: clientId, status: 'active' }, error: null });
+    expect(await upsertClientIntakeDraft('tenant-a', createEmptyIntakeForm(), { clientId })).toMatchObject({ ok: false, recoverableClientId: clientId });
+    expect(mockInsert).not.toHaveBeenCalled(); expect(mockUpdate).not.toHaveBeenCalled();
+  });
+  it('behält nach einem verlorenen Insert-Ergebnis die ID und aktualisiert beim Retry denselben Lead', async () => {
+    const clientId = '11111111-1111-4111-8111-111111111111'; const form = { ...createEmptyIntakeForm(), firstName: 'Erhalten' };
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null }); mockSingle.mockRejectedValueOnce(new Error('response lost'));
+    const first = await upsertClientIntakeDraft('tenant-a', form, { clientId }); expect(first).toMatchObject({ ok: false, recoverableClientId: clientId });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: clientId, status: 'lead' }, error: null }); mockSingle.mockResolvedValueOnce({ data: { id: clientId }, error: null });
+    expect(await upsertClientIntakeDraft('tenant-a', form, { clientId: first.recoverableClientId })).toEqual({ ok: true, data: { id: clientId } });
+    expect(mockInsert).toHaveBeenCalledTimes(1); expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockEq).toHaveBeenCalledWith('tenant_id', 'tenant-a');
   });
 });

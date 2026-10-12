@@ -1,3 +1,2 @@
-import { BodyMapScreen } from '@/product-workflows/screens/pflege/BodyMapScreen';
-
-export default BodyMapScreen;
+import { Redirect } from 'expo-router';
+export default function RetiredBodymapRoute() { return <Redirect href="/" />; }

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 
 type CalendarCreateActionProps = {
@@ -47,7 +47,8 @@ export function CalendarCreateAction({
 const styles = StyleSheet.create({
   button: {
     alignSelf: 'flex-start',
-    minWidth: 310,
+    minWidth: Platform.OS === 'web' ? 310 : 0,
+    maxWidth: '100%',
     minHeight: 58,
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   icon: { color: '#FFFFFF', fontSize: 23, lineHeight: 25, fontWeight: '800' },
   copy: { flex: 1, minWidth: 0 },
   title: { color: '#FFFFFF', fontSize: 15, lineHeight: 19, fontWeight: '900' },
-  subtitle: { color: '#D7F2FF', fontSize: 11, lineHeight: 15, fontWeight: '600', marginTop: 2 },
+  subtitle: { color: '#D7F2FF', fontSize: Platform.OS === 'web' ? 11 : 12, lineHeight: 17, fontWeight: '600', marginTop: 2 },
   arrow: { color: '#FFFFFF', fontSize: 30, lineHeight: 32, fontWeight: '300' },
   fab: {
     position: 'absolute',

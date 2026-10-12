@@ -3,11 +3,11 @@
  * Replace placeholders before production store submission.
  */
 export const SUPPORT_LINKS = {
-  help: 'https://caresuiteplus.de/hilfe',
-  privacy: 'https://caresuiteplus.de/datenschutz',
-  imprint: 'https://caresuiteplus.de/impressum',
-  terms: 'https://caresuiteplus.de/nutzungsbedingungen',
-  supportEmail: 'support@caresuiteplus.de',
+  help: 'https://www.caresuiteplus.app/support',
+  privacy: 'https://www.caresuiteplus.app/datenschutz',
+  imprint: 'https://www.caresuiteplus.app/impressum',
+  terms: 'https://www.caresuiteplus.app/nutzungsbedingungen',
+  supportEmail: 'caresuiteapp@gmail.com',
 } as const;
 
 export type SupportLinkKey = keyof typeof SUPPORT_LINKS;

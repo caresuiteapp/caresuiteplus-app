@@ -117,9 +117,10 @@ export function ScreenShell({
           minHeight: 0,
           width: '100%',
           overflow: 'hidden',
-          backgroundColor: 'rgba(4,17,37,0.96)',
+          backgroundColor: Platform.OS === 'web' ? 'rgba(4,17,37,0.96)' : '#F6FAFF',
         },
         centralPopupPageHeader: {
+          flexWrap: isPhone ? 'wrap' : 'nowrap',
           minHeight: isPhone ? 66 : 84,
           flexShrink: 0,
           paddingHorizontal: isPhone ? spacing.md : spacing.lg,
@@ -130,14 +131,14 @@ export function ScreenShell({
           gap: spacing.md,
           borderBottomWidth: 1,
           borderBottomColor: 'rgba(117,211,255,0.28)',
-          backgroundColor: 'rgba(8,29,57,0.93)',
+          backgroundColor: Platform.OS === 'web' ? 'rgba(8,29,57,0.93)' : '#EAF4FF',
         },
         centralPopupTitleGroup: {
           flex: 1,
           minWidth: 0,
         },
         centralPopupEyebrow: {
-          color: '#78DCFF',
+          color: Platform.OS === 'web' ? '#78DCFF' : '#0872D9',
           fontSize: 10,
           lineHeight: 14,
           fontWeight: '900',
@@ -145,7 +146,7 @@ export function ScreenShell({
           textTransform: 'uppercase',
         },
         centralPopupTitle: {
-          color: '#F5FAFF',
+          color: Platform.OS === 'web' ? '#F5FAFF' : '#0B213D',
           fontSize: isPhone ? 19 : 24,
           lineHeight: isPhone ? 24 : 30,
           fontWeight: '900',
@@ -153,13 +154,14 @@ export function ScreenShell({
           marginTop: 2,
         },
         centralPopupSubtitle: {
-          color: '#AFC9E0',
+          color: Platform.OS === 'web' ? '#AFC9E0' : '#526A84',
           fontSize: 12,
           lineHeight: 17,
           fontWeight: '600',
           marginTop: 2,
         },
         centralPopupActions: {
+          width: isPhone ? '100%' : undefined,
           flexShrink: 0,
           alignItems: 'flex-end',
         },
@@ -200,7 +202,7 @@ export function ScreenShell({
 
   if (contextualPopup) {
     return (
-      <SurfaceContrastProvider tone="dark">
+      <SurfaceContrastProvider tone={Platform.OS === 'web' ? 'dark' : 'light'}>
         <View
           style={[rootStyle, styles.centralPopupWorkspace]}
           testID="screen-shell-contextual-popup"
@@ -216,8 +218,8 @@ export function ScreenShell({
           >
             <View style={styles.centralPopupTitleGroup}>
               <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text>
-              <Text numberOfLines={2} style={styles.centralPopupTitle}>{title}</Text>
-              {subtitle ? <Text numberOfLines={2} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
+              <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupTitle}>{title}</Text>
+              {subtitle ? <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
             </View>
             {effectiveRightSlot ? <View style={styles.centralPopupActions}>{effectiveRightSlot}</View> : null}
           </View>

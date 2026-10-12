@@ -85,7 +85,7 @@ describe('Client UI Reality Fix', () => {
     expect(hook).toContain("editSections?.includes('vertraege_einwilligungen')");
   });
 
-  it('recovers signed intake documents after interrupted client assignment writes', () => {
+  it('retains signed originals after interrupted client assignment writes without inventing completion', () => {
     const documents = readSrc('features/intakeDocuments/intakeDocumentRepository.ts');
     const hook = readSrc('hooks/useClientIntakeWizard.ts');
     const record = readSrc('screens/business/office/ClientRecordScreen.tsx');
@@ -105,9 +105,11 @@ describe('Client UI Reality Fix', () => {
       documents.indexOf('if (signatureError)'),
     );
     expect(signatureLookup).not.toContain(".eq('client_id', clientId)");
-    expect(documents).toContain("update({ status: recoveredStatus })");
+    expect(documents).not.toContain("update({ status: recoveredStatus })");
+    expect(documents).toContain("status: row.status as IntakeDocumentStatus");
     expect(hook).toContain('containsSignedDocument');
-    expect(hook).toContain('persistClientIntakeDocuments');
+    expect(hook).not.toContain('persistClientIntakeDocuments');
+    expect(hook).toContain('atomare Serverabschluss');
     expect(record).toContain('loadClientIntakeDraft');
     expect(record).toContain('draft.clientId !== id');
     expect(record).toContain('persistClientIntakeDocuments');
@@ -118,7 +120,7 @@ describe('Client UI Reality Fix', () => {
     expect(migration).toContain('no required intake document is left unsigned');
   });
 
-  it('saves only production client columns and keeps derived sync non-blocking', () => {
+  it('saves only production client columns and reports failed required synchronization', () => {
     const repository = readSrc(
       'lib/clients/repositories/clientIntakeRepository.supabase.ts',
     );
@@ -131,10 +133,10 @@ describe('Client UI Reality Fix', () => {
     expect(repository).toContain("shouldUpdate('stammdaten')");
     expect(repository).toContain('service_start: form.serviceStart');
     expect(repository).not.toContain('birth_place: form.birthPlace');
-    expect(persistence).toContain('isMissingTableError(existingError)');
-    expect(service).toContain(
-      "console.warn('[clientIntakeService] client core sync:'",
-    );
+    expect(persistence).not.toContain('isMissingTableError(existingError)');
+    expect(service).toContain('if (!coreSync.ok)');
+    expect(service).toContain('recoverableClientId');
+    expect(service).not.toContain("console.warn('[clientIntakeService] client core sync:'");
   });
 
   it('buildClientDetailKpis avoids invoice KPI labels', () => {

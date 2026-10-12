@@ -75,15 +75,17 @@ describe('Auth/Admin/TI Settings Heroes (Sprint 107)', () => {
     expect(hero).toContain('Demo-Prototyp');
   });
 
-  it('BusinessRegisterScreen nutzt AuthRegisterHero statt flachem PremiumCard-Header', () => {
+  it('BusinessRegisterScreen verwendet den gemeinsamen bestätigten Registrierungsablauf', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen).toContain('AuthRegisterHero');
+    expect(screen).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    expect(screen).toContain('@/liquid-command/screens/AccessScreens');
     expect(screen).not.toContain('<PremiumCard accentColor={colors.orange}>');
   });
 
-  it('CompanySetupScreen nutzt OnboardingSetupHero statt PremiumBadge-Header', () => {
+  it('CompanySetupScreen leitet zur kostenlosen Registrierung weiter', () => {
     const screen = readSrc('src/screens/onboarding/CompanySetupScreen.tsx');
-    expect(screen).toContain('OnboardingSetupHero');
+    expect(screen).toContain('<Redirect href="/auth/register-business"');
+    expect(screen).not.toContain('createCompany');
     expect(screen).not.toContain('PremiumBadge label="Schritt 2');
   });
 

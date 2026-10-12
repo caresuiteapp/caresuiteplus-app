@@ -68,10 +68,14 @@ export type EmployeePortalTodayReadMetrics = {
 export function pickEmployeePortalTodayReadMetrics(
   dashboard: EmployeePortalDashboardProjection,
 ): EmployeePortalTodayReadMetrics {
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
   const minutes = dashboard.todayAssignments.reduce((sum, item) => {
     const start = new Date(item.plannedStartAt).getTime();
     const end = new Date(item.plannedEndAt).getTime();
-    return sum + Math.max(0, Math.round((end - start) / 60000));
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return sum;
+    return sum + Math.max(0, Math.round((Math.min(end, dayEnd) - Math.max(start, dayStart)) / 60000));
   }, 0);
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -136,13 +140,13 @@ function toTodayAssignment(
 function buildOpenSignaturesCard(
   dashboard: EmployeePortalDashboardProjection,
 ): EmployeePortalTodayMetric | null {
-  if (dashboard.openSignatureDocumentCount <= 0) return null;
+  if (dashboard.openSignatureDocumentCount <= 0 && !dashboard.signatureDocumentsError) return null;
   return {
     id: 'open-signatures',
     label: 'Offene Unterschriften',
-    value: dashboard.openSignatureDocumentCount,
+    value: dashboard.signatureDocumentsError ? '—' : dashboard.openSignatureDocumentCount,
     subValue:
-      dashboard.overdueSignatureDocumentCount > 0
+      dashboard.signatureDocumentsError ? 'Status derzeit nicht verfügbar' : dashboard.overdueSignatureDocumentCount > 0
         ? `${dashboard.overdueSignatureDocumentCount} überfällig`
         : 'Zum Unterschreiben',
     icon: '✍️',
@@ -185,9 +189,9 @@ function buildTagesübersicht(
     {
       id: 'today-messages',
       label: 'Nachrichten',
-      value: m.messageCount,
+      value: dashboard.messageCountUnavailable ? '—' : m.messageCount,
       subValue:
-        m.messageCount === 0 ? 'Keine neuen Nachrichten' : `${m.messageCount} ungelesen`,
+        dashboard.messageCountUnavailable ? 'Nachrichtenstatus wird geprüft' : m.messageCount === 0 ? 'Keine neuen Nachrichten' : `${m.messageCount} ungelesen`,
       icon: '💬',
       route: '/portal/employee/messages',
     },

@@ -4,6 +4,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
+import { useClientPortalSettings } from '@/hooks/useClientPortalSettings';
 import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
 import {
   LiquidBackdrop,
@@ -17,7 +18,7 @@ import {
 import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
-  liquidPortalNavigation,
+  releasedLiquidPortalNavigation,
   liquidPortalLoginRoutes,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
@@ -25,7 +26,7 @@ import { PortalTextSizeControls } from '@/components/portal/accessibility/Portal
 import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { useWebVisualViewport } from '@/hooks/useWebVisualViewport.web';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
-import { PortalMessengerFocusProvider } from '@/lib/portal/portalMessengerFocusContext';
+import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { PortalViewportContext } from '@/lib/portal/portalViewportContext';
 import {
   isEmployeeVisitExecutionRoute,
@@ -61,8 +62,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const { height: visibleHeight, width: visibleWidth, offsetTop, offsetLeft, keyboardVisible } = useWebVisualViewport();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
+  const { active: messengerFocusActive } = usePortalMessengerFocus();
   const [moreOpen, setMoreOpen] = useState(false);
-  const navigation = liquidPortalNavigation[kind];
+  const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
+  const navigation = useMemo(() => releasedLiquidPortalNavigation(kind, clientPortalSettings), [kind, clientPortalSettings]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
   const profileRoute =
@@ -77,7 +80,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const compactLogoWidth = resolveCompactPortalLogoWidth(layout.width);
   const visitExecutionFocus =
     kind === 'employee' && isEmployeeVisitExecutionRoute(pathname);
-  const showCompactNavigation = !desktopChrome && !visitExecutionFocus && !keyboardVisible;
+  const compactMessengerFocus = !desktopChrome && messengerFocusActive;
+  const showCompactNavigation = !desktopChrome && !keyboardVisible && !compactMessengerFocus;
   const messageInbox = usePortalOfficeMessages(
     'open',
     kind === 'client' || kind === 'employee',
@@ -157,7 +161,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </View>
         ) : null}
         <View style={styles.main}>
-          {!visitExecutionFocus ? <View
+          {!visitExecutionFocus && !compactMessengerFocus ? <View
             style={[
               styles.topbar,
               !desktopChrome && styles.topbarCompact,
@@ -216,12 +220,12 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             style={[
               styles.contentFrame,
               !desktopChrome && styles.contentFrameCompact,
-              visitExecutionFocus && styles.contentFrameFocus,
+              (visitExecutionFocus || compactMessengerFocus) && styles.contentFrameFocus,
             ]}
             contentStyle={[
               styles.content,
               !desktopChrome && styles.contentCompact,
-              visitExecutionFocus && styles.contentFocus,
+              (visitExecutionFocus || compactMessengerFocus) && styles.contentFocus,
             ]}
           >
             <PortalStack />

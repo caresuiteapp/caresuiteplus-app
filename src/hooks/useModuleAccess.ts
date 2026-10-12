@@ -16,7 +16,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 export function useModuleAccess(revision = 0) {
   const serviceTenantId = useServiceTenantId();
   const tenantId = serviceTenantId ?? (isDemoMode() ? DEMO_TENANT_ID : '');
-  const [, setCacheRevision] = useState(0);
+  const [cacheRevision, setCacheRevision] = useState(0);
 
   useEffect(() => subscribeTenantModuleSettings(() => {
     setCacheRevision((value) => value + 1);
@@ -33,6 +33,7 @@ export function useModuleAccess(revision = 0) {
       };
       return {
         tenantId: null as string | null,
+        revision, cacheRevision,
         modules: [] as EffectiveModuleAccess[],
         billing: emptyBilling,
         hasModule: () => false,
@@ -48,6 +49,7 @@ export function useModuleAccess(revision = 0) {
 
     return {
       tenantId,
+      revision, cacheRevision,
       modules,
       billing,
       hasModule: (moduleKey: ProductKey) => hasModuleAccess(moduleKey, tenantId),
@@ -57,5 +59,5 @@ export function useModuleAccess(revision = 0) {
       getModule: (moduleKey: ProductKey): EffectiveModuleAccess | undefined =>
         modules.find((entry) => entry.productKey === moduleKey),
     };
-  }, [tenantId]);
+  }, [tenantId, revision, cacheRevision]);
 }

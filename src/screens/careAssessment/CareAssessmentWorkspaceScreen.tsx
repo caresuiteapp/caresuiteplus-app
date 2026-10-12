@@ -157,7 +157,6 @@ export function CareAssessmentWorkspaceScreen({ subjectType, mode }: {
 
 function Workspace({ subjectType }: { subjectType: CareAssessmentSubjectType }) {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const router = useRouter();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const { width } = useWindowDimensions();
@@ -251,7 +250,6 @@ function Workspace({ subjectType }: { subjectType: CareAssessmentSubjectType }) 
   if (query.loading && !value) return <ScreenShell title="SIS & Assessment"><LoadingState message="Pflegeprozess wird geladen…" /></ScreenShell>;
   if (query.error && !value) return <ScreenShell title="SIS & Assessment"><ErrorState message={query.error} onRetry={query.refresh} /></ScreenShell>;
   if (!value || !completeness) return null;
-  const bodyMap = resident ? `/stationaer/bewohner/${value.subjectId}/bodymap` : `/pflege/bodymap?clientId=${value.subjectId}`;
   const topicLabel = (key: CareAssessmentTopicKey) => {
     if (key === 'living_environment') return resident ? 'Wohnen und Häuslichkeit' : 'Haushaltsführung';
     return CARE_ASSESSMENT_TOPIC_LABELS[key];
@@ -349,7 +347,6 @@ function Workspace({ subjectType }: { subjectType: CareAssessmentSubjectType }) 
         <SectionPanel title="Dynamische Risikomatrix">
           <View style={styles.actions}>
             <PremiumButton title="+ Risiko / Phänomen" disabled={locked} onPress={addRisk} />
-            <PremiumButton title="3D-BodyMap öffnen" variant="secondary" onPress={() => router.push(bodyMap as never)} />
           </View>
           {value.risks.map((item, index) => (
             <View key={`${item.riskKey}-${index}`} style={styles.card}>

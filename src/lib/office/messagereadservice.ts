@@ -4,6 +4,7 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import type { PortalActor } from '@/lib/office/portalofficemessageservice';
+import { fetchPortalOfficeThreadDetail } from '@/lib/office/portalofficemessageservice';
 import { OFFICE_MESSAGING_SCHEMA_ERROR } from '@/lib/office/messagethreadservice';
 
 function officeMessagingError(error: string): ServiceResult<never> {
@@ -64,6 +65,11 @@ export async function markPortalThreadMessagesRead(
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+
+  // Read acknowledgements obey the same actor/thread boundary as chat reads
+  // and replies, before any message or unread-counter update is attempted.
+  const permittedThread = await fetchPortalOfficeThreadDetail(tenantId, threadId, actor);
+  if (!permittedThread.ok) return permittedThread;
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };

@@ -14,6 +14,11 @@ const upsertStateMock = vi.fn();
 const mirrorStatusMock = vi.fn();
 const getServiceModeMock = vi.fn();
 const deviationGateMock = vi.fn();
+const atomicStartMock = vi.fn();
+
+vi.mock('@/features/assistWorkflow/startServiceAtomic.shared', () => ({
+  startServiceAtomic: (...args: unknown[]) => atomicStartMock(...args),
+}));
 
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
   transitionAssistExecutionStatus: (...args: unknown[]) => transitionMock(...args),
@@ -160,6 +165,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     mirrorStatusMock.mockResolvedValue({ ok: true });
     getServiceModeMock.mockReturnValue('demo');
     deviationGateMock.mockReturnValue({ blocked: false, needsJustification: false });
+    atomicStartMock.mockResolvedValue({ ok: true, data: successCtx({}) });
   });
 
   it('success: angekommen → canonical transition + optimistic context', async () => {
@@ -198,7 +204,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     expect(ensureEventMock).not.toHaveBeenCalled();
   });
 
-  it('backfill: gestartet without service_start inserts event and verifies readback', async () => {
+  it('backfill: gestartet without service_start preserves the known actual start time', async () => {
     const afterBackfill = successCtx({});
     fetchEventsMock.mockResolvedValue({
       ok: true,
@@ -211,11 +217,12 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     resolveMock.mockResolvedValue({ ok: true, data: afterBackfill });
 
     const ctx = mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'angekommen' });
+    ctx.detail.actualStartAt = '2026-06-29T08:35:00Z';
     const result = await startService(ctx);
 
     expect(result.ok).toBe(true);
     expect(ensureEventMock).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'service_start' }),
+      expect.objectContaining({ eventType: 'service_start', occurredAt: ctx.detail.actualStartAt }),
       expect.any(Array),
     );
     expect(transitionMock).not.toHaveBeenCalled();
@@ -266,6 +273,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     });
 
     const ctx = mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'angekommen' });
+    ctx.detail.actualStartAt = '2026-06-29T08:35:00Z';
     const result = await startService(ctx);
 
     expect(result.ok).toBe(true);
@@ -281,6 +289,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     });
 
     const ctx = mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'angekommen' });
+    ctx.detail.actualStartAt = '2026-06-29T08:35:00Z';
     const result = await startService(ctx);
 
     expect(result.ok).toBe(false);
@@ -305,7 +314,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     }
   });
 
-  it('delegates the production live-status projection to the fast transition', async () => {
+  it('delegates production start to one atomic command instead of separate status/event writes', async () => {
     const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
     transitionMock.mockResolvedValue({ ok: true, data: started });
     resolveMock.mockResolvedValue({ ok: true, data: started });
@@ -318,11 +327,9 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     const ctx = mockCtx({ assignmentStatus: 'angekommen', derivedStatus: 'angekommen' });
     const result = await startService(ctx);
 
-    expect(transitionMock).toHaveBeenCalledWith(
-      ctx,
-      'gestartet',
-      expect.objectContaining({ fastWorkflow: true }),
-    );
+    expect(atomicStartMock).toHaveBeenCalledWith(ctx, {});
+    expect(transitionMock).not.toHaveBeenCalled();
+    expect(ensureEventMock).not.toHaveBeenCalled();
     expect(mirrorStatusMock).not.toHaveBeenCalled();
     expect(result.ok).toBe(true);
   });

@@ -74,13 +74,13 @@ describe('moduleAccessService — Office Basis-Modul (Free Platform)', () => {
     expect(hasModuleAccess('office', TENANT)).toBe(true);
   });
 
-  it('mehrere Fachmodule — Office enthalten, Free Platform billableCount 0', () => {
+  it('mehrfache Aktivierung von Assist zählt einmal und enthält Office kostenlos', () => {
     seed(baseModules());
     activatePurchasedModule(TENANT, 'assist');
     activatePurchasedModule(TENANT, 'assist');
 
     const billing = calculateBillingItems(TENANT);
-    expect(billing.totalActiveCount).toBe(3);
+    expect(billing.totalActiveCount).toBe(2);
     expect(billing.billableCount).toBe(0);
     expect(billing.includedCount).toBeGreaterThanOrEqual(1);
   });
@@ -169,7 +169,7 @@ describe('moduleAccessService — Office Basis-Modul (Free Platform)', () => {
   it('Rollen vs. Modul-Zugriff bleiben getrennt', () => {
     seed(baseModules());
     const permissionsBefore = getPermissionsForRole('nurse');
-    activatePurchasedModule(TENANT, 'pflege');
+    activatePurchasedModule(TENANT, 'assist');
     const permissionsAfter = getPermissionsForRole('nurse');
 
     expect(hasModuleAccess('office', TENANT)).toBe(true);

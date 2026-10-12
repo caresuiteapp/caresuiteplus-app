@@ -26,7 +26,7 @@ export function ClientIntakeWizardScreen() {
           subtitle="Strukturierte, sichere und vollständig geführte Neuaufnahme"
           description="Leistungsart wählen · Pflichtangaben intelligent prüfen · Entwurf jederzeit fortsetzen"
         >
-          <ClientWorkspaceLiveBadge label="Mandantengebundene Datenspeicherung aktiv" />
+          <ClientWorkspaceLiveBadge label="Sicherungsstatus im Aufnahmeformular" connected={false} />
         </AuroraPageHeader>
       </View>
       <View style={styles.content}>

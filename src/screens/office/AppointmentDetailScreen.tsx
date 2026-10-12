@@ -26,7 +26,8 @@ function SummaryRow({ label, value }: { label: string; value: string | null | un
 }
 
 export function AppointmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(routeId) ? routeId[0] : routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const { can, roleLabel, isReadOnly } = usePermissions();
@@ -101,7 +102,7 @@ export function AppointmentDetailScreen() {
           title="Zurück zur Terminliste"
           variant="secondary"
           fullWidth
-          onPress={() => router.back()}
+          onPress={() => router.replace('/office/appointments')}
         />
       </ScrollView>
     </ScreenShell>

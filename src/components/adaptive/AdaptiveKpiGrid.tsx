@@ -27,14 +27,34 @@ type AdaptiveKpiGridProps = {
   items: KpiGridItem[];
   style?: ViewStyle;
   columns?: Partial<Record<AdaptiveDeviceClass, number>>;
+  phoneLayout?: 'scroll' | 'grid';
 };
 
 export { kpiGridColumnCount };
 
-export function AdaptiveKpiGrid({ items, style, columns: columnOverrides }: AdaptiveKpiGridProps) {
+export function AdaptiveKpiGrid({ items, style, columns: columnOverrides, phoneLayout = 'scroll' }: AdaptiveKpiGridProps) {
   const { deviceClass, isPhone } = useDeviceClass();
   const columnCount = columnOverrides?.[deviceClass] ?? kpiColumnsForDeviceClass(deviceClass);
-  const useHorizontalScroll = isPhone && items.length > columnCount;
+  const useHorizontalScroll = isPhone && phoneLayout === 'scroll' && items.length > columnCount;
+
+  if (isPhone && phoneLayout === 'grid') {
+    const rows = Array.from({ length: Math.ceil(items.length / columnCount) }, (_, row) =>
+      items.slice(row * columnCount, (row + 1) * columnCount),
+    );
+    return (
+      <View style={[styles.phoneGrid, style]}>
+        {rows.map((row) => (
+          <View key={row[0].id} style={styles.phoneRow}>
+            {Array.from({ length: columnCount }, (_, index) => (
+              <View key={row[index]?.id ?? `empty-${index}`} style={styles.phoneItem}>
+                {row[index]?.node}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  }
 
   if (useHorizontalScroll) {
     return (
@@ -69,6 +89,9 @@ export function AdaptiveKpiGrid({ items, style, columns: columnOverrides }: Adap
 }
 
 const styles = StyleSheet.create({
+  phoneGrid: { width: '100%', gap: careSpacing.sm },
+  phoneRow: { width: '100%', flexDirection: 'row', gap: careSpacing.sm, alignItems: 'stretch' },
+  phoneItem: { flex: 1, minWidth: 0 },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

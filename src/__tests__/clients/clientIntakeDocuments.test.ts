@@ -180,13 +180,13 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('11. Datenschutz ist optional beim Speichern — Hinweis statt Blockade', () => {
+  it('11. offene Datenschutz- und Vertragsnachweise blockieren die Aktivierung', () => {
     const form = baseForm();
     const validation = validateIntakeDocumentsStep(form, listApplicableIntakeTemplates(form));
-    expect(validation.ok).toBe(true);
-    expect(validation.errors.intakePrivacy).toBeUndefined();
-    expect(validation.warnings.intakePrivacy).toBeTruthy();
-    expect(validation.warnings.intakeContract).toBeTruthy();
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.intakePrivacy).toContain('vor der Aktivierung');
+    expect(validation.errors.intakeContract).toContain('als Entwurf speichern');
+    expect(JSON.stringify(validation)).not.toContain('Mitarbeiter-Portal');
   });
 
   it('12. Vertrag erfordert Klient:in- und Mitarbeitenden-Unterschrift', () => {
@@ -225,7 +225,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(validation.errors.intakeAssignment).toContain('Pflegegrad');
   });
 
-  it('14c. finalisiert eine vorhandene Unterschrift nach Ergänzung des Pflegegrades', () => {
+  it('14c. verlangt nach Ergänzung des Pflegegrades eine neue geprüfte Unterschrift', () => {
     const incompleteForm = baseForm({ careLevel: '', intakeAssignmentEnabled: true });
     const template = getSystemIntakeTemplateByKey('assignment_declaration_care_health_insurance')!;
     let document = openDocumentPreview(incompleteForm, template);
@@ -243,11 +243,20 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
 
     expect(repaired.intakeDocuments.find(
       (item) => item.templateKey === template.templateKey,
-    )?.status).toBe('finalized');
-    expect(canProceedFromIntakeDocuments(
-      repaired,
-      listApplicableIntakeTemplates(repaired),
-    )).toBe(true);
+    )?.status).not.toBe('finalized');
+    expect(document.signatures.client).toBeUndefined();
+    const validation = validateIntakeDocumentsStep(repaired, listApplicableIntakeTemplates(repaired));
+    expect(validation.errors.intakeAssignment).toBeTruthy();
+    expect(validation.errors.intakePrivacy).toBeTruthy();
+    expect(validation.errors.intakeContract).toBeTruthy();
+    expect(canProceedFromIntakeDocuments(repaired, listApplicableIntakeTemplates(repaired))).toBe(false);
+    const reopened = openDocumentPreview(repaired, template);
+    const resigned = applyDocumentSignature(reopened, template, repaired, 'client', {
+      role: 'client', dataUrl: 'data:image/png;base64,new-assignment', signedAt: '2026-10-11T10:00:00Z',
+    });
+    expect(resigned.status).toBe('finalized');
+    const allRequired = updateIntakeDocumentInForm(finalizeRequiredDocs(repaired), resigned);
+    expect(canProceedFromIntakeDocuments(allRequired, listApplicableIntakeTemplates(allRequired))).toBe(true);
   });
 
   it('15. fehlende Unterschrift erscheint nicht im Dokumententext', () => {
@@ -274,10 +283,10 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     }
   });
 
-  it('17. validateIntakeStep blockiert Speichern nicht wegen Pflichtdokumenten', () => {
+  it('17. validateIntakeStep meldet die konkreten offenen Pflichtdokumente', () => {
     const errors = validateIntakeStep('vertraege_einwilligungen', baseForm());
-    expect(errors.intakePrivacy).toBeUndefined();
-    expect(errors.intakeContract).toBeUndefined();
+    expect(errors.intakePrivacy).toBeTruthy();
+    expect(errors.intakeContract).toBeTruthy();
   });
 
   it('18. vollständige Pflichtdokumente erlauben Weiter', () => {
@@ -291,7 +300,8 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(panel).toContain('Pflichtdokumente');
     expect(panel).toContain('Fehlende Pflichtangaben');
     expect(panel).not.toContain('rechtssicher garantiert');
-    expect(panel).not.toContain('errors.intakePrivacy');
+    expect(panel).toContain('errors.intakePrivacy');
+    expect(panel).toContain('errors.intakeContract');
   });
 
   it('20. Signature Modal mit Löschen, Abbrechen und Bestätigen', () => {
@@ -586,7 +596,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(reopened.previewHtml).toBe(doc.finalizedHtml);
   });
 
-  it('41. alter vollständig unterschriebener Entwurf wird beim Laden repariert', () => {
+  it('41. übernimmt eine alte Unterschrift nicht aus einer ungebundenen Vorschau', () => {
     const form = baseForm();
     const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
     const opened = openDocumentPreview(form, template);
@@ -608,9 +618,9 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     );
     const document = repaired.intakeDocuments[0];
 
-    expect(document?.status).toBe('finalized');
+    expect(document?.status).toBe('signed');
     expect(document?.signatures.client?.dataUrl).toContain('legacy-signature');
-    expect(document?.finalizedHtml).toContain('legacy-signature');
+    expect(document?.finalizedHtml).toBeNull();
   });
 
   it('42. Reparatur läuft erneut, sobald Entwurfsdokumente geladen wurden', () => {

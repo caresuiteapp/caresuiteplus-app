@@ -1,0 +1,1193 @@
+{
+  "generatedAt": "2026-10-11T12:24:04.664Z",
+  "scope": "client-portal",
+  "catalogEntries": 11,
+  "reachableSourceFiles": 1510,
+  "linksChecked": 112,
+  "missing": [],
+  "dynamic": [],
+  "unresolved": [
+    {
+      "file": "src/screens/portal/ClientDocumentSignaturesScreen.tsx",
+      "line": 113,
+      "expression": "proof.route as never"
+    },
+    {
+      "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "line": 124,
+      "expression": "item.route as never"
+    },
+    {
+      "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "line": 192,
+      "expression": "kind === 'employee'\n                        ? '/portal/employee/messages'\n                        : kind === 'client'\n                          ? '/portal/client/messages'\n                          : '/portal/relative/messages' as never"
+    },
+    {
+      "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "line": 205,
+      "expression": "profileRoute as never"
+    },
+    {
+      "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "line": 245,
+      "expression": "item.route as never"
+    },
+    {
+      "file": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "line": 331,
+      "expression": "item.route as never"
+    },
+    {
+      "file": "src/components/portal/ClientPortalAttentionPrompt.tsx",
+      "line": 38,
+      "expression": "(signatures.items.length === 1 ? signatures.items[0].route : '/portal/client/documents/signatures') as never"
+    },
+    {
+      "file": "src/components/portal/ClientPortalAttentionPrompt.tsx",
+      "line": 42,
+      "expression": "(unread.length === 1 ? `/portal/client/messages/${unread[0].id}` : '/portal/client/messages') as never"
+    },
+    {
+      "file": "src/components/ui/CareLightBottomNav.tsx",
+      "line": 34,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/components/ui/RequireProductAccess.tsx",
+      "line": 26,
+      "expression": "decision.target"
+    },
+    {
+      "file": "src/components/portal/EmployeePortalCalendarScreen.tsx",
+      "line": 86,
+      "expression": "href as never"
+    },
+    {
+      "file": "src/components/portal/EmployeePortalAssignmentPreviewSheet.tsx",
+      "line": 75,
+      "expression": "executionRoute as never"
+    },
+    {
+      "file": "src/components/portal/PortalNavigation.tsx",
+      "line": 32,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/lib/auth/RequireAuth.tsx",
+      "line": 44,
+      "expression": "target as never"
+    },
+    {
+      "file": "src/lib/auth/RequireRole.tsx",
+      "line": 49,
+      "expression": "decision.target"
+    },
+    {
+      "file": "src/lib/auth/RequireRole.tsx",
+      "line": 106,
+      "expression": "getLoginRedirectForPath(pathname) as never"
+    },
+    {
+      "file": "src/lib/auth/RequireEmployeePasswordSetup.tsx",
+      "line": 26,
+      "expression": "resolveEmployeeFirstLoginHref(portalSession.accountId) as never"
+    },
+    {
+      "file": "src/lib/auth/usePostLoginNavigation.ts",
+      "line": 27,
+      "expression": "pendingRoute"
+    },
+    {
+      "file": "src/components/layout/BreadcrumbTrail.tsx",
+      "line": 67,
+      "expression": "item.path as never"
+    },
+    {
+      "file": "src/components/office/calendar/OfficeCalendarEventChip.tsx",
+      "line": 85,
+      "expression": "event.href as never"
+    },
+    {
+      "file": "src/components/adaptive/AdaptiveModuleDashboard.tsx",
+      "line": 96,
+      "expression": "pilotRoute as never"
+    },
+    {
+      "file": "src/components/dashboard/DashboardView.tsx",
+      "line": 53,
+      "expression": "action.route as never"
+    },
+    {
+      "file": "src/components/dashboard/ModuleOverviewDashboard.tsx",
+      "line": 223,
+      "expression": "route as never"
+    },
+    {
+      "file": "src/components/dashboard/OfficeDashboardView.tsx",
+      "line": 74,
+      "expression": "route as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalLeftNav.tsx",
+      "line": 189,
+      "expression": "item.href as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalLeftNav.tsx",
+      "line": 203,
+      "expression": "hilfe.href as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalTopBar.tsx",
+      "line": 165,
+      "expression": "item.href as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalTopBar.tsx",
+      "line": 249,
+      "expression": "item.href as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalNavigationDrawer.tsx",
+      "line": 105,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/components/portal/ClientSignatureAttentionBanner.tsx",
+      "line": 21,
+      "expression": "(items.length === 1\n                  ? items[0].route\n                  : '/portal/client/documents/signatures') as never"
+    },
+    {
+      "file": "src/components/healthos/shell/HealthOSDesktopSidebar.tsx",
+      "line": 64,
+      "expression": "item.href as never"
+    },
+    {
+      "file": "src/components/healthos/shell/HealthOSMobileBottomNav.tsx",
+      "line": 82,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/components/healthos/office/HealthOSOfficeCommandCenterView.tsx",
+      "line": 129,
+      "expression": "route as never"
+    },
+    {
+      "file": "src/components/healthos/assist/HealthOSAssistOperationsView.tsx",
+      "line": 164,
+      "expression": "route as never"
+    },
+    {
+      "file": "src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx",
+      "line": 328,
+      "expression": "(fromCache && route.endsWith('/execute') ? route.slice(0, -'/execute'.length) : route) as never"
+    },
+    {
+      "file": "src/components/layout/portal/PortalTabLeftNav.tsx",
+      "line": 71,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/components/layout/PortalMobileNav.tsx",
+      "line": 57,
+      "expression": "tab.href as never"
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 131,
+      "expression": "href as never"
+    },
+    {
+      "file": "src/components/layout/platform/breadcrumbbar.tsx",
+      "line": 36,
+      "expression": "segment.href as never"
+    }
+  ],
+  "catalog": [
+    {
+      "label": "Übersicht",
+      "route": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "label": "Einsätze",
+      "route": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "label": "Live-Anfahrt",
+      "route": "/portal/client/live",
+      "targets": [
+        "app/portal/client/live.tsx"
+      ]
+    },
+    {
+      "label": "Dokumente",
+      "route": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "label": "Unterschriften",
+      "route": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "label": "Nachweise",
+      "route": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "label": "Nachrichten",
+      "route": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "label": "Mitteilungen",
+      "route": "/portal/client/announcements",
+      "targets": [
+        "app/portal/client/announcements/index.tsx"
+      ]
+    },
+    {
+      "label": "Budget",
+      "route": "/portal/client/budget",
+      "targets": [
+        "app/portal/client/budget/index.tsx"
+      ]
+    },
+    {
+      "label": "Hilfe",
+      "route": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "label": "Profil",
+      "route": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/live",
+      "targets": [
+        "app/portal/client/live.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/announcements",
+      "targets": [
+        "app/portal/client/announcements/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/budget",
+      "targets": [
+        "app/portal/client/budget/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 0,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 8,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 9,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 10,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 11,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 12,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 13,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 17,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 20,
+      "url": "/portal/client?modal=anfragen",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 21,
+      "url": "/portal/client?modal=aktivitaeten",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/clientPortalNavigation.ts",
+      "line": 22,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 134,
+      "url": "/portal/client/budget",
+      "targets": [
+        "app/portal/client/budget/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 137,
+      "url": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 140,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 215,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 216,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 225,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 226,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 235,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/AdaptivePortalOverview.tsx",
+      "line": 236,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
+      "line": 81,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
+      "line": 112,
+      "url": "/portal/client/appointments/example-id",
+      "targets": [
+        "app/portal/client/appointments/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/ClientDocumentSignaturesScreen.tsx",
+      "line": 140,
+      "url": "/portal/client/documents/signatures/example-id",
+      "targets": [
+        "app/portal/client/documents/signatures/[id].tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/ClientPortalProofsScreen.tsx",
+      "line": 90,
+      "url": "/portal/client/documents/example-id",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/ClientPortalProofsScreen.tsx",
+      "line": 94,
+      "url": "/portal/client/documents/example-id",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
+      "line": 109,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
+      "line": 129,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/portalMobileTabs.ts",
+      "line": 32,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/portalMobileTabs.ts",
+      "line": 36,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/portalMobileTabs.ts",
+      "line": 39,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/portalMobileTabs.ts",
+      "line": 40,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/portalMobileTabs.ts",
+      "line": 41,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/PortalDocumentsTab.tsx",
+      "line": 108,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx",
+      "line": 209,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 47,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 48,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 49,
+      "url": "/portal/client/live",
+      "targets": [
+        "app/portal/client/live.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 50,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 51,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 52,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 53,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 54,
+      "url": "/portal/client/announcements",
+      "targets": [
+        "app/portal/client/announcements/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 55,
+      "url": "/portal/client/budget",
+      "targets": [
+        "app/portal/client/budget/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 56,
+      "url": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "file": "src/liquid-command/navigation/portalCatalog.ts",
+      "line": 57,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalOverview.tsx",
+      "line": 101,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalOverview.tsx",
+      "line": 107,
+      "url": "/portal/client?action=zusatztermin",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalOverview.tsx",
+      "line": 139,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/MobilePortalDashboard.tsx",
+      "line": 71,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/MobilePortalDashboard.tsx",
+      "line": 77,
+      "url": "/portal/client?action=zusatztermin",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/MobilePortalDashboard.tsx",
+      "line": 109,
+      "url": "/portal/client/proofs",
+      "targets": [
+        "app/portal/client/proofs/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalSectionView.tsx",
+      "line": 67,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalSectionView.tsx",
+      "line": 71,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalSectionView.tsx",
+      "line": 97,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/PortalNextAppointmentHero.tsx",
+      "line": 135,
+      "url": "/portal/client/appointments/example-id",
+      "targets": [
+        "app/portal/client/appointments/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/PortalServiceProofsModal.tsx",
+      "line": 95,
+      "url": "/portal/client/documents/example-id",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/PortalServiceProofsModal.tsx",
+      "line": 100,
+      "url": "/portal/client/documents/example-id",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/engine/buildPortalNavigation.ts",
+      "line": 14,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/engine/buildPortalNavigation.ts",
+      "line": 15,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/engine/buildPortalNavigation.ts",
+      "line": 16,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/engine/buildPortalNavigation.ts",
+      "line": 72,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/engine/buildPortalNavigation.ts",
+      "line": 91,
+      "url": "/portal/client?module=example-id",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/shellConfig.ts",
+      "line": 109,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/shellConfig.ts",
+      "line": 110,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/shellConfig.ts",
+      "line": 111,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/navigation/shellConfig.ts",
+      "line": 112,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/ClientPortalLiveTrackingSection.tsx",
+      "line": 57,
+      "url": "/portal/client/appointments/example-id",
+      "targets": [
+        "app/portal/client/appointments/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+      "line": 143,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+      "line": 157,
+      "url": "/portal/client/messages/example-id",
+      "targets": [
+        "app/portal/client/messages/[threadId].tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/clientSignatureAttentionCore.ts",
+      "line": 42,
+      "url": "/portal/client/documents/example-id",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/portal/clientSignatureAttentionCore.ts",
+      "line": 68,
+      "url": "/portal/client/documents/signatures/example-id",
+      "targets": [
+        "app/portal/client/documents/signatures/[id].tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 311,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 315,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 319,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 331,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 340,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 369,
+      "url": "/portal/client?module=assist&section=begleitungen",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 385,
+      "url": "/portal/client/budget",
+      "targets": [
+        "app/portal/client/budget/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 427,
+      "url": "/portal/client/messages?compose=1",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 465,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 474,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 483,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "line": 492,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/layout/portal/PortalRightSidebar.tsx",
+      "line": 162,
+      "url": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/layout/portal/PortalRightSidebar.tsx",
+      "line": 186,
+      "url": "/portal/client/help",
+      "targets": [
+        "app/portal/client/help/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/healthos/navigation/healthosNavigationConfig.ts",
+      "line": 241,
+      "url": "/portal/client",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/healthos/navigation/healthosNavigationConfig.ts",
+      "line": 249,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/components/healthos/navigation/healthosNavigationConfig.ts",
+      "line": 267,
+      "url": "/portal/client/documents/signatures",
+      "targets": [
+        "app/portal/client/documents/[id]/index.tsx",
+        "app/portal/client/documents/signatures/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/healthos/navigation/healthosNavigationConfig.ts",
+      "line": 285,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/components/healthos/navigation/healthosNavigationConfig.ts",
+      "line": 291,
+      "url": "/portal/client/profile",
+      "targets": [
+        "app/portal/client/(tabs)/profile.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 108,
+      "url": "/portal/client/messages?compose=1",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 109,
+      "url": "/portal/client?action=termin_aendern",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 110,
+      "url": "/portal/client?action=zusatztermin",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 111,
+      "url": "/portal/client?action=upload",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 112,
+      "url": "/portal/client?action=rueckruf",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/hooks/usePortalSidebarData.ts",
+      "line": 118,
+      "url": "/portal/client?action=nachweise",
+      "targets": [
+        "app/portal/client/(tabs)/index.tsx"
+      ]
+    },
+    {
+      "file": "src/data/demo/dashboard.ts",
+      "line": 418,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/data/demo/dashboard.ts",
+      "line": 425,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/data/demo/dashboard.ts",
+      "line": 432,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/dashboard/liveDashboardSnapshot.ts",
+      "line": 64,
+      "url": "/portal/client/appointments",
+      "targets": [
+        "app/portal/client/(tabs)/appointments.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/dashboard/liveDashboardSnapshot.ts",
+      "line": 65,
+      "url": "/portal/client/documents",
+      "targets": [
+        "app/portal/client/(tabs)/documents.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/dashboard/liveDashboardSnapshot.ts",
+      "line": 66,
+      "url": "/portal/client/messages",
+      "targets": [
+        "app/portal/client/messages/index.tsx"
+      ]
+    }
+  ]
+}

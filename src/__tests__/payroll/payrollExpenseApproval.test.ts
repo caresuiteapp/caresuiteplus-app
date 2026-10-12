@@ -26,8 +26,8 @@ describe('Sammelgenehmigung der Monatsbelege', () => {
   it('preserves edited amounts and notes and totals cents exactly', () => {
     const result = preparePayrollExpenseApproval([claim(), claim({ id: 'claim-2', amountCents: 840, officeNote: 'Beleg geprüft' })],
       scope, { 'claim-1': ' 5,25 ' }, { 'claim-1': '  Korrigierte Strecke  ' });
-    assert.equal(result.ok, true);
     if (!result.ok) throw new Error(result.error);
+    assert.equal(result.ok, true);
     assert.equal(result.data.totalCents, 1365);
     assert.deepEqual(result.data.items.map(item => [item.status, item.approvedAmountCents, item.officeNote]),
       [['partially_approved', 525, 'Korrigierte Strecke'], ['approved', 840, 'Beleg geprüft']]);
@@ -35,8 +35,8 @@ describe('Sammelgenehmigung der Monatsbelege', () => {
 
   it('accepts zero and dot decimals without turning zero into the original amount', () => {
     const result = preparePayrollExpenseApproval([claim(), claim({ id: 'claim-2' })], scope, { 'claim-1': '0', 'claim-2': '8.38' }, {});
-    assert.equal(result.ok, true);
     if (!result.ok) throw new Error(result.error);
+    assert.equal(result.ok, true);
     assert.deepEqual(result.data.items.map(item => item.approvedAmountCents), [0, 838]);
     assert.equal(result.data.totalCents, 838);
   });

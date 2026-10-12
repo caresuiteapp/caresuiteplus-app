@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
 import type { UserAvatarPending } from '@/lib/auth/useravatarservice';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';

@@ -21,7 +21,7 @@ type EmployeePortalShellProps = {
 
 export function EmployeePortalShell({ children, accentColor }: EmployeePortalShellProps) {
   const { profile } = useAuth();
-  const { tenantId: portalTenantId, employeeId } = usePortalActor();
+  const { tenantId: portalTenantId, employeeId, employeeLinkReadOnly, employeeLinkVerifiedAt } = usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
   const { isOffline } = useConnectivity();
   useOfflineDbInit();
@@ -45,7 +45,7 @@ export function EmployeePortalShell({ children, accentColor }: EmployeePortalShe
       ) : null}
       {isOffline ? (
         <View style={styles.offlineBanner} accessibilityLiveRegion="polite">
-          <OfflineNotice visible />
+          <OfflineNotice visible verifiedAt={employeeLinkReadOnly ? employeeLinkVerifiedAt : null} />
         </View>
       ) : null}
       {children}

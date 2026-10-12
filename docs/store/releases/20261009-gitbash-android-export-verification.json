@@ -1,0 +1,185 @@
+{
+  "status": "ok",
+  "export": "dist-healthos-full",
+  "platform": "android",
+  "routerRoot": "app",
+  "bundle": "_expo/static/js/android/entry-67ae61ef7e7f329ebd152247467022aa.hbc",
+  "sourceMap": "_expo/static/js/android/entry-67ae61ef7e7f329ebd152247467022aa.hbc.map",
+  "bundleBytes": 26422136,
+  "runtimeBytes": 183727612,
+  "runtimeSizeMb": 175.2,
+  "runtimeFiles": 464,
+  "bundledSources": 7408,
+  "requiredRoutes": 23,
+  "nativeUiWithoutWebViews": true,
+  "selectedAndroidRoutes": 700,
+  "selectedAndroidSources": 4121,
+  "importAnalysis": "Selected Android/native/default routes; static imports and literal dynamic imports; known Platform.OS branches evaluated for Android.",
+  "routes": {
+    "business": 259,
+    "office": 72,
+    "portal/employee": 32,
+    "portal/client": 17
+  },
+  "selectedNativeRouteImplementations": [
+    "src/liquid-command/screens/LiquidCommandEntryScreen.tsx",
+    "src/liquid-command/screens/AccessHubBaseScreen.tsx",
+    "src/liquid-command/screens/AccessScreens.tsx",
+    "src/lib/auth/businessAuthService.ts",
+    "src/liquid-command/screens/ModuleWorkspaceScreen.tsx",
+    "src/liquid-command/components/CompanyRegistrationSelect.tsx",
+    "src/liquid-command/screens/CommandCenterScreen.native.tsx",
+    "src/screens/support/PublicSupportScreen.native.tsx",
+    "src/screens/connect/GoogleWorkspaceScreen.native.tsx",
+    "src/ai/robot/RobotNavigationAssistant.native.tsx",
+    "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+    "src/components/images/CareSuiteImage.native.tsx",
+    "src/screens/settings/TenantNotificationSettingsScreen.tsx"
+  ],
+  "portalSecurityGates": true,
+  "authenticationAndRolePolicy": true,
+  "reachableWebImplementations": [],
+  "inactiveWebCandidates": [
+    "app/_layout.web.tsx",
+    "src/design/tokens/portalPremium.web.tsx",
+    "src/components/brand/WebStartDestination.web.tsx",
+    "src/lib/navigation/deviceLoginRoute.web.ts",
+    "src/lib/platformConsole/platformObservation.web.ts",
+    "src/components/platformConsole/PlatformRuntimeBoundary.web.tsx",
+    "app/device/confirm.web.tsx",
+    "src/lib/auth/tvDeviceLoginReturn.web.ts",
+    "src/lib/auth/tvDeviceLogin.web.ts",
+    "src/components/auth/tvDeviceLoginStyles.web.ts",
+    "app/device/tv.web.tsx",
+    "app/index.web.tsx",
+    "src/components/brand/webStartChoiceStyles.web.ts",
+    "app/support/index.web.tsx",
+    "src/components/platformConsole/PlatformObservationMount.web.tsx",
+    "src/lib/platformConsole/platformRuntime.web.ts",
+    "src/components/auth/PhoneDeviceApproval.web.tsx",
+    "src/components/auth/TvDeviceLogin.web.tsx",
+    "src/components/brand/WebStartChoice.web.tsx",
+    "src/screens/support/PublicSupportScreen.web.tsx",
+    "src/liquid-command/components/PublicAccessShell.web.tsx"
+  ],
+  "currentSourceIdentity": true,
+  "verifiedCurrentSources": 4147,
+  "currentSourceIdentityScope": "Mapped app/src text only; BOM/CRLF normalized. Other input content identity is not asserted by this field.",
+  "easArchiveAssets": {
+    "ignoreFile": ".easignore",
+    "checkedFiles": 4580,
+    "includedCheckedSourcesAndAssets": true
+  },
+  "introAssets": [
+    {
+      "format": "phone-portrait",
+      "bytes": 1108450,
+      "sha256": "5ae93754a6f4488072afdd93e5f968b0539a50cdb1fb9184d261dace375bb9e2",
+      "packaged": "assets/bcdc3f0d393ae16bc583ed387157219b"
+    },
+    {
+      "format": "phone-landscape",
+      "bytes": 825183,
+      "sha256": "7cdbcb0ec05416754dd3d27b48fcc0b503025b4550185b41e9535ac55c170513",
+      "packaged": "assets/d0cb6df3af0c03ab4db6415e19169bba"
+    },
+    {
+      "format": "tablet43-portrait",
+      "bytes": 1589777,
+      "sha256": "58c986fdfb8a146a483757b620c533df49409d96ca78125c74a7b0a64da745e5",
+      "packaged": "assets/438535dd8daf27c6a4fcf70ee3f4d86e"
+    },
+    {
+      "format": "tablet43-landscape",
+      "bytes": 1156447,
+      "sha256": "989d5ed9f8a6178ce0aa0410a92d11959aa81e8bc1891b7f20260ec050cbb998",
+      "packaged": "assets/74bc5ba130a1a8a7f5aef762e1dad923"
+    },
+    {
+      "format": "tablet1610-portrait",
+      "bytes": 1248939,
+      "sha256": "8272e7ffa381a27b016b86933dc7776f9722a7a9d94ae0b848710897aa8b94da",
+      "packaged": "assets/4c93ef5551621e27f6a31eab6b66f874"
+    },
+    {
+      "format": "tablet1610-landscape",
+      "bytes": 901254,
+      "sha256": "a314ae46ec38fd91f4c0948a8266e7d0343b894e0dc9563fc4bc6a98cd7c5042",
+      "packaged": "assets/1b18df434d20909341e55cb089a0537b"
+    }
+  ],
+  "nativeFont": {
+    "bytes": 137568,
+    "sha256": "64654e2515da88ca0c470c69b45341a0dda7f066a5f0c72cd6f2a929cdedd461",
+    "packaged": "assets/09f6b2ba02572f19a7d7dd2b5f6494ad"
+  },
+  "packagedAssets": 460,
+  "packagedAssetBytes": 157276005,
+  "largestAssets": [
+    {
+      "path": "assets/60b71ace71a096d2548ca0659f45de18",
+      "type": "png",
+      "bytes": 4098621
+    },
+    {
+      "path": "assets/b6919b129a09f0c260a93a8f59dc8f6e",
+      "type": "png",
+      "bytes": 3934593
+    },
+    {
+      "path": "assets/7d81b73f97b8a4590e9cc51bc927b3a1",
+      "type": "png",
+      "bytes": 3728030
+    },
+    {
+      "path": "assets/6291de3d823dc21ac71408b3164e6b99",
+      "type": "png",
+      "bytes": 3696967
+    },
+    {
+      "path": "assets/1eb47722069505d76501f5cefb9f85f6",
+      "type": "png",
+      "bytes": 3530872
+    },
+    {
+      "path": "assets/5683f2c38c12e1f135a5f0bdbab19a49",
+      "type": "png",
+      "bytes": 3504368
+    },
+    {
+      "path": "assets/4d0ce4c15b1397f19759ae2ccd608ca7",
+      "type": "png",
+      "bytes": 3483472
+    },
+    {
+      "path": "assets/caffd235dc8de69051ff5161c9614748",
+      "type": "png",
+      "bytes": 3456184
+    },
+    {
+      "path": "assets/2aa2cc8a45632488690a1a8db64e883c",
+      "type": "png",
+      "bytes": 3455006
+    },
+    {
+      "path": "assets/1da6971fcbfdc02c8c1d190252d9d00e",
+      "type": "png",
+      "bytes": 3447754
+    },
+    {
+      "path": "assets/5d63a23be65d452135abd437bb9e32ec",
+      "type": "png",
+      "bytes": 3437455
+    },
+    {
+      "path": "assets/7deaa25723a4a048f33ab9687fb4eddc",
+      "type": "png",
+      "bytes": 3402901
+    }
+  ],
+  "bundleSha256": "d9e9264055f924f700efadc0b41b1cb20e63a06d2c594a3655336a9b6bc08c7c",
+  "sourceMainCommit": "fc3e4e184cfe82564b2f836b14d976798012fcd4",
+  "verifiedAt": "2026-10-09",
+  "signedAabVerified": false,
+  "visualDeviceVerified": false
+}

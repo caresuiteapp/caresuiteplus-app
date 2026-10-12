@@ -22,6 +22,9 @@ vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({
 }));
 
 beforeEach(() => {
+  // This fixture uses the in-memory WFM repository. Release editions
+  // intentionally ignore the demo flag, so isolate that inherited setting.
+  vi.stubEnv('EXPO_PUBLIC_APP_EDITION', '');
   vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
   resetWfmDemoStore();
   resetWfmAssistAdapterState();

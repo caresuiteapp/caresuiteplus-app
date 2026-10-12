@@ -1,5 +1,6 @@
+import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text } from 'react-native';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { SupportButton, SupportField, supportDate, supportStyles as s } from './SupportPrimitives';
 
@@ -72,7 +73,7 @@ export function SupportArchive({ onBack }: { onBack: () => void }) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Anhang nicht verfügbar.'); }
     finally { setDownloading(false); }
   };
-  return <View style={s.root} dataSet={{ csSupportSurface: 'light' }}>
+  return <View style={s.root} {...{ dataSet: { csSupportSurface: 'light' } }}>
     <View style={s.hero}><View style={s.heroCopy}><Text accessibilityRole="header" style={s.title}>Ältere Support-Tickets</Text><Text style={s.copy}>Ihre bisherigen Anfragen bleiben hier nachlesbar. Neue Nachrichten und Freigaben verwalten Sie im aktuellen Support.</Text></View><SupportButton secondary label={selected ? 'Zur Übersicht' : 'Zum aktuellen Support'} onPress={() => selected ? setSelected(null) : onBack()} /></View>
     {error ? <View accessibilityRole="alert" style={s.error}><Text style={s.errorText}>{error}</Text><SupportButton secondary label="Erneut laden" onPress={() => setRetry(value => value + 1)} /></View> : null}
     {!selected ? <SupportField label="Ältere Tickets nach Betreff suchen" value={search} onChangeText={value => { setSearch(value); setOffset(0); }} maxLength={180} /> : null}
