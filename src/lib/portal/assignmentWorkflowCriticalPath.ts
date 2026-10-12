@@ -59,6 +59,7 @@ export const ASSIGNMENT_WORKFLOW_CRITICAL_FILES = [
   'src/lib/assist/assistProofPdfService.ts',
   'src/lib/assist/assistProofPortalDocumentService.ts',
   'src/lib/dom/releaseSignatureCaptureEnvironment.ts',
+  'src/lib/dom/signatureCaptureScrollLock.ts',
   'src/features/liveTracking/startEmployeeLiveTracking.ts',
   'src/features/assistWorkflow/workflowRecoveryVerification.ts',
   'src/features/assistWorkflow/calculateVisitTimes.ts',
@@ -174,6 +175,8 @@ export const ASSIGNMENT_WORKFLOW_GATE_TEST_GLOBS = [
   'src/__tests__/assistWorkflow/workflowCriticalPersistence.test.ts',
   'src/__tests__/liveTracking/startEmployeeLiveTrackingPersistence.test.ts',
   'src/__tests__/inputs/signatureCanvasCoords.test.ts',
+  'src/__tests__/inputs/signatureCaptureTouch.test.ts',
+  'src/__tests__/inputs/signatureCaptureScrollRecovery.test.ts',
   'src/__tests__/signatures/signatureOrientation.test.ts',
   'src/__tests__/signatures/signatureDisplay.test.ts',
 ] as const;
