@@ -244,6 +244,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
       }}>
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact, { width: informationWidth, height: informationWidth / 8 }]} />
         <View style={[styles.informationRow, compact && styles.informationRowCompact]}>
         <View style={[styles.glass, styles.infoCard, mobile && styles.infoCardMobile, { width: informationWidth }]} testID="desktop-clock-weather">
           <View style={[styles.clock, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
@@ -265,7 +266,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
           <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={[styles.profileTrigger, mobile && styles.profileTriggerMobile]}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size={mobile ? "sm" : "lg"} /></Pressable>
         </View>
         </View>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact, { width: informationWidth, height: informationWidth / 8 }]} />
       </View>
 
       <View style={[styles.workspace, compact && styles.workspaceCompact, {
@@ -425,7 +425,6 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
-  moduleTabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, flexShrink: 1, minWidth: 0 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
