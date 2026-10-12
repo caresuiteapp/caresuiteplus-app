@@ -27,7 +27,7 @@ vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/supabase/untypedTable', () => ({
   fromUnknownTable: (_client: unknown, table: string) => {
     const query = {
-      select: () => query, eq: () => query, in: () => query, order: () => query,
+      select: () => query, eq: () => query, in: () => query, not: () => query, order: () => query,
       range: async (from: number, to: number) => {
         const rows = table === 'client_documents' ? mocks.rows : [];
         return { data: rows.slice(from, to + 1), count: rows.length, error: null };

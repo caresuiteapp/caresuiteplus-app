@@ -1,3 +1,4 @@
+import { fetchLegacyPortalServiceProof } from '@/lib/portal/assist/portalServiceProofService';
 import type { ServiceResult } from '@/types';
 import type { PortalDocumentCategory, PortalDocumentDetail, PortalDocumentListItem } from '@/types/portal/documents';
 import type { ClientDocumentRecord } from '@/types/modules/client';
@@ -299,6 +300,18 @@ async function loadPortalVisibleClientDocumentDetail(
   if (!data) {
     const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
     if (assistProof.ok) return assistProof;
+    const legacy = await fetchLegacyPortalServiceProof(tenantId, clientId, documentId);
+    if (!legacy.ok) return legacy;
+    if (legacy.data) return { ok: true, data: {
+      id: legacy.data.id, title: legacy.data.title, fileName: legacy.data.fileName, mimeType: legacy.data.mimeType,
+      category: 'report', fileSizeBytes: 0, status: 'abgeschlossen', updatedAt: legacy.data.createdAt,
+      createdAt: legacy.data.createdAt, visibility: 'shared', sensitivity: 'care', clientId,
+      documentSource: 'service_record', downloadReady: Boolean(legacy.data.storagePath), viewReady: Boolean(legacy.data.storagePath),
+      signatureRequired: legacy.data.signatureRequired, signaturePending: legacy.data.signatureRequired, canSign: false,
+      description: legacy.data.signatureRequired
+        ? 'Bei diesem älteren Leistungsnachweis steht eine Unterschrift aus. Bitte wenden Sie sich an die Verwaltung.'
+        : 'Freigegebener Leistungsnachweis aus Ihrer Akte.',
+    } };
     return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
   }
 
@@ -382,6 +395,13 @@ export async function downloadLivePortalDocument(
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
 
+    if (detail.data.documentSource === 'service_record') {
+      const legacy = await fetchLegacyPortalServiceProof(tenantId, clientId, documentId);
+      if (!legacy.ok) return legacy;
+      if (!legacy.data?.storagePath) return { ok: false, error: 'Die PDF-Datei ist noch nicht verfügbar.' };
+      const signed = await resolvePortalDocumentDownloadUrl(legacy.data.storagePath);
+      return signed.ok ? { ok: true, data: { fileName: legacy.data.fileName, mimeType: legacy.data.mimeType, downloadUrl: signed.data } } : signed;
+    }
     const { data, error } = await fromUnknownTable(supabase, 'client_documents')
       .select('storage_path')
       .eq('tenant_id', tenantId)

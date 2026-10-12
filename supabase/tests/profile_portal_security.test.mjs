@@ -9,18 +9,23 @@ const id = n => '00000000-0000-4000-8000-' + String(n).padStart(12,'0');
 async function fixture() {
  const db=new PGlite();
  await db.exec([
- "CREATE ROLE authenticated", "CREATE ROLE anon", "CREATE ROLE service_role BYPASSRLS", "CREATE SCHEMA auth",
+ "CREATE ROLE authenticated", "CREATE ROLE anon", "CREATE ROLE service_role BYPASSRLS", "CREATE SCHEMA auth", "CREATE SCHEMA storage",
+ "CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql AS 'SELECT string_to_array($1,''/'')'",
+ "CREATE TABLE storage.objects(name text PRIMARY KEY,bucket_id text)",
+ "GRANT USAGE ON SCHEMA storage TO authenticated", "GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO authenticated",
+ "ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY", "CREATE POLICY old_storage_tenant_access ON storage.objects TO authenticated USING(true) WITH CHECK(true)",
  "CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT nullif(current_setting(''fixture.uid'',true),'''')::uuid'",
  "CREATE FUNCTION public.current_tenant_id() RETURNS uuid LANGUAGE sql AS 'SELECT nullif(current_setting(''fixture.tenant'',true),'''')::uuid'",
  "CREATE FUNCTION public.current_client_id() RETURNS uuid LANGUAGE sql AS 'SELECT nullif(current_setting(''fixture.client'',true),'''')::uuid'",
  "CREATE FUNCTION public.resolve_current_employee_id() RETURNS uuid LANGUAGE sql AS 'SELECT nullif(current_setting(''fixture.employee'',true),'''')::uuid'",
  "CREATE FUNCTION public.has_permission(text) RETURNS boolean LANGUAGE sql AS 'SELECT false'",
  "CREATE TABLE roles(id uuid PRIMARY KEY,key text,tenant_id uuid,is_admin_role boolean DEFAULT false)",
- "CREATE TABLE profiles(id uuid PRIMARY KEY,auth_user_id uuid,tenant_id uuid,role_id uuid,role_key text,status text,is_active boolean,display_name text,phone text)",
+ "CREATE TABLE profiles(id uuid PRIMARY KEY,auth_user_id uuid,tenant_id uuid,role_id uuid,role_key text,status text,is_active boolean,display_name text,phone text,updated_at timestamptz DEFAULT now())",
  "CREATE TABLE clients(id uuid PRIMARY KEY,tenant_id uuid)", "CREATE TABLE employees(id uuid PRIMARY KEY,tenant_id uuid)",
  "CREATE TABLE assignments(id uuid PRIMARY KEY,tenant_id uuid,client_id uuid,employee_id uuid)",
  "CREATE TABLE assist_visits(id uuid PRIMARY KEY,tenant_id uuid,client_id uuid,employee_id uuid,employee_portal_visible boolean,planning_status text)",
- "CREATE TABLE employee_documents(id uuid PRIMARY KEY,tenant_id uuid,employee_id uuid,released_to_portal boolean,sensitive boolean,title text)",
+ "CREATE TABLE employee_documents(id uuid PRIMARY KEY,tenant_id uuid,employee_id uuid,released_to_portal boolean,sensitive boolean,title text,storage_path text)",
+ "CREATE TABLE client_documents(id uuid PRIMARY KEY,tenant_id uuid,client_id uuid,storage_path text,status text,sensitivity text,portal_visible boolean)",
  "GRANT USAGE ON SCHEMA public,auth TO authenticated", "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO authenticated"
  ].join(';')+';');
  for(const table of ['profiles','clients','employees','assignments','assist_visits','employee_documents']) await db.exec('ALTER TABLE '+table+' ENABLE ROW LEVEL SECURITY; CREATE POLICY old_broad_policy ON '+table+' TO authenticated USING(tenant_id=public.current_tenant_id()) WITH CHECK(tenant_id=public.current_tenant_id())');
@@ -91,5 +96,56 @@ test('supports the staged global-role schema without roles.tenant_id',async()=>{
  const {db,actor}=await fixture();try{
   await db.exec('ALTER TABLE roles DROP COLUMN tenant_id');await db.exec(securitySql);await actor(20);
   assert.equal((await db.query('SELECT id FROM clients')).rows.length,2);
+ }finally{await db.close();}
+});
+test('the role RPC permits verified administration and refuses portal and foreign-tenant mutations',async()=>{
+ const {db,actor}=await fixture();try{
+  await db.query('INSERT INTO roles VALUES($1,$2,$3,false)',[id(4),'billing',id(11)]);
+  await db.query('INSERT INTO profiles(id,auth_user_id,tenant_id,role_id,status,is_active) VALUES($1,$1,$2,$3,$4,true)',[id(23),id(11),id(4),'active']);
+  await db.exec(securitySql);await actor(21,40);
+  await assert.rejects(db.query('SELECT care_security_set_profile_role($1,$2,$3)',[id(10),id(21),id(1)]),/Role administration denied/);
+  await actor(20);
+  await assert.rejects(db.query('SELECT care_security_set_profile_role($1,$2,$3)',[id(10),id(21),id(4)]),/Role scope mismatch/);
+  await assert.rejects(db.query('SELECT care_security_set_profile_role($1,$2,$3)',[id(10),id(23),id(2)]),/Profile scope mismatch/);
+  const receipt=(await db.query('SELECT care_security_set_profile_role($1,$2,$3) AS receipt',[id(10),id(21),id(2)])).rows[0].receipt;
+  assert.deepEqual(receipt,{tenant_id:id(10),profile_id:id(21),role_id:id(2)});
+ }finally{await db.close();}
+});
+test('generated PDF access follows confirmed release and ownership despite a broad old storage policy',async()=>{
+ const {db,actor}=await fixture();try{
+  const paths=[1,2,3,4].map(n=>`tenant/${id(10)}/generated/${id(80+n)}/original.pdf`);
+  for(const name of paths) await db.query('INSERT INTO storage.objects VALUES($1,$2)',[name,'office-documents']);
+  for(const [index,client,released,sensitivity] of [[0,30,true,'care'],[1,30,false,'care'],[2,31,true,'care'],[3,30,true,'restricted']]) {
+   await db.query('INSERT INTO client_documents VALUES($1,$2,$3,$4,$5,$6,$7)',[id(81+index),id(10),id(client),paths[index],'aktiv',sensitivity,released]);
+  }
+  await db.exec(securitySql);await actor(22,null,30);
+  assert.deepEqual((await db.query('SELECT name FROM storage.objects ORDER BY name')).rows.map(r=>r.name),[paths[0]]);
+  await actor(20);assert.equal((await db.query('SELECT name FROM storage.objects')).rows.length,4);
+  assert.equal((await db.query("UPDATE storage.objects SET name=name RETURNING name")).rows.length,0);
+  assert.equal((await db.query('DELETE FROM storage.objects RETURNING name')).rows.length,0);
+  await assert.rejects(db.query('INSERT INTO storage.objects VALUES($1,$2)',[`tenant/${id(10)}/generated/${id(90)}/forged.pdf`,'office-documents']),/row-level security/);
+ }finally{await db.close();}
+});
+test('generated personnel and payroll PDFs remain scoped to the linked employee and confirmed records',async()=>{
+ const {db,actor}=await fixture();try{
+  const own=`tenant/${id(10)}/generated/${id(91)}/original.pdf`,foreign=`tenant/${id(10)}/generated/${id(92)}/original.pdf`;
+  await db.query('UPDATE employee_documents SET storage_path=$1 WHERE id=$2',[own,id(60)]);
+  await db.query('UPDATE employee_documents SET storage_path=$1 WHERE id=$2',[foreign,id(63)]);
+  await db.query("INSERT INTO storage.objects VALUES($1,'office-documents'),($2,'office-documents')",[own,foreign]);
+  await db.exec(securitySql);await actor(21,40);
+  assert.deepEqual((await db.query('SELECT name FROM storage.objects')).rows.map(r=>r.name),[own]);
+  await db.exec('RESET ROLE');await db.exec('CREATE TABLE payroll_month_statements(tenant_id uuid,employee_id uuid,pdf_path text)');
+  await db.query('INSERT INTO payroll_month_statements VALUES($1,$2,$3)',[id(10),id(40),foreign]);
+  await actor(21,40);assert.equal((await db.query('SELECT name FROM storage.objects')).rows.length,2);
+ }finally{await db.close();}
+});
+test('PDF readiness is true only while the applied identity and storage protections remain intact',async()=>{
+ const {db,actor}=await fixture();try{
+  await db.exec(securitySql);await actor(20);
+  assert.equal((await db.query('SELECT care_security_pdf_upload_ready() AS ready')).rows[0].ready,true);
+  await db.exec('RESET ROLE; GRANT UPDATE(role_id) ON profiles TO authenticated');await actor(20);
+  assert.equal((await db.query('SELECT care_security_pdf_upload_ready() AS ready')).rows[0].ready,false);
+  await db.exec('RESET ROLE; REVOKE UPDATE(role_id) ON profiles FROM authenticated; DROP POLICY care_security_generated_pdf_read ON storage.objects');await actor(20);
+  assert.equal((await db.query('SELECT care_security_pdf_upload_ready() AS ready')).rows[0].ready,false);
  }finally{await db.close();}
 });

@@ -29,6 +29,7 @@ describe('profileRoleBridge', () => {
     expect(updater).toContain('updateProfileRoleKey');
     expect(bridge).toContain("select('role_id, roles(key)')");
     expect(bridge).toContain("update({ role_id:");
+    expect(bridge).toContain("roleRpc.rpc('care_security_set_profile_role'");
     expect(bridge).toContain('.eq(\'tenant_id\', tenantId)');
   });
 });

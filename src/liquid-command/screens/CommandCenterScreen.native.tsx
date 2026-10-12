@@ -10,7 +10,7 @@ import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useDesktopWeather } from '@/hooks/useDesktopWeather.native';
 import { NativeAction, NativeField, NativeWorkspaceDialog, nativeWorkspaceStyles as ui } from '@/components/ui/NativeWorkspaceUi';
 import { GoogleWorkspaceWidget } from '@/components/googleWorkspace/GoogleWorkspaceWidget.native';
-import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktopModel';
+import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktopModel';
 import { buildDesktopApps, DESKTOP_CATEGORIES, type DesktopApp } from '../navigation/desktopAppCatalogModel';
 import { nativeDesktopLayout, moveNativeDesktopWidget } from '../navigation/nativeDesktopLayout';
 import { BRAND, BACKGROUNDS, WIDGETS, DEFAULT_DESKTOP_IDS, WIDGET_BY_ID, WORKFLOWS, type WidgetDefinition } from './administrationDesktopCatalog';
@@ -46,6 +46,7 @@ function NativeModuleDesktop({ tenantId, availableSignature }: { tenantId: strin
   const allowed = useMemo(() => widgets.map(widget => widget.id), [widgets]);
   const defaults = useMemo(() => widgets.filter(widget => (DEFAULT_DESKTOP_IDS as readonly string[]).includes(widget.id)).map(widget => widget.id), [widgets]);
   const [preferences, setPreferences] = useState<Preferences>({ ids: [], background: BACKGROUNDS[0].id });
+  const [recoverableWidgetIds, setRecoverableWidgetIds] = useState<string[]>([]);
   const current = useRef(preferences); const writes = useRef(Promise.resolve());
   const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [attempt, setAttempt] = useState(0);
   const [saving, setSaving] = useState(false); const [edit, setEdit] = useState(false); const [navigationOpen, setNavigationOpen] = useState(false);
@@ -63,6 +64,7 @@ function NativeModuleDesktop({ tenantId, availableSignature }: { tenantId: strin
       const previousModules = values.slice(6);
       const previous = previousModules.some(value => value !== null) ? previousModules : [values[2] ?? values[3] ?? values[4]].filter(value => value !== null);
       const ids = restoreDesktopWidgetIds(values[0], previous, allowed, defaults);
+      setRecoverableWidgetIds(previousDesktopWidgetIds([...previousModules, values[2] ?? values[3] ?? values[4]], allowed));
       const background = values[1] ?? values[5];
       const next = { ids, background: BACKGROUNDS.some(item => item.id === background) ? background! : BACKGROUNDS[0].id };
       if (values[0] === null && previous.some(value => value !== null)) {
@@ -84,7 +86,8 @@ function NativeModuleDesktop({ tenantId, availableSignature }: { tenantId: strin
   const toggle = (id: string) => {
     if (!allowed.includes(id)) return;
     const ids = current.current.ids;
-    if (!ids.includes(id) && ids.length >= 12) { setError('Ihr Desktop enthält bereits zwölf Widgets. Entfernen Sie zuerst ein Widget.'); return; }
+    const capacity = Math.max(12, Math.ceil(ids.length / 12) * 12);
+    if (!ids.includes(id) && ids.length >= capacity) { setError('Alle Desktop-Plätze sind belegt. Entfernen Sie zuerst ein Widget.'); return; }
     persist({ ...current.current, ids: ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id] });
   };
   const open = (app: Pick<DesktopApp, 'route'>) => { setNavigationOpen(false); setCenter(null); setProfileOpen(false); router.push(app.route as never); };
@@ -135,10 +138,14 @@ function NativeModuleDesktop({ tenantId, availableSignature }: { tenantId: strin
     <NativeWorkspaceDialog visible={navigationOpen && !layout.sidebar} title="Navigation" onClose={() => setNavigationOpen(false)}>{navigation}</NativeWorkspaceDialog>
     <NativeWorkspaceDialog visible={center !== null} title={`${moduleLabel} · Center`} wide onClose={() => setCenter(null)}>
       <View style={ui.row}>{(['apps', 'widgets', 'workflows', 'backgrounds'] as const).map(tab => <NativeAction key={tab} label={{ apps: 'Apps', widgets: 'Widgets', workflows: 'Workflows', backgrounds: 'Hintergründe' }[tab]} selected={center === tab} onPress={() => { setCenter(tab); setQuery(''); setCategory('Alle'); }} />)}</View>
+      {center === 'widgets' && recoverableWidgetIds.some(id => !preferences.ids.includes(id)) ? <View style={ui.surface}>
+        <Text style={ui.body}>Weitere Widgets aus Ihrer gespeicherten Auswahl sind verfügbar.</Text>
+        <NativeAction label="Gespeicherte Widgets wiederherstellen" onPress={() => persist({ ...current.current, ids: [...new Set([...current.current.ids, ...recoverableWidgetIds])] })} />
+      </View> : null}
       {center === 'apps' || center === 'widgets' ? <><NativeField label="Im Center suchen" value={query} onChangeText={setQuery} autoCorrect={false} /><View style={ui.row}>{['Alle', ...DESKTOP_CATEGORIES].map(item => <NativeAction key={item} label={item} selected={category === item} onPress={() => setCategory(item)} />)}</View>
-        {(center === 'apps' ? apps : widgets).filter(matches).map(app => <View key={app.id} style={ui.surface}><Text style={ui.label}>{app.label}</Text><Text style={ui.muted}>{app.description}</Text><View style={ui.row}><NativeAction label="Öffnen" onPress={() => open(app)} />{center === 'widgets' ? <NativeAction label={preferences.ids.includes(app.id) ? 'Vom Desktop entfernen' : 'Zum Desktop hinzufügen'} selected={preferences.ids.includes(app.id)} disabled={!preferences.ids.includes(app.id) && preferences.ids.length >= 12} onPress={() => toggle(app.id)} /> : null}</View></View>)}
+        {(center === 'apps' ? apps : widgets).filter(matches).map(app => <View key={app.id} style={ui.surface}><Text style={ui.label}>{app.label}</Text><Text style={ui.muted}>{app.description}</Text><View style={ui.row}><NativeAction label="Öffnen" onPress={() => open(app)} />{center === 'widgets' ? <NativeAction label={preferences.ids.includes(app.id) ? 'Vom Desktop entfernen' : 'Zum Desktop hinzufügen'} selected={preferences.ids.includes(app.id)} disabled={!preferences.ids.includes(app.id) && preferences.ids.length >= Math.max(12, Math.ceil(preferences.ids.length / 12) * 12)} onPress={() => toggle(app.id)} /> : null}</View></View>)}
         {!(center === 'apps' ? apps : widgets).some(matches) ? <Text style={ui.body}>Keine passenden Einträge. Passen Sie die Suche oder Kategorie an.</Text> : null}
-        {center === 'widgets' ? <Text style={ui.muted}>{preferences.ids.length} von zwölf Widgets ausgewählt</Text> : null}
+        {center === 'widgets' ? <Text style={ui.muted}>{preferences.ids.length > 12 ? `${preferences.ids.length} gespeicherte Widgets` : `${preferences.ids.length} von zwölf Widgets ausgewählt`}</Text> : null}
       </> : null}
       {center === 'workflows' ? WORKFLOWS.filter(item => availableKeys.includes(desktopModuleForRoute(item.route) as ProductKey)).map(item => <View key={item.id} style={ui.surface}><Text style={ui.label}>{item.label}</Text><Text style={ui.body}>{item.text}</Text><NativeAction label="Workflow öffnen" onPress={() => open(item)} /></View>) : null}
       {center === 'backgrounds' ? BACKGROUNDS.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Hintergrund ${item.label} auswählen`} accessibilityState={{ selected: item.id === preferences.background }} onPress={() => persist({ ...current.current, background: item.id })} style={[styles.backgroundChoice, item.id === preferences.background && styles.selected]}><Image source={item.thumbnail ?? item.image} resizeMode="cover" resizeMethod="resize" style={styles.backgroundPreview} /><Text style={[ui.body, { padding: 14 }]}>{item.label}{item.id === preferences.background ? ' ✓' : ''}</Text></Pressable>) : null}

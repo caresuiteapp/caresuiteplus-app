@@ -35,7 +35,21 @@ export function restoreDesktopWidgetIds(current: string | null, previous: readon
     if (!Array.isArray(value)) throw new Error('Invalid saved desktop widgets');
     return value;
   });
-  return normalizeModuleWidgets(ids, availableIds, defaults);
+  const allowed = new Set(availableIds);
+  // Twelve is the size of one desktop page, not a limit on a saved migration.
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && allowed.has(id)))];
+}
+
+/** Optional recovery never replaces a current choice or edits the old records. */
+export function previousDesktopWidgetIds(records: readonly (string | null)[], availableIds: readonly string[]): string[] {
+  const allowed = new Set(availableIds);
+  return [...new Set(records.flatMap(record => {
+    if (record === null) return [];
+    try {
+      const ids: unknown = JSON.parse(record);
+      return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string' && allowed.has(id)) : [];
+    } catch { return []; }
+  }))];
 }
 
 export function normalizeModuleWidgets(value: unknown, availableIds: readonly string[], defaults: readonly string[]) {
@@ -103,7 +117,8 @@ export function buildModuleDesktopNavigation(apps: readonly DesktopApp[], module
 }
 
 export function buildDesktopNavigationGroups(apps: readonly DesktopApp[], modules: readonly ProductKey[], query = '') {
-  return DESKTOP_MODULES.filter(module => modules.includes(module.key)).flatMap(module =>
-    buildModuleDesktopNavigation(apps, module.key, query).map(group => ({ ...group, title: `${module.label} · ${group.title}` })),
-  );
+  const groups = DESKTOP_MODULES.filter(module => modules.includes(module.key))
+    .flatMap(module => buildModuleDesktopNavigation(apps, module.key, query));
+  return TASK_AREAS.map(title => ({ title, items: groups.filter(group => group.title === title).flatMap(group => group.items) }))
+    .filter(group => group.items.length);
 }

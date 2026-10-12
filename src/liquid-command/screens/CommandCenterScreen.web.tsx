@@ -30,7 +30,7 @@ import {
 } from "../navigation/desktopAppCatalog.web";
 import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
-import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
+import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
 import type { ProductKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 
@@ -43,7 +43,7 @@ const ROLE_LABELS: Record<string, string> = { business_admin: "Geschäftsführun
 function normalizeDesktopIds(value: unknown) {
   if (!Array.isArray(value)) return [...DEFAULT_DESKTOP_IDS];
   const valid = value.filter((id): id is string => typeof id === "string" && WIDGET_BY_ID.has(id));
-  return [...new Set(valid)].slice(0, DESKTOP_SLOT_COUNT);
+  return [...new Set(valid)];
 }
 
 function migrateDesktopIdsToR13(value: unknown, migrationRequired: boolean) {
@@ -119,6 +119,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const navigationOpen = compact ? mobileSidebarOpen : sidebarOpen;
   const [desktopIds, setDesktopIds] = useState<string[]>([...DEFAULT_DESKTOP_IDS]);
+  const [desktopPage, setDesktopPage] = useState(0);
+  const [recoverableWidgetIds, setRecoverableWidgetIds] = useState<string[]>([]);
   const [loadedOwner, setLoadedOwner] = useState<string | null>(null);
   const [preferencesError, setPreferencesError] = useState(false);
   const [preferencesAttempt, setPreferencesAttempt] = useState(0);
@@ -152,6 +154,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   useEffect(() => {
     let active = true;
     setLoadedOwner(null);
+    setDesktopPage(0);
+    setRecoverableWidgetIds([]);
     setPreferencesError(false);
     setCenterOpen(false);
     setProfileOpen(false);
@@ -167,6 +171,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
       const previous = desktop !== null ? [] : previousModules.some(value => value !== null) ? previousModules
         : oldValue !== null ? [JSON.stringify(migrateDesktopIdsToR13(JSON.parse(oldValue), !oldDesktop && Boolean(previousDesktop)))] : [];
       setDesktopIds(restoreDesktopWidgetIds(desktop, previous, moduleWidgetIds, moduleDefaults));
+      setRecoverableWidgetIds(previousDesktopWidgetIds([...previousModules, oldValue], moduleWidgetIds));
       setSidebarOpen(sidebar !== "false");
       setBackgroundId(storedBackground && BACKGROUNDS.some((item) => item.id === storedBackground) ? storedBackground : BACKGROUNDS[0].id);
       setLoadedOwner(owner);
@@ -183,9 +188,13 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   };
   const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); setCenterTab(tab); setCenterOpen(true); };
   const openWidget = (widget: Pick<DesktopApp, "route">) => { setCenterOpen(false); setMobileSidebarOpen(false); router.push(widget.route as never); };
-  const togglePinned = (id: string) => moduleWidgetIds.includes(id) && setDesktopIds((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < DESKTOP_SLOT_COUNT ? [...current, id] : current);
+  const desktopCapacity = Math.max(DESKTOP_SLOT_COUNT, Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT) * DESKTOP_SLOT_COUNT);
+  const togglePinned = (id: string) => moduleWidgetIds.includes(id) && setDesktopIds((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < desktopCapacity ? [...current, id] : current);
   const signOut = async () => { setProfileOpen(false); await auth.signOut(); };
-  const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => WIDGET_BY_ID.get(desktopIds[index] ?? ""));
+  const desktopPages = Math.max(1, Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT));
+  const visiblePage = Math.min(desktopPage, desktopPages - 1);
+  const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => WIDGET_BY_ID.get(desktopIds[visiblePage * DESKTOP_SLOT_COUNT + index] ?? ""));
+  const missingSavedWidgets = recoverableWidgetIds.filter(id => !desktopIds.includes(id));
 
   const sidebarContent = (
           <View style={styles.sidebarInner}>
@@ -292,13 +301,17 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
           {...(Platform.OS === "web" ? ({ dataSet: { healthosWorkspaceRevision: "r11-app-center", healthosResponsiveArtworkRevision: "r9", healthosVisualDensityRevision: "r11-calm" } } as object) : {})}
           style={styles.desktopPanel}
         >
-          <View testID="desktop-workspace-header" style={[styles.glass, styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
+          <View testID="desktop-workspace-header" style={[styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
             <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
-              <Text style={[styles.eyebrow, mobile && styles.eyebrowMobile]}>{mobile ? "Persönlicher Arbeitsplatz" : "PERSÖNLICHER ARBEITSPLATZ"}</Text>
-              {!mobile ? <Text style={styles.desktopTitle}>{moduleLabel} · Mein Desktop</Text> : null}
+              <Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop</Text>
             </View>
             <View style={styles.desktopActions}>
-              <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
+              {desktopPages > 1 ? <View style={styles.desktopActions}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Vorherige Desktop-Seite" disabled={visiblePage === 0} onPress={() => setDesktopPage(visiblePage - 1)} style={styles.editButton}><Text style={styles.editText}>‹</Text></Pressable>
+                <Text accessibilityLiveRegion="polite" style={styles.countText}>{visiblePage + 1}/{desktopPages}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Nächste Desktop-Seite" disabled={visiblePage === desktopPages - 1} onPress={() => setDesktopPage(visiblePage + 1)} style={styles.editButton}><Text style={styles.editText}>›</Text></Pressable>
+              </View> : null}
+              <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{desktopPages > 1 ? `${desktopIds.length} Widgets` : mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
               <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
                 <Text style={[styles.editText, mobile && styles.editTextMobile]}>{editMode ? "✓ Fertig" : "✎ Bearbeiten"}</Text>
               </Pressable>
@@ -340,6 +353,10 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
           <View style={styles.centerHeader}><View style={styles.centerHeading}><Text style={styles.eyebrow}>CARESUITE HEALTHOS CENTER</Text><Text style={styles.centerTitle}>{moduleLabel} · Apps & Widgets</Text><Text style={styles.centerSubtitle}>Arbeitsbereiche öffnen und Ihren Desktop gestalten.</Text></View><Pressable accessibilityLabel="Center schließen" onPress={() => setCenterOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View>
           <ScrollView style={styles.centerScroll} contentContainerStyle={styles.centerContent} keyboardShouldPersistTaps="handled">
           <View style={styles.centerToolbar}><View style={styles.tabs}>{(["apps", "widgets", "workflows", "backgrounds"] as const).map((tab) => <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: tab === centerTab }} onPress={() => setCenterTab(tab)} style={[styles.tab, tab === centerTab && styles.tabActive]}><Text style={[styles.tabText, tab === centerTab && styles.tabTextActive]}>{tab === "apps" ? "Apps" : tab === "widgets" ? "Widgets" : tab === "workflows" ? "Workflows" : "Hintergründe"}</Text></Pressable>)}</View>{centerTab === "apps" || centerTab === "widgets" ? <View style={styles.search}><Text style={styles.searchGlyph}>⌕</Text><TextInput nativeID="desktop-catalog-search" accessibilityLabel={centerTab === "apps" ? "Apps durchsuchen" : "Widgets durchsuchen"} placeholder={`${category} durchsuchen …`} placeholderTextColor="#8FA9C2" value={query} onChangeText={setQuery} style={[styles.searchInput, { fontSize: 16 * fontScale }]} /></View> : null}</View>
+          {centerTab === "widgets" && missingSavedWidgets.length > 0 ? <View style={styles.catalogIntro}>
+            <Text style={styles.centerSubtitle}>{missingSavedWidgets.length} weitere Widgets aus Ihrer gespeicherten Auswahl sind verfügbar.</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Weitere gespeicherte Widgets wiederherstellen" onPress={() => setDesktopIds(ids => [...new Set([...ids, ...missingSavedWidgets])])} style={styles.editButton}><Text style={styles.editText}>Gespeicherte Widgets wiederherstellen</Text></Pressable>
+          </View> : null}
           {centerTab === "apps" || centerTab === "widgets" ? <View style={styles.chips}>{CATEGORIES.map((item) => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: item === category }} onPress={() => setCategory(item)} style={[styles.chip, item === category && styles.chipActive]}><Text style={[styles.chipText, item === category && styles.chipTextActive]}>{item}</Text></Pressable>)}</View> : null}
           {centerTab === "apps" || centerTab === "widgets" ? <View style={styles.catalogIntro}>
             <Text style={styles.centerCardTitle}>{centerTab === "apps" ? `${category} · Arbeitsbereiche` : `${category} · Desktop-Widgets`}</Text>
@@ -347,7 +364,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
               ? "Öffnen Sie eine App, um im vollständigen Arbeitsbereich zu arbeiten."
               : "Live-Widgets zeigen Daten auf Ihrem Desktop. Schnellzugriffe öffnen eine Seite."}</Text>
             {centerTab === "widgets" ? <Text accessibilityLiveRegion="polite" style={styles.catalogCapacity}>
-              {desktopIds.length} von {DESKTOP_SLOT_COUNT} Desktop-Plätzen belegt.{desktopIds.length >= DESKTOP_SLOT_COUNT ? " Entfernen Sie ein Widget, um Platz zu schaffen." : ""}
+              {desktopPages > 1 ? `${desktopIds.length} gespeicherte Widgets auf ${desktopPages} Seiten.` : `${desktopIds.length} von ${DESKTOP_SLOT_COUNT} Desktop-Plätzen belegt.`}{desktopIds.length >= desktopCapacity ? " Entfernen Sie ein Widget, um Platz für eine neue Auswahl zu schaffen." : ""}
             </Text> : null}
           </View> : null}
           {(centerTab === "apps" || centerTab === "widgets") && resultCount === 0 ? <View style={styles.emptySearch}>
@@ -369,7 +386,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
             </View> : <View style={styles.centerGrid} testID="widget-catalog">
               {filteredWidgets.map(widget => {
                 const pinned = desktopIds.includes(widget.id);
-                const full = desktopIds.length >= DESKTOP_SLOT_COUNT;
+                const full = desktopIds.length >= desktopCapacity;
                 return <View key={widget.id} style={[styles.centerCell, { flexBasis: 300 * fontScale }]}>
                   <View style={[styles.centerCard, styles.catalogWidgetCard]}>
                     <View style={styles.centerBody}><Text style={styles.centerCardTitle}>{widget.label}</Text>
@@ -416,7 +433,7 @@ const styles = StyleSheet.create({
   logoCompact: { alignSelf: "center" },
   infoCardMobile: { minHeight: 70, flexWrap: "nowrap", paddingHorizontal: 10, paddingVertical: 7, gap: 8, borderRadius: 16 },
   clockMobile: { minWidth: 0, flexBasis: "42%" },
-  weatherMobile: { flex: 1, minWidth: 0, gap: 4 },
+  weatherMobile: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 4 },
   dateMobile: { fontSize: 13, lineHeight: 18 },
   timeMobile: { fontSize: 30, lineHeight: 35 },
   desktopHeaderMobile: { minHeight: 62, padding: 8, gap: 6, borderRadius: 16 },
@@ -444,7 +461,7 @@ const styles = StyleSheet.create({
   background: { flex: 1, width: "100%", height: "100%", backgroundColor: "#03132B", overflow: "hidden" },
   atmosphere: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,10,27,0.2)" },
   glass: { backgroundColor: "rgba(2,15,35,0.76)", borderWidth: 1, borderColor: "rgba(139,211,255,0.3)", ...glassNativeShadow, ...glassWeb },
-  desktopFrame: { flex: 1, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
+  desktopFrame: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
   topbar: { zIndex: 20, flexShrink: 0, gap: 8 },
   informationRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", justifyContent: "space-between", gap: 12 },
   informationRowCompact: { width: "100%", flexDirection: "column", flexWrap: "nowrap", alignItems: "center", justifyContent: "center" },
@@ -460,27 +477,27 @@ const styles = StyleSheet.create({
   livePill: { height: 46, borderRadius: 15, paddingHorizontal: 13, borderWidth: 1, borderColor: "rgba(70,171,255,0.42)", flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
   appsButton: { minHeight: 46, paddingVertical: 8, borderRadius: 15, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(104,222,255,0.58)", backgroundColor: "rgba(9,75,111,0.78)", flexDirection: "row", alignItems: "center", gap: 8 }, appsGlyph: { color: "#83E8FF", fontSize: 21 }, appsText: { color: "#F3FCFF", fontSize: 16, fontWeight: "900" },
   profileTrigger: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 4 }, profileCopy: { maxWidth: 180, alignItems: "flex-end" }, profileName: { color: "#FFF", fontSize: 16, fontWeight: "900" }, profileRole: { color: "#BFD8EE", fontSize: 13, marginTop: 2, fontWeight: "700" },
-  workspace: { flex: 1, minHeight: 0, minWidth: 0, zIndex: 5, display: "grid", gridTemplateRows: "minmax(0, 1fr)", alignContent: "stretch", alignItems: "stretch", gap: 18 } as unknown as ViewStyle, workspaceCompact: { gap: 0 },
+  workspace: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, minWidth: 0, zIndex: 5, display: "grid", gridTemplateRows: "minmax(0, 1fr)", alignContent: "stretch", alignItems: "stretch", gap: 18 } as unknown as ViewStyle, workspaceCompact: { gap: 0 },
   navigationColumn: { minWidth: 0, minHeight: 0, height: "100%", alignSelf: "stretch", position: "relative", overflow: "hidden", borderRadius: 28 },
   navigationContent: { position: "absolute", top: 0, bottom: 0, left: 0 },
   navigationRail: { position: "absolute", top: 0, left: 0, right: 0, alignItems: "stretch" },
   sidebarReopen: { width: "100%", minHeight: 116, paddingVertical: 12, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 9, borderColor: "rgba(103,224,255,0.62)", backgroundColor: "rgba(3,28,58,0.9)", ...transitionWeb }, sidebarReopenPressed: { transform: [{ scale: 0.96 }], backgroundColor: "rgba(10,75,105,0.94)" },
   sidebarReopenGlyph: { color: "#8BE8FF", fontSize: 21, fontWeight: "900" }, sidebarReopenLabel: { color: "#F2FBFF", fontSize: 13, lineHeight: 20, fontWeight: "700" }, sidebarReopenArrow: { color: "#8BE8FF", fontSize: 28, lineHeight: 28, fontWeight: "500" },
   navigationBackdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.68)", padding: 12, alignItems: "flex-start" }, sidebarDrawer: { backgroundColor: "#091B32", maxWidth: "100%" }, navScroller: { flex: 1, minHeight: 0 },
-  sidebar: { flexShrink: 0, height: "100%", borderRadius: 28, overflow: "hidden" }, sidebarInner: { flex: 1, minHeight: 0, padding: 12 }, sidebarHeader: { minHeight: 61, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 5, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(139,211,255,0.16)" },
+  sidebar: { flexShrink: 0, height: "100%", borderRadius: 28, overflow: "hidden" }, sidebarInner: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, padding: 12 }, sidebarHeader: { minHeight: 61, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 5, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(139,211,255,0.16)" },
   eyebrow: { color: "#72DEFF", fontSize: 12, lineHeight: 18, fontWeight: "800", letterSpacing: 1.2 }, sidebarTitle: { color: "#FFF", fontSize: 22, fontWeight: "900" }, closeSmall: { width: 34, height: 34, borderRadius: 12, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", alignItems: "center", justifyContent: "center" }, closeSmallText: { color: "#CDEFFF", fontSize: 25 },
   navScroll: { paddingTop: 10, paddingBottom: 12 }, navGroup: { marginBottom: 10 }, navGroupTitle: { color: "rgba(174,208,232,0.64)", fontSize: 13, fontWeight: "900", letterSpacing: 1.2, textTransform: "uppercase", paddingHorizontal: 8, marginBottom: 5 },
   navItem: { minHeight: 44, paddingVertical: 6, borderRadius: 14, paddingHorizontal: 7, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3, borderWidth: 1, borderColor: "transparent" }, navItemActive: { backgroundColor: "rgba(18,101,145,0.55)", borderColor: "rgba(104,222,255,0.38)" }, navIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: "rgba(103,181,226,0.1)", alignItems: "center", justifyContent: "center" }, navGlyph: { color: "#93E7FF", fontSize: 14 }, navLabel: { flex: 1, minWidth: 0, color: "#E6F1FA", fontSize: 16, fontWeight: "800" }, navArrow: { color: "rgba(137,216,245,0.56)", fontSize: 19 },
   sidebarCenter: { minHeight: 64, paddingVertical: 10, marginTop: 8, borderRadius: 17, borderWidth: 1, borderColor: "rgba(100,222,255,0.38)", backgroundColor: "rgba(10,74,108,0.56)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 10 }, sidebarCenterPlus: { color: "#78E5FF", fontSize: 23 }, sidebarCenterTitle: { color: "#FFF", fontSize: 16, fontWeight: "900" }, sidebarCenterCopy: { color: "#A9CBE0", fontSize: 13 },
   sidebarBackground: { minHeight: 64, paddingVertical: 10, marginTop: 7, borderRadius: 16, borderWidth: 1, borderColor: "rgba(152,190,255,0.28)", backgroundColor: "rgba(26,47,91,0.62)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 10 }, sidebarBackgroundGlyph: { color: "#A8CFFF", fontSize: 21 },
   desktopPanel: { minHeight: 0, minWidth: 0, height: "100%", alignSelf: "stretch", display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", alignContent: "stretch" } as unknown as ViewStyle, topLine: { position: "absolute", top: 0, left: 54, right: 54, height: 1, backgroundColor: "rgba(204,244,255,0.62)" },
-  desktopHeader: { alignSelf: "center", width: "100%", maxWidth: 2400, borderRadius: 20, padding: 12, flexShrink: 0, flexWrap: "wrap", minHeight: 74, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }, desktopHeading: { flexGrow: 1, flexBasis: 280, maxWidth: "100%", minWidth: 0 }, desktopTitle: { color: "#F7FCFF", fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -0.6 }, desktopSubtitle: { color: "#D2E5F4", fontSize: 16, lineHeight: 24, fontWeight: "700" }, desktopActions: { flexWrap: "wrap", flexDirection: "row", gap: 7 }, countPill: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(105,207,242,0.22)", flexDirection: "row", alignItems: "center", gap: 6 }, countText: { color: "#CEE6F3", fontSize: 13, fontWeight: "900" }, editButton: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", backgroundColor: "rgba(7,36,67,0.7)", justifyContent: "center" }, editButtonActive: { borderColor: "rgba(103,230,197,0.62)", backgroundColor: "rgba(24,107,91,0.68)" }, editText: { color: "#EAF8FF", fontSize: 16, fontWeight: "900" },
-  gridScroll: { flex: 1, minHeight: 0, minWidth: 0 }, gridScrollContent: { paddingTop: 12, paddingBottom: 12 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", minWidth: 0 }, cell: { minWidth: 0, maxWidth: "100%" },
+  desktopHeader: { alignSelf: "center", width: "100%", maxWidth: 2400, borderRadius: 20, paddingVertical: 4, paddingHorizontal: 2, flexShrink: 0, flexWrap: "wrap", minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }, desktopHeading: { flexGrow: 1, flexBasis: 280, maxWidth: "100%", minWidth: 0 }, desktopTitle: { color: "#F7FCFF", fontSize: 22, lineHeight: 28, fontWeight: "700", letterSpacing: -0.3 }, desktopSubtitle: { color: "#D2E5F4", fontSize: 16, lineHeight: 24, fontWeight: "700" }, desktopActions: { flexWrap: "wrap", flexDirection: "row", gap: 7 }, countPill: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(105,207,242,0.22)", flexDirection: "row", alignItems: "center", gap: 6 }, countText: { color: "#CEE6F3", fontSize: 13, fontWeight: "900" }, editButton: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", backgroundColor: "rgba(7,36,67,0.7)", justifyContent: "center" }, editButtonActive: { borderColor: "rgba(103,230,197,0.62)", backgroundColor: "rgba(24,107,91,0.68)" }, editText: { color: "#EAF8FF", fontSize: 16, fontWeight: "900" },
+  gridScroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, minWidth: 0 }, gridScrollContent: { paddingTop: 12, paddingBottom: 12 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", minWidth: 0 }, cell: { minWidth: 0, maxWidth: "100%" },
   widgetCard: { flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(131,203,245,0.22)", backgroundColor: "rgba(1,12,29,0.78)", overflow: "hidden", ...transitionWeb }, widgetHovered: { transform: [{ translateY: -3 }, { scale: 1.012 }], borderColor: "rgba(102,221,255,0.62)", ...(Platform.OS === "web" ? ({ boxShadow: "0 8px 20px rgba(66,206,255,0.38)" } as const) : ({ shadowColor: "#42CEFF", shadowOpacity: 0.38, shadowRadius: 20 } as const)) }, widgetPressed: { transform: [{ scale: 0.988 }] }, widgetEditing: { borderColor: "rgba(96,225,194,0.46)", backgroundColor: "rgba(4,35,45,0.82)" },
   imageStage: { height: 178, margin: 10, marginTop: 0, marginBottom: 10, borderRadius: 13, backgroundColor: "rgba(4,23,47,0.5)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, widgetImage: { width: "100%", maxWidth: 400, height: "100%", opacity: 0.92 }, categoryPill: { position: "absolute", top: 7, left: 7, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(1,14,31,0.78)" }, categoryText: { color: "#B9DCEB", fontSize: 11, fontWeight: "900", textTransform: "uppercase" }, removeButton: { position: "absolute", top: 7, right: 7, width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,159,176,0.52)", backgroundColor: "rgba(91,15,33,0.9)", alignItems: "center", justifyContent: "center" }, removeText: { color: "#FFD4DC", fontSize: 20 },
   labelBar: { minHeight: 64, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }, widgetLabel: { flex: 1, minWidth: 0, color: "#F3FBFF", fontSize: 18, lineHeight: 24, fontWeight: "700" }, arrow: { color: "#77DFFF", fontSize: 13, fontWeight: "900" },
   emptyCard: { borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(126,208,244,0.25)", backgroundColor: "rgba(4,23,44,0.34)", alignItems: "center", justifyContent: "center" }, emptyHovered: { borderColor: "rgba(105,226,255,0.65)", backgroundColor: "rgba(8,54,78,0.5)" }, emptyPlus: { color: "#78E4FF", fontSize: 24 }, emptyTitle: { color: "#E9F8FF", fontSize: 13, fontWeight: "900" }, emptyCopy: { color: "#91B5CA", fontSize: 11, marginTop: 2 },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.8)", alignItems: "center", justifyContent: "center", padding: 18 }, centerPanel: { width: "100%", maxWidth: 1240, height: "86%", maxHeight: 830, borderRadius: 30, padding: 20, overflow: "hidden" }, centerHeader: { minHeight: 74, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: 12 }, centerHeading: { flex: 1, minWidth: 0, paddingRight: 12 }, centerTitle: { color: "#FFF", fontSize: 31, fontWeight: "900" }, centerSubtitle: { color: "#AFC9DC", fontSize: 13, marginTop: 3 }, closeButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, borderColor: "rgba(145,211,245,0.2)", backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#FFF", fontSize: 27 },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.8)", alignItems: "center", justifyContent: "center", padding: 18 }, centerPanel: { width: "100%", maxWidth: 1240, height: "86%", maxHeight: 830, borderRadius: 30, padding: 20, overflow: "hidden" }, centerHeader: { minHeight: 48, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: 12 }, centerHeading: { flex: 1, minWidth: 0, paddingRight: 12 }, centerTitle: { color: "#FFF", fontSize: 31, fontWeight: "900" }, centerSubtitle: { color: "#AFC9DC", fontSize: 13, marginTop: 3 }, closeButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, borderColor: "rgba(145,211,245,0.2)", backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#FFF", fontSize: 27 },
   centerToolbar: { flexWrap: "wrap", gap: 10, minHeight: 49, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "rgba(128,205,242,0.13)", paddingVertical: 7 }, tabs: { flexDirection: "row", flexWrap: "wrap", gap: 5 }, tab: { minHeight: 40, paddingVertical: 8, borderRadius: 12, paddingHorizontal: 15, justifyContent: "center" }, tabActive: { backgroundColor: "rgba(22,117,163,0.64)", borderWidth: 1, borderColor: "rgba(98,220,255,0.42)" }, tabText: { color: "#9DBACD", fontSize: 13, fontWeight: "900" }, tabTextActive: { color: "#FFF" }, search: { flexGrow: 1, flexBasis: 280, maxWidth: "100%", minWidth: 0, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: "rgba(126,205,255,0.25)", backgroundColor: "rgba(1,11,28,0.7)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 7 }, searchGlyph: { color: "#80DFFF", fontSize: 17 }, searchInput: { backgroundColor: "transparent", borderWidth: 0, flex: 1, minWidth: 0, minHeight: 42, color: "#FFF", fontSize: 16 },
   chips: { minHeight: 46, flexWrap: "wrap", flexDirection: "row", gap: 7, paddingVertical: 8 }, chip: { minHeight: 36, paddingVertical: 7, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(126,205,255,0.16)", justifyContent: "center" }, chipActive: { borderColor: "rgba(104,224,255,0.48)", backgroundColor: "rgba(14,87,123,0.72)" }, chipText: { color: "#9FBDD0", fontSize: 13, fontWeight: "900" }, chipTextActive: { color: "#FFF" }, centerScroll: { flex: 1, minHeight: 0 }, emptySearch: { padding: 24, gap: 16, alignItems: "flex-start" }, centerContent: { paddingTop: 8, paddingBottom: 4 }, centerGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }, centerCell: { flexGrow: 1, flexBasis: 300, maxWidth: "100%", padding: 5 },
   centerCard: { minHeight: 204, borderRadius: 18, borderWidth: 1, borderColor: "rgba(126,205,255,0.18)", backgroundColor: "rgba(3,20,43,0.74)", overflow: "hidden", ...transitionWeb }, centerCardHovered: { transform: [{ translateY: -2 }], borderColor: "rgba(101,224,255,0.54)", ...(Platform.OS === "web" ? ({ boxShadow: "0 7px 16px rgba(65,206,255,0.24)" } as const) : ({ shadowColor: "#41CEFF", shadowOpacity: 0.24, shadowRadius: 16 } as const)) }, centerImageStage: { height: 120, marginHorizontal: 12, marginBottom: 0, borderRadius: 13, backgroundColor: "rgba(2,15,34,0.72)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, centerImage: { width: "100%", height: "100%" }, centerCategory: { position: "absolute", top: 7, left: 7, color: "#9CDDF2", fontSize: 11, fontWeight: "900", textTransform: "uppercase", backgroundColor: "rgba(1,12,29,0.82)", paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9 }, centerBody: { padding: 12 }, centerCardTitle: { color: "#FFF", fontSize: 16, fontWeight: "900" }, centerCardCopy: { color: "#9CBACD", fontSize: 13, lineHeight: 19, minHeight: 26, marginTop: 3 }, centerFooter: { minHeight: 31, marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, pinButton: { minHeight: 40, paddingVertical: 8, borderRadius: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(104,218,255,0.32)", backgroundColor: "rgba(9,61,91,0.64)", justifyContent: "center" }, pinActive: { borderColor: "rgba(94,226,191,0.48)", backgroundColor: "rgba(24,107,91,0.64)" }, pinDisabled: { opacity: 0.42 }, pinText: { color: "#BEEBFA", fontSize: 11, fontWeight: "900" }, openText: { color: "#7EDFFF", fontSize: 11, fontWeight: "900" },

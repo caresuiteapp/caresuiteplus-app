@@ -21,7 +21,7 @@ vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/supabase/untypedTable', () => ({
   fromUnknownTable: (_client: unknown, table: string) => {
     const query = {
-      select: () => query, eq: () => query, in: () => query, order: () => query,
+      select: () => query, eq: () => query, in: () => query, not: () => query, order: () => query,
       range: async (from: number, to: number) => {
         f.calls.push({ table, from, to });
         const rows = table === 'service_records' ? f.records : f.rows;
@@ -107,7 +107,16 @@ describe.each([['native', native], ['web', web]] as const)('%s proof reconciliat
     if (!result.ok) throw new Error(result.error);
     expect(result.data).toHaveLength(1105);
     expect(result.data[0]).toEqual(expect.objectContaining({ id: 'proof-1104', status: 'offen' }));
-    expect(f.calls.at(-1)?.from).toBe(1050);
+    expect(f.calls.filter(call => call.table === 'client_documents').at(-1)?.from).toBe(1050);
+  });
+  it('includes historical records alongside current documents, suppressing mirrored duplicates', async () => {
+    f.rows = [{ id: 'current', service_record_id: 'mirrored-record', title: 'Current document' }];
+    f.records = [{ id: 'mirrored-record', status: 'billed', created_at: '2026-08-10' },
+      { id: 'historical', status: 'approved', created_at: '2026-07-10' }];
+    f.assist.mockResolvedValue({ ok: true, data: [] });
+    const result = await service.listPortalServiceProofs('t', 'c');
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.map(proof => proof.id).sort()).toEqual(['current', 'historical']);
   });
 
   it.each([

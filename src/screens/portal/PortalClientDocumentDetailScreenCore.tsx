@@ -165,7 +165,7 @@ export function PortalClientDocumentDetailScreen() {
 
         <PortalDocumentDetailHero document={data} scope="client" />
 
-        {data.signaturePending && !captured ? (
+        {data.canSign && data.signaturePending && !captured ? (
           <ClientPortalGuide
             compact
             title="Ihre Unterschrift fehlt noch"

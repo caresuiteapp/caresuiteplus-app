@@ -2,7 +2,7 @@
 export function desktopWorkspaceCss(fontScale: number, mobile = false) {
   const scale = Math.max(1, Number.isFinite(fontScale) ? fontScale : 1);
   const gap = mobile ? 10 : 14;
-  const minimum = (mobile ? 160 : 240) * scale;
+  const minimum = (mobile ? 135 : 240) * scale;
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   const labelHeight = Math.ceil((mobile ? 32 : 48) * scale + (mobile ? 12 : 16));
   return `

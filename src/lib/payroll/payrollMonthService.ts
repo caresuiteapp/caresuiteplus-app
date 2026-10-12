@@ -553,7 +553,7 @@ export async function publishPayrollStatement(
   let pdfBytes: Uint8Array;
   try { pdfBytes = await renderHtmlToPdfBytes(html); }
   catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'PDF-Erzeugung fehlgeschlagen.' }; }
-  const upload = await invokeEdgeFunction<{ pdfPath?: string }>('render-document-pdf', { tenantId, documentId: `payroll-${statementId}`, htmlOutput: html, pdfBase64: bytesToBase64(pdfBytes), storeOnly: true });
+  const upload = await invokeEdgeFunction<{ pdfPath?: string }>('render-document-pdf', { tenantId, employeeId: employee.employeeId, documentId: `payroll-${statementId}`, pdfBase64: bytesToBase64(pdfBytes), storeOnly: true });
   if (!upload.ok || !upload.data.pdfPath) return { ok: false, error: upload.ok ? 'PDF-Speicherpfad fehlt.' : upload.error };
   const supersedeIds = existing.filter((row) => ['published','rejected'].includes(asString(row.status))).map((row) => asString(row.id));
   if (supersedeIds.length) {
