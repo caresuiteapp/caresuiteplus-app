@@ -60,17 +60,19 @@ export function HealthOSPageSurface({
 type HealthOSPageZoneProps = {
   children?: ReactNode;
   kind: 'actions' | 'filters' | 'tabs' | 'content';
+  fill?: boolean;
   style?: ViewStyle;
 };
 
 /** One stable order for action, filter, tab and content areas. */
-export function HealthOSPageZone({ children, kind, style }: HealthOSPageZoneProps) {
+export function HealthOSPageZone({ children, kind, fill = true, style }: HealthOSPageZoneProps) {
   if (children == null) return null;
   return (
     <View
       style={[
         styles.zone,
         kind === 'content' ? styles.contentZone : styles.controlZone,
+        kind === 'content' && fill && styles.contentZoneFill,
         style,
       ]}
       {...(Platform.OS === 'web'
@@ -193,8 +195,8 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   contentZone: {
-    flex: 1,
     minHeight: 0,
     gap: careSpacing.md,
   },
+  contentZoneFill: { flex: 1 },
 });

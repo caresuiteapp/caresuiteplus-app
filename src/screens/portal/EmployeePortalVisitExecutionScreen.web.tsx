@@ -1315,8 +1315,7 @@ function EmployeePortalVisitExecutionContent() {
   if (loading && !visit) {
     return (
       <PortalTabScreen title={shellTitle} subtitle="Wird geladen…">
-        <WorkflowFeedbackOverlay loading loadingMessage="Einsatz wird vollständig geladen…" />
-        <LoadingState message="Einsatz wird geladen…" />
+        <LoadingState message="Einsatz wird vollständig geladen…" />
       </PortalTabScreen>
     );
   }
