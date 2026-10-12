@@ -88,6 +88,10 @@ describe('PDF upload endpoint', () => {
     expect((await post({ ...body(), documentId: `payroll-${documentId}` })).status).toBe(400);
     expect((await post({ ...body(), documentId: `payroll-${documentId}`, employeeId })).status).toBe(200);
   });
+  it.each(['employee', 'client', 'family', 'relative', 'caregiver', 'nurse', 'EMPLOYEE_PORTAL', 'Client_Portal', 'Family_Portal', 'Employee', 'NURSE'])('denies the legacy or differently cased portal role %s before storage', async key => {
+    role.key = key;
+    expect((await post()).status).toBe(403); expect(upload).not.toHaveBeenCalled(); expect(upsert).not.toHaveBeenCalled();
+  });
   it('replays identical uploaded bytes without replacing the file', async () => {
     uploadError = { statusCode: '409' };
     expect((await post()).status).toBe(200); expect(download).toHaveBeenCalledOnce();

@@ -11,7 +11,8 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalo
       WHERE (p.auth_user_id = auth.uid() OR (p.auth_user_id IS NULL AND p.id = auth.uid()))
         AND p.tenant_id = p_tenant AND p.status::text = 'active' AND p.is_active
         AND (to_jsonb(r)->>'tenant_id' IS NULL OR to_jsonb(r)->>'tenant_id' = p_tenant::text)
-        AND r.key NOT IN ('employee_portal', 'client_portal', 'family_portal')
+        AND lower(r.key) NOT IN ('employee_portal', 'client_portal', 'family_portal',
+          'employee', 'client', 'family', 'relative', 'caregiver', 'nurse')
         AND (coalesce(r.is_admin_role, false)
           OR r.key IN ('owner', 'admin', 'management', 'geschaeftsfuehrung', 'business_admin')
           OR public.has_permission(p_permission))
@@ -51,7 +52,7 @@ BEGIN
     WHERE (p.auth_user_id=auth.uid() OR (p.auth_user_id IS NULL AND p.id=auth.uid()))
       AND p.tenant_id=p_tenant AND p.is_active IS TRUE AND p.status::text='active'
       AND (to_jsonb(r)->>'tenant_id' IS NULL OR to_jsonb(r)->>'tenant_id'=p_tenant::text)
-      AND r.key NOT IN ('employee_portal','client_portal','family_portal','employee','client','family','relative','caregiver','nurse')
+      AND lower(r.key) NOT IN ('employee_portal','client_portal','family_portal','employee','client','family','relative','caregiver','nurse')
       AND (coalesce(r.is_admin_role,false) OR r.key IN ('owner','admin','business_admin')
         OR coalesce((to_jsonb(r)->>'can_manage_roles')::boolean,false));
   IF v_actor IS NULL THEN RAISE EXCEPTION 'Role administration denied' USING ERRCODE='42501'; END IF;
