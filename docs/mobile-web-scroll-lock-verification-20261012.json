@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-10-12T16:58:50.877369+00:00",
+  "baseCommit": "152b1b97c515e64a3144f7593e0eee2d3d7c0a1a",
+  "branch": "fix/mobile-web-scroll-lock-20261012",
+  "scope": "Current Web portal; not old PR49. Video and explicit user report concern blocked scroll and compacted contents, not only latency.",
+  "nodeTests": {
+    "command": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/workflow-feedback-interaction-lock.test.mjs",
+    "runtime": "v24.19.0",
+    "passed": 13,
+    "failed": 0,
+    "exitCode": 0,
+    "scope": "Actual production lock helper with isolated DOM doubles. Reproduces original independent snapshot fault. All six close orders for three concurrent loaders, two orders for two loaders, original inert preservation, repeated cleanup, detached host and independent documents. Not a React renderer or real mobile browser.",
+    "logSha256": "a43022d27b0307a3740e12b1f35c9ed0f346ef0930ab6f09370d45d7809b6e38"
+  },
+  "sourceSha256": {
+    "src/lib/dom/workflowFeedbackInteractionLock.ts": "33ff75964d5bb736eb7f6502302c99322115b816e7114e4d2d7193a41b0af406",
+    "src/components/ui/WorkflowFeedbackOverlay.tsx": "151d7ab11a9dcff9bc8582835520de178224123befcaaafe6c053dd6262b9cee",
+    "src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx": "a4abcee9a24101529699390d04d6d5f2d175f2fa6e50a6d056195fbc0a3a9f32",
+    "src/screens/portal/PortalTabScreen.tsx": "47c8e0bfc398d18ee56d7f94ac205a7bc0a13d6875ed7407e9902424876060e6",
+    "src/components/portal/EmployeePortalPageFrame.tsx": "504df1e1dd7390d7521963bb4466cfabe5419ba92f2e3df3bf1a46b71b66cfa4",
+    "src/components/layout/HealthOSPageSurface.tsx": "eff5657ec8d3c743c2b46ec4d87825ad4180a4932238330014229a65b0f8adbf"
+  },
+  "browserCheck": {
+    "status": "blocked",
+    "reason": "Cloud Browser URL policy rejects the local file:// fixture. No workaround attempted.",
+    "generatedFixture": "Temporary technical fixture generated from actual stripped production helper and actual naturalContent style; not executed in browser.",
+    "authenticatedMobileWebChecked": false,
+    "realSafariTouchChecked": false
+  },
+  "fullProjectChecks": {
+    "vitest": "not run; restored checkout has no installed project dependencies",
+    "typescript": "not run; project compiler unavailable",
+    "webExport": "not run locally; existing Vercel preview build to be observed if triggered"
+  },
+  "productionReleased": false,
+  "productionDataChanged": false,
+  "notes": [
+    "Video shows mobile Web, not Android native. User explicitly confirms scrolling is impossible.",
+    "Observed approximately 13s initial portal overlay and 11s return overlay; API latency itself is not claimed fixed.",
+    "Loading indicators now use one Web path during initial visit load; direct busy-operation overlays remain protective.",
+    "Native/default visit screen untouched; natural frame height selected only for Web ScrollView content. Other page-zone callers retain fill=true.",
+    "No dependency/version/environment/database changes and no old layout restoration."
+  ],
+  "publication": {
+    "status": "authorized_pending_push_and_deploy",
+    "destination": "caresuiteapp/caresuiteplus-app",
+    "repositoryPublic": true,
+    "requestedBranch": "fix/mobile-web-scroll-lock-20261012",
+    "remoteBranchExists": false,
+    "draftPrCreated": false,
+    "reason": "Explicit publication instruction received after the initial rejected attempt. Release covers the current Web hotfix; PR49, migrations and Play Store remain separate.",
+    "previousStatus": "blocked_by_automatic_approval_review",
+    "authorization": "User explicitly instructed: alles push und deploy, 2026-10-12.",
+    "targetProjectId": "prj_SYwNxpMWgG80kenkOJQIjuBJldp8",
+    "productionDomain": "www.caresuiteplus.app"
+  }
+}

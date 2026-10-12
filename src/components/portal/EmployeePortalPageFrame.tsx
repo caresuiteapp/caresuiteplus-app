@@ -14,6 +14,8 @@ type Props = {
   children: ReactNode;
   compact?: boolean;
   showHero?: boolean;
+  /** Outer ScrollView owns the viewport; Web content must keep its natural height. */
+  scrollable?: boolean;
   actionsSlot?: ReactNode;
   filtersSlot?: ReactNode;
   tabsSlot?: ReactNode;
@@ -26,14 +28,16 @@ export function EmployeePortalPageFrame({
   children,
   compact = false,
   showHero = true,
+  scrollable = false,
   actionsSlot,
   filtersSlot,
   tabsSlot,
 }: Props) {
   const { isPhone } = useDeviceClass();
+  const naturalWebHeight = Platform.OS === 'web' && scrollable;
 
   return (
-    <View style={[styles.page, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
+    <View style={[styles.page, naturalWebHeight ? styles.naturalContent : styles.fillContent, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
       {showHero ? (
         <PortalPremiumPageHero
           kind="employee"
@@ -45,6 +49,7 @@ export function EmployeePortalPageFrame({
       ) : null}
       <SurfaceContrastProvider tone="light">
         <HealthOSPageSurface
+          fill={!naturalWebHeight}
           padded={!isPhone}
           contentStyle={isPhone ? styles.workspacePhone : styles.workspace}
           testID="employee-portal-page-surface"
@@ -52,8 +57,8 @@ export function EmployeePortalPageFrame({
           <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
           <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
           <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-          <HealthOSPageZone kind="content">
-            <View style={styles.content} testID="employee-portal-contrast-r4-workspace">
+          <HealthOSPageZone kind="content" fill={!naturalWebHeight}>
+            <View style={[styles.content, naturalWebHeight ? styles.naturalContent : styles.fillContent]} testID="employee-portal-contrast-r4-workspace">
               {children}
             </View>
           </HealthOSPageZone>
@@ -65,7 +70,6 @@ export function EmployeePortalPageFrame({
 
 const styles = StyleSheet.create({
   page: {
-    flex: 1,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
@@ -74,12 +78,13 @@ const styles = StyleSheet.create({
     gap: careSpacing.lg,
   },
   content: {
-    flex: 1,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
     gap: careSpacing.md,
   },
+  fillContent: { flex: 1 },
+  naturalContent: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   pagePhone: {
     gap: careSpacing.sm,
   },
