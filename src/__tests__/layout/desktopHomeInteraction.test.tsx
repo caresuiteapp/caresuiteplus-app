@@ -196,4 +196,24 @@ describe('one desktop with the permitted navigation', () => {
     expect(memory.get(office)).toBe('["clients"]');
     expect(memory.get(assist)).toBe('["assignments"]');
   });
+  it('keeps an overflow widget reachable on the next desktop page after migration', async () => {
+    const ids = ['clients', 'messages', 'live', 'proofs', 'office', 'people', 'calendar', 'assignments', 'salary', 'logbook', 'documents', 'billing', 'google-gmail'];
+    memory.set(moduleDesktopStorageKey('tenant', api.owner, 'office'), JSON.stringify(ids.slice(0, 12)));
+    memory.set(moduleDesktopStorageKey('tenant', api.owner, 'assist'), JSON.stringify(ids.slice(12)));
+    await render();
+    expect(JSON.parse(memory.get(key())!)).toEqual(ids);
+    expect(label('Gmail öffnen')).toBeNull();
+    await click(label('Nächste Desktop-Seite'));
+    expect(label('Gmail öffnen')).not.toBeNull();
+    expect(host.textContent).toContain('2/2');
+  });
+  it('recovers omitted saved widgets only after an explicit action, keeping the current order', async () => {
+    memory.set(key(), '["messages"]');
+    memory.set(moduleDesktopStorageKey('tenant', api.owner, 'office'), '["clients","messages"]');
+    await render(); expect(label('Klient:innen öffnen')).toBeNull();
+    await click(label('Apps und Widgets öffnen')); await click(catalogButton('Widgets'));
+    await click(label('Weitere gespeicherte Widgets wiederherstellen'));
+    expect(JSON.parse(memory.get(key())!)).toEqual(['messages', 'clients']);
+    expect(memory.get(moduleDesktopStorageKey('tenant', api.owner, 'office'))).toBe('["clients","messages"]');
+  });
 });

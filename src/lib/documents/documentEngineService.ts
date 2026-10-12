@@ -19,7 +19,8 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { writeDocumentAuditLog, listDocumentAuditLog } from './repository/documentAuditRepository.supabase';
-import { archiveGeneratedDocumentToClientRecord } from './documentArchiveService';
+import { archiveGeneratedDocumentToClientRecord, archiveGeneratedDocumentToEmployeeRecord } from './documentArchiveService';
+import { isTenantStoragePath } from '@/lib/storage/storagePaths';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { renderHtmlToPdfBytes } from './documentPdfService';
 
@@ -415,71 +416,85 @@ export async function finalizeGeneratedDocument(
   const denied = enforcePermission<GeneratedDocumentRecord>(actorRoleKey, 'documents.finalize');
   if (denied) return denied;
 
-  let pdfPath = input.pdfPath ?? null;
-  let pdfBase64 = input.pdfBase64;
-
-  const existing = DEMO_GENERATED.get(input.documentId);
+  const live = getServiceMode() === 'supabase';
+  const supabase = live ? getSupabaseClient() : null;
+  if (live && !supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+  let existing = DEMO_GENERATED.get(input.documentId);
+  let expectedUpdatedAt: string | null = null;
+  let alreadyFinalized = false;
+  if (supabase) {
+    const loaded = await fromUnknownTable(supabase, 'generated_documents').select('*')
+      .eq('tenant_id', input.tenantId).eq('id', input.documentId).maybeSingle();
+    if (loaded.error || !loaded.data) return { ok: false, error: 'Das Dokument konnte nicht geladen werden. Bitte erneut versuchen.' };
+    const row = loaded.data as Record<string, unknown>;
+    existing = mapGeneratedRow(row);
+    expectedUpdatedAt = typeof row.updated_at === 'string' ? row.updated_at : null;
+    alreadyFinalized = existing.status === 'finalized';
+    if (row.locked_at || !['draft', 'preview', 'generated', 'finalized'].includes(existing.status)) {
+      return { ok: false, error: 'Dieses abgeschlossene Dokument kann nicht geändert werden.' };
+    }
+    if (input.clientId && existing.clientId !== input.clientId || input.employeeId && existing.employeeId !== input.employeeId) {
+      return { ok: false, error: 'Die Aktenzuordnung stimmt nicht mit dem gespeicherten Dokument überein.' };
+    }
+    if (!expectedUpdatedAt) return { ok: false, error: 'Die Dokumentversion konnte nicht bestätigt werden. Bitte neu laden.' };
+    if (alreadyFinalized && existing.archivedInArea && existing.archivedInArea !== input.archivedInArea) {
+      return { ok: false, error: 'Der Ablagebereich eines abgeschlossenen Dokuments bleibt unverändert.' };
+    }
+  }
   const html = existing?.htmlOutput ?? '';
-
-  if (!pdfPath && html && !pdfBase64) {
-    try {
-      const bytes = await renderHtmlToPdfBytes(html);
-      pdfBase64 = bytesToBase64(bytes);
-    } catch {
-      /* web-only — fallback edge */
-    }
+  let pdfPath = existing?.pdfPath ?? null;
+  let pdfBase64 = alreadyFinalized ? undefined : input.pdfBase64;
+  if (input.pdfPath && input.pdfPath !== pdfPath) {
+    return { ok: false, error: 'Der PDF-Pfad gehört nicht zur bestätigten Dokumentversion.' };
   }
-
-  if (pdfBase64 && !pdfPath && getServiceMode() === 'supabase') {
+  if (!pdfPath && html && !pdfBase64 && !alreadyFinalized) {
+    try { pdfBase64 = bytesToBase64(await renderHtmlToPdfBytes(html)); }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Die PDF-Datei konnte nicht erzeugt werden.' }; }
+  }
+  if (supabase && pdfBase64 && !pdfPath) {
     const upload = await invokeEdgeFunction<{ pdfPath?: string }>('render-document-pdf', {
-      tenantId: input.tenantId,
-      documentId: input.documentId,
-      htmlOutput: html,
-      pdfBase64,
-      storeOnly: true,
+      tenantId: input.tenantId, documentId: input.documentId, pdfBase64, storeOnly: true,
     });
-    if (upload.ok && upload.data.pdfPath) pdfPath = upload.data.pdfPath;
+    if (!upload.ok) return { ok: false, error: upload.error };
+    if (!upload.data.pdfPath) return { ok: false, error: 'Der PDF-Upload wurde nicht bestätigt. Bitte erneut versuchen.' };
+    pdfPath = upload.data.pdfPath;
   }
-
-  const fileName = buildGeneratedDocumentFileName({
-    templateShortName: 'Dokument',
-    clientLastName: null,
-    clientFirstName: null,
+  const fileName = existing?.fileName ?? buildGeneratedDocumentFileName({
+    templateShortName: existing?.title || 'Dokument', clientLastName: null, clientFirstName: null,
   });
-
-  if (getServiceMode() === 'supabase') {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
-    const { data, error } = await fromUnknownTable(supabase, 'generated_documents')
-      .update({
-        status: 'finalized',
-        pdf_path: pdfPath,
-        file_name: fileName,
-        archived_in_area: input.archivedInArea,
-        finalized_at: new Date().toISOString(),
-      })
-      .eq('tenant_id', input.tenantId)
-      .eq('id', input.documentId)
-      .select('*')
-      .single();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    const row = data as Record<string, unknown>;
-    const record = mapGeneratedRow(row);
-    await writeDocumentAuditLog({
-      tenantId: input.tenantId,
-      action: 'document_finalized',
-      entityType: 'generated_document',
-      entityId: record.id,
-      actorRole: actorRoleKey ?? null,
-    });
-    if (input.clientId) {
-      await archiveGeneratedDocumentToClientRecord({
-        tenantId: input.tenantId,
-        document: record,
-        clientId: input.clientId,
-        storageArea: input.archivedInArea,
-      });
+  if (supabase) {
+    if (!isTenantStoragePath(pdfPath, input.tenantId)) {
+      return { ok: false, error: 'Eine gespeicherte PDF-Datei fehlt. Ihr Dokument bleibt als Entwurf erhalten.' };
     }
+    const stored = await supabase.storage.from('office-documents').download(pdfPath!);
+    if (stored.error || !stored.data) return { ok: false, error: 'Die PDF-Datei konnte nicht bestätigt werden. Bitte erneut versuchen.' };
+    const pdfBytes = new Uint8Array(await stored.data.arrayBuffer());
+    if (pdfBytes.length < 512 || !new TextDecoder().decode(pdfBytes.slice(0, 8)).startsWith('%PDF-')
+      || !new TextDecoder().decode(pdfBytes.slice(-1024)).includes('%%EOF')) {
+      return { ok: false, error: 'Die gespeicherte Datei ist keine vollständige PDF-Datei. Bitte das Original prüfen.' };
+    }
+    const candidate: GeneratedDocumentRecord = { ...existing!, pdfPath, fileName };
+    if (existing!.clientId) {
+      const archived = await archiveGeneratedDocumentToClientRecord({
+        tenantId: input.tenantId, document: candidate, clientId: existing!.clientId, storageArea: input.archivedInArea,
+      });
+      if (!archived.ok) return { ok: false, error: archived.error ?? 'Das Dokument konnte nicht in der Akte gespeichert werden. Bitte erneut versuchen.' };
+    }
+    if (existing!.employeeId && !existing!.clientId) {
+      const archived = await archiveGeneratedDocumentToEmployeeRecord({
+        tenantId: input.tenantId, document: candidate, employeeId: existing!.employeeId, storageArea: input.archivedInArea,
+      });
+      if (!archived.ok) return { ok: false, error: archived.error ?? 'Das Dokument konnte nicht in der Personalakte gespeichert werden. Bitte erneut versuchen.' };
+    }
+    if (alreadyFinalized) return { ok: true, data: candidate };
+    const updated = await fromUnknownTable(supabase, 'generated_documents').update({
+      status: 'finalized', pdf_path: pdfPath, file_name: fileName, archived_in_area: input.archivedInArea,
+      finalized_at: new Date().toISOString(),
+    }).eq('tenant_id', input.tenantId).eq('id', input.documentId).eq('updated_at', expectedUpdatedAt!).select('*').single();
+    if (updated.error || !updated.data) return { ok: false, error: 'Das Dokument wurde zwischenzeitlich geändert. Bitte neu laden. Der gespeicherte PDF-Upload bleibt erhalten.' };
+    const record = mapGeneratedRow(updated.data as Record<string, unknown>);
+    await writeDocumentAuditLog({ tenantId: input.tenantId, action: 'document_finalized',
+      entityType: 'generated_document', entityId: record.id, actorRole: actorRoleKey ?? null });
     return { ok: true, data: record };
   }
 
@@ -528,7 +543,7 @@ function mapGeneratedRow(row: Record<string, unknown>): GeneratedDocumentRecord 
     status: String(row.status),
     fileName: row.file_name ? String(row.file_name) : null,
     pdfPath: row.pdf_path ? String(row.pdf_path) : null,
-    htmlOutput: row.html_output ? String(row.html_output) : null,
+    htmlOutput: row.html_output ? String(row.html_output) : typeof (row.generated_content_json as Record<string, unknown> | null)?.html === 'string' ? String((row.generated_content_json as Record<string, unknown>).html) : null,
     archivedInArea: row.archived_in_area ? String(row.archived_in_area) : null,
     clientId: row.client_id ? String(row.client_id) : null,
     employeeId: row.employee_id ? String(row.employee_id) : null,

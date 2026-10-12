@@ -105,9 +105,12 @@ function assertStoredHtmlIsPassive(html: string): void {
 }
 
 export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
+  if (Platform.OS !== 'web') {
+    const renderer = await import('./documentPdfRenderer.native');
+    return renderer.renderHtmlToPdfBytes(html);
   }
+  if (typeof document === 'undefined') throw new Error('Die PDF-Erzeugung benötigt einen geöffneten Browser.');
+  assertStoredHtmlIsPassive(html);
 
   const container = document.createElement('div');
   container.innerHTML = html;

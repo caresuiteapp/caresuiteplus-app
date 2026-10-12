@@ -1,6 +1,7 @@
 import { fetchAllPortalRows } from '@/lib/portal/portalRowPagination';
 import type { ServiceResult } from '@/types';
 import type { PortalServiceProof, PortalServiceProofStatus } from '@/types/portal/serviceProofs';
+import { PORTAL_CLIENT_DOCUMENT_STATUSES, PORTAL_INTERNAL_SENSITIVITIES } from '@/lib/clients/clientDocumentPortalVisibility';
 import { listReleasedProofsForClientPortal } from '@/lib/portal/assist/portalAssistVisitProofService';
 import {
   canClientPortalSeeFeature,
@@ -101,12 +102,13 @@ export async function listPortalServiceProofs(
       .eq('client_id', clientId)
       .eq('portal_visible', true)
       .eq('category', PROOF_CATEGORY)
-      .eq('status', 'aktiv')
+      .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
+      .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
       .order('created_at', { ascending: false }).order('id', { ascending: true }).range(from, to));
 
     if (!documentResult.ok) return documentResult;
-    const combined = await appendAssistVisitProofs(tenantId, clientId, documentResult.data.filter((row) => row.source !== 'assist_visit_proof').map((row) => mapProofRow(row as Record<string, unknown>)));
-    if (!combined.ok || combined.data.length > 0) return combined;
+    const documentProofs = documentResult.data.filter(row => row.source !== 'assist_visit_proof').map(row => mapProofRow(row));
+    const representedRecords = new Set(documentResult.data.map(row => String(row.service_record_id ?? '')).filter(Boolean));
 
     const serviceRecordResult = await fetchAllPortalRows<Record<string, unknown> & { id: string }>((from, to) => fromUnknownTable(supabase, 'service_records')
       .select('id, tenant_id, client_id, record_number, service_date, service_month, status, pdf_url, created_at', { count: 'exact' })
@@ -115,7 +117,7 @@ export async function listPortalServiceProofs(
       .order('service_date', { ascending: false }).order('id', { ascending: true }).range(from, to));
     if (!serviceRecordResult.ok) return serviceRecordResult;
 
-    const proofs = (serviceRecordResult.data ?? []).map((row) => {
+    const proofs = (serviceRecordResult.data ?? []).filter(row => !representedRecords.has(row.id)).map((row) => {
       const record = row as Record<string, unknown>;
       const serviceDate = String(record.service_date ?? record.created_at ?? '');
       return mapProofRow({
@@ -139,8 +141,31 @@ export async function listPortalServiceProofs(
       });
     });
 
-    return appendAssistVisitProofs(tenantId, clientId, proofs);
+    return appendAssistVisitProofs(tenantId, clientId, [...documentProofs, ...proofs]);
   });
+}
+
+export async function fetchLegacyPortalServiceProof(
+  tenantId: string, clientId: string, recordId: string,
+): Promise<ServiceResult<PortalServiceProof | null>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+  const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
+  if (!settings.ok) return settings;
+  if (!canClientPortalSeeFeature(settings.data, 'proofs')) return { ok: true, data: null };
+  const result = await fromUnknownTable(supabase, 'service_records')
+    .select('id,tenant_id,client_id,record_number,service_date,service_month,status,pdf_url,created_at')
+    .eq('tenant_id', tenantId).eq('client_id', clientId).eq('id', recordId)
+    .in('status', ['signature_required', 'signed', 'approved', 'billable', 'billed']).maybeSingle();
+  if (result.error) return { ok: false, error: 'Der ältere Leistungsnachweis konnte nicht geladen werden. Bitte erneut versuchen.' };
+  if (!result.data) return { ok: true, data: null };
+  const record = result.data as Record<string, unknown>;
+  return { ok: true, data: mapProofRow({ ...record, service_record_id: record.id, service_record_status: record.status,
+    title: record.record_number ? `Leistungsnachweis ${record.record_number}` : 'Leistungsnachweis',
+    file_name: record.pdf_url ? `${record.id}.pdf` : 'nachweis.pdf', mime_type: 'application/pdf',
+    storage_path: record.pdf_url, signature_required: record.status === 'signature_required',
+    service_month: record.service_month ?? record.service_date,
+  }) };
 }
 
 async function appendAssistVisitProofs(
