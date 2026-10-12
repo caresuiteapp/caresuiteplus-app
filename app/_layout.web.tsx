@@ -32,6 +32,7 @@ import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCo
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
 import { PlatformObservationMount } from '@/components/platformConsole/PlatformObservationMount.web';
 import { PlatformRuntimeBoundary } from '@/components/platformConsole/PlatformRuntimeBoundary.web';
+import { WebReleaseNotice } from '@/components/platform/WebReleaseNotice.web';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 applyInvisibleScrollIndicators();
@@ -223,6 +224,7 @@ export default function RootLayout() {
                             <RouteScopedLegacyOverlays />
                             <SoftwareScreensaver />
                             <RootShell />
+                            <WebReleaseNotice />
                             </PlatformRuntimeBoundary>
                           </HealthOSStoreEditionGuard></WebNavigationMount>
                         </ScreensaverSettingsProvider>
