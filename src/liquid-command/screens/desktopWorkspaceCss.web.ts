@@ -82,6 +82,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
     [data-cs-desktop-widget-artwork] { height: 90px !important; margin: 0 7px 7px; }
     [data-cs-desktop-widget-empty] { min-height: ${labelHeight + 98}px; }
     ` : ''}
+    [data-testid="desktop-full-width-header"] :is([role="button"],button):focus-visible,
     [data-cs-desktop-navigation-workspace] :is([role="button"],button):focus-visible {
       outline: 2px solid #81DCFF;
       outline-offset: -3px;
