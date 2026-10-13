@@ -1018,21 +1018,18 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         }
 
         if (result.ok) {
-          if (
-            result.data &&
-            typeof result.data === 'object' &&
-            'wfmSyncFailed' in result.data &&
-            result.data.wfmSyncFailed === true
-          ) {
-            setRefetchWarning(
-              'Der Einsatz ist abgeschlossen, aber die Übergabe an die Arbeitszeiterfassung ist noch nicht bestätigt. Bitte die Verwaltung informieren.',
-            );
-          }
           const syncedContext = unwrapWorkflowContextPayload(result.data);
           if (syncedContext) {
             await syncAfterWorkflow(syncedContext);
           } else {
             await refreshExecutionContext();
+          }
+          if (result.data && typeof result.data === 'object') {
+            if ('serviceRecordSyncFailed' in result.data && result.data.serviceRecordSyncFailed === true) {
+              setRefetchWarning('Der Einsatz ist abgeschlossen, aber die abgesicherte Leistungsnachweisvorbereitung wurde nicht bestätigt. Bitte die Verwaltung informieren und die Serverfreigabe prüfen.');
+            } else if ('wfmSyncFailed' in result.data && result.data.wfmSyncFailed === true) {
+              setRefetchWarning('Der Einsatzschritt ist gespeichert, aber der Statusabgleich oder die Übergabe an die Arbeitszeiterfassung ist noch nicht bestätigt. Bitte den Status erneut prüfen und bei weiter bestehendem Hinweis die Verwaltung informieren.');
+            }
           }
         } else if (
           options?.recoveryAction ||
@@ -1172,72 +1169,47 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return { ok: true };
   }, [tenantId, assignmentId, employeeId, authProfileId, refreshExecutionContext]);
 
-  const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: LiveTrackingErrorCode }> => {
-    if (!tenantId || !assignmentId) {
-      return { ok: false, error: 'Keine Einsatz-ID.' };
+  const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: string }> => {
+    if (!tenantId || !assignmentId || !employeeId || signatureScopeRef.current !== signatureScopeKey) {
+      return { ok: false, error: 'Die aktuelle Einsatzzuordnung fehlt. Bitte den Einsatz erneut laden.' };
     }
-
-    const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
-    if (!writableSession.ok) {
-      return {
-        ok: false,
-        error: writableSession.error,
-        errorCode: 'LIVE_SESSION_CREATE_FAILED',
-      };
-    }
-
-    const storedAuthorization = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    const trackingScope = signatureScopeKey;
     const now = new Date().toISOString();
-    // The employment/tenant policy is the processing basis. These legacy DB
-    // fields remain populated for audit compatibility, but no separate
-    // per-visit click is required.
-    const trackingAuthorization = storedAuthorization.granted
-      ? storedAuthorization
-      : {
-          granted: true as const,
-          grantedAt: now,
-          explainedAt: now,
-        };
+    const storedAuthorization = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    const trackingAuthorization = storedAuthorization.granted ? storedAuthorization : {
+      granted: true as const, grantedAt: now, explainedAt: now,
+    };
     applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
 
-    const perm = await requestLocationPermissionOnce(tenantId, employeeId).catch(
-      () => 'denied' as EmployeePortalGpsPermissionStatus,
-    );
-    setGpsPermission(perm);
-
-    let snapshot = null;
-    if (perm === 'granted') {
-      snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
-    }
-
-    const started = await startEnRoute({
-      tenantId,
-      employeeId,
-      assignmentId,
-      profileId: authProfileId,
-      roleKey,
-      consentGrantedAt: trackingAuthorization.grantedAt ?? now,
-      consentExplainedAt: trackingAuthorization.explainedAt,
-      gpsSnapshot: snapshot,
-      withoutGps: !snapshot,
-      localConsent: trackingAuthorization,
-      executionContext: executionContextRef.current,
+    // The browser may leave its permission prompt unanswered indefinitely.
+    // Start the canonical journey without a GPS fix; the scoped watcher can
+    // attach location afterwards without holding the workflow action open.
+    void requestLocationPermissionOnce(tenantId, employeeId).then((permission) => {
+      if (signatureScopeRef.current !== trackingScope) return;
+      setGpsPermission(permission);
+    }).catch(() => {
+      if (signatureScopeRef.current === trackingScope) setGpsPermission('denied');
     });
 
-    if (!started.ok) {
-      setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
-      return { ok: false, error: started.error };
+    const result = await runWorkflow((ctx) => startEnRoute({
+      tenantId: ctx.tenantId,
+      employeeId: ctx.employeeId,
+      assignmentId: ctx.assignmentId,
+      profileId: ctx.profileId,
+      roleKey: ctx.roleKey as import('@/types').RoleKey | null,
+      consentGrantedAt: trackingAuthorization.grantedAt ?? now,
+      consentExplainedAt: trackingAuthorization.explainedAt,
+      gpsSnapshot: null,
+      withoutGps: true,
+      localConsent: trackingAuthorization,
+      executionContext: ctx,
+    }), { recoveryAction: 'start_en_route', timeoutLabel: 'startDrive' });
+    if (signatureScopeRef.current !== trackingScope) {
+      return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Einsatz prüfen.', errorCode: 'WORKFLOW_SCOPE_CHANGED' };
     }
-
-    setLiveContext(started.data.liveContext);
-    setExecutionContext(started.data);
-    setLiveErrorCode(started.data.liveContext?.trackingSessionId ? null : 'LIVE_SESSION_CREATE_FAILED');
-    query.setData(started.data.detail);
-    // Updating liveContext enables the guarded watch effect. GPS streaming is
-    // ancillary and must never turn an already-persisted workflow step into a
-    // visible failure.
+    if (!result.ok) return result;
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, gpsTracking, query, portalSession]);
+  }, [tenantId, assignmentId, employeeId, signatureScopeKey, runWorkflow]);
 
   const handleMarkArrived = useCallback(async (): Promise<MarkArrivedResult> => {
     const result = (await runWorkflow(async (ctx) => {
@@ -1288,7 +1260,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (tenantId && assignmentId && employeeId && !liveContext?.trackingSessionId) {
         // GPS is ancillary. A slow browser permission prompt or first position
         // must never delay the canonical service_start event and its timer.
+        const trackingScope = signatureScopeKey;
         void (async () => {
+          if (signatureScopeRef.current !== trackingScope) return;
           const now = new Date().toISOString();
           const trackingAuthorization = {
             granted: true as const,
@@ -1298,12 +1272,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
 
           const permission = await requestLocationPermissionOnce(tenantId, employeeId);
+          if (signatureScopeRef.current !== trackingScope) return;
           setGpsPermission(permission);
           let snapshot = null;
           if (permission === 'granted') {
             snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
           }
 
+          if (signatureScopeRef.current !== trackingScope) return;
           const trackingStarted = await startEmployeeLiveTracking({
             tenantId,
             employeeId,
@@ -1320,6 +1296,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             knownTimeEvents: executionContextRef.current?.timeEvents,
           });
 
+          if (signatureScopeRef.current !== trackingScope) return;
           if (trackingStarted.ok) {
             setLiveContext(trackingStarted.data.context);
             setLiveErrorCode(null);
@@ -1327,6 +1304,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
           }
         })().catch((error) => {
+          if (signatureScopeRef.current !== trackingScope) return;
           console.warn('[employeePortalWorkflow] ancillary live tracking failed', error);
           setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
         });
@@ -1347,6 +1325,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       authProfileId,
       gpsTracking,
       runWorkflow,
+      signatureScopeKey,
     ],
   );
 

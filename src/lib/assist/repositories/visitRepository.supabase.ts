@@ -1276,16 +1276,22 @@ export const visitSupabaseRepository = {
     }
 
     const docStatus = 'complete';
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: receipt, error } = await fromUnknownTable(supabase, 'assist_visits')
       .update({
         employee_notes: employeeNotes.trim(),
         documentation_status: docStatus,
         updated_by: actorProfileId ?? null,
       })
       .eq('tenant_id', tenantId)
-      .eq('id', visitId);
+      .eq('id', visitId)
+      .select('id, tenant_id, employee_notes, documentation_status')
+      .maybeSingle();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!receipt || receipt.id !== visitId || receipt.tenant_id !== tenantId
+      || receipt.employee_notes !== employeeNotes.trim() || receipt.documentation_status !== docStatus) {
+      return { ok: false, error: 'Die Dokumentation wurde vom Server nicht bestätigt. Bitte Berechtigung und Einsatzzuordnung prüfen.' };
+    }
 
     await writeStatusHistory(
       tenantId,

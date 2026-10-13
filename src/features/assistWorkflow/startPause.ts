@@ -1,6 +1,5 @@
-/** Fast, idempotent pause start. Canonical status + time event block the UI; projections do not. */
+/** Idempotent pause start; confirm the snapshot before accepting the next action. */
 import type { ServiceResult } from '@/types';
-import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import { isAssignmentLocked } from './assistVisitStateMachine';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { calculateVisitTimes } from './calculateVisitTimes';
@@ -47,24 +46,25 @@ function buildPausedContext(ctx: AssistExecutionContext, occurredAt: string): As
   };
 }
 
-function schedulePauseProjection(ctx: AssistExecutionContext): void {
-  scheduleDeferredTask(`assist-execution-state:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+async function confirmPauseProjection(ctx: AssistExecutionContext): Promise<boolean> {
+  try {
     const result = await upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'pausiert', {
-      employeeId: ctx.employeeId,
-      visitTimes: ctx.visitTimes,
+      employeeId: ctx.employeeId, visitTimes: ctx.visitTimes,
     });
-    if (!result.ok) throw new Error(result.error);
-  });
+    return !result.ok;
+  } catch {
+    return true;
+  }
 }
 
-export async function startPause(ctx: AssistExecutionContext): Promise<ServiceResult<AssistExecutionContext>> {
+export async function startPause(ctx: AssistExecutionContext): Promise<ServiceResult<AssistExecutionContext & { wfmSyncFailed?: boolean }>> {
   if (!ctx.tenantId || !ctx.assignmentId || !ctx.employeeId) return pauseError('AWF_CONTEXT_MISSING', ctx);
   if (isAssignmentLocked(ctx.assignmentStatus) || ctx.detail.isLocked) return pauseError('WORKFLOW_INVALID_STATE', ctx, 'Einsatz ist abgeschlossen oder gesperrt.');
   if (!ctx.visitTimes?.serviceStartedAt) return pauseError('WORKFLOW_SERVICE_NOT_STARTED', ctx);
 
   if ((ctx.assignmentStatus === 'pausiert' || ctx.derivedStatus === 'pausiert') && hasOpenPauseSegment(ctx.timeEvents)) {
-    schedulePauseProjection(ctx);
-    return { ok: true, data: ctx };
+    const wfmSyncFailed = await confirmPauseProjection(ctx);
+    return { ok: true, data: { ...ctx, wfmSyncFailed } };
   }
   if (ctx.assignmentStatus !== 'gestartet' && ctx.derivedStatus !== 'gestartet' && ctx.assignmentStatus !== 'pausiert') {
     return pauseError('WORKFLOW_INVALID_STATE', ctx, 'Pause nur während laufendem Einsatz möglich.');
@@ -92,6 +92,6 @@ export async function startPause(ctx: AssistExecutionContext): Promise<ServiceRe
   if (!saved.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, saved.error);
 
   const optimistic = buildPausedContext(transitioned.data, occurredAt);
-  schedulePauseProjection(optimistic);
-  return { ok: true, data: optimistic };
+  const wfmSyncFailed = await confirmPauseProjection(optimistic);
+  return { ok: true, data: { ...optimistic, wfmSyncFailed } };
 }

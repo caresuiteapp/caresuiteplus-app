@@ -20,13 +20,14 @@ import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
-import { scheduleDeferredTask, waitForDeferredTask } from '@/lib/async/deferredTask';
+import { waitForDeferredTask } from '@/lib/async/deferredTask';
 
 export type FinalizeVisitResult = {
   ctx: AssistExecutionContext;
   serviceRecordId: string | null;
   proofPersisted: boolean;
   wfmSyncFailed?: boolean;
+  serviceRecordSyncFailed?: boolean;
 };
 
 export async function finalizeVisit(
@@ -138,19 +139,28 @@ export async function finalizeVisit(
   }
 
   const finalizedAt = new Date().toISOString();
-  scheduleDeferredTask(`assist-service-record:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
-    const serviceRecord = await assignmentSupabaseRepository.prepareServiceRecord(
-      ctx.tenantId,
-      ctx.assignmentId,
-      {
-        actorProfileId: ctx.profileId ?? ctx.employeeId,
-        actorEmployeeId: ctx.employeeId,
-      },
-    );
-    if (!serviceRecord.ok) throw new Error(serviceRecord.error);
-  });
+  let serviceRecordId = record.ok ? record.data.serviceRecordId : null;
+  let serviceRecordSyncFailed = false;
+  if (getServiceMode() === 'supabase') {
+    try {
+      const serviceRecord = await assignmentSupabaseRepository.prepareServiceRecord(
+        ctx.tenantId, ctx.assignmentId,
+        { actorProfileId: ctx.profileId ?? ctx.employeeId, actorEmployeeId: ctx.employeeId },
+      );
+      if (!serviceRecord.ok || !serviceRecord.data?.id) {
+        throw new Error(serviceRecord.ok ? 'Leistungsnachweisvorbereitung nicht bestätigt.' : serviceRecord.error);
+      }
+      serviceRecordId = serviceRecord.data.id;
+    } catch (error) {
+      serviceRecordSyncFailed = true;
+      console.warn('[finalizeVisit] Leistungsnachweisvorbereitung nicht bestätigt', error);
+    }
+  }
 
-  scheduleDeferredTask(`assist-finalization:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+  // A browser-local background job is lost on reload/close. Await the
+  // execution receipt and WFM handoff, and report failures honestly.
+  let wfmSyncFailed = false;
+  try {
     const executionState = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       ctx.assignmentId,
@@ -177,17 +187,19 @@ export async function finalizeVisit(
       );
       if (!wfmSync.ok) throw new Error(wfmSync.error);
     }
-  });
-
-  const wfmSyncFailed = false;
+  } catch (error) {
+    wfmSyncFailed = true;
+    console.warn("[finalizeVisit] Arbeitszeitübergabe nicht bestätigt", error);
+  }
 
   return {
     ok: true,
     data: {
       ctx: transitioned.data,
-      serviceRecordId: record.ok ? record.data.serviceRecordId : null,
+      serviceRecordId,
       proofPersisted: record.ok ? record.data.proofPersisted : false,
       wfmSyncFailed,
+      serviceRecordSyncFailed,
     },
   };
 }

@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import { calculateVisitTimes, type TimeEventLike } from './calculateVisitTimes';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
@@ -20,7 +19,7 @@ function failure(code: string, message: string) {
 export async function startServiceAtomic(
   ctx: AssistExecutionContext,
   options: WorkflowDeviationApproval,
-): Promise<ServiceResult<AssistExecutionContext>> {
+): Promise<ServiceResult<AssistExecutionContext & { wfmSyncFailed?: boolean }>> {
   const client = getSupabaseClient();
   if (!client) return failure('START_SERVICE_CONTEXT_MISSING', 'Keine Verbindung zur Einsatzverwaltung. Bitte erneut anmelden.');
   const approved = options.deviationApproved === true && options.deviationPhase === 'start' &&
@@ -74,7 +73,8 @@ export async function startServiceAtomic(
     diagnostics: resolveAssistExecutionDiagnostics('gestartet', visitTimes, workflow),
     allowedActions: resolveAllowedActions({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet',
       visitTimes, detail, canStartService: false }) };
-  scheduleDeferredTask(`assist-service-start-projections:${ctx.tenantId}:${ctx.assistVisitId}`, async () => {
+  let wfmSyncFailed = false;
+  try {
     const state = await upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'gestartet',
       { employeeId: ctx.employeeId, visitTimes });
     // Passing the canonical server events reuses the existing WFM mirror without another INSERT.
@@ -82,6 +82,9 @@ export async function startServiceAtomic(
       eventType: 'service_start', occurredAt: saved.startedAt, employeeId: ctx.employeeId,
       profileId: ctx.profileId, recordedBy: ctx.profileId }, events);
     if (!state.ok || !mirror.ok) throw new Error('Der Einsatzstart ist gespeichert; eine nachgelagerte Anzeige wird erneut abgeglichen.');
-  });
-  return { ok: true, data: confirmed };
+  } catch (error) {
+    wfmSyncFailed = true;
+    console.warn('[startService] Statusabgleich nicht bestätigt', error);
+  }
+  return { ok: true, data: { ...confirmed, wfmSyncFailed } };
 }
