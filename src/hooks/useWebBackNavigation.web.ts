@@ -1,0 +1,18 @@
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/lib/auth/context';
+import { goBackWebPage } from '@/lib/navigation/webNavigationHistory';
+
+export function webNavigationScope(auth: ReturnType<typeof useAuth>): string {
+  return JSON.stringify([auth.user?.id, auth.profile?.id, auth.profile?.tenantId, auth.profile?.roleKey, auth.portalSession?.accountId]);
+}
+
+export function useWebBackNavigation(fallback = '/') {
+  const router = useRouter();
+  const auth = useAuth();
+  const scope = webNavigationScope(auth);
+  return () => {
+    if (auth.isAuthenticated && goBackWebPage(scope)) return;
+    if (router.canGoBack()) router.back();
+    else router.replace(fallback as never);
+  };
+}

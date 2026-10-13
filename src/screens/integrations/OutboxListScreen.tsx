@@ -1,5 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { OutboxListHero } from '@/components/integrations/OutboxListHero';
 import { ScreenShell } from '@/components/layout';
 import {

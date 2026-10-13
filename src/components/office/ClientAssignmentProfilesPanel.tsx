@@ -1,3 +1,4 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
@@ -245,7 +246,7 @@ function ClientAssignmentProfilesPanelBody({ clientId, fullClient }: Props) {
       },
     },
   );
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = usePageFlag('ClientAssignmentProfilesPanel.editorOpen', false);
   const [editingId, setEditingId] = useState<string | undefined>();
   const [draft, setDraft] = useState<ClientAssignmentProfileInput>(() => emptyInput(clientId, address));
   const [tasksText, setTasksText] = useState('');

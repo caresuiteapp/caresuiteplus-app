@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { AdaptiveListDetail } from '@/components/adaptive';
 import { ClientDetailSummaryPanel } from '@/components/office/ClientDetailSummaryPanel';
@@ -8,7 +9,7 @@ import { ClientsListScreen } from './ClientsListScreen';
 export function ClientsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
   const shellHostsAurora = useShellHostsAurora();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('ClientsAdaptiveScreen.record', null);
   const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (shellHostsAurora) {

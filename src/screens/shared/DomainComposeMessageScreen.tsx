@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout';
 import { PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
 import { spacing, typography } from '@/theme';

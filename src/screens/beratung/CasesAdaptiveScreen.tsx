@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { MasterDetailLayout } from '@/components/layout';
 import { CaseDetailSummaryPanel } from '@/components/beratung/CaseDetailSummaryPanel';
@@ -6,7 +7,7 @@ import { CasesListScreen } from './CasesListScreen';
 
 export function CasesAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('CasesAdaptiveScreen.record', null);
 
   if (!useMasterDetail) {
     return <CasesListScreen />;

@@ -1,5 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import {
   ErrorState,

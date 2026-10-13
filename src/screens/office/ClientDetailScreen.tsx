@@ -1,7 +1,9 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useEffect, useState } from 'react';
 import type { ClientDetail } from '@/types/detail';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ClientDetailHero } from '@/components/office';
 import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
 import { ContextCard, contextGridStyle } from '@/components/detail';
@@ -127,7 +129,7 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
   const { profile } = useAuth();
   const { can, check, roleLabel, isReadOnly } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
-  const [activeTab, setActiveTab] = useState('stammdaten');
+  const [activeTab, setActiveTab] = usePageTab<string>('ClientDetailScreen.activeTab', 'stammdaten');
   const [editOpen, setEditOpen] = useState(false);
 
   const fullQuery = useClientFullDetail(id);

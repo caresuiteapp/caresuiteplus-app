@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';

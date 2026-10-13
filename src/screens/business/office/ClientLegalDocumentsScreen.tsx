@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { ScreenShell } from '@/components/layout';
 import {

@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AuroraPageHeader } from '@/components/aurora';
 import { ClientWorkspaceLiveBadge } from '@/components/office/ClientWorkspacePrimitives';
 import { ClientIntakeWizardForm } from '@/components/office/clientintakewizardform';

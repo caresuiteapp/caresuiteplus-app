@@ -8,7 +8,8 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from "@/components/layout";
 import { CareDateInput } from "@/components/inputs";
 import { LockedActionBanner } from "@/components/permissions";

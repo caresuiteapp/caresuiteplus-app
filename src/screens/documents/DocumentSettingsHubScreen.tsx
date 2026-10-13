@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -177,7 +178,7 @@ export function DocumentSettingsHubScreen() {
   const { can, canAny, check, roleLabel } = usePermissions();
   const canView = canAny(['settings.templates.view', 'office.catalogs.view']);
 
-  const [tab, setTab] = useState<TabKey>('overview');
+  const [tab, setTab] = usePageTab<TabKey>('DocumentSettingsHubScreen.tab', 'overview');
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState<DocumentEngineDashboardStats | null>(null);
   const [templates, setTemplates] = useState<DocumentEngineTemplateListItem[]>([]);

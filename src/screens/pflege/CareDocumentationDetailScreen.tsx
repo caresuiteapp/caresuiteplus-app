@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CareDocumentationDetailHero } from '@/components/pflege/CareDocumentationDetailHero';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';

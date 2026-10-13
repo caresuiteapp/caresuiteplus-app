@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AssignmentEditForm } from '@/components/assist/AssignmentEditForm';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, SuccessState, PremiumButton } from '@/components/ui';

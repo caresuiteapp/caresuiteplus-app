@@ -7,13 +7,14 @@ import { WebNavigationMount } from '@/components/navigation/WebNavigationMount.w
 import { WebNavigationMount as NativeMount } from '@/components/navigation/WebNavigationMount';
 import { useHydrated } from '@/hooks/useHydrated.web';
 
-const state = vi.hoisted(() => ({ authReady: true, pathname: '/assist/live-status' }));
-vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: state.authReady }) }));
-vi.mock('expo-router', () => ({ usePathname: () => state.pathname }));
+const state = vi.hoisted(() => ({ authReady: true, isAuthenticated: true, pathname: '/assist/live-status', replace: vi.fn() }));
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: state.authReady, isAuthenticated: state.isAuthenticated }) }));
+vi.mock('expo-router', () => ({ usePathname: () => state.pathname, useRouter: () => ({ replace: state.replace }), useRootNavigationState: () => ({ key: 'root' }), useGlobalSearchParams: () => ({}) }));
 
 let host: HTMLDivElement, root: Root | undefined;
 beforeEach(() => {
-  state.authReady = true; state.pathname = '/assist/live-status';
+  state.authReady = true; state.isAuthenticated = true; state.pathname = '/assist/live-status'; state.replace.mockReset();
+  window.history.replaceState({}, '', '/');
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   host = document.createElement('div'); document.body.append(host);
 });
@@ -67,5 +68,22 @@ describe('web navigation hydration', () => {
     host.innerHTML = renderToString(<WebNavigationMount><section>Öffentliche Seite</section></WebNavigationMount>);
     await act(async () => { root = hydrateRoot(host, <WebNavigationMount><section>Öffentliche Seite</section></WebNavigationMount>); });
     expect(host.textContent).toBe('Öffentliche Seite');
+  });
+  it('restores the original complete address after a deferred navigator collapses it, once only', async () => {
+    const target = '/business/office/clients?client=record-1&tab=dokumente#upload';
+    window.history.replaceState({}, '', target);
+    state.authReady = false;
+    function DeferredNavigator() {
+      React.useLayoutEffect(() => { window.history.replaceState({}, '', '/'); }, []);
+      return <section>Akte</section>;
+    }
+    host.innerHTML = renderToString(<WebNavigationMount><DeferredNavigator /></WebNavigationMount>);
+    await act(async () => { root = hydrateRoot(host, <WebNavigationMount><DeferredNavigator /></WebNavigationMount>); });
+    state.authReady = true;
+    await act(async () => root!.render(<WebNavigationMount><DeferredNavigator /></WebNavigationMount>));
+    expect(state.replace).toHaveBeenCalledExactlyOnceWith(target);
+    state.pathname = '/office/documents';
+    await act(async () => root!.render(<WebNavigationMount><section>Dokumente</section></WebNavigationMount>));
+    expect(state.replace).toHaveBeenCalledOnce();
   });
 });

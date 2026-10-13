@@ -1,11 +1,12 @@
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium.web';
 import { WebNavigationMount } from '@/components/navigation/WebNavigationMount';
+import { useWebBackNavigation } from '@/hooks/useWebBackNavigation.web';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { WebStartDestinationProvider, useWebStartDestination } from '@/components/brand/WebStartDestination.web';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useLayoutEffect } from 'react';
 import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
@@ -63,12 +64,12 @@ function popupTitle(pathname: string): string {
 }
 
 function RootShell() {
+  const closePage = useWebBackNavigation();
   const { authReady } = useAuth();
   const { showChoice } = useWebStartDestination();
   const startupReady = useAppStartIntroReady();
   const { mode } = useThemeMode();
   const pathname = usePathname();
-  const router = useRouter();
   const { width } = useWindowDimensions();
   const compactPopup = width < 780;
   const isDeviceLogin = isWebDeviceLoginRoute(pathname);
@@ -164,8 +165,8 @@ function RootShell() {
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Popup schließen und zur zentralen Startseite zurückkehren"
-                    onPress={() => router.replace('/' as never)}
+                    accessibilityLabel="Seite schließen und zur vorherigen Seite zurückkehren"
+                    onPress={closePage}
                     style={({ pressed }) => [
                       styles.centralPopupGlobalClose,
                       compactPopup && styles.centralPopupGlobalCloseCompact,

@@ -1,3 +1,5 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
+import { usePageTab } from '@/hooks/usePageTab';
 import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -28,7 +30,7 @@ const BILLING_TABS: TabOption[] = [
 ];
 
 function InvoicesWorkspace({ moduleKey }: { moduleKey: InvoiceWorkspaceKey }) {
-  const [modalInvoiceId, setModalInvoiceId] = useState<string | null>(null);
+  const [modalInvoiceId, setModalInvoiceId] = usePageRecord<string | null>('OfficeBillingScreen.record', null);
 
   return (
     <>
@@ -51,7 +53,7 @@ export function OfficeBillingScreen() {
   const { width } = useWindowDimensions();
   const compact = Platform.OS !== 'web' && width < 600;
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<BillingWorkspace>('dashboard');
+  const [workspace, setWorkspace] = usePageTab<BillingWorkspace>('OfficeBillingScreen.workspace', 'dashboard');
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
 

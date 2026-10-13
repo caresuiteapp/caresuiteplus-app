@@ -27,6 +27,12 @@ export function useSegments() {
 export function useLocalSearchParams<T extends Record<string, unknown>>() {
   return {} as T;
 }
+export function useGlobalSearchParams<T extends Record<string, unknown>>() {
+  return {} as T;
+}
+export function useRootNavigationState() {
+  return { key: 'root' };
+}
 
 export function useRouter() {
   return {

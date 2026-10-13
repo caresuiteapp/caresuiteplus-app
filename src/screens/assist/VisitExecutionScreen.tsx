@@ -2,7 +2,8 @@ import { visitWorkflowLabel } from '@/lib/assist/administrativeFollowUpState';
 import { VISIT_DOCUMENTATION_STATUS_LABELS, VISIT_PROOF_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import {
   AssistSetupHintsBanner,
   VisitProofPreviewPanel,

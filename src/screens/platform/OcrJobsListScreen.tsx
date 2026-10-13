@@ -4,7 +4,7 @@ import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useOcrJobList } from '@/hooks/useOcrJobList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 
 export function OcrJobsListScreen() {
   const router = useRouter();

@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { AdaptiveListDetail } from '@/components/adaptive';
 import { EmployeeDetailSummaryPanel } from '@/components/office/EmployeeDetailSummaryPanel';
@@ -8,7 +9,7 @@ import { EmployeesListScreen } from './EmployeesListScreen';
 export function EmployeesAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
   const shellHostsAurora = useShellHostsAurora();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('EmployeesAdaptiveScreen.record', null);
   const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (shellHostsAurora) {

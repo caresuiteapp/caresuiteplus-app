@@ -14,7 +14,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';

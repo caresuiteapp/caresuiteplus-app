@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { BudgetDetailHero } from '@/components/office';
 import { DetailInfoRow } from '@/components/detail';
 import { ScreenShell } from '@/components/layout';

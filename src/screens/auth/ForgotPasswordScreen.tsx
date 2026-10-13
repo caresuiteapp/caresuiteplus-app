@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
 import {

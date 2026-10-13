@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';

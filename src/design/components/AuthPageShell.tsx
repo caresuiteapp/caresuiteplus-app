@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AppScreen } from './AppScreen';
 import { AuthScreenHeader } from './AuthHero';
 import { SpatialCareScene } from './SpatialCareScene';

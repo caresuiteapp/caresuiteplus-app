@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';

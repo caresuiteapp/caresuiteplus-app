@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CatalogDetailHero } from '@/components/catalog/CatalogDetailHero';
 import { ScreenShell } from '@/components/layout';
 import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';

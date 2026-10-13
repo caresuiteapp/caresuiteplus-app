@@ -2,7 +2,8 @@ import { resolvePortalDocumentSignerRole } from '@/lib/portal/portalDocumentSign
 import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';

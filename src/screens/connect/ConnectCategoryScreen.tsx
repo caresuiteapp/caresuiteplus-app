@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ConnectIntegrationRow, ConnectPreparedBanner } from '@/components/connect';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';

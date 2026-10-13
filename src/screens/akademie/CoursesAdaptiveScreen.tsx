@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { MasterDetailLayout } from '@/components/layout';
 import { CourseDetailSummaryPanel } from '@/components/akademie/CourseDetailSummaryPanel';
@@ -6,7 +7,7 @@ import { CoursesListScreen } from './CoursesListScreen';
 
 export function CoursesAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('CoursesAdaptiveScreen.record', null);
 
   if (!useMasterDetail) {
     return <CoursesListScreen />;

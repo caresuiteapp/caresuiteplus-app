@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout';
 import { PremiumButton, SuccessState } from '@/components/ui';
 import { ComposeMessageForm } from '@/screens/shared/ComposeMessageForm';

@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { CommunicationCenterListView } from '@/components/communication/CommunicationCenterListView';
@@ -13,7 +14,7 @@ export function CommunicationAdaptiveScreen() {
   const { height } = useWindowDimensions();
   const { useMasterDetail } = usePlatformLayout();
   const perms = useCommunicationPermissions();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('CommunicationAdaptiveScreen.record', null);
   const [selectedTitle, setSelectedTitle] = useState('Konversation');
   const mobileChatActive = !useMasterDetail && !!selectedId;
 
