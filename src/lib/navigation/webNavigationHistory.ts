@@ -1,4 +1,5 @@
 import { safeWebReturnPath } from './webLoginReturn';
+import { cancelWebDocumentStartup } from './webDocumentStartup';
 
 type Entry = { id: string; path: string };
 type History = { entries: Entry[]; index: number };
@@ -41,6 +42,7 @@ export function recordWebPage(scope: string): void {
 
 /** Browser Back can restore a page even when Expo's in-memory stack was reloaded. */
 export function goBackWebPage(scope: string): boolean {
+  cancelWebDocumentStartup();
   if (!canGoBackWebPage(scope)) return false;
   window.history.back();
   return true;
