@@ -281,7 +281,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
       }}>
         <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
-        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 380 * Math.max(1, fontScale) }]} testID="desktop-clock-weather">
+        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, effectiveScale), minWidth: mobile ? 0 : 400 * Math.max(1, effectiveScale) }]} testID="desktop-clock-weather">
           <View style={[styles.clock, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
@@ -503,8 +503,8 @@ const styles = StyleSheet.create({
   desktopFrame: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
   topbar: { zIndex: 20, width: "100%", minWidth: 0, flexShrink: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 10, borderRadius: 20 },
   logo: { maxWidth: "100%", flexShrink: 1 },
-  infoCard: { flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-start", gap: 24 },
-  clock: { flexShrink: 1, minWidth: 150 },
+  infoCard: { flexGrow: 1, flexShrink: 0, minWidth: 0, maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "nowrap", alignItems: "center", justifyContent: "flex-start", gap: 14 },
+  clock: { flexShrink: 0, minWidth: 140 },
   time: { color: "#FFF", fontSize: 34, lineHeight: 39, fontWeight: "900", letterSpacing: -1 }, date: { color: "#D8EAFF", fontSize: 15, lineHeight: 21, fontWeight: "700" },
   weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, minHeight: 44, maxWidth: 210, justifyContent: "center" },
   weatherIcon: { color: "#8FE4FF", fontSize: 25 }, weatherTitle: { color: "#FFF", fontSize: 16, lineHeight: 21, fontWeight: "800" }, weatherPlace: { color: "#BCD4EC", fontSize: 12, lineHeight: 17 },
