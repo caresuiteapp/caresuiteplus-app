@@ -221,7 +221,9 @@ export function EmployeeDetailModal({
 
     if (!employeeId) return;
 
-    onClose();
+    // Web hides the preview when its route loses focus. A browser Back here
+    // would finish after the push and discard the newly opened personnel page.
+    if (Platform.OS !== 'web') onClose();
 
     router.push(`/business/office/employees/${employeeId}/personnel` as never);
 

@@ -32,5 +32,16 @@ Navigatoren und ihres Browserverlaufs, damit ein zunächst noch korrekter Link
 nicht vorzeitig als wiederhergestellt gilt.
 
 Regressionen prüfen den späteren Browserverlaufs-Commit, das erneute Mounten nach
-Neuladen und den Vorrang von Browser-Back. Die angemeldete Produktionsprüfung
-dieses Nachtrags steht bis zur Veröffentlichung noch aus.
+Neuladen und den Vorrang von Browser-Back. PR #77 ist als 622ac19 veröffentlicht.
+Die angemeldete Produktionsprüfung bestätigt: Klientenübersicht bleibt nach
+Neuladen geöffnet; Schließen führt dauerhaft zum Desktop. Klientenakte bleibt
+nach Neuladen auf Dokumente & Nachweise; Schließen führt dauerhaft zur Liste.
+
+Bei der Prüfung im Personalbereich wurde ein weiterer Übergangsfehler gefunden:
+Die Aktion Personalakte öffnen schloss zuerst die Vorschau per Browser-Back
+und öffnete anschließend die Unterseite. Das asynchrone Back verwarf diese
+Unterseite wieder. Web öffnet jetzt direkt die Personalakte; die Vorschau wird
+beim Fokuswechsel ausgeblendet. Native behält den bisherigen Ablauf. Ein
+React-Interaktionstest mit verzögertem Back schützt diesen Übergang.
+Registrierte Fenster beenden auch bei direktem Schließen ohne Vorgängereintrag
+oder beim Schließen aller Fenster eine ausstehende Start-Wiederherstellung.

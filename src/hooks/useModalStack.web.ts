@@ -3,6 +3,7 @@ import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import { canGoBackWebPage, goBackWebPage } from '@/lib/navigation/webNavigationHistory';
 import { readWebModalSnapshot, saveWebModalSnapshot } from '@/lib/navigation/webModalSnapshot';
 import { webPageHref } from '@/lib/navigation/webPageHref';
+import { cancelWebDocumentStartup } from '@/lib/navigation/webDocumentStartup';
 import type { ModalStackEntry, OpenModalOptions } from '@/types/modalNavigation';
 
 type Value = {
@@ -27,6 +28,7 @@ export function ModalStackProvider({ children, scope = '' }: { children: ReactNo
   if (current.current.scope !== scope || current.current.token !== token) current.current = { scope, token, entries: modalStack };
   const publish = useCallback((entries: ModalStackEntry[], replace = false) => {
     if (current.current.scope !== scope || current.current.token !== token) return;
+    if (replace) cancelWebDocumentStartup();
     current.current.entries = entries;
     const nextToken = saveWebModalSnapshot(scope, entries);
     const href = webPageHref(pathname, params, { csWindow: nextToken });
@@ -38,6 +40,7 @@ export function ModalStackProvider({ children, scope = '' }: { children: ReactNo
   }, [publish, scope]);
   const closeTopModal = useCallback(() => {
     if (current.current.scope !== scope || current.current.token !== token) return;
+    cancelWebDocumentStartup();
     if (canGoBackWebPage(scope) && goBackWebPage(scope)) return;
     if (router.canGoBack()) router.back();
     else publish(current.current.entries.slice(0, -1), true);
