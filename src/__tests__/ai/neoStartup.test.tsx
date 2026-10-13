@@ -7,7 +7,7 @@ import { AppStartIntro } from '@/components/brand/AppStartIntro.web';
 import { appStartIntroSession, AppStartIntroReadyContext } from '@/components/brand/appStartIntroSession';
 import { RobotNavigationAssistant } from '@/ai/robot/RobotNavigationAssistant.web';
 
-const model = vi.hoisted(() => ({ authenticated: true, pathname: '/office', createSpeech: vi.fn(), dispose: vi.fn() }));
+const model = vi.hoisted(() => ({ authenticated: true, pathname: '/', createSpeech: vi.fn(), dispose: vi.fn() }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: true, isAuthenticated: model.authenticated, profile: { roleKey: 'admin' }, user: { id: 'test-user' } }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => 'test-tenant' }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => true, hasModuleGate: () => true }) }));
@@ -26,7 +26,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers(); appStartIntroSession.completed = false;
   (window as unknown as { happyDOM: { setURL(url: string): void } }).happyDOM.setURL('https://www.caresuiteplus.app/');
-  model.authenticated = true; model.pathname = '/office'; model.createSpeech.mockClear(); model.dispose.mockClear();
+  model.authenticated = true; model.pathname = '/'; model.createSpeech.mockClear(); model.dispose.mockClear();
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -37,13 +37,21 @@ afterEach(async () => {
 });
 
 describe('Neo and the startup video', () => {
-  it('creates no floating robot or speech engine until the video finishes, including an already signed-in session', async () => {
+  it('waits for the startup video and keeps Neo on the central desktop across page changes', async () => {
     await render(); await emit('playing');
     expect(robot()).toBeNull(); expect(model.createSpeech).not.toHaveBeenCalled();
     await emit('ended');
     expect(robot()).not.toBeNull(); expect(model.createSpeech).toHaveBeenCalledOnce();
-    model.pathname = '/office/clients'; await render();
-    expect(robot()).not.toBeNull(); expect(model.createSpeech).toHaveBeenCalledOnce();
+    for (const pathname of ['/office', '/office/clients', '/business/office/clients/test-client', '/business/office/document-catalog', '/assist/assignments', '/business/settings', '/portal/employee', '/portal/client', '/auth/login']) {
+      model.pathname = pathname; await render();
+      expect(robot()).toBeNull();
+      expect(model.createSpeech).toHaveBeenCalledOnce();
+      expect(model.dispose).toHaveBeenCalledOnce();
+    }
+    model.pathname = '/'; await render();
+    expect(document.body.querySelectorAll('.cs-robot')).toHaveLength(1);
+    expect(model.createSpeech).toHaveBeenCalledTimes(2);
+    expect(model.dispose).toHaveBeenCalledOnce();
   });
   it('waits during silent playback and an ordinary interaction that retries sound', async () => {
     vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'));
