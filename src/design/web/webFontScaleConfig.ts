@@ -28,3 +28,10 @@ export const DESKTOP_WORKSPACE_FONT_KEY = "@caresuite/desktop-workspace-font-sca
 export function workspaceEffectiveScale(scale: WebFontScale, workspace: boolean): number {
   return scale * (workspace ? 0.9 : 1);
 }
+
+/** Saved 90% adopts the new desktop baseline; larger accessibility settings stay. */
+export function normalizeDesktopFontScale(value: unknown): WebFontScale {
+  return typeof value === "number" && isWebFontScale(value) && value >= WEB_FONT_SCALE_DEFAULT
+    ? value
+    : WEB_FONT_SCALE_DEFAULT;
+}
