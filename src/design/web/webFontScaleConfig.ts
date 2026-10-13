@@ -23,3 +23,8 @@ export function indexOfWebFontScale(scale: WebFontScale): number {
   const idx = WEB_FONT_SCALE_STEPS.indexOf(scale);
   return idx >= 0 ? idx : WEB_FONT_SCALE_STEPS.indexOf(WEB_FONT_SCALE_DEFAULT);
 }
+
+export const DESKTOP_WORKSPACE_FONT_KEY = "@caresuite/desktop-workspace-font-scale.v2";
+export function workspaceEffectiveScale(scale: WebFontScale, workspace: boolean): number {
+  return scale * (workspace ? 0.9 : 1);
+}
