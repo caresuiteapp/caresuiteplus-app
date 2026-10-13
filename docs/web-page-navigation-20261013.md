@@ -21,3 +21,16 @@ Der breitere Lauf meldete 3.836 bestandene Prüfungen. Zehn Fehlschläge wurden 
 Ein erster TypeScript-Lauf mit ausgelassener Prüfung der Abhängigkeitstypen bestand. Der lokale Produktionsbuild brach bei der Bereitstellung vorhandener Sprachressourcen wegen ENOSPC ab. Der verbindliche Buildnachweis und die angemeldete Browserabnahme folgen über Vercel.
 
 Produktive Testdatensätze, Uploads, Nachrichten oder Signaturen wurden für die Navigationsprüfung nicht erzeugt.
+
+## Nachtrag: Schließen nach Neuladen
+
+Die initiale URL-Wiederherstellung gilt einmal pro Browserdokument. Ein erneutes
+Mounten des Routenbaums beim Zurückgehen darf die Einstiegsseite nicht erneut
+öffnen. Explizites Zurück/Schließen und Browser-Back brechen eine noch ausstehende
+Start-Wiederherstellung ab. Die Erstprüfung der URL erfolgt nach den Effekten der
+Navigatoren und ihres Browserverlaufs, damit ein zunächst noch korrekter Link
+nicht vorzeitig als wiederhergestellt gilt.
+
+Regressionen prüfen den späteren Browserverlaufs-Commit, das erneute Mounten nach
+Neuladen und den Vorrang von Browser-Back. Die angemeldete Produktionsprüfung
+dieses Nachtrags steht bis zur Veröffentlichung noch aus.
