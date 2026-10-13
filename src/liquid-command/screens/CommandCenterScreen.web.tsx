@@ -30,12 +30,13 @@ import {
 } from "../navigation/desktopAppCatalog.web";
 import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
-import { DESKTOP_MODULES, desktopModuleForRoute, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
+import { DESKTOP_MODULES, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
+import { DESKTOP_AREAS, desktopAreaForRoute, desktopAreaStorageKey, type DesktopAreaKey } from '../navigation/desktopAreas';
 import type { ProductKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 
 
-import { BRAND, BACKGROUNDS, WIDGETS, DEFAULT_DESKTOP_IDS, WIDGET_BY_ID, CATEGORIES, WORKFLOWS, DESKTOP_WIDGETS_STORAGE_KEY, PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY, LEGACY_FAVORITES_STORAGE_KEY, SIDEBAR_STORAGE_KEY, BACKGROUND_STORAGE_KEY, DESKTOP_SLOT_COUNT } from './administrationDesktopCatalog';
+import { BRAND, BACKGROUNDS, WIDGETS, DEFAULT_DESKTOP_IDS, WIDGET_BY_ID, CATEGORIES, WORKFLOWS, DESKTOP_WIDGETS_STORAGE_KEY, PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY, LEGACY_FAVORITES_STORAGE_KEY, SIDEBAR_STORAGE_KEY, BACKGROUND_STORAGE_KEY, DESKTOP_SLOT_COUNT, type WidgetDefinition } from './administrationDesktopCatalog';
 type Category = DesktopCategory;
 type CenterTab = 'apps' | 'widgets' | 'workflows' | 'backgrounds';
 const ROLE_LABELS: Record<string, string> = { business_admin: "Geschäftsführung / Admin", tenant_admin: "Mandantenadministration", platform_admin: "Plattformadministration", office_admin: "Office-Administration", admin: "Administration", employee: "Mitarbeitende:r", manager: "Leitung" };
@@ -78,17 +79,19 @@ export function CommandCenterScreen() {
   const tenant = permissions.tenantId ?? '';
   const user = auth.user?.id ?? '';
   const identity = JSON.stringify([tenant, user]);
+  const [selectedArea, setSelectedArea] = useState<DesktopAreaKey>('office');
   const availableModules = DESKTOP_MODULES.filter(module => permissions.hasModuleGate(module.key) && permissions.can(`${module.key}.access` as PermissionKey));
   const availableSignature = availableModules.map(module => module.key).join(',');
   if (!tenant || !user || !availableSignature) return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
     <Text style={styles.sidebarTitle}>Keine freigegebenen Arbeitsbereiche</Text>
     <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
   </View></View>;
-  return <ModuleDesktopScreen key={`${identity}:${availableSignature}`} tenantId={tenant} availableSignature={availableSignature} />;
+  return <ModuleDesktopScreen key={`${identity}:${availableSignature}:${selectedArea}`} tenantId={tenant} availableSignature={availableSignature} selectedArea={selectedArea} onSelectArea={setSelectedArea} />;
 }
 
-function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: string; availableSignature: string }) {
+function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSelectArea }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void }) {
   const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
+  const permissions = usePermissions();
   const router = useRouter();
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
@@ -107,9 +110,10 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
   const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
-  const desktopKey = desktopStorageKey(tenantId, owner);
+  const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
+  const combinedDesktopKey = desktopStorageKey(tenantId, owner);
   const oldDesktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
-  const moduleLabel = 'CareSuite HealthOS';
+  const moduleLabel = DESKTOP_AREAS.find(area => area.key === selectedArea)!.label;
   const previousDesktopKey = `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const sidebarKey = `${SIDEBAR_STORAGE_KEY}.${owner}`;
   const backgroundKey = `${BACKGROUND_STORAGE_KEY}.${owner}`;
@@ -137,16 +141,27 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   const role = roleLabel(profile?.roleKey);
   const activeBackground = BACKGROUNDS.find((item) => item.id === backgroundId) ?? BACKGROUNDS[0];
 
-  const apps = useMemo(() => buildDesktopApps(WIDGETS, profile?.roleKey), [profile?.roleKey]);
+  const apps = useMemo(() => {
+    const catalog = buildDesktopApps(WIDGETS, profile?.roleKey);
+    if (!catalog.some(app => app.route === '/business/subscription')) catalog.push({ id: 'desktop-premium', label: 'Premium', description: 'Aktuellen Tarif und verfügbare Angebote ansehen', route: '/business/subscription', category: 'Verwaltung', glyph: '◇' });
+    return catalog;
+  }, [profile?.roleKey]);
   const matchesSearch = (app: DesktopApp, value: string) =>
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
-  const moduleApps = apps.filter(app => availableKeys.includes(desktopModuleForRoute(app.route) as ProductKey));
-  const moduleWidgets = useMemo(() => WIDGETS.filter(widget => availableKeys.includes(desktopModuleForRoute(widget.route) as ProductKey)), [availableKeys]);
+  const areaAllowed = selectedArea === 'settings' || selectedArea === 'premium' ||
+    (selectedArea === 'robotics' ? permissions.can('robotics.access' as PermissionKey) : availableKeys.includes(selectedArea as ProductKey));
+  const moduleApps = useMemo(() => apps.filter(app => areaAllowed && desktopAreaForRoute(app.route) === selectedArea), [apps, areaAllowed, selectedArea]);
+  const moduleWidgets = useMemo<WidgetDefinition[]>(() => {
+    const existing = WIDGETS.filter(widget => areaAllowed && desktopAreaForRoute(widget.route) === selectedArea);
+    const routes = new Set(existing.map(widget => widget.route));
+    return [...existing, ...moduleApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: `area-app:${app.id}` }))];
+  }, [areaAllowed, selectedArea, moduleApps]);
+  const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
-  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id)).map(widget => widget.id), [moduleWidgets]);
+  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [moduleWidgets, selectedArea]);
   const filteredApps = moduleApps.filter(app => app.category === category && matchesSearch(app, query));
   const filteredWidgets = moduleWidgets.filter(widget => widget.category === category && matchesSearch(widget, query));
-  const navigationGroups = buildDesktopNavigationGroups(moduleApps, availableKeys, navigationQuery);
+  const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
   const resultCount = centerTab === "apps" ? filteredApps.length : filteredWidgets.length;
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
@@ -164,11 +179,11 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
     setQuery("");
     setCategory("Übersicht");
     setNavigationQuery("");
-    const previousModuleKeys = ['office', 'assist'].map(key => moduleDesktopStorageKey(tenantId, owner, key as ProductKey));
+    const previousModuleKeys = [combinedDesktopKey, ...(['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? [moduleDesktopStorageKey(tenantId, owner, selectedArea as ProductKey)] : [])];
     void Promise.all([desktopKey, oldDesktopKey, previousDesktopKey, legacyKey, sidebarKey, backgroundKey, ...previousModuleKeys].map(key => AsyncStorage.getItem(key))).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground, ...previousModules]) => {
       if (!active) return;
       const oldValue = oldDesktop ?? previousDesktop ?? legacy;
-      const previous = desktop !== null ? [] : previousModules.some(value => value !== null) ? previousModules
+      const previous = desktop !== null || !['office', 'assist'].includes(selectedArea) ? [] : previousModules.some(value => value !== null) ? previousModules
         : oldValue !== null ? [JSON.stringify(migrateDesktopIdsToR13(JSON.parse(oldValue), !oldDesktop && Boolean(previousDesktop)))] : [];
       setDesktopIds(restoreDesktopWidgetIds(desktop, previous, moduleWidgetIds, moduleDefaults));
       setRecoverableWidgetIds(previousDesktopWidgetIds([...previousModules, oldValue], moduleWidgetIds));
@@ -177,7 +192,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
       setLoadedOwner(owner);
     }).catch(() => active && setPreferencesError(true));
     return () => { active = false; };
-  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, tenantId, moduleWidgetIds, moduleDefaults]);
+  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, tenantId, moduleWidgetIds, moduleDefaults, combinedDesktopKey, selectedArea]);
   useEffect(() => {
     if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => setPreferencesError(true));
   }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);
@@ -193,12 +208,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   const signOut = async () => { setProfileOpen(false); await auth.signOut(); };
   const desktopPages = Math.max(1, Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT));
   const visiblePage = Math.min(desktopPage, desktopPages - 1);
-  const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => WIDGET_BY_ID.get(desktopIds[visiblePage * DESKTOP_SLOT_COUNT + index] ?? ""));
+  const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => areaWidgetById.get(desktopIds[visiblePage * DESKTOP_SLOT_COUNT + index] ?? ""));
   const missingSavedWidgets = recoverableWidgetIds.filter(id => !desktopIds.includes(id));
 
   const sidebarContent = (
           <View style={styles.sidebarInner}>
-            <View style={styles.sidebarHeader}><View><Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text><Text style={styles.sidebarTitle}>Navigation</Text></View><Pressable accessibilityLabel="Navigation schließen" onPress={closeNavigation} style={styles.closeSmall}><Text style={styles.closeSmallText}>‹</Text></Pressable></View>
+            <View style={styles.sidebarHeader}><View><Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text><Text style={styles.sidebarTitle}>Navigation · {moduleLabel}</Text></View><Pressable accessibilityLabel="Navigation schließen" onPress={closeNavigation} style={styles.closeSmall}><Text style={styles.closeSmallText}>‹</Text></Pressable></View>
             <ScrollView style={styles.navScroller} contentContainerStyle={styles.navScroll} showsVerticalScrollIndicator>
               <View style={styles.navSearch}>
                 <TextInput nativeID="desktop-navigation-search" accessibilityLabel="Seiten in der Navigation suchen" placeholder="Seite suchen …" placeholderTextColor="#AFC9DC"
@@ -301,7 +316,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
         >
           <View testID="desktop-workspace-header" style={[styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
             <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
-              <Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop</Text>
+              <Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text>
+              <View style={styles.areaTabs}>{DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.tab, selectedArea === area.key && styles.tabActive]}><Text style={[styles.tabText, selectedArea === area.key && styles.tabTextActive]}>{area.label}</Text></Pressable>)}</View>
             </View>
             <View style={styles.desktopActions}>
               {desktopPages > 1 ? <View style={styles.desktopActions}>
@@ -315,6 +331,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
               </Pressable>
             </View>
           </View>
+          {!areaAllowed ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Dieser Bereich ist für Ihr Konto noch nicht freigegeben.</Text> : null}
           {preferencesError ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Die Einstellungen konnten nicht gespeichert werden. Ihre Auswahl bleibt geöffnet; bitte prüfen Sie den Browserspeicher.</Text> : null}
           <ScrollView style={styles.gridScroll} {...{ dataSet: { csDesktopWidgetViewport: "true" } }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
             <View style={styles.grid} {...{ dataSet: { csDesktopWidgetGrid: "true" } }} testID="desktop-widget-grid">
@@ -324,7 +341,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
                     <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => !editMode && openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && !editMode && styles.widgetPressed, editMode && styles.widgetEditing]}>
                       <View style={styles.labelBar} {...{ dataSet: { csDesktopWidgetLabel: "true" } }}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
                       <View style={styles.imageStage} {...{ dataSet: { csDesktopWidgetArtwork: "true" } }}>
-                        <>{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <Image source={widget.images!.medium} resizeMode="contain" style={styles.widgetImage} />}</>
+                        <>{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <>{widget.images ? <Image source={widget.images.medium} resizeMode="contain" style={styles.widgetImage} /> : <Text style={styles.areaWidgetGlyph}>{moduleApps.find(app => app.route === widget.route)?.glyph ?? "↗"}</Text>}</>}</>
                         {!widget.workspaceService && <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>}
                         {editMode ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} entfernen`} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={styles.removeButton}><Text style={styles.removeText}>×</Text></Pressable> : null}
                       </View>
@@ -370,7 +387,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
             <Text style={styles.centerSubtitle}>Ändern Sie den Suchbegriff oder wählen Sie eine andere Kategorie.</Text>
             <Pressable accessibilityRole="button" onPress={() => setQuery("")} style={styles.appsButton}><Text style={styles.appsText}>Suche zurücksetzen</Text></Pressable>
           </View> : null}
-            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.filter(workflow => availableKeys.includes(desktopModuleForRoute(workflow.route) as ProductKey)).map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
+            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.filter(workflow => areaAllowed && desktopAreaForRoute(workflow.route) === selectedArea).map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : centerTab === "apps" ? <View style={styles.centerGrid} testID="app-catalog">
               {filteredApps.map(app => <View key={app.route} style={[styles.centerCell, { flexBasis: 300 * fontScale }]}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`App ${app.label} öffnen`} onPress={() => openWidget(app)}
                   style={({ pressed }) => [styles.centerCard, styles.appCard, pressed && styles.widgetPressed]}>
@@ -391,7 +408,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
                       <Text style={styles.catalogKind}>{widget.workspaceService ? "Live-Widget · Vorschau" : "Schnellzugriff · Vorschau"}</Text></View>
                     <View style={[styles.centerImageStage, { height: 120 * fontScale }]}>
                       {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} preview fontScale={effectiveScale}/>
-                        : <Image source={widget.images!.small} resizeMode="contain" style={styles.centerImage} />}
+                        : <>{widget.images ? <Image source={widget.images.small} resizeMode="contain" style={styles.centerImage} /> : <Text style={styles.areaWidgetGlyph}>{moduleApps.find(app => app.route === widget.route)?.glyph ?? "↗"}</Text>}</>}
                     </View>
                     <View style={styles.centerBody}>
                       <Text style={styles.centerCardCopy}>{widget.workspaceService ? widget.description : `Öffnet ${widget.label} direkt von Ihrem Desktop.`}</Text>
@@ -423,6 +440,8 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
+  areaTabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
+  areaWidgetGlyph: { color: "#8FE4FF", fontSize: 40, lineHeight: 48 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },

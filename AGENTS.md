@@ -30,3 +30,6 @@ Die laufende Überarbeitung betrifft Desktop und Web. Die fertiggestellte Androi
 
 ## Bestehende Arbeitsumgebung verwenden
 Der Nutzer möchte für diesen Auftrag keine zusätzliche Software oder neue Testinfrastruktur. Die Einrichtung über Docker wird nicht weiterverfolgt. Mit dem vorhandenen Projekt, vorhandenen Verbindungen und bestehenden Prüfwerkzeugen arbeiten; keine weiteren Installations- oder Infrastrukturaufgaben an den Nutzer auslagern. Fehlende Ende-zu-Ende-Nachweise präzise offenhalten. Diese Einschränkung ist keine Freigabe für Teständerungen an produktiven Daten oder für eine Veröffentlichung.
+
+## Desktop-Bereiche ab 13.10.2026
+Mein Desktop enthält Office, Assist, Pflege, Stationär, Beratung, Roboter, Premium und Einstellungen. Jeder Bereich speichert seine Widget-Auswahl getrennt nach Mandant und Person. Navigation, Apps, Widgets und Workflow-Vorschläge gehören zum ausgewählten Bereich. Bestehende Freigaben und Schutzsperren bleiben wirksam; Bereichsauswahl aktiviert keine unfertigen Fachmodule.
