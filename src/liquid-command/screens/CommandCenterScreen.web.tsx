@@ -117,8 +117,9 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const { scale: fontScale, effectiveScale } = useWebFontScale();
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
-  const headerStacked = width - (compact ? 24 : 40) < 1550 * effectiveScale;
-  const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(260 * Math.max(1, fontScale))));
+  const headerNarrow = width - (compact ? 24 : 40) < 780 * Math.max(1, fontScale);
+  const headerStacked = width - (compact ? 24 : 40) < 1450 * Math.max(1, fontScale);
+  const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(234 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
   const railWidth = Math.round(60 * Math.max(1, fontScale));
@@ -275,14 +276,14 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr) 68px" : headerStacked ? "auto minmax(0, 1fr) 68px" : "auto minmax(400px, 1fr) 68px max-content", gap: 10, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
       }}>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
-        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, effectiveScale), minWidth: mobile ? 0 : 400 * Math.max(1, effectiveScale) }]} testID="desktop-clock-weather">
-          <View style={[styles.clock, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, !mobile && headerNarrow && { gridColumn: "1 / -1" } as unknown as ViewStyle, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
+        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, fontScale), minWidth: mobile || headerNarrow ? 0 : 400 * Math.max(1, fontScale), flexWrap: !mobile && headerNarrow ? "wrap" : "nowrap" }]} testID="desktop-clock-weather">
+          <View style={[styles.clock, !mobile && { minWidth: 126 }, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherLocationOpen(true)} style={styles.weatherCopy}>
@@ -293,8 +294,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
               <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
           </View>
         </View>
-        <View style={styles.neoDock} {...{ dataSet: { csNeoDock: "true" } }} />
-        <View style={[styles.actions, headerStacked && styles.actionsSecondRow, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
+        <View style={[styles.neoDock, !mobile && { width: 68, height: 72 }]} {...{ dataSet: { csNeoDock: "true" } }} />
+        <View style={[styles.actions, headerStacked && styles.actionsSecondRow, !mobile && { gridColumn: headerStacked ? "1 / -1" : "auto", marginLeft: "auto", flexWrap: headerStacked ? "wrap" : "nowrap" } as unknown as ViewStyle, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
           <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
           <PortalTextSizeControls dense={mobile} />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
