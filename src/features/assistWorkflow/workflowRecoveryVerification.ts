@@ -2,6 +2,7 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { AssistExecutionContext } from './types';
 
 export type RecoverableWorkflowAction =
+  | 'start_en_route'
   | 'mark_arrived'
   | 'start_service'
   | 'start_pause'
@@ -50,6 +51,8 @@ export function didWorkflowActionReachPostcondition(
   ) return false;
 
   switch (action) {
+    case 'start_en_route':
+      return Boolean(after.visitTimes?.driveStartedAt || after.detail.onTheWayAt) && statusAtLeast(after, 'unterwegs');
     case 'mark_arrived':
       return Boolean(after.visitTimes?.arrivedAt || after.detail.arrivedAt) && statusAtLeast(after, 'angekommen');
     case 'start_service':

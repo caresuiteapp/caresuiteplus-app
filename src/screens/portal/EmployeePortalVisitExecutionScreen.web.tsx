@@ -981,10 +981,10 @@ function EmployeePortalVisitExecutionContent() {
         } else setLocalError(result.error ?? 'Anfahrt konnte nicht gestartet werden.');
         return;
       }
-      setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
+      setLocalSuccess('Anfahrt gespeichert. Die Standortverfolgung startet, sobald eine Position verfügbar ist.');
       if (portalTenantId && portalEmployeeId && visit) {
         try {
-          const logbook = await startVisitApproachLogbook({
+          const logbook = await withWorkflowTimeout(startVisitApproachLogbook({
             tenantId: portalTenantId,
             employeeId: portalEmployeeId,
             assignmentId: visit.assignmentId,
@@ -992,15 +992,15 @@ function EmployeePortalVisitExecutionContent() {
             clientName: visit.clientName,
             startAddress: null,
             transportMode: mobilityMode,
-          });
+          }), 10_000, 'Anfahrt-Fahrtenbuch');
           if (logbook.started) {
             setLocalSuccess('Anfahrt und digitales PKW-Fahrtenbuch wurden automatisch gestartet.');
           } else if (logbook.reason === 'non_car_selected') {
             setLocalSuccess('Anfahrt gestartet. Für diese Mobilität ist kein PKW-Fahrtenbucheintrag erforderlich.');
           } else if (logbook.reason === 'no_active_vehicle') {
-            setLocalWarning('Live-GPS läuft und bleibt gespeichert. Für die automatische Fahrtenbuchübernahme muss die Verwaltung diesem Mitarbeitendenkonto noch einen aktiven PKW zuordnen.');
+            setLocalWarning('Die Anfahrt ist gespeichert. Für die automatische Fahrtenbuchübernahme muss die Verwaltung diesem Mitarbeitendenkonto noch einen aktiven PKW zuordnen.');
           } else if (logbook.reason === 'no_car_mode') {
-            setLocalWarning('PKW wurde für diesen Einsatz gewählt, ist in den Mobilitätseinstellungen aber noch nicht als zulässiges Verkehrsmittel freigeschaltet. Live-GPS läuft weiter; die Verwaltung muss die PKW-Zuordnung prüfen.');
+            setLocalWarning('PKW wurde für diesen Einsatz gewählt, ist in den Mobilitätseinstellungen aber noch nicht als zulässiges Verkehrsmittel freigeschaltet. Die Anfahrt ist gespeichert; die Verwaltung muss die PKW-Zuordnung prüfen.');
           }
         } catch (error) {
           setLocalWarning(

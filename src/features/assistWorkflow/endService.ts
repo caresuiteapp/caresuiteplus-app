@@ -24,7 +24,6 @@ import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import { repairWorkflowState } from './repairWorkflowState';
 import { isValidWorkflowDeviationApproval, type WorkflowDeviationApproval } from './startService';
-import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type EndServiceResult = AssistExecutionContext & {
   /** The employee workflow finished; one ancillary administration mirror needs a later retry. */
@@ -134,7 +133,9 @@ async function persistEndedExecutionMirrors(
   visitTimes: VisitTimesSummary,
   targetStatus: AssignmentStatus,
 ): Promise<{ wfmSyncFailed: boolean }> {
-  scheduleDeferredTask(`assist-end-projection:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+  // Finish status mirrors before enabling documentation/signature. A late
+  // background status write must not overtake the employee's next step.
+  try {
     const upserted = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       ctx.assignmentId,
@@ -155,8 +156,11 @@ async function persistEndedExecutionMirrors(
       );
       if (!mirrored.ok) throw new Error(mirrored.error);
     }
-  });
-  return { wfmSyncFailed: false };
+    return { wfmSyncFailed: false };
+  } catch (error) {
+    console.warn("[endService] Statusabgleich nicht bestätigt", error);
+    return { wfmSyncFailed: true };
+  }
 }
 
 function resolvePostServiceTargetStatus(ctx: AssistExecutionContext): AssignmentStatus {
