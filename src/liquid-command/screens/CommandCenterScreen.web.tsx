@@ -124,6 +124,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
   const railWidth = Math.round(60 * Math.max(1, fontScale));
   const menuToggleRef = useRef<View>(null);
+  const navigationRailRef = useRef<View>(null);
+  const navigationCloseRef = useRef<View>(null);
   const shortViewport = height < 600 * fontScale;
   const [topbarHeight, setTopbarHeight] = useState(0);
   const shortWorkspaceHeight = Math.max(220, height - topbarHeight - (compact ? 36 : 56));
@@ -220,7 +222,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
 
   const closeNavigation = () => {
     if (compact) setMobileSidebarOpen(false);
-    else { setSidebarOpen(false); menuToggleRef.current?.focus(); }
+    else { setSidebarOpen(false); requestAnimationFrame(() => navigationRailRef.current?.focus()); }
   };
   const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); setCenterTab(tab); setCenterOpen(true); };
   const openWidget = (widget: Pick<DesktopApp, "route">) => { setCenterOpen(false); setMobileSidebarOpen(false); router.push(widget.route as never); };
@@ -234,7 +236,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
 
   const sidebarContent = (
           <View style={styles.sidebarInner}>
-            <View style={styles.sidebarHeader}><View><Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text><Text style={styles.sidebarTitle}>Navigation · {moduleLabel}</Text></View><Pressable accessibilityLabel="Navigation schließen" onPress={closeNavigation} style={styles.closeSmall}><Text style={styles.closeSmallText}>‹</Text></Pressable></View>
+            <View style={styles.sidebarHeader}><View><Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text><Text style={styles.sidebarTitle}>Navigation · {moduleLabel}</Text></View><Pressable ref={navigationCloseRef} accessibilityLabel="Navigation schließen" onPress={closeNavigation} style={styles.closeSmall}><Text style={styles.closeSmallText}>‹</Text></Pressable></View>
             <ScrollView style={styles.navScroller} contentContainerStyle={styles.navScroll} showsVerticalScrollIndicator>
               <View style={styles.navSearch}>
                 <TextInput nativeID="desktop-navigation-search" accessibilityLabel="Seiten in der Navigation suchen" placeholder="Seite suchen …" placeholderTextColor="#AFC9DC"
@@ -276,13 +278,13 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr) 68px" : headerStacked ? "auto minmax(0, 1fr) 68px" : "auto minmax(400px, 1fr) 68px max-content", gap: 10, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr) 68px" : headerStacked ? "auto minmax(0, 1fr) 68px" : "max-content max-content minmax(160px, 220px) max-content max-content max-content max-content max-content", justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
       }}>
         <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, !mobile && headerNarrow && { gridColumn: "1 / -1" } as unknown as ViewStyle, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
-        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, fontScale), minWidth: mobile || headerNarrow ? 0 : 400 * Math.max(1, fontScale), flexWrap: !mobile && headerNarrow ? "wrap" : "nowrap" }]} testID="desktop-clock-weather">
+        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, fontScale), minWidth: mobile || headerNarrow ? 0 : 400 * Math.max(1, fontScale), flexWrap: !mobile && headerNarrow ? "wrap" : "nowrap" }, !mobile && !headerStacked && { display: "contents" } as unknown as ViewStyle]} testID="desktop-clock-weather">
           <View style={[styles.clock, !mobile && { minWidth: 126 }, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
@@ -295,8 +297,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           </View>
         </View>
         <View style={[styles.neoDock, !mobile && { width: 68, height: 72 }]} {...{ dataSet: { csNeoDock: "true" } }} />
-        <View style={[styles.actions, headerStacked && styles.actionsSecondRow, !mobile && { gridColumn: headerStacked ? "1 / -1" : "auto", marginLeft: "auto", flexWrap: headerStacked ? "wrap" : "nowrap" } as unknown as ViewStyle, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
-          <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
+        <View style={[styles.actions, headerStacked && styles.actionsSecondRow, !mobile && { gridColumn: headerStacked ? "1 / -1" : "auto", marginLeft: "auto", flexWrap: headerStacked ? "wrap" : "nowrap" } as unknown as ViewStyle, mobile && styles.actionsMobile, !mobile && !headerStacked && { display: "contents" } as unknown as ViewStyle]} testID="desktop-topbar-actions">
+          {compact && <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>}
           <PortalTextSizeControls dense={mobile} />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
@@ -322,9 +324,9 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <View {...({ inert: sidebarOpen ? true : undefined, "aria-hidden": sidebarOpen } as object)}
             {...{ dataSet: { csDesktopNavigationRail: 'true' } }}
             style={[styles.navigationRail, { opacity: sidebarOpen ? 0 : 1, pointerEvents: sidebarOpen ? 'none' : 'auto' }]}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: false }}
+            <Pressable ref={navigationRailRef} accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: false }}
               {...({ "aria-controls": "desktop-home-navigation" } as object)}
-              onPress={() => { setSidebarOpen(true); menuToggleRef.current?.focus(); }}
+              onPress={() => { setSidebarOpen(true); requestAnimationFrame(() => navigationCloseRef.current?.focus()); }}
               style={({ pressed }) => [styles.glass, styles.sidebarReopen, pressed && styles.sidebarReopenPressed]}>
               <Text style={styles.sidebarReopenGlyph}>☰</Text>
               <Text style={styles.sidebarReopenLabel}>Menü</Text>
