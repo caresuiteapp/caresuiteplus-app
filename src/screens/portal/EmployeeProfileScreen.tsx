@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { PortalDeviceSettingsCard } from '@/components/auth/PortalDeviceSettingsCard';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -37,7 +38,7 @@ export function EmployeeProfileScreen() {
   const { colors } = useLegacyTheme();
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
-  const [activeTab, setActiveTab] = useState<PortalEmployeeProfileTabKey>('overview');
+  const [activeTab, setActiveTab] = usePageTab<PortalEmployeeProfileTabKey>('EmployeeProfileScreen.activeTab', 'overview');
 
   const { profile, loading: profileLoading, error: profileError, refresh: refreshProfile, missingEmployeeLink } =
     useEmployeePortalProfile();

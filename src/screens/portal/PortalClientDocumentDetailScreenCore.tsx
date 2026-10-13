@@ -3,7 +3,8 @@ import { useClientSignatureAttention } from '@/components/portal/ClientSignature
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { LockedActionBanner } from '@/components/permissions';

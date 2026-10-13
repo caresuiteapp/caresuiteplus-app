@@ -1,3 +1,4 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,8 +26,8 @@ export function AssignmentsListScreen({
   const pageTitle = 'Einsatzplanung';
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
   const assistAccent = moduleColor('assist');
-  const [createOpen, setCreateOpen] = useState(false);
-  const [initialCreateClientId, setInitialCreateClientId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = usePageFlag('AssignmentsListScreen.createOpen', false);
+  const [initialCreateClientId, setInitialCreateClientId] = usePageTab<string | null>('AssignmentsListScreen.createClient', null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -93,3 +94,4 @@ export function AssignmentsListScreen({
 const styles = StyleSheet.create({
   content: { flex: 1, minWidth: 0, minHeight: 0 },
 });
+import { usePageTab } from '@/hooks/usePageTab';

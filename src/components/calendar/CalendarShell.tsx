@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { StyleSheet } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 
 import { ScreenShell } from '@/components/layout';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';

@@ -760,7 +760,8 @@ export function PortalHomeScreen({
       setActive(section.id);
       return;
     }
-    router.replace(section.route as never);
+    if (Platform.OS === 'web') router.push(section.route as never);
+    else router.replace(section.route as never);
   };
 
   const openAppointment = (appointment: PortalAppointmentItem) => {

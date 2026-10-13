@@ -1,7 +1,6 @@
 import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { type ReactNode, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as Trail } from '@/types/navigation/breadcrumbs';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
@@ -11,11 +10,11 @@ type Props = { title: string; subtitle?: string; breadcrumbTrail?: Trail; showBa
   onBack?: () => void; rightSlot?: ReactNode; simplifyOnPhone?: boolean; compact?: boolean };
 export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true, onBack, rightSlot,
   simplifyOnPhone = true, compact = false }: Props) {
-  const router = useRouter();
   const { isPhone } = useDeviceClass();
   const [width, setWidth] = useState(0);
   const narrow = width > 0 ? width < 640 : isPhone;
-  const back = () => onBack ? onBack() : router.canGoBack() ? router.back() : router.replace('/' as never);
+  const historyBack = useWebBackNavigation();
+  const back = onBack ?? historyBack;
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} {...{ dataSet: { csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' } }}>
     {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><Text style={styles.backText}>← Zurück</Text></Pressable> : null}
     <View style={[styles.copy, narrow && styles.phoneCopy]}>
@@ -40,3 +39,4 @@ const styles = StyleSheet.create({
   back: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#BED2E7', backgroundColor: '#F2F7FD' },
   backText: { color: '#075EB8', fontSize: font(15), lineHeight: font(22), fontWeight: '700' },
 });
+import { useWebBackNavigation } from '@/hooks/useWebBackNavigation.web';

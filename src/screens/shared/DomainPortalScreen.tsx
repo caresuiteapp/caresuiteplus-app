@@ -1,5 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout';
 import { PremiumBadge, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme';

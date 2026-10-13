@@ -1,3 +1,4 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -22,7 +23,7 @@ export function AppointmentsListScreen({
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.appointments.edit') && !isReadOnly;
   const officeAccent = moduleColor('office');
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = usePageFlag('AppointmentsListScreen.createOpen', false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {

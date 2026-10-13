@@ -1,5 +1,7 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
+import { usePageTab } from '@/hooks/usePageTab';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { DetailInfoRow } from '@/components/detail';
@@ -191,8 +193,12 @@ function ClientRecordScreenContent({
     resolvedTabParam && tabs.includes(resolvedTabParam)
       ? resolvedTabParam
       : 'uebersicht';
-  const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
-  const [masterDataEditOpen, setMasterDataEditOpen] = useState(initialMasterDataEditOpen);
+  const [activeTab, setActiveTab] = usePageTab<ClientRecordTabKey>('ClientRecordScreen.activeTab', initialTab);
+  const selectTab = (tab: ClientRecordTabKey) => {
+    setActiveTab(tab);
+    if (Platform.OS === 'web') router.setParams({ tab });
+  };
+  const [masterDataEditOpen, setMasterDataEditOpen] = usePageFlag('ClientRecordScreen.masterDataEditOpen', initialMasterDataEditOpen);
   const localSignedRecoveryAttemptedRef = useRef<string | null>(null);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
 
@@ -385,12 +391,12 @@ function ClientRecordScreenContent({
       <AuroraSegmentedControl
         options={tabOptions}
         value={activeTab}
-        onChange={(key) => setActiveTab(key as ClientRecordTabKey)}
+        onChange={(key) => selectTab(key as ClientRecordTabKey)}
       />
 
       <View style={styles.tabPanel}>
         {activeTab === 'uebersicht' && overview ? (
-          <ClientRecordOverviewPanel overview={overview} onNavigateTab={setActiveTab} />
+          <ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} />
         ) : null}
         {activeTab === 'stammdaten' && (
           <StammdatenTab

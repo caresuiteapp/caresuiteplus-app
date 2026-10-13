@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
@@ -53,7 +54,7 @@ export function OfficeMessageThreadModal({
   const { isDark, c } = useCareLightPalette();
   const composerOnDarkSurface = useComposerDarkSurface();
   const officeAccent = moduleColor('office');
-  const [tab, setTab] = useState<ModalTab>('chat');
+  const [tab, setTab] = usePageTab<ModalTab>('officemessagethreadmodal.tab', 'chat');
   const isPhone = screenWidth < 768;
   const showSideBySide = screenWidth >= SIDE_BY_SIDE_BREAKPOINT;
 

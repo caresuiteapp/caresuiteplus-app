@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { MasterDetailLayout } from '@/components/layout';
 import { ReportDetailSummaryPanel } from '@/components/reporting/ReportDetailSummaryPanel';
@@ -6,7 +7,7 @@ import { ReportsListScreen } from './ReportsListScreen';
 
 export function ReportsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('ReportsAdaptiveScreen.record', null);
 
   if (!useMasterDetail) {
     return <ReportsListScreen />;

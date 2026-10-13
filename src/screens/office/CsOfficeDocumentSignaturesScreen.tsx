@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useCallback, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -54,7 +55,7 @@ export function CsOfficeDocumentSignaturesScreen() {
   const text = useAuroraAdaptiveText();
   const officeAccent = moduleColor('office');
 
-  const [tab, setTab] = useState<CsDocumentRequestTab>('open');
+  const [tab, setTab] = usePageTab<CsDocumentRequestTab>('CsOfficeDocumentSignaturesScreen.tab', 'open');
   const [sendVisible, setSendVisible] = useState(false);
 
   const canView = can('office.documents.view' as never);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner, TemplateEditor } from '@/components/templates';
 import { ScreenShell } from '@/components/layout';

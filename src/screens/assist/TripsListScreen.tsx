@@ -38,7 +38,7 @@ export function TripsListScreen({
   const panelStyle = useAuroraGlassPanelStyle();
   const canTrips = can('assist.trips.view');
   const canTracking = can('assist.tracking.view');
-  const [activeTab, setActiveTab] = useState<'fahrten' | 'tracking'>(canTrips ? 'fahrten' : 'tracking');
+  const [activeTab, setActiveTab] = usePageTab<'fahrten' | 'tracking'>('TripsListScreen.activeTab', canTrips ? 'fahrten' : 'tracking');
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
   const assistAccent = moduleColor('assist');
 
@@ -116,3 +116,4 @@ const styles = StyleSheet.create({
   tabs: { marginBottom: spacing.sm },
   content: { flex: 1, minWidth: 0, minHeight: 0 },
 });
+import { usePageTab } from '@/hooks/usePageTab';

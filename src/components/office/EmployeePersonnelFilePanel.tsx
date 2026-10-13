@@ -1,7 +1,8 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -128,7 +129,7 @@ export function EmployeePersonnelFilePanel({
     [tenantId, employeeId, profile?.roleKey],
     { enabled: !!tenantId && !!employeeId && can('inventory.view') },
   );
-  const [activeTab, setActiveTab] = useState<EmployeePersonnelUiTabKey>(initialTab);
+  const [activeTab, setActiveTab] = usePageTab<EmployeePersonnelUiTabKey>('EmployeePersonnelFilePanel.activeTab', initialTab);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -267,7 +268,7 @@ export function EmployeePersonnelFilePanel({
   }, [file]);
 
   useEffect(() => {
-    setActiveTab(initialTab);
+    if (Platform.OS !== 'web') setActiveTab(initialTab);
   }, [employeeId, initialTab]);
 
   useEffect(() => {

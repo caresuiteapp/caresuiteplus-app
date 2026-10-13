@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
@@ -26,7 +27,7 @@ const routes = Object.keys(TRAVEL_ROUTE_TYPE_LABELS).filter((key) => key !== 'pr
 const today = berlinToday;
 
 export function EmployeeLogbookScreen() {
-  const actor = usePortalActor(); const [tab, setTab] = useState<Tab>('overview');
+  const actor = usePortalActor(); const [tab, setTab] = usePageTab<Tab>('EmployeeLogbookScreen.tab', 'overview');
   const [feedback, setFeedback] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const query = useAsyncQuery(useCallback(async () => {
     if (!actor.tenantId || !actor.employeeId) throw new Error('Mitarbeitendenkonto ist nicht vollständig verknüpft.');

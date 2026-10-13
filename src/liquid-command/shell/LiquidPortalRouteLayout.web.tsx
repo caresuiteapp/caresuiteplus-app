@@ -126,7 +126,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   accessibilityRole="tab"
                   accessibilityLabel={navigationLabel(item.id, item.label)}
                   accessibilityState={{ selected: activeId === item.id }}
-                  onPress={() => router.replace(item.route as never)}
+                  onPress={() => router.push(item.route as never)}
                   style={({ pressed }) => [
                     styles.railItem,
                     kind === 'client' && styles.clientRailItem,
@@ -194,7 +194,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     label={navigationLabel('messages', 'Nachrichten')}
                     glyph="♧"
                     badge={messageBadge}
-                    onPress={() => router.replace(
+                    onPress={() => router.push(
                       kind === 'employee'
                         ? '/portal/employee/messages'
                         : kind === 'client'
@@ -207,7 +207,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       label={profileRoute ? 'Profil' : 'Abmelden'}
                       glyph="♙"
                       onPress={() => profileRoute
-                        ? router.replace(profileRoute as never)
+                        ? router.push(profileRoute as never)
                         : void signOut()}
                     />
                   ) : null}
@@ -246,7 +246,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 accessibilityRole="tab"
                 accessibilityLabel={navigationLabel(item.id, item.label)}
                 accessibilityState={{ selected: activeId === item.id }}
-                onPress={() => router.replace(item.route as never)}
+                onPress={() => router.push(item.route as never)}
                 style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
               >
                 <LiquidGlyph
@@ -332,7 +332,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       accessibilityRole="menuitem"
                       onPress={() => {
                         setMoreOpen(false);
-                        router.replace(item.route as never);
+                        router.push(item.route as never);
                       }}
                       style={({ pressed }) => [
                         styles.moreItem,

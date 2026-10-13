@@ -16,7 +16,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
@@ -1519,7 +1520,7 @@ function EmployeePortalVisitExecutionContent() {
         <View style={styles.liveWrap}>
           <EmployeePortalVisitSummaryPanel
             visit={visit}
-            onBack={() => router.replace('/portal/employee/assignments' as never)}
+            onBack={() => router.back()}
             onReturnTrip={mobilityMode === 'car' ? () => setReturnTripModalOpen(true) : undefined}
           />
         </View>

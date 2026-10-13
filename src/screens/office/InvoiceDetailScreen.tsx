@@ -1,5 +1,6 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { InvoiceDetailHero } from '@/components/office';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { DetailInfoRow } from '@/components/detail';

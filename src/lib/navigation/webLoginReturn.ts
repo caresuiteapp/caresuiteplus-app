@@ -4,18 +4,18 @@ const MAX_AGE = 30 * 60_000;
 export function safeWebReturnPath(value: string): string | null {
   if (value.length > 4096 || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u0020]/.test(value) || /%5c|%2f%2f/i.test(value)) return null;
   const path = value.split(/[?#]/, 1)[0];
-  return /^\/(?:business|office|assist|pflege|stationaer|beratung|akademie|insight|settings|robotics|portal\/(?:client|employee))(?:\/|$)/.test(path) ? value : null;
+  return /^\/(?:business|office|assist|pflege|stationaer|beratung|akademie|insight|settings|robotics|medical|communication|design-system|onboarding|admin|platform|portal\/(?:client|employee|relative))(?:\/|$)/.test(path) ? value : null;
 }
 
-export function rememberWebLoginReturn(): void {
+export function rememberWebLoginReturn(requestedPath?: string): void {
   if (typeof window === 'undefined') return;
-  const path = safeWebReturnPath(window.location.pathname + window.location.search + window.location.hash);
+  const path = safeWebReturnPath(requestedPath ?? window.location.pathname + window.location.search + window.location.hash);
   if (!path) return;
   try { window.sessionStorage.setItem(KEY, JSON.stringify({ path, expiresAt: Date.now() + MAX_AGE })); } catch { /* Login remains available without storage. */ }
 }
 
 export function resolveWebLoginReturn(fallback: string): string {
-  if (typeof window === 'undefined' || fallback.startsWith('/auth/') || fallback.startsWith('/platform')) return fallback;
+  if (typeof window === 'undefined' || fallback.startsWith('/auth/')) return fallback;
   try {
     const raw = window.sessionStorage.getItem(KEY);
     if (!raw) return fallback;
@@ -26,6 +26,7 @@ export function resolveWebLoginReturn(fallback: string): string {
     }
     const expectedPortal = fallback.startsWith('/portal/client') ? '/portal/client' : fallback.startsWith('/portal/employee') ? '/portal/employee' : null;
     const pathname = path.split(/[?#]/, 1)[0];
+    if (fallback.startsWith('/platform') ? !pathname.startsWith('/platform') : pathname.startsWith('/platform')) return fallback;
     if (expectedPortal ? !(pathname === expectedPortal || pathname.startsWith(`${expectedPortal}/`)) : pathname.startsWith('/portal/')) return fallback;
     return path;
   } catch { return fallback; }

@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -123,7 +124,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   const [detail, setDetail] = useState<PlatformTenantDetail | null>(null);
 
-  const [tab, setTab] = useState<TabKey>('overview');
+  const [tab, setTab] = usePageTab<TabKey>('PlatformTenantDetailScreen.tab', 'overview');
   const dossierOwner = platformUser?.role === 'platform_owner';
   const ownerTabs: readonly string[] = ['company', 'setup', 'clients', 'employees', 'history'];
   const visibleGroups = TAB_GROUPS.map(group => ({ ...group, tabs: group.tabs.filter(item => !ownerTabs.includes(item.key) || dossierOwner) })).filter(group => group.tabs.length);

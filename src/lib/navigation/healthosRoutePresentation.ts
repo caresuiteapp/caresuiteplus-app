@@ -48,6 +48,16 @@ export function isHealthOSContextualPopupRoute(routePattern: string): boolean {
   return true;
 }
 
-export function resolveHealthOSPopupFallbackPath(_pathname: string): string {
+const routePatterns = webRoutePatterns.map(pattern => new RegExp('^' + pattern.split('/').map(segment => segment.startsWith('[...') ? '.+' : segment.startsWith('[') ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/') + '$'));
+
+export function resolveHealthOSPopupFallbackPath(pathname: string): string {
+  const parts = pathname.split(/[?#]/, 1)[0].split('/').filter(Boolean);
+  // Resolve against every actual page, rather than a hardcoded list of modules.
+  for (let length = parts.length - 1; length > 0; length -= 1) {
+    const parent = '/' + parts.slice(0, length).join('/');
+    if (['/business', '/business/dashboard', '/zentrale'].includes(parent)) return '/';
+    if (routePatterns.some(pattern => pattern.test(parent))) return parent;
+  }
   return '/';
 }
+import webRoutePatterns from './webRoutePatterns.json';

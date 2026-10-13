@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
@@ -94,7 +95,7 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
   const { width } = useWindowDimensions();
 
-  const [activeSection, setActiveSection] = useState<TenantCenterSectionKey | null>(null);
+  const [activeSection, setActiveSection] = usePageTab<TenantCenterSectionKey | null>('TenantSettingsScreen.activeSection', null);
 
   const [catalogOpen, setCatalogOpen] = useState(false);
 

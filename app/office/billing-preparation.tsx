@@ -12,7 +12,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { getDraftableBillingCandidates } from '@/lib/billing/clientBillingCandidateService';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { BILLING_CANDIDATE_STATUS_LABELS } from '@/types/clientBilling';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { colors, spacing, typography } from '@/product-workflows/theme';
 
 /** Office — Abrechnungsvorbereitung (K.5, keine finale Rechnung). */

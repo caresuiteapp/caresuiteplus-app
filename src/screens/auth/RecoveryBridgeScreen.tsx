@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput } from '@/components/ui';

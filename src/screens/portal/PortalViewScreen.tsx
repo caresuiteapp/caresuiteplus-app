@@ -1,5 +1,6 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   PortalAppointmentsTab,
@@ -38,10 +39,10 @@ export function PortalViewScreen({
 }: PortalViewScreenProps) {
   const router = useRouter();
   const { profile, signOut, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<PortalTabKey>(initialTab);
+  const [activeTab, setActiveTab] = usePageTab<PortalTabKey>('PortalViewScreen.activeTab', initialTab);
 
   useEffect(() => {
-    setActiveTab(initialTab);
+    if (Platform.OS !== 'web') setActiveTab(initialTab);
   }, [initialTab]);
   const [showSuccess, setShowSuccess] = useState(false);
 

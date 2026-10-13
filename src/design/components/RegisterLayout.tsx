@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AppScreen } from './AppScreen';
 import { AuthScreenHeader } from './AuthHero';
 
