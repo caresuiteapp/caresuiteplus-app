@@ -735,6 +735,12 @@ export const assignmentSupabaseRepository = {
       if (capability.error || capability.data !== 'workflow-assignment-record-v1') {
         return { ok: false, error: 'Die abgesicherte Nachweisvorbereitung ist auf dem Server noch nicht verfügbar. Bitte die Serverfreigabe prüfen.' };
       }
+      const completed = await supabase.functions.invoke('complete-assist-service-record', {
+        body: { tenantId, assignmentId },
+      });
+      if (completed.error || completed.data?.ok !== true) {
+        return { ok: false, error: completed.data?.error ?? 'Der serverseitige PDF-/Unterschriftsabschluss konnte nicht bestätigt werden. Bitte die Einsatzfassung erneut prüfen.' };
+      }
       const { data, error } = await rpc('workflow_prepare_assignment_service_record', {
         p_tenant_id: tenantId, p_assignment_id: assignmentId,
       });
