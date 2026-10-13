@@ -1,8 +1,11 @@
-import { jsPDF } from 'jspdf';
+import * as jsPdfModule from 'jspdf/dist/jspdf.es.min.js';
 import { registerCareSuitePdfFont, CARESUITE_PDF_FONT, createCareSuitePdfText } from './centuryGothicPdf';
 import { CENTRAL_COMMON_FIELDS } from './centralCatalogModel';
 import { sha256FileHex } from '@/lib/crypto/sha256Hex';
 import type { CentralDocumentSnapshot } from '@/types/documents/centralCatalog';
+
+// Keep Expo's static renderer on the browser build, as in the other PDF services.
+const { jsPDF } = jsPdfModule as unknown as typeof import('jspdf');
 
 const NAVY = '#142C48';
 const BLUE = '#086FDF';
