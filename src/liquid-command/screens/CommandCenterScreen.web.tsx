@@ -95,7 +95,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
   const { scale: fontScale, effectiveScale } = useWebFontScale();
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
-  const informationWidth = Math.max(0, Math.min(width - (compact ? 24 : 40), Math.round(420 * Math.max(1, fontScale))));
+  const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(260 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
   const railWidth = Math.round(60 * Math.max(1, fontScale));
@@ -240,13 +240,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={styles.topbar} onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
       }}>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact, { width: informationWidth, height: informationWidth / 8 }]} />
-        <View style={[styles.informationRow, compact && styles.informationRowCompact]}>
-        <View style={[styles.glass, styles.infoCard, mobile && styles.infoCardMobile, { width: informationWidth }]} testID="desktop-clock-weather">
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
+        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 380 * Math.max(1, fontScale) }]} testID="desktop-clock-weather">
           <View style={[styles.clock, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
@@ -258,13 +257,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature }: { tenantId: strin
               <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
           </View>
         </View>
-        <View style={[styles.glass, styles.actions, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
+        <View style={[styles.actions, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
           <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
           <PortalTextSizeControls dense={mobile} />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
           <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={[styles.profileTrigger, mobile && styles.profileTriggerMobile]}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size={mobile ? "sm" : "lg"} /></Pressable>
-        </View>
         </View>
       </View>
 
@@ -429,7 +427,6 @@ const styles = StyleSheet.create({
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
   profileTriggerMobile: { minHeight: 44, minWidth: 44, paddingHorizontal: 0, justifyContent: "center" },
-  logoCompact: { alignSelf: "center" },
   infoCardMobile: { minHeight: 70, flexWrap: "nowrap", paddingHorizontal: 10, paddingVertical: 7, gap: 8, borderRadius: 16 },
   clockMobile: { minWidth: 0, flexBasis: "42%" },
   weatherMobile: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 4 },
@@ -461,17 +458,15 @@ const styles = StyleSheet.create({
   atmosphere: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,10,27,0.2)" },
   glass: { backgroundColor: "rgba(2,15,35,0.76)", borderWidth: 1, borderColor: "rgba(139,211,255,0.3)", ...glassNativeShadow, ...glassWeb },
   desktopFrame: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
-  topbar: { zIndex: 20, flexShrink: 0, gap: 8 },
-  informationRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", justifyContent: "space-between", gap: 12 },
-  informationRowCompact: { width: "100%", flexDirection: "column", flexWrap: "nowrap", alignItems: "center", justifyContent: "center" },
-  logo: { maxWidth: "100%", alignSelf: "flex-start" },
-  infoCard: { maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 },
+  topbar: { zIndex: 20, width: "100%", minWidth: 0, flexShrink: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 10, borderRadius: 20 },
+  logo: { maxWidth: "100%", flexShrink: 1 },
+  infoCard: { flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 },
   clock: { flexShrink: 1, minWidth: 150 },
   time: { color: "#FFF", fontSize: 34, lineHeight: 39, fontWeight: "900", letterSpacing: -1 }, date: { color: "#D8EAFF", fontSize: 15, lineHeight: 21, fontWeight: "700" },
   weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, minHeight: 44, maxWidth: 210, justifyContent: "center" },
   weatherIcon: { color: "#8FE4FF", fontSize: 25 }, weatherTitle: { color: "#FFF", fontSize: 16, lineHeight: 21, fontWeight: "800" }, weatherPlace: { color: "#BCD4EC", fontSize: 12, lineHeight: 17 },
   weatherRefresh: { minHeight: 44, minWidth: 36, alignItems: "center", justifyContent: "center" }, weatherLink: { color: "#8FE4FF", fontSize: 17, lineHeight: 22 }, weatherEdit: { color: "#8FE4FF", fontSize: 12, lineHeight: 18, fontWeight: "700" },
-  actions: { flexWrap: "wrap", maxWidth: "100%", minHeight: 64, borderRadius: 20, padding: 6, flexDirection: "row", alignItems: "center", alignContent: "center", gap: 8 },
+  actions: { flexGrow: 1, flexShrink: 1, flexBasis: 480, minWidth: 0, justifyContent: "flex-end", flexWrap: "wrap", maxWidth: "100%", minHeight: 64, borderRadius: 20, padding: 6, flexDirection: "row", alignItems: "center", alignContent: "center", gap: 8 },
   iconButton: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: "rgba(146,205,255,0.25)", backgroundColor: "rgba(8,29,59,0.64)", alignItems: "center", justifyContent: "center" }, iconButtonActive: { borderColor: "rgba(102,224,255,0.72)", backgroundColor: "rgba(13,91,130,0.76)" }, iconGlyph: { color: "#FFF", fontSize: 20 },
   livePill: { height: 46, borderRadius: 15, paddingHorizontal: 13, borderWidth: 1, borderColor: "rgba(70,171,255,0.42)", flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
   appsButton: { minHeight: 46, paddingVertical: 8, borderRadius: 15, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(104,222,255,0.58)", backgroundColor: "rgba(9,75,111,0.78)", flexDirection: "row", alignItems: "center", gap: 8 }, appsGlyph: { color: "#83E8FF", fontSize: 21 }, appsText: { color: "#F3FCFF", fontSize: 16, fontWeight: "900" },
