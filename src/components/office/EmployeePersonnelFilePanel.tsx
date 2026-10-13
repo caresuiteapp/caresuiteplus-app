@@ -1,4 +1,5 @@
 import { usePageTab } from '@/hooks/usePageTab';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
@@ -269,7 +270,7 @@ export function EmployeePersonnelFilePanel({
 
   useEffect(() => {
     if (Platform.OS !== 'web') setActiveTab(initialTab);
-  }, [employeeId, initialTab]);
+  }, [employeeId, initialTab, setActiveTab]);
 
   useEffect(() => {
     setActionError(null);
@@ -496,6 +497,7 @@ export function EmployeePersonnelFilePanel({
 
   const body = (
     <>
+      {['documents', 'employment', 'portal', 'work_materials', 'qualifications'].includes(activeTab) ? <DocumentRecommendations module="office" employeeId={employeeId} compact workflow={activeTab === 'portal' ? 'portal_access' : activeTab === 'work_materials' ? 'employee_exit' : activeTab === 'employment' ? 'employee_onboarding' : activeTab === 'qualifications' ? 'training' : 'employee_documents'} /> : null}
       <View style={styles.employeeHeader}>
         <View style={styles.employeeHeaderMain}>
           <View style={styles.employeeIdentity}>
@@ -924,7 +926,7 @@ export function EmployeePersonnelFilePanel({
                 <View style={{ flex: 1 }}>
                   <DetailInfoRow label={doc.title} value={doc.fileName} />
                 </View>
-                {canEdit ? (
+                {canEdit && !(Platform.OS === 'web' && doc.storagePath?.includes('/central-documents/')) ? (
                   <PremiumButton
                     title="Löschen"
                     size="sm"

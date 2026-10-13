@@ -105,6 +105,8 @@ export function sha256BinaryHex(content: Uint8Array): string {
   return bytesToHex(sha256Bytes(content));
 }
 
+export const sha256FileHex = sha256BinaryHex;
+
 /** Returns lowercase hex SHA-256 digest (no prefix). */
 export function sha256Hex(content: string): string {
   const encoded =

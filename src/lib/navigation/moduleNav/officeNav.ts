@@ -28,6 +28,7 @@ export const officeNav: ModuleNavConfig = {
           href: '/business/office/documents/signatures',
         },
         { key: 'documents', label: 'Dokumentenablage', icon: '📁', href: '/office/documents' },
+        { key: 'document-catalog', label: 'Dokumentenkatalog', icon: '📄', href: '/business/office/document-catalog' },
         { key: 'catalogs', label: 'Kataloge', icon: '📚', href: '/office/catalogs' },
       ],
     },

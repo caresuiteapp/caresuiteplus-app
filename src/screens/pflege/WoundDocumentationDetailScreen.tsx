@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
@@ -59,6 +60,7 @@ export function WoundDocumentationDetailScreen() {
       subtitle={`${detail.bodyLocation} · ${roleLabel ?? 'Demo'}`}
     >
       <ScrollView contentContainerStyle={styles.content}>
+        <DocumentRecommendations module="pflege" workflow="wound" clientId={detail.clientId} woundId={detail.id} compact />
         <WoundDocumentationDetailHero detail={detail} roleKey={roleKey} isReadOnly={isReadOnly} />
 
         <SectionPanel title="Wundstatus" subtitle="Lokalisation und Behandlung">

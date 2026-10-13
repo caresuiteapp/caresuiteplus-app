@@ -23,3 +23,10 @@ export function desktopAreaForRoute(route: string): DesktopAreaKey | null {
 export function desktopAreaStorageKey(tenant: string, user: string, area: DesktopAreaKey) {
   return `caresuite.healthos.area-desktop.v1.${encodeURIComponent(JSON.stringify([tenant, user, area]))}`;
 }
+
+/** Introduce the Office catalogue once without dropping or reordering existing widgets. */
+export function introduceOfficeDocumentCatalogWidget(ids: readonly string[], availableIds: readonly string[], introduced: boolean): string[] {
+  const catalogId = 'document-catalog';
+  if (introduced || !availableIds.includes(catalogId) || ids.includes(catalogId)) return [...ids];
+  return [catalogId, ...ids];
+}

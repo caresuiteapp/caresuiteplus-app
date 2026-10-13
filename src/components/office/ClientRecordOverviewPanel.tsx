@@ -1,4 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { AuroraBadge, AuroraGlassCard } from '@/components/aurora';
 import {
   ClientWorkspaceLiveBadge,
@@ -13,6 +14,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 
 type ClientRecordOverviewPanelProps = {
+  clientId?: string;
   overview: ClientRecordOverview;
   onNavigateTab: (tab: ClientRecordTabKey) => void;
 };
@@ -43,12 +45,13 @@ function FocusCard({ icon, label, value, variant = 'cyan' }: {
   );
 }
 
-export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRecordOverviewPanelProps) {
+export function ClientRecordOverviewPanel({ overview, onNavigateTab, clientId }: ClientRecordOverviewPanelProps) {
   const { isDesktopOrWide } = useDeviceClass();
   const compact = Platform.OS !== 'web' && !isDesktopOrWide;
 
   return (
     <View style={styles.root}>
+      {clientId ? <DocumentRecommendations module="office" workflow="client_intake" clientId={clientId} compact title="Aufnahme- und Stammdokumente" /> : null}
       <ClientWorkspacePanel
         eyebrow="Versorgungsradar"
         title="Heute wichtig"

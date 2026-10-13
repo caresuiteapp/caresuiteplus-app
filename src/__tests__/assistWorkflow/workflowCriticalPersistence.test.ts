@@ -20,11 +20,13 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain('await persistEmployeePortalStatusTransition');
   });
 
-  it('persists service_end before scheduling derived administration mirrors', () => {
+  it('persists service_end before awaiting derived administration confirmations', () => {
     const file = source('src/features/assistWorkflow/endService.ts');
     expect(file).toContain('persistEndedExecutionMirrors');
     expect(file).toMatch(/if \(ctx\.visitTimes\?\.serviceEndedAt\)[\s\S]*persistEndedExecutionMirrors/);
-    expect(file).toContain('scheduleDeferredTask');
+    expect(file).not.toContain('scheduleDeferredTask');
+    expect(file).toContain('const mirrors = await persistEndedExecutionMirrors');
+    expect(file.indexOf('const eventsWritten = await persistEndServiceEvents')).toBeLessThan(file.lastIndexOf('const mirrors = await persistEndedExecutionMirrors'));
     expect(file).toContain("eventType: 'service_end'");
   });
 

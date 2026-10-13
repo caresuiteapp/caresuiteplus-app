@@ -236,7 +236,7 @@ function ClientRecordScreenContent({
     if (resolved && tabs.includes(resolved)) {
       setActiveTab(resolved);
     }
-  }, [resolvedTabParam, tabs]);
+  }, [resolvedTabParam, tabs, setActiveTab]);
 
   const handleEditMasterData = onEditMasterData ?? (() => setMasterDataEditOpen(true));
   const hostsLocalEditModal = !onEditMasterData;
@@ -250,7 +250,7 @@ function ClientRecordScreenContent({
       setMasterDataEditOpen(true);
     }
     router.setParams({ edit: undefined } as never);
-  }, [editParam, embedded, detail, router, onEditMasterData, can]);
+  }, [editParam, embedded, detail, router, onEditMasterData, can, setMasterDataEditOpen]);
 
   const tabOptions = tabs.map((t) => ({ key: t, label: CLIENT_RECORD_TAB_LABELS[t] ?? t }));
 
@@ -396,7 +396,7 @@ function ClientRecordScreenContent({
 
       <View style={styles.tabPanel}>
         {activeTab === 'uebersicht' && overview ? (
-          <ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} />
+          <ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} clientId={detail.id} />
         ) : null}
         {activeTab === 'stammdaten' && (
           <StammdatenTab

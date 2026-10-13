@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
@@ -229,6 +230,7 @@ export function InvoiceDetailScreen({ invoiceId, embedded = false }: InvoiceDeta
         ) : undefined
       }
     >
+      <DocumentRecommendations module="office" workflow="invoice" clientId={invoice.clientId} invoiceId={invoice.id} compact />
       {successMessage ? <SuccessState message={successMessage} /> : null}
       {exportMessage ? <SuccessState message={exportMessage} /> : null}
       {pdfNotice ? <SuccessState message={pdfNotice} /> : null}

@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { ClientDocumentPreview } from '@/components/office/ClientDocumentPreview';
 import { resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
@@ -445,6 +446,7 @@ export function ClientRecordDocumentsPanel({
 
   return (
     <View style={styles.panel}>
+      {view === 'overview' ? <DocumentRecommendations module="office" workflow="client_documents" clientId={clientId} compact /> : null}
       {message ? <SuccessState message={message} /> : null}
       {actionError ? <ErrorState message={actionError} /> : null}
 

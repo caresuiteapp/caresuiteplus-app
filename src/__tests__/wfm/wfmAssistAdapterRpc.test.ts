@@ -143,7 +143,7 @@ describe('syncAssistVisitTimesToWfm — RPC path', () => {
 });
 
 describe('finalizeVisit WFM dual-scoring signal', () => {
-  it('does not block finalization when the deferred WFM projection reports an error', async () => {
+  it('preserves the completed proof and reports an unconfirmed WFM handoff', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -289,7 +289,10 @@ describe('finalizeVisit WFM dual-scoring signal', () => {
     );
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.wfmSyncFailed).toBe(false);
+    if (result.ok) {
+      expect(result.data.wfmSyncFailed).toBe(true);
+      expect(result.data.proofPersisted).toBe(true);
+    }
     const { flushDeferredTasks } = await import('@/lib/async/deferredTask');
     await flushDeferredTasks();
     expect(deferredWfmSync).toHaveBeenCalledWith(TENANT, 'employee-1', 'auth-user-1', VISIT);

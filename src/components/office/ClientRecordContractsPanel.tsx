@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { ClientDocumentPreview } from '@/components/office/ClientDocumentPreview';
 import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
 import { useMemo, useState } from 'react';
@@ -90,6 +91,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
 
   return (
     <View style={styles.panel}>
+      <DocumentRecommendations module="office" workflow="client_contracts" clientId={clientId} compact />
       {fullClient?.billingProfile ? (
         <SectionPanel title="Abrechnungsprofil">
           <DetailInfoRow

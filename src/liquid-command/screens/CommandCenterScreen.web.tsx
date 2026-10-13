@@ -32,7 +32,7 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { DESKTOP_MODULES, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds, buildDesktopNavigationGroups } from '../navigation/moduleDesktop.web';
-import { DESKTOP_AREAS, desktopAreaForRoute, desktopAreaStorageKey, type DesktopAreaKey } from '../navigation/desktopAreas';
+import { DESKTOP_AREAS, desktopAreaForRoute, desktopAreaStorageKey, introduceOfficeDocumentCatalogWidget, type DesktopAreaKey } from '../navigation/desktopAreas';
 import type { ProductKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 
@@ -112,6 +112,7 @@ export function CommandCenterScreen() {
 function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSelectArea }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void }) {
   const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
   const permissions = usePermissions();
+  const catalogVisible = permissions.can('office.documents.view');
   const router = useRouter();
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
@@ -135,6 +136,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const weather = useDesktopWeather(owner);
   const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
   const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
+  const catalogIntroductionKey = `${desktopKey}.document-catalog.v1`;
   const combinedDesktopKey = desktopStorageKey(tenantId, owner);
   const oldDesktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const moduleLabel = DESKTOP_AREAS.find(area => area.key === selectedArea)!.label;
@@ -174,15 +176,15 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
   const areaAllowed = selectedArea === 'settings' || selectedArea === 'premium' ||
     (selectedArea === 'robotics' ? permissions.can('robotics.access' as PermissionKey) : availableKeys.includes(selectedArea as ProductKey));
-  const moduleApps = useMemo(() => apps.filter(app => areaAllowed && desktopAreaForRoute(app.route) === selectedArea), [apps, areaAllowed, selectedArea]);
+  const moduleApps = useMemo(() => apps.filter(app => areaAllowed && desktopAreaForRoute(app.route) === selectedArea && (app.route !== '/business/office/document-catalog' || catalogVisible)), [apps, areaAllowed, selectedArea, catalogVisible]);
   const moduleWidgets = useMemo<WidgetDefinition[]>(() => {
-    const existing = WIDGETS.filter(widget => areaAllowed && desktopAreaForRoute(widget.route) === selectedArea);
+    const existing = WIDGETS.filter(widget => areaAllowed && desktopAreaForRoute(widget.route) === selectedArea && (widget.permission !== 'office.documents.view' || catalogVisible));
     const routes = new Set(existing.map(widget => widget.route));
     return [...existing, ...moduleApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: `area-app:${app.id}` }))];
-  }, [areaAllowed, selectedArea, moduleApps]);
+  }, [areaAllowed, selectedArea, moduleApps, catalogVisible]);
   const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
-  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [moduleWidgets, selectedArea]);
+  const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => widget.id === 'document-catalog' || DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [moduleWidgets, selectedArea]);
   const filteredApps = moduleApps.filter(app => app.category === category && matchesSearch(app, query));
   const filteredWidgets = moduleWidgets.filter(widget => widget.category === category && matchesSearch(widget, query));
   const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
@@ -204,22 +206,26 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     setCategory("Übersicht");
     setNavigationQuery("");
     const previousModuleKeys = [combinedDesktopKey, ...(['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? [moduleDesktopStorageKey(tenantId, owner, selectedArea as ProductKey)] : [])];
-    void Promise.all([desktopKey, oldDesktopKey, previousDesktopKey, legacyKey, sidebarKey, backgroundKey, ...previousModuleKeys].map(key => AsyncStorage.getItem(key))).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground, ...previousModules]) => {
+    void Promise.all([desktopKey, oldDesktopKey, previousDesktopKey, legacyKey, sidebarKey, backgroundKey, catalogIntroductionKey, ...previousModuleKeys].map(key => AsyncStorage.getItem(key))).then(([desktop, oldDesktop, previousDesktop, legacy, sidebar, storedBackground, catalogIntroduction, ...previousModules]) => {
       if (!active) return;
       const oldValue = oldDesktop ?? previousDesktop ?? legacy;
       const previous = desktop !== null || !['office', 'assist'].includes(selectedArea) ? [] : previousModules.some(value => value !== null) ? previousModules
         : oldValue !== null ? [JSON.stringify(migrateDesktopIdsToR13(JSON.parse(oldValue), !oldDesktop && Boolean(previousDesktop)))] : [];
-      setDesktopIds(restoreDesktopWidgetIds(desktop, previous, moduleWidgetIds, moduleDefaults));
+      const restoredIds = restoreDesktopWidgetIds(desktop, previous, moduleWidgetIds, moduleDefaults);
+      setDesktopIds(selectedArea === 'office' ? introduceOfficeDocumentCatalogWidget(restoredIds, moduleWidgetIds, catalogIntroduction === '1') : restoredIds);
       setRecoverableWidgetIds(previousDesktopWidgetIds([...previousModules, oldValue], moduleWidgetIds));
       setSidebarOpen(sidebar !== "false");
       setBackgroundId(storedBackground && BACKGROUNDS.some((item) => item.id === storedBackground) ? storedBackground : BACKGROUNDS[0].id);
       setLoadedOwner(owner);
     }).catch(() => active && setPreferencesError(true));
     return () => { active = false; };
-  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, tenantId, moduleWidgetIds, moduleDefaults, combinedDesktopKey, selectedArea]);
+  }, [backgroundKey, desktopKey, catalogIntroductionKey, legacyKey, owner, previousDesktopKey, sidebarKey, oldDesktopKey, preferencesAttempt, tenantId, moduleWidgetIds, moduleDefaults, combinedDesktopKey, selectedArea]);
   useEffect(() => {
-    if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => setPreferencesError(true));
-  }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);
+    if (loadedOwner !== owner) return;
+    const values: [string, string][] = [[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]];
+    if (selectedArea === 'office' && moduleWidgetIds.includes('document-catalog')) values.push([catalogIntroductionKey, '1']);
+    void AsyncStorage.multiSet(values).catch(() => setPreferencesError(true));
+  }, [backgroundId, backgroundKey, desktopIds, desktopKey, catalogIntroductionKey, loadedOwner, owner, sidebarKey, sidebarOpen, selectedArea, moduleWidgetIds]);
 
   const closeNavigation = () => {
     if (compact) setMobileSidebarOpen(false);

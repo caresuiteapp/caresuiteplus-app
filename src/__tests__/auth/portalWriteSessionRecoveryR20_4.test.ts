@@ -186,7 +186,11 @@ describe('portal write-session recovery R20.4', () => {
     expect(authProvider).toContain('await ensurePortalWriteSession(restoredPortal)');
     expect(chat).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
     expect(thread).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
-    expect(visit.match(/await ensurePortalWriteSession\(portalSession, 'workflow'\)/g)).toHaveLength(2);
+    const workflowGuard = visit.indexOf("const writableSession = await ensurePortalWriteSession(portalSession, 'workflow')");
+    expect(workflowGuard).toBeGreaterThan(visit.indexOf('const runWorkflow = useCallback'));
+    expect(workflowGuard).toBeLessThan(visit.indexOf('const operation = options?.recoveryAction'));
+    expect(visit).toContain('runWorkflow((ctx) => finalizeVisit(ctx)');
+    expect(visit).toContain('runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx');
     expect(portalAuth).toContain('linkedEmail === email.toLowerCase()');
     expect(portalAuth).toContain('replacing mismatched auth link');
   });

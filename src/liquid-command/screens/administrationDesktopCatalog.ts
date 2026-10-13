@@ -10,6 +10,7 @@ export type WidgetDefinition = {
   category: Category;
   route: string;
   workspaceService?: WorkspaceService | "overview";
+  permission?: import('@/types/permissions').PermissionKey;
   images?: { small: ImageSourcePropType; medium: ImageSourcePropType; large: ImageSourcePropType };
 };
 export type BackgroundDefinition = { id: string; label: string; image: ImageSourcePropType
@@ -224,6 +225,10 @@ export const BACKGROUNDS: readonly BackgroundDefinition[] = [
 ] as const;
 
 export const WIDGETS: readonly WidgetDefinition[] = [
+  { id: 'document-catalog', label: 'Dokumentenkatalog', description: '450 Vorlagen für Pflege, Betreuung, Personal und Verwaltung. Daten übernehmen, PDF erstellen und in der Akte ablegen.', category: 'Verwaltung', route: '/business/office/document-catalog', permission: 'office.documents.view', images: {
+    small: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
+    medium: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
+    large: require('../../../assets/healthos/widgets-premium/document-catalog.png') } },
   { id: "google-workspace", label: "Google Workspace", description: "Verbindung, freigegebene Dienste und Ihr Google-Arbeitsplatz", category: "Workspace", route: "/business/connect/google-workspace", workspaceService: "overview" },
   { id: "google-gmail", label: "Gmail", description: "Aktuelle E-Mails aus dem verbundenen Google-Postfach", category: "Workspace", route: "/business/connect/google-workspace?service=gmail", workspaceService: "gmail" },
   { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },

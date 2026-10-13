@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -85,6 +86,7 @@ export function MedicationDetailScreen() {
   return (
     <ScreenShell title="Medikation" subtitle={`${detail.medicationName} · ${roleLabel ?? 'Pflegefachkraft'}`}>
       <ScrollView contentContainerStyle={styles.content}>
+        <DocumentRecommendations module="pflege" workflow="medication" clientId={detail.clientId} medicationId={detail.id} compact />
         <MedicationDetailHero detail={detail} roleKey={roleKey} isReadOnly={isReadOnly} />
         {detail.clientAllergies ? <InfoBanner variant="warning" title="Allergien / Unverträglichkeiten" message={detail.clientAllergies} /> : null}
         {detail.interactionNotes ? <InfoBanner variant="warning" title="Wechselwirkungen beachten" message={detail.interactionNotes} /> : null}

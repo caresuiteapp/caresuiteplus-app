@@ -30,6 +30,8 @@ import type { LiquidModuleKey, LiquidPageType, LiquidWorkArea } from '../types';
 import { CompanyWorkspace } from './CompanyWorkspace';
 import { AssistClientsWorkspace } from './AssistClientsWorkspace';
 import { PflegeHomeWorkspace } from './PflegeHomeWorkspace';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
+import { documentWorkflowForArea } from '@/lib/documents/documentRecommendations';
 
 type WorkspaceItem = {
   id: string;
@@ -870,6 +872,15 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
         count={items.length}
         attention={attention}
         loading={state.loading}
+      />
+
+      <DocumentRecommendations
+        module={moduleKey}
+        workflow={documentWorkflowForArea(moduleKey, activeArea.id)}
+        clientId={['clients', 'residents', 'cases', 'records'].includes(activeArea.id) ? selected?.id : undefined}
+        employeeId={['people', 'employees'].includes(activeArea.id) ? selected?.id : undefined}
+        widget={moduleKey === 'office' && activeArea.id === 'documents'}
+        compact
       />
 
       {dataError ? (

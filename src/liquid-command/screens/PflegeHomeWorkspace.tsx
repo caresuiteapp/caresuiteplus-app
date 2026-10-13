@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { StyleSheet, View } from 'react-native';
 import { PflegeDashboardView } from '@/components/dashboard/PflegeDashboardView';
 import { usePflegeDashboard } from '@/hooks/usePflegeDashboard';
@@ -55,6 +56,7 @@ export function PflegeHomeWorkspace({ tenantId }: { tenantId: string | null }) {
             error={dashboard.error}
             onRefresh={dashboard.refresh}
           />
+          <DocumentRecommendations module="pflege" workflow="care" compact />
         </View>
       )}
     </LiquidCommandShell>

@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   EmptyState,
@@ -124,6 +125,7 @@ export function ClientBudgetCorePanel({ clientId, onRecordRefresh }: Props) {
 
   return (
     <View style={styles.panel}>
+      <DocumentRecommendations module="office" workflow="budget" clientId={clientId} compact />
       {lowBudgetWarnings.length > 0 ? (
         <SectionPanel title="Budget-Warnungen">
           {lowBudgetWarnings.map((s) => (

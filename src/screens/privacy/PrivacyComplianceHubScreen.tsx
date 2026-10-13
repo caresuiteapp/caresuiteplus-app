@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -102,6 +103,7 @@ export function PrivacyComplianceHubScreen() {
       subtitle="Mehr → Datenschutz & Compliance"
       scroll
     >
+      <DocumentRecommendations module="office" workflow="privacy" compact />
       <SectionPanel title="Übersicht" subtitle="DSGVO-Management — 11 Bereiche">
         <View style={styles.kpiRow}>
           <PremiumKpiCard label="Offene Anfragen" value={String(dashboard.openRequestsCount)} />
