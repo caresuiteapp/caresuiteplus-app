@@ -258,6 +258,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <View style={[styles.glass, styles.topbar]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
+        if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
       }}>
         <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
         <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 380 * Math.max(1, fontScale) }]} testID="desktop-clock-weather">
@@ -272,6 +273,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
               <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
           </View>
         </View>
+        <View style={styles.neoDock} {...{ dataSet: { csNeoDock: "true" } }} />
         <View style={[styles.actions, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
           <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
           <PortalTextSizeControls dense={mobile} />
@@ -440,6 +442,7 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
+  neoDock: { width: 76, height: 80, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   areaTabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
   areaWidgetGlyph: { color: "#8FE4FF", fontSize: 40, lineHeight: 48 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
@@ -485,7 +488,7 @@ const styles = StyleSheet.create({
   weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, minHeight: 44, maxWidth: 210, justifyContent: "center" },
   weatherIcon: { color: "#8FE4FF", fontSize: 25 }, weatherTitle: { color: "#FFF", fontSize: 16, lineHeight: 21, fontWeight: "800" }, weatherPlace: { color: "#BCD4EC", fontSize: 12, lineHeight: 17 },
   weatherRefresh: { minHeight: 44, minWidth: 36, alignItems: "center", justifyContent: "center" }, weatherLink: { color: "#8FE4FF", fontSize: 17, lineHeight: 22 }, weatherEdit: { color: "#8FE4FF", fontSize: 12, lineHeight: 18, fontWeight: "700" },
-  actions: { flexGrow: 1, flexShrink: 1, flexBasis: 480, minWidth: 0, justifyContent: "flex-end", flexWrap: "wrap", maxWidth: "100%", minHeight: 64, borderRadius: 20, padding: 6, flexDirection: "row", alignItems: "center", alignContent: "center", gap: 8 },
+  actions: { flexGrow: 0, flexShrink: 1, flexBasis: "auto", minWidth: 0, justifyContent: "flex-end", flexWrap: "wrap", maxWidth: "100%", minHeight: 64, borderRadius: 20, padding: 6, flexDirection: "row", alignItems: "center", alignContent: "center", gap: 8 },
   iconButton: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: "rgba(146,205,255,0.25)", backgroundColor: "rgba(8,29,59,0.64)", alignItems: "center", justifyContent: "center" }, iconButtonActive: { borderColor: "rgba(102,224,255,0.72)", backgroundColor: "rgba(13,91,130,0.76)" }, iconGlyph: { color: "#FFF", fontSize: 20 },
   livePill: { height: 46, borderRadius: 15, paddingHorizontal: 13, borderWidth: 1, borderColor: "rgba(70,171,255,0.42)", flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
   appsButton: { minHeight: 46, paddingVertical: 8, borderRadius: 15, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(104,222,255,0.58)", backgroundColor: "rgba(9,75,111,0.78)", flexDirection: "row", alignItems: "center", gap: 8 }, appsGlyph: { color: "#83E8FF", fontSize: 21 }, appsText: { color: "#F3FCFF", fontSize: 16, fontWeight: "900" },

@@ -76,6 +76,6 @@ export function RobotNavigationAssistant() {
       },
     });
     return () => { unmount(); speech.dispose(); };
-  }, [enabled, tenantId, userId, role]);
+  }, [enabled, tenantId, userId, role, pathname]);
   return null;
 }
