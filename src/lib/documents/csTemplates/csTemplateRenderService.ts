@@ -3,6 +3,12 @@ import { normalizeDocumentContext } from './csDocumentContextNormalize';
 
 const PLACEHOLDER_PATTERN = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
 
+function escapeHtmlText(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character]!);
+}
+
 function readContextPath(context: DocumentContext, path: string): string {
   const normalized = normalizeDocumentContext(context);
   const parts = path.split('.');
@@ -31,7 +37,7 @@ export function renderCsTemplateHtml(
   const normalized = normalizeDocumentContext(context);
   return html.replace(PLACEHOLDER_PATTERN, (_full, key: string) => {
     const value = readContextPath(normalized, key).trim();
-    return value || empty;
+    return escapeHtmlText(value || empty);
   });
 }
 
@@ -39,7 +45,7 @@ export function annotateSignatureRegions(html: string): string {
   return html.replace(
     /(<span[^>]*data-signature-anchor="([^"]+)"[^>]*>)([\s\S]*?)(<\/span>)/gi,
     (_match, open: string, anchor: string, inner: string, close: string) =>
-      `${open}<strong style="color:#7c3aed;">[Pflichtsignatur · ${anchor}]</strong>${inner}${close}`,
+      `${open}<strong style="color:#7c3aed;">[Pflichtsignatur · ${escapeHtmlText(anchor)}]</strong>${inner}${close}`,
   );
 }
 
@@ -50,13 +56,17 @@ export function injectSignatureIntoHtml(
   signerName: string,
   signedAt: string,
 ): string {
+  if (!/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(signatureDataUrl)) {
+    throw new Error('Die Unterschrift enthält kein unterstütztes Bildformat.');
+  }
+  const escapedAnchor = anchorToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const anchorPattern = new RegExp(
-    `(<span[^>]*data-signature-anchor="${anchorToken}"[^>]*>)(\\[SIGNATURE:[^\\]]+\\])(</span>)`,
+    `(<span[^>]*data-signature-anchor="${escapedAnchor}"[^>]*>)(\\[SIGNATURE:[^\\]]+\\])(</span>)`,
     'i',
   );
-  const img = `<img src="${signatureDataUrl}" alt="Unterschrift" style="max-height:80px;max-width:240px;" /><br/><small>${signerName} · ${new Date(signedAt).toLocaleString('de-DE')}</small>`;
+  const img = `<img src="${signatureDataUrl}" alt="Unterschrift" style="max-height:80px;max-width:240px;" /><br/><small>${escapeHtmlText(signerName)} · ${new Date(signedAt).toLocaleString('de-DE')}</small>`;
   if (anchorPattern.test(html)) {
-    return html.replace(anchorPattern, `$1${img}$3`);
+    return html.replace(anchorPattern, (_match, open: string, _signature: string, close: string) => `${open}${img}${close}`);
   }
-  return `${html}<p data-signature-anchor="${anchorToken}">${img}</p>`;
+  return `${html}<p data-signature-anchor="${escapeHtmlText(anchorToken)}">${img}</p>`;
 }
