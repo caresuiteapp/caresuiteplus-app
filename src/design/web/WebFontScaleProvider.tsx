@@ -14,6 +14,7 @@ import { isMobileWorkspace, isDesktopWorkspace, MOBILE_WORKSPACE_FONT_KEY } from
 import {
   DESKTOP_WORKSPACE_FONT_KEY,
   workspaceEffectiveScale,
+  normalizeDesktopFontScale,
   WEB_FONT_SCALE_DEFAULT,
   WEB_FONT_SCALE_STORAGE_KEY,
   WEB_FONT_SCALE_STEPS,
@@ -66,7 +67,7 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
       const next = isWebFontScale(parsed) ? parsed : WEB_FONT_SCALE_DEFAULT;
       setRegularScale(next);
       const desktopParsed = desktopStored !== null ? Number(desktopStored) : NaN;
-      setDesktopScale(isWebFontScale(desktopParsed) ? desktopParsed : next > 1 ? next : 1);
+      setDesktopScale(normalizeDesktopFontScale(desktopStored !== null ? desktopParsed : next));
       const mobileParsed = mobileStored != null ? Number(mobileStored) : NaN;
       // Existing 90/100% preferences adopt the new normal. Keep larger text selected.
       setMobileScale(isWebFontScale(mobileParsed) ? mobileParsed : next > 1 ? next : 1);
@@ -97,10 +98,13 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
 
   const decrease = useCallback(() => {
     const idx = indexOfWebFontScale(scale);
-    const nextIdx = clampWebFontScaleIndex(idx - 1);
+    const nextIdx = Math.max(
+      desktopWorkspace ? indexOfWebFontScale(WEB_FONT_SCALE_DEFAULT) : 0,
+      clampWebFontScaleIndex(idx - 1),
+    );
     if (nextIdx === idx) return;
     persistScale(WEB_FONT_SCALE_STEPS[nextIdx]);
-  }, [persistScale, scale]);
+  }, [persistScale, scale, desktopWorkspace]);
 
   const reset = useCallback(() => {
     persistScale(WEB_FONT_SCALE_DEFAULT);
@@ -114,9 +118,9 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
       decrease,
       reset,
       canIncrease: scale < WEB_FONT_SCALE_STEPS[WEB_FONT_SCALE_STEPS.length - 1],
-      canDecrease: scale > WEB_FONT_SCALE_STEPS[0],
+      canDecrease: scale > (desktopWorkspace ? WEB_FONT_SCALE_DEFAULT : WEB_FONT_SCALE_STEPS[0]),
     }),
-    [decrease, increase, reset, scale, effectiveScale],
+    [decrease, increase, reset, scale, effectiveScale, desktopWorkspace],
   );
 
   return <WebFontScaleContext.Provider value={value}>{children}</WebFontScaleContext.Provider>;
