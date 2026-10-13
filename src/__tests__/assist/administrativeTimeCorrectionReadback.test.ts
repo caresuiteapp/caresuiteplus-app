@@ -11,10 +11,10 @@ const migration = readFileSync(
 );
 
 describe('administrative Assist-Zeitkorrektur bleibt nach Reload erhalten', () => {
-  it('begrenzt Zeitereignisse auf die neuesten statt auf die ältesten Datensätze', () => {
-    expect(persistence).toContain(".order('occurred_at', { ascending: false })");
-    expect(persistence).toContain('.limit(limit)');
-    expect(persistence).toContain('new Date(left.occurredAt).getTime()');
+  it('liest die gesamte Zeitgeschichte einschließlich neuer Korrekturen mit stabilen Seiten', () => {
+    expect(persistence).toContain(".lte('created_at',highWatermark)");
+    expect(persistence).toContain(".order('id',{ascending:true})");
+    expect(persistence).toContain('a.occurredAt.localeCompare(b.occurredAt)||a.id.localeCompare(b.id)');
   });
 
   it('ersetzt alte Ereignisse desselben Einsatztages durch die administrative Korrektur', () => {

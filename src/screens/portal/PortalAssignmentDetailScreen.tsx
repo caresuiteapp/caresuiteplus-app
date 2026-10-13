@@ -3,7 +3,6 @@ import { Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
-import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
@@ -47,7 +46,7 @@ export function PortalAssignmentDetailScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.employee.appointments.view');
 
-  const { data, loading, error, refresh, notFound, fromCache, cachedAt, partialDetail } =
+  const { data, loading, error, refresh, refreshError, notFound, fromCache, cachedAt, partialDetail } =
     usePortalAppointmentDetail(id);
 
   if (!canView) {
@@ -77,7 +76,7 @@ export function PortalAssignmentDetailScreen() {
           message={error ?? 'Der Einsatz existiert nicht.'}
           onRetry={refresh}
         />
-        <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
+        <PremiumButton title="Zur Einsatzübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/assignments' as never)} />
       </PortalTabScreen>
     );
   }
@@ -90,14 +89,16 @@ export function PortalAssignmentDetailScreen() {
   };
 
   return (
-    <C14vSubpageShell
+    <PortalTabScreen
       title={employeePortalHomeAppointmentTitle(data)}
-      eyebrow="PORTAL · EINSATZ"
       subtitle={`${data.clientName} · ${resolvePortalScreenSubtitle(roleLabel, 'employee')}`}
       contentOwnsHero
+      scroll={false}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <CachedDataBanner visible={fromCache} cachedAt={cachedAt} partialDetail={partialDetail} />
+        {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
+        <PremiumButton title="Zur Einsatzübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/assignments' as never)} />
         <PortalEmployeeAssignmentDetailHero assignment={data} />
 
         <PremiumCard style={styles.previewCard}>
@@ -126,6 +127,7 @@ export function PortalAssignmentDetailScreen() {
         </PremiumCard>
 
         <View style={styles.actions}>
+          {data.clientId ? <PremiumButton title="Klientenakte und Kontakte öffnen" variant="secondary" onPress={() => router.push(`/portal/employee/clients/${data.clientId}` as never)} /> : null}
           {data.clientPhone ? (
             <PremiumButton title="Anrufen" variant="secondary" onPress={handleCall} />
           ) : null}
@@ -137,7 +139,7 @@ export function PortalAssignmentDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </C14vSubpageShell>
+    </PortalTabScreen>
   );
 }
 
@@ -152,7 +154,8 @@ const styles = StyleSheet.create({
   },
   fact: {
     flex: 1,
-    minWidth: 220,
+    minWidth: 0,
+    flexBasis: 220,
     gap: 3,
     padding: spacing.md,
     borderRadius: portalPremium.radius.card,

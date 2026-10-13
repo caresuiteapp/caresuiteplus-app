@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Image } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { usePathname } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -76,6 +77,6 @@ export function RobotNavigationAssistant() {
       },
     });
     return () => { unmount(); speech.dispose(); };
-  }, [enabled, tenantId, userId, role]);
+  }, [enabled, tenantId, userId, role, pathname]);
   return null;
 }

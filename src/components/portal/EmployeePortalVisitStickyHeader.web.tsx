@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
-import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARESUITE_VISIT_GUIDE_MASCOT } from '@/components/brand/brandassets';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
@@ -8,7 +8,7 @@ import { employeePortalExecutionSurface, employeePortalExecutionText } from '@/l
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
-import { spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 import { EmployeePortalVisitProgressSteps } from './EmployeePortalVisitProgressSteps';
 
 type Props = {

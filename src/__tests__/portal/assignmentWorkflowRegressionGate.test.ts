@@ -45,6 +45,32 @@ describe('assignment workflow regression gate', () => {
   it.each(
     ASSIGNMENT_WORKFLOW_INVARIANTS.map((invariant) => [invariant.id, invariant] as const),
   )('invariant %s', (_id, invariant) => {
+    if (invariant.id === 'document-signature-no-browser-fullscreen') {
+      // Both platform entry points now share the capture core. PDF embedding is
+      // split separately so a browser iframe can never reach native rendering.
+      for (const entrypoint of [
+        'src/components/portal/PortalSignatureCapturePanel.tsx',
+        'src/components/portal/PortalSignatureCapturePanel.web.tsx',
+      ]) {
+        expect(readSrc(entrypoint).trim()).toBe("export * from './PortalSignatureCapturePanelCore';");
+      }
+      const core = readSrc('src/components/portal/PortalSignatureCapturePanelCore.tsx');
+      const nativeFrame = readSrc('src/components/portal/PortalSignaturePdfFrame.tsx');
+      const webFrame = readSrc('src/components/portal/PortalSignaturePdfFrame.web.tsx');
+      expect(matchesPattern(core, invariant.mustContain)).toBe(true);
+      expect(core).toContain("import { PortalSignaturePdfFrame } from './PortalSignaturePdfFrame'");
+      expect(core).toContain('<PortalSignaturePdfFrame');
+      expect(core).not.toContain('<iframe');
+      expect(nativeFrame).toMatch(/function PortalSignaturePdfFrame\([^)]*\)\s*\{\s*return null;/);
+      expect(nativeFrame).not.toContain('<iframe');
+      expect(webFrame).toContain('<iframe');
+      expect(webFrame).toContain('src={url}');
+      for (const source of [core, nativeFrame, webFrame]) {
+        expect(matchesPattern(source, invariant.mustNotContain!)).toBe(false);
+        expect(source).not.toMatch(/\b(?:requestFullscreen|webkitRequestFullscreen)\s*\(/);
+      }
+      return;
+    }
     for (const filePath of invariant.files) {
       const source = readSrc(filePath);
       if (invariant.matchAllFiles || invariant.files.length === 1) {
@@ -99,7 +125,7 @@ describe('assignment workflow regression gate', () => {
     expect(modal).toContain('createPortalOfficeThread');
   });
 
-  it('persists optional task drafts on Android without blocking either finalization path', () => {
+  it('keeps untouched tasks optional but confirms edited drafts before either finalization path', () => {
     const drafts = readSrc('src/hooks/useTaskResultDrafts.ts');
     const execution = readSrc('src/hooks/useEmployeePortalVisitExecution.ts');
     const finalize = readSrc('src/features/assistWorkflow/finalizeVisit.ts');
@@ -109,8 +135,22 @@ describe('assignment workflow regression gate', () => {
     expect(drafts).toContain("employee-execution-task-drafts:${ctx.tenantId}");
     expect(drafts).toContain('AsyncStorage.setItem');
     expect(drafts).toContain('AsyncStorage.getItem');
-    expect(execution.match(/void flushTaskDrafts\(\)/g)).toHaveLength(2);
-    expect(execution).not.toContain("errorCode: 'TASK_RESULTS_PENDING'");
+    for (const [handler, nextHandler, finalizeCall] of [
+      ['handleFinalize', 'handleFinalizeDeferred', 'finalizeVisit(ctx)'],
+      ['handleFinalizeDeferred', 'handleNoShow', 'finalizeVisitWithDeferredClientSignature(ctx, null, approvalReason)'],
+    ]) {
+      const callback = execution.slice(
+        execution.indexOf(`const ${handler} = useCallback(`),
+        execution.indexOf(`const ${nextHandler} = useCallback(`),
+      );
+      expect(callback).toMatch(/if\s*\(!await flushTaskDrafts\(\)\)\s*return\s*\{\s*ok:\s*false,/);
+      expect(callback).toContain('Ihre Auswahl bleibt erhalten.');
+      expect(callback).toContain(`return runWorkflow((ctx) => ${finalizeCall}`);
+      expect(callback.indexOf('await flushTaskDrafts()')).toBeLessThan(callback.indexOf('return runWorkflow('));
+    }
+    expect(drafts).toContain('if (Object.keys(pending).length === 0) return true;');
+    expect(drafts).toMatch(/if\s*\(!result\.ok\)\s*\{[\s\S]*?await persistPending\(scope\.pending\);\s*return false;/);
+    expect(drafts).toMatch(/catch\s*\{[\s\S]*?await persistPending\(scope\.pending\);\s*return false;/);
     expect(finalize).toContain('isRequired: false');
     expect(deferred).toContain('isRequired: false');
     expect(legacyCompletion).not.toContain("error: 'Pflichtaufgaben sind noch offen.'");
@@ -121,22 +161,26 @@ describe('assignment workflow regression gate', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const panel = readSrc('src/components/portal/EmployeePortalVisitDocumentationPanel.tsx');
     const persistence = readSrc('src/lib/portal/visitWorkflowPersistence.ts');
-    for (const field of [
-      'documentationDraftText',
-      'documentationSpecialNotes',
-      'documentationDeviations',
-      'documentationDeviationJustification',
+    for (const [field, setter, initialProp, draftField] of [
+      ['documentationDraftText', 'setDocumentationDraftText', 'initialShortDescription', 'shortDescription'],
+      ['documentationSpecialNotes', 'setDocumentationSpecialNotes', 'initialSpecialNotes', 'specialNotes'],
+      ['documentationDeviations', 'setDocumentationDeviations', 'initialDeviations', 'deviations'],
+      ['documentationDeviationJustification', 'setDocumentationDeviationJustification', 'initialDeviationJustification', 'deviationJustification'],
     ]) {
-      expect(screen).toContain(field);
       expect(persistence).toContain(field);
+      expect(screen).toContain(`${setter}(snapshot.${field})`);
+      expect(screen).toContain(`${initialProp}={${field}}`);
+      expect(screen).toContain(`${setter}(draft.${draftField})`);
     }
-    expect(panel).toContain('onDraftChange?.({');
-    expect(screen).toContain('workflowHydratedAssignmentId !== id');
+    expect(panel).toMatch(/if\s*\(!editedRef\.current\s*\|\|\s*!dirty\)\s*return;\s*onDraftChangeRef\.current\?\.\(\{\s*shortDescription,\s*specialNotes,\s*deviations,\s*deviationJustification,\s*\}\)/);
+    expect(screen).toMatch(/if\s*\(!id\s*\|\|\s*!visit\s*\|\|\s*workflowHydratedAssignmentId !== id\)\s*return;\s*workflowPersistence\.persist\(\{/);
     expect(screen).toContain('setWorkflowHydratedAssignmentId(id)');
+    expect(screen.indexOf('setDocumentationDeviationJustification(snapshot.documentationDeviationJustification)'))
+      .toBeLessThan(screen.indexOf('setWorkflowHydratedAssignmentId(id)'));
   });
 
   it('makes on-site signature persistence idempotent and prevents parallel capture submits', () => {
-    const persistence = readSrc('src/lib/assist/assistVisitSignaturePersistenceService.ts');
+    const persistence = readSrc('src/lib/assist/assistVisitSignaturePersistenceService.shared.ts');
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
     expect(persistence).toContain('existing.data.signatureHash === input.signatureHash');
     expect(persistence).toContain('return { ok: true, data: existing.data }');

@@ -55,7 +55,8 @@ export async function updateVisitTaskStatus(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
+  if (getServiceMode() === 'supabase') {
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Der Einsatz konnte nicht zugeordnet werden. Es wurde nichts gespeichert.' };
     const executable = await resolveExecutableVisitId(tenantId, visitId, actorRoleKey);
     if (!executable.ok) return executable;
     const executableVisitId = executable.data.visitId;
@@ -144,7 +145,8 @@ export async function updateVisitDocumentation(
     return { ok: false, error: 'Dokumentation darf nicht leer sein.' };
   }
 
-  if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
+  if (getServiceMode() === 'supabase') {
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Der Einsatz konnte nicht zugeordnet werden. Es wurde nichts gespeichert.' };
     const executable = await resolveExecutableVisitId(tenantId, visitId, actorRoleKey);
     if (!executable.ok) return executable;
     const executableVisitId = executable.data.visitId;
@@ -153,6 +155,7 @@ export async function updateVisitDocumentation(
     if (resolvedId) {
       return visitSupabaseRepository.updateDocumentation(tenantId, resolvedId, employeeNotes);
     }
+    return { ok: false, error: 'Die Dokumentation konnte keinem gespeicherten Einsatz zugeordnet werden. Bitte den Einsatz erneut laden.' };
   }
 
   await new Promise((r) => setTimeout(r, 200));

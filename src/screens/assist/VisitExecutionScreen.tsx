@@ -2,7 +2,8 @@ import { visitWorkflowLabel } from '@/lib/assist/administrativeFollowUpState';
 import { VISIT_DOCUMENTATION_STATUS_LABELS, VISIT_PROOF_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import {
   AssistSetupHintsBanner,
   VisitProofPreviewPanel,
@@ -29,6 +30,7 @@ import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import {
   buildVisitProofPreview,
   hasVisitSignature,
@@ -69,6 +71,7 @@ export function VisitExecutionScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const actor = usePortalActor();
   const { can, check, roleLabel } = usePermissions();
   const canManage = can('assist.execution.manage');
 
@@ -266,6 +269,14 @@ export function VisitExecutionScreen() {
           >
             <Text style={styles.internalNote}>{visit.employeeInternalNotes}</Text>
           </SectionPanel>
+        ) : null}
+
+        {actor.employeeId && visit.employeeId === actor.employeeId && actor.tenantId === tenantId ? (
+          <PremiumButton
+            title={isLocked ? 'Eigene Durchführung ansehen' : 'Eigene Durchführung öffnen'}
+            fullWidth
+            onPress={() => router.push(`/portal/employee/assignments/${visit.id}/execute` as never)}
+          />
         ) : null}
 
         {showAdministrativeFollowUp && tenantId ? <AdministrativeVisitFollowUpPanel key={visit.id} onTaskDraftsChange={setAdministrativeTaskDrafts} visit={visit} tenantId={tenantId} onSaved={refreshAfterSave} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}

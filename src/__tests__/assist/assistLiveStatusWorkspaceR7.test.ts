@@ -36,11 +36,17 @@ describe('Assist Live-Status Workspace R7', () => {
 
   it('ersetzt die weiße Kartenleere auf Web und Native durch einen lesbaren Positionsmonitor', () => {
     for (const source of [webMap, nativeMap]) {
-      expect(source).toContain('WARTET AUF STANDORT');
       expect(source).toContain('Positionsmonitor ist bereit');
+      expect(source).toContain('{fallbackMessage}');
       expect(source).toContain("backgroundColor: '#06192F'");
+      expect(source).toContain("color: '#FFFFFF'");
+      expect(source).toContain("color: '#9DB6CA'");
       expect(source).not.toContain('backgroundColor: colors.bgSurface');
     }
+    expect(webMap).toContain('WARTET AUF STANDORT');
+    expect(nativeMap).toContain('if (!rows.length)');
+    expect(nativeMap).toContain('styles.fallbackTitle');
+    expect(nativeMap).toContain('styles.fallbackText');
   });
 
   it('zeigt die Problem-Inbox in allen Zuständen als eigenständigen lesbaren Qualitätsbereich', () => {

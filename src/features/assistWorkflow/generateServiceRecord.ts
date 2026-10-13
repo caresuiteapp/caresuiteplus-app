@@ -9,6 +9,7 @@ import { resolveVisitSignatureImageUrl } from '@/lib/assist/visitSignatureImageS
 import { probeSignatureImageDimensions } from '@/lib/signatures/signatureOrientation';
 import { buildServiceRecordHtml, buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 import type { AssistExecutionContext } from './types';
+import { signatureMatchesVisitContent } from './signatureMatchesVisitContent';
 
 export type GenerateServiceRecordResult = {
   serviceRecordId: string | null;
@@ -19,12 +20,20 @@ export type GenerateServiceRecordResult = {
 export async function generateServiceRecord(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
+  options: { requireSignature?: boolean } = {},
 ): Promise<ServiceResult<GenerateServiceRecordResult>> {
   let signatureSummary: { signerName: string; signedAt: string; signerRole?: string | null } | null =
     null;
   let signatureImageUrl: string | null = null;
   const sig = await fetchValidVisitSignature(ctx.tenantId, ctx.assistVisitId);
+  if (!sig.ok) return { ok: false, error: sig.error ?? 'Die gespeicherte Unterschrift konnte nicht geprüft werden. Bitte erneut versuchen.' };
+  if (options.requireSignature && !sig.data) {
+    return { ok: false, error: 'Die Unterschrift für diese Einsatzfassung fehlt. Bitte erneut unterschreiben, bevor der Leistungsnachweis abgeschlossen wird.' };
+  }
   if (sig.ok && sig.data) {
+    if (!await signatureMatchesVisitContent(ctx, sig.data, documentationText)) {
+      return { ok: false, error: 'Die gespeicherte Unterschrift gehört zu einer früheren Einsatzfassung. Bitte die aktuelle Dokumentation und Aufgaben prüfen und erneut unterschreiben.' };
+    }
     signatureSummary = {
       signerName: sig.data.signerName,
       signedAt: sig.data.signedAt,

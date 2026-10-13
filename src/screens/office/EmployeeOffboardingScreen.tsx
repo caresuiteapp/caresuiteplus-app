@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from "@/components/layout";
 import { CareDateInput } from "@/components/inputs";
 import { LockedActionBanner } from "@/components/permissions";
@@ -2747,7 +2749,9 @@ const styles = StyleSheet.create({
   phaseCard: {
     flexGrow: 1,
     flexBasis: 220,
-    minWidth: 210,
+    minWidth: Platform.OS === "web" ? 210 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     borderWidth: 1,
     borderColor: "#BFD8F1",
     borderRadius: radius.lg,
@@ -2903,7 +2907,9 @@ const styles = StyleSheet.create({
   productionCard: {
     flexGrow: 1,
     flexBasis: 350,
-    minWidth: 280,
+    minWidth: Platform.OS === "web" ? 280 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     borderWidth: 1,
     borderRadius: radius.lg,
     padding: spacing.md,
@@ -3012,7 +3018,9 @@ const styles = StyleSheet.create({
   accessCard: {
     flexGrow: 1,
     flexBasis: 250,
-    minWidth: 220,
+    minWidth: Platform.OS === "web" ? 220 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     borderWidth: 1,
     borderColor: "#F0B1BA",
     borderRadius: radius.lg,
@@ -3146,7 +3154,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: spacing.sm,
     flex: 1,
-    minWidth: 260,
+    minWidth: Platform.OS === "web" ? 260 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
   },
   stepNumber: {
     width: 32,
@@ -3204,7 +3214,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   manualEvidence: {
-    minWidth: 220,
+    minWidth: Platform.OS === "web" ? 220 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     marginTop: spacing.sm,
   },
   documentGrid: {
@@ -3215,7 +3227,9 @@ const styles = StyleSheet.create({
   documentCard: {
     flexGrow: 1,
     flexBasis: 300,
-    minWidth: 260,
+    minWidth: Platform.OS === "web" ? 260 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     borderWidth: 1,
     borderColor: "#F0B1BA",
     borderRadius: radius.lg,
@@ -3284,7 +3298,9 @@ const styles = StyleSheet.create({
   },
   documentUploadCopy: {
     flex: 1,
-    minWidth: 240,
+    minWidth: Platform.OS === "web" ? 240 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
   },
   documentUploadTitle: {
     fontSize: 20,
@@ -3317,7 +3333,9 @@ const styles = StyleSheet.create({
   },
   documentPickerCopy: {
     flex: 1,
-    minWidth: 220,
+    minWidth: Platform.OS === "web" ? 220 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
   },
   documentPickerLabel: {
     fontSize: 15,
@@ -3402,7 +3420,9 @@ const styles = StyleSheet.create({
   },
   assignedDocumentCopy: {
     flex: 1,
-    minWidth: 220,
+    minWidth: Platform.OS === "web" ? 220 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
   },
   assignedDocumentTitle: {
     fontSize: 15,
@@ -3503,7 +3523,9 @@ const styles = StyleSheet.create({
   clearanceCard: {
     flexGrow: 1,
     flexBasis: 260,
-    minWidth: 230,
+    minWidth: Platform.OS === "web" ? 230 : 0,
+    maxWidth: Platform.OS === "web" ? undefined : "100%",
+    flexShrink: Platform.OS === "web" ? 0 : 1,
     borderWidth: 1,
     borderColor: "#BFD8F1",
     borderRadius: radius.lg,

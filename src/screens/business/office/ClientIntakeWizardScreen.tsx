@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { AuroraPageHeader } from '@/components/aurora';
 import { ClientWorkspaceLiveBadge } from '@/components/office/ClientWorkspacePrimitives';
 import { ClientIntakeWizardForm } from '@/components/office/clientintakewizardform';
@@ -26,7 +26,7 @@ export function ClientIntakeWizardScreen() {
           subtitle="Strukturierte, sichere und vollständig geführte Neuaufnahme"
           description="Leistungsart wählen · Pflichtangaben intelligent prüfen · Entwurf jederzeit fortsetzen"
         >
-          <ClientWorkspaceLiveBadge label="Mandantengebundene Datenspeicherung aktiv" />
+          <ClientWorkspaceLiveBadge label="Sicherungsstatus im Aufnahmeformular" connected={false} />
         </AuroraPageHeader>
       </View>
       <View style={styles.content}>

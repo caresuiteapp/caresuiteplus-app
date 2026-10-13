@@ -49,7 +49,7 @@ async function releaseEmployeeDeferredSignatureAtomically(input: {
     } as never,
   ) as unknown as Promise<{ data: unknown; error: { message: string } | null }>);
   if (error) return { ok: false, error: error.message };
-  if (typeof data !== 'string' || !data) {
+  if (typeof data !== 'string' || data !== input.proofId) {
     return { ok: false, error: 'Klient:innenportal-Freigabe wurde nicht bestätigt.' };
   }
   return { ok: true, data: { clientDocumentId: data } };

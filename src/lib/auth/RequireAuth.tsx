@@ -1,3 +1,4 @@
+import { rememberWebLoginReturn, clearReachedWebLoginReturn } from '@/lib/navigation/webLoginReturn';
 import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import type { Href } from 'expo-router';
@@ -27,7 +28,8 @@ export function RequireAuth({
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
   useEffect(() => {
-    if (!hydrated || !authReady || isAuthenticated) return;
+    if (!hydrated || !authReady) return;
+    if (isAuthenticated) { clearReachedWebLoginReturn(); return; }
 
     let cancelled = false;
 
@@ -40,6 +42,7 @@ export function RequireAuth({
         }
       }
 
+      rememberWebLoginReturn();
       const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
       runAppTransition(() => {
         router.replace(target as never);

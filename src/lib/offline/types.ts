@@ -93,6 +93,8 @@ export type AssignmentCacheMeta = {
   /** True when only list-row fields are available offline (no full detail prefetch). */
   partialDetail?: boolean;
   cacheSource?: AssignmentCacheSource;
+  /** A cache fallback keeps data readable without claiming a successful server refresh. */
+  refreshError?: string | null;
 };
 
 export type AssignmentCacheLoadOptions = {

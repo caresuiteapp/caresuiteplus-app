@@ -32,6 +32,9 @@ export async function saveTaskResultsBatch(
   if (!updates.length) {
     return { ok: true, data: ctx };
   }
+  if (ctx.detail.isLocked || ['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(ctx.detail.signatureStatus)) {
+    return { ok: false, error: 'Die Aufgaben gehören zur bereits unterschriebenen Fassung. Bitte zuerst die Dokumentation erneut speichern und anschließend die korrigierte Fassung neu unterschreiben.' };
+  }
 
   for (const item of updates) {
     if (taskStatusRequiresNote(item.status) && !item.completionNote?.trim()) {

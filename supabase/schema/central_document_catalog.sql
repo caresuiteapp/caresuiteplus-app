@@ -2,6 +2,29 @@
 -- migration in the existing release environment; apply seed after this schema.
 BEGIN;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id='office-documents' AND public=false) THEN
+    RAISE EXCEPTION 'Ein privater office-documents-Speicher ist vor der Aktivierung erforderlich.';
+  END IF;
+END;
+$$;
+
+-- Older installations constrain document_type. Extend that existing predicate
+-- without discarding any of its accepted legacy/custom document types.
+DO $$
+DECLARE v_expression text;
+BEGIN
+  SELECT regexp_replace(pg_get_constraintdef(oid), '^CHECK \((.*)\)( NOT VALID)?$', '\1')
+    INTO v_expression FROM pg_constraint
+    WHERE conrelid='public.generated_documents'::regclass AND conname='generated_documents_document_type_check' AND contype='c';
+  IF v_expression IS NOT NULL AND v_expression NOT LIKE '%central_catalog%' THEN
+    ALTER TABLE public.generated_documents DROP CONSTRAINT generated_documents_document_type_check;
+    EXECUTE format('ALTER TABLE public.generated_documents ADD CONSTRAINT generated_documents_document_type_check CHECK (document_type = %L OR (%s))', 'central_catalog', v_expression);
+  END IF;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS public.central_document_catalog (
   template_key text NOT NULL,
   version integer NOT NULL CHECK (version > 0),
@@ -111,6 +134,8 @@ DECLARE
   v_definition jsonb;
   v_title text;
   v_source text;
+  v_archive_category text;
+  v_file_name text;
   v_client_document uuid;
   v_employee_document uuid;
   v_result jsonb;
@@ -144,15 +169,26 @@ BEGIN
     WHERE (f->>'required')::boolean AND nullif(btrim(p_snapshot #>> ARRAY['values',f->>'key']), '') IS NULL) THEN
     RAISE EXCEPTION 'Pflichtangaben fehlen.' USING ERRCODE='22023';
   END IF;
+  v_archive_category := CASE
+    WHEN v_definition->>'categoryKey'='vertraege' THEN 'vertrag'
+    WHEN v_title ILIKE '%Datenschutzinformation%' THEN 'datenschutz'
+    WHEN v_title ILIKE '%Einwilligung%' THEN 'einwilligung'
+    WHEN v_title ILIKE '%Vollmacht%' THEN 'vollmacht'
+    WHEN v_title ILIKE '%Leistungsnachweis%' OR v_title ILIKE '%Leistungsbestätigung%' THEN 'leistungsnachweis'
+    WHEN v_title ILIKE '%Rechnung%' AND v_definition->>'categoryKey'='abrechnung' THEN 'rechnung'
+    WHEN v_title ILIKE '%Medikationsplan%' THEN 'medikationsplan'
+    WHEN v_definition->>'categoryKey'='wunden' THEN 'wunddokumentation'
+    ELSE 'sonstige' END;
+  v_file_name := left(btrim(regexp_replace(v_title,'[^[:alnum:]-]+','-','g'),'-'),75)||'_'||v_id::text||'_v'||v_revision::text||'_ENTWURF.pdf';
   -- Never advertise a draft as a signed/finalized clinical or legal document.
   INSERT INTO public.generated_documents (id,tenant_id,title,document_type,status,client_id,employee_id,
     template_version,document_number,file_name,generated_content_json,autofill_snapshot_json,pdf_path,created_by)
   VALUES (v_id,v_tenant,'Entwurf · '||v_title,'central_catalog','draft',
     CASE WHEN v_target='client' THEN v_entity END, CASE WHEN v_target='employee' THEN v_entity END,
-    v_version,v_id::text,'draft.pdf',p_snapshot,p_snapshot->'context',p_pdf_path,p_actor);
+    v_version,v_id::text,v_file_name,p_snapshot,p_snapshot->'context',p_pdf_path,p_actor);
   IF v_target='client' THEN
     INSERT INTO public.client_documents (tenant_id,client_id,title,file_name,mime_type,category,storage_path,status,sensitivity,uploaded_by)
-    VALUES (v_tenant,v_entity,'Entwurf · '||v_title,'draft.pdf','application/pdf','sonstige',p_pdf_path,'entwurf','restricted',p_actor)
+    VALUES (v_tenant,v_entity,'Entwurf · '||v_title,v_file_name,'application/pdf',v_archive_category,p_pdf_path,'entwurf','restricted',p_actor)
     RETURNING id INTO v_client_document;
     IF p_original_path IS NOT NULL THEN
       INSERT INTO public.client_documents (tenant_id,client_id,title,file_name,mime_type,category,storage_path,status,sensitivity,uploaded_by)
@@ -160,7 +196,7 @@ BEGIN
     END IF;
   ELSIF v_target='employee' THEN
     INSERT INTO public.employee_documents (tenant_id,employee_id,title,file_name,category,storage_path,sensitive,released_to_portal)
-    VALUES (v_tenant,v_entity,'Entwurf · '||v_title,'draft.pdf','central_catalog',p_pdf_path,true,false)
+    VALUES (v_tenant,v_entity,'Entwurf · '||v_title,v_file_name,'central_catalog',p_pdf_path,true,false)
     RETURNING id INTO v_employee_document;
     IF p_original_path IS NOT NULL THEN
       INSERT INTO public.employee_documents (tenant_id,employee_id,title,file_name,category,storage_path,sensitive,released_to_portal)

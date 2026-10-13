@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
@@ -75,6 +76,7 @@ export function OfficeIndexScreen() {
         ]}
       />
       <ActionToolbar actions={toolbarActions} accentColor={officeAccent} />
+      <DocumentRecommendations module="office" workflow="company" widget title="Dokumentenkatalog" />
       <HealthOSOfficeCommandCenterView
         snapshot={data}
         loading={loading}

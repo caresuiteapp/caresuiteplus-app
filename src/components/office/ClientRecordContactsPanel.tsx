@@ -1,3 +1,4 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
@@ -69,7 +70,7 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
   const canEdit = can('office.clients.edit');
   const canManageContacts = can('office.clients.manage_contacts') || canEdit;
 
-  const [editOpen, setEditOpen] = useState(false);
+  const [editOpen, setEditOpen] = usePageFlag('ClientRecordContactsPanel.editOpen', false);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');

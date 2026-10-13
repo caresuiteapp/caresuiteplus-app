@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ register: vi.fn(), draft: vi.fn(), saveDraft: vi.fn(), removeDraft: vi.fn(), detail: vi.fn(), list: vi.fn(), status: vi.fn(), record: vi.fn(), push: vi.fn(), resetRequest:vi.fn(),resetComplete:vi.fn(),readToken:vi.fn(),signOut:vi.fn(),tenantId: 'a' }));
 vi.mock('react-native', async () => {
   const React = await import('react');
-  const element = (tag: string) => (p: any) => React.createElement(tag, { onClick: p.onPress, disabled: p.disabled, role: p.accessibilityRole, 'aria-label': p.accessibilityLabel }, p.children);
+  const element = (tag: string) => function NativeElement(p: any) { return React.createElement(tag, { onClick: p.onPress, disabled: p.disabled, role: p.accessibilityRole, 'aria-label': p.accessibilityLabel }, p.children); };
   return { useWindowDimensions: () => ({ width: 1440, height: 900, scale: 1, fontScale: 1 }), Platform: { OS: 'web' }, StyleSheet: { create: (s: any) => s }, View: element('div'), Text: element('span'), ScrollView: element('div'), KeyboardAvoidingView: element('div'), Pressable: element('button'), TextInput: (p: any) => React.createElement('input', { value: p.value, 'aria-label': p.accessibilityLabel, onInput: (e: any) => p.onChangeText(e.currentTarget.value) }) };
 });
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: api.push, replace: api.push }), useNavigation: () => ({ dispatch: api.push }), useLocalSearchParams: () => ({ tenantId: api.tenantId }), Link: ({ children }: any) => <a>{children}</a> }));
@@ -33,7 +33,8 @@ vi.mock('@/liquid-command/components/LiquidPrimitives', () => {
 vi.mock('@/theme', () => ({ spacing: {} }));
 vi.mock('@/components/platformConsole/PlatformShellLayout.web', () => ({ PlatformShellLayout: ({ children, title }: any) => <div>{title}{children}</div> }));
 vi.mock('@/components/ui', () => ({ LoadingState: ({ message }: any) => <div>{message}</div>, ErrorState: ({ message, onRetry }: any) => <div>{message}<button onClick={onRetry}>Erneut laden</button></div> }));
-vi.mock('@/lib/platformConsole/PlatformAuthProvider', () => ({ usePlatformAuth: () => ({ platformUser: { role: 'admin' } }) }));
+vi.mock('@/lib/platformConsole/PlatformAuthProvider', () => ({ usePlatformAuth: () => ({ platformUser: { role: 'platform_admin' } }) }));
+vi.mock('@/lib/platformConsole/platformAccessService', () => ({ managePlatformTenantAccess: api.status }));
 vi.mock('@/lib/platformConsole/platformCompanyDirectoryService', () => ({ listPlatformCompanies: api.list }));
 vi.mock('@/lib/platformConsole', () => ({ getPlatformTenantDetail: api.detail, platformRoleHasCapability: () => true, updatePlatformTenantStatus: api.status, updatePlatformTenantRecord: api.record, resolvePlatformTenantDetailId: (row: any) => row.id }));
 vi.mock('@/components/platformConsole', () => ({
@@ -44,11 +45,12 @@ vi.mock('@/components/platformConsole', () => ({
   PlatformDataTable: ({ data }: any) => <div>{data.map((row: any) => <span key={row.id}>{row.tenantName}</span>)}</div>,
 }));
 vi.mock('@/screens/platformConsole/PlatformTenantOperatorTabs', () => Object.fromEntries(['Audit', 'BillingPreview', 'Credits', 'Diagnosis', 'Discounts', 'Entitlements', 'FeatureFlags', 'Invoices', 'Limits', 'Payments', 'Subscription', 'Support', 'Users'].map(name => [`Tenant${name}Tab`, () => null])));
+import { COMPANY_REGISTRATION_CATALOG_VERSION } from '@/lib/catalogs/companyRegistrationCatalog';
 import { RegisterOrganizationScreen,PasswordRecoveryScreen,PasswordResetScreen } from '@/liquid-command/screens/AccessScreens.web';
 import { PlatformTenantDetailScreen } from '@/screens/platformConsole/PlatformTenantDetailScreen.web';
 import { PlatformTenantsScreen } from '@/screens/platformConsole/PlatformTenantsScreen.web';
-const draft = { companyName: 'Musterpflege', legalForm: 'GmbH', industry: 'Pflege', street: 'Testweg 1', zip: '10115', city: 'Berlin', phone: '030123456', email: 'kontakt@example.test', adminFirstName: 'Anna', adminLastName: 'Test', adminEmail: 'anna@example.test', adminPassword: 'NeverRestoreThis', selectedModules: ['office'] };
-const detail = (id: string, mode = 'production') => ({ ok: true, data: { tenant: { tenant_id: id, tenant_name: `Unternehmen ${id}`, environment_mode: mode, environment_notes: 'Einordnung vorhanden' }, modules: [], plan: null } });
+const draft = { companyName: 'Musterpflege', legalForm: 'GmbH', legalFormKey: 'gmbh', industry: 'Ambulanter Pflegedienst', industryKey: 'pflegedienst', registrationCatalogVersion: COMPANY_REGISTRATION_CATALOG_VERSION, street: 'Testweg 1', zip: '10115', city: 'Berlin', phone: '030123456', email: 'kontakt@example.test', adminFirstName: 'Anna', adminLastName: 'Test', adminEmail: 'anna@example.test', adminPassword: 'NeverRestoreThis', selectedModules: ['office'] };
+const detail = (id: string, mode = 'production') => ({ ok: true, data: { tenant: { status: 'active', tenant_id: id, tenant_name: `Unternehmen ${id}`, environment_mode: mode, environment_notes: 'Einordnung vorhanden' }, modules: [], plan: null } });
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { promise, resolve }; };
 let host: HTMLDivElement; let root: Root;
 const button = (text: string) => [...host.querySelectorAll('button')].find(b => b.textContent === text)!;
@@ -82,6 +84,7 @@ describe('free web registration', () => {
     await write('Admin-Passwort', 'Testpasswort123'); await write('Passwort bestätigen', 'Testpasswort123');
     await act(async () => (host.querySelector('[role="checkbox"]') as HTMLButtonElement).click()); await click('Weiter');
     await click('Unternehmen kostenlos registrieren');
+    expect(api.register, host.textContent ?? '').toHaveBeenCalledOnce();
     expect([...host.querySelectorAll('button')].filter(b => b.textContent?.includes('Stammdaten und Leistungsbereich')).every(b => b.disabled)).toBe(true);
     expect([...host.querySelectorAll('button')].filter(b => b.textContent === 'Zurück').every(b => b.disabled)).toBe(true);
     await click('Zurück'); expect(api.push).not.toHaveBeenCalled();
@@ -100,6 +103,7 @@ describe('free web registration', () => {
     await write('Admin-Passwort', 'Testpasswort123'); await write('Passwort bestätigen', 'Testpasswort123');
     await act(async () => (host.querySelector('[role="checkbox"]') as HTMLButtonElement).click()); await click('Weiter');
     await click('Unternehmen kostenlos registrieren');
+    expect(api.register, host.textContent ?? '').toHaveBeenCalledOnce();
     expect(host.textContent).toContain('Verbindung unterbrochen');
     expect(host.textContent).toContain('Registrierung nicht abgeschlossen');
     expect(button('Unternehmen kostenlos registrieren').disabled).toBe(false);

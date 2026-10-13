@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { stripTypeScriptTypes } from 'node:module';
+import ts from 'typescript';
 import { dirname,resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webcrypto } from 'node:crypto';
@@ -23,7 +23,10 @@ const boundaries={
 const cache=new Map();
 async function moduleFor(file){
   if(cache.has(file))return cache.get(file);
-  const mod=new SourceTextModule(stripTypeScriptTypes(await readFile(file,'utf8')),{context,identifier:file});cache.set(file,mod);
+  const source=ts.transpileModule(await readFile(file,'utf8'),{
+    compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext},
+  }).outputText;
+  const mod=new SourceTextModule(source,{context,identifier:file});cache.set(file,mod);
   await mod.link(async(specifier)=>{
     const values=boundaries[specifier];assert.ok(values,'Unexpected boundary: '+specifier);
     const key='boundary:'+specifier;

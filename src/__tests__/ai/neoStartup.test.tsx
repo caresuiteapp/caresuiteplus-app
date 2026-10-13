@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+// @vitest-environment-options {"url":"https://www.caresuiteplus.app/"}
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +25,7 @@ const emit = (event: string) => act(async () => host.querySelector('video')!.dis
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers(); appStartIntroSession.completed = false;
+  (window as unknown as { happyDOM: { setURL(url: string): void } }).happyDOM.setURL('https://www.caresuiteplus.app/');
   model.authenticated = true; model.pathname = '/office'; model.createSpeech.mockClear(); model.dispose.mockClear();
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
@@ -43,19 +45,23 @@ describe('Neo and the startup video', () => {
     model.pathname = '/office/clients'; await render();
     expect(robot()).not.toBeNull(); expect(model.createSpeech).toHaveBeenCalledOnce();
   });
-  it('stays absent during an autoplay block and a retry', async () => {
+  it('waits during silent playback and an ordinary interaction that retries sound', async () => {
     vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'));
     await render();
     expect(robot()).toBeNull(); expect(model.createSpeech).not.toHaveBeenCalled();
-    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Intro mit Musik starten"]')!.click());
+    expect(host.querySelector('video')!.muted).toBe(true);
+    expect(host.querySelector('[aria-label="Intro mit Musik starten"]')).toBeNull();
+    const event = new Event('click', { bubbles: true });
+    Object.defineProperty(event, 'isTrusted', { value: true });
+    await act(async () => document.dispatchEvent(event));
+    expect(host.querySelector('video')!.muted).toBe(false);
     await emit('playing'); expect(robot()).toBeNull();
     await emit('ended'); expect(robot()).not.toBeNull();
   });
-  it('waits for error recovery to release the app and stays absent for signed-out users', async () => {
+  it('releases the app after a media error and stays absent for signed-out users', async () => {
     await render(); await emit('error');
-    expect(robot()).toBeNull(); expect(model.createSpeech).not.toHaveBeenCalled();
-    await act(async () => vi.advanceTimersByTime(20_000));
     expect(robot()).not.toBeNull();
+    expect(model.createSpeech).toHaveBeenCalledOnce();
     model.authenticated = false; await render();
     expect(robot()).toBeNull(); expect(model.dispose).toHaveBeenCalledOnce();
   });

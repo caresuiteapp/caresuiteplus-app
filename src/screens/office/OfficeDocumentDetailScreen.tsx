@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { OfficeDocumentDetailSummaryPanel } from '@/components/office/OfficeDocumentDetailSummaryPanel';
 import { ErrorState, PremiumButton } from '@/components/ui';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 
 export function OfficeDocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

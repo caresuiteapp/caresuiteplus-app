@@ -4,7 +4,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { listEmployeePortalUploads } from '@/lib/portal/employeePortalUploadService';
 
 export function useEmployeePortalUploads() {
-  const { tenantId, employeeId, isReady } = usePortalActor();
+  const { tenantId, employeeId, isLinkedReady, isResolvingEmployeeLink } = usePortalActor();
 
   const query = useAsyncQuery(
     () => {
@@ -14,17 +14,17 @@ export function useEmployeePortalUploads() {
       return listEmployeePortalUploads(tenantId, employeeId);
     },
     [tenantId, employeeId],
-    { enabled: isReady && !!tenantId && !!employeeId },
+    { enabled: isLinkedReady && !!tenantId && !!employeeId, queryKey: JSON.stringify([tenantId, employeeId]) },
   );
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    return query.refreshWithResult();
   }, [query]);
 
   return {
     uploads: query.data ?? [],
-    loading: query.loading,
-    error: query.error,
+    loading: isResolvingEmployeeLink || query.loading,
+    error: !isResolvingEmployeeLink && !employeeId ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden.' : query.error ?? query.refreshError,
     refresh,
   };
 }

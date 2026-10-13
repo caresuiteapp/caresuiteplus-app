@@ -1,5 +1,4 @@
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
-import { Platform } from 'react-native';
 
 export type LiquidGlobalShortcut = {
   id: string;
@@ -9,13 +8,6 @@ export type LiquidGlobalShortcut = {
   route: string;
   keywords: string;
 };
-const centralCatalogShortcut: LiquidGlobalShortcut = {
-  id: 'document-catalog', label: 'Dokumentenkatalog',
-  description: 'Neue Vorlagen, Datenübernahme, PDF und Aktenablage im Office',
-  glyph: '▤', route: '/business/office/document-catalog',
-  keywords: 'vorlagen zentral dokumentenkatalog vertrag formular pflege betreuung pdf',
-};
-const centralCatalogWorkArea: LiquidWorkArea = { id: 'document-catalog', label: 'Dokumentenkatalog', description: 'Zentrale neue Vorlagen für alle Module', pageType: 'work-list', route: '/business/office/document-catalog' };
 
 /**
  * Productive cross-module destinations that must remain reachable from every
@@ -23,7 +15,6 @@ const centralCatalogWorkArea: LiquidWorkArea = { id: 'document-catalog', label: 
  * Liquid Command is the navigation owner, not a parallel demo catalogue.
  */
 export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
-  ...(Platform.OS === 'web' ? [centralCatalogShortcut] : []),
   {
     id: 'today',
     label: 'Heute',
@@ -81,20 +72,16 @@ export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
     keywords: 'dateien dokumente unterschrift signatur download vorschau',
   },
   {
+    id: 'document-catalog', label: 'Dokumentenkatalog', description: '450 Vorlagen, Aktenübernahme, PDF und Druck',
+    glyph: '▤', route: '/business/office/document-catalog', keywords: 'vorlagen dokumentenkatalog vertrag datenschutz formular leistungsnachweis',
+  },
+  {
     id: 'portals',
     label: 'Portale & Zugänge',
     description: 'Mitarbeitende, Klient:innen, Angehörige und interne Benutzer',
     glyph: '⌘',
     route: '/business/office/portals',
     keywords: 'portal zugang login codes mitarbeiter klient angehörige benutzer',
-  },
-  {
-    id: 'bodymap',
-    label: 'BodyMap',
-    description: 'Körperkarte, Wunden, Dekubitus und Verlaufskontrolle',
-    glyph: '⌾',
-    route: '/pflege/bodymap',
-    keywords: 'körper bodymap wunde dekubitus pflege',
   },
   {
     id: 'profile',
@@ -196,7 +183,6 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: '/?area=decisions' },
   ],
   office: [
-    ...(Platform.OS === 'web' ? [centralCatalogWorkArea] : []),
     { id: 'company', label: 'Unternehmen', description: 'Stammdaten, Standorte und Organisation', pageType: 'record', route: '/business/office/dashboard' },
     { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/business/office/clients' },
     { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/business/office/employees' },
@@ -204,6 +190,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'payroll', label: 'Gehaltsstatistik', description: 'Monatsberechnung, Auslagen, PDF und Bestätigung', pageType: 'analytics', route: '/business/office/payroll' },
     { id: 'billing', label: 'Rechnungen', description: 'Abrechnung, Zahlungen und Mahnungen', pageType: 'review', route: '/business/office/invoices' },
     { id: 'documents', label: 'Dokumente', description: 'Vorschau, Download, Versionen und Signaturen', pageType: 'work-list', route: '/business/office/documents' },
+    { id: 'document-catalog', label: 'Dokumentenkatalog', description: 'Zentrale Vorlagen mit Daten aus der ausgewählten Akte', pageType: 'work-list', route: '/business/office/document-catalog' },
     { id: 'communication', label: 'Nachrichten', description: 'Posteingang, Unterhaltungen, Aufgaben und Vorlagen', pageType: 'work-list', route: '/business/messages' },
     { id: 'portals', label: 'Portale & Zugänge', description: 'Konten, Codes, Rollen und Freigaben', pageType: 'settings', route: '/business/office/portals' },
     { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: '/business/office/inventory' },
@@ -231,7 +218,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'medication', label: 'Medikation', description: 'Plan, Gabe und Abweichung', pageType: 'review', route: '/pflege/medikation' },
     { id: 'diagnoses', label: 'Diagnosen', description: 'Ärztliche Angaben und Pflegerelevanz', pageType: 'record', route: '/pflege/diagnosen' },
     { id: 'orders', label: 'Verordnungen', description: 'Gültigkeit, Genehmigung und Durchführung', pageType: 'record', route: '/pflege/verordnungen' },
-    { id: 'wounds', label: 'Wunden', description: 'BodyMap, Dekubitus und Verlauf', pageType: 'editor', route: '/pflege/bodymap' },
+    { id: 'wounds', label: 'Wunden', description: 'Wundfälle, Dekubitus und Verlauf', pageType: 'editor', route: '/pflege/wunddokumentation' },
     { id: 'vitals', label: 'Vitalwerte', description: 'Erfassung, Verlauf und Grenzwerte', pageType: 'analytics', route: '/pflege/vitalwerte' },
     { id: 'reports', label: 'Pflegeberichte', description: 'Chronologie und Freigabe', pageType: 'work-list', route: '/pflege/berichte' },
     { id: 'treatment', label: 'Behandlungspflege', description: 'Verordnete Durchführung und Nachweis', pageType: 'work-list', route: '/pflege/behandlungspflege' },

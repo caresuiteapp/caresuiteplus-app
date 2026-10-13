@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ProtocolDetailHero } from '@/components/beratung';
 import { ModuleExtensionNavStrip } from '@/components/navigation/ModuleExtensionNavStrip';
 import { ScreenShell } from '@/components/layout';

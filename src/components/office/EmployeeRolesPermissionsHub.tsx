@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useEffect, useMemo, useState } from 'react';
 
 import { StyleSheet, Text, View } from 'react-native';
@@ -285,7 +286,7 @@ export function EmployeeRolesPermissionsHub({
 
   const initialRole = roleKey ?? 'employee_portal';
 
-  const [activeTab, setActiveTab] = useState<RbacHubTabKey>('overview');
+  const [activeTab, setActiveTab] = usePageTab<RbacHubTabKey>('EmployeeRolesPermissionsHub.activeTab', 'overview');
 
   const [search, setSearch] = useState('');
 

@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
@@ -31,6 +32,7 @@ export function OfficeDocumentsListScreen() {
       ]}
     >
       <View style={styles.content}>
+        <DocumentRecommendations module="office" workflow="company" compact title="Neue Dokumente erstellen" />
         {tenantId ? (
           <SectionPanel
             title="Eingang aus Mitarbeiter- und Klient:innenportal"

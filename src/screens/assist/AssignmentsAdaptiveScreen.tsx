@@ -1,10 +1,11 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { AssignmentDetailGlassModal } from '@/components/assist/AssignmentDetailGlassModal';
 import { AssignmentsListScreen } from './AssignmentsListScreen';
 
 /** Full-width assignments list; row tap opens AssignmentDetailGlassModal. */
 export function AssignmentsAdaptiveScreen() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('AssignmentsAdaptiveScreen.record', null);
   const [listRefreshKey, setListRefreshKey] = useState(0);
 
   return (

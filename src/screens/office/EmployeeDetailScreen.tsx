@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { EmployeeDetailHero } from '@/components/office/EmployeeDetailHero';
 import { EmployeePortalImpactPanel } from '@/components/office/EmployeePortalImpactPanel';
@@ -65,9 +66,9 @@ export function EmployeeDetailScreen({
   const { can, check, isReadOnly, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const canView = can('office.employees.view');
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTab] = usePageTab<
     'uebersicht' | 'stammdaten' | 'kontakt' | 'anstellung' | 'portal'
-  >(initialTabOverride ?? 'uebersicht');
+  >('EmployeeDetailScreen.activeTab', initialTabOverride ?? 'uebersicht');
   const sectionEdit = useSectionEditModal<EmployeeEditSectionKey>();
   const hostsLocalSectionEdit = !onEditMasterData;
 
@@ -424,3 +425,4 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
 });
+import { usePageTab } from '@/hooks/usePageTab';

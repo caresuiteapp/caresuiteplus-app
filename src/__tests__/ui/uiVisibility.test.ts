@@ -128,12 +128,13 @@ describe('Business login cleanup (Prompt 103)', () => {
 });
 
 describe('Registration cleanup (Prompt 103)', () => {
-  it('BusinessRegisterScreen shows module selection without raw preparedOnly keys', () => {
+  it('BusinessRegisterScreen has no module selection or prepared notices', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen).toContain('MODULE_OPTIONS');
-    expect(screen).not.toContain('preparedOnly');
-    expect(screen).toContain("module === 'office'");
-    expect(screen).toContain('AuthRegisterHero');
+    expect(screen).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).not.toContain('MODULE_OPTIONS');
+    expect(shared).not.toContain('preparedOnly');
+    expect(shared).not.toContain('AuthRegisterHero');
   });
 
   it('PremiumPreparedNotice documents premium connectors', () => {

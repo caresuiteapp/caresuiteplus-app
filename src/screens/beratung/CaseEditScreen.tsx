@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -57,7 +58,6 @@ export function CaseEditScreen() {
       return;
     }
     setSaved(true);
-    setTimeout(() => router.replace(`/beratung/faelle/${id}` as never), 900);
   }
 
   if (loading) {
@@ -70,7 +70,7 @@ export function CaseEditScreen() {
 
   if (saved) {
     return (
-      <ScreenShell title="Gespeichert" showBack={false}>
+      <ScreenShell title="Gespeichert">
         <SuccessState message="Beratungsfall aktualisiert." />
       </ScreenShell>
     );

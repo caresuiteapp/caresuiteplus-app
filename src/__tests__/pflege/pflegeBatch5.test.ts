@@ -119,13 +119,13 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
     expect(isWoundBodyMapReady()).toBe(false);
   });
 
-  it('Detail-Heroes zeigen externe Anbindung für eMP/BodyMap/Sign/PDF', () => {
+  it('Detail-Heroes behalten eMP, Signatur und PDF ohne Bodymap-Werbung', () => {
     const medHero = readSrc('src/components/pflege/MedicationDetailHero.tsx');
     const woundHero = readSrc('src/components/pflege/WoundDocumentationDetailHero.tsx');
     const docHero = readSrc('src/components/pflege/CareDocumentationDetailHero.tsx');
 
     expect(medHero).toMatch(/eMP|extern/i);
-    expect(woundHero).toMatch(/BodyMap|extern/i);
+    expect(woundHero).not.toMatch(/BodyMap|extern/i);
     expect(docHero).toMatch(/Signatur|PDF/i);
   });
 
@@ -134,6 +134,8 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
     expect(readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx')).toContain('saveCareAssessment');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('vitalSignSupabaseRepository');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('createVitalReading');
-    expect(readSrc('app/pflege/bodymap.tsx')).toContain('BodyMapScreen');
+    const retiredRoute = readSrc('app/pflege/bodymap.tsx');
+    expect(retiredRoute).toContain('<Redirect href="/"');
+    expect(retiredRoute).not.toContain('BodyMapScreen');
   });
 });

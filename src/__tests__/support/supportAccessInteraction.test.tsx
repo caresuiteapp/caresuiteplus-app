@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ rpc: vi.fn(), confirm: vi.fn(), refresh: vi.fn(), dirty: vi.fn(), error: vi.fn() }));
 vi.mock('react-native', async () => {
   const React = await import('react');
-  const element = (tag: string) => (props: any) => React.createElement(tag, { onClick: props.onPress, disabled: props.disabled, 'aria-label': props.accessibilityLabel, role: props.accessibilityRole }, props.children);
+  const element = (tag: string) => function NativeElement(props: any) { return React.createElement(tag, { onClick: props.onPress, disabled: props.disabled, 'aria-label': props.accessibilityLabel, role: props.accessibilityRole }, props.children); };
   return { Platform: { OS: 'web' }, Linking: { openURL: vi.fn() }, StyleSheet: { create: (styles: any) => styles }, Text: element('span'), View: element('div'), Pressable: element('button'), TextInput: (props: any) => React.createElement('textarea', { 'aria-label': props.accessibilityLabel, readOnly: props.editable === false, value: props.value, onInput: (event: any) => props.onChangeText(event.currentTarget.value) }) };
 });
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: vi.fn() }));

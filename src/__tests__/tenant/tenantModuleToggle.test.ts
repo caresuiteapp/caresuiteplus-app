@@ -55,14 +55,14 @@ describe('tenantModuleToggleService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('deaktiviert Pflege über Hub und blendet Rail/Dashboard aus', async () => {
+  it('deaktiviert einen alten Pflege-Schalter ohne das unveröffentlichte Modul einzublenden', async () => {
     seedTenantCenterModules({
       assistEnabled: true,
       pflegeEnabled: true,
       stationaerEnabled: false,
       beratungEnabled: false,
     });
-    expect(getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map((m) => m.key)).toContain(
+    expect(getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map((m) => m.key)).not.toContain(
       'pflege',
     );
 
@@ -98,7 +98,25 @@ describe('tenantModuleToggleService', () => {
       'kpi',
       { tenantId: TENANT, roleKey: ADMIN },
     );
-    expect(rows.map((row) => row.moduleKey)).toEqual(['office', 'assist', 'akademie']);
+    expect(rows.map((row) => row.moduleKey)).toEqual(['office', 'assist']);
+  });
+
+  it('schaltet das veröffentlichte Assist-Modul und die zugehörige Office-Rail tatsächlich um', async () => {
+    const visible = () => getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map(m => m.key);
+    expect(visible()).toContain('assist');
+    expect(visible()).toContain('office');
+    const disabled = await setTenantModuleEnabled(TENANT, 'assist', false, ADMIN);
+    expect(disabled.ok).toBe(true);
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(false);
+    expect(hasModuleAccess('assist', TENANT)).toBe(false);
+    expect(visible()).not.toContain('assist');
+    expect(visible()).not.toContain('office');
+    const enabled = await setTenantModuleEnabled(TENANT, 'assist', true, ADMIN);
+    expect(enabled.ok).toBe(true);
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(true);
+    expect(hasModuleAccess('assist', TENANT)).toBe(true);
+    expect(visible()).toContain('assist');
+    expect(visible()).toContain('office');
   });
 
   it('hält Beratung im Hub und in der Navigation global gesperrt', async () => {

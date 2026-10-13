@@ -1,3 +1,6 @@
+import { addEmployeeOptionalVisitTasks, type OptionalTaskSaveResult } from '@/lib/portal/optionalVisitTaskService';
+import { mergeConfirmedOptionalTasks, type OptionalVisitTaskDraft } from '@/lib/portal/optionalVisitTaskModel';
+import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { EmployeeOpenVisitTimeEditor } from '@/components/portal/EmployeeOpenVisitTimeEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,7 +14,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
@@ -140,6 +144,14 @@ function isWorkflowConfirmationPending(errorCode: unknown): boolean {
 }
 
 export function EmployeePortalVisitExecutionScreen() {
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { tenantId, employeeId } = usePortalActor();
+  const { portalSession, profile } = useAuth();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  return <EmployeePortalVisitExecutionContent key={JSON.stringify([tenantId, employeeId, portalSession?.accountId, profile?.id, id])} />;
+}
+
+function EmployeePortalVisitExecutionContent() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
@@ -166,6 +178,7 @@ export function EmployeePortalVisitExecutionScreen() {
     refetchWarning,
     taskSaving,
     taskSaveError,
+    acceptConfirmedTaskAdditions,
     refresh,
     consent,
     grantConsent,
@@ -197,7 +210,7 @@ export function EmployeePortalVisitExecutionScreen() {
   } = useEmployeePortalVisitExecution(id);
 
   const { tenantId: portalTenantId, employeeId: portalEmployeeId } = usePortalActor();
-  const { user, profile } = useAuth();
+  const { user, profile, portalSession } = useAuth();
   const actorId = user?.id ?? profile?.id ?? portalEmployeeId ?? '';
 
   const effectiveStatus: AssignmentStatus =
@@ -230,6 +243,10 @@ export function EmployeePortalVisitExecutionScreen() {
   const [closeSignatureCaptureRequest, setCloseSignatureCaptureRequest] = useState(0);
   const restoredAssignmentRef = useRef<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const optionalTaskScope = `${portalTenantId ?? ''}:${portalEmployeeId ?? ''}:${id ?? ''}`;
+  const activeOptionalTaskScope = useRef(optionalTaskScope);
+  activeOptionalTaskScope.current = optionalTaskScope;
+  const [confirmedOptionalTasks, setConfirmedOptionalTasks] = useState<{ scope: string; tasks: EmployeePortalTaskItem[] }>({ scope: optionalTaskScope, tasks: [] });
   const [documentationOpen, setDocumentationOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
@@ -239,6 +256,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
   const documentationEditedRef = useRef(false);
+  const [documentationDirty, setDocumentationDirty] = useState(false);
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
   const [documentationDeviations, setDocumentationDeviations] = useState('');
   const [documentationDeviationJustification, setDocumentationDeviationJustification] =
@@ -360,8 +378,8 @@ export function EmployeePortalVisitExecutionScreen() {
     });
   }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
   const visitTasks = useMemo(
-    () => (Array.isArray(visit?.tasks) ? visit.tasks : []),
-    [visit?.tasks],
+    () => mergeConfirmedOptionalTasks(Array.isArray(visit?.tasks) ? visit.tasks : [], confirmedOptionalTasks.scope === optionalTaskScope ? confirmedOptionalTasks.tasks : []),
+    [visit?.tasks, confirmedOptionalTasks, optionalTaskScope],
   );
 
   useEffect(() => {
@@ -383,6 +401,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const appendDocumentationNote = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    documentationEditedRef.current = true;
+    setDocumentationDirty(true);
     setDocumentationSpecialNotes((prev) => (prev.trim() ? `${prev.trim()}\n${trimmed}` : trimmed));
     setDocumentationOpen(true);
   }, []);
@@ -482,6 +502,7 @@ export function EmployeePortalVisitExecutionScreen() {
       }
       if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationDraftText === 'string') {
         setDocumentationDraftText(snapshot.documentationDraftText);
+        if (snapshot.documentationDraftText.trim()) setDocumentationDirty(true);
       }
       if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationSpecialNotes === 'string') {
         setDocumentationSpecialNotes(snapshot.documentationSpecialNotes);
@@ -566,6 +587,30 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
   const showTasks = uiState?.showTasks ?? false;
+  const canAddOptionalTasks = canExecute && !isLocked && !readOnlyExecution && !actionLoading && !taskSaving && !workflowConfirmationPending
+    && ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen'].includes(effectiveStatus)
+    && !['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '');
+  const saveOptionalTasks = useCallback(async (drafts: OptionalVisitTaskDraft[]): Promise<OptionalTaskSaveResult> => {
+    if (!canAddOptionalTasks || !portalTenantId || !portalEmployeeId || !id)
+      return { ok: false, error: 'In diesem Einsatz können derzeit keine neuen Aufgaben ergänzt werden.' };
+    const scope = optionalTaskScope;
+    const result = await addEmployeeOptionalVisitTasks({ tenantId: portalTenantId, assignmentId: id, employeeId: portalEmployeeId, portalSession }, drafts);
+    if (activeOptionalTaskScope.current !== scope)
+      return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte die Aufgaben im ursprünglichen Einsatz prüfen.' };
+    if (!result.ok) return result;
+    setConfirmedOptionalTasks(current => ({ scope, tasks: mergeConfirmedOptionalTasks(current.scope === scope ? current.tasks : [], result.tasks) }));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([refresh(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('readback pending')), 15_000); })]);
+    } catch {
+      if (activeOptionalTaskScope.current === scope) setLocalWarning('Die Aufgaben sind auf dem Server gespeichert. Der weitere Einsatzstatus konnte noch nicht aktualisiert werden. Bitte den Einsatz vor dem Abschluss neu laden.');
+    } finally { if (timer) clearTimeout(timer); }
+    if (activeOptionalTaskScope.current !== scope)
+      return { ok: false, error: 'Der Einsatz wurde gewechselt. Bitte die Aufgaben im ursprünglichen Einsatz prüfen.' };
+    if (!acceptConfirmedTaskAdditions({ tenantId: portalTenantId, employeeId: portalEmployeeId, assignmentId: id }, result.tasks))
+      setLocalWarning('Die Aufgaben sind gespeichert. Bitte den Einsatz erneut öffnen, damit auch Dokumentation und Abschluss aktualisiert werden.');
+    return result;
+  }, [canAddOptionalTasks, portalTenantId, portalEmployeeId, id, portalSession, optionalTaskScope, refresh, acceptConfirmedTaskAdditions]);
   const documentationSubmitted = uiState?.documentationSubmitted ?? false;
   const signatureCaptured = uiState?.signatureCaptured ?? false;
   const signatureDeferred = uiState?.signatureDeferred ?? false;
@@ -874,10 +919,10 @@ export function EmployeePortalVisitExecutionScreen() {
       signatureModalOpen: false,
       showNoShowForm,
       documentationSubmitted,
-      documentationDraftText: documentationSubmitted ? null : documentationDraftText,
-      documentationSpecialNotes: documentationSubmitted ? null : documentationSpecialNotes,
-      documentationDeviations: documentationSubmitted ? null : documentationDeviations,
-      documentationDeviationJustification: documentationSubmitted
+      documentationDraftText: documentationSubmitted && !documentationDirty ? null : documentationDraftText,
+      documentationSpecialNotes: documentationSubmitted && !documentationDirty ? null : documentationSpecialNotes,
+      documentationDeviations: documentationSubmitted && !documentationDirty ? null : documentationDeviations,
+      documentationDeviationJustification: documentationSubmitted && !documentationDirty
         ? null
         : documentationDeviationJustification,
       signatureCaptured,
@@ -892,6 +937,7 @@ export function EmployeePortalVisitExecutionScreen() {
     showNoShowForm,
     documentationSubmitted,
     documentationDraftText,
+    documentationDirty,
     documentationSpecialNotes,
     documentationDeviations,
     documentationDeviationJustification,
@@ -1815,6 +1861,7 @@ export function EmployeePortalVisitExecutionScreen() {
               }}
             >
               <EmployeePortalVisitSignaturePanel
+                key={signatureViewScope}
                 clientName={visit.clientName}
                 loading={actionLoading}
                 confirmationPending={signatureConfirmationPending}
@@ -1837,7 +1884,9 @@ export function EmployeePortalVisitExecutionScreen() {
                     signatureConfirmationPending: true,
                     awaitingSignature: true,
                   });
+                  const submitScope = signatureViewScope;
                   const r = await saveSignature(sig);
+                  if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
                   if (r.ok) {
                     setSignatureConfirmationPending(true);
                     setAwaitingSignature(true);
@@ -1872,19 +1921,24 @@ export function EmployeePortalVisitExecutionScreen() {
         </PortalKeyboardScrollView>
       </View>
 
-      {showTasks && visitTasks.length > 0 ? (
+      {showTasks ? (
         <EmployeePortalVisitTasksPanel
+          key={optionalTaskScope}
           tasks={visitTasks}
-          disabled={isLocked}
+          disabled={isLocked || readOnlyExecution || actionLoading || workflowConfirmationPending || ['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '')}
           loading={taskSaving}
           visible={tasksOpen}
           onClose={() => setTasksOpen(false)}
           onUpdateTask={saveTask}
+          saveError={taskSaveError}
+          canAdd={canAddOptionalTasks}
+          onAddTasks={saveOptionalTasks}
         />
       ) : null}
 
       {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
+          key={signatureViewScope}
           ref={docPanelRef}
           disabled={isLocked || readOnlyExecution}
           loading={actionLoading}
@@ -1892,6 +1946,8 @@ export function EmployeePortalVisitExecutionScreen() {
           visible={documentationOpen}
           onClose={() => setDocumentationOpen(false)}
           lastSavedAt={docLastSavedAt}
+          initialDraftUnsaved={documentationDirty}
+          onDirtyChange={setDocumentationDirty}
           initialShortDescription={documentationDraftText}
           initialSpecialNotes={documentationSpecialNotes}
           initialDeviations={documentationDeviations}
@@ -1907,11 +1963,15 @@ export function EmployeePortalVisitExecutionScreen() {
           openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
             setLocalError(null);
+            const submitScope = signatureViewScope;
             const r = await saveDocumentation(doc);
+            if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
             if (r.ok) {
               setDocumentationDraftText(doc.shortDescription);
               setDocumentationSpecialNotes(doc.specialNotes ?? '');
               setDocLastSavedAt(new Date().toISOString());
+              documentationEditedRef.current = false;
+              setDocumentationDirty(false);
               const savedDocumentation = 'data' in r ? r.data : undefined;
               const needsSignature =
                 visit.requiresSignature ||

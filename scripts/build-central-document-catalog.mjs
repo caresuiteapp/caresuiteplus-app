@@ -8,6 +8,8 @@ await mkdir('tmp/central-catalog', { recursive: true });
 const bundle = path.resolve('tmp/central-catalog/catalog.mjs');
 await build({ entryPoints: ['src/data/seeds/documentCatalog/centralCatalog.ts'], bundle: true, platform: 'node', format: 'esm', outfile: bundle });
 const { CENTRAL_DOCUMENT_CATALOG: catalog } = await import(pathToFileURL(bundle).href);
+const index = catalog.map(({key,title,categoryKey,categoryName,modules,target,sourceMode,clinicalReviewRequired}) => ({key,title,categoryKey,categoryName,modules,target,sourceMode,clinicalReviewRequired}));
+await writeFile('src/data/seeds/documentCatalog/centralCatalogIndex.ts', `// Generated from the central catalogue. Contains no document bodies or PDF dependencies.\nimport type { CentralDocumentDefinition } from '@/types/documents/centralCatalog';\nexport type CentralCatalogIndexEntry = Pick<CentralDocumentDefinition, 'key' | 'title' | 'categoryKey' | 'categoryName' | 'modules' | 'target' | 'sourceMode' | 'clinicalReviewRequired'>;\nexport const CENTRAL_CATALOG_INDEX: readonly CentralCatalogIndexEntry[] = [\n${index.map((entry) => `  ${JSON.stringify(entry)}`).join(',\n')}\n];\n`);
 const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
 const bases = new Map();
 const records = catalog.map((d) => {

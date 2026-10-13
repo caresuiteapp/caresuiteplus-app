@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
@@ -60,17 +60,14 @@ export function ClientCreateScreen() {
   };
 
   const handleSubmit = async () => {
-    const id = await submit();
-    if (id) {
-      setTimeout(() => router.replace(clientRecordRoute(id) as never), 1500);
-    }
+    await submit();
   };
 
   if (isSuccess && createdId) {
     return (
       <ScreenShell title="Klient:in angelegt" subtitle="Erfolgreich" showBack={false}>
-        <SuccessState message="Die Klient:in wurde erfolgreich angelegt. Weiterleitung…" />
-        <PremiumButton title="Zur Detailansicht" fullWidth onPress={() => router.replace(clientRecordRoute(createdId) as never)} />
+        <SuccessState message="Die Klient:in wurde erfolgreich angelegt." />
+        <PremiumButton title="Zur Detailansicht" fullWidth onPress={() => router.push(clientRecordRoute(createdId) as never)} />
       </ScreenShell>
     );
   }

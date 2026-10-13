@@ -101,7 +101,7 @@ export function PlatformModal({
   const portalTheme = usePortalPremiumRuntimeTheme();
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
-  const auroraActive = useAuroraGlassActive();
+  useAuroraGlassActive();
   const lightModal = surfaceScope === 'personal' || portalTheme.active || isLight;
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -140,7 +140,7 @@ export function PlatformModal({
           backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           ...Platform.select({
             web: {
-              position: 'fixed' as const,
+              position: 'fixed' as ViewStyle['position'],
               top: viewportOffsetTop,
               left: viewportOffsetLeft,
               width: visibleWidth,
@@ -162,7 +162,7 @@ export function PlatformModal({
           justifyContent: 'flex-end',
           ...Platform.select({
             web: {
-              position: 'fixed' as const,
+              position: 'fixed' as ViewStyle['position'],
               top: viewportOffsetTop,
               left: viewportOffsetLeft,
               width: visibleWidth,

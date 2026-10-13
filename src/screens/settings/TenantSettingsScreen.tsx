@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
@@ -24,7 +25,7 @@ import { TenantCustomFieldWizardModal } from '@/components/tenant/TenantCustomFi
 
 import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';
 
-import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, PremiumCard, SuccessState } from '@/components/ui';
 
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
@@ -46,6 +47,7 @@ import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsR
 import { TIME_TRACKING_SETTINGS_ROUTE } from '@/lib/timeTracking';
 
 import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
+import { TENANT_NOTIFICATION_SETTINGS_ROUTE } from '@/lib/tenant/tenantNotificationSettingsService';
 
 import type { TenantCenterSectionKey, TenantCenterSectionMeta } from '@/types/tenant/tenantCenter';
 
@@ -93,7 +95,7 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
   const { width } = useWindowDimensions();
 
-  const [activeSection, setActiveSection] = useState<TenantCenterSectionKey | null>(null);
+  const [activeSection, setActiveSection] = usePageTab<TenantCenterSectionKey | null>('TenantSettingsScreen.activeSection', null);
 
   const [catalogOpen, setCatalogOpen] = useState(false);
 
@@ -323,6 +325,23 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
           ))}
         </View>
 
+        <PremiumCard style={styles.notificationCard} contentStyle={styles.notificationContent}>
+          <View style={styles.notificationCopy}>
+            <Text accessibilityRole="header" style={[styles.notificationTitle, { color: text.primary }]}>
+              Push-Benachrichtigungen
+            </Text>
+            <Text style={[styles.notificationDescription, { color: text.secondary }]}>
+              Hinweise zu Einsätzen, Nachrichten, Unterschriften und Leistungsnachweisen in den Portalen zentral einstellen.
+            </Text>
+          </View>
+          <PremiumButton
+            title="Push-Benachrichtigungen"
+            variant="secondary"
+            fullWidth={columns === 1}
+            onPress={() => router.push(TENANT_NOTIFICATION_SETTINGS_ROUTE as never)}
+          />
+        </PremiumCard>
+
         <Text style={[styles.sectionHeading, { color: text.muted }]}>Mandanten-Stammdaten</Text>
         <View style={[styles.grid, { gap: gridGap }]}>
           {primarySections.map((section) => (
@@ -458,6 +477,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.xs,
     marginBottom: careSpacing.sm,
   },
+
+  notificationCard: {
+    width: '100%',
+    minWidth: 0,
+  },
+
+  notificationContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: careSpacing.md,
+  },
+
+  notificationCopy: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 360,
+    minWidth: 0,
+    gap: careSpacing.xs,
+  },
+
+  notificationTitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
+
+  notificationDescription: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
 });
-
-

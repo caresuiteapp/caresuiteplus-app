@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { AuroraBadge, AuroraGlassCard } from '@/components/aurora';
 import {
   ClientWorkspaceLiveBadge,
@@ -13,6 +14,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 
 type ClientRecordOverviewPanelProps = {
+  clientId?: string;
   overview: ClientRecordOverview;
   onNavigateTab: (tab: ClientRecordTabKey) => void;
 };
@@ -43,11 +45,13 @@ function FocusCard({ icon, label, value, variant = 'cyan' }: {
   );
 }
 
-export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRecordOverviewPanelProps) {
+export function ClientRecordOverviewPanel({ overview, onNavigateTab, clientId }: ClientRecordOverviewPanelProps) {
   const { isDesktopOrWide } = useDeviceClass();
+  const compact = Platform.OS !== 'web' && !isDesktopOrWide;
 
   return (
     <View style={styles.root}>
+      {clientId ? <DocumentRecommendations module="office" workflow="client_intake" clientId={clientId} compact title="Aufnahme- und Stammdokumente" /> : null}
       <ClientWorkspacePanel
         eyebrow="Versorgungsradar"
         title="Heute wichtig"
@@ -73,7 +77,7 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
             title="Versorgungsprofil"
             subtitle="Wichtigste Angaben auf einen Blick"
           >
-            <View style={styles.summaryGrid}>
+            <View style={[styles.summaryGrid, compact && { flexDirection: 'column' }]}>
               <View style={styles.summaryColumn}>
                 <SummaryRow label="Name" value={overview.fullName} />
                 <SummaryRow label="Geburtsdatum" value={overview.dateOfBirth} />
@@ -154,7 +158,7 @@ const styles = StyleSheet.create({
   mainColumn: { flex: 1, minWidth: 0, gap: careSpacing.md },
   sidePanel: { width: '100%', maxWidth: 360, flexShrink: 0 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md },
-  summaryColumn: { flex: 1, minWidth: 240 },
+  summaryColumn: { flex: 1, minWidth: Platform.OS === 'web' ? 240 : 0 },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -164,7 +168,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: careSuiteAuroraTheme.glass.border,
   },
-  summaryLabel: { flex: 0.8, color: careSuiteAuroraTheme.text.muted, fontSize: 11, lineHeight: 16, fontWeight: '800' },
+  summaryLabel: { flex: 0.8, color: careSuiteAuroraTheme.text.muted, fontSize: Platform.OS === 'web' ? 11 : 12, lineHeight: Platform.OS === 'web' ? 16 : 17, fontWeight: '800' },
   summaryValue: { flex: 1.2, color: careSuiteAuroraTheme.text.primary, fontSize: 13, lineHeight: 18, fontWeight: '800', textAlign: 'right' },
   documentList: { gap: 7 },
   documentRow: {
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
   documentIconText: { color: careSuiteAuroraTheme.accent.cyan, fontSize: 14, fontWeight: '900' },
   documentText: { flex: 1, minWidth: 0, gap: 2 },
   documentTitle: { color: careSuiteAuroraTheme.text.primary, fontSize: 13, fontWeight: '800' },
-  documentDate: { color: careSuiteAuroraTheme.text.muted, fontSize: 11, fontWeight: '600' },
+  documentDate: { color: careSuiteAuroraTheme.text.muted, fontSize: Platform.OS === 'web' ? 11 : 12, fontWeight: '600' },
   emptyDocuments: { gap: 4, paddingVertical: careSpacing.sm },
   emptyDocumentsTitle: { color: careSuiteAuroraTheme.text.primary, fontSize: 14, fontWeight: '900' },
   emptyDocumentsText: { color: careSuiteAuroraTheme.text.muted, fontSize: 12, lineHeight: 17, fontWeight: '600' },

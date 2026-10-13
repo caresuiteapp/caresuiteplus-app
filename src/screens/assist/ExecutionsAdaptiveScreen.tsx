@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { MasterDetailLayout } from '@/components/layout';
 import { ExecutionDetailSummaryPanel } from '@/components/assist/ExecutionDetailSummaryPanel';
@@ -6,7 +7,7 @@ import { ExecutionsListScreen } from './ExecutionsListScreen';
 
 export function ExecutionsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('ExecutionsAdaptiveScreen.record', null);
 
   if (!useMasterDetail) {
     return <ExecutionsListScreen />;

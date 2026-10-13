@@ -1,11 +1,15 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { CalendarEventGrid, startOfMonth } from '@/components/calendar/CalendarEventGrid';
 import { CalendarAgendaList } from '@/components/calendar/CalendarAgendaList';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { employeePortalCalendarEventHref, employeePortalCalendarEventOverlaps, employeePortalCalendarPeriod } from '@/lib/portal/employeePortalCalendarNavigation';
+import { careTypography } from '@/design/tokens/typography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { useEmployeePortalCalendarEvents } from '@/hooks/useEmployeePortalCalendarEvents';
@@ -17,7 +21,6 @@ import {
   formatDayHeader,
   formatMonthYear,
   formatWeekRange,
-  startOfWeek,
 } from '@/lib/office/calendarDateUtils';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
@@ -28,31 +31,18 @@ type EmployeePortalCalendarScreenProps = {
 export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCalendarScreenProps) {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
+  const { tenantId, employeeId, actorId, roleKey } = usePortalActor();
   const [viewMode, setViewMode] = useState<CalendarViewMode>('agenda');
   const [anchor, setAnchor] = useState(() => new Date());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  useEffect(() => setSelectedEvent(null), [tenantId, employeeId, actorId, roleKey]);
 
   const range = useMemo(() => {
-    const start = new Date(anchor);
-    const end = new Date(anchor);
-    if (viewMode === 'day') {
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-    } else if (viewMode === 'week' || viewMode === 'agenda') {
-      start.setDate(start.getDate() - 14);
-      end.setDate(end.getDate() + 14);
-    } else if (viewMode === 'month' || viewMode === 'list') {
-      start.setMonth(start.getMonth() - 1);
-      end.setMonth(end.getMonth() + 2);
-    } else {
-      start.setMonth(0, 1);
-      start.setFullYear(start.getFullYear() - 1);
-      end.setMonth(11, 31);
-      end.setFullYear(end.getFullYear() + 1);
-    }
+    const { start, end } = employeePortalCalendarPeriod(anchor, viewMode);
     return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() };
   }, [anchor, viewMode]);
 
-  const { events, loading, error, refresh, config } = useEmployeePortalCalendarEvents(
+  const { events, loading, error, refresh, refreshError, refreshing, config } = useEmployeePortalCalendarEvents(
     range.rangeStart,
     range.rangeEnd,
   );
@@ -62,8 +52,8 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
   const title = useMemo(() => {
     if (viewMode === 'day') return formatDayHeader(anchor);
-    if (viewMode === 'week') return formatWeekRange(anchor, weekStartDay);
-    if (viewMode === 'month' || viewMode === 'agenda' || viewMode === 'list') {
+    if (viewMode === 'week' || viewMode === 'agenda') return formatWeekRange(anchor, weekStartDay);
+    if (viewMode === 'month' || viewMode === 'list') {
       return formatMonthYear(anchor);
     }
     return String(anchor.getFullYear());
@@ -92,38 +82,17 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
         onEventPress(event);
         return;
       }
-      if (event.href) {
-        router.push(event.href as never);
-      }
+      const href = employeePortalCalendarEventHref(event, employeeId);
+      if (href) router.push(href as never);
+      else setSelectedEvent(event);
     },
-    [onEventPress, router],
+    [onEventPress, router, employeeId],
   );
 
   const phoneEvents = useMemo(() => {
-    if (!isPhone) return events;
-    let start: Date;
-    let end: Date;
-    if (viewMode === 'day') {
-      start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
-      end = addDays(start, 1);
-    } else if (viewMode === 'week' || viewMode === 'agenda') {
-      start = startOfWeek(anchor, weekStartDay);
-      end = addDays(start, 7);
-    } else if (viewMode === 'month' || viewMode === 'list') {
-      start = startOfMonth(anchor);
-      end = addMonths(start, 1);
-    } else {
-      start = new Date(anchor.getFullYear(), 0, 1);
-      end = new Date(anchor.getFullYear() + 1, 0, 1);
-    }
-    const startMs = start.getTime();
-    const endMs = end.getTime();
-    return events.filter((event) => {
-      const eventStart = new Date(event.start).getTime();
-      const eventEnd = new Date(event.end).getTime();
-      return eventStart < endMs && eventEnd >= startMs;
-    });
-  }, [anchor, events, isPhone, viewMode]);
+    const { start, end } = employeePortalCalendarPeriod(anchor, viewMode);
+    return events.filter((event) => employeePortalCalendarEventOverlaps(event, start, end));
+  }, [anchor, events, viewMode]);
 
   if (loading && events.length === 0) {
     return <LoadingState message="Kalender wird geladen…" />;
@@ -143,7 +112,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     <CalendarEventGrid
       viewMode={viewMode}
       anchor={anchor}
-      events={events}
+      events={phoneEvents}
       weekStartDay={weekStartDay}
       maxCollapsedEvents={3}
       dayViewStartHour={6}
@@ -155,6 +124,8 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
   return (
     <View style={[styles.wrap, isPhone && styles.wrapPhone]} testID="employee-portal-calendar">
+      <PremiumButton title="Kalender aktualisieren" variant="secondary" disabled={refreshing} onPress={() => void refresh()} />
+      {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
       <CalendarToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -167,7 +138,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
         includeYear={!isPhone}
       />
 
-      {(isPhone ? phoneEvents : events).length === 0 ? (
+      {phoneEvents.length === 0 ? (
         <EmptyState title="Keine Ereignisse in diesem Zeitraum" message={emptyMessage} />
       ) : isPhone ? (
         <CalendarAgendaList events={phoneEvents} onEventPress={handleEventPress} />
@@ -192,6 +163,18 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
       ) : (
         calendarGrid
       )}
+      <PlatformModal visible={selectedEvent != null} title={selectedEvent?.title ?? 'Kalendereintrag'}
+        onClose={() => setSelectedEvent(null)} variant={isPhone ? 'bottomSheet' : 'center'} minWidth={0}
+        footerActions={[{ title: 'Schließen', variant: 'secondary', onPress: () => setSelectedEvent(null) }]}>
+        {selectedEvent ? <View style={{ gap: careSpacing.md }}>
+          <Text style={careTypography.bodyStrong}>{new Date(selectedEvent.start).toLocaleString('de-DE')} – {new Date(selectedEvent.end).toLocaleString('de-DE')}</Text>
+          {selectedEvent.employeeName ? <Text style={careTypography.body}>Mitarbeitende: {selectedEvent.employeeName}</Text> : null}
+          {selectedEvent.clientName ? <Text style={careTypography.body}>Klient:in: {selectedEvent.clientName}</Text> : null}
+          {selectedEvent.record?.address || selectedEvent.record?.locationName ? <Text style={careTypography.body}>{selectedEvent.record?.address || selectedEvent.record?.locationName}</Text> : null}
+          {selectedEvent.record?.publicNote ? <Text style={careTypography.body}>{selectedEvent.record?.publicNote}</Text> : null}
+          <Text style={careTypography.body}>Dieser Eintrag ist im Teamkalender sichtbar. Die Durchführung öffnen Sie bei Ihren eigenen Einsätzen.</Text>
+        </View> : null}
+      </PlatformModal>
     </View>
   );
 }

@@ -13,7 +13,18 @@ const mockSingle = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-user-1' } }, error: null }) },
+    rpc: vi.fn(async (name: string) => {
+      if (name === 'resolve_current_profile_id') return { data: 'user-1', error: null };
+      if (name === 'current_tenant_id') return { data: 'tenant-1', error: null };
+      throw new Error(`Unexpected identity RPC ${name}`);
+    }),
     from: (table: string) => {
+      if (table === 'profiles') {
+        return { select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({
+          data: { id: 'user-1', tenant_id: 'tenant-1', auth_user_id: 'auth-user-1' }, error: null,
+        }) }) }) }) };
+      }
       if (table === 'portal_requests') {
         return {
           insert: mockInsert.mockReturnValue({
@@ -99,10 +110,13 @@ describe('createPortalRequest', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.id).toBe('req-1');
+      expect(result.data.portalUserId).toBe('user-1');
       expect(result.data.requestType).toBe('rueckruf');
       expect(result.data.payload).toMatchObject({ thema: 'termin' });
     }
-    expect(mockInsert).toHaveBeenCalled();
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      tenant_id: 'tenant-1', client_id: 'client-1', portal_user_id: 'user-1',
+    }));
   });
 });
 

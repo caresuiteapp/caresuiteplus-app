@@ -2,9 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('interne Bodymap-Mesh-Werkbank', () => {
-  it('ist außerhalb Entwicklung nur über ein explizites Feature-Gate erreichbar', async () => {
+  it('bleibt unabhängig von Entwicklungsflags entfernt', async () => {
     const source = await readFile('app/bodymap-mesh-workbench.tsx', 'utf8');
-    expect(source).toContain('EXPO_PUBLIC_BODYMAP_MESH_WORKBENCH');
+    expect(source).not.toContain('EXPO_PUBLIC_BODYMAP_MESH_WORKBENCH');
+    expect(source).not.toContain('BodyMapMeshWorkbenchScreen');
     expect(source).toContain('<Redirect href="/"');
   });
 

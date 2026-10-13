@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { createSingleFlight } from '@/lib/services/singleFlight';
 import {
   appendLogbookPoints,
   createLogbookTrip,
@@ -16,6 +17,7 @@ import {
 import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook/employeeLogbookAutomation';
 import {
   acquireEmployeeLogbookForegroundTracking,
+  createEmployeeLogbookTrackingGuard,
   type EmployeeGpsWatchHandle,
 } from '@/lib/employeeLogbook/employeeLogbookAutomation';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
@@ -26,6 +28,8 @@ import {
   returnTripRouteType,
   type EmployeeReturnTripDestination,
 } from './employeePortalReturnTripRules';
+
+const runReturnTripStart = createSingleFlight();
 
 export {
   formatReturnTripDuration,
@@ -56,7 +60,7 @@ export async function loadUnfinishedEmployeeReturnTrip(
   ) ?? null;
 }
 
-export async function startEmployeeReturnTrip(input: {
+export function startEmployeeReturnTrip(input: {
   tenantId: string;
   employeeId: string;
   assignmentId: string;
@@ -65,7 +69,12 @@ export async function startEmployeeReturnTrip(input: {
   startAddress: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<{ trip: LogbookTrip; resumed: boolean }> {
+  const shouldContinue = createEmployeeLogbookTrackingGuard(input.tenantId, input.employeeId);
+  const checkScope = () => { if (!shouldContinue()) throw new Error('Das Mitarbeitendenkonto hat sich geändert. Die Rückfahrt wurde nicht weitergeführt.'); };
+  return runReturnTripStart(`${input.tenantId}:${input.employeeId}`, async () => {
+  checkScope();
   const eligibility = await resolveEmployeeLogbookEligibility(input.tenantId, input.employeeId, 'car');
+  checkScope();
   if (!eligibility.eligible) {
     throw new Error(
       eligibility.reason === 'no_car_mode'
@@ -74,6 +83,7 @@ export async function startEmployeeReturnTrip(input: {
     );
   }
   const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
+  checkScope();
   const existing = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
   if (existing) {
     const destination = returnTripDestinationFromTrip(existing);
@@ -82,20 +92,25 @@ export async function startEmployeeReturnTrip(input: {
       existing.assignmentId === resolveVisitMasterId(input.assignmentId)
     ) {
       if (berlinDateKey(existing.startedAt) < berlinToday()) throw new Error('Diese Rückfahrt stammt von einem früheren Tag. Bitte im Fahrtenbuch zur Verwaltungsprüfung abschließen.');
-      await startNativeBackgroundTracking({
+      const started = await startNativeBackgroundTracking({
         tripId: existing.id,
         tenantId: input.tenantId,
         employeeId: input.employeeId,
-      });
+      }, { shouldContinue });
+      if (started === false) throw new Error('Die Rückfahrtaufzeichnung wurde abgebrochen.');
+      checkScope();
       return { trip: existing, resumed: true };
     }
     throw new Error('Es läuft bereits eine andere Fahrt. Bitte diese zuerst im Fahrtenbuch abschließen.');
   }
 
-  await requestLogbookLocationPermission();
+  await requestLogbookLocationPermission(shouldContinue);
+  checkScope();
   const firstPoint = await getCurrentLogbookPoint();
+  checkScope();
   if (!bundle.profile.gpsConsent) {
     await saveLogbookProfile({ ...bundle.profile, gpsConsent: true });
+    checkScope();
   }
 
   const vehicleId = eligibility.vehicleId;
@@ -110,13 +125,17 @@ export async function startEmployeeReturnTrip(input: {
     purpose: `Rückfahrt nach letztem Tageseinsatz bei ${input.clientName}`,
     startAddress: input.startAddress,
   });
+  checkScope();
 
   await appendLogbookPoints(trip.id, input.tenantId, input.employeeId, [firstPoint]);
-  await startNativeBackgroundTracking({
+  checkScope();
+  const started = await startNativeBackgroundTracking({
     tripId: trip.id,
     tenantId: input.tenantId,
     employeeId: input.employeeId,
-  });
+  }, { shouldContinue });
+  if (started === false) throw new Error('Die Rückfahrtaufzeichnung wurde abgebrochen.');
+  checkScope();
 
   return {
     trip: {
@@ -125,6 +144,7 @@ export async function startEmployeeReturnTrip(input: {
     },
     resumed: false,
   };
+  });
 }
 
 /** Web/PWA has no native background task, so every foreground point is stored immediately. */
@@ -155,6 +175,6 @@ export async function finishEmployeeReturnTrip(input: {
   // Return/home/office is the explicit end of the recorded workday. The
   // assignment consumer is released only here so GPS stays active through the
   // complete final leg but cannot continue after the employee finished it.
-  await stopNativeAssistBackgroundTracking();
+  await stopNativeAssistBackgroundTracking({ tenantId: input.tenantId, employeeId: input.employeeId });
   return completed;
 }

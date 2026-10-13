@@ -25,14 +25,16 @@ describe('Portal Announcements Hero (Sprint 98)', () => {
 
   it('Klient:innen-Mitteilungen werden live geladen und als gelesen bestätigt', () => {
     const clientAnnouncements = readSrc('src/screens/portal/ClientPortalAnnouncementsScreen.tsx');
+    const announcementReadService = readSrc('src/lib/portal/clientAnnouncementReadService.ts');
     const broadcastService = readSrc('src/lib/office/broadcastservice.ts');
     const migration = readSrc(
       'supabase/migrations/20260808130000_client_portal_announcements_and_signed_proof_delivery.sql',
     );
 
     expect(clientAnnouncements).toContain("useNotifications('broadcasts')");
-    expect(clientAnnouncements).toContain('fetchBroadcastForNotification');
-    expect(clientAnnouncements).toContain('markNotificationRead');
+    expect(clientAnnouncements).toContain('readClientPortalAnnouncement');
+    expect(announcementReadService).toContain('fetchBroadcastForNotification');
+    expect(announcementReadService).toContain('markNotificationRead');
     expect(broadcastService).toContain("segment === 'clients'");
     expect(broadcastService).toContain('show_in_client_portal');
     expect(migration).toContain('notification_broadcasts_client_portal_select');

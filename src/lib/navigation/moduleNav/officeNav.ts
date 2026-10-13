@@ -1,5 +1,4 @@
 import type { ModuleNavConfig } from '@/types/navigation/platform';
-import { Platform } from 'react-native';
 
 export const officeNav: ModuleNavConfig = {
   moduleKey: 'office',
@@ -20,7 +19,6 @@ export const officeNav: ModuleNavConfig = {
     {
       title: 'Abrechnung & Dokumente',
       items: [
-        ...(Platform.OS === 'web' ? [{ key: 'document-catalog', label: 'Dokumentenkatalog', icon: '📑', href: '/business/office/document-catalog' }] : []),
         { key: 'payroll', label: 'Gehaltsstatistik', icon: '💶', href: '/business/office/payroll' },
         { key: 'invoices', label: 'Rechnungen', icon: '🧾', href: '/office/invoices' },
         {
@@ -30,6 +28,7 @@ export const officeNav: ModuleNavConfig = {
           href: '/business/office/documents/signatures',
         },
         { key: 'documents', label: 'Dokumentenablage', icon: '📁', href: '/office/documents' },
+        { key: 'document-catalog', label: 'Dokumentenkatalog', icon: '📄', href: '/business/office/document-catalog' },
         { key: 'catalogs', label: 'Kataloge', icon: '📚', href: '/office/catalogs' },
       ],
     },

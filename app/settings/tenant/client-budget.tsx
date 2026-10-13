@@ -18,7 +18,7 @@ import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/product-workflows/components/layout';
 import { colors, spacing, typography } from '@/product-workflows/theme';
 

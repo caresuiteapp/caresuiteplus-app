@@ -12,6 +12,7 @@ export type PortalContextState = {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  refreshWithResult: () => Promise<boolean>;
   isReady: boolean;
 };
 
@@ -35,6 +36,7 @@ export function usePortalContext(): PortalContextState {
       ? 'Kein Klientenprofil verknüpft. Bitte melden Sie sich erneut an.'
       : query.error ? toPortalUserFacingError(query.error, 'Ihre Übersicht konnte gerade nicht geladen werden.') : null,
     refresh: query.refresh,
+    refreshWithResult: query.refreshWithResult,
     isReady: actorReady && query.data !== null,
   };
 }

@@ -6,18 +6,25 @@ const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('Personalbereich Lesbarkeit und Popup-Größe R2', () => {
-  it('grenzt helle Personalflächen gegen den dunklen Central-Popup-Vertrag ab', () => {
+  it('bindet helle Personalflächen an den zentralen hellen Kontrastvertrag', () => {
     const surface = read('src/components/office/PersonalWorkspaceSurface.tsx');
     const contract = read('src/design/web/centralHealthOSPopupContractCss.ts');
     const list = read('src/screens/office/EmployeesListScreen.tsx');
+    const page = read('src/components/layout/HealthOSPageSurface.web.tsx');
+    const section = read('src/components/ui/SectionPanel.tsx');
+    const glass = read('src/design/tokens/auroraGlass.ts');
 
     expect(surface).toContain("csPersonalSurface: 'light'");
     expect(surface).toContain('SurfaceContrastProvider tone="light"');
-    expect(contract).toContain('[data-cs-personal-surface="light"]');
-    expect(contract).toContain('--personal-ink: #0B213D');
-    expect(contract).toContain('background-color: #FFFFFF !important');
+    expect(page).toContain("csDesktopSurface: 'light'");
+    expect(contract).toContain('[data-cs-desktop-surface="light"]');
+    expect(contract).toContain('color: #102B49; background: #FFFFFF !important');
     expect(contract).toContain('[data-cs-healthos-component="list-row"]');
-    expect(contract).toContain('color: var(--personal-muted) !important');
+    expect(section).toContain('surfaceTone === "light"');
+    expect(section).toContain('lightSurfaceText.primary');
+    expect(section).toContain('lightSurfaceText.secondary');
+    expect(glass).toContain("if (surfaceTone === 'light' || (active && surfaceIsLight))");
+    expect(glass).toContain('secondary: lightLiquidGlass.text.secondary');
     expect(list).toContain('PersonalWorkspaceSurface');
   });
 

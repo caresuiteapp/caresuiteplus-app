@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { CareSuiteLogo } from '@/components/brand';
 import { CARESUITE_LOGO_SIZES } from '@/components/brand/CareSuiteLogoMark';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';

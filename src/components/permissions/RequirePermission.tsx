@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import type { PermissionKey } from '@/types/permissions';
 import { ErrorState, PremiumButton } from '@/components/ui';
 import { ScreenShell } from '@/components/layout/ScreenShell';

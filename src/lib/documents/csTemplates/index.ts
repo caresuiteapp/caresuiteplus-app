@@ -22,6 +22,7 @@ export {
   searchCsDocumentClientRecipients,
 } from './csDocumentRecipientSearchService';
 export {
+  EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE,
   fetchCsDocumentRequests,
   fetchPortalCsDocumentRequests,
   fetchPortalCsDocumentRequestDetail,

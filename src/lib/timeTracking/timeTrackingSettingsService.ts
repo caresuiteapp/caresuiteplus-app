@@ -9,6 +9,9 @@ import type {
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
   getSettings,
   listActivityTypes,
@@ -65,6 +68,26 @@ export function ensureTimeTrackingSettings(
   if (deniedView && deniedSettings) return deniedView;
 
   return { ok: true, data: settings };
+}
+
+/** Portal start controls must use persisted tenant settings in live mode. */
+export async function fetchPortalTimeTrackingSettings(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+): Promise<ServiceResult<{ moduleEnabled: boolean; requirePrivacyConsent: boolean }>> {
+  const denied = enforcePermission(actorRoleKey, 'time.tracking.own.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() !== 'supabase') return ensureTimeTrackingSettings(tenantId, actorRoleKey);
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Keine sichere Datenbankverbindung.' };
+  const { data, error } = await fromUnknownTable(client, 'tenant_time_tracking_settings')
+    .select('module_enabled,require_privacy_consent').eq('tenant_id', tenantId).maybeSingle();
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (!data) return { ok: false, error: 'Die Arbeitszeiteinstellungen sind noch nicht hinterlegt oder nicht freigegeben. Bitte die Verwaltung kontaktieren.' };
+  const settings = data as { module_enabled: boolean; require_privacy_consent: boolean };
+  return { ok: true, data: { moduleEnabled: settings.module_enabled, requirePrivacyConsent: settings.require_privacy_consent } };
 }
 
 export function fetchTimeTrackingSettings(

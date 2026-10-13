@@ -1049,6 +1049,19 @@ export async function updateLiveEmployeePortalTasksBatch(
     updatedDetail = updated.data;
   }
 
+  {
+    const persistedTasks = new Map(updatedDetail.tasks.map((task) => [task.id, task]));
+    for (const update of updates) {
+      const task = persistedTasks.get(update.taskId);
+      const expectedStatus = resolved.data.persistenceSource === 'assist_visits'
+        ? (['partial', 'not_possible', 'deferred'].includes(toVisitTaskStatus(update.status)) ? 'not_done' : toVisitTaskStatus(update.status))
+        : toPersistedTaskStatus(update.status);
+      if (!task || task.status !== expectedStatus ||
+        (taskStatusRequiresNote(update.status) && task.notDoneReason?.trim() !== update.completionNote?.trim())) {
+        return { ok: false, error: 'Die Aufgabenänderung wurde vom Server noch nicht bestätigt. Ihre Auswahl bleibt erhalten. Bitte den Einsatzstatus erneut prüfen und speichern.' };
+      }
+    }
+  }
   if (knownDetail) {
     const updatesById = new Map(updates.map((item) => [item.taskId, item]));
     return {

@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { CARESUITE_ROBOT_LOGO } from './brandassets';
 
 export const CARESUITE_LOGO_SIZES = {

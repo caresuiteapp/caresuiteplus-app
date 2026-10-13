@@ -56,6 +56,12 @@ let root: Root;
 let host: HTMLDivElement;
 const render = (element: React.ReactNode) => act(async () => root.render(element));
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
@@ -112,7 +118,7 @@ describe('web saved-session access recovery', () => {
     expect(host.textContent).not.toContain('Redirect: /platform');
   });
   it('ignores platform authorization from a previous identity after the session changes', async () => {
-    const oldIdentity = Promise.withResolvers<any>();
+    const oldIdentity = deferred<any>();
     mock.platformUser.mockReturnValueOnce(oldIdentity.promise);
     await render(<LiquidCommandEntryScreen />);
     expect(host.textContent).toBe('Loading');
@@ -137,7 +143,7 @@ describe('web saved-session access recovery', () => {
     expect(host.textContent).not.toContain('Error overlay');
   });
   it('ends the broken session before returning to the three login choices', async () => {
-    const signout = Promise.withResolvers<void>();
+    const signout = deferred<void>();
     mock.auth.signOut.mockReturnValue(signout.promise);
     await render(<LiquidCommandEntryScreen />);
     const button = [...host.querySelectorAll('button')].find(node => node.textContent === 'Zu den Anmeldungen')!;

@@ -1,0 +1,41 @@
+// @vitest-environment happy-dom
+import React,{act} from 'react';
+import {createRoot,type Root} from 'react-dom/client';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
+const f=vi.hoisted(()=>({tenant:'tenant-a',actor:'actor-a',id:'visit-a' as string|string[]|undefined,list:vi.fn(),detail:vi.fn(),replace:vi.fn(),state:{} as any,form:{} as any}));
+vi.mock('react-native',()=>({Platform:{OS:'web'},AppState:{addEventListener:()=>({remove:()=>{}})}}));
+vi.mock('@/hooks/core',async()=>({useAsyncQuery:(await import('@/hooks/core/useAsyncQuery')).useAsyncQuery,useListState:(await import('@/hooks/core/useListState')).useListState,OPERATIONAL_LIVE_POLL_MS:15000}));
+vi.mock('@/hooks/core/useLiveRefresh',()=>({useLiveRefresh:()=>({isLiveConnected:false}),DEFAULT_LIVE_POLL_MS:30000}));
+vi.mock('@/lib/assist',()=>({fetchAssignmentList:f.list}));
+vi.mock('@/lib/realtime',()=>({subscribeToAssistOperationsChanges:vi.fn()}));
+vi.mock('@/lib/auth/context',()=>({useAuth:()=>({profile:{id:f.actor,roleKey:'business_admin'}})}));
+vi.mock('@/hooks/useTenantId',()=>({useServiceTenantId:()=>f.tenant}));
+vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({roleLabel:'Admin'})}));
+vi.mock('expo-router',()=>({useLocalSearchParams:()=>({id:f.id}),useRouter:()=>({replace:f.replace})}));
+vi.mock('@/components/layout',()=>({ScreenShell:({children,onBack}:any)=><div><button onClick={onBack}>Zurück</button>{children}</div>}));
+vi.mock('@/components/ui',()=>({ErrorState:({message,onRetry}:any)=><div>{message}<button onClick={onRetry}>Neu laden</button></div>,LoadingState:({message}:any)=><span>{message}</span>,SuccessState:({message}:any)=><span>{message}</span>}));
+vi.mock('@/components/assist/AssignmentEditForm',()=>({AssignmentEditForm:(props:any)=>{f.form=props;return <span>{props.initialVisit.title}</span>;}}));
+vi.mock('@/lib/assist/visitService',()=>({fetchVisitDispositionDetail:f.detail}));
+import {useAssignmentList} from '@/hooks/useAssignmentList';
+import {AssignmentEditScreen} from '@/screens/assist/AssignmentEditScreen';
+const Harness=()=>{f.state=useAssignmentList();return <div>{f.state.allItems.map((i:any)=>i.title).join(',')} {f.state.refreshError} {f.state.showSuccess?'Aktualisiert':''}</div>;};
+const row=(tenant='tenant-a')=>({id:'visit-a',tenantId:tenant,title:`Plan ${tenant}`,clientName:'Anna',employeeName:'Tom',scheduledStart:'2026-10-12T07:00:00Z',scheduledEnd:'2026-10-12T08:00:00Z',status:'aktiv'});
+const deferred=()=>{let resolve!:(v:any)=>void;const promise=new Promise<any>(r=>resolve=r);return{promise,resolve};};
+let host:HTMLDivElement,root:Root;
+beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;vi.clearAllMocks();f.tenant='tenant-a';f.actor='actor-a';f.id='visit-a';f.form={};f.list.mockResolvedValue({ok:true,data:[row()]});f.detail.mockResolvedValue({ok:true,data:{id:'visit-a',title:'Plan A',clientName:'Anna'}});host=document.createElement('div');document.body.append(host);root=createRoot(host);});
+afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
+const mountList=async()=>{await act(async()=>root.render(<Harness/>));};
+const mountEdit=async()=>{await act(async()=>root.render(<AssignmentEditScreen/>));};
+describe('Planning list refresh and scope boundaries',()=>{
+ it('retains the loaded list but never announces success for a failed refresh',async()=>{await mountList();f.list.mockResolvedValue({ok:false,error:'Zugriff verweigert'});await act(async()=>{await f.state.refresh();});expect(host.textContent).toContain('Plan tenant-a');expect(f.state.refreshError).toBe('Zugriff verweigert');expect(f.state.showSuccess).toBe(false);});
+ it('clears a previous success when the next refresh fails',async()=>{await mountList();await act(async()=>{await f.state.refresh();});expect(f.state.showSuccess).toBe(true);f.list.mockResolvedValue({ok:false,error:'Verweigert'});await act(async()=>{await f.state.refresh();});expect(f.state.showSuccess).toBe(false);});
+ it('clears previous tenant rows immediately, including when the new read fails',async()=>{await mountList();const next=deferred();f.list.mockReturnValue(next.promise);f.tenant='tenant-b';await mountList();expect(f.state.allItems).toEqual([]);await act(async()=>next.resolve({ok:false,error:'Keine Freigabe'}));expect(f.state.allItems).toEqual([]);expect(f.state.error).toBe('Keine Freigabe');});
+ it('resets actor-bound filters and deletion tombstones on another permitted dataset',async()=>{await mountList();await act(async()=>{f.state.setEmployeeFilter('Tom');f.state.setSearch('Plan');f.state.dismissDeletedAssignment('visit-a');});expect(f.state.allItems).toHaveLength(0);f.actor='actor-b';await mountList();expect(f.state.allItems).toHaveLength(1);expect(f.state.search).toBe('');expect(f.state.employeeFilter).toBe('all');});
+ it('ignores late refresh success after a tenant switch',async()=>{await mountList();const old=deferred();f.list.mockReturnValueOnce(old.promise).mockResolvedValue({ok:true,data:[row('tenant-b')]});let refresh!:Promise<void>;await act(async()=>{refresh=f.state.refresh();});f.tenant='tenant-b';await mountList();await act(async()=>{old.resolve({ok:true,data:[row()]});await refresh;});expect(host.textContent).toContain('Plan tenant-b');expect(f.state.showSuccess).toBe(false);});
+});
+describe('Direct edit routes and load recovery',()=>{
+ it('normalizes array route parameters into the actual ID and returns to concrete detail',async()=>{f.id=['visit-a','extra'];await mountEdit();expect(f.detail).toHaveBeenCalledWith('visit-a','tenant-a','business_admin');await act(async()=>f.form.onCancel());expect(f.replace).toHaveBeenCalledWith('/assist/assignments/visit-a');});
+ it('shows missing route/tenant errors instead of an endless loader',async()=>{f.id=undefined;await mountEdit();expect(host.textContent).toContain('Keine Einsatz-ID');expect(f.detail).not.toHaveBeenCalled();f.id='visit-a';f.tenant='';await mountEdit();expect(host.textContent).toContain('Kein Mandant');});
+ it('shows thrown read failures with a working retry',async()=>{f.detail.mockRejectedValueOnce(new Error('Transport')).mockResolvedValue({ok:true,data:{id:'visit-a',title:'Plan A',clientName:'Anna'}});await mountEdit();expect(host.textContent).toContain('Transport');await act(async()=>[...host.querySelectorAll('button')].find(b=>b.textContent==='Neu laden')!.click());expect(host.textContent).toContain('Plan A');});
+ it('rejects a previous tenant detail resolving late',async()=>{const old=deferred();f.detail.mockReturnValueOnce(old.promise).mockResolvedValue({ok:true,data:{id:'visit-a',title:'Plan B',clientName:'Andere'}});await mountEdit();f.tenant='tenant-b';await mountEdit();await act(async()=>old.resolve({ok:true,data:{id:'visit-a',title:'Alter Plan A',clientName:'Anna'}}));expect(host.textContent).toContain('Plan B');expect(host.textContent).not.toContain('Alter Plan A');});
+});

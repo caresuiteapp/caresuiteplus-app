@@ -1,5 +1,6 @@
-import { DocumentDeliveryActions } from '@/components/office/DocumentDeliveryActions';
-import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
+import { ClientDocumentPreview } from '@/components/office/ClientDocumentPreview';
+import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
@@ -17,8 +18,6 @@ import { useAuth } from '@/lib/auth/context';
 import { listClientDocuments } from '@/lib/clients/clientDocumentsService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import {
-  buildClientDocumentPreviewFallback,
-  buildDocumentPreviewStatusSubtitle,
   filterClientContractDocuments,
   resolveOfficeDocumentDisplayFileName,
 } from '@/lib/office/officeDocumentDisplay';
@@ -43,6 +42,7 @@ function formatEuro(cents: number): string {
 }
 
 function contractDocumentStatusLabel(doc: ClientDocumentRecord): string {
+  if (isIntakeDocumentContentMissing(doc)) return 'Inhalt fehlt';
   if (doc.intakeStatus === 'finalized') return 'Finalisiert';
   if (doc.status === 'abgeschlossen') return 'Finalisiert';
   if (doc.status === 'aktiv') return 'Aktiv';
@@ -68,7 +68,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
       return listClientDocuments(tenantId, clientId);
     },
     [tenantId, clientId],
-    { enabled: !!tenantId && !!clientId },
+    { enabled: !!tenantId && !!clientId, queryKey: `client-contracts:${tenantId}:${clientId}:${profile?.id}:${profile?.roleKey}` },
   );
 
   const contractDocuments = useMemo(
@@ -91,6 +91,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
 
   return (
     <View style={styles.panel}>
+      <DocumentRecommendations module="office" workflow="client_contracts" clientId={clientId} compact />
       {fullClient?.billingProfile ? (
         <SectionPanel title="Abrechnungsprofil">
           <DetailInfoRow
@@ -131,7 +132,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
               >
                 <View style={styles.cardHeader}>
                   <Text style={styles.primary}>{doc.title}</Text>
-                  <PremiumBadge label={contractDocumentStatusLabel(doc)} variant="green" dot />
+                  <PremiumBadge label={contractDocumentStatusLabel(doc)} variant={isIntakeDocumentContentMissing(doc) ? 'orange' : 'green'} dot />
                 </View>
                 <Text style={styles.secondary}>{contractDocumentSecondaryLine(doc)}</Text>
               </PremiumCard>
@@ -141,26 +142,14 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
       </SectionPanel>
 
       {selectedDoc ? (
-        <SectionPanel
-          title="Vorschau"
-          subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
-
-        >
-          <DocumentHtmlPreview
-            title={selectedDoc.title}
-            previewHtml={selectedDoc.previewHtml}
-            fallbackLabel={buildClientDocumentPreviewFallback(selectedDoc)}
-          />
-          {tenantId ? (
-            <DocumentDeliveryActions
-              tenantId={tenantId}
-              clientId={clientId}
-              document={selectedDoc}
-              clientLastName={fullClient?.lastName ?? null}
-              actorName={profile?.displayName ?? profile?.email ?? null}
-            />
-          ) : null}
-        </SectionPanel>
+        <ClientDocumentPreview
+          key={`${tenantId}:${clientId}:${selectedDoc.id}`}
+          tenantId={tenantId}
+          clientId={clientId}
+          document={selectedDoc}
+          clientLastName={fullClient?.lastName ?? null}
+          actorName={profile?.displayName ?? profile?.email ?? null}
+        />
       ) : null}
     </View>
   );

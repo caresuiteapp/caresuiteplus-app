@@ -33,6 +33,7 @@ import type {
   CachedPortalAppointmentItem,
 } from './types';
 import { normalizeEmployeePortalAssignmentDetail } from '@/lib/portal/normalizeEmployeePortalAssignmentDetail';
+import { fetchPortalSignatureDashboardCounts } from '@/lib/portal/portalDocumentSignatureService';
 
 const ASSIGNMENTS_STORE = 'assignments' as const;
 export const MAX_PREFETCH_DETAILS = 6;
@@ -449,7 +450,7 @@ export async function loadPortalAppointmentsWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        { fromCache: true, cachedAt: cached.cachedAt, refreshError: 'Keine Verbindung. Der zwischengespeicherte Stand bleibt sichtbar.' },
       );
     }
     return withCacheMeta({ ok: false, error: OFFLINE_LIST_ERROR }, emptyCacheMeta());
@@ -473,7 +474,7 @@ export async function loadPortalAppointmentsWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        { fromCache: true, cachedAt: cached.cachedAt, refreshError: online.ok ? null : online.error },
       );
     }
   }
@@ -716,9 +717,19 @@ export async function loadDashboardProjectionWithCache(
   }
 
   const overview = buildEmployeePortalOverviewFromAppointments(list.data);
+  const dashboard = buildEmployeePortalDashboardFromOverview(overview);
+  if (list.fromCache) {
+    dashboard.signatureDocumentsError = 'Der aktuelle Stand Ihrer Dokumentunterschriften ist ohne Verbindung nicht verfügbar.';
+  } else {
+    const signatures = await fetchPortalSignatureDashboardCounts(tenantId, employeeId, roleKey);
+    if (signatures.ok) {
+      dashboard.openSignatureDocumentCount = signatures.data.openCount;
+      dashboard.overdueSignatureDocumentCount = signatures.data.overdueCount;
+    } else dashboard.signatureDocumentsError = signatures.error;
+  }
   return withCacheMeta(
-    { ok: true, data: buildEmployeePortalDashboardFromOverview(overview) },
-    { fromCache: list.fromCache, cachedAt: list.cachedAt },
+    { ok: true, data: dashboard },
+    { fromCache: list.fromCache, cachedAt: list.cachedAt, refreshError: list.refreshError ?? dashboard.signatureDocumentsError },
   );
 }
 

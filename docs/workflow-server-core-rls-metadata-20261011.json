@@ -1,0 +1,1124 @@
+{
+  "capturedAt": "2026-10-11T11:51:54.962Z",
+  "project": "production",
+  "scope": "Read-only database catalogs; no business rows",
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_tenant_admin() AS is_tenant_admin))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_tenant_admin() AS is_tenant_admin))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (client_id = ( SELECT current_client_id() AS current_client_id)) AND (( SELECT current_client_id() AS current_client_id) IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_employee_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = ( SELECT current_tenant_id() AS current_tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_documentation",
+      "policyname": "assist_visit_documentation_portal_employee",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND (current_role_key() = 'employee_portal'::text) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_documentation.tenant_id) AS portal_employee_assigned_visit_ids)))",
+      "with_check": "((tenant_id = current_tenant_id()) AND (current_role_key() = 'employee_portal'::text) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_documentation.tenant_id) AS portal_employee_assigned_visit_ids)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_documentation",
+      "policyname": "assist_visit_documentation_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "is_tenant_member(tenant_id)",
+      "with_check": "is_tenant_member(tenant_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_proofs",
+      "policyname": "assist_visit_proofs_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_client_portal_rls_context(tenant_id) AND (portal_visible = true) AND (portal_release_status = ANY (ARRAY['released'::text, 'pending_client_signature'::text])) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = current_tenant_id()) AND (v.client_id = current_client_id()) AND (current_client_id() IS NOT NULL) AND (v.planning_status <> 'draft'::text)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_proofs",
+      "policyname": "assist_visit_proofs_portal_client_sign_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = current_tenant_id()) AND is_client_portal_rls_context(tenant_id) AND (portal_visible = true) AND (portal_release_status = 'pending_client_signature'::text) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = current_tenant_id()) AND (v.client_id = current_client_id())))))",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_client_portal_rls_context(tenant_id) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = current_tenant_id()) AND (v.client_id = current_client_id())))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_proofs",
+      "policyname": "assist_visit_proofs_portal_employee_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND (current_role_key() = 'employee_portal'::text) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_proofs.tenant_id) AS portal_employee_assigned_visit_ids)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_proofs",
+      "policyname": "assist_visit_proofs_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (current_role_key() = 'employee_portal'::text) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_proofs.tenant_id) AS portal_employee_assigned_visit_ids)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_proofs",
+      "policyname": "assist_visit_proofs_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "is_tenant_member(tenant_id)",
+      "with_check": "is_tenant_member(tenant_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_signatures",
+      "policyname": "assist_visit_signatures_portal_client_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND is_client_portal_rls_context(tenant_id) AND (visit_id IN ( SELECT portal_client_pending_signature_visit_ids(assist_visit_signatures.tenant_id) AS portal_client_pending_signature_visit_ids)) AND (signer_role = ANY (ARRAY['client'::text, 'assignment'::text, 'service_proof'::text])))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_signatures",
+      "policyname": "assist_visit_signatures_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_client_portal_rls_context(tenant_id) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = current_tenant_id()) AND (v.client_id = current_client_id()) AND (v.planning_status <> 'draft'::text)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_signatures",
+      "policyname": "assist_visit_signatures_portal_employee_insert",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_signatures.tenant_id) AS portal_employee_assigned_visit_ids)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_signatures",
+      "policyname": "assist_visit_signatures_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND is_employee_portal_rls_context(tenant_id) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(assist_visit_signatures.tenant_id) AS portal_employee_assigned_visit_ids)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_signatures",
+      "policyname": "assist_visit_signatures_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "is_tenant_member(tenant_id)",
+      "with_check": "is_tenant_member(tenant_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_tasks",
+      "policyname": "assist_visit_tasks_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_client_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_client_portal_rls_context) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (v.client_id = ( SELECT current_client_id() AS current_client_id)) AND (v.planning_status <> 'draft'::text)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_tasks",
+      "policyname": "assist_visit_tasks_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (( SELECT current_role_key() AS current_role_key) = 'employee_portal'::text) AND (visit_id IN ( SELECT v.id\n   FROM assist_visits v\n  WHERE ((v.tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (v.employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND (v.planning_status <> 'draft'::text)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_tasks",
+      "policyname": "assist_visit_tasks_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visits",
+      "policyname": "assist_visits_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_client_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_client_portal_rls_context) AND (client_id = ( SELECT current_client_id() AS current_client_id)) AND (( SELECT current_client_id() AS current_client_id) IS NOT NULL) AND (planning_status <> 'draft'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visits",
+      "policyname": "assist_visits_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND (planning_status <> 'draft'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visits",
+      "policyname": "assist_visits_portal_employee_team_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (employee_portal_visible = true) AND (COALESCE(planning_status, ''::text) <> 'draft'::text))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visits",
+      "policyname": "assist_visits_portal_employee_update",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND (planning_status <> 'draft'::text))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND (planning_status <> 'draft'::text))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visits",
+      "policyname": "assist_visits_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT is_tenant_admin() AS is_tenant_admin))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_insert_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.clients.create'::text) AS has_permission))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_portal_employee_team_records_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (COALESCE((status)::text, ''::text) <> 'deleted'::text) AND (deleted_at IS NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_portal_self_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (id = ( SELECT current_client_id() AS current_client_id)) AND (( SELECT current_client_id() AS current_client_id) IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = ( SELECT current_tenant_id() AS current_tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_select_portal_self",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (id = ( SELECT current_client_id() AS current_client_id)) AND (( SELECT current_client_id() AS current_client_id) IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_select_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT has_permission('office.clients.view'::text) AS has_permission))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_soft_delete_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (( SELECT has_permission('office.clients.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND (status = 'deleted'::client_status) AND (( SELECT has_permission('office.clients.delete'::text) AS has_permission) OR ( SELECT is_tenant_admin() AS is_tenant_admin)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "clients",
+      "policyname": "clients_update_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT can_manage_clients_for_current_tenant() AS can_manage_clients_for_current_tenant))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor) AND ( SELECT can_manage_clients_for_current_tenant() AS can_manage_clients_for_current_tenant))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "service_record_items",
+      "policyname": "service_record_items_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "service_record_items",
+      "policyname": "service_record_items_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "service_records",
+      "policyname": "service_records_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "((tenant_id = current_tenant_id()) AND is_tenant_admin())",
+      "with_check": "((tenant_id = current_tenant_id()) AND is_tenant_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "service_records",
+      "policyname": "service_records_portal_select",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((tenant_id = current_tenant_id()) AND (client_id = current_client_id()) AND (current_client_id() IS NOT NULL) AND (status = ANY (ARRAY['signature_required'::service_record_status, 'signed'::service_record_status, 'approved'::service_record_status, 'billable'::service_record_status, 'billed'::service_record_status])))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "service_records",
+      "policyname": "service_records_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(tenant_id = current_tenant_id())",
+      "with_check": null
+    }
+  ],
+  "grants": [
+    {
+      "table_name": "assignments",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assignments",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_documentation",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_proofs",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "service_role",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_signatures",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visit_tasks",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "assist_visits",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "clients",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_record_items",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES"
+    },
+    {
+      "table_name": "service_records",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER"
+    }
+  ]
+}

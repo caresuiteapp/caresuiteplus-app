@@ -1,3 +1,5 @@
+> Aktueller Integrationsstand: [13.10.2026](INTEGRATION_2026-10-13.md). Der folgende Bericht dokumentiert den früheren Vorlagenstand.
+
 # CareSuite HealthOS — neues Office-Widget „Dokumentenkatalog“
 
 Stand: 11.10.2026. Entwicklungsstand zur Prüfung, nicht veröffentlicht. Zielbild: [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). Vollständige Liste: [CATALOG.md](CATALOG.md).

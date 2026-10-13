@@ -1,3 +1,4 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
 import { useState } from 'react';
 import { MasterDetailLayout } from '@/components/layout';
 import { VitalReadingDetailSummaryPanel } from '@/components/pflege/VitalReadingDetailSummaryPanel';
@@ -6,7 +7,7 @@ import { VitalReadingsListScreen } from './VitalReadingsListScreen';
 
 export function VitalReadingsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = usePageRecord<string | null>('VitalReadingsAdaptiveScreen.record', null);
 
   if (!useMasterDetail) {
     return <VitalReadingsListScreen />;

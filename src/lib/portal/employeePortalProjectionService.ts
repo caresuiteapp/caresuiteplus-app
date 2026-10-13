@@ -170,7 +170,7 @@ export async function getEmployeePortalDashboardProjection(
       if (sigCounts.ok && sigCounts.data) {
         dashboard.openSignatureDocumentCount = sigCounts.data.openCount;
         dashboard.overdueSignatureDocumentCount = sigCounts.data.overdueCount;
-      }
+      } else if (!sigCounts.ok) dashboard.signatureDocumentsError = sigCounts.error;
       return { ok: true, data: dashboard };
     }
 
@@ -186,7 +186,7 @@ export async function getEmployeePortalDashboardProjection(
     if (sigCounts.ok && sigCounts.data) {
       dashboard.openSignatureDocumentCount = sigCounts.data.openCount;
       dashboard.overdueSignatureDocumentCount = sigCounts.data.overdueCount;
-    }
+    } else if (!sigCounts.ok) dashboard.signatureDocumentsError = sigCounts.error;
 
     return { ok: true, data: dashboard };
   });

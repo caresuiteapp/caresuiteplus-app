@@ -1,5 +1,6 @@
+import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { type ReactNode, useState } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 
 type Props = { master: ReactNode; detail: ReactNode; detailPlaceholder?: ReactNode; showDetail?: boolean };
 
@@ -9,7 +10,7 @@ export function MasterDetailLayout({ master, detail, detailPlaceholder, showDeta
   const hasDetail = showDetail && detail != null;
   const sideBySide = hasDetail && width >= 1040;
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.root, !sideBySide && styles.stacked]}
-    dataSet={{ csWorkspaceComponent: 'master-detail', csWorkspaceSplit: String(sideBySide) }}>
+    {...{ dataSet: { csWorkspaceComponent: 'master-detail', csWorkspaceSplit: String(sideBySide) } }}>
     <View style={[styles.master, sideBySide && styles.masterSplit]}>{master}</View>
     <View style={[styles.detail, !hasDetail && styles.noDetail, !hasDetail && detailPlaceholder == null && styles.hidden, hasDetail && !sideBySide && styles.stackedDetail]}>
       {hasDetail ? detail : detailPlaceholder}

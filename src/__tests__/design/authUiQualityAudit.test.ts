@@ -47,10 +47,14 @@ describe('Auth UI quality audit (Prompt 102)', () => {
     expect(lightKpi).toContain('flexShrink: 0');
   });
 
-  it('registration uses glass module cards not plain white buttons', () => {
+  it('registration uses the shared form without module cards', () => {
     const register = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(register).toContain('PremiumButton');
-    expect(register).toContain('PremiumPreparedNotice');
+    expect(register).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).toContain('LiquidSurface');
+    expect(shared).toContain('LiquidField');
+    expect(shared).not.toContain('MODULE_OPTIONS');
+    expect(shared).not.toContain('PremiumPreparedNotice');
   });
 
   it('business login uses secure enterprise shell', () => {

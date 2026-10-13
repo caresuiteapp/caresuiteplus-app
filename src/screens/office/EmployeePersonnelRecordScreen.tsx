@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout';
 import { EmployeePersonnelFilePanel } from '@/components/office/EmployeePersonnelFilePanel';
 import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';

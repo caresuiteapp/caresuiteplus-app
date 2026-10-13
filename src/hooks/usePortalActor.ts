@@ -12,8 +12,12 @@ import {
 import {
   fetchPortalEmployeeIdByAccessAccount,
   fetchPortalEmployeeIdForAuthUser,
+  resolvePortalEmployeeLinkForAuthUser,
 } from '@/lib/portal/resolvePortalEmployeeLink';
 import { getSession } from '@/lib/supabase';
+import { getServiceMode } from '@/lib/services/mode';
+import { useConnectivity } from '@/hooks/useConnectivity';
+import { createVerifiedPortalEmployeeLink, readVerifiedPortalEmployeeLink, portalEmployeeSessionSignature } from '@/lib/auth/verifiedPortalEmployeeLink';
 import type { RoleKey } from '@/types';
 
 function normalizePortalActorLabel(value: string | null | undefined): string {
@@ -33,6 +37,9 @@ export type PortalActor = {
   isResolvingDisplayName: boolean;
   /** True when portal actor has tenant, role, profile and linked client/employee id. */
   isLinkedReady: boolean;
+  /** A previous server verification permits cache reads, never live writes. */
+  employeeLinkReadOnly?: boolean;
+  employeeLinkVerifiedAt?: string | null;
 };
 
 export function selectPortalEmployeeId(
@@ -49,7 +56,9 @@ export function selectPortalEmployeeId(
 }
 
 export function usePortalActor(): PortalActor {
-  const { profile, portalSession, user, updatePortalSession } = useAuth();
+  const { profile, portalSession, user, session, updatePortalSession } = useAuth();
+  const { isOffline } = useConnectivity();
+  const [identityClock, setIdentityClock] = useState(() => Date.now());
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
   const [employeeDisplayName, setEmployeeDisplayName] = useState<string | null>(null);
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
@@ -71,7 +80,7 @@ export function usePortalActor(): PortalActor {
   const actorId = isActivePortalSession
     ? (portalSession?.accountId ?? profile?.id ?? null)
     : (profile?.id ?? portalSession?.accountId ?? null);
-  const identity = `${tenantId}:${actorId}:${roleKey}`;
+  const identity = `${tenantId}:${actorId}:${roleKey}:${user?.id ?? ''}:${portalSession?.sessionToken ?? ''}:${portalEmployeeSessionSignature(session) ?? ''}`;
   const priorIdentity = useRef(identity);
   if (priorIdentity.current !== identity) {
     priorIdentity.current = identity;
@@ -83,17 +92,30 @@ export function usePortalActor(): PortalActor {
   const sessionClientId = portalSession?.clientId ?? null;
   const clientId = sessionClientId ?? resolvedClientId ?? null;
   const sessionEmployeeId = portalSession?.employeeId ?? null;
-  // AuthProvider already resolves the canonical employee link on login. Use
-  // it immediately instead of disabling messages while a second RLS-protected
-  // account lookup is still pending (or unavailable on an older tenant).
   const profileEmployeeId = profile?.employeeId?.trim() || null;
-  const employeeId = selectPortalEmployeeId(
-    sessionEmployeeId,
-    profileEmployeeId,
-    resolvedEmployeeId,
-  );
+  const isEmployeePortalActor = roleKey === 'employee_portal' || roleKey === 'caregiver' || roleKey === 'nurse';
+  const verifyEmployeeLink = getServiceMode() === 'supabase';
+  const offlineLink = verifyEmployeeLink && isOffline
+    ? readVerifiedPortalEmployeeLink(portalSession, user, session)
+    : null;
+  const employeeLinkReadOnly = Boolean(offlineLink);
+  const employeeLinkVerifiedAt = offlineLink?.verifiedAt ?? null;
+  // Local links can outlive an account reassignment. Only the authenticated
+  // canonical server link may publish a live employee identity.
+  const employeeId = !isEmployeePortalActor ? null : verifyEmployeeLink
+    ? isOffline ? offlineLink?.employeeId ?? null : resolvedEmployeeId
+    : selectPortalEmployeeId(sessionEmployeeId, profileEmployeeId, resolvedEmployeeId);
 
   const isClientPortalActor = roleKey === 'client_portal' || roleKey === 'family_portal';
+
+  const offlineLinkExpiresAt = offlineLink?.expiresAt;
+  useEffect(() => {
+    if (!offlineLinkExpiresAt) return;
+    const timeout = setTimeout(() => setIdentityClock(Date.now()), Math.min(
+      86_400_000, Math.max(0, Date.parse(offlineLinkExpiresAt) - Date.now()),
+    ));
+    return () => clearTimeout(timeout);
+  }, [offlineLinkExpiresAt, identityClock]);
 
   useEffect(() => {
     if (!isClientPortalActor || sessionClientId || !tenantId) {
@@ -157,8 +179,17 @@ export function usePortalActor(): PortalActor {
     };
   }, [isClientPortalActor, sessionClientId, tenantId, portalSession, updatePortalSession]);
 
+  const employeeIdentityInput = useRef({ portalSession, user, session, sessionEmployeeId, profileEmployeeId });
+  employeeIdentityInput.current = { portalSession, user, session, sessionEmployeeId, profileEmployeeId };
   useEffect(() => {
-    if (roleKey !== 'employee_portal' || sessionEmployeeId || profileEmployeeId || !tenantId) {
+    const { portalSession, user, session, sessionEmployeeId, profileEmployeeId } = employeeIdentityInput.current;
+    if (!isEmployeePortalActor || !tenantId ||
+        (!verifyEmployeeLink && (sessionEmployeeId || profileEmployeeId))) {
+      setIsResolvingEmployeeLink(false);
+      return;
+    }
+    if (verifyEmployeeLink && isOffline) {
+      setResolvedEmployeeId(null);
       setIsResolvingEmployeeLink(false);
       return;
     }
@@ -166,28 +197,41 @@ export function usePortalActor(): PortalActor {
     let cancelled = false;
     setIsResolvingEmployeeLink(true);
 
-    void (async () => {
+    void sharedPortalRead(JSON.stringify(['employee-link', identity]), async () => {
+      if (verifyEmployeeLink) return resolvePortalEmployeeLinkForAuthUser(tenantId);
       const accountId = portalSession?.accountId?.trim() || null;
       const linkedByAccount = accountId
         ? await fetchPortalEmployeeIdByAccessAccount(tenantId, accountId)
         : null;
-      const linkedEmployeeId =
-        linkedByAccount ?? (await fetchPortalEmployeeIdForAuthUser(tenantId));
-
-      if (!cancelled && linkedEmployeeId) {
-        setResolvedEmployeeId(linkedEmployeeId);
-        if (portalSession) {
+      const employeeId = linkedByAccount ?? (await fetchPortalEmployeeIdForAuthUser(tenantId));
+      return employeeId ? { status: 'verified' as const, employeeId, authUserId: user?.id } : { status: 'unavailable' as const };
+    }).then((result) => {
+      if (cancelled) return;
+      const linkedEmployeeId = result.status === 'verified' &&
+        (!verifyEmployeeLink || result.authUserId === user?.id) ? result.employeeId : null;
+      setResolvedEmployeeId(linkedEmployeeId);
+      if (result.status === 'denied' && portalSession?.employeeLinkVerification) {
+        void updatePortalSession({ employeeLinkVerification: null });
+      }
+      if (linkedEmployeeId && portalSession) {
+        const verification = createVerifiedPortalEmployeeLink(linkedEmployeeId, portalSession, user, session);
+        if (verification) {
+          void updatePortalSession({ employeeId: linkedEmployeeId, employeeLinkVerification: verification });
+        } else if (linkedEmployeeId !== sessionEmployeeId) {
           void updatePortalSession({ employeeId: linkedEmployeeId });
         }
       }
+    }).catch(() => {
+      if (!cancelled) setResolvedEmployeeId(null);
+    }).finally(() => {
       if (!cancelled) setIsResolvingEmployeeLink(false);
-    })();
+    });
 
     return () => {
       cancelled = true;
       setIsResolvingEmployeeLink(false);
     };
-  }, [roleKey, sessionEmployeeId, profileEmployeeId, tenantId, portalSession, updatePortalSession]);
+  }, [identity, isEmployeePortalActor, verifyEmployeeLink, tenantId, isOffline, updatePortalSession]);
 
   const fallbackDisplayName = useMemo(() => {
     const isClientPortal = roleKey === 'client_portal' || roleKey === 'family_portal';
@@ -266,7 +310,7 @@ export function usePortalActor(): PortalActor {
       !isResolvingEmployeeLink &&
       ((roleKey === 'client_portal' || roleKey === 'family_portal'
         ? Boolean(clientId)
-        : roleKey === 'employee_portal'
+        : isEmployeePortalActor
           ? Boolean(employeeId)
           : true));
 
@@ -282,6 +326,8 @@ export function usePortalActor(): PortalActor {
       isResolvingEmployeeLink,
       isResolvingDisplayName,
       isLinkedReady,
+      employeeLinkReadOnly,
+      employeeLinkVerifiedAt,
     };
   }, [
     tenantId,
@@ -293,5 +339,8 @@ export function usePortalActor(): PortalActor {
     isResolvingClientLink,
     isResolvingEmployeeLink,
     isResolvingDisplayName,
+    isEmployeePortalActor,
+    employeeLinkReadOnly,
+    employeeLinkVerifiedAt,
   ]);
 }

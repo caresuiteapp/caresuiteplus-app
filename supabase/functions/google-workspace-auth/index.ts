@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
+import { safeGoogleWorkspaceReturnUrl } from '../_shared/googleWorkspaceReturnUrl.ts';
 import {
   WorkspaceError,
   GOOGLE_WORKSPACE_SCOPES,
@@ -27,17 +28,7 @@ function requiredEnv(name: string): string {
 
 function safeReturnUrl(raw: string): string {
   const fallback = Deno.env.get('CARESUITE_PUBLIC_URL') ?? 'https://caresuiteplus.app';
-  try {
-    const url = new URL(raw || fallback);
-    const allowed = (Deno.env.get('GOOGLE_WORKSPACE_RETURN_ORIGINS') ?? fallback)
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (!allowed.includes(url.origin)) return `${fallback.replace(/\/$/, '')}/business/connect/google-workspace`;
-    return url.toString();
-  } catch {
-    return `${fallback.replace(/\/$/, '')}/business/connect/google-workspace`;
-  }
+  return safeGoogleWorkspaceReturnUrl(raw, fallback, Deno.env.get('GOOGLE_WORKSPACE_RETURN_ORIGINS') ?? fallback);
 }
 
 async function handleCallback(req: Request): Promise<Response> {
@@ -141,7 +132,7 @@ async function handleCallback(req: Request): Promise<Response> {
       http_status: 200,
     });
     returnUrl.searchParams.set('google', 'connected');
-  } catch (error) {
+  } catch {
     await service.from('google_workspace_audit_events').insert({
       tenant_id: oauthState.tenant_id,
       actor_user_id: oauthState.initiated_by,
@@ -250,7 +241,7 @@ serve(async (req) => {
       return jsonResponse({ ok: true, connection: publicConnection(null) });
     }
     return jsonResponse({ ok: false, error: 'Unbekannte Aktion.' }, 400);
-  } catch (error) {
+  } catch {
     return jsonResponse({ ok: false, error: error instanceof Error ? error.message : 'Interner Fehler.' }, error instanceof WorkspaceError ? error.statusCode : 500);
   }
 });

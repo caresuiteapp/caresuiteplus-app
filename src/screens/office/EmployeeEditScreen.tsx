@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';
@@ -80,10 +81,7 @@ export function EmployeeEditScreen() {
   } = useEmployeeEditWizard(id);
 
   const handleSubmit = async () => {
-    const ok = await submit();
-    if (ok) {
-      setTimeout(() => router.replace(`/business/office/employees/${id}` as never), 1500);
-    }
+    await submit();
   };
 
   if (!canEdit) {
@@ -124,7 +122,7 @@ export function EmployeeEditScreen() {
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
-          onPress={() => router.replace(`/business/office/employees/${id}` as never)}
+          onPress={() => router.push(`/business/office/employees/${id}` as never)}
         />
       </ScreenShell>
     );

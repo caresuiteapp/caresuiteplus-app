@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AppointmentDetailHero } from '@/components/office';
@@ -26,7 +27,8 @@ function SummaryRow({ label, value }: { label: string; value: string | null | un
 }
 
 export function AppointmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(routeId) ? routeId[0] : routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const { can, roleLabel, isReadOnly } = usePermissions();
@@ -76,6 +78,7 @@ export function AppointmentDetailScreen() {
           />
         ) : null}
 
+        <DocumentRecommendations module="office" workflow="assignment" clientId={appointment.clientId} employeeId={appointment.employeeId} compact />
         <AppointmentDetailHero
           appointment={appointment}
           roleKey={roleKey}
@@ -101,7 +104,7 @@ export function AppointmentDetailScreen() {
           title="Zurück zur Terminliste"
           variant="secondary"
           fullWidth
-          onPress={() => router.back()}
+          onPress={() => router.replace('/office/appointments')}
         />
       </ScrollView>
     </ScreenShell>

@@ -28,11 +28,10 @@ export async function syncClientCoreAfterIntake(
     const serviceTypeKeys = careContextsToServiceTypeKeys(form.careContexts);
 
     const existingProfiles = await listClientServiceProfiles(tenantId, clientId);
+    if (!existingProfiles.ok) return existingProfiles;
     const primaryKey = resolvePrimaryServiceTypeKey(
       serviceTypeKeys,
-      existingProfiles.ok
-        ? existingProfiles.data.find((p) => p.isPrimary)?.serviceTypeKey
-        : undefined,
+      existingProfiles.data.find((p) => p.isPrimary)?.serviceTypeKey,
     );
 
     if (serviceTypeKeys.length > 0) {
@@ -46,14 +45,17 @@ export async function syncClientCoreAfterIntake(
     }
 
     const budgets = await listClientBudgetSettings(tenantId, clientId);
-    if (budgets.ok && budgets.data.length === 0) {
-      const budgetYear = new Date(form.serviceStart || Date.now()).getFullYear() || 2026;
+    if (!budgets.ok) return budgets;
+    if (budgets.data.length === 0) {
+      const budgetYear = new Date(form.serviceStart || Date.now()).getFullYear();
+      if (!Number.isFinite(budgetYear)) return { ok: false, error: 'Der Leistungsbeginn ist ungültig. Bitte korrigieren Sie das Datum.' };
       const initResult = await initializeClientBudgetFromDefaults(tenantId, clientId, budgetYear);
       if (!initResult.ok) return initResult;
     }
 
     const portal = await fetchClientPortalSettingsResolved(tenantId, clientId);
-    if (portal.ok && portal.data.source === 'tenant') {
+    if (!portal.ok) return portal;
+    if (portal.data.source === 'tenant') {
       const upsertResult = await upsertClientPortalSettings(tenantId, clientId, {
         inheritTenantDefaults: true,
       });

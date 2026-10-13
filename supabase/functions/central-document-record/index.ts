@@ -1,3 +1,5 @@
+// Deno resolves npm: imports in the deployed Edge runtime.
+// eslint-disable-next-line import/no-unresolved
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { canonicalJson, validateCentralPayload, decodePdf, mapStoredRecord } from './payload.ts';
 
@@ -45,6 +47,15 @@ Deno.serve(async (req) => {
   if (snapshot.context.target !== 'company') {
     const { data, error } = await caller.from(snapshot.context.target === 'client' ? 'clients' : 'employees').select('id').eq('tenant_id', tenantId).eq('id', snapshot.context.entityId).maybeSingle();
     if (error || !data) return response({ ok: false, error: 'Akte nicht verfügbar.' }, 403);
+  }
+  for (const [key, table, permission] of [['assignmentId', 'assist_visits', 'assist.assignments.view'], ['invoiceId', 'invoices', 'office.invoices.view'], ['medicationId', 'medications', 'pflege.medications.view'], ['woundId', 'clinical_wound_cases', 'pflege.wounds.view']] as const) {
+    const id = snapshot.context.procedure?.[key];
+    if (!id) continue;
+    const allowed = await caller.rpc('has_permission', { p_permission_key: permission });
+    if (allowed.error || !allowed.data || snapshot.context.target !== 'client') return response({ ok: false, error: 'Keine Berechtigung für die verknüpften Vorgangsdaten.' }, 403);
+    let linked = await caller.from(table).select('client_id').eq('tenant_id', tenantId).eq('id', id).maybeSingle();
+    if (key === 'assignmentId' && !linked.error && !linked.data) linked = await caller.from('assignments').select('client_id').eq('tenant_id', tenantId).eq('id', id).maybeSingle();
+    if (linked.error || !linked.data || linked.data.client_id !== snapshot.context.entityId) return response({ ok: false, error: 'Der verknüpfte Vorgang gehört nicht zu dieser Klientenakte.' }, 403);
   }
   let pdf: Uint8Array; let originalBytes: Uint8Array | null;
   try { pdf = decodePdf(pdfBase64); originalBytes = original ? decodePdf(original.base64) : null; }

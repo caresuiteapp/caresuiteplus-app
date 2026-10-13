@@ -73,8 +73,12 @@ describe('Office messenger usability regression', () => {
     const header = readSrc('src/components/layout/ScreenHeader.tsx');
     const threadHeader = readSrc('src/components/office/officemessagethreadheader.tsx');
 
-    expect(composer).toContain('minHeight: 82');
-    expect(composer).toContain('minHeight: 66');
+    expect(composer).toContain('minHeight: isCompact ? 62 : 82');
+    expect(composer).toContain('minHeight: isCompact ? 46 : 66');
+    expect(composer).toContain('multiline');
+    expect(composer).toContain('fontSize: 16');
+    expect(composer).toContain('minHeight: 44');
+    expect(composer).toContain('setComposerWidth(Math.round(event.nativeEvent.layout.width))');
     expect(composer).toContain("textAlignVertical: 'top'");
     expect(composer).toContain("flexWrap: 'nowrap'");
     expect(header).toContain('minHeight: compact ? 54');

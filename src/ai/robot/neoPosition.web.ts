@@ -11,6 +11,17 @@ export function makeNeoDraggable(host: HTMLElement, button: HTMLButtonElement, s
     host.style.transform = 'none';
   };
   const defaultPosition = () => {
+    const dock = document.querySelector<HTMLElement>('[data-cs-neo-dock]');
+    if (dock) {
+      drag = null;
+      if (host.parentElement !== dock) dock.appendChild(host);
+      host.style.position = 'relative';
+      host.style.left = '0px'; host.style.top = '0px'; host.style.transform = 'none';
+      button.style.cursor = 'pointer'; button.style.touchAction = 'manipulation';
+      return;
+    }
+    if (host.parentElement !== document.body) document.body.appendChild(host);
+    host.style.position = 'fixed';
     const anchor = document.querySelector<HTMLElement>('[aria-label^="Kontomenü von "]');
     const bar = anchor?.getBoundingClientRect();
     let top = bar && bar.height > 0 && bar.top < 160 ? bar.top + bar.height / 2 - host.offsetHeight / 2 : innerWidth <= 540 ? 20 : 28;
@@ -23,7 +34,7 @@ export function makeNeoDraggable(host: HTMLElement, button: HTMLButtonElement, s
     }
     position(left, top);
   };
-  const restore = () => { if (saved) { const max = limits(); position(8 + saved.x * max.x, 8 + saved.y * max.y); } else defaultPosition(); };
+  const restore = () => { if (document.querySelector('[data-cs-neo-dock]')) { defaultPosition(); return; } if (saved) { const max = limits(); position(8 + saved.x * max.x, 8 + saved.y * max.y); } else defaultPosition(); };
   const save = () => {
     const rect = host.getBoundingClientRect(), max = limits();
     saved = { x: max.x ? Math.min(1, Math.max(0, (rect.left - 8) / max.x)) : 0, y: max.y ? Math.min(1, Math.max(0, (rect.top - 8) / max.y)) : 0 };
@@ -34,8 +45,9 @@ export function makeNeoDraggable(host: HTMLElement, button: HTMLButtonElement, s
     if (data && Number.isFinite(data.x) && Number.isFinite(data.y) && data.x >= 0 && data.x <= 1 && data.y >= 0 && data.y <= 1) saved = data;
   } catch { /* invalid or unavailable storage */ }
   restore();
-  button.style.touchAction = 'none';
+  button.style.touchAction = host.parentElement?.hasAttribute('data-cs-neo-dock') ? 'manipulation' : 'none';
   const down = (event: PointerEvent) => {
+    if (host.parentElement?.hasAttribute('data-cs-neo-dock')) return;
     if (!event.isPrimary || event.button !== 0) return;
     suppressClickUntil = 0;
     const rect = host.getBoundingClientRect();
@@ -59,6 +71,7 @@ export function makeNeoDraggable(host: HTMLElement, button: HTMLButtonElement, s
     if (event.detail !== 0 && performance.now() < suppressClickUntil) { event.preventDefault(); event.stopImmediatePropagation(); }
   };
   const key = (event: KeyboardEvent) => {
+    if (host.parentElement?.hasAttribute('data-cs-neo-dock')) return;
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return;
     event.preventDefault(); onDrag();
     if (event.key === 'Home') {
@@ -69,17 +82,18 @@ export function makeNeoDraggable(host: HTMLElement, button: HTMLButtonElement, s
     const rect = host.getBoundingClientRect(), step = event.shiftKey ? 40 : 10;
     position(rect.left + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0), rect.top + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0)); save();
   };
-  button.style.cursor = 'grab';
+  button.style.cursor = host.parentElement?.hasAttribute('data-cs-neo-dock') ? 'pointer' : 'grab';
   button.addEventListener('pointerdown', down); button.addEventListener('pointermove', move);
   button.addEventListener('pointerup', up); button.addEventListener('pointercancel', up);
   button.addEventListener('click', click, true); button.addEventListener('keydown', key);
   window.addEventListener('resize', restore);
+  window.addEventListener('caresuite:neo-dock-layout', restore);
   const anchor = document.querySelector<HTMLElement>('[aria-label^="Kontomenü von "]');
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (!saved) defaultPosition(); });
   if (anchor) observer?.observe(anchor);
   return () => {
     button.removeEventListener('pointerdown', down); button.removeEventListener('pointermove', move);
     button.removeEventListener('pointerup', up); button.removeEventListener('pointercancel', up);
-    button.removeEventListener('click', click, true); button.removeEventListener('keydown', key); window.removeEventListener('resize', restore); observer?.disconnect();
+    button.removeEventListener('click', click, true); button.removeEventListener('keydown', key); window.removeEventListener('resize', restore); window.removeEventListener('caresuite:neo-dock-layout', restore); observer?.disconnect();
   };
 }

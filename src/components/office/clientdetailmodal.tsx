@@ -183,7 +183,7 @@ export function ClientDetailModal({
             >
               <GradientModalHeader
                 title={isFull ? 'Klient:innen Akte' : 'Klientenakte'}
-                onBack={isFull ? handleBackToPreview : undefined}
+                onBack={isFull ? (Platform.OS === 'web' ? onClose : handleBackToPreview) : undefined}
                 onClose={onClose}
               />
 

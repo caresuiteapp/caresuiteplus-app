@@ -100,6 +100,13 @@ function bytesToHex(bytes: Uint8Array): string {
     .join('');
 }
 
+/** Hash the actual binary content without decoding or re-encoding PDF bytes. */
+export function sha256BinaryHex(content: Uint8Array): string {
+  return bytesToHex(sha256Bytes(content));
+}
+
+export const sha256FileHex = sha256BinaryHex;
+
 /** Returns lowercase hex SHA-256 digest (no prefix). */
 export function sha256Hex(content: string): string {
   const encoded =
@@ -107,9 +114,4 @@ export function sha256Hex(content: string): string {
       ? new TextEncoder().encode(content)
       : Uint8Array.from(Array.from(content).map((char) => char.charCodeAt(0)));
   return bytesToHex(sha256Bytes(encoded));
-}
-
-/** Hashes the actual file bytes; never convert PDF bytes into a UTF-8 string. */
-export function sha256FileHex(bytes: Uint8Array): string {
-  return bytesToHex(sha256Bytes(bytes));
 }

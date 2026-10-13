@@ -15,7 +15,7 @@ function getClient() {
   return getSupabaseClient();
 }
 
-function unavailable<T>(): ServiceResult<T> {
+function unavailable(): Extract<ServiceResult<never>, { ok: false }> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
@@ -63,46 +63,30 @@ export async function upsertClientIntakeDraft(
   tenantId: string,
   form: ClientIntakeFormData,
   options?: { clientId?: string | null; actorProfileId?: string | null },
-): Promise<ServiceResult<{ id: string }>> {
+): Promise<ServiceResult<{ id: string }> & { recoverableClientId?: string }> {
   const supabase = getClient();
   if (!supabase) return unavailable();
 
   const patch = buildIntakeClientPatch(tenantId, form, options?.actorProfileId ?? null, 'lead');
 
-  // Lokale Entwurfsdaten können aus älteren Releases eine ungültige ID enthalten.
-  // Niemals ungeprüfte Werte in einen UUID-Filter geben; stattdessen einen neuen Lead anlegen.
-  if (isUuid(options?.clientId)) {
-    const { data, error } = await supabase
-      .from('clients')
-      .update(patch)
-      .eq('id', options.clientId)
-      .eq('tenant_id', tenantId)
-      .eq('status', 'lead')
-      .select('id')
-      .maybeSingle();
-
-    if (!error && data?.id) {
-      return { ok: true, data: { id: data.id } };
+  const clientId = isUuid(options?.clientId) ? options.clientId : (await import('expo-crypto')).randomUUID();
+  try {
+    const loaded = await supabase.from('clients').select('id, status')
+      .eq('id', clientId).eq('tenant_id', tenantId).maybeSingle();
+    if (loaded.error) return { ok: false, error: toGermanSupabaseError(loaded.error), recoverableClientId: clientId };
+    if (loaded.data && loaded.data.status !== 'lead') {
+      return { ok: false, error: 'Diese Aufnahme ist kein Entwurf mehr. Bitte öffnen Sie die bestehende Klientenakte.', recoverableClientId: clientId };
     }
-
-    // Stale AsyncStorage clientId (z. B. nach Abschluss der Aufnahme) → neuen Lead anlegen.
-    if (error && !/0 rows|no rows|PGRST116/i.test(error.message ?? '')) {
-      return { ok: false, error: toGermanSupabaseError(error) };
+    const query = loaded.data
+      ? supabase.from('clients').update(patch).eq('id', clientId).eq('tenant_id', tenantId).eq('status', 'lead')
+      : supabase.from('clients').insert({ ...patch, id: clientId, created_by: options?.actorProfileId ?? null });
+    const { data, error } = await query.select('id').single();
+    if (error || data?.id !== clientId) {
+      return { ok: false, error: error ? toGermanSupabaseError(error) : 'Serversicherung konnte nicht bestätigt werden. Bitte denselben Entwurf erneut speichern.', recoverableClientId: clientId };
     }
+    return { ok: true, data: { id: clientId } };
+  } catch {
+    // A lost response may follow a committed insert. Never allocate another UUID on retry.
+    return { ok: false, error: 'Serversicherung konnte nicht bestätigt werden. Bitte denselben Entwurf erneut speichern.', recoverableClientId: clientId };
   }
-
-  const { data, error } = await supabase
-    .from('clients')
-    .insert({
-      ...patch,
-      created_by: options?.actorProfileId ?? null,
-    })
-    .select('id')
-    .single();
-
-  if (error || !data) {
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  return { ok: true, data: { id: data.id } };
 }

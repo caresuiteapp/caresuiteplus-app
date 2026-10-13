@@ -1,7 +1,9 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { usePageTab } from '@/hooks/usePageTab';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -113,6 +115,8 @@ export function EmployeePersonnelFilePanel({
   onOpenOffboarding,
 }: EmployeePersonnelFilePanelProps) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = Platform.OS !== 'web' && width < 600;
   const content = useAdaptiveContentStyles();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -126,7 +130,7 @@ export function EmployeePersonnelFilePanel({
     [tenantId, employeeId, profile?.roleKey],
     { enabled: !!tenantId && !!employeeId && can('inventory.view') },
   );
-  const [activeTab, setActiveTab] = useState<EmployeePersonnelUiTabKey>(initialTab);
+  const [activeTab, setActiveTab] = usePageTab<EmployeePersonnelUiTabKey>('EmployeePersonnelFilePanel.activeTab', initialTab);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -173,7 +177,7 @@ export function EmployeePersonnelFilePanel({
           gap: spacing.md,
           flexWrap: 'wrap',
         },
-        employeeIdentity: { flex: 1, minWidth: 230, gap: 4 },
+        employeeIdentity: { flex: 1, minWidth: compact ? 0 : 230, flexBasis: compact ? '100%' : undefined, gap: 4 },
         employeeEyebrow: { ...content.caption, color: '#0872D9', fontWeight: '800', letterSpacing: 0.8 },
         employeeName: { fontSize: 24, lineHeight: 30, color: '#08213D', fontWeight: '900' },
         employeeMeta: { ...content.body, color: '#526A84' },
@@ -217,7 +221,7 @@ export function EmployeePersonnelFilePanel({
         fieldLabel: { ...content.caption, marginBottom: spacing.xs },
         error: content.error,
       }),
-    [content, embedded],
+    [content, embedded, compact],
   );
 
   const overview = useMemo(() => (file ? buildEmployeePersonnelOverview(file) : null), [file]);
@@ -265,8 +269,8 @@ export function EmployeePersonnelFilePanel({
   }, [file]);
 
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [employeeId, initialTab]);
+    if (Platform.OS !== 'web') setActiveTab(initialTab);
+  }, [employeeId, initialTab, setActiveTab]);
 
   useEffect(() => {
     setActionError(null);
@@ -493,6 +497,7 @@ export function EmployeePersonnelFilePanel({
 
   const body = (
     <>
+      {['documents', 'employment', 'portal', 'work_materials', 'qualifications'].includes(activeTab) ? <DocumentRecommendations module="office" employeeId={employeeId} compact workflow={activeTab === 'portal' ? 'portal_access' : activeTab === 'work_materials' ? 'employee_exit' : activeTab === 'employment' ? 'employee_onboarding' : activeTab === 'qualifications' ? 'training' : 'employee_documents'} /> : null}
       <View style={styles.employeeHeader}>
         <View style={styles.employeeHeaderMain}>
           <View style={styles.employeeIdentity}>
@@ -921,7 +926,7 @@ export function EmployeePersonnelFilePanel({
                 <View style={{ flex: 1 }}>
                   <DetailInfoRow label={doc.title} value={doc.fileName} />
                 </View>
-                {canEdit ? (
+                {canEdit && !(Platform.OS === 'web' && doc.storagePath?.includes('/central-documents/')) ? (
                   <PremiumButton
                     title="Löschen"
                     size="sm"

@@ -5,6 +5,21 @@ import type {
   PortalSignatureField,
   PortalSignatureFilterTab,
 } from '@/types/portal/documentSignatures';
+import type { CsSignerRole } from '@/types/documents/csTemplateDatabase';
+import type { RoleKey } from '@/types';
+
+export function resolvePortalDocumentSignerRole(input: {
+  mode: 'office' | 'employee' | 'client';
+  roleKey: RoleKey | null;
+  pendingRoles: CsSignerRole[];
+  defaultRole: CsSignerRole;
+}): CsSignerRole {
+  if (input.mode === 'client' && input.pendingRoles.includes('representative') &&
+      (input.roleKey === 'family_portal' || !input.pendingRoles.includes('client'))) {
+    return 'representative';
+  }
+  return input.defaultRole;
+}
 
 export const PORTAL_SIGNATURE_TABLES = {
   documents: 'portal_signature_documents',
@@ -25,8 +40,14 @@ export function buildPortalSignatureCaptureStoragePath(
 export function buildPortalSignatureFinalPdfPath(
   tenantId: string,
   documentId: string,
+  versionNumber: number,
+  pdfHash: string,
 ): string {
-  return `tenant/${tenantId}/portal/signatures/${documentId}/final.pdf`;
+  const hash=pdfHash.replace(/^sha256:/,'');
+  if (!Number.isSafeInteger(versionNumber) || versionNumber<1 || !/^[a-f0-9]{64}$/.test(hash)) {
+    throw new Error('Dokumentversion oder PDF-Prüfsumme fehlt.');
+  }
+  return `tenant/${tenantId}/portal/signatures/${documentId}/versions/${versionNumber}/final-${hash}.pdf`;
 }
 
 export function parseSignatureDataUrl(dataUrl: string): { bytes: Uint8Array; mimeType: string } | null {
@@ -196,6 +217,7 @@ export function mapPortalSignatureCaptureRow(row: Record<string, unknown>) {
     signerName: String(row.signer_name),
     signedAt: String(row.signed_at),
     signatureHash: String(row.signature_hash),
+    payloadHash: row.payload_hash ? String(row.payload_hash) : undefined,
     auditId: String(row.audit_id),
     deviceInfo: row.device_info ? String(row.device_info) : null,
     browser: row.browser ? String(row.browser) : null,

@@ -16,12 +16,22 @@ export function usePathname() {
   return '/';
 }
 
+export function useIsFocused() {
+  return true;
+}
+
 export function useSegments() {
   return [] as string[];
 }
 
 export function useLocalSearchParams<T extends Record<string, unknown>>() {
   return {} as T;
+}
+export function useGlobalSearchParams<T extends Record<string, unknown>>() {
+  return {} as T;
+}
+export function useRootNavigationState() {
+  return { key: 'root' };
 }
 
 export function useRouter() {

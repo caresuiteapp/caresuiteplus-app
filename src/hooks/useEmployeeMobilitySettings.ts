@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { EmployeeMobilitySettings } from '@/types/modules/employeeMobility';
 import {
   fetchEmployeeMobilitySettings,
@@ -13,32 +13,38 @@ export function useEmployeeMobilitySettings(tenantId: string | null, employeeId:
   const settingsQuery = useAsyncQuery(
     () => fetchEmployeeMobilitySettings(tenantId!, employeeId!),
     [tenantId, employeeId],
-    { enabled },
+    { enabled, queryKey: `mobility:${tenantId}:${employeeId}` },
   );
 
   const addressQuery = useAsyncQuery(
     () => loadEmployeeAddressContext(tenantId!, employeeId!),
     [tenantId, employeeId],
-    { enabled },
+    { enabled, queryKey: `mobility-address:${tenantId}:${employeeId}` },
   );
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const saveLock = useRef(false);
 
   const save = useCallback(
     async (next: EmployeeMobilitySettings) => {
+      if (!enabled || next.tenantId !== tenantId || next.employeeId !== employeeId) return { ok: false as const, error: 'Das Mitarbeitendenkonto hat sich geändert. Bitte die Einstellungen erneut laden.' };
+      if (saveLock.current) return { ok: false as const, error: 'Die Einstellungen werden bereits gespeichert.' };
+      saveLock.current = true;
       setSaving(true);
       setSaveError(null);
-      const result = await saveEmployeeMobilitySettings(next);
-      setSaving(false);
-      if (!result.ok) {
-        setSaveError(result.error);
+      try {
+        const result = await saveEmployeeMobilitySettings(next);
+        if (!result.ok) { setSaveError(result.error); return result; }
+        const refreshed = await settingsQuery.refreshWithResult();
+        if (refreshed === false) setSaveError('Einstellungen wurden gespeichert. Die aktuelle Ansicht konnte noch nicht geladen werden.');
         return result;
-      }
-      await settingsQuery.refresh();
-      return result;
+      } catch (cause) {
+        const error = cause instanceof Error ? cause.message : 'Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.';
+        setSaveError(error); return { ok: false as const, error };
+      } finally { saveLock.current = false; setSaving(false); }
     },
-    [settingsQuery],
+    [settingsQuery, enabled, tenantId, employeeId],
   );
 
   const refresh = useCallback(async () => {
@@ -50,7 +56,7 @@ export function useEmployeeMobilitySettings(tenantId: string | null, employeeId:
       settings: settingsQuery.data,
       addressContext: addressQuery.data,
       loading: settingsQuery.loading || addressQuery.loading,
-      error: settingsQuery.error ?? addressQuery.error,
+      error: settingsQuery.error ?? settingsQuery.refreshError ?? addressQuery.error ?? addressQuery.refreshError,
       saving,
       saveError,
       save,
@@ -60,9 +66,11 @@ export function useEmployeeMobilitySettings(tenantId: string | null, employeeId:
       settingsQuery.data,
       settingsQuery.loading,
       settingsQuery.error,
+      settingsQuery.refreshError,
       addressQuery.data,
       addressQuery.loading,
       addressQuery.error,
+      addressQuery.refreshError,
       saving,
       saveError,
       save,

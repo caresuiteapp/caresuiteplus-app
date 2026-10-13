@@ -17,6 +17,7 @@ import {
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
+import { buildVisitSignaturePayload } from './workflowWriteExpectation';
 
 export type SaveClientSignatureInput = {
   ctx: AssistExecutionContext;
@@ -110,15 +111,7 @@ export async function saveClientSignature(
       locationAddress: workingCtx.detail.locationAddress,
     },
     signature,
-    {
-      visitId: workingCtx.assistVisitId,
-      clientId: workingCtx.detail.clientId,
-      employeeId: workingCtx.employeeId,
-      plannedStartAt: workingCtx.detail.plannedStartAt,
-      plannedEndAt: workingCtx.detail.plannedEndAt,
-      taskStatuses: workingCtx.detail.tasks.map((t) => ({ taskId: t.id, status: t.status })),
-      documentationNote: workingCtx.detail.documentationNotes?.trim() || null,
-    },
+    buildVisitSignaturePayload(workingCtx),
   );
 
   if (!persist.ok) {

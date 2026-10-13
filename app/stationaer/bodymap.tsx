@@ -1,3 +1,2 @@
-import { StationaerBodyMapHubScreen } from '@/product-workflows/screens/stationaer/StationaerBodyMapHubScreen';
-
-export default StationaerBodyMapHubScreen;
+import { Redirect } from 'expo-router';
+export default function RetiredBodymapRoute() { return <Redirect href="/" />; }

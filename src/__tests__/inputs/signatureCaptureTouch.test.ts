@@ -27,7 +27,7 @@ describe('signature canvas mobile touch wiring', () => {
     expect(source).toContain('setPointerCapture');
     expect(source).toContain('requestAnimationFrame');
     expect(source).toContain('const FULLSCREEN_CANVAS_MIN_HEIGHT = 220');
-    expect(source).toContain('minHeight: FULLSCREEN_CANVAS_MIN_HEIGHT');
+    expect(source).toContain('minHeight: fillAvailable ? FULLSCREEN_CANVAS_MIN_HEIGHT : undefined');
   });
 
   it('uses scroll-lock helper in fullscreen overlay', () => {

@@ -164,7 +164,7 @@ describe('Web startup intro at the start address', () => {
   ])('uses the initial $entry address even if a child immediately redirects to $destination', async ({ entry, destination, plays }) => {
     setUrl(entry);
     function RedirectingRoute() {
-      React.useLayoutEffect(() => setUrl(destination), [destination]);
+      React.useLayoutEffect(() => setUrl(destination), []);
       return <span>Zielseite</span>;
     }
     await render(<RedirectingRoute />);

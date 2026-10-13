@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#7FDFFF',
-    fontSize: 9,
+    fontSize: Platform.OS === 'web' ? 9 : 12,
     fontWeight: '900',
     letterSpacing: 1.4,
   },
@@ -82,13 +82,13 @@ const styles = StyleSheet.create({
   symbol: {
     width: 12,
     textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: Platform.OS === 'web' ? 11 : 12,
+    lineHeight: Platform.OS === 'web' ? 14 : 17,
     fontWeight: '900',
   },
   label: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: Platform.OS === 'web' ? 11 : 12,
+    lineHeight: Platform.OS === 'web' ? 14 : 17,
     fontWeight: '800',
   },
   webShell: {
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#C8DAEE',
     borderRadius: 14,
   },
-  webTitle: { color: '#173859', fontSize: 11, lineHeight: 16 },
+  webTitle: { color: '#173859', fontSize: Platform.OS === 'web' ? 11 : 12, lineHeight: 16 },
   webItem: { minHeight: 34, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 7, gap: 7 },
   webSymbol: { width: 14, fontSize: 13, lineHeight: 18 },
   webLabel: { fontSize: 13, lineHeight: 18, flexShrink: 1, minWidth: 0 },

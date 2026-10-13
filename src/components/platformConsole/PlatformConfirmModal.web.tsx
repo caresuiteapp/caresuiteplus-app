@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ConsoleDialog } from './ConsoleWorkspaceUi.web';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
+import type { PlatformConfirmModalProps } from './PlatformConfirmModal';
 
-type Props = {
-  visible: boolean; title: string; description: string; confirmLabel?: string;
-  requireTypedConfirmation?: string; requireReason?: boolean; danger?: boolean;
-  loading?: boolean; error?: string | null; onCancel: () => void; onConfirm: (reason: string) => void;
-};
-export function PlatformConfirmModal({visible,title,description,confirmLabel='Bestätigen',requireTypedConfirmation,requireReason=true,danger=false,loading=false,error,onCancel,onConfirm}:Props){
+export function PlatformConfirmModal({visible,title,description,confirmLabel='Bestätigen',requireTypedConfirmation,requireReason=true,danger=false,loading=false,error,onCancel,onConfirm}:PlatformConfirmModalProps){
   const [reason,setReason]=useState('');const [typed,setTyped]=useState('');
   const locked=useRef(false);
   const confirmLeave=useUnsavedWebChanges(visible&&Boolean(reason.trim()||typed.trim()),visible&&loading);

@@ -75,14 +75,14 @@ export function ChatComposer({
         toolbar: {
           flexDirection: 'row',
           alignItems: 'center',
-          minHeight: 36,
+          minHeight: 44,
           gap: 5,
           flexWrap: 'nowrap',
           overflow: 'hidden',
         },
         toolButton: {
-          minHeight: 36,
-          width: isCompact ? 36 : undefined,
+          minHeight: 44,
+          width: isCompact ? 44 : undefined,
           paddingHorizontal: isCompact ? 0 : spacing.sm,
           borderRadius: 18,
           alignItems: 'center',
@@ -126,7 +126,8 @@ export function ChatComposer({
         },
         sendButton: {
           minWidth: isWide ? 112 : 54,
-          height: 42,
+          minHeight: 44,
+          paddingVertical: spacing.xs,
           paddingHorizontal: isWide ? spacing.md : spacing.sm,
           borderRadius: 20,
           alignItems: 'center',

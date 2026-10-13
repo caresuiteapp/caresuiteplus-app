@@ -20,11 +20,13 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain('await persistEmployeePortalStatusTransition');
   });
 
-  it('persists service_end before scheduling derived administration mirrors', () => {
+  it('persists service_end before awaiting derived administration confirmations', () => {
     const file = source('src/features/assistWorkflow/endService.ts');
     expect(file).toContain('persistEndedExecutionMirrors');
     expect(file).toMatch(/if \(ctx\.visitTimes\?\.serviceEndedAt\)[\s\S]*persistEndedExecutionMirrors/);
-    expect(file).toContain('scheduleDeferredTask');
+    expect(file).not.toContain('scheduleDeferredTask');
+    expect(file).toContain('const mirrors = await persistEndedExecutionMirrors');
+    expect(file.indexOf('const eventsWritten = await persistEndServiceEvents')).toBeLessThan(file.lastIndexOf('const mirrors = await persistEndedExecutionMirrors'));
     expect(file).toContain("eventType: 'service_end'");
   });
 
@@ -43,12 +45,14 @@ describe('critical employee workflow persistence', () => {
 
   it('does not turn an arbitrary refresh into timeout success', () => {
     const file = source('src/hooks/useEmployeePortalVisitExecution.ts');
-    expect(file).toContain('didWorkflowActionReachPostcondition');
+    const readback = source('src/features/assistWorkflow/readWorkflowActionConfirmation.ts');
     expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED');
-    expect(file).toContain('didWorkflowActionReachPostcondition(options.recoveryAction, ctx, refreshed)');
-    expect(file).toContain('return { ok: true, data: refreshed as T };');
-    expect(file).toContain('workflowRecoveryReadback');
-    expect(file).toContain('readWorkflowActionConfirmation(pending.before, pending.action)');
+    expect(file).toContain('readWorkflowActionConfirmation(ctx, options.recoveryAction, expected)');
+    expect(file).toContain('readWorkflowActionConfirmation(pending.before, pending.action, pending.expected)');
+    expect(file).not.toContain('return { ok: true, data: refreshed as T };');
+    expect(readback).toContain('didWorkflowActionReachPostcondition(action, before, result.data)');
+    expect(readback).toContain('autoRepair: false');
+    expect(readback).toContain('readFinalWorkflowProofConfirmation');
     expect(file).toContain("confirmation.state === 'confirmed'");
   });
 
@@ -66,13 +70,15 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain('timeoutMs: WORKFLOW_START_SERVICE_TIMEOUT_MS');
   });
 
-  it('reuses the already-authorized screen detail instead of reloading the assignment before each transition', () => {
+  it('allows a supplied screen projection but still requires an exact stored status receipt', () => {
     const transition = source('src/features/assistWorkflow/internal/transitionAssistExecutionStatus.ts');
     const liveService = source('src/lib/portal/employeePortalExecutionLiveService.ts');
     const repository = source('src/lib/assist/repositories/assignmentRepository.supabase.ts');
     expect(transition).toContain('knownDetail: options.fastWorkflow ? ctx.detail : undefined');
     expect(liveService).toContain('mapPortalDetailToAssignmentDetail(options.knownDetail, employeeId)');
-    expect(repository).toContain('Return after the authoritative status/timestamp write');
+    expect(repository).toContain('const refreshed = await this.getById(tenantId, masterAssignmentId)');
+    expect(repository).toContain('refreshed.data.assignmentStatus !== toStatus');
+    expect(repository).toContain('if (rpcError) return');
   });
 
   it('loads tracking and canonical time events together on the initial execution screen', () => {

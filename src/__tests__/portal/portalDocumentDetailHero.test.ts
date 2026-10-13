@@ -41,7 +41,7 @@ describe('Portal Document Detail Hero (Sprint 83)', () => {
   });
 
   it('PortalClientDocumentDetailScreen ersetzt flache PremiumCard', () => {
-    const screen = readSrc('src/screens/portal/PortalClientDocumentDetailScreen.tsx');
+    const screen = readSrc('src/screens/portal/PortalClientDocumentDetailScreenCore.tsx');
     expect(screen).toContain('PortalDocumentDetailHero');
     expect(screen).toContain('scope="client"');
     expect(screen).toContain('useDeviceClass');

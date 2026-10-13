@@ -12,49 +12,65 @@ function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-const mockOrder = vi.fn();
-const mockEqCategory = vi.fn();
-const mockEqStatus = vi.fn();
-const mockEqPortalVisible = vi.fn();
-const mockEqClient = vi.fn();
-const mockEqTenant = vi.fn();
-const mockSelectDocs = vi.fn();
-const mockFromUnknown = vi.fn();
-
-const mockServiceRecordsIn = vi.fn();
-const mockServiceRecordsOrder = vi.fn();
-const mockServiceRecordsEqClient = vi.fn();
-const mockServiceRecordsEqTenant = vi.fn();
-const mockServiceRecordsSelect = vi.fn();
-const mockServiceRecordsFrom = vi.fn();
-
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => ({
-    from: (table: string) => {
-      if (table === 'service_records') {
-        mockServiceRecordsFrom(table);
-        return {
-          select: mockServiceRecordsSelect.mockReturnValue({
-            eq: mockServiceRecordsEqTenant.mockReturnValue({
-              eq: mockServiceRecordsEqClient.mockReturnValue({
-                in: mockServiceRecordsIn.mockReturnValue({
-                  order: mockServiceRecordsOrder.mockResolvedValue({ data: [], error: null }),
-                }),
-              }),
-            }),
-          }),
-        };
-      }
-      return { select: vi.fn() };
-    },
-  }),
+const mocks = vi.hoisted(() => ({
+  rows: [] as Record<string, unknown>[],
 }));
 
+vi.mock('@/lib/client/clientPortalSettingsService', () => ({
+  fetchClientPortalSettingsResolved: async () => ({ ok: true, data: {} }),
+  canClientPortalSeeFeature: () => true,
+}));
+vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({
+  listReleasedProofsForClientPortal: async () => ({ ok: true, data: [] }),
+}));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/supabase/untypedTable', () => ({
-  fromUnknownTable: (...args: unknown[]) => mockFromUnknown(...args),
+  fromUnknownTable: (_client: unknown, table: string) => {
+    const query = {
+      select: () => query, eq: () => query, in: () => query, not: () => query, order: () => query,
+      range: async (from: number, to: number) => {
+        const rows = table === 'client_documents' ? mocks.rows : [];
+        return { data: rows.slice(from, to + 1), count: rows.length, error: null };
+      },
+    };
+    return query;
+  },
 }));
 
 describe('portal service proofs wiring', () => {
+  it('resolves Web service exports through their unique shared cores', async () => {
+    const { build } = await import('esbuild');
+    const servicePaths = [
+      '@/lib/portal/assist/portalServiceProofService',
+      '@/lib/portal/assist/portalAssistVisitProofService',
+    ];
+    const result = await build({
+      stdin: {
+        contents: `import { listPortalServiceProofs } from '${servicePaths[0]}';
+          import { listReleasedProofsForClientPortal, getReleasedProofForClientPortal,
+            fetchAssistProofPortalDocumentDetail } from '${servicePaths[1]}';
+          export const actions = [listPortalServiceProofs, listReleasedProofsForClientPortal,
+            getReleasedProofForClientPortal, fetchAssistProofPortalDocumentDetail];`,
+        resolveDir: root, loader: 'ts',
+      },
+      alias: { '@': path.join(root, 'src') },
+      bundle: true, write: false, metafile: true, format: 'esm', platform: 'browser',
+      resolveExtensions: ['.web.ts', '.ts', '.web.tsx', '.tsx', '.js'],
+      plugins: [{ name: 'external-service-dependencies', setup(builder) {
+        builder.onResolve({ filter: /.*/ }, ({ path: request }) => {
+          if (servicePaths.includes(request) || /^\.\/portal(?:AssistVisitProof|ServiceProof)Service\.core$/.test(request)) return null;
+          return { path: request, external: true };
+        });
+      } }],
+    });
+    const inputs = Object.keys(result.metafile!.inputs);
+    for (const name of ['portalServiceProofService', 'portalAssistVisitProofService']) {
+      expect(inputs.some((file) => file.endsWith(`/${name}.web.ts`))).toBe(true);
+      expect(inputs.some((file) => file.endsWith(`/${name}.core.ts`))).toBe(true);
+      expect(inputs.some((file) => file.endsWith(`/${name}.ts`))).toBe(false);
+    }
+  });
+
   it('AssistPortalOverview opens proofs modal instead of request form', () => {
     const source = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
     expect(source).toContain('PortalServiceProofsModal');
@@ -75,40 +91,13 @@ describe('portal service proofs wiring', () => {
 describe('listPortalServiceProofs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFromUnknown.mockReturnValue({
-      select: mockSelectDocs.mockReturnValue({
-        eq: mockEqTenant.mockReturnValue({
-          eq: mockEqClient.mockReturnValue({
-            eq: mockEqPortalVisible.mockReturnValue({
-              eq: mockEqCategory.mockReturnValue({
-                eq: mockEqStatus.mockReturnValue({
-                  order: mockOrder.mockResolvedValue({
-                    data: [
-                      {
-                        id: 'proof-1',
-                        tenant_id: 'tenant-1',
-                        client_id: 'client-1',
-                        title: 'Leistungsnachweis Mai',
-                        file_name: 'ln-mai.pdf',
-                        mime_type: 'application/pdf',
-                        storage_path: 'tenant/clients/proof-1.pdf',
-                        category: 'leistungsnachweis',
-                        status: 'aktiv',
-                        portal_visible: true,
-                        signature_required: true,
-                        signed_at: null,
-                        created_at: '2026-05-31T10:00:00Z',
-                      },
-                    ],
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    });
+    mocks.rows = [{
+      id: 'proof-1', tenant_id: 'tenant-1', client_id: 'client-1',
+      title: 'Leistungsnachweis Mai', file_name: 'ln-mai.pdf', mime_type: 'application/pdf',
+      storage_path: 'tenant/clients/proof-1.pdf', category: 'leistungsnachweis',
+      status: 'aktiv', portal_visible: true, signature_required: true, signed_at: null,
+      created_at: '2026-05-31T10:00:00Z',
+    }];
   });
 
   it('maps released client_documents to portal proofs', async () => {

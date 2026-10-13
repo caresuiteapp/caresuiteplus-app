@@ -57,11 +57,13 @@ describe('Google Play portal-only update 0.3.2', () => {
     });
   });
 
-  it('keeps Office, Business and administration outside the store edition', () => {
+  it('retains the optional isolated edition while the current release covers all three portals', () => {
     expect(read('app.config.ts')).toContain("root: isPortalOnlyEdition ? 'app-portal' : 'app'");
     const notes = read('docs/store/reviewer-notes.md');
-    expect(notes).toContain('Portal-only');
-    expect(notes).toContain('keine Business-/Office-/Admin-Oberfläche');
+    expect(notes).toContain('vollständige native Ausgabe `full`');
+    expect(notes).toContain('Verwaltung');
+    expect(notes).toContain('Mitarbeitende');
+    expect(notes).toContain('Klient:innen');
   });
 
   it('documents every sensitive Android data path for Play review', () => {

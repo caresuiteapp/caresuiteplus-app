@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { HandoverReportsListView } from '@/components/stationaer';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
@@ -41,6 +42,7 @@ export function HandoverReportScreen() {
 
   return (
     <ScreenShell title="Übergabeberichte" subtitle={`Dienstübergabe · ${roleLabel ?? 'Demo'}`} scroll={false}>
+      <DocumentRecommendations module="stationaer" workflow="handover" compact />
       {items.length === 0 ? (
         <EmptyState title="Keine Übergaben" message="Es sind noch keine Übergabeberichte dokumentiert." />
       ) : (

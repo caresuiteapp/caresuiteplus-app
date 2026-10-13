@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -64,7 +65,7 @@ export function AssistCatalogHubScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canEdit = can('office.catalogs.edit');
 
-  const [tab, setTab] = useState<TabKey>('overview');
+  const [tab, setTab] = usePageTab<TabKey>('AssistCatalogHubScreen.tab', 'overview');
   const [stats, setStats] = useState<AssistCatalogHubStats | null>(null);
   const [bindings, setBindings] = useState<TemplateBinding[]>([]);
   const [audit, setAudit] = useState<CatalogAuditEvent[]>([]);

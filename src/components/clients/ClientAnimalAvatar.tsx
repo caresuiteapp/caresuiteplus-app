@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CLIENT_ANIMAL_IMAGES } from '@/lib/clients/clientAnimalAssets';
 import { resolveClientAnimalAvatar } from '@/lib/clients/clientAnimalAvatar';

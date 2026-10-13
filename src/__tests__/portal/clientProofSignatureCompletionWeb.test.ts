@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ released: vi.fn(), load: vi.fn(), prior: vi.fn(), save: vi.fn(), render: vi.fn(), upload: vi.fn(), rpc: vi.fn(), invalidate: vi.fn(), image: vi.fn() }));
+vi.mock('expo-crypto', () => ({ randomUUID: () => 'native-upload-uuid' }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
 vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({ getReleasedProofForClientPortal: f.released }));
 vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchVisitProofById: f.load, computeVisitProofPayloadHash: async () => 'signed-hash' }));
@@ -49,4 +50,10 @@ it('refuses a document outside the visible client scope before persisting anythi
   f.released.mockResolvedValue({ ok: true, data: null });
   expect((await saveClientPortalAssistProofSignature(input)).ok).toBe(false);
   expect(f.load).not.toHaveBeenCalled(); expect(f.save).not.toHaveBeenCalled();
+});
+it('refuses a proof changed since the client opened the signature dialog', async () => {
+  expect((await saveClientPortalAssistProofSignature({ ...input, expectedPayloadHash: 'previous-visible-hash' })).ok).toBe(false);
+  expect(f.save).not.toHaveBeenCalled();
+  expect(f.upload).not.toHaveBeenCalled();
+  expect(f.rpc).not.toHaveBeenCalled();
 });

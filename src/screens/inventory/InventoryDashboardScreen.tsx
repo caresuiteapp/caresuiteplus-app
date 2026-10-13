@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -85,6 +86,7 @@ export function InventoryDashboardScreen({
 
   return (
     <ScreenShell title="Inventar & Rückgabe" subtitle="Bestand, Ausgabe, Rücknahme und Schäden" showBack={false}>
+      <DocumentRecommendations module="office" workflow="equipment" compact />
       <View style={styles.toolbar}>
         <View style={styles.toolbarCopy}>
           <Text style={styles.eyebrow}>INVENTARZENTRALE</Text>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { invokeGoogleWorkspaceAction as invoke, type GoogleWorkspaceConnection } from '@/lib/googleWorkspace/googleWorkspaceService';
 import { useWorkspacePage, refreshWorkspaceData } from '@/hooks/useGoogleWorkspace.web';
 import { googleTime, plainMail, serviceDefinition, type WorkspaceItem, type WorkspaceService } from '@/lib/googleWorkspace/workspaceModel';
-import type { WorkspaceFilter } from '@/lib/googleWorkspace/workspaceData.web';
+import type { WorkspaceFilter } from '@/lib/googleWorkspace/workspaceData';
 import { WorkspaceActionForm } from './WorkspaceActionForm.web';
 
 export function WorkspaceServicePanel({ service, connection, scope }: { service: WorkspaceService; connection: GoogleWorkspaceConnection; scope: string }) {

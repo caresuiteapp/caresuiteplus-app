@@ -113,7 +113,26 @@ export async function updateProfileRoleKey(
   }
 
   if (!roleRow?.id) {
+    return { ok: false, error: 'Die ausgewählte Rolle ist für dieses Unternehmen nicht verfügbar.' };
+  }
+
+  const roleRpc = supabase as unknown as { rpc: (name: string, args: Record<string, string>) => PromiseLike<{
+    data: { tenant_id?: string; profile_id?: string; role_id?: string } | null;
+    error: { code?: string; message?: string } | null;
+  }> };
+  const assigned = await roleRpc.rpc('care_security_set_profile_role', {
+    p_tenant: tenantId, p_profile: profileId, p_role: roleRow.id,
+  });
+  if (!assigned.error) {
+    if (assigned.data?.tenant_id !== tenantId || assigned.data.profile_id !== profileId || assigned.data.role_id !== roleRow.id) {
+      return { ok: false, error: 'Die Rollenänderung konnte nicht bestätigt werden. Bitte neu laden.' };
+    }
     return { ok: true, data: undefined };
+  }
+  // Compatibility only until the identity migration has installed the RPC.
+  // A permission or server error from an existing RPC never falls back to a direct write.
+  if (assigned.error.code !== 'PGRST202') {
+    return { ok: false, error: toGermanSupabaseError(assigned.error) };
   }
 
   const { error } = await supabase

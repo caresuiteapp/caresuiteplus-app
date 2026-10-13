@@ -15,8 +15,10 @@ export type PortalProfileAvatar = {
  */
 export function usePortalProfileAvatar(): PortalProfileAvatar {
   const { profile } = useAuth();
-  const { roleKey, tenantId, employeeId } = usePortalActor();
+  const { roleKey, tenantId, employeeId, actorId } = usePortalActor();
+  const avatarScope = JSON.stringify([roleKey, tenantId, actorId, employeeId]);
   const [employeeAvatar, setEmployeeAvatar] = useState<{
+    scope: string;
     avatarUrl: string | null;
     updatedAt: string | null;
   } | null>(null);
@@ -31,21 +33,22 @@ export function usePortalProfileAvatar(): PortalProfileAvatar {
 
     void fetchEmployeePortalAvatar(tenantId, employeeId).then((result) => {
       if (!cancelled) {
-        setEmployeeAvatar(result);
+        setEmployeeAvatar(result ? { ...result, scope: avatarScope } : null);
       }
-    });
+    }).catch(() => { if (!cancelled) setEmployeeAvatar(null); });
 
     return () => {
       cancelled = true;
     };
-  }, [roleKey, employeeId, tenantId, profile?.avatarUrl, profile?.updatedAt]);
+  }, [roleKey, employeeId, tenantId, avatarScope, profile?.avatarUrl, profile?.updatedAt]);
 
   return useMemo(() => {
     const userAvatar = profile?.avatarUrl?.trim() || undefined;
-    const employeeUrl = employeeAvatar?.avatarUrl?.trim() || undefined;
+    const currentEmployeeAvatar = employeeAvatar?.scope === avatarScope ? employeeAvatar : null;
+    const employeeUrl = currentEmployeeAvatar?.avatarUrl?.trim() || undefined;
     const avatarUrl = employeeUrl ?? userAvatar;
     const avatarVersion =
-      employeeAvatar?.updatedAt ??
+      currentEmployeeAvatar?.updatedAt ??
       profile?.updatedAt ??
       profile?.avatarUrl ??
       undefined;
@@ -55,5 +58,5 @@ export function usePortalProfileAvatar(): PortalProfileAvatar {
       avatarVersion,
       isReady: Boolean(profile),
     };
-  }, [employeeAvatar, profile]);
+  }, [employeeAvatar, avatarScope, profile]);
 }

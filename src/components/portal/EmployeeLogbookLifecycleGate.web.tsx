@@ -6,6 +6,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import {
   flushLogbookPointQueue,
   resumeActiveEmployeeLogbookTracking,
+  stopEmployeeLogbookTrackingForScope,
 } from '@/lib/employeeLogbook';
 import { flushAssistLocationPointQueue } from '@/features/liveTracking/assistLocationPointQueue';
 import { returnTripDestinationFromTrip } from '@/lib/portal/employeePortalReturnTripRules';
@@ -30,38 +31,58 @@ export function EmployeeLogbookLifecycleGate() {
   const actor = usePortalActor();
   const pathname = usePathname();
   const router = useRouter();
-  const [activeTrip, setActiveTrip] = useState<LogbookTrip | null>(null);
+  const [storedTrip, setActiveTrip] = useState<LogbookTrip | null>(null);
   const [offlinePending, setOfflinePending] = useState<number | null>(null);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
   const mounted = useRef(false);
   const scope = `${actor.tenantId ?? ''}:${actor.employeeId ?? ''}`;
+  const [tripScope, setTripScope] = useState(scope);
+  const activeTrip = tripScope === scope ? storedTrip : null;
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
-  const inFlight = useRef<string | null>(null);
+  const readyRef = useRef(actor.isReady);
+  readyRef.current = actor.isReady;
+  const generation = useRef(0);
+  const inFlight = useRef<{ scope: string; generation: number } | null>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useEffect(() => { setActiveTrip(null); setOfflinePending(null); }, [scope]);
+  useEffect(() => {
+    const trackingTenant = actor.tenantId; const trackingEmployee = actor.employeeId;
+    setActiveTrip(null); setOfflinePending(null); setTrackingError(null);
+    return () => {
+      generation.current += 1; inFlight.current = null;
+      if (trackingTenant && trackingEmployee) void stopEmployeeLogbookTrackingForScope(trackingTenant, trackingEmployee).catch(() => undefined);
+    };
+  }, [scope, actor.tenantId, actor.employeeId, actor.isReady]);
 
   const refresh = useCallback(async () => {
-    if (!actor.tenantId || !actor.employeeId) {
+    if (!actor.isReady || !actor.tenantId || !actor.employeeId) {
       setActiveTrip(null);
       return;
     }
     const requestScope = `${actor.tenantId}:${actor.employeeId}`;
-    if (inFlight.current === requestScope) return;
-    inFlight.current = requestScope;
+    const requestGeneration = generation.current;
+    if (inFlight.current?.scope === requestScope && inFlight.current.generation === requestGeneration) return;
+    const request = { scope: requestScope, generation: requestGeneration };
+    const shouldContinue = () => mounted.current && readyRef.current && scopeRef.current === requestScope && generation.current === requestGeneration;
+    inFlight.current = request;
     try {
       const [trip, logbookFlush, assistFlush] = await Promise.all([
-        resumeActiveEmployeeLogbookTracking(actor.tenantId, actor.employeeId),
+        resumeActiveEmployeeLogbookTracking(actor.tenantId, actor.employeeId, { shouldContinue, onError: error => {
+          if (shouldContinue()) { setOfflinePending(null); setTrackingError(`GPS-Punkt konnte nicht sicher gespeichert werden: ${error.message}`); }
+        }, onPointPersisted: () => {
+          if (shouldContinue()) setTrackingError(null);
+        } }),
         flushLogbookPointQueue().catch(() => null),
         flushAssistLocationPointQueue().catch(() => null),
       ]);
-      if (!mounted.current || scopeRef.current !== requestScope) return;
+      if (!shouldContinue()) return;
+      setTripScope(requestScope);
       setActiveTrip(trip);
       setOfflinePending(logbookFlush && assistFlush ? logbookFlush.remaining + assistFlush.remaining : null);
     } catch {
-      if (mounted.current && scopeRef.current === requestScope) setOfflinePending(null);
-    } finally { if (inFlight.current === requestScope) inFlight.current = null; }
-  }, [actor.tenantId, actor.employeeId]);
-
+      if (shouldContinue()) setOfflinePending(null);
+    } finally { if (inFlight.current === request) inFlight.current = null; }
+  }, [actor.isReady, actor.tenantId, actor.employeeId]);
   useEffect(() => {
     if (!actor.isReady) return;
     void refresh().catch(() => undefined);
@@ -116,9 +137,9 @@ export function EmployeeLogbookLifecycleGate() {
             {ROUTE_LABELS[activeTrip.routeType] ?? 'Dienstliche Fahrt'}
           </Text>
           <Text style={styles.meta}>
-            {offlinePending === null ? 'Synchronisierung noch nicht bestätigt' : offlinePending > 0
+            {trackingError ?? (offlinePending === null ? 'Synchronisierung noch nicht bestätigt' : offlinePending > 0
               ? `${offlinePending} GPS-Punkte sicher zwischengespeichert`
-              : 'Portal geöffnet lassen: Browser können GPS im Hintergrund unterbrechen.'}
+              : 'Portal geöffnet lassen: Browser können GPS im Hintergrund unterbrechen.')}
           </Text>
         </View>
         <View style={styles.action}>

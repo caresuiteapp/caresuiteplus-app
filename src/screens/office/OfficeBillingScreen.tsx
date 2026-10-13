@@ -1,5 +1,7 @@
+import { usePageRecord } from '@/hooks/usePageRecord';
+import { usePageTab } from '@/hooks/usePageTab';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OfficeBillingHero } from '@/components/office';
 import { InvoiceDetailModal } from '@/components/office/invoicedetailmodal';
@@ -28,7 +30,7 @@ const BILLING_TABS: TabOption[] = [
 ];
 
 function InvoicesWorkspace({ moduleKey }: { moduleKey: InvoiceWorkspaceKey }) {
-  const [modalInvoiceId, setModalInvoiceId] = useState<string | null>(null);
+  const [modalInvoiceId, setModalInvoiceId] = usePageRecord<string | null>('OfficeBillingScreen.record', null);
 
   return (
     <>
@@ -48,8 +50,10 @@ function InvoicesWorkspace({ moduleKey }: { moduleKey: InvoiceWorkspaceKey }) {
 }
 
 export function OfficeBillingScreen() {
+  const { width } = useWindowDimensions();
+  const compact = Platform.OS !== 'web' && width < 600;
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<BillingWorkspace>('dashboard');
+  const [workspace, setWorkspace] = usePageTab<BillingWorkspace>('OfficeBillingScreen.workspace', 'dashboard');
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
 
@@ -127,7 +131,7 @@ export function OfficeBillingScreen() {
               return (
                 <PremiumCard
                   key={module.key}
-                  style={styles.moduleCard}
+                  style={[styles.moduleCard, compact && { minWidth: 0, flexBasis: '100%' }]}
                   accentColor={module.accent}
                   onPress={() => setWorkspace(module.key)}
                 >

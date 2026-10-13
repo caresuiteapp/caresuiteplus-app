@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MedicationListCard } from '@/components/pflege/MedicationListCard';
@@ -64,6 +65,7 @@ export function MedicationListScreen() {
 
   const header = (
     <View style={styles.header}>
+      <DocumentRecommendations module="pflege" workflow="medication" compact />
       <MedicationListHero
         items={items}
         roleKey={roleKey}

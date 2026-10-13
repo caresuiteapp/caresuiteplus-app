@@ -17,6 +17,7 @@ import {
   getReleasedProofForClientPortal,
   listReleasedProofsForClientPortal,
 } from '@/lib/portal/assist/portalAssistVisitProofService';
+import * as webPortalProofs from '@/lib/portal/assist/portalAssistVisitProofService.web';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -92,6 +93,7 @@ vi.mock('@/lib/assist/visitProofSnapshotPreviewService', () => ({
 
 const mockFromUnknown = vi.fn();
 const mockCreateSignedUrl = vi.fn();
+const portalQueryLog: { operation: string; args: unknown[] }[] = [];
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
@@ -183,6 +185,8 @@ function installPortalMocks(options: {
   tenantId: string;
   clientId: string;
   visitIds: string[];
+  pageCap?: number;
+  errorAtFrom?: number;
   proofs: {
     id: string;
     visit_id: string;
@@ -194,6 +198,7 @@ function installPortalMocks(options: {
     released_to_portal_at?: string | null;
   }[];
 }) {
+  portalQueryLog.length = 0;
   mockFromUnknown.mockImplementation((_client: unknown, table: string) => {
     if (table === 'assist_visits') {
       return {
@@ -238,15 +243,40 @@ function installPortalMocks(options: {
     }
 
     if (table === 'assist_visit_proofs') {
-      return chainMock(() => ({
-        data: options.proofs.filter(
-          (proof) =>
-            proof.portal_visible &&
-            ['released', 'pending_client_signature'].includes(proof.portal_release_status) &&
-            options.visitIds.includes(proof.visit_id),
-        ),
-        error: null,
-      }));
+      const filters = new Map<string, unknown>();
+      const query = {
+        select: (...args: unknown[]) => { portalQueryLog.push({ operation: 'select', args }); return query; },
+        eq: (field: string, value: unknown) => {
+          filters.set(field, value); portalQueryLog.push({ operation: 'eq', args: [field, value] }); return query;
+        },
+        neq: (...args: unknown[]) => { portalQueryLog.push({ operation: 'neq', args }); return query; },
+        not: (...args: unknown[]) => { portalQueryLog.push({ operation: 'not', args }); return query; },
+        in: (...args: unknown[]) => { portalQueryLog.push({ operation: 'in', args }); return query; },
+        order: () => query,
+        range: async (from: number, to: number) => {
+          portalQueryLog.push({ operation: 'range', args: [from, to] });
+          const rows = options.proofs.filter((proof) =>
+            proof.portal_visible && ['released', 'pending_client_signature'].includes(proof.portal_release_status) &&
+            options.visitIds.includes(proof.visit_id) &&
+            filters.get('tenant_id') === options.tenantId &&
+            filters.get('assist_visits.tenant_id') === options.tenantId &&
+            filters.get('assist_visits.client_id') === options.clientId &&
+            (!filters.get('id') || filters.get('id') === proof.id),
+          ).map((proof) => ({
+            ...proof,
+            assist_visits: {
+              id: proof.visit_id, title: 'Hausbesuch',
+              planned_start_at: '2026-06-20T09:00:00.000Z', planned_end_at: '2026-06-20T10:00:00.000Z',
+            },
+          }));
+          return {
+            data: rows.slice(from, Math.min(to + 1, from + (options.pageCap ?? 200))),
+            error: options.errorAtFrom === from ? { message: 'network error' } : null,
+            count: rows.length,
+          };
+        },
+      };
+      return query;
     }
 
     if (table === 'client_documents') {
@@ -380,7 +410,10 @@ describe('assist proof approval → portal release flow', () => {
   });
 });
 
-describe('client portal released proof visibility', () => {
+describe.each([
+  ['native', { listReleasedProofsForClientPortal, getReleasedProofForClientPortal }],
+  ['web', webPortalProofs],
+] as const)('%s client portal released proof visibility', (_platform, portalProofs) => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -425,12 +458,14 @@ describe('client portal released proof visibility', () => {
       ],
     });
 
-    const list = await listReleasedProofsForClientPortal('tenant-1', 'client-1');
+    const list = await portalProofs.listReleasedProofsForClientPortal('tenant-1', 'client-1');
     expect(list.ok).toBe(true);
     if (list.ok) {
       expect(list.data).toHaveLength(1);
       expect(list.data[0]?.id).toBe('proof-released');
       expect(list.data[0]?.proofNumber).toBe('LN-100');
+      expect(list.data[0]?.scheduledStart).toBe('2026-06-20T09:00:00.000Z');
+      expect(list.data[0]?.scheduledEnd).toBe('2026-06-20T10:00:00.000Z');
     }
   });
 
@@ -450,11 +485,11 @@ describe('client portal released proof visibility', () => {
       ],
     });
 
-    const list = await listReleasedProofsForClientPortal('tenant-1', 'client-other');
+    const list = await portalProofs.listReleasedProofsForClientPortal('tenant-1', 'client-other');
     expect(list.ok).toBe(true);
     if (list.ok) expect(list.data).toHaveLength(0);
 
-    const single = await getReleasedProofForClientPortal(
+    const single = await portalProofs.getReleasedProofForClientPortal(
       'tenant-1',
       'client-other',
       'proof-released',
@@ -489,7 +524,7 @@ describe('client portal released proof visibility', () => {
       ],
     });
 
-    const list = await listReleasedProofsForClientPortal('tenant-1', 'client-1');
+    const list = await portalProofs.listReleasedProofsForClientPortal('tenant-1', 'client-1');
     expect(list.ok).toBe(true);
     if (list.ok) {
       const proof = list.data[0];
@@ -505,6 +540,60 @@ describe('client portal released proof visibility', () => {
       expect(proof).not.toHaveProperty('payloadSnapshot');
     }
   });
+
+  it('loads a released proof by id beyond row 1000 without listing the whole history', async () => {
+    installPortalMocks({
+      tenantId: 'tenant-1', clientId: 'client-1', visitIds: ['visit-1'], pageCap: 75,
+      proofs: Array.from({ length: 1105 }, (_, id) => ({
+        id: `proof-${id}`, visit_id: 'visit-1', portal_visible: true,
+        portal_release_status: 'pending_client_signature', payload_snapshot: { signerName: 'Awaiting confirmation' },
+      })),
+    });
+    const direct = await portalProofs.getReleasedProofForClientPortal('tenant-1', 'client-1', 'proof-1104');
+    if (!direct.ok) throw new Error(direct.error);
+    expect(direct.data).toEqual(expect.objectContaining({ id: 'proof-1104', signatureRequired: true }));
+    expect(portalQueryLog.filter((query) => query.operation === 'range')).toHaveLength(1);
+    expect(portalQueryLog).toContainEqual({ operation: 'eq', args: ['id', 'proof-1104'] });
+    expect(portalQueryLog).toContainEqual({ operation: 'neq', args: ['assist_visits.planning_status', 'draft'] });
+    expect(portalQueryLog).toContainEqual({ operation: 'not', args: ['assist_visits.canonical_status', 'in', '(cancelled,no_show)'] });
+
+    const list = await portalProofs.listReleasedProofsForClientPortal('tenant-1', 'client-1');
+    if (!list.ok) throw new Error(list.error);
+    expect(list.data).toHaveLength(1105);
+    expect(list.data.at(-1)?.id).toBe('proof-1104');
+  });
+
+  it('does not open an unrelated first proof when the detail id is missing', async () => {
+    installPortalMocks({ tenantId: 'tenant-1', clientId: 'client-1', visitIds: ['visit-1'], proofs: [] });
+    expect((await portalProofs.getReleasedProofForClientPortal('tenant-1', 'client-1', '')).ok).toBe(false);
+    expect(portalQueryLog).toEqual([]);
+  });
+
+  it('returns an error when a later page fails instead of hiding pending signatures', async () => {
+    installPortalMocks({
+      tenantId: 'tenant-1', clientId: 'client-1', visitIds: ['visit-1'], pageCap: 75, errorAtFrom: 75,
+      proofs: Array.from({ length: 80 }, (_, id) => ({
+        id: `proof-${id}`, visit_id: 'visit-1', portal_visible: true,
+        portal_release_status: 'pending_client_signature', payload_snapshot: {},
+      })),
+    });
+    expect((await portalProofs.listReleasedProofsForClientPortal('tenant-1', 'client-1')).ok).toBe(false);
+  });
+
+  it('prefers the timestamp of the actual client portal signature', async () => {
+    installPortalMocks({
+      tenantId: 'tenant-1', clientId: 'client-1', visitIds: ['visit-1'],
+      proofs: [{
+        id: 'p', visit_id: 'visit-1', portal_visible: true, portal_release_status: 'released',
+        payload_snapshot: { signedAt: '2026-06-19T09:00:00Z', clientPortalSignedAt: '2026-06-20T10:00:00Z' },
+      }],
+    });
+    const result = await portalProofs.getReleasedProofForClientPortal('tenant-1', 'client-1', 'p');
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data?.signedAt).toBe('2026-06-20T10:00:00Z');
+    expect(result.data?.signatureRequired).toBe(false);
+  });
+
 });
 
 describe('portal snapshot privacy helpers', () => {
@@ -533,7 +622,7 @@ describe('assist nachweise review wiring', () => {
   });
 
   it('portal service queries released-only proofs', () => {
-    const service = readSrc('src/lib/portal/assist/portalAssistVisitProofService.ts');
+    const service = readSrc('src/lib/portal/assist/portalAssistVisitProofService.core.ts');
     expect(service).toContain(".eq('portal_visible', true)");
     expect(service).toContain(".in('portal_release_status', ['released', 'pending_client_signature'])");
     expect(service).toContain('stripPortalBlockedKeysFromSnapshot');

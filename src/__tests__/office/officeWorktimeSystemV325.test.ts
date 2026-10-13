@@ -29,7 +29,8 @@ describe('Office Arbeitszeit V32.5 Systemprüfung', () => {
     const travel = read('src/components/wfm/WfmTravelRulesScreen.tsx');
     expect(history).toContain('CareDateInput');
     expect(detail).toContain('CareTimeInput');
-    expect(detail).toContain('ListFilterSelect');
+    expect(detail).toContain('accessibilityLabel="Pause in Minuten" value={editPauseMinutes}');
+    expect(detail).toContain('onChangeText={onEditPauseMinutesChange} keyboardType="number-pad"');
     expect(detail).not.toContain('placeholder="Start (ISO)"');
     expect(meetings).toContain('CareDateInput');
     expect(meetings).toContain('CareTimeInput');

@@ -9,6 +9,8 @@ export type ExecutionRow = {
   tenant_id: string;
   title: string;
   status: string;
+  planned_start_at: string;
+  planned_end_at: string;
   created_at: string;
   updated_at: string;
 };
@@ -21,7 +23,7 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
-const SELECT = 'id, tenant_id, title, status, created_at, updated_at';
+const SELECT = 'id, tenant_id, title, status, planned_start_at, planned_end_at, created_at, updated_at';
 
 /** WP270 — Live Supabase Repository (Assist Execution / assignments) */
 export const executionSupabaseRepository = {

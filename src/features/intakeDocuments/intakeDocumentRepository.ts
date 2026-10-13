@@ -156,19 +156,12 @@ export async function loadPersistedIntakeDocumentsForClient(
     ok: true,
     data: rows.map((row) => {
       const signatures = signaturesByDocument.get(row.id) ?? {};
-      const hasClientSignature = Boolean(signatures.client?.dataUrl);
-      const recoveredStatus: IntakeDocumentStatus =
-        hasClientSignature && ['not_started', 'preview_open'].includes(row.status)
-          ? row.finalized_html || row.finalized_at
-            ? 'finalized'
-            : 'signed'
-          : row.status as IntakeDocumentStatus;
       return {
         templateKey: row.template_key,
         documentType: row.document_type as IntakeDocumentType,
         title: row.title,
         isRequired: row.is_required,
-        status: recoveredStatus,
+        status: row.status as IntakeDocumentStatus,
         source: row.source === 'tenant' ? 'tenant' : 'system',
         tenantTemplateId: row.tenant_template_id,
         version: row.version,
@@ -278,9 +271,62 @@ export async function persistIntakeDocumentsForClient(
   const db = getDb();
   if (!db) return unavailable();
 
+  // A partial/stale edit form must not erase a previously signed snapshot.
+  // Read before any writes and compare the revision again when updating.
+  const { data: existingData, error: existingError } = await db
+    .from('client_intake_documents')
+    .select('id, template_key, status, preview_html, finalized_html, rendered_pdf_path, finalized_at, updated_at')
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId);
+  if (existingError) return { ok: false, error: toGermanSupabaseError(existingError) };
+  const existingByKey = new Map(((existingData ?? []) as {
+    id: string;
+    template_key: string;
+    status: string;
+    preview_html: string | null;
+    finalized_html: string | null;
+    rendered_pdf_path: string | null;
+    finalized_at: string | null;
+    updated_at: string;
+  }[]).map((row) => [row.template_key, row]));
+  for (const doc of form.intakeDocuments) {
+    const existing = existingByKey.get(doc.templateKey);
+    const captures = Object.values(doc.signatures).some(signature => signature?.dataUrl);
+    const finalClaim = doc.status === 'signed' || doc.status === 'finalized' || Boolean(doc.finalizedAt || doc.finalizedHtml);
+    // A stale final status without a new capture is a read-only no-op only when
+    // its finalized original actually exists in this tenant and client scope.
+    const preserved = existing && (existing.status === 'finalized' || existing.finalized_at)
+      && Boolean(existing.finalized_html?.trim() || existing.preview_html?.trim() || existing.rendered_pdf_path?.trim());
+    if (captures || (finalClaim && !preserved)) return { ok: false, error: 'Signierte Aufnahmeunterlagen benötigen den verifizierten atomaren Serverabschluss. Das vorhandene Original bleibt erhalten.' };
+  }
+  const documentsToSave: IntakeDocumentState[] = [];
+  for (const doc of form.intakeDocuments) {
+    const existing = existingByKey.get(doc.templateKey);
+    const savedContent = existing?.finalized_html?.trim()
+      || existing?.preview_html?.trim() || existing?.rendered_pdf_path?.trim();
+    const incomingContent = doc.finalizedHtml?.trim()
+      || doc.previewHtml?.trim() || doc.renderedPdfPath?.trim();
+    if (savedContent && existing && ['revoked', 'replaced'].includes(doc.status)) {
+      documentsToSave.push({ ...doc, previewHtml: existing.preview_html,
+        finalizedHtml: existing.finalized_html, renderedPdfPath: existing.rendered_pdf_path,
+        finalizedAt: existing.finalized_at });
+      continue;
+    }
+    if (savedContent && (
+      existing?.status === 'finalized' || existing?.finalized_at || !incomingContent
+      || (['signed', 'pending_signature'].includes(existing?.status ?? '')
+        && ['not_started', 'preview_open'].includes(doc.status))
+    )) continue;
+    if (['finalized', 'signed', 'pending_signature'].includes(doc.status) && !incomingContent) {
+      return { ok: false, error: `„${doc.title}“ kann ohne Dokumentinhalt nicht gespeichert werden. Bitte die Vorschau erneut öffnen.` };
+    }
+    documentsToSave.push(doc);
+  }
+  if (documentsToSave.length === 0) return { ok: true, data: undefined };
+
   const contractType = form.intakeContractType ?? null;
 
-  if (contractType) {
+  if (contractType && documentsToSave.length > 0) {
     const { error: selectionError } = await db.from('client_contract_selection').upsert(
       {
         tenant_id: tenantId,
@@ -296,39 +342,42 @@ export async function persistIntakeDocumentsForClient(
     }
   }
 
-  for (const doc of form.intakeDocuments) {
-    const { data: inserted, error: docError } = await db
-      .from('client_intake_documents')
-      .upsert(
-        {
-          tenant_id: tenantId,
-          client_id: clientId,
-          template_key: doc.templateKey,
-          document_type: doc.documentType,
-          title: doc.title,
-          status: doc.status,
-          is_required: doc.isRequired,
-          version: doc.version,
-          source: doc.source,
-          tenant_template_id: doc.tenantTemplateId,
-          preview_html: doc.previewHtml,
-          finalized_html: doc.finalizedHtml,
-          rendered_pdf_path: doc.renderedPdfPath,
-          missing_placeholders: doc.missingPlaceholders,
-          preview_opened_at: doc.previewOpenedAt,
-          finalized_at: doc.finalizedAt,
-          updated_by: actorProfileId ?? null,
-        },
-        { onConflict: 'tenant_id,client_id,template_key' },
-      )
-      .select('id')
-      .single();
+  for (const doc of documentsToSave) {
+    const existing = existingByKey.get(doc.templateKey);
+    const patch = {
+      tenant_id: tenantId,
+      client_id: clientId,
+      template_key: doc.templateKey,
+      document_type: doc.documentType,
+      title: doc.title,
+      status: doc.status,
+      is_required: doc.isRequired,
+      version: doc.version,
+      source: doc.source,
+      tenant_template_id: doc.tenantTemplateId,
+      preview_html: doc.previewHtml,
+      finalized_html: doc.finalizedHtml,
+      rendered_pdf_path: doc.renderedPdfPath,
+      missing_placeholders: doc.missingPlaceholders,
+      preview_opened_at: doc.previewOpenedAt,
+      finalized_at: doc.finalizedAt,
+      updated_at: new Date().toISOString(),
+      updated_by: actorProfileId ?? null,
+    };
+    const write = existing
+      ? db.from('client_intake_documents').update(patch)
+          .eq('id', existing.id).eq('tenant_id', tenantId).eq('client_id', clientId)
+          .eq('updated_at', existing.updated_at).select('id').maybeSingle()
+      : db.from('client_intake_documents').insert(patch).select('id').single();
+    const { data: inserted, error: docError } = await write;
 
     if (docError || !inserted) {
-      return { ok: false, error: toGermanSupabaseError(docError) };
+      return { ok: false, error: docError
+        ? toGermanSupabaseError(docError)
+        : 'Das Dokument wurde zwischenzeitlich geändert. Bitte die Akte neu laden.' };
     }
 
-    await db.from('client_document_events').insert({
+    const { error: eventError } = await db.from('client_document_events').insert({
       tenant_id: tenantId,
       client_id: clientId,
       document_id: inserted.id,
@@ -336,6 +385,7 @@ export async function persistIntakeDocumentsForClient(
       summary: `${doc.title}: ${doc.status}`,
       actor_profile_id: actorProfileId ?? null,
     });
+    if (eventError) return { ok: false, error: toGermanSupabaseError(eventError) };
 
     for (const [role, signature] of Object.entries(doc.signatures)) {
       if (!signature?.dataUrl) continue;
@@ -357,8 +407,15 @@ export async function persistIntakeDocumentsForClient(
     }
   }
 
-  const privacyDoc = form.intakeDocuments.find((d) => d.templateKey === 'privacy_consent_default');
-  const contractDoc = form.intakeDocuments.find((d) => d.documentType === 'client_contract');
+  const effectiveState = (doc: IntakeDocumentState | undefined, templateKey?: string) => {
+    const existing = existingByKey.get(doc?.templateKey ?? templateKey ?? '');
+    return existing && (!doc || !documentsToSave.includes(doc))
+      ? { status: existing.status, finalizedAt: existing.finalized_at }
+      : doc;
+  };
+  const privacyDoc = effectiveState(form.intakeDocuments.find((d) => d.templateKey === 'privacy_consent_default'), 'privacy_consent_default');
+  const contractDoc = effectiveState(form.intakeDocuments.find((d) => d.documentType === 'client_contract'));
+  const assignmentDoc = effectiveState(form.intakeDocuments.find((d) => d.templateKey === 'assignment_declaration_care_health_insurance'), 'assignment_declaration_care_health_insurance');
 
   const { error: consentError } = await db.from('client_consent_status').upsert(
     {
@@ -366,9 +423,7 @@ export async function persistIntakeDocumentsForClient(
       client_id: clientId,
       privacy_status: privacyDoc?.status ?? 'not_started',
       contract_status: contractDoc?.status ?? 'not_started',
-      assignment_status: form.intakeAssignmentEnabled
-        ? form.intakeDocuments.find((d) => d.templateKey === 'assignment_declaration_care_health_insurance')?.status ?? 'not_started'
-        : 'skipped_optional',
+      assignment_status: assignmentDoc?.status ?? (form.intakeAssignmentEnabled ? 'not_started' : 'skipped_optional'),
       privacy_finalized_at: privacyDoc?.finalizedAt ?? null,
       contract_finalized_at: contractDoc?.finalizedAt ?? null,
       updated_by: actorProfileId ?? null,
@@ -383,7 +438,7 @@ export async function persistIntakeDocumentsForClient(
   const promoteResult = await promoteFinalizedIntakeDocumentsToClientRecord(
     tenantId,
     clientId,
-    form,
+    { ...form, intakeDocuments: documentsToSave },
     actorProfileId,
   );
   if (!promoteResult.ok) return promoteResult;
@@ -459,6 +514,10 @@ async function linkOrInsertPromotedIntakeDocument(
   }
 
   if (existingByFile) {
+    if (existingByFile.source !== 'intake' || existingByFile.intake_document_id !== input.intakeDocumentId
+      || existingByFile.mime_type !== 'text/html') {
+      return { ok: false, error: 'Der Dokumentname gehört bereits zu einer anderen Originaldatei. Die vorhandene Datei wurde nicht ersetzt.' };
+    }
     const { error: linkError } = await db
       .from('client_documents')
       .update(promotedPatch)
@@ -481,14 +540,14 @@ async function linkOrInsertPromotedIntakeDocument(
     file_name: fileName,
     mime_type: 'text/html',
     category: mapIntakeDocCategory(input.documentType),
-    status: 'abgeschlossen',
+    status: clientDocumentStatus,
     sensitivity: 'care',
     source: 'intake',
     intake_document_id: input.intakeDocumentId,
     portal_visible: true,
     uploaded_by: input.actorProfileId ?? null,
   });
-  if (error && error.code !== '23505') {
+  if (error) {
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
@@ -517,9 +576,10 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
   if (form) {
     for (const doc of finalizedDocs) {
       const intakeRowQuery = db.from('client_intake_documents').select('id').eq('tenant_id', tenantId).eq('client_id', clientId).eq('template_key', doc.templateKey);
-      const { data: intakeRow } = await intakeRowQuery.single();
+      const { data: intakeRow, error: intakeRowError } = await intakeRowQuery.single();
+      if (intakeRowError) return { ok: false, error: toGermanSupabaseError(intakeRowError) };
       const intakeDocumentId = (intakeRow as { id?: string } | null)?.id ?? null;
-      if (!intakeDocumentId) continue;
+      if (!intakeDocumentId) return { ok: false, error: 'Die gespeicherte Dokumentfassung wurde nicht bestätigt.' };
 
       const linked = await linkOrInsertPromotedIntakeDocument(db, {
         tenantId,
@@ -580,24 +640,8 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       row.status === 'pending_signature' && hasClientSignature;
     if (!isPersistedComplete && !isPendingAndSigned && !hasClientSignature) continue;
     if (!row.finalized_html && !row.preview_html) continue;
-    const recoveredStatus =
-      hasClientSignature && ['not_started', 'preview_open', 'pending_signature'].includes(row.status)
-        ? row.finalized_html
-          ? 'finalized'
-          : 'signed'
-        : row.status;
-
-    if (recoveredStatus !== row.status) {
-      const { error: recoveryError } = await db
-        .from('client_intake_documents')
-        .update({ status: recoveredStatus })
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .eq('id', row.id);
-      if (recoveryError) {
-        return { ok: false, error: toGermanSupabaseError(recoveryError) };
-      }
-    }
+    // A capture alone cannot prove that all roles signed this exact version.
+    if (!isPersistedComplete && !isPendingAndSigned) continue;
 
     const linked = await linkOrInsertPromotedIntakeDocument(db, {
       tenantId,
@@ -606,7 +650,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       templateKey: row.template_key,
       documentType: row.document_type,
       title: row.title,
-      intakeStatus: recoveredStatus,
+      intakeStatus: row.status,
       actorProfileId,
     });
     if (!linked.ok) return linked;

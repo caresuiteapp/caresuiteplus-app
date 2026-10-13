@@ -10,9 +10,10 @@ import type {
   TenantServiceTypeBillingRule,
 } from '@/types/clientBilling';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
-import { fetchVisitProofById, listVisitProofs } from '@/lib/assist/assistVisitProofPersistenceService';
+import { fetchVisitProofById, listVisitProofs, computeVisitProofPayloadHash } from '@/lib/assist/assistVisitProofPersistenceService';
 import { listClientBudgetSettings } from '@/lib/client/clientBudgetSettingsService';
 import { listClientServiceProfiles, listTenantClientServiceTypes } from '@/lib/client/clientServiceTypeService';
+import { canonicalJsonStringify } from '@/lib/assist/assistExecutionHashService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -23,6 +24,7 @@ import {
   fetchVisitForBilling,
   mapApprovedProofToBillingCandidate,
   type BillingCandidateDraft,
+  type ConfirmedBillingProofSource,
 } from './clientProofBillingMapper';
 import {
   getBillingBlockingReasons,
@@ -305,6 +307,20 @@ export async function upsertBillingCandidateFromProof(
     const denied = guardServiceTenant(tenantId);
     if (denied) return denied;
 
+    if (proof.tenantId !== tenantId || !proof.id?.trim()) return { ok: false, error: 'Ungültige Nachweiszuordnung.' };
+    const fresh = await fetchVisitProofById(tenantId, proof.id);
+    if (!fresh.ok) return fresh;
+    if (!fresh.data || fresh.data.tenantId !== tenantId || fresh.data.id !== proof.id) return { ok: false, error: 'Nachweis nicht eindeutig gefunden.' };
+    proof = fresh.data;
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+    const rpc = client.rpc.bind(client) as unknown as (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+    const capability = await rpc('workflow_assignment_record_capability');
+    if (capability.error || capability.data !== 'workflow-assignment-record-v1') return { ok: false, error: 'Die abgesicherte Abrechnungsvorbereitung ist serverseitig noch nicht freigegeben.' };
+    const source = await rpc('workflow_verify_billing_proof', { p_tenant_id: tenantId, p_proof_id: proof.id });
+    if (source.error) return { ok: false, error: toGermanSupabaseError(source.error) };
+    const confirmedSource = source.data as ConfirmedBillingProofSource | undefined;
+    if (!confirmedSource || proof.payloadHash !== await computeVisitProofPayloadHash(proof.payloadSnapshot)) return { ok: false, error: 'Die gespeicherte Nachweisfassung ist nicht bestätigt.' };
     const visit = await fetchVisitForBilling(tenantId, proof.visitId);
     const ctx = await resolveBillingContext(
       tenantId,
@@ -313,6 +329,7 @@ export async function upsertBillingCandidateFromProof(
     );
 
     const mapped = mapApprovedProofToBillingCandidate(tenantId, proof, visit, {
+      confirmedSource,
       clientServiceProfileId: ctx.serviceProfileId,
       serviceTypeId: ctx.serviceTypeId,
       rateAmount: ctx.billingRule?.defaultRateAmount ?? null,
@@ -329,6 +346,7 @@ export async function upsertBillingCandidateFromProof(
 
     const draft = mapped as BillingCandidateDraft;
     const budgets = await listClientBudgetSettings(tenantId, draft.clientId);
+    if (!budgets.ok) return budgets;
     const blockingReasons = getBillingBlockingReasons({
       source: draft.sourceSnapshot,
       proof,
@@ -339,9 +357,6 @@ export async function upsertBillingCandidateFromProof(
       amountPreviewCents: draft.amountPreviewCents,
     });
     const status = resolveCandidateStatus(blockingReasons, draft.amountPreviewCents);
-
-    const client = getSupabaseClient();
-    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
     const { data, error } = await fromUnknownTable(client, CANDIDATES_TABLE)
       .upsert(draftToRow(draft, status, blockingReasons), { onConflict: 'tenant_id,proof_id' })
@@ -355,7 +370,12 @@ export async function upsertBillingCandidateFromProof(
       return { ok: false, error: toGermanSupabaseError(error) };
     }
 
-    return { ok: true, data: mapCandidateRow(data as CandidateRow) };
+    const row = data as CandidateRow | null;
+    if (!row?.id || row.tenant_id !== tenantId || row.proof_id !== proof.id || row.visit_id !== proof.visitId
+      || row.client_id !== draft.clientId || canonicalJsonStringify(row.source_snapshot?.confirmedSource) !== canonicalJsonStringify(confirmedSource)) {
+      return { ok: false, error: 'Der Abrechnungskandidat wurde noch nicht für diese Nachweisfassung bestätigt.' };
+    }
+    return { ok: true, data: mapCandidateRow(row) };
   });
 }
 
@@ -539,7 +559,8 @@ export async function syncApprovedProofsToBillingCandidates(
     const results: ClientBillingCandidate[] = [];
     for (const proof of clientProofs) {
       const upserted = await upsertBillingCandidateFromProof(tenantId, proof);
-      if (upserted.ok) results.push(upserted.data);
+      if (!upserted.ok) return upserted;
+      results.push(upserted.data);
     }
 
     return { ok: true, data: results };

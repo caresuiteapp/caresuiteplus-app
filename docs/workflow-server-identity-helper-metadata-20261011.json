@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-10-11",
+  "scope": "read-only helper dependencies",
+  "project": "euagyyztvmemuaiumvxm",
+  "helpers": [
+    {
+      "name": "is_tenant_member",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_tenant_member(p_tenant_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT coalesce(v.allowed,false) AND public.platform_tenant_access_allowed(p_tenant_id,false) FROM (\n  SELECT EXISTS (SELECT 1 FROM public.tenant_memberships tm WHERE tm.tenant_id = p_tenant_id AND tm.user_id = auth.uid() AND tm.is_active = TRUE)\n  OR EXISTS (SELECT 1 FROM public.profiles p WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid()) AND p.tenant_id = p_tenant_id)\n  OR EXISTS (SELECT 1 FROM public.employee_portal_accounts epa WHERE epa.auth_user_id = auth.uid() AND epa.tenant_id = p_tenant_id AND epa.status = 'active')\n  OR EXISTS (SELECT 1 FROM public.client_portal_access cpa WHERE cpa.auth_user_id = auth.uid() AND cpa.tenant_id = p_tenant_id AND cpa.portal_enabled = TRUE)) v(allowed)$function$\n"
+    },
+    {
+      "name": "platform_tenant_access_allowed",
+      "definition": "CREATE OR REPLACE FUNCTION public.platform_tenant_access_allowed(p_tenant_id uuid, p_allow_platform boolean DEFAULT true)\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN\n  IF p_tenant_id IS NULL THEN RETURN true; END IF;\n  IF p_allow_platform AND public.is_platform_user() THEN RETURN true; END IF;\n  IF EXISTS(SELECT 1 FROM public.platform_tenants WHERE tenant_id=p_tenant_id AND status<>'active') THEN RETURN false; END IF;\n  RETURN NOT EXISTS(SELECT 1 FROM public.platform_account_access_states s\n    JOIN public.tenant_users u ON u.id=s.tenant_user_id AND u.tenant_id=s.tenant_id\n    WHERE s.tenant_id=p_tenant_id AND u.auth_user_id=auth.uid() AND s.state IN ('inactive','deleted'));\nEND; $function$\n"
+    }
+  ]
+}

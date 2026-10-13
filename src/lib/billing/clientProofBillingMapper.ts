@@ -2,13 +2,16 @@
  * K.5 — map approved assist proofs to billing candidate inputs.
  */
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
-import type { ProofBillingSourceSnapshot } from '@/types/clientBilling';
+import type { ProofBillingSourceSnapshot, ConfirmedBillingProofSource } from '@/types/clientBilling';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { berlinDateKey } from '@/lib/employeeLogbook/employeeLogbookDate';
 
 type VisitRow = {
   id: string;
+  tenant_id: string;
   client_id: string;
   service_key: string | null;
   service_name: string | null;
@@ -23,12 +26,26 @@ function readSnapshotString(snapshot: Record<string, unknown>, key: string): str
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function parseDurationMinutes(start: string | null, end: string | null, fallback: number | null): number | null {
-  if (start && end) {
-    const ms = new Date(end).getTime() - new Date(start).getTime();
-    if (Number.isFinite(ms) && ms > 0) return Math.round(ms / 60_000);
+export type { ConfirmedBillingProofSource } from '@/types/clientBilling';
+function actualDurationMinutes(start: string | null, end: string | null, seconds: unknown): number | null {
+  if (!start || !end) return null;
+  const elapsed = Date.parse(end) - Date.parse(start);
+  if (!Number.isFinite(elapsed) || elapsed < 0) return null;
+  if (typeof seconds === 'number') {
+    return Number.isFinite(seconds) && seconds >= 0 && seconds <= Math.round(elapsed / 1000)
+      ? Math.round(seconds / 60) : null;
   }
-  return fallback;
+  return Math.round(elapsed / 60_000);
+}
+export function isConfirmedBillingProofSource(proof: AssistVisitProofRow, source?: ConfirmedBillingProofSource): boolean {
+  return Boolean(source && source.version === 'workflow-assignment-record-v1'
+    && source.tenant_id === proof.tenantId && source.visit_id === proof.visitId && source.proof_id === proof.id
+    && source.signature_id === proof.signatureId && source.proof_payload_hash === proof.payloadHash
+    && typeof source.signature_payload_hash === 'string' && source.signature_payload_hash.startsWith('sha256:')
+    && Number.isSafeInteger(source.actual_minutes) && source.actual_minutes >= 0
+    && typeof source.pdf_storage_path === 'string' && Boolean(source.pdf_storage_path.trim())
+    && typeof source.pdf_sha256 === 'string' && /^(sha256:)?[0-9a-f]{64}$/.test(source.pdf_sha256)
+    && Number.isFinite(Date.parse(source.attested_at)) && Date.parse(source.attested_at) <= Date.now());
 }
 
 export function mapProofTasksToBillingSnapshot(
@@ -56,27 +73,20 @@ export function mapProofTasksToBillingSnapshot(
 export function getProofBillingSourceSnapshot(
   proof: AssistVisitProofRow,
   visit: VisitRow | null,
+  confirmedSource?: ConfirmedBillingProofSource,
 ): ProofBillingSourceSnapshot {
   const snap = proof.payloadSnapshot ?? {};
-  const startTime =
-    readSnapshotString(snap, 'serviceStartAt') ??
-    readSnapshotString(snap, 'startTime') ??
-    visit?.planned_start_at ??
-    null;
-  const endTime =
-    readSnapshotString(snap, 'serviceEndAt') ??
-    readSnapshotString(snap, 'endTime') ??
-    visit?.planned_end_at ??
-    null;
-  const durationMinutes = parseDurationMinutes(
-    startTime,
-    endTime,
-    visit?.duration_minutes ?? null,
-  );
-  const signed =
-    Boolean(proof.signatureId) ||
-    Boolean(readSnapshotString(snap, 'signerName')) ||
-    Boolean(readSnapshotString(snap, 'signedAt'));
+  const times = snap.visitTimes && typeof snap.visitTimes === 'object' && !Array.isArray(snap.visitTimes)
+    ? snap.visitTimes as Record<string, unknown> : {};
+  const startTime = readSnapshotString(times, 'serviceStartedAt') ?? readSnapshotString(snap, 'serviceStartAt') ?? readSnapshotString(snap, 'startTime');
+  const endTime = readSnapshotString(times, 'serviceEndedAt') ?? readSnapshotString(snap, 'serviceEndAt') ?? readSnapshotString(snap, 'endTime');
+  const actualMinutes = actualDurationMinutes(startTime, endTime, times.serviceSeconds);
+  const confirmed = isConfirmedBillingProofSource(proof, confirmedSource)
+    && Date.parse(startTime ?? '') === Date.parse(confirmedSource?.service_started_at ?? '')
+    && Date.parse(endTime ?? '') === Date.parse(confirmedSource?.service_ended_at ?? '')
+    && actualMinutes === confirmedSource?.actual_minutes;
+  const durationMinutes = actualMinutes;
+  const signed = Boolean(confirmed);
   const approved = proof.status === 'approved' || proof.status === 'exported';
   const released =
     proof.portalReleaseStatus === 'released' ||
@@ -103,7 +113,8 @@ export function getProofBillingSourceSnapshot(
       documentationNote: readSnapshotString(snap, 'documentationNote'),
       notes: readSnapshotString(snap, 'notes'),
     },
-    rateSource: visit?.budget_amount_cents != null ? 'visit_budget' : 'none',
+    rateSource: 'none',
+    ...(confirmed ? { confirmedSource } : {}),
     rateAmount: null,
   };
 }
@@ -127,12 +138,13 @@ export async function fetchVisitForBilling(
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
-  const { data } = await fromUnknownTable(supabase, 'assist_visits')
-    .select('id, client_id, service_key, service_name, planned_start_at, planned_end_at, duration_minutes, budget_amount_cents')
+  const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+    .select('id, tenant_id, client_id, service_key, service_name, planned_start_at, planned_end_at, duration_minutes, budget_amount_cents')
     .eq('tenant_id', tenantId)
     .eq('id', visitId)
     .maybeSingle();
 
+  if (error) throw new Error(toGermanSupabaseError(error));
   return (data as VisitRow | null) ?? null;
 }
 
@@ -164,6 +176,7 @@ export function mapApprovedProofToBillingCandidate(
   proof: AssistVisitProofRow,
   visit: VisitRow | null,
   options: {
+    confirmedSource?: ConfirmedBillingProofSource;
     clientServiceProfileId?: string | null;
     serviceTypeId?: string | null;
     rateAmount?: number | null;
@@ -177,7 +190,14 @@ export function mapApprovedProofToBillingCandidate(
   const validation = validateProofForBilling(proof);
   if (!validation.ok) return validation;
 
-  const sourceSnapshot = getProofBillingSourceSnapshot(proof, visit);
+  if (proof.tenantId !== tenantId || !visit || visit.tenant_id !== tenantId || visit.id !== proof.visitId
+    || visit.client_id !== options.confirmedSource?.client_id || !isConfirmedBillingProofSource(proof, options.confirmedSource)) {
+    return { ok: false, error: 'Die unveränderliche freigegebene Nachweisfassung wurde noch nicht vom Server bestätigt.' };
+  }
+  const sourceSnapshot = getProofBillingSourceSnapshot(proof, visit, options.confirmedSource);
+  if (!sourceSnapshot.signed || sourceSnapshot.durationMinutes == null) {
+    return { ok: false, error: 'Bestätigte Unterschrift und tatsächliches Leistungszeitpaar fehlen.' };
+  }
   const clientId = visit?.client_id ?? sourceSnapshot.clientId;
   if (!clientId) return { ok: false, error: 'Klient:in für Nachweis nicht ermittelbar.' };
 
@@ -185,21 +205,15 @@ export function mapApprovedProofToBillingCandidate(
   const rateAmount = options.rateAmount ?? null;
   const quantity =
     durationMinutes != null && durationMinutes > 0
-      ? Math.round((durationMinutes / 60) * 100) / 100
+      ? Math.round((durationMinutes / 60) * 10_000) / 10_000
       : null;
 
   let amountPreviewCents = 0;
   if (rateAmount != null && quantity != null) {
     amountPreviewCents = Math.round(rateAmount * quantity * 100);
-  } else if (visit?.budget_amount_cents != null) {
-    amountPreviewCents = visit.budget_amount_cents;
   }
 
-  const proofDate =
-    sourceSnapshot.startTime?.slice(0, 10) ??
-    proof.approvedAt?.slice(0, 10) ??
-    proof.generatedAt?.slice(0, 10) ??
-    null;
+  const proofDate = sourceSnapshot.startTime ? berlinDateKey(sourceSnapshot.startTime) : null;
 
   return {
     tenantId,

@@ -1,4 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import { Platform } from 'react-native';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -46,11 +47,18 @@ function normalizeMimeType(raw: string): string {
   return MIME_ALIASES[lower] ?? lower;
 }
 
-function toStorageUploadPayload(
+async function toStorageUploadPayload(
   fileData: Blob | ArrayBuffer | Uint8Array,
   mimeType: string,
-): Blob | ArrayBuffer | Uint8Array {
+): Promise<Blob | ArrayBuffer | Uint8Array> {
   const normalizedMime = normalizeMimeType(mimeType);
+  // React Native cannot construct a Blob from ArrayBuffer/typed-array parts,
+  // and Supabase's native upload path requires raw ArrayBuffer bytes.
+  if (Platform.OS !== 'web') {
+    if (fileData instanceof Uint8Array) return new Uint8Array(fileData).buffer as ArrayBuffer;
+    if (fileData instanceof ArrayBuffer) return fileData;
+    return fileData.arrayBuffer();
+  }
   if (typeof Blob !== 'undefined') {
     if (fileData instanceof Blob) {
       return fileData.type ? fileData : new Blob([fileData], { type: normalizedMime });
@@ -217,7 +225,7 @@ export async function uploadMessageAttachment(input: {
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
   const normalizedMimeType = normalizeMimeType(input.mimeType);
-  const uploadPayload = toStorageUploadPayload(input.fileData, normalizedMimeType);
+  const uploadPayload = await toStorageUploadPayload(input.fileData, normalizedMimeType);
 
   const attachmentId =
     typeof globalThis.crypto?.randomUUID === 'function'
@@ -378,6 +386,9 @@ export async function resolveMessageAttachmentUrl(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: toUserFacingAttachmentError() };
 
+  // Native media players and external document apps consume HTTPS URLs;
+  // browser-only blob URLs are not a valid native Linking target.
+  if (Platform.OS !== 'web') return getMessageAttachmentSignedUrl(tenantId, filePath);
   const downloaded = await downloadAttachmentBlobUrl(supabase, filePath);
   if (downloaded.ok) return downloaded;
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { CareMedicationScheduleInput } from '@/components/inputs/CareMedicationScheduleInput';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
@@ -70,11 +70,10 @@ export function MedicationCreateScreen() {
     setSaving(false);
     if (!result.ok) { setError(result.error); return; }
     setCreatedId(result.data.id);
-    setTimeout(() => router.replace(`/pflege/medikation/${result.data.id}` as never), 500);
   }
 
   if (clientsQuery.loading && clients.length === 0) return <ScreenShell title="Medikation anlegen"><LoadingState message="Aktive Klient:innen werden geladen…" /></ScreenShell>;
-  if (createdId) return <ScreenShell title="Verordnung angelegt" showBack={false}><SuccessState message="Die Verordnung wurde produktiv gespeichert." /></ScreenShell>;
+  if (createdId) return <ScreenShell title="Verordnung angelegt" showBack={true}><SuccessState message="Die Verordnung wurde produktiv gespeichert." /></ScreenShell>;
 
   return (
     <ScreenShell title="Medikation anlegen" subtitle={`Ambulante Pflege und Intensivpflege · ${roleLabel ?? 'Pflegefachkraft'}`} onBack={() => router.back()}>

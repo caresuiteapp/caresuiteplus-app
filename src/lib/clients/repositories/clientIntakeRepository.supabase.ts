@@ -19,7 +19,7 @@ function getClient() {
   return getSupabaseClient();
 }
 
-function unavailable<T>(): ServiceResult<T> {
+function unavailable(): { ok: false; error: string } {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
@@ -167,7 +167,7 @@ export async function createClientFromIntake(
   form: ClientIntakeFormData,
   actorProfileId?: string | null,
   draftClientId?: string | null,
-): Promise<ServiceResult<{ id: string }>> {
+): Promise<ServiceResult<{ id: string }> & { recoverableClientId?: string }> {
   const supabase = getClient();
   if (!supabase) return unavailable();
 
@@ -175,31 +175,54 @@ export async function createClientFromIntake(
   // every related record, document and signature has been persisted.
   const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead');
 
-  // A stale local/demo draft id must never reach the UUID column filter. When
-  // it is invalid, create a fresh recoverable lead with the preserved form.
+  // Keep one UUID across an uncertain commit and the next retry. A client that
+  // was already activated must never be downgraded by replaying a stale draft.
+  const clientId = isUuid(draftClientId) ? draftClientId : (await import('expo-crypto')).randomUUID();
   if (isUuid(draftClientId)) {
+    const loaded = await supabase.from('clients').select('id, status')
+      .eq('id', clientId).eq('tenant_id', tenantId).maybeSingle();
+    if (loaded.error) return { ok: false, error: toGermanSupabaseError(loaded.error), recoverableClientId: clientId };
+    if (loaded.data && loaded.data.status !== 'lead') {
+      return { ok: false, error: 'Diese Aufnahme wurde bereits abgeschlossen oder ist kein Entwurf mehr. Bitte öffnen Sie die bestehende Klientenakte.', recoverableClientId: clientId };
+    }
+    if (loaded.data) {
     const { data, error } = await supabase
       .from('clients')
       .update(record)
-      .eq('id', draftClientId)
+      .eq('id', clientId)
       .eq('tenant_id', tenantId)
-      .in('status', ['lead', 'active'])
+      .eq('status', 'lead')
       .select('id')
       .single();
 
     if (error || !data) {
-      return { ok: false, error: toGermanSupabaseError(error) };
+      return { ok: false, error: toGermanSupabaseError(error), recoverableClientId: clientId };
     }
 
     return { ok: true, data: { id: data.id } };
+    }
   }
 
-  const { data, error } = await supabase.from('clients').insert(record).select('id').single();
-  if (error || !data) {
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  return { ok: true, data: { id: data.id } };
+  try {
+    const { data, error } = await supabase.from('clients').insert({ ...record, id: clientId }).select('id').single();
+    if (!error && data?.id === clientId) return { ok: true, data: { id: clientId } };
+  } catch { /* The server may have committed before the response was lost. */ }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const recovered = await supabase.from('clients').select('*')
+      .eq('id', clientId).eq('tenant_id', tenantId).abortSignal(controller.signal).maybeSingle();
+    if (!recovered.error && recovered.data && Object.entries(record).every(([key, value]) =>
+      (recovered.data as unknown as Record<string, unknown>)[key] === value)) {
+      return { ok: true, data: { id: clientId } };
+    }
+  } catch { /* Keep the same identity until a later scoped read can confirm it. */ }
+  finally { clearTimeout(timer); }
+  return {
+    ok: false,
+    error: 'Die Anlage konnte noch nicht bestätigt werden. Bitte denselben Entwurf erneut laden oder wiederholen; die Aufnahme-ID bleibt erhalten.',
+    recoverableClientId: clientId,
+  };
 }
 
 export async function activateClientFromIntake(

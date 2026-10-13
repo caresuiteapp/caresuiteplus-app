@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { InactiveModuleBanner, ResidentDetailHero } from '@/components/stationaer';
 import { ScreenShell } from '@/components/layout';
@@ -66,22 +67,6 @@ export function ResidentDetailScreen() {
       <ResidentDetailHero resident={resident} roleKey={roleKey} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <SectionPanel
-          title="Klinische 3D-Dokumentation"
-          subtitle="Befunde, Wunden, Dekubitus, Fotos und Verlauf"
-        >
-          <Text style={styles.clinicalText}>
-            Öffnet die vollständige bewohnerbezogene 3D-Bodymap mit allen 18
-            Körpervarianten und dauerhaft verankerten gelben Befundpunkten.
-          </Text>
-          <PremiumButton
-            title="3D-Bodymap öffnen"
-            onPress={() =>
-              router.push(`/stationaer/bewohner/${resident.id}/bodymap` as never)
-            }
-          />
-        </SectionPanel>
-
         <SectionPanel title="Aufenthalt">
           <DetailInfoRow label="Zimmer" value={resident.roomName} />
           {resident.wing ? <DetailInfoRow label="Bereich" value={resident.wing} /> : null}

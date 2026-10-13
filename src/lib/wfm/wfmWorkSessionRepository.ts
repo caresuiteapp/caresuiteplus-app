@@ -13,6 +13,7 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { berlinDateKey } from '@/lib/employeeLogbook/employeeLogbookDate';
 
 const SESSIONS_TABLE = 'workforce_work_sessions';
 const EVENTS_TABLE = 'workforce_time_events';
@@ -103,7 +104,7 @@ export function resetWfmDemoStore(): void {
   demoEvents.clear();
 }
 
-/** Local calendar date (YYYY-MM-DD) — matches German "heute" in Office Arbeitszeit. */
+/** Berlin calendar date, matching the server's Europe/Berlin workday. */
 export function todayWorkDate(): string {
   return workDateFromDate(new Date());
 }
@@ -113,10 +114,7 @@ export function workDateFromIso(iso: string): string {
 }
 
 function workDateFromDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return berlinDateKey(date);
 }
 
 export async function fetchSessionForDate(
@@ -296,23 +294,28 @@ export async function hasAssistWfmEvent(
   employeeId: string,
   eventType: WfmEventType,
   visitId: string,
+  occurredAt?: string,
 ): Promise<boolean> {
-  if (getServiceMode() !== 'supabase') return false;
+  if (getServiceMode() !== 'supabase') return [...demoEvents.values()].flat().some(event=>event.tenantId===tenantId && event.employeeId===employeeId && event.eventType===eventType && event.referenceId===visitId && (!occurredAt || event.occurredAt===occurredAt));
 
   const supabase = getSupabaseClient();
   if (!supabase) return false;
 
-  const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
+  let query = fromUnknownTable(supabase, EVENTS_TABLE)
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)
     .eq('event_type', eventType)
     .eq('reference_type', 'visit')
-    .eq('reference_id', visitId)
-    .limit(1)
+    .eq('reference_id', visitId);
+  if (occurredAt) query=query.eq('occurred_at',occurredAt);
+  const {data,error} = await query.limit(1)
     .maybeSingle();
 
-  if (error) return false;
+  if (error) {
+    if (occurredAt) throw new Error(toGermanSupabaseError(error));
+    return false;
+  }
   return Boolean(data);
 }
 

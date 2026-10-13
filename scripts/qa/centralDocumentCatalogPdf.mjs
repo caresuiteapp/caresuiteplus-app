@@ -15,6 +15,8 @@ const cases = [
   ['service-proof','Leistungsnachweis mit Leistungsbestätigung'],
   ['contract','Ambulanter Pflegevertrag'],
   ['wound-form','Wundassessment'],
+  ['software-contract','Nutzungsvereinbarung CareSuite HealthOS'],
+  ['employee-privacy','Datenschutzinformationen für Mitarbeitende'],
 ];
 const samples=[]; let rendered=0;
 for (const d of catalog) {
@@ -32,6 +34,6 @@ for (const d of catalog) {
   rendered++;
   if(sample){await fs.writeFile(path.join(dir,`${sample[0]}.pdf`),result.bytes);samples.push({name:sample[0],title:d.title,pages:result.pageCount,orientation:result.orientation,hash:result.hash});}
 }
-if(samples.length!==4)throw new Error('Missing QA sample: '+JSON.stringify(samples));
+if(samples.length!==cases.length)throw new Error('Missing QA sample: '+JSON.stringify(samples));
 await fs.writeFile(path.join(dir,'results.json'),JSON.stringify({rendered,samples},null,2));
 console.log(JSON.stringify({rendered,samples}));

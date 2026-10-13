@@ -10,20 +10,24 @@ import { assistProofProjectionKey } from './internal/workflowProjectionKeys';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { fetchLatestVisitProof } from '@/lib/assist/assistVisitProofPersistenceService';
-import { isStoredVisitProofComplete } from '@/lib/assist/visitProofCompleteness';
+import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { isStoredVisitProofComplete, visitProofSnapshotsMatch } from '@/lib/assist/visitProofCompleteness';
+import { buildServiceRecordSnapshot } from './buildServiceRecordHtml';
+import { signatureMatchesVisitContent } from './signatureMatchesVisitContent';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
-import { scheduleDeferredTask, waitForDeferredTask } from '@/lib/async/deferredTask';
+import { waitForDeferredTask } from '@/lib/async/deferredTask';
 
 export type FinalizeVisitResult = {
   ctx: AssistExecutionContext;
   serviceRecordId: string | null;
   proofPersisted: boolean;
   wfmSyncFailed?: boolean;
+  serviceRecordSyncFailed?: boolean;
 };
 
 export async function finalizeVisit(
@@ -85,10 +89,25 @@ export async function finalizeVisit(
   // bounded moment for that projection and reuse it instead of repeating the
   // expensive signature download, orientation probe and proof upload.
   await proofProjection;
-  const existingProof = await fetchLatestVisitProof(ctx.tenantId, ctx.assistVisitId);
+  const [existingProof, currentSignature] = await Promise.all([
+    fetchLatestVisitProof(ctx.tenantId, ctx.assistVisitId),
+    fetchValidVisitSignature(ctx.tenantId, ctx.assistVisitId),
+  ]);
+  const currentSnapshot = buildServiceRecordSnapshot({ detail: ctx.detail, visitTimes: ctx.visitTimes,
+    documentationText: docText, visitId: ctx.assistVisitId, employeeId: ctx.employeeId,
+    serviceName: ctx.detail.title,
+    signatureSummary: currentSignature.ok && currentSignature.data
+      ? { signerName: currentSignature.data.signerName, signedAt: currentSignature.data.signedAt, signerRole: currentSignature.data.signerRole }
+      : null });
   const reusableProof =
     existingProof.ok &&
     existingProof.data &&
+    currentSignature.ok && currentSignature.data &&
+    currentSignature.data.tenantId === ctx.tenantId && currentSignature.data.visitId === ctx.assistVisitId &&
+    await signatureMatchesVisitContent(ctx, currentSignature.data, docText) &&
+    existingProof.data.signatureId === currentSignature.data.id &&
+    existingProof.data.tenantId === ctx.tenantId && existingProof.data.visitId === ctx.assistVisitId &&
+    visitProofSnapshotsMatch(existingProof.data.payloadSnapshot, currentSnapshot) &&
     isStoredVisitProofComplete(existingProof.data, {
       requireSignature: true,
     });
@@ -97,7 +116,7 @@ export async function finalizeVisit(
         ok: true as const,
         data: { serviceRecordId: null, proofPersisted: true, html: '' },
       }
-    : await generateServiceRecord(ctx, docText);
+    : await generateServiceRecord(ctx, docText, { requireSignature: true });
 
   if (getServiceMode() === 'supabase' && (!record.ok || !record.data.proofPersisted)) {
     return assistWorkflowErrorToResult(
@@ -120,19 +139,28 @@ export async function finalizeVisit(
   }
 
   const finalizedAt = new Date().toISOString();
-  scheduleDeferredTask(`assist-service-record:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
-    const serviceRecord = await assignmentSupabaseRepository.prepareServiceRecord(
-      ctx.tenantId,
-      ctx.assignmentId,
-      {
-        actorProfileId: ctx.profileId ?? ctx.employeeId,
-        actorEmployeeId: ctx.employeeId,
-      },
-    );
-    if (!serviceRecord.ok) throw new Error(serviceRecord.error);
-  });
+  let serviceRecordId = record.ok ? record.data.serviceRecordId : null;
+  let serviceRecordSyncFailed = false;
+  if (getServiceMode() === 'supabase') {
+    try {
+      const serviceRecord = await assignmentSupabaseRepository.prepareServiceRecord(
+        ctx.tenantId, ctx.assignmentId,
+        { actorProfileId: ctx.profileId ?? ctx.employeeId, actorEmployeeId: ctx.employeeId },
+      );
+      if (!serviceRecord.ok || !serviceRecord.data?.id) {
+        throw new Error(serviceRecord.ok ? 'Leistungsnachweisvorbereitung nicht bestätigt.' : serviceRecord.error);
+      }
+      serviceRecordId = serviceRecord.data.id;
+    } catch (error) {
+      serviceRecordSyncFailed = true;
+      console.warn('[finalizeVisit] Leistungsnachweisvorbereitung nicht bestätigt', error);
+    }
+  }
 
-  scheduleDeferredTask(`assist-finalization:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+  // A browser-local background job is lost on reload/close. Await the
+  // execution receipt and WFM handoff, and report failures honestly.
+  let wfmSyncFailed = false;
+  try {
     const executionState = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       ctx.assignmentId,
@@ -159,17 +187,19 @@ export async function finalizeVisit(
       );
       if (!wfmSync.ok) throw new Error(wfmSync.error);
     }
-  });
-
-  const wfmSyncFailed = false;
+  } catch (error) {
+    wfmSyncFailed = true;
+    console.warn("[finalizeVisit] Arbeitszeitübergabe nicht bestätigt", error);
+  }
 
   return {
     ok: true,
     data: {
       ctx: transitioned.data,
-      serviceRecordId: record.ok ? record.data.serviceRecordId : null,
+      serviceRecordId,
       proofPersisted: record.ok ? record.data.proofPersisted : false,
       wfmSyncFailed,
+      serviceRecordSyncFailed,
     },
   };
 }

@@ -13,9 +13,9 @@ import {
 import { listPlatformSystemSettings } from '@/lib/platformConsole/platformOpsService';
 
 describe('Platform Operator UI — Role Matrix', () => {
-  it('Billing Role darf Rechnungen/Zahlungen sehen, aber keine Systemsettings schreiben', () => {
-    expect(platformRoleHasCapability('platform_billing', 'billing.read')).toBe(true);
-    expect(platformRoleHasCapability('platform_billing', 'payments.read')).toBe(true);
+  it('Billing Role erhält keinen Zugriff auf stillgelegte Plattform-Abrechnung', () => {
+    expect(platformRoleHasCapability('platform_billing', 'billing.read')).toBe(false);
+    expect(platformRoleHasCapability('platform_billing', 'payments.read')).toBe(false);
     expect(platformRoleHasCapability('platform_billing', 'system.write')).toBe(false);
   });
 
@@ -29,7 +29,7 @@ describe('Platform Operator UI — Role Matrix', () => {
   });
 
   it('Readonly sieht Daten, kann aber nicht schreiben', () => {
-    expect(platformRoleHasCapability('platform_readonly', 'billing.read')).toBe(true);
+    expect(platformRoleHasCapability('platform_readonly', 'billing.read')).toBe(false);
     expect(platformRoleHasCapability('platform_readonly', 'billing.write')).toBe(false);
     expect(platformRoleHasCapability('platform_readonly', 'discounts.write')).toBe(false);
   });

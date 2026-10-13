@@ -15,7 +15,6 @@ export function ModalStackRenderer() {
   const title = entry.title || registry?.title || 'Details';
   const subtitle = entry.subtitle ?? registry?.subtitle;
   const maxWidth = entry.maxWidth ?? registry?.maxWidth ?? 720;
-  const Component = registry?.Component;
 
   const handleClose = () => closeTopModal();
 
@@ -29,13 +28,20 @@ export function ModalStackRenderer() {
         subtitle={subtitle}
         maxWidth={maxWidth}
       >
-        {Component ? <Component embeddedInModal payload={entry.payload} /> : null}
+        {modalStack.map((item, index) => {
+          const Component = item.modalKey ? MODULE_NAV_MODAL_SCREENS[item.modalKey]?.Component : undefined;
+          const active = index === depth - 1;
+          return <View key={item.id} style={active ? undefined : styles.hiddenPage} pointerEvents={active ? 'auto' : 'none'} accessibilityElementsHidden={!active} importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}>
+            {Component ? <Component embeddedInModal payload={item.payload} /> : null}
+          </View>;
+        })}
       </PlatformModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  hiddenPage: { display: 'none' },
   host: {
     ...StyleSheet.absoluteFill,
     zIndex: 2000,

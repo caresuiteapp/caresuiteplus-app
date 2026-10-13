@@ -1,4 +1,11 @@
 import { readAllVisitPages } from './visitListPagination';
+import { visitPlanningFollowUpFailure, type VisitPlanningResult } from '@/lib/assist/visitPlanningResult';
+import type { AssignmentConflictCandidate } from '@/lib/assist/assignmentConflictService';
+import {
+  expandVisitPlanningConflictCandidates,
+  type VisitPlanningConflictRow,
+  type VisitPlanningPeriod,
+} from '@/lib/assist/visitPlanningConflicts';
 import type { ServiceResult } from '@/types';
 import type { WorkflowStatus } from '@/types/core/base';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
@@ -43,6 +50,7 @@ import {
   archiveCalendarEventBySource,
   buildCalendarEventFromVisitDetail,
   cancelCalendarEventBySourceAsync,
+  syncCalendarEvent,
   syncCalendarEventAsync,
 } from '@/lib/calendar/calendarSyncService';
 import {
@@ -298,7 +306,7 @@ function getClient() {
   return getSupabaseClient();
 }
 
-function unavailable<T>(): ServiceResult<T> {
+function unavailable<T>(): Extract<ServiceResult<T>, { ok: false }> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
@@ -634,13 +642,70 @@ export type VisitListOptions = {
   portalAudience?: 'client' | 'employee';
 };
 
+export type VisitListReadResult = ServiceResult<VisitDispositionListItem[]> & {
+  /** Only a confirmed absent canonical source allows the legacy list generation. */
+  missingVisitSchema?: true;
+};
+
+function visitListReadFailure(error: { code?: string; message?: string }): Extract<VisitListReadResult, { ok: false }> {
+  const missingVisitSchema = (error.code === 'PGRST205' || error.code === '42P01')
+    && /\bassist_visits\b/.test(error.message ?? '');
+  return { ok: false, error: toGermanSupabaseError(error), ...(missingVisitSchema ? { missingVisitSchema: true as const } : {}) };
+}
+
+const PLANNING_CONFLICT_SELECT = 'id, tenant_id, client_id, employee_id, title, canonical_status, assignment_date, planned_start_at, planned_end_at, recurrence_json';
+
 export const visitSupabaseRepository = {
   wpNumber: 116 as const,
+
+  async listPlanningConflictCandidates(
+    tenantId: string,
+    options: { clientId: string; employeeId?: string | null; periods: VisitPlanningPeriod[] },
+  ): Promise<ServiceResult<AssignmentConflictCandidate[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    if (!options.clientId || !options.periods.length) {
+      return { ok: false, error: 'Konfliktprüfung benötigt Klient:in und vollständige Terminzeiten.' };
+    }
+    const start = Math.min(...options.periods.map(period => Date.parse(period.plannedStartAt)));
+    const end = Math.max(...options.periods.map(period => Date.parse(period.plannedEndAt)));
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      return { ok: false, error: 'Konfliktprüfung benötigt gültige Terminzeiten.' };
+    }
+    const dateTo = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date(end));
+    const people: { column: 'client_id' | 'employee_id'; id: string }[] = [
+      { column: 'client_id', id: options.clientId },
+      ...(options.employeeId ? [{ column: 'employee_id' as const, id: options.employeeId }] : []),
+    ];
+    try {
+      const reads = await Promise.all(people.flatMap(person => [false, true].map(recurring =>
+        readAllVisitPages((from, to) => {
+          let query = fromUnknownTable(supabase, 'assist_visits').select(PLANNING_CONFLICT_SELECT)
+            .eq('tenant_id', tenantId).eq(person.column, person.id);
+          query = recurring
+            ? query.neq('recurrence_json->>pattern', 'none').lte('assignment_date', dateTo)
+            : query.lt('planned_start_at', new Date(end).toISOString()).gt('planned_end_at', new Date(start).toISOString());
+          return query.order('planned_start_at', { ascending: true }).order('id', { ascending: true }).range(from, to);
+        }))));
+      const failed = reads.find(read => read.error);
+      if (failed?.error) return { ok: false, error: toGermanSupabaseError(failed.error) };
+      const rows = new Map<string, VisitPlanningConflictRow>();
+      for (const read of reads) {
+        for (const row of (read.data ?? []) as VisitPlanningConflictRow[]) {
+          if (row.tenant_id === tenantId && (row.client_id === options.clientId
+            || Boolean(options.employeeId && row.employee_id === options.employeeId))) rows.set(row.id, row);
+        }
+      }
+      return { ok: true, data: expandVisitPlanningConflictCandidates([...rows.values()], options.periods) };
+    } catch (cause) {
+      return { ok: false, error: cause instanceof Error ? cause.message : 'Bestehende Einsatzplanung konnte nicht geprüft werden.' };
+    }
+  },
 
   async list(
     tenantId: string,
     options?: VisitListOptions,
-  ): Promise<ServiceResult<VisitDispositionListItem[]>> {
+  ): Promise<VisitListReadResult> {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
@@ -686,10 +751,10 @@ export const visitSupabaseRepository = {
       const [inRangeResult, recurringResult] = await Promise.all([inRangeQuery, recurringQuery]);
 
       if (inRangeResult.error) {
-        return { ok: false, error: toGermanSupabaseError(inRangeResult.error) };
+        return visitListReadFailure(inRangeResult.error);
       }
       if (recurringResult.error) {
-        return { ok: false, error: toGermanSupabaseError(recurringResult.error) };
+        return visitListReadFailure(recurringResult.error);
       }
 
       const byId = new Map<string, VisitRow>();
@@ -716,12 +781,12 @@ export const visitSupabaseRepository = {
         if (options?.serviceKey) flatQuery = flatQuery.eq('service_key', options.serviceKey);
         const flatResult = await readAllVisitPages((from, to) => flatQuery.order('planned_start_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
         if (flatResult.error) {
-          return { ok: false, error: toGermanSupabaseError(flatResult.error) };
+          return visitListReadFailure(flatResult.error);
         }
         const flatRows = (flatResult.data ?? []) as unknown as VisitRow[];
         rows = await hydrateVisitRowRelationsBatch(tenantId, flatRows);
       } else if (error) {
-        return { ok: false, error: toGermanSupabaseError(error) };
+        return visitListReadFailure(error);
       } else {
         rows = (data ?? []) as unknown as VisitRow[];
       }
@@ -788,7 +853,7 @@ export const visitSupabaseRepository = {
     tenantId: string,
     input: VisitCreateInput,
     actorProfileId?: string | null,
-  ): Promise<ServiceResult<{ id: string }>> {
+  ): Promise<VisitPlanningResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
@@ -817,9 +882,9 @@ export const visitSupabaseRepository = {
       documentation_status: 'none',
       proof_status: 'none',
       billing_status: input.budgetAmountCents ? 'preview' : 'none',
-      portal_status: input.portalReleaseEnabled ? 'scheduled' : 'hidden',
+      portal_status: !input.saveAsDraft && input.portalReleaseEnabled ? 'scheduled' : 'hidden',
       canonical_status: assignmentStatusToRemote('geplant'),
-      portal_release_enabled: input.portalReleaseEnabled ?? false,
+      portal_release_enabled: !input.saveAsDraft && (input.portalReleaseEnabled ?? false),
       // Assigned, non-draft visits are part of the employee's work plan. Client
       // portal release is an independent decision and must not hide them.
       employee_portal_visible: Boolean(input.employeeId) && !input.saveAsDraft,
@@ -848,137 +913,152 @@ export const visitSupabaseRepository = {
 
     const visitId = (data as { id: string }).id;
 
-    if (taskTitles.length > 0) {
-      const taskRows = taskTitles.map((title, index) => ({
-        tenant_id: tenantId,
-        visit_id: visitId,
-        title,
-        status: 'open',
-        is_required: true,
-        sort_order: index,
-      }));
-      const { error: taskError } = await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
-        taskRows,
-      );
-      if (taskError) return { ok: false, error: toGermanSupabaseError(taskError) };
-    }
+    // Preserve the authoritative identity if a later write fails. Retrying the
+    // whole create operation would otherwise create a second assigned visit.
+    try {
 
-    const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
-      visitId,
-      tenantId,
-      clientId: input.clientId,
-      employeeId: input.employeeId,
-      assignmentDate: input.assignmentDate,
-      plannedStartAt: input.plannedStartAt,
-      plannedEndAt: input.plannedEndAt,
-      title: input.title,
-      description: input.description ?? null,
-      addressSnapshot: input.addressSnapshot ?? null,
-      internalNotes: input.internalNotes ?? null,
-      clientVisibleNotes: input.clientVisibleNotes ?? null,
-      canonicalStatus: insertRow.canonical_status,
-      saveAsDraft: input.saveAsDraft ?? false,
-      createdBy: actorProfileId ?? null,
-    });
-    if (!legacySync.ok) return legacySync;
+      if (taskTitles.length > 0) {
+        const taskRows = taskTitles.map((title, index) => ({
+          tenant_id: tenantId,
+          visit_id: visitId,
+          title,
+          status: 'open',
+          is_required: true,
+          sort_order: index,
+        }));
+        const { error: taskError } = await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
+          taskRows,
+        );
+        if (taskError) return visitPlanningFollowUpFailure(visitId, toGermanSupabaseError(taskError));
+      }
 
-    if (taskTitles.length > 0 && !input.saveAsDraft) {
-      const taskMirror = await syncLegacyAssignmentTasksFromVisit(
-        supabase,
-        tenantId,
+      const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
         visitId,
-        taskTitles,
-      );
-      if (!taskMirror.ok) return taskMirror;
-    }
-
-    if (input.budgetAmountCents) {
-      await fromUnknownTable(supabase, 'assist_visit_budget_snapshots').insert({
-        tenant_id: tenantId,
-        visit_id: visitId,
-        budget_amount_cents: input.budgetAmountCents,
-        remaining_amount_cents: input.budgetAmountCents,
-        source_type: 'preview',
-      });
-    }
-
-    await writeStatusHistory(tenantId, visitId, 'planning', null, 'scheduled', actorProfileId);
-    await writeAuditLog(
-      tenantId,
-      visitId,
-      'create',
-      `Einsatz „${input.title.trim()}“ angelegt`,
-      actorProfileId,
-    );
-
-    syncCalendarEventAsync(
-      buildCalendarEventFromVisitDetail({
         tenantId,
-        id: visitId,
-        title: input.title.trim(),
+        clientId: input.clientId,
+        employeeId: input.employeeId,
+        assignmentDate: input.assignmentDate,
         plannedStartAt: input.plannedStartAt,
         plannedEndAt: input.plannedEndAt,
-        clientId: input.clientId,
-        employeeId: input.employeeId ?? null,
-        canonicalStatus: assignmentStatusToRemote('geplant'),
-        portalReleaseEnabled: input.portalReleaseEnabled ?? false,
-        employeePortalVisible: false,
-      }),
-    );
+        title: input.title,
+        description: input.description ?? null,
+        addressSnapshot: input.addressSnapshot ?? null,
+        internalNotes: input.internalNotes ?? null,
+        clientVisibleNotes: input.clientVisibleNotes ?? null,
+        canonicalStatus: insertRow.canonical_status,
+        saveAsDraft: input.saveAsDraft ?? false,
+        createdBy: actorProfileId ?? null,
+      });
+      if (!legacySync.ok) return visitPlanningFollowUpFailure(visitId, legacySync.error);
 
-    if (
-      !input.saveAsDraft
-      && input.budgetAllocation
-      && input.budgetAllocation.allocationProposal.some(
-        (l) =>
-          l.amountCents > 0
-          && l.budgetAccountId
-          && l.catalogKey !== 'kulanz'
-          && l.catalogKey !== 'ungeklaert',
-      )
-    ) {
-      const persisted = await persistAssignmentBudgetAllocations({
+      if (taskTitles.length > 0 && !input.saveAsDraft) {
+        const taskMirror = await syncLegacyAssignmentTasksFromVisit(
+          supabase,
+          tenantId,
+          visitId,
+          taskTitles,
+        );
+        if (!taskMirror.ok) return visitPlanningFollowUpFailure(visitId, taskMirror.error);
+      }
+
+      if (input.budgetAmountCents) {
+        const snapshot = await fromUnknownTable(supabase, 'assist_visit_budget_snapshots').insert({
+          tenant_id: tenantId,
+          visit_id: visitId,
+          budget_amount_cents: input.budgetAmountCents,
+          remaining_amount_cents: input.budgetAmountCents,
+          source_type: 'preview',
+        });
+        if (snapshot.error) return visitPlanningFollowUpFailure(visitId, toGermanSupabaseError(snapshot.error));
+      }
+
+      await writeStatusHistory(tenantId, visitId, 'planning', null, input.saveAsDraft ? 'draft' : 'scheduled', actorProfileId);
+      await writeAuditLog(
         tenantId,
-        assignmentId: visitId,
-        clientId: input.clientId,
-        allocation: input.budgetAllocation,
-        manualOverride: input.budgetManualOverride ?? null,
+        visitId,
+        'create',
+        `Einsatz „${input.title.trim()}“ angelegt`,
         actorProfileId,
-      });
-      if (!persisted.ok) {
-        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
-        return persisted;
-      }
-      const reserved = await reserveAssignmentBudget({
-        tenantId,
-        clientId: input.clientId,
-        visitId,
-        allocation: input.budgetAllocation,
-        assignmentDate: input.assignmentDate,
-        createdBy: actorProfileId,
-      });
-      if (!reserved.ok) {
-        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
-        return reserved;
-      }
-    } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
-      const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
-      const reserved = await reserveForAssignment({
-        tenantId,
-        clientId: input.clientId,
-        visitId,
-        amountCents: input.budgetAmountCents,
-        catalogKey: input.billingBudgetSourceKey,
-        assignmentDate: input.assignmentDate,
-        createdBy: actorProfileId,
-      });
-      if (!reserved.ok) {
-        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
-        return reserved;
-      }
-    }
+      );
 
-    return { ok: true, data: { id: visitId } };
+      const calendarSync = await syncCalendarEvent(
+        buildCalendarEventFromVisitDetail({
+          tenantId,
+          id: visitId,
+          title: input.title.trim(),
+          plannedStartAt: input.plannedStartAt,
+          plannedEndAt: input.plannedEndAt,
+          clientId: input.clientId,
+          employeeId: input.employeeId ?? null,
+          canonicalStatus: assignmentStatusToRemote('geplant'),
+          portalReleaseEnabled: !input.saveAsDraft && (input.portalReleaseEnabled ?? false),
+          employeePortalVisible: Boolean(input.employeeId) && !input.saveAsDraft,
+        }),
+      );
+
+      if (
+        !input.saveAsDraft
+        && input.budgetAllocation
+        && input.budgetAllocation.allocationProposal.some(
+          (l) =>
+            l.amountCents > 0
+            && l.budgetAccountId
+            && l.catalogKey !== 'kulanz'
+            && l.catalogKey !== 'ungeklaert',
+        )
+      ) {
+        const persisted = await persistAssignmentBudgetAllocations({
+          tenantId,
+          assignmentId: visitId,
+          clientId: input.clientId,
+          allocation: input.budgetAllocation,
+          manualOverride: input.budgetManualOverride ?? null,
+          actorProfileId,
+        });
+        if (!persisted.ok) {
+          await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+          const remaining = await this.getById(tenantId, visitId);
+          if (!remaining.ok || remaining.data) return visitPlanningFollowUpFailure(visitId, persisted.error);
+          return persisted;
+        }
+        const reserved = await reserveAssignmentBudget({
+          tenantId,
+          clientId: input.clientId,
+          visitId,
+          allocation: input.budgetAllocation,
+          assignmentDate: input.assignmentDate,
+          createdBy: actorProfileId,
+        });
+        if (!reserved.ok) {
+          await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+          const remaining = await this.getById(tenantId, visitId);
+          if (!remaining.ok || remaining.data) return visitPlanningFollowUpFailure(visitId, reserved.error);
+          return reserved;
+        }
+      } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
+        const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
+        const reserved = await reserveForAssignment({
+          tenantId,
+          clientId: input.clientId,
+          visitId,
+          amountCents: input.budgetAmountCents,
+          catalogKey: input.billingBudgetSourceKey,
+          assignmentDate: input.assignmentDate,
+          createdBy: actorProfileId,
+        });
+        if (!reserved.ok) {
+          await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+          const remaining = await this.getById(tenantId, visitId);
+          if (!remaining.ok || remaining.data) return visitPlanningFollowUpFailure(visitId, reserved.error);
+          return reserved;
+        }
+      }
+
+      if (!calendarSync.ok) return visitPlanningFollowUpFailure(visitId, calendarSync.error);
+      return { ok: true, data: { id: visitId } };
+    } catch (cause) {
+      return visitPlanningFollowUpFailure(visitId, cause);
+    }
   },
 
   async updateAssignmentStatus(
@@ -1196,16 +1276,22 @@ export const visitSupabaseRepository = {
     }
 
     const docStatus = 'complete';
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: receipt, error } = await fromUnknownTable(supabase, 'assist_visits')
       .update({
         employee_notes: employeeNotes.trim(),
         documentation_status: docStatus,
         updated_by: actorProfileId ?? null,
       })
       .eq('tenant_id', tenantId)
-      .eq('id', visitId);
+      .eq('id', visitId)
+      .select('id, tenant_id, employee_notes, documentation_status')
+      .maybeSingle();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!receipt || receipt.id !== visitId || receipt.tenant_id !== tenantId
+      || receipt.employee_notes !== employeeNotes.trim() || receipt.documentation_status !== docStatus) {
+      return { ok: false, error: 'Die Dokumentation wurde vom Server nicht bestätigt. Bitte Berechtigung und Einsatzzuordnung prüfen.' };
+    }
 
     await writeStatusHistory(
       tenantId,
@@ -1235,7 +1321,7 @@ export const visitSupabaseRepository = {
     visitId: string,
     input: VisitCreateInput,
     actorProfileId?: string | null,
-  ): Promise<ServiceResult<VisitDispositionDetail>> {
+  ): Promise<VisitPlanningResult<VisitDispositionDetail>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
@@ -1284,7 +1370,10 @@ export const visitSupabaseRepository = {
       internal_notes: input.internalNotes ?? null,
       employee_notes: input.employeeNotes ?? null,
       client_visible_notes: input.clientVisibleNotes ?? null,
-      portal_release_enabled: input.portalReleaseEnabled ?? false,
+      portal_release_enabled: !input.saveAsDraft && (input.portalReleaseEnabled ?? false),
+      employee_portal_visible: Boolean(input.employeeId) && !input.saveAsDraft,
+      planning_status: input.saveAsDraft ? 'draft' : existing.data.planningStatus === 'draft' ? 'scheduled' : existing.data.planningStatus,
+      portal_status: input.saveAsDraft || !input.portalReleaseEnabled ? 'hidden' : existing.data.portalStatus === 'hidden' ? 'scheduled' : existing.data.portalStatus,
       budget_amount_cents: input.budgetAmountCents ?? null,
       subject_key: input.subjectKey ?? null,
       assignment_type_key: input.assignmentTypeKey ?? null,
@@ -1299,196 +1388,187 @@ export const visitSupabaseRepository = {
       updated_by: actorProfileId ?? null,
     };
 
-    if (tasksChanged) {
-      const { error: deleteTaskError } = await fromUnknownTable(
-        supabase,
-        'assist_visit_tasks',
-      )
-        .delete()
-        .eq('tenant_id', tenantId)
-        .eq('visit_id', visitId);
-      if (deleteTaskError) {
-        return { ok: false, error: toGermanSupabaseError(deleteTaskError) };
-      }
-
-      if (taskTitles.length > 0) {
-        const { error: insertTaskError } = await fromUnknownTable(
-          supabase,
-          'assist_visit_tasks',
-        ).insert(
-          taskTitles.map((title, index) => ({
-            tenant_id: tenantId,
-            visit_id: visitId,
-            title,
-            status: 'open',
-            is_required: true,
-            sort_order: index,
-          })),
-        );
-        if (insertTaskError) {
-          if (existing.data.tasks.length > 0) {
-            await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
-              existing.data.tasks.map((task, index) => ({
-                tenant_id: tenantId,
-                visit_id: visitId,
-                title: task.title,
-                status: task.status,
-                is_required: task.isRequired,
-                not_done_reason: task.notDoneReason,
-                sort_order: index,
-              })),
-            );
-          }
-          return { ok: false, error: toGermanSupabaseError(insertTaskError) };
-        }
-      }
-    }
-
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: saved, error } = await fromUnknownTable(supabase, 'assist_visits')
       .update(patch)
       .eq('tenant_id', tenantId)
-      .eq('id', visitId);
+      .eq('id', visitId)
+      .select('id')
+      .maybeSingle();
 
-    if (error) {
+    if (error || !saved) {
+      return { ok: false, error: error ? toGermanSupabaseError(error) : 'Einsatz konnte nicht geändert werden. Bitte Zugriff prüfen.' };
+    }
+
+    try {
+
       if (tasksChanged) {
-        await fromUnknownTable(supabase, 'assist_visit_tasks')
+        const { error: deleteTaskError } = await fromUnknownTable(
+          supabase,
+          'assist_visit_tasks',
+        )
           .delete()
           .eq('tenant_id', tenantId)
           .eq('visit_id', visitId);
-        if (existing.data.tasks.length > 0) {
-          await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
-            existing.data.tasks.map((task, index) => ({
+        if (deleteTaskError) {
+          return visitPlanningFollowUpFailure(visitId, toGermanSupabaseError(deleteTaskError));
+        }
+
+        if (taskTitles.length > 0) {
+          const { error: insertTaskError } = await fromUnknownTable(
+            supabase,
+            'assist_visit_tasks',
+          ).insert(
+            taskTitles.map((title, index) => ({
               tenant_id: tenantId,
               visit_id: visitId,
-              title: task.title,
-              status: task.status,
-              is_required: task.isRequired,
-              not_done_reason: task.notDoneReason,
+              title,
+              status: 'open',
+              is_required: true,
               sort_order: index,
             })),
           );
+          if (insertTaskError) {
+            if (existing.data.tasks.length > 0) {
+              await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
+                existing.data.tasks.map((task, index) => ({
+                  id: task.id,
+                  tenant_id: tenantId,
+                  visit_id: visitId,
+                  title: task.title,
+                  status: task.status,
+                  is_required: task.isRequired,
+                  not_done_reason: task.notDoneReason,
+                  sort_order: index,
+                })),
+              );
+            }
+            return visitPlanningFollowUpFailure(visitId, toGermanSupabaseError(insertTaskError));
+          }
         }
       }
-      return { ok: false, error: toGermanSupabaseError(error) };
-    }
 
-    const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
-      visitId,
-      tenantId,
-      clientId: input.clientId,
-      employeeId: input.employeeId,
-      assignmentDate: input.assignmentDate,
-      plannedStartAt: input.plannedStartAt,
-      plannedEndAt: input.plannedEndAt,
-      title: input.title,
-      description: input.description ?? null,
-      addressSnapshot: input.addressSnapshot ?? null,
-      internalNotes: input.internalNotes ?? null,
-      clientVisibleNotes: input.clientVisibleNotes ?? null,
-      canonicalStatus: assignmentStatusToRemote(existing.data.assignmentStatus),
-      saveAsDraft: input.saveAsDraft ?? false,
-      createdBy: actorProfileId ?? null,
-    });
-    if (!legacySync.ok) return legacySync;
-
-    if (taskTitles.length > 0) {
-      const taskMirror = await syncLegacyAssignmentTasksFromVisit(
-        supabase,
-        tenantId,
+      const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
         visitId,
-        taskTitles,
-      );
-      if (!taskMirror.ok) return taskMirror;
-    }
-
-    // The budget card must be a projection of the current assignment plan.
-    // When date, duration, client or funding changes, release the old plan and
-    // reserve the newly calculated amount immediately. This prevents stale
-    // "Einsätze geplant" values after editing an appointment.
-    if (budgetPlanChanged) {
-      const released = await releaseAssignmentBudgetReservation(
         tenantId,
-        visitId,
-        actorProfileId,
-        'Einsatzplanung geändert',
-      );
-      if (!released.ok) return released;
-
-      if (
-        !input.saveAsDraft
-        && input.budgetAllocation
-        && input.budgetAllocation.allocationProposal.some(
-          (line) =>
-            line.amountCents > 0
-            && line.budgetAccountId
-            && line.catalogKey !== 'kulanz'
-            && line.catalogKey !== 'ungeklaert',
-        )
-      ) {
-        const persisted = await persistAssignmentBudgetAllocations({
-          tenantId,
-          assignmentId: visitId,
-          clientId: input.clientId,
-          allocation: input.budgetAllocation,
-          manualOverride: input.budgetManualOverride ?? null,
-          actorProfileId,
-        });
-        if (!persisted.ok) return persisted;
-
-        const reserved = await reserveAssignmentBudget({
-          tenantId,
-          clientId: input.clientId,
-          visitId,
-          allocation: input.budgetAllocation,
-          assignmentDate: input.assignmentDate,
-          createdBy: actorProfileId,
-        });
-        if (!reserved.ok) return reserved;
-      } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
-        const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
-        const reserved = await reserveForAssignment({
-          tenantId,
-          clientId: input.clientId,
-          visitId,
-          amountCents: input.budgetAmountCents,
-          catalogKey: input.billingBudgetSourceKey,
-          assignmentDate: input.assignmentDate,
-          createdBy: actorProfileId,
-        });
-        if (!reserved.ok) return reserved;
-      }
-    }
-
-    syncCalendarEventAsync(
-      buildCalendarEventFromVisitDetail({
-        tenantId,
-        id: visitId,
-        title: input.title.trim(),
-        plannedStartAt: input.plannedStartAt,
-        plannedEndAt: input.plannedEndAt,
         clientId: input.clientId,
         employeeId: input.employeeId,
-        clientName: existing.data.clientName,
-        employeeName: existing.data.employeeName,
-        serviceName: input.serviceName,
-        canonicalStatus: existing.data.assignmentStatus,
-        portalReleaseEnabled: input.portalReleaseEnabled ?? false,
-        employeePortalVisible: existing.data.employeePortalVisible,
-      }),
-    );
+        assignmentDate: input.assignmentDate,
+        plannedStartAt: input.plannedStartAt,
+        plannedEndAt: input.plannedEndAt,
+        title: input.title,
+        description: input.description ?? null,
+        addressSnapshot: input.addressSnapshot ?? null,
+        internalNotes: input.internalNotes ?? null,
+        clientVisibleNotes: input.clientVisibleNotes ?? null,
+        canonicalStatus: assignmentStatusToRemote(existing.data.assignmentStatus),
+        saveAsDraft: input.saveAsDraft ?? false,
+        createdBy: actorProfileId ?? null,
+      });
+      if (!legacySync.ok) return visitPlanningFollowUpFailure(visitId, legacySync.error);
 
-    await writeAuditLog(
-      tenantId,
-      visitId,
-      'update',
-      `Einsatz „${input.title.trim()}“ aktualisiert`,
-      actorProfileId,
-    );
+      if (taskTitles.length > 0) {
+        const taskMirror = await syncLegacyAssignmentTasksFromVisit(
+          supabase,
+          tenantId,
+          visitId,
+          taskTitles,
+        );
+        if (!taskMirror.ok) return visitPlanningFollowUpFailure(visitId, taskMirror.error);
+      }
 
-    const refreshed = await this.getById(tenantId, visitId);
-    if (!refreshed.ok) return refreshed;
-    if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
-    return { ok: true, data: refreshed.data };
+      // The budget card must be a projection of the current assignment plan.
+      // When date, duration, client or funding changes, release the old plan and
+      // reserve the newly calculated amount immediately. This prevents stale
+      // "Einsätze geplant" values after editing an appointment.
+      if (budgetPlanChanged) {
+        const released = await releaseAssignmentBudgetReservation(
+          tenantId,
+          visitId,
+          actorProfileId,
+          'Einsatzplanung geändert',
+        );
+        if (!released.ok) return visitPlanningFollowUpFailure(visitId, released.error);
+
+        if (
+          !input.saveAsDraft
+          && input.budgetAllocation
+          && input.budgetAllocation.allocationProposal.some(
+            (line) =>
+              line.amountCents > 0
+              && line.budgetAccountId
+              && line.catalogKey !== 'kulanz'
+              && line.catalogKey !== 'ungeklaert',
+          )
+        ) {
+          const persisted = await persistAssignmentBudgetAllocations({
+            tenantId,
+            assignmentId: visitId,
+            clientId: input.clientId,
+            allocation: input.budgetAllocation,
+            manualOverride: input.budgetManualOverride ?? null,
+            actorProfileId,
+          });
+          if (!persisted.ok) return visitPlanningFollowUpFailure(visitId, persisted.error);
+
+          const reserved = await reserveAssignmentBudget({
+            tenantId,
+            clientId: input.clientId,
+            visitId,
+            allocation: input.budgetAllocation,
+            assignmentDate: input.assignmentDate,
+            createdBy: actorProfileId,
+          });
+          if (!reserved.ok) return visitPlanningFollowUpFailure(visitId, reserved.error);
+        } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
+          const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
+          const reserved = await reserveForAssignment({
+            tenantId,
+            clientId: input.clientId,
+            visitId,
+            amountCents: input.budgetAmountCents,
+            catalogKey: input.billingBudgetSourceKey,
+            assignmentDate: input.assignmentDate,
+            createdBy: actorProfileId,
+          });
+          if (!reserved.ok) return visitPlanningFollowUpFailure(visitId, reserved.error);
+        }
+      }
+
+      const calendarSync = await syncCalendarEvent(
+        buildCalendarEventFromVisitDetail({
+          tenantId,
+          id: visitId,
+          title: input.title.trim(),
+          plannedStartAt: input.plannedStartAt,
+          plannedEndAt: input.plannedEndAt,
+          clientId: input.clientId,
+          employeeId: input.employeeId,
+          clientName: existing.data.clientName,
+          employeeName: existing.data.employeeName,
+          serviceName: input.serviceName,
+          canonicalStatus: existing.data.assignmentStatus,
+          portalReleaseEnabled: !input.saveAsDraft && (input.portalReleaseEnabled ?? false),
+          employeePortalVisible: Boolean(input.employeeId) && !input.saveAsDraft,
+        }),
+      );
+
+      if (!calendarSync.ok) return visitPlanningFollowUpFailure(visitId, calendarSync.error);
+
+      await writeAuditLog(
+        tenantId,
+        visitId,
+        'update',
+        `Einsatz „${input.title.trim()}“ aktualisiert`,
+        actorProfileId,
+      );
+
+      const refreshed = await this.getById(tenantId, visitId);
+      if (!refreshed.ok) return visitPlanningFollowUpFailure(visitId, refreshed.error);
+      if (!refreshed.data) return visitPlanningFollowUpFailure(visitId, 'Einsatz konnte nach dem Speichern nicht geladen werden.');
+      return { ok: true, data: refreshed.data };
+    } catch (cause) {
+      return visitPlanningFollowUpFailure(visitId, cause);
+    }
   },
 
   async listSeriesOccurrences(

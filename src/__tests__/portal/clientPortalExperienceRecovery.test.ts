@@ -17,13 +17,15 @@ describe('client portal experience recovery', () => {
     expect(route).toContain('hideHeaderOnPhone');
     expect(route).not.toContain('PortalHomeScreen');
     expect(overview).toContain('if (!routeSection)');
+    const sectionBranch = overview.indexOf("if (routeModule === 'assist'");
+    expect(sectionBranch).toBeGreaterThan(0);
     expect(overview.indexOf('if (!routeSection)')).toBeLessThan(
-      overview.indexOf("if (context.primaryModule === 'assist')"),
+      sectionBranch,
     );
     expect(
       overview.slice(
         overview.indexOf('if (!routeSection)'),
-        overview.indexOf("if (context.primaryModule === 'assist')"),
+        sectionBranch,
       ),
     ).toContain('<AssistPortalOverview');
   });

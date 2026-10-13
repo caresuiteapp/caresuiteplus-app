@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from 'react';
-import {BookOpen,CalendarDays,Check,ChevronDown,Compass,Expand,FileCheck2,Layers3,MessageCircle,Monitor,Route,Search,ShieldCheck,Smartphone,Users,Wallet} from 'lucide-react';
+import {BookOpen,CalendarDays,Check,ChevronDown,Compass,Expand,FileCheck2,Layers3,MessageCircle,Monitor,Route,Search,Smartphone,Users} from 'lucide-react';
 import roleChapters from './content/role.json';
 import processChapters from './content/process.json';
 import guide from './content/guide.json';

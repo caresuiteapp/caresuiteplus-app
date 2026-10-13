@@ -10,6 +10,8 @@ import { Platform } from 'react-native';
 import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
+const IDB_OPEN_TIMEOUT_MS = 3_000;
+const IDB_DELETE_TIMEOUT_MS = 2_000;
 const NATIVE_INDEX_KEY = 'caresuite.offline.native-index.v1';
 const NATIVE_RECORD_PREFIX = 'caresuite.offline.record.v1';
 let nativeIndexWriteQueue = Promise.resolve();
@@ -150,25 +152,39 @@ function openDbInternal(): Promise<IDBDatabase | null> {
   }
 
   return new Promise((resolve) => {
+    const epoch = cacheEpoch;
+    let settled = false;
+    const finish = (db: IDBDatabase | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(db);
+    };
+    const timer = setTimeout(() => finish(null), IDB_OPEN_TIMEOUT_MS);
     let request: IDBOpenDBRequest;
     try {
       request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
     } catch (error) {
       console.warn('[CareSuite offline] IndexedDB open threw:', mapOpenError(error));
-      resolve(null);
+      finish(null);
       return;
     }
 
     request.onerror = () => {
       console.warn('[CareSuite offline] IndexedDB open failed:', mapOpenError(request.error));
-      resolve(null);
+      finish(null);
     };
 
     request.onblocked = () => {
       console.warn('[CareSuite offline] IndexedDB open blocked by another tab');
+      finish(null);
     };
 
     request.onupgradeneeded = (event) => {
+      if (settled) {
+        (event.target as IDBOpenDBRequest).transaction?.abort();
+        return;
+      }
       const db = (event.target as IDBOpenDBRequest).result;
       for (const storeName of OFFLINE_STORE_NAMES) {
         if (!db.objectStoreNames.contains(storeName)) {
@@ -178,7 +194,17 @@ function openDbInternal(): Promise<IDBDatabase | null> {
     };
 
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      if (settled || epoch !== cacheEpoch) {
+        db.close();
+        finish(null);
+        return;
+      }
+      db.onversionchange = () => {
+        db.close();
+        if (epoch === cacheEpoch) resetOfflineDbCacheForTests();
+      };
+      finish(db);
     };
   });
 }
@@ -186,7 +212,11 @@ function openDbInternal(): Promise<IDBDatabase | null> {
 /** Opens (or reuses) the offline database. Returns null when IDB is unavailable. */
 export async function openOfflineDb(): Promise<IDBDatabase | null> {
   if (!dbPromise) {
-    dbPromise = openDbInternal();
+    const opening = openDbInternal();
+    dbPromise = opening;
+    void opening.then((db) => {
+      if (!db && dbPromise === opening) dbPromise = null;
+    });
   }
   return dbPromise;
 }
@@ -355,6 +385,7 @@ export async function getSyncMeta(key = 'default'): Promise<SyncMetaRecord | nul
 }
 
 export async function clearOfflineDb(): Promise<boolean> {
+  const previousDb = dbPromise;
   cacheEpoch += 1;
   nativeHotCache.clear();
   nativeReads.clear();
@@ -377,22 +408,35 @@ export async function clearOfflineDb(): Promise<boolean> {
 
   if (!isIndexedDbSupported()) return false;
 
+  // Our own open connection otherwise blocks deleteDatabase forever. Other
+  // current CareSuite tabs close theirs through the versionchange handler.
+  try { (await previousDb)?.close(); } catch { /* Continue with best-effort cleanup. */ }
+
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (success: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(success);
+    };
+    const timer = setTimeout(() => finish(false), IDB_DELETE_TIMEOUT_MS);
     try {
       const request = indexedDB.deleteDatabase(OFFLINE_DB_NAME);
       request.onerror = () => {
         console.warn('[CareSuite offline] clearOfflineDb failed:', mapOpenError(request.error));
-        resolve(false);
+        finish(false);
       };
       request.onblocked = () => {
         console.warn('[CareSuite offline] clearOfflineDb blocked');
+        finish(false);
       };
       request.onsuccess = () => {
-        resolve(true);
+        finish(true);
       };
     } catch (error) {
       console.warn('[CareSuite offline] clearOfflineDb threw:', mapOpenError(error));
-      resolve(false);
+      finish(false);
     }
   });
 }

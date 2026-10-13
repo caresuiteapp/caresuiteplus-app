@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { PortalDeviceSettingsCard } from '@/components/auth/PortalDeviceSettingsCard';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -37,7 +38,7 @@ export function EmployeeProfileScreen() {
   const { colors } = useLegacyTheme();
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
-  const [activeTab, setActiveTab] = useState<PortalEmployeeProfileTabKey>('overview');
+  const [activeTab, setActiveTab] = usePageTab<PortalEmployeeProfileTabKey>('EmployeeProfileScreen.activeTab', 'overview');
 
   const { profile, loading: profileLoading, error: profileError, refresh: refreshProfile, missingEmployeeLink } =
     useEmployeePortalProfile();
@@ -113,7 +114,7 @@ export function EmployeeProfileScreen() {
     );
   }
 
-  if (!profile || !personnelView) {
+  if (!profile) {
     return (
       <PortalTabScreen title="Profil" hideHeaderOnPhone scroll={false}>
         <EmptyState
@@ -142,15 +143,18 @@ export function EmployeeProfileScreen() {
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />
         </View>
 
-         <SegmentedTabs
+        {personnelView ? <SegmentedTabs
            tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
            activeKey={activeTab}
            onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
            layout={tabLayout}
            rows={isWide ? 2 : undefined}
-         />
+         /> : null}
 
-        <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
+        {personnelView ? <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
+          : personnelError ? <ErrorState title="Weitere Profildaten nicht verfügbar"
+            message="Ihre zusätzlichen Personalangaben konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut."
+            onRetry={refreshPersonnel} /> : <LoadingState message="Weitere Profildaten werden geladen…" />}
       </ScrollView>
     </PortalTabScreen>
   );

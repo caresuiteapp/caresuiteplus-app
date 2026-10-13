@@ -1,3 +1,4 @@
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
@@ -60,6 +61,7 @@ export function WoundDocumentationListScreen() {
 
   const header = (
     <View style={styles.header}>
+      <DocumentRecommendations module="pflege" workflow="wound" compact />
       <WoundDocumentationListHero
         items={items}
         roleKey={roleKey}

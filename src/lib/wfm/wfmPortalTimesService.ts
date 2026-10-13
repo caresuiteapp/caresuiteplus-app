@@ -5,7 +5,7 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
 import { resolveEmployeeIdForUser } from './wfmWorkSessionRepository';
@@ -187,18 +187,13 @@ export async function listEmployeeVisitTimes(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data: employeeVisits, error: visitsError } = await fromUnknownTable(
-    supabase,
-    'assist_visits',
-  )
-    .select('id, title, planned_start_at, planned_end_at, clients(first_name, last_name)')
-    .eq('tenant_id', tenantId)
-    .eq('employee_id', employeeId);
+  const { data: employeeVisits, error: visitsError } = await readAllPortalTimeRows((from, to) =>
+    fromUnknownTable(supabase, 'assist_visits')
+      .select('id, title, planned_start_at, planned_end_at, clients(first_name, last_name)')
+      .eq('tenant_id', tenantId).eq('employee_id', employeeId)
+      .order('id', { ascending: true }).range(from, to));
 
   if (visitsError) {
-    if (isSupabaseMissingTableError(visitsError)) {
-      return { ok: true, data: { visitTimes: [], visitSummaries: [], drivingLogs: [] } };
-    }
     return { ok: false, error: toGermanSupabaseError(visitsError) };
   }
 
@@ -221,26 +216,16 @@ export async function listEmployeeVisitTimes(
     });
   }
 
-  if (employeeVisitIds.length === 0) {
-    return { ok: true, data: { visitTimes: [], visitSummaries: [], drivingLogs: [] } };
-  }
-
-  const { data: timeEvents, error: timeError } = await fromUnknownTable(
-    supabase,
-    ASSIST_EXECUTION_TABLES.timeEvents,
-  )
-    .select('id, visit_id, event_type, occurred_at, duration_seconds')
-    .eq('tenant_id', tenantId)
-    .in('visit_id', employeeVisitIds)
-    .gte('occurred_at', fromIso)
-    .order('occurred_at', { ascending: false })
-    .limit(500);
-
-  if (timeError) {
-    if (isSupabaseMissingTableError(timeError)) {
-      return { ok: true, data: { visitTimes: [], visitSummaries: [], drivingLogs: [] } };
-    }
-    return { ok: false, error: toGermanSupabaseError(timeError) };
+  const timeEvents: Record<string, unknown>[] = [];
+  // Keep PostgREST URLs bounded even for employees with years of visits.
+  for (let offset = 0; offset < employeeVisitIds.length; offset += 100) {
+    const ids = employeeVisitIds.slice(offset, offset + 100);
+    const result = await readAllPortalTimeRows((from, to) => fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.timeEvents)
+      .select('id, visit_id, event_type, occurred_at, duration_seconds')
+      .eq('tenant_id', tenantId).in('visit_id', ids).gte('occurred_at', fromIso)
+      .order('occurred_at', { ascending: false }).order('id', { ascending: true }).range(from, to));
+    if (result.error) return { ok: false, error: toGermanSupabaseError(result.error) };
+    timeEvents.push(...result.data);
   }
 
   const rawEvents = (timeEvents ?? []) as RawTimeEvent[];
@@ -257,22 +242,11 @@ export async function listEmployeeVisitTimes(
     durationSeconds: null,
   }));
 
-  const { data: drivingData, error: driveError } = await fromUnknownTable(
-    supabase,
-    ASSIST_EXECUTION_TABLES.drivingLog,
-  )
-    .select(
-      'id, visit_id, purpose, started_at, ended_at, distance_km, start_address, end_address, status',
-    )
-    .eq('tenant_id', tenantId)
-    .eq('employee_id', employeeId)
-    .gte('started_at', fromIso)
-    .order('started_at', { ascending: false })
-    .limit(100);
-
-  if (driveError && !isSupabaseMissingTableError(driveError)) {
-    return { ok: false, error: toGermanSupabaseError(driveError) };
-  }
+  const { data: drivingData, error: driveError } = await readAllPortalTimeRows((from, to) => fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.drivingLog)
+    .select('id, visit_id, purpose, started_at, ended_at, distance_km, start_address, end_address, status')
+    .eq('tenant_id', tenantId).eq('employee_id', employeeId).gte('started_at', fromIso)
+    .order('started_at', { ascending: false }).order('id', { ascending: true }).range(from, to));
+  if (driveError) return { ok: false, error: toGermanSupabaseError(driveError) };
 
   const drivingLogs: WfmDrivingLogRow[] = (drivingData ?? []).map((row) => {
     const r = row as {
@@ -300,4 +274,18 @@ export async function listEmployeeVisitTimes(
   });
 
   return { ok: true, data: { visitTimes, visitSummaries, drivingLogs } };
+}
+
+
+type PortalTimeReadError = { message: string; code?: string; details?: string; hint?: string };
+async function readAllPortalTimeRows(fetchPage: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: PortalTimeReadError | null }>) {
+  const data: Record<string, unknown>[] = [];
+  const size = 500;
+  for (let from = 0; ; from += size) {
+    const result = await fetchPage(from, from + size - 1);
+    if (result.error) return { data: [], error: result.error };
+    const page = (result.data ?? []) as Record<string, unknown>[];
+    data.push(...page);
+    if (page.length < size) return { data, error: null };
+  }
 }

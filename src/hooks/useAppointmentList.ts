@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { WorkflowStatus } from '@/types';
 import type { AppointmentListItem } from '@/types/modules/appointmentList';
 import type { ListSortOption } from '@/types/list';
@@ -27,6 +27,11 @@ const PAGE_SIZE = 8;
 export function useAppointmentList() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey]);
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; if (successTimer.current) clearTimeout(successTimer.current); }; }, []);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const query = useAsyncQuery(
@@ -34,8 +39,8 @@ export function useAppointmentList() {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       return fetchAppointmentList(tenantId, profile?.roleKey);
     },
-    [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+    [tenantId, profile?.id, profile?.roleKey],
+  { enabled: !!tenantId, queryKey: scope },
   );
 
   const allItems = useMemo(() => query.data ?? [], [query.data]);
@@ -49,11 +54,17 @@ export function useAppointmentList() {
     defaultSortKey: 'date_asc',
   });
 
+  const resetListFilters = list.resetFilters;
+  useEffect(() => { if (successTimer.current) clearTimeout(successTimer.current); setShowSuccess(false); resetListFilters(); }, [scope, resetListFilters]);
+  const refreshQuery = query.refreshWithResult;
   const refresh = useCallback(async () => {
-    await query.refresh();
+    if (successTimer.current) clearTimeout(successTimer.current);
+    setShowSuccess(false);
+    const succeeded = await refreshQuery();
+    if (!succeeded || !mounted.current || scopeRef.current !== scope) return;
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+    successTimer.current = setTimeout(() => setShowSuccess(false), 2000);
+  }, [refreshQuery, scope]);
 
   return useMemo(
     () => ({
@@ -63,6 +74,7 @@ export function useAppointmentList() {
       filteredCount: list.filtered.length,
       loading: query.loading,
       error: query.error,
+      refreshError: query.refreshError,
       refreshing: query.refreshing,
       showSuccess,
       search: list.search,

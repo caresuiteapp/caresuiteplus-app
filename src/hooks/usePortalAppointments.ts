@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import type { PortalAppointmentItem } from '@/lib/portal';
 import { loadPortalAppointmentsWithCache } from '@/lib/offline/assignmentCacheService';
@@ -24,10 +24,13 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     roleKey,
     isLinkedReady,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
   } = usePortalActor();
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (successTimer.current) clearTimeout(successTimer.current); }, []);
 
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
@@ -104,12 +107,16 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     return isEmployeePortal ? filterEmployeePortalAppointments(raw) : raw;
   }, [query.data, isEmployeePortal]);
 
-  const refreshQuery = query.refresh;
+  const refreshQuery = query.refreshWithResult;
   const refresh = useCallback(async () => {
-    await refreshQuery();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
-  }, [refreshQuery]);
+    setShowSuccess(false);
+    if (successTimer.current) clearTimeout(successTimer.current);
+    const succeeded = await refreshQuery();
+    if (!isOffline && succeeded) {
+      setShowSuccess(true);
+      successTimer.current = setTimeout(() => setShowSuccess(false), 2000);
+    }
+  }, [refreshQuery, isOffline]);
 
   const missingClientLink =
     authReady &&
@@ -119,15 +126,19 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     !scopedClientId;
 
   const portalRoleMismatch = authReady && Boolean(roleKey) && !roleMatchesAudience;
+  const missingEmployeeLink = authReady && !isResolvingEmployeeLink && audience === 'employee' && roleMatchesAudience && !scopedEmployeeId;
 
   return {
     items,
     loading:
       !authReady ||
       (audience === 'client' && isResolvingClientLink) ||
+      (audience === 'employee' && Boolean(isResolvingEmployeeLink)) ||
       (queryEnabled && query.loading && items.length === 0),
     error: portalRoleMismatch
       ? 'Diese Sitzung gehört zu einem anderen Portal. Bitte öffnen Sie den für Ihre Anmeldung vorgesehenen Bereich.'
+      : missingEmployeeLink
+      ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : missingClientLink
       ? 'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : query.error
@@ -137,6 +148,9 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
           )
         : null,
     refreshing: query.refreshing,
+    refreshError: query.refreshError
+      ? toPortalUserFacingError(query.refreshError, 'Die Aktualisierung ist derzeit nicht möglich. Der bisherige Stand bleibt sichtbar.')
+      : null,
     showSuccess,
     refresh,
     isEmpty: queryEnabled && !query.loading && !query.error && items.length === 0,

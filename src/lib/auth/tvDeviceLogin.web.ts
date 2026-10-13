@@ -24,7 +24,7 @@ export type TvLoginSession = {
   supabaseRefreshToken: string;
   portalSession?: PortalSessionRecord;
 };
-export const TV_LOGIN_ROLES: ReadonlyArray<{ role: TvLoginRole; title: string; description: string; loginPath: string }> = [
+export const TV_LOGIN_ROLES: readonly { role: TvLoginRole; title: string; description: string; loginPath: string }[] = [
   { role: 'administration', title: 'Verwaltung', description: 'Organisation, Planung und Überblick', loginPath: '/auth/business-login' },
   { role: 'employee', title: 'Mitarbeitende', description: 'Einsätze, Zeiten und Dokumentation', loginPath: '/auth/employee-login' },
   { role: 'client', title: 'Klient:innen', description: 'Termine, Dokumente und Nachrichten', loginPath: '/auth/client-login' },

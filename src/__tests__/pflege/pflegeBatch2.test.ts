@@ -84,9 +84,9 @@ describe('Pflege Sprint Batch 2 (Sprint 76)', () => {
     expect(readSrc('src/lib/pflege/medicationDetailService.ts')).not.toContain('getDemoMedicationDetail');
   });
 
-  it('WoundDocumentationDetailHero ist extern markiert und live-gebunden', async () => {
+  it('WoundDocumentationDetailHero bleibt live-gebunden ohne Bodymap-Werbung', async () => {
     const hero = readSrc('src/components/pflege/WoundDocumentationDetailHero.tsx');
-    expect(hero).toContain('BodyMap extern');
+    expect(hero).not.toMatch(/BodyMap|extern/i);
     expect(readSrc('app/pflege/wunddokumentation/[id]/index.tsx')).toContain(
       'WoundDocumentationDetailScreen',
     );

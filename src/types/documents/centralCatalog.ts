@@ -37,6 +37,8 @@ export type CentralDocumentContext = {
   representative: Record<string, string>;
   payor: Record<string, string>;
   employee: Record<string, string>;
+  procedure?: Record<string, string>;
+  sourceRows?: string[][];
   sourceFetchedAt: string;
 };
 export type CentralDocumentSnapshot = {
@@ -45,6 +47,8 @@ export type CentralDocumentSnapshot = {
   values: Record<string, string>;
   fieldOrigins: Record<string, 'stored' | 'manual' | 'default' | 'empty'>;
   tableRows: string[][];
+  tableOrigin?: 'stored' | 'manual' | 'empty';
+  recipientSource?: 'subject' | 'company' | 'representative' | 'payor' | 'manual';
   additionalText: string;
   sectionTexts: Record<string, string>;
   createdAt: string;

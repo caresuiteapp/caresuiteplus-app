@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarViewSwitcher } from './CalendarViewSwitcher';
 
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   topRowCompact: { flexWrap: 'wrap' },
   navigationBlock: { gap: 5 },
   navButtons: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navigationHint: { color: '#8EABC4', fontSize: 11, fontWeight: '700' },
+  navigationHint: { color: '#8EABC4', fontSize: Platform.OS === 'web' ? 11 : 12, fontWeight: '700' },
   control: {
     minWidth: 44,
     height: 44,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   periodBlockCompact: { minWidth: 130, alignItems: 'flex-start' },
   periodEyebrow: {
     color: '#74DCFF',
-    fontSize: 10,
+    fontSize: Platform.OS === 'web' ? 10 : 12,
     lineHeight: 13,
     fontWeight: '900',
     letterSpacing: 1.8,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   settingsIconText: { color: '#8BE8FF', fontSize: 18 },
   settingsLabel: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  settingsHint: { color: '#9AB6CC', fontSize: 10, marginTop: 2 },
+  settingsHint: { color: '#9AB6CC', fontSize: Platform.OS === 'web' ? 10 : 12, marginTop: 2 },
   settingsPlaceholder: { width: 176 },
   switcherRow: {
     flexDirection: 'row',
@@ -210,5 +210,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(118,204,255,0.16)',
   },
-  switcherLabel: { color: '#79DFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1.6 },
+  switcherLabel: { color: '#79DFFF', fontSize: Platform.OS === 'web' ? 10 : 12, fontWeight: '900', letterSpacing: 1.6 },
 });

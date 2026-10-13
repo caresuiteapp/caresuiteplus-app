@@ -18,6 +18,7 @@ import {
   type CanvasCoordinateSpace,
 } from '@/components/inputs/signatureCanvasCoords';
 import { exportSignatureCanvasPng } from '@/lib/signatures/normalizeSignatureCapture';
+import { exportNativeSignaturePng } from '@/lib/signatures/nativeSignaturePng';
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 import { resolveCareTypography } from '@/design/tokens/typography';
 import { useOrientation } from '@/hooks/useOrientation';
@@ -59,7 +60,7 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
             ? {
                 flex: 1,
                 height: undefined,
-                minHeight: FULLSCREEN_CANVAS_MIN_HEIGHT,
+                minHeight: 0,
                 alignSelf: 'stretch',
               }
             : null),
@@ -124,18 +125,6 @@ function resolveDimensions(
     };
   }
   return { width: COMPACT_WIDTH, height: COMPACT_HEIGHT };
-}
-
-function pointsToSvgDataUrl(strokes: Point[][], width: number, height: number): string {
-  const paths = strokes
-    .map((stroke) => {
-      if (stroke.length < 2) return '';
-      const d = stroke.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-      return `<path d="${d}" fill="none" stroke="#111" stroke-width="${STROKE_WIDTH_LARGE}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    })
-    .join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${paths}</svg>`;
-  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
 function pointsToPath(stroke: Point[]): string {
@@ -656,6 +645,9 @@ function NativeSignatureCanvas({
   const insets = useSafeAreaInsets();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const nativeSvgRef = useRef<Svg | null>(null);
   const nativeStrokesRef = useRef<Point[][]>([]);
   const nativeCurrentRef = useRef<Point[]>([]);
   const nativeFrameRef = useRef<number | null>(null);
@@ -765,10 +757,18 @@ function NativeSignatureCanvas({
     onClear?.();
   }, [onClear]);
 
-  const handleConfirm = useCallback(() => {
-    if (strokes.length === 0) return;
-    onConfirm(pointsToSvgDataUrl(strokes, dims.width, dims.height));
-  }, [dims.height, dims.width, onConfirm, strokes]);
+  const handleConfirm = useCallback(async () => {
+    if (strokes.length === 0 || disabled || exporting) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      onConfirm(await exportNativeSignaturePng(nativeSvgRef.current, dims.width, dims.height));
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Bitte die Unterschrift erneut bestätigen.');
+    } finally {
+      setExporting(false);
+    }
+  }, [disabled, exporting, dims.height, dims.width, onConfirm, strokes]);
 
   const allPoints = [...strokes, current];
   const hasStroke = strokes.length > 0;
@@ -782,6 +782,7 @@ function NativeSignatureCanvas({
         {...pan.panHandlers}
       >
         <Svg
+          ref={nativeSvgRef}
           width="100%"
           height="100%"
           viewBox={`0 0 ${dims.width} ${dims.height}`}
@@ -803,10 +804,11 @@ function NativeSignatureCanvas({
           )}
         </Svg>
       </View>
+      {exportError ? <Text accessibilityRole="alert">{exportError}</Text> : null}
       <SignatureActions
         actionLayout={actionLayout}
         styles={styles}
-        disabled={disabled}
+        disabled={disabled || exporting}
         hasStroke={hasStroke}
         onClear={handleClear}
         onCancel={onCancel}

@@ -1,6 +1,7 @@
 import type { AuthLoginType } from '@/lib/auth/auth.types';
 import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
 import type { RoleKey } from '@/types';
+import type { VerifiedPortalEmployeeLink } from './verifiedPortalEmployeeLink';
 
 const STORAGE_KEY = 'caresuite.portal.session.v1';
 
@@ -18,6 +19,8 @@ export type PortalSessionRecord = {
   /** Cached tenant label when direct tenants SELECT is blocked by RLS. */
   tenantName?: string | null;
   employeeId?: string | null;
+  /** Provenance of the last canonical server link, restricted to offline reads. */
+  employeeLinkVerification?: VerifiedPortalEmployeeLink | null;
   clientId?: string | null;
   relativeContactId?: string | null;
 };

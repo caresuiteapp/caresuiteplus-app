@@ -2,6 +2,17 @@
  * P0 — Validates whether a stored visit proof is complete enough for finalize/release.
  */
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
+import { canonicalJsonStringify } from '@/lib/assist/assistExecutionHashService';
+
+/** Generation time changes on every projection; signed content must not. */
+export function visitProofSnapshotsMatch(
+  stored: Record<string, unknown>,
+  current: Record<string, unknown>,
+): boolean {
+  const { generatedAt: _storedTime, ...storedContent } = stored;
+  const { generatedAt: _currentTime, ...currentContent } = current;
+  return canonicalJsonStringify(storedContent) === canonicalJsonStringify(currentContent);
+}
 
 export type VisitProofCompletenessOptions = {
   /** When true, signature_id must be set on the proof row. */

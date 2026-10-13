@@ -10,6 +10,7 @@ import {
   buildVisitRecurrenceJson,
 } from '@/lib/assist/visitTypes';
 import { parseVisitRecurrenceJson } from '@/lib/assist/visitRecurrenceExpansion';
+import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
 
 export type VisitEditFormData = VisitCreateWizardData & {
   assignmentStatus: AssignmentStatus;
@@ -21,20 +22,16 @@ export type VisitEditFormData = VisitCreateWizardData & {
   originalRecurrenceJson?: VisitRecurrenceJson;
 };
 
-function padTimePart(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
 function isoToLocalDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso.slice(0, 10);
-  return `${date.getFullYear()}-${padTimePart(date.getMonth() + 1)}-${padTimePart(date.getDate())}`;
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 
 function isoToLocalTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '09:00';
-  return `${padTimePart(date.getHours())}:${padTimePart(date.getMinutes())}`;
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
 }
 
 function readCatalogSnapshotString(
@@ -141,8 +138,7 @@ export function buildVisitUpdateInputFromEditForm(
     title: form.title,
     description: form.description || null,
     assignmentDate: form.assignmentDate,
-    plannedStartAt: new Date(`${form.assignmentDate}T${form.plannedStartTime}:00`).toISOString(),
-    plannedEndAt: new Date(`${form.assignmentDate}T${form.plannedEndTime}:00`).toISOString(),
+    ...buildPlannedTimestamps(form),
     addressSnapshot: form.addressSnapshot || null,
     locationNotes: form.locationNotes || null,
     tasks: taskTitles,

@@ -40,9 +40,9 @@ export async function fetchOfficeDashboard(
     }
 
     if (getServiceMode() === 'supabase') {
-      const tenantName = await resolveTenantDisplayName(tenantId);
-      await ensureTenantModuleSettingsLoaded(tenantId);
-      const [metricsResult, auditResult, timelineResult] = await Promise.all([
+      const [tenantName, , metricsResult, auditResult, timelineResult] = await Promise.all([
+        resolveTenantDisplayName(tenantId),
+        ensureTenantModuleSettingsLoaded(tenantId),
         officeDashboardSupabaseRepository.fetchMetrics(tenantId),
         officeAuditLogSupabaseRepository.list(tenantId, DASHBOARD_AUDIT_LIMIT),
         officeDashboardSupabaseRepository.fetchRecentTimelineEvents(tenantId, 12),

@@ -12,6 +12,13 @@ function fixture() {
   return {client:{rpc,auth:{admin}} as unknown as BusinessRecoveryAdmin,rpc,admin,verifier,fetcher:vi.fn().mockResolvedValue(new Response(JSON.stringify({id:'mail'}),{status:200}))};
 }
 describe('administration-only password recovery',()=>{
+  it('delivers the one-time token to the native app without creating a generic login session',async()=>{
+    const f=fixture();expect(await deliverBusinessRecovery(f.client,config,target.email,f.fetcher,'native')).toEqual({accepted:true});
+    const payload=JSON.parse(f.fetcher.mock.calls[0][1].body);
+    expect(payload.html).toContain('caresuiteplus:///auth/reset-password#token_hash=');
+    expect(payload.html).not.toContain('access_token=');
+    expect(f.admin.generateLink).toHaveBeenCalledWith({type:'recovery',email:target.email});
+  });
   it('generates a one-time recovery link only for a current eligible administration identity and sends a systemmail',async()=>{
     const f=fixture();expect(await deliverBusinessRecovery(f.client,config,target.email,f.fetcher)).toEqual({accepted:true});
     expect(f.admin.generateLink).toHaveBeenCalledWith({type:'recovery',email:target.email});

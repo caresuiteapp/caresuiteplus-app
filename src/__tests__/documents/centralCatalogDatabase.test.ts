@@ -13,6 +13,8 @@ let db: PGlite;
 const base = `
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
 CREATE SCHEMA auth; CREATE SCHEMA storage;
+CREATE TABLE storage.buckets(id text PRIMARY KEY,public boolean NOT NULL DEFAULT false);
+INSERT INTO storage.buckets(id,public) VALUES ('office-documents',false);
 CREATE FUNCTION public.current_tenant_id() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('app.tenant',true),'')::uuid $$;
 CREATE FUNCTION public.has_permission(p_permission_key text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT p_permission_key=ANY(string_to_array(current_setting('app.permissions',true),',')) $$;
 CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$ SELECT (string_to_array($1,'/'))[1:array_length(string_to_array($1,'/'),1)-1] $$;
@@ -21,6 +23,7 @@ CREATE TABLE public.profiles(id uuid PRIMARY KEY,tenant_id uuid);
 CREATE TABLE public.clients(id uuid PRIMARY KEY,tenant_id uuid);
 CREATE TABLE public.employees(id uuid PRIMARY KEY,tenant_id uuid);
 CREATE TABLE public.generated_documents(id uuid PRIMARY KEY,tenant_id uuid,title text,document_type text,status text,client_id uuid,employee_id uuid,template_version integer,document_number text,file_name text,generated_content_json jsonb,autofill_snapshot_json jsonb,pdf_path text,created_by uuid);
+ALTER TABLE public.generated_documents ADD CONSTRAINT generated_documents_document_type_check CHECK (document_type IN ('contract','invoice','leistungsnachweis','generic'));
 CREATE TABLE public.client_documents(id uuid DEFAULT gen_random_uuid() PRIMARY KEY,tenant_id uuid,client_id uuid,title text,file_name text,mime_type text,category text,storage_path text,status text,sensitivity text,uploaded_by uuid);
 CREATE TABLE public.employee_documents(id uuid DEFAULT gen_random_uuid() PRIMARY KEY,tenant_id uuid,employee_id uuid,title text,file_name text,category text,storage_path text,sensitive boolean,released_to_portal boolean DEFAULT false);
 CREATE TABLE storage.objects(bucket_id text,name text);
@@ -63,6 +66,8 @@ describe('central catalogue transactional database and RLS', () => {
     expect(record.rows[0].state).toBe('draft'); expect(record.rows[0].pdf_hash).toBe(HASH);
     const archive=await db.query<{client_id:string;status:string}>('SELECT * FROM public.client_documents WHERE id=$1',[record.rows[0].client_document_id]);
     expect(archive.rows[0].client_id).toBe(C1); expect(archive.rows[0].status).toBe('entwurf');
+    const namedFile = await db.query<{file_name:string}>('SELECT file_name FROM public.client_documents WHERE id=$1',[record.rows[0].client_document_id]);
+    expect(namedFile.rows[0].file_name).toContain(ID); expect(namedFile.rows[0].file_name).toContain('_v1_ENTWURF.pdf');
   });
   it('rejects foreign persons, forged definitions and invalid predecessor versions without partial archives', async () => {
     const invalid=makeSnapshot('client','88888888-8888-4888-8888-888888888888'); invalid.context.entityId=C2;

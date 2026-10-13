@@ -51,7 +51,7 @@ export function validateDocument(body: Record<string, unknown>) {
 }
 export function parseAnalysisResponse(response: Record<string, unknown>): Record<string, unknown> {
   if (response.status !== 'completed') throw new Error('Analyse unvollständig. Bitte Datei aufteilen oder erneut versuchen.');
-  const outputs = response.output as Array<{ content?: Array<{ type: string; text?: string }> }> | undefined;
+  const outputs = response.output as { content?: { type: string; text?: string }[] }[] | undefined;
   const contents = outputs?.flatMap((item) => item.content ?? []) ?? [];
   if (contents.some((item) => item.type === 'refusal')) throw new Error('Diese Datei konnte nicht ausgewertet werden. Bitte manuell erfassen.');
   const text = contents.filter((item) => item.type === 'output_text').map((item) => item.text ?? '').join('');

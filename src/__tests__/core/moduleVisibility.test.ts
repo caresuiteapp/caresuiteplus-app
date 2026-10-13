@@ -74,14 +74,14 @@ describe('moduleVisibilityService', () => {
     expect(state.isNavigable).toBe(true);
   });
 
-  it('beta stationaer ist sichtbar und navigierbar bei aktivem Mandant', () => {
+  it('stationaer bleibt auch bei altem aktivem Mandanteneintrag gesperrt', () => {
     activatePurchasedModule(TENANT, 'stationaer');
     const state = resolveModuleNavState('stationaer', { tenantId: TENANT, roleKey: ADMIN });
-    expect(state.effectiveStatus).toBe('beta');
-    expect(state.isVisible).toBe(true);
-    expect(state.isNavigable).toBe(true);
-    expect(isModuleScopeVisible('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(true);
-    expect(isModuleScopeNavigable('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(true);
+    expect(state.effectiveStatus).toBe('disabled');
+    expect(state.isVisible).toBe(false);
+    expect(state.isNavigable).toBe(false);
+    expect(isModuleScopeVisible('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(false);
+    expect(isModuleScopeNavigable('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(false);
   });
 
   it('disabled ti ist vollständig versteckt', () => {
@@ -108,7 +108,7 @@ describe('moduleVisibilityService', () => {
   it('Modul-Switcher zeigt nur aktive Mandanten-Module', () => {
     const items = getModuleSwitcherItems(TENANT, NURSE);
     expect(items.every((item) => item.isActive)).toBe(true);
-    expect(items.map((item) => item.productKey)).toEqual(['office', 'assist', 'pflege']);
+    expect(items.map((item) => item.productKey)).toEqual(['office', 'assist']);
     expect(items.find((item) => item.productKey === 'stationaer')).toBeUndefined();
   });
 
@@ -119,7 +119,7 @@ describe('moduleVisibilityService', () => {
     expect(keys).toContain('admin');
     expect(keys).toContain('office');
     expect(keys).toContain('assist');
-    expect(keys).toContain('pflege');
+    expect(keys).not.toContain('pflege');
     expect(keys).not.toContain('stationaer');
     expect(keys).not.toContain('beratung');
     expect(keys).not.toContain('akademie');
@@ -176,7 +176,7 @@ describe('checkModuleAccess — Direkt-Routen', () => {
     expect(decision.shouldRedirect).toBe(false);
   });
 
-  it('erlaubt beta beratung route bei aktivem Mandant', () => {
+  it('blockiert auch alte beta-Beratung-Freigaben', () => {
     seedTenantCenterModules({
       assistEnabled: true,
       pflegeEnabled: true,
@@ -185,7 +185,8 @@ describe('checkModuleAccess — Direkt-Routen', () => {
     });
     activatePurchasedModule(TENANT, 'beratung');
     const decision = checkModuleAccess('/beratung/cases', 'counselor', TENANT);
-    expect(decision.shouldRedirect).toBe(false);
+    expect(decision.shouldRedirect).toBe(true);
+    expect(decision.reason).toBe('module_disabled');
   });
 
   it('blockiert disabled ti direkt route', () => {

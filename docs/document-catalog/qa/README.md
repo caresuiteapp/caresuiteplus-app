@@ -1,3 +1,5 @@
+> Neueste Prüfung: [Integrationsstand 13.10.2026](../INTEGRATION_2026-10-13.md) und [Prüfprotokoll](integration-verification-2026-10-13.json). Frühere Abbildungen bleiben als Layoutreferenz erhalten.
+
 # PDF-Gestaltungsnachweise
 
 Diese Bilder zeigen die erste Seite der vier mit dem tatsächlichen neuen Renderer erzeugten Prüfdokumente. Es wurden erfundene Daten und Beispielkontakte verwendet. Alle 430 Einträge wurden zusätzlich gerendert. Die vier Bilder sind keine Beschränkung des Katalogumfangs und keine Web-Browserprüfung.

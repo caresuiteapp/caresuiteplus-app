@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ProductKey, TenantProduct } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { registerBusinessTenant } from '@/lib/auth/businessAuthService';
+import type { BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import { isFreePlatformEnabled, getFreePlatformModules } from '@/lib/billing/freePlatformService';
 import { activateFreeModuleForTenant, activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { canAccessPremiumFeature } from '@/lib/billing/productAccessService';
@@ -22,6 +24,13 @@ function readSrc(relativePath: string): string {
 }
 
 const TENANT = 'tenant-free-platform-test';
+const freeRegistration: BusinessRegistrationInput = {
+  companyName: 'Kostenlos Test UG', legalForm: 'UG', industry: 'Alltagsbegleitung',
+  street: 'Weg 1', zip: '12345', city: 'Berlin', phone: '012345', email: 'office@example.test',
+  contactFirstName: 'Anna', contactLastName: 'Test', contactRole: 'Geschäftsführung',
+  adminFirstName: 'Anna', adminLastName: 'Test', adminEmail: 'anna@example.test',
+  adminPassword: 'SyntheticPassword123!', selectedModules: [], termsAccepted: true,
+};
 
 function baseModules(overrides: Partial<Record<ProductKey, Partial<TenantProduct>>> = {}): TenantProduct[] {
   const keys: ProductKey[] = ['office', 'assist', 'pflege', 'stationaer', 'beratung', 'akademie'];
@@ -108,12 +117,10 @@ describe('Free Platform Strategy', () => {
     expect(hasModuleAccess('assist', DEMO_TENANT_ID)).toBe(true);
   });
 
-  it('BusinessRegisterScreen has no payment steps', () => {
-    const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen).not.toContain('trialOrPurchase');
-    expect(screen).not.toContain('Modul kaufen');
-    expect(screen).toContain('Kostenlos registrieren');
-    expect(screen).toContain('Module kostenlos aktivieren');
+  it('the actual free registration accepts no module choice and enables its released base access', async () => {
+    initializeModuleAccessStore(DEMO_TENANT_ID, baseModules().map(module => ({ ...module, tenantId: DEMO_TENANT_ID })));
+    const result = await registerBusinessTenant(freeRegistration);
+    expect(result.ok).toBe(true); expect(hasModuleAccess('office', DEMO_TENANT_ID)).toBe(true); expect(hasModuleAccess('assist', DEMO_TENANT_ID)).toBe(true);
   });
 
   it('PremiumPreparedNotice component exists', () => {
@@ -138,9 +145,11 @@ describe('Free Platform Strategy', () => {
     expect(card).not.toMatch(/Kaufen/i);
   });
 
-  it('Business registration has free platform messaging', () => {
-    const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen.toLowerCase()).toContain('kostenlos');
+  it('the actual registration keeps enabled access at zero cost even for older callers with a module choice', async () => {
+    initializeModuleAccessStore(DEMO_TENANT_ID, baseModules().map(module => ({ ...module, tenantId: DEMO_TENANT_ID })));
+    expect((await registerBusinessTenant({ ...freeRegistration, selectedModules: ['office'] })).ok).toBe(true);
+    const enabled = getEffectiveModuleAccess(DEMO_TENANT_ID).filter(module => module.isActive); expect(enabled.length).toBeGreaterThan(0);
+    for (const module of enabled) { expect(module.priceCents).toBe(0); expect(module.billingStatus).toBe('free_active'); }
   });
 
   it('demo tenant modules use free_active billing status', () => {

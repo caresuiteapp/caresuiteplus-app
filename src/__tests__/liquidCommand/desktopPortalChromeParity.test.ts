@@ -18,7 +18,7 @@ const premiumTheme = readFileSync(
 ).replace(/\r\n/g, '\n');
 
 describe('desktop and portal chrome parity', () => {
-  it('uses one labelled desktop rail for every productive module', () => {
+  it('preserves module identifiers with the shared start navigation and sign out', () => {
     expect(liquidModules.map((module) => module.key)).toEqual([
       'home',
       'office',
@@ -30,10 +30,9 @@ describe('desktop and portal chrome parity', () => {
       'robotics',
       'settings',
     ]);
-    expect(shell).toContain('<LiquidLogo compact />');
-    expect(shell).toContain('HEALTHOS DESKTOP');
-    expect(shell).toContain('styles.dockItemActive');
-    expect(shell).toContain('{module.label}');
+    expect(shell).toContain('accessibilityLabel="CareSuite HealthOS Startseite"');
+    expect(shell).toContain("router.push('/' as never)");
+    expect(shell).not.toContain('function ModuleDock(');
     expect(shell).toContain('Sicher abmelden');
   });
 
@@ -67,6 +66,8 @@ describe('desktop and portal chrome parity', () => {
 
   it('keeps compact navigation separate from desktop chrome', () => {
     expect(shell).toContain('if (layout.isDesktop || layout.isTablet)');
-    expect(shell).toContain('<OrbitModuleNavigation');
+    expect(shell).not.toContain('<OrbitModuleNavigation');
+    expect(shell).toContain('<CommandBar');
+    expect(shell).toContain('<WorkAreaNavigation');
   });
 });

@@ -105,11 +105,11 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
     expect(medService).not.toContain('service_role');
   });
 
-  it('MedicationListHero kennzeichnet Live-Daten und Wunddokumentation die externe Anbindung', () => {
+  it('MedicationListHero kennzeichnet Live-Daten ohne entfernte Bodymap-Werbung', () => {
     const medHero = readSrc('src/components/pflege/MedicationListHero.tsx');
     const woundHero = readSrc('src/components/pflege/WoundDocumentationListHero.tsx');
     expect(medHero).toContain('Live-Daten');
-    expect(woundHero).toMatch(/BodyMap|extern/i);
+    expect(woundHero).not.toMatch(/BodyMap|extern/i);
   });
 
   it('buildMedicationListKpis und buildWoundDocumentationListKpis liefern Kennzahlen', () => {

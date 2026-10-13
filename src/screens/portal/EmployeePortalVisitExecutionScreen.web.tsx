@@ -16,7 +16,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
@@ -144,6 +145,14 @@ function isWorkflowConfirmationPending(errorCode: unknown): boolean {
 }
 
 export function EmployeePortalVisitExecutionScreen() {
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { tenantId, employeeId } = usePortalActor();
+  const { portalSession, profile } = useAuth();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  return <EmployeePortalVisitExecutionContent key={JSON.stringify([tenantId, employeeId, portalSession?.accountId, profile?.id, id])} />;
+}
+
+function EmployeePortalVisitExecutionContent() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
@@ -972,10 +981,10 @@ export function EmployeePortalVisitExecutionScreen() {
         } else setLocalError(result.error ?? 'Anfahrt konnte nicht gestartet werden.');
         return;
       }
-      setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
+      setLocalSuccess('Anfahrt gespeichert. Die Standortverfolgung startet, sobald eine Position verfügbar ist.');
       if (portalTenantId && portalEmployeeId && visit) {
         try {
-          const logbook = await startVisitApproachLogbook({
+          const logbook = await withWorkflowTimeout(startVisitApproachLogbook({
             tenantId: portalTenantId,
             employeeId: portalEmployeeId,
             assignmentId: visit.assignmentId,
@@ -983,15 +992,15 @@ export function EmployeePortalVisitExecutionScreen() {
             clientName: visit.clientName,
             startAddress: null,
             transportMode: mobilityMode,
-          });
+          }), 10_000, 'Anfahrt-Fahrtenbuch');
           if (logbook.started) {
             setLocalSuccess('Anfahrt und digitales PKW-Fahrtenbuch wurden automatisch gestartet.');
           } else if (logbook.reason === 'non_car_selected') {
             setLocalSuccess('Anfahrt gestartet. Für diese Mobilität ist kein PKW-Fahrtenbucheintrag erforderlich.');
           } else if (logbook.reason === 'no_active_vehicle') {
-            setLocalWarning('Live-GPS läuft und bleibt gespeichert. Für die automatische Fahrtenbuchübernahme muss die Verwaltung diesem Mitarbeitendenkonto noch einen aktiven PKW zuordnen.');
+            setLocalWarning('Die Anfahrt ist gespeichert. Für die automatische Fahrtenbuchübernahme muss die Verwaltung diesem Mitarbeitendenkonto noch einen aktiven PKW zuordnen.');
           } else if (logbook.reason === 'no_car_mode') {
-            setLocalWarning('PKW wurde für diesen Einsatz gewählt, ist in den Mobilitätseinstellungen aber noch nicht als zulässiges Verkehrsmittel freigeschaltet. Live-GPS läuft weiter; die Verwaltung muss die PKW-Zuordnung prüfen.');
+            setLocalWarning('PKW wurde für diesen Einsatz gewählt, ist in den Mobilitätseinstellungen aber noch nicht als zulässiges Verkehrsmittel freigeschaltet. Die Anfahrt ist gespeichert; die Verwaltung muss die PKW-Zuordnung prüfen.');
           }
         } catch (error) {
           setLocalWarning(
@@ -1307,8 +1316,7 @@ export function EmployeePortalVisitExecutionScreen() {
   if (loading && !visit) {
     return (
       <PortalTabScreen title={shellTitle} subtitle="Wird geladen…">
-        <WorkflowFeedbackOverlay loading loadingMessage="Einsatz wird vollständig geladen…" />
-        <LoadingState message="Einsatz wird geladen…" />
+        <LoadingState message="Einsatz wird vollständig geladen…" />
       </PortalTabScreen>
     );
   }
@@ -1512,7 +1520,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <View style={styles.liveWrap}>
           <EmployeePortalVisitSummaryPanel
             visit={visit}
-            onBack={() => router.replace('/portal/employee/assignments' as never)}
+            onBack={() => router.back()}
             onReturnTrip={mobilityMode === 'car' ? () => setReturnTripModalOpen(true) : undefined}
           />
         </View>
@@ -1786,6 +1794,8 @@ export function EmployeePortalVisitExecutionScreen() {
           ref={scrollRef}
           contentContainerStyle={[styles.focusStageContent, { paddingBottom: bottomPadding }]}
           keyboardShouldPersistTaps="handled"
+          disableScrollViewPanResponder
+          scrollEnabled
           nestedScrollEnabled
           showsVerticalScrollIndicator
           style={styles.focusStageViewport}
@@ -1845,6 +1855,7 @@ export function EmployeePortalVisitExecutionScreen() {
               }}
             >
               <EmployeePortalVisitSignaturePanel
+                key={signatureViewScope}
                 clientName={visit.clientName}
                 loading={actionLoading}
                 confirmationPending={signatureConfirmationPending}
@@ -1867,7 +1878,9 @@ export function EmployeePortalVisitExecutionScreen() {
                     signatureConfirmationPending: true,
                     awaitingSignature: true,
                   });
+                  const submitScope = signatureViewScope;
                   const r = await saveSignature(sig);
+                  if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
                   if (r.ok) {
                     setSignatureConfirmationPending(true);
                     setAwaitingSignature(true);
@@ -1964,7 +1977,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <EmployeePortalVisitTasksPanel
           key={optionalTaskScope}
           tasks={visitTasks}
-          disabled={isLocked || readOnlyExecution}
+          disabled={isLocked || readOnlyExecution || actionLoading || workflowConfirmationPending || ['captured', 'locked', 'deferred_to_client_portal', 'administrative_approval_pending'].includes(visit?.signatureStatus ?? '')}
           loading={taskSaving}
           visible={tasksOpen}
           onClose={() => setTasksOpen(false)}
@@ -1977,6 +1990,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
       {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
+          key={signatureViewScope}
           ref={docPanelRef}
           disabled={isLocked || readOnlyExecution}
           loading={actionLoading}
@@ -2001,7 +2015,9 @@ export function EmployeePortalVisitExecutionScreen() {
           openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
             setLocalError(null);
+            const submitScope = signatureViewScope;
             const r = await saveDocumentation(doc);
+            if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== submitScope) return r;
             if (r.ok) {
               setDocumentationDraftText(doc.shortDescription);
               setDocumentationSpecialNotes(doc.specialNotes ?? '');
@@ -2212,10 +2228,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     width: '100%',
+    height: '100%',
+    overflow: 'hidden',
     backgroundColor: employeePortalExecutionSurface.background,
   },
   focusStageViewport: {
     flex: 1,
+    // Give Safari a definite flex base: long cards must overflow this viewport,
+    // rather than expand it behind the fixed action bar.
+    flexBasis: 0,
+    flexShrink: 1,
+    height: 0,
     minWidth: 0,
     minHeight: 0,
     width: '100%',
@@ -2232,6 +2255,7 @@ const styles = StyleSheet.create({
   },
   focusStageContent: {
     flexGrow: 1,
+    flexShrink: 0,
     width: '100%',
     maxWidth: 1600,
     alignSelf: 'center',

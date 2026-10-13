@@ -1,3 +1,4 @@
+import { usePageTab } from '@/hooks/usePageTab';
 import { useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -37,7 +38,7 @@ function formatTime(iso: string): string {
 }
 
 export function MobilityScreen() {
-  const [activeTab, setActiveTab] = useState('fahrten');
+  const [activeTab, setActiveTab] = usePageTab<string>('MobilityScreen.activeTab', 'fahrten');
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
 

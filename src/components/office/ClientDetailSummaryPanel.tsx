@@ -1,3 +1,4 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -52,7 +53,7 @@ export function ClientDetailSummaryPanel({
   onDeleted,
 }: ClientDetailSummaryPanelProps) {
   const router = useRouter();
-  const [editOpen, setEditOpen] = useState(false);
+  const [editOpen, setEditOpen] = usePageFlag('ClientDetailSummaryPanel.editOpen', false);
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can, roleLabel, isReadOnly } = usePermissions();

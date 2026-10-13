@@ -1,6 +1,7 @@
-import { DocumentDeliveryActions } from '@/components/office/DocumentDeliveryActions';
-import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
-import { buildClientDocumentPreviewFallback, buildDocumentPreviewStatusSubtitle, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
+import { ClientDocumentPreview } from '@/components/office/ClientDocumentPreview';
+import { resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
+import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Platform, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -58,11 +59,13 @@ type ClientRecordDocumentsPanelProps = {
 };
 
 function documentStatusLabel(doc: ClientDocumentRecord): string {
+  if (isIntakeDocumentContentMissing(doc)) return 'Inhalt fehlt';
   if (doc.intakeStatus === 'finalized') return 'Finalisiert';
   return CLIENT_DOCUMENT_STATUS_LABELS[doc.status] ?? doc.status;
 }
 
 function documentStatusVariant(doc: ClientDocumentRecord): 'green' | 'cyan' | 'muted' | 'orange' {
+  if (isIntakeDocumentContentMissing(doc)) return 'orange';
   if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen') return 'green';
   if (doc.status === 'aktiv') return 'cyan';
   if (doc.status === 'entwurf') return 'orange';
@@ -312,7 +315,7 @@ export function ClientRecordDocumentsPanel({
       return listClientDocuments(tenantId, clientId);
     },
     [tenantId, clientId],
-    { enabled: !!tenantId && !!clientId },
+    { enabled: !!tenantId && !!clientId, queryKey: `client-documents:${tenantId}:${clientId}:${profile?.id}:${profile?.roleKey}` },
   );
 
   const documents = useMemo(
@@ -443,6 +446,7 @@ export function ClientRecordDocumentsPanel({
 
   return (
     <View style={styles.panel}>
+      {view === 'overview' ? <DocumentRecommendations module="office" workflow="client_documents" clientId={clientId} compact /> : null}
       {message ? <SuccessState message={message} /> : null}
       {actionError ? <ErrorState message={actionError} /> : null}
 
@@ -507,28 +511,16 @@ export function ClientRecordDocumentsPanel({
       ) : null}
 
       {view === 'document' && selectedDoc ? (
-        <SectionPanel
-          title="Vorschau"
-          subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
-
-        >
-          <DocumentHtmlPreview
-            title={selectedDoc.title}
-            previewHtml={selectedDoc.previewHtml}
-            fallbackLabel={buildClientDocumentPreviewFallback(selectedDoc)}
-          />
-          {tenantId ? (
-            <DocumentDeliveryActions
-              tenantId={tenantId}
-              clientId={clientId}
-              document={selectedDoc}
-              clientLastName={clientLastName}
-              actorName={profile?.displayName ?? profile?.email ?? null}
-              onDeliveryComplete={onRecordRefresh}
-            />
-          ) : null}
-          <PremiumButton title="Zurück zur Liste" variant="secondary" onPress={backToCategoryList} />
-        </SectionPanel>
+        <ClientDocumentPreview
+          key={`${tenantId}:${clientId}:${selectedDoc.id}`}
+          tenantId={tenantId}
+          clientId={clientId}
+          document={selectedDoc}
+          clientLastName={clientLastName}
+          actorName={profile?.displayName ?? profile?.email ?? null}
+          onDeliveryComplete={onRecordRefresh}
+          onBack={backToCategoryList}
+        />
       ) : null}
 
       {!isReadOnly && view !== 'overview' ? (

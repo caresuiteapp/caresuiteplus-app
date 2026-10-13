@@ -1,10 +1,10 @@
-# Privacy & Data Map – CareSuite HealthOS Android 0.3.2
+# Privacy & Data Map – CareSuite HealthOS Android 0.4.0
 
 **Paket-ID:** `app.caresuitehealthos`
 
-**Edition:** Portal-only
+**Edition:** Full – native Verwaltung und native Portale
 
-**Stand:** 2026-09-02
+**Stand:** 2026-10-09
 
 **Zweck:** Google Play Data Safety, Berechtigungserklärung und DSGVO-Abgleich
 
@@ -24,6 +24,22 @@ Diese Datei beschreibt den geprüften App-Code. Die endgültigen Antworten in de
 | Push-Token und Plattform/App-Version | Ja nach Push-Freigabe | Zustellung wichtiger Einsatzänderungen/Mitteilungen, Registrierung/Abmeldung des Geräts | Nutzer aktiviert Benachrichtigungen | Lokal verschlüsselt gespeichert; Expo Push und Backend-Edge-Funktion | Device or other IDs; App info/performance prüfen |
 | Gerätebiometrie | Nein | Nur lokale Entsperrentscheidung | Nutzer aktiviert lokale Biometrie | Biometrische Merkmale verlassen das Gerät nicht | Nicht als biometrische Datenerhebung der App deklarieren; lokale Authentifizierung erläutern |
 | Login-/Sicherheitsereignisse | Ja | Kontoschutz, Audit und Missbrauchsprävention | Anmeldung/Sicherheitsaktion | Supabase, rollen- und mandantenbezogen | App activity/Security |
+
+## Native Oberfläche und weitere Dienste
+
+Verwaltung, Registrierung, Support, Passwortwiederherstellung und Google Workspace verwenden native App-Dialoge und die bestehende HTTPS-API. Der Recovery-Token wird nur vorübergehend im geöffneten Dialog verarbeitet. Geräteanmeldung und geschützte API-Zugriffe verwenden die vorhandenen Sitzungs- und Mandantenregeln.
+
+Desktop-Einstellungen werden lokal pro Person, Mandant und Modul gespeichert. Wetter verwendet BrightSky/DWD und gerundete Koordinaten; automatische Standortabfrage setzt eine bereits erteilte Vordergrundfreigabe voraus. Eine alternative Ortsauswahl ist ohne Standortfreigabe möglich.
+
+Karten werden nativ mit MapLibre dargestellt. OpenFreeMap liefert Kartendaten und kann Netzwerk-/Kartenbereichsdaten erhalten. Markierungen und GPS-Strecken werden als lokale Kartenebenen dargestellt; Namen und Gesundheitsdaten sind kein Bestandteil der Karten-URL.
+
+Google Workspace verwendet bestehende, vom Verwaltungsnutzer verbundene Konten. Google-Zustimmung erfolgt beim Anbieter. Nachrichten, Termine, Dateien und Aufgaben werden nur über autorisierte Aktionen und die bestehende Google-API verarbeitet. Die neue App-Einbindung ändert die erforderlichen Google-OAuth-Freigaben nicht.
+
+Neo verwendet feste, mitgelieferte Audioaufnahmen, lokale System-Sprachausgabe und ausdrücklich lokale Spracherkennung. Ohne lokales Sprachmodell bleibt manuelle Eingabe möglich; keine automatische Ausweichübertragung an Cloud-Spracherkennung.
+
+Bildvorschauen verwenden Downsampling und einen verwalteten Arbeitsspeicher-Cache. Private Bilder und Signaturen erhalten dadurch keinen zusätzlichen dauerhaften Dateicache. Kamera-/Dateipuffer, dokumentierte Originale und deren bestehende Speicherregeln bleiben davon getrennt.
+
+Optionale Aufgaben und Support verwenden zufällige Anfrage-IDs für sichere Wiederholungen. `expo-crypto` erzeugt diese IDs auf dem Gerät.
 
 ## Hintergrundstandort – Kernfunktion
 
@@ -63,6 +79,6 @@ Diese Datei beschreibt den geprüften App-Code. Die endgültigen Antworten in de
 
 ## Öffentliche Links
 
-- Datenschutz: https://caresuiteplus.de/datenschutz
-- Hilfe: https://caresuiteplus.de/hilfe
-- Kontakt: support@caresuiteplus.de
+- Datenschutz: https://www.caresuiteplus.app/datenschutz
+- Hilfe: https://www.caresuiteplus.app/support
+- Kontakt: caresuiteapp@gmail.com

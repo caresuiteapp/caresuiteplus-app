@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -20,28 +20,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEligibleCareClients } from '@/lib/careAssessment';
-import { createBodyMapMarker } from '@/lib/pflege/bodyMapService';
 import { isWoundDocumentationLiveReady } from '@/lib/pflege/pflegeModuleConfig';
 import { createWoundDocumentation } from '@/lib/pflege/woundDocumentationService';
-import type { BodyMapRegion } from '@/types/modules/bodyMap';
 import { colors, spacing, typography } from '@/theme';
 
 const WOUND_LOCATIONS = ['Unterschenkel links', 'Sakrum', 'Großzehe rechts', 'Ferse links', 'Ellenbogen rechts', 'Oberarm links', 'Knie rechts', 'Steißbein', 'Handrücken links', 'Schulter rechts', 'Wade links', 'Brustwand'];
-
-const REGION_MAP: Record<string, BodyMapRegion> = {
-  'Unterschenkel links': 'bein_links',
-  Sakrum: 'sakral',
-  'Großzehe rechts': 'fuesse',
-  'Ferse links': 'fuesse',
-  'Ellenbogen rechts': 'arm_rechts',
-  'Oberarm links': 'arm_links',
-  'Knie rechts': 'bein_rechts',
-  Steißbein: 'sakral',
-  'Handrücken links': 'arm_links',
-  'Schulter rechts': 'arm_rechts',
-  'Wade links': 'bein_links',
-  Brustwand: 'rumpf',
-};
 
 /** Arbeitsplan — /pflege/wunden/new */
 export function WoundCreateScreen() {
@@ -87,26 +70,8 @@ export function WoundCreateScreen() {
       return;
     }
 
-    const region = REGION_MAP[bodyLocation] ?? 'rumpf';
-    await createBodyMapMarker(
-      tenantId,
-      {
-        clientId,
-        gender: 'neutral',
-        view: 'vorderseite',
-        region,
-        markerType: 'wunde',
-        xPercent: 50,
-        yPercent: 50,
-        note: `${woundType} — ${bodyLocation}`,
-        woundId: result.data.id,
-      },
-      profile?.roleKey,
-    );
-
     setSaving(false);
     setCreatedId(result.data.id);
-    setTimeout(() => router.replace(`/pflege/wunden/${result.data.id}` as never), 900);
   }
 
   if (saving) {
@@ -119,8 +84,8 @@ export function WoundCreateScreen() {
 
   if (createdId) {
     return (
-      <ScreenShell title="Wunde angelegt" showBack={false}>
-        <SuccessState message="Wunddokumentation gespeichert — Marker in BodyMap hinterlegt." />
+      <ScreenShell title="Wunde angelegt" showBack={true}>
+        <SuccessState message="Wunddokumentation gespeichert." />
       </ScreenShell>
     );
   }
@@ -128,7 +93,7 @@ export function WoundCreateScreen() {
   return (
     <ScreenShell
       title="Wunde dokumentieren"
-      subtitle={`BodyMap, Lokalisation, Verlauf · ${roleLabel ?? 'Pflege'}`}
+      subtitle={`Lokalisation und Verlauf · ${roleLabel ?? 'Pflege'}`}
       onBack={() => router.back()}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -136,7 +101,7 @@ export function WoundCreateScreen() {
           <FormScreenHero
             eyebrow="PFLEGE · WUNDE"
             title="Neue Wunddokumentation"
-            meta="Lokalisation, Typ, Größe — Live-Verlauf mit BodyMap-Verknüpfung"
+            meta="Lokalisation, Typ, Größe und Verlauf"
             icon="🩹"
             formMode="create"
             accentColor={colors.cyan}
@@ -203,19 +168,6 @@ export function WoundCreateScreen() {
               onChangeText={setDescription}
               multiline
               editable={!isReadOnly && writeReady}
-            />
-          </SectionPanel>
-
-          <SectionPanel title="BodyMap" subtitle="Räumliche Zuordnung des Wundfalls">
-            <InfoBanner variant="info" title="Verlaufsmedien" message="Fotos werden ausschließlich über die gesicherte BodyMap-Medienablage referenziert; die Neuanlage speichert keine lokale Dateireferenz." />
-            <PremiumButton
-              title="BodyMap öffnen"
-              variant="secondary"
-              onPress={() =>
-                router.push(
-                  `/pflege/bodymap?clientId=${clientId}` as never,
-                )
-              }
             />
           </SectionPanel>
 

@@ -31,7 +31,7 @@ const DETAIL_EXTRAS: Record<string, Omit<WoundDocumentationDetail, Exclude<keyof
     photoCount: 0,
     bodyMapPrepared: true,
     nextReviewAt: new Date(Date.now() + 4 * 86_400_000).toISOString(),
-    caregiverNotes: 'BodyMap-Markierung vorbereitet — Foto-Upload folgt.',
+    caregiverNotes: 'Wundverlauf wird dokumentiert.',
   },
   'wound-002': {
     clientName: 'Gertrud Fischer',
@@ -64,7 +64,7 @@ export function buildWoundDocumentationDetail(item: WoundDocumentation, mode: Co
     photoCount: 0,
     bodyMapPrepared: true,
     nextReviewAt: null,
-    caregiverNotes: 'Demo-Wundfall — BodyMap extern.',
+    caregiverNotes: 'Demo-Wundfall.',
   };
   const photoCount = getDemoWoundPhotoCount(item.id) || extras.photoCount;
   return { ...item, ...extras, clientName: item.clientName ?? extras.clientName, photoCount };
@@ -94,7 +94,6 @@ export function buildWoundDocumentationDetailKpis(detail: WoundDocumentationDeta
       id: 'location',
       label: 'Lokalisation',
       value: detail.bodyLocation,
-      subValue: detail.bodyMapPrepared ? 'BodyMap vorbereitet' : 'BodyMap ausstehend',
       icon: '📍',
       accentColor: colors.cyan,
     },

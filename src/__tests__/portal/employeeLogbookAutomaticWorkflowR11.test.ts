@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { berlinDateKey, isLogbookTripInBerlinRange } from '@/lib/employeeLogbook/employeeLogbookDate';
+import { releasedLiquidPortalNavigation } from '@/liquid-command/navigation/portalCatalog';
 
 const read = (file: string) => readFileSync(file, 'utf8');
 
@@ -15,7 +16,8 @@ describe('Digitales Fahrtenbuch R11 · automatischer PKW-Workflow', () => {
     const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     expect(automation).toContain("mobility.transportModes.includes('car')");
     expect(automation).toContain("bundle.vehicles.find((vehicle) => vehicle.active)");
-    expect(shell).toContain('const navigation = liquidPortalNavigation[kind]');
+    expect(releasedLiquidPortalNavigation('employee', null).find((item) => item.id === 'logbook')?.route)
+      .toBe('/portal/employee/fahrtenbuch');
     expect(shell).not.toContain("item.id !== 'logbook'");
   });
 

@@ -112,19 +112,20 @@ export function WfmOfficeTimeHistoryPanel({
     return next;
   }, [filterAmpel, filterEmployeeId]);
 
+  const periodFrom = period?.fromDate; const periodTo = period?.toDate;
   const historyQuery = useAsyncQuery(
     useCallback(async () => {
       return getWfmOfficeTimeOverview(tenantId, roleKey, {
-        preset: period ? 'custom' : preset,
-        fromDate: period?.fromDate ?? (preset === 'custom' ? customFrom : null),
-        toDate: period?.toDate ?? (preset === 'custom' ? customTo : null),
+        preset: periodFrom && periodTo ? 'custom' : preset,
+        fromDate: periodFrom ?? (preset === 'custom' ? customFrom : null),
+        toDate: periodTo ?? (preset === 'custom' ? customTo : null),
         filters,
       });
-    }, [tenantId, roleKey, preset, customFrom, customTo, filters, period?.fromDate, period?.toDate]),
-    [tenantId, roleKey, preset, customFrom, customTo, filters, period?.fromDate, period?.toDate],
+    }, [tenantId, roleKey, preset, customFrom, customTo, filters, periodFrom, periodTo]),
+    [tenantId, roleKey, preset, customFrom, customTo, filters, periodFrom, periodTo],
     {
       enabled: !!tenantId,
-      queryKey: `wfm-history:${tenantId}:${period?.fromDate ?? preset}:${period?.toDate ?? customFrom}:${customTo}:${filterEmployeeId}:${filterAmpel}`,
+      queryKey: `wfm-history:${tenantId}:${periodFrom ?? preset}:${periodTo ?? customFrom}:${customTo}:${filterEmployeeId}:${filterAmpel}`,
       live: {
         enabled: !selectedId && !saving,
         tenantId,
@@ -139,14 +140,14 @@ export function WfmOfficeTimeHistoryPanel({
     useCallback(async () => {
       if (!tenantId || !selectedId) return { ok: true as const, data: [] };
       return listWfmOfficeAuditForEntry(tenantId, roleKey, selectedId, selected);
-    }, [tenantId, roleKey, selectedId]),
+    }, [tenantId, roleKey, selectedId, selected]),
     [tenantId, roleKey, selectedId],
     { enabled: !!tenantId && !!selectedId, queryKey: `audit:${tenantId}:${selectedId}` },
   );
 
   const overview = historyQuery.data;
   const canQuickApprove = Platform.OS === 'web' && canCorrect && Boolean(reviewerId);
-  const approvalScope = JSON.stringify([tenantId, roleKey, reviewerId, filterEmployeeId, filterAmpel, preset, customFrom, customTo, period?.fromDate, period?.toDate]);
+  const approvalScope = JSON.stringify([tenantId, roleKey, reviewerId, filterEmployeeId, filterAmpel, preset, customFrom, customTo, periodFrom, periodTo]);
   const scopeRef = useRef(approvalScope);
   scopeRef.current = approvalScope;
   const currentApproval = approvalState.scope === approvalScope ? approvalState : null;

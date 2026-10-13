@@ -23,8 +23,9 @@ export function AssignmentDetailScreen({
   embedded = false,
   onClose,
 }: AssignmentDetailScreenProps = {}) {
-  const { id: routeId, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
-  const assignmentId = assignmentIdProp ?? routeId;
+  const { id: routeId, tab: routeTab } = useLocalSearchParams<{ id?: string | string[]; tab?: string | string[] }>();
+  const assignmentId = assignmentIdProp ?? (Array.isArray(routeId) ? routeId[0] : routeId);
+  const tab = Array.isArray(routeTab) ? routeTab[0] : routeTab;
   const router = useRouter();
   const { roleLabel } = usePermissions();
   const { loading, error, notFound, refresh, data } = useVisitDispositionDetail(assignmentId);
@@ -43,7 +44,7 @@ export function AssignmentDetailScreen({
       onClose();
       return;
     }
-    router.back();
+    router.replace('/assist/assignments');
   };
 
   if (!assignmentId) {

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { liquidColors, liquidRadius, liquidSpace } from '@/liquid-command/foundation/tokens';
 

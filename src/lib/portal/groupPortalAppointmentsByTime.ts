@@ -6,6 +6,30 @@ export type PortalAppointmentTimeGroup = {
   items: PortalAppointmentItem[];
 };
 
+export type PortalAppointmentMonthGroup = {
+  key: string;
+  label: string;
+  items: PortalAppointmentItem[];
+};
+
+/** Local calendar months, newest first; entries keep their history ordering. */
+export function groupPortalPastAppointmentsByMonth(items: PortalAppointmentItem[]): PortalAppointmentMonthGroup[] {
+  const months = new Map<string, PortalAppointmentMonthGroup>();
+  for (const item of [...items].sort(sortPast)) {
+    const date = new Date(item.startsAt);
+    if (Number.isNaN(date.getTime())) continue;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const group = months.get(key) ?? {
+      key,
+      label: date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+      items: [],
+    };
+    group.items.push(item);
+    months.set(key, group);
+  }
+  return [...months.values()].sort((a, b) => b.key.localeCompare(a.key));
+}
+
 function sortUpcoming(a: PortalAppointmentItem, b: PortalAppointmentItem): number {
   return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
 }

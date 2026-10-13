@@ -26,11 +26,12 @@ export function EmployeePortalVisitVoiceNoteModal({ visible, tenantId, visitId, 
   const dirty = Boolean(capture && !savedPath) || Boolean(transcript.trim()) || voice.isRecording || phase === 'dictating';
   const confirmLeave = useUnsavedWebChanges(visible && dirty, visible && busy,
     'Die Aufnahme oder der diktierte Text wurde noch nicht übernommen. Möchten Sie diese Eingaben verwerfen?');
+  const cancelVoice = voice.cancel;
   useEffect(() => {
     epoch.current += 1; flight.current = false;
     setPhase('idle'); setCapture(null); setTranscript(''); setError(null); setSavedPath(null);
-    return () => { epoch.current += 1; dictation.current?.cancel(); dictation.current = null; voice.cancel(); };
-  }, [visible, tenantId, visitId, employeeId, voice.cancel]);
+    return () => { epoch.current += 1; dictation.current?.cancel(); dictation.current = null; cancelVoice(); };
+  }, [visible, tenantId, visitId, employeeId, cancelVoice]);
   useEffect(() => {
     if (!capture) { setAudioUri(null); return; }
     const bytes = new Uint8Array(capture.bytes);

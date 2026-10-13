@@ -1,0 +1,47 @@
+{
+  "baseCommit": "4501022e4101f8428524936ff3113a19afa1ca2b",
+  "verifiedMainCommit": "3ad95a7087828d7acaf44593ba6bd0f9de5cc353",
+  "expoVersion": "57.0.20",
+  "reactNativeVersion": "0.86.3",
+  "expectedGradleVersion": "9.3.1",
+  "actualExpoAndroidTemplateWrapperSha256": "a180163249c7252412ddaee1c7adcf59f6494b1183136f690fbd9a3b8aaed00e",
+  "supportedGradleRuntimeJdkMajors": [
+    17,
+    21,
+    25
+  ],
+  "mandatoryNativeCompilerJdkMajor": 17,
+  "actualNativeBuildPluginsChecked": true,
+  "generatedWrapperCheckedBeforeCompiler": true,
+  "automaticGradleJdkDownloadDisabled": true,
+  "currentBuildAndToolsTests": {
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0
+  },
+  "preparedAddition": {
+    "portableCompilerJdk17IfMissing": true,
+    "requestedSdkPackageIds": [
+      "platforms;android-36",
+      "build-tools;36.0.0",
+      "ndk;27.1.12297006"
+    ]
+  },
+  "setupDefault": "plan only",
+  "buildToolInstallationApproval": "pending",
+  "jdkDownloadedOnUserComputer": false,
+  "sdkPackagesInstalledOnUserComputer": false,
+  "newSdkManagerInstalled": false,
+  "globalEnvironmentChanged": false,
+  "playPublished": false,
+  "githubPushed": false,
+  "signedAabBuilt": false,
+  "actualWindowsSetupOrCompilerTested": false,
+  "priorFullAppChecks": {
+    "commit": "cbec8142fed112ebf05fc06159d9421f0c4981d5",
+    "passedTests": 946,
+    "androidRoutes": 700,
+    "currentSourceMapEntries": 4147,
+    "runtimeAppSourcesChangedByThisFix": false
+  }
+}

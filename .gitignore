@@ -2,6 +2,7 @@
 .expo/
 dist/
 dist-portal-only/
+dist-healthos-full/
 dist-bodymap3d/
 web-build/
 expo-env.d.ts
@@ -48,6 +49,7 @@ public/calendar-reader/
 
 # Neo local voice assets are generated and verified during the web build.
 .caresuite-robot-backup/
+.healthos-gitbash/
 /public/neo-voice/v1/licenses/espeak-ng-source.tar.gz
 /public/neo-voice/v1/licenses/piper-phonemize-source.tar.gz
 /public/neo-voice/v1/ort-wasm-simd.wasm
@@ -70,3 +72,7 @@ public/calendar-reader/
 /public/neo-voice/v1/voice-11.bin
 /public/neo-voice/v1/voice-12.bin
 /public/neo-voice/v1/voice-13.bin
+
+# Local production audit export.
+/dist-remediation-web/
+/dist-remediation-web-final/

@@ -78,8 +78,11 @@ describe('design system freeze', () => {
     expect(login).toContain('GlassCard');
 
     const register = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(register).toContain('ScreenShell');
-    expect(register).toContain('PremiumButton');
+    expect(register).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).toContain('LiquidSurface');
+    expect(shared).toContain('LiquidField');
+    expect(shared).toContain('LiquidButton');
   });
 
   it('production public visibility hides developer badges and forbidden terms', () => {

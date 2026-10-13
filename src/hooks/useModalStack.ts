@@ -1,4 +1,4 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ModalStackEntry, OpenModalOptions, PushModalOptions } from '@/types/modalNavigation';
 
 type ModalStackContextValue = {
@@ -24,28 +24,34 @@ function createEntry(options: OpenModalOptions): ModalStackEntry {
   };
 }
 
-export function ModalStackProvider({ children }: { children: ReactNode }) {
-  const [modalStack, setModalStack] = useState<ModalStackEntry[]>([]);
+export function ModalStackProvider({ children, scope }: { children: ReactNode; scope?: string }) {
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+  const [state, setState] = useState<{ scope?: string; entries: ModalStackEntry[] }>({ scope, entries: [] });
+  const modalStack = state.scope === scope ? state.entries : [];
+  const setModalStack = useCallback((update: (entries: ModalStackEntry[]) => ModalStackEntry[]) => {
+    setState(previous => currentScope.current !== scope ? previous : ({ scope, entries: update(previous.scope === scope ? previous.entries : []) }));
+  }, [scope]);
 
   const openModal = useCallback((options: OpenModalOptions) => {
-    setModalStack([createEntry(options)]);
-  }, []);
+    setModalStack(prev => [...prev, createEntry(options)]);
+  }, [setModalStack]);
 
   const pushModal = useCallback((options: PushModalOptions) => {
     setModalStack((prev) => [...prev, createEntry(options)]);
-  }, []);
+  }, [setModalStack]);
 
   const closeTopModal = useCallback(() => {
     setModalStack((prev) => prev.slice(0, -1));
-  }, []);
+  }, [setModalStack]);
 
   const goBackModal = useCallback(() => {
     setModalStack((prev) => prev.slice(0, -1));
-  }, []);
+  }, [setModalStack]);
 
   const closeAllModals = useCallback(() => {
-    setModalStack([]);
-  }, []);
+    setModalStack(() => []);
+  }, [setModalStack]);
 
   const topModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
 

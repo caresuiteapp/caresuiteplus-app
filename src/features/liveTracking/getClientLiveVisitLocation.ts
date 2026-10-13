@@ -153,7 +153,7 @@ async function resolveClientLiveVisitLocation(
     }
   }
 
-  const portalReleased = input.portalReleaseEnabled !== false;
+  const portalReleased = input.portalReleaseEnabled === true;
   if (!portalReleased) {
     return { ...emptyBase, fallbackMessage: FALLBACK_NOT_RELEASED };
   }

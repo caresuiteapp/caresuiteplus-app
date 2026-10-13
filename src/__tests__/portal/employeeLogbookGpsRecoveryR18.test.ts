@@ -110,7 +110,7 @@ describe('Fahrtenbuch P0 R18.4 · veraltete Aufzeichnungen und echte Fahrtabschn
   it('verhindert eine Wiederaufnahme alter Fahrten im Mitarbeitendenportal', () => {
     const automation = read('src/lib/employeeLogbook/employeeLogbookAutomation.ts');
     expect(automation).toContain('berlinDateKey(active.startedAt) < berlinToday()');
-    expect(automation).toContain('await stopNativeBackgroundTracking()');
+    expect(automation).toContain('await stopNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId })');
     expect(automation).toContain('return null');
   });
 

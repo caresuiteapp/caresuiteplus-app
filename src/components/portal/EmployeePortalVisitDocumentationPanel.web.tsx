@@ -10,7 +10,7 @@ import {
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
-import { spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 

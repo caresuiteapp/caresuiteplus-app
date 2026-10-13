@@ -123,8 +123,11 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     const identity = [`${d.target === 'employee' ? 'Mitarbeiter:in' : d.target === 'company' ? 'Organisation' : 'Klient:in / Patient:in'}: ${v.subjectName || '[ergänzen]'}`,v.subjectAddress,details,payor].filter(Boolean).join('\n');
     if (d.layout === 'contract') {
       heading('Vertragsparteien / Beteiligte',9);
-      const cardWidth = (contentWidth-6)/2;
-      const parties = [`${v.companyName}\n${v.companyAddress}`,identity];
+      const companyParty = `${v.companyName}\n${v.companyAddress}`;
+      const parties = d.target === 'company'
+        ? v.cs_provider?.trim() ? [companyParty, `Softwareanbieter / Vertragspartner\n${v.cs_provider}`] : [companyParty]
+        : [companyParty, identity];
+      const cardWidth = (contentWidth - 6 * (parties.length - 1)) / parties.length;
       const lines = parties.map((value) => wrap(value,cardWidth-8,9.5));
       const cardHeight = Math.max(...lines.map((l) => l.length))*(compactClosing ? 4.8 : 5.2)+(compactClosing ? 6 : 8);
       room(cardHeight+4);
@@ -147,7 +150,6 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   if (d.layout === 'letter' && v.enclosures?.trim()) { heading('Anlagen', 9); paragraph(v.enclosures, 9, 4.5); }
 
   if (d.columns.length) {
-    const count = d.columns.length;
     const weights = d.columns.map((col) => /^(Beginn|Ende)$/.test(col) ? 0.65 : /Leistung|Gegenstand|Prüfpunkt|Beobachtung|Maßnahme|Fahrtzweck|Arzneimittel/.test(col) ? 2.5 : 1.1);
     const totalWeight = weights.reduce((a,b) => a+b,0);
     const widths = weights.map((w) => contentWidth*w/totalWeight);

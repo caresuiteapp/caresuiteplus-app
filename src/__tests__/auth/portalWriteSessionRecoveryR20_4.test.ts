@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { reportDeviceOffline } from '@/lib/offline/connectivity';
 
 const { getSession, setSession, invokeEdgeFunction, runtimeProbe } = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -58,12 +59,21 @@ const alignedSession = {
 
 describe('portal write-session recovery R20.4', () => {
   beforeEach(() => {
+    reportDeviceOffline(false);
     getSession.mockReset();
     setSession.mockReset();
     invokeEdgeFunction.mockReset();
     runtimeProbe.mockReset();
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); reportDeviceOffline(false); });
+
+  it('rejects offline writes before accepting an otherwise aligned cached JWT', async () => {
+    reportDeviceOffline(true);
+    getSession.mockResolvedValue({ data: { session: alignedSession }, error: null });
+    const result = await ensurePortalWriteSession(portalSession, 'workflow');
+    expect(result.ok).toBe(false);
+    expect(getSession).not.toHaveBeenCalled(); expect(setSession).not.toHaveBeenCalled();
+  });
 
   function successfulRepair() {
     invokeEdgeFunction.mockResolvedValue({
@@ -176,7 +186,11 @@ describe('portal write-session recovery R20.4', () => {
     expect(authProvider).toContain('await ensurePortalWriteSession(restoredPortal)');
     expect(chat).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
     expect(thread).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
-    expect(visit.match(/await ensurePortalWriteSession\(portalSession, 'workflow'\)/g)).toHaveLength(2);
+    const workflowGuard = visit.indexOf("const writableSession = await ensurePortalWriteSession(portalSession, 'workflow')");
+    expect(workflowGuard).toBeGreaterThan(visit.indexOf('const runWorkflow = useCallback'));
+    expect(workflowGuard).toBeLessThan(visit.indexOf('const operation = options?.recoveryAction'));
+    expect(visit).toContain('runWorkflow((ctx) => finalizeVisit(ctx)');
+    expect(visit).toContain('runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx');
     expect(portalAuth).toContain('linkedEmail === email.toLowerCase()');
     expect(portalAuth).toContain('replacing mismatched auth link');
   });

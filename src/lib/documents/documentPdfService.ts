@@ -3,9 +3,11 @@ import type { ServiceResult } from '@/types';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { getServiceMode } from '@/lib/services/mode';
+import { loadClientDocumentContent, MISSING_DOCUMENT_CONTENT_MESSAGE } from '@/lib/clients/clientDocumentContentService';
 import {
   buildDocumentPdfFileName,
   isDirectPdfDownloadMimeType,
+  isHtmlDocumentMimeType,
 } from './documentPdfFileName';
 import {
   resolveDocumentPdfSource,
@@ -84,10 +86,31 @@ async function fetchStoredDocumentBytes(storagePath: string): Promise<ServiceRes
   return { ok: true, data: new Uint8Array(buffer) };
 }
 
-export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+function assertStoredHtmlIsPassive(html: string): void {
+  if (typeof DOMParser === 'undefined') {
     throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
   }
+  // Uploaded HTML is parsed in an inert document before it can enter the render DOM.
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const blockedElements = new Set(['script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'base', 'animate', 'set']);
+  const fail = () => { throw new Error('Diese HTML-Datei enthält ausführbare Inhalte. Bitte eine PDF-Datei verwenden.'); };
+  for (const element of Array.from(parsed.querySelectorAll('*'))) {
+    if (blockedElements.has(element.localName)
+      || (element.localName === 'meta' && element.getAttribute('http-equiv')?.toLowerCase() === 'refresh')) fail();
+    for (const attribute of Array.from(element.attributes)) {
+      if (/^on/i.test(attribute.name) || attribute.name.toLowerCase() === 'srcdoc'
+        || /^(javascript|vbscript):/i.test(attribute.value.replace(/[\s\u0000-\u001f]/g, ''))) fail();
+    }
+  }
+}
+
+export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
+  if (Platform.OS !== 'web') {
+    const renderer = await import('./documentPdfRenderer.native');
+    return renderer.renderHtmlToPdfBytes(html);
+  }
+  if (typeof document === 'undefined') throw new Error('Die PDF-Erzeugung benötigt einen geöffneten Browser.');
+  assertStoredHtmlIsPassive(html);
 
   const container = document.createElement('div');
   container.innerHTML = html;
@@ -212,28 +235,25 @@ export async function prepareDocumentPdf(input: {
   doc: ClientDocumentRecord;
   clientLastName?: string | null;
 }): Promise<ServiceResult<DocumentPdfPayload>> {
-  const source = resolveDocumentPdfSource(input.doc);
   const fileName = buildDocumentPdfFileName(input.doc.title, input.clientLastName);
-
-  if (source === 'none') {
-    return { ok: false, error: 'Für dieses Dokument ist kein PDF verfügbar.' };
-  }
-
-  if (getServiceMode() !== 'supabase' && Platform.OS !== 'web') {
-    return {
-      ok: true,
-      data: {
-        fileName,
-        mimeType: 'application/pdf',
-        base64: btoa('%PDF-1.4 demo'),
-      },
-    };
-  }
+  let doc = input.doc;
 
   try {
+    if (isHtmlDocumentMimeType(doc.mimeType) && !doc.previewHtml?.trim() && !doc.storagePath) {
+      const loaded = await loadClientDocumentContent({ doc, tenantId: doc.tenantId, clientId: doc.clientId });
+      if (!loaded.ok) return loaded;
+      doc = loaded.data;
+    }
+    const source = resolveDocumentPdfSource(doc);
+    if (source === 'none') {
+      return { ok: false, error: isHtmlDocumentMimeType(doc.mimeType)
+        ? MISSING_DOCUMENT_CONTENT_MESSAGE : 'Für dieses Dokument ist kein PDF verfügbar.' };
+    }
+    if (getServiceMode() !== 'supabase' && Platform.OS !== 'web') {
+      return { ok: true, data: { fileName, mimeType: 'application/pdf', base64: btoa('%PDF-1.4 demo') } };
+    }
     if (source === 'html') {
-      const html = input.doc.previewHtml?.trim();
-      if (!html) return { ok: false, error: 'HTML-Inhalt fehlt — PDF kann nicht erzeugt werden.' };
+      const html = doc.previewHtml!.trim();
       const bytes = await renderHtmlToPdfBytes(html);
       return {
         ok: true,
@@ -241,14 +261,22 @@ export async function prepareDocumentPdf(input: {
       };
     }
 
-    if (!input.doc.storagePath) {
+    if (!doc.storagePath) {
       return { ok: false, error: 'Speicherpfad fehlt — Datei kann nicht geladen werden.' };
     }
 
-    const stored = await fetchStoredDocumentBytes(input.doc.storagePath);
+    const stored = await fetchStoredDocumentBytes(doc.storagePath);
     if (!stored.ok) return stored;
 
-    if (isDirectPdfDownloadMimeType(input.doc.mimeType)) {
+    if (source === 'stored_html') {
+      const html = new TextDecoder('utf-8').decode(stored.data).trim();
+      if (!html) return { ok: false, error: MISSING_DOCUMENT_CONTENT_MESSAGE };
+      assertStoredHtmlIsPassive(html);
+      const bytes = await renderHtmlToPdfBytes(html);
+      return { ok: true, data: { fileName, mimeType: 'application/pdf', base64: bytesToBase64(bytes) } };
+    }
+
+    if (isDirectPdfDownloadMimeType(doc.mimeType)) {
       return {
         ok: true,
         data: {
@@ -259,7 +287,7 @@ export async function prepareDocumentPdf(input: {
       };
     }
 
-    const pdfBytes = await imageBytesToPdfBytes(stored.data, input.doc.mimeType);
+    const pdfBytes = await imageBytesToPdfBytes(stored.data, doc.mimeType);
     return {
       ok: true,
       data: { fileName, mimeType: 'application/pdf', base64: bytesToBase64(pdfBytes) },

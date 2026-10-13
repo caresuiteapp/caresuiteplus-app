@@ -76,7 +76,7 @@ export function useDesktopWeather(owner: string) {
     }
   }, []);
 
-  useEffect(() => {
+  useEffect(() => { const cleanupRequest = request;
     let active = true;
     setState(initial);
     // Do not open an unsolicited permission prompt; a visible button initiates first use.
@@ -89,7 +89,7 @@ export function useDesktopWeather(owner: string) {
     };
     loadIfGranted();
     const timer = setInterval(loadIfGranted, 15 * 60_000);
-    return () => { active = false; request.current++; busy.current = false; controller.current?.abort(); clearInterval(timer); };
+    return () => { active = false; cleanupRequest.current++; busy.current = false; controller.current?.abort(); clearInterval(timer); };
   }, [owner, refresh]);
   return { ...state, refresh };
 }
