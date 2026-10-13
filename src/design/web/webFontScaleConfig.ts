@@ -25,8 +25,9 @@ export function indexOfWebFontScale(scale: WebFontScale): number {
 }
 
 export const DESKTOP_WORKSPACE_FONT_KEY = "@caresuite/desktop-workspace-font-scale.v2";
-export function workspaceEffectiveScale(scale: WebFontScale, workspace: boolean): number {
-  return scale * (workspace ? 0.9 : 1);
+export function workspaceEffectiveScale(scale: WebFontScale, workspace: boolean, desktop = false): number {
+  // Adopt the selected 90% of the former 0.9 desktop baseline as the new 100%.
+  return scale * (desktop ? 0.81 : workspace ? 0.9 : 1);
 }
 
 /** Saved 90% adopts the new desktop baseline; larger accessibility settings stay. */
