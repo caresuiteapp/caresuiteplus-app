@@ -1,6 +1,6 @@
 // Deno resolves npm: imports in the deployed Edge runtime.
 // eslint-disable-next-line import/no-unresolved
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.108.1';
 import { canonicalJson, validateCentralPayload, decodePdf, mapStoredRecord } from './payload.ts';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };

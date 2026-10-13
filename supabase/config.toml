@@ -59,3 +59,7 @@ verify_jwt = false
 # Public, limited operational observations. Optional user JWTs are verified in Auth.
 [functions.platform-observation]
 verify_jwt = false
+
+# Signed-in Office users; live permissions and tenant scope are checked in the handler.
+[functions.central-document-record]
+verify_jwt = true
