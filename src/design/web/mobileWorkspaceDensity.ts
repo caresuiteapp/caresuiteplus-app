@@ -8,3 +8,7 @@ export function isMobileWorkspace(pathname: string, width: number): boolean {
   return width > 0 && width < 900 &&
     (pathname === '/' || isHealthOSContextualPopupRoute(pathname));
 }
+
+export function isDesktopWorkspace(pathname: string, width: number): boolean {
+  return width >= 900 && (pathname === "/" || isHealthOSContextualPopupRoute(pathname));
+}

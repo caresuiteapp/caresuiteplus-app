@@ -117,6 +117,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const { scale: fontScale, effectiveScale } = useWebFontScale();
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
+  const headerStacked = width - (compact ? 24 : 40) < 1550 * effectiveScale;
   const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(260 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
@@ -293,7 +294,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           </View>
         </View>
         <View style={styles.neoDock} {...{ dataSet: { csNeoDock: "true" } }} />
-        <View style={[styles.actions, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
+        <View style={[styles.actions, headerStacked && styles.actionsSecondRow, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
           <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
           <PortalTextSizeControls dense={mobile} />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
@@ -461,6 +462,7 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
+  actionsSecondRow: { flexBasis: "100%", width: "100%", justifyContent: "flex-end", borderTopWidth: 1, borderTopColor: "rgba(139,211,255,0.18)", paddingTop: 10 },
   neoDock: { width: 76, height: 80, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   areaTabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
   areaWidgetGlyph: { color: "#8FE4FF", fontSize: 40, lineHeight: 48 },
@@ -501,7 +503,7 @@ const styles = StyleSheet.create({
   desktopFrame: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
   topbar: { zIndex: 20, width: "100%", minWidth: 0, flexShrink: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 10, borderRadius: 20 },
   logo: { maxWidth: "100%", flexShrink: 1 },
-  infoCard: { flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 },
+  infoCard: { flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-start", gap: 24 },
   clock: { flexShrink: 1, minWidth: 150 },
   time: { color: "#FFF", fontSize: 34, lineHeight: 39, fontWeight: "900", letterSpacing: -1 }, date: { color: "#D8EAFF", fontSize: 15, lineHeight: 21, fontWeight: "700" },
   weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, minHeight: 44, maxWidth: 210, justifyContent: "center" },
