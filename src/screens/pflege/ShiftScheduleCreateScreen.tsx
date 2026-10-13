@@ -63,7 +63,6 @@ export function ShiftScheduleCreateScreen() {
       return;
     }
     setCreatedId(result.data.id);
-    setTimeout(() => router.replace('/pflege/dienstplaene' as never), 900);
   }
 
   if (saving) {
@@ -76,8 +75,8 @@ export function ShiftScheduleCreateScreen() {
 
   if (createdId) {
     return (
-      <ScreenShell title="Schicht angelegt" showBack={false}>
-        <SuccessState message="Dienstplan-Eintrag gespeichert — Liste wird aktualisiert." />
+      <ScreenShell title="Schicht angelegt" showBack={true}>
+        <SuccessState message="Dienstplan-Eintrag gespeichert." />
       </ScreenShell>
     );
   }

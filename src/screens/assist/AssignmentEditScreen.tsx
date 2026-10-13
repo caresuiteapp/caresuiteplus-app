@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssignmentEditForm } from '@/components/assist/AssignmentEditForm';
 import { ScreenShell } from '@/components/layout';
-import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { ErrorState, LoadingState, SuccessState, PremiumButton } from '@/components/ui';
 import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { useAuth } from '@/lib/auth/context';
@@ -27,7 +27,6 @@ export function AssignmentEditScreen() {
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const [loadedScope, setLoadedScope] = useState(scope);
-  const navigationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,10 +56,7 @@ export function AssignmentEditScreen() {
     });
     return () => { cancelled = true; };
   }, [id, tenantId, profile?.id, profile?.roleKey, scope, retryKey]);
-  useEffect(() => () => {
-    if (navigationTimer.current) clearTimeout(navigationTimer.current);
-  }, [scope]);
-  const returnToDetail = () => router.replace(id ? `/assist/assignments/${id}` as never : '/assist/assignments');
+  const returnToDetail = () => router.canGoBack() ? router.back() : router.replace(id ? `/assist/assignments/${encodeURIComponent(id)}` as never : '/assist/assignments');
 
   if (loading || loadedScope !== scope) {
     return (
@@ -74,13 +70,15 @@ export function AssignmentEditScreen() {
     return (
       <ScreenShell title="Gespeichert" showBack={false}>
         <SuccessState message="Einsatz aktualisiert." />
+        <PremiumButton title="Weiter bearbeiten" onPress={() => { setSaved(false); setRetryKey(key => key + 1); }} />
+        <PremiumButton title="Zurück" variant="secondary" onPress={returnToDetail} />
       </ScreenShell>
     );
   }
 
   if (error || !visit || !id) {
     return (
-      <ScreenShell title="Einsatz bearbeiten" subtitle={roleLabel ?? 'Assist'} onBack={() => router.replace('/assist/assignments')}>
+      <ScreenShell title="Einsatz bearbeiten" subtitle={roleLabel ?? 'Assist'} onBack={returnToDetail}>
         <ErrorState message={error ?? 'Einsatz nicht gefunden.'} onRetry={() => setRetryKey(key => key + 1)} />
       </ScreenShell>
     );
@@ -96,12 +94,9 @@ export function AssignmentEditScreen() {
         visitId={id}
         initialVisit={visit}
         onCancel={returnToDetail}
-        onSaved={(savedId) => {
-          const savedScope = scope;
+        onSaved={() => {
+          if (scopeRef.current !== scope) return;
           setSaved(true);
-          navigationTimer.current = setTimeout(() => {
-            if (scopeRef.current === savedScope) router.replace(`/assist/assignments/${savedId}` as never);
-          }, 900);
         }}
       />
     </ScreenShell>

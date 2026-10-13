@@ -60,17 +60,14 @@ export function ClientCreateScreen() {
   };
 
   const handleSubmit = async () => {
-    const id = await submit();
-    if (id) {
-      setTimeout(() => router.replace(clientRecordRoute(id) as never), 1500);
-    }
+    await submit();
   };
 
   if (isSuccess && createdId) {
     return (
       <ScreenShell title="Klient:in angelegt" subtitle="Erfolgreich" showBack={false}>
-        <SuccessState message="Die Klient:in wurde erfolgreich angelegt. Weiterleitung…" />
-        <PremiumButton title="Zur Detailansicht" fullWidth onPress={() => router.replace(clientRecordRoute(createdId) as never)} />
+        <SuccessState message="Die Klient:in wurde erfolgreich angelegt." />
+        <PremiumButton title="Zur Detailansicht" fullWidth onPress={() => router.push(clientRecordRoute(createdId) as never)} />
       </ScreenShell>
     );
   }

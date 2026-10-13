@@ -80,10 +80,7 @@ export function EmployeeEditScreen() {
   } = useEmployeeEditWizard(id);
 
   const handleSubmit = async () => {
-    const ok = await submit();
-    if (ok) {
-      setTimeout(() => router.replace(`/business/office/employees/${id}` as never), 1500);
-    }
+    await submit();
   };
 
   if (!canEdit) {
@@ -124,7 +121,7 @@ export function EmployeeEditScreen() {
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
-          onPress={() => router.replace(`/business/office/employees/${id}` as never)}
+          onPress={() => router.push(`/business/office/employees/${id}` as never)}
         />
       </ScreenShell>
     );

@@ -1,3 +1,4 @@
+import { resolveWebLoginReturn } from '@/lib/navigation/webLoginReturn';
 const STORAGE_KEY = 'caresuite.tv.login-return.v1';
 const CODE = /^[A-Za-z0-9_-]{43}$/;
 const ROLES = ['administration', 'employee', 'client'];
@@ -31,5 +32,5 @@ export function getTvLoginReturnPath(): string | null {
 export function resolveTvLoginReturn(fallback: string): string {
   // Password setup and account recovery always take precedence.
   if (fallback.startsWith('/auth/employee-first-login') || fallback.startsWith('/auth/reset-password')) return fallback;
-  return getTvLoginReturnPath() ?? fallback;
+  return getTvLoginReturnPath() ?? resolveWebLoginReturn(fallback);
 }
