@@ -51,7 +51,7 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
   const [regularScale, setRegularScale] = useState<WebFontScale>(WEB_FONT_SCALE_DEFAULT);
   const [mobileScale, setMobileScale] = useState<WebFontScale>(WEB_FONT_SCALE_DEFAULT);
   const scale = compactWorkspace ? mobileScale : desktopWorkspace ? desktopScale : regularScale;
-  const effectiveScale = workspaceEffectiveScale(scale, compactWorkspace || desktopWorkspace);
+  const effectiveScale = workspaceEffectiveScale(scale, compactWorkspace || desktopWorkspace, desktopWorkspace);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
