@@ -182,7 +182,6 @@ export function VitalReadingCreateScreen() {
     if (!result.ok) { setError(result.error); return; }
     setSuccess(`Messung gespeichert · ${new Date(result.data.measuredAt).toLocaleString('de-DE')} · ${result.data.recordedByName ?? employeeName}`);
     setValues({}); setContext({}); setNote('');
-    setTimeout(() => router.replace(`/pflege/vitalwerte/${result.data.id}` as never), 850);
   }
 
   const selectedClientName = clients.find((client) => client.id === clientId)?.name ?? '—';

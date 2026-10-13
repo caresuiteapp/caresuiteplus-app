@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
 import { DedicatedListScreen } from '@/components/einzelseiten/DedicatedListScreen';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
@@ -20,16 +19,16 @@ function useCareClientOptions() {
 }
 
 export function ClinicalHandoverCreateScreen() {
-  const router = useRouter(); const { tenantId, role, options } = useCareClientOptions();
+  const { tenantId, role, options } = useCareClientOptions();
   const [clientId, setClientId] = useState(''); const [priority, setPriority] = useState('normal');
   const [title, setTitle] = useState(''); const [situation, setSituation] = useState('');
   const [background, setBackground] = useState(''); const [assessment, setAssessment] = useState('');
   const [recommendation, setRecommendation] = useState(''); const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null); const [saved, setSaved] = useState(false);
   async function save() {
-    if (!tenantId) return; setBusy(true); setError(null);
+    if (!tenantId || busy || saved) return; setBusy(true); setError(null);
     const result = await createClinicalHandover(tenantId, clientId, { priority, title, situation, background, assessment, recommendation }, role);
-    setBusy(false); if (!result.ok) return setError(result.error); setSaved(true); setTimeout(() => router.replace('/pflege/uebergaben' as never), 700);
+    setBusy(false); if (!result.ok) return setError(result.error); setSaved(true);
   }
   return <ScreenShell title="Übergabe erstellen" subtitle="SBAR-strukturiert · Live · quittierbar"><ScrollView contentContainerStyle={styles.content}>
     <SectionPanel title="Fallübergabe" subtitle="Situation · Background · Assessment · Recommendation">
@@ -39,7 +38,7 @@ export function ClinicalHandoverCreateScreen() {
       <PremiumInput label="Hintergrund" value={background} onChangeText={setBackground} multiline /><PremiumInput label="Einschätzung" value={assessment} onChangeText={setAssessment} multiline />
       <PremiumInput label="Empfehlung / nächste Handlung *" value={recommendation} onChangeText={setRecommendation} multiline />
       {error ? <ErrorState message={error} /> : null}{saved ? <SuccessState message="Übergabe wurde live gespeichert." /> : null}
-      <PremiumButton title="Übergabe verbindlich speichern" fullWidth loading={busy} disabled={busy || !clientId || !title.trim() || !situation.trim() || !recommendation.trim()} onPress={save} />
+      <PremiumButton title="Übergabe verbindlich speichern" fullWidth loading={busy} disabled={busy || saved || !clientId || !title.trim() || !situation.trim() || !recommendation.trim()} onPress={save} />
     </SectionPanel></ScrollView></ScreenShell>;
 }
 
@@ -50,15 +49,15 @@ export function TreatmentExecutionListScreen() {
 }
 
 export function TreatmentExecutionCreateScreen() {
-  const router = useRouter(); const { tenantId, role, options } = useCareClientOptions();
+  const { tenantId, role, options } = useCareClientOptions();
   const [clientId, setClientId] = useState(''); const [type, setType] = useState('injection');
   const [title, setTitle] = useState(''); const [outcome, setOutcome] = useState('performed');
   const [details, setDetails] = useState(''); const [deviation, setDeviation] = useState(''); const [escalation, setEscalation] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null); const [saved, setSaved] = useState(false);
   async function save() {
-    if (!tenantId) return; setBusy(true); setError(null);
+    if (!tenantId || busy || saved) return; setBusy(true); setError(null);
     const result = await recordTreatmentExecution(tenantId, clientId, { treatmentType: type, title, outcome, details, deviationReason: deviation, escalation, qualificationSnapshot: 'Angemeldete Fachkraft · Berechtigung serverseitig geprüft' }, role);
-    setBusy(false); if (!result.ok) return setError(result.error); setSaved(true); setTimeout(() => router.replace('/pflege/behandlungspflege' as never), 700);
+    setBusy(false); if (!result.ok) return setError(result.error); setSaved(true);
   }
   return <ScreenShell title="Behandlungspflege dokumentieren" subtitle="Durchführung · Abweichung · Eskalation"><ScrollView contentContainerStyle={styles.content}><SectionPanel title="Durchführungsnachweis" subtitle="Auf Grundlage einer gültigen ärztlichen Anordnung">
     <Text style={styles.label}>Aktiver Pflegefall *</Text><FilterChipGroup wrap options={options} value={clientId} onChange={setClientId} />
@@ -67,7 +66,7 @@ export function TreatmentExecutionCreateScreen() {
     <FilterChipGroup wrap options={[{ key: 'performed', label: 'Durchgeführt' }, { key: 'partial', label: 'Teilweise' }, { key: 'omitted', label: 'Ausgelassen' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'failed', label: 'Nicht möglich' }]} value={outcome} onChange={setOutcome} />
     <PremiumInput label="Durchführung / Beobachtung *" value={details} onChangeText={setDetails} multiline /><PremiumInput label="Abweichungsgrund" value={deviation} onChangeText={setDeviation} multiline /><PremiumInput label="Eskalation / Rücksprache" value={escalation} onChangeText={setEscalation} multiline />
     {error ? <ErrorState message={error} /> : null}{saved ? <SuccessState message="Durchführung wurde unveränderbar dokumentiert." /> : null}
-    <PremiumButton title="Durchführung live dokumentieren" fullWidth loading={busy} disabled={busy || !clientId || !title.trim() || !details.trim()} onPress={save} />
+    <PremiumButton title="Durchführung live dokumentieren" fullWidth loading={busy} disabled={busy || saved || !clientId || !title.trim() || !details.trim()} onPress={save} />
   </SectionPanel></ScrollView></ScreenShell>;
 }
 

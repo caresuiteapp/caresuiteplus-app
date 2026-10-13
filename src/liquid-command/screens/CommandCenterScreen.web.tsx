@@ -79,14 +79,33 @@ export function CommandCenterScreen() {
   const tenant = permissions.tenantId ?? '';
   const user = auth.user?.id ?? '';
   const identity = JSON.stringify([tenant, user]);
-  const [selectedArea, setSelectedArea] = useState<DesktopAreaKey>('office');
+  const [selection, setSelection] = useState<{ identity: string; area: DesktopAreaKey } | null>(null);
+  const [selectionWarning, setSelectionWarning] = useState(false);
+  const selectionKey = `caresuite.healthos.active-area.v1.${encodeURIComponent(identity)}`;
+  useEffect(() => {
+    let active = true;
+    setSelectionWarning(false);
+    if (!tenant || !user) return;
+    void AsyncStorage.getItem(selectionKey).then(value => {
+      if (!active) return;
+      const area = DESKTOP_AREAS.find(item => item.key === value)?.key ?? 'office';
+      setSelection({ identity, area });
+    }).catch(() => { if (active) { setSelection({ identity, area: 'office' }); setSelectionWarning(true); } });
+    return () => { active = false; };
+  }, [tenant, user, identity, selectionKey]);
+  const selectedArea = selection?.identity === identity ? selection.area : 'office';
+  const setSelectedArea = (area: DesktopAreaKey) => {
+    setSelection({ identity, area });
+    void AsyncStorage.setItem(selectionKey, area).then(() => setSelectionWarning(false)).catch(() => setSelectionWarning(true));
+  };
   const availableModules = DESKTOP_MODULES.filter(module => permissions.hasModuleGate(module.key) && permissions.can(`${module.key}.access` as PermissionKey));
   const availableSignature = availableModules.map(module => module.key).join(',');
   if (!tenant || !user || !availableSignature) return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
     <Text style={styles.sidebarTitle}>Keine freigegebenen Arbeitsbereiche</Text>
     <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
   </View></View>;
-  return <ModuleDesktopScreen key={`${identity}:${availableSignature}:${selectedArea}`} tenantId={tenant} availableSignature={availableSignature} selectedArea={selectedArea} onSelectArea={setSelectedArea} />;
+  if (selection?.identity !== identity) return <View style={[styles.background, styles.loadingHost]}><Text style={styles.desktopSubtitle}>Desktop wird wiederhergestellt…</Text></View>;
+  return <View style={{ flex: 1, minHeight: 0 }}>{selectionWarning ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Der Desktop-Bereich konnte nicht dauerhaft gespeichert werden.</Text> : null}<ModuleDesktopScreen key={`${identity}:${availableSignature}:${selectedArea}`} tenantId={tenant} availableSignature={availableSignature} selectedArea={selectedArea} onSelectArea={setSelectedArea} /></View>;
 }
 
 function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSelectArea }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void }) {

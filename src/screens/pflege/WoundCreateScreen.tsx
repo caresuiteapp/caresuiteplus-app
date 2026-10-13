@@ -72,7 +72,6 @@ export function WoundCreateScreen() {
 
     setSaving(false);
     setCreatedId(result.data.id);
-    setTimeout(() => router.replace(`/pflege/wunden/${result.data.id}` as never), 900);
   }
 
   if (saving) {
@@ -85,7 +84,7 @@ export function WoundCreateScreen() {
 
   if (createdId) {
     return (
-      <ScreenShell title="Wunde angelegt" showBack={false}>
+      <ScreenShell title="Wunde angelegt" showBack={true}>
         <SuccessState message="Wunddokumentation gespeichert." />
       </ScreenShell>
     );

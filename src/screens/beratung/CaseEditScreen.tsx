@@ -57,7 +57,6 @@ export function CaseEditScreen() {
       return;
     }
     setSaved(true);
-    setTimeout(() => router.replace(`/beratung/faelle/${id}` as never), 900);
   }
 
   if (loading) {
@@ -70,7 +69,7 @@ export function CaseEditScreen() {
 
   if (saved) {
     return (
-      <ScreenShell title="Gespeichert" showBack={false}>
+      <ScreenShell title="Gespeichert">
         <SuccessState message="Beratungsfall aktualisiert." />
       </ScreenShell>
     );
