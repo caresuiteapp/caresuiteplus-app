@@ -7,7 +7,7 @@ import { webPageHref } from '@/lib/navigation/webPageHref';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ClientDetailModal } from '@/components/office/clientdetailmodal';
 import { ClientIntakeModal } from '@/components/office/clientintakemodal';
-import { ClientsListView } from '@/components/office/ClientsListView';
+import { ClientsListExperience } from '@/components/office/ClientsListExperience.web';
 import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
@@ -67,7 +67,7 @@ export function ClientsListScreen({
   const handleClientPress = onClientPress ?? (modalMode ? openDetail : undefined);
   const effectiveRefreshToken = refreshToken + localRefreshToken;
   const listView = (
-    <ClientsListView
+    <ClientsListExperience
       onClientPress={handleClientPress}
       onOpenDetail={modalMode ? openDetail : undefined}
       onCreatePress={canCreate ? openCreate : undefined}

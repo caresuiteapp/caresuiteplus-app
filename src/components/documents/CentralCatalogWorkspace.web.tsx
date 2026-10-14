@@ -183,7 +183,7 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
   const modify = (transform: (s: CentralDocumentSnapshot) => CentralDocumentSnapshot) => {
     setSnapshot((s) => {
       if (!s) return s;
-      const next = savedId ? { ...s, documentId: newCentralDocumentId(), parentDocumentId: savedId, revision: s.revision + 1, createdAt: new Date().toISOString() } : s;
+      const next = savedId && s.parentDocumentId !== savedId ? { ...s, documentId: newCentralDocumentId(), parentDocumentId: savedId, revision: s.revision + 1, createdAt: new Date().toISOString() } : s;
       return transform(next);
     }); setSavedId(''); setChangeVersion((value) => value + 1); setMessage('');
   };

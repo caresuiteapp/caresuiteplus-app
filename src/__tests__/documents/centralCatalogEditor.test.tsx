@@ -59,6 +59,14 @@ describe('document editor persistence interactions (no browser layout assertion)
       expect(saved[0].tableOrigin).toBe('manual');
       expect(saved[0].additionalText).toContain('Weiteres Vorgehen');
       expect(saved[0].context.entityId).toBe(C);
+      await act(async () => pick(resources, 'Ergänzen').click());
+      await act(async () => { pick(resources, 'Hauswirtschaft').click(); pick(resources, 'Mobilität').click(); });
+      await act(async () => [...element.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Entwurf in Akte speichern')!.click());
+      expect(saved).toHaveLength(2);
+      expect(saved[1].revision).toBe(2);
+      expect(saved[1].parentDocumentId).toBe(saved[0].documentId);
+      expect(saved[1].values[resourceKey]).toContain('hauswirtschaftlichen');
+      expect(saved[1].values[resourceKey]).toContain('Mobilität');
     } finally { await act(async () => root.unmount()); element.remove(); objectUrl.mockRestore(); revokeUrl.mockRestore(); }
   });
 
