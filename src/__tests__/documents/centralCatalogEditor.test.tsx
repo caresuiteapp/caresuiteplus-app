@@ -11,6 +11,57 @@ vi.mock('@/lib/documents/centralCatalogPdf', () => ({ renderCentralDocumentPdf: 
 const T = '11111111-1111-4111-8111-111111111111', C = '22222222-2222-4222-8222-222222222222';
 
 describe('document editor persistence interactions (no browser layout assertion)', () => {
+  it('combines quick choices with manual text, undoes replacement and saves the chosen blocks', async () => {
+    const element = document.createElement('div'); document.body.append(element); const root = createRoot(element);
+    const saved: CentralDocumentSnapshot[] = [];
+    const objectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('about:blank');
+    const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const props: CentralCatalogWorkspaceProps = {
+      tenantId: T, author: 'Anna', demo: true, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
+      permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
+      clientId: C, templateKey: 'csdc_aufnahme_002',
+      loadContext: async () => ({ ok: true, data: mapCentralContext({ tenantId: T, target: 'client', entityId: C,
+        company: { name: 'Unternehmen GmbH', street: 'Parkstraße 12', postal_code: '10115', city: 'Berlin' }, subject: { first_name: 'Mara', last_name: 'Muster' },
+      }) }),
+      save: async (current) => { saved.push(structuredClone(current)); return { ok: true, data: { id: current.documentId, tenantId: T, title: current.definition.title, templateKey: current.definition.key, revision: current.revision, snapshot: current, state: 'draft', pdfPath: 'draft.pdf', pdfHash: 'a'.repeat(64), createdAt: current.createdAt } }; },
+      download: vi.fn(), onSaved: vi.fn(), onRefresh: vi.fn(),
+    };
+    const field = (prefix: string) => [...element.querySelectorAll<HTMLLabelElement>('label')].find((label) => label.textContent?.startsWith(prefix))!.closest<HTMLDivElement>('.csdc-quick-field')!;
+    const pick = (parent: Element, text: string) => [...parent.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === text)!;
+    try {
+      await act(async () => root.render(<CentralCatalogWorkspace {...props} />));
+      const resources = field('Unterstützungsbedarf und vorhandene Ressourcen');
+      const input = resources.querySelector<HTMLTextAreaElement>('textarea')!;
+      await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, 'Individuelle Beobachtung bleibt erhalten.'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+      await act(async () => pick(resources, 'Körperpflege').click());
+      await act(async () => pick(resources, 'Hauswirtschaft').click());
+      expect(input.value).toContain('Individuelle Beobachtung bleibt erhalten.');
+      expect(input.value).toContain('Körperpflege'); expect(input.value).toContain('hauswirtschaftlichen');
+      await act(async () => pick(resources, 'Rückgängig').click());
+      expect(input.value).toContain('Körperpflege'); expect(input.value).not.toContain('hauswirtschaftlichen');
+      await act(async () => resources.querySelector('summary')!.click());
+      await act(async () => pick(resources, 'Ersetzen').click());
+      await act(async () => pick(resources, 'Hauswirtschaft').click());
+      expect(input.value).toBe('Unterstützungsbedarf bei hauswirtschaftlichen Aufgaben.');
+      await act(async () => pick(resources, 'Rückgängig').click());
+      expect(input.value).toContain('Individuelle Beobachtung bleibt erhalten.');
+      await act(async () => pick(field('Anlass und Versorgungsbeginn'), 'Neuaufnahme').click());
+      const cell = [...element.querySelectorAll<HTMLDivElement>('.csdc-quick-field.compact')].find((entry) => entry.querySelector('label')?.textContent === 'Gegenstand / Maßnahme, Zeile 1')!;
+      await act(async () => cell.querySelector('summary')!.click());
+      await act(async () => [...cell.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.querySelector('span')?.textContent === 'Unterlagenprüfung')!.click());
+      await act(async () => pick(field('Individuelle Zusatztexte / Vereinbarungen'), 'Weitere Abstimmung').click());
+      await act(async () => [...element.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Entwurf in Akte speichern')!.click());
+      expect(saved).toHaveLength(1);
+      const resourceKey = saved[0].definition.fields.find((item) => item.label === 'Unterstützungsbedarf und vorhandene Ressourcen')!.key;
+      expect(saved[0].values[resourceKey]).toBe(input.value);
+      expect(saved[0].fieldOrigins[resourceKey]).toBe('manual');
+      expect(saved[0].tableRows[0][1]).toBe('Prüfung der Aufnahmeunterlagen');
+      expect(saved[0].tableOrigin).toBe('manual');
+      expect(saved[0].additionalText).toContain('Weiteres Vorgehen');
+      expect(saved[0].context.entityId).toBe(C);
+    } finally { await act(async () => root.unmount()); element.remove(); objectUrl.mockRestore(); revokeUrl.mockRestore(); }
+  });
+
   it('requires a concrete record choice for a repeated name and loads exactly that record', async () => {
     const otherId = '33333333-3333-4333-8333-333333333333';
     const element = document.createElement('div'); document.body.append(element); const root = createRoot(element);

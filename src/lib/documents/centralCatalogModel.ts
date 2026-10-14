@@ -1,4 +1,4 @@
-import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot } from '@/types/documents/centralCatalog';
+import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentField, CentralDocumentSnapshot } from '@/types/documents/centralCatalog';
 
 export const CENTRAL_COMMON_FIELDS = new Set(['date', 'author', 'companyName', 'companyAddress', 'subjectName', 'subjectAddress', 'birthDate', 'careLevel', 'payorName', 'insuranceNumber', 'personnelNumber', 'jobTitle']);
 
@@ -12,8 +12,7 @@ export function createCentralSnapshot(definition: CentralDocumentDefinition, con
   const values: Record<string, string> = {};
   const fieldOrigins: CentralDocumentSnapshot['fieldOrigins'] = {};
   for (const field of definition.fields) {
-    const [group, name] = field.sourcePath?.split('.') ?? [];
-    const source = (group && name ? (frozenContext[group as keyof CentralDocumentContext] as Record<string, string>)?.[name] : '') || centralProcedureValue(field.key, frozenContext, definition.key);
+    const source = centralStoredFieldValue(field, frozenContext, definition.key);
     values[field.key] = field.key === 'date' ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) : field.key === 'author' ? author : source || field.defaultValue || '';
     fieldOrigins[field.key] = field.key === 'date' || (!source && field.defaultValue) ? 'default' : values[field.key] ? 'stored' : 'empty';
     if (/^f0_leistungszeitraum/.test(field.key) && frozenContext.procedure?.periodOrigin === 'selected') fieldOrigins[field.key] = 'default';
@@ -26,6 +25,11 @@ export function createCentralSnapshot(definition: CentralDocumentDefinition, con
     sectionTexts: Object.fromEntries(definition.sections.map((s) => [s.key, s.text])),
     additionalText: '', createdAt: new Date().toISOString(), documentId: id, revision: 1,
   };
+}
+
+export function centralStoredFieldValue(field: CentralDocumentField, context: CentralDocumentContext, templateKey: string): string {
+  const [group, name] = field.sourcePath?.split('.') ?? [];
+  return (group && name ? (context[group as keyof CentralDocumentContext] as Record<string, string>)?.[name] : '') || centralProcedureValue(field.key, context, templateKey);
 }
 
 function centralProcedureValue(key: string, context: CentralDocumentContext, templateKey: string): string {
