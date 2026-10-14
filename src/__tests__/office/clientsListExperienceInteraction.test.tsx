@@ -6,12 +6,12 @@ import { ClientsListExperience } from '@/components/office/ClientsListExperience
 import type { ClientListItem } from '@/types/modules/office';
 
 const h = vi.hoisted(() => ({
-  list: {} as Record<string, unknown>, canCreate: true, canCsv: true,
+  list: {} as Record<string, unknown>, canCreate: true, canCsv: true, canViewSensitive: true,
   push: vi.fn(), create: vi.fn(), select: vi.fn(), open: vi.fn(),
 }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({
-  can: (permission: string) => permission === 'office.clients.create' ? h.canCreate : h.canCsv,
+  can: (permission: string) => permission === 'office.clients.create' ? h.canCreate : permission === 'office.clients.view_sensitive' ? h.canViewSensitive : h.canCsv,
   isReadOnly: !h.canCreate, roleLabel: 'Lesende Mitarbeitende',
 }) }));
 vi.mock('@/hooks/useClientList', () => ({ useClientList: () => h.list }));
@@ -33,7 +33,7 @@ const change = async (select: HTMLSelectElement, value: string) => { await act(a
 
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); h.canCreate = true; h.canCsv = true;
+  vi.clearAllMocks(); h.canCreate = true; h.canCsv = true; h.canViewSensitive = true;
   h.list = {
     items: [first], kpiItems: [first, second], allItems: [first], filteredCount: 1,
     loading: false, refreshing: false, error: null, isLive: true, isLiveConnected: true,
@@ -115,6 +115,25 @@ describe('web client records list interaction', () => {
     expect(rows[0].textContent).toContain('Johann Winter');
     expect(rows[0].textContent).toContain('Archiviert');
     expect(host.querySelector('.cs-records-results')?.textContent).toContain('1 Akte gefunden');
+  });
+
+  it.each([true, false])('shows insurance below the carrier in both list views with permission %s', async (allowed) => {
+    h.canViewSensitive = allowed;
+    h.list.items = [{ ...first, insuranceNumber: 'A123456789' }];
+    await render();
+    const tableNumber = host.querySelector('.cs-records-table .cs-records-insurance')!;
+    expect(tableNumber.previousElementSibling?.textContent).toBe('AOK');
+    expect(tableNumber.textContent).toBe(`Versichertennummer${allowed ? 'A123456789' : '••• Geschützt'}`);
+    await click(button('Aktenkarten'));
+    const cardCarrier = host.querySelector('.cs-records-card-carrier')!;
+    expect(cardCarrier.firstChild?.textContent).toBe('AOK');
+    expect(cardCarrier.querySelector('.cs-records-insurance')?.textContent).toBe(tableNumber.textContent);
+    if (!allowed) expect(host.innerHTML).not.toContain('A123456789');
+  });
+
+  it('explains a missing insurance number in both list views', async () => {
+    await render();
+    for (const element of host.querySelectorAll('.cs-records-insurance')) expect(element.textContent).toBe('VersichertennummerNicht hinterlegt');
   });
 
   it('continues an unsaved intake through the existing intake action and supports display changes', async () => {

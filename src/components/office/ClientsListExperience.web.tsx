@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useClientList } from '@/hooks/useClientList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
+import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
 import { clientRecordRoute, CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { buildClientListKpis, filterClientsByCareLevel, type ClientCareLevelFilterKey } from '@/lib/office/clientListStats';
@@ -74,6 +75,7 @@ export function ClientsListExperience({
   const [localVisibleCount, setLocalVisibleCount] = useState(8);
   const filterId = useId();
   const canCreate = can('office.clients.create');
+  const canViewSensitive = can('office.clients.view_sensitive');
   const canCsv = can('tenant.settings.csv.view');
   const handleCreate = onCreatePress ?? (() => router.push(CLIENT_INTAKE_NEW_ROUTE as never));
   const handleOpen = onOpenDetail ?? onClientPress ?? ((id: string) => router.push(clientRecordRoute(id) as never));
@@ -200,7 +202,7 @@ export function ClientsListExperience({
             <div className="cs-records-table-scroll"><table className="cs-records-table"><thead><tr><th scope="col" aria-sort={list.sortKey === 'name_asc' ? 'ascending' : list.sortKey === 'name_desc' ? 'descending' : 'none'}><button type="button" onClick={() => list.setSortKey(list.sortKey === 'name_asc' ? 'name_desc' : 'name_asc')}>Klient:in{list.sortKey.startsWith('name_') ? list.sortKey === 'name_asc' ? ' ↑' : ' ↓' : ''}</button></th><th scope="col">Versorgung</th><th scope="col" aria-sort={list.sortKey === 'city_asc' ? 'ascending' : 'none'}><button type="button" onClick={() => list.setSortKey('city_asc')}>Kontakt & Ort{list.sortKey === 'city_asc' ? ' ↑' : ''}</button></th><th scope="col">Bearbeitungsstand</th><th scope="col">Geändert am</th><th scope="col"><span className="cs-records-sr">Akte öffnen</span></th></tr></thead><tbody>
               {visibleItems.map((client) => <tr key={client.id} className={selectedId === client.id ? 'is-selected' : undefined} aria-selected={selectedId === client.id}>
                 <td><button type="button" className="cs-records-identity" onClick={() => handleSelect(client.id)}><MiniFolder client={client} /><span><strong>{clientName(client)}</strong><small>{client.dateOfBirth ? `Geb. ${formatDate(client.dateOfBirth)}` : 'Geburtsdatum nicht hinterlegt'}</small></span></button></td>
-                <td><strong>{client.careLevel ? formatCareLevel(client.careLevel) : 'Pflegegrad nicht hinterlegt'}</strong><small>{client.costCarrier || 'Kostenträger nicht hinterlegt'}</small></td>
+                <td><strong>{client.careLevel ? formatCareLevel(client.careLevel) : 'Pflegegrad nicht hinterlegt'}</strong><small>{client.costCarrier || 'Kostenträger nicht hinterlegt'}</small><small className="cs-records-insurance"><span>Versichertennummer</span><b>{resolveClientInsuranceDisplay(client, canViewSensitive)}</b></small></td>
                 <td><strong>{[client.zip, client.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'}</strong><ClientPhone phone={client.primaryContactPhone} /></td>
                 <td><Status status={client.status} /></td><td><span className="cs-records-date">{formatDate(client.updatedAt)}</span></td>
                 <td><button type="button" className="cs-records-open" onClick={() => handleOpen(client.id)} aria-label={`Akte von ${clientName(client)} öffnen`}><span>Akte öffnen</span><Icon name="arrow" /></button></td>
@@ -209,7 +211,7 @@ export function ClientsListExperience({
             <div className="cs-records-cards">{visibleItems.map((client) => <article key={client.id} className={`cs-records-card${selectedId === client.id ? ' is-selected' : ''}`}>
               <div className="cs-records-card-top"><Status status={client.status} /><span className="cs-records-card-care">{client.careLevel ? formatCareLevel(client.careLevel) : 'Pflegegrad offen'}</span></div>
               <button type="button" className="cs-records-card-identity" onClick={() => handleSelect(client.id)}><MiniFolder client={client} large /><strong>{clientName(client)}</strong><small>{client.dateOfBirth ? `Geb. ${formatDate(client.dateOfBirth)}` : 'Geburtsdatum nicht hinterlegt'}</small></button>
-              <div className="cs-records-card-details"><span><Icon name="pin" />{[client.zip, client.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'}</span><ClientPhone phone={client.primaryContactPhone} /><span className="cs-records-card-carrier">{client.costCarrier || 'Kostenträger nicht hinterlegt'}</span></div>
+              <div className="cs-records-card-details"><span><Icon name="pin" />{[client.zip, client.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'}</span><ClientPhone phone={client.primaryContactPhone} /><span className="cs-records-card-carrier">{client.costCarrier || 'Kostenträger nicht hinterlegt'}<span className="cs-records-insurance"><span>Versichertennummer</span><b>{resolveClientInsuranceDisplay(client, canViewSensitive)}</b></span></span></div>
               <div className="cs-records-card-footer"><span>Geändert<br /><strong>{formatDate(client.updatedAt)}</strong></span><button type="button" className="cs-records-open" onClick={() => handleOpen(client.id)} aria-label={`Akte von ${clientName(client)} öffnen`}>Akte öffnen<Icon name="arrow" /></button></div>
             </article>)}</div>
           </div>

@@ -29,7 +29,8 @@ import { loadClientIntakeDraft } from '@/lib/clients/clientIntakeDraftStorage';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { archiveClient, deleteClient } from '@/lib/office';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
-import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview.web';
+import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
+import { buildClientRecordOverview, resolveClientCostBearer } from '@/lib/clients/clientRecordOverview.web';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -89,6 +90,8 @@ function StammdatenTab({
         <DetailInfoRow label="Telefon" value={phone} />
         <DetailInfoRow label="E-Mail" value={email} />
         <DetailInfoRow label="Pflegegrad" value={formatCareLevel(detail.careLevel) || '—'} />
+        <DetailInfoRow label="Kostenträger" value={resolveClientCostBearer(detail)} />
+        <DetailInfoRow label="Versichertennummer" value={resolveClientInsuranceDisplay(fullClient ?? detail, canViewSensitive)} />
         <DetailInfoRow label="Leistungsart" value={serviceTypes} />
       </SectionPanel>
       {fullClient ? (
@@ -96,16 +99,6 @@ function StammdatenTab({
           <DetailInfoRow label="Anrede" value={formatSalutation(fullClient.core.salutation) || '—'} />
           <DetailInfoRow label="Geschlecht" value={fullClient.core.gender ? getCatalogLabel('gender', fullClient.core.gender) : null} />
           <DetailInfoRow label="Status" value={WORKFLOW_STATUS_LABELS[detail.status]} />
-          <DetailInfoRow
-            label="Versichertennummer"
-            value={
-              fullClient.core.insuranceNumber
-                ? canViewSensitive
-                  ? fullClient.core.insuranceNumber
-                  : '••• Geschützt'
-                : null
-            }
-          />
           <DetailInfoRow
             label="Schlüsseltresor"
             value={
@@ -258,8 +251,8 @@ function ClientRecordScreenContent({
   }, [editParam, embedded, detail, router, onEditMasterData, can, setMasterDataEditOpen]);
 
   const overview = useMemo(
-    () => (detail ? buildClientRecordOverview(detail, careContexts, tabs) : null),
-    [detail, careContexts, tabs],
+    () => (detail ? buildClientRecordOverview(detail, careContexts, tabs, undefined, fullQuery.canViewSensitive) : null),
+    [detail, careContexts, tabs, fullQuery.canViewSensitive],
   );
 
   useAiPageContext({

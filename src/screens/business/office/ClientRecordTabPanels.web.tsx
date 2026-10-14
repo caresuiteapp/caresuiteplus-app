@@ -4,7 +4,7 @@ import {
   ClientRecordTasksPanel,
   ClientRecordLeistungsbereichePanel,
 } from './ClientRecordTabPanels.tsx';
-import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel';
+import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel.web';
 import { usePageTab } from '@/hooks/usePageTab';
 import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations.web';
 import type { DocumentWorkflow } from '@/lib/documents/documentRecommendations';

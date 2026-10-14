@@ -63,6 +63,18 @@ describe('client overview actions and data states', () => {
     await act(async () => retry.click()); expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
+  it('groups the insured number directly below the cost bearer and keeps protected values out of the DOM', async () => {
+    const clientWithInsurance = { ...client, insuranceNumber: 'LEGACY-SECRET-100', core: { ...client.core, insuranceNumber: 'A123456789' } };
+    const allowed = buildClientRecordOverview(clientWithInsurance, [], [], undefined, true);
+    await render(vi.fn(), allowed);
+    const group = host.querySelector('.cs-record-overview-insurance')!;
+    expect([...group.children].map((element) => element.textContent)).toEqual(['Kostenträger', allowed.primaryCostBearer, 'Versichertennummer', 'A123456789']);
+    await render(vi.fn(), buildClientRecordOverview(clientWithInsurance, [], [], undefined, false));
+    expect(host.querySelector('.cs-record-overview-insurance')?.textContent).toContain('••• Geschützt');
+    expect(host.innerHTML).not.toContain('A123456789');
+    expect(host.innerHTML).not.toContain('LEGACY-SECRET-100');
+  });
+
   it('hides links to unavailable sections and does not repeat the client name', async () => {
     await render(vi.fn(), { ...data, availableTabs: ['uebersicht'], quickLinks: [] });
     expect(host.querySelector('[aria-label="Nächster Einsatz"]')).toBeNull();
