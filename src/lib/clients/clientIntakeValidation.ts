@@ -1,7 +1,7 @@
 import { getRequiredFieldsForClientContext, type IntakeSectionKey } from './clientIntakeFieldRules';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { COST_BEARER_FIELD_ERRORS, getCostBearerFieldValues, hasGkvCostBearerSelected, isCostBearerTypeKey } from './clientIntakeCostBearerConfig';
-import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierService';
+import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierValidation';
 import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { parseGermanOrIsoDateInput } from '@/lib/formatters/dateTimeFormatters';

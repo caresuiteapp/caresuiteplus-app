@@ -27,6 +27,8 @@ import { getServiceMode } from '@/lib/services/mode';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
+const PNG_SIGNATURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 const srcRoot = path.join(__dirname, '..', '..');
 
 function readSrc(relativePath: string): string {
@@ -252,7 +254,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(canProceedFromIntakeDocuments(repaired, listApplicableIntakeTemplates(repaired))).toBe(false);
     const reopened = openDocumentPreview(repaired, template);
     const resigned = applyDocumentSignature(reopened, template, repaired, 'client', {
-      role: 'client', dataUrl: 'data:image/png;base64,new-assignment', signedAt: '2026-10-11T10:00:00Z',
+      role: 'client', dataUrl: PNG_SIGNATURE, signedAt: '2026-10-11T10:00:00Z',
     });
     expect(resigned.status).toBe('finalized');
     const allRequired = updateIntakeDocumentInForm(finalizeRequiredDocs(repaired), resigned);
@@ -502,7 +504,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     const templates = listApplicableIntakeTemplates(form);
     const selectedKeys = templates.map((template) => template.templateKey);
     const signedAt = '2026-07-29T08:15:00.000Z';
-    const dataUrl = 'data:image/png;base64,gemeinsame-signatur';
+    const dataUrl = PNG_SIGNATURE;
 
     const result = applySharedClientSignatureToDocuments(
       form,

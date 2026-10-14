@@ -131,6 +131,8 @@ export type ClientIntakeFormData = {
   intakeAssignmentEnabled: boolean;
   intakeOptionalConsents: string[];
   intakeDocuments: IntakeDocumentState[];
+  /** Earlier signed originals retained when a new review is started. */
+  intakeDocumentHistory?: IntakeDocumentState[];
   consentTypes: string[];
   contractTypes: string[];
   documentCategories: string[];
@@ -267,6 +269,7 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   intakeAssignmentEnabled: false,
   intakeOptionalConsents: [],
   intakeDocuments: [],
+  intakeDocumentHistory: [],
   consentTypes: [],
   contractTypes: [],
   documentCategories: [],

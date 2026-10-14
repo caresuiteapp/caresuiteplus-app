@@ -6,7 +6,7 @@ import {
   type CostBearerTypeKey,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { formatSalutation } from '@/lib/formatters/unitFormatters';
-import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { escapeIntakeHtml as escape, formatIntakeDocumentDate as formatDate } from './intakeDocumentRenderBinding';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
 function buildAssignmentSubtitle(selected: CostBearerTypeKey[]): string {
@@ -66,9 +66,9 @@ export function buildCostCarrierMergeFields(
 
     partyParts.push(`${config.label}: ${name}`);
 
-    let item = `<li><strong>${config.label}:</strong> ${name}`;
+    let item = `<li><strong>${escape(config.label)}:</strong> ${escape(name)}`;
     if (values.ikNumber.trim()) {
-      item += ` (IK: ${values.ikNumber.trim()})`;
+      item += ` (IK: ${escape(values.ikNumber.trim())})`;
     }
     item += ';</li>';
     recipientItems.push(item);
@@ -109,51 +109,51 @@ function buildAssignmentIntro(
   if (selected.length === 0) return '';
 
   const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ').trim();
-  const prefix = `Ich, ${formatSalutation(form.salutation)} ${fullName}, geboren am ${formatDate(form.dateOfBirth)}, wohnhaft ${clientAddressLine(form)}, trete hiermit unwiderruflich — bis auf weiteres und unter Vorbehalt des Widerrufs gemäß § 7 — sämtliche Ansprüche auf Erstattung von Pflege- und Betreuungsleistungen, die mir gegenüber`;
+  const prefix = `Ich, ${escape(formatSalutation(form.salutation))} ${escape(fullName)}, geboren am ${formatDate(form.dateOfBirth)}, wohnhaft ${escape(clientAddressLine(form))}, trete hiermit unwiderruflich — bis auf weiteres und unter Vorbehalt des Widerrufs gemäß § 7 — sämtliche Ansprüche auf Erstattung von Pflege- und Betreuungsleistungen, die mir gegenüber`;
 
   if (selected.length === 1 && selected[0] === 'beihilfe') {
     const name = formatBeihilfeName(getCostBearerFieldValues(form, 'beihilfe').name);
-    return `${prefix} der <strong>${name}</strong> zustehen, an den Leistungserbringer <strong>${tenantName}</strong> ab.`;
+    return `${prefix} der <strong>${escape(name)}</strong> zustehen, an den Leistungserbringer <strong>${escape(tenantName)}</strong> ab.`;
   }
 
   if (selected.includes('pflegekasse')) {
     const pk = getCostBearerFieldValues(form, 'pflegekasse');
-    const ik = pk.ikNumber.trim() ? ` (Institutionskennzeichen: ${pk.ikNumber.trim()})` : '';
-    return `${prefix} der Pflegekasse <strong>${pk.name.trim()}</strong>${ik} zustehen, an den Leistungserbringer <strong>${tenantName}</strong> ab.`;
+    const ik = pk.ikNumber.trim() ? ` (Institutionskennzeichen: ${escape(pk.ikNumber.trim())})` : '';
+    return `${prefix} der Pflegekasse <strong>${escape(pk.name.trim())}</strong>${ik} zustehen, an den Leistungserbringer <strong>${escape(tenantName)}</strong> ab.`;
   }
 
   if (selected.includes('krankenkasse')) {
     const kk = getCostBearerFieldValues(form, 'krankenkasse');
-    const ik = kk.ikNumber.trim() ? ` (Institutionskennzeichen: ${kk.ikNumber.trim()})` : '';
-    return `${prefix} der Krankenkasse <strong>${kk.name.trim()}</strong>${ik} zustehen, an den Leistungserbringer <strong>${tenantName}</strong> ab.`;
+    const ik = kk.ikNumber.trim() ? ` (Institutionskennzeichen: ${escape(kk.ikNumber.trim())})` : '';
+    return `${prefix} der Krankenkasse <strong>${escape(kk.name.trim())}</strong>${ik} zustehen, an den Leistungserbringer <strong>${escape(tenantName)}</strong> ab.`;
   }
 
   const label = COST_BEARER_TYPE_CONFIG[selected[0]].label;
   const name = getCostBearerFieldValues(form, selected[0]).name.trim();
-  return `${prefix} ${label} <strong>${name}</strong> zustehen, an den Leistungserbringer <strong>${tenantName}</strong> ab.`;
+  return `${prefix} ${escape(label)} <strong>${escape(name)}</strong> zustehen, an den Leistungserbringer <strong>${escape(tenantName)}</strong> ab.`;
 }
 
 function buildBillingClause(form: ClientIntakeFormData, selected: CostBearerTypeKey[]): string {
-  const billingTypes = form.billingTypes.join(', ') || 'vereinbarte Abrechnungsart';
+  const billingTypes = escape(form.billingTypes.join(', ') || 'vereinbarte Abrechnungsart');
 
   if (selected.length === 1 && selected[0] === 'beihilfe') {
     const name = formatBeihilfeName(getCostBearerFieldValues(form, 'beihilfe').name);
-    return `Abrechnung über ${billingTypes} mit der <strong>${name}</strong>, soweit erstattungsfähige Leistungen vorliegen.`;
+    return `Abrechnung über ${billingTypes} mit der <strong>${escape(name)}</strong>, soweit erstattungsfähige Leistungen vorliegen.`;
   }
 
   if (selected.includes('pflegekasse')) {
     const name = getCostBearerFieldValues(form, 'pflegekasse').name.trim();
-    return `Abrechnung über ${billingTypes} mit der Pflegekasse <strong>${name}</strong>, sofern eine wirksame Abtretungserklärung vorliegt.`;
+    return `Abrechnung über ${billingTypes} mit der Pflegekasse <strong>${escape(name)}</strong>, sofern eine wirksame Abtretungserklärung vorliegt.`;
   }
 
   if (selected.includes('krankenkasse')) {
     const name = getCostBearerFieldValues(form, 'krankenkasse').name.trim();
-    return `Abrechnung über ${billingTypes} mit der Krankenkasse <strong>${name}</strong>, soweit gesetzliche Erstattungsansprüche bestehen.`;
+    return `Abrechnung über ${billingTypes} mit der Krankenkasse <strong>${escape(name)}</strong>, soweit gesetzliche Erstattungsansprüche bestehen.`;
   }
 
   const primary = resolvePrimaryCostBearerName(form);
   if (primary) {
-    return `Abrechnung über ${billingTypes} mit Kostenträger <strong>${primary}</strong>.`;
+    return `Abrechnung über ${billingTypes} mit Kostenträger <strong>${escape(primary)}</strong>.`;
   }
 
   return `Abrechnung über ${billingTypes}.`;
@@ -175,7 +175,7 @@ function buildDirectBillingTarget(form: ClientIntakeFormData, selected: CostBear
 export function buildFamilyDoctorClause(form: ClientIntakeFormData): string {
   const gp = form.familyDoctor.trim();
   if (gp) {
-    return `meine:n behandelnde:n Hausärzt:in <strong>${gp}</strong>`;
+    return `meine:n behandelnde:n Hausärzt:in <strong>${escape(gp)}</strong>`;
   }
   return 'meine behandelnden Ärzt:innen';
 }

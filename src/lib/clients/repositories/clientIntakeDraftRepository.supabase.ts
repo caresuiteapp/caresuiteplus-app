@@ -1,92 +1,123 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
-import type { Database } from '@/lib/supabase/database.types';
-import { normalizeIntakeCareLevelForDb } from '@/lib/clients/clientIntakeCareLevel';
+import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
-import { SERVICE_ERRORS } from '@/lib/services/errors';
-import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import {
-  resolvePrimaryCostBearerName,
-} from '@/lib/clients/clientIntakeCostBearerConfig';
-import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
 import { isUuid } from '@/lib/validation/uuid';
+import { mergeIntakeFormWithDefaults } from '@/lib/clients/clientIntakeDraftStorage';
 
-function getClient() {
-  return getSupabaseClient();
-}
+export type IntakeDraftReceipt = {
+  id: string;
+  contract: 'client-intake-draft-v1';
+  clientId: string;
+  revision: number;
+  formHash: string;
+  operationId: string;
+  status: 'draft';
+  replayed: boolean;
+};
+export type ServerIntakeDraft = {
+  clientId: string;
+  revision: number;
+  formHash: string;
+  status: 'draft' | 'completed';
+  form: ClientIntakeFormData;
+  updatedAt: string;
+  coreChanged: boolean;
+  currentClientUpdatedAt?: string;
+};
+export type IntakeDraftSaveResult = ServiceResult<IntakeDraftReceipt> & {
+  recoverableClientId?: string;
+  conflict?: boolean;
+  /** A SQL rejection proves this operation did not commit. Transport failures do not. */
+  rejected?: boolean;
+};
+const unavailable = 'Die Serversicherung ist derzeit nicht erreichbar. Der Entwurf bleibt auf diesem Gerät erhalten.';
+const validRevision = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
+const validHash = (value: unknown): value is string => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/i.test(value);
+const record = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 
-function unavailable(): Extract<ServiceResult<never>, { ok: false }> {
-  return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-}
-
-function resolveDraftNames(form: ClientIntakeFormData): { firstName: string; lastName: string } {
-  const firstName = form.firstName.trim() || 'Entwurf';
-  const lastName = form.lastName.trim() || '—';
-  return { firstName, lastName };
-}
-
-function buildIntakeClientPatch(
-  tenantId: string,
-  form: ClientIntakeFormData,
-  actorProfileId?: string | null,
-  status: Database['public']['Enums']['client_status'] = 'lead',
-): Database['public']['Tables']['clients']['Insert'] {
-  const { firstName, lastName } = resolveDraftNames(form);
-  const primaryCostBearerName = resolvePrimaryCostBearerName(form);
-  resolveIntakeBillingProfileType(form.billingTypes);
-
-  return {
-    tenant_id: tenantId,
-    first_name: firstName,
-    last_name: lastName,
-    date_of_birth: form.dateOfBirth || null,
-    care_level: normalizeIntakeCareLevelForDb(form.careLevel),
-    status,
-    street: form.street.trim() || null,
-    house_number: form.houseNumber.trim() || null,
-    postal_code: form.zip.trim() || null,
-    city: form.city.trim() || null,
-    phone: form.phone.trim() || null,
-    mobile: form.mobile.trim() || null,
-    email: form.email.trim() || null,
-    internal_notes: form.specialNotes.trim() || null,
-    insurance_number: form.insuranceNumber.trim() || null,
-    insurance_name: primaryCostBearerName,
-    cost_bearer: primaryCostBearerName,
-    admission_date: form.admissionDate || null,
-    gender: form.gender || null,
-    updated_by: actorProfileId ?? null,
-  };
-}
-
+/** The server owns actor identity, authorization and all draft writes. */
 export async function upsertClientIntakeDraft(
   tenantId: string,
   form: ClientIntakeFormData,
-  options?: { clientId?: string | null; actorProfileId?: string | null },
-): Promise<ServiceResult<{ id: string }> & { recoverableClientId?: string }> {
-  const supabase = getClient();
-  if (!supabase) return unavailable();
-
-  const patch = buildIntakeClientPatch(tenantId, form, options?.actorProfileId ?? null, 'lead');
-
-  const clientId = isUuid(options?.clientId) ? options.clientId : (await import('expo-crypto')).randomUUID();
+  options: { clientId: string; expectedRevision: number; operationId: string; actorProfileId?: string | null },
+): Promise<IntakeDraftSaveResult> {
+  const { clientId, expectedRevision, operationId } = options;
+  const failure = (error: string, conflict = false, rejected = false): IntakeDraftSaveResult => ({ ok: false, error, recoverableClientId: clientId, conflict, rejected });
+  if (!isUuid(tenantId) || !isUuid(clientId) || !isUuid(operationId) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+    return failure('Die Identität oder Version des Entwurfs ist ungültig. Bitte die Aufnahme erneut öffnen.');
+  }
+  const db = getSupabaseClient();
+  if (!db) return failure(unavailable);
   try {
-    const loaded = await supabase.from('clients').select('id, status')
-      .eq('id', clientId).eq('tenant_id', tenantId).maybeSingle();
-    if (loaded.error) return { ok: false, error: toGermanSupabaseError(loaded.error), recoverableClientId: clientId };
-    if (loaded.data && loaded.data.status !== 'lead') {
-      return { ok: false, error: 'Diese Aufnahme ist kein Entwurf mehr. Bitte öffnen Sie die bestehende Klientenakte.', recoverableClientId: clientId };
+    const { data, error } = await (db as SupabaseClient).rpc('client_intake_save_draft', {
+      p_tenant: tenantId, p_client: clientId, p_form: form,
+      p_expected_revision: expectedRevision, p_operation_id: operationId,
+    });
+    if (error) return failure(error.code === '40001'
+      ? 'Diese Aufnahme wurde inzwischen auf einem anderen Gerät geändert. Laden Sie den aktuellen Serverstand, bevor Sie weiter speichern.'
+      : toGermanSupabaseError(error), error.code === '40001', ['22023', '23502', '23503', '23505', '23514', '42501', '40001', 'P0001'].includes(error.code ?? ''));
+    if (!record(data) || data.contract !== 'client-intake-draft-v1' || data.clientId !== clientId ||
+        data.operationId !== operationId || !validRevision(data.revision) || data.revision !== expectedRevision + 1 ||
+        !validHash(data.formHash) || data.status !== 'draft' || typeof data.replayed !== 'boolean') {
+      return failure('Die Serversicherung konnte nicht eindeutig bestätigt werden. Bitte denselben Entwurf erneut sichern.');
     }
-    const query = loaded.data
-      ? supabase.from('clients').update(patch).eq('id', clientId).eq('tenant_id', tenantId).eq('status', 'lead')
-      : supabase.from('clients').insert({ ...patch, id: clientId, created_by: options?.actorProfileId ?? null });
-    const { data, error } = await query.select('id').single();
-    if (error || data?.id !== clientId) {
-      return { ok: false, error: error ? toGermanSupabaseError(error) : 'Serversicherung konnte nicht bestätigt werden. Bitte denselben Entwurf erneut speichern.', recoverableClientId: clientId };
-    }
-    return { ok: true, data: { id: clientId } };
+    return { ok: true, data: { ...data, id: clientId } as IntakeDraftReceipt };
   } catch {
-    // A lost response may follow a committed insert. Never allocate another UUID on retry.
-    return { ok: false, error: 'Serversicherung konnte nicht bestätigt werden. Bitte denselben Entwurf erneut speichern.', recoverableClientId: clientId };
+    return failure(unavailable);
+  }
+}
+
+export async function loadServerClientIntakeDraft(tenantId: string, clientId: string): Promise<ServiceResult<ServerIntakeDraft | null>> {
+  if (!isUuid(tenantId) || !isUuid(clientId)) return { ok: false, error: 'Die Aufnahme-ID ist ungültig.' };
+  const db = getSupabaseClient();
+  if (!db) return { ok: false, error: unavailable };
+  try {
+    const { data, error } = await (db as SupabaseClient).rpc('client_intake_load_draft', { p_tenant: tenantId, p_client: clientId });
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (data === null) return { ok: true, data: null };
+    if (!record(data) || data.contract !== 'client-intake-draft-v1' || data.clientId !== clientId ||
+        !validRevision(data.revision) || !validHash(data.formHash) || !['draft', 'completed'].includes(String(data.status)) ||
+        !record(data.form) || typeof data.updatedAt !== 'string') {
+      return { ok: false, error: 'Der gespeicherte Entwurf konnte nicht eindeutig geladen werden. Ihre Angaben werden nicht überschrieben.' };
+    }
+    return { ok: true, data: { clientId, revision: data.revision, formHash: data.formHash,
+      status: data.status as ServerIntakeDraft['status'], form: mergeIntakeFormWithDefaults(data.form), updatedAt: data.updatedAt,
+      coreChanged: data.coreChanged === true, currentClientUpdatedAt: typeof data.currentClientUpdatedAt === 'string' ? data.currentClientUpdatedAt : undefined } };
+  } catch {
+    return { ok: false, error: unavailable };
+  }
+}
+
+/** Explicitly adopt authoritative record fields; never accepts caller-supplied core data. */
+export async function reconcileServerClientIntakeDraft(
+  tenantId: string,
+  options: { clientId: string; expectedRevision: number; expectedClientUpdatedAt: string; operationId: string },
+): Promise<IntakeDraftSaveResult> {
+  const { clientId, expectedRevision, expectedClientUpdatedAt, operationId } = options;
+  const failure = (error: string, conflict = false, rejected = false): IntakeDraftSaveResult => ({ ok: false, error, recoverableClientId: clientId, conflict, rejected });
+  if (!isUuid(tenantId) || !isUuid(clientId) || !isUuid(operationId) || !validRevision(expectedRevision) ||
+      !expectedClientUpdatedAt || !Number.isFinite(Date.parse(expectedClientUpdatedAt))) {
+    return failure('Die aktuelle Aktenfassung konnte nicht eindeutig bestimmt werden. Bitte erneut laden.');
+  }
+  const db = getSupabaseClient();
+  if (!db) return failure(unavailable);
+  try {
+    const { data, error } = await (db as SupabaseClient).rpc('client_intake_reconcile_draft', {
+      p_tenant: tenantId, p_client: clientId, p_expected_revision: expectedRevision,
+      p_expected_client_updated_at: expectedClientUpdatedAt, p_operation_id: operationId,
+    });
+    if (error) return failure(error.code === '40001'
+      ? 'Die Akte wurde während der Übernahme erneut geändert. Prüfen Sie die aktuelle Fassung und versuchen Sie die Übernahme erneut.'
+      : toGermanSupabaseError(error), error.code === '40001', ['22023', '23502', '23503', '23505', '23514', '42501', '40001', 'P0001'].includes(error.code ?? ''));
+    if (!record(data) || data.contract !== 'client-intake-draft-v1' || data.clientId !== clientId ||
+        data.operationId !== operationId || data.revision !== expectedRevision + 1 || !validRevision(data.revision) ||
+        !validHash(data.formHash) || data.status !== 'draft' || typeof data.replayed !== 'boolean') {
+      return failure('Die Übernahme wurde nicht eindeutig bestätigt. Bitte denselben Vorgang erneut versuchen.');
+    }
+    return { ok: true, data: { ...data, id: clientId } as IntakeDraftReceipt };
+  } catch {
+    return failure('Die Übernahme konnte nicht bestätigt werden. Bitte denselben Vorgang erneut versuchen.');
   }
 }

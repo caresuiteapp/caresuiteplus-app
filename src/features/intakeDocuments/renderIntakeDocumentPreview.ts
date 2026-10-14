@@ -2,8 +2,15 @@ import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { IntakeDocumentSignature, IntakeDocumentTemplate } from './intakeDocumentTypes';
 import type { IntakePlaceholderContext } from './buildIntakeDocumentContext';
+import { escapeIntakeHtml, formatIntakeDocumentDateTime, isIntakeRenderTimestamp, isSafeIntakeSignatureDataUrl } from './intakeDocumentRenderBinding';
 
 const PLACEHOLDER_PATTERN = /\{\{([a-z0-9_.]+)\}\}/gi;
+// Only these builders emit markup, and escape their own interpolated data.
+const HTML_PLACEHOLDER_KEYS = new Set([
+  'cost_carrier.recipients_list', 'cost_carrier.assignment_intro',
+  'cost_carrier.billing_clause', 'consulting.family_doctor_clause',
+  'signature.client', 'signature.employee', 'signature.legal_representative',
+]);
 
 export const INTAKE_DOCUMENT_CSS = `
 ${CARESUITE_DOCUMENT_FONT_CSS}
@@ -104,11 +111,11 @@ export function wrapIntakeDocumentHtml(bodyHtml: string): string {
 </html>`;
 }
 
-function signatureHtml(sig: IntakeDocumentSignature | undefined, placeholder: string): string {
-  if (!sig?.dataUrl) {
+function signatureHtml(sig: IntakeDocumentSignature | undefined): string {
+  if (!sig || !isSafeIntakeSignatureDataUrl(sig.dataUrl) || !isIntakeRenderTimestamp(sig.signedAt)) {
     return '';
   }
-  return `<img class="sig-img" src="${sig.dataUrl}" alt="Unterschrift"/><br/><small>${new Date(sig.signedAt).toLocaleString('de-DE')}</small>`;
+  return `<img class="sig-img" src="${sig.dataUrl}" alt="Unterschrift"/><br/><small>${formatIntakeDocumentDateTime(sig.signedAt)}</small>`;
 }
 
 function missingLabel(key: string, template: IntakeDocumentTemplate): string {
@@ -129,9 +136,9 @@ export function renderIntakeDocumentHtml(
 
   const enriched: IntakePlaceholderContext = {
     ...context,
-    'signature.client': signatureHtml(signatures.client, 'Klient:in'),
-    'signature.employee': signatureHtml(signatures.employee, 'Mitarbeitende:r'),
-    'signature.legal_representative': signatureHtml(signatures.legal_representative, 'Vertretung'),
+    'signature.client': signatureHtml(signatures.client),
+    'signature.employee': signatureHtml(signatures.employee),
+    'signature.legal_representative': signatureHtml(signatures.legal_representative),
   };
 
   for (const [key, meta] of Object.entries(template.placeholderSchema)) {
@@ -143,7 +150,7 @@ export function renderIntakeDocumentHtml(
   }
 
   for (const slot of template.signatureSlots) {
-    if (!slot.required || signatures[slot.role]?.dataUrl) continue;
+    if (!slot.required || enriched[`signature.${slot.role}`]) continue;
     const label = slot.role === 'client'
       ? 'Unterschrift Klient:in'
       : slot.role === 'employee'
@@ -159,11 +166,11 @@ export function renderIntakeDocumentHtml(
       unresolvedKeys.push(normalized);
       if (markMissing) {
         const label = missingLabel(normalized, template);
-        return `<span class="missing">[fehlend: ${label}]</span>`;
+        return `<span class="missing">[fehlend: ${escapeIntakeHtml(label)}]</span>`;
       }
       return '';
     }
-    return value;
+    return HTML_PLACEHOLDER_KEYS.has(normalized) ? value : escapeIntakeHtml(value);
   });
 
   const html = wrapDocument ? wrapIntakeDocumentHtml(bodyHtml) : bodyHtml;
@@ -175,13 +182,15 @@ export function finalizeIntakeDocumentHtml(
   template: IntakeDocumentTemplate,
   context: IntakePlaceholderContext,
   signatures: Partial<Record<'client' | 'employee' | 'legal_representative', IntakeDocumentSignature>>,
+  finalizedAt: string,
 ): IntakePreviewResult {
+  if (!isIntakeRenderTimestamp(finalizedAt)) throw new Error('Der Abschlusszeitpunkt der Dokumentfassung ist ungültig.');
   const preview = renderIntakeDocumentHtml(template, context, signatures, {
     markMissing: false,
     lockSignatures: true,
   });
 
-  const lockedNotice = `<p class="document-footer-note">Dokument abgeschlossen am ${new Date().toLocaleString('de-DE')} — Änderungen gesperrt.</p>`;
+  const lockedNotice = `<p class="document-footer-note">Dokument abgeschlossen am ${formatIntakeDocumentDateTime(finalizedAt)} — Änderungen gesperrt.</p>`;
   const html = preview.html.replace('</div>\n</body>', `${lockedNotice}</div>\n</body>`);
   return {
     ...preview,

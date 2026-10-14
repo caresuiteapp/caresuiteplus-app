@@ -8,14 +8,14 @@ import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFi
 
 const h = vi.hoisted(() => ({
   tenant: 'tenant-A', auth: {} as any, mode: 'supabase', store: new Map<string, string>(),
-  get: vi.fn(), set: vi.fn(), remove: vi.fn(), remote: vi.fn(), docs: vi.fn(), create: vi.fn(), update: vi.fn(), edit: vi.fn(), sections: vi.fn(),
+  get: vi.fn(), set: vi.fn(), remove: vi.fn(), remote: vi.fn(), loadRemote: vi.fn(), reconcile: vi.fn(), docs: vi.fn(), create: vi.fn(), update: vi.fn(), edit: vi.fn(), sections: vi.fn(),
 }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => h.auth }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => h.tenant }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => h.mode }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => '11111111-1111-4111-8111-111111111111' }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: h.get, setItem: h.set, removeItem: h.remove } }));
-vi.mock('@/lib/clients/repositories/clientIntakeDraftRepository.supabase', () => ({ upsertClientIntakeDraft: h.remote }));
+vi.mock('@/lib/clients/repositories/clientIntakeDraftRepository.supabase', () => ({ upsertClientIntakeDraft: h.remote, loadServerClientIntakeDraft: h.loadRemote, reconcileServerClientIntakeDraft: h.reconcile }));
 vi.mock('@/features/intakeDocuments/intakeDocumentService', () => ({ persistClientIntakeDocuments: h.docs }));
 vi.mock('@/features/costCarriers/costCarrierService', () => ({ validateCostBearerEntry: () => null }));
 vi.mock('@/lib/clients/clientIntakeEditService', () => ({ fetchClientIntakeEditData: h.edit }));
@@ -48,7 +48,7 @@ beforeEach(() => {
   h.get.mockImplementation(async (key: string) => h.store.get(key) ?? null);
   h.set.mockImplementation(async (key: string, value: string) => { h.store.set(key, value); });
   h.remove.mockImplementation(async (key: string) => { h.store.delete(key); });
-  h.remote.mockResolvedValue({ ok: true, data: { id } }); h.docs.mockResolvedValue({ ok: true });
+  h.remote.mockImplementation(async (_tenant, _form, options) => ({ ok: true, data: { id, revision: options.expectedRevision + 1 } })); h.loadRemote.mockResolvedValue({ ok: true, data: null }); h.docs.mockResolvedValue({ ok: true });
   h.create.mockResolvedValue({ ok: true, data: { id } }); h.update.mockResolvedValue({ ok: true, data: { id } });
   h.edit.mockImplementation(async (client: string) => ({ ok: true, data: form(client) }));
   h.sections.mockResolvedValue({ ok: true, data: [] });
@@ -120,7 +120,7 @@ describe('client intake identity, draft and submission behavior', () => {
   it('locally retains all work when remote draft save fails and permits retry', async () => {
     h.remote.mockResolvedValueOnce({ ok: false, error: 'Server offline' }); await render(); await name('Erhalten');
     await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
-    expect(JSON.parse(h.store.get(key())!).form.firstName).toBe('Erhalten'); expect(wizard.draftSaveFeedback?.message).toContain('lokal erhalten');
+    expect(JSON.parse(h.store.get(key())!).form.firstName).toBe('Erhalten'); expect(wizard.draftSaveFeedback?.message).toContain('auf diesem Gerät erhalten');
     await act(async () => { expect(await wizard.saveDraft()).toBe(true); }); expect(h.remote).toHaveBeenCalledTimes(2);
   });
   it('persists the allocated UUID before an uncertain server insert and reuses it on retry', async () => {
@@ -133,12 +133,21 @@ describe('client intake identity, draft and submission behavior', () => {
     await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
     expect(h.remote.mock.calls[1][2].clientId).toBe(id);
   });
+  it('lets the user correct a definitively rejected payload instead of replaying it forever', async () => {
+    h.remote.mockResolvedValueOnce({ ok: false, rejected: true, error: 'Bitte Angaben korrigieren' });
+    await render(); await name('Ungültiger Stand');
+    await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
+    expect(JSON.parse(h.store.get(key())!).pendingSave).toBeUndefined();
+    await name('Korrigierter Stand'); await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
+    expect(h.remote.mock.calls[1][1].firstName).toBe('Korrigierter Stand');
+    expect(h.remote.mock.calls[1][2].expectedRevision).toBe(0);
+  });
   it('serializes competing draft saves and reuses the first server id rather than creating two leads', async () => {
     const first = deferred(); h.remote.mockReturnValueOnce(first.promise); await render(); await name('Erste Fassung');
     let a!: Promise<boolean>; await act(async () => { a = wizard.saveDraft(); });
     await name('Neue Fassung'); let b!: Promise<boolean>; await act(async () => { b = wizard.saveDraft(); });
     expect(h.remote).toHaveBeenCalledTimes(1);
-    await act(async () => { first.resolve({ ok: true, data: { id } }); await a; await b; });
+    await act(async () => { first.resolve({ ok: true, data: { id, revision: 1 } }); await a; await b; });
     expect(h.remote.mock.calls[0][2].clientId).toBe(id); expect(h.remote.mock.calls[1][2].clientId).toBe(id);
     expect(JSON.parse(h.store.get(key())!).form.firstName).toBe('Neue Fassung');
   });
@@ -146,7 +155,7 @@ describe('client intake identity, draft and submission behavior', () => {
     const first = deferred(); h.remote.mockReturnValueOnce(first.promise); await render(); await name('Anna');
     let draft!: Promise<boolean>; await act(async () => { draft = wizard.saveDraft(); });
     let submit!: Promise<string | null>; await act(async () => { submit = wizard.submit(); }); expect(h.create).not.toHaveBeenCalled();
-    await act(async () => { first.resolve({ ok: true, data: { id } }); await draft; expect(await submit).toBe(id); });
+    await act(async () => { first.resolve({ ok: true, data: { id, revision: 1 } }); await draft; expect(await submit).toBe(id); });
     expect(h.create.mock.calls[0][2].draftClientId).toBe(id); expect(h.store.has(key())).toBe(false);
     await act(async () => vi.advanceTimersByTime(800)); expect(h.remote).toHaveBeenCalledTimes(1);
   });
@@ -195,32 +204,95 @@ describe('client intake identity, draft and submission behavior', () => {
     expect(h.store.has(key())).toBe(false);
     expect(wizard.draftSaveFeedback).toBeNull();
   });
-  it('preserves signed document and stable client id locally before any unsafe remote mutation', async () => {
-    h.docs.mockResolvedValue({ ok: false, error: 'Unterschrift-Upload fehlgeschlagen' }); await render(); await name('Mit Unterschrift');
-    await act(async () => wizard.updateField('intakeDocuments', [{ templateKey: 'privacy', signatures: { client: { dataUrl: 'data:image/png;base64,review' } } }] as any));
-    await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
-    const saved = JSON.parse(h.store.get(key())!); expect(saved.clientId).toBe(id); expect(saved.form.intakeDocuments[0].signatures.client.dataUrl).toContain('review');
-    expect(h.remote).not.toHaveBeenCalled(); expect(h.docs).not.toHaveBeenCalled();
-    expect(wizard.draftSaveFeedback?.message).toContain('Serversicherung');
-    expect(wizard.draftSaveFeedback?.message).toContain('gesperrt');
-    expect(wizard.draftSaveFeedback?.variant).toBe('warning');
-  });
-  it('blocks finalized documents without signature bytes before lead creation but still saves the local original', async () => {
-    await render(); await name('Finales Original');
-    await act(async () => wizard.updateField('intakeDocuments', [{ templateKey: 'privacy', status: 'finalized', finalizedHtml: '<p>Original</p>', signatures: {} }] as any));
-    await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
-    expect(JSON.parse(h.store.get(key())!).form.intakeDocuments[0].finalizedHtml).toBe('<p>Original</p>');
-    expect(h.remote).not.toHaveBeenCalled(); expect(h.docs).not.toHaveBeenCalled();
-  });
-  it('retains a legacy original in preview_open with final HTML and no capture before any remote lead mutation', async () => {
-    await render(); await name('Legacy Original');
-    const originalHtml = '<p>Original mit eingebetteten Signaturbytes data:image/png;base64,legacy</p>';
-    await act(async () => wizard.updateField('intakeDocuments', [{ templateKey: 'privacy', status: 'preview_open', finalizedHtml: originalHtml, finalizedAt: null, signatures: {} }] as any));
-    await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
+  it('saves signatures and final HTML as a server draft without calling original-document persistence', async () => {
+    await render(); await name('Mit Unterschrift');
+    const signed = [{ templateKey: 'privacy', status: 'finalized', finalizedHtml: '<p>Original</p>', signatures: { client: { dataUrl: 'data:image/png;base64,review' } } }];
+    await act(async () => wizard.updateField('intakeDocuments', signed as any));
+    await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
     const saved = JSON.parse(h.store.get(key())!);
-    expect(saved.form.intakeDocuments[0].finalizedHtml).toBe(originalHtml); expect(saved.clientId).toBe(id);
-    expect(h.remote).not.toHaveBeenCalled(); expect(h.docs).not.toHaveBeenCalled();
-    expect(wizard.draftSaveFeedback?.variant).toBe('warning');
+    expect(saved.form.intakeDocuments).toEqual(signed); expect(saved.serverRevision).toBe(1); expect(saved.pendingSave).toBeUndefined();
+    expect(h.remote.mock.calls[0][1].intakeDocuments).toEqual(signed); expect(h.docs).not.toHaveBeenCalled();
+    expect(wizard.draftSaveFeedback?.message).toContain('noch nicht abgeschlossen');
+  });
+  it('restores the complete server draft on another device through a known client ID', async () => {
+    h.loadRemote.mockResolvedValueOnce({ ok: true, data: { clientId: id, status: 'draft', revision: 8, form: form('Anderes Gerät') } });
+    await render({ clientId: id });
+    expect(wizard.form.firstName).toBe('Anderes Gerät'); expect(wizard.draftIsSaved).toBe(true);
+    await name('Fortgesetzt'); await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
+    expect(h.remote.mock.calls[0][2]).toMatchObject({ clientId: id, expectedRevision: 8 });
+  });
+  it('replays an uncertain stored operation before submitting newly edited data', async () => {
+    const pending = { operationId: id, expectedRevision: 2, form: form('Vorher') };
+    h.store.set(key(), JSON.stringify({ form: form('Danach'), stepIndex: 0, clientId: id, serverRevision: 2, pendingSave: pending, schemaVersion: 2 }));
+    h.loadRemote.mockResolvedValueOnce({ ok: true, data: { clientId: id, status: 'draft', revision: 3, form: form('Vorher') } });
+    await render();
+    expect(h.remote.mock.calls[0][1].firstName).toBe('Vorher'); expect(h.remote.mock.calls[0][2]).toMatchObject({ expectedRevision: 2, operationId: id });
+    expect(h.remote.mock.calls[1][1].firstName).toBe('Danach'); expect(h.remote.mock.calls[1][2].expectedRevision).toBe(3);
+    expect(JSON.parse(h.store.get(key())!).serverRevision).toBe(4);
+  });
+  it('does not overwrite a newer revision or submit after a conflict; the user can explicitly load the server version', async () => {
+    h.remote.mockResolvedValueOnce({ ok: false, conflict: true, error: 'Andere Fassung' });
+    await render(); await name('Lokale Änderung');
+    await act(async () => { expect(await wizard.saveDraft()).toBe(false); });
+    expect(wizard.draftConflict).toBe(true); expect(wizard.form.firstName).toBe('Lokale Änderung');
+    await act(async () => { expect(await wizard.submit()).toBeNull(); });
+    expect(h.create).not.toHaveBeenCalled(); expect(h.remote).toHaveBeenCalledTimes(1);
+    h.loadRemote.mockResolvedValueOnce({ ok: true, data: { clientId: id, status: 'draft', revision: 9, form: form('Serverstand') } });
+    await act(async () => { expect(await wizard.reloadServerDraft()).toBe(true); });
+    expect(wizard.form.firstName).toBe('Serverstand'); expect(wizard.draftConflict).toBe(false);
+    await name('Abgestimmt'); await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
+    expect(h.remote.mock.calls[1][2].expectedRevision).toBe(9);
+  });
+  it('explicitly reconciles externally changed core fields, preserves originals and continues with the new revision', async () => {
+    const original = [{ templateKey: 'contract', status: 'finalized', finalizedHtml: '<p>Original</p>', signatures: {} }];
+    const serverForm = { ...form('Alter Name'), intakeDocuments: original };
+    const mergedForm = { ...serverForm, firstName: 'Aktueller Aktenname' };
+    const changed = { ok: true, data: { clientId: id, status: 'draft', revision: 5, form: serverForm, coreChanged: true, currentClientUpdatedAt: '2026-10-14T12:00:00Z' } };
+    h.loadRemote.mockResolvedValueOnce(changed).mockResolvedValueOnce(changed)
+      .mockResolvedValueOnce({ ok: true, data: { ...changed.data, form: mergedForm, revision: 6, coreChanged: false } });
+    h.reconcile.mockImplementationOnce(async (_tenant, options) => {
+      expect(JSON.parse(h.store.get(key())!).pendingReconciliation).toEqual({ operationId: options.operationId, expectedRevision: 5, expectedClientUpdatedAt: '2026-10-14T12:00:00Z' });
+      return { ok: true, data: { id, revision: 6 } };
+    });
+    await render({ clientId: id });
+    expect(wizard.draftConflict).toBe(true); expect(h.remote).not.toHaveBeenCalled(); expect(h.reconcile).not.toHaveBeenCalled();
+    await act(async () => { expect(await wizard.reloadServerDraft()).toBe(true); });
+    expect(wizard.form.firstName).toBe('Aktueller Aktenname'); expect(wizard.form.intakeDocuments).toEqual(original);
+    expect(wizard.draftConflict).toBe(false); expect(wizard.draftSaveFeedback?.message).toContain('erneut');
+    await name('Abgestimmte Änderung'); await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
+    expect(h.remote.mock.calls[0][2].expectedRevision).toBe(6);
+  });
+  it('replays a reconciliation lost response after reload with the same operation and core timestamp', async () => {
+    const changed = { ok: true, data: { clientId: id, status: 'draft', revision: 5, form: form('Alt'), coreChanged: true, currentClientUpdatedAt: '2026-10-14T12:00:00Z' } };
+    h.loadRemote.mockResolvedValue(changed);
+    h.reconcile.mockResolvedValueOnce({ ok: false, error: 'Antwort verloren', rejected: false });
+    await render({ clientId: id });
+    await act(async () => { expect(await wizard.reloadServerDraft()).toBe(false); });
+    const operation = JSON.parse(h.store.get(key())!).pendingReconciliation;
+    expect(operation.expectedRevision).toBe(5);
+    h.loadRemote.mockResolvedValue({ ok: true, data: { ...changed.data, revision: 6, form: form('Aktuell'), coreChanged: false } });
+    h.reconcile.mockResolvedValueOnce({ ok: true, data: { id, revision: 6, replayed: true } });
+    await act(async () => root.unmount()); root = createRoot(host); await render({ clientId: id });
+    expect(wizard.draftConflict).toBe(true); expect(h.remote).not.toHaveBeenCalled();
+    await act(async () => { expect(await wizard.reloadServerDraft()).toBe(true); });
+    expect(h.reconcile.mock.calls[0][1]).toEqual(h.reconcile.mock.calls[1][1]);
+    expect(wizard.form.firstName).toBe('Aktuell'); expect(wizard.draftConflict).toBe(false);
+    expect(JSON.parse(h.store.get(key())!).pendingReconciliation).toBeUndefined();
+  });
+  it('keeps reconciliation blocked when another actor changes the core again during adoption', async () => {
+    const changed = { ok: true, data: { clientId: id, status: 'draft', revision: 5, form: form('Lokal'), coreChanged: true, currentClientUpdatedAt: '2026-10-14T12:00:00Z' } };
+    h.loadRemote.mockResolvedValue(changed);
+    h.reconcile.mockResolvedValueOnce({ ok: false, error: 'Erneut geändert', rejected: true, conflict: true });
+    await render({ clientId: id }); await act(async () => { expect(await wizard.reloadServerDraft()).toBe(false); });
+    expect(wizard.draftConflict).toBe(true); expect(wizard.form.firstName).toBe('Lokal'); expect(h.remote).not.toHaveBeenCalled();
+    expect(JSON.parse(h.store.get(key())!).pendingReconciliation).toBeUndefined();
+  });
+  it('keeps an offline local change when another device has saved a newer version', async () => {
+    h.store.set(key(), JSON.stringify({ form: form('Lokale Änderung'), serverFormSnapshot: JSON.stringify(form('Alt')), serverRevision: 2, clientId: id, stepIndex: 0, schemaVersion: 2 }));
+    h.loadRemote.mockResolvedValueOnce({ ok: true, data: { clientId: id, status: 'draft', revision: 3, form: form('Neue Serverfassung') } });
+    await render();
+    expect(wizard.form.firstName).toBe('Lokale Änderung'); expect(wizard.draftConflict).toBe(true);
+    await act(async () => vi.advanceTimersByTime(800)); expect(h.remote).not.toHaveBeenCalled();
   });
   it('suppresses all success callbacks after unmount', async () => {
     const save = deferred(); h.create.mockReturnValueOnce(save.promise); await render(); await name('Unmount');

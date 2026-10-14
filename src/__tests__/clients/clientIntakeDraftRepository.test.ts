@@ -1,113 +1,76 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
-import { createEmptyIntakeForm } from '@/lib/clients/clientIntakeService';
-
-const mockFrom = vi.fn();
-const mockUpdate = vi.fn();
-const mockInsert = vi.fn();
-const mockEq = vi.fn();
-const mockSelect = vi.fn();
-const mockMaybeSingle = vi.fn();
-const mockSingle = vi.fn();
-
-function createQueryChain() {
-  const chain = {
-    update: mockUpdate.mockReturnThis(),
-    insert: mockInsert.mockReturnThis(),
-    eq: mockEq.mockReturnThis(),
-    select: mockSelect.mockReturnThis(),
-    maybeSingle: mockMaybeSingle,
-    single: mockSingle,
-  };
-  return chain;
-}
-
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => ({
-    from: mockFrom,
-  }),
-}));
-vi.mock('expo-crypto', () => ({ randomUUID: () => '44444444-4444-4444-8444-444444444444' }));
-
-describe('upsertClientIntakeDraft', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    mockFrom.mockImplementation(() => createQueryChain());
+import { upsertClientIntakeDraft, loadServerClientIntakeDraft, reconcileServerClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
+import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
+const mocks = vi.hoisted(() => ({ rpc: vi.fn() }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: mocks.rpc }) }));
+vi.mock('@/lib/clients/clientIntakeService', () => ({ createEmptyIntakeForm: () => structuredClone(EMPTY_CLIENT_INTAKE_FORM) }));
+const tenantId = '11111111-1111-4111-8111-111111111111';
+const clientId = '22222222-2222-4222-8222-222222222222';
+const operationId = '33333333-3333-4333-8333-333333333333';
+const form = { ...EMPTY_CLIENT_INTAKE_FORM, firstName: 'Entwurf', intakeDocuments: [{ templateKey: 'privacy', signatures: { client: { dataUrl: 'data:image/png;base64,signature' } } }] } as typeof EMPTY_CLIENT_INTAKE_FORM;
+const options = { clientId, operationId, expectedRevision: 4 };
+const receipt = { contract: 'client-intake-draft-v1', clientId, operationId, revision: 5, formHash: `sha256:${'a'.repeat(64)}`, status: 'draft', replayed: false };
+beforeEach(() => { vi.resetAllMocks(); mocks.rpc.mockResolvedValue({ data: receipt, error: null }); });
+describe('complete revisioned intake draft RPC', () => {
+  it('sends the full form including captured signatures and leaves actor identity to the server', async () => {
+    expect(await upsertClientIntakeDraft(tenantId, form, { ...options, actorProfileId: 'untrusted' })).toEqual({ ok: true, data: { ...receipt, id: clientId } });
+    expect(mocks.rpc).toHaveBeenCalledWith('client_intake_save_draft', { p_tenant: tenantId, p_client: clientId, p_form: form, p_expected_revision: 4, p_operation_id: operationId });
   });
-
-  it('legt bei fehlendem Datensatz einen Lead mit derselben Entwurfs-ID an', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: '11111111-1111-4111-8111-111111111111' }, error: null });
-
-    const form = {
-      ...createEmptyIntakeForm(),
-      firstName: 'Test',
-      lastName: 'Entwurf',
-    };
-
-    const result = await upsertClientIntakeDraft('tenant-a', form, {
-      clientId: '11111111-1111-4111-8111-111111111111',
-      actorProfileId: 'profile-1',
-    });
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.id).toBe('11111111-1111-4111-8111-111111111111');
-    }
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111', status: 'lead' }));
+  it('retains scope after a lost response and accepts the same operation replay', async () => {
+    mocks.rpc.mockRejectedValueOnce(new Error('lost'));
+    expect(await upsertClientIntakeDraft(tenantId, form, options)).toMatchObject({ ok: false, recoverableClientId: clientId });
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, replayed: true }, error: null });
+    expect((await upsertClientIntakeDraft(tenantId, form, options)).ok).toBe(true);
+    expect(mocks.rpc.mock.calls[0]).toEqual(mocks.rpc.mock.calls[1]);
   });
-
-  it('aktualisiert bestehenden Lead bei gültiger clientId', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: '22222222-2222-4222-8222-222222222222', status: 'lead' }, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: '22222222-2222-4222-8222-222222222222' }, error: null });
-
-    const form = {
-      ...createEmptyIntakeForm(),
-      firstName: 'Draft',
-      lastName: 'Client',
-    };
-
-    const result = await upsertClientIntakeDraft('tenant-a', form, {
-      clientId: '22222222-2222-4222-8222-222222222222',
-    });
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.id).toBe('22222222-2222-4222-8222-222222222222');
-    }
-    expect(mockInsert).not.toHaveBeenCalled();
-    expect(mockEq).toHaveBeenCalledWith('status', 'lead');
+  it.each([{ clientId: tenantId }, { operationId: clientId }, { revision: 6 }, { status: 'active' }, { formHash: 'claimed' }, { contract: 'other' }, { replayed: undefined }])('rejects inconsistent confirmation %j', async patch => {
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, ...patch }, error: null });
+    expect((await upsertClientIntakeDraft(tenantId, form, options)).ok).toBe(false);
   });
-
-  it('überspringt bei ungültiger lokaler ID den UUID-Filter und legt sicher neu an', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: '44444444-4444-4444-8444-444444444444' }, error: null });
-
-    const result = await upsertClientIntakeDraft(
-      '33333333-3333-4333-8333-333333333333',
-      { ...createEmptyIntakeForm(), firstName: 'Sicher', lastName: 'Entwurf' },
-      { clientId: 'keine-uuid' },
-    );
-
-    expect(result).toEqual({ ok: true, data: { id: '44444444-4444-4444-8444-444444444444' } });
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockEq).not.toHaveBeenCalledWith('id', 'keine-uuid');
-    expect(mockInsert).toHaveBeenCalled();
+  it('reports concurrent revision conflict without retrying a blind overwrite', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '40001', message: 'conflict' } });
+    expect(await upsertClientIntakeDraft(tenantId, form, options)).toMatchObject({ ok: false, conflict: true, recoverableClientId: clientId });
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
   });
-  it('legt für einen bereits aktivierten Entwurf keinen zweiten Lead an', async () => {
-    const clientId = '11111111-1111-4111-8111-111111111111';
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: clientId, status: 'active' }, error: null });
-    expect(await upsertClientIntakeDraft('tenant-a', createEmptyIntakeForm(), { clientId })).toMatchObject({ ok: false, recoverableClientId: clientId });
-    expect(mockInsert).not.toHaveBeenCalled(); expect(mockUpdate).not.toHaveBeenCalled();
+  it.each(['40003', '08007'])('keeps retry identity when SQL reports uncertain completion %s', async code => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code, message: 'completion unknown' } });
+    expect(await upsertClientIntakeDraft(tenantId, form, options)).toMatchObject({ ok: false, rejected: false, recoverableClientId: clientId });
   });
-  it('behält nach einem verlorenen Insert-Ergebnis die ID und aktualisiert beim Retry denselben Lead', async () => {
-    const clientId = '11111111-1111-4111-8111-111111111111'; const form = { ...createEmptyIntakeForm(), firstName: 'Erhalten' };
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null }); mockSingle.mockRejectedValueOnce(new Error('response lost'));
-    const first = await upsertClientIntakeDraft('tenant-a', form, { clientId }); expect(first).toMatchObject({ ok: false, recoverableClientId: clientId });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: clientId, status: 'lead' }, error: null }); mockSingle.mockResolvedValueOnce({ data: { id: clientId }, error: null });
-    expect(await upsertClientIntakeDraft('tenant-a', form, { clientId: first.recoverableClientId })).toEqual({ ok: true, data: { id: clientId } });
-    expect(mockInsert).toHaveBeenCalledTimes(1); expect(mockUpdate).toHaveBeenCalledTimes(1);
-    expect(mockEq).toHaveBeenCalledWith('tenant_id', 'tenant-a');
+  it('rejects malformed identities and revisions before any request', async () => {
+    expect((await upsertClientIntakeDraft('tenant', form, options)).ok).toBe(false);
+    expect((await upsertClientIntakeDraft(tenantId, form, { ...options, expectedRevision: -1 })).ok).toBe(false);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it('loads a complete scope-checked server draft for another device', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, form, updatedAt: '2026-10-14T10:00:00Z' }, error: null });
+    const result = await loadServerClientIntakeDraft(tenantId, clientId);
+    expect(result).toMatchObject({ ok: true, data: { clientId, revision: 5, form: { firstName: 'Entwurf', intakeDocuments: form.intakeDocuments.map(doc => ({ ...doc, missingPlaceholders: ['Gespeichertes Dokument prüfen'], unresolvedKeys: [] })) } } });
+    expect(mocks.rpc).toHaveBeenCalledWith('client_intake_load_draft', { p_tenant: tenantId, p_client: clientId });
+  });
+  it('reconciles only the server-identified core version without sending client-supplied field values', async () => {
+    const expectedClientUpdatedAt = '2026-10-14T12:00:00.123Z';
+    expect(await reconcileServerClientIntakeDraft(tenantId, { ...options, expectedClientUpdatedAt })).toEqual({ ok: true, data: { ...receipt, id: clientId } });
+    expect(mocks.rpc).toHaveBeenCalledWith('client_intake_reconcile_draft', { p_tenant: tenantId, p_client: clientId,
+      p_expected_revision: 4, p_expected_client_updated_at: expectedClientUpdatedAt, p_operation_id: operationId });
+  });
+  it('keeps uncertain reconciliation retryable and rejects wrong receipts or a concurrent core change', async () => {
+    const input = { ...options, expectedClientUpdatedAt: '2026-10-14T12:00:00Z' };
+    mocks.rpc.mockRejectedValueOnce(new Error('response lost'));
+    expect(await reconcileServerClientIntakeDraft(tenantId, input)).toMatchObject({ ok: false, recoverableClientId: clientId, rejected: false });
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, revision: 7 }, error: null });
+    expect((await reconcileServerClientIntakeDraft(tenantId, input)).ok).toBe(false);
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '40001', message: 'new core version' } });
+    expect(await reconcileServerClientIntakeDraft(tenantId, input)).toMatchObject({ ok: false, conflict: true, rejected: true });
+  });
+  it('exposes external core changes without turning a read into a write', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, form, updatedAt: '2026-10-14T10:00:00Z', coreChanged: true, currentClientUpdatedAt: '2026-10-14T12:00:00Z' }, error: null });
+    expect(await loadServerClientIntakeDraft(tenantId, clientId)).toMatchObject({ ok: true, data: { coreChanged: true, currentClientUpdatedAt: '2026-10-14T12:00:00Z' } });
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+  it('distinguishes a missing snapshot from invalid or foreign data', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null });
+    expect(await loadServerClientIntakeDraft(tenantId, clientId)).toEqual({ ok: true, data: null });
+    mocks.rpc.mockResolvedValueOnce({ data: { ...receipt, clientId: tenantId, form, updatedAt: 'now' }, error: null });
+    expect((await loadServerClientIntakeDraft(tenantId, clientId)).ok).toBe(false);
   });
 });

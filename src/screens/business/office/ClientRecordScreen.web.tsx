@@ -1,6 +1,6 @@
 import { usePageFlag } from '@/hooks/usePageFlag';
 import { usePageTab } from '@/hooks/usePageTab';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
@@ -25,8 +25,7 @@ import { useClientFullDetail } from '@/hooks/useClientFullDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { loadClientIntakeDraft } from '@/lib/clients/clientIntakeDraftStorage';
-import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
+import { clientIntakeResumeRoute } from '@/lib/navigation/clientRoutes';
 import { archiveClient, deleteClient } from '@/lib/office';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
@@ -176,7 +175,7 @@ function ClientRecordScreenContent({
   }>();
   const id = clientIdProp ?? routeId;
   const router = useRouter();
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
@@ -197,37 +196,7 @@ function ClientRecordScreenContent({
     if (Platform.OS === 'web') router.setParams({ tab });
   };
   const [masterDataEditOpen, setMasterDataEditOpen] = usePageFlag('ClientRecordScreen.masterDataEditOpen', initialMasterDataEditOpen);
-  const localSignedRecoveryAttemptedRef = useRef<string | null>(null);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
-
-  useEffect(() => {
-    const userId = user?.id ?? profile?.id ?? null;
-    if (!userId || !tenantId || !id || localSignedRecoveryAttemptedRef.current === id) return;
-    localSignedRecoveryAttemptedRef.current = id;
-
-    let cancelled = false;
-    void loadClientIntakeDraft(userId, tenantId).then(async (draft) => {
-      if (cancelled || !draft || draft.clientId !== id) return;
-      const containsSignedDocument = draft.form.intakeDocuments.some((document) =>
-        Object.values(document.signatures).some((signature) => Boolean(signature?.dataUrl)),
-      );
-      if (!containsSignedDocument) return;
-
-      const recovered = await persistClientIntakeDocuments(
-        tenantId,
-        id,
-        draft.form,
-        profile?.id ?? user?.id ?? null,
-      );
-      if (!cancelled && recovered.ok) {
-        await Promise.all([refresh(), fullQuery.refresh()]);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fullQuery, id, profile?.id, refresh, tenantId, user?.id]);
 
   useEffect(() => {
     const resolved = resolveClientRecordTabKey(resolvedTabParam);
@@ -340,6 +309,8 @@ function ClientRecordScreenContent({
         showEdit={canEdit}
         onEdit={handleEditMasterData}
       />
+
+      {detail.status === 'entwurf' && can('office.clients.create') ? <SectionPanel title="Diese Aufnahme ist noch offen"><p>Öffnen Sie den gespeicherten Entwurf, um Angaben und Unterlagen zu vervollständigen und die Aufnahme abzuschließen.</p><PremiumButton title="Aufnahme fortsetzen" size="sm" onPress={() => router.push(clientIntakeResumeRoute(detail.id) as never)} /></SectionPanel> : null}
 
       <ClientRecordMetrics
         documents={detail.contextCounts.documents}

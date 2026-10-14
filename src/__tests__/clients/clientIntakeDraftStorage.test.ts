@@ -150,6 +150,35 @@ describe('Client intake draft storage', () => {
     expect(merged.fundingSources).toEqual(['selbstzahler', 'umwandlung']);
   });
 
+  it('preserves historical signed originals and exact pending RPC payload through a reload', async () => {
+    const clientId = '99c34302-47b8-4f7c-9199-28240c9c1937';
+    const original = { templateKey: 'privacy', status: 'finalized', finalizedHtml: '<p>Unverändertes Original</p>',
+      signatures: { client: { role: 'client', dataUrl: 'data:image/png;base64,signed', signedAt: '2026-10-14' } } };
+    const pendingForm = { firstName: 'Anna', intakeDocuments: [original], futureField: 'must remain byte-equivalent JSON' };
+    const stored = { form: { firstName: 'Anna', intakeDocumentHistory: [original] }, stepIndex: 2, clientId,
+      serverRevision: 3, serverFormSnapshot: 'old comparison', pendingSave: { operationId: clientId, expectedRevision: 3, form: pendingForm }, schemaVersion: 2 };
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(stored));
+    const loaded = await loadClientIntakeDraft(userId, tenantId);
+    expect(loaded?.pendingSave?.form).toEqual(pendingForm);
+    expect(loaded?.serverRevision).toBe(3);
+    expect(loaded?.form.intakeDocumentHistory?.[0]?.finalizedHtml).toBe(original.finalizedHtml);
+    expect(loaded?.form.intakeDocumentHistory?.[0]?.signatures.client?.dataUrl).toContain('signed');
+  });
+  it('keeps different local client drafts independently recoverable and clears only the completed one', async () => {
+    const cache = new Map<string, string>();
+    vi.mocked(AsyncStorage.getItem).mockImplementation(async key => cache.get(key) ?? null);
+    vi.mocked(AsyncStorage.setItem).mockImplementation(async (key, value) => { cache.set(key, value); });
+    vi.mocked(AsyncStorage.removeItem).mockImplementation(async key => { cache.delete(key); });
+    const clientA = '11111111-1111-4111-8111-111111111111';
+    const clientB = '22222222-2222-4222-8222-222222222222';
+    await saveClientIntakeDraft(userId, tenantId, { form: { ...createEmptyIntakeForm(), firstName: 'A' }, clientId: clientA, stepIndex: 0 });
+    await saveClientIntakeDraft(userId, tenantId, { form: { ...createEmptyIntakeForm(), firstName: 'B' }, clientId: clientB, stepIndex: 0 });
+    expect((await loadClientIntakeDraft(userId, tenantId, clientA))?.form.firstName).toBe('A');
+    await clearClientIntakeDraft(userId, tenantId, clientA);
+    expect(await loadClientIntakeDraft(userId, tenantId, clientA)).toBeNull();
+    expect((await loadClientIntakeDraft(userId, tenantId))?.form.firstName).toBe('B');
+    expect((await loadClientIntakeDraft(userId, tenantId, clientB))?.form.firstName).toBe('B');
+  });
   it('entfernt Entwurf explizit', async () => {
     await clearClientIntakeDraft(userId, tenantId);
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith(storageKey);

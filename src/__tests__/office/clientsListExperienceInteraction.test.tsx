@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClientsListExperience } from '@/components/office/ClientsListExperience.web';
 import type { ClientListItem } from '@/types/modules/office';
+import { clientIntakeResumeRoute } from '@/lib/navigation/clientRoutes';
 
 const h = vi.hoisted(() => ({
   list: {} as Record<string, unknown>, canCreate: true, canCsv: true, canViewSensitive: true,
@@ -50,6 +51,34 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('web client records list interaction', () => {
+  it.each(['table', 'cards'] as const)('resumes a saved draft from the %s action while its name still opens the record', async (view) => {
+    h.list.items = [second];
+    await render();
+    if (view === 'cards') await click(button('Aktenkarten'));
+    const container = host.querySelector(`.cs-records-${view}`)!;
+    await click(container.querySelector<HTMLButtonElement>(view === 'table' ? '.cs-records-identity' : '.cs-records-card-identity')!);
+    expect(h.select).toHaveBeenCalledExactlyOnceWith(second.id);
+    expect(h.push).not.toHaveBeenCalled();
+    const action = container.querySelector<HTMLButtonElement>('.cs-records-open')!;
+    expect(action.textContent).toBe('Aufnahme fortsetzen');
+    await click(action);
+    expect(h.push).toHaveBeenCalledExactlyOnceWith(clientIntakeResumeRoute(second.id));
+    expect(h.open).not.toHaveBeenCalled();
+    expect(h.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['table', 'cards'] as const)('keeps a saved draft on its ordinary record action in %s without create permission', async (view) => {
+    h.canCreate = false; h.list.items = [second];
+    await render();
+    if (view === 'cards') await click(button('Aktenkarten'));
+    const action = host.querySelector<HTMLButtonElement>(`.cs-records-${view} .cs-records-open`)!;
+    expect(action.textContent).toBe('Akte öffnen');
+    await click(action);
+    expect(h.open).toHaveBeenCalledExactlyOnceWith(second.id);
+    expect(h.push).not.toHaveBeenCalled();
+    expect(h.create).not.toHaveBeenCalled();
+  });
+
   it('keeps selection, opening the full record and starting an intake separate', async () => {
     await render();
     await click(host.querySelector<HTMLButtonElement>('.cs-records-identity')!);
