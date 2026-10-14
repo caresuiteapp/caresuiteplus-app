@@ -5,13 +5,14 @@ import { centralFileName, centralMissingFields, createCentralSnapshot, newCentra
 import type { ServiceResult } from '@/types';
 import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 import { centralCatalogCss } from './centralCatalogCss.web';
+import { CentralCatalogEntitySelect } from './CentralCatalogEntitySelect.web';
+import type { CentralCatalogEntityOption } from '@/lib/documents/centralCatalogEntities';
 
-type EntityOption = { id: string; label: string };
 type Original = { bytes: Uint8Array; fileName: string };
 type PdfResult = { bytes: Uint8Array; hash: string; pageCount: number };
 export type CentralCatalogWorkspaceProps = {
   tenantId: string; author: string; demo: boolean;
-  clients: EntityOption[]; employees: EntityOption[]; loadingEntities: boolean; entityError?: string;
+  clients: CentralCatalogEntityOption[]; employees: CentralCatalogEntityOption[]; loadingEntities: boolean; entityError?: string;
   permissions: { create: boolean; preview: boolean; export: boolean; save: boolean };
   module?: string; clientId?: string; employeeId?: string; templateKey?: string;
   initialTab?: 'catalog' | 'records';
@@ -82,7 +83,6 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
       <div><span className="csdc-eyebrow">OFFICE · ZENTRALER DOKUMENTENKATALOG</span><h1>Dokumentenkatalog</h1><p>Vorlagen auswählen, gespeicherte Angaben übernehmen und Dokumente in der zugehörigen Akte ablegen.</p></div>
       <div className="csdc-stats"><div><strong>{CENTRAL_DOCUMENT_CATALOG.length}</strong><span>Katalogeinträge</span></div><div><strong>{CENTRAL_CATALOG_GROUPS.length}</strong><span>Fachbereiche</span></div><div><strong>A4</strong><span>Hoch / Quer</span></div></div>
     </div>
-    <div className="csdc-status"><span className="csdc-dot" />Alle Vorlagen sind neue Entwürfe. Fachliche und rechtliche Freigaben stehen aus.{props.demo ? ' Demo: Ablage gilt für diese Sitzung.' : ''}</div>
     <nav className="csdc-tabs" aria-label="Dokumentenkatalog"><button className={tab === 'catalog' ? 'active' : ''} onClick={() => setTab('catalog')}>Vorlagenkatalog <span>{CENTRAL_DOCUMENT_CATALOG.length}</span></button><button className={tab === 'records' ? 'active' : ''} onClick={() => { if(tab==='records'||allowSwitch()){dirty.current=false;setTab('records');} }}>Gespeicherte Fassungen <span>{props.records.length}</span></button></nav>
     {tab === 'catalog' ? <div className="csdc-workspace">
       <aside className="csdc-panel csdc-catalog">
@@ -221,7 +221,10 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
     <div className="csdc-panel-heading"><div><span className="csdc-eyebrow">{d.categoryName}</span><h2>{d.title}</h2><p>{layoutNames[d.layout]} · {d.orientation === 'landscape' ? 'A4 quer' : 'A4 hoch'} · {targetNames[d.target]}</p></div><span className="csdc-badge">Entwurf · v{d.version}</span></div>
     <p className="csdc-instructions">{d.instructions}</p>
     {props.entityError ? <p role="alert" className="csdc-alert">{props.entityError}</p> : null}
-    {d.target !== 'company' ? <label className="csdc-field csdc-entity">{d.target === 'client' ? 'Klient:in / Patient:in auswählen' : 'Mitarbeiter:in auswählen'}<select disabled={busy || props.loadingEntities || !props.permissions.create} value={entityId} onChange={(e) => { if(changeVersion>0&&!savedId&&!window.confirm('Ungespeicherte Änderungen verwerfen und eine andere Akte auswählen?'))return; uploadSequence.current++;setChangeVersion(0);setSnapshot(null); setPdf(null); setEntityId(e.target.value); }}><option value="">Bitte eine gespeicherte Akte wählen</option>{entities.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select></label> : null}
+    {d.target !== 'company' ? <CentralCatalogEntitySelect entities={entities} label={d.target === 'client' ? 'Klient:in / Patient:in auswählen' : 'Mitarbeiter:in auswählen'} disabled={busy || props.loadingEntities || !props.permissions.create} value={entityId} onChange={(id) => {
+      if (changeVersion > 0 && !savedId && !window.confirm('Ungespeicherte Änderungen verwerfen und eine andere Akte auswählen?')) return false;
+      uploadSequence.current++; setChangeVersion(0); setSnapshot(null); setPdf(null); setEntityId(id); return true;
+    }} /> : null}
     {loading ? <p role="status" className="csdc-notice">Gespeicherte Angaben werden übernommen …</p> : null}
     {error ? <p role="alert" className="csdc-alert">{error}</p> : null}{message ? <p role="status" className="csdc-success">{message}</p> : null}
     {error && !snapshot && !loading && entityId && props.permissions.create ? <button className="csdc-button secondary" onClick={() => setSourceAttempt((value) => value + 1)}>Stammdaten erneut laden</button> : null}

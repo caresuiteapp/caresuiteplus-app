@@ -11,6 +11,40 @@ vi.mock('@/lib/documents/centralCatalogPdf', () => ({ renderCentralDocumentPdf: 
 const T = '11111111-1111-4111-8111-111111111111', C = '22222222-2222-4222-8222-222222222222';
 
 describe('document editor persistence interactions (no browser layout assertion)', () => {
+  it('requires a concrete record choice for a repeated name and loads exactly that record', async () => {
+    const otherId = '33333333-3333-4333-8333-333333333333';
+    const element = document.createElement('div'); document.body.append(element); const root = createRoot(element);
+    const loadContext = vi.fn(async (_target: string, id: string) => ({ ok: true as const, data: mapCentralContext({
+      tenantId: T, target: 'client', entityId: id, company: { name: 'Unternehmen GmbH' }, subject: { first_name: 'Mara', last_name: 'Muster' },
+    }) }));
+    const props: CentralCatalogWorkspaceProps = {
+      tenantId: T, author: 'Anna', demo: true, clients: [
+        { id: C, label: 'Mara Muster', detail: 'Aufnahmeentwurf' },
+        { id: otherId, label: 'Mara Muster', detail: 'Aktive Akte' },
+        { id: C, label: 'Mara Muster', detail: 'Aufnahmeentwurf' },
+      ], employees: [], loadingEntities: false, permissions: { create: true, preview: true, export: true, save: true },
+      records: [], loadingRecords: false, templateKey: 'csdc_einsatz_006',
+      loadContext, save: vi.fn(), download: vi.fn(), onSaved: vi.fn(), onRefresh: vi.fn(),
+    };
+    try {
+      await act(async () => root.render(<CentralCatalogWorkspace {...props} />));
+      const names = element.querySelector<HTMLSelectElement>('.csdc-entity select')!;
+      expect([...names.options].filter((option) => option.textContent === 'Mara Muster')).toHaveLength(1);
+      await act(async () => { names.value = C; names.dispatchEvent(new Event('change', { bubbles: true })); });
+      expect(loadContext).not.toHaveBeenCalled();
+      const records = element.querySelectorAll<HTMLSelectElement>('.csdc-entity select')[1];
+      expect([...records.options].map((option) => option.value).sort()).toEqual(['', C, otherId].sort());
+      await act(async () => { records.value = otherId; records.dispatchEvent(new Event('change', { bubbles: true })); });
+      expect(loadContext).toHaveBeenCalledTimes(1);
+      expect(loadContext.mock.calls[0][1]).toBe(otherId);
+      expect(element.querySelector('.csdc-source')).not.toBeNull();
+      // An existing deep link selects its exact record, including an Aufnahmeentwurf.
+      await act(async () => root.render(<CentralCatalogWorkspace {...props} key="linked-draft" clientId={C} />));
+      expect(loadContext.mock.calls.at(-1)?.[1]).toBe(C);
+      expect(element.querySelectorAll<HTMLSelectElement>('.csdc-entity select')[1].value).toBe(C);
+    } finally { await act(async () => root.unmount()); element.remove(); }
+  });
+
   it('saves, refreshes stored data and appends a new revision without replacing individual input', async () => {
     const element = document.createElement('div'); document.body.append(element); const root = createRoot(element);
     const saved: CentralDocumentSnapshot[] = [];
