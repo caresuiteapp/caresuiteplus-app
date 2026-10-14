@@ -1,3 +1,4 @@
+import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
 import type { ClientCareContext, ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { CLIENT_RECORD_TAB_LABELS } from '@/lib/clients/clientIntakeFieldRules';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
@@ -32,6 +33,7 @@ export type ClientRecordOverview = {
   address: string;
   phone: string;
   primaryCostBearer: string;
+  insuranceNumber: string;
   careLevel: string;
   serviceTypes: string;
   lastActivity: string;
@@ -68,7 +70,7 @@ function buildAddress(detail: ClientFullDetail): string {
   return formatClientAddressLine(detail.street, detail.zip, detail.city) || EMPTY;
 }
 
-function resolveCostBearer(detail: ClientFullDetail): string {
+export function resolveClientCostBearer(detail: ClientFullDetail): string {
   const fromProfile = detail.billingProfile?.costBearerName?.trim();
   if (fromProfile) return fromProfile;
   const fromCarrier = detail.costCarrier?.trim();
@@ -146,6 +148,7 @@ export function buildClientRecordOverview(
   careContexts: ClientCareContext[],
   availableTabs: ClientRecordTabKey[],
   now = Date.now(),
+  canViewSensitive = false,
 ): ClientRecordOverview {
   const openItems = buildReviewItems(detail, now);
   const signedDocuments = buildSignedDocuments(detail);
@@ -155,7 +158,8 @@ export function buildClientRecordOverview(
     dateOfBirth: detail.dateOfBirth ? formatDate(detail.dateOfBirth) : EMPTY,
     address: buildAddress(detail),
     phone: display(detail.phone?.trim() || detail.primaryContactPhone),
-    primaryCostBearer: resolveCostBearer(detail),
+    primaryCostBearer: resolveClientCostBearer(detail),
+    insuranceNumber: resolveClientInsuranceDisplay(detail, canViewSensitive),
     careLevel: formatCareLevel(detail.careLevel),
     serviceTypes: careContexts.length ? careContexts.map((context) => getCatalogLabel('leistungsart', context)).join(' · ') : EMPTY,
     lastActivity: resolveLastActivity(detail),

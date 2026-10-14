@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
 import { buildClientRecordOverview, selectNextClientAssignment } from '@/lib/clients/clientRecordOverview.web';
 import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import type { ClientFullDetail } from '@/types/modules/client';
@@ -93,5 +94,34 @@ describe('upcoming client assignment selection', () => {
   it('retains an ongoing appointment and never shows a past one as upcoming', () => {
     expect(selectNextClientAssignment([assignment('past', { scheduledEnd: '2026-10-14T09:00:00Z' })], now)).toBeNull();
     expect(selectNextClientAssignment([assignment('ongoing', { scheduledStart: '2026-10-14T09:00:00Z' })], now)?.id).toBe('ongoing');
+  });
+});
+
+
+describe('web insurance number display', () => {
+  it('shows the stored number in the overview only with sensitive-data permission', () => {
+    const client = detail({ insuranceNumber: 'LEGACY-100', core: { ...helgaSchneiderFull.core, insuranceNumber: ' A123456789 ' } });
+    expect(buildClientRecordOverview(client, [], [], now, true).insuranceNumber).toBe('A123456789');
+    expect(buildClientRecordOverview(client, [], [], now, false).insuranceNumber).toBe('••• Geschützt');
+    expect(buildClientRecordOverview(client, [], [], now).insuranceNumber).toBe('••• Geschützt');
+  });
+
+  it('keeps a masked core number masked even when an unmasked legacy value is present', () => {
+    const client = { core: { insuranceNumber: '•••••••••' }, insuranceNumber: 'DO-NOT-REVEAL-100' };
+    expect(resolveClientInsuranceDisplay(client, false)).toBe('••• Geschützt');
+    expect(resolveClientInsuranceDisplay(client, true)).toBe('••• Geschützt');
+  });
+
+  it('uses the stored legacy field only when core is empty and access is permitted', () => {
+    const client = { core: { insuranceNumber: null }, insuranceNumber: ' B987654321 ' };
+    expect(resolveClientInsuranceDisplay(client, true)).toBe('B987654321');
+    expect(resolveClientInsuranceDisplay(client, false)).toBe('••• Geschützt');
+  });
+
+  it('labels a missing number instead of substituting a billing reference or historical fund membership', () => {
+    const client = detail({ insuranceNumber: null, core: { ...helgaSchneiderFull.core, insuranceNumber: null }, billingProfile: { ...helgaSchneiderFull.billingProfile!, costBearerReference: 'BILLING-REFERENCE' } });
+    expect(client.careLevels[0]?.careFundMemberId).toBeTruthy();
+    expect(buildClientRecordOverview(client, [], [], now, true).insuranceNumber).toBe('Nicht hinterlegt');
+    expect(resolveClientInsuranceDisplay(client, false)).toBe('Nicht hinterlegt');
   });
 });
