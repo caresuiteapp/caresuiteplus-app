@@ -11,7 +11,7 @@ import {
   OPTIONAL_CONSENT_TEMPLATE_KEYS,
 } from './intakeDocumentTypes';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
-import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { formatIntakeDocumentDate as formatDate, isIntakeRenderTimestamp } from './intakeDocumentRenderBinding';
 import type { TenantDisplayMeta } from '@/lib/tenant/tenantDisplayMeta';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
 import {
@@ -28,7 +28,10 @@ export type IntakeTenantDisplay = Partial<Pick<TenantDisplayMeta, 'name' | 'stre
 export function buildIntakePlaceholderContext(
   form: ClientIntakeFormData,
   tenantDisplay?: IntakeTenantDisplay,
+  options?: { renderedAt: string },
 ): IntakePlaceholderContext {
+  const renderedAt = options?.renderedAt ?? new Date().toISOString();
+  if (!isIntakeRenderTimestamp(renderedAt)) throw new Error('Die Zeitangabe der Dokumentfassung ist ungültig.');
   const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ').trim();
   const streetLine = [form.street, form.houseNumber].filter(Boolean).join(' ').trim();
   const tenantName = tenantDisplay?.name?.trim() || 'Pflegedienst (Mandant)';
@@ -56,9 +59,9 @@ export function buildIntakePlaceholderContext(
     'billing.types': form.billingTypes.join(', '),
     'billing.hourly_rate': resolveBillingHourlyRate(form, tenantDisplay),
     'contract.service_start': formatDate(form.serviceStart.trim() || form.admissionDate.trim()),
-    'document.date': formatDate(new Date()),
+    'document.date': formatDate(renderedAt),
     'document.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
-    'intake.date': formatDate(form.serviceStart.trim() || form.admissionDate.trim()) || formatDate(new Date()),
+    'intake.date': formatDate(form.serviceStart.trim() || form.admissionDate.trim()) || formatDate(renderedAt),
     'intake.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
     'service.type': form.careContexts.join(', ') || form.intakeContractType || '—',
     'facility.name': form.facilityName.trim(),

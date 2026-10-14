@@ -15,10 +15,16 @@ export type ClientIntakeDraft = {
   /** Live-Supabase-Klient:in mit status lead, falls Entwurf serverseitig persistiert wurde. */
   clientId?: string | null;
   schemaVersion?: number;
+  serverRevision?: number;
+  /** Local comparison only; the authoritative hash is owned by the server. */
+  serverFormSnapshot?: string;
+  pendingSave?: { operationId: string; expectedRevision: number; form: ClientIntakeFormData };
+  pendingReconciliation?: { operationId: string; expectedRevision: number; expectedClientUpdatedAt: string };
+
 };
 
-function storageKey(userId: string, tenantId: string): string {
-  return `${STORAGE_PREFIX}:${tenantId}:${userId}`;
+function storageKey(userId: string, tenantId: string, clientId?: string | null): string {
+  return `${STORAGE_PREFIX}:${tenantId}:${userId}${isUuid(clientId) ? `:${clientId}` : ''}`;
 }
 
 export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormData>): ClientIntakeFormData {
@@ -48,12 +54,13 @@ export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormDat
     'taskCategories',
     'intakeOptionalConsents',
     'intakeDocuments',
+    'intakeDocumentHistory',
   ];
 
   for (const key of arrayKeys) {
     const value = partial[key];
     if (!Array.isArray(value)) continue;
-    (merged as Record<string, unknown>)[key] = key === 'intakeDocuments'
+    (merged as Record<string, unknown>)[key] = (key === 'intakeDocuments' || key === 'intakeDocumentHistory')
       ? value.filter((entry): entry is IntakeDocumentState => typeof entry === 'object' && entry !== null && !Array.isArray(entry) &&
           typeof entry.templateKey === 'string' && entry.signatures && typeof entry.signatures === 'object')
         .map((entry: IntakeDocumentState) => ({ ...entry,
@@ -93,12 +100,15 @@ export function hasIntakeDraftContent(draft: Pick<ClientIntakeDraft, 'form' | 's
 export async function loadClientIntakeDraft(
   userId: string,
   tenantId: string,
+  clientId?: string,
 ): Promise<ClientIntakeDraft | null> {
-  const raw = await AsyncStorage.getItem(storageKey(userId, tenantId));
+  const raw = (isUuid(clientId) ? await AsyncStorage.getItem(storageKey(userId, tenantId, clientId)) : null)
+    ?? await AsyncStorage.getItem(storageKey(userId, tenantId));
   if (!raw) return null;
 
   try {
     const parsed = JSON.parse(raw) as Partial<ClientIntakeDraft>;
+    if (clientId && parsed.clientId !== clientId) return null;
     if (!parsed.form || typeof parsed.form !== 'object' || Array.isArray(parsed.form) ||
         typeof parsed.stepIndex !== 'number' || !Number.isFinite(parsed.stepIndex)) return null;
 
@@ -118,6 +128,16 @@ export async function loadClientIntakeDraft(
       // complete form, but never pass that legacy value into a UUID filter.
       clientId: isUuid(parsed.clientId) ? parsed.clientId : null,
       schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
+      serverRevision: Number.isSafeInteger(parsed.serverRevision) && (parsed.serverRevision ?? -1) >= 0 ? parsed.serverRevision : 0,
+      serverFormSnapshot: typeof parsed.serverFormSnapshot === 'string' ? parsed.serverFormSnapshot : undefined,
+      pendingSave: parsed.pendingSave && isUuid(parsed.pendingSave.operationId) &&
+        Number.isSafeInteger(parsed.pendingSave.expectedRevision) && parsed.pendingSave.expectedRevision >= 0 &&
+        parsed.pendingSave.form && typeof parsed.pendingSave.form === 'object' && !Array.isArray(parsed.pendingSave.form)
+        ? { ...parsed.pendingSave, form: parsed.pendingSave.form } : undefined,
+      pendingReconciliation: parsed.pendingReconciliation && isUuid(parsed.pendingReconciliation.operationId) &&
+        Number.isSafeInteger(parsed.pendingReconciliation.expectedRevision) && parsed.pendingReconciliation.expectedRevision > 0 &&
+        typeof parsed.pendingReconciliation.expectedClientUpdatedAt === 'string'
+        ? { ...parsed.pendingReconciliation } : undefined,
     };
 
     return hasIntakeDraftContent(draft) ? draft : null;
@@ -137,16 +157,43 @@ export async function saveClientIntakeDraft(
     updatedAt: draft.updatedAt ?? new Date().toISOString(),
     clientId: isUuid(draft.clientId) ? draft.clientId : null,
     schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
+    serverRevision: draft.serverRevision,
+    serverFormSnapshot: draft.serverFormSnapshot,
+    pendingSave: draft.pendingSave,
+    pendingReconciliation: draft.pendingReconciliation,
   };
 
   if (!hasIntakeDraftContent(payload)) {
-    await clearClientIntakeDraft(userId, tenantId);
+    await clearClientIntakeDraft(userId, tenantId, payload.clientId ?? undefined);
     return;
   }
 
-  await AsyncStorage.setItem(storageKey(userId, tenantId), JSON.stringify(payload));
+  const latestKey = storageKey(userId, tenantId);
+  // Keep a different locally edited intake recoverable when opening a known ID.
+  const previousRaw = await AsyncStorage.getItem(latestKey);
+  if (previousRaw) {
+    let previous: Partial<ClientIntakeDraft> | null = null;
+    try { previous = JSON.parse(previousRaw) as Partial<ClientIntakeDraft>; }
+    catch { /* Keep the valid new draft independently recoverable. */ }
+    if (isUuid(previous?.clientId) && previous.clientId !== payload.clientId) {
+      const previousKey = storageKey(userId, tenantId, previous.clientId);
+      if (!await AsyncStorage.getItem(previousKey)) await AsyncStorage.setItem(previousKey, previousRaw);
+    }
+  }
+  const serialized = JSON.stringify(payload);
+  if (payload.clientId) await AsyncStorage.setItem(storageKey(userId, tenantId, payload.clientId), serialized);
+  await AsyncStorage.setItem(latestKey, serialized);
 }
 
-export async function clearClientIntakeDraft(userId: string, tenantId: string): Promise<void> {
-  await AsyncStorage.removeItem(storageKey(userId, tenantId));
+export async function clearClientIntakeDraft(userId: string, tenantId: string, clientId?: string): Promise<void> {
+  const latestKey = storageKey(userId, tenantId);
+  if (!isUuid(clientId)) { await AsyncStorage.removeItem(latestKey); return; }
+  const latest = await AsyncStorage.getItem(latestKey);
+  await AsyncStorage.removeItem(storageKey(userId, tenantId, clientId));
+  if (latest) {
+    let latestClientId: unknown;
+    try { latestClientId = (JSON.parse(latest) as Partial<ClientIntakeDraft>).clientId; }
+    catch { /* Do not remove an unrelated or unrecognized local draft. */ }
+    if (latestClientId === clientId) await AsyncStorage.removeItem(latestKey);
+  }
 }

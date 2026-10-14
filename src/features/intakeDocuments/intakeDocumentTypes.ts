@@ -55,6 +55,9 @@ export type IntakeDocumentSignature = {
 };
 
 export type IntakeDocumentState = {
+  /** Renderer and frozen date used by both the browser and server verifier. */
+  renderVersion?: 'intake-html-v1';
+  renderedAt?: string;
   templateKey: string;
   documentType: IntakeDocumentType;
   title: string;

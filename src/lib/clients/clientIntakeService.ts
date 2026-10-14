@@ -22,6 +22,7 @@ import { persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierSe
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { syncCareLevelDependentDocuments } from '@/lib/clients/clientCareLevelDocumentSync';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { isUuid } from '@/lib/validation/uuid';
 import {
   updateClientFromIntake,
 } from './repositories/clientIntakeRepository.supabase';
@@ -60,7 +61,7 @@ export { careContextsToServiceTypeKeys, serviceTypeKeysToCareContexts };
 
 export { validateIntakeStep, hasIntakeErrors } from './clientIntakeValidation';
 
-export type ClientIntakeSubmissionResult = ServiceResult<{ id: string }> & { recoverableClientId?: string };
+export type ClientIntakeSubmissionResult = ServiceResult<{ id: string }> & { recoverableClientId?: string; conflict?: boolean };
 
 export async function submitClientIntake(
   tenantId: string,
@@ -68,6 +69,7 @@ export async function submitClientIntake(
   options?: {
     actorProfileId?: string | null;
     draftClientId?: string | null;
+    expectedRevision?: number;
     actorRoleKey?: RoleKey | null;
   },
 ): Promise<ClientIntakeSubmissionResult> {
@@ -80,7 +82,31 @@ export async function submitClientIntake(
   const recoverableClientId = options?.draftClientId ?? undefined;
   const result = await runService(async () => {
     if (!isDemoClientBackend()) {
-      return { ok: false, error: 'Die Aktivierung ist derzeit gesperrt: Der verifizierte atomare Serverabschluss für Originaldokumente, Unterschriften und Aufnahme ist noch nicht angebunden. Bitte die Aufnahme als Entwurf speichern; vorhandene Originale bleiben lesbar.', recoverableClientId };
+      const expectedRevision = options?.expectedRevision;
+      if (!isUuid(tenantId) || !isUuid(recoverableClientId) || !Number.isSafeInteger(expectedRevision) || (expectedRevision ?? 0) < 1) {
+        return { ok: false, error: 'Bitte sichern Sie die vollständige Aufnahme zuerst auf dem Server.', recoverableClientId };
+      }
+      const supabase = getSupabaseClient();
+      if (!supabase) return { ok: false, error: 'Der Aufnahmeabschluss ist derzeit nicht erreichbar. Bitte denselben Speicherstand erneut versuchen; ein bereits erfolgter Abschluss wird erkannt.', recoverableClientId };
+      const { data, error } = await supabase.functions.invoke('complete-client-intake', {
+        body: { tenantId, clientId: recoverableClientId, expectedRevision },
+      });
+      if (error) {
+        let message = 'Der Aufnahmeabschluss konnte nicht bestätigt werden. Bitte denselben Speicherstand erneut versuchen; ein bereits erfolgter Abschluss wird erkannt.';
+        try {
+          const response = error.context as Response | undefined;
+          const body: unknown = response?.clone ? await response.clone().json() : null;
+          if (body && typeof body === 'object' && 'error' in body && typeof body.error === 'string') message = body.error;
+        } catch { /* Keep the truthful fallback when the server body is unavailable. */ }
+        return { ok: false, error: message, recoverableClientId, conflict: (error.context as Response | undefined)?.status === 409 };
+      }
+      const receipt = data?.data;
+      if (data?.ok !== true || receipt?.contract !== 'client-intake-completion-v1' ||
+          receipt.clientId !== recoverableClientId || receipt.revision !== expectedRevision ||
+          receipt.status !== 'active' || receipt.confirmed !== true || typeof receipt.replayed !== 'boolean') {
+        return { ok: false, error: typeof data?.error === 'string' ? data.error : 'Die Abschlussbestätigung ist unvollständig. Bitte denselben Speicherstand erneut versuchen; ein bereits erfolgter Abschluss wird erkannt.', recoverableClientId };
+      }
+      return { ok: true, data: { id: recoverableClientId } };
     }
 
     const denied = assertDemoTenant(tenantId);
@@ -113,7 +139,7 @@ export async function submitClientIntakeUpdate(
     if (!isDemoClientBackend()) {
       const includesDocuments = !options?.sections?.length || options.sections.includes('vertraege_einwilligungen');
       if (includesDocuments && form.intakeDocuments.some(doc => doc.status === 'finalized' || Boolean(doc.finalizedAt || doc.finalizedHtml) || Object.values(doc.signatures).some(signature => signature?.dataUrl))) {
-        return { ok: false, error: 'Unterschriebene Aufnahmeunterlagen bleiben unveränderlich. Der sichere atomare Serverabschluss ist noch nicht angebunden; bitte Stammdaten getrennt bearbeiten und das Original lesen.', recoverableClientId: clientId };
+        return { ok: false, error: 'Unterschriebene Aufnahmeunterlagen bleiben unveränderlich. Bitte persönliche Angaben im jeweiligen Aktenabschnitt bearbeiten und neue Vereinbarungen erneut zur Prüfung vorbereiten. Vorhandene Originale bleiben erhalten.', recoverableClientId: clientId };
       }
       const actor = await resolveAuthenticatedProfileId(tenantId);
       if (!actor.ok) return actor;

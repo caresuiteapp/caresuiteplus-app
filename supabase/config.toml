@@ -63,3 +63,6 @@ verify_jwt = false
 # Signed-in Office users; live permissions and tenant scope are checked in the handler.
 [functions.central-document-record]
 verify_jwt = true
+
+[functions.complete-client-intake]
+verify_jwt = true

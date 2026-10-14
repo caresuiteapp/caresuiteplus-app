@@ -1,6 +1,11 @@
 /** Canonical Office client intake & record routes (Client Intake Rebuild). */
 export const CLIENT_INTAKE_NEW_ROUTE = '/business/office/clients/new' as const;
 
+/** Continue the exact saved intake, including its server revision. */
+export function clientIntakeResumeRoute(clientId: string): string {
+  return `${CLIENT_INTAKE_NEW_ROUTE}?draftId=${encodeURIComponent(clientId)}`;
+}
+
 /** @deprecated Legacy alias — prefer CLIENT_INTAKE_NEW_ROUTE. */
 export const INTAKE_NEW_ROUTE = CLIENT_INTAKE_NEW_ROUTE;
 

@@ -170,4 +170,31 @@ describe('web intake sections', () => {
     expect(host.querySelector('input[aria-label="Einrichtung *"]')).not.toBeNull();
     expect(host.querySelector('details')?.hasAttribute('open')).toBe(false);
   });
+
+  it('starts a new review while retaining the complete old signed original in readable sandboxed history', async () => {
+    const original = { templateKey: PRIVACY_TEMPLATE_KEY, title: 'Datenschutz', documentType: 'privacy_consent' as const, status: 'finalized' as const, source: 'system' as const, isRequired: true, version: 1, signatures: { client: { role: 'client' as const, dataUrl: 'data:image/png;base64,b2xk', signedAt: '2026-10-14T10:00:00.000Z', signerName: 'Person' } }, missingPlaceholders: [], unresolvedKeys: [], previewHtml: '<p>Unverändertes Original</p>', finalizedHtml: '<p>Unverändertes Original</p>', renderedPdfPath: null, previewOpenedAt: null, finalizedAt: '2026-10-14T10:00:00.000Z' };
+    wizard.form.intakeDocuments = [original];
+    await render('vertraege_einwilligungen');
+    await click([...host.querySelectorAll('button')].find((button) => button.textContent === 'Neue Fassung prüfen') ?? null);
+    const next = vi.mocked(wizard.replaceForm).mock.calls[0]![0];
+    expect(next.intakeDocumentHistory).toEqual([original]);
+    expect(next.intakeDocumentHistory![0]).not.toBe(original);
+    expect(next.intakeDocuments[0]?.status).toBe('not_started');
+    expect(next.intakeDocuments[0]?.signatures).toEqual({});
+    expect(original.finalizedHtml).toBe('<p>Unverändertes Original</p>');
+    wizard.form = next;
+    await render('vertraege_einwilligungen');
+    const frame = host.querySelector('iframe');
+    expect(frame?.getAttribute('srcdoc')).toBe(original.finalizedHtml);
+    expect(frame?.getAttribute('sandbox')).toBe('');
+    expect(text()).toContain('Frühere Originalfassungen');
+  });
+
+  it('does not offer replacement of signed originals while editing an existing record', async () => {
+    wizard.isEditMode = true;
+    wizard.form.intakeDocuments = [{ templateKey: PRIVACY_TEMPLATE_KEY, title: 'Datenschutz', documentType: 'privacy_consent', status: 'finalized', source: 'system', isRequired: true, version: 1, signatures: {}, missingPlaceholders: [], unresolvedKeys: [], previewHtml: '<p>Original</p>', finalizedHtml: '<p>Original</p>', renderedPdfPath: null, previewOpenedAt: null, finalizedAt: '2026-10-14T10:00:00.000Z' }];
+    await render('vertraege_einwilligungen');
+    expect(text()).not.toContain('Eine neue Dokumentfassung prüfen');
+    expect(wizard.replaceForm).not.toHaveBeenCalled();
+  });
 });

@@ -4,7 +4,7 @@ import { useClientList } from '@/hooks/useClientList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolveClientInsuranceDisplay } from '@/lib/clients/clientInsurancePresentation.web';
-import { clientRecordRoute, CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import { clientIntakeResumeRoute, clientRecordRoute, CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { buildClientListKpis, filterClientsByCareLevel, type ClientCareLevelFilterKey } from '@/lib/office/clientListStats';
 import type { ClientListItem } from '@/types/modules/office';
@@ -80,6 +80,11 @@ export function ClientsListExperience({
   const handleCreate = onCreatePress ?? (() => router.push(CLIENT_INTAKE_NEW_ROUTE as never));
   const handleOpen = onOpenDetail ?? onClientPress ?? ((id: string) => router.push(clientRecordRoute(id) as never));
   const handleSelect = onClientPress ?? handleOpen;
+  const canResumeIntake = (client: ClientListItem) => canCreate && client.status === 'entwurf';
+  const handleRecordAction = (client: ClientListItem) => {
+    if (canResumeIntake(client)) router.push(clientIntakeResumeRoute(client.id) as never);
+    else handleOpen(client.id);
+  };
   const { refresh } = list;
   useEffect(() => { if (refreshToken > 0) void refresh(); }, [refreshToken, refresh]);
 
@@ -205,14 +210,14 @@ export function ClientsListExperience({
                 <td><strong>{client.careLevel ? formatCareLevel(client.careLevel) : 'Pflegegrad nicht hinterlegt'}</strong><small>{client.costCarrier || 'Kostenträger nicht hinterlegt'}</small><small className="cs-records-insurance"><span>Versichertennummer</span><b>{resolveClientInsuranceDisplay(client, canViewSensitive)}</b></small></td>
                 <td><strong>{[client.zip, client.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'}</strong><ClientPhone phone={client.primaryContactPhone} /></td>
                 <td><Status status={client.status} /></td><td><span className="cs-records-date">{formatDate(client.updatedAt)}</span></td>
-                <td><button type="button" className="cs-records-open" onClick={() => handleOpen(client.id)} aria-label={`Akte von ${clientName(client)} öffnen`}><span>Akte öffnen</span><Icon name="arrow" /></button></td>
+                <td><button type="button" className="cs-records-open" onClick={() => handleRecordAction(client)} aria-label={canResumeIntake(client) ? `Aufnahme von ${clientName(client)} fortsetzen` : `Akte von ${clientName(client)} öffnen`}><span>{canResumeIntake(client) ? 'Aufnahme fortsetzen' : 'Akte öffnen'}</span><Icon name="arrow" /></button></td>
               </tr>)}
             </tbody></table></div>
             <div className="cs-records-cards">{visibleItems.map((client) => <article key={client.id} className={`cs-records-card${selectedId === client.id ? ' is-selected' : ''}`}>
               <div className="cs-records-card-top"><Status status={client.status} /><span className="cs-records-card-care">{client.careLevel ? formatCareLevel(client.careLevel) : 'Pflegegrad offen'}</span></div>
               <button type="button" className="cs-records-card-identity" onClick={() => handleSelect(client.id)}><MiniFolder client={client} large /><strong>{clientName(client)}</strong><small>{client.dateOfBirth ? `Geb. ${formatDate(client.dateOfBirth)}` : 'Geburtsdatum nicht hinterlegt'}</small></button>
               <div className="cs-records-card-details"><span><Icon name="pin" />{[client.zip, client.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'}</span><ClientPhone phone={client.primaryContactPhone} /><span className="cs-records-card-carrier">{client.costCarrier || 'Kostenträger nicht hinterlegt'}<span className="cs-records-insurance"><span>Versichertennummer</span><b>{resolveClientInsuranceDisplay(client, canViewSensitive)}</b></span></span></div>
-              <div className="cs-records-card-footer"><span>Geändert<br /><strong>{formatDate(client.updatedAt)}</strong></span><button type="button" className="cs-records-open" onClick={() => handleOpen(client.id)} aria-label={`Akte von ${clientName(client)} öffnen`}>Akte öffnen<Icon name="arrow" /></button></div>
+              <div className="cs-records-card-footer"><span>Geändert<br /><strong>{formatDate(client.updatedAt)}</strong></span><button type="button" className="cs-records-open" onClick={() => handleRecordAction(client)} aria-label={canResumeIntake(client) ? `Aufnahme von ${clientName(client)} fortsetzen` : `Akte von ${clientName(client)} öffnen`}>{canResumeIntake(client) ? 'Aufnahme fortsetzen' : 'Akte öffnen'}<Icon name="arrow" /></button></div>
             </article>)}</div>
           </div>
           {visibleItems.length > 0 ? <footer className="cs-records-footer"><span>{visibleItems.length} von {resultCount} {resultCount === 1 ? 'Akte' : 'Akten'} angezeigt</span>{hasMore ? <button type="button" className="cs-records-button" onClick={loadMore} disabled={list.loading}>Weitere Akten laden<Icon name="arrow" /></button> : <span className="cs-records-muted">Alle Treffer geladen</span>}</footer> : null}

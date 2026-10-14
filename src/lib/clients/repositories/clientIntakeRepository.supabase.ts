@@ -11,9 +11,28 @@ import {
   resolvePrimaryCostBearerName,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
-import { workflowStatusToRemote } from '@/lib/services/clients/clientStatusBridge';
-import type { WorkflowStatus } from '@/types/core/base';
 import { isUuid } from '@/lib/validation/uuid';
+
+type ClientStatus = Database['public']['Enums']['client_status'];
+
+// Intake catalogue values are not WorkflowStatus values. An unknown value must
+// preserve the stored status, never implicitly activate an unfinished intake.
+const INTAKE_STATUS_TO_REMOTE: Readonly<Record<string, ClientStatus>> = {
+  interessent: 'lead', in_aufnahme: 'lead', warteliste: 'lead',
+  entwurf: 'lead', geplant: 'lead', lead: 'lead',
+  aktiv: 'active', kurzzeitversorgung: 'active', bestaetigt: 'active', active: 'active',
+  pausiert: 'paused', in_bearbeitung: 'paused', fehlerhaft: 'paused', paused: 'paused',
+  abgeschlossen: 'inactive', inactive: 'inactive',
+  verstorben: 'deceased', deceased: 'deceased',
+  archiviert: 'archived', archived: 'archived',
+  gesperrt: 'blocked', blocked: 'blocked', deleted: 'deleted',
+};
+
+function intakeStatusToRemote(status: string): ClientStatus | undefined {
+  return Object.prototype.hasOwnProperty.call(INTAKE_STATUS_TO_REMOTE, status)
+    ? INTAKE_STATUS_TO_REMOTE[status]
+    : undefined;
+}
 
 function getClient() {
   return getSupabaseClient();
@@ -81,6 +100,7 @@ export async function updateClientFromIntake(
   const expectedReadback: Record<string, unknown> = {};
 
   if (shouldUpdate('stammdaten')) {
+    const status = intakeStatusToRemote(form.status);
     const masterDataPatch = {
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
@@ -92,7 +112,7 @@ export async function updateClientFromIntake(
       housing_form: form.housingForm.trim() || null,
       internal_notes: form.specialNotes.trim() || null,
       special_notes: form.specialNotes.trim() || null,
-      status: workflowStatusToRemote(form.status as WorkflowStatus),
+      ...(status ? { status } : {}),
     };
     Object.assign(updateRecord, masterDataPatch);
     Object.assign(expectedReadback, masterDataPatch);

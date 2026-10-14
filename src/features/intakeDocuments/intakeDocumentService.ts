@@ -22,6 +22,10 @@ import type {
   IntakeDocumentTemplate,
   IntakeSignatureRole,
 } from './intakeDocumentTypes';
+import {
+  getIntakeRenderBindingError, hasIntakeRenderBinding, INTAKE_ORIGINAL_CHANGED_ERROR,
+  INTAKE_RENDER_VERSION, isIntakeRenderTimestamp, isSafeIntakeSignatureDataUrl,
+} from './intakeDocumentRenderBinding';
 
 export function createInitialDocumentState(template: IntakeDocumentTemplate): IntakeDocumentState {
   return {
@@ -54,7 +58,7 @@ export function syncIntakeDocumentsWithTemplates(
     if (prev) {
       // A new template may change an unsigned draft. It cannot relabel an
       // existing signature as approval of a different template or version.
-      if (prev.status === 'finalized' || hasDocumentSignature(prev)) return prev;
+      if (hasDocumentOriginal(prev)) return prev;
       return {
         ...prev,
         title: template.title,
@@ -69,10 +73,14 @@ export function syncIntakeDocumentsWithTemplates(
   });
 }
 
-const ORIGINAL_CHANGED_ERROR = 'Der unterschriebene Dokumentinhalt oder die Vorlage wurde geändert. Bitte eine neue Dokumentfassung prüfen und erneut unterschreiben; die vorhandene Unterschrift bleibt beim Original.';
+const ORIGINAL_CHANGED_ERROR = INTAKE_ORIGINAL_CHANGED_ERROR;
 
 function hasDocumentSignature(doc: IntakeDocumentState): boolean {
   return Object.values(doc.signatures).some(signature => Boolean(signature?.dataUrl));
+}
+
+function hasDocumentOriginal(doc: IntakeDocumentState): boolean {
+  return doc.status === 'finalized' || doc.status === 'signed' || Boolean(doc.finalizedHtml) || hasDocumentSignature(doc);
 }
 
 function matchesSignedOriginal(
@@ -81,10 +89,10 @@ function matchesSignedOriginal(
   form: ClientIntakeFormData,
   tenantDisplay?: IntakeTenantDisplay,
 ): boolean {
-  return doc.templateKey === template.templateKey && doc.version === template.version
+  return hasIntakeRenderBinding(doc) && doc.templateKey === template.templateKey && doc.version === template.version
     && doc.source === template.source && (doc.tenantTemplateId ?? null) === (template.tenantTemplateId ?? null)
     && Boolean(doc.previewHtml)
-    && renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, tenantDisplay), doc.signatures).html === doc.previewHtml;
+    && renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, tenantDisplay, { renderedAt: doc.renderedAt }), doc.signatures).html === doc.previewHtml;
 }
 
 export function openDocumentPreview(
@@ -92,7 +100,6 @@ export function openDocumentPreview(
   template: IntakeDocumentTemplate,
   tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
-  const context = buildIntakePlaceholderContext(form, tenantDisplay);
   const existing = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
 
   // Reading a locked document must not reopen it. Previously the "Dokument
@@ -100,28 +107,38 @@ export function openDocumentPreview(
   // signatures were still visible, but intake validation marked the contracts
   // step as erroneous and blocked the final client save.
   if (existing?.status === 'finalized') {
+    const bindingError = getIntakeRenderBindingError(existing);
     return {
       ...existing,
       previewHtml: existing.finalizedHtml ?? existing.previewHtml,
+      ...(bindingError ? { missingPlaceholders: [bindingError] } : {}),
     };
   }
 
-  if (existing && hasDocumentSignature(existing)) {
+  if (existing && hasDocumentOriginal(existing)) {
     return matchesSignedOriginal(existing, template, form, tenantDisplay)
       ? existing
-      : { ...existing, missingPlaceholders: [ORIGINAL_CHANGED_ERROR] };
+      : { ...existing, missingPlaceholders: [getIntakeRenderBindingError(existing) ?? ORIGINAL_CHANGED_ERROR] };
   }
 
+  const renderedAt = existing && hasIntakeRenderBinding(existing) ? existing.renderedAt : new Date().toISOString();
+  const context = buildIntakePlaceholderContext(form, tenantDisplay, { renderedAt });
   const signatures = existing?.signatures ?? {};
   const preview = renderIntakeDocumentHtml(template, context, signatures);
 
   return {
     ...(existing ?? createInitialDocumentState(template)),
+    title: template.title,
+    version: template.version,
+    source: template.source,
+    tenantTemplateId: template.tenantTemplateId ?? null,
+    renderVersion: INTAKE_RENDER_VERSION,
+    renderedAt,
     status: 'preview_open',
     previewHtml: preview.html,
     missingPlaceholders: preview.missingPlaceholders,
     unresolvedKeys: preview.unresolvedKeys,
-    previewOpenedAt: new Date().toISOString(),
+    previewOpenedAt: existing?.previewOpenedAt ?? renderedAt,
   };
 }
 
@@ -141,6 +158,11 @@ export function finalizeReadyIntakeDocuments(
       (item) => item.templateKey === template.templateKey,
     );
     if (!doc || doc.status === 'finalized' || doc.status === 'skipped_optional') continue;
+    const bindingError = getIntakeRenderBindingError(doc);
+    if (hasDocumentOriginal(doc) && bindingError) {
+      if (!doc.missingPlaceholders.includes(bindingError)) nextForm = updateIntakeDocumentInForm(nextForm, { ...doc, missingPlaceholders: [bindingError] });
+      continue;
+    }
     if (!matchesSignedOriginal(doc, template, nextForm, tenantDisplay)) continue;
 
     const allRequiredSigned = template.signatureSlots
@@ -148,11 +170,12 @@ export function finalizeReadyIntakeDocuments(
       .every((slot) => Boolean(doc.signatures[slot.role]?.dataUrl));
     if (!allRequiredSigned) continue;
 
-    const context = buildIntakePlaceholderContext(nextForm, tenantDisplay);
+    const context = buildIntakePlaceholderContext(nextForm, tenantDisplay, { renderedAt: doc.renderedAt! });
     const preview = renderIntakeDocumentHtml(template, context, doc.signatures);
     if (preview.missingPlaceholders.length > 0) continue;
 
-    const finalized = finalizeIntakeDocumentHtml(template, context, doc.signatures);
+    const finalizedAt = doc.finalizedAt ?? new Date().toISOString();
+    const finalized = finalizeIntakeDocumentHtml(template, context, doc.signatures, finalizedAt);
     nextForm = updateIntakeDocumentInForm(nextForm, {
       ...doc,
       status: 'finalized',
@@ -160,7 +183,7 @@ export function finalizeReadyIntakeDocuments(
       finalizedHtml: finalized.html,
       missingPlaceholders: preview.missingPlaceholders,
       unresolvedKeys: preview.unresolvedKeys,
-      finalizedAt: doc.finalizedAt ?? new Date().toISOString(),
+      finalizedAt,
       renderedPdfPath: null,
     });
   }
@@ -177,20 +200,31 @@ export function applyDocumentSignature(
   tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
   if (doc.status === 'finalized') return doc;
-  if (hasDocumentSignature(doc) && !matchesSignedOriginal(doc, template, form, tenantDisplay)) {
+  const bindingError = getIntakeRenderBindingError(doc);
+  if (bindingError) return { ...doc, missingPlaceholders: [bindingError] };
+  if (!matchesSignedOriginal(doc, template, form, tenantDisplay)) {
     return { ...doc, missingPlaceholders: [ORIGINAL_CHANGED_ERROR] };
   }
   if (!template.signatureSlots.some(slot => slot.role === role) || signature.role !== role) {
     return { ...doc, missingPlaceholders: ['Diese Unterschriftsrolle gehört nicht zu diesem Dokument.'] };
   }
+  if (!isSafeIntakeSignatureDataUrl(signature.dataUrl) || !isIntakeRenderTimestamp(signature.signedAt)) {
+    return { ...doc, missingPlaceholders: ['Die Unterschrift oder ihr Zeitpunkt ist ungültig. Bitte erneut unterschreiben.'] };
+  }
+  const previousSignature = doc.signatures[role];
+  if (previousSignature?.dataUrl) {
+    return previousSignature.dataUrl === signature.dataUrl && previousSignature.signedAt === signature.signedAt
+      && previousSignature.role === signature.role && (previousSignature.signerName ?? null) === (signature.signerName ?? null)
+      ? doc : { ...doc, missingPlaceholders: [ORIGINAL_CHANGED_ERROR] };
+  }
   const signatureLabels = new Set(Object.entries(template.placeholderSchema)
     .filter(([key]) => key.startsWith('signature.')).map(([, meta]) => meta.label));
-  const unsignedPreview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, tenantDisplay), doc.signatures);
+  const context = buildIntakePlaceholderContext(form, tenantDisplay, { renderedAt: doc.renderedAt! });
+  const unsignedPreview = renderIntakeDocumentHtml(template, context, doc.signatures);
   const missingData = unsignedPreview.missingPlaceholders.filter(label =>
     !signatureLabels.has(label) && !label.startsWith('Unterschrift '));
   if (missingData.length > 0) return { ...doc, missingPlaceholders: missingData };
   const signatures = { ...doc.signatures, [role]: signature };
-  const context = buildIntakePlaceholderContext(form, tenantDisplay);
   const preview = renderIntakeDocumentHtml(template, context, signatures);
   const allRequiredSigned = template.signatureSlots
     .filter((s) => s.required)
@@ -200,8 +234,8 @@ export function applyDocumentSignature(
   // state left. Finalize and lock immediately so validation and persistence see
   // the same state that the UI communicates to the user.
   if (allRequiredSigned && preview.missingPlaceholders.length === 0) {
-    const finalized = finalizeIntakeDocumentHtml(template, context, signatures);
     const finalizedAt = new Date().toISOString();
+    const finalized = finalizeIntakeDocumentHtml(template, context, signatures, finalizedAt);
 
     return {
       ...doc,
@@ -336,10 +370,12 @@ export function finalizeDocument(
   form: ClientIntakeFormData,
   tenantDisplay?: IntakeTenantDisplay,
 ): { ok: true; document: IntakeDocumentState } | { ok: false; error: string } {
+  const bindingError = getIntakeRenderBindingError(doc);
+  if (bindingError) return { ok: false, error: bindingError };
   if (doc.status === 'finalized' && doc.finalizedHtml && doc.finalizedAt) {
     return { ok: true, document: doc };
   }
-  if (hasDocumentSignature(doc) && !matchesSignedOriginal(doc, template, form, tenantDisplay)) {
+  if (!matchesSignedOriginal(doc, template, form, tenantDisplay)) {
     return { ok: false, error: ORIGINAL_CHANGED_ERROR };
   }
   if (doc.missingPlaceholders.length > 0) {
@@ -352,9 +388,10 @@ export function finalizeDocument(
     }
   }
 
-  const context = buildIntakePlaceholderContext(form, tenantDisplay);
-  const finalized = finalizeIntakeDocumentHtml(template, context, doc.signatures);
   const now = new Date().toISOString();
+  const context = buildIntakePlaceholderContext(form, tenantDisplay, { renderedAt: doc.renderedAt! });
+  const finalized = finalizeIntakeDocumentHtml(template, context, doc.signatures, now);
+  if (finalized.missingPlaceholders.length) return { ok: false, error: 'Pflichtangaben oder gültige Unterschriften fehlen.' };
 
   return {
     ok: true,
@@ -370,6 +407,7 @@ export function finalizeDocument(
 }
 
 export function skipOptionalDocument(doc: IntakeDocumentState): IntakeDocumentState {
+  if (hasDocumentOriginal(doc)) return doc;
   return { ...doc, status: 'skipped_optional', finalizedAt: new Date().toISOString() };
 }
 

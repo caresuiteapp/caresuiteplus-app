@@ -61,7 +61,7 @@ beforeEach(() => {
     identityKey: 'tenant-a:actor-a:create', form: structuredClone(EMPTY_CLIENT_INTAKE_FORM), errors: {}, steps,
     stepLabels: ['Leistungsart', 'Stammdaten', 'Dokumente', 'Prüfung'], stepIndex: 0, currentSection: 'leistungsart', stepStatuses: ['active', 'pending', 'pending', 'pending'],
     tenantId: 'tenant-a', contextHint: '', submitting: false, submitError: null, createdId: null, loading: false, loadError: null, notFound: false,
-    isEditMode: false, draftLoaded: true, draftRestored: false, draftSaveFeedback: null, draftSaving: false, draftIsSaved: false, discardingDraft: false, hasPersistedDraft: false,
+    isEditMode: false, draftLoaded: true, draftRestored: false, draftSaveFeedback: null, draftSaving: false, draftConflict: false, draftClientId: null, reloadServerDraft: vi.fn().mockResolvedValue(true), draftIsSaved: false, discardingDraft: false, hasPersistedDraft: false,
     updateField: vi.fn(), updateBillingTypes: vi.fn(), updateFundingSources: vi.fn(), updateCostBearerTypes: vi.fn(), commitCostBearer: vi.fn(), removeCostBearer: vi.fn(), replaceForm: vi.fn(), toggleCareContext: vi.fn(), toggleArrayField: vi.fn(),
     nextStep: vi.fn().mockReturnValue(true), prevStep: vi.fn(), goToStep: vi.fn(), submit: vi.fn().mockResolvedValue('client-created'), discardDraft: vi.fn().mockResolvedValue(true), saveDraft: vi.fn().mockResolvedValue(true), resetWizard: vi.fn(), retryLoad: vi.fn(),
     isFirstStep: true, isLastStep: false, isSuccess: false,
@@ -122,6 +122,14 @@ describe('web intake entry and completion boundaries', () => {
     await click('Erneut laden'); expect(f.wizard.retryLoad).toHaveBeenCalledOnce();
   });
 
+  it('offers the existing record when an older lead has no full server snapshot', async () => {
+    f.wizard = { ...f.wizard, loadError: 'Diese frühere Aufnahme enthält noch keinen vollständigen Serverentwurf.' };
+    await render({ clientId: '11111111-1111-4111-8111-111111111111' });
+    const recordLink = host.querySelector<HTMLAnchorElement>('a');
+    expect(recordLink?.textContent).toBe('Klientenakte öffnen');
+    expect(recordLink?.getAttribute('href')).toContain('11111111-1111-4111-8111-111111111111');
+    expect(f.wizard.submit).not.toHaveBeenCalled();
+  });
   it('submits only on review in demo mode and reports the confirmed created id once', async () => {
     selectContext(); setStep(3); const pending = deferred<string | null>(); vi.mocked(f.wizard.submit).mockReturnValueOnce(pending.promise); await render();
     await act(async () => { const submit = button('Klient:in aufnehmen'); submit.click(); submit.click(); });
@@ -130,10 +138,19 @@ describe('web intake entry and completion boundaries', () => {
     expect(f.created).toHaveBeenCalledExactlyOnceWith('client-confirmed'); expect(f.updated).not.toHaveBeenCalled();
   });
 
-  it('keeps live completion blocked and uses the final action to save a draft', async () => {
+  it('offers live completion on review and calls the confirmed backend path', async () => {
     f.demo = false; selectContext(); setStep(3); await render();
-    expect(hasButton('Klient:in aufnehmen')).toBe(false); await click('Aufnahme als Entwurf sichern');
-    expect(f.wizard.saveDraft).toHaveBeenCalledOnce(); expect(f.wizard.submit).not.toHaveBeenCalled(); expect(f.created).not.toHaveBeenCalled();
+    expect(hasButton('Klient:in aufnehmen')).toBe(true); await click('Klient:in aufnehmen');
+    expect(f.wizard.submit).toHaveBeenCalledOnce(); expect(f.created).toHaveBeenCalledExactlyOnceWith('client-created');
+    expect(host.textContent).not.toContain('nicht verfügbar');
+  });
+
+  it('blocks completion on a revision conflict and explains explicit server-version adoption', async () => {
+    f.demo = false; selectContext(); setStep(3); f.wizard = { ...f.wizard, draftConflict: true }; await render();
+    expect(button('Klient:in aufnehmen').disabled).toBe(true);
+    expect(host.textContent).toContain('ungesicherten Änderungen werden dabei verworfen');
+    await click('Server- und Aktenangaben übernehmen'); expect(f.wizard.reloadServerDraft).toHaveBeenCalledOnce();
+    expect(f.wizard.submit).not.toHaveBeenCalled();
   });
 
   it('routes a confirmed edit to onUpdated and never calls the creation callback', async () => {
