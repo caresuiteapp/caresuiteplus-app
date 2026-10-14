@@ -11,6 +11,7 @@ import { downloadCentralDocument, listCentralDocuments, loadCentralContext, save
 import { getServiceMode } from '@/lib/services/mode';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { documentRecordScope, normalizeDocumentModule } from '@/lib/documents/documentRecommendations';
+import { centralCatalogClientOptions, centralCatalogEmployeeOptions, type CentralCatalogEntityOption } from '@/lib/documents/centralCatalogEntities';
 import type { CentralContextRequest } from '@/lib/documents/centralCatalogService';
 import type { CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 
@@ -30,7 +31,7 @@ export function CentralDocumentCatalogScreen() {
   const [recordsHasMore, setRecordsHasMore] = useState(false);
   const actor = useMemo(() => ({ roleKey, profile }), [roleKey, profile]);
   const canView = can('office.documents.view'); const canClients = can('office.clients.view'); const canEmployees = can('office.employees.view');
-  const [clients, setClients] = useState<{ id: string; label: string }[]>([]); const [employees, setEmployees] = useState<{ id: string; label: string }[]>([]);
+  const [clients, setClients] = useState<CentralCatalogEntityOption[]>([]); const [employees, setEmployees] = useState<CentralCatalogEntityOption[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(false); const [entityError, setEntityError] = useState('');
   const [records, setRecords] = useState<CentralDocumentStored[]>([]); const [recordsError, setRecordsError] = useState('');
   const [loadingRecords, setLoadingRecords] = useState(false); const [refresh, setRefresh] = useState(0);
@@ -43,9 +44,9 @@ export function CentralDocumentCatalogScreen() {
       canEmployees ? fetchEmployeeList(tenantId, roleKey, profile) : Promise.resolve(null),
     ]).then(([c, e]) => {
       if (!active) return; const failures: string[] = [];
-      if (c.status === 'fulfilled' && c.value?.ok) setClients(c.value.data.map((r) => ({ id: r.id, label: `${r.firstName} ${r.lastName}`.trim() })));
+      if (c.status === 'fulfilled' && c.value?.ok) setClients(centralCatalogClientOptions(c.value.data));
       else if (c.status === 'rejected' || (c.status === 'fulfilled' && c.value && !c.value.ok)) failures.push('Klientenakten konnten nicht geladen werden.');
-      if (e.status === 'fulfilled' && e.value?.ok) setEmployees(e.value.data.map((r) => ({ id: r.id, label: `${r.firstName} ${r.lastName}`.trim() })));
+      if (e.status === 'fulfilled' && e.value?.ok) setEmployees(centralCatalogEmployeeOptions(e.value.data));
       else if (e.status === 'rejected' || (e.status === 'fulfilled' && e.value && !e.value.ok)) failures.push('Personalakten konnten nicht geladen werden.');
       setEntityError(failures.join(' ')); setLoadingEntities(false);
     }); return () => { active = false; };
