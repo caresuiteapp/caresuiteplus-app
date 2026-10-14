@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import { useClientIntakeWizard, type UseClientIntakeWizardOptions } from '@/hooks/useClientIntakeWizard';
+import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFieldRules';
 
 const h = vi.hoisted(() => ({
   tenant: 'tenant-A', auth: {} as any, mode: 'supabase', store: new Map<string, string>(),
@@ -56,6 +57,34 @@ beforeEach(() => {
 afterEach(async () => { if (!unmounted) await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); });
 
 describe('client intake identity, draft and submission behavior', () => {
+  it('keeps every submission section available and the active section stable when guided care contexts change', async () => {
+    await render({ completeSectionFlow: true });
+    expect(wizard.steps).toEqual(['leistungsart']);
+    await act(async () => wizard.updateField('careContexts', ['daily_assistance']));
+    expect(wizard.steps).toEqual(getVisibleSectionsForClientContext(['daily_assistance']));
+    expect(wizard.steps).toEqual(expect.arrayContaining(['kostentraeger', 'notfall_zugang', 'vertraege_einwilligungen', 'pruefung']));
+    await act(async () => wizard.goToStep(wizard.steps.indexOf('kostentraeger')));
+    await act(async () => wizard.updateField('careContexts', ['consulting', 'ambulatory_care']));
+    expect(wizard.steps).toEqual(getVisibleSectionsForClientContext(['consulting', 'ambulatory_care']));
+    expect(wizard.currentSection).toBe('kostentraeger');
+    expect(h.sections).not.toHaveBeenCalled();
+    await act(async () => wizard.updateField('careContexts', []));
+    expect(wizard.steps).toEqual(['leistungsart']);
+    expect(wizard.currentSection).toBe('leistungsart');
+    expect(wizard.stepIndex).toBe(0);
+  });
+  it('keeps the default section query but ignores its late response after opting into the complete flow', async () => {
+    const configured = deferred(); h.sections.mockReturnValueOnce(configured.promise);
+    await render();
+    await act(async () => wizard.updateField('careContexts', ['daily_assistance']));
+    expect(h.sections).toHaveBeenCalledTimes(1);
+    await act(async () => wizard.goToStep(wizard.steps.indexOf('vertraege_einwilligungen')));
+    await render({ completeSectionFlow: true });
+    await act(async () => configured.resolve({ ok: true, data: [{ sectionKey: 'pruefung', isRequired: true, sortOrder: 1 }] }));
+    expect(wizard.steps).toEqual(getVisibleSectionsForClientContext(['daily_assistance']));
+    expect(wizard.currentSection).toBe('vertraege_einwilligungen');
+    expect(h.sections).toHaveBeenCalledTimes(1);
+  });
   it('waits for restore and never overwrites a stored draft with an initially empty form', async () => {
     const stored = deferred<string | null>(); h.get.mockReturnValueOnce(stored.promise);
     await render(); expect(wizard.loading).toBe(true); expect(h.remote).not.toHaveBeenCalled();
@@ -145,10 +174,26 @@ describe('client intake identity, draft and submission behavior', () => {
   });
   it('does not resurrect a discarded draft when a server response arrives late', async () => {
     const remote = deferred(); h.remote.mockReturnValueOnce(remote.promise); await render(); await name('Verwerfen');
-    let writing!: Promise<boolean>, discard!: Promise<void>; await act(async () => { writing = wizard.saveDraft(); });
+    let writing!: Promise<boolean>, discard!: Promise<boolean>; await act(async () => { writing = wizard.saveDraft(); });
     await act(async () => { discard = wizard.discardDraft(); });
-    await act(async () => { remote.resolve({ ok: true, data: { id } }); await writing; await discard; });
+    await act(async () => { expect(await wizard.discardDraft()).toBe(false); });
+    await act(async () => { remote.resolve({ ok: true, data: { id } }); await writing; expect(await discard).toBe(true); });
     expect(wizard.form.firstName).toBe(''); expect(h.store.has(key())).toBe(false);
+  });
+  it('reports a failed discard without clearing form or storage and confirms a successful retry only after removal', async () => {
+    await render(); await name('Bleibt erhalten');
+    await act(async () => { expect(await wizard.saveDraft()).toBe(true); });
+    const stored = h.store.get(key());
+    h.remove.mockRejectedValueOnce(new Error('storage denied'));
+    await act(async () => { expect(await wizard.discardDraft()).toBe(false); });
+    expect(wizard.form.firstName).toBe('Bleibt erhalten');
+    expect(h.store.get(key())).toBe(stored);
+    expect(wizard.draftSaveFeedback?.variant).toBe('warning');
+    expect(wizard.discardingDraft).toBe(false);
+    await act(async () => { expect(await wizard.discardDraft()).toBe(true); });
+    expect(wizard.form.firstName).toBe('');
+    expect(h.store.has(key())).toBe(false);
+    expect(wizard.draftSaveFeedback).toBeNull();
   });
   it('preserves signed document and stable client id locally before any unsafe remote mutation', async () => {
     h.docs.mockResolvedValue({ ok: false, error: 'Unterschrift-Upload fehlgeschlagen' }); await render(); await name('Mit Unterschrift');

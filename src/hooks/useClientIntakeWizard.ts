@@ -55,6 +55,8 @@ export type UseClientIntakeWizardOptions = {
   editSections?: IntakeSectionKey[];
   /** Existing records may be incomplete and must remain partially editable. */
   validateOnSubmit?: boolean;
+  /** Keep every section validated by intake submission available in the guided flow. */
+  completeSectionFlow?: boolean;
 };
 
 export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
@@ -62,6 +64,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const editClientId = options?.clientId;
   const editSections = options?.editSections;
   const validateOnSubmit = options?.validateOnSubmit ?? true;
+  const completeSectionFlow = options?.completeSectionFlow ?? false;
   const includeIntakeDocuments = Boolean(
     editSections?.includes('vertraege_einwilligungen'),
   );
@@ -124,7 +127,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   }
 
   useEffect(() => {
-    if (!tenantId || form.careContexts.length === 0) {
+    if (completeSectionFlow || !tenantId || form.careContexts.length === 0) {
       setDbSectionKeys([]);
       setDbSectionsLoaded(true);
       return;
@@ -143,15 +146,17 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     return () => {
       cancelled = true;
     };
-  }, [tenantId, form.careContexts, current]);
+  }, [completeSectionFlow, tenantId, form.careContexts, current]);
 
   const steps = useMemo(() => {
-    if (!dbSectionsLoaded || form.careContexts.length === 0) {
+    // The guided flow uses the same stable section order as submitClientIntake.
+    // Optional DB configuration must not hide fields that submission requires.
+    if (completeSectionFlow || !dbSectionsLoaded || form.careContexts.length === 0) {
       return getIntakeStepsForContexts(form.careContexts);
     }
     const keys = careContextsToServiceTypeKeys(form.careContexts);
     return getIntakeStepsForServiceTypeKeys(keys, form.careContexts, dbSectionKeys);
-  }, [dbSectionsLoaded, dbSectionKeys, form.careContexts]);
+  }, [completeSectionFlow, dbSectionsLoaded, dbSectionKeys, form.careContexts]);
 
   const currentSection = steps[stepIndex] ?? 'leistungsart';
   const contextHint = getSupportOnlyHint(form.careContexts);
@@ -493,18 +498,20 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setDraftSaveFeedback(null);
   }, [scope]);
 
-  const discardDraft = useCallback(async () => {
-    if (!current() || submitLock.current || scope.discarding) return;
+  const discardDraft = useCallback(async (): Promise<boolean> => {
+    if (!current() || submitLock.current || scope.discarding || !userId || !tenantId) return false;
     scope.epoch++; scope.discarding = true; setDiscardingDraft(true);
     skipNextSave.current = true;
     try {
       await scope.draftTail;
-      if (!current()) return;
-      if (userId && tenantId) await clearClientIntakeDraft(userId, tenantId);
-      if (!current()) return;
+      if (!current()) return false;
+      await clearClientIntakeDraft(userId, tenantId);
+      if (!current()) return false;
       resetWizard();
+      return true;
     } catch {
       if (current()) setDraftSaveFeedback({ message: 'Entwurf konnte nicht entfernt werden. Ihre Angaben bleiben erhalten.', variant: 'warning' });
+      return false;
     } finally {
       scope.discarding = false;
       if (current()) setDiscardingDraft(false);
