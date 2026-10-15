@@ -5,14 +5,14 @@ import { useIsFocused } from 'expo-router';
 import { useWebBackNavigation } from '@/hooks/useWebBackNavigation.web';
 import { webPageHref } from '@/lib/navigation/webPageHref';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
-import { EmployeeCreateModal } from '@/components/office/employeecreatemodal';
-import { EmployeeDetailModal } from '@/components/office/employeedetailmodal';
-import { EmployeesListView } from '@/components/office/EmployeesListView';
+import { EmployeeCreateModal } from '@/components/office/employeecreatemodal.web';
+import { EmployeeDetailModal } from '@/components/office/employeedetailmodal.web';
+import { EmployeesListExperience as EmployeesListView } from '@/components/office/EmployeesListExperience.web';
 import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
 import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 
-const EMPLOYEE_CREATE_ROUTE = '/office/employees/create';
+const EMPLOYEE_CREATE_ROUTE = '/business/office/employees/new';
 
 export function EmployeesListScreen({
   onEmployeePress,
@@ -36,7 +36,7 @@ export function EmployeesListScreen({
   const params = useLocalSearchParams<{ create?: string; employee?: string }>();
   const pathname = usePathname();
   const focused = useIsFocused();
-  const listHref = webPageHref(pathname, params, { employee: undefined, tab: undefined, create: undefined });
+  const listHref = webPageHref(pathname, params, { employee: undefined, tab: undefined, create: undefined, edit: undefined, csPage_EmployeePersonnelFilePanel_activeTab: undefined });
   const closeDetail = useWebBackNavigation(listHref);
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.employees.create');
@@ -51,7 +51,7 @@ export function EmployeesListScreen({
 
   const openCreate = () => {
     if (modalMode) {
-      router.push(webPageHref(pathname, params, { create: '1', employee: undefined, tab: undefined }) as never);
+      router.push(webPageHref(pathname, params, { create: '1', employee: undefined, tab: undefined, edit: undefined, csPage_EmployeePersonnelFilePanel_activeTab: undefined }) as never);
       return;
     }
     router.push(EMPLOYEE_CREATE_ROUTE as never);
@@ -59,7 +59,7 @@ export function EmployeesListScreen({
 
   const openDetail = (id: string) => {
     if (modalMode) {
-      router.push(webPageHref(pathname, params, { employee: id, tab: undefined, create: undefined }) as never);
+      router.push(webPageHref(pathname, params, { employee: id, tab: undefined, create: undefined, edit: undefined, csPage_EmployeePersonnelFilePanel_activeTab: undefined }) as never);
       return;
     }
     onEmployeePress?.(id);
@@ -83,9 +83,9 @@ export function EmployeesListScreen({
       <EmployeeDetailModal
         visible={detailOpen}
         employeeId={detailEmployeeId}
-        onClose={closeDetail}
+        onClose={() => { triggerRefresh(); closeDetail(); }}
         onDeleted={() => {
-          router.setParams({ employee: undefined, tab: undefined });
+          router.setParams({ employee: undefined, tab: undefined, edit: undefined, csPage_EmployeePersonnelFilePanel_activeTab: undefined });
           triggerRefresh();
         }}
       />
@@ -95,7 +95,7 @@ export function EmployeesListScreen({
           onClose={closeDetail}
           onCreated={(id) => {
             triggerRefresh();
-            router.setParams({ create: undefined, employee: id, tab: undefined });
+            router.setParams({ create: undefined, employee: id, tab: undefined, edit: undefined, csPage_EmployeePersonnelFilePanel_activeTab: undefined });
           }}
         />
       ) : null}
@@ -114,40 +114,22 @@ export function EmployeesListScreen({
   return (
     <>
       <C14vSubpageShell
-        title="Mitarbeitende"
+        title="Personal"
         eyebrow={`${moduleLabel.toUpperCase()} · TEAM`}
         subtitle={`${contextLabel}${isReadOnly ? ' · Lesemodus' : ''}`}
         moduleLabel={moduleLabel}
         showBack={false}
         scroll={false}
         accentColor={accent}
-        actions={[
-          ...(canCreate
-            ? [
-                {
-                  key: 'create',
-                  label: '+ Mitarbeitende anlegen',
-                  onPress: openCreate,
-                  variant: 'primary' as const,
-                },
-              ]
-            : []),
-          {
-            key: 'refresh',
-            label: 'Aktualisieren',
-            onPress: triggerRefresh,
-            variant: 'ghost' as const,
-          },
-        ]}
+
       >
         <PersonalWorkspaceSurface style={styles.content}>{listView}</PersonalWorkspaceSurface>
       </C14vSubpageShell>
-      <PersonalWorkspaceSurface style={styles.modalHost}>{modals}</PersonalWorkspaceSurface>
+      {modals}
     </>
   );
 }
 
 const styles = StyleSheet.create({
   content: { flex: 1, minWidth: 0, minHeight: 0 },
-  modalHost: { position: 'absolute', width: 0, height: 0, overflow: 'visible' },
 });
