@@ -1,3 +1,4 @@
+import type { PermissionKey } from '@/types';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,6 +13,7 @@ import type { ServiceCatalogCategory, ServicePriceUnit, ServiceTaxMode, TenantMo
 export type TenantServiceCatalogModalProps = {
   visible: boolean;
   tenantId: string;
+  effectivePermissions?: readonly PermissionKey[];
   initialModuleKey?: TenantModuleKey;
   initialCategory?: ServiceCatalogCategory;
   onClose: () => void;
@@ -43,9 +45,9 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
   return <label className="tscm-field"><span>{label}</span>{children}{hint ? <small>{hint}</small> : null}</label>;
 }
 
-export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey = 'assist', initialCategory, onClose, onSaved }: TenantServiceCatalogModalProps) {
+export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey = 'assist', initialCategory, onClose, onSaved, effectivePermissions }: TenantServiceCatalogModalProps) {
   const { roleKey, can } = usePermissions();
-  const allowed = can('business.tenant.manage');
+  const allowed = effectivePermissions ? effectivePermissions.includes('business.tenant.manage') : can('business.tenant.manage');
   const [items, setItems] = useState<TenantServiceCatalogItem[]>([]);
   const [category, setCategory] = useState<CatalogCategoryFilter>(initialCategory ?? 'all');
   const [query, setQuery] = useState('');

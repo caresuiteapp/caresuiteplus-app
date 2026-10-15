@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RoleKey } from '@/types';
+import type { PermissionKey, RoleKey } from '@/types';
 import type {
   TenantBankAccount,
   TenantContactCommunication,
@@ -7,6 +7,7 @@ import type {
 } from '@/types/tenant/tenantCenter';
 import {
   EMPTY_TENANT_LEGAL,
+  DEFAULT_TENANT_MODULES,
   EMPTY_TENANT_PAYMENT,
   EMPTY_TENANT_REGISTER,
   EMPTY_TENANT_TAX,
@@ -17,6 +18,7 @@ import {
   saveTenantBankAccounts,
   saveTenantContactProfile,
   saveTenantLegalProfile,
+  saveTenantModuleSettings,
   saveTenantPaymentTerms,
   saveTenantRegisterProfile,
   saveTenantRepresentatives,
@@ -27,10 +29,18 @@ const mocked = vi.hoisted(() => ({
   live: true,
   blockedTenant: null as string | null,
   client: null as unknown,
+  permissions: ['business.tenant.manage'] as PermissionKey[],
+  limited: false,
+  accessError: null as string | null,
+  accessThrows: false,
   catalogError: null as string | null,
   customFieldsError: null as string | null,
 }));
 
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => {
+  if (mocked.accessThrows) throw new Error('network failure');
+  return mocked.accessError ? { ok: false, error: mocked.accessError } : { ok: true, data: { permissions: mocked.permissions, scopeLimited: mocked.limited, canManageScopes: !mocked.limited } };
+} }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({
   isLiveServiceMode: () => mocked.live,
@@ -197,7 +207,7 @@ const rowCases = [
 let database: LocalDatabase;
 
 beforeEach(() => {
-  mocked.live = true;
+  mocked.live = true; mocked.permissions = ['business.tenant.manage']; mocked.limited = false; mocked.accessError = null; mocked.accessThrows = false;
   mocked.blockedTenant = null;
   mocked.catalogError = null;
   mocked.customFieldsError = null;
@@ -211,10 +221,12 @@ describe('tenant center web persistence', () => {
     { name: 'tax', save: (role: RoleKey) => saveTenantTaxProfile(TENANT, { ...EMPTY_TENANT_TAX }, role) },
     { name: 'register', save: (role: RoleKey) => saveTenantRegisterProfile(TENANT, { ...EMPTY_TENANT_REGISTER }, role) },
     { name: 'contact', save: (role: RoleKey) => saveTenantContactProfile(TENANT, contact, role) },
-  ])('blocks denied roles and foreign tenants before any $name write', async ({ save }) => {
+  ])('blocks revoked permissions and foreign tenants before any $name write', async ({ save }) => {
+    mocked.permissions = [];
     expect((await save('nurse')).ok).toBe(false);
     expect(database.writes()).toEqual([]);
 
+    mocked.permissions = ['business.tenant.manage'];
     mocked.blockedTenant = TENANT;
     const blocked = await save(ADMIN);
     expect(blocked).toEqual({ ok: false, error: 'Kein Zugriff auf diesen Mandanten.' });
@@ -326,31 +338,37 @@ describe('tenant center web persistence', () => {
     expect(database.writes()).toEqual([]);
   });
 
-  it('persists all supported demo sections on reload and isolates them from caller mutations', async () => {
+  it('fails closed instead of persisting Web company data in a demo store', async () => {
     mocked.live = false;
-    const legal = { ...EMPTY_TENANT_LEGAL, liabilityInsurer: 'Demo-Versicherung' };
-    const tax = { ...EMPTY_TENANT_TAX, taxOffice: 'Demo-Finanzamt', taxNumber: '123/456/789', reverseCharge: true };
-    const register = { ...EMPTY_TENANT_REGISTER, registerCourt: 'Amtsgericht Demo', registerNumber: 'HRB 123' };
-    const representatives = [representative()];
-    const banks = [bankAccount()];
     const results = await Promise.all([
-      saveTenantLegalProfile(TENANT, legal, ADMIN),
-      saveTenantTaxProfile(TENANT, tax, ADMIN),
-      saveTenantRegisterProfile(TENANT, register, ADMIN),
-      saveTenantRepresentatives(TENANT, representatives, ADMIN),
-      saveTenantBankAccounts(TENANT, banks, ADMIN),
+      fetchTenantCenter(TENANT, ADMIN), saveTenantModuleSettings(TENANT, { ...DEFAULT_TENANT_MODULES }, ADMIN), saveTenantLegalProfile(TENANT, { ...EMPTY_TENANT_LEGAL }, ADMIN),
+      saveTenantTaxProfile(TENANT, { ...EMPTY_TENANT_TAX }, ADMIN), saveTenantRegisterProfile(TENANT, { ...EMPTY_TENANT_REGISTER }, ADMIN),
+      saveTenantRepresentatives(TENANT, [representative()], ADMIN), saveTenantBankAccounts(TENANT, [bankAccount()], ADMIN),
     ]);
-    expect(results.every((result) => result.ok)).toBe(true);
-    const expected = structuredClone({ legal, tax, register, representatives, bankAccounts: banks });
-    legal.liabilityInsurer = 'Unsaved mutation';
-    tax.taxOffice = 'Unsaved mutation';
-    register.registerCourt = 'Unsaved mutation';
-    representatives[0].firstName = 'Unsaved mutation';
-    banks[0].accountHolder = 'Unsaved mutation';
-    const loaded = await fetchTenantCenter(TENANT, ADMIN);
-    expect(loaded.ok).toBe(true);
-    if (loaded.ok) expect(loaded.data).toMatchObject(expected);
-    expect(database.writes()).toEqual([]);
+    expect(results.every(result => !result.ok && result.error.includes('aktive Datenbankverbindung'))).toBe(true);
+    expect(database.calls).toEqual([]);
+  });
+
+  it('honors authoritative custom grants even for a role without a static company grant', async () => {
+    const read = await fetchTenantCenter(TENANT, 'nurse'); expect(read.ok).toBe(true);
+    const saved = await saveTenantLegalProfile(TENANT, { ...EMPTY_TENANT_LEGAL, liabilityInsurer: 'Tatsächliche Police' }, 'nurse');
+    expect(saved.ok).toBe(true); expect(database.writes('tenant_legal_profiles')).toHaveLength(1);
+  });
+
+  it('denies global company data to scope-limited staff even with the management permission', async () => {
+    mocked.limited = true;
+    expect((await fetchTenantCenter(TENANT, ADMIN)).ok).toBe(false);
+    expect((await saveTenantLegalProfile(TENANT, { ...EMPTY_TENANT_LEGAL }, ADMIN)).ok).toBe(false);
+    expect(database.calls).toEqual([]);
+  });
+
+  it('does not fall back to a static admin role when authoritative access is unavailable', async () => {
+    mocked.accessError = 'Rechte derzeit nicht verfügbar.';
+    expect(await fetchTenantCenter(TENANT, ADMIN)).toEqual({ ok: false, error: mocked.accessError });
+    mocked.accessError = null; mocked.accessThrows = true;
+    const saved = await saveTenantLegalProfile(TENANT, { ...EMPTY_TENANT_LEGAL }, ADMIN);
+    expect(saved.ok).toBe(false); if (!saved.ok) expect(saved.error).toContain('Berechtigung');
+    expect(database.calls).toEqual([]);
   });
 
   it('saves contact people by identity and removes only explicitly selected contacts', async () => {

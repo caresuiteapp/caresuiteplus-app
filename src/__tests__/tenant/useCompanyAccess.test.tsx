@@ -1,0 +1,25 @@
+// @vitest-environment happy-dom
+import { act, useLayoutEffect } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useCompanyAccess } from '@/hooks/useCompanyAccess.web';
+import type { CompanyAccess } from '@/types/tenant/companyAccess';
+import type { ServiceResult } from '@/types';
+const h = vi.hoisted(() => ({ load: vi.fn() }));
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => h.load(...args) }));
+const access: CompanyAccess = { permissions:['business.tenant.manage','inventory.view'],scopeLimited:false,canManageScopes:true };
+function deferred() { let resolve!: (value: ServiceResult<CompanyAccess>) => void; let reject!: (error: Error) => void; const promise = new Promise<ServiceResult<CompanyAccess>>((res,rej)=>{resolve=res;reject=rej;}); return {promise,resolve,reject}; }
+let root: Root; let host: HTMLDivElement; let result: ReturnType<typeof useCompanyAccess>; let renders: ReturnType<typeof useCompanyAccess>[];
+function Probe({ tenant='tenant-one', profile='profile-one', role='business_admin' }: { tenant?:string; profile?:string; role?:string }) { const value=useCompanyAccess(tenant,profile,role); useLayoutEffect(()=>{result=value;renders.push(value);}); return <div>{value.loading?'loading':value.data?.permissions.join(',')??value.error}</div>; }
+const render = async (props: {tenant?:string;profile?:string;role?:string}={}) => { await act(async()=>{root.render(<Probe {...props}/>);}); };
+beforeEach(()=>{(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT=true;h.load.mockReset();host=document.createElement('div');document.body.appendChild(host);root=createRoot(host);renders=[];});
+afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
+
+describe('company access identity and request isolation',()=>{
+ it('starts closed and exposes only a resolved successful permission response',async()=>{const pending=deferred();h.load.mockReturnValue(pending.promise);await render();expect(result.data).toBeNull();expect(result.loading).toBe(true);await act(async()=>pending.resolve({ok:true,data:access}));expect(result.data).toEqual(access);expect(result.loading).toBe(false);});
+ it.each(['tenant','profile','role'] as const)('clears old permissions in the very first render after a %s switch',async field=>{h.load.mockResolvedValueOnce({ok:true,data:access});await render();expect(result.data).toEqual(access);const pending=deferred();h.load.mockReturnValueOnce(pending.promise);renders=[];await render({[field]:`${field}-two`});expect(renders.length).toBeGreaterThan(0);expect(renders.every(item=>item.data===null)).toBe(true);expect(result.loading).toBe(true);});
+ it('ignores a successful response from a previously selected tenant',async()=>{const old=deferred();const current=deferred();h.load.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);await render();await render({tenant:'tenant-two'});await act(async()=>current.resolve({ok:true,data:{permissions:[],scopeLimited:true,canManageScopes:false}}));await act(async()=>old.resolve({ok:true,data:access}));expect(result.data?.permissions).toEqual([]);expect(result.data?.canManageScopes).toBe(false);});
+ it('ignores stale responses when switching people within the same tenant',async()=>{const old=deferred();const current=deferred();h.load.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);await render();await render({profile:'profile-two'});await act(async()=>old.resolve({ok:true,data:access}));expect(result.loading).toBe(true);expect(result.data).toBeNull();await act(async()=>current.resolve({ok:false,error:'Kein Zugriff'}));expect(result.error).toBe('Kein Zugriff');expect(result.data).toBeNull();});
+ it('refreshes permissions and keeps old rights cleared while waiting',async()=>{h.load.mockResolvedValueOnce({ok:true,data:access});await render();const pending=deferred();h.load.mockReturnValueOnce(pending.promise);await act(async()=>result.refresh());expect(h.load).toHaveBeenCalledTimes(2);expect(result.data).toBeNull();expect(result.loading).toBe(true);await act(async()=>pending.resolve({ok:true,data:{permissions:['inventory.view'],scopeLimited:true,canManageScopes:false}}));expect(result.data?.permissions).toEqual(['inventory.view']);});
+ it('keeps access closed after a rejected refresh and ignores an older error',async()=>{const old=deferred();const current=deferred();h.load.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);await render();await act(async()=>result.refresh());await act(async()=>current.resolve({ok:true,data:access}));await act(async()=>old.reject(new Error('old error')));expect(result.error).toBeNull();expect(result.data).toEqual(access);h.load.mockRejectedValueOnce(new Error('offline'));await act(async()=>result.refresh());expect(result.data).toBeNull();expect(result.error).toContain('nicht geprüft');expect(result.loading).toBe(false);});
+});

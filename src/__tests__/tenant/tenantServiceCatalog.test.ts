@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   fetchTenantServiceCatalog,
@@ -6,6 +6,8 @@ import {
   resetTenantServiceCatalogStore,
   saveTenantServiceCatalogItem,
 } from '@/lib/tenant/tenantServiceCatalogService';
+
+vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 
 describe('tenantServiceCatalogService', () => {
   it('liefert Demo-Standardleistungen für alle Module', async () => {

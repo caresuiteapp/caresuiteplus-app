@@ -51,7 +51,7 @@ const POPUP_TITLES: Record<string, string> = {
   company: 'Unternehmen', unternehmen: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
   'time-tracking': 'Arbeitszeit', payroll: 'Gehaltsstatistik', invoices: 'Rechnungen',
   documents: 'Dokumente', messages: 'Nachrichten', portals: 'Portale & Zugänge',
-  inventory: 'Inventar', audit: 'Audit', 'audit-log': 'Audit', assignments: 'Einsätze', einsaetze: 'Einsätze',
+  inventory: 'Inventar', inventar: 'Inventar', audit: 'Audit', 'audit-log': 'Audit', assignments: 'Einsätze', einsaetze: 'Einsätze',
   calendar: 'Kalender & Einsatzplanung', kalender: 'Kalender & Einsatzplanung',
   'live-status': 'Live-Status', evidence: 'Nachweise', nachweise: 'Nachweise',
   budgets: 'Budgets', abrechnungsquellen: 'Budgets', 'portal-access': 'Portale',

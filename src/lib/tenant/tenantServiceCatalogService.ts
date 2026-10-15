@@ -1,3 +1,4 @@
+import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import { Platform } from 'react-native';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
@@ -337,7 +338,9 @@ export async function fetchTenantServiceCatalog(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
-  const denied = enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -411,7 +414,9 @@ export async function saveTenantServiceCatalogItem(
   input: SaveCatalogItemInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
-  const denied = enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
   if (Platform.OS === 'web') {
@@ -562,7 +567,9 @@ export async function fetchTenantServicePriceHistory(
   catalogId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantServicePriceVersion[]>> {
-  const denied = enforcePermission<TenantServicePriceVersion[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantServicePriceVersion[]>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServicePriceVersion[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

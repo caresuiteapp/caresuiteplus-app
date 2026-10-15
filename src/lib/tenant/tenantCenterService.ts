@@ -60,11 +60,20 @@ function mergeDemoRows<T extends { id?: string }>(previous: T[], next: T[], opti
   ];
 }
 
-function webWriteGuard(tenantId: string, roleKey?: RoleKey | null): { ok: false; error: string } | null {
+async function webWriteGuard(tenantId: string, _roleKey?: RoleKey | null): Promise<{ ok: false; error: string } | null> {
   if (Platform.OS !== 'web') return null;
-  const denied = enforcePermission(roleKey, TENANT_SETTINGS_PERMISSION);
-  if (denied && !denied.ok) return denied;
-  return guardServiceTenant(tenantId);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!isLiveServiceMode()) return { ok: false, error: 'Die Unternehmensakte benötigt eine aktive Datenbankverbindung. Es werden keine Beispieldaten verwendet.' };
+  try {
+    const { loadCompanyAccess } = await import('./companyAccessService.web');
+    const access = await loadCompanyAccess(tenantId);
+    if (!access.ok) return access;
+    if (access.data.scopeLimited || !access.data.permissions.includes(TENANT_SETTINGS_PERMISSION)) {
+      return { ok: false, error: 'Für die unternehmensweiten Stammdaten fehlt Ihnen die Berechtigung.' };
+    }
+    return null;
+  } catch { return { ok: false, error: 'Die Berechtigung für die Unternehmensakte konnte nicht geprüft werden. Bitte erneut versuchen.' }; }
 }
 
 function saveWebDemoSection<K extends 'legal' | 'tax' | 'register' | 'representatives' | 'bankAccounts'>(
@@ -384,7 +393,9 @@ export async function fetchTenantCenter(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return { ok: false, error: denied.ok ? 'Keine Berechtigung.' : denied.error };
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -400,9 +411,9 @@ export async function saveTenantCompanyProfile(
   profile: TenantCompanyProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
-  const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   if (!profile.name.trim()) return { ok: false, error: 'Firmenname ist erforderlich.' };
   const emailError = validateEmail(profile.email);
@@ -454,7 +465,7 @@ export async function saveTenantLegalProfile(
   profile: TenantLegalProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   if (Platform.OS === 'web' && !isLiveServiceMode()) return saveWebDemoSection(tenantId, 'legal', profile);
   return upsertProfileTable(tenantId, 'tenant_legal_profiles', {
@@ -473,7 +484,7 @@ export async function saveTenantTaxProfile(
   profile: TenantTaxProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   const vatError = validateVatId(profile.vatId);
   if (vatError) return { ok: false, error: vatError };
@@ -512,7 +523,7 @@ export async function saveTenantRegisterProfile(
   profile: TenantRegisterProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   if (Platform.OS === 'web' && !isLiveServiceMode()) return saveWebDemoSection(tenantId, 'register', profile);
   if (isLiveServiceMode()) {
@@ -550,7 +561,7 @@ export async function saveTenantContactProfile(
   actorRoleKey?: RoleKey | null,
   options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   const emailError = validateEmail(contact.billingEmail) ?? validateEmail(contact.supportEmail);
   if (emailError) return { ok: false, error: emailError };
@@ -585,7 +596,7 @@ export async function saveTenantContactProfile(
       email: person.email.trim(), phone: person.phone.trim() || null, is_primary: person.isPrimary,
     })), actorRoleKey, options);
     if (!saved.ok) return saved;
-    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    const blocked = await webWriteGuard(tenantId, actorRoleKey);
     if (blocked) return incompleteSave(blocked.error);
   }
 
@@ -613,7 +624,7 @@ export async function saveTenantRepresentatives(
   actorRoleKey?: RoleKey | null,
   options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   for (const rep of representatives) {
     if (Platform.OS === 'web' && !rep.firstName.trim() && !rep.lastName.trim()) return { ok: false, error: 'Bitte einen Namen für jede vertretungsberechtigte Person eingeben.' };
@@ -643,7 +654,7 @@ export async function saveTenantBankAccounts(
   actorRoleKey?: RoleKey | null,
   options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   for (const account of accounts) {
     if (Platform.OS === 'web' && (!account.accountHolder.trim() || !account.iban.trim())) return { ok: false, error: 'Kontoinhaber und IBAN sind für jede Bankverbindung erforderlich.' };
@@ -671,9 +682,9 @@ export async function saveTenantPaymentTerms(
   payment: TenantPaymentTerms,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
-  const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   if (Platform.OS === 'web') {
     for (const value of [payment.paymentTermsDays, payment.dunningAfterDays]) {
@@ -717,7 +728,9 @@ export async function saveTenantModuleSettings(
   modules: TenantModuleSettings,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const denied = canManageTenantModuleSettings(actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : canManageTenantModuleSettings(actorRoleKey);
   if (denied) {
     return { ok: false, error: denied.ok ? 'Keine Berechtigung.' : denied.error };
   }
@@ -756,7 +769,7 @@ export async function ensureTenantCatalogSeeded(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
   if (isLiveServiceMode()) {
     const result = await seedTenantServiceCatalogIfEmpty(tenantId);
@@ -771,9 +784,9 @@ async function upsertProfileTable(
   payload: Record<string, unknown>,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  const webDenied = await webWriteGuard(tenantId, actorRoleKey);
   if (webDenied) return webDenied;
-  const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
   if (!isLiveServiceMode()) {
@@ -801,7 +814,7 @@ async function saveWebRows(
   actorRoleKey?: RoleKey | null,
   options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<void>> {
-  const denied = webWriteGuard(tenantId, actorRoleKey);
+  const denied = await webWriteGuard(tenantId, actorRoleKey);
   if (denied) return denied;
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
@@ -821,7 +834,7 @@ async function saveWebRows(
 
   for (const batch of [newRows, existingRows]) {
     if (!batch.length) continue;
-    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    const blocked = await webWriteGuard(tenantId, actorRoleKey);
     if (blocked) return failure(blocked.error);
     const query = batch === newRows
       ? fromUnknownTable(client, table).insert(batch)
@@ -833,7 +846,7 @@ async function saveWebRows(
   }
 
   if (removedIds.length) {
-    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    const blocked = await webWriteGuard(tenantId, actorRoleKey);
     if (blocked) return failure(blocked.error);
     const result = await fromUnknownTable(client, table).delete().eq('tenant_id', tenantId).in('id', removedIds).select('id');
     if (result.error) return failure(toGermanSupabaseError(result.error));

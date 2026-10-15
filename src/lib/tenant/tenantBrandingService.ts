@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { ServiceResult } from '@/types';
 import type { TenantBrandingProfile } from '@/types/tenant/tenantCenter';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -50,7 +52,9 @@ export async function saveTenantBrandingProfile(
   logo: TenantLogoValue,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantBrandingProfile>> {
-  const denied = enforcePermission<TenantBrandingProfile>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantBrandingProfile>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantBrandingProfile>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -76,6 +80,8 @@ export async function saveTenantBrandingProfile(
     return { ok: true, data: branding };
   }
 
+  const beforePersist = await guardLegacyCompanyWebAccess<TenantBrandingProfile>(tenantId);
+  if (beforePersist) return beforePersist;
   const persisted = await persistTenantLogoUrl(tenantId, nextLogoUrl);
   if (!persisted.ok) return persisted;
 

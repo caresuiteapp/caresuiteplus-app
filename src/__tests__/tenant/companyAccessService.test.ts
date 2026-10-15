@@ -1,0 +1,27 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadCompanyAccess, loadCompanyScopeGrants, saveCompanyScopeGrant } from '@/lib/tenant/companyAccessService.web';
+const h = vi.hoisted(() => ({ rpc: vi.fn(), mode: 'supabase', blocked: false, connected: true }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => h.connected ? { rpc: h.rpc } : null }));
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => h.mode }));
+vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => h.blocked ? { ok: false, error: 'Mandant gesperrt' } : null }));
+const TENANT = '11111111-1111-4111-8111-111111111111';
+const PROFILE = '22222222-2222-4222-8222-222222222222';
+const SITE = '33333333-3333-4333-8333-333333333333';
+const input = { profileId: PROFILE, limited: true, grants: [{ kind: 'site' as const, targetId: SITE }], expectedVersion: 4 };
+const validAccess = { permissions: ['business.tenant.manage', 'inventory.view'], scopeLimited: true, canManageScopes: false };
+beforeEach(() => { h.mode='supabase'; h.blocked=false; h.connected=true; h.rpc.mockReset(); h.rpc.mockResolvedValue({ data: validAccess, error: null }); });
+
+describe('company access service authoritative responses', () => {
+ it('returns only verified server permissions and deduplicates them', async () => { h.rpc.mockResolvedValue({ data: { ...validAccess, permissions: ['inventory.view','inventory.view'] }, error: null }); expect(await loadCompanyAccess(TENANT)).toEqual({ ok:true,data:{...validAccess,permissions:['inventory.view']} }); expect(h.rpc).toHaveBeenCalledWith('company_access_permissions',{p_tenant_id:TENANT}); });
+ it.each(['PGRST202','PGRST205','42883','42P01'])('fails closed when server access support is missing (%s)', async code => { h.rpc.mockResolvedValue({ data:null,error:{code,message:'Unavailable'} }); expect(await loadCompanyAccess(TENANT)).toMatchObject({ok:false,error:expect.stringContaining('noch nicht eingerichtet')}); });
+ it.each([null,[],{}, {permissions:['inventory.view']}, {...validAccess,scopeLimited:'false'}, {...validAccess,canManageScopes:1}, {...validAccess,permissions:['admin.everything']}, {...validAccess,permissions:[null]}])('fails closed on malformed access response %j', async data => { h.rpc.mockResolvedValue({data,error:null}); const result=await loadCompanyAccess(TENANT); expect(result.ok).toBe(false); expect(result).not.toHaveProperty('data'); });
+ it.each(['demo','mock'])('does not infer permissions in %s mode',async mode=>{h.mode=mode;expect((await loadCompanyAccess(TENANT)).ok).toBe(false);expect(h.rpc).not.toHaveBeenCalled();});
+ it('rejects invalid tenant, blocked tenant and absent connection',async()=>{expect((await loadCompanyAccess('tenant')).ok).toBe(false);h.blocked=true;expect((await loadCompanyAccess(TENANT)).ok).toBe(false);h.blocked=false;h.connected=false;expect((await loadCompanyAccess(TENANT)).ok).toBe(false);expect(h.rpc).not.toHaveBeenCalled();});
+ it('does not turn transport rejection into granted access',async()=>{h.rpc.mockRejectedValue(new Error('offline'));expect(await loadCompanyAccess(TENANT)).toEqual({ok:false,error:'offline'});});
+ it('rejects a malformed scope profile list instead of displaying partial grants',async()=>{h.rpc.mockResolvedValue({data:{profiles:[{id:PROFILE,displayName:'Person',roleKey:'admin',scopeLimited:true,version:1,hasLegacyLimits:false,isCurrentProfile:false,grants:[{kind:'site',targetId:'missing'}]}]},error:null});expect((await loadCompanyScopeGrants(TENANT)).ok).toBe(false);});
+ it('passes the expected version and requires the exact server receipt',async()=>{h.rpc.mockResolvedValue({data:{profileId:PROFILE,scopeLimited:true,version:5},error:null});expect(await saveCompanyScopeGrant(TENANT,input)).toEqual({ok:true,data:{profileId:PROFILE,scopeLimited:true,version:5}});expect(h.rpc).toHaveBeenCalledWith('company_scope_save',{p_tenant_id:TENANT,p_profile_id:PROFILE,p_scope_limited:true,p_grants:input.grants,p_expected_version:4});});
+ it.each([{profileId:SITE,scopeLimited:true,version:5},{profileId:PROFILE,scopeLimited:false,version:5},{profileId:PROFILE,scopeLimited:true,version:4},null])('rejects a mismatched save receipt %j',async data=>{h.rpc.mockResolvedValue({data,error:null});expect(await saveCompanyScopeGrant(TENANT,input)).toMatchObject({ok:false,error:expect.stringContaining('Speicherstand')});});
+ it('reports stale versions without overwriting them',async()=>{h.rpc.mockResolvedValue({data:null,error:{code:'40001',message:'stale'}});expect(await saveCompanyScopeGrant(TENANT,input)).toMatchObject({ok:false,error:expect.stringContaining('inzwischen geändert')});expect(h.rpc).toHaveBeenCalledTimes(1);});
+ it.each([{...input,expectedVersion:-1},{...input,limited:false},{...input,grants:[...input.grants,...input.grants]}])('rejects invalid grant requests before sending %j',async data=>{expect((await saveCompanyScopeGrant(TENANT,data)).ok).toBe(false);expect(h.rpc).not.toHaveBeenCalled();});
+ it('locks a profile while saving and releases it after failure',async()=>{let resolve!: (value:unknown)=>void;h.rpc.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));const first=saveCompanyScopeGrant(TENANT,input);expect((await saveCompanyScopeGrant(TENANT,input)).ok).toBe(false);expect(h.rpc).toHaveBeenCalledTimes(1);resolve({data:null,error:{code:'40001'}});await first;h.rpc.mockResolvedValue({data:{profileId:PROFILE,scopeLimited:true,version:5},error:null});expect((await saveCompanyScopeGrant(TENANT,input)).ok).toBe(true);});
+});

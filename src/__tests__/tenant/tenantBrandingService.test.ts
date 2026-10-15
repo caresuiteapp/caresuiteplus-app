@@ -14,10 +14,16 @@ import { EMPTY_TENANT_LOGO } from '@/lib/tenant/tenantLogoService';
 import * as liveServiceGuard from '@/lib/services/liveServiceGuard';
 import * as tenantLogoService from '@/lib/tenant/tenantLogoService';
 
+
+const access = vi.hoisted(() => ({ os: 'android', load: vi.fn() }));
+vi.mock('react-native', () => ({ Platform: { get OS() { return access.os; } } }));
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => access.load(...args) }));
+
 describe('saveTenantBrandingProfile', () => {
   beforeEach(() => {
-    resetTenantCenterStore();
     vi.restoreAllMocks();
+    access.os = 'android'; access.load.mockReset(); access.load.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: false } });
+    resetTenantCenterStore();
   });
 
   it('returns error when there are no logo changes', async () => {
@@ -68,6 +74,7 @@ describe('saveTenantBrandingProfile', () => {
   });
 
   it('returns upload errors in live mode instead of false success', async () => {
+    access.os = 'web';
     vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
     vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave').mockResolvedValue({
       ok: false,
@@ -126,6 +133,22 @@ describe('saveTenantBrandingProfile', () => {
     expect(listener).toHaveBeenCalledWith(DEMO_TENANT_ID, 'blob:notify-logo');
     unsubscribe();
   });
+  it('honors an authoritative Web grant even when the role alone lacks company management', async () => {
+    access.os = 'web'; vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
+    vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave').mockResolvedValue({ ok: true, data: null });
+    const persist = vi.spyOn(tenantLogoService, 'persistTenantLogoUrl').mockResolvedValue({ ok: true, data: undefined });
+    const branding = { ...seedTenantCenterForTest(DEMO_TENANT_ID).branding, logoUrl: 'https://example.com/logo.png' };
+    expect((await saveTenantBrandingProfile(DEMO_TENANT_ID, branding, { ...EMPTY_TENANT_LOGO, removed: true }, 'dispatch')).ok).toBe(true);
+    expect(persist).toHaveBeenCalledWith(DEMO_TENANT_ID, null);
+  });
+  it('blocks scope-limited Web branding before touching storage', async () => {
+    access.os = 'web'; vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
+    access.load.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: true } });
+    const resolve = vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave');
+    expect((await saveTenantBrandingProfile(DEMO_TENANT_ID, seedTenantCenterForTest(DEMO_TENANT_ID).branding, { ...EMPTY_TENANT_LOGO, removed: true }, 'business_admin')).ok).toBe(false);
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
 });
 
 describe('fetchTenantBrandingLogoUrl cache', () => {

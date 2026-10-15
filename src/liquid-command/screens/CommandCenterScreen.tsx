@@ -272,7 +272,7 @@ const WIDGETS: readonly WidgetDefinition[] = [
     small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
     large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png") } },
-  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: "/business/office/inventory", images: {
+  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
     large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png") } },

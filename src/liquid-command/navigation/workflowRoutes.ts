@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { LiquidModuleKey } from '../types';
 
 type RouteBuilder = (recordId: string) => string;
@@ -52,7 +53,7 @@ const primaryWorkflowRoutes: Partial<Record<LiquidModuleKey, Record<string, stri
     documents: '/business/office/documents/upload',
     communication: '/business/messages/new',
     portals: '/business/office/access/employee-portal/new',
-    inventory: '/business/office/inventory/items',
+    inventory: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory/items',
     audit: '/business/office/audit-log',
   },
   assist: {

@@ -10,7 +10,7 @@ import {
 import { saveTenantBrandingProfile } from '@/lib/tenant/tenantBrandingService';
 import { EMPTY_TENANT_LOGO, hasTenantLogoChanges, type TenantLogoValue } from '@/lib/tenant/tenantLogoService';
 import type { TenantCenterSectionKey, TenantCenterSnapshot } from '@/types/tenant/tenantCenter';
-import type { ServiceResult } from '@/types';
+import type { PermissionKey, ServiceResult } from '@/types';
 import { COMPANY_EDITOR_TITLES, validateCompanyEditor } from './forms/companyEditorModel';
 import { COMPANY_EDITOR_CSS, TenantCompanyEditorForms } from './forms/TenantCompanyEditorForms.web';
 
@@ -18,6 +18,7 @@ type Props = {
   activeSection: TenantCenterSectionKey | null;
   snapshot: TenantCenterSnapshot;
   tenantId: string;
+  effectivePermissions?: readonly PermissionKey[];
   onClose: () => void;
   onSaved: (saved?: TenantCenterSnapshot, section?: TenantCenterSectionKey) => void;
   onReloaded?: (saved: TenantCenterSnapshot, section: TenantCenterSectionKey) => void;
@@ -29,9 +30,9 @@ export function TenantCenterSectionModals(props: Props) {
   return <CompanySectionEditor key={`${props.tenantId}:${props.activeSection}`} {...props} section={props.activeSection} />;
 }
 
-function CompanySectionEditor({ snapshot, tenantId, section, onClose, onSaved, onReloaded }: Props & { section: TenantCenterSectionKey }) {
+function CompanySectionEditor({ snapshot, tenantId, section, onClose, onSaved, onReloaded, effectivePermissions }: Props & { section: TenantCenterSectionKey }) {
   const { roleKey, can } = usePermissions();
-  const allowed = can('business.tenant.manage') && snapshot.tenantId === tenantId;
+  const allowed = (effectivePermissions ? effectivePermissions.includes('business.tenant.manage') : can('business.tenant.manage')) && snapshot.tenantId === tenantId;
   const [initial, setInitial] = useState<TenantCenterSnapshot>(() => JSON.parse(JSON.stringify(snapshot)) as TenantCenterSnapshot);
   const [draft, setDraft] = useState(initial);
   const [baseline, setBaseline] = useState(() => JSON.stringify(sectionValue(initial, section)));

@@ -397,7 +397,7 @@ export function resolveWorkspaceAreaForPath(path: string): 'administration' | 'e
   if (path.startsWith('/portal/employee')) return 'employee_portal';
   if (path.startsWith('/portal/client') || path.startsWith('/portal/relative')) return 'client_portal';
   if (
-    path.split(/[?#]/, 1)[0].replace(/\/$/, '') === '/unternehmen' ||
+    /^\/unternehmen(?:\/|$)/.test(path.split(/[?#]/, 1)[0]) ||
     path.startsWith('/business') ||
     path.startsWith('/office') ||
     path.startsWith('/assist') ||

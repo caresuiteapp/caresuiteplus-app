@@ -6,8 +6,9 @@ import {
   saveTenantCustomFieldDefinition,
 } from '@/lib/tenant/tenantCustomFieldService';
 
-const mocked = vi.hoisted(() => ({ os: 'web', live: true, blockedTenant: '', client: null as unknown }));
+const mocked = vi.hoisted(() => ({ os: 'web', canManage: true, live: true, blockedTenant: '', client: null as unknown }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return mocked.os; } } }));
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { scopeLimited: false, permissions: mocked.canManage ? ['business.tenant.manage'] : [] } }) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({
   isLiveServiceMode: () => mocked.live,
@@ -81,14 +82,16 @@ class LocalQuery implements PromiseLike<Result> {
 
 let database: LocalDatabase;
 beforeEach(() => {
-  mocked.os = 'web'; mocked.live = true; mocked.blockedTenant = '';
+  mocked.os = 'web'; mocked.canManage = true; mocked.live = true; mocked.blockedTenant = '';
   database = new LocalDatabase(); mocked.client = database;
   resetTenantCustomFieldStore();
 });
 
 describe('custom-field web persistence', () => {
   it('blocks denied roles and tenant scopes before writes', async () => {
+    mocked.canManage = false;
     expect((await saveTenantCustomFieldDefinition(TENANT, field(), 'employee_portal')).ok).toBe(false);
+    mocked.canManage = true;
     mocked.blockedTenant = TENANT;
     expect((await saveTenantCustomFieldDefinition(TENANT, field(), 'business_admin')).ok).toBe(false);
     expect(database.calls).toEqual([]);
@@ -156,13 +159,12 @@ describe('custom-field web persistence', () => {
     expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).toEqual({ ok: true, data: [] });
   });
 
-  it('preserves native demo visibility and gives web editors access to inactive demo definitions', async () => {
-    mocked.live = false;
-    await saveTenantCustomFieldDefinition(TENANT, { ...field(), isActive: false }, 'business_admin');
-    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual({ ok: true, data: [] });
-    const editorResult = await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true);
-    expect(editorResult).toEqual({ ok: true, data: [expect.objectContaining({ isActive: false })] });
-    mocked.os = 'android';
-    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual(editorResult);
+  it('preserves native demo visibility while Web requires authoritative live access', async () => {
+    mocked.live = false; mocked.os = 'android';
+    const saved = await saveTenantCustomFieldDefinition(TENANT, { ...field(), isActive: false }, 'business_admin');
+    expect(saved).toEqual({ ok: true, data: [expect.objectContaining({ isActive: false })] });
+    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual(saved);
+    mocked.os = 'web';
+    expect((await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).ok).toBe(false);
   });
 });

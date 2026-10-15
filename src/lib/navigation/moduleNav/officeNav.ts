@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { ModuleNavConfig } from '@/types/navigation/platform';
 
 export const officeNav: ModuleNavConfig = {
@@ -53,7 +54,7 @@ export const officeNav: ModuleNavConfig = {
       items: [
         { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/office/qm' },
         { key: 'reporting', label: 'Office Reporting', icon: '📈', href: '/business/office/reporting' },
-        { key: 'inventory', label: 'Inventar', icon: '📦', href: '/business/office/inventory' },
+        { key: 'inventory', label: 'Inventar', icon: '📦', href: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory' },
       ],
     },
     {
