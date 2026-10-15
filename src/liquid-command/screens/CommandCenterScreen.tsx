@@ -232,7 +232,7 @@ const BACKGROUNDS: readonly BackgroundDefinition[] = [
 ] as const;
 
 const WIDGETS: readonly WidgetDefinition[] = [
-  { id: "company", label: "Unternehmen", description: "Steuerung, Kennzahlen und Unternehmensübersicht", category: "Übersicht", route: "/business/office/dashboard", images: {
+  { id: "company", label: "Unternehmen", description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Steuerung, Kennzahlen und Unternehmensübersicht', category: "Übersicht", route: Platform.OS === 'web' ? '/office?area=company' : '/business/office/dashboard', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
     large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png") } },

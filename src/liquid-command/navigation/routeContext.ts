@@ -108,7 +108,11 @@ export function inferLiquidArea(pathname: string, moduleKey: LiquidModuleKey): s
     .sort((left, right) => routePath(right.route).length - routePath(left.route).length)
     .find((area) => {
       const areaPath = routePath(area.route.toLowerCase());
-      return normalized === areaPath || (area.id !== 'home' && normalized.startsWith(`${areaPath}/`));
+      return normalized === areaPath || (
+        area.id !== 'home' &&
+        areaPath !== `/${moduleKey}` &&
+        normalized.startsWith(`${areaPath}/`)
+      );
     });
   if (canonical) return canonical.id;
   return routeAliases[moduleKey]?.find((alias) => alias.pattern.test(normalized))?.area ?? null;
