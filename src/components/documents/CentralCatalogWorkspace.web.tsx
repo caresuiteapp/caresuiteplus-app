@@ -217,8 +217,9 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
       if (action === 'download') downloadBytes(result.bytes, centralFileName(chosen));
       if (action === 'print') {
         if (!printWindow) throw new Error('Der Browser hat das Druckfenster blockiert. Bitte Pop-ups für CareSuite erlauben.');
+        const readyWindow = printWindow;
         const url = URL.createObjectURL(new Blob([new Uint8Array(result.bytes)], { type: 'application/pdf' }));
-        printWindow.location.replace(url); printWindow.addEventListener('load', () => { try { printWindow.print(); } catch { /* Browser PDF viewer retains its own print control. */ } }, { once: true });
+        readyWindow.location.replace(url); readyWindow.addEventListener('load', () => { try { readyWindow.print(); } catch { /* Browser PDF viewer retains its own print control. */ } }, { once: true });
         setTimeout(() => URL.revokeObjectURL(url), 60000); setMessage('PDF-Druckansicht geöffnet. Falls kein Dialog erscheint, verwenden Sie das Drucksymbol der PDF-Ansicht.');
       }
       if (action === 'save') {

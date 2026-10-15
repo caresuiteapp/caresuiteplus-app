@@ -9,7 +9,8 @@ import type { CsDocumentClientRecipient, CsDocumentEmployeeRecipient } from '@/t
 import { PORTAL_SIGNATURE_DOCUMENT_TYPE_LABELS, PORTAL_SIGNATURE_PRIORITY_LABELS, type PortalSignatureDocumentType, type PortalSignaturePriority, type PortalSignatureRequirement } from '@/types/portal/documentSignatures';
 
 type Props = { accentColor: string; onCancel: () => void; onBusyChange?: (busy: boolean) => void; onSubmit: (input: Omit<ComposeOfficeSignatureDocumentInput, 'tenantId' | 'creatorName' | 'creatorProfileId'>) => Promise<{ ok: boolean; error?: string }> };
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
+const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character] ?? character);
 
 export function OfficeSignatureDocumentComposer({ onCancel, onSubmit, onBusyChange }: Props) {
   const { profile } = useAuth();

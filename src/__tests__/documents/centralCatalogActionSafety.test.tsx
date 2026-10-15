@@ -20,8 +20,8 @@ const stored: CentralDocumentStored = { id: snapshot.documentId, tenantId, templ
 function props(): CentralCatalogWorkspaceProps {
   return { tenantId, author: 'Anna', demo: true, clients: [{ id: clientId, label: 'Mara Muster' }], employees: [], loadingEntities: false,
     permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
-    clientId, templateKey: snapshot.definition.key, loadContext: vi.fn(async () => ({ ok: true, data: context })),
-    save: vi.fn(async () => ({ ok: true, data: stored })), download: vi.fn(), onSaved: vi.fn(), onRefresh: vi.fn() };
+    clientId, templateKey: snapshot.definition.key, loadContext: vi.fn(async () => ({ ok: true as const, data: context })),
+    save: vi.fn(async () => ({ ok: true as const, data: stored })), download: vi.fn(), onSaved: vi.fn(), onRefresh: vi.fn() };
 }
 
 describe('catalogue asynchronous action safety (no layout assertion)', () => {

@@ -19,6 +19,9 @@ export type OfficeDocumentItem = { id: string; title: string; category: string; 
 export type OfficeDocumentUploadInput = { filename: string; mimeType: string; sizeBytes: number; category?: string; contentBase64?: string; clientId?: string; title?: string; uploadedBy?: string | null; requestId?: string };
 export type OfficeDocumentFile = PortalDocumentListItem & { storagePath: string | null; signaturePending: boolean; signatureRequired: boolean; createdAt: string };
 type Row = Record<string, unknown>;
+function isRow(value: unknown): value is Row {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 const BUCKET = 'office-documents';
 const SELECT = 'id,tenant_id,client_id,title,file_name,mime_type,category,storage_path,status,sensitivity,uploaded_by,valid_until,created_at,updated_at,portal_visible,size_bytes,source,intake_document_id,signature_required,signed_at';
 const INTAKE = 'id,tenant_id,client_id,template_key,document_type,title,status,finalized_html,preview_html,finalized_at,created_at,updated_at,rendered_pdf_path';
@@ -42,7 +45,8 @@ async function rows(table: string, tenantId: string, select: string, signal?: Ab
     if (signal?.aborted) return { ok: false, error: 'Abfrage abgebrochen.' };
     const page = await fromUnknownTable(client, table).select(select).eq('tenant_id', tenantId).order('updated_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset === 10000 ? offset : offset + 249).abortSignal(signal ?? new AbortController().signal);
     if (page.error) return { ok: false, error: toGermanSupabaseError(page.error) };
-    const data = (page.data ?? []) as Row[];
+    const data: unknown = page.data ?? [];
+    if (!Array.isArray(data) || !data.every(isRow)) return { ok: false, error: 'Die Dokumentablage hat eine ungültige Antwort geliefert. Bitte erneut laden.' };
     if (offset === 10000 && data.length > 0) return { ok: false, error: 'Die Ablage enthält mehr als 10.000 Einträge. Öffnen Sie die Unterlagen bitte direkt in der jeweiligen Akte.' };
     result.push(...data); if (data.length < 250) break;
   }
