@@ -99,6 +99,7 @@ function desktopNavigationSection(app: DesktopApp): DesktopNavigationSection | n
 
   if (
     route === '/unternehmen' ||
+    route.startsWith('/unternehmen/') ||
     route === '/office' ||
     route.startsWith('/office/') ||
     route === '/business/office' ||

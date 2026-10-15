@@ -421,6 +421,22 @@ export const APP_ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/unternehmen/inventar',
+    label: 'Inventar',
+    group: 'business',
+    productKey: 'office',
+    requiresAuth: true,
+    allowedRoles: [
+      'business_admin',
+      'business_manager',
+      'billing',
+      'dispatch',
+      'nurse',
+      'caregiver',
+      'counselor',
+    ],
+  },
+  {
     path: '/office',
     label: 'Office',
     group: 'module',

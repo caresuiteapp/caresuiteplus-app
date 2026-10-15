@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { canonicalCompanyInventoryHref } from '@/lib/navigation/companyInventoryRoute';
 import type { DesktopApp } from './desktopAppCatalogModel';
 import type { ProductKey } from '@/types';
 
@@ -10,7 +11,7 @@ export const DESKTOP_MODULES: readonly { key: ProductKey; label: string }[] = [
 
 export function desktopModuleForRoute(route: string): ProductKey | null {
   const path = route.split(/[?#]/, 1)[0];
-  if (path === '/unternehmen') return 'office';
+  if (path === '/unternehmen' || path.startsWith('/unternehmen/')) return 'office';
   for (const module of DESKTOP_MODULES) {
     if (path === `/${module.key}` || path.startsWith(`/${module.key}/`)) return module.key;
   }
@@ -65,6 +66,7 @@ const TASK_AREAS = ['Übersicht', 'Klient:innen', 'Planung', 'Einsätze & Durchf
 /** Known aliases share a menu entry; full apps and saved widget IDs stay intact. */
 export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   let route = app.route;
+  if (Platform.OS === 'web') route = canonicalCompanyInventoryHref(route) ?? route;
   if (Platform.OS === 'web' && ['/office', '/office?area=company', '/business/office/dashboard'].includes(route)) route = '/unternehmen';
   if (route === '/assist/einsaetze') route = '/assist/assignments';
   if (route === '/assist/kalender') route = '/assist/calendar';
@@ -72,7 +74,7 @@ export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   if (route === '/office/messages' || route.startsWith('/office/messages?')) route = route.replace('/office/messages', '/business/messages');
   const labels: Record<string, string> = {
     '/office': 'Office-Arbeitsbereiche',
-    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen' } : {}),
+    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen', '/unternehmen/inventar': 'Inventar' } : {}),
     '/assist/assignments': 'Einsätze',
     '/assist/calendar': 'Kalender & Einsatzplanung',
     '/assist/zugeordnete-klienten': 'Zugeordnete Klient:innen',

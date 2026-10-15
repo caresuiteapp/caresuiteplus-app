@@ -194,7 +194,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'document-catalog', label: 'Dokumentenkatalog', description: 'Zentrale Vorlagen mit Daten aus der ausgewählten Akte', pageType: 'work-list', route: '/business/office/document-catalog' },
     { id: 'communication', label: 'Nachrichten', description: 'Posteingang, Unterhaltungen, Aufgaben und Vorlagen', pageType: 'work-list', route: '/business/messages' },
     { id: 'portals', label: 'Portale & Zugänge', description: 'Konten, Codes, Rollen und Freigaben', pageType: 'settings', route: '/business/office/portals' },
-    { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: '/business/office/inventory' },
+    { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory' },
     { id: 'audit', label: 'Audit', description: 'Nachvollziehbare Änderungen und Exporte', pageType: 'analytics', route: '/business/office/audit-log' },
   ],
   assist: [

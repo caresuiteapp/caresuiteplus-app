@@ -7,6 +7,7 @@ export const COMPANY_TABS = [
   { id: 'compliance', label: 'Recht & Steuer' },
   { id: 'finance', label: 'Abrechnung' },
   { id: 'organization', label: 'Organisation' },
+  { id: 'inventory', label: 'Inventar' },
   { id: 'history', label: 'Aktivitäten' },
 ] as const;
 export type CompanyTab = typeof COMPANY_TABS[number]['id'];

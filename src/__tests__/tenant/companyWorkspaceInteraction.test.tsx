@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, useState } from 'react';
+import { act, useEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CompanyWorkspace } from '@/liquid-command/screens/CompanyWorkspace.web';
@@ -10,10 +10,10 @@ import {
   type TenantCenterSnapshot, type TenantCenterSectionKey,
 } from '@/types/tenant/tenantCenter';
 
-const h = vi.hoisted(() => ({ fetch: vi.fn(), push: vi.fn(), copy: vi.fn(), manage: true, documents: true, assist: true }));
-vi.mock('expo-router', () => ({ useRouter: () => ({ push: h.push }) }));
+const h = vi.hoisted(() => ({ fetch: vi.fn(), push: vi.fn(), setParams: vi.fn(), copy: vi.fn(), manage: true, inventory: true, documents: true, assist: true, allowInventoryLeave: true, params: {} as Record<string, string> }));
+vi.mock('expo-router', () => ({ useRouter: () => ({ push: h.push, setParams: h.setParams }), useLocalSearchParams: () => h.params }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({
-  can: (permission: string) => permission === 'business.tenant.manage' ? h.manage : h.documents,
+  can: (permission: string) => permission === 'business.tenant.manage' ? h.manage : permission === 'inventory.view' ? h.inventory : h.documents,
   hasModuleGate: () => h.assist,
 }) }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 60_000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
@@ -31,6 +31,19 @@ vi.mock('@/components/tenant/TenantServiceCatalogModal.web', () => ({
 }));
 vi.mock('@/components/tenant/TenantCustomFieldWizardModal.web', () => ({
   TenantCustomFieldWizardModal: () => <section role="dialog" aria-label="Eigene Angabe" />,
+}));
+vi.mock('@/components/company/CompanyInventoryWorkspace.web', () => ({
+  CompanyInventoryWorkspace: ({ tenantId, initialView, onNavigationGuardChange }: {
+    tenantId: string;
+    initialView?: string;
+    onNavigationGuardChange?: (guard: (() => Promise<boolean>) | null) => void;
+  }) => {
+    useEffect(() => {
+      onNavigationGuardChange?.(() => Promise.resolve(h.allowInventoryLeave));
+      return () => onNavigationGuardChange?.(null);
+    }, [onNavigationGuardChange]);
+    return <section data-testid="inventory-content"><span>{tenantId}:{initialView}</span><input aria-label="Inventarentwurf" defaultValue="" /></section>;
+  },
 }));
 // Tabs are local here; the production query hook and company view remain real.
 vi.mock('@/hooks/usePageTab', () => ({ usePageTab: (_key: string, initial: string) => useState(initial) }));
@@ -52,7 +65,8 @@ let root: Root;
 let snapshot: TenantCenterSnapshot;
 let tenantId: string;
 let roleKey: RoleKey;
-const render = async () => { await act(async () => root.render(<CompanyWorkspace tenantId={tenantId} roleKey={roleKey} />)); };
+let initialTab: 'overview' | 'inventory';
+const render = async () => { await act(async () => root.render(<CompanyWorkspace tenantId={tenantId} roleKey={roleKey} initialTab={initialTab} />)); };
 const button = (text: string) => Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find(node => node.textContent?.trim() === text)!;
 const click = async (node: HTMLElement) => { expect(node).toBeTruthy(); await act(async () => node.click()); };
 const search = async (value: string) => {
@@ -65,7 +79,8 @@ const search = async (value: string) => {
 
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); h.manage = true; h.documents = true; h.assist = true;
+  vi.clearAllMocks(); h.manage = true; h.inventory = true; h.documents = true; h.assist = true;
+  h.allowInventoryLeave = true; h.params = {}; initialTab = 'overview';
   snapshot = fixture(); tenantId = snapshot.tenantId; roleKey = 'business_admin';
   h.fetch.mockImplementation(async () => ({ ok: true, data: snapshot }));
   h.copy.mockResolvedValue(undefined);
@@ -184,5 +199,47 @@ describe('company workspace Web interactions', () => {
     h.documents = false; await render(); expect(host.querySelector('.co-documents')).toBeNull();
     h.documents = true; await render(); await click(host.querySelector<HTMLButtonElement>('.co-documents')!);
     expect(h.push).toHaveBeenLastCalledWith('/business/office/document-catalog');
+  });
+
+  it('opens inventory in its canonical company route and hides the tab without its own permission', async () => {
+    await render(); await click(button('Inventar'));
+    expect(h.push).toHaveBeenLastCalledWith('/unternehmen/inventar');
+    h.inventory = false; await render();
+    expect(button('Inventar')).toBeUndefined();
+  });
+
+  it('loads inventory without fetching protected company settings for inventory-only users', async () => {
+    initialTab = 'inventory'; h.manage = false; h.params = { ansicht: 'assignments' };
+    await render();
+    expect(h.fetch).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="inventory-content"]')?.textContent).toBe('tenant-one:assignments');
+    expect(button('Stammdaten bearbeiten')).toBeUndefined();
+    expect(host.textContent).not.toContain('Beispiel GmbH');
+  });
+
+  it('blocks the inventory route independently of company-management rights', async () => {
+    initialTab = 'inventory'; h.inventory = false;
+    await render();
+    expect(host.querySelector('[data-testid="inventory-content"]')).toBeNull();
+    expect(host.textContent).toContain('Inventar ist geschützt');
+  });
+
+  it('respects the inventory draft guard when switching back to company sections', async () => {
+    initialTab = 'inventory'; h.allowInventoryLeave = false;
+    await render(); await click(button('Unternehmensprofil'));
+    expect(h.push).not.toHaveBeenCalled();
+    h.allowInventoryLeave = true; await click(button('Unternehmensprofil'));
+    expect(h.push).toHaveBeenLastCalledWith('/unternehmen?csPage_CompanyWorkspace_view=identity');
+  });
+
+  it('loads inventory independently of a slow company-profile query and keeps its draft on parent updates', async () => {
+    initialTab = 'inventory'; h.fetch.mockImplementation(() => new Promise(() => {}));
+    await render();
+    expect(h.fetch).not.toHaveBeenCalled();
+    const draft = host.querySelector<HTMLInputElement>('[aria-label="Inventarentwurf"]')!;
+    expect(draft).not.toBeNull(); draft.value = 'Ungespeicherter Lagerort';
+    await render();
+    expect(host.querySelector('[aria-label="Inventarentwurf"]')).toBe(draft);
+    expect(draft.value).toBe('Ungespeicherter Lagerort');
   });
 });

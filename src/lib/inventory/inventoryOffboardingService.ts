@@ -1,6 +1,10 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import { Platform } from 'react-native';
+import type { PermissionKey } from '@/types/permissions';
 import type { OffboardingInventoryCheck } from '@/types/inventory';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
+import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { inventoryDemoRepository } from './inventoryRepository.demo';
 import { enforceInventoryPermission, INVENTORY_OFFBOARDING } from './inventoryPermissions';
 
@@ -14,6 +18,8 @@ const BLOCKING_STATUSES = [
   'disputed',
 ] as const;
 
+type InventoryOffboardingAccess = { effectivePermissions?: readonly PermissionKey[]; actorProfileId?: string | null };
+
 /**
  * Offboarding-Integration — blockiert Abschluss bei offenen rückgabepflichtigen Ausgaben.
  * Portal-Sperre und Geräte-Deaktivierung vorbereitet (kein Fake-MDM).
@@ -22,7 +28,20 @@ export async function checkOffboardingInventory(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
+  access?: InventoryOffboardingAccess,
 ): Promise<ServiceResult<OffboardingInventoryCheck>> {
+  if (Platform.OS === 'web' && getServiceMode() === 'supabase') {
+    const tenantBlock = guardServiceTenant(tenantId);
+    if (tenantBlock) return tenantBlock;
+    if (!actorRoleKey) return { ok: false, error: 'Bitte erneut anmelden.' };
+    try {
+      const effectivePermissions = access?.effectivePermissions ?? await fetchRuntimePermissions(actorRoleKey, tenantId);
+      const { checkCompanyInventoryOffboarding } = await import('./companyInventoryService.web');
+      return checkCompanyInventoryOffboarding({ tenantId, actorRoleKey, actorProfileId: access?.actorProfileId, effectivePermissions }, employeeId);
+    } catch {
+      return { ok: false, error: 'Die Inventarprüfung konnte nicht abgeschlossen werden. Bitte erneut laden.' };
+    }
+  }
   const denied = enforceInventoryPermission<OffboardingInventoryCheck>(actorRoleKey, INVENTORY_OFFBOARDING);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
@@ -67,8 +86,9 @@ export async function assertOffboardingCanComplete(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
+  access?: InventoryOffboardingAccess,
 ): Promise<ServiceResult<{ allowed: boolean; reason?: string }>> {
-  const check = await checkOffboardingInventory(tenantId, employeeId, actorRoleKey);
+  const check = await checkOffboardingInventory(tenantId, employeeId, actorRoleKey, access);
   if (!check.ok) return check;
   if (!check.data.canCompleteOffboarding) {
     return {
