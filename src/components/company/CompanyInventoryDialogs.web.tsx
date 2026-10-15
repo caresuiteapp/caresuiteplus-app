@@ -89,7 +89,7 @@ function EditorFrame({ title, subtitle, action, dirty, submit, children, ...prop
   useEffect(() => { onDirtyChange(dirty); return () => onDirtyChange(false); }, [dirty, onDirtyChange]);
   return <PlatformModal visible surfaceScope="company" title={title} subtitle={subtitle}
     onClose={props.onClose} dismissOnBackdrop={!props.busy} maxWidth={850} minWidth={260} maxHeightRatio={0.93}
-    bodyStyle={{ backgroundColor: '#0b1a2c', padding: 20 }} sheetStyle={{ backgroundColor: '#0b1a2c' }}
+    bodyStyle={{ backgroundColor: '#f4f8fd', padding: 20 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="ci-dialog ci-form-footer">
       <div className="ci-footer-row">
         <span aria-live="polite">

@@ -101,7 +101,7 @@ function ScopedCompanyWorkspace({ tenantId, roleKey, initialTab = 'overview', in
   if (operational) {
     if (tab === 'inventory' ? !canInventory : !canStructure) return <LiquidState kind="locked" title={tab === 'inventory' ? 'Inventar ist geschützt' : 'Unternehmensbereich ist geschützt'} message="Für diesen Bereich fehlt Ihnen die Berechtigung." />;
     const visibleTabs = COMPANY_TABS.filter(item => item.id === 'inventory' ? canInventory : item.id === 'structure' || item.id === 'resources' ? canStructure : canManage);
-    return <div className="co-workspace" data-cs-company-surface="dark">
+    return <div className="co-workspace" data-cs-company-surface="light">
       <style>{companyWorkspaceCss}</style>
       <div className="co-topline"><span>Office <b>/</b> Unternehmen <b>/</b> {COMPANY_TABS.find(item => item.id === tab)?.label}</span></div>
       <header className="co-content-heading"><div><h1>Unternehmen</h1><p>Menschen, Standorte und Ausstattung gemeinsam organisieren.</p></div>

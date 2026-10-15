@@ -104,7 +104,7 @@ export function PlatformModal({
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   useAuroraGlassActive();
-  const lightModal = !companySurface && (surfaceScope === 'personal' || portalTheme.active || isLight);
+  const lightModal = companySurface || surfaceScope === 'personal' || portalTheme.active || isLight;
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const viewport = useWebVisualViewport();
@@ -198,7 +198,9 @@ export function PlatformModal({
           maxHeight: sheetMaxHeight,
           flexDirection: 'column',
           overflow: 'hidden',
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#FFFFFF'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : undefined,
         },
@@ -212,7 +214,9 @@ export function PlatformModal({
           flexGrow: 1,
           flexShrink: 1,
           minHeight: 0,
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#F4F8FD'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : lightModal
               ? shellColors.body.background
@@ -236,19 +240,23 @@ export function PlatformModal({
           paddingBottom: Math.max(insets.bottom + careSpacing.sm, careSpacing.lg),
           paddingTop: careSpacing.md,
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: lightModal
+          borderTopColor: companySurface
+            ? '#D7E3F1'
+            : lightModal
             ? shellColors.footerBorder
             : isDark
               ? shellColors.footerBorder
               : 'rgba(0,0,0,0.06)',
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#FFFFFF'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : lightModal
               ? shellColors.body.background
               : 'rgba(1,8,23,0.98)',
         },
       }),
-    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant, viewportOffsetLeft, viewportOffsetTop, visibleHeight, visibleWidth],
+    [compact, companySurface, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant, viewportOffsetLeft, viewportOffsetTop, visibleHeight, visibleWidth],
   );
 
   useEffect(() => {
@@ -301,7 +309,7 @@ export function PlatformModal({
       >
       <View style={{ flexShrink: 0 }}>
         <GradientModalHeader
-          tone={companySurface ? 'dark' : undefined}
+          tone={companySurface ? 'light' : undefined}
           title={title}
           subtitle={subtitle}
           onBack={handleBack}
@@ -364,7 +372,7 @@ export function PlatformModal({
                   csHealthosComponent: 'modal',
                   ...(lightModal ? { csDesktopSurface: 'light' } : {}),
                   ...(surfaceScope === 'personal' ? { csPersonalSurface: 'light' } : {}),
-                  ...(companySurface ? { csCompanySurface: 'dark' } : {}),
+                  ...(companySurface ? { csCompanySurface: 'light' } : {}),
                 },
               } as object)
             : {})}

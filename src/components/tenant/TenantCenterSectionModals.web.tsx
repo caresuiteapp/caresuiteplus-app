@@ -177,7 +177,7 @@ function CompanySectionEditor({ snapshot, tenantId, section, onClose, onSaved, o
   </div>;
 
   return <PlatformModal surfaceScope="company" visible title={title} subtitle="Unternehmen" onClose={requestClose} maxWidth={860} maxHeightRatio={0.92}
-    dismissOnBackdrop={false} bodyStyle={{ backgroundColor: '#08172a', padding: 18 }} sheetStyle={{ backgroundColor: '#08172a' }} footerContent={footer}>
+    dismissOnBackdrop={false} bodyStyle={{ backgroundColor: '#f4f8fd', padding: 18 }} sheetStyle={{ backgroundColor: '#f4f8fd' }} footerContent={footer}>
     <div className="cs-company-editor" ref={editorRef}>
       <style>{COMPANY_EDITOR_CSS}</style>
       {error ? <div className="cs-company-save-error" role="alert">{error}</div> : null}

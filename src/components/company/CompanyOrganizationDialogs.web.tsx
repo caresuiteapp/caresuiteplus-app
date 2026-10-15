@@ -101,7 +101,7 @@ export function CompanyOrganizationEditor(props: Props) {
 
   return <PlatformModal visible surfaceScope="company" title={`${TITLES[dialog.kind]} ${dialog.record ? 'bearbeiten' : 'anlegen'}`}
     subtitle="Unternehmensstruktur" onClose={props.onClose} dismissOnBackdrop={!props.busy} maxWidth={880} minWidth={260} maxHeightRatio={0.93}
-    bodyStyle={{ backgroundColor: '#0b1d30', padding: 20 }} sheetStyle={{ backgroundColor: '#0b1d30' }}
+    bodyStyle={{ backgroundColor: '#f4f8fd', padding: 20 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="cg-dialog cg-form-footer"><span aria-live="polite">{props.busy ? 'Änderung wird gespeichert …' : props.blocked ? 'Aktuellen Speicherstand laden' : dirty ? 'Ungespeicherte Eingaben' : 'Unternehmen · Organisation'}</span><div className="cg-actions"><button type="button" className="cg-button cg-button--quiet" disabled={props.busy} onClick={props.onClose}>Abbrechen</button><button type="submit" form={formId} className="cg-button cg-button--primary" disabled={props.busy || props.blocked}>{props.busy ? 'Wird gespeichert …' : dialog.record ? 'Änderungen speichern' : `${TITLES[dialog.kind]} anlegen`}</button></div></div>}>
     <style>{companyOrganizationCss}</style>
     <form id={formId} className="cg-dialog" noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>

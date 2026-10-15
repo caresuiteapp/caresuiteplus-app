@@ -12,7 +12,7 @@ export function CompanyWorkspaceScreen({ initialTab = 'overview', initialView }:
   const { roleKey } = usePermissions();
   const { profile } = useAuth();
   return <LiquidCommandShell activeModule="office" activeArea="company" title="Unternehmen" subtitle="Ihre Unternehmensakte" contentMode="fill" showPageHeader={false} showContextBar={false}>
-    <div style={{ width: '100%', height: '100%', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin', scrollbarColor: '#44668b #102038' }} data-testid="company-workspace-scroll">
+    <div style={{ width: '100%', height: '100%', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin', scrollbarColor: '#9bb3ce #f4f8fd' }} data-testid="company-workspace-scroll">
       {tenantId ? <CompanyWorkspace tenantId={tenantId} roleKey={roleKey} initialTab={initialTab} initialView={initialView} actorProfileId={profile?.id} /> : <LiquidState kind="error" title="Unternehmenszugang nicht zugeordnet" message="Ihre Unternehmensdaten können erst nach erfolgreicher Zuordnung geladen werden." />}
     </div>
   </LiquidCommandShell>;
