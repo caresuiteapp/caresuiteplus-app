@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   TenantAuditLogEntry,
@@ -45,6 +46,48 @@ import { fetchTenantCustomFieldDefinitions } from './tenantCustomFieldService';
 import { normalizeIban, normalizeVatId, validateEmail, validateIban, validateVatId } from './tenantValidation';
 
 const DEMO_STORE = new Map<string, TenantCenterSnapshot>();
+let demoRowSequence = 0;
+
+/** Omitted rows are retained; only removals selected in the editor may be deleted. */
+export type TenantRowsSaveOptions = { removedIds?: readonly string[] };
+
+function mergeDemoRows<T extends { id?: string }>(previous: T[], next: T[], options?: TenantRowsSaveOptions): T[] {
+  const removed = new Set(options?.removedIds ?? []);
+  const updated = new Set(next.map(row => row.id).filter(Boolean));
+  return [
+    ...previous.filter(row => row.id && !removed.has(row.id) && !updated.has(row.id)),
+    ...next.map(row => ({ ...structuredClone(row), id: row.id ?? `demo-tenant-row-${++demoRowSequence}` })),
+  ];
+}
+
+function webWriteGuard(tenantId: string, roleKey?: RoleKey | null): { ok: false; error: string } | null {
+  if (Platform.OS !== 'web') return null;
+  const denied = enforcePermission(roleKey, TENANT_SETTINGS_PERMISSION);
+  if (denied && !denied.ok) return denied;
+  return guardServiceTenant(tenantId);
+}
+
+function saveWebDemoSection<K extends 'legal' | 'tax' | 'register' | 'representatives' | 'bankAccounts'>(
+  tenantId: string,
+  key: K,
+  value: TenantCenterSnapshot[K],
+): ServiceResult<TenantCenterSnapshot> {
+  const snapshot = ensureDemoSnapshot(tenantId);
+  snapshot[key] = structuredClone(value);
+  snapshot.updatedAt = new Date().toISOString();
+  snapshot.sections = buildTenantCenterSections(snapshot);
+  return { ok: true, data: snapshot };
+}
+
+function incompleteSave(error: string): { ok: false; error: string } {
+  const message = 'Die Änderungen wurden nicht vollständig gespeichert.';
+  return { ok: false, error: error.startsWith(message) ? error : `${message} Bitte die Daten neu laden, bevor Sie erneut speichern. ${error}` };
+}
+
+async function reloadAfterWebSave(tenantId: string, roleKey?: RoleKey | null): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const result = await fetchTenantCenter(tenantId, roleKey);
+  return result.ok ? result : incompleteSave(result.error);
+}
 
 const TENANT_COLUMNS =
   'id, name, legal_name, legal_form, industry, street, house_number, postal_code, city, country, phone, fax, email, website, notes, tax_number, vat_id, register_court, register_number, ik_number, supervisory_authority, billing_email, representative_name, representative_position, updated_at';
@@ -178,9 +221,23 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
       fromUnknownTable(client, 'tenant_representatives').select('*').eq('tenant_id', tenantId).order('sort_order'),
       fromUnknownTable(client, 'tenant_bank_accounts').select('*').eq('tenant_id', tenantId).order('sort_order'),
       fetchTenantServiceCatalog(tenantId, 'business_admin'),
-      fetchTenantCustomFieldDefinitions(tenantId, 'business_admin'),
+      fetchTenantCustomFieldDefinitions(tenantId, 'business_admin', Platform.OS === 'web'),
       fromUnknownTable(client, 'audit_logs').select('id, action, title, description, table_name, created_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(50),
     ]);
+
+  if (Platform.OS === 'web') {
+    const queries = [
+      ['Rechtliche Angaben', legalRes], ['Steuerdaten', taxRes], ['Registerdaten', registerRes],
+      ['Zahlungsbedingungen', billingRes], ['Logo', brandingRes], ['Leistungsbereiche', modulesRes],
+      ['Kontaktpersonen', contactsRes], ['Vertretung', repsRes], ['Bankverbindungen', banksRes],
+      ['Änderungshistorie', auditRes],
+    ] as const;
+    for (const [label, result] of queries) {
+      if (result.error) return { ok: false, error: `${label} konnten nicht geladen werden. ${toGermanSupabaseError(result.error)}` };
+    }
+    if (!catalogRes.ok) return { ok: false, error: `Leistungskatalog konnte nicht geladen werden. ${catalogRes.error}` };
+    if (!customRes.ok) return { ok: false, error: `Individuelle Felder konnten nicht geladen werden. ${customRes.error}` };
+  }
 
   const legalRow = legalRes.data as Record<string, unknown> | null;
   const legal: TenantLegalProfile = {
@@ -343,6 +400,8 @@ export async function saveTenantCompanyProfile(
   profile: TenantCompanyProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   if (!profile.name.trim()) return { ok: false, error: 'Firmenname ist erforderlich.' };
@@ -351,7 +410,8 @@ export async function saveTenantCompanyProfile(
 
   if (!isLiveServiceMode()) {
     const snap = ensureDemoSnapshot(tenantId);
-    snap.company = profile;
+    snap.company = Platform.OS === 'web' ? structuredClone(profile) : profile;
+    if (Platform.OS === 'web') snap.contact = { ...snap.contact, supportEmail: profile.email, supportPhone: profile.phone };
     snap.updatedAt = new Date().toISOString();
     snap.sections = buildTenantCenterSections(snap);
     DEMO_STORE.set(tenantId, snap);
@@ -361,7 +421,7 @@ export async function saveTenantCompanyProfile(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { error } = await client
+  const update = client
     .from('tenants')
     .update({
       name: profile.name.trim(),
@@ -382,8 +442,11 @@ export async function saveTenantCompanyProfile(
     })
     .eq('id', tenantId);
 
+  const { data, error } = Platform.OS === 'web' ? await update.select('id').maybeSingle() : await update;
+
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  return fetchTenantCenter(tenantId, actorRoleKey);
+  if (Platform.OS === 'web' && !data) return { ok: false, error: 'Unternehmensdaten konnten nicht gespeichert werden. Bitte Zugriff und Mandant prüfen.' };
+  return Platform.OS === 'web' ? reloadAfterWebSave(tenantId, actorRoleKey) : fetchTenantCenter(tenantId, actorRoleKey);
 }
 
 export async function saveTenantLegalProfile(
@@ -391,6 +454,9 @@ export async function saveTenantLegalProfile(
   profile: TenantLegalProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
+  if (Platform.OS === 'web' && !isLiveServiceMode()) return saveWebDemoSection(tenantId, 'legal', profile);
   return upsertProfileTable(tenantId, 'tenant_legal_profiles', {
     liability_insurance: profile.liabilityInsurance.trim() || null,
     liability_insurer: profile.liabilityInsurer.trim() || null,
@@ -407,20 +473,30 @@ export async function saveTenantTaxProfile(
   profile: TenantTaxProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   const vatError = validateVatId(profile.vatId);
   if (vatError) return { ok: false, error: vatError };
+  if (Platform.OS === 'web' && !isLiveServiceMode()) return saveWebDemoSection(tenantId, 'tax', profile);
 
   if (isLiveServiceMode()) {
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
-    await client.from('tenants').update({
+    const update = client.from('tenants').update({
       tax_number: profile.taxNumber.trim() || null,
       vat_id: profile.vatId.trim() ? normalizeVatId(profile.vatId) : null,
       updated_at: new Date().toISOString(),
     }).eq('id', tenantId);
+    if (Platform.OS === 'web') {
+      const { data, error } = await update.select('id').maybeSingle();
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      if (!data) return { ok: false, error: 'Steuerdaten konnten nicht gespeichert werden. Bitte Zugriff und Mandant prüfen.' };
+    } else {
+      await update;
+    }
   }
 
-  return upsertProfileTable(tenantId, 'tenant_tax_profiles', {
+  const saved = await upsertProfileTable(tenantId, 'tenant_tax_profiles', {
     tax_office: profile.taxOffice.trim() || null,
     kleinunternehmer: profile.kleinunternehmer,
     tax_scheme: profile.taxScheme,
@@ -428,6 +504,7 @@ export async function saveTenantTaxProfile(
     tax_notes: profile.taxNotes.trim() || null,
     updated_at: new Date().toISOString(),
   }, actorRoleKey);
+  return Platform.OS === 'web' && !saved.ok ? incompleteSave(saved.error) : saved;
 }
 
 export async function saveTenantRegisterProfile(
@@ -435,38 +512,65 @@ export async function saveTenantRegisterProfile(
   profile: TenantRegisterProfile,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
+  if (Platform.OS === 'web' && !isLiveServiceMode()) return saveWebDemoSection(tenantId, 'register', profile);
   if (isLiveServiceMode()) {
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
-    await client.from('tenants').update({
+    const update = client.from('tenants').update({
       register_court: profile.registerCourt.trim() || null,
       register_number: profile.registerNumber.trim() || null,
       ik_number: profile.ikNumber.trim() || null,
       supervisory_authority: profile.supervisoryAuthority.trim() || null,
       updated_at: new Date().toISOString(),
     }).eq('id', tenantId);
+    if (Platform.OS === 'web') {
+      const { data, error } = await update.select('id').maybeSingle();
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      if (!data) return { ok: false, error: 'Registerdaten konnten nicht gespeichert werden. Bitte Zugriff und Mandant prüfen.' };
+    } else {
+      await update;
+    }
   }
 
-  return upsertProfileTable(tenantId, 'tenant_register_profiles', {
+  const saved = await upsertProfileTable(tenantId, 'tenant_register_profiles', {
     register_type: profile.registerType.trim() || null,
     register_date: profile.registerDate.trim() || null,
     share_capital: profile.shareCapital.trim() || null,
     register_notes: profile.registerNotes.trim() || null,
     updated_at: new Date().toISOString(),
   }, actorRoleKey);
+  return Platform.OS === 'web' && !saved.ok ? incompleteSave(saved.error) : saved;
 }
 
 export async function saveTenantContactProfile(
   tenantId: string,
   contact: TenantContactCommunication,
   actorRoleKey?: RoleKey | null,
+  options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   const emailError = validateEmail(contact.billingEmail) ?? validateEmail(contact.supportEmail);
   if (emailError) return { ok: false, error: emailError };
+  if (Platform.OS === 'web') {
+    for (const person of contact.contactPersons) {
+      if (!person.firstName.trim() && !person.lastName.trim()) return { ok: false, error: 'Bitte einen Namen für jede Kontaktperson eingeben.' };
+      const personError = validateEmail(person.email);
+      if (personError) return { ok: false, error: `Kontaktperson: ${personError}` };
+    }
+  }
 
   if (!isLiveServiceMode()) {
     const snap = ensureDemoSnapshot(tenantId);
-    snap.contact = contact;
+    snap.contact = Platform.OS === 'web'
+      ? { ...structuredClone(contact), contactPersons: mergeDemoRows(snap.contact.contactPersons, contact.contactPersons, options) }
+      : contact;
+    if (Platform.OS === 'web') {
+      snap.company = { ...snap.company, email: contact.supportEmail, phone: contact.supportPhone };
+      snap.updatedAt = new Date().toISOString();
+    }
     snap.sections = buildTenantCenterSections(snap);
     return { ok: true, data: snap };
   }
@@ -474,12 +578,31 @@ export async function saveTenantContactProfile(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  await client.from('tenants').update({
+  if (Platform.OS === 'web') {
+    const saved = await saveWebRows(tenantId, 'tenant_contacts', contact.contactPersons.map(person => ({
+      ...(person.id ? { id: person.id } : {}),
+      first_name: person.firstName.trim(), last_name: person.lastName.trim(), role: person.role.trim(),
+      email: person.email.trim(), phone: person.phone.trim() || null, is_primary: person.isPrimary,
+    })), actorRoleKey, options);
+    if (!saved.ok) return saved;
+    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    if (blocked) return incompleteSave(blocked.error);
+  }
+
+  const update = client.from('tenants').update({
     billing_email: contact.billingEmail.trim() || null,
     email: contact.supportEmail.trim() || null,
     phone: contact.supportPhone.trim() || null,
     updated_at: new Date().toISOString(),
   }).eq('id', tenantId);
+
+  if (Platform.OS === 'web') {
+    const { data, error } = await update.select('id').maybeSingle();
+    if (error) return incompleteSave(toGermanSupabaseError(error));
+    if (!data) return incompleteSave('Kontaktdaten konnten nicht aktualisiert werden. Bitte Zugriff und Mandant prüfen.');
+    return reloadAfterWebSave(tenantId, actorRoleKey);
+  }
+  await update;
 
   return fetchTenantCenter(tenantId, actorRoleKey);
 }
@@ -488,12 +611,20 @@ export async function saveTenantRepresentatives(
   tenantId: string,
   representatives: TenantRepresentative[],
   actorRoleKey?: RoleKey | null,
+  options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   for (const rep of representatives) {
+    if (Platform.OS === 'web' && !rep.firstName.trim() && !rep.lastName.trim()) return { ok: false, error: 'Bitte einen Namen für jede vertretungsberechtigte Person eingeben.' };
     const err = validateEmail(rep.email);
     if (err) return { ok: false, error: err };
   }
+  if (Platform.OS === 'web' && !isLiveServiceMode()) {
+    return saveWebDemoSection(tenantId, 'representatives', mergeDemoRows(ensureDemoSnapshot(tenantId).representatives, representatives, options));
+  }
   return replaceMultiRow(tenantId, 'tenant_representatives', representatives.map((r, index) => ({
+    ...(Platform.OS === 'web' && r.id ? { id: r.id } : {}),
     salutation: r.salutation.trim() || null,
     first_name: r.firstName.trim(),
     last_name: r.lastName.trim(),
@@ -503,19 +634,27 @@ export async function saveTenantRepresentatives(
     is_primary: r.isPrimary,
     sort_order: index,
     updated_at: new Date().toISOString(),
-  })), actorRoleKey);
+  })), actorRoleKey, options);
 }
 
 export async function saveTenantBankAccounts(
   tenantId: string,
   accounts: TenantBankAccount[],
   actorRoleKey?: RoleKey | null,
+  options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   for (const account of accounts) {
+    if (Platform.OS === 'web' && (!account.accountHolder.trim() || !account.iban.trim())) return { ok: false, error: 'Kontoinhaber und IBAN sind für jede Bankverbindung erforderlich.' };
     const err = validateIban(account.iban);
     if (err) return { ok: false, error: err };
   }
+  if (Platform.OS === 'web' && !isLiveServiceMode()) {
+    return saveWebDemoSection(tenantId, 'bankAccounts', mergeDemoRows(ensureDemoSnapshot(tenantId).bankAccounts, accounts, options));
+  }
   return replaceMultiRow(tenantId, 'tenant_bank_accounts', accounts.map((a, index) => ({
+    ...(Platform.OS === 'web' && a.id ? { id: a.id } : {}),
     label: a.label.trim() || null,
     account_holder: a.accountHolder.trim() || null,
     bank_name: a.bankName.trim() || null,
@@ -524,7 +663,7 @@ export async function saveTenantBankAccounts(
     is_primary: a.isPrimary,
     sort_order: index,
     updated_at: new Date().toISOString(),
-  })), actorRoleKey);
+  })), actorRoleKey, options);
 }
 
 export async function saveTenantPaymentTerms(
@@ -532,12 +671,23 @@ export async function saveTenantPaymentTerms(
   payment: TenantPaymentTerms,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
+  if (Platform.OS === 'web') {
+    for (const value of [payment.paymentTermsDays, payment.dunningAfterDays]) {
+      if (!/^\d+$/.test(value.trim()) || Number(value) > 3650) return { ok: false, error: 'Zahlungs- und Mahnfrist müssen ganze Tage zwischen 0 und 3650 sein.' };
+    }
+    if (payment.dunningFee.trim() && (!/^\d+(?:[.,]\d{1,2})?$/.test(payment.dunningFee.trim()) || !Number.isFinite(Number(payment.dunningFee.replace(',', '.'))))) {
+      return { ok: false, error: 'Die Mahngebühr muss ein gültiger Betrag ab 0 mit höchstens zwei Nachkommastellen sein.' };
+    }
+  }
 
   if (!isLiveServiceMode()) {
     const snap = ensureDemoSnapshot(tenantId);
-    snap.payment = payment;
+    snap.payment = Platform.OS === 'web' ? structuredClone(payment) : payment;
+    if (Platform.OS === 'web') snap.updatedAt = new Date().toISOString();
     snap.sections = buildTenantCenterSections(snap);
     return { ok: true, data: snap };
   }
@@ -545,10 +695,10 @@ export async function saveTenantPaymentTerms(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { error } = await client.from('tenant_billing_settings').upsert({
+  const upsert = client.from('tenant_billing_settings').upsert({
     tenant_id: tenantId,
-    payment_terms_days: Number.parseInt(payment.paymentTermsDays, 10) || 14,
-    dunning_after_days: Number.parseInt(payment.dunningAfterDays, 10) || 14,
+    payment_terms_days: Platform.OS === 'web' ? Number(payment.paymentTermsDays) : Number.parseInt(payment.paymentTermsDays, 10) || 14,
+    dunning_after_days: Platform.OS === 'web' ? Number(payment.dunningAfterDays) : Number.parseInt(payment.dunningAfterDays, 10) || 14,
     dunning_fee: payment.dunningFee.trim() ? Number.parseFloat(payment.dunningFee.replace(',', '.')) : null,
     invoice_prefix: payment.invoicePrefix.trim() || null,
     invoice_footer_text: payment.invoiceFooterText.trim() || null,
@@ -556,8 +706,10 @@ export async function saveTenantPaymentTerms(
     updated_at: new Date().toISOString(),
   }, { onConflict: 'tenant_id' });
 
+  const { data, error } = Platform.OS === 'web' ? await upsert.select('tenant_id').maybeSingle() : await upsert;
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  return fetchTenantCenter(tenantId, actorRoleKey);
+  if (Platform.OS === 'web' && !data) return { ok: false, error: 'Zahlungsbedingungen konnten nicht gespeichert werden.' };
+  return Platform.OS === 'web' ? reloadAfterWebSave(tenantId, actorRoleKey) : fetchTenantCenter(tenantId, actorRoleKey);
 }
 
 export async function saveTenantModuleSettings(
@@ -568,6 +720,11 @@ export async function saveTenantModuleSettings(
   const denied = canManageTenantModuleSettings(actorRoleKey);
   if (denied) {
     return { ok: false, error: denied.ok ? 'Keine Berechtigung.' : denied.error };
+  }
+  if (Platform.OS === 'web') {
+    const tenantBlock = guardServiceTenant(tenantId);
+    if (tenantBlock) return tenantBlock;
+    if (isLiveServiceMode() && !getSupabaseClient()) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
   }
 
   if (shouldUseInMemoryTenantCenterStore()) {
@@ -599,8 +756,11 @@ export async function ensureTenantCatalogSeeded(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   if (isLiveServiceMode()) {
-    await seedTenantServiceCatalogIfEmpty(tenantId);
+    const result = await seedTenantServiceCatalogIfEmpty(tenantId);
+    if (Platform.OS === 'web' && !result.ok) return result;
   }
   return fetchTenantCenter(tenantId, actorRoleKey);
 }
@@ -611,6 +771,8 @@ async function upsertProfileTable(
   payload: Record<string, unknown>,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  const webDenied = webWriteGuard(tenantId, actorRoleKey);
+  if (webDenied) return webDenied;
   const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
@@ -621,12 +783,63 @@ async function upsertProfileTable(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { error } = await fromUnknownTable(client, table).upsert(
+  const upsert = fromUnknownTable(client, table).upsert(
     { tenant_id: tenantId, ...payload },
     { onConflict: 'tenant_id' },
   );
+  const { data, error } = Platform.OS === 'web' ? await upsert.select('tenant_id').maybeSingle() : await upsert;
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  return fetchTenantCenter(tenantId, actorRoleKey);
+  if (Platform.OS === 'web' && !data) return { ok: false, error: 'Die Angaben konnten nicht gespeichert werden. Bitte Zugriff und Mandant prüfen.' };
+  return Platform.OS === 'web' ? reloadAfterWebSave(tenantId, actorRoleKey) : fetchTenantCenter(tenantId, actorRoleKey);
+}
+
+/** Keep existing identities and never remove rows before the requested writes succeed. */
+async function saveWebRows(
+  tenantId: string,
+  table: string,
+  rows: Record<string, unknown>[],
+  actorRoleKey?: RoleKey | null,
+  options?: TenantRowsSaveOptions,
+): Promise<ServiceResult<void>> {
+  const denied = webWriteGuard(tenantId, actorRoleKey);
+  if (denied) return denied;
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
+  const current = await fromUnknownTable(client, table).select('id').eq('tenant_id', tenantId);
+  if (current.error) return { ok: false, error: toGermanSupabaseError(current.error) };
+  const knownIds = new Set((current.data ?? []).map((row: Record<string, unknown>) => String(row.id)));
+  const suppliedIds = rows.filter(row => row.id != null).map(row => String(row.id));
+  const removedIds = [...new Set(options?.removedIds ?? [])];
+  if (new Set(suppliedIds).size !== suppliedIds.length || suppliedIds.some(id => !knownIds.has(id)) ||
+      removedIds.some(id => !knownIds.has(id) || suppliedIds.includes(id))) {
+    return { ok: false, error: 'Die Liste wurde zwischenzeitlich geändert oder enthält fremde Datensätze. Bitte neu laden.' };
+  }
+  const newRows = rows.filter(row => row.id == null).map(row => ({ ...row, tenant_id: tenantId }));
+  const existingRows = rows.filter(row => row.id != null).map(row => ({ ...row, tenant_id: tenantId }));
+  let wrote = false;
+  const failure = (message: string): { ok: false; error: string } => wrote ? incompleteSave(message) : { ok: false, error: message };
+
+  for (const batch of [newRows, existingRows]) {
+    if (!batch.length) continue;
+    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    if (blocked) return failure(blocked.error);
+    const query = batch === newRows
+      ? fromUnknownTable(client, table).insert(batch)
+      : fromUnknownTable(client, table).upsert(batch, { onConflict: 'id' });
+    const result = await query.select('id');
+    if (result.error) return failure(toGermanSupabaseError(result.error));
+    wrote = true;
+    if (!result.data || result.data.length !== batch.length) return failure('Nicht alle Datensätze wurden bestätigt.');
+  }
+
+  if (removedIds.length) {
+    const blocked = webWriteGuard(tenantId, actorRoleKey);
+    if (blocked) return failure(blocked.error);
+    const result = await fromUnknownTable(client, table).delete().eq('tenant_id', tenantId).in('id', removedIds).select('id');
+    if (result.error) return failure(toGermanSupabaseError(result.error));
+    if (!result.data || result.data.length !== removedIds.length) return incompleteSave('Nicht alle gewählten Datensätze konnten entfernt werden.');
+  }
+  return { ok: true, data: undefined };
 }
 
 async function replaceMultiRow(
@@ -634,7 +847,12 @@ async function replaceMultiRow(
   table: string,
   rows: Record<string, unknown>[],
   actorRoleKey?: RoleKey | null,
+  options?: TenantRowsSaveOptions,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
+  if (Platform.OS === 'web') {
+    const saved = await saveWebRows(tenantId, table, rows, actorRoleKey, options);
+    return saved.ok ? reloadAfterWebSave(tenantId, actorRoleKey) : saved;
+  }
   const denied = enforcePermission<TenantCenterSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
@@ -669,6 +887,7 @@ export function patchDemoTenantBrandingLogo(
 
 export function resetTenantCenterStore(): void {
   DEMO_STORE.clear();
+  demoRowSequence = 0;
 }
 
 export function seedTenantCenterForTest(tenantId: string): TenantCenterSnapshot {

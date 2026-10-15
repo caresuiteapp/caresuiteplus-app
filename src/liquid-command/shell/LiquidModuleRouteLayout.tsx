@@ -122,13 +122,14 @@ function LiquidModuleContent() {
  * styles or another legacy visual primitive.
  */
 export function LiquidModuleRouteLayout({
+  children,
   requireRole = true,
   requireProduct = true,
 }: LiquidModuleRouteLayoutProps) {
   let content: ReactNode = (
     <PortalPremiumProvider kind="workspace">
       <LiquidVisualModeProvider mode="orbit">
-        <LiquidModuleContent />
+        {children ?? <LiquidModuleContent />}
       </LiquidVisualModeProvider>
     </PortalPremiumProvider>
   );

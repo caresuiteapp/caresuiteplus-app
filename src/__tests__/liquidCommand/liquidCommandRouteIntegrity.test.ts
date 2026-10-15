@@ -114,6 +114,7 @@ describe('Liquid Command route integrity', () => {
   });
 
   it('highlights the correct work area for canonical and detail routes', () => {
+    expect(inferLiquidArea('/unternehmen', 'office')).toBe('company');
     expect(inferLiquidArea('/office?area=company', 'office')).toBe('company');
     expect(inferLiquidArea('/office/messages', 'office')).toBe('communication');
     expect(inferLiquidArea('/office/messages/thread-1?audience=employees', 'office')).toBe('communication');

@@ -48,7 +48,7 @@ const SURFACE_COLOR = 'transparent';
 const useWebLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : useEffect;
 
 const POPUP_TITLES: Record<string, string> = {
-  company: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
+  company: 'Unternehmen', unternehmen: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
   'time-tracking': 'Arbeitszeit', payroll: 'Gehaltsstatistik', invoices: 'Rechnungen',
   documents: 'Dokumente', messages: 'Nachrichten', portals: 'Portale & Zugänge',
   inventory: 'Inventar', audit: 'Audit', 'audit-log': 'Audit', assignments: 'Einsätze', einsaetze: 'Einsätze',

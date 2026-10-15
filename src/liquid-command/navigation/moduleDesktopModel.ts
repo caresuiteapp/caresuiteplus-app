@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { DesktopApp } from './desktopAppCatalogModel';
 import type { ProductKey } from '@/types';
 
@@ -9,6 +10,7 @@ export const DESKTOP_MODULES: readonly { key: ProductKey; label: string }[] = [
 
 export function desktopModuleForRoute(route: string): ProductKey | null {
   const path = route.split(/[?#]/, 1)[0];
+  if (path === '/unternehmen') return 'office';
   for (const module of DESKTOP_MODULES) {
     if (path === `/${module.key}` || path.startsWith(`/${module.key}/`)) return module.key;
   }
@@ -63,12 +65,14 @@ const TASK_AREAS = ['Übersicht', 'Klient:innen', 'Planung', 'Einsätze & Durchf
 /** Known aliases share a menu entry; full apps and saved widget IDs stay intact. */
 export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   let route = app.route;
+  if (Platform.OS === 'web' && ['/office', '/office?area=company', '/business/office/dashboard'].includes(route)) route = '/unternehmen';
   if (route === '/assist/einsaetze') route = '/assist/assignments';
   if (route === '/assist/kalender') route = '/assist/calendar';
   if (route === '/business/office/portals') route = '/business/office/access';
   if (route === '/office/messages' || route.startsWith('/office/messages?')) route = route.replace('/office/messages', '/business/messages');
   const labels: Record<string, string> = {
     '/office': 'Office-Arbeitsbereiche',
+    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen' } : {}),
     '/assist/assignments': 'Einsätze',
     '/assist/calendar': 'Kalender & Einsatzplanung',
     '/assist/zugeordnete-klienten': 'Zugeordnete Klient:innen',
@@ -101,7 +105,7 @@ function taskArea(app: DesktopApp): typeof TASK_AREAS[number] {
   if (/kalender|calendar|tour|dienst|planning/.test(route)) return 'Planung';
   if (/\/fahrten$/.test(route)) return 'Mobilität';
   if (/assignments|einsaetze|durchfuehrung|aufgaben|execution|live-status|dokumentation|medikation|vital/.test(route)) return 'Einsätze & Durchführung';
-  if (route === '/office' || route === '/business/office/dashboard' || DESKTOP_MODULES.some(m => route === `/${m.key}`)) return 'Übersicht';
+  if (route === '/unternehmen' || route === '/office' || route === '/business/office/dashboard' || DESKTOP_MODULES.some(m => route === `/${m.key}`)) return 'Übersicht';
   return 'Organisation';
 }
 export function buildModuleDesktopNavigation(apps: readonly DesktopApp[], module: ProductKey, query = '') {

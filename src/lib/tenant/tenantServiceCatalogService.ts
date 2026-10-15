@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   ServiceCatalogCategory,
@@ -363,6 +364,9 @@ export async function fetchTenantServiceCatalog(
       .eq('tenant_id', tenantId)
       .in('catalog_id', catalogIds)
       .eq('is_default', true);
+    if (Platform.OS === 'web' && priceRes.error) {
+      return { ok: false, error: toGermanSupabaseError(priceRes.error) };
+    }
     priceRows = (priceRes.data ?? []) as Record<string, unknown>[];
   }
 
@@ -410,6 +414,15 @@ export async function saveTenantServiceCatalogItem(
   const denied = enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
+  if (Platform.OS === 'web') {
+    const tenantBlock = guardServiceTenant(tenantId);
+    if (tenantBlock) return tenantBlock;
+    if (!input.name.trim()) return { ok: false, error: 'Bitte eine Bezeichnung eingeben.' };
+    if (input.priceNet != null && (!Number.isFinite(input.priceNet) || input.priceNet < 0 || input.priceNet > 99999999.99)) {
+      return { ok: false, error: 'Bitte einen gültigen, nicht negativen Preis eingeben.' };
+    }
+  }
+
   if (!isLiveServiceMode()) {
     const catalog = ensureDemoCatalog(tenantId);
     const existingIndex = catalog.items.findIndex((item) => item.serviceKey === input.serviceKey);
@@ -423,7 +436,7 @@ export async function saveTenantServiceCatalogItem(
       category: input.category,
       isActive: input.isActive ?? true,
       sortOrder: input.sortOrder ?? 0,
-      defaultPriceNet: input.priceNet ?? null,
+      defaultPriceNet: input.priceNet ?? (Platform.OS === 'web' && existingIndex >= 0 ? catalog.items[existingIndex]?.defaultPriceNet : null) ?? null,
       defaultTaxMode: input.taxMode ?? 'exempt_4_16',
       travelPolicy: input.category === 'travel'
         ? normalizeTravelCompensationPolicy(input.travelPolicy)
@@ -455,16 +468,19 @@ export async function saveTenantServiceCatalogItem(
 
   let catalogId = input.id;
   if (catalogId) {
-    const { error } = await fromUnknownTable(client, 'tenant_service_catalog')
+    const query = fromUnknownTable(client, 'tenant_service_catalog')
       .update(catalogPayload)
       .eq('tenant_id', tenantId)
       .eq('id', catalogId);
+    const { error } = Platform.OS === 'web' ? await query.select('id').single() : await query;
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
   } else {
-    const { data, error } = await fromUnknownTable(client, 'tenant_service_catalog')
-      .insert(catalogPayload)
-      .select('id')
-      .single();
+    const table = fromUnknownTable(client, 'tenant_service_catalog');
+    // A retry after a price failure must reuse the same position.
+    const query = Platform.OS === 'web'
+      ? table.upsert(catalogPayload, { onConflict: 'tenant_id,service_key' })
+      : table.insert(catalogPayload);
+    const { data, error } = await query.select('id').single();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     catalogId = String((data as Record<string, unknown>).id);
   }
@@ -474,22 +490,33 @@ export async function saveTenantServiceCatalogItem(
       tenant_id: tenantId,
       catalog_id: catalogId,
       price_net: input.priceNet,
-      tax_rate: input.taxRate ?? 0,
+      tax_rate: input.taxRate ?? (Platform.OS === 'web' && input.taxMode === 'standard_19' ? 19 : 0),
       tax_mode: input.taxMode ?? 'exempt_4_16',
       valid_from: input.validFrom ?? new Date().toISOString().slice(0, 10),
       is_default: true,
       updated_at: new Date().toISOString(),
     };
-    const { data: existingPrice } = await fromUnknownTable(client, 'tenant_service_prices')
+    const { data: existingPrice, error: priceReadError } = await fromUnknownTable(client, 'tenant_service_prices')
       .select('id, price_net, tax_rate, tax_mode, valid_from, valid_to')
       .eq('tenant_id', tenantId)
       .eq('catalog_id', catalogId)
       .eq('is_default', true)
       .maybeSingle();
 
+    const priceFailure = (error: unknown): ServiceResult<TenantServiceCatalogSnapshot> => ({
+      ok: false,
+      error: `Die Katalogposition wurde gespeichert, der Preis jedoch nicht. Bitte den Preis prüfen und erneut speichern. ${toGermanSupabaseError(error)}`,
+    });
+    if (Platform.OS === 'web' && priceReadError) return priceFailure(priceReadError);
+
     if (existingPrice) {
       const old = existingPrice as Record<string, unknown>;
-      await fromUnknownTable(client, 'tenant_service_price_versions').insert({
+      if (Platform.OS === 'web' && Number(old.price_net) === pricePayload.price_net &&
+          Number(old.tax_rate) === pricePayload.tax_rate && old.tax_mode === pricePayload.tax_mode &&
+          (!input.validFrom || old.valid_from === input.validFrom)) {
+        return fetchTenantServiceCatalog(tenantId, actorRoleKey);
+      }
+      const versionResult = await fromUnknownTable(client, 'tenant_service_price_versions').insert({
         tenant_id: tenantId,
         price_id: old.id,
         price_net: old.price_net,
@@ -500,11 +527,17 @@ export async function saveTenantServiceCatalogItem(
         change_reason: 'Katalog-Update',
         snapshot: old,
       });
-      await fromUnknownTable(client, 'tenant_service_prices')
+      if (Platform.OS === 'web' && versionResult.error) return priceFailure(versionResult.error);
+      const query = fromUnknownTable(client, 'tenant_service_prices')
         .update(pricePayload)
         .eq('id', old.id);
+      const priceResult = Platform.OS === 'web'
+        ? await query.eq('tenant_id', tenantId).select('id').single()
+        : await query;
+      if (Platform.OS === 'web' && priceResult.error) return priceFailure(priceResult.error);
     } else {
-      await fromUnknownTable(client, 'tenant_service_prices').insert(pricePayload);
+      const priceResult = await fromUnknownTable(client, 'tenant_service_prices').insert(pricePayload);
+      if (Platform.OS === 'web' && priceResult.error) return priceFailure(priceResult.error);
     }
   }
 
@@ -513,4 +546,38 @@ export async function saveTenantServiceCatalogItem(
 
 export function resetTenantServiceCatalogStore(): void {
   DEMO_CATALOG.clear();
+}
+
+export type TenantServicePriceVersion = {
+  id: string;
+  priceNet: number;
+  taxMode: ServiceTaxMode;
+  validFrom: string;
+  changedAt: string;
+};
+
+/** Read-only detail for the company catalogue; opening the editor never seeds rows. */
+export async function fetchTenantServicePriceHistory(
+  tenantId: string,
+  catalogId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<TenantServicePriceVersion[]>> {
+  const denied = enforcePermission<TenantServicePriceVersion[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!isLiveServiceMode()) return { ok: true, data: [] };
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
+  const price = await fromUnknownTable(client, 'tenant_service_prices').select('id')
+    .eq('tenant_id', tenantId).eq('catalog_id', catalogId).eq('is_default', true).maybeSingle();
+  if (price.error) return { ok: false, error: toGermanSupabaseError(price.error) };
+  if (!price.data) return { ok: true, data: [] };
+  const result = await fromUnknownTable(client, 'tenant_service_price_versions').select('*')
+    .eq('tenant_id', tenantId).eq('price_id', price.data.id).order('changed_at', { ascending: false });
+  if (result.error) return { ok: false, error: toGermanSupabaseError(result.error) };
+  return { ok: true, data: (result.data ?? []).map((row: Record<string, unknown>) => ({
+    id: String(row.id), priceNet: Number(row.price_net), taxMode: row.tax_mode as ServiceTaxMode,
+    validFrom: String(row.valid_from), changedAt: String(row.changed_at),
+  })) };
 }

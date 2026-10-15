@@ -651,5 +651,6 @@
   "/stationaer/wohnbereiche/[id]",
   "/stationaer/zimmer",
   "/support",
+  "/unternehmen",
   "/zentrale"
 ]
