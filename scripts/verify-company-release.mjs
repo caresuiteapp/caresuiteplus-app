@@ -18,7 +18,7 @@ function run(label, args) {
   }
 }
 run('Company workflows and service boundaries', ['node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=1', ...tests]);
-for (const file of ['company_access', 'company_resources_scope', 'company_documents_settings']) {
+for (const file of ['company_access', 'company_resources_scope', 'company_documents_settings', 'company_owner_profile_activation']) {
   run(`PostgreSQL ${file}`, ['--test', `supabase/tests/${file}.test.mjs`]);
 }
 console.log('\n[company-release] All required checks passed. No remote database was changed.');
