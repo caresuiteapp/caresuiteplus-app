@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { canonicalCompanyInventoryHref } from '@/lib/navigation/companyInventoryRoute';
+import { canonicalDocumentsWorkspaceHref } from '@/lib/navigation/documentsWorkspaceRoutes';
 import type { DesktopApp } from './desktopAppCatalogModel';
 import type { ProductKey } from '@/types';
 
@@ -18,7 +19,7 @@ export function desktopModuleForRoute(route: string): ProductKey | null {
   if (path === '/business/office' || path.startsWith('/business/office/') ||
       path === '/business/messages' || path.startsWith('/business/messages/') ||
       path.startsWith('/business/connect/') || path === '/business/integrations' ||
-      path === '/business/templates') return 'office';
+      path === '/business/templates' || (Platform.OS === 'web' && path.startsWith('/business/templates/'))) return 'office';
   return null;
 }
 
@@ -67,6 +68,7 @@ const TASK_AREAS = ['Übersicht', 'Klient:innen', 'Planung', 'Einsätze & Durchf
 export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   let route = app.route;
   if (Platform.OS === 'web') route = canonicalCompanyInventoryHref(route) ?? route;
+  if (Platform.OS === 'web') route = canonicalDocumentsWorkspaceHref(route) ?? route;
   if (Platform.OS === 'web' && ['/office', '/office?area=company', '/business/office/dashboard'].includes(route)) route = '/unternehmen';
   if (route === '/assist/einsaetze') route = '/assist/assignments';
   if (route === '/assist/kalender') route = '/assist/calendar';
@@ -74,7 +76,7 @@ export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   if (route === '/office/messages' || route.startsWith('/office/messages?')) route = route.replace('/office/messages', '/business/messages');
   const labels: Record<string, string> = {
     '/office': 'Office-Arbeitsbereiche',
-    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen', '/unternehmen/inventar': 'Inventar' } : {}),
+    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen', '/unternehmen/inventar': 'Inventar', '/business/office/document-catalog': 'Dokumentenkatalog', '/business/office/documents': 'Dokumentenablage', '/business/office/documents/signatures': 'Unterschriften', '/business/templates/documents-hub': 'Vorlageneinstellungen' } : {}),
     '/assist/assignments': 'Einsätze',
     '/assist/calendar': 'Kalender & Einsatzplanung',
     '/assist/zugeordnete-klienten': 'Zugeordnete Klient:innen',

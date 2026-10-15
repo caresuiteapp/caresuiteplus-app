@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScreenShell } from '@/components/layout/ScreenShell.web';
+import { DocumentsWorkspaceShell } from '@/components/documents/DocumentsWorkspaceShell.web';
+import { CENTRAL_DOCUMENT_CATALOG } from '@/data/seeds/documentCatalog/centralCatalog';
+import { CENTRAL_CATALOG_GROUPS } from '@/data/seeds/documentCatalog/centralCatalogTitles';
 import { CentralCatalogWorkspace } from '@/components/documents/CentralCatalogWorkspace.web';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -18,9 +20,11 @@ import type { CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTar
 const scalar = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
 export function CentralDocumentCatalogScreen() {
+  const navigationGuard = useRef<() => boolean>(() => true);
+  const registerNavigationGuard = useCallback((guard: (() => boolean) | null) => { navigationGuard.current = guard ?? (() => true); }, []);
   const { profile } = useAuth(); const tenantId = useServiceTenantId(); const { can, roleKey, permissions: permissionKeys } = usePermissions();
   const permissionScope = useMemo(() => [...permissionKeys].sort().join('|'), [permissionKeys]);
-  const params = useLocalSearchParams<{ module?: string; clientId?: string; employeeId?: string; templateKey?: string; assignmentId?: string; invoiceId?: string; medicationId?: string; woundId?: string; period?: string; tab?: string }>();
+  const params = useLocalSearchParams<{ module?: string; category?: string; clientId?: string; employeeId?: string; templateKey?: string; assignmentId?: string; invoiceId?: string; medicationId?: string; woundId?: string; period?: string; tab?: string }>();
   const clientId = scalar(params.clientId); const employeeId = scalar(params.employeeId);
   const assignmentId = scalar(params.assignmentId); const invoiceId = scalar(params.invoiceId);
   const medicationId = scalar(params.medicationId); const woundId = scalar(params.woundId); const period = scalar(params.period);
@@ -33,6 +37,7 @@ export function CentralDocumentCatalogScreen() {
   const canView = can('office.documents.view'); const canClients = can('office.clients.view'); const canEmployees = can('office.employees.view');
   const [clients, setClients] = useState<CentralCatalogEntityOption[]>([]); const [employees, setEmployees] = useState<CentralCatalogEntityOption[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(false); const [entityError, setEntityError] = useState('');
+  const [entityAttempt, setEntityAttempt] = useState(0);
   const [records, setRecords] = useState<CentralDocumentStored[]>([]); const [recordsError, setRecordsError] = useState('');
   const [loadingRecords, setLoadingRecords] = useState(false); const [refresh, setRefresh] = useState(0);
   useEffect(() => {
@@ -40,8 +45,8 @@ export function CentralDocumentCatalogScreen() {
     if (!tenantId || !canView) return;
     setLoadingEntities(true);
     void Promise.allSettled([
-      canClients ? fetchClientList(tenantId, roleKey) : Promise.resolve(null),
-      canEmployees ? fetchEmployeeList(tenantId, roleKey, profile) : Promise.resolve(null),
+      canClients ? withServiceQueryTimeout(fetchClientList(tenantId, roleKey), 'Klientenakten', 30000) : Promise.resolve(null),
+      canEmployees ? withServiceQueryTimeout(fetchEmployeeList(tenantId, roleKey, profile), 'Personalakten', 30000) : Promise.resolve(null),
     ]).then(([c, e]) => {
       if (!active) return; const failures: string[] = [];
       if (c.status === 'fulfilled' && c.value?.ok) setClients(centralCatalogClientOptions(c.value.data));
@@ -50,7 +55,7 @@ export function CentralDocumentCatalogScreen() {
       else if (e.status === 'rejected' || (e.status === 'fulfilled' && e.value && !e.value.ok)) failures.push('Personalakten konnten nicht geladen werden.');
       setEntityError(failures.join(' ')); setLoadingEntities(false);
     }); return () => { active = false; };
-  }, [tenantId, roleKey, profile, canView, canClients, canEmployees]);
+  }, [tenantId, roleKey, profile, canView, canClients, canEmployees, entityAttempt]);
   useEffect(() => {
     let active = true; setLoadingRecords(false); if (recordPage === 0) { setRecords([]); setRecordsHasMore(false); } setRecordsError('');
     if (!tenantId || !canView) return; setLoadingRecords(true);
@@ -64,14 +69,14 @@ export function CentralDocumentCatalogScreen() {
   const download = useCallback((record: CentralDocumentStored, original?: boolean) => downloadCentralDocument(record, actor, original), [actor]);
   const reload = useCallback(() => { setRecordPageState({ scope: recordScope, page: 0 }); setRefresh((v) => v + 1); }, [recordScope]);
   const loadMore = useCallback(() => { if (recordsError) setRefresh((v) => v + 1); else setRecordPageState({ scope: recordScope, page: recordPage + 1 }); }, [recordsError, recordScope, recordPage]);
-  return <ScreenShell title="Dokumentenkatalog" subtitle="Office · zentral für alle Module" showBack={false}>
-    {!tenantId ? <div role="alert">Für den Dokumentenkatalog ist ein zugeordnetes Unternehmen erforderlich.</div> : !canView ? <div role="alert">Sie haben keine Berechtigung zum Anzeigen des Dokumentenkatalogs.</div> : <CentralCatalogWorkspace
-      key={JSON.stringify([tenantId,roleKey,profile?.id,permissionScope,scalar(params.module),clientId,employeeId,scalar(params.templateKey),assignmentId,invoiceId,medicationId,woundId,period,scalar(params.tab)])} tenantId={tenantId} author={profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')} demo={getServiceMode() !== 'supabase'}
-      clients={clients} employees={employees} loadingEntities={loadingEntities} entityError={entityError}
+  return <DocumentsWorkspaceShell active="catalog" title="Dokumentenkatalog" description="Vorlagen auswählen, gespeicherte Angaben übernehmen und Dokumente in der zugehörigen Akte ablegen." beforeNavigate={() => navigationGuard.current()} stats={<><div className="dw-metric"><strong>{CENTRAL_DOCUMENT_CATALOG.length}</strong><span>Vorlagen</span></div><div className="dw-metric"><strong>{CENTRAL_CATALOG_GROUPS.length}</strong><span>Fachbereiche</span></div><div className="dw-metric"><strong>A4</strong><span>Hoch- und Querformat</span></div></>}>
+    {!tenantId ? <div role="alert" className="dw-alert">Für den Dokumentenkatalog ist ein zugeordnetes Unternehmen erforderlich.</div> : !canView ? <div role="alert" className="dw-alert">Sie haben keine Berechtigung zum Anzeigen des Dokumentenkatalogs.</div> : <CentralCatalogWorkspace
+      key={JSON.stringify([tenantId,roleKey,profile?.id,permissionScope,scalar(params.module),scalar(params.category),clientId,employeeId,scalar(params.templateKey),assignmentId,invoiceId,medicationId,woundId,period,scalar(params.tab)])} tenantId={tenantId} author={profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')} demo={getServiceMode() !== 'supabase'}
+      clients={clients} employees={employees} loadingEntities={loadingEntities} entityError={entityError} onRefreshEntities={() => setEntityAttempt((value) => value + 1)}
       records={records.filter((record) => (!record.snapshot.definition.clinicalReviewRequired || can('office.clients.view_sensitive')) && (record.snapshot.context.target === 'company' || record.snapshot.context.target === 'client' && canClients && can('office.clients.view_sensitive') || record.snapshot.context.target === 'employee' && canEmployees))} recordsError={recordsError} loadingRecords={loadingRecords} recordsHasMore={recordsHasMore} onLoadMore={loadMore}
-      module={normalizeDocumentModule(scalar(params.module))} clientId={clientId} employeeId={employeeId} templateKey={scalar(params.templateKey)} initialTab={scalar(params.tab) === 'records' ? 'records' : 'catalog'}
+      module={normalizeDocumentModule(scalar(params.module))} category={scalar(params.category)} clientId={clientId} employeeId={employeeId} templateKey={scalar(params.templateKey)} initialTab={scalar(params.tab) === 'records' ? 'records' : 'catalog'}
       permissions={{ create: can('documents.create'), preview: can('documents.preview'), export: can('documents.pdf_create'), save: can('documents.save_to_file') }}
-      loadContext={loadContext} save={save} download={download} onSaved={reload} onRefresh={reload}
+      loadContext={loadContext} save={save} download={download} onSaved={reload} onRefresh={reload} onNavigationGuardChange={registerNavigationGuard}
     />}
-  </ScreenShell>;
+  </DocumentsWorkspaceShell>;
 }

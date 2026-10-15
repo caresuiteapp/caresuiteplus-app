@@ -44,7 +44,7 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     const route = normalized.route;
     if (seen.has(route)) return;
     seen.add(route);
-    const label = Platform.OS === 'web' && route === '/unternehmen' ? normalized.label : app.label;
+    const label = Platform.OS === 'web' && (route === '/unternehmen' || route.startsWith('/business/office/document') || route === '/business/templates/documents-hub') ? normalized.label : app.label;
     apps.push({ ...app, route, label });
   };
   widgetApps.forEach(app => add({ ...app, glyph: app.category === 'Workspace' ? 'G' : '↗' }));
@@ -72,6 +72,9 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     }));
   });
   liquidGlobalShortcuts.forEach(shortcut => add({ ...shortcut, category: 'Übersicht' }));
+  if (Platform.OS === 'web' && ['business_admin', 'business_manager', 'platform_admin'].includes(roleKey ?? '')) {
+    add({ id: 'document-settings', label: 'Vorlageneinstellungen', description: 'Eigene Texte, Nachrichtenvorlagen und Briefkopf verwalten.', route: '/business/templates/documents-hub', category: 'Verwaltung', group: 'Office · Dokumente', glyph: '⚙' });
+  }
   if (roleKey === 'platform_admin') liquidWorkAreas.platform.forEach(area => add({ ...area,
     id: `platform-${area.id}`, category: 'Verwaltung', group: 'Plattform', glyph: '▦' }));
   add({ id: 'support', label: 'Support & Hilfe', description: 'Chat, Tickets und Freigaben.', route: '/support', category: 'Verwaltung', glyph: '?' });
@@ -82,6 +85,7 @@ const SETTINGS_ROUTES = new Set([
   '/business/office/permissions',
   '/business/integrations',
   '/business/templates',
+  ...(Platform.OS === 'web' ? ['/business/templates/documents-hub'] : []),
   ...liquidWorkAreas.settings.map(area => area.route),
 ]);
 

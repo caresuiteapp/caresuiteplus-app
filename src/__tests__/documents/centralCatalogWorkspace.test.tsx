@@ -1,6 +1,7 @@
 import { describe,it,expect,vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CentralCatalogWorkspace, type CentralCatalogWorkspaceProps } from '@/components/documents/CentralCatalogWorkspace.web';
+import { filterCentralDocuments } from '@/data/seeds/documentCatalog/centralCatalog';
 
 const props: CentralCatalogWorkspaceProps = {
   tenantId:'tenant-a',author:'Fachkraft',demo:true,clients:[],employees:[],loadingEntities:false,
@@ -21,5 +22,12 @@ describe('central catalogue UI content (no visual layout assertion)',()=>{
     expect(html).toContain('Bitte eine gespeicherte Akte wählen');
     expect(props.loadContext).not.toHaveBeenCalled();
     expect(html).not.toContain('Fassung gespeichert');
+  });
+  it('opens a linked specialty and ignores unknown category keys',()=>{
+    const html=renderToStaticMarkup(<CentralCatalogWorkspace {...props} category="abrechnung"/>);
+    expect((html.match(/class="csdc-template /g)??[]).length).toBe(filterCentralDocuments({category:'abrechnung'}).length);
+    expect(html).toContain('Rechnung');
+    const fallback=renderToStaticMarkup(<CentralCatalogWorkspace {...props} category="unknown-category"/>);
+    expect((fallback.match(/class="csdc-template /g)??[]).length).toBe(450);
   });
 });

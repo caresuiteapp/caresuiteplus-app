@@ -5,7 +5,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
-import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
+import { DocumentsWorkspaceShell } from '@/components/documents/DocumentsWorkspaceShell.web';
+import { OfficeSignatureReview } from '@/components/office/documentSignatures/OfficeSignatureReview.web';
+import { SIGNER_LABELS, signatureDate } from '@/components/office/documentSignatures/signatureWorkspaceModel.web';
+import { signatureWorkspaceCss } from '@/components/office/documentSignatures/signatureWorkspaceCss.web';
+import { usePermissions } from '@/hooks/usePermissions';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { SignatureDisplay } from '@/components/signatures/SignatureDisplay';
 import {
@@ -51,7 +55,6 @@ function RequestDetailShell({
   mode,
   title,
   subtitle,
-  accent,
   canSign,
   onSign,
   children,
@@ -66,15 +69,14 @@ function RequestDetailShell({
 }) {
   if (mode === 'office') {
     return (
-      <C14vSubpageShell
+      <DocumentsWorkspaceShell
+        active="signatures"
         title={title}
-        subtitle={subtitle}
-        showBack
-        accentColor={accent}
-        actions={canSign && onSign ? [{ key: 'sign', label: 'Unterschreiben', onPress: onSign, variant: 'primary' as const }] : []}
+        description={subtitle}
+        actions={canSign && onSign ? <button className="dw-button dw-button--primary" onClick={onSign}>Unterschreiben</button> : undefined}
       >
         {children}
-      </C14vSubpageShell>
+      </DocumentsWorkspaceShell>
     );
   }
 
@@ -90,6 +92,14 @@ function RequestDetailShell({
 }
 
 export function CsDocumentRequestDetailScreen({
+  ...props
+}: Props) {
+  const { source } = useLocalSearchParams<{ source?: string }>();
+  if (props.mode === 'office' && source === 'portal') return <OfficeSignatureReview />;
+  return <TemplateRequestDetail {...props} />;
+}
+
+function TemplateRequestDetail({
   mode,
   signerRole,
   signerNameDefault,
@@ -101,6 +111,7 @@ export function CsDocumentRequestDetailScreen({
   const reviewedDocumentVersion = useRef<string | undefined>(undefined);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
+  const permissions = usePermissions();
   const portalActor = usePortalActor();
   const text = useAuroraAdaptiveText();
   const isPortal = mode !== 'office';
@@ -125,7 +136,7 @@ export function CsDocumentRequestDetailScreen({
       });
     },
     [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
-    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId]) },
+    { enabled: !!tenantId && !!id && (isPortal ? portalActor.isLinkedReady : permissions.can('office.documents.view')), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId]) },
   );
 
   const item = query.data;
@@ -133,6 +144,7 @@ export function CsDocumentRequestDetailScreen({
   const employeeSigningBlocked = mode === 'employee' && portalActor.roleKey === 'employee_portal';
   const canSign =
     !employeeSigningBlocked
+    && (mode !== 'office' || (permissions.can('office.documents.signatures.manage') && !permissions.isReadOnly))
     && item
     && item.pendingSignatureRoles.includes(effectiveSignerRole)
     && ['sent', 'opened', 'partially_signed'].includes(item.status);
@@ -167,7 +179,7 @@ export function CsDocumentRequestDetailScreen({
   }, [id, isPortal, item?.status]);
 
   const handleSign = async (dataUrl: string) => {
-    if (!tenantId || !id || signing.current) return;
+    if (!tenantId || !id || signing.current || !canSign) return;
     signing.current = true;
     setWorking(true);
     try {
@@ -213,6 +225,10 @@ export function CsDocumentRequestDetailScreen({
 
   const accent = mode === 'office' ? moduleColor('office') : moduleColor('assist');
 
+  if (mode === 'office' && !permissions.can('office.documents.view')) {
+    return <DocumentsWorkspaceShell active="signatures" title="Unterschriftsdokument"><div className="dw-empty">Sie haben keine Berechtigung für dieses Dokument.</div></DocumentsWorkspaceShell>;
+  }
+
   if (isPortal && !portalActor.isLinkedReady) {
     const isResolving =
       portalActor.isResolvingClientLink || portalActor.isResolvingEmployeeLink;
@@ -253,6 +269,27 @@ export function CsDocumentRequestDetailScreen({
     );
   }
 
+  if (mode === 'office') {
+    return <>
+      <DocumentsWorkspaceShell active="signatures" title={item.title} description={statusLabel}
+        back={{ label: 'Zurück zu Unterschriften', onClick: () => router.back() }}
+        actions={<><button className="dw-button" onClick={() => void query.refresh()}>Aktualisieren</button>{canSign ? <button className="dw-button dw-button--primary" onClick={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}>Unterschreiben</button> : null}</>}>
+        <style>{signatureWorkspaceCss}</style>
+        <div className="ds-form">
+          {permissions.isReadOnly ? <p className="ds-notice">Lesemodus: Dokument und Unterschriften können angesehen werden.</p> : null}
+          {query.refreshError ? <p role="alert" className="ds-notice ds-notice--error">Der aktuelle Dokumentstatus konnte nicht geladen werden. {query.refreshError}</p> : null}
+          <dl className="ds-review"><div><dt>Status</dt><dd>{statusLabel}</dd></div><div><dt>Fälligkeit</dt><dd>{signatureDate(item.dueDate)}</dd></div><div><dt>Empfängergruppe</dt><dd>{SIGNER_LABELS[item.recipientScope] ?? 'Dokumentempfänger'}</dd></div></dl>
+          {item.pendingSignatureRoles.length ? <p className="ds-notice">Ausstehende Unterschriften: {item.pendingSignatureRoles.map((role) => SIGNER_LABELS[role]).join(', ')}{item.requiredBeforeService ? '. Vor dem zugehörigen Einsatz erforderlich.' : ''}</p> : null}
+          {signSuccess ? <p role="status" className="ds-notice ds-notice--success">Die Unterschrift wurde gespeichert.{item.status === 'completed' || item.status === 'archived' ? ' Das Dokument ist vollständig unterschrieben.' : ''}</p> : null}
+          {actionError ? <p role="alert" className="ds-notice ds-notice--error">{actionError}</p> : null}
+          <section><h3>Dokumentinhalt</h3>{item.renderedHtml ? <DocumentHtmlPreview title={item.title} previewHtml={item.renderedHtml} /> : <p className="ds-muted">Für dieses Dokument liegt keine Vorschau vor.</p>}</section>
+          <section><h3>Gespeicherte Unterschriften</h3>{signedEntries.length ? signedEntries.map((signature) => <div key={signature.id}><strong>{signature.signerName ?? SIGNER_LABELS[signature.signerRole]}</strong><p className="ds-muted">{SIGNER_LABELS[signature.signerRole]} · {signature.signedAt ? new Date(signature.signedAt).toLocaleString('de-DE') : 'Zeitpunkt nicht verfügbar'}</p></div>) : <p className="ds-muted">Noch keine Unterschrift gespeichert.</p>}</section>
+        </div>
+      </DocumentsWorkspaceShell>
+      <CareSignatureModal statusMessage={actionError} visible={signModal} label="Unterschrift bestätigen" onConfirm={(dataUrl) => void handleSign(dataUrl)} onClose={() => { if (!working) setSignModal(false); }} disabled={working} />
+    </>;
+  }
+
   return (
     <>
       <RequestDetailShell
@@ -277,7 +314,7 @@ export function CsDocumentRequestDetailScreen({
         </Text>
         {item.pendingSignatureRoles.length > 0 ? (
           <PremiumBadge
-            label={isPortal ? (canSign ? 'Ihre Unterschrift fehlt noch' : 'Weitere Unterschriften stehen aus') : `Offene Signatur: ${item.pendingSignatureRoles.join(', ')}`}
+            label={isPortal ? (canSign ? 'Ihre Unterschrift fehlt noch' : 'Weitere Unterschriften stehen aus') : `Offene Unterschrift: ${item.pendingSignatureRoles.map((role) => SIGNER_LABELS[role]).join(', ')}`}
             variant="orange"
           />
         ) : null}
@@ -305,7 +342,7 @@ export function CsDocumentRequestDetailScreen({
               {signedEntries.map((sig) => (
                 <SignatureDisplay
                   key={sig.id}
-                  label={isPortal ? 'Gespeicherte Unterschrift' : `Unterschrift (${sig.signerRole})`}
+                  label={isPortal ? 'Gespeicherte Unterschrift' : `Unterschrift (${SIGNER_LABELS[sig.signerRole]})`}
                   signerName={sig.signerName}
                   signedAt={sig.signedAt}
                   compact
