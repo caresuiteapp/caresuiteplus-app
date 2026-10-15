@@ -73,8 +73,8 @@ function moveCompanyBrand(event: PointerEvent<HTMLDivElement>) {
   if (!rect.width || !rect.height) return;
   const horizontal = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   const vertical = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-  stage.style.setProperty('--co-brand-x', `${10 - vertical * 16}deg`);
-  stage.style.setProperty('--co-brand-y', `${horizontal * 26 - 15}deg`);
+  stage.style.setProperty('--co-brand-x', `${2 - vertical * 4}deg`);
+  stage.style.setProperty('--co-brand-y', `${horizontal * 6 - 3}deg`);
   stage.style.setProperty('--co-brand-light-x', `${20 + horizontal * 60}%`);
   stage.style.setProperty('--co-brand-light-y', `${15 + vertical * 60}%`);
 }
@@ -105,15 +105,8 @@ export function CompanyWorkspaceView({ snapshot, tab, onTab, activeAreas, canEdi
       <div className="co-hero-copy"><div className="co-eyebrow"><i />UNTERNEHMENSAKTE</div><h1>{identity.name}</h1>{identity.legalName ? <p className="co-legal-name">{identity.legalName}</p> : null}{identity.representative ? <p className="co-representative">Vertreten durch {identity.representative}</p> : null}<div className="co-hero-meta">{snapshot.company.city ? <span><CompanyIcon name="pin" size={16} />{snapshot.company.city}</span> : null}{snapshot.company.legalForm ? <span>{snapshot.company.legalForm}</span> : null}{snapshot.register.ikNumber ? <span>IK {snapshot.register.ikNumber}</span> : null}</div><div className="co-hero-actions">{canEdit ? <button type="button" className="co-button co-button--primary" onClick={() => onOpen('company')}><CompanyIcon name="edit" size={17} />Stammdaten bearbeiten</button> : null}<button type="button" className="co-button" onClick={() => onCopy(copyIdentity, 'Kontaktdaten kopiert.')}><CompanyIcon name="copy" size={17} />Kontaktdaten kopieren</button></div></div>
       <div className="co-brand-stage" onPointerMove={moveCompanyBrand} onPointerLeave={resetCompanyBrand} onPointerCancel={resetCompanyBrand}>
         <div className="co-brand-halo" aria-hidden="true" />
-        <div className="co-brand-float">
-          <div className="co-brand-card">
-            <div className="co-brand-layer co-brand-layer--back" aria-hidden="true" />
-            <div className="co-brand-layer co-brand-layer--middle" aria-hidden="true" />
-            <div className="co-brand-face">
-              <div className="co-brand-logo">{logo && logoFailed !== logo ? <img src={logo} alt={`Logo ${identity.name}`} draggable={false} decoding="async" onError={() => setLogoFailed(logo)} /> : <div className="co-brand-fallback"><CompanyIcon name="building" size={48} /><strong>{identity.initials}</strong></div>}</div>
-              <span className="co-brand-caption">UNTERNEHMEN</span>
-            </div>
-          </div>
+        <div className="co-brand-card">
+          <div className="co-brand-logo">{logo && logoFailed !== logo ? <img src={logo} alt={`Logo ${identity.name}`} draggable={false} decoding="async" onError={() => setLogoFailed(logo)} /> : <div className="co-brand-fallback"><CompanyIcon name="building" size={48} /><strong>{identity.initials}</strong></div>}</div>
         </div>
       </div>
     </header>
