@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type PointerEvent, type ReactNode } from 'react';
 import type { TenantCenterSectionKey, TenantCenterSnapshot, TenantCustomFieldDefinition } from '@/types/tenant/tenantCenter';
 import { COMPANY_TABS, activeCompanyCatalog, companyDate, companyIdentity, companySections, companySuggestions, companyWebsite, filterCompanySections, type CompanySection, type CompanyTab } from '@/lib/tenant/companyWorkspaceModel.web';
 import { companyWorkspaceCss } from './companyWorkspaceCss.web';
@@ -66,6 +66,25 @@ function Activity({ snapshot, compact = false }: { snapshot: TenantCenterSnapsho
   return <ol className="co-activity">{entries.map(entry => <li key={entry.id}><span className="co-activity-dot" /><div><strong>{entry.title || 'Aktivität im Unternehmen'}</strong>{entry.description ? <p>{entry.description}</p> : null}<time dateTime={entry.createdAt}>{companyDate(entry.createdAt, true)}</time></div></li>)}</ol>;
 }
 
+function moveCompanyBrand(event: PointerEvent<HTMLDivElement>) {
+  if (event.pointerType !== 'mouse' || typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const stage = event.currentTarget;
+  const rect = stage.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const horizontal = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+  const vertical = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+  stage.style.setProperty('--co-brand-x', `${10 - vertical * 16}deg`);
+  stage.style.setProperty('--co-brand-y', `${horizontal * 26 - 15}deg`);
+  stage.style.setProperty('--co-brand-light-x', `${20 + horizontal * 60}%`);
+  stage.style.setProperty('--co-brand-light-y', `${15 + vertical * 60}%`);
+}
+
+function resetCompanyBrand(event: PointerEvent<HTMLDivElement>) {
+  for (const property of ['--co-brand-x', '--co-brand-y', '--co-brand-light-x', '--co-brand-light-y']) {
+    event.currentTarget.style.removeProperty(property);
+  }
+}
+
 export function CompanyWorkspaceView({ snapshot, tab, onTab, activeAreas, canEdit, canDocuments, canInventory = false, inventoryContent, settingsContent, refreshing, refreshError, notice, noticeTone = 'success', onRefresh, onOpen, onCustomField, onCopy, onDocuments }: Props) {
   const [search, setSearch] = useState('');
   const identity = companyIdentity(snapshot);
@@ -84,7 +103,19 @@ export function CompanyWorkspaceView({ snapshot, tab, onTab, activeAreas, canEdi
     <div className="co-topline"><span>Office <b>/</b> Unternehmen</span>{tab !== 'inventory' ? <button type="button" className="co-refresh" onClick={onRefresh} disabled={refreshing} aria-label="Unternehmensdaten aktualisieren"><CompanyIcon name="refresh" size={16} /><span>{refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</span></button> : null}</div>
     <header className="co-hero">
       <div className="co-hero-copy"><div className="co-eyebrow"><i />UNTERNEHMENSAKTE</div><h1>{identity.name}</h1>{identity.legalName ? <p className="co-legal-name">{identity.legalName}</p> : null}{identity.representative ? <p className="co-representative">Vertreten durch {identity.representative}</p> : null}<div className="co-hero-meta">{snapshot.company.city ? <span><CompanyIcon name="pin" size={16} />{snapshot.company.city}</span> : null}{snapshot.company.legalForm ? <span>{snapshot.company.legalForm}</span> : null}{snapshot.register.ikNumber ? <span>IK {snapshot.register.ikNumber}</span> : null}</div><div className="co-hero-actions">{canEdit ? <button type="button" className="co-button co-button--primary" onClick={() => onOpen('company')}><CompanyIcon name="edit" size={17} />Stammdaten bearbeiten</button> : null}<button type="button" className="co-button" onClick={() => onCopy(copyIdentity, 'Kontaktdaten kopiert.')}><CompanyIcon name="copy" size={17} />Kontaktdaten kopieren</button></div></div>
-      <div className="co-brand-stage"><div className="co-brand-halo" /><div className="co-brand-card">{logo && logoFailed !== logo ? <img src={logo} alt={`Logo ${identity.name}`} onError={() => setLogoFailed(logo)} /> : <><CompanyIcon name="building" size={42} /><strong>{identity.initials}</strong></>}<span>UNTERNEHMEN</span></div></div>
+      <div className="co-brand-stage" onPointerMove={moveCompanyBrand} onPointerLeave={resetCompanyBrand} onPointerCancel={resetCompanyBrand}>
+        <div className="co-brand-halo" aria-hidden="true" />
+        <div className="co-brand-float">
+          <div className="co-brand-card">
+            <div className="co-brand-layer co-brand-layer--back" aria-hidden="true" />
+            <div className="co-brand-layer co-brand-layer--middle" aria-hidden="true" />
+            <div className="co-brand-face">
+              <div className="co-brand-logo">{logo && logoFailed !== logo ? <img src={logo} alt={`Logo ${identity.name}`} draggable={false} decoding="async" onError={() => setLogoFailed(logo)} /> : <div className="co-brand-fallback"><CompanyIcon name="building" size={48} /><strong>{identity.initials}</strong></div>}</div>
+              <span className="co-brand-caption">UNTERNEHMEN</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
     <div className="co-contact-strip">{identity.email ? <a href={`mailto:${encodeURIComponent(identity.email)}`}><CompanyIcon name="mail" size={17} /><span>{identity.email}</span></a> : <span><CompanyIcon name="mail" size={17} />E-Mail nicht hinterlegt</span>}{identity.phone ? <a href={`tel:${identity.phone.replace(/[^\d+*#,;]/g, '')}`}><CompanyIcon name="phone" size={17} /><span>{identity.phone}</span></a> : null}{website ? <a href={website} target="_blank" rel="noopener noreferrer"><CompanyIcon name="globe" size={17} /><span>{new URL(website).hostname}</span></a> : null}<span className="co-area-indicator"><i />{activeAreas.join(' · ')}</span></div>
     {notice ? <div role="status" className={`co-notice${noticeTone === 'error' ? ' co-notice--error' : ''}`}><CompanyIcon name={noticeTone === 'error' ? 'info' : 'check'} size={18} />{notice}</div> : null}
