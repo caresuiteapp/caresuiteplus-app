@@ -666,7 +666,7 @@ function ItemDetail({ scope, run, error, item, snapshot, person, permissions, bl
     ['simRemoved', 'SIM entfernt'], ['deviceReset', 'Gerät zurückgesetzt'], ['dataDeleted', 'Daten gelöscht'],
   ];
   return <PlatformModal visible surfaceScope="company" title="Inventardetails" subtitle={item.sku ? `Inventarnummer ${item.sku}` : 'Bestandsposten im Unternehmen'} onClose={onClose}
-    maxWidth={900} minWidth={260} maxHeightRatio={0.93} bodyStyle={{ backgroundColor: '#0b1a2c', padding: 22 }} sheetStyle={{ backgroundColor: '#0b1a2c' }}
+    maxWidth={900} minWidth={260} maxHeightRatio={0.93} bodyStyle={{ backgroundColor: '#f4f8fd', padding: 22 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="ci-dialog ci-form-footer">
       <div className="ci-footer-row">
         <button type="button" className="ci-button ci-button--quiet" onClick={onClose}>Schließen</button>

@@ -25,7 +25,7 @@ function Frame({ title, subtitle, dirty, action, submit, children, ...props }: E
   const formId = useId(); const { onDirtyChange } = props;
   useEffect(() => { onDirtyChange(dirty); return () => onDirtyChange(false); }, [dirty, onDirtyChange]);
   return <PlatformModal visible surfaceScope="company" title={title} subtitle={subtitle} maxWidth={880} minWidth={260} maxHeightRatio={0.94} onClose={props.onClose} dismissOnBackdrop={!props.busy}
-    bodyStyle={{ backgroundColor: '#0b1c30', padding: 20 }} sheetStyle={{ backgroundColor: '#0b1c30' }}
+    bodyStyle={{ backgroundColor: '#f4f8fd', padding: 20 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="cr-dialog cr-form-footer"><span aria-live="polite">{props.busy ? 'Wird gespeichert …' : props.blocked ? 'Aktuellen Stand neu laden' : dirty ? 'Ungespeicherte Eingaben' : 'Unternehmensakte'}</span><div className="cr-actions"><button className="cr-button cr-button--quiet" type="button" disabled={props.busy} onClick={props.onClose}>Abbrechen</button><button className="cr-button cr-button--primary" type="submit" form={formId} disabled={props.busy || props.blocked}>{props.busy ? 'Wird gespeichert …' : action}</button></div></div>}>
     <style>{companyResourcesCss}</style><form id={formId} className="cr-dialog" noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>
       {props.error && <div className="cr-banner cr-banner--error" role="alert">{props.error}</div>}

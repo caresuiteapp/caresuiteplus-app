@@ -44,6 +44,7 @@ export function GradientModalHeader({
   const runtimePortalTheme = usePortalPremiumRuntimeTheme();
   const runtimeTheme = useLegacyTheme();
   const webTone = Platform.OS === 'web' ? tone : undefined;
+  const explicitLight = webTone === 'light';
   const portalTheme = webTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
   const isLight = webTone ? webTone === 'light' : runtimeTheme.isLight;
   const auroraActive = useAuroraGlassActive();
@@ -129,18 +130,21 @@ export function GradientModalHeader({
     ? resolvePopupShellTitleStyle(shellMode)
     : {
         ...resolvePopupShellTitleStyle('light'),
-        color: portalTheme.active ? portalPremium.text.primary : text.primary,
+        color: explicitLight ? '#15304E' : portalTheme.active ? portalPremium.text.primary : text.primary,
       };
 
   const closeButtonStyle: StyleProp<ViewStyle> = auroraHeader || !plainLightHeader
     ? resolvePopupShellCloseButtonStyle(shellMode)
-    : [resolvePopupShellCloseButtonStyle('light'), headerGlass];
+    : [resolvePopupShellCloseButtonStyle('light'), headerGlass,
+        ...(explicitLight ? [{ backgroundColor: '#FFFFFF', borderColor: '#C5D6E9' }] : [])];
 
   const backButtonStyle: StyleProp<ViewStyle> = closeButtonStyle;
   const iconColor: string =
     auroraHeader || !plainLightHeader
       ? String(resolvePopupShellCloseIconStyle(shellMode).color ?? '#FFFFFF')
-      : portalTheme.active
+      : explicitLight
+        ? '#15304E'
+        : portalTheme.active
         ? portalPremium.text.primary
         : text.primary;
 
@@ -149,7 +153,7 @@ export function GradientModalHeader({
       ? resolvePopupShellCloseIconStyle(shellMode)
       : {
           ...resolvePopupShellCloseIconStyle('light'),
-          color: portalTheme.active ? portalPremium.text.primary : text.primary,
+          color: explicitLight ? '#15304E' : portalTheme.active ? portalPremium.text.primary : text.primary,
         };
 
   const gradientContent = (
@@ -185,7 +189,8 @@ export function GradientModalHeader({
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.gradientBar, plainLightHeader ? [headerGlass, styles.plainLightHeader] : null]}>
+      <View style={[styles.gradientBar, plainLightHeader ? [headerGlass, styles.plainLightHeader] : null,
+        explicitLight ? { backgroundColor: '#FFFFFF', borderBottomColor: '#D7E3F1' } : null]}>
         {headerColors ? (
           <>
             <LinearGradient
@@ -210,10 +215,14 @@ export function GradientModalHeader({
           style={[
             styles.statusBar,
             {
-              backgroundColor: portalTheme.active
+              backgroundColor: explicitLight
+                ? '#F4F8FD'
+                : portalTheme.active
                 ? portalPremium.surfaceSoft
                 : shellColors.subtitleBar.background,
-              borderBottomColor: portalTheme.active
+              borderBottomColor: explicitLight
+                ? '#D7E3F1'
+                : portalTheme.active
                 ? portalPremium.borderSoft
                 : shellColors.subtitleBar.border,
             },
@@ -223,7 +232,9 @@ export function GradientModalHeader({
             style={[
               styles.statusText,
               {
-                color: portalTheme.active
+                color: explicitLight
+                  ? '#59708C'
+                  : portalTheme.active
                   ? portalPremium.text.secondary
                   : shellColors.subtitleBar.text,
               },

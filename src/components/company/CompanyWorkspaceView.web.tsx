@@ -79,7 +79,7 @@ export function CompanyWorkspaceView({ snapshot, tab, onTab, activeAreas, canEdi
   const copyIdentity = [identity.name, identity.legalName, identity.address, identity.email, identity.phone, snapshot.company.website].filter(Boolean).join('\n');
   const navigate = (next: CompanyTab) => { setSearch(''); onTab(next); };
   const visibleTabs = COMPANY_TABS.filter(item => item.id !== 'inventory' || canInventory);
-  return <div className="co-workspace" data-cs-company-surface="dark" data-testid="office-company-workspace">
+  return <div className="co-workspace" data-cs-company-surface="light" data-testid="office-company-workspace">
     <style>{companyWorkspaceCss}</style>
     <div className="co-topline"><span>Office <b>/</b> Unternehmen</span>{tab !== 'inventory' ? <button type="button" className="co-refresh" onClick={onRefresh} disabled={refreshing} aria-label="Unternehmensdaten aktualisieren"><CompanyIcon name="refresh" size={16} /><span>{refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</span></button> : null}</div>
     <header className="co-hero">
