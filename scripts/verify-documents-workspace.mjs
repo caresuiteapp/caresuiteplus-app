@@ -22,6 +22,7 @@ const groups = {
   ],
   'Document library, uploads and file display': [
     'office/officeDocumentWorkspaceWeb.test.ts',
+    'office/officeDocumentUploadScopeWeb.test.tsx',
     'office/officePortalUploadReviewWeb.test.ts',
     'office/officeDocumentsList.test.ts',
     'office/officeDocumentDisplay.test.ts',
