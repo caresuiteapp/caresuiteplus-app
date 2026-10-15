@@ -127,6 +127,9 @@ function EditorFrame({ title, subtitle, action, dirty, submit, children, ...prop
 }
 
 export function CompanyInventoryEditor({ dialog, ...props }: EditorProps & { dialog: InventoryEditDialog }) {
+  if (props.snapshot.scopeLimited && (dialog.kind === 'category' || dialog.kind === 'location' || (dialog.kind === 'item' && !dialog.item))) return <PlatformModal visible surfaceScope="company" title="Zentrale Inventarverwaltung" onClose={props.onClose}>
+    <p>Neue Inventarposten, Kategorien und Lagerorte werden durch die zentrale Verwaltung gepflegt.</p>
+  </PlatformModal>;
   if (dialog.kind === 'item') return <ItemEditor {...props} item={dialog.item} />;
   if (dialog.kind === 'category') return <CategoryEditor {...props} category={dialog.category} />;
   if (dialog.kind === 'location') return <LocationEditor {...props} location={dialog.location} />;

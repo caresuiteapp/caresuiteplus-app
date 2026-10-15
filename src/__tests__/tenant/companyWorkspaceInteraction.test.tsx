@@ -3,19 +3,39 @@ import { act, useEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CompanyWorkspace } from '@/liquid-command/screens/CompanyWorkspace.web';
-import type { RoleKey, ServiceResult } from '@/types';
+import type { PermissionKey, RoleKey, ServiceResult } from '@/types';
+import type { CompanyTab } from '@/lib/tenant/companyWorkspaceModel.web';
 import {
   DEFAULT_TENANT_MODULES, EMPTY_TENANT_BRANDING, EMPTY_TENANT_COMPANY, EMPTY_TENANT_LEGAL,
   EMPTY_TENANT_PAYMENT, EMPTY_TENANT_REGISTER, EMPTY_TENANT_TAX,
   type TenantCenterSnapshot, type TenantCenterSectionKey,
 } from '@/types/tenant/tenantCenter';
 
-const h = vi.hoisted(() => ({ fetch: vi.fn(), push: vi.fn(), setParams: vi.fn(), copy: vi.fn(), manage: true, inventory: true, documents: true, assist: true, allowInventoryLeave: true, params: {} as Record<string, string> }));
+const h = vi.hoisted(() => ({ fetch: vi.fn(), push: vi.fn(), setParams: vi.fn(), copy: vi.fn(), manage: true, inventory: true, documents: true, assist: true, allowInventoryLeave: true, allowStructureLeave: true, allowResourcesLeave: true, scopeLimited: false, canManageScopes: true, accessLoading: false, accessError: null as string | null, refreshAccess: vi.fn(), params: {} as Record<string, string> }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: h.push, setParams: h.setParams }), useLocalSearchParams: () => h.params }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({
   can: (permission: string) => permission === 'business.tenant.manage' ? h.manage : permission === 'inventory.view' ? h.inventory : h.documents,
   hasModuleGate: () => h.assist,
 }) }));
+vi.mock('@/hooks/useCompanyAccess.web', () => ({ useCompanyAccess: () => ({
+  data: h.accessError ? null : { permissions: [h.manage && 'business.tenant.manage', h.inventory && 'inventory.view', h.documents && 'office.documents.view'].filter(Boolean) as PermissionKey[], scopeLimited: h.scopeLimited, canManageScopes: h.canManageScopes },
+  loading: h.accessLoading, error: h.accessError, refresh: h.refreshAccess,
+}) }));
+vi.mock('@/components/company/CompanyOrganizationWorkspace.web', () => ({
+  CompanyOrganizationWorkspace: ({ tenantId, initialView, scopeLimited, canManageScopes, onViewChange, onNavigationGuardChange }: { tenantId: string; initialView?: string; scopeLimited?: boolean; canManageScopes?: boolean; onViewChange?: (view: string) => void; onNavigationGuardChange?: (guard: (() => Promise<boolean>) | null) => void }) => {
+    useEffect(() => { onNavigationGuardChange?.(() => Promise.resolve(h.allowStructureLeave)); return () => onNavigationGuardChange?.(null); }, [onNavigationGuardChange]);
+    return <section data-testid="structure-content"><span>{tenantId}:{initialView}:{scopeLimited ? 'limited' : 'full'}:{canManageScopes ? 'scopes' : 'no-scopes'}</span><input aria-label="Strukturentwurf" defaultValue="" /><button type="button" onClick={() => onViewChange?.('departments')}>Abteilungen anzeigen</button></section>;
+  },
+}));
+vi.mock('@/components/company/CompanyResourcesWorkspace.web', () => ({
+  CompanyResourcesWorkspace: ({ tenantId, initialView, scopeLimited, initialItemId, onViewChange, onNavigationGuardChange }: { tenantId: string; initialView?: string; scopeLimited?: boolean; initialItemId?: string; onViewChange?: (view: string) => void; onNavigationGuardChange?: (guard: (() => Promise<boolean>) | null) => void }) => {
+    useEffect(() => { onNavigationGuardChange?.(() => Promise.resolve(h.allowResourcesLeave)); return () => onNavigationGuardChange?.(null); }, [onNavigationGuardChange]);
+    return <section data-testid="resources-content"><span>{tenantId}:{initialView}:{scopeLimited ? 'limited' : 'full'}:{initialItemId ?? ''}</span><input aria-label="Ressourcenentwurf" defaultValue="" /><button type="button" onClick={() => onViewChange?.('insurance')}>Versicherungen anzeigen</button></section>;
+  },
+}));
+vi.mock('@/components/company/CompanyScopeAccessPanel.web', () => ({ CompanyScopeAccessPanel: () => <section data-testid="scope-access-panel" /> }));
+vi.mock('@/components/company/CompanyCostCentersPanel.web', () => ({ CompanyCostCentersPanel: () => <section data-testid="cost-centers-panel" /> }));
+vi.mock('@/components/company/CompanyCustomValuesPanel.web', () => ({ CompanyCustomValuesPanel: () => <section data-testid="custom-values-panel" /> }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 60_000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
 vi.mock('@/lib/tenant/tenantCenterService', () => ({ fetchTenantCenter: (...args: unknown[]) => h.fetch(...args) }));
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({
@@ -65,8 +85,9 @@ let root: Root;
 let snapshot: TenantCenterSnapshot;
 let tenantId: string;
 let roleKey: RoleKey;
-let initialTab: 'overview' | 'inventory';
-const render = async () => { await act(async () => root.render(<CompanyWorkspace tenantId={tenantId} roleKey={roleKey} initialTab={initialTab} />)); };
+let initialTab: CompanyTab;
+let initialView: string | undefined;
+const render = async () => { await act(async () => root.render(<CompanyWorkspace tenantId={tenantId} roleKey={roleKey} initialTab={initialTab} initialView={initialView} />)); };
 const button = (text: string) => Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find(node => node.textContent?.trim() === text)!;
 const click = async (node: HTMLElement) => { expect(node).toBeTruthy(); await act(async () => node.click()); };
 const search = async (value: string) => {
@@ -80,7 +101,7 @@ const search = async (value: string) => {
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks(); h.manage = true; h.inventory = true; h.documents = true; h.assist = true;
-  h.allowInventoryLeave = true; h.params = {}; initialTab = 'overview';
+  h.allowInventoryLeave = true; h.allowStructureLeave = true; h.allowResourcesLeave = true; h.scopeLimited = false; h.canManageScopes = true; h.accessLoading = false; h.accessError = null; h.params = {}; initialTab = 'overview'; initialView = undefined;
   snapshot = fixture(); tenantId = snapshot.tenantId; roleKey = 'business_admin';
   h.fetch.mockImplementation(async () => ({ ok: true, data: snapshot }));
   h.copy.mockResolvedValue(undefined);
@@ -242,4 +263,40 @@ describe('company workspace Web interactions', () => {
     expect(host.querySelector('[aria-label="Inventarentwurf"]')).toBe(draft);
     expect(draft.value).toBe('Ungespeicherter Lagerort');
   });
+  it('waits for authoritative access before loading company data and exposes retry on failure', async () => {
+    h.accessLoading = true; await render(); expect(h.fetch).not.toHaveBeenCalled(); expect(host.textContent).toContain('Unternehmenszugriff wird geprüft');
+    h.accessLoading = false; h.accessError = 'Rechte nicht verfügbar.'; await render(); expect(h.fetch).not.toHaveBeenCalled(); expect(host.textContent).toContain('Rechte nicht verfügbar.');
+    await click(button('Erneut versuchen')); expect(h.refreshAccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens structural and resource routes without loading unrelated corporate profile data', async () => {
+    initialTab = 'structure'; initialView = 'departments'; await render();
+    expect(h.fetch).not.toHaveBeenCalled(); expect(host.querySelector('[data-testid="structure-content"]')?.textContent).toContain('tenant-one:departments:full:scopes');
+    await click(button('Abteilungen anzeigen')); expect(h.setParams).toHaveBeenCalledWith({ ansicht: 'departments' });
+    initialTab = 'resources'; initialView = 'fleet'; h.params = { itemId: 'vehicle-one' }; await render();
+    expect(h.fetch).not.toHaveBeenCalled(); expect(host.querySelector('[data-testid="resources-content"]')?.textContent).toContain('tenant-one:fleet:full:vehicle-one');
+    await click(button('Versicherungen anzeigen')); expect(h.setParams).toHaveBeenCalledWith({ ansicht: 'insurance' });
+  });
+
+  it('limits scoped staff to operational areas and never fetches global company settings', async () => {
+    h.scopeLimited = true; h.canManageScopes = false; await render();
+    expect(h.fetch).not.toHaveBeenCalled(); expect(host.querySelector('[data-testid="structure-content"]')?.textContent).toContain('tenant-one:sites:limited:no-scopes');
+    expect(button('Unternehmensprofil')).toBeUndefined(); expect(button('Zur Unternehmensakte')).toBeUndefined();
+    expect(host.textContent).not.toContain('Beispiel GmbH');
+    await click(button('Inventar')); expect(h.push).toHaveBeenLastCalledWith('/unternehmen/inventar');
+  });
+
+  it('checks structure and resource guards before opening another workspace', async () => {
+    initialTab = 'structure'; h.allowStructureLeave = false; await render(); await click(button('Inventar')); expect(h.push).not.toHaveBeenCalled();
+    h.allowStructureLeave = true; await click(button('Inventar')); expect(h.push).toHaveBeenLastCalledWith('/unternehmen/inventar');
+    h.push.mockClear(); initialTab = 'resources'; h.allowResourcesLeave = false; await render(); await click(button('Unternehmensprofil')); expect(h.push).not.toHaveBeenCalled();
+    h.allowResourcesLeave = true; await click(button('Unternehmensprofil')); expect(h.push).toHaveBeenLastCalledWith('/unternehmen?csPage_CompanyWorkspace_view=identity');
+  });
+
+  it('remounts operational drafts when authoritative scopes change', async () => {
+    initialTab = 'structure'; await render(); const oldDraft = host.querySelector<HTMLInputElement>('[aria-label="Strukturentwurf"]')!; oldDraft.value = 'Nicht übernehmen';
+    h.scopeLimited = true; h.canManageScopes = false; await render(); const newDraft = host.querySelector<HTMLInputElement>('[aria-label="Strukturentwurf"]')!;
+    expect(newDraft).not.toBe(oldDraft); expect(newDraft.value).toBe(''); expect(h.fetch).not.toHaveBeenCalled();
+  });
+
 });

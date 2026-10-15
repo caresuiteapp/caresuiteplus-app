@@ -1,3 +1,4 @@
+import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { RoleKey, ServiceResult } from '@/types';
 import { Platform } from 'react-native';
 import type { CustomFieldDataType, TenantCustomFieldDefinition, TenantModuleKey } from '@/types/tenant/tenantCenter';
@@ -35,7 +36,9 @@ export async function fetchTenantCustomFieldDefinitions(
   actorRoleKey?: RoleKey | null,
   includeInactive = false,
 ): Promise<ServiceResult<TenantCustomFieldDefinition[]>> {
-  const denied = enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantCustomFieldDefinition[]>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -70,7 +73,9 @@ export async function saveTenantCustomFieldDefinition(
   input: SaveCustomFieldInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<SaveCustomFieldResult> {
-  const denied = enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const webDenied = await guardLegacyCompanyWebAccess<TenantCustomFieldDefinition[]>(tenantId);
+  if (webDenied) return webDenied;
+  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
   if (Platform.OS === 'web') {

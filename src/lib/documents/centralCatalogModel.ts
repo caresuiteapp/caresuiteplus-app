@@ -28,6 +28,8 @@ export function createCentralSnapshot(definition: CentralDocumentDefinition, con
 }
 
 export function centralStoredFieldValue(field: CentralDocumentField, context: CentralDocumentContext, templateKey: string): string {
+  const customKey = field.sourcePath?.match(/^(?:tenant\.)?custom\.([a-z][a-z0-9_]*)$/)?.[1];
+  if (customKey) return context.custom?.[customKey] ?? '';
   const [group, name] = field.sourcePath?.split('.') ?? [];
   return (group && name ? (context[group as keyof CentralDocumentContext] as Record<string, string>)?.[name] : '') || centralProcedureValue(field.key, context, templateKey);
 }

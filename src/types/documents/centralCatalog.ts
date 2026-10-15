@@ -37,6 +37,7 @@ export type CentralDocumentContext = {
   representative: Record<string, string>;
   payor: Record<string, string>;
   employee: Record<string, string>;
+  custom?: Record<string, string>;
   procedure?: Record<string, string>;
   sourceRows?: string[][];
   sourceFetchedAt: string;

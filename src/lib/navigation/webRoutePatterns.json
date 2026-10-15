@@ -652,6 +652,17 @@
   "/stationaer/zimmer",
   "/support",
   "/unternehmen",
+  "/unternehmen/abteilungen",
+  "/unternehmen/franchise",
+  "/unternehmen/fuhrpark",
+  "/unternehmen/gesellschaften",
   "/unternehmen/inventar",
+  "/unternehmen/personalzuordnung",
+  "/unternehmen/ressourcen",
+  "/unternehmen/standorte",
+  "/unternehmen/versicherungen",
+  "/unternehmen/vertraege",
+  "/unternehmen/zugriffe",
+  "/unternehmen/zuordnungen",
   "/zentrale"
 ]

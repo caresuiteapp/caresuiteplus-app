@@ -21,6 +21,12 @@ import {
 import { syncModuleAccessFromTenantSettings } from '@/lib/tenant/syncTenantModuleAccess';
 import { resetTenantCenterStore } from '@/lib/tenant/tenantCenterService';
 
+// This suite verifies the retained native in-memory mode; Web writes require live server authority.
+vi.mock('react-native', async original => {
+  const actual = await original<typeof import('react-native')>();
+  return { ...actual, Platform: { ...actual.Platform, OS: 'android' } };
+});
+
 const TENANT = DEMO_TENANT_ID;
 const ADMIN = 'business_admin' as const;
 

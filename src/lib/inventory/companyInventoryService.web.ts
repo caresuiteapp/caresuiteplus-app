@@ -1,4 +1,5 @@
 import type { RoleKey } from '@/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PermissionKey } from '@/types/permissions';
 import type {
   CreateInventoryItemInput, InventoryAssignment, InventoryAuditEvent, InventoryCategory,
@@ -13,6 +14,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { loadCompanyAccess } from '@/lib/tenant/companyAccessService.web';
 import {
   mapInventoryAssignment, mapInventoryCategory, mapInventoryDamageReport,
   mapInventoryItem, mapInventoryLocation, mapInventoryReturnRecord,
@@ -23,12 +25,13 @@ export type CompanyInventoryResult<T> = { ok: true; data: T } | { ok: false; err
 export type CompanyInventoryEmployee = { id: string; firstName: string; lastName: string; status: string };
 export type CompanyInventoryPermissions = {
   view: boolean; manage: boolean; issue: boolean; returnItems: boolean; reportDamage: boolean;
-  offboarding: boolean; viewEmployees: boolean; audit: boolean;
+  offboarding: boolean; viewEmployees: boolean; audit: boolean; createItems: boolean; manageCatalogs: boolean;
 };
 export type CompanyInventorySnapshot = {
   items: InventoryItem[]; categories: InventoryCategory[]; locations: InventoryLocation[];
   assignments: InventoryAssignment[]; returns: InventoryReturnRecord[]; damageReports: InventoryDamageReport[];
   employees: CompanyInventoryEmployee[]; employeesVisible: boolean; audit: InventoryAuditEvent[];
+  scopeLimited: boolean; permissions: CompanyInventoryPermissions;
 };
 export type CompanyInventoryItemInput = CreateInventoryItemInput & { id?: string; status?: InventoryItemStatus; expectedUpdatedAt?: string };
 export type CompanyInventoryCategoryInput = {
@@ -45,7 +48,7 @@ export type CompanyInventoryDamageInput = {
 
 type Row = Record<string, unknown>;
 type Db = NonNullable<ReturnType<typeof getSupabaseClient>>;
-type Context = { db: Db; scope: CompanyInventoryScope; permission: PermissionKey; writeAttempted: boolean };
+type Context = { db: Db; scope: CompanyInventoryScope; permission: PermissionKey; writeAttempted: boolean; scopeLimited: boolean; permissions: CompanyInventoryPermissions };
 const PAGE = 500;
 const CLOSED_ASSIGNMENTS = ['returned', 'damaged_returned', 'archived'];
 const RETURNABLE = ['issued', 'acknowledged', 'return_requested', 'partially_returned', 'overdue', 'disputed', 'lost'];
@@ -58,14 +61,15 @@ class InventoryError extends Error {
   constructor(message: string, readonly reloadRequired = false) { super(message); }
 }
 
-export function getCompanyInventoryPermissions(role: RoleKey | null | undefined, effectivePermissions?: readonly PermissionKey[]): CompanyInventoryPermissions {
+export function getCompanyInventoryPermissions(role: RoleKey | null | undefined, effectivePermissions?: readonly PermissionKey[], scopeLimited = false): CompanyInventoryPermissions {
   const allows = (permission: PermissionKey) => enforcePermission(role, permission, { effectivePermissions }) === null;
   const viewEmployees = allows('office.employees.view');
   return {
     view: allows('inventory.view'), manage: allows('inventory.manage_items'),
     issue: allows('inventory.issue') && viewEmployees, returnItems: allows('inventory.return_manage'),
-    reportDamage: allows('inventory.report_damage'), offboarding: allows('inventory.offboarding') && viewEmployees,
-    viewEmployees, audit: allows('inventory.audit_view'),
+    reportDamage: allows('inventory.report_damage'), offboarding: allows('inventory.offboarding') && viewEmployees && !scopeLimited,
+    viewEmployees, audit: allows('inventory.audit_view') && !scopeLimited,
+    createItems: allows('inventory.manage_items') && !scopeLimited, manageCatalogs: allows('inventory.manage_items') && !scopeLimited,
   };
 }
 
@@ -85,11 +89,16 @@ async function run<T>(scope: CompanyInventoryScope, permission: PermissionKey, w
     assertScope(scope, permission);
     const db = getSupabaseClient();
     if (!db) throw new InventoryError('Die Datenbankverbindung ist nicht verfügbar. Bitte erneut laden.');
+    const access = await loadCompanyAccess(scope.tenantId);
+    if (!access.ok) throw new InventoryError(access.error);
+    const authorizedScope = { ...scope, effectivePermissions: access.data.permissions };
+    assertScope(authorizedScope, permission);
     if (mutation) {
       if (busy.has(lock)) throw new InventoryError('Ein Inventarvorgang wird bereits gespeichert. Bitte kurz warten.');
       busy.add(lock); locked = true;
     }
-    ctx = { db, scope, permission, writeAttempted: false };
+    ctx = { db, scope: authorizedScope, permission, writeAttempted: false, scopeLimited: access.data.scopeLimited,
+      permissions: getCompanyInventoryPermissions(scope.actorRoleKey, access.data.permissions, access.data.scopeLimited) };
     return { ok: true, data: await work(ctx) };
   } catch (error) {
     const message = error instanceof InventoryError ? error.message : toGermanSupabaseError(error);
@@ -174,18 +183,31 @@ async function itemAssignments(ctx: Context, itemId: string) {
 }
 async function employee(ctx: Context, id: string, activeOnly = false) {
   assertScope(ctx.scope, 'office.employees.view');
-  const row = await one(ctx, 'employees', id, EMPLOYEE_SELECT);
+  const row = ctx.scopeLimited ? (await employeeChoices(ctx)).find(person => person.id === id) : await one(ctx, 'employees', id, EMPLOYEE_SELECT);
+  if (!row) throw new InventoryError('Diese Person gehört nicht zu Ihrem freigegebenen Zuständigkeitsbereich.');
   if (activeOnly && !['active', 'aktiv'].includes(String(row.status))) throw new InventoryError('Ausgaben sind nur an aktive Mitarbeitende möglich.');
   return row;
+}
+async function employeeChoices(ctx: Context): Promise<Row[]> {
+  if (!ctx.scopeLimited) return rows(ctx, 'employees', EMPLOYEE_SELECT);
+  const result: Row[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    assertScope(ctx.scope, 'office.employees.view');
+    const response = await (ctx.db as SupabaseClient).rpc('company_inventory_employee_choices', { p_tenant_id: ctx.scope.tenantId, p_offset: offset });
+    if (response.error) throw response.error;
+    if (!Array.isArray(response.data) || response.data.some(row => !isRow(row) || typeof row.id !== 'string')) throw new InventoryError('Die freigegebene Personalauswahl konnte nicht geladen werden.');
+    result.push(...response.data as Row[]);
+    if (response.data.length < PAGE) return result;
+  }
 }
 
 export async function loadCompanyInventory(scope: CompanyInventoryScope): Promise<CompanyInventoryResult<CompanyInventorySnapshot>> {
   return run(scope, 'inventory.view', async ctx => {
-    const permissions = getCompanyInventoryPermissions(scope.actorRoleKey, scope.effectivePermissions);
+    const permissions = ctx.permissions;
     const [items, categories, locations, assignments, returns, damageReports, employees, events] = await Promise.all([
       rows(ctx, 'inventory_items'), rows(ctx, 'inventory_categories'), rows(ctx, 'inventory_locations'),
       rows(ctx, 'inventory_assignments'), rows(ctx, 'inventory_return_records'), rows(ctx, 'inventory_damage_reports'),
-      permissions.viewEmployees ? rows(ctx, 'employees', EMPLOYEE_SELECT) : Promise.resolve([]),
+      permissions.viewEmployees ? employeeChoices(ctx) : Promise.resolve([]),
       permissions.audit ? rows(ctx, 'inventory_audit_events') : Promise.resolve([]),
     ]);
     const categoryMap = new Map(categories.map(row => [String(row.id), mapInventoryCategory(row)]));
@@ -197,6 +219,7 @@ export async function loadCompanyInventory(scope: CompanyInventoryScope): Promis
       }), categories: [...categoryMap.values()], locations: locations.map(mapInventoryLocation),
       assignments: assignments.map(mapInventoryAssignment), returns: returns.map(mapInventoryReturnRecord), damageReports: damageReports.map(mapInventoryDamageReport),
       employees: employees.map(row => ({ id: String(row.id), firstName: String(row.first_name ?? ''), lastName: String(row.last_name ?? ''), status: String(row.status ?? '') })), employeesVisible: permissions.viewEmployees,
+      permissions, scopeLimited: ctx.scopeLimited,
       audit: events.map(row => ({ id: String(row.id), tenantId: scope.tenantId, actorProfileId: nullable(String(row.actor_profile_id ?? '')), action: String(row.action), entityType: row.entity_type as InventoryAuditEvent['entityType'], entityId: String(row.entity_id), metadata: (row.metadata ?? {}) as Row, createdAt: String(row.created_at) })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     };
   });
@@ -204,6 +227,7 @@ export async function loadCompanyInventory(scope: CompanyInventoryScope): Promis
 
 export async function saveCompanyInventoryItem(scope: CompanyInventoryScope, input: CompanyInventoryItemInput): Promise<CompanyInventoryResult<InventoryItem>> {
   return run(scope, 'inventory.manage_items', async ctx => {
+    if (!input.id && ctx.scopeLimited) throw new InventoryError('Neue Inventarposten werden durch die zentrale Inventarverwaltung angelegt und anschließend zugeordnet.');
     if (!input.name?.trim()) throw new InventoryError('Bitte eine Bezeichnung eingeben.');
     ensureId(input.categoryId, 'Kategorie');
     if (input.status && !(INVENTORY_ITEM_STATUSES as readonly string[]).includes(input.status)) throw new InventoryError('Der gewählte Status ist ungültig.');
@@ -231,6 +255,7 @@ export async function saveCompanyInventoryItem(scope: CompanyInventoryScope, inp
 
 export async function saveCompanyInventoryCategory(scope: CompanyInventoryScope, input: CompanyInventoryCategoryInput): Promise<CompanyInventoryResult<InventoryCategory>> {
   return run(scope, 'inventory.manage_items', async ctx => {
+    if (ctx.scopeLimited) throw new InventoryError('Inventarkategorien werden durch die zentrale Inventarverwaltung gepflegt.');
     if (!input.label?.trim()) throw new InventoryError('Bitte eine Kategoriebezeichnung eingeben.');
     if (!(INVENTORY_CATEGORY_GROUPS as readonly string[]).includes(input.group)) throw new InventoryError('Bitte eine gültige Kategoriegruppe auswählen.');
     const existing = input.id ? await one(ctx, 'inventory_categories', input.id) : null;
@@ -245,6 +270,7 @@ export async function saveCompanyInventoryCategory(scope: CompanyInventoryScope,
 
 export async function saveCompanyInventoryLocation(scope: CompanyInventoryScope, input: CompanyInventoryLocationInput): Promise<CompanyInventoryResult<InventoryLocation>> {
   return run(scope, 'inventory.manage_items', async ctx => {
+    if (ctx.scopeLimited) throw new InventoryError('Lagerorte werden durch die zentrale Inventarverwaltung gepflegt.');
     if (!input.label?.trim()) throw new InventoryError('Bitte einen Lagerort benennen.');
     const existing = input.id ? await one(ctx, 'inventory_locations', input.id) : null;
     if (existing) ensureFresh(existing, input.expectedUpdatedAt);
@@ -382,6 +408,7 @@ export function acknowledgeCompanyInventoryAssignment(scope: CompanyInventorySco
 
 export async function checkCompanyInventoryOffboarding(scope: CompanyInventoryScope, employeeId: string): Promise<CompanyInventoryResult<OffboardingInventoryCheck>> {
   return run(scope, 'inventory.offboarding', async ctx => {
+    if (ctx.scopeLimited) throw new InventoryError('Die vollständige Austrittsprüfung erfordert Zugriff auf das gesamte Unternehmensinventar.');
     await employee(ctx, employeeId);
     const [allAssignments, items] = await Promise.all([rows(ctx, 'inventory_assignments'), rows(ctx, 'inventory_items', 'id,name,category_id,requires_return_on_exit')]);
     const itemMap = new Map(items.map(row => [String(row.id), row]));

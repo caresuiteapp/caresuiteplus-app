@@ -3,7 +3,8 @@ import type { SaveCatalogItemInput } from '@/lib/tenant/tenantServiceCatalogServ
 
 type Query = { table: string; action: string; payload?: unknown; filters: [string, unknown][]; selected: boolean };
 type Result = { data: unknown; error: unknown };
-const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), tenant: vi.fn() }));
+const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn() }));
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ isLiveServiceMode: () => true, guardServiceTenant: f.tenant }));
@@ -26,7 +27,7 @@ const input: SaveCatalogItemInput = { id: 'item-a', moduleKey: 'assist', service
 const success = (data: unknown = { id: 'item-a' }): Result => ({ data, error: null });
 const failure: Result = { data: null, error: { message: 'Datenbank nicht erreichbar' } };
 const oldPrice = { id: 'price-a', price_net: 30, tax_rate: 19, tax_mode: 'standard_19', valid_from: '2026-01-01', valid_to: null };
-beforeEach(() => { vi.clearAllMocks(); f.queries = []; f.replies = []; f.permission.mockReturnValue(null); f.tenant.mockReturnValue(null); });
+beforeEach(() => { vi.clearAllMocks(); f.queries = []; f.replies = []; f.permission.mockReturnValue(null); f.access.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: false } }); f.tenant.mockReturnValue(null); });
 
 describe('company catalogue confirms price persistence', () => {
   it('propagates failed price reads instead of displaying an empty price', async () => {
@@ -66,9 +67,9 @@ describe('company catalogue confirms price persistence', () => {
   it('blocks invalid values, permission failures and foreign tenants before writes', async () => {
     expect((await saveTenantServiceCatalogItem('tenant-a', { ...input, priceNet: Number.NaN }, 'business_admin')).ok).toBe(false);
     expect((await saveTenantServiceCatalogItem('tenant-a', { ...input, name: ' ' }, 'business_admin')).ok).toBe(false);
-    f.permission.mockReturnValue({ ok: false, error: 'Keine Berechtigung' });
+    f.access.mockResolvedValue({ ok: true, data: { permissions: [], scopeLimited: false } });
     expect((await saveTenantServiceCatalogItem('tenant-a', input, 'dispatch')).ok).toBe(false);
-    f.permission.mockReturnValue(null); f.tenant.mockReturnValue({ ok: false, error: 'Fremder Mandant' });
+    f.access.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: false } }); f.tenant.mockReturnValue({ ok: false, error: 'Fremder Mandant' });
     expect((await saveTenantServiceCatalogItem('tenant-other', input, 'business_admin')).ok).toBe(false);
     expect(f.queries).toHaveLength(0);
   });

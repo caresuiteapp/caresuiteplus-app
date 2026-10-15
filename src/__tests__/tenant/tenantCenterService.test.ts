@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
@@ -10,6 +10,12 @@ import {
 } from '@/lib/tenant/tenantCenterService';
 import { buildTenantCenterSections } from '@/lib/tenant/tenantCenterSections';
 import { validateEmail, validateIban, validateVatId } from '@/lib/tenant/tenantValidation';
+
+// Native demo behavior remains supported; Web company data is tested live-only separately.
+vi.mock('react-native', async original => {
+  const actual = await original<typeof import('react-native')>();
+  return { ...actual, Platform: { ...actual.Platform, OS: 'android' } };
+});
 
 const root = path.join(__dirname, '..', '..', '..');
 const migrationPath = path.join(root, 'supabase/migrations/0108_tenant_center_foundation_live.sql');

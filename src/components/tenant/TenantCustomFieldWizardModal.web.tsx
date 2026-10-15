@@ -1,3 +1,4 @@
+import type { PermissionKey } from '@/types';
 import { useEffect, useId, useRef, useState } from 'react';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,6 +13,7 @@ import type { CustomFieldDataType, TenantCustomFieldDefinition, TenantModuleKey 
 export type TenantCustomFieldWizardModalProps = {
   visible: boolean;
   tenantId: string;
+  effectivePermissions?: readonly PermissionKey[];
   field?: TenantCustomFieldDefinition | null;
   onClose: () => void;
   onSaved: (fields?: TenantCustomFieldDefinition[]) => void;
@@ -24,9 +26,9 @@ export function TenantCustomFieldWizardModal(props: TenantCustomFieldWizardModal
   return <CustomFieldEditor key={`${props.tenantId}:${props.field?.id ?? props.field?.fieldKey ?? 'new'}`} {...props} />;
 }
 
-function CustomFieldEditor({ tenantId, field, onClose, onSaved }: TenantCustomFieldWizardModalProps) {
+function CustomFieldEditor({ tenantId, field, onClose, onSaved, effectivePermissions }: TenantCustomFieldWizardModalProps) {
   const { roleKey, can } = usePermissions();
-  const canEdit = can(TENANT_SETTINGS_PERMISSION);
+  const canEdit = effectivePermissions ? effectivePermissions.includes(TENANT_SETTINGS_PERMISSION) : can(TENANT_SETTINGS_PERMISSION);
   const [initial, setInitial] = useState(() => createCustomFieldDraft(field));
   const [persistedField, setPersistedField] = useState(field);
   const [refreshPending, setRefreshPending] = useState(false);

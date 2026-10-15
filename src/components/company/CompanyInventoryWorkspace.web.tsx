@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PermissionKey, RoleKey } from '@/types';
 import type { InventoryAssignment, InventoryItem, InventoryReturnCapture, OffboardingInventoryCheck } from '@/types/inventory';
@@ -26,6 +27,7 @@ export type CompanyInventoryWorkspaceProps = {
   roleKey: RoleKey | null;
   actorProfileId?: string | null;
   effectivePermissions?: readonly PermissionKey[];
+  scopeLimited?: boolean;
   initialView?: CompanyInventoryView;
   initialEmployeeId?: string;
   initialItemId?: string;
@@ -38,13 +40,16 @@ type Notice = { text: string; error?: boolean } | null;
 
 export function CompanyInventoryWorkspace(props: CompanyInventoryWorkspaceProps) {
   const permissionsKey = props.effectivePermissions ? [...props.effectivePermissions].sort().join(',') : 'role';
-  return <InventoryWorkspaceScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}`} {...props} />;
+  return <InventoryWorkspaceScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}:${Boolean(props.scopeLimited)}`} {...props} />;
 }
 
-function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectivePermissions, initialView = 'stock', initialEmployeeId, initialItemId, onViewChange, onNavigationGuardChange }: CompanyInventoryWorkspaceProps) {
+function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectivePermissions, scopeLimited = false, initialView = 'stock', initialEmployeeId, initialItemId, onViewChange, onNavigationGuardChange }: CompanyInventoryWorkspaceProps) {
   const scope = useMemo<CompanyInventoryScope>(() => ({ tenantId, actorRoleKey: roleKey, actorProfileId, effectivePermissions }), [tenantId, roleKey, actorProfileId, effectivePermissions]);
-  const permissions = useMemo(() => getCompanyInventoryPermissions(roleKey, effectivePermissions), [roleKey, effectivePermissions]);
   const [snapshot, setSnapshot] = useState<CompanyInventorySnapshot | null>(null);
+  const permissions = useMemo(() => {
+    const local = getCompanyInventoryPermissions(roleKey, effectivePermissions, scopeLimited || Boolean(snapshot?.scopeLimited));
+    return Object.fromEntries(Object.entries(local).map(([key, value]) => [key, value && (snapshot?.permissions?.[key as keyof CompanyInventoryPermissions] ?? true)])) as CompanyInventoryPermissions;
+  }, [roleKey, effectivePermissions, scopeLimited, snapshot]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reloadRequired, setReloadRequired] = useState(false);
@@ -140,6 +145,8 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
   }
   function open(next: Dialog) {
     if (busy || loading) return;
+    if ((next.kind === 'category' || next.kind === 'location') && !permissions.manageCatalogs) return;
+    if (next.kind === 'item' && !next.item && !permissions.createItems) return;
     setMutationError(null); setDialogDirty(false); setDialog(next);
   }
   async function close() {
@@ -217,7 +224,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
           <CompanyIcon name="refresh" size={16} />
           {loading ? 'Wird geladen …' : 'Aktualisieren'}
         </button>
-        {permissions.manage && <button type="button" className="ci-button ci-button--primary" disabled={blocked} onClick={() => open(snapshot.categories.length ? { kind: 'item' } : { kind: 'category' })}>
+        {permissions.createItems && <button type="button" className="ci-button ci-button--primary" disabled={blocked} onClick={() => open(snapshot.categories.length ? { kind: 'item' } : { kind: 'category' })}>
           <CompanyIcon name="plus" size={17} />
           {snapshot.categories.length ? 'Inventar anlegen' : 'Erste Kategorie anlegen'}
         </button>}
@@ -345,7 +352,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
           </tbody>
         </table>
       </div> : <Empty title={snapshot.items.length ? 'Kein passender Bestand' : 'Ihr Inventar beginnt hier'} text={snapshot.items.length ? 'Passen Sie die Suche oder die Filter an.' : 'Erfassen Sie Geräte, Schlüssel, Dienstkleidung und weitere Ausstattung. Kategorien und Lagerorte helfen bei der Zuordnung.'} icon="grid">
-        {permissions.manage && !snapshot.items.length && <button type="button" className="ci-button ci-button--primary" disabled={blocked} onClick={() => open(snapshot.categories.length ? { kind: 'item' } : { kind: 'category' })}>
+        {permissions.createItems && !snapshot.items.length && <button type="button" className="ci-button ci-button--primary" disabled={blocked} onClick={() => open(snapshot.categories.length ? { kind: 'item' } : { kind: 'category' })}>
           {snapshot.categories.length ? 'Ersten Gegenstand anlegen' : 'Erste Kategorie anlegen'}
         </button>}
       </Empty>}
@@ -380,7 +387,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
           <h3>Lagerorte</h3>
           <p>Aufbewahrungsorte mit Gebäude und Raum.</p>
         </div>
-        {permissions.manage && <button type="button" className="ci-button" disabled={blocked} onClick={() => open({ kind: 'location' })}>
+        {permissions.manageCatalogs && <button type="button" className="ci-button" disabled={blocked} onClick={() => open({ kind: 'location' })}>
           <CompanyIcon name="plus" size={16} />Lagerort anlegen</button>}
       </div>
       {snapshot.locations.length ? <div className="ci-card-grid">
@@ -403,7 +410,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
               {snapshot.items.filter(item => item.locationId === location.id).length} Bestandsposten</span>
             <div className="ci-actions">
               <button type="button" className="ci-text-button" onClick={() => { setLocationFilter(location.id); setStatusFilter(''); setCategoryFilter(''); void switchView('stock'); }}>Bestand anzeigen</button>
-              {permissions.manage && <button type="button" className="ci-text-button" disabled={blocked} onClick={() => open({ kind: 'location', location })}>Bearbeiten</button>}
+              {permissions.manageCatalogs && <button type="button" className="ci-text-button" disabled={blocked} onClick={() => open({ kind: 'location', location })}>Bearbeiten</button>}
             </div>
           </div>
         </article>)}
@@ -413,7 +420,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
           <h3>Kategorien</h3>
           <p>Gruppierung und Vorgaben für neue Bestandsposten.</p>
         </div>
-        {permissions.manage && <button type="button" className="ci-button" disabled={blocked} onClick={() => open({ kind: 'category' })}>
+        {permissions.manageCatalogs && <button type="button" className="ci-button" disabled={blocked} onClick={() => open({ kind: 'category' })}>
           <CompanyIcon name="plus" size={16} />Kategorie anlegen</button>}
       </div>
       {snapshot.categories.length ? <div className="ci-card-grid">
@@ -442,7 +449,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
               {snapshot.items.filter(item => item.categoryId === category.id).length} Bestandsposten</span>
             <div className="ci-actions">
               <button type="button" className="ci-text-button" onClick={() => { setCategoryFilter(category.id); setStatusFilter(''); setLocationFilter(''); void switchView('stock'); }}>Bestand anzeigen</button>
-              {permissions.manage && <button type="button" className="ci-text-button" disabled={blocked} onClick={() => open({ kind: 'category', category })}>Bearbeiten</button>}
+              {permissions.manageCatalogs && <button type="button" className="ci-text-button" disabled={blocked} onClick={() => open({ kind: 'category', category })}>Bearbeiten</button>}
             </div>
           </div>
         </article>)}
@@ -638,6 +645,7 @@ function ItemDetail({ scope, run, error, item, snapshot, person, permissions, bl
   item: InventoryItem; snapshot: CompanyInventorySnapshot; person: (id?: string | null) => string;
   permissions: CompanyInventoryPermissions; blocked: boolean; onClose: () => void; open: (dialog: Dialog) => void;
 }) {
+  const router = useRouter();
   const assignments = snapshot.assignments.filter(assignment => assignment.itemId === item.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const openAssignment = assignments.find(isAssignmentOpen);
   const returns = snapshot.returns.filter(entry => entry.itemId === item.id).sort((a, b) => b.returnedAt.localeCompare(a.returnedAt));
@@ -663,6 +671,7 @@ function ItemDetail({ scope, run, error, item, snapshot, person, permissions, bl
       <div className="ci-footer-row">
         <button type="button" className="ci-button ci-button--quiet" onClick={onClose}>Schließen</button>
         <div className="ci-actions">
+          {scope.effectivePermissions?.includes('business.tenant.manage') && <button type="button" className="ci-button ci-button--quiet" disabled={blocked} onClick={() => router.push(`/unternehmen/zuordnungen?itemId=${encodeURIComponent(item.id)}` as never)}>Standort & Abteilung</button>}
           {permissions.reportDamage && !['archived', 'decommissioned'].includes(item.status) && <button type="button" className="ci-button ci-button--quiet" disabled={blocked} onClick={() => open({ kind: 'damage', item })}>Schaden / Verlust</button>}
           {permissions.manage && <button type="button" className="ci-button" disabled={blocked} onClick={() => open({ kind: 'item', item })}>
             <CompanyIcon name="edit" size={16} />Bearbeiten</button>}

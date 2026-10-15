@@ -4,10 +4,12 @@ import { filterCompanyCatalog } from './tenantServiceCatalogEditor';
 export const COMPANY_TABS = [
   { id: 'overview', label: 'Übersicht' },
   { id: 'identity', label: 'Unternehmensprofil' },
-  { id: 'compliance', label: 'Recht & Steuer' },
-  { id: 'finance', label: 'Abrechnung' },
-  { id: 'organization', label: 'Organisation' },
+  { id: 'structure', label: 'Organisation' },
   { id: 'inventory', label: 'Inventar' },
+  { id: 'resources', label: 'Verträge & Ressourcen' },
+  { id: 'finance', label: 'Abrechnung' },
+  { id: 'compliance', label: 'Recht & Steuer' },
+  { id: 'organization', label: 'Einstellungen' },
   { id: 'history', label: 'Aktivitäten' },
 ] as const;
 export type CompanyTab = typeof COMPANY_TABS[number]['id'];

@@ -3,6 +3,12 @@ import type { TenantCenterSnapshot } from '@/types/tenant/tenantCenter';
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import { fetchTenantCustomFieldDefinitions } from './tenantCustomFieldService';
 import { fetchTenantServiceCatalog } from './tenantServiceCatalogService';
+import { Platform } from 'react-native';
+import type { RoleKey } from '@/types';
+import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { enforcePermission } from '@/lib/permissions';
+import { loadCompanyDocumentCustomValues, selectCompanyDocumentPrimary } from '@/lib/documents/companyDocumentContext.web';
 
 /** Document/invoice context for templates — extended in later phases. */
 export type TenantDocumentContext = {
@@ -17,14 +23,27 @@ export type TenantDocumentContext = {
 export async function getTenantDocumentContext(
   tenantId: EntityId,
   snapshot: TenantCenterSnapshot,
+  actorRoleKey?: RoleKey | null,
 ): Promise<TenantDocumentContext> {
-  const customFields = await fetchTenantCustomFieldDefinitions(tenantId, 'business_admin');
   const custom: Record<string, unknown> = {};
-  if (customFields.ok) {
-    for (const field of customFields.data) {
-      custom[field.fieldKey] = null;
+  if (Platform.OS === 'web') {
+    if (snapshot.tenantId !== tenantId) throw new Error('Die Unternehmensdaten gehören zu einem anderen Mandanten.');
+    const denied = guardServiceTenant(tenantId);
+    if (denied) throw new Error(denied.error);
+    if (isLiveServiceMode() && !enforcePermission(actorRoleKey, 'business.tenant.manage')) {
+      const client = getSupabaseClient();
+      if (!client) throw new Error('Datenverbindung nicht verfügbar.');
+      const values = await loadCompanyDocumentCustomValues(client, tenantId);
+      if (!values.ok) throw new Error(values.error);
+      Object.assign(custom, values.data);
+    }
+  } else {
+    const customFields = await fetchTenantCustomFieldDefinitions(tenantId, 'business_admin');
+    if (customFields.ok) {
+      for (const field of customFields.data) custom[field.fieldKey] = null;
     }
   }
+  const bank = Platform.OS === 'web' ? selectCompanyDocumentPrimary(snapshot.bankAccounts) : snapshot.bankAccounts[0];
 
   return {
     company: {
@@ -38,6 +57,7 @@ export async function getTenantDocumentContext(
       phone: snapshot.company.phone,
       email: snapshot.company.email,
       website: snapshot.company.website,
+      ...(Platform.OS === 'web' ? { representative_name: snapshot.representatives.map(person => [person.firstName, person.lastName].filter(Boolean).join(' ')).filter(Boolean).join(', ') } : {}),
     },
     tax: {
       tax_number: snapshot.tax.taxNumber,
@@ -51,9 +71,10 @@ export async function getTenantDocumentContext(
       ik_number: snapshot.register.ikNumber,
     },
     bank: {
-      iban: snapshot.bankAccounts[0]?.iban ?? null,
-      bank_name: snapshot.bankAccounts[0]?.bankName ?? null,
-      account_holder: snapshot.bankAccounts[0]?.accountHolder ?? null,
+      iban: bank?.iban ?? null,
+      bank_name: bank?.bankName ?? null,
+      account_holder: bank?.accountHolder ?? null,
+      ...(Platform.OS === 'web' ? { bic: bank?.bic ?? null } : {}),
     },
     branding: {
       logo_url: snapshot.branding.logoUrl,

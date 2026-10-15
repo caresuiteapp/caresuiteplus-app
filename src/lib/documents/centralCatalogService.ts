@@ -4,13 +4,16 @@ import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocument
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { enforceWithActor } from '@/lib/permissions/actorPermissions';
+import { enforcePermission } from '@/lib/permissions';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { centralFileName, centralMissingFields } from './centralCatalogModel';
 import { sha256FileHex } from '@/lib/crypto/sha256Hex';
+import { Platform } from 'react-native';
+import { loadCanonicalCompanyDocumentData, loadCompanyDocumentCustomValues } from './companyDocumentContext.web';
 
-type Actor = { roleKey?: RoleKey | null; profile?: Profile | null };
+type Actor = { roleKey?: RoleKey | null; profile?: Profile | null; effectivePermissions?: readonly PermissionKey[] };
 export type CentralContextRequest = { definition?: CentralDocumentDefinition; assignmentId?: string; invoiceId?: string; medicationId?: string; woundId?: string; period?: string };
 export type CentralDocumentRecordFilter = { target: CentralDocumentTarget; entityId: string };
 const demoRecords = new Map<string, CentralDocumentStored>();
@@ -45,6 +48,7 @@ async function loadClientSource(client: NonNullable<ReturnType<typeof getSupabas
 async function guard<T>(tenantId: string, actor: Actor, permission: PermissionKey): Promise<ServiceResult<T> | null> {
   const tenantError = guardServiceTenant(tenantId);
   if (tenantError) return tenantError;
+  if (actor.effectivePermissions) return enforcePermission<T>(actor.roleKey, permission, { effectivePermissions: actor.effectivePermissions });
   return enforceWithActor<T>(actor.roleKey, tenantId, actor.profile, permission);
 }
 
@@ -55,7 +59,7 @@ export function mapCentralContext(input: { tenantId: string; target: CentralDocu
     name: str(t.legal_name || t.name), address: address(t), phone: str(t.phone), email: str(t.email), website: str(t.website),
     registerCourt: str(t.register_court), registerNumber: str(t.register_number), taxId: str(t.tax_number || t.tax_id), vatId: str(t.vat_id),
     ikNumber: str(t.ik_number), representativeName: str(t.representative_name), logoUrl: str(settings.logo_url),
-    bankName: str(settings.bank_name), iban: str(settings.iban), bic: str(settings.bic),
+    bankName: str(settings.bank_name), iban: str(settings.iban), bic: str(settings.bic), ...(Platform.OS === 'web' ? { accountHolder: str(settings.account_holder) } : {}),
   };
   const subject: Record<string, string> = input.target === 'company' ? { name: company.name, address: company.address } : {
     name: str(s.full_name || [s.first_name, s.last_name].filter(Boolean).join(' ')), address: address(s),
@@ -100,18 +104,40 @@ export async function loadCentralContext(tenantId: string, target: CentralDocume
     : target === 'employee'
       ? fromUnknownTable(client,'employees').select('first_name,last_name,date_of_birth,street,house_number,postal_code,city,employee_number,role_title').eq('tenant_id',tenantId).eq('id',entityId).maybeSingle()
       : Promise.resolve({data:{},error:null});
+  const canonicalRequest = Platform.OS === 'web' ? loadCanonicalCompanyDocumentData(client, tenantId) : null;
   const results = await Promise.all([
     loadCompanySource(client, tenantId),
     fromUnknownTable(client, 'tenant_document_settings').select('logo_url').eq('tenant_id', tenantId).maybeSingle(),
     fromUnknownTable(client, 'tenant_addresses').select('street, zip, city').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     subjectRequest,
   ]);
-  for (const result of results) if (result.error) return { ok: false, error: toGermanSupabaseError(result.error) };
+  const canonical = await canonicalRequest;
+  if (canonical && !canonical.ok) return canonical;
+  for (const [index, result] of results.entries()) {
+    const companyHasAddressFields = Platform.OS === 'web' && results[0].data && ['street', 'postal_code', 'city'].every(key => key in results[0].data!);
+    const unusedLegacySource = index === 1 && canonical?.ok && canonical.data.brandingAvailable || index === 2 && companyHasAddressFields;
+    if (result.error && !unusedLegacySource) return { ok: false, error: toGermanSupabaseError(result.error) };
+  }
   if (!results[0].data || !results[3].data) return { ok: false, error: 'Unternehmen oder ausgewählte Akte wurde nicht gefunden.' };
   const tenant = results[0].data as Record<string, unknown>; const fallback = (results[2].data ?? {}) as Record<string, unknown>;
   const context = mapCentralContext({ tenantId, target, entityId, company: {
-    ...tenant, street: tenant.street || fallback.street, postal_code: tenant.postal_code || fallback.zip, city: tenant.city || fallback.city,
-  }, settings: results[1].data ?? {}, subject: results[3].data ?? {} });
+    ...tenant,
+    street: Platform.OS === 'web' && 'street' in tenant ? tenant.street : tenant.street || fallback.street,
+    postal_code: Platform.OS === 'web' && 'postal_code' in tenant ? tenant.postal_code : tenant.postal_code || fallback.zip,
+    city: Platform.OS === 'web' && 'city' in tenant ? tenant.city : tenant.city || fallback.city,
+    ...(canonical?.ok && canonical.data.representativeName !== undefined ? { representative_name: canonical.data.representativeName } : {}),
+  }, settings: { ...(results[1].data ?? {}), ...(canonical?.ok ? canonical.data.settings : {}) }, subject: results[3].data ?? {} });
+  if (Platform.OS === 'web' && request.definition) {
+    const customKeys = request.definition.fields.flatMap(field => {
+      const match = field.sourcePath?.match(/^(?:tenant\.)?custom\.([a-z][a-z0-9_]*)$/);
+      return match ? [match[1]] : [];
+    });
+    if (customKeys.length && !(await guard(tenantId, actor, 'business.tenant.manage'))) {
+      const custom = await loadCompanyDocumentCustomValues(client, tenantId, customKeys, request.definition.modules);
+      if (!custom.ok) return custom;
+      context.custom = custom.data;
+    }
+  }
   return enrichCentralContext(client, context, actor, request);
 }
 

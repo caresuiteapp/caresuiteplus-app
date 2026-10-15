@@ -7,10 +7,12 @@ import {
   returnCompanyInventoryItem, resolveCompanyInventoryDamage, saveCompanyInventoryCategory, saveCompanyInventoryItem, saveCompanyInventoryLocation,
 } from '@/lib/inventory/companyInventoryService.web';
 
-const mocked = vi.hoisted(() => ({ client: null as unknown, mode: 'supabase', tenantBlocked: false, denied: new Set<string>() }));
+const mocked = vi.hoisted(() => ({ client: null as unknown, mode: 'supabase', tenantBlocked: false, denied: new Set<string>(), scopeLimited: false,
+  serverPermissions: ['inventory.view', 'inventory.manage_items', 'inventory.issue', 'inventory.return_manage', 'inventory.report_damage', 'inventory.offboarding', 'inventory.audit_view', 'office.employees.view'] }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => mocked.mode }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => mocked.tenantBlocked ? { ok: false, error: 'Mandant gesperrt' } : null }));
+vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { permissions: mocked.serverPermissions, scopeLimited: mocked.scopeLimited, canManageScopes: !mocked.scopeLimited } }) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (_role: unknown, permission: string, context?: { effectivePermissions?: readonly string[] }) =>
   mocked.denied.has(permission) || (context?.effectivePermissions && !context.effectivePermissions.includes(permission))
     ? { ok: false, error: 'Keine Berechtigung' } : null }));
@@ -36,6 +38,12 @@ class Database {
   unexpectedPayload = new Map<string, unknown>();
   beforeWrite?: (call: Call) => void;
   nextId = 1;
+  choiceRows: Row[] = [];
+  rpcCalls: { name: string; args: Row }[] = [];
+  rpc = async (name: string, args: Row) => {
+    this.rpcCalls.push({ name, args });
+    return { data: this.choiceRows.slice(Number(args.p_offset), Number(args.p_offset) + 500), error: null };
+  };
   from = (name: string) => new Query(this, name);
   rows(name: string) { return this.tables.get(name)!; }
   set(name: string, rows: Row[]) { this.tables.set(name, rows); }
@@ -86,10 +94,42 @@ class Query implements PromiseLike<Result> {
 let db: Database;
 beforeEach(() => {
   db = new Database(); mocked.client = db; mocked.mode = 'supabase'; mocked.tenantBlocked = false; mocked.denied.clear();
+  mocked.scopeLimited = false; mocked.serverPermissions = ['inventory.view', 'inventory.manage_items', 'inventory.issue', 'inventory.return_manage', 'inventory.report_damage', 'inventory.offboarding', 'inventory.audit_view', 'office.employees.view'];
   db.set('inventory_categories', [category()]); db.set('inventory_items', [item()]); db.set('employees', [person()]);
 });
 
 describe('company inventory live reads and authorization', () => {
+  it('uses authoritative scope restrictions without loading global personnel or audit', async () => {
+    mocked.scopeLimited = true; db.choiceRows = [person()];
+    const result = await loadCompanyInventory(scope);
+    expect(result.ok && result.data.scopeLimited).toBe(true);
+    expect(result.ok && result.data.permissions.createItems).toBe(false);
+    expect(result.ok && result.data.permissions.manageCatalogs).toBe(false);
+    expect(result.ok && result.data.permissions.offboarding).toBe(false);
+    expect(result.ok && result.data.permissions.audit).toBe(false);
+    expect(db.calls.some(call => ['employees', 'inventory_audit_events'].includes(call.table))).toBe(false);
+    expect(db.rpcCalls).toEqual([{ name: 'company_inventory_employee_choices', args: { p_tenant_id: TENANT, p_offset: 0 } }]);
+  });
+  it('fails closed after a server-side permission removal', async () => {
+    mocked.serverPermissions = [];
+    expect((await loadCompanyInventory(scope)).ok).toBe(false);
+    expect(db.calls).toHaveLength(0);
+  });
+  it('blocks global creation/catalog changes and complete offboarding for scoped actors', async () => {
+    mocked.scopeLimited = true;
+    expect((await saveCompanyInventoryItem(scope, { name: 'Telefon', categoryId: 'category-1' })).ok).toBe(false);
+    expect((await saveCompanyInventoryCategory(scope, { group: 'devices', label: 'Global', barcodeEnabled: false, portalVisibleToEmployee: false, requiresReturnOnExit: true })).ok).toBe(false);
+    expect((await saveCompanyInventoryLocation(scope, { label: 'Global' })).ok).toBe(false);
+    expect((await checkCompanyInventoryOffboarding(scope, 'person-1')).ok).toBe(false);
+    expect(db.writes()).toHaveLength(0); expect(db.calls).toHaveLength(0);
+  });
+  it('allows an existing visible item edit but refuses issue to an employee outside choices', async () => {
+    mocked.scopeLimited = true; db.choiceRows = [];
+    expect((await saveCompanyInventoryItem(scope, { id: 'item-1', name: 'Aktualisiert', categoryId: 'category-1', condition: 'good' })).ok).toBe(true);
+    expect((await issueCompanyInventoryItem(scope, { itemId: 'item-1', recipientEmployeeId: 'person-1' })).ok).toBe(false);
+    expect(db.calls.some(call => call.table === 'employees')).toBe(false);
+    expect(db.rows('inventory_assignments')).toHaveLength(0);
+  });
   it('loads only this tenant, paginates and never seeds categories on open', async () => {
     db.set('inventory_items', Array.from({ length: 503 }, (_, i) => item({ id: `item-${i}` })).concat(item({ id: 'foreign', tenant_id: OTHER })));
     db.set('employees', [person(), person({ id: 'foreign-person', tenant_id: OTHER })]);

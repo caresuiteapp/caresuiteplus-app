@@ -26,7 +26,7 @@ vi.mock('@/lib/inventory/companyInventoryService.web', async original => ({
   requestCompanyInventoryReturn: (...args: unknown[]) => h.requestReturn(...args),
   checkCompanyInventoryOffboarding: (...args: unknown[]) => h.offboarding(...args),
 }));
-vi.mock('expo-router', () => ({ useNavigation: () => ({ dispatch: h.dispatch }) }));
+vi.mock('expo-router', () => ({ useNavigation: () => ({ dispatch: h.dispatch }), useRouter: () => ({ push: h.dispatch }) }));
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: (...args: unknown[]) => h.preventRemove(...args) }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: (...args: unknown[]) => h.confirm(...args) }));
 vi.mock('@/components/layout/platform/platformmodal', () => ({
@@ -48,7 +48,8 @@ function fixture(): CompanyInventorySnapshot {
     items: [item('phone', 'Diensttelefon Erika', 'assigned'), item('key', 'Dienstschlüssel Max', 'assigned'), item('spare', 'Reservegerät')],
     categories: [{ id: 'devices', tenantId: 'tenant-one', group: 'devices', label: 'Geräte', requiresReturnOnExit: true, portalVisibleToEmployee: true, barcodeEnabled: false, createdAt: DATE, updatedAt: DATE }],
     locations: [], assignments: [assignment('a-erika', 'phone', 'erika'), assignment('a-max', 'key', 'max')],
-    returns: [], damageReports: [], audit: [], employeesVisible: true,
+    returns: [], damageReports: [], audit: [], employeesVisible: true, scopeLimited: false,
+    permissions: { view: true, manage: true, createItems: true, manageCatalogs: true, issue: true, returnItems: true, reportDamage: true, offboarding: true, viewEmployees: true, audit: true },
     employees: [{ id: 'erika', firstName: 'Erika', lastName: 'Vertraulich', status: 'active' }, { id: 'max', firstName: 'Max', lastName: 'Geschützt', status: 'active' }],
   };
 }
@@ -126,6 +127,21 @@ describe('company inventory real Web interactions', () => {
     expect(field('Person', host).value).toBe('erika');
     const rows = host.querySelector('tbody')!.textContent;
     expect(rows).toContain('Erika Vertraulich'); expect(rows).not.toContain('Max Geschützt');
+  });
+
+  it('hides global creation and complete exit checks for authoritative limited scopes but keeps item edits', async () => {
+    snapshot.scopeLimited = true;
+    await render();
+    expect(button('Inventar anlegen')).toBeUndefined();
+    expect(button('Personalrückgaben')).toBeUndefined();
+    expect(button('Verlauf')).toBeUndefined();
+    await click(button('Reservegerät'));
+    expect(button('Bearbeiten', dialog()!)).toBeTruthy();
+    await click(button('Schließen', dialog()!));
+    await click(button('Lagerorte & Kategorien'));
+    expect(button('Lagerort anlegen')).toBeUndefined();
+    expect(button('Kategorie anlegen')).toBeUndefined();
+    expect(button('Bearbeiten')).toBeUndefined();
   });
 
   it('blocks uncertain saves until reload and closes the creation draft before allowing another write', async () => {

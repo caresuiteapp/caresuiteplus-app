@@ -7,17 +7,19 @@ vi.mock('@/lib/permissions/actorPermissions',()=>({enforceWithActor:async()=>nul
 vi.mock('@/lib/supabase/client',()=>({getSupabaseClient:()=>({storage:{from:()=>({download:async(path:string)=>{fixture.downloadedPath=path;return {data:new Blob([fixture.fileBytes]),error:null};}})}})}));
 vi.mock('@/lib/supabase/untypedTable',()=>({fromUnknownTable:(_client:unknown,table:string)=>{
   let columns='';
+  const result = () => {
+    if(table==='tenants'&&fixture.tenantError) return {data:null,error:{code:fixture.tenantError,message:'source denied'}};
+    const row=fixture.rows[table];
+    if(!row)return {data:null,error:{code:'42P01',message:'relation unavailable'}};
+    const keys=columns.split(',').map((v)=>v.trim());
+    if(keys.some((key)=>!(key in row)))return {data:null,error:{code:'42703',message:'column unavailable'}};
+    return {data:Object.fromEntries(keys.map((key)=>[key,row[key]])),error:null};
+  };
   const request = {
     select:(value:string)=>{columns=value;fixture.selections.push(`${table}:${value}`);return request;},
     eq:()=>request, order:()=>request, limit:()=>request,
-    maybeSingle:async()=>{
-      if(table==='tenants'&&fixture.tenantError) return {data:null,error:{code:fixture.tenantError,message:'source denied'}};
-      const row=fixture.rows[table];
-      if(!row)return {data:null,error:{code:'42P01',message:'relation unavailable'}};
-      const keys=columns.split(',').map((v)=>v.trim());
-      if(keys.some((key)=>!(key in row)))return {data:null,error:{code:'42703',message:'column unavailable'}};
-      return {data:Object.fromEntries(keys.map((key)=>[key,row[key]])),error:null};
-    },
+    maybeSingle:async()=>result(),
+    then:(resolve:(value:unknown)=>unknown)=>{const value=result();return Promise.resolve({...value,data:value.data?[value.data]:null}).then(resolve);},
   };return request;
 }}));
 import { loadCentralContext, downloadCentralDocument, mapCentralContext } from '@/lib/documents/centralCatalogService';
