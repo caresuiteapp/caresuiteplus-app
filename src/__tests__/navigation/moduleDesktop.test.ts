@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Platform } from 'react-native';
 import { buildDesktopApps } from '@/liquid-command/navigation/desktopAppCatalog.web';
 import { buildModuleDesktopNavigation, desktopModuleForRoute, moduleDesktopStorageKey, normalizeModuleWidgets } from '@/liquid-command/navigation/moduleDesktop.web';
 
@@ -37,6 +38,40 @@ describe('module desktops', () => {
 
 describe('navigation cleanup', () => {
   const app = (route: string) => ({ id: route, route, label: route, description: '', category: 'Übersicht' as const });
+  it.each([
+    ['/office', '/office?area=company'],
+    ['/office?area=company', '/office'],
+    ['/unternehmen', '/business/office/dashboard'],
+    ['/business/office/dashboard', '/unternehmen'],
+  ])('merges the Office company aliases regardless of input order: %s, %s', (first, second) => {
+    const apps = [first, second, '/office?area=people'].map(app);
+    const original = apps.map(entry => ({ ...entry }));
+    const entries = buildModuleDesktopNavigation(apps, 'office').flatMap(group => group.items);
+    expect(entries.map(entry => entry.route)).toEqual(['/unternehmen', '/office?area=people']);
+    expect(entries[0].label).toBe('Unternehmen');
+    expect(apps).toEqual(original);
+  });
+  it.each([true, false])('keeps one named company destination in Apps with a company widget: %s', (withWidget) => {
+    const widget = { ...app('/unternehmen'), id: 'company', label: 'Unternehmen' };
+    const apps = buildDesktopApps(withWidget ? [widget] : [], 'business_admin');
+    const companies = apps.filter(entry => ['/unternehmen', '/office', '/office?area=company', '/business/office/dashboard'].includes(entry.route));
+    expect(companies).toHaveLength(1);
+    expect(companies[0]).toMatchObject({ route: '/unternehmen', label: 'Unternehmen' });
+    if (withWidget) expect(companies[0].id).toBe('company');
+    const entries = buildModuleDesktopNavigation(apps, 'office').flatMap(group => group.items);
+    expect(entries.filter(entry => entry.label === 'Unternehmen')).toHaveLength(1);
+    expect(entries.some(entry => entry.label === 'Office-Arbeitsbereiche')).toBe(false);
+  });
+  it('preserves the native Office destination and label', () => {
+    const original = Object.getOwnPropertyDescriptor(Platform, 'OS')!;
+    Object.defineProperty(Platform, 'OS', { ...original, value: 'android' });
+    try {
+      const entries = buildModuleDesktopNavigation([app('/office')], 'office').flatMap(group => group.items);
+      expect(entries[0]).toMatchObject({ route: '/office', label: 'Office-Arbeitsbereiche' });
+    } finally {
+      Object.defineProperty(Platform, 'OS', original);
+    }
+  });
   it('collapses confirmed Assist redirects into one canonical entry', () => {
     const groups = buildModuleDesktopNavigation(['/assist/einsaetze', '/assist/assignments', '/assist/kalender', '/assist/calendar'].map(app), 'assist');
     expect(groups.flatMap(g => g.items).map(a => a.route)).toEqual(['/assist/calendar', '/assist/assignments']);

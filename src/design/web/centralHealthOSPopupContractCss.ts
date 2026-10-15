@@ -131,6 +131,18 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
   }
   html [data-cs-desktop-surface="light"] :is([role="table"], [role="row"], [role="cell"]),
   html [data-cs-support-surface="light"] { min-width: 0; }
+  /* The company workspace and its editors keep one explicit inverse surface. */
+  html [data-cs-company-surface="dark"] :is(input:not([type="checkbox"]), textarea, select) {
+    color: #F1F6FF !important; -webkit-text-fill-color: #F1F6FF !important;
+    caret-color: #78DCFF; background: #09182B !important; border-color: #3B526E !important;
+    color-scheme: dark;
+  }
+  html [data-cs-company-surface="dark"] :is(input, textarea)::placeholder {
+    color: #9AB1CC !important; -webkit-text-fill-color: #9AB1CC !important;
+  }
+  html [data-cs-company-surface="dark"] :is(input, textarea, select)[aria-invalid="true"] {
+    border-color: #FA9D9D !important;
+  }
   html [data-cs-desktop-surface="light"] :is([role="button"], [role="tab"]):focus-visible,
   html [data-cs-support-surface="light"] [role="button"]:focus-visible {
     outline: 3px solid #1477D6 !important; outline-offset: 3px;

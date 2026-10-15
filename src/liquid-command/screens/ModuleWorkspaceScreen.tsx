@@ -694,13 +694,13 @@ function patternStateKind(pageType: LiquidPageType): LiquidStateKind {
   return 'empty';
 }
 
-export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKey }) {
+export function ModuleWorkspaceScreen({ moduleKey, areaId }: { moduleKey: LiquidModuleKey; areaId?: string }) {
   const router = useRouter();
   const params = useLocalSearchParams<{ area?: string; record?: string }>();
   const module = getLiquidModule(moduleKey);
   const areas = liquidWorkAreas[moduleKey];
   const activeArea =
-    areas.find((area) => area.id === params.area) ??
+    areas.find((area) => area.id === (areaId ?? params.area)) ??
     areas[0] ??
     ({ id: 'overview', label: module.label, description: module.description, pageType: 'command-center', route: module.route } satisfies LiquidWorkArea);
   const state = useCurrentSystemAdapter();

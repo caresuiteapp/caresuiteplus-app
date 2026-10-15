@@ -4,7 +4,7 @@ const MAX_AGE = 30 * 60_000;
 export function safeWebReturnPath(value: string): string | null {
   if (value.length > 4096 || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u0020]/.test(value) || /%5c|%2f%2f/i.test(value)) return null;
   const path = value.split(/[?#]/, 1)[0];
-  return /^\/(?:business|office|assist|pflege|stationaer|beratung|akademie|insight|settings|robotics|medical|communication|design-system|onboarding|admin|platform|portal\/(?:client|employee|relative))(?:\/|$)/.test(path) ? value : null;
+  return /^\/(?:business|office|unternehmen|assist|pflege|stationaer|beratung|akademie|insight|settings|robotics|medical|communication|design-system|onboarding|admin|platform|portal\/(?:client|employee|relative))(?:\/|$)/.test(path) ? value : null;
 }
 
 export function rememberWebLoginReturn(requestedPath?: string): void {

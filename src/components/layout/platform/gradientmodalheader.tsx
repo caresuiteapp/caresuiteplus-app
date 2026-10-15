@@ -30,6 +30,7 @@ export type GradientModalHeaderProps = {
   onBack?: () => void;
   onClose: () => void;
   actions?: ReactNode;
+  tone?: 'light' | 'dark';
 };
 
 export function GradientModalHeader({
@@ -38,12 +39,16 @@ export function GradientModalHeader({
   onBack,
   onClose,
   actions,
+  tone,
 }: GradientModalHeaderProps) {
-  const portalTheme = usePortalPremiumRuntimeTheme();
-  const { isLight } = useLegacyTheme();
+  const runtimePortalTheme = usePortalPremiumRuntimeTheme();
+  const runtimeTheme = useLegacyTheme();
+  const webTone = Platform.OS === 'web' ? tone : undefined;
+  const portalTheme = webTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
+  const isLight = webTone ? webTone === 'light' : runtimeTheme.isLight;
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const auroraHeader = !portalTheme.active && auroraActive && shellHostsAurora;
+  const auroraHeader = !webTone && !portalTheme.active && auroraActive && shellHostsAurora;
   const plainLightHeader = portalTheme.active || (isLight && !auroraHeader);
   const text = useAuroraAdaptiveText();
   const headerGlass = useShellGlassSurfaceStyle('modal', { viewContext: 'form' });

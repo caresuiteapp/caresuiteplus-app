@@ -184,7 +184,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: '/?area=decisions' },
   ],
   office: [
-    { id: 'company', label: 'Unternehmen', description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Stammdaten, Standorte und Organisation', pageType: 'record', route: Platform.OS === 'web' ? '/office?area=company' : '/business/office/dashboard' },
+    { id: 'company', label: 'Unternehmen', description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Stammdaten, Standorte und Organisation', pageType: 'record', route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard' },
     { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/business/office/clients' },
     { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/business/office/employees' },
     { id: 'timekeeping', label: 'Arbeitszeit', description: 'Prüfungen, Abwesenheiten und Zeitkonten', pageType: 'review', route: '/business/office/time-tracking' },

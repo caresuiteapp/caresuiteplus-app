@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { liquidWorkAreas } from './moduleCatalog';
 import type { LiquidModuleKey } from '../types';
 
@@ -8,6 +9,7 @@ type RouteAlias = {
 
 const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
   office: [
+    ...(Platform.OS === 'web' ? [{ area: 'company', pattern: /^\/(?:office|business\/office\/dashboard)$/ }] : []),
     { area: 'communication', pattern: /^\/(?:business\/)?(?:office\/)?messages(?:\/|$)/ },
     { area: 'timekeeping', pattern: /^\/business\/office\/time-tracking(?:\/|$)/ },
     { area: 'payroll', pattern: /^\/business\/office\/payroll(?:\/|$)/ },

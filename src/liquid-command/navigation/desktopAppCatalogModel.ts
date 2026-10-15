@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { normalizeNavigationApp } from './moduleDesktopModel';
 import { liquidGlobalShortcuts, liquidModules, liquidWorkAreas } from './moduleCatalog';
 import { officeNav } from '@/lib/navigation/moduleNav/officeNav';
@@ -39,10 +40,12 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     if (isUnreleasedModuleRoute(app.route)) return;
     // Prefer the existing business destination when the Office menu uses its alias.
     const businessAlias = app.route.replace(/^\/office(?=\/|\?|$)/, '/business/office');
-    const route = normalizeNavigationApp({ ...app, route: knownRoutes.has(businessAlias) ? businessAlias : app.route }).route;
+    const normalized = normalizeNavigationApp({ ...app, route: knownRoutes.has(businessAlias) ? businessAlias : app.route });
+    const route = normalized.route;
     if (seen.has(route)) return;
     seen.add(route);
-    apps.push({ ...app, route });
+    const label = Platform.OS === 'web' && route === '/unternehmen' ? normalized.label : app.label;
+    apps.push({ ...app, route, label });
   };
   widgetApps.forEach(app => add({ ...app, glyph: app.category === 'Workspace' ? 'G' : '↗' }));
   WORKSPACE_SERVICES.forEach(service => add({
@@ -95,6 +98,7 @@ function desktopNavigationSection(app: DesktopApp): DesktopNavigationSection | n
   if (route === '/assist' || route.startsWith('/assist/')) return 'Assist';
 
   if (
+    route === '/unternehmen' ||
     route === '/office' ||
     route.startsWith('/office/') ||
     route === '/business/office' ||

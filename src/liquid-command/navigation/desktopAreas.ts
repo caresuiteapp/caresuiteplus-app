@@ -8,6 +8,7 @@ export type DesktopAreaKey = typeof DESKTOP_AREAS[number]['key'];
 
 export function desktopAreaForRoute(route: string): DesktopAreaKey | null {
   const path = route.split(/[?#]/, 1)[0];
+  if (path === '/unternehmen') return 'office';
   if (path === '/business/subscription') return 'premium';
   if (path === '/settings' || path.startsWith('/settings/') || path === '/business/settings') return 'settings';
   for (const area of DESKTOP_AREAS) {

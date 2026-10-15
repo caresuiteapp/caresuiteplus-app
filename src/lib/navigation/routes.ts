@@ -405,6 +405,22 @@ export const APP_ROUTES: AppRoute[] = [
     allowedRoles: ['business_admin'],
   },
   {
+    path: '/unternehmen',
+    label: 'Unternehmen',
+    group: 'business',
+    productKey: 'office',
+    requiresAuth: true,
+    allowedRoles: [
+      'business_admin',
+      'business_manager',
+      'billing',
+      'dispatch',
+      'nurse',
+      'caregiver',
+      'counselor',
+    ],
+  },
+  {
     path: '/office',
     label: 'Office',
     group: 'module',

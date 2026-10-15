@@ -1,4 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import { Platform } from 'react-native';
 import type { CustomFieldDataType, TenantCustomFieldDefinition, TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -32,6 +33,7 @@ export function resolveCustomFieldPlaceholder(fieldKey: string): string {
 export async function fetchTenantCustomFieldDefinitions(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  includeInactive = false,
 ): Promise<ServiceResult<TenantCustomFieldDefinition[]>> {
   const denied = enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
@@ -39,17 +41,18 @@ export async function fetchTenantCustomFieldDefinitions(
   if (tenantBlock) return tenantBlock;
 
   if (!isLiveServiceMode()) {
-    return { ok: true, data: DEMO_FIELDS.get(tenantId) ?? [] };
+    const fields = DEMO_FIELDS.get(tenantId) ?? [];
+    return { ok: true, data: Platform.OS === 'web' && !includeInactive ? fields.filter(field => field.isActive) : fields };
   }
 
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { data, error } = await fromUnknownTable(client, 'tenant_custom_field_definitions')
+  let query = fromUnknownTable(client, 'tenant_custom_field_definitions')
     .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('is_active', true)
-    .order('sort_order');
+    .eq('tenant_id', tenantId);
+  if (Platform.OS !== 'web' || !includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query.order('sort_order');
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   return { ok: true, data: ((data ?? []) as Record<string, unknown>[]).map(mapDefinition) };
@@ -57,13 +60,23 @@ export async function fetchTenantCustomFieldDefinitions(
 
 export type SaveCustomFieldInput = Omit<TenantCustomFieldDefinition, 'id'> & { id?: string };
 
+export type SaveCustomFieldResult = ServiceResult<TenantCustomFieldDefinition[]> & {
+  /** A confirmed write may succeed even if the following list refresh fails. */
+  savedId?: string;
+};
+
 export async function saveTenantCustomFieldDefinition(
   tenantId: string,
   input: SaveCustomFieldInput,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<TenantCustomFieldDefinition[]>> {
+): Promise<SaveCustomFieldResult> {
   const denied = enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
+
+  if (Platform.OS === 'web') {
+    const tenantBlock = guardServiceTenant(tenantId);
+    if (tenantBlock) return tenantBlock;
+  }
 
   if (!input.fieldKey.trim() || !input.label.trim()) {
     return { ok: false, error: 'Schlüssel und Bezeichnung sind erforderlich.' };
@@ -99,6 +112,27 @@ export async function saveTenantCustomFieldDefinition(
     sort_order: input.sortOrder,
     updated_at: new Date().toISOString(),
   };
+
+  if (Platform.OS === 'web') {
+    const table = fromUnknownTable(client, 'tenant_custom_field_definitions');
+    const query = input.id
+      ? table.update(payload).eq('tenant_id', tenantId).eq('id', input.id)
+      : table.insert(payload);
+    const { data, error } = await query.select('id').maybeSingle();
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    const savedId = typeof data?.id === 'string' ? data.id : '';
+    if (!savedId || (input.id && savedId !== input.id)) {
+      return { ok: false, error: 'Das Zusatzfeld konnte nicht gespeichert werden. Bitte laden Sie die Unternehmensdaten neu und prüfen Sie Ihre Berechtigung.' };
+    }
+
+    try {
+      const refreshed = await fetchTenantCustomFieldDefinitions(tenantId, actorRoleKey, true);
+      if (refreshed.ok) return refreshed;
+      return { ok: false, savedId, error: `Das Zusatzfeld wurde gespeichert, aber die aktualisierte Liste konnte nicht geladen werden. ${refreshed.error}` };
+    } catch {
+      return { ok: false, savedId, error: 'Das Zusatzfeld wurde gespeichert, aber die aktualisierte Liste konnte nicht geladen werden. Bitte laden Sie die Unternehmensdaten neu.' };
+    }
+  }
 
   if (input.id) {
     const { error } = await fromUnknownTable(client, 'tenant_custom_field_definitions')

@@ -65,7 +65,7 @@ export type PlatformModalProps = {
   lockBodyScroll?: boolean;
   isDirty?: boolean;
   dirtyCloseMessage?: string;
-  surfaceScope?: 'personal';
+  surfaceScope?: 'personal' | 'company';
 };
 
 const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;

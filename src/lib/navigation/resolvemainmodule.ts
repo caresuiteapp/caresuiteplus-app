@@ -11,7 +11,7 @@ export function resolveMainModuleFromPath(pathname: string): MainModuleKey {
   if (path.startsWith('/zentrale')) {
     return 'zentrale';
   }
-  if (path.startsWith('/office') || path.startsWith('/business/office')) {
+  if (path === '/unternehmen' || path.startsWith('/office') || path.startsWith('/business/office')) {
     return 'office';
   }
   if (path.startsWith('/assist')) {

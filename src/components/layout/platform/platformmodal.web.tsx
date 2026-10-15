@@ -66,7 +66,7 @@ export type PlatformModalProps = {
   lockBodyScroll?: boolean;
   isDirty?: boolean;
   dirtyCloseMessage?: string;
-  surfaceScope?: 'personal';
+  surfaceScope?: 'personal' | 'company';
 };
 
 const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;
@@ -98,11 +98,13 @@ export function PlatformModal({
   dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
   surfaceScope,
 }: PlatformModalProps) {
-  const portalTheme = usePortalPremiumRuntimeTheme();
+  const runtimePortalTheme = usePortalPremiumRuntimeTheme();
+  const companySurface = surfaceScope === 'company';
+  const portalTheme = companySurface ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   useAuroraGlassActive();
-  const lightModal = surfaceScope === 'personal' || portalTheme.active || isLight;
+  const lightModal = !companySurface && (surfaceScope === 'personal' || portalTheme.active || isLight);
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const viewport = useWebVisualViewport();
@@ -299,6 +301,7 @@ export function PlatformModal({
       >
       <View style={{ flexShrink: 0 }}>
         <GradientModalHeader
+          tone={companySurface ? 'dark' : undefined}
           title={title}
           subtitle={subtitle}
           onBack={handleBack}
@@ -361,6 +364,7 @@ export function PlatformModal({
                   csHealthosComponent: 'modal',
                   ...(lightModal ? { csDesktopSurface: 'light' } : {}),
                   ...(surfaceScope === 'personal' ? { csPersonalSurface: 'light' } : {}),
+                  ...(companySurface ? { csCompanySurface: 'dark' } : {}),
                 },
               } as object)
             : {})}
