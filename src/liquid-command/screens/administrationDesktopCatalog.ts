@@ -1,4 +1,4 @@
-import type { ImageSourcePropType } from 'react-native';
+import { Platform, type ImageSourcePropType } from 'react-native';
 import { DESKTOP_CATEGORIES, type DesktopCategory } from '../navigation/desktopAppCatalogModel';
 import type { WorkspaceService } from '@/lib/googleWorkspace/workspaceModel';
 type Category = DesktopCategory;
@@ -234,7 +234,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
   { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },
   { id: "google-drive", label: "Google Drive", description: "Zuletzt bearbeitete Dateien und Dokumente", category: "Workspace", route: "/business/connect/google-workspace?service=drive", workspaceService: "drive" },
   { id: "google-tasks", label: "Google Tasks", description: "Offene Aufgaben aus Ihrer Google-Standardliste", category: "Workspace", route: "/business/connect/google-workspace?service=tasks", workspaceService: "tasks" },
-  { id: "company", label: "Unternehmen", description: "Steuerung, Kennzahlen und Unternehmensübersicht", category: "Übersicht", route: "/business/office/dashboard", images: {
+  { id: "company", label: "Unternehmen", description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Steuerung, Kennzahlen und Unternehmensübersicht', category: "Übersicht", route: Platform.OS === 'web' ? '/office?area=company' : '/business/office/dashboard', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
     large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png") } },
