@@ -36,6 +36,8 @@ type ScreenShellProps = {
   hideMobileLogout?: boolean;
   mobileContentPaddingBottom?: number;
   compactHeader?: boolean;
+  /** A complete web workspace can provide its own heading and action bar. */
+  contentOwnsHeader?: boolean;
 };
 
 /** Verbindliche Seitenschale für alle Module und Portale. */
@@ -55,6 +57,7 @@ export function ScreenShell({
   hideMobileLogout = false,
   mobileContentPaddingBottom,
   compactHeader = false,
+  contentOwnsHeader = false,
 }: ScreenShellProps) {
   const pathname = usePathname();
   const segments = useSegments();
@@ -173,8 +176,8 @@ export function ScreenShell({
             ? ({ dataSet: { csCentralPopupWorkspace: 'true', csDesktopSurface: 'light' } } as object)
             : {})}
         >
-          <ScreenHeader title={title} subtitle={subtitle} breadcrumbTrail={breadcrumbTrail}
-            showBack={showBack} onBack={onBack} rightSlot={effectiveRightSlot} compact={compactHeader} />
+          {!contentOwnsHeader && <ScreenHeader title={title} subtitle={subtitle} breadcrumbTrail={breadcrumbTrail}
+            showBack={showBack} onBack={onBack} rightSlot={effectiveRightSlot} compact={compactHeader} />}
           <HealthOSPageSurface padded={false}>{body}</HealthOSPageSurface>
         </View>
       </SurfaceContrastProvider>
@@ -187,7 +190,7 @@ export function ScreenShell({
       testID="screen-shell"
       accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
     >
-      <ScreenHeader
+      {!contentOwnsHeader && <ScreenHeader
         title={title}
         subtitle={subtitle}
         breadcrumbTrail={breadcrumbTrail}
@@ -195,7 +198,7 @@ export function ScreenShell({
         onBack={onBack}
         rightSlot={effectiveRightSlot}
         compact={compactHeader}
-      />
+      />}
       <HealthOSPageSurface
         padded={false}
         accessible={!!a11yMeta}
