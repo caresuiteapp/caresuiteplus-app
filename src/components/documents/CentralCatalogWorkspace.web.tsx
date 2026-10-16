@@ -16,17 +16,19 @@ export type CentralCatalogWorkspaceProps = {
   tenantId: string; author: string; demo: boolean;
   clients: CentralCatalogEntityOption[]; employees: CentralCatalogEntityOption[]; loadingEntities: boolean; entityError?: string;
   permissions: { create: boolean; preview: boolean; export: boolean; save: boolean };
-  module?: string; clientId?: string; employeeId?: string; templateKey?: string;
+  module?: string; category?: string; clientId?: string; employeeId?: string; templateKey?: string;
   initialTab?: 'catalog' | 'records';
   records: CentralDocumentStored[]; recordsError?: string; loadingRecords: boolean;
   recordsHasMore?: boolean; onLoadMore?: () => void;
   loadContext: (target: CentralDocumentTarget, id: string, definition?: CentralDocumentDefinition, references?: Record<string, string>) => Promise<ServiceResult<CentralDocumentContext>>;
   save: (snapshot: CentralDocumentSnapshot, bytes: Uint8Array, original?: Original) => Promise<ServiceResult<CentralDocumentStored>>;
   download: (record: CentralDocumentStored, original?: boolean) => Promise<ServiceResult<Uint8Array>>;
-  onSaved: () => void; onRefresh: () => void;
+  onSaved: () => void; onRefresh: () => void; onRefreshEntities?: () => void;
+  onNavigationGuardChange?: (guard: (() => boolean) | null) => void;
 };
 const layoutNames = { letter: 'Fensterbrief', contract: 'Vertrag / Erklärung', form: 'Formular', table: 'Nachweistabelle', checklist: 'Checkliste' };
 const targetNames = { client: 'Klientenakte', employee: 'Personalakte', company: 'Unternehmensakte' };
+const moduleNames: Record<string, string> = { office: 'Office', assist: 'Assist', pflege: 'Pflege', stationaer: 'Stationär', beratung: 'Beratung' };
 
 function downloadBytes(bytes: Uint8Array, fileName: string) {
   const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
@@ -56,51 +58,58 @@ async function logoImage(url: string): Promise<string | undefined> {
 }
 
 export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
-  const [query, setQuery] = useState(''); const [category, setCategory] = useState('');
+  const [query, setQuery] = useState(''); const [category, setCategory] = useState(CENTRAL_CATALOG_GROUPS.some((group) => group.key === props.category) ? props.category! : '');
   const [module, setModule] = useState(props.module ?? '');
   const [selectedKey, setSelectedKey] = useState(props.templateKey ?? '');
   const [tab, setTab] = useState<'catalog' | 'records'>(props.initialTab ?? 'catalog');
   const [copy, setCopy] = useState<CentralDocumentStored | null>(null);
   const [recordBusy, setRecordBusy] = useState(''); const [recordMessage, setRecordMessage] = useState('');
   const dirty = useRef(false);
+  const working = useRef(false); const downloadLock = useRef(false);
+  const [editorBusy, setEditorBusy] = useState(false);
   const reportDirty = useCallback((value:boolean) => { dirty.current=value; },[]);
-  const allowSwitch = () => !dirty.current || window.confirm('Der bearbeitete Entwurf ist noch nicht in der Akte gespeichert. Änderungen verwerfen und wechseln?');
+  const reportWorking = useCallback((value:boolean) => { working.current = value; setEditorBusy(value); }, []);
+  const allowSwitch = useCallback(() => !working.current && (!dirty.current || window.confirm('Der bearbeitete Entwurf ist noch nicht in der Akte gespeichert. Änderungen verwerfen und wechseln?')), []);
+  const registerNavigationGuard = props.onNavigationGuardChange;
+  useEffect(() => {
+    registerNavigationGuard?.(allowSwitch);
+    return () => registerNavigationGuard?.(null);
+  }, [allowSwitch, registerNavigationGuard]);
   const visible = useMemo(() => filterCentralDocuments({ query, category, module }), [query, category, module]);
-  const selected = findCentralDocument(selectedKey);
+  const selected = copy?.snapshot.definition ?? findCentralDocument(selectedKey);
   const allModules = useMemo(() => [...new Set(CENTRAL_DOCUMENT_CATALOG.flatMap((d) => [...d.modules]))].sort(), []);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const openStored = async (record: CentralDocumentStored, original = false) => {
+    if (downloadLock.current) return;
+    downloadLock.current = true;
     setRecordBusy(record.id); setRecordMessage('');
     try {
       const result = await props.download(record, original); if (!mounted.current) return;
       if (result.ok) { downloadBytes(result.data, original ? centralFileName(record.snapshot).replace('_ENTWURF.pdf','_ORIGINAL.pdf') : centralFileName(record.snapshot)); setRecordMessage('Gespeicherte Datei geprüft und heruntergeladen.'); }
       else setRecordMessage(result.error);
     } catch { if (mounted.current) setRecordMessage('Die gespeicherte Datei konnte nicht geladen werden.'); }
-    finally { if (mounted.current) setRecordBusy(''); }
+    finally { downloadLock.current = false; if (mounted.current) setRecordBusy(''); }
   };
   return <div className="csdc">
     <style>{centralCatalogCss}</style>
-    <div className="csdc-hero">
-      <div><span className="csdc-eyebrow">OFFICE · ZENTRALER DOKUMENTENKATALOG</span><h1>Dokumentenkatalog</h1><p>Vorlagen auswählen, gespeicherte Angaben übernehmen und Dokumente in der zugehörigen Akte ablegen.</p></div>
-      <div className="csdc-stats"><div><strong>{CENTRAL_DOCUMENT_CATALOG.length}</strong><span>Katalogeinträge</span></div><div><strong>{CENTRAL_CATALOG_GROUPS.length}</strong><span>Fachbereiche</span></div><div><strong>A4</strong><span>Hoch / Quer</span></div></div>
-    </div>
-    <nav className="csdc-tabs" aria-label="Dokumentenkatalog"><button className={tab === 'catalog' ? 'active' : ''} onClick={() => setTab('catalog')}>Vorlagenkatalog <span>{CENTRAL_DOCUMENT_CATALOG.length}</span></button><button className={tab === 'records' ? 'active' : ''} onClick={() => { if(tab==='records'||allowSwitch()){dirty.current=false;setTab('records');} }}>Gespeicherte Fassungen <span>{props.records.length}</span></button></nav>
+    <nav className="csdc-tabs" aria-label="Dokumentenkatalog"><button className={tab === 'catalog' ? 'active' : ''} aria-current={tab === 'catalog' ? 'page' : undefined} onClick={() => setTab('catalog')}>Vorlagenkatalog <span>{CENTRAL_DOCUMENT_CATALOG.length}</span></button><button className={tab === 'records' ? 'active' : ''} aria-current={tab === 'records' ? 'page' : undefined} disabled={editorBusy} onClick={() => { if(tab==='records'||allowSwitch()){dirty.current=false;setTab('records');} }}>Gespeicherte Fassungen <span>{props.records.length}{props.recordsHasMore ? '+' : ''}</span></button></nav>
     {tab === 'catalog' ? <div className="csdc-workspace">
       <aside className="csdc-panel csdc-catalog">
         <div className="csdc-panel-heading"><h2>Vorlage auswählen</h2><span>{visible.length} Treffer</span></div>
         <label className="csdc-field">Suche<input type="search" placeholder="z. B. Leistungsnachweis, Wunde, Vertrag" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
         <label className="csdc-field">Fachbereich<select value={category} onChange={(e) => setCategory(e.target.value)}><option value="">Alle {CENTRAL_CATALOG_GROUPS.length} Fachbereiche</option>{CENTRAL_CATALOG_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}</select></label>
-        <label className="csdc-field">Modul<select value={module} onChange={(e) => setModule(e.target.value)}><option value="">Alle Module</option>{allModules.map((m) => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}</select></label>
+        <label className="csdc-field">Arbeitsbereich<select value={module} onChange={(e) => setModule(e.target.value)}><option value="">Alle Arbeitsbereiche</option>{allModules.map((m) => <option key={m} value={m}>{moduleNames[m] ?? m}</option>)}</select></label>
         <div className="csdc-catalog-list" aria-label="Vorlagen">
-          {visible.length ? visible.map((d) => <button key={d.key} className={`csdc-template ${selectedKey === d.key ? 'selected' : ''}`} aria-pressed={selectedKey === d.key} onClick={() => { if(selectedKey===d.key || !allowSwitch())return; dirty.current=false;setSelectedKey(d.key); setCopy(null); }}>
+          {visible.length ? visible.map((d) => <button key={d.key} className={`csdc-template ${selectedKey === d.key ? 'selected' : ''}`} aria-pressed={selectedKey === d.key} disabled={editorBusy} onClick={() => { if((selectedKey===d.key && !copy) || !allowSwitch())return; dirty.current=false;setSelectedKey(d.key); setCopy(null); }}>
             <span className="csdc-template-icon">{d.sourceMode === 'original' ? '↳' : d.layout === 'table' ? '▦' : d.layout === 'contract' ? '§' : '▤'}</span>
             <span><strong>{d.title}</strong><small>{d.categoryName}</small><em>{d.sourceMode === 'original' ? 'Original + Begleitblatt' : layoutNames[d.layout]} · {d.orientation === 'landscape' ? 'Querformat' : 'Hochformat'}</em></span>
           </button>) : <div className="csdc-empty"><h3>Keine passende Vorlage</h3><p>Ändern Sie die Suche oder setzen Sie die Filter zurück.</p><button className="csdc-button secondary" onClick={() => { setQuery(''); setCategory(''); setModule(''); }}>Filter zurücksetzen</button></div>}
         </div>
       </aside>
       <main className="csdc-editor-host">
-        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} /> : <div className="csdc-panel csdc-welcome"><div className="csdc-welcome-symbol">▤</div><span className="csdc-eyebrow">NEU FÜR CARESUITE HEALTHOS</span><h2>Von der Vorlage in die Akte.</h2><p>Wählen Sie links ein Dokument und anschließend die passende Person oder Organisation. Gespeicherte Angaben werden übernommen und bleiben bearbeitbar.</p><div className="csdc-steps"><div><b>01</b><strong>Auswählen</strong><span>{CENTRAL_DOCUMENT_CATALOG.length} Einträge aus Pflege, Betreuung, Verwaltung, Personal und Software.</span></div><div><b>02</b><strong>Ergänzen</strong><span>Felder, Vertragsabschnitte, Tabellen und individuelle Texte.</span></div><div><b>03</b><strong>Ausgeben</strong><span>PDF ansehen, drucken und als Entwurf in der Akte ablegen.</span></div></div></div>}
+        {selectedKey && !selected ? <p className="csdc-alert" role="alert">Diese Vorlage ist nicht mehr im aktuellen Katalog verfügbar. Wählen Sie eine andere Vorlage. Gespeicherte Fassungen bleiben im gleichnamigen Bereich erhalten.</p> : null}
+        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} onWorkingChange={reportWorking} /> : <div className="csdc-panel csdc-welcome"><div className="csdc-welcome-symbol" aria-hidden="true">▤</div><span className="csdc-eyebrow">VORLAGEN UND AKTENABLAGE</span><h2>Welches Dokument benötigen Sie?</h2><p>Wählen Sie eine Vorlage und die passende Akte. Gespeicherte Angaben werden übernommen; eigene Ergänzungen bleiben bearbeitbar.</p><div className="csdc-steps"><div><b>01</b><strong>Vorlage wählen</strong><span>Suche und Fachbereiche führen zur passenden Unterlage.</span></div><div><b>02</b><strong>Angaben ergänzen</strong><span>Stammdaten übernehmen und Schnellauswahlen nutzen.</span></div><div><b>03</b><strong>Dokument ablegen</strong><span>PDF prüfen, drucken und in der zugehörigen Akte speichern.</span></div></div></div>}
       </main>
     </div> : <section className="csdc-panel">
       <div className="csdc-panel-heading"><div><h2>Gespeicherte Dokumentfassungen</h2><p>Jede Fassung hat eine eigene ID. Eine Bearbeitung erzeugt eine neue Fassung.</p></div><button className="csdc-button secondary" onClick={props.onRefresh}>Aktualisieren</button></div>
@@ -113,7 +122,7 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
   </div>;
 }
 
-function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition: CentralDocumentDefinition; copy: CentralDocumentStored | null; onDraftChange:(value:boolean)=>void }) {
+function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition: CentralDocumentDefinition; copy: CentralDocumentStored | null; onDraftChange:(value:boolean)=>void; onWorkingChange:(value:boolean)=>void }) {
   const { loadContext, onDraftChange } = props;
   const sourceRequest = useRef({ loadContext, author: props.author, copy: props.copy });
   sourceRequest.current = { loadContext, author: props.author, copy: props.copy };
@@ -127,15 +136,16 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
   const [original, setOriginal] = useState<Original>(); const [pdf, setPdf] = useState<PdfResult | null>(null);
   const [pdfUrl, setPdfUrl] = useState(''); const [changeVersion, setChangeVersion] = useState(0); const [previewVersion, setPreviewVersion] = useState(-1);
   const [savedId, setSavedId] = useState(''); const mounted = useRef(true);
+  const actionLock = useRef(false);
   const uploadSequence = useRef(0);
   const activeSnapshot = useRef(snapshot); activeSnapshot.current = snapshot;
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(()=>{
     const changed=changeVersion>0&&!savedId;onDraftChange(changed);
-    if(!changed)return;
+    if(!changed && !busy)return;
     const beforeUnload=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
     window.addEventListener('beforeunload',beforeUnload);return()=>window.removeEventListener('beforeunload',beforeUnload);
-  },[changeVersion,savedId,onDraftChange]);
+  },[changeVersion,savedId,onDraftChange,busy]);
   useEffect(() => {
     const { loadContext: fetchContext, author, copy: sourceCopy } = sourceRequest.current;
     let active = true; uploadSequence.current++; setLoading(false); setSnapshot(null); setPdf(null); setError(''); setMessage(''); setOriginal(undefined); setLogo(undefined); setLogoWarning(''); setSavedId('');
@@ -195,31 +205,35 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
     if (mounted.current) { setPdf(result); setPreviewVersion(changeVersion); } return result;
   };
   const act = async (action: 'preview' | 'download' | 'print' | 'save') => {
-    if (!snapshot || busy || loading) return;
-    setBusy(true); setError(''); setMessage('');
-    const printWindow = action === 'print' ? window.open('', '_blank') : null;
-    if (printWindow) printWindow.opener = null;
+    if (!snapshot || actionLock.current || loading) return;
+    if (action === 'save' && (!props.permissions.save || missing.length || savedId || (d.sourceMode === 'original' && !original && !snapshot.parentDocumentId))) return;
+    if (action === 'preview' ? !props.permissions.preview : action !== 'save' && !props.permissions.export) return;
+    actionLock.current = true; props.onWorkingChange(true); setBusy(true); setError(''); setMessage('');
+    let printWindow: Window | null = null;
     const chosen = snapshot;
     try {
+      if (action === 'print') { printWindow = window.open('', '_blank'); if (printWindow) printWindow.opener = null; }
       const result = await generate(); if (!mounted.current || activeSnapshot.current !== chosen) { printWindow?.close(); return; }
       if (action === 'download') downloadBytes(result.bytes, centralFileName(chosen));
       if (action === 'print') {
         if (!printWindow) throw new Error('Der Browser hat das Druckfenster blockiert. Bitte Pop-ups für CareSuite erlauben.');
+        const readyWindow = printWindow;
         const url = URL.createObjectURL(new Blob([new Uint8Array(result.bytes)], { type: 'application/pdf' }));
-        printWindow.location.replace(url); printWindow.addEventListener('load', () => { try { printWindow.print(); } catch { /* Browser PDF viewer retains its own print control. */ } }, { once: true });
+        readyWindow.location.replace(url); readyWindow.addEventListener('load', () => { try { readyWindow.print(); } catch { /* Browser PDF viewer retains its own print control. */ } }, { once: true });
         setTimeout(() => URL.revokeObjectURL(url), 60000); setMessage('PDF-Druckansicht geöffnet. Falls kein Dialog erscheint, verwenden Sie das Drucksymbol der PDF-Ansicht.');
       }
       if (action === 'save') {
         const saved = await props.save(chosen, result.bytes, original); if (!mounted.current) return;
         if (!saved.ok) throw new Error(saved.error);
-        setSavedId(saved.data.id); setMessage(props.demo ? 'Entwurf in dieser Demo-Sitzung abgelegt. PDF-Prüfwert gespeichert.' : `Entwurf in der ${targetNames[d.target]} gespeichert. PDF-Prüfwert serverseitig erstellt.`); props.onSaved();
+        setSavedId(saved.data.id); setMessage(props.demo ? 'Entwurf in dieser Demo-Sitzung abgelegt.' : `Entwurf in der ${targetNames[d.target]} gespeichert.`); props.onSaved();
       }
     } catch (cause) { printWindow?.close(); if (mounted.current) setError(cause instanceof Error ? cause.message : 'Die Aktion konnte nicht abgeschlossen werden.'); }
-    finally { if (mounted.current) setBusy(false); }
+    finally { actionLock.current = false; if (mounted.current) { props.onWorkingChange(false); setBusy(false); } }
   };
   const entities = d.target === 'client' ? props.clients : props.employees;
   const refreshSources = async () => {
-    if (!snapshot || busy || loading) return;
+    if (!snapshot || actionLock.current || loading) return;
+    actionLock.current = true; props.onWorkingChange(true);
     const chosen = snapshot; setBusy(true); setError(''); setMessage('');
     try {
       const result = await props.loadContext(d.target, entityId, d, chosen.context.procedure);
@@ -231,13 +245,13 @@ function CentralCatalogEditor(props: CentralCatalogWorkspaceProps & { definition
       catch (cause) { if (mounted.current) setLogoWarning(cause instanceof Error ? cause.message : 'Unternehmenslogo nicht verfügbar.'); }
       if (mounted.current) setMessage('Gespeicherte Angaben aktualisiert. Individuelle Eingaben bleiben erhalten.');
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : 'Stammdaten konnten nicht aktualisiert werden.'); }
-    finally { if (mounted.current) setBusy(false); }
+    finally { actionLock.current = false; if (mounted.current) { props.onWorkingChange(false); setBusy(false); } }
   };
   return <section className="csdc-panel csdc-editor">
     <div className="csdc-panel-heading"><div><span className="csdc-eyebrow">{d.categoryName}</span><h2>{d.title}</h2><p>{layoutNames[d.layout]} · {d.orientation === 'landscape' ? 'A4 quer' : 'A4 hoch'} · {targetNames[d.target]}</p></div><span className="csdc-badge">Entwurf · v{d.version}</span></div>
     <p className="csdc-instructions">{d.instructions}</p>
-    {props.entityError ? <p role="alert" className="csdc-alert">{props.entityError}</p> : null}
-    {d.target !== 'company' ? <CentralCatalogEntitySelect entities={entities} label={d.target === 'client' ? 'Klient:in / Patient:in auswählen' : 'Mitarbeiter:in auswählen'} disabled={busy || props.loadingEntities || !props.permissions.create} value={entityId} onChange={(id) => {
+    {props.entityError ? <div role="alert" className="csdc-alert"><p>{props.entityError}</p>{props.onRefreshEntities ? <button className="csdc-button secondary" disabled={props.loadingEntities} onClick={props.onRefreshEntities}>Aktenauswahl erneut laden</button> : null}</div> : null}
+    {d.target !== 'company' ? <CentralCatalogEntitySelect entities={entities} label={d.target === 'client' ? 'Klient:in / Patient:in auswählen' : 'Mitarbeiter:in auswählen'} selectedLabel={snapshot?.context.subject.name} disabled={busy || props.loadingEntities || !props.permissions.create} value={entityId} onChange={(id) => {
       if (changeVersion > 0 && !savedId && !window.confirm('Ungespeicherte Änderungen verwerfen und eine andere Akte auswählen?')) return false;
       uploadSequence.current++; setChangeVersion(0); setSnapshot(null); setPdf(null); setEntityId(id); return true;
     }} /> : null}

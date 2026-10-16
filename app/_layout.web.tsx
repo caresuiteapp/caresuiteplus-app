@@ -16,6 +16,7 @@ import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScal
 import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effects';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
 import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
+import { documentsWorkspaceRouteTitle } from '@/lib/navigation/documentsWorkspaceRoutes';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
@@ -59,6 +60,8 @@ const POPUP_TITLES: Record<string, string> = {
 };
 
 function popupTitle(pathname: string): string {
+  const documentTitle = documentsWorkspaceRouteTitle(pathname);
+  if (documentTitle) return documentTitle;
   const segment = pathname.split('/').filter(Boolean).at(-1) ?? '';
   return POPUP_TITLES[segment] ?? decodeURIComponent(segment).replace(/-/g, ' ');
 }
