@@ -72,7 +72,7 @@ describe('web navigation hydration', () => {
     expect(host.textContent).toBe('Live-Status');
     expect(unmounted).not.toHaveBeenCalled();
   });
-  it.each(['/auth/forgot-password', '/auth/reset-password', '/support'])('keeps public %s available while a saved session is pending', async pathname => {
+  it.each(['/auth/forgot-password', '/auth/reset-password', '/support', '/hilfe'])('keeps public %s available while a saved session is pending', async pathname => {
     state.pathname = pathname; state.authReady = false;
     host.innerHTML = renderToString(<WebNavigationMount><section>Öffentliche Seite</section></WebNavigationMount>);
     await act(async () => { root = hydrateRoot(host, <WebNavigationMount><section>Öffentliche Seite</section></WebNavigationMount>); });

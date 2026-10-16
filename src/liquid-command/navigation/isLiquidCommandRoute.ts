@@ -1,5 +1,6 @@
 const LIQUID_ROUTE_ROOTS = [
   '/liquid-command',
+  '/hilfe',
   '/auth',
   '/office',
   '/unternehmen',

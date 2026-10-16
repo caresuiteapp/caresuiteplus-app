@@ -11,7 +11,7 @@ import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 
 const PUBLIC_STARTUP_PATHS = new Set([
   '/auth/forgot-password', '/auth/reset-password', '/auth/recovery-bridge',
-  '/support', '/impressum', '/datenschutz', '/nutzungsbedingungen', '/agb',
+  '/hilfe', '/support', '/impressum', '/datenschutz', '/nutzungsbedingungen', '/agb',
 ]);
 
 /**

@@ -6,6 +6,7 @@ import type { AppRoute, RouteGroup } from '@/types/navigation/routes';
  */
 export const APP_ROUTES: AppRoute[] = [
   { path: '/', label: 'Start', group: 'public', requiresAuth: false },
+  { path: '/hilfe', label: 'Hilfe & Anleitungen', group: 'public', requiresAuth: false },
   { path: '/fundament', label: 'Fundament', group: 'system', requiresAuth: false },
   { path: '/design-system', label: 'Design System', group: 'system', requiresAuth: false },
 

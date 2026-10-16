@@ -9,6 +9,17 @@ function page(id: string, path: string) { window.history.replaceState({ id }, ''
 beforeEach(() => { window.sessionStorage.clear(); vi.restoreAllMocks(); });
 
 describe('actual Web continuity helpers', () => {
+  it('preserves the original work page when help topics change and the help page reloads', () => {
+    page('record', '/business/office/clients?client=one');
+    page('help', '/hilfe?artikel=klienten-akte');
+    page('help', '/hilfe?artikel=dokument-katalog');
+    expect(canGoBackWebPage('account-a')).toBe(true);
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    expect(goBackWebPage('account-a')).toBe(true);
+    expect(back).toHaveBeenCalledOnce();
+    const saved = JSON.parse(window.sessionStorage.getItem('caresuite.web.page-history.v1')!);
+    expect(saved.entries.map((entry: { path: string }) => entry.path)).toEqual(['/business/office/clients?client=one', '/hilfe?artikel=dokument-katalog']);
+  });
   it('uses the browser entry before reload when Expo no longer has a memory stack', () => {
     page('desktop', '/'); page('list', '/business/office/clients'); page('record', '/business/office/clients?client=one');
     expect(canGoBackWebPage('account-a')).toBe(true);

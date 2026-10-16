@@ -22,7 +22,7 @@ export function isPlatformRegistrationPath(path: string): boolean {
 export function isPlatformRuntimeExemptPath(path: string): boolean {
   const clean = path.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
   return clean === '/platform' || clean.startsWith('/platform/') || [
-    '/impressum', '/datenschutz', '/nutzungsbedingungen', '/agb', '/support',
+    '/impressum', '/datenschutz', '/nutzungsbedingungen', '/agb', '/support', '/hilfe',
     '/auth/forgot-password', '/auth/reset-password', '/auth/recovery-bridge',
   ].includes(clean);
 }
