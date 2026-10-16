@@ -69,6 +69,22 @@ describe('Neo complete voice turns', () => {
     await completeAudio(); expect(deps.navigate).toHaveBeenCalledWith('/office/clients/anna%2F1');
     expect(panel().dataset.active).toBe('false');
   });
+  it('keeps listening through a short topic, a clarification and a natural follow-up', async () => {
+    mount(); lastRecognition().say('Eine Rechnung'); await tick(1100); await completeAudio();
+    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Rechnungsübersicht');
+    lastRecognition().say('Ich möchte eine neue erstellen'); await tick(1100); await completeAudio();
+    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Die Abrechnung vorbereiten');
+    lastRecognition().say('Das habe ich gemacht'); await tick(1100); await completeAudio();
+    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Schritt 2');
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(4);
+  });
+  it('keeps the clarification in text mode without restarting the microphone', async () => {
+    mount(); textMessage('Urlaub'); await flush(); await completeAudio();
+    textMessage('Im Kalender'); await flush(); await completeAudio();
+    expect(panel().textContent).toContain('Verfügbarkeiten und Abwesenheiten im Kalender pflegen');
+    expect(FakeRecognition.all).toHaveLength(1); expect(panel().dataset.active).toBe('false');
+    expect(deps.navigate).not.toHaveBeenCalled();
+  });
   it('combines final fragments and revised interim speech before executing once', async () => {
     mount(); const r = lastRecognition();
     r.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });

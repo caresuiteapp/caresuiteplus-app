@@ -66,7 +66,23 @@ export function neoNavigation(input: string): NeoDestination | null {
     .replace(/^(?:wo finde ich|wo ist|wo sind|bring mich|fuhr mich|lass uns|lass mich|offne|offnen|zeige|zeig|gehe|geh|wechsle|wechsel|navigiere) /, '')
     .replace(/^(?:(?:mir|mich|zu|zur|zum|in|auf|die|der|das|den|dem|meine|meinen|meinem|unseren|unsere) )+/, '')
     .replace(/ (?:sehen|ansehen|anschauen|offnen|anzeigen|zeigen|wechseln|gehen|haben)$/, '');
-  return NEO_DESTINATIONS.find(d => d.words.includes(target) || (d.key === 'home' && ['desktop', 'mein desktop', 'ubersicht'].includes(target))) ?? null;
+  const exact = NEO_DESTINATIONS.find(d => d.words.includes(target) || (d.key === 'home' && ['desktop', 'mein desktop', 'ubersicht'].includes(target)));
+  if (exact) return exact;
+
+  // Word order may vary, but every remaining word must belong to a navigation
+  // request. A topic mentioned in an unrelated sentence never triggers a route.
+  if (/\b(?:wenn|falls|ob|vielleicht|spater|morgen|statt|oder)\b/.test(text)) return null;
+  if (!/\b(?:offne|offnen|aufmachen|auf|anzeigen|zeige|zeig|zeigen|ansehen|anschauen|sehen|finde|finden|bring|bringen|fuhre|fuhren|wechseln|gehe|gehen)\b/.test(text)) return null;
+  const mentions = NEO_DESTINATIONS.flatMap(destination => {
+    const words = [...destination.words, ...(destination.key === 'home' ? ['desktop'] : []), ...(destination.key === 'employees' ? ['mitarbeitenden', 'mitarbeitern'] : [])].sort((a, b) => b.length - a.length);
+    const word = words.find(value => (` ${text} `).includes(` ${value} `));
+    return word ? [{ destination, word }] : [];
+  });
+  if (mentions.length !== 1) return null;
+  const { destination, word } = mentions[0];
+  const rest = (` ${text} `).replace(` ${word} `, ' ').trim().split(' ').filter(Boolean);
+  const grammar = new Set('ich du mir mich wir uns kann kannst konnte konntest wurdest wurde mochte mochten will wollen gern gerade jetzt einmal noch eigentlich auch da dort hier zu zum zur in im auf an die der das den dem dieser diese dieses meinen meine meinem unseren unsere unserem mit fur von einer eine einen einem seite bereich ubersicht liste aufmachen mach mache machen auf offne offnen anzeigen zeige zeig zeigen sehen ansehen anschauen wo finde finden ist sind bring bringen fuhre fuhren gehe gehen wechsle wechseln lassen lass und kannst'.split(' '));
+  return rest.every(value => grammar.has(value)) ? destination : null;
 }
 
 // Product vocabulary is shared with the maintained help catalogue. This is retrieval,
