@@ -78,9 +78,8 @@ describe('web navigation hydration', () => {
     await act(async () => { root = hydrateRoot(host, <WebNavigationMount><section>Öffentliche Seite</section></WebNavigationMount>); });
     expect(host.textContent).toBe('Öffentliche Seite');
   });
-  it('restores the original complete address after a deferred navigator collapses it, once only', async () => {
+  it.each(['/business/office/clients?client=record-1&tab=dokumente#upload', '/Desktop?area=decisions#widgets'])('restores the complete address %s after a deferred navigator collapses it, once only', async (target) => {
     vi.useFakeTimers();
-    const target = '/business/office/clients?client=record-1&tab=dokumente#upload';
     window.history.replaceState({}, '', target);
     state.authReady = false;
     function DeferredNavigator() {

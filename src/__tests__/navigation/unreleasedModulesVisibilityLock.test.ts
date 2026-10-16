@@ -19,7 +19,7 @@ describe('globale Sichtbarkeits- und Routensperre unveroeffentlichter Module', (
 
     expect(decision.shouldRedirect).toBe(true);
     expect(decision.reason).toBe('module_disabled');
-    expect(decision.target).toBe('/');
+    expect(decision.target).toBe('/Desktop');
   });
 
   it('entfernt die Produkte auch aus Dock und Befehlspalette', () => {

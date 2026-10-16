@@ -2,6 +2,7 @@ import { HelpButton } from '@/components/help/HelpButton.web';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium.web';
 import { WebNavigationMount } from '@/components/navigation/WebNavigationMount';
 import { useWebBackNavigation } from '@/hooks/useWebBackNavigation.web';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
@@ -102,7 +103,7 @@ function RootShell() {
     const platformConsoleRoute = pathname === '/platform' || pathname.startsWith('/platform/');
     const internalOrbit = isLiquidCommandRoute && !showChoice && !isDeviceLogin && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
-    document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/' && !showChoice);
+    document.documentElement.toggleAttribute('data-cs-central-home', pathname === WEB_DESKTOP_ROUTE);
     document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
     return () => {
       document.documentElement.removeAttribute('data-cs-orbit-internal');

@@ -121,7 +121,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
   const headerNarrow = width - (compact ? 24 : 40) < 780 * Math.max(1, fontScale);
-  const headerStacked = width - (compact ? 24 : 40) < 1510 * Math.max(1, fontScale);
+  const headerStacked = width - (compact ? 24 : 40) < 1360 * Math.max(1, fontScale);
   const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(234 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
@@ -286,7 +286,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : "max-content max-content minmax(160px, 220px) max-content max-content max-content max-content max-content", justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : `max-content minmax(${280 * Math.max(1, fontScale)}px, ${360 * Math.max(1, fontScale)}px) max-content max-content max-content max-content max-content`, justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
@@ -295,7 +295,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
           <View style={[styles.neoDock, !mobile && { width: 68, height: 72 }]} {...{ dataSet: { csNeoDock: "true" } }} />
         </View>
-        <View style={[styles.infoCard, mobile && styles.infoCardMobile, { flexBasis: 400 * Math.max(1, fontScale), minWidth: mobile || headerNarrow ? 0 : 400 * Math.max(1, fontScale), flexWrap: !mobile && headerNarrow ? "wrap" : "nowrap" }, !mobile && !headerStacked && { display: "contents" } as unknown as ViewStyle]} testID="desktop-clock-weather">
+        <View style={[styles.infoCard, mobile ? styles.infoCardMobile : styles.infoCardDesktop, { flexBasis: (mobile ? 400 : 280) * Math.max(1, fontScale), minWidth: mobile || headerNarrow ? 0 : 280 * Math.max(1, fontScale), flexWrap: !mobile && headerNarrow ? "wrap" : "nowrap" }]} testID="desktop-clock-weather">
           <View style={[styles.clock, !mobile && { minWidth: 126 }, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
@@ -487,6 +487,7 @@ const styles = StyleSheet.create({
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
   profileTriggerMobile: { minHeight: 44, minWidth: 44, paddingHorizontal: 0, justifyContent: "center" },
   infoCardMobile: { minHeight: 70, flexWrap: "nowrap", paddingHorizontal: 10, paddingVertical: 7, gap: 8, borderRadius: 16 },
+  infoCardDesktop: { minHeight: 72, paddingHorizontal: 0, paddingVertical: 4, gap: 8 },
   clockMobile: { minWidth: 0, flexBasis: "42%" },
   weatherMobile: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, gap: 4 },
   dateMobile: { fontSize: 13, lineHeight: 18 },

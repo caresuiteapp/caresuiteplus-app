@@ -33,7 +33,7 @@ const moduleCategory: Record<string, DesktopCategory> = {
 export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: string | null): DesktopApp[] {
   const apps: DesktopApp[] = [];
   const knownRoutes = new Set(widgetApps.map(app => app.route));
-  const seen = new Set<string>(['/']);
+  const seen = new Set<string>(['/', '/Desktop']);
   const add = (app: DesktopApp) => {
     // Unreleased products must not leak into navigation, Apps or search through
     // static catalogues, module sub-pages or old global shortcuts.

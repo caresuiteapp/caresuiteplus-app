@@ -1,9 +1,12 @@
 import { Redirect, usePathname } from 'expo-router';
+import { Platform } from 'react-native';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 
 export default function LiquidCommandLayout() {
   const pathname = usePathname();
+  const home = Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/';
   const canonicalRoutes: Record<string, string> = {
-    '/liquid-command': '/',
+    '/liquid-command': home,
     '/liquid-command/access': '/auth',
     '/liquid-command/access/business': '/auth/business-login',
     '/liquid-command/access/employee': '/auth/employee-login',
@@ -24,7 +27,7 @@ export default function LiquidCommandLayout() {
     '/liquid-command/platform': '/platform',
     '/liquid-command/settings': '/settings',
   };
-  const target = canonicalRoutes[pathname] ?? '/';
+  const target = canonicalRoutes[pathname] ?? home;
 
   return <Redirect href={target as never} />;
 }
