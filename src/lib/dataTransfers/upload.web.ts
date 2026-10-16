@@ -7,9 +7,8 @@ const resumeUploads = new WeakMap<File, { recordId: string; url: string }>();
 
 export function resumableEndpoint(url: string): string {
   const base = new URL(url);
-  if (base.hostname.endsWith('.supabase.co') && !base.hostname.endsWith('.storage.supabase.co')) {
-    base.hostname = base.hostname.replace('.supabase.co', '.storage.supabase.co');
-  }
+  // Keep the configured project gateway. Its Storage service matches the project's
+  // schema; the separate Storage host can run a different rollout version.
   base.pathname = '/storage/v1/upload/resumable'; base.search = ''; base.hash = '';
   return base.href;
 }

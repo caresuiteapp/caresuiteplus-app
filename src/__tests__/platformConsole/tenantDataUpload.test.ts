@@ -10,7 +10,7 @@ vi.mock('tus-js-client', () => ({ Upload: class {
   start() { mocks.run?.(this); }
   abort = vi.fn(async () => {});
 } }));
-import { uploadTransferFile } from '@/lib/dataTransfers/upload.web';
+import { resumableEndpoint, uploadTransferFile } from '@/lib/dataTransfers/upload.web';
 import type { DataFile } from '@/lib/dataTransfers/service';
 const record: DataFile = { id: 'file', tenant_id: 'tenant', request_id: 'request', created_by: 'owner', name: 'Export.any', size: 4, object_path: 'tenant/request/file', state: 'pending' };
 const incomplete = Object.assign(new Error('Bitte alle Dateien vollständig hochladen oder unvollständige Dateien entfernen.'), { code: 'transfer_incomplete' });
@@ -23,6 +23,10 @@ it('recovers a lost completion response without uploading the bytes again', asyn
   mocks.action.mockReset(); mocks.action.mockResolvedValue({ ok: true });
   await uploadTransferFile(new File(['data'], record.name), record, new AbortController().signal, vi.fn());
   expect(mocks.instances).toHaveLength(0);
+});
+it('uses the configured project gateway for the live Storage schema', () => {
+  expect(resumableEndpoint('https://test.supabase.co')).toBe('https://test.supabase.co/storage/v1/upload/resumable');
+  expect(resumableEndpoint('https://custom.example.com/old?x=1#hash')).toBe('https://custom.example.com/storage/v1/upload/resumable');
 });
 it('rechecks the current identity on each chunk and never sends another account token', async () => {
   const file = new File(['data'], record.name);
