@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { discardTransferFile, formatTransferSize, listTransferFiles, transferAction, type DataFile, type DataRequest } from '@/lib/dataTransfers/service';
 import { uploadTransferFile } from '@/lib/dataTransfers/upload.web';
+import { MAX_TRANSFER_FILE_SIZE, TRANSFER_SIZE_ERROR } from '@/lib/dataTransfers/limits';
 import { TransferStyle } from './TransferStyle.web';
 
 type LocalFile = { id: string; file: File; record?: DataFile; progress: number; error?: string };
@@ -41,6 +42,9 @@ export function TenantDataUploadDialog({ request, userId, onClose, onSubmitted }
   function select(selected: File[]) {
     if (lock.current) return;
     setError('');
+    if (selected.some(file => file.size > MAX_TRANSFER_FILE_SIZE)) {
+      setError(TRANSFER_SIZE_ERROR); return;
+    }
     if (selected.some(file => !Number.isSafeInteger(file.size) || file.name.length > 255 || /[\x00-\x1f\x7f]/.test(file.name))) {
       setError('Bitte Dateinamen ohne Steuerzeichen und mit höchstens 255 Zeichen verwenden.'); return;
     }
@@ -94,7 +98,7 @@ export function TenantDataUploadDialog({ request, userId, onClose, onSubmitted }
           <div className="cs-transfer-drop" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); select(Array.from(event.dataTransfer.files)); }}>
             <label htmlFor="cs-transfer-files">Dateien auswählen oder hier ablegen</label>
             <input id="cs-transfer-files" type="file" multiple disabled={busy} onChange={event => { select(Array.from(event.target.files ?? [])); event.target.value = ''; }} />
-            <small>Alle Dateiformate, auch ZIP-Archive, Bilder und Datenexporte. Große Dateien werden in Abschnitten übertragen. Es gilt die konfigurierte Speichergrenze. Bitte dieses Fenster bis zum Abschluss geöffnet lassen.</small>
+            <small>Alle Dateiformate, auch ZIP-Archive, Bilder und Datenexporte. Maximal 2 GB pro Datei; mehrere Dateien sind möglich. Große Dateien werden in Abschnitten übertragen. Bitte dieses Fenster bis zum Abschluss geöffnet lassen.</small>
           </div>
           {local.length > 0 && <><ul className="cs-transfer-list">{local.map(item => <li className="cs-transfer-file" key={item.id}><div><strong>{item.file.name}</strong><small>{formatTransferSize(item.file.size)} · {item.progress}%</small><progress max={100} value={item.progress} aria-label={`Upload ${item.file.name}`} />{item.error && <p role="alert">{item.error}</p>}</div><button className="cs-btn" disabled={busy} onClick={() => item.record ? void remove(item.record) : setLocal(current => current.filter(entry => entry.id !== item.id))}>Entfernen</button></li>)}</ul><div className="cs-actions"><button className="cs-btn primary" disabled={busy} onClick={() => void upload()}>Dateien hochladen / fortsetzen</button>{busy && controller.current && <button className="cs-btn" onClick={() => controller.current?.abort()}>Upload pausieren</button>}</div></>}
           <section aria-label="Hochgeladene Dateien"><h3>Ihre Dateien ({total})</h3>

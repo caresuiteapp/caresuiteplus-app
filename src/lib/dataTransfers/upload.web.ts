@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { TRANSFER_BUCKET, transferAction, type DataFile } from './service';
+import { MAX_TRANSFER_FILE_SIZE, TRANSFER_SIZE_ERROR } from './limits';
 
 // Resume only the exact File object in this tab, never another account's/reselected file.
 const resumeUploads = new WeakMap<File, { recordId: string; url: string }>();
@@ -14,6 +15,7 @@ export function resumableEndpoint(url: string): string {
 }
 export async function uploadTransferFile(file: File, record: DataFile, signal: AbortSignal, progress: (percent: number) => void): Promise<void> {
   if (signal.aborted) throw new DOMException('Upload pausiert', 'AbortError');
+  if (file.size > MAX_TRANSFER_FILE_SIZE) throw new Error(TRANSFER_SIZE_ERROR);
   const client = getSupabaseClient();
   if (!client) throw new Error('Bitte erneut anmelden.');
   if (file.size !== Number(record.size) || file.name !== record.name) throw new Error('Bitte dieselbe Originaldatei auswählen.');

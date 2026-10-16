@@ -161,7 +161,7 @@ function fromRow(tenantId: string, row: SettingsRow): TenantDocumentSettings {
   };
 }
 
-function validateForm(form: TenantDocumentSettingsForm): string | null {
+export function validateTenantDocumentSettingsForm(form: TenantDocumentSettingsForm): string | null {
   const p = form.pageLayout;
   if (!p || !form.headerLayout || !form.footerLayout) return 'Die Dokumentgestaltung ist unvollständig.';
   const inRange = (value: number, min: number, max: number) => Number.isFinite(value) && value >= min && value <= max;
@@ -243,7 +243,7 @@ export async function saveTenantDocumentSettings(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    const invalid = validateForm(form);
+    const invalid = validateTenantDocumentSettingsForm(form);
     if (invalid) return { ok: false, error: invalid };
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };

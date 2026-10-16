@@ -19,9 +19,11 @@ const flush = async () => { await act(async () => { await Promise.resolve(); });
 const render = async (node: React.ReactNode) => { await act(async () => root.render(node)); await flush(); };
 const button = (text: string) => [...host.querySelectorAll('button')].find(node => node.textContent === text)!;
 const click = async (text: string) => { await act(async () => button(text).click()); await flush(); };
-async function selectFile(name = 'beliebig.backup') {
+async function selectFile(name = 'beliebig.backup', size?: number) {
   const input = host.querySelector('input[type=file]') as HTMLInputElement;
-  Object.defineProperty(input, 'files', { configurable: true, value: [new File(['export'], name)] });
+  const file = new File(['export'], name);
+  if (size !== undefined) Object.defineProperty(file, 'size', { value: size });
+  Object.defineProperty(input, 'files', { configurable: true, value: [file] });
   await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 beforeEach(() => {
@@ -34,6 +36,16 @@ beforeEach(() => {
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+it('rejects files above 2 GB before creating records and accepts the exact limit', async () => {
+  await render(<TenantDataUploadDialog request={request} userId="user-a" onClose={vi.fn()} onSubmitted={vi.fn()} />);
+  await selectFile('large.backup', 2 * 1024 * 1024 * 1024 + 1);
+  expect(host.querySelector('[role=alert]')?.textContent).toContain('maximal 2 GB');
+  expect(button('Dateien hochladen / fortsetzen')).toBeUndefined();
+  expect(api.action).not.toHaveBeenCalled();
+  await selectFile('boundary.backup', 2 * 1024 * 1024 * 1024);
+  expect(host.querySelector('[role=alert]')).toBeNull();
+  expect(button('Dateien hochladen / fortsetzen').disabled).toBe(false);
+});
 it('activates the popup for exactly the selected company and leaves an actionable retry on failure', async () => {
   await render(<TenantDataTransfers tenantId="tenant-a" />);
   api.action.mockRejectedValueOnce(new Error('Verbindung unterbrochen'));

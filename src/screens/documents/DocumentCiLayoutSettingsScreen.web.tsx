@@ -6,10 +6,13 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchTenantDocumentSettings, saveTenantDocumentSettings } from '@/lib/documents';
+import { validateTenantDocumentSettingsForm } from '@/lib/documents/tenantDocumentSettingsService.web';
+import { DOCUMENT_LOGO_ACCEPT, prepareDocumentLogo, uploadDocumentLogo, type PreparedDocumentLogo } from '@/lib/documents/documentLogoUpload.web';
 import type { RoleKey } from '@/types';
 import type { HeaderLayoutConfig, LogoPosition, TenantDocumentSettings, TenantDocumentSettingsForm } from '@/types/documents/tenantDocumentSettings';
 
 const css = `
+.dci-logo-upload{display:flex;align-items:center;gap:20px;padding:20px;border:1px dashed #b9cee7;border-radius:16px;background:#f7faff;min-width:0}.dci-logo-image{display:grid;place-items:center;flex:0 0 124px;width:124px;height:92px;padding:12px;border:1px solid #dfE8f3;border-radius:12px;background:#fff;color:#61748c;font-size:12px}.dci-logo-image img{display:block;max-width:100%;max-height:100%;object-fit:contain}.dci-logo-controls{display:grid;gap:9px;min-width:0;flex:1}.dci-logo-controls strong{font-size:13px;overflow-wrap:anywhere}.dci-logo-actions{display:flex;flex-wrap:wrap;gap:8px}.dci-logo-input{display:none}.dci-logo-controls p{margin:0}.dci-logo-actions .dw-button{width:auto}.dci-logo-upload[data-busy=true]{opacity:.75}@container(max-width:520px){.dci-logo-upload{flex-direction:column;align-items:stretch;gap:14px;padding:15px}.dci-logo-image{align-self:center;flex-basis:92px}.dci-logo-actions .dw-button{flex:1}}
 .dci-layout{display:grid;grid-template-columns:minmax(0,1fr) 286px;gap:24px;align-items:start}.dci-form{display:grid;gap:20px;min-width:0}.dci-section{padding:25px;border:1px solid #d9e4f1;border-radius:21px;background:#fff;box-shadow:0 4px 15px #254d7e08}.dci-section-heading{margin-bottom:21px}.dci-section-heading h2{margin:0;font-size:18px;color:#173451}.dci-section-heading p{font-size:13px;color:#526780;line-height:1.5;margin:7px 0 0}.dci-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.dci-fields>.dci-wide{grid-column:1/-1}.dci-hint{font-size:12px;color:#64758a;line-height:1.5;margin:5px 0 0}.dci-fieldset{padding:0;margin:0;border:0;min-width:0;display:contents}.dci-fieldset input:disabled,.dci-fieldset textarea:disabled,.dci-fieldset select:disabled{cursor:not-allowed;background:#f3f6fb;color:#63758b}.dci-colors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;grid-column:1/-1}.dci-color{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid #d6e2ef;background:#fbfdff;border-radius:12px}.dci-color input[type=color]{flex:0 0 34px;width:34px;height:34px;padding:0;border:0;cursor:pointer;background:none}.dci-color .dw-input{border:0;background:transparent;padding:4px 6px;min-width:0;box-shadow:none!important}.dci-check{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;background:#f6f9fd;border:1px solid #e0e8f3;border-radius:12px;font-size:13px;color:#284461;line-height:1.5}.dci-check input{width:17px;height:17px;flex:0 0 17px;margin:2px 0 0;accent-color:#3678cb}.dci-check strong{display:block;font-weight:600}.dci-check small{display:block;margin-top:3px;color:#61738b;font-size:12px}.dci-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.dci-savebar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 22px;border:1px solid #d4e2f4;border-radius:18px;background:#f4f8ff}.dci-savebar p{margin:0;font-size:13px;line-height:1.5;color:#526681}.dci-save-actions{display:flex;gap:10px;flex-wrap:wrap}.dci-preview{position:sticky;top:20px;display:grid;gap:14px}.dci-preview-heading{font-size:13px;font-weight:600;color:#405d7e;margin:0}.dci-sheet{background:#fff;border:1px solid #d6e1ef;border-radius:5px;box-shadow:0 12px 32px #17375414;aspect-ratio:210/297;min-width:0;padding:25px 23px;display:flex;flex-direction:column;position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s}.dci-sheet:hover{box-shadow:0 18px 35px #17375420;transform:translateY(-2px)}.dci-sheet-header{display:flex;flex-direction:column;min-height:52px;color:var(--dci-primary);gap:6px}.dci-sheet-header[data-position=left]{align-items:flex-start}.dci-sheet-header[data-position=center]{align-items:center;text-align:center}.dci-sheet-header[data-position=right]{align-items:flex-end;text-align:right}.dci-sheet-header strong{font-size:13px;overflow-wrap:anywhere;line-height:1.3}.dci-sheet-logo{max-height:44px;object-fit:contain;max-width:100%;width:auto}.dci-sheet-logo-placeholder{padding:8px 12px;border-radius:6px;border:1px dashed #c9d8e9;font-size:10px;color:#697d94}.dci-sheet-accent{height:3px;background:var(--dci-accent);border-radius:2px;margin:12px 0 26px}.dci-sheet-address{width:65%;display:grid;gap:5px;margin-bottom:26px}.dci-sheet-line{height:4px;border-radius:3px;background:#e4ebf4}.dci-sheet-address .dci-sheet-line:last-child{width:72%}.dci-sheet-subject{font-size:12px;font-weight:700;color:var(--dci-primary);margin:0 0 15px}.dci-sheet-body{display:grid;gap:7px}.dci-sheet-body .dci-sheet-line{background:var(--dci-secondary);opacity:.22;height:3px}.dci-sheet-body .dci-sheet-line:last-child{width:75%}.dci-sheet-signature{width:46%;height:1px;background:#aabbd0;margin-top:32px}.dci-sheet-footer{margin-top:auto;padding-top:15px;display:grid;gap:5px;color:#687c95;font-size:8px;line-height:1.5;overflow-wrap:anywhere}.dci-sheet-footer:before{content:'';height:1px;background:#dfe7f1;margin-bottom:5px}.dci-preview-note{font-size:12px;color:#61748c;line-height:1.6;margin:0}.dci-dimensions{display:flex;gap:8px;flex-wrap:wrap}.dci-refresher{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}.dci-form textarea{min-height:105px;resize:vertical;font:inherit;line-height:1.55}.dci-readonly{margin-bottom:20px}.dci-layout small{font-family:inherit}.dci-subheading{font-size:14px;color:#2b4564;margin:5px 0 12px}.dci-custom-footer{margin-top:18px}.dci-custom-footer summary{cursor:pointer;font-size:13px;color:#315c94;padding:10px 0}.dci-custom-footer summary:focus-visible{outline:3px solid #93b8ed;border-radius:6px}.dci-footer-type{border-top:1px solid #e0e8f3;padding-top:16px;margin-top:16px}.dci-footer-type h3{font-size:14px;color:#254461;margin:0 0 12px}.dci-footer-type .dw-field{margin-top:12px}
 @container (max-width:1050px){.dci-layout{grid-template-columns:minmax(0,1fr) 235px}.dci-section{padding:21px}.dci-colors{grid-template-columns:1fr}.dci-sheet{padding:20px 18px}}
 @container (max-width:780px){.dci-layout{grid-template-columns:1fr}.dci-preview{position:static;display:grid;grid-template-columns:minmax(180px,260px) minmax(0,1fr);align-items:start}.dci-preview-heading{grid-column:1/-1}.dci-sheet{grid-row:2/5}.dci-fields{grid-template-columns:1fr}.dci-checks{grid-template-columns:1fr}.dci-colors{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -56,19 +59,27 @@ function LayoutSettingsForm({ tenantId, roleKey, canEdit, onStatusChange }: { te
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState<string | null>(null);
+  const [pendingLogo, setPendingLogo] = useState<PreparedDocumentLogo | null>(null);
+  const [preparingLogo, setPreparingLogo] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadedLogo = useRef<{ uploadId: string; url: string } | null>(null);
+  const editable = useRef(canEdit);
+  editable.current = canEdit;
   const saveLock = useRef(false);
   const mounted = useRef(true);
   const form = draft ?? (query.data ? toForm(query.data) : null);
-  const dirty = draft !== null;
+  const dirty = draft !== null || pendingLogo !== null;
+  const busy = saving || preparingLogo;
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useEffect(() => { onStatusChange(dirty, saving); return () => onStatusChange(false, false); }, [dirty, saving, onStatusChange]);
+  useEffect(() => { onStatusChange(dirty, busy); return () => onStatusChange(false, false); }, [dirty, busy, onStatusChange]);
+  useEffect(() => { const url = pendingLogo?.previewUrl; return () => { if (url) URL.revokeObjectURL(url); }; }, [pendingLogo?.previewUrl]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !busy) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
+  }, [dirty, busy]);
 
   const patch = <K extends keyof TenantDocumentSettingsForm,>(key: K, value: TenantDocumentSettingsForm[K]) => {
     if (!form || !canEdit || saveLock.current) return;
@@ -77,20 +88,55 @@ function LayoutSettingsForm({ tenantId, roleKey, canEdit, onStatusChange }: { te
     setSaveError(null);
   };
 
+  const selectLogo = async (file: File) => {
+    if (!form || !canEdit || saveLock.current) return;
+    saveLock.current = true;
+    setPreparingLogo(true); setSaved(false); setSaveError(null);
+    onStatusChange(true, true);
+    try {
+      const prepared = await prepareDocumentLogo(file);
+      if (!mounted.current || !editable.current) { if (prepared.ok) URL.revokeObjectURL(prepared.data.previewUrl); return; }
+      if (!prepared.ok) { setSaveError(prepared.error); return; }
+      uploadedLogo.current = null;
+      setPendingLogo(prepared.data);
+      setLogoFailed(null);
+    } catch { if (mounted.current) setSaveError('Das Logo konnte nicht gelesen werden. Bitte wählen Sie die Datei erneut aus.'); }
+    finally { saveLock.current = false; if (mounted.current) setPreparingLogo(false); }
+  };
+
+  const removeLogo = () => {
+    if (!form || !canEdit || saveLock.current) return;
+    setPendingLogo(null); uploadedLogo.current = null;
+    setDraft({ ...form, logoUrl: null, logoNaturalWidthPx: null, logoNaturalHeightPx: null });
+    setLogoFailed(null); setSaved(false); setSaveError(null);
+  };
+
   const save = async () => {
     if (!form || !canEdit || !dirty || saveLock.current) return;
-    const colorsValid = [form.primaryColor, form.secondaryColor, form.accentColor].every((color) => /^#[a-f\d]{6}$/i.test(color));
-    if (!colorsValid) { setSaveError('Bitte geben Sie die Farben als Hex-Farbwert ein, zum Beispiel #2457A6.'); return; }
-    if (form.logoUrl?.trim() && !safeLogo(form.logoUrl)) { setSaveError('Bitte geben Sie für das Logo eine vollständige Adresse mit https:// ein.'); return; }
-    if (!Number.isInteger(form.defaultPaymentTermsDays) || form.defaultPaymentTermsDays < 0 || form.defaultPaymentTermsDays > 365) { setSaveError('Das Zahlungsziel muss zwischen 0 und 365 Tagen liegen.'); return; }
+    const invalid = validateTenantDocumentSettingsForm(form);
+    if (invalid) { setSaveError(invalid); return; }
     saveLock.current = true;
     setSaving(true);
     setSaveError(null);
     setSaved(false);
+    onStatusChange(true, true);
     try {
-      const result = await saveTenantDocumentSettings(tenantId, form, roleKey);
+      let next = form;
+      if (pendingLogo) {
+        let logoUrl = uploadedLogo.current?.uploadId === pendingLogo.uploadId ? uploadedLogo.current.url : null;
+        if (!logoUrl) {
+          const upload = await uploadDocumentLogo(tenantId, pendingLogo, roleKey);
+          if (!mounted.current || !editable.current) return;
+          if (!upload.ok) { setSaveError(upload.error); return; }
+          logoUrl = upload.data;
+          uploadedLogo.current = { uploadId: pendingLogo.uploadId, url: logoUrl };
+        }
+        next = { ...form, logoUrl, logoNaturalWidthPx: pendingLogo.width, logoNaturalHeightPx: pendingLogo.height };
+      }
+      if (!mounted.current || !editable.current) return;
+      const result = await saveTenantDocumentSettings(tenantId, next, roleKey);
       if (!mounted.current) return;
-      if (result.ok) { query.setData(result.data); setDraft(null); setSaved(true); }
+      if (result.ok) { query.setData(result.data); setDraft(null); setPendingLogo(null); uploadedLogo.current = null; setSaved(true); }
       else setSaveError(result.error);
     } catch (error) {
       if (mounted.current) setSaveError(error instanceof Error ? error.message : 'Die Einstellungen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.');
@@ -102,19 +148,25 @@ function LayoutSettingsForm({ tenantId, roleKey, canEdit, onStatusChange }: { te
 
   if (query.loading && !form) return <div className="dw-empty" role="status"><h2>Dokumentgestaltung wird geladen</h2><p>Ihre gespeicherten Einstellungen werden abgerufen.</p></div>;
   if (!form) return <div className="dw-alert" data-tone="danger" role="alert"><p>{query.error || 'Die Dokumentgestaltung konnte nicht geladen werden.'}</p><button className="dw-button" type="button" onClick={() => void query.refresh()}>Erneut versuchen</button></div>;
-  const logo = safeLogo(form.logoUrl);
+  const logo = pendingLogo?.previewUrl ?? safeLogo(form.logoUrl);
   const color = (value: string, fallback: string) => /^#[a-f\d]{6}$/i.test(value) ? value : fallback;
 
   return <>
     {!canEdit ? <div className="dw-alert dci-readonly" data-tone="info">Sie können diese Einstellungen ansehen. Zum Ändern benötigen Sie die Berechtigung zur Vorlagenverwaltung.</div> : null}
-    <div className="dci-refresher"><span className="dw-muted">{dirty ? 'Ungespeicherte Änderungen' : query.data?.updatedAt && !Number.isNaN(Date.parse(query.data.updatedAt)) ? `Zuletzt gespeichert: ${new Date(query.data.updatedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Einstellungen für Ihr Unternehmen'}</span><button className="dw-button dw-button--quiet" type="button" onClick={() => void query.refresh()} disabled={dirty || saving || query.refreshing} title={dirty ? 'Speichern oder verwerfen Sie zuerst Ihre Änderungen.' : undefined}>{query.refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</button></div>
+    <div className="dci-refresher"><span className="dw-muted">{dirty ? 'Ungespeicherte Änderungen' : query.data?.updatedAt && !Number.isNaN(Date.parse(query.data.updatedAt)) ? `Zuletzt gespeichert: ${new Date(query.data.updatedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Einstellungen für Ihr Unternehmen'}</span><button className="dw-button dw-button--quiet" type="button" onClick={() => void query.refresh()} disabled={dirty || busy || query.refreshing} title={dirty ? 'Speichern oder verwerfen Sie zuerst Ihre Änderungen.' : undefined}>{query.refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</button></div>
     {query.refreshError ? <div className="dw-alert" data-tone="danger" role="alert">{query.refreshError}</div> : null}
     <div className="dci-layout">
       <form className="dci-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-        <fieldset className="dci-fieldset" disabled={!canEdit || saving}>
+        <fieldset className="dci-fieldset" disabled={!canEdit || busy}>
           <Section title="Logo & Farben" description="Legen Sie das Erscheinungsbild Ihrer Geschäftsdokumente fest.">
             <div className="dci-fields">
-              <Field label="Logo-Adresse" hint="Vollständige Bildadresse. Das Seitenverhältnis des Logos bleibt erhalten." wide><input className="dw-input" type="url" value={form.logoUrl ?? ''} placeholder="https://…" onChange={(event) => { if (!canEdit || saveLock.current) return; setDraft({ ...form, logoUrl: event.target.value || null, logoNaturalWidthPx: null, logoNaturalHeightPx: null }); setSaved(false); setSaveError(null); }} /></Field>
+              <div className="dw-field dci-wide"><span className="dw-label" id="dci-logo-label">Unternehmenslogo</span><div className="dci-logo-upload" data-busy={busy}>
+                <div className="dci-logo-image">{logo && logo !== logoFailed ? <img src={logo} alt="Ausgewähltes Unternehmenslogo" onError={() => setLogoFailed(logo)} /> : <span>{logo ? 'Logo nicht verfügbar' : 'Ihr Logo'}</span>}</div>
+                <div className="dci-logo-controls"><strong>{preparingLogo ? 'Logo wird geprüft …' : pendingLogo?.file.name ?? (logo ? 'Gespeichertes Logo' : 'Logo als Datei auswählen')}</strong><p className="dci-hint">PNG, JPG oder WebP · maximal 5 MB. Das Seitenverhältnis bleibt erhalten.</p>
+                  {canEdit ? <><input ref={fileInput} className="dci-logo-input" type="file" accept={DOCUMENT_LOGO_ACCEPT} aria-labelledby="dci-logo-label" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void selectLogo(file); }} /><div className="dci-logo-actions"><button type="button" className="dw-button dw-button--primary" onClick={() => fileInput.current?.click()}>{logo ? 'Logo ersetzen' : 'Logo hochladen'}</button>{logo ? <button type="button" className="dw-button dw-button--quiet" onClick={removeLogo}>Logo entfernen</button> : null}</div></> : null}
+                  {pendingLogo ? <p className="dci-hint" role="status">Ausgewählt – wird mit „Änderungen speichern“ hochgeladen.</p> : null}
+                </div>
+              </div></div>
               <Field label="Logo-Breite (mm)"><input className="dw-input" type="number" min={5} max={150} step={1} value={Number.isFinite(form.logoWidthMm) ? form.logoWidthMm : ''} onChange={(event) => patch('logoWidthMm', event.target.valueAsNumber)} required /></Field>
               <Field label="Logo-Ausrichtung"><select className="dw-select" value={form.headerLayout.logoPosition} onChange={(event) => patch('headerLayout', { ...form.headerLayout, logoPosition: event.target.value as LogoPosition })}><option value="left">Links</option><option value="center">Zentriert</option><option value="right">Rechts</option></select></Field>
               <div className="dci-colors">{([{ key: 'primaryColor', label: 'Hauptfarbe' }, { key: 'secondaryColor', label: 'Textfarbe' }, { key: 'accentColor', label: 'Akzentfarbe' }] as const).map(({ key, label }) => <div className="dw-field" key={key}><label className="dw-label" htmlFor={`dci-${key}`}>{label}</label><div className="dci-color"><input type="color" value={color(form[key], '#2457a6')} onChange={(event) => patch(key, event.target.value)} aria-label={`${label} auswählen`} tabIndex={-1} /><input id={`dci-${key}`} className="dw-input" value={form[key]} onChange={(event) => patch(key, event.target.value)} maxLength={7} spellCheck={false} required /></div></div>)}</div>
@@ -156,12 +208,12 @@ function LayoutSettingsForm({ tenantId, roleKey, canEdit, onStatusChange }: { te
         </fieldset>
         {saveError ? <div className="dw-alert" data-tone="danger" role="alert">{saveError}</div> : null}
         {saved ? <div className="dw-alert" data-tone="success" role="status">Die Dokumentgestaltung wurde gespeichert.</div> : null}
-        {canEdit ? <div className="dci-savebar"><p>{saving ? 'Ihre Einstellungen werden gespeichert …' : dirty ? 'Ihre Änderungen sind noch nicht gespeichert.' : 'Alle Änderungen sind gespeichert.'}</p><div className="dci-save-actions"><button type="button" className="dw-button dw-button--quiet" disabled={!dirty || saving} onClick={() => { setDraft(null); setSaved(false); setSaveError(null); }}>Verwerfen</button><button type="submit" className="dw-button dw-button--primary" disabled={!dirty || saving}>{saving ? 'Wird gespeichert …' : 'Änderungen speichern'}</button></div></div> : null}
+        {canEdit ? <div className="dci-savebar"><p>{preparingLogo ? 'Das Logo wird vorbereitet …' : saving ? 'Logo und Einstellungen werden gespeichert …' : dirty ? 'Ihre Änderungen sind noch nicht gespeichert.' : 'Alle Änderungen sind gespeichert.'}</p><div className="dci-save-actions"><button type="button" className="dw-button dw-button--quiet" disabled={!dirty || busy} onClick={() => { if (saveLock.current) return; setDraft(null); setPendingLogo(null); uploadedLogo.current = null; setLogoFailed(null); setSaved(false); setSaveError(null); }}>Verwerfen</button><button type="submit" className="dw-button dw-button--primary" disabled={!dirty || busy}>{saving ? 'Wird gespeichert …' : 'Änderungen speichern'}</button></div></div> : null}
       </form>
       <aside className="dci-preview" aria-label="Schematische Gestaltungsvorschau">
         <h2 className="dci-preview-heading">Gestaltung im Überblick</h2>
         <div className="dci-sheet" style={{ '--dci-primary': color(form.primaryColor, '#2457a6'), '--dci-secondary': color(form.secondaryColor, '#334155'), '--dci-accent': color(form.accentColor, '#3b82f6'), fontFamily: form.fontFamily } as CSSProperties} aria-hidden="true">
-          <div className="dci-sheet-header" data-position={form.headerLayout.logoPosition}>{logo && logo !== logoFailed ? <img className="dci-sheet-logo" src={logo} alt="" onLoad={(event) => { if (!canEdit || saveLock.current || !draft || draft.logoUrl === query.data?.logoUrl) return; const image = event.currentTarget; if (!image.naturalWidth || !image.naturalHeight) return; const width = image.naturalWidth; const height = image.naturalHeight; setDraft((current) => current?.logoUrl === form.logoUrl ? { ...current, logoNaturalWidthPx: width, logoNaturalHeightPx: height } : current); }} onError={() => setLogoFailed(logo)} /> : <span className="dci-sheet-logo-placeholder">{logoFailed === logo && logo ? 'Logo nicht erreichbar' : 'Ihr Logo'}</span>}{form.headerLayout.showCompanyName ? <strong>Ihr Unternehmen</strong> : null}</div>
+          <div className="dci-sheet-header" data-position={form.headerLayout.logoPosition}>{logo && logo !== logoFailed ? <img className="dci-sheet-logo" src={logo} alt="" onError={() => setLogoFailed(logo)} /> : <span className="dci-sheet-logo-placeholder">{logoFailed === logo && logo ? 'Logo nicht erreichbar' : 'Ihr Logo'}</span>}{form.headerLayout.showCompanyName ? <strong>Ihr Unternehmen</strong> : null}</div>
           {form.headerLayout.showAccentLine ? <div className="dci-sheet-accent" /> : <div style={{ height: 35 }} />}
           <div className="dci-sheet-address"><div className="dci-sheet-line" /><div className="dci-sheet-line" /><div className="dci-sheet-line" /></div>
           <p className="dci-sheet-subject">{form.headerLayout.showDocumentType ? 'Geschäftsdokument' : 'Betreff'}</p>
@@ -171,7 +223,7 @@ function LayoutSettingsForm({ tenantId, roleKey, canEdit, onStatusChange }: { te
         </div>
         <div className="dci-dimensions"><span className="dw-chip">A4 · Hochformat</span><span className="dw-chip">{form.pageLayout.baseFontSizePt || '–'} pt</span></div>
         <p className="dci-preview-note">Die Skizze zeigt Farben, Logo und Ausrichtung. Den genauen Seitenumbruch sehen Sie in der Vorschau des jeweiligen Dokuments.</p>
-        {logo && logoFailed === logo ? <p className="dw-alert" data-tone="danger" role="status">Das Logo konnte nicht geladen werden. Bitte prüfen Sie die Bildadresse.</p> : null}
+        {logo && logoFailed === logo ? <p className="dw-alert" data-tone="danger" role="status">Das Logo konnte nicht geladen werden. Bitte wählen Sie die Logo-Datei erneut aus.</p> : null}
       </aside>
     </div>
   </>;
