@@ -113,7 +113,8 @@
     "healthos-full:export:audit": "node scripts/audit-healthos-full-export.mjs dist-healthos-full --verify-current-sources",
     "verify:company:release": "node scripts/verify-company-release.mjs",
     "verify:documents:release": "node scripts/verify-documents-workspace.mjs",
-    "verify:assignments:release": "node scripts/verify-assignments-workspace.mjs"
+    "verify:assignments:release": "node scripts/verify-assignments-workspace.mjs",
+    "audit:android-administration": "vitest run src/__tests__/platform/nativeAdministrationFiles.test.ts src/__tests__/navigation/companyExpansionRoutes.test.tsx src/__tests__/navigation/companyRouteRedirects.test.tsx src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/tenant/companyAccessService.test.ts src/__tests__/tenant/companyOrganizationService.test.ts src/__tests__/tenant/companyResourcesService.test.ts src/__tests__/tenant/companyClientSettingsService.test.ts src/__tests__/tenant/companyCostCenters.test.ts src/__tests__/tenant/companyCustomValues.test.ts src/__tests__/tenant/companyEditorInteraction.test.tsx src/__tests__/tenant/companyWorkspaceInteraction.test.tsx src/__tests__/inventory/companyInventoryService.test.ts src/__tests__/inventory/companyInventoryInteraction.test.tsx src/__tests__/documents/tenantDocumentSettingsWeb.test.ts src/__tests__/documents/centralCatalogActionSafety.test.tsx src/__tests__/documents/companyDocumentLinks.test.ts --maxWorkers=2 --testTimeout=15000"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",

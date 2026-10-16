@@ -8,7 +8,7 @@ import {
 
 const mocked = vi.hoisted(() => ({ os: 'web', canManage: true, live: true, blockedTenant: '', client: null as unknown }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return mocked.os; } } }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { scopeLimited: false, permissions: mocked.canManage ? ['business.tenant.manage'] : [] } }) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { scopeLimited: false, permissions: mocked.canManage ? ['business.tenant.manage'] : [] } }) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({
   isLiveServiceMode: () => mocked.live,

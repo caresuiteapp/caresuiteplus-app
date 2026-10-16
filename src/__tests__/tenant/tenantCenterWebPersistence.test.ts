@@ -37,7 +37,7 @@ const mocked = vi.hoisted(() => ({
   customFieldsError: null as string | null,
 }));
 
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => {
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => {
   if (mocked.accessThrows) throw new Error('network failure');
   return mocked.accessError ? { ok: false, error: mocked.accessError } : { ok: true, data: { permissions: mocked.permissions, scopeLimited: mocked.limited, canManageScopes: !mocked.limited } };
 } }));

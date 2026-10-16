@@ -6,8 +6,8 @@ import { CompanyScopeAccessPanel } from '@/components/company/CompanyScopeAccess
 import type { CompanyAccessProfile } from '@/types/tenant/companyAccess';
 
 const h = vi.hoisted(() => ({ load: vi.fn(), structure: vi.fn(), save: vi.fn(), confirm: vi.fn() }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyScopeGrants: (...args: unknown[]) => h.load(...args), saveCompanyScopeGrant: (...args: unknown[]) => h.save(...args) }));
-vi.mock('@/lib/tenant/companyOrganizationService.web', () => ({ loadCompanyOrganization: (...args: unknown[]) => h.structure(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyScopeGrants: (...args: unknown[]) => h.load(...args), saveCompanyScopeGrant: (...args: unknown[]) => h.save(...args) }));
+vi.mock('@/lib/tenant/companyOrganizationService', () => ({ loadCompanyOrganization: (...args: unknown[]) => h.structure(...args) }));
 vi.mock('expo-router', () => ({ useNavigation: () => ({ dispatch: vi.fn() }) }));
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: vi.fn() }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: (...args: unknown[]) => h.confirm(...args) }));

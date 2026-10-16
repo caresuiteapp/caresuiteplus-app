@@ -37,7 +37,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isFullEdition || isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.4.0',
+  version: '0.5.0',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -76,7 +76,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 41,
+    versionCode: 45,
     intentFilters: [{"action": "VIEW", "autoVerify": true, "category": ["BROWSABLE", "DEFAULT"], "data": [{"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}]}],
     predictiveBackGestureEnabled: false,
     permissions: [

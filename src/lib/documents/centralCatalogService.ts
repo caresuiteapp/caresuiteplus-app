@@ -1,3 +1,4 @@
+import { blobBytes } from '@/lib/platform/blobBytes';
 import type { Profile, RoleKey, ServiceResult } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
@@ -317,7 +318,7 @@ export async function downloadCentralDocument(record: CentralDocumentStored, act
   if (!client || !filePath || !expectedHash) return { ok: false, error: 'Für diesen Eintrag ist keine gespeicherte Datei verfügbar.' };
   const { data, error } = await client.storage.from('office-documents').download(filePath);
   if (error || !data) return { ok: false, error: 'Die gespeicherte PDF-Datei konnte nicht geladen werden.' };
-  const bytes = new Uint8Array(await data.arrayBuffer());
+  const bytes = await blobBytes(data);
   if (sha256FileHex(bytes) !== expectedHash) return { ok: false, error: 'Die Datei stimmt nicht mit dem gespeicherten Prüfwert überein.' };
   return { ok: true, data: bytes };
 }

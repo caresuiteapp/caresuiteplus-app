@@ -16,6 +16,8 @@ vi.mock('@/liquid-command/screens/ModuleWorkspaceScreen', () => ({
   ModuleWorkspaceScreen: ({ moduleKey }: { moduleKey: string }) => <span>{moduleKey}:{state.params.area}</span>,
 }));
 
+vi.mock('@/screens/office/CompanyWorkspaceScreen.native', () => ({ CompanyWorkspaceScreen: () => <span>native-company</span> }));
+vi.mock('@/liquid-command/shell/LiquidModuleRouteLayout', () => ({ LiquidModuleRouteLayout: ({ children }: { children: import('react').ReactNode }) => <main>{children}</main> }));
 beforeEach(() => { state.params = {}; });
 
 describe('company route compatibility', () => {
@@ -34,8 +36,8 @@ describe('company route compatibility', () => {
     expect(renderToStaticMarkup(<OfficeDashboardRedirect />)).toContain('href="/unternehmen"');
   });
 
-  it('keeps the native fallback on the existing Office route', () => {
-    expect(renderToStaticMarkup(<NativeCompanyRoute />)).toContain('href="/office"');
+  it('opens the current native company workspace', () => {
+    expect(renderToStaticMarkup(<NativeCompanyRoute />)).toContain('native-company');
   });
 
   it('keeps legacy Liquid Office links on the canonical company screen', () => {
