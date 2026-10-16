@@ -1,269 +1,289 @@
-import { parseVoiceCommand, type Destination, type VoiceClient } from './voiceCommands';
-import { createReplyPicker, type ReplyKey, type RobotReply } from './robotReplies';
-import { createNeoReplies, parseNeoCommand } from './neoCommands';
 import { makeNeoDraggable } from './neoPosition.web';
+import { createNeoConversation, type NeoConversationDependencies, type NeoResponse } from './neoConversation.web';
+import { createNeoPanel, NEO_CSS } from './neoPanel.web';
 
-export type RobotDependencies = {
+export type RobotDependencies = NeoConversationDependencies & {
   robotUrl: string;
-  canNavigate: (destination: Destination) => boolean;
-  canSearchClients: () => boolean;
   navigate: (route: string) => void;
   back: () => boolean;
-  canGoBack?: () => boolean;
-  searchClients: (name: string) => Promise<VoiceClient[]>;
   loadVoice: (replyId: string, signal: AbortSignal, text?: string) => Promise<ArrayBuffer>;
   prepareVoice?: () => void;
-  getProfileName?: () => string;
-  getWeather?: (signal: AbortSignal) => Promise<string>;
   positionKey?: string;
 };
+type RecognitionResult = { isFinal: boolean; 0: { transcript: string } };
 type Recognition = {
-  lang: string; continuous: boolean; interimResults: boolean; processLocally?: boolean;
+  lang: string; continuous: boolean; interimResults: boolean; maxAlternatives?: number; processLocally?: boolean;
   onstart: (() => void) | null; onend: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
-  onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
+  onresult: ((event: { resultIndex: number; results: ArrayLike<RecognitionResult> }) => void) | null;
   start(): void; abort(): void;
 };
-type SpeechWindow = Window & {
-  SpeechRecognition?: new () => Recognition;
-  webkitSpeechRecognition?: new () => Recognition;
-  webkitAudioContext?: typeof AudioContext;
-};
-const CSS = `
-.cs-robot{position:fixed;left:50%;top:max(28px,env(safe-area-inset-top));transform:translateX(-50%);z-index:1200;width:68px;height:74px}
-.cs-robot-button{position:relative;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;isolation:isolate}
-.cs-robot-button:focus-visible{outline:3px solid #7ce8ff;outline-offset:5px}.cs-robot-button img{width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 4px 9px #00142855);transition:transform .18s ease;z-index:1}.cs-robot-button:hover img{transform:translateY(-3px)}.cs-robot-button:active img{transform:scale(.94)}
-.cs-robot-button::before{content:'';position:absolute;inset:18px 6px 5px;border-radius:50%;opacity:0;transition:opacity .2s;box-shadow:0 0 0 2px #76e9ff,0 0 24px #59d3ff80;background:#47ceff12}
-.cs-robot[data-state=listening] .cs-robot-button::before{opacity:1;animation:csRobotBreathe 1.7s ease-in-out infinite}.cs-robot[data-state=thinking] .cs-robot-button::before{opacity:.65;animation:csRobotBreathe 2.4s ease-in-out infinite}.cs-robot[data-state=speaking] .cs-robot-button::before{opacity:.8;animation:csRobotBreathe .9s ease-in-out infinite}.cs-robot[data-state=error] .cs-robot-button::before{opacity:1;box-shadow:0 0 0 2px #ffb788,0 0 20px #ffa06066}
-.cs-robot-status{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-@keyframes csRobotBreathe{50%{opacity:.38;transform:scale(.92)}}@media(prefers-reduced-motion:reduce){.cs-robot-button::before{animation:none!important}.cs-robot-button img{transition:none}}@media(max-width:540px){.cs-robot{width:54px;height:60px;top:max(8px,env(safe-area-inset-top))}}
-`;
+type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition; webkitAudioContext?: typeof AudioContext };
 
-/** The only visible control is the robot. No transcript, panel or voice selector. */
+function abortable<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => { cleanup(); reject(new DOMException('Aborted', 'AbortError')); };
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    operation.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+    if (signal.aborted) abort(); else signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+/** Each worker request stays within its 360-character phonemizer limit. */
+export function splitNeoSpeech(text: string): string[] {
+  let remaining = text.replace(/\n+/g, '. ').replace(/\.\s*\./g, '.').replace(/„|“/g, '').replace(/\s+/g, ' ').trim();
+  if (remaining.length > 1100) remaining = remaining.slice(0, 1000).replace(/\s+\S*$/, '') + '. Den restlichen Text findest du im Gespräch.';
+  const parts: string[] = [];
+  while (remaining.length > 340) {
+    const prefix = remaining.slice(0, 340);
+    const sentenceEnd = Math.max(prefix.lastIndexOf('. '), prefix.lastIndexOf('? '), prefix.lastIndexOf('! '));
+    const cut = sentenceEnd >= 80 ? sentenceEnd + 1 : Math.max(1, prefix.lastIndexOf(' ') > 0 ? prefix.lastIndexOf(' ') : 340);
+    parts.push(remaining.slice(0, cut).trim()); remaining = remaining.slice(cut).trim();
+  }
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
 export function mountRobotAssistant(deps: RobotDependencies): () => void {
-  const host = document.createElement('aside');
-  host.className = 'cs-robot';
-  host.setAttribute('aria-label', 'Neo, dein CareSuite KI-Sprachassistent');
-  host.innerHTML = `<style>${CSS}</style><button class="cs-robot-button" type="button"><img alt="" draggable="false" /></button><span class="cs-robot-status" role="status" aria-live="polite"></span>`;
+  const host = document.createElement('aside'); host.className = 'cs-robot';
+  host.setAttribute('aria-label', 'Neo, dein CareSuite-Assistent');
+  host.innerHTML = `<style>${NEO_CSS}</style><button class="cs-robot-button" type="button" aria-haspopup="dialog" aria-controls="cs-neo-dialog"><img alt="" draggable="false" /></button>`;
   const button = host.querySelector<HTMLButtonElement>('button')!;
-  const status = host.querySelector<HTMLElement>('.cs-robot-status')!;
   host.querySelector<HTMLImageElement>('img')!.src = deps.robotUrl;
   document.body.append(host);
-  const pick = createReplyPicker();
-  const neoReply = createNeoReplies();
-  let lastReply: RobotReply | null = null;
-  let destroyed = false;
-  let generation = 0;
-  let speechSerial = 0;
-  let busy = false;
-  let awaitingName = false;
-  let lastAmbiguousName = '';
-  let conversationUntil = 0;
+  const conversation = createNeoConversation(deps);
+  let destroyed = false, voiceMode = false, muted = false, generation = 0;
+  let turn: AbortController | null = null;
+  let readingResponse = false;
   let recognition: Recognition | null = null;
   let context: AudioContext | null = null;
   let audio: AudioBufferSourceNode | null = null;
-  let voiceRequest: AbortController | null = null;
-  let weatherRequest: AbortController | null = null;
-  let listenTimer: ReturnType<typeof setTimeout> | undefined;
-  let actionTimer: ReturnType<typeof setTimeout> | undefined;
-  let waitingTimer: ReturnType<typeof setTimeout> | undefined;
-  let nameTimer: ReturnType<typeof setTimeout> | undefined;
-  let errorTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const setState = (state: string, message = '') => {
+  let finishPlayback: (() => void) | null = null;
+  let captureTimer: ReturnType<typeof setTimeout> | undefined;
+  let commitTimer: ReturnType<typeof setTimeout> | undefined;
+  let restartTimer: ReturnType<typeof setTimeout> | undefined;
+  let deadline = 0, emptyRestarts = 0;
+  const panel = createNeoPanel(deps.robotUrl, {
+    submit: text => { unlockAudio(); void submit(text); },
+    microphone: () => voiceMode ? stopSession('Mikrofon aus. Du kannst weiterschreiben.') : startVoice(),
+    close: () => { stopSession('Mikrofon aus.'); conversation.reset(); panel.close(); button.setAttribute('aria-expanded', 'false'); button.focus(); },
+    mute: () => { muted = !muted; panel.muted(muted); if (muted) { if (readingResponse) turn?.abort(); stopAudio(); } else unlockAudio(); },
+    clear: () => { stopSession('Neues Gespräch.'); conversation.reset(); panel.clear(); welcome(); },
+  });
+  const positionPanel = () => {
+    if (panel.element.hidden) return;
+    const viewport = window.visualViewport;
+    const width = viewport?.width ?? innerWidth, height = viewport?.height ?? innerHeight;
+    const x = viewport?.offsetLeft ?? 0, y = viewport?.offsetTop ?? 0;
+    panel.element.style.width = `${Math.min(440, Math.max(200, width - 16))}px`;
+    const rect = host.getBoundingClientRect();
+    const panelWidth = panel.element.getBoundingClientRect().width || Math.min(440, width - 16);
+    const top = width < 540 ? y + 8 : Math.max(y + 8, Math.min(rect.bottom + 10, y + height - 390));
+    panel.element.style.left = `${x + Math.max(8, Math.min(rect.left - x, width - panelWidth - 8))}px`;
+    panel.element.style.top = `${top}px`;
+    panel.element.style.maxHeight = `${Math.max(100, height - (top - y) - 8)}px`;
+  };
+  const setState = (state: string, text: string) => {
     if (destroyed) return;
-    clearTimeout(errorTimer);
     host.dataset.state = state;
-    status.textContent = message;
-    const active = state === 'listening' || state === 'thinking' || state === 'speaking';
-    button.setAttribute('aria-label', active ? 'Neo stoppen' : 'Mit Neo sprechen. Zum Verschieben ziehen oder die Pfeiltasten verwenden.');
-    button.setAttribute('aria-pressed', String(active));
-    button.title = message || 'Neo · Anklicken und sprechen · Ziehen zum Verschieben';
-    if (state === 'error') errorTimer = setTimeout(() => setState('ready'), 6000);
+    panel.state(state, text, voiceMode);
+    button.setAttribute('aria-label', voiceMode || turn ? 'Neo stoppen' : 'Mit Neo sprechen');
+    button.setAttribute('aria-pressed', String(voiceMode)); button.title = text;
+    positionPanel();
   };
-  const stopListening = () => {
-    clearTimeout(listenTimer);
+  const stopCapture = () => {
+    clearTimeout(captureTimer); clearTimeout(commitTimer); clearTimeout(restartTimer);
     const previous = recognition; recognition = null;
-    if (previous) {
-      previous.onstart = previous.onend = previous.onerror = previous.onresult = null;
-      try { previous.abort(); } catch { /* already stopped */ }
-    }
+    if (previous) { previous.onstart = previous.onend = previous.onerror = previous.onresult = null; try { previous.abort(); } catch { /* already stopped */ } }
+    panel.heard('');
   };
-  const stopSpeech = () => {
-    speechSerial += 1;
-    voiceRequest?.abort(); voiceRequest = null;
+  const stopAudio = () => {
     if (audio) { audio.onended = null; try { audio.stop(); } catch { /* already ended */ } audio.disconnect(); audio = null; }
+    const finish = finishPlayback; finishPlayback = null; finish?.();
   };
-  const reset = () => {
-    generation += 1; busy = false; awaitingName = false; lastAmbiguousName = ''; conversationUntil = 0;
-    weatherRequest?.abort(); weatherRequest = null;
-    clearTimeout(actionTimer); clearTimeout(waitingTimer); clearTimeout(nameTimer);
-    stopListening(); stopSpeech(); setState('ready');
-  };
-  const sayReply = async (reply: RobotReply, state = 'ready', followup = false, afterSpeech?: () => void) => {
-    stopListening(); stopSpeech();
-    const serial = speechSerial;
-    setState(state === 'error' ? 'error' : 'thinking', reply.text);
-    const controller = new AbortController(); voiceRequest = controller;
-    const timeout = setTimeout(() => controller.abort(), reply.id.startsWith('neo:') ? 95_000 : 12_000);
+  const cancelTurn = () => { generation++; turn?.abort(); turn = null; readingResponse = false; stopCapture(); stopAudio(); };
+  const stopSession = (message: string) => { voiceMode = false; cancelTurn(); setState('ready', message); };
+  const unlockAudio = () => {
+    if (muted) return;
     try {
-      if (!context || context.state === 'closed') throw new Error('audio-unavailable');
-      const encoded = await deps.loadVoice(reply.id, controller.signal, reply.text);
-      if (destroyed || serial !== speechSerial || controller.signal.aborted) return;
-      const buffer = await context.decodeAudioData(encoded.slice(0));
-      if (destroyed || serial !== speechSerial || controller.signal.aborted) return;
-      await context.resume();
-      if (destroyed || serial !== speechSerial || controller.signal.aborted) return;
-      const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination);
-      audio = source;
-      source.onended = () => {
-        source.disconnect();
-        if (destroyed || serial !== speechSerial) return;
-        audio = null; setState(state, reply.text);
-        if (afterSpeech) { try { afterSpeech(); } catch { void sayReply(pick('error'), 'error'); } return; }
-        if (followup && awaitingName && !document.hidden && Date.now() < conversationUntil) startListening();
-      };
-      setState('speaking', reply.text); source.start(); lastReply = reply;
+      const Constructor = window.AudioContext ?? (window as SpeechWindow).webkitAudioContext;
+      if ((!context || context.state === 'closed') && Constructor) context = new Constructor();
+      void context?.resume().catch(() => {}); deps.prepareVoice?.();
+    } catch { /* Written responses remain usable if audio is blocked. */ }
+  };
+  const welcome = () => {
+    panel.append('assistant', 'Hallo, ich bin Neo. Was möchtest du in CareSuite erledigen? Du kannst sprechen oder schreiben. Wenn ich nachfrage, kannst du direkt antworten.');
+    panel.suggestions(['Was kannst du?', 'Wie lege ich Klienten an?', 'Kalender öffnen']);
+    setState('ready', 'Bereit für deine Frage.');
+  };
+  const ensureOpen = () => {
+    if (panel.element.hidden) { panel.open(); welcome(); }
+    button.setAttribute('aria-expanded', 'true'); positionPanel();
+  };
+  const permissionFailure = () => {
+    panel.append('assistant', 'Der Zugriff ist inzwischen nicht mehr freigegeben. Bitte lasse deine Berechtigungen prüfen.');
+    setState('error', 'Dieser Bereich ist nicht freigegeben.');
+  };
+  const execute = (response: NeoResponse): boolean => {
+    const action = response.action; if (!action) return false;
+    if (action.kind === 'navigate') {
+      if (!deps.canNavigate(action.destination)) { permissionFailure(); return false; }
+      stopSession('Seite wird geöffnet.'); deps.navigate(action.destination.route); return true;
+    }
+    if (action.kind === 'client') {
+      if (!deps.canSearchClients()) { permissionFailure(); return false; }
+      stopSession('Akte wird geöffnet.'); deps.navigate(`/office/clients/${encodeURIComponent(action.id)}`); return true;
+    }
+    if (deps.canGoBack?.() === false || !deps.back()) {
+      panel.append('assistant', 'Hier gibt es keine vorherige Seite. Wohin möchtest du?'); return false;
+    }
+    stopSession('Vorherige Seite wird geöffnet.'); return true;
+  };
+  const play = async (text: string, request: AbortController, serial: number) => {
+    if (muted) return;
+    if (!context || context.state === 'closed') throw new Error('audio-unavailable');
+    for (const part of splitNeoSpeech(text)) {
+      if (muted || request.signal.aborted || serial !== generation) return;
+      setState('thinking', 'Neo bereitet die Sprachausgabe vor.');
+      const encoded = await abortable(deps.loadVoice('neo:conversation', request.signal, part), request.signal);
+      if (request.signal.aborted || serial !== generation || destroyed || muted) return;
+      const buffer = await abortable(context.decodeAudioData(encoded.slice(0)), request.signal);
+      if (request.signal.aborted || serial !== generation || destroyed || muted) return;
+      await abortable(context.resume(), request.signal);
+      if (request.signal.aborted || serial !== generation || destroyed || muted) return;
+      const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); audio = source;
+      setState('speaking', 'Neo spricht. Danach kannst du direkt antworten.');
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => { cleanup(); try { source.stop(); } catch { /* already stopped */ } reject(new Error('playback-timeout')); }, Math.max(6000, (buffer.duration + 4) * 1000));
+        const cleanup = () => { clearTimeout(timeout); source.onended = null; source.disconnect(); if (audio === source) audio = null; finishPlayback = null; };
+        finishPlayback = () => { cleanup(); resolve(); };
+        source.onended = () => { cleanup(); resolve(); };
+        try { source.start(); } catch (error) { cleanup(); reject(error); }
+      });
+    }
+  };
+  const submit = async (input: string) => {
+    if (destroyed || !input.trim()) return;
+    ensureOpen(); cancelTurn();
+    const serial = generation, request = new AbortController(); turn = request;
+    panel.append('user', input.trim()); panel.suggestions([]); setState('thinking', 'Neo verarbeitet deine Frage.');
+    const workTimeout = setTimeout(() => request.abort(), 18000);
+    let audioTimeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const response = await abortable(conversation.respond(input.trim(), request.signal), request.signal);
+      clearTimeout(workTimeout);
+      if (destroyed || serial !== generation || request.signal.aborted) return;
+      panel.append('assistant', response.text); panel.suggestions(response.suggestions);
+      if (response.end) voiceMode = false;
+      let voiceFailed = false;
+      audioTimeout = setTimeout(() => request.abort(), 95000);
+      readingResponse = true;
+      try { await play(response.text, request, serial); } catch { voiceFailed = !muted; }
+      if (serial === generation) readingResponse = false;
+      clearTimeout(audioTimeout);
+      if (destroyed || serial !== generation) return;
+      // Synthesis failure must not discard a valid answer, its follow-up or navigation.
+      if (execute(response)) return;
+      if (voiceFailed || request.signal.aborted && !muted) setState('ready', 'Die Sprachausgabe ist nicht verfügbar. Du kannst die Antwort lesen.');
+      else setState('ready', response.end ? 'Gespräch beendet. Mikrofon aus.' : 'Du kannst antworten oder eine neue Frage stellen.');
+      if (voiceMode && !document.hidden) { deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(300); }
     } catch {
-      if (!destroyed && serial === speechSerial) {
-        if (reply.id.startsWith('neo:')) void sayReply(pick('error'), 'error');
-        else setState('error', 'Die Stimme konnte nicht abgespielt werden. Bitte prüfe den Browserton und lade die Seite neu.');
-      }
-    } finally {
-      clearTimeout(timeout);
-      if (voiceRequest === controller) voiceRequest = null;
-    }
+      if (destroyed || serial !== generation) return;
+      panel.append('assistant', 'Das hat gerade nicht geklappt. Du kannst es erneut versuchen oder deine Frage anders stellen.');
+      panel.suggestions(['Was kannst du?', 'Andere Frage']);
+      setState('error', 'Die Anfrage konnte nicht abgeschlossen werden.');
+      if (voiceMode && !document.hidden) { deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(300); }
+    } finally { clearTimeout(workTimeout); clearTimeout(audioTimeout); if (turn === request) turn = null; }
   };
-  const say = (key: ReplyKey, state = 'ready', followup = false, afterSpeech?: () => void) => sayReply(pick(key), state, followup, afterSpeech);
-  const sayText = (key: string, text: string, state = 'ready') => sayReply({ id: `neo:${key}`, text }, state);
-  const weather = async () => {
-    reset(); busy = true;
-    const request = ++generation, controller = new AbortController(); weatherRequest = controller;
-    setState('thinking', 'Neo fragt das Wetter an deinem Standort ab.');
-    const timeout = setTimeout(() => controller.abort(), 16000);
-    waitingTimer = setTimeout(() => { if (!destroyed && request === generation) void say('waiting', 'thinking'); }, 700);
-    try {
-      if (!deps.getWeather) throw new Error('weather-unavailable');
-      const text = await deps.getWeather(controller.signal);
-      if (destroyed || generation !== request) return;
-      clearTimeout(waitingTimer); busy = false; void sayText('weather', text);
-    } catch (error) {
-      if (destroyed || generation !== request) return;
-      clearTimeout(waitingTimer); busy = false;
-      const message = error instanceof Error && error.message === 'weather-location-denied'
-        ? 'Bitte erlaube den Standort im Browser, damit ich dir das Wetter in deiner Nähe sagen kann.'
-        : 'Ich bekomme gerade keine verlässlichen Wetterdaten für deinen Standort. Versuch es bitte später noch einmal.';
-      void sayText('weather-error', message, 'error');
-    } finally { clearTimeout(timeout); if (weatherRequest === controller) weatherRequest = null; }
+  const pauseForSilence = () => {
+    voiceMode = false; stopCapture();
+    setState('ready', 'Gespräch pausiert. Mit „Sprechen“ machst du weiter; der Zusammenhang bleibt erhalten.');
   };
-  const run = async (text: string) => {
-    if (destroyed) return;
-    const extra = parseNeoCommand(text);
-    if (extra) {
-      if (extra === 'weather') { void weather(); return; }
-      reset();
-      if (extra === 'repeat') { void (lastReply ? sayReply(lastReply) : sayText('no-repeat', 'Ich habe noch nichts gesagt. Frag mich einfach etwas.')); return; }
-      void sayText(extra, neoReply(extra, deps.getProfileName?.() ?? '')); return;
-    }
-    let command = parseVoiceCommand(text);
-    if (command.kind === 'unknown' && awaitingName) command = parseVoiceCommand(`Akte von ${text}`);
-    if (command.kind === 'cancel') { reset(); void say('cancel'); return; }
-    const previousName = lastAmbiguousName;
-    awaitingName = false; clearTimeout(nameTimer);
-    stopListening();
-    if (command.kind === 'help') { void say('help'); return; }
-    if (command.kind === 'unknown' || command.kind === 'choice') { void say('unknown', 'error'); return; }
-    try {
-      if (command.kind === 'back') {
-        if (deps.canGoBack?.() === false) { void say('noBack'); return; }
-        void say('back', 'ready', false, () => { if (!deps.back()) void say('noBack'); }); return;
-      }
-      if (command.kind === 'navigate') {
-        if (!deps.canNavigate(command.destination)) { void say('denied', 'error'); return; }
-        const destination = command.destination;
-        void say(destination.key, 'ready', false, () => {
-          if (!deps.canNavigate(destination)) { void say('denied', 'error'); return; }
-          deps.navigate(destination.route);
-        }); return;
-      }
-      if (!deps.canSearchClients()) { void say('denied', 'error'); return; }
-      busy = true; const request = ++generation;
-      setState('thinking', 'Ich suche die passende Akte.');
-      waitingTimer = setTimeout(() => { if (!destroyed && generation === request && busy) void say('waiting', 'thinking'); }, 1000);
-      actionTimer = setTimeout(() => {
-        if (destroyed || generation !== request) return;
-        generation += 1; busy = false; clearTimeout(waitingTimer); void say('error', 'error');
-      }, 12000);
-      try {
-        const matches = await deps.searchClients(command.name);
-        if (destroyed || request !== generation) return;
-        clearTimeout(actionTimer); clearTimeout(waitingTimer); busy = false;
-        if (!deps.canSearchClients()) { void say('denied', 'error'); return; }
-        if (!matches.length) { void say('notFound', 'error'); return; }
-        if (matches.length === 1) {
-          const route = `/office/clients/${encodeURIComponent(matches[0].id)}`;
-          void say('clientFound', 'ready', false, () => {
-            if (!deps.canSearchClients()) { void say('denied', 'error'); return; }
-            deps.navigate(route);
-          }); return;
-        }
-        const sameName = new Set(matches.map((client) => `${client.firstName} ${client.lastName}`.toLocaleLowerCase('de-DE'))).size === 1;
-        if (sameName || previousName.toLocaleLowerCase('de-DE') === command.name.toLocaleLowerCase('de-DE')) {
-          void say('duplicate', 'ready', false, () => {
-            if (!deps.canSearchClients()) { void say('denied', 'error'); return; }
-            deps.navigate('/office/clients');
-          }); return;
-        }
-        lastAmbiguousName = command.name; awaitingName = true;
-        nameTimer = setTimeout(() => { awaitingName = false; lastAmbiguousName = ''; }, 45000);
-        void say('ambiguous', 'ready', true);
-      } catch {
-        if (destroyed || request !== generation) return;
-        clearTimeout(actionTimer); clearTimeout(waitingTimer); busy = false; void say('error', 'error');
-      }
-    } catch { busy = false; void say('error', 'error'); }
+  const scheduleCapture = (delay: number) => {
+    clearTimeout(restartTimer);
+    restartTimer = setTimeout(() => { if (voiceMode && !destroyed && !document.hidden) startCapture(); }, delay);
   };
-  const startListening = () => {
-    if (destroyed || document.hidden) return;
-    stopSpeech();
+  const startCapture = () => {
+    if (destroyed || !voiceMode || document.hidden || panel.element.hidden) return;
+    if (Date.now() >= deadline || emptyRestarts >= 8) { pauseForSilence(); return; }
+    stopCapture();
     const Constructor = (window as SpeechWindow).SpeechRecognition ?? (window as SpeechWindow).webkitSpeechRecognition;
-    if (!Constructor || !window.isSecureContext) { void say('unsupported', 'error'); return; }
+    if (!Constructor || !window.isSecureContext) {
+      voiceMode = false; setState('error', 'Spracherkennung ist hier nicht verfügbar. Schreibe deine Frage unten.'); panel.input.focus(); return;
+    }
     try {
-      const instance = new Constructor();
-      // Retains the browser speech service already enabled by the user. No background microphone.
+      const instance = new Constructor(); recognition = instance;
+      instance.lang = 'de-DE'; instance.continuous = true; instance.interimResults = true; instance.maxAlternatives = 1;
       if ('processLocally' in instance) instance.processLocally = false;
-      instance.lang = 'de-DE'; instance.continuous = false; instance.interimResults = false;
-      recognition = instance;
-      instance.onstart = () => { if (recognition === instance) setState('listening', 'Ich höre zu. Zum Stoppen erneut anklicken.'); };
-      instance.onresult = (event) => {
+      let finalText = '', interimText = '';
+      const commit = () => {
+        if (recognition !== instance || !voiceMode) return;
+        if (!finalText.trim()) return;
+        const text = finalText.trim(); stopCapture(); void submit(text);
+      };
+      const retry = () => {
         if (recognition !== instance) return;
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const result = event.results[i];
-          if (result.isFinal) { const text = result[0].transcript; stopListening(); void run(text); return; }
+        stopCapture(); emptyRestarts++;
+        if (Date.now() >= deadline || emptyRestarts >= 8) pauseForSilence(); else scheduleCapture(350);
+      };
+      instance.onstart = () => { if (recognition === instance) setState('listening', 'Ich höre zu. Du kannst direkt antworten.'); };
+      instance.onresult = event => {
+        if (recognition !== instance || !voiceMode) return;
+        // Rebuild from the full result list so interim revisions and multiple final
+        // segments form one utterance instead of executing the first fragment.
+        const finals: string[] = [], interim: string[] = [];
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i]; (item.isFinal ? finals : interim).push(item[0].transcript);
         }
+        finalText = finals.join(' ').trim(); interimText = interim.join(' ').trim();
+        panel.heard([finalText, interimText].filter(Boolean).join(' ')); clearTimeout(commitTimer);
+        if (finalText && !interimText) commitTimer = setTimeout(commit, 1000);
       };
-      instance.onerror = (event) => {
+      instance.onerror = event => {
         if (recognition !== instance) return;
-        void say(event.error === 'not-allowed' || event.error === 'service-not-allowed' ? 'microphone' : event.error === 'language-not-supported' ? 'unsupported' : 'noSpeech', 'error');
+        if (event.error === 'no-speech') { if (finalText) commit(); else retry(); return; }
+        stopCapture(); voiceMode = false;
+        const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+          ? 'Mikrofon nicht freigegeben. Erlaube es im Browser oder schreibe deine Antwort.'
+          : event.error === 'audio-capture' ? 'Kein Mikrofon verfügbar. Prüfe das Eingabegerät oder schreibe deine Antwort.'
+          : event.error === 'network' ? 'Die Spracherkennung hat keine Verbindung. Du kannst hier weiterschreiben.'
+          : 'Die Spracherkennung wurde unterbrochen. Starte sie erneut oder schreibe deine Antwort.';
+        setState('error', message);
       };
-      instance.onend = () => { if (recognition === instance) void say('noSpeech', 'error'); };
+      instance.onend = () => { if (recognition === instance) { if (finalText && !interimText) commit(); else retry(); } };
       setState('listening', 'Das Mikrofon startet.');
-      listenTimer = setTimeout(() => { if (recognition === instance) void say('noSpeech', 'error'); }, 15000);
+      captureTimer = setTimeout(() => { if (recognition === instance) { if (finalText && !interimText) commit(); else pauseForSilence(); } }, Math.max(0, deadline - Date.now()));
       instance.start();
-    } catch { void say('microphone', 'error'); }
+    } catch { stopCapture(); voiceMode = false; setState('error', 'Das Mikrofon konnte nicht starten. Versuche es erneut oder schreibe deine Antwort.'); }
+  };
+  const startVoice = () => {
+    ensureOpen(); cancelTurn(); unlockAudio(); voiceMode = true;
+    deadline = Date.now() + 35000; emptyRestarts = 0; startCapture();
   };
   button.onclick = () => {
-    if (recognition || busy || audio || voiceRequest) { reset(); return; }
-    const Constructor = window.AudioContext ?? (window as SpeechWindow).webkitAudioContext;
-    try { if (!context && Constructor) context = new Constructor(); void context?.resume().catch(() => {}); } catch { /* failure is reported with the response */ }
-    conversationUntil = Date.now() + 90000;
-    startListening();
+    if (voiceMode || turn || audio) { stopSession('Gespräch pausiert. Du kannst weiterschreiben oder erneut sprechen.'); return; }
+    startVoice();
   };
-  const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') reset(); };
-  const onVisibility = () => { if (document.hidden) reset(); };
-  document.addEventListener('keydown', onKey);
-  document.addEventListener('visibilitychange', onVisibility);
-  const stopDragging = makeNeoDraggable(host, button, deps.positionKey ?? 'caresuite.neo.position.v1', reset);
-  setState('ready');
-  return () => { reset(); destroyed = true; clearTimeout(errorTimer); stopDragging(); lastReply = null; void context?.close().catch(() => {}); document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVisibility); host.remove(); };
+  // Typing is an explicit switch of input mode; no microphone captures keyboard-side conversation.
+  panel.input.addEventListener('focus', () => { if (voiceMode) stopSession('Texteingabe. Mikrofon aus.'); });
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && !panel.element.hidden) { stopSession('Mikrofon aus.'); conversation.reset(); panel.close(); button.setAttribute('aria-expanded', 'false'); button.focus(); }
+  };
+  const onVisibility = () => { if (document.hidden) stopSession('Gespräch pausiert. Mikrofon aus.'); };
+  const onPageHide = () => stopSession('Gespräch pausiert. Mikrofon aus.');
+  document.addEventListener('keydown', onKey); document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', onPageHide); window.addEventListener('resize', positionPanel);
+  window.addEventListener('caresuite:neo-dock-layout', positionPanel);
+  window.visualViewport?.addEventListener('resize', positionPanel); window.visualViewport?.addEventListener('scroll', positionPanel);
+  const stopDragging = makeNeoDraggable(host, button, deps.positionKey ?? 'caresuite.neo.position.v1', () => { stopSession('Gespräch pausiert.'); panel.close(); conversation.reset(); });
+  button.setAttribute('aria-expanded', 'false'); panel.muted(muted); setState('ready', 'Neo · Anklicken und sprechen');
+  return () => {
+    stopSession('Mikrofon aus.'); destroyed = true; conversation.reset(); stopDragging();
+    void context?.close().catch(() => {});
+    document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', onPageHide); window.removeEventListener('resize', positionPanel);
+    window.removeEventListener('caresuite:neo-dock-layout', positionPanel);
+    window.visualViewport?.removeEventListener('resize', positionPanel); window.visualViewport?.removeEventListener('scroll', positionPanel);
+    panel.destroy(); host.remove();
+  };
 }
