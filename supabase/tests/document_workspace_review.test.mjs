@@ -6,7 +6,7 @@ import { companyFixture, id } from './company_access_fixture.mjs';
 // Isolated Postgres behavior tests with synthetic records and the real company
 // permission functions. No network/production database access. PGlite queues
 // connections, so concurrent-session lock timing remains a separate E2E check.
-const sql = readFileSync(new URL('../changes/document_workspace_review.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../migrations/20261016063709_document_workspace_review.sql', import.meta.url), 'utf8');
 const f = await companyFixture();
 const { db, actor, owner } = f;
 const tenant = id(10);

@@ -46,7 +46,7 @@ const groups = {
 };
 const tests = Object.values(groups).flat().map(file => `src/__tests__/${file}`);
 const sqlTest = 'supabase/tests/document_workspace_review.test.mjs';
-const required = [vitest, 'node_modules/@electric-sql/pglite/package.json', sqlTest, 'supabase/changes/document_workspace_review.sql', ...tests];
+const required = [vitest, 'node_modules/@electric-sql/pglite/package.json', sqlTest, 'supabase/migrations/20261016063709_document_workspace_review.sql', ...tests];
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 if (missing.length) {
   console.error(`[documents-release] Required project files are missing:\n${missing.map(file => `- ${file}`).join('\n')}`);
