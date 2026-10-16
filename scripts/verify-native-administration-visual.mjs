@@ -30,13 +30,13 @@ for(const viewport of [{width:360,height:800},{width:390,height:844},{width:844,
  for(const screen of ['desktop','clients','employees','company','inventory']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
-  if(screen==='desktop')await page.getByRole('button',{name:'Navigation',exact:true}).waitFor();
+  if(screen==='desktop')await page.getByRole('button',{name:'Desktop bearbeiten',exact:true}).waitFor();
   if(screen==='inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
-  if(screen==='clients'){await page.getByRole('button',{name:'Filter',exact:true}).click();await page.getByRole('button',{name:'Ergebnisse anzeigen'}).waitFor();await page.screenshot({path:join(output,`clients-filters-${viewport.width}x${viewport.height}.png`)});}
-  if(screen==='desktop'){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
-  if(screen==='inventory'){await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByText('Empfänger:in *',{exact:true}).waitFor();await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='clients'){await page.getByRole('button',{name:'Filter',exact:true}).click();await page.getByRole('button',{name:'Ergebnisse anzeigen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`clients-filters-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='inventory'){await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByText('Empfänger:in *',{exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
   report.push({screen,viewport,overflow,errors});await page.close();
  }
 }

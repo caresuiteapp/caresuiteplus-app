@@ -142,15 +142,15 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: width < 370 ? 148 : width < 600 ? 180 : 226 }]} resizeMode="contain" />
-        <View style={styles.headerActions}><MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /><MobileIconButton label="Hilfe & Anleitungen" icon="help-circle" dark onPress={() => open({ route: '/hilfe' })} /></View>
+        <View style={styles.headerActions}>{!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}<MobileIconButton label="Hilfe & Anleitungen" icon="help-circle" dark onPress={() => open({ route: '/hilfe' })} /></View>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moduleBar} contentContainerStyle={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
         {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
       </ScrollView>
       <View style={styles.workarea}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 16, gap: 16 }}>{navigation}</ScrollView> : null}
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: layout.padding, gap: 14, paddingBottom: 24 }}>
-          <LinearGradient colors={['rgba(20,54,96,0.86)', 'rgba(7,28,58,0.72)']} style={styles.welcome}>
+        <ScrollView style={{ flex: 1, minWidth: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: layout.padding, gap: 14, paddingBottom: 24 }}>
+          <LinearGradient colors={['rgba(20,54,96,0.86)', 'rgba(7,28,58,0.72)']} style={[styles.welcome, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]}>
             <View style={{ flex: 1, minWidth: 0 }}><Text style={styles.desktopEyebrow}>{now.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' })}</Text><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop</Text><Text style={styles.desktopEyebrow}>{moduleLabel}</Text></View>
             <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={styles.clock}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text><Text style={styles.weatherText}>{weather.data ? `${weather.data.glyph} ${weather.data.temperature} °C · ${weather.data.label}` : weather.message}</Text></Pressable>
           </LinearGradient>
@@ -160,7 +160,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
           <View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
             const widget = widgetById.get(id); if (!widget) return null;
             return <View key={id} style={[styles.widget, { width: layout.cardWidth }]}>
-              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} onOpen={() => open(widget)} />}
+              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
               {edit ? <View style={styles.widgetEdit}><NativeAction label="Entfernen" accessibilityLabel={`${widget.label} vom Desktop entfernen`} onPress={() => toggle(id)} /><View style={ui.row}><NativeAction label="←" accessibilityLabel={`${widget.label} nach vorne verschieben`} disabled={index === 0} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, -1) })} /><NativeAction label="→" accessibilityLabel={`${widget.label} nach hinten verschieben`} disabled={index === preferences.ids.length - 1} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, 1) })} /></View></View> : null}
             </View>;
           })}</View>
@@ -197,9 +197,10 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   </ImageBackground>;
 }
 
-function NativeWidget({ widget, onOpen }: { widget: WidgetDefinition; onOpen: () => void }) {
+function NativeWidget({ widget, narrow, onOpen }: { widget: WidgetDefinition; narrow: boolean; onOpen: () => void }) {
+  const label = narrow ? widget.label.replace('Dokumentenkatalog', 'Dokumenten-\nkatalog').replace('Gehaltsstatistik', 'Gehalts-\nstatistik') : widget.label;
   return <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}>
-    <Text style={styles.widgetTitle}>{widget.label}</Text>
+    <Text style={styles.widgetTitle}>{label}</Text>
     {widget.images ? <Image source={widget.images.medium} resizeMode="contain" resizeMethod="resize" style={styles.widgetImage} accessible={false} /> : <View style={styles.widgetFallback}><MobileIcon name="layers" size={36} color="#A3D5FF" /></View>}
   </Pressable>;
 }
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingVertical: 8, gap: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(6,17,33,0.75)' }, headerActions: { flexDirection: 'row', gap: 8 },
   brand: { height: 48 }, moduleBar: { flexGrow: 0, flexShrink: 0, backgroundColor: 'rgba(6,17,33,0.6)' }, moduleContent: { paddingHorizontal: 16, paddingBottom: 10, paddingTop: 3, gap: 7 },
   areaTab: { minHeight: 44, paddingVertical: 11, paddingHorizontal: 17, borderRadius: 15, justifyContent: 'center', backgroundColor: 'rgba(90,150,220,0.09)', borderWidth: 1, borderColor: 'rgba(161,210,255,0.16)' }, areaTabActive: { backgroundColor: '#1B64CF', borderColor: '#6AA9FF' }, areaText: { color: '#BDD2EC', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  workarea: { flex: 1, minHeight: 0, flexDirection: 'row' }, sidebar: { backgroundColor: '#F3F7FD', borderTopRightRadius: 22, borderBottomRightRadius: 22 }, navItem: { paddingVertical: 12, paddingHorizontal: 14, gap: 4, borderWidth: 1, borderColor: '#D7E5F5', backgroundColor: '#fff', borderRadius: 14 }, group: { color: '#1C5FB1', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  workarea: { flex: 1, minHeight: 0, flexDirection: 'row' }, sidebar: { flexGrow: 0, flexShrink: 0, backgroundColor: '#F3F7FD', borderTopRightRadius: 22, borderBottomRightRadius: 22 }, navItem: { paddingVertical: 12, paddingHorizontal: 14, gap: 4, borderWidth: 1, borderColor: '#D7E5F5', backgroundColor: '#fff', borderRadius: 14 }, group: { color: '#1C5FB1', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   welcome: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(157,205,255,0.3)' }, desktopEyebrow: { color: '#BDD4F0', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 19 }, desktopTitle: { color: '#F5FAFF', fontFamily: careSuiteAppFontFamily, fontSize: 23, lineHeight: 32, fontWeight: '700' }, weather: { flex: 1, alignItems: 'flex-end', minWidth: 0, gap: 3, minHeight: 48, justifyContent: 'center' }, clock: { color: '#fff', fontFamily: careSuiteAppFontFamily, fontSize: 28, lineHeight: 35, fontWeight: '600', fontVariant: ['tabular-nums'] }, weatherText: { color: '#D4E8FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, textAlign: 'right' },
   desktopToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }, sectionLabel: { color: '#E0EEFF', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 22, fontWeight: '600', flexShrink: 1 },
   widget: { borderRadius: 22, borderWidth: 1, borderColor: 'rgba(177,221,255,0.32)', backgroundColor: 'rgba(10,32,63,0.7)', overflow: 'hidden', shadowColor: '#00132B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 3 }, widgetBody: { padding: 12, gap: 4, minHeight: 120 }, widgetTitle: { color: '#F1F8FF', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 21, fontWeight: '700', textAlign: 'center' }, widgetImage: { width: '100%', aspectRatio: 1.6 }, widgetFallback: { alignItems: 'center', justifyContent: 'center', minHeight: 72 },
