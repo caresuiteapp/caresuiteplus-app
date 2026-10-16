@@ -161,7 +161,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
           <View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
             const widget = widgetById.get(id); if (!widget) return null;
             return <View key={id} style={[styles.widget, { width: layout.cardWidth }]}>
-              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
+              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
               {edit ? <View style={styles.widgetEdit}><NativeAction label="Entfernen" accessibilityLabel={`${widget.label} vom Desktop entfernen`} onPress={() => toggle(id)} /><View style={ui.row}><NativeAction label="←" accessibilityLabel={`${widget.label} nach vorne verschieben`} disabled={index === 0} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, -1) })} /><NativeAction label="→" accessibilityLabel={`${widget.label} nach hinten verschieben`} disabled={index === preferences.ids.length - 1} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, 1) })} /></View></View> : null}
             </View>;
           })}</View>
@@ -198,11 +198,11 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   </ImageBackground>;
 }
 
-function NativeWidget({ widget, narrow, onOpen }: { widget: WidgetDefinition; narrow: boolean; onOpen: () => void }) {
+function NativeWidget({ widget, narrow, compact, onOpen }: { widget: WidgetDefinition; narrow: boolean; compact: boolean; onOpen: () => void }) {
   const label = narrow ? widget.label.replace('Dokumentenkatalog', 'Dokumenten-\nkatalog').replace('Gehaltsstatistik', 'Gehalts-\nstatistik') : widget.label;
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, compact && { minHeight: 112, padding: 10 }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}>
     <Text style={styles.widgetTitle}>{label}</Text>
-    {widget.images ? <Image source={widget.images.medium} resizeMode="contain" resizeMethod="resize" style={styles.widgetImage} accessible={false} /> : <View style={styles.widgetFallback}><MobileIcon name="layers" size={36} color="#A3D5FF" /></View>}
+    {widget.images ? <Image source={widget.images.medium} resizeMode="contain" resizeMethod="resize" style={[styles.widgetImage, compact && { height: 68, aspectRatio: undefined }]} accessible={false} /> : <View style={styles.widgetFallback}><MobileIcon name="layers" size={36} color="#A3D5FF" /></View>}
   </Pressable>;
 }
 
