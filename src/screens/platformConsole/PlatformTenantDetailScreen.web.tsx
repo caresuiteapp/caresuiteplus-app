@@ -73,6 +73,7 @@ import { ConsoleStyle, ConsoleBadge } from '@/components/platformConsole/Console
 import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
 import { platformName } from '@/lib/platformConsole/platformLanguage';
 import { TenantAccountsTab } from './TenantAccountsTab.web';
+import { TenantDataTransfers } from './TenantDataTransfers.web';
 import { PlatformFreeUsagePanel } from '@/components/platformConsole/PlatformFreeUsagePanel.web';
 import { managePlatformTenantAccess } from '@/lib/platformConsole/platformAccessService';
 import { PLATFORM_ACCESS_RELEASE, TENANT_ACCESS_ACTIONS, tenantAccessActions, tenantAccessConfirmation, tenantAccessDescription, type PlatformTenantAccessAction } from '@/lib/platformConsole/platformAccessLifecycle';
@@ -84,7 +85,7 @@ const TAB_GROUPS = [
   { key: 'record', label: 'Mandantenakte', tabs: [
     { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
     { key: 'company', label: 'Alle Unternehmensdaten' }, { key: 'setup', label: 'Einrichtung & Prozentstand' },
-    { key: 'usage', label: 'Kostenlose Nutzung' },
+    { key: 'usage', label: 'Kostenlose Nutzung' }, { key: 'newData', label: 'Neue Daten' },
   ] },
   { key: 'people', label: 'Personen & Akten', tabs: [
     { key: 'clients', label: 'Alle Klient:innen' }, { key: 'employees', label: 'Alle Mitarbeitenden' },
@@ -103,11 +104,13 @@ const TAB_GROUPS = [
 
 type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 const TAB_CAPABILITIES: Record<TabKey, PlatformCapability> = {
+  newData:'tenants.read',
   company:'tenants.read',setup:'tenants.read',clients:'tenants.read',employees:'tenants.read',history:'tenants.read',
   overview:'tenants.read',recordEdit:'tenants.write',usage:'tenants.read',entitlements:'modules.read',
   flags:'flags.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
 };
 const TAB_DESCRIPTIONS: Record<TabKey,string> = {
+  newData:'Upload-Popup beim Unternehmen aktivieren und vollständig übermittelte Dateien herunterladen.',
   company:'Alle gespeicherten Unternehmensangaben, Logo, Konfigurationen und zugehörigen Datenbereiche einsehen.',
   setup:'Den berechneten Einrichtungsstand mit erfüllten Kriterien, fehlenden Angaben und Datenquellen prüfen.',
   clients:'Sämtliche Klient:innen mit Stammdaten und zugehörigen Akten durchsuchen und seitenweise öffnen.',
@@ -134,7 +137,7 @@ export function PlatformTenantDetailScreen() {
   return <TenantDetailContent key={id} tenantId={id} />;
 }
 
-const OWNER_TABS: readonly string[] = ['company','setup','clients','employees','history'];
+const OWNER_TABS: readonly string[] = ['company','setup','clients','employees','history','newData'];
 
 function TenantDetailContent({ tenantId }: { tenantId: string }) {
   const router = useRouter();
@@ -359,6 +362,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
         {tab === 'overview' ? (
           <>
+          {dossierOwner && <div className="cs-console"><button className="cs-btn primary" onClick={() => void changeTab('newData')}>Datenübernahme anfordern / Neue Daten</button></div>}
           {dossierOwner && dossier.data ? <TenantDossierOverview dossier={dossier.data} onOpen={(view: DossierView) => {
             if (view === 'company') setDossierSection('tenants');
             void changeTab(view);
@@ -419,6 +423,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
+        {dossierOwner && tab === 'newData' ? <TenantDataTransfers key={tid} tenantId={tid} /> : null}
         {tab === 'usage' ? <PlatformFreeUsagePanel /> : null}
 
         {tab === 'entitlements' ? (

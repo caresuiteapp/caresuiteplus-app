@@ -21,6 +21,7 @@ import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workfl
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { TenantDataUploadGate } from '@/components/dataTransfers/TenantDataUploadGate.web';
 import { BusinessWelcomeGate } from '@/product-workflows/components/auth/BusinessWelcomeGate';
 import { PortalWelcomeGate } from '@/product-workflows/components/auth/PortalWelcomeGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
@@ -229,6 +230,7 @@ export default function RootLayout() {
                             <SoftwareScreensaver />
                             <RootShell />
                             <WebReleaseNotice />
+                            <TenantDataUploadGate />
                             </PlatformRuntimeBoundary>
                           </HealthOSStoreEditionGuard></WebNavigationMount>
                         </ScreensaverSettingsProvider>

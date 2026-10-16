@@ -66,3 +66,7 @@ verify_jwt = true
 
 [functions.complete-client-intake]
 verify_jwt = true
+
+# Auth.getUser validates the JWT; the user-scoped RPC checks the live owner role.
+[functions.tenant-data-download]
+verify_jwt = false
