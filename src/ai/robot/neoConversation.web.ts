@@ -126,7 +126,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
     signal.throwIfAborted();
     if (Date.now() - touched > 5 * 60_000) { clearTopic(); last = null; }
     const text = cleanNeoText(input);
-    if (!text || input.length > 1000) return remember({ text: 'Sag oder schreibe bitte eine kurze Frage zu CareSuite.', suggestions: defaultSuggestions });
+    if (!text || input.length > 1000) return remember({ text: 'Stelle bitte eine kurze Frage zu CareSuite.', suggestions: defaultSuggestions });
     if (STOP.test(text) || neoSmallTalk(text) === 'goodbye') {
       clearTopic(); return remember({ text: 'Alles klar. Das Mikrofon ist aus. Bis später.', end: true });
     }
@@ -163,7 +163,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
       const index = neoChoice(text);
       const selected = index !== null ? pending.subjects[index] : subjects.length === 1 && !task && neoSubjectReply(input, subjects[0]) ? pending.subjects.find(s => s.key === subjects[0].key) : undefined;
       if (selected) return remember(pending.task ? resolveTask(selected, pending.task, input) : clarify(selected));
-      if (YES.test(text) || index !== null) return remember({ text: 'Welches Thema meinst du? Nenne eines der angezeigten Themen.', suggestions: pending.subjects.map(s => s.label) });
+      if (YES.test(text) || index !== null) return remember({ text: 'Welches Thema meinst du? Nenne eines der genannten Themen.', suggestions: pending.subjects.map(s => s.label) });
     }
 
     if (subjects.length === 1 && !task && neoSubjectReply(input, subjects[0])) return remember(clarify(subjects[0]));
@@ -203,7 +203,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
       if (smallTalk === 'thanks' && guide) return remember({ text: 'Gern. Möchtest du mit der Anleitung weitermachen?', suggestions: ['Weiter', 'Beispiel', 'Andere Frage'] });
       if (smallTalk === 'positive' && guide) { guide.step++; return remember(guideResponse()); }
       if (smallTalk === 'frustration' && !guide) return remember(askTask('problem'));
-      if (smallTalk === 'privacy') return remember({ text: 'Das Mikrofon läuft nur nach deinem Start und solange das Gespräch aktiv ist. Während ich spreche, ist die Erkennung pausiert. Stoppen, Schließen oder ein Seitenwechsel schaltet es aus. Der Verlauf bleibt nur in diesem geöffneten Gespräch. Die Spracherkennung nutzt den Sprachdienst deines Browsers.', suggestions: ['Was kannst du?', 'Gespräch beenden'] });
+      if (smallTalk === 'privacy') return remember({ text: 'Das Mikrofon läuft nur nach deinem Start und solange das Gespräch aktiv ist. Während ich spreche, ist die Erkennung pausiert. Ein weiterer Klick auf mich, Escape oder ein Seitenwechsel schaltet es aus. Den Zusammenhang merke ich mir nur für dieses Gespräch; es gibt keinen sichtbaren Verlauf. Die Spracherkennung nutzt den Sprachdienst deines Browsers.', suggestions: ['Was kannst du?', 'Gespräch beenden'] });
       if (smallTalk === 'capabilities' || smallTalk === 'help') {
         clearTopic(); return remember({ text: 'Ich helfe dir bei CareSuite: Seiten und Klientenakten öffnen, Abläufe Schritt für Schritt erklären und passende Anleitungen finden. Du kannst Rückfragen stellen, „weiter“ oder „Beispiel“ sagen und Antworten korrigieren. Welche Aufgabe steht an?', suggestions: defaultSuggestions.slice(1).concat('Wie richte ich Portalzugänge ein?') });
       }
@@ -217,7 +217,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
       if (index !== null && pending.articles[index]) return remember(beginGuide(pending.articles[index]));
       const matches = findNeoHelp(input).filter(m => pending?.kind === 'topics' && pending.articles.some(a => a.id === m.article.id));
       if (matches.length === 1 || matches.length && matches[0].score > (matches[1]?.score ?? 0) * 1.3) return remember(beginGuide(matches[0].article));
-      if (index !== null || YES.test(text)) return remember({ text: 'Welche Anleitung meinst du? Sag den Titel oder eine der angezeigten Nummern.', suggestions: pending.articles.map((_a, i) => `Nummer ${i + 1}`) });
+      if (index !== null || YES.test(text)) return remember({ text: 'Welche Anleitung meinst du? Sag den Titel oder eine der genannten Nummern.', suggestions: pending.articles.map((_a, i) => `Nummer ${i + 1}`) });
     }
     if (pending?.kind === 'clients') {
       if (!deps.canSearchClients()) { pending = null; return remember(denied()); }
@@ -230,7 +230,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
         return tokens.length && tokens.every(t => available.includes(t));
       });
       if (matches.length === 1) return remember(chooseClient(matches[0]));
-      if (index !== null || YES.test(text)) return remember({ text: 'Welche Person meinst du genau? Nenne eine der angezeigten Nummern oder den vollständigen Namen.', suggestions: pending.clients.map((_c, i) => `Nummer ${i + 1}`) });
+      if (index !== null || YES.test(text)) return remember({ text: 'Welche Person meinst du genau? Nenne eine der genannten Nummern oder den vollständigen Namen.', suggestions: pending.clients.map((_c, i) => `Nummer ${i + 1}`) });
       // A correction may name someone outside the original search result.
       if (/^(?:nein )?ich meine /.test(text)) {
         const name = safeName(input); if (name) return remember(await search(name, signal));
