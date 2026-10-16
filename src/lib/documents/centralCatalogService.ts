@@ -12,7 +12,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { centralFileName, centralMissingFields } from './centralCatalogModel';
 import { sha256FileHex } from '@/lib/crypto/sha256Hex';
 import { Platform } from 'react-native';
-import { loadCanonicalCompanyDocumentData, loadCompanyDocumentCustomValues } from './companyDocumentContext.web';
+import { loadCanonicalCompanyDocumentData, loadCompanyDocumentCustomValues } from './companyDocumentContext';
 
 type Actor = { roleKey?: RoleKey | null; profile?: Profile | null; effectivePermissions?: readonly PermissionKey[] };
 export type CentralContextRequest = { definition?: CentralDocumentDefinition; assignmentId?: string; invoiceId?: string; medicationId?: string; woundId?: string; period?: string };
