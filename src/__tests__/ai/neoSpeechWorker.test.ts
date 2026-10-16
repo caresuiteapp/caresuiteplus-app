@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
+import { createNeoSpeech } from '../../ai/robot/neoSpeech.web';
+import { NEO_INTRODUCTION } from '../../ai/robot/neoCommands';
 
 const worker = readFileSync(new URL('../../../public/neo-voice/v1/neo-worker.js', import.meta.url), 'utf8');
 function helpers() {
@@ -9,6 +11,14 @@ function helpers() {
   return sandbox.test;
 }
 describe('Neo speech continuity', () => {
+  it('loads the spoken startup greeting from bundled audio without requiring a Worker', async () => {
+    const speech = createNeoSpeech();
+    try {
+      const bytes = new Uint8Array(await speech.loadVoice('neo:conversation', new AbortController().signal, NEO_INTRODUCTION));
+      expect(bytes.length).toBeGreaterThan(1000);
+      expect(String.fromCharCode(...bytes.slice(0, 3))).toBe('ID3');
+    } finally { speech.dispose(); }
+  });
   it('keeps each sentence frame intact instead of inferring across multiple end/start markers', () => {
     const { sentenceInputs } = helpers();
     expect(sentenceInputs([1, 0, 18, 0, 2, 1, 0, 25, 0, 2])).toEqual([[1, 0, 18, 0, 2], [1, 0, 25, 0, 2]]);

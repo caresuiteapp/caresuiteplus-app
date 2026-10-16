@@ -30,15 +30,12 @@ let cleanup: (() => void) | undefined, deps: RobotDependencies;
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 const tick = async (ms = 0) => { await vi.advanceTimersByTimeAsync(ms); await flush(); };
 const lastRecognition = () => FakeRecognition.all.at(-1)!;
-const panel = () => document.querySelector<HTMLElement>('.cs-neo-panel')!;
-const click = (selector: string) => document.querySelector<HTMLButtonElement>(selector)!.click();
-const textMessage = (text: string) => {
-  const input = document.querySelector<HTMLInputElement>('.cs-neo-form input')!;
-  input.focus(); input.value = text;
-  document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
-};
+const host = () => document.querySelector<HTMLElement>('.cs-robot')!;
+const status = () => document.querySelector<HTMLElement>('.cs-neo-voice-status')!;
+const button = () => document.querySelector<HTMLButtonElement>('.cs-robot-button')!;
+const spoken = () => vi.mocked(deps.loadVoice).mock.calls.map(call => call[2]).join(' ');
 const completeAudio = async () => {
-  for (let count = 0; count < 12; count++) { await flush(); const source = FakeAudio.sources.at(-1); if (!source?.onended) break; source.onended(); }
+  for (let count = 0; count < 20; count++) { await flush(); const source = FakeAudio.sources.at(-1); if (!source?.onended) break; source.onended(); }
   await tick(350);
 };
 beforeEach(() => {
@@ -48,127 +45,158 @@ beforeEach(() => {
   deps = { robotUrl: '/robot.png', canNavigate: () => true, canSearchClients: () => true, searchClients: vi.fn().mockResolvedValue([]), navigate: vi.fn(), back: vi.fn().mockReturnValue(false), loadVoice: vi.fn().mockResolvedValue(new ArrayBuffer(8)), prepareVoice: vi.fn() };
 });
 afterEach(() => { cleanup?.(); cleanup = undefined; vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); document.body.innerHTML = ''; });
-function mount() { cleanup = mountRobotAssistant(deps); click('.cs-robot-button'); }
+async function mount() {
+  cleanup = mountRobotAssistant(deps); button().click(); await completeAudio();
+  vi.mocked(deps.loadVoice).mockClear();
+}
 
-describe('Neo complete voice turns', () => {
-  it('starts on user input, pauses during its own reply and resumes for the next answer', async () => {
-    mount(); expect(lastRecognition().continuous).toBe(true); expect(lastRecognition().interimResults).toBe(true);
-    lastRecognition().say('Hallo Neo'); await tick(1100);
+describe('Neo voice-only conversation', () => {
+  it('speaks the bundled greeting on click without opening a chat or starting capture over its own voice', async () => {
+    cleanup = mountRobotAssistant(deps);
+    expect(deps.loadVoice).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(0);
+    expect(status().hidden).toBe(true);
+    button().click(); await flush();
+    expect(spoken()).toBe('Ich bin Neo, dein kleiner Assistent in deinem CareSuite Health OS.');
+    expect(FakeAudio.sources.at(-1)?.start).toHaveBeenCalledOnce(); expect(FakeRecognition.all).toHaveLength(0);
+    expect(host().dataset.state).toBe('speaking');
+    expect(document.querySelector('[role=dialog], [role=log], form, input, .cs-neo-panel')).toBeNull();
+    expect(button().hasAttribute('aria-haspopup')).toBe(false);
+    await completeAudio(); expect(lastRecognition().continuous).toBe(true); expect(lastRecognition().interimResults).toBe(true);
+    expect(host().dataset.state).toBe('listening');
+  });
+  it('pauses recognition while speaking and resumes for another spoken answer', async () => {
+    await mount(); lastRecognition().say('Hallo Neo'); await tick(1100);
     expect(FakeRecognition.all).toHaveLength(1); expect(lastRecognition().aborted).toBe(true);
-    expect(panel().dataset.state).toBe('speaking');
-    await completeAudio(); expect(FakeRecognition.all).toHaveLength(2); expect(panel().dataset.state).toBe('listening');
+    expect(host().dataset.state).toBe('speaking');
+    await completeAudio(); expect(FakeRecognition.all).toHaveLength(2); expect(host().dataset.state).toBe('listening');
     lastRecognition().say('Wie spät ist es?'); await tick(1100); await completeAudio();
-    expect(FakeRecognition.all).toHaveLength(3); expect(panel().textContent).toContain('Uhr');
+    expect(FakeRecognition.all).toHaveLength(3); expect(spoken()).toContain('Uhr');
+    expect(document.body.textContent).not.toContain('Es ist');
   });
-  it('reopens the microphone after a missing-name question and uses the answer', async () => {
+  it('speaks the missing-name question, listens for the answer and opens the matching record', async () => {
     deps.searchClients = vi.fn().mockResolvedValue([{ id: 'anna/1', firstName: 'Anna', lastName: 'Müller' }]);
-    mount(); lastRecognition().say('Suche eine Akte'); await tick(1100); await completeAudio();
-    expect(panel().dataset.state).toBe('listening');
+    await mount(); lastRecognition().say('Suche eine Akte'); await tick(1100); await completeAudio();
+    expect(spoken()).toContain('Von welcher Person'); expect(host().dataset.state).toBe('listening');
     lastRecognition().say('Anna Müller'); await tick(1100);
-    expect(deps.navigate).not.toHaveBeenCalled();
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(spoken()).toContain('Anna Müller');
+    expect(document.body.textContent).not.toContain('Anna Müller');
     await completeAudio(); expect(deps.navigate).toHaveBeenCalledWith('/office/clients/anna%2F1');
-    expect(panel().dataset.active).toBe('false');
+    expect(status().hidden).toBe(true); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
-  it('keeps listening through a short topic, a clarification and a natural follow-up', async () => {
-    mount(); lastRecognition().say('Eine Rechnung'); await tick(1100); await completeAudio();
-    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Rechnungsübersicht');
+  it('speaks a short-topic clarification and continues the guide from natural replies', async () => {
+    await mount(); lastRecognition().say('Eine Rechnung'); await tick(1100); await completeAudio();
+    expect(host().dataset.state).toBe('listening'); expect(spoken()).toContain('Rechnungsübersicht');
     lastRecognition().say('Ich möchte eine neue erstellen'); await tick(1100); await completeAudio();
-    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Die Abrechnung vorbereiten');
+    expect(host().dataset.state).toBe('listening'); expect(spoken()).toContain('Die Abrechnung vorbereiten');
     lastRecognition().say('Das habe ich gemacht'); await tick(1100); await completeAudio();
-    expect(panel().dataset.state).toBe('listening'); expect(panel().textContent).toContain('Schritt 2');
+    expect(host().dataset.state).toBe('listening'); expect(spoken()).toContain('Schritt 2');
     expect(deps.navigate).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(4);
   });
-  it('keeps the clarification in text mode without restarting the microphone', async () => {
-    mount(); textMessage('Urlaub'); await flush(); await completeAudio();
-    textMessage('Im Kalender'); await flush(); await completeAudio();
-    expect(panel().textContent).toContain('Verfügbarkeiten und Abwesenheiten im Kalender pflegen');
-    expect(FakeRecognition.all).toHaveLength(1); expect(panel().dataset.active).toBe('false');
-    expect(deps.navigate).not.toHaveBeenCalled();
-  });
   it('combines final fragments and revised interim speech before executing once', async () => {
-    mount(); const r = lastRecognition();
+    await mount(); const r = lastRecognition();
     r.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
     await tick(1200); expect(deps.loadVoice).not.toHaveBeenCalled();
     r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
     await tick(1100); await completeAudio();
     expect(deps.navigate).toHaveBeenCalledExactlyOnceWith('/assist/kalender');
   });
-  it('recovers a browser end event without turning silence into an error reply', async () => {
-    mount(); lastRecognition().onend?.(); await tick(500);
+  it('recovers a browser end event and pauses after silence', async () => {
+    await mount(); lastRecognition().onend?.(); await tick(500);
     expect(FakeRecognition.all).toHaveLength(2); expect(deps.loadVoice).not.toHaveBeenCalled();
     await tick(35000); const count = FakeRecognition.all.length; await tick(40000);
-    expect(panel().dataset.active).toBe('false'); expect(panel().textContent).toContain('pausiert'); expect(FakeRecognition.all).toHaveLength(count);
+    expect(button().getAttribute('aria-pressed')).toBe('false'); expect(status().hidden).toBe(true); expect(FakeRecognition.all).toHaveLength(count);
   });
-  it.each(['not-allowed', 'service-not-allowed', 'audio-capture', 'network'])('stops retrying on %s and offers text', async error => {
-    mount(); lastRecognition().error(error); await tick(40000);
-    expect(FakeRecognition.all).toHaveLength(1); expect(panel().dataset.active).toBe('false'); expect(panel().dataset.state).toBe('error');
+  it.each(['not-allowed', 'service-not-allowed', 'audio-capture', 'network'])('stops retrying on %s and gives an actionable microphone status', async error => {
+    await mount(); lastRecognition().error(error); await tick(40000);
+    expect(FakeRecognition.all).toHaveLength(1); expect(button().getAttribute('aria-pressed')).toBe('false');
+    expect(host().dataset.state).toBe('error'); expect(status().textContent).toContain('Neo erneut an');
+    expect(document.querySelector('input, [role=dialog]')).toBeNull();
   });
-  it('stops after goodbye and never rearms the microphone', async () => {
-    mount(); lastRecognition().say('Gespräch beenden'); await tick(1100); await completeAudio(); await tick(40000);
-    expect(FakeRecognition.all).toHaveLength(1); expect(panel().dataset.active).toBe('false');
+  it('reports unsupported recognition without opening an input dialog', async () => {
+    vi.stubGlobal('SpeechRecognition', undefined);
+    await mount(); expect(host().dataset.state).toBe('error'); expect(status().textContent).toContain('Sprachunterstützung');
+    expect(button().getAttribute('aria-pressed')).toBe('false'); expect(document.querySelector('input, [role=dialog]')).toBeNull();
   });
-  it('retains the answer and continues listening if the voice cannot load', async () => {
-    deps.loadVoice = vi.fn().mockRejectedValue(new Error('voice-offline'));
-    mount(); lastRecognition().say('Was kannst du?'); await tick(1500);
-    expect(panel().textContent).toContain('Welche Aufgabe'); expect(panel().dataset.state).toBe('listening');
+  it('speaks goodbye and never rearms the microphone', async () => {
+    await mount(); lastRecognition().say('Gespräch beenden'); await tick(1100); await completeAudio(); await tick(40000);
+    expect(spoken()).toContain('Bis später'); expect(FakeRecognition.all).toHaveLength(1);
+    expect(button().getAttribute('aria-pressed')).toBe('false'); expect(status().hidden).toBe(true);
   });
-  it('does not let voice failure block valid navigation', async () => {
-    deps.loadVoice = vi.fn().mockRejectedValue(new Error('voice-offline'));
-    mount(); lastRecognition().say('Kalender öffnen'); await tick(1500);
-    expect(deps.navigate).toHaveBeenCalledWith('/assist/kalender');
+  it('stops if a response cannot be spoken instead of silently expecting an answer', async () => {
+    await mount(); deps.loadVoice = vi.fn().mockRejectedValue(new Error('voice-offline'));
+    lastRecognition().say('Was kannst du?'); await tick(1500);
+    expect(host().dataset.state).toBe('error'); expect(status().textContent).toContain('Neo konnte nicht sprechen');
+    expect(FakeRecognition.all).toHaveLength(1); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
-  it('rechecks permissions after playback', async () => {
+  it('does not navigate after a failed spoken confirmation', async () => {
+    await mount(); deps.loadVoice = vi.fn().mockRejectedValue(new Error('voice-offline'));
+    lastRecognition().say('Kalender öffnen'); await tick(1500);
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(host().dataset.state).toBe('error');
+  });
+  it('rechecks permissions after playback and speaks the changed access', async () => {
     let allowed = true; deps.canNavigate = () => allowed;
-    mount(); lastRecognition().say('Kalender öffnen'); await tick(1100); allowed = false; await completeAudio();
-    expect(deps.navigate).not.toHaveBeenCalled(); expect(panel().textContent).toContain('nicht mehr freigegeben');
+    await mount(); lastRecognition().say('Kalender öffnen'); await tick(1100); allowed = false; await completeAudio();
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(spoken()).toContain('nicht mehr freigegeben');
+    expect(host().dataset.state).toBe('listening');
   });
 });
-describe('Neo cancellation and text continuity', () => {
-  it('keeps the microphone off for typed conversation and displays text safely', async () => {
-    mount(); textMessage('<img src=x onerror=alert(1)>'); await flush(); await completeAudio();
-    expect(FakeRecognition.all).toHaveLength(1); expect(panel().dataset.active).toBe('false');
-    expect(panel().querySelectorAll('.cs-neo-message img')).toHaveLength(0);
-    textMessage('Eine Klientenakte anlegen'); await flush(); await completeAudio();
-    textMessage('Weiter'); await flush(); await completeAudio();
-    expect(panel().textContent).toContain('Schritt 2'); expect(FakeRecognition.all).toHaveLength(1);
+describe('Neo spoken-session cancellation', () => {
+  it('cancels the greeting with another click before starting the microphone', async () => {
+    cleanup = mountRobotAssistant(deps); button().click(); await flush();
+    const source = FakeAudio.sources.at(-1)!; button().click(); await tick(5000);
+    expect(source.stop).toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(0);
+    expect(status().hidden).toBe(true); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
-  it('cancels delayed search results on close and clears the conversation', async () => {
+  it('keeps the context when clicking Neo again after pausing', async () => {
+    await mount(); lastRecognition().say('Urlaub'); await tick(1100); await completeAudio();
+    button().click(); expect(lastRecognition().aborted).toBe(true); button().click();
+    lastRecognition().say('Im Kalender'); await tick(1100); await completeAudio();
+    expect(spoken()).toContain('Verfügbarkeiten und Abwesenheiten im Kalender pflegen');
+  });
+  it('cancels delayed search results when stopped', async () => {
     let resolve!: (clients: any[]) => void; deps.searchClients = vi.fn().mockImplementation(() => new Promise(r => { resolve = r; }));
-    mount(); lastRecognition().say('Akte von Müller'); await tick(1100); click('.cs-neo-icon');
+    await mount(); lastRecognition().say('Akte von Müller'); await tick(1100); button().click();
     resolve([{ id: 'one', firstName: 'Anna', lastName: 'Müller' }]); await flush(); await tick(2000);
-    expect(deps.navigate).not.toHaveBeenCalled(); expect(panel().hidden).toBe(true); expect(panel().querySelector('.cs-neo-log')?.childElementCount).toBe(0);
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(deps.loadVoice).not.toHaveBeenCalled(); expect(status().hidden).toBe(true);
   });
-  it('bounds a search that never resolves and recovers for a new answer', async () => {
+  it('speaks a search timeout and listens after the error is heard', async () => {
     deps.searchClients = vi.fn().mockImplementation(() => new Promise(() => {}));
-    mount(); lastRecognition().say('Akte von Müller'); await tick(1100); await tick(18500);
-    expect(panel().textContent).toContain('nicht geklappt'); expect(panel().dataset.state).toBe('listening');
-    expect(deps.navigate).not.toHaveBeenCalled();
+    await mount(); lastRecognition().say('Akte von Müller'); await tick(1100); await tick(18000);
+    expect(spoken()).toContain('nicht geklappt'); expect(FakeRecognition.all).toHaveLength(1);
+    await completeAudio(); expect(host().dataset.state).toBe('listening'); expect(deps.navigate).not.toHaveBeenCalled();
   });
-  it('turning off sound interrupts synthesis and resumes listening', async () => {
-    deps.loadVoice = vi.fn().mockImplementation(() => new Promise(() => {}));
-    mount(); lastRecognition().say('Hallo'); await tick(1100); click('.cs-neo-mute'); await tick(500);
-    expect(panel().dataset.state).toBe('listening'); expect(panel().querySelector('.cs-neo-mute')?.textContent).toBe('Ton aus');
+  it('allows stopping synthesis that has not returned audio', async () => {
+    await mount(); deps.loadVoice = vi.fn().mockImplementation(() => new Promise(() => {}));
+    lastRecognition().say('Hallo'); await tick(1100); button().click(); await tick(100000);
+    expect(host().dataset.state).toBe('ready'); expect(status().hidden).toBe(true); expect(FakeRecognition.all).toHaveLength(1);
+  });
+  it('bounds stalled synthesis and leaves the microphone off', async () => {
+    await mount(); deps.loadVoice = vi.fn().mockImplementation(() => new Promise(() => {}));
+    lastRecognition().say('Hallo'); await tick(1100); await tick(96000);
+    expect(host().dataset.state).toBe('error'); expect(FakeRecognition.all).toHaveLength(1);
   });
   it('stops on pagehide even before the document is marked hidden', async () => {
-    mount(); window.dispatchEvent(new Event('pagehide')); await tick(500);
-    expect(lastRecognition().aborted).toBe(true); expect(panel().dataset.active).toBe('false');
+    await mount(); window.dispatchEvent(new Event('pagehide')); await tick(500);
+    expect(lastRecognition().aborted).toBe(true); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
   it('stops audio and rejects stale callbacks after escape', async () => {
-    mount(); lastRecognition().say('Kalender öffnen'); await tick(1100);
+    await mount(); lastRecognition().say('Kalender öffnen'); await tick(1100);
     const callback = FakeAudio.sources.at(-1)?.onended;
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); callback?.(); await tick(5000);
-    expect(deps.navigate).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(1); expect(panel().hidden).toBe(true);
+    expect(deps.navigate).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(1); expect(status().hidden).toBe(true);
   });
   it('stops on visibility change and does not restart on return', async () => {
-    mount(); vi.spyOn(document, 'hidden', 'get').mockReturnValue(true); document.dispatchEvent(new Event('visibilitychange')); await tick(1000);
-    expect(lastRecognition().aborted).toBe(true); expect(panel().dataset.active).toBe('false');
+    await mount(); vi.spyOn(document, 'hidden', 'get').mockReturnValue(true); document.dispatchEvent(new Event('visibilitychange')); await tick(1000);
+    expect(lastRecognition().aborted).toBe(true); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
-  it('disposes the overlay and pending speech without restarting', async () => {
-    mount(); lastRecognition().say('Hallo'); await tick(1100); cleanup?.(); cleanup = undefined; await tick(40000);
-    expect(document.querySelector('.cs-neo-panel')).toBeNull(); expect(FakeRecognition.all).toHaveLength(1);
+  it('disposes the indicator and pending speech without restarting', async () => {
+    await mount(); lastRecognition().say('Hallo'); await tick(1100); cleanup?.(); cleanup = undefined; await tick(40000);
+    expect(document.querySelector('.cs-neo-voice-status, .cs-robot')).toBeNull(); expect(FakeRecognition.all).toHaveLength(1);
   });
-  it('chunks long answers within the existing local voice limit', () => {
-    const chunks = splitNeoSpeech('Dies ist eine längere Anleitung mit einem Beispiel. '.repeat(20));
+  it('speaks complete long answers in chunks without referring to a hidden transcript', () => {
+    const text = 'Dies ist eine längere Anleitung mit einem Beispiel. '.repeat(40).trim();
+    const chunks = splitNeoSpeech(text);
     expect(chunks.length).toBeGreaterThan(1); expect(chunks.every(c => c.length <= 340 && c.length > 0)).toBe(true);
+    expect(chunks.join(' ')).toBe(text);
   });
 });
