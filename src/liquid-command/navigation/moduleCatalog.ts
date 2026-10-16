@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
 
 export type LiquidGlobalShortcut = {
@@ -21,7 +22,7 @@ export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
     label: 'Heute',
     description: 'Unternehmenslage, Klient:innenkarte und heutige Einsätze',
     glyph: '▦',
-    route: '/',
+    route: Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/',
     keywords: 'dashboard command center karte klienten heute',
   },
   {
@@ -100,7 +101,7 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
     label: 'Command Center',
     shortLabel: 'Heute',
     glyph: '⌂',
-    route: '/',
+    route: Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/',
     description: 'Unternehmenslage, Live-Situation und nächste Entscheidungen.',
     primaryAction: 'Neue Aktion',
   },
@@ -180,8 +181,8 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
 
 export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]> = {
   home: [
-    { id: 'situation', label: 'Versorgung heute', description: 'Alle Klient:innen, Einsätze und Risiken', pageType: 'command-center', route: '/' },
-    { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: '/?area=decisions' },
+    { id: 'situation', label: 'Versorgung heute', description: 'Alle Klient:innen, Einsätze und Risiken', pageType: 'command-center', route: Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/' },
+    { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: Platform.OS === 'web' ? `${WEB_DESKTOP_ROUTE}?area=decisions` : '/?area=decisions' },
   ],
   office: [
     { id: 'company', label: 'Unternehmen', description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Stammdaten, Standorte und Organisation', pageType: 'record', route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard' },

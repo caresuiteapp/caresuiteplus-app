@@ -3,6 +3,7 @@ import { Image } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { useAuth } from '@/lib/auth/context';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
 import { fetchClientList } from '@/lib/office/clientListService';
@@ -43,7 +44,7 @@ export function RobotNavigationAssistant() {
   // Mount only after the video (including autoplay/error recovery) releases the app.
   // Neo belongs to the central desktop; leaving it also stops active speech.
   const enabled = startupReady && !choosingDestination && authReady && isAuthenticated && !!tenantId && !!userId &&
-    can('office.access') && pathname === '/';
+    can('office.access') && pathname === WEB_DESKTOP_ROUTE;
 
   useEffect(() => {
     if (!enabled || !tenantId || !userId || typeof document === 'undefined') return;
@@ -52,7 +53,7 @@ export function RobotNavigationAssistant() {
       robotUrl: robotAssetUrl(),
       canNavigate: (destination) => current.current.can(destination.permission) && current.current.hasModuleGate(destination.route.startsWith('/assist') ? 'assist' : 'office'),
       canSearchClients: () => current.current.can('office.clients.view') && current.current.hasModuleGate('office'),
-      navigate: (route) => { current.current.router.push(route as never); },
+      navigate: (route) => { current.current.router.push((route === '/' ? WEB_DESKTOP_ROUTE : route) as never); },
       back: () => { if (!current.current.router.canGoBack()) return false; current.current.router.back(); return true; },
       canGoBack: () => current.current.router.canGoBack(),
       loadVoice: speech.loadVoice,

@@ -1,5 +1,6 @@
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { liquidColors, liquidRadius, liquidSpace } from '@/liquid-command/foundation/tokens';
 
 export default function NotFoundScreen() {
@@ -17,7 +18,7 @@ export default function NotFoundScreen() {
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.replace('/' as never)}
+            onPress={() => router.replace((Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/') as never)}
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
           >
             <Text style={styles.primaryLabel}>Zum Command Center</Text>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { HELP_ARTICLES, HELP_AUDIENCES, HELP_CATEGORIES, HELP_JOURNEYS, HELP_REVIEWED_AT } from '@/features/help/helpCatalog';
 import { helpArticle, helpReadingMinutes, searchHelpArticles } from '@/features/help/helpSearch';
 import { helpCenterCss } from '@/features/help/helpCenterCss';
@@ -84,7 +85,7 @@ function ArticleReader({ article, onNavigateArticle, onBrowse, onOpenRoute, onHo
       </div>
       <div className="hh-status" role="status" aria-live="polite">{status}</div>
       {copyFallback ? <input className="hh-copy-fallback" aria-label="Link zur Anleitung zum Kopieren" readOnly value={copyFallback} onFocus={event => event.target.select()}/> : null}
-      <div className="hh-location"><span className="hh-location-label">HIER FINDEN SIE DIE FUNKTION</span><div className="hh-path">{article.location.map((part, index) => <span key={`${index}-${part}`}>{index > 0 ? <span aria-hidden="true">›</span> : null}{part}</span>)}</div>{article.route ? <button type="button" className="hh-text-button" onClick={() => onOpenRoute(article.route!)}>Bereich öffnen <span aria-hidden="true">↗</span></button> : null}</div>
+      <div className="hh-location"><span className="hh-location-label">HIER FINDEN SIE DIE FUNKTION</span><div className="hh-path">{article.location.map((part, index) => <span key={`${index}-${part}`}>{index > 0 ? <span aria-hidden="true">›</span> : null}{part}</span>)}</div>{article.route ? <button type="button" className="hh-text-button" onClick={() => onOpenRoute(article.route === '/' ? WEB_DESKTOP_ROUTE : article.route!)}>Bereich öffnen <span aria-hidden="true">↗</span></button> : null}</div>
       {article.prerequisites.length ? <section id={`${prefix}-before`}><h2>Bevor Sie beginnen</h2><ul className="hh-prerequisites">{article.prerequisites.map(text => <li key={text}>{text}</li>)}</ul></section> : null}
       <section id={`${prefix}-steps`}><h2>Schritt für Schritt</h2><ol className="hh-steps">{article.steps.map(step => <li key={step.title}><div><h3>{step.title}</h3><p>{step.text}</p></div></li>)}</ol></section>
       <section id={`${prefix}-example`} className="hh-example"><span>BEISPIEL · FIKTIVER SACHVERHALT</span><h3>{article.example.title}</h3><p>{article.example.text}</p></section>

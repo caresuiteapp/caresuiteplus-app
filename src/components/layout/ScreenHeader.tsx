@@ -8,6 +8,7 @@ import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, typography } from '@/theme';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 
 type ScreenHeaderProps = {
   title: string;
@@ -114,7 +115,7 @@ export function ScreenHeader({
       router.back();
       return;
     }
-    router.replace('/' as never);
+    router.replace((Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/') as never);
   };
 
   return (

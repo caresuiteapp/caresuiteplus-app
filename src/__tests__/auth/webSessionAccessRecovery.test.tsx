@@ -164,7 +164,7 @@ describe('web saved-session access recovery', () => {
     expect(mock.auth.retryProfileBootstrap).toHaveBeenCalledOnce();
     mock.auth.profile = { roleKey: 'business_admin', tenantId: 'test-tenant' };
     await render(<LiquidCommandEntryScreen />);
-    expect(host.textContent).toBe('Protected desktop');
+    expect(host.textContent).toBe('Redirect: /Desktop');
   });
   it.each([
     ['employee_portal', '/portal/employee'],

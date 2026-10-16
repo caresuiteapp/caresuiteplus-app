@@ -21,18 +21,18 @@ describe('actual Web continuity helpers', () => {
     expect(saved.entries.map((entry: { path: string }) => entry.path)).toEqual(['/business/office/clients?client=one', '/hilfe?artikel=dokument-katalog']);
   });
   it('uses the browser entry before reload when Expo no longer has a memory stack', () => {
-    page('desktop', '/'); page('list', '/business/office/clients'); page('record', '/business/office/clients?client=one');
+    page('desktop', '/Desktop'); page('list', '/business/office/clients'); page('record', '/business/office/clients?client=one');
     expect(canGoBackWebPage('account-a')).toBe(true);
     const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
     expect(goBackWebPage('account-a')).toBe(true); expect(back).toHaveBeenCalledOnce();
     expect(goBackWebPage('account-b')).toBe(false);
   });
   it('parameter replacements keep the previous page and Back reconciles its real history ID', () => {
-    page('desktop', '/'); page('list', '/office/clients'); page('record', '/office/clients?client=one');
+    page('desktop', '/Desktop'); page('list', '/office/clients'); page('record', '/office/clients?client=one');
     page('record', '/office/clients?client=one&tab=dokumente');
     page('list', '/office/clients');
     expect(canGoBackWebPage('account-a')).toBe(true);
-    page('desktop', '/'); expect(canGoBackWebPage('account-a')).toBe(false);
+    page('desktop', '/Desktop'); expect(canGoBackWebPage('account-a')).toBe(false);
   });
   it('a new branch after Back discards the inaccessible forward trail', () => {
     page('home', '/'); page('a', '/office/clients'); page('b', '/office/documents');

@@ -10,6 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import type { AppShellArea, ShellTabConfig } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { PlatformProfileMenu } from '@/components/layout/platform/PlatformProfileMenu';
@@ -52,7 +53,7 @@ export function OrbitTopNavigation({
       <View style={[styles.host, webFx]} testID="orbit-top-navigation">
         <View style={styles.identityRow}>
           <Pressable
-            onPress={() => router.push("/" as never)}
+            onPress={() => router.push(WEB_DESKTOP_ROUTE as never)}
             style={styles.brandButton}
             accessibilityRole="button"
             accessibilityLabel="Desktop öffnen"

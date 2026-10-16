@@ -1,3 +1,4 @@
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -42,7 +43,7 @@ export function ClientsListView({ onClientPress, onOpenDetail, onCreatePress, se
     {list.error ? <Text accessibilityRole="alert" style={m.error}>{list.error}</Text> : null}
   </View>;
   return <View style={m.grow}><FlatList key={columns} data={items} numColumns={columns} keyExtractor={item => item.id} contentContainerStyle={{ paddingBottom: 24 }} columnWrapperStyle={columns > 1 ? { gap: 12 } : undefined} keyboardShouldPersistTaps="handled" ListHeaderComponent={header} refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={() => void refresh()} tintColor="#1569E8" />} ItemSeparatorComponent={() => <View style={{ height: 10 }} />} renderItem={({ item }) => <View style={{ flex: 1, maxWidth: columns > 1 ? '49.5%' : '100%' }}><MobileRecordRow title={`${item.firstName} ${item.lastName}`.trim() || 'Name noch offen'} subtitle={[item.zip, item.city].filter(Boolean).join(' ') || 'Ort nicht hinterlegt'} selected={selectedId === item.id} onPress={() => (onClientPress ?? open)(item.id)}>
-      <View style={m.wrap}><Text style={[m.label, { color: item.status === 'aktiv' ? '#087865' : '#526B87' }]}>{WORKFLOW_STATUS_LABELS[item.status]}</Text>{can('office.clients.view_sensitive') && item.careLevel ? <Text style={m.muted}>Pflegegrad {item.careLevel}</Text> : null}</View>
+      <View style={m.wrap}><Text style={[m.label, { color: item.status === 'aktiv' ? '#087865' : '#526B87' }]}>{WORKFLOW_STATUS_LABELS[item.status]}</Text>{can('office.clients.view_sensitive') && item.careLevel ? <Text style={m.muted}>{formatCareLevel(item.careLevel)}</Text> : null}</View>
       {can('office.clients.view_sensitive') ? <View><Text style={m.body}>{item.costCarrier || 'Kostenträger nicht hinterlegt'}</Text><Text style={m.muted}>Versichertennummer: {item.insuranceNumber || 'nicht hinterlegt'}</Text></View> : null}
       {item.primaryContactPhone ? <Text style={m.muted}>{item.primaryContactPhone}</Text> : null}
       {item.status === 'entwurf' && can('office.clients.create') ? <MobileButton compact label="Aufnahme fortsetzen" icon="edit-3" onPress={() => router.push(clientIntakeResumeRoute(item.id) as never)} /> : null}

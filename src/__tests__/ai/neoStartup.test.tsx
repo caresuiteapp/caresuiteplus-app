@@ -7,7 +7,7 @@ import { AppStartIntro } from '@/components/brand/AppStartIntro.web';
 import { appStartIntroSession, AppStartIntroReadyContext } from '@/components/brand/appStartIntroSession';
 import { RobotNavigationAssistant } from '@/ai/robot/RobotNavigationAssistant.web';
 
-const model = vi.hoisted(() => ({ authenticated: true, pathname: '/', createSpeech: vi.fn(), dispose: vi.fn() }));
+const model = vi.hoisted(() => ({ authenticated: true, pathname: '/Desktop', createSpeech: vi.fn(), dispose: vi.fn() }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: true, isAuthenticated: model.authenticated, profile: { roleKey: 'admin' }, user: { id: 'test-user' } }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => 'test-tenant' }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => true, hasModuleGate: () => true }) }));
@@ -26,7 +26,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers(); appStartIntroSession.completed = false;
   (window as unknown as { happyDOM: { setURL(url: string): void } }).happyDOM.setURL('https://www.caresuiteplus.app/');
-  model.authenticated = true; model.pathname = '/'; model.createSpeech.mockClear(); model.dispose.mockClear();
+  model.authenticated = true; model.pathname = '/Desktop'; model.createSpeech.mockClear(); model.dispose.mockClear();
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -48,7 +48,7 @@ describe('Neo and the startup video', () => {
       expect(model.createSpeech).toHaveBeenCalledOnce();
       expect(model.dispose).toHaveBeenCalledOnce();
     }
-    model.pathname = '/'; await render();
+    model.pathname = '/Desktop'; await render();
     expect(document.body.querySelectorAll('.cs-robot')).toHaveLength(1);
     expect(model.createSpeech).toHaveBeenCalledTimes(2);
     expect(model.dispose).toHaveBeenCalledOnce();

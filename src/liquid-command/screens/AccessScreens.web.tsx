@@ -1,4 +1,5 @@
 import { resolveTvLoginReturn } from '@/lib/auth/tvDeviceLoginReturn.web';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { canonicalCompanyContactFunction, validateCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect.web';
 import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
@@ -196,7 +197,7 @@ export function BusinessAccessScreen() {
         return;
       }
       await signInWithSupabaseSession(result.data.supabaseSession);
-      router.replace(resolveTvLoginReturn('/') as never);
+      router.replace(resolveTvLoginReturn(WEB_DESKTOP_ROUTE) as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {

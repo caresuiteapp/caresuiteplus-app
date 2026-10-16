@@ -8,11 +8,11 @@ import { checkRoleAccess } from '@/lib/navigation/redirects';
 
 describe('canonical web home', () => {
   it('uses the desktop directly after business login and session restoration', () => {
-    expect(resolvePostLoginRoute('business')).toBe('/');
-    expect(resolveSessionHomeRoute('business_admin')).toBe('/');
+    expect(resolvePostLoginRoute('business')).toBe('/Desktop');
+    expect(resolveSessionHomeRoute('business_admin')).toBe('/Desktop');
     const target = resolveAuthSessionTarget({ profile: { roleKey: 'business_admin' } as never, portalSession: null, user: null });
-    expect(target.homePath).toBe('/'); expect(target.canRedirectHome).toBe(true);
-    expect(checkRoleAccess('/portal/client', 'business_admin').target).toBe('/');
+    expect(target.homePath).toBe('/Desktop'); expect(target.canRedirectHome).toBe(true);
+    expect(checkRoleAccess('/portal/client', 'business_admin').target).toBe('/Desktop');
   });
   it('preserves portal and required password setup destinations', () => {
     expect(resolveSessionHomeRoute('employee_portal')).toBe('/portal/employee');

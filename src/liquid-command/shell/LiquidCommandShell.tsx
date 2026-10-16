@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { useOfficeMessageNavBadges } from '@/hooks/useOfficeMessageNavBadges';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
@@ -421,7 +422,7 @@ function CommandBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="CareSuite HealthOS Startseite"
-          onPress={() => router.push('/' as never)}
+          onPress={() => router.push((Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/') as never)}
           style={({ pressed }) => [styles.orbitBrand, pressed && styles.pressed]}
         >
           <Text style={styles.orbitBrandCare}>CareSuite</Text>
@@ -496,7 +497,7 @@ function BottomNavigation({
 }) {
   const router = useRouter();
   const items = [
-    { key: 'home', label: 'Heute', glyph: '⌂', route: '/' },
+    { key: 'home', label: 'Heute', glyph: '⌂', route: Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/' },
     { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist/einsaetze' },
     { key: 'action', label: 'Neu', glyph: '+', route: null },
     { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/business/messages' },
@@ -568,14 +569,15 @@ export function LiquidCommandShell({
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
-  const boundedPopup = pathname !== '/' && contentMode === 'fill';
+  const isDesktopHome = pathname === '/' || (Platform.OS === 'web' && pathname === WEB_DESKTOP_ROUTE);
+  const boundedPopup = !isDesktopHome && contentMode === 'fill';
   const measuredFillHeight =
     !boundedPopup && contentMode === 'fill' && pageScrollHeight > 0
       ? Math.max(320, pageScrollHeight + fillContentOffset)
       : null;
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined' || pathname !== '/') return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !isDesktopHome) return;
 
     const handleDocumentWheel = (event: WheelEvent) => {
       const outer = document.querySelector<HTMLElement>(
@@ -617,7 +619,7 @@ export function LiquidCommandShell({
 
     document.addEventListener('wheel', handleDocumentWheel, { capture: true, passive: false });
     return () => document.removeEventListener('wheel', handleDocumentWheel, { capture: true });
-  }, [pathname]);
+  }, [isDesktopHome, pathname]);
 
 
   const showAreaNavigation =
@@ -703,7 +705,7 @@ export function LiquidCommandShell({
     </View>
   );
 
-  if (pathname !== '/') {
+  if (!isDesktopHome) {
     return (
       <View
         accessibilityViewIsModal={Platform.OS === 'web'}
