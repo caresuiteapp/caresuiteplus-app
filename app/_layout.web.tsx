@@ -1,3 +1,4 @@
+import { HelpButton } from '@/components/help/HelpButton.web';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium.web';
 import { WebNavigationMount } from '@/components/navigation/WebNavigationMount';
 import { useWebBackNavigation } from '@/hooks/useWebBackNavigation.web';
@@ -57,7 +58,7 @@ const POPUP_TITLES: Record<string, string> = {
   calendar: 'Kalender & Einsatzplanung', kalender: 'Kalender & Einsatzplanung',
   'live-status': 'Live-Status', evidence: 'Nachweise', nachweise: 'Nachweise',
   budgets: 'Budgets', abrechnungsquellen: 'Budgets', 'portal-access': 'Portale',
-  support: 'Support & Hilfe', 'command-center': 'Command Center', office: 'Office', assist: 'Assist', settings: 'Einstellungen', profile: 'Profil',
+  hilfe: 'Hilfe & Anleitungen', support: 'Support & Hilfe', 'command-center': 'Command Center', office: 'Office', assist: 'Assist', settings: 'Einstellungen', profile: 'Profil',
 };
 
 function popupTitle(pathname: string): string {
@@ -167,6 +168,7 @@ function RootShell() {
                     {!compactPopup ? <View style={styles.centralPopupDivider} /> : null}
                     <Text numberOfLines={1} style={styles.centralPopupTitle}>{popupTitle(pathname)}</Text>
                   </View>
+                  {pathname !== '/hilfe' ? <HelpButton compact={compactPopup} /> : null}
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Seite schließen und zur vorherigen Seite zurückkehren"

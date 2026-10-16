@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
 import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls.web";
+import { HelpButton } from '@/components/help/HelpButton.web';
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
 import { useDesktopWeather } from "@/hooks/useDesktopWeather.web";
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
@@ -120,7 +121,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
   const headerNarrow = width - (compact ? 24 : 40) < 780 * Math.max(1, fontScale);
-  const headerStacked = width - (compact ? 24 : 40) < 1450 * Math.max(1, fontScale);
+  const headerStacked = width - (compact ? 24 : 40) < 1510 * Math.max(1, fontScale);
   const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(234 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
@@ -285,7 +286,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : "max-content max-content minmax(160px, 220px) max-content max-content max-content max-content", justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : "max-content max-content minmax(160px, 220px) max-content max-content max-content max-content max-content", justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
@@ -311,6 +312,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <PortalTextSizeControls dense={mobile} appearance="desktop-header" />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, styles.headerAppsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
+          <HelpButton compact={mobile} />
           <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={[styles.profileTrigger, mobile && styles.profileTriggerMobile]}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size={mobile ? "sm" : "lg"} /></Pressable>
         </View>
       </View>

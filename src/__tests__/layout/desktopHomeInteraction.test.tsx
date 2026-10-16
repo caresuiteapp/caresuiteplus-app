@@ -29,7 +29,7 @@ const native = {
 };
 const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
-  'expo-router': { useRouter: () => ({ push: api.push }) },
+  'expo-router': { usePathname: () => '/', useRouter: () => ({ push: api.push }) },
   '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet, setItem: api.setItem },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
@@ -68,6 +68,13 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('Web desktop preferences and navigation', () => {
+  it('opens the help center from the top bar without changing desktop preferences', async () => {
+    await render();
+    const before = new Map(memory);
+    await click(label('Hilfe & Anleitungen öffnen'));
+    expect(api.push).toHaveBeenCalledWith('/hilfe');
+    expect(memory).toEqual(before);
+  });
   it.each([{ ids: [] }, { ids: ['messages', 'clients', 'messages', 'unknown'] }])('preserves the explicitly stored widget list $ids', async ({ ids }) => {
     memory.set(key(), JSON.stringify(ids)); await render();
     expect(JSON.parse(memory.get(key())!)).toEqual(ids.length ? ['messages', 'clients'] : []);
