@@ -1,4 +1,8 @@
+import { Platform } from 'react-native';
+import { WEB_DESKTOP_ROUTE } from './businessHome';
+
 const FULL_PAGE_PREFIXES = [
+  '/Desktop',
   '/auth',
   '/portal',
   '/client-portal',
@@ -51,13 +55,14 @@ export function isHealthOSContextualPopupRoute(routePattern: string): boolean {
 const routePatterns = webRoutePatterns.map(pattern => new RegExp('^' + pattern.split('/').map(segment => segment.startsWith('[...') ? '.+' : segment.startsWith('[') ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/') + '$'));
 
 export function resolveHealthOSPopupFallbackPath(pathname: string): string {
+  const home = Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/';
   const parts = pathname.split(/[?#]/, 1)[0].split('/').filter(Boolean);
   // Resolve against every actual page, rather than a hardcoded list of modules.
   for (let length = parts.length - 1; length > 0; length -= 1) {
     const parent = '/' + parts.slice(0, length).join('/');
-    if (['/business', '/business/dashboard', '/zentrale'].includes(parent)) return '/';
+    if (['/business', '/business/dashboard', '/zentrale'].includes(parent)) return home;
     if (routePatterns.some(pattern => pattern.test(parent))) return parent;
   }
-  return '/';
+  return home;
 }
 import webRoutePatterns from './webRoutePatterns.json';

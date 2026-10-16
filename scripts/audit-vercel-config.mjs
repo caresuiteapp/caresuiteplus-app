@@ -5,6 +5,9 @@ import { auditPublicAccessRoutes } from './audit-public-access-routes.mjs';
 // Command-field constraints from https://openapi.vercel.sh/vercel.json.
 // Keep long build pipelines in package.json; Vercel rejects them before building.
 const config = JSON.parse(await readFile('vercel.json', 'utf8'));
+for (const alias of ['/Business', '/Business/', '/Business/dashboard', '/Zentrale', '/command', '/command/', '/business', '/business/', '/business/dashboard', '/zentrale']) {
+  assert.equal(config.redirects?.find(route => route.source === alias)?.destination, '/Desktop', `Desktop alias ${alias} must preserve the signed-in desktop destination.`);
+}
 for (const field of ['buildCommand', 'installCommand', 'devCommand', 'ignoreCommand']) {
   const value = config[field];
   if (value == null) continue;

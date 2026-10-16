@@ -96,22 +96,22 @@
   "redirects": [
     {
       "source": "/Business",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/Business/",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/Business/dashboard",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/Zentrale",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
@@ -126,32 +126,32 @@
     },
     {
       "source": "/command",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/command/",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/business",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/business/",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/business/dashboard",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     },
     {
       "source": "/zentrale",
-      "destination": "/",
+      "destination": "/Desktop",
       "permanent": false
     }
   ]

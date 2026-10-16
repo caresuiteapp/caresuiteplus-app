@@ -46,7 +46,7 @@ export function resolveAuthSessionTarget(input: SessionTargetInput) {
     homePath = BUSINESS_FALLBACK_HOME;
   }
 
-  const canRedirectHome = hasSessionTarget && (homePath !== '/' || BUSINESS_HOME_ROUTE === '/');
+  const canRedirectHome = hasSessionTarget && homePath !== '/';
 
   return { roleKey, hasSessionTarget, homePath, canRedirectHome };
 }

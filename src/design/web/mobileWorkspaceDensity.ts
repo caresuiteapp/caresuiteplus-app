@@ -6,9 +6,9 @@ export const MOBILE_WORKSPACE_FONT_KEY = '@caresuite/mobile-workspace-font-scale
 
 export function isMobileWorkspace(pathname: string, width: number): boolean {
   return width > 0 && width < 900 &&
-    (pathname === '/' || isHealthOSContextualPopupRoute(pathname));
+    (pathname === '/' || pathname === '/Desktop' || isHealthOSContextualPopupRoute(pathname));
 }
 
 export function isDesktopWorkspace(pathname: string, width: number): boolean {
-  return width >= 900 && (pathname === "/" || isHealthOSContextualPopupRoute(pathname));
+  return width >= 900 && (pathname === '/' || pathname === '/Desktop' || isHealthOSContextualPopupRoute(pathname));
 }

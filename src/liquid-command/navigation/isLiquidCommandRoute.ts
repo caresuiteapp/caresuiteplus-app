@@ -1,4 +1,5 @@
 const LIQUID_ROUTE_ROOTS = [
+  '/Desktop',
   '/liquid-command',
   '/hilfe',
   '/auth',
