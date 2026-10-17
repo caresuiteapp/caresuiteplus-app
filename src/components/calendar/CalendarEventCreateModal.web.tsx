@@ -6,6 +6,7 @@ import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import type {
   CalendarEventCreateContext,
   CalendarFormStep,
+  CalendarEventFormState,
 } from '@/types/calendar/calendarEventForm';
 import {
   createDefaultFormState,
@@ -76,6 +77,24 @@ function eventToForm(event: CalendarEvent): ReturnType<typeof createDefaultFormS
   };
 }
 
+function applyTemplateDefaults(
+  form: CalendarEventFormState,
+  template: CalendarEventTemplate,
+  sourceContext: CalendarEventCreateContext,
+  previous: CalendarEventFormState | null = null,
+): CalendarEventFormState {
+  const start = Number.isFinite(Date.parse(form.startAt)) ? new Date(form.startAt) : new Date();
+  const duration = Number.isFinite(template.defaultDurationMinutes) ? Math.max(1, template.defaultDurationMinutes) : 60;
+  const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(start);
+  return { ...form,
+    title: !form.title || form.title === previous?.title ? template.label : form.title,
+    sourceType: sourceContext === 'appointment_management' ? 'appointment' : 'custom_event',
+    eventType: template.eventType, allDay: template.allDay, templateKey: template.templateKey,
+    startAt: template.allDay ? `${day}T00:00:00.000Z` : start.toISOString(),
+    endAt: template.allDay ? new Date(Date.parse(`${day}T00:00:00.000Z`) + Math.max(1, Math.ceil(duration / 1440)) * 86_400_000 - 1).toISOString() : new Date(start.getTime() + duration * 60_000).toISOString(),
+  };
+}
+
 export function CalendarEventCreateModal({
   visible,
   sourceContext,
@@ -114,18 +133,24 @@ export function CalendarEventCreateModal({
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState<string | null>(null);
   const initialForm = useRef(form);
+  const beforeTemplate = useRef<CalendarEventFormState | null>(null);
+  const appliedTemplate = useRef<CalendarEventFormState | null>(null);
   const latestInitial = useRef({ editEvent, preselectedTemplate }); latestInitial.current = { editEvent, preselectedTemplate };
 
   const step = steps[stepIndex] ?? 'template';
 
   const reset = useCallback(() => {
-    setStepIndex(0);
-    setTemplate(latestInitial.current.preselectedTemplate);
-    const next = latestInitial.current.editEvent ? eventToForm(latestInitial.current.editEvent) : createDefaultFormState(moduleKey);
+    const selected = latestInitial.current.editEvent ? null : latestInitial.current.preselectedTemplate;
+    setStepIndex(selected ? steps.indexOf('basics') : 0);
+    setTemplate(selected);
+    let next = latestInitial.current.editEvent ? eventToForm(latestInitial.current.editEvent) : createDefaultFormState(moduleKey);
     if (!latestInitial.current.editEvent) next.sourceType = sourceContext === 'appointment_management' ? 'appointment' : 'custom_event';
+    beforeTemplate.current = selected ? next : null;
+    appliedTemplate.current = selected ? applyTemplateDefaults(next, selected, sourceContext) : null;
+    if (appliedTemplate.current) next = appliedTemplate.current;
     initialForm.current = next; setForm(next);
     setError(null);
-  }, [moduleKey, sourceContext]);
+  }, [moduleKey, sourceContext, steps]);
 
   useEffect(() => {
     saveRequest.current += 1; savingRef.current = false; setSaving(false);
@@ -154,23 +179,28 @@ export function CalendarEventCreateModal({
   const handleSelectTemplate = (next: CalendarEventTemplate) => {
     if (savingRef.current || !canSave) return;
     setTemplate(next);
-    setForm(prev => {
-      const start = Number.isFinite(Date.parse(prev.startAt)) ? new Date(prev.startAt) : new Date();
-      const duration = Number.isFinite(next.defaultDurationMinutes) ? Math.max(1, next.defaultDurationMinutes) : 60;
-      const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(start);
-      return { ...prev, title: prev.title || next.label,
-        sourceType: sourceContext === 'appointment_management' ? 'appointment' : 'custom_event',
-        eventType: next.eventType, allDay: next.allDay, templateKey: next.templateKey,
-        startAt: next.allDay ? `${day}T00:00:00.000Z` : start.toISOString(),
-        endAt: next.allDay ? new Date(Date.parse(`${day}T00:00:00.000Z`) + Math.max(1, Math.ceil(duration / 1440)) * 86_400_000 - 1).toISOString() : new Date(start.getTime() + duration * 60_000).toISOString(),
-      };
-    });
+    if (!beforeTemplate.current) beforeTemplate.current = form;
+    const updated = applyTemplateDefaults(form, next, sourceContext, appliedTemplate.current);
+    appliedTemplate.current = updated;
+    setForm(updated);
     goNext();
   };
 
   const handleContinueWithoutTemplate = () => {
     if (savingRef.current || !canSave) return;
     setTemplate(null);
+    const original = beforeTemplate.current;
+    const applied = appliedTemplate.current;
+    setForm(previous => {
+      if (!original || !applied) return { ...previous, templateKey: null };
+      const unchangedSchedule = previous.startAt === applied.startAt && previous.endAt === applied.endAt && previous.allDay === applied.allDay;
+      return { ...previous, templateKey: null,
+        title: previous.title === applied.title ? original.title : previous.title,
+        eventType: previous.eventType === applied.eventType ? original.eventType : previous.eventType,
+        ...(unchangedSchedule ? { startAt: original.startAt, endAt: original.endAt, allDay: original.allDay } : {}),
+      };
+    });
+    beforeTemplate.current = null; appliedTemplate.current = null;
     goNext();
   };
 

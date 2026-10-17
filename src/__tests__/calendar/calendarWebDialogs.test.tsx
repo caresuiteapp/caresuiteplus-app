@@ -3,7 +3,8 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { buildDefaultTenantCalendarSettings, type CalendarEvent } from '@/types/modules/calendarEvent';
-const f = vi.hoisted(() => ({ tenant:'tenant-a', actor:'actor-a', allowed:true, create:vi.fn(), update:vi.fn(), archive:vi.fn(), confirm:vi.fn(), close:vi.fn(), changed:vi.fn(), saveSettings:vi.fn(), push:vi.fn(), savePlan:vi.fn(), notify:vi.fn(), modal: {} as any }));
+import type { CalendarEventTemplate } from '@/types/calendar';
+const f = vi.hoisted(() => ({ tenant:'tenant-a', actor:'actor-a', allowed:true, create:vi.fn(), update:vi.fn(), archive:vi.fn(), confirm:vi.fn(), close:vi.fn(), changed:vi.fn(), saveSettings:vi.fn(), push:vi.fn(), savePlan:vi.fn(), notify:vi.fn(), templates:vi.fn(), modal: {} as any }));
 vi.mock('@/components/layout/platform', () => ({ PlatformModal: (props:any) => { f.modal=props; return props.visible ? <section role="dialog" aria-label={props.title}><button onClick={props.onClose}>Dialog schließen</button>{props.children}{props.footerContent}{props.footerActions?.map((action:any) => <button key={action.title} disabled={action.disabled} onClick={action.onPress}>{action.title}</button>)}</section> : null; } }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push:f.push }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
@@ -18,14 +19,14 @@ vi.mock('@/lib/assist/assignmentEmployeeListService', () => ({ fetchAssignmentEm
 vi.mock('@/components/ui/PremiumButton', () => ({ PremiumButton:({title,onPress,disabled}:any) => <button disabled={disabled} onClick={onPress}>{title}</button> }));
 vi.mock('@/lib/calendar/employeePlanImport', () => ({ importEmployeePlan:vi.fn() }));
 vi.mock('@/lib/calendar/employeeMonthPlanningService', () => ({ saveEmployeeMonth:f.savePlan }));
-vi.mock('@/lib/calendar/calendarTemplateService', () => ({ listTemplates:async () => ({ ok:true, data:[] }) }));
+vi.mock('@/lib/calendar/calendarPlanningTemplates.web', () => ({ listCalendarPlanningTemplates:f.templates }));
 import { CalendarEventCreateModal } from '@/components/calendar/CalendarEventCreateModal.web';
 import { CalendarEventDrawer, formatCalendarEventPeriod } from '@/components/calendar/CalendarEventDrawer.web';
 import { EmployeeMonthPlanningModal } from '@/components/calendar/EmployeeMonthPlanningModal.web';
 import { OfficeCalendarSettingsModal } from '@/components/office/calendar/OfficeCalendarSettingsModal.web';
 let host:HTMLDivElement, root:Root;
-beforeEach(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true; vi.clearAllMocks(); f.tenant='tenant-a'; f.actor='actor-a'; f.allowed=true; f.confirm.mockResolvedValue(true); f.create.mockResolvedValue({ ok:false,error:'Speichern fehlgeschlagen' }); f.update.mockResolvedValue({ ok:true,data:{ sourceId:'source-1' } }); f.archive.mockResolvedValue({ ok:true,data:undefined }); host=document.createElement('div'); document.body.append(host); root=createRoot(host); });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+beforeEach(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true; vi.clearAllMocks(); f.tenant='tenant-a'; f.actor='actor-a'; f.allowed=true; f.templates.mockReset().mockResolvedValue({ok:true,data:[]}); f.confirm.mockResolvedValue(true); f.create.mockResolvedValue({ ok:false,error:'Speichern fehlgeschlagen' }); f.update.mockResolvedValue({ ok:true,data:{ sourceId:'source-1' } }); f.archive.mockResolvedValue({ ok:true,data:undefined }); host=document.createElement('div'); document.body.append(host); root=createRoot(host); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); });
 const mount = async (content:React.ReactNode) => { await act(async () => root.render(content)); };
 const button = (text:string) => [...host.querySelectorAll('button')].find(node => node.textContent===text)!;
 const click = async (text:string) => { expect(button(text),`Button ${text}`).toBeTruthy(); await act(async () => button(text).click()); };
@@ -36,7 +37,53 @@ const basics = async () => { await mount(form()); const own=[...host.querySelect
 const preview = async () => { await click('Weiter'); await click('Weiter'); await click('Weiter'); };
 const deferred = () => { let resolve!:(value:any)=>void; const promise=new Promise<any>(r => resolve=r); return { promise,resolve }; };
 const event = (sourceType='custom_event'):CalendarEvent => ({ id:'event-1',title:'Teamgespräch',start:'2026-10-17T08:00:00Z',end:'2026-10-17T09:00:00Z',type:'termin',color:'#0878F9',sourceType,moduleKey:'office',clientName:'Anna Meyer',employeeName:'Tom Neumann', record:{ id:'record-1',tenantId:'tenant-a',sourceId:'source-1',sourceType,moduleKey:'office',internalNote:'Nur intern',address:'Musterstraße 1',isOfficeVisible:true,isModuleVisible:true } as any });
+const meetingTemplate:CalendarEventTemplate = { id:'template-meeting',tenantId:null,moduleKey:'assist',templateKey:'assist_team_meeting',label:'Teamabstimmung',description:'Gemeinsame Planung',sourceType:'custom_event',eventType:'besprechung',defaultDurationMinutes:45,allDay:false,isSystem:true,isActive:true,roleKeys:[],fieldSchema:[],createdAt:'2026-01-01T00:00:00Z',updatedAt:'2026-01-01T00:00:00Z' };
+const chooseCard = async (text:string) => { const card=[...host.querySelectorAll('button')].find(node => node.querySelector('strong')?.textContent===text)!; expect(card, text).toBeTruthy(); await act(async () => card.click()); };
+const templateClock = () => { vi.useFakeTimers({toFake:['Date']}); vi.setSystemTime(new Date('2026-10-17T08:00:00Z')); };
 describe('active web calendar dialogs', () => {
+  it('applies an Assist calendar template and saves its type and duration as a calendar event', async () => {
+    templateClock(); f.templates.mockResolvedValue({ok:true,data:[meetingTemplate]});
+    await mount(<CalendarEventCreateModal visible sourceContext="calendar" calendarScope="module" moduleKey="assist" onClose={f.close}/>);
+    await chooseCard('Termin oder Ereignis'); await chooseCard('Teamabstimmung');
+    expect(title().value).toBe('Teamabstimmung');
+    await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({moduleKey:'assist',sourceType:'custom_event',templateKey:'assist_team_meeting',eventType:'besprechung',title:'Teamabstimmung',allDay:false,startAt:'2026-10-17T08:00:00.000Z',endAt:'2026-10-17T08:45:00.000Z'}),'business_admin');
+    expect(f.push).not.toHaveBeenCalled();
+  });
+  it('applies all-day template duration with an inclusive final calendar day', async () => {
+    templateClock(); const template={...meetingTemplate,id:'template-day',templateKey:'team_days',label:'Teamtage',allDay:true,defaultDurationMinutes:2880};
+    f.templates.mockResolvedValue({ok:true,data:[template]}); await mount(form()); await chooseCard('Teamtage');
+    await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({sourceType:'custom_event',templateKey:'team_days',eventType:'besprechung',allDay:true,startAt:'2026-10-17T00:00:00.000Z',endAt:'2026-10-18T23:59:59.999Z'}),'business_admin');
+  });
+  it('clears the previous template and restores unedited defaults when continuing without one', async () => {
+    templateClock(); const template={...meetingTemplate,allDay:true,defaultDurationMinutes:2880};
+    f.templates.mockResolvedValue({ok:true,data:[template]}); await mount(form()); await chooseCard('Teamabstimmung');
+    await click('Zurück'); await chooseCard('Ohne Vorlage fortfahren');
+    expect(title().value).toBe(''); title().id='own-title'; await change('#own-title','Eigener Termin');
+    await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({title:'Eigener Termin',templateKey:null,eventType:'termin',allDay:false,startAt:'2026-10-17T08:00:00.000Z',endAt:'2026-10-17T09:00:00.000Z'}),'business_admin');
+  });
+  it('retains an edited title and time range when removing the originating template', async () => {
+    templateClock(); f.templates.mockResolvedValue({ok:true,data:[meetingTemplate]}); await mount(form()); await chooseCard('Teamabstimmung');
+    title().id='edited-title'; await change('#edited-title','Individuelles Teamgespräch'); await click('Weiter');
+    await change('[aria-label="Beginn: Uhrzeit"]','13:15'); await change('[aria-label="Ende: Uhrzeit"]','14:45');
+    await click('Zurück'); await click('Zurück'); await chooseCard('Ohne Vorlage fortfahren');
+    expect(title().value).toBe('Individuelles Teamgespräch'); await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({title:'Individuelles Teamgespräch',templateKey:null,eventType:'termin',startAt:'2026-10-17T11:15:00.000Z',endAt:'2026-10-17T12:45:00.000Z'}),'business_admin');
+  });
+  it('starts a preselected template with applied defaults and resets them when reopened', async () => {
+    templateClock(); f.templates.mockResolvedValue({ok:true,data:[meetingTemplate]});
+    const preselected=(visible=true) => <CalendarEventCreateModal visible={visible} sourceContext="calendar" calendarScope="office" moduleKey="office" preselectedTemplate={meetingTemplate} onClose={f.close}/>;
+    await mount(preselected());
+    expect(title().value).toBe('Teamabstimmung');
+    await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({title:'Teamabstimmung',templateKey:'assist_team_meeting',eventType:'besprechung',allDay:false,startAt:'2026-10-17T08:00:00.000Z',endAt:'2026-10-17T08:45:00.000Z'}),'business_admin');
+    await click('Zurück'); await click('Zurück'); await click('Zurück'); title().id='changed-preselected'; await change('#changed-preselected','Alter Entwurf');
+    await mount(preselected(false)); await mount(preselected());
+    expect(title().value).toBe('Teamabstimmung');
+    await click('Weiter'); expect((host.querySelector('[aria-label="Ende: Uhrzeit"]') as HTMLInputElement).value).toBe('10:45');
+  });
   it('retains focus and typed title while editing, saves stable person IDs and keeps rejected save open', async () => {
     await basics(); title().focus(); await change('#test-title','Teamgespräch morgen'); expect(document.activeElement).toBe(title());
     const selects=[...host.querySelectorAll('select')]; selects[0].id='client'; selects[1].id='employee'; await change('#client','client-1'); await change('#employee','employee-1'); await preview();
