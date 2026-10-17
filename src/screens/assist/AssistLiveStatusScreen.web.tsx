@@ -118,7 +118,7 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
   const timeLabel = generatedAt && Number.isFinite(Date.parse(generatedAt)) ? new Date(generatedAt).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : null;
 
   return <ScreenShell title="Live-Status" contentOwnsHeader showBack={false} showBreadcrumbs={false}>
-    <div className="ls-workspace" data-cs-live-status="web-workspace-r2">
+    <div className="ls-workspace" data-cs-live-status="web-workspace-r3">
       <AssistLiveStatusWorkspaceStyles />
       <header className="ls-heading">
         <button type="button" className="ls-button ls-button--quiet ls-button--icon" aria-label="Zurück" onClick={() => { if (router.canGoBack()) router.back(); else router.replace('/Desktop'); }}><LiveStatusIcon name="back" /></button>

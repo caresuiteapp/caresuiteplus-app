@@ -8,6 +8,8 @@ import {
 } from '@/lib/calendar/assignmentCalendarStatus';
 import { visitListItemToCalendarEvent } from '@/lib/calendar/assistVisitCalendarRecurrence';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
+import { resolveAssignmentCalendarVisual as resolveWebVisual } from '@/lib/calendar/assignmentCalendarPresentation.web';
+import { resolveCalendarEventColors, ASSIGNMENT_CALENDAR_COLORS } from '@/lib/calendar/calendarEventColors.web';
 
 const now = new Date('2026-08-26T12:00:00.000Z');
 const root = path.join(__dirname, '..', '..', '..');
@@ -117,5 +119,47 @@ describe('Einsatzstatusfarben im Kalender R13', () => {
     expect(chip).toContain('assignmentVisual && styles.assignmentChip');
     expect(chip).toContain('backgroundColor: assignmentVisual.tint');
     expect(list).toContain('backgroundColor: assignmentVisual?.tint');
+  });
+});
+
+describe('Web calendar lifecycle presentation', () => {
+  it.each(['geplant', 'bestaetigt'])('keeps future %s visits with outstanding required tasks planned', (status) => {
+    const event = assignment(status, { isIncomplete: true });
+    expect(resolveWebVisual(event, now)).toMatchObject({ state: 'scheduled', label: 'Geplant / bestätigt' });
+    expect(resolveCalendarEventColors(event, now)).toEqual(ASSIGNMENT_CALENDAR_COLORS.scheduled);
+    expect(event.isIncomplete).toBe(true);
+    // The Web correction does not replace the native/shared presentation.
+    expect(resolveAssignmentCalendarVisual(event, now)?.state).toBe('open');
+  });
+
+  it.each(['unterwegs', 'angekommen', 'gestartet', 'pausiert'])('keeps %s active even with open tasks after its planned end', (status) => {
+    expect(resolveWebVisual(assignment(status, {
+      isIncomplete: true, start: '2026-08-25T08:00:00Z', end: '2026-08-25T10:00:00Z',
+    }), now)?.state).toBe('active');
+  });
+
+  it('distinguishes past incomplete visits from overdue planning and keeps explicit follow-up regardless of date', () => {
+    const past = assignment('bestaetigt', { start: '2026-08-25T08:00:00Z', end: '2026-08-25T10:00:00Z' });
+    expect(resolveWebVisual({ ...past, isIncomplete: true }, now)).toMatchObject({ state: 'open', label: 'Nacharbeit offen' });
+    expect(resolveCalendarEventColors({ ...past, isIncomplete: true }, now)).toEqual(ASSIGNMENT_CALENDAR_COLORS.open);
+    expect(resolveWebVisual(past, now)).toMatchObject({ state: 'problem', label: 'Überfällig' });
+    for (const status of ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'review']) {
+      expect(resolveWebVisual(assignment(status), now)).toMatchObject({ state: 'open', label: 'Nacharbeit offen' });
+    }
+  });
+
+  it('preserves cancellation, risks and completed states when outstanding-task flags are present', () => {
+    for (const [status, expected] of [['storniert', 'cancelled'], ['nicht_erschienen', 'problem'], ['abgeschlossen', 'completed']]) {
+      expect(resolveWebVisual(assignment(status, { isIncomplete: true }), now)?.state).toBe(expected);
+    }
+    expect(resolveWebVisual(assignment('bestaetigt', { isIncomplete: true, isAtRisk: true }), now)?.state).toBe('problem');
+    expect(resolveWebVisual(assignment('storniert', { isIncomplete: true, isAtRisk: true }), now)?.state).toBe('cancelled');
+  });
+
+  it('does not infer follow-up from an invalid, all-day or not-yet-ended planning slot', () => {
+    for (const overrides of [{ end: now.toISOString() }, { end: 'invalid' }, { allDay: true, end: '2026-08-25' }]) {
+      expect(resolveWebVisual(assignment('geplant', { isIncomplete: true, ...overrides }), now)?.state).toBe('scheduled');
+    }
+    expect(resolveWebVisual(assignment('geplant', { type: 'urlaub', sourceType: 'workforce_absence', isIncomplete: true }), now)).toBeNull();
   });
 });

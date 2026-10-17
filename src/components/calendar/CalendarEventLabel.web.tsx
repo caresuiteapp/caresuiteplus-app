@@ -1,6 +1,6 @@
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { isCancelledCalendarEvent, resolveCalendarEventDisplay } from '@/lib/calendar/calendarEventDisplay';
-import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarPresentation.web';
 import { ASSIGNMENT_CALENDAR_COLORS } from '@/lib/calendar/calendarEventColors.web';
 
 export type CalendarEventLabelVariant = 'stacked' | 'compact' | 'inline';

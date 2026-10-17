@@ -38,7 +38,10 @@ function button(label: string) { const value = [...host.querySelectorAll('button
 async function click(label: string) { await act(async () => button(label).click()); }
 async function expand(name: string) { const value = [...host.querySelectorAll<HTMLButtonElement>('.pbi-toggle')].find(element => element.getAttribute('aria-label')?.includes(name)); expect(value).toBeTruthy(); await act(async () => value!.click()); }
 async function search(value: string) { const input = host.querySelector('input[type=search]')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); }); }
-async function employee(value: string) { const select = host.querySelector('select')!; await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); }); }
+function employeePicker() { return host.querySelector<HTMLButtonElement>('[role=combobox][aria-label="Problem-Inbox nach Mitarbeitenden filtern"]')!; }
+async function openEmployeePicker() { const picker = employeePicker(); expect(picker).toBeTruthy(); if (picker.getAttribute('aria-expanded') !== 'true') await act(async () => picker.click()); return picker; }
+function employeeOptions(label: string) { return [...host.querySelectorAll<HTMLElement>('[role=option]')].filter(option => option.getAttribute('aria-label') === label || option.textContent?.trim() === label); }
+async function employee(label: string, occurrence = 0) { await openEmployeePicker(); const option = employeeOptions(label)[occurrence]; expect(option, label).toBeTruthy(); await act(async () => option.click()); }
 function names() { return [...host.querySelectorAll('.pbi-card-title')].map(element => element.textContent); }
 
 describe('Problem inbox Web workflows and confirmed repair', () => {
@@ -55,53 +58,58 @@ describe('Problem inbox Web workflows and confirmed repair', () => {
     await expand('Berta Beispiel'); await click('Nachweis prüfen'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-b?tab=proof');
   });
   it('filters real category, employee and search controls and clears them together', async () => {
-    await render(); await click('Budget1'); expect(names()).toEqual(['Anna Muster']); await employee('employee-b'); expect(names()).toEqual([]);
+    await render(); await click('Budget1'); expect(names()).toEqual(['Anna Muster']); await employee('Kim Test'); expect(names()).toEqual([]);
     await click('Filter zurücksetzen'); await search('kim 15.10'); expect(names()).toEqual(['Berta Beispiel']);
     await click('Filter zurücksetzen'); expect(names()).toHaveLength(2);
   });
   it('distinguishes two employees with the same display name by id', async () => {
     f.fetch.mockResolvedValue({ ok: true, data: snapshot(initialItems().map(value => ({ ...value, employeeName: 'Alex Beispiel' }))) });
-    await render(); await employee('employee-b'); expect(names()).toEqual(['Berta Beispiel']);
+    await render(); await employee('Alex Beispiel', 1); expect(names()).toEqual(['Berta Beispiel']);
   });
-  it('leaves a focused employee picker untouched by parent rerenders and unchanged refresh results', async () => {
+  it('keeps the employee menu open and usable across parent rerenders and unchanged refresh results', async () => {
     await render({ refreshToken: 0 });
-    const select = host.querySelector('select')!;
-    select.focus();
-    const selectedWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
-    try {
-      await render({ refreshToken: 0 });
-      expect(host.querySelector('select')).toBe(select);
-      expect(document.activeElement).toBe(select);
-      expect(selectedWrites).not.toHaveBeenCalled();
+    const picker = await openEmployeePicker();
+    picker.focus();
+    await render({ refreshToken: 0 });
+    expect(employeePicker()).toBe(picker);
+    expect(document.activeElement).toBe(picker);
+    expect(picker.getAttribute('aria-expanded')).toBe('true');
+    expect(host.querySelector('[role=listbox]')).not.toBeNull();
 
-      // The service returns fresh objects, but the visible options and value are unchanged.
-      await render({ refreshToken: 1 });
-      expect(f.fetch).toHaveBeenCalledTimes(2);
-      expect(host.querySelector('select')).toBe(select);
-      expect(document.activeElement).toBe(select);
-      expect(selectedWrites).not.toHaveBeenCalled();
-    } finally {
-      selectedWrites.mockRestore();
-    }
+    // The service returns fresh objects while the user's selection menu is open.
+    await render({ refreshToken: 1 });
+    expect(f.fetch).toHaveBeenCalledTimes(2);
+    expect(employeePicker()).toBe(picker);
+    expect(document.activeElement).toBe(picker);
+    expect(picker.getAttribute('aria-expanded')).toBe('true');
+    await employee('Kim Test');
+    expect(names()).toEqual(['Berta Beispiel']);
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+    expect(picker.textContent).toContain('Kim Test');
+    await click('Filter zurücksetzen');
+    expect(picker.textContent).toContain('Alle Mitarbeitenden');
+    expect(names()).toHaveLength(2);
   });
-  it('updates changed employee options and keeps selection and reset functional after refresh', async () => {
+  it('updates options inside the open employee menu and keeps selection and reset functional', async () => {
     await render({ refreshToken: 0 });
-    await employee('employee-b');
-    const select = host.querySelector('select')!;
-    expect(select.value).toBe('employee-b');
+    await employee('Kim Test');
+    const picker = await openEmployeePicker();
+    expect(employeeOptions('Kim Test')[0]?.getAttribute('aria-selected')).toBe('true');
     const refreshed = initialItems().map(value => value.employeeId === 'employee-b' ? { ...value, employeeName: 'Kim Neuer Name' } : value);
     refreshed.push(item({ id: 'problem-c', assignmentId: 'assignment-c', visitId: 'visit-c', clientName: 'Cora Beispiel', employeeId: 'employee-c', employeeName: 'Charlie Beispiel' }));
     f.fetch.mockResolvedValueOnce({ ok: true, data: snapshot(refreshed) });
     await render({ refreshToken: 1 });
-    expect(host.querySelector('select')).toBe(select);
-    expect([...select.options].find(option => option.value === 'employee-b')?.textContent).toBe('Kim Neuer Name');
-    expect(select.value).toBe('employee-b');
+    expect(employeePicker()).toBe(picker);
+    expect(picker.getAttribute('aria-expanded')).toBe('true');
+    expect(employeeOptions('Kim Neuer Name')[0]?.getAttribute('aria-selected')).toBe('true');
+    expect(picker.textContent).toContain('Kim Neuer Name');
     expect(names()).toEqual(['Berta Beispiel']);
-    await employee('employee-c');
-    expect(select.value).toBe('employee-c');
+    await employee('Charlie Beispiel');
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+    expect(picker.textContent).toContain('Charlie Beispiel');
     expect(names()).toEqual(['Cora Beispiel']);
     await click('Filter zurücksetzen');
-    expect(select.value).toBe('');
+    expect(picker.textContent).toContain('Alle Mitarbeitenden');
     expect(names()).toHaveLength(3);
   });
   it('keeps the last result on refresh failure and allows a real retry', async () => {

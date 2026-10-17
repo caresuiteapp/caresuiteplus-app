@@ -58,17 +58,25 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 const render = async () => { await act(async () => root.render(<AssistLiveStatusScreen />)); };
 const button = (label: string) => [...host.querySelectorAll('button')].find(element => element.getAttribute('aria-label') === label || element.textContent?.trim() === label);
 const press = async (label: string) => { const element = button(label); expect(element, `button ${label}`).toBeTruthy(); await act(async () => element!.click()); };
+const menuFor = (element: Element) => document.getElementById(element.getAttribute('aria-controls') ?? '');
 const change = async (label: string, value: string) => {
-  const element = host.querySelector(`[aria-label="${label}"]`) as HTMLSelectElement | HTMLInputElement;
+  const element = host.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement | HTMLInputElement;
   expect(element, `input ${label}`).toBeTruthy();
+  if (element.getAttribute('role') === 'combobox') {
+    if (element.getAttribute('aria-expanded') !== 'true') await act(async () => element.click());
+    const option = [...(menuFor(element)?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find(item => item.dataset.value === value);
+    expect(option, `option ${value} in ${label}`).toBeTruthy();
+    await act(async () => option!.click());
+    return;
+  }
   await act(async () => {
-    Object.getOwnPropertyDescriptor(element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value')!.set!.call(element, value);
-    element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, value);
+    element.dispatchEvent(new Event('input', { bubbles: true }));
   });
 };
 
 describe('Live-Status Web workspace integration', () => {
-  it('leaves native filter selections untouched while the live clock advances', async () => {
+  it('keeps each filter menu open and selectable while the live clock advances', async () => {
     vi.useRealTimers();
     vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
     vi.setSystemTime(new Date('2026-10-17T08:00:00Z'));
@@ -79,43 +87,46 @@ describe('Live-Status Web workspace integration', () => {
       timers: { driveSeconds: 0, serviceSeconds: 120, pauseSeconds: 0, activeTimer: 'service', driveStartedAt: null, serviceStartedAt: '2026-10-17T07:58:00Z', pauseStartedAt: null },
     } })]);
     await render();
-    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
-    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLSelectElement;
-    const selectionWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLButtonElement;
+    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLButtonElement;
     try {
       for (const [index, select] of [employee, status].entries()) {
-        select.focus();
+        await act(async () => select.click());
+        const menu = menuFor(select);
+        expect(select.getAttribute('aria-expanded')).toBe('true');
+        expect(menu?.getAttribute('role')).toBe('listbox');
         await act(async () => vi.advanceTimersByTime(3_000));
         expect(host.textContent).toContain(`00:02:0${(index + 1) * 3}`);
-        expect(document.activeElement).toBe(select);
         expect(host.querySelector(`[aria-label="${select.getAttribute('aria-label')}"]`)).toBe(select);
-        // Reassigning selected on a controlled native select can dismiss its open
-        // browser picker even when React preserves the element and its focus.
-        expect(selectionWrites).not.toHaveBeenCalled();
+        expect(select.getAttribute('aria-expanded')).toBe('true');
+        expect(menuFor(select)).toBe(menu);
+        await change(select.getAttribute('aria-label')!, index === 0 ? 'employee-a' : 'active');
+        expect(select.getAttribute('aria-expanded')).toBe('false');
+        expect(select.value).toBe(index === 0 ? 'employee-a' : 'active');
       }
-    } finally { selectionWrites.mockRestore(); visibility.mockRestore(); }
+    } finally { visibility.mockRestore(); }
   });
 
-  it('preserves native filter selection when fresh data has unchanged employee options', async () => {
+  it('keeps the employee menu and selection through fresh data, then applies status selection and reset', async () => {
     await render();
     await change('Mitarbeitende filtern', 'employee-b');
-    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
-    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLSelectElement;
-    employee.focus();
-    const selectionWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
-    try {
-      f.monitoring.overview = {
-        ...f.monitoring.overview,
-        generatedAt: '2026-10-17T08:00:05Z',
-        rows: f.monitoring.overview.rows.map((value: AssistLiveMonitoringRow) => ({ ...value })),
-      };
-      await render();
-      expect(host.querySelector('[aria-label="Mitarbeitende filtern"]')).toBe(employee);
-      expect(host.querySelector('[aria-label="Einsatzstatus filtern"]')).toBe(status);
-      expect(document.activeElement).toBe(employee);
-      expect(employee.value).toBe('employee-b');
-      expect(selectionWrites).not.toHaveBeenCalled();
-    } finally { selectionWrites.mockRestore(); }
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLButtonElement;
+    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLButtonElement;
+    await press('Mitarbeitende filtern');
+    const menu = menuFor(employee);
+    f.monitoring.overview = {
+      ...f.monitoring.overview,
+      generatedAt: '2026-10-17T08:00:05Z',
+      rows: f.monitoring.overview.rows.map((value: AssistLiveMonitoringRow) => ({ ...value })),
+    };
+    await render();
+    expect(host.querySelector('[aria-label="Mitarbeitende filtern"]')).toBe(employee);
+    expect(host.querySelector('[aria-label="Einsatzstatus filtern"]')).toBe(status);
+    expect(employee.getAttribute('aria-expanded')).toBe('true');
+    expect(menuFor(employee)).toBe(menu);
+    expect(menu?.querySelector('[data-value="employee-b"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(employee.value).toBe('employee-b');
+    await press('Mitarbeitende filtern');
     await change('Einsatzstatus filtern', 'active');
     expect(status.value).toBe('active');
     expect(host.textContent).toContain('Bea Muster');
@@ -128,24 +139,31 @@ describe('Live-Status Web workspace integration', () => {
 
   it('updates real employee option changes and discards filter selection after permission changes', async () => {
     await render();
-    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLButtonElement;
     await change('Mitarbeitende filtern', 'employee-b');
+    await press('Mitarbeitende filtern');
+    const menu = menuFor(employee);
     f.monitoring.overview = overview([
       row({ employeeName: 'Clara Umbenannt' }),
       row({ assignmentId: 'assignment-c', visitId: 'visit-c', clientName: 'Carla Neu', employeeId: 'employee-c', employeeName: 'Dora Neu' }),
     ]);
     await render();
-    expect([...employee.options].map(option => [option.value, option.textContent])).toEqual([
+    expect(employee.getAttribute('aria-expanded')).toBe('true');
+    expect(menuFor(employee)).toBe(menu);
+    expect([...menu!.querySelectorAll<HTMLElement>('[role="option"]')].map(option => [option.dataset.value, option.getAttribute('aria-label')])).toEqual([
       ['', 'Alle Mitarbeitenden'], ['employee-a', 'Clara Umbenannt'], ['employee-c', 'Dora Neu'],
     ]);
     await change('Mitarbeitende filtern', 'employee-c');
     expect(host.textContent).toContain('Carla Neu');
     expect(host.textContent).not.toContain('Erika Beispiel');
+    await press('Mitarbeitende filtern');
     f.denied.add('assist.assignments.manage');
     await render();
-    const nextEmployee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    const nextEmployee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLButtonElement;
     expect(nextEmployee).not.toBe(employee);
     expect(nextEmployee.value).toBe('');
+    expect(nextEmployee.getAttribute('aria-expanded')).toBe('false');
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
     expect(host.textContent).toContain('Erika Beispiel');
   });
 

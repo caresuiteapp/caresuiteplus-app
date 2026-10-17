@@ -97,6 +97,23 @@ describe('Web calendar workspace integration', () => {
     await press('Filter zurücksetzen'); expect(f.grid.events).toHaveLength(3);
   });
 
+  it('filters future planned tasks separately from past follow-up and ongoing visits', async () => {
+    f.calendar.events = [
+      event({ id: 'future', status: 'bestaetigt', isIncomplete: true }),
+      event({ id: 'follow-up', status: 'bestaetigt', isIncomplete: true, start: '2026-10-07T08:00:00Z', end: '2026-10-07T09:00:00Z' }),
+      event({ id: 'running', status: 'gestartet', isIncomplete: true, start: '2026-10-17T08:00:00Z', end: '2026-10-17T09:00:00Z' }),
+    ];
+    f.calendar.allEvents = f.calendar.events;
+    await render();
+    const statusFilter = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLSelectElement;
+    expect(statusFilter.querySelector('[value="scheduled"]')?.textContent).toBe('Geplant / bestätigt');
+    expect(statusFilter.querySelector('[value="open"]')?.textContent).toBe('Nacharbeit offen');
+    for (const [state, id] of [['scheduled', 'future'], ['open', 'follow-up'], ['active', 'running']]) {
+      await change('Einsatzstatus filtern', state);
+      expect(f.grid.events.map((value: CalendarEvent) => value.id)).toEqual([id]);
+    }
+  });
+
   it('restores view, date and filters on remount without letting server defaults override them', async () => {
     await render(); await press('Woche'); await change('Kalender für Mitarbeitende', 'employee-2'); await change('Kalender durchsuchen', 'Alex'); await change('Datum auswählen', '2026-10-25');
     await act(async () => root.unmount()); root = createRoot(host); f.settings.settings.defaultView = 'year'; await render();
