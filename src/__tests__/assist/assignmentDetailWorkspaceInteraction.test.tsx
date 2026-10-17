@@ -4,9 +4,11 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
+import type { RoleKey } from '@/types';
 
 const f = vi.hoisted(() => ({
   tenant: 'tenant-a', actor: 'actor-a', readonly: false, allowed: true,
+  roleKey: 'business_admin' as RoleKey | null, canView: true, canManage: true,
   read: vi.fn(), status: vi.fn(), remove: vi.fn(), history: vi.fn(), task: vi.fn(),
   push: vi.fn(), replace: vi.fn(), deleted: vi.fn(), edit: vi.fn(), notify: vi.fn(), dispatch: vi.fn(), prevent: vi.fn(), confirm: vi.fn(), taskProps: {} as any,
 }));
@@ -15,9 +17,9 @@ vi.mock('expo-router', () => ({ useRouter: () => ({ push: f.push, replace: f.rep
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: f.prevent }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: f.confirm }));
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
-vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: 'business_admin' } }) }));
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: f.roleKey } }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
-vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => f.allowed, isReadOnly: f.readonly }) }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: (key: string) => key === 'assist.assignments.view' ? f.canView : key === 'assist.assignments.manage' ? f.canManage : f.allowed, isReadOnly: f.readonly, roleKey: f.roleKey }) }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ useLiveRefresh: () => ({ isLiveConnected: false }), DEFAULT_LIVE_POLL_MS: 30000 }));
 vi.mock('@/hooks/core', async () => ({ useAsyncQuery: (await import('@/hooks/core/useAsyncQuery')).useAsyncQuery, useMutation: (await import('@/hooks/core/useMutation')).useMutation }));
 vi.mock('@/lib/assist/visitService', () => ({ fetchVisitDispositionDetail: f.read, updateVisitDispositionStatus: f.status }));
@@ -44,7 +46,7 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.allowed = true;
+  vi.clearAllMocks(); f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.allowed = true; f.roleKey = 'business_admin'; f.canView = true; f.canManage = true;
   f.read.mockImplementation(async () => ({ ok: true, data: visit() }));
   f.status.mockResolvedValue({ ok: false, error: 'Statusänderung nicht erlaubt' });
   f.remove.mockResolvedValue({ ok: true, data: { id: 'visit-a' } });
@@ -66,13 +68,53 @@ describe('Web assignment detail interactions', () => {
     expect(host.textContent).toContain('Anna Muster'); expect(host.textContent).not.toContain('erfolgreich');
     expect(button('Bestätigt').disabled).toBe(false);
   });
-  it('does not expose write actions in read-only mode', async () => {
-    f.readonly = true; await mount();
+  it('does not expose write actions without assignment manage or execution permission', async () => {
+    f.readonly = true; f.canManage = false; f.allowed = false; await mount();
     expect(host.textContent).toContain('Lesemodus');
     expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Einsatz löschen')).toBe(false);
     expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Bearbeiten')).toBe(false);
     await click('Aufgaben'); expect(button('Aufgabe speichern').disabled).toBe(true);
     expect(f.status).not.toHaveBeenCalled(); expect(f.task).not.toHaveBeenCalled();
+  });
+  it('lets dispatch edit and change status while Office master data is read-only', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true; await mount(); await click('Bearbeiten');
+    expect(f.edit).toHaveBeenCalledWith(expect.objectContaining({ id: 'visit-a' }));
+    await click('Bestätigt'); expect(f.status).toHaveBeenCalledWith('visit-a', 'tenant-a', 'bestaetigt', 'dispatch');
+    expect(host.textContent).not.toContain('Lesemodus');
+  });
+  it('lets dispatch save execution tasks with read-only Office data and without assignment manage permission', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true; f.canManage = false; await mount();
+    expect(host.textContent).not.toContain('Lesemodus');
+    expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Bearbeiten')).toBe(false);
+    await click('Aufgaben'); expect(button('Aufgabe speichern').disabled).toBe(false);
+    await click('Aufgabe speichern');
+    expect(f.task).toHaveBeenCalledWith('visit-a', 'task-a', 'tenant-a', 'done', 'dispatch', undefined);
+    expect(host.textContent).toContain('Aufgabe gespeichert.');
+    f.allowed = false; await mount();
+    expect(button('Aufgabe speichern').disabled).toBe(true);
+    await act(async () => { await expect(f.taskProps.onUpdateTask('task-a', 'done')).rejects.toThrow('Die Aufgabe kann derzeit nicht geändert werden.'); });
+    expect(f.task).toHaveBeenCalledOnce();
+  });
+  it('does not grant task writes from assignment manage permission alone', async () => {
+    f.allowed = false; await mount(); await click('Aufgaben');
+    expect(button('Aufgabe speichern').disabled).toBe(true);
+    await act(async () => { await expect(f.taskProps.onUpdateTask('task-a', 'done')).rejects.toThrow('Die Aufgabe kann derzeit nicht geändert werden.'); });
+    expect(f.task).not.toHaveBeenCalled();
+  });
+  it('does not load details when assignment view is absent even if manage is granted', async () => {
+    f.canView = false; await mount();
+    expect(f.read).not.toHaveBeenCalled(); expect(f.status).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('keine Berechtigung');
+  });
+  it.each(['employee_portal', 'client_portal', 'family_portal', null] as const)('does not expose administrative details to a %s session with stale permissions', async (roleKey) => {
+    f.roleKey = roleKey; await mount();
+    expect(f.read).not.toHaveBeenCalled(); expect(f.status).not.toHaveBeenCalled(); expect(f.remove).not.toHaveBeenCalled(); expect(f.task).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('keine Berechtigung');
+  });
+  it('removes status, edit and delete confirmation actions after manage permission is revoked', async () => {
+    await mount(); await click('Einsatz löschen'); f.canManage = false; await mount();
+    expect([...host.querySelectorAll('button')].some(b => ['Bestätigt', 'Bearbeiten', 'Endgültig löschen'].includes(b.textContent ?? ''))).toBe(false);
+    expect(f.status).not.toHaveBeenCalled(); expect(f.remove).not.toHaveBeenCalled();
   });
   it('disables execution and task edits for cancelled visits', async () => {
     f.read.mockResolvedValue({ ok: true, data: visit({ assignmentStatus: 'storniert', executionStatus: 'cancelled' }) });

@@ -4,6 +4,7 @@ import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { useAsyncQuery } from '@/hooks/core';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { usePermissions } from '@/hooks/usePermissions';
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { buildVisitProofPreview, deleteVisitDisposition, fetchVisitStatusHistory, updateVisitTaskStatus } from '@/lib/assist';
@@ -50,13 +51,16 @@ function Card({ title, hint, children, className = '' }: {
 export function AssignmentDetailTabsPanel(props: Props) {
     const tenantId = useServiceTenantId();
     const { profile } = useAuth();
+    const { can, roleKey } = usePermissions();
+    if (!roleKey || isPortalOnlyRole(roleKey) || !can('assist.assignments.view'))
+        return <div className="aw-workspace ad-root"><AssignmentsWorkspaceStyles /><div className="aw-alert" data-tone="info" role="status">Sie haben keine Berechtigung, diesen Einsatz zu öffnen.</div></div>;
     return <SurfaceContrastProvider tone="light"><AssignmentsWorkspaceStyles /><AssignmentDetailStyles /><Detail key={`${tenantId}:${profile?.id}:${profile?.roleKey}:${props.assignmentId}`} {...props}/></SurfaceContrastProvider>;
 }
 function Detail({ assignmentId, mode = 'full', onOpenFullRecord, onEdit, onClose, onDeleted, refreshTrigger, onStatusChange, initialTab = 'overview' }: Props) {
     const router = useRouter();
     const tenantId = useServiceTenantId();
     const { profile } = useAuth();
-    const { can, isReadOnly } = usePermissions();
+    const { can, roleKey } = usePermissions();
     const { data: visit, loading, error, notFound, refresh, refreshAfterSave, refreshError, actionError, actionLoading, successMessage, changeStatus } = useVisitDispositionDetail(assignmentId);
     const [tab, setTab] = useState<AssignmentDetailTabKey>(initialTab);
     const [localBusy, setLocalBusy] = useState(false);
@@ -68,7 +72,7 @@ function Detail({ assignmentId, mode = 'full', onOpenFullRecord, onEdit, onClose
     const alive = useRef(true);
     const lock = useRef(false);
     const permissions = useRef({ manage: false, execute: false });
-    permissions.current = { manage: !isReadOnly && can('assist.assignments.manage'), execute: !isReadOnly && can('assist.execution.manage') };
+    permissions.current = { manage: Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.assignments.manage')), execute: Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.manage')) };
     const tabId = useId();
     const busy = localBusy || actionLoading;
     const [taskDirty, setTaskDirty] = useState(false);
@@ -198,7 +202,7 @@ function Detail({ assignmentId, mode = 'full', onOpenFullRecord, onEdit, onClose
     return <div className="aw-workspace ad-root" aria-busy={busy}>
     <div className="ad-hero"><div className="ad-eyebrow">{mode === 'preview' ? 'Einsatzvorschau' : 'Einsatzdetails'}{series ? ' · Serientermin' : ''}</div><h2>{visit.serviceName ?? visit.title}</h2><p>{visit.clientName} · {visit.employeeName}</p><div className="ad-badges"><span className="ad-badge" data-tone={cancelled ? 'danger' : undefined}>{ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}</span>{!cancelled ? <span className="ad-badge">{VISIT_PROOF_STATUS_LABELS[visit.proofStatus]}</span> : null}{visit.isAtRisk && !cancelled ? <span className="ad-badge" data-tone="warning">Planung prüfen</span> : null}{visit.isIncomplete && !cancelled ? <span className="ad-badge" data-tone="warning">Angaben unvollständig</span> : null}</div></div>
     {cancelled ? <div className="aw-alert" data-tone="warning">Dieser Einsatz ist abgesagt. Durchführung und Aufgabenänderungen sind gesperrt; vorhandene Informationen bleiben einsehbar.</div> : null}
-    {isReadOnly ? <div className="aw-alert" data-tone="info">Lesemodus: Sie können diesen Einsatz ansehen.</div> : null}
+    {!manage && !permissions.current.execute ? <div className="aw-alert" data-tone="info">Lesemodus: Sie können diesen Einsatz ansehen.</div> : null}
     {visit.errorMessage ? <div className="aw-alert" data-tone="danger" role="alert">{visit.errorMessage}</div> : null}
     {localError || actionError ? <div className="aw-alert" data-tone="danger" role="alert">{localError || actionError}</div> : null}
     {refreshError ? <div className="aw-alert" data-tone="warning" role="alert">Die Aktualisierung konnte nicht bestätigt werden. {refreshError}<button className="aw-button" disabled={busy} onClick={() => void refresh()}>Erneut laden</button></div> : null}

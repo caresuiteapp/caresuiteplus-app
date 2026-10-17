@@ -6,6 +6,7 @@ import { usePageTab } from '@/hooks/usePageTab';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView.web';
 import { AssignmentDetailGlassModal } from '@/components/assist/AssignmentDetailGlassModal.web';
 
@@ -14,17 +15,17 @@ export function AssignmentsListScreen({ onAssignmentPress, selectedId, embedded 
 } = {}) {
   const router = useRouter();
   const params = useLocalSearchParams<{ create?: string | string[]; clientId?: string | string[] }>();
-  const { can, isReadOnly } = usePermissions();
+  const { can, roleKey } = usePermissions();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [createOpen, setCreateOpen] = usePageFlag('AssignmentsListScreen.createOpen', false);
   const [initialClientId, setInitialClientId] = usePageTab<string | null>('AssignmentsListScreen.createClient', null);
   const [activeId, setActiveId] = usePageRecord<string | null>('AssignmentsAdaptiveScreen.record', null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const canManage = can('assist.assignments.manage') && !isReadOnly;
+  const canView = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view'));
+  const canManage = canView && can('assist.assignments.manage');
   const create = Array.isArray(params.create) ? params.create[0] : params.create;
   const clientId = Array.isArray(params.clientId) ? params.clientId[0] : params.clientId;
-  const canView = can('assist.assignments.view');
   useEffect(() => {
     if (create !== '1' || !canManage) return;
     setInitialClientId(clientId ?? null); setCreateOpen(true);

@@ -18,6 +18,7 @@ import { useAssignmentFormOptions } from "./useAssignmentFormOptions.web";
 import { useAuth } from "@/lib/auth/context";
 import { useServiceTenantId } from "@/hooks/useTenantId";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { fetchClientList } from "@/lib/office/clientListService";
 import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeListService";
 import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
@@ -125,14 +126,14 @@ export function AssignmentCreateForm({
   const tenantId = useServiceTenantId();
   const router = useRouter();
   const { profile } = useAuth();
-  const { can, isReadOnly } = usePermissions();
+  const { can, roleKey } = usePermissions();
+  const canManage = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.assignments.manage'));
   const {
     options,
     loading: optionsLoading,
     error: optionsError,
     reload: reloadOptions,
-  } = useAssignmentFormOptions(visible);
-  const canManage = can("assist.assignments.manage") && !isReadOnly;
+  } = useAssignmentFormOptions(visible && canManage);
   const canManageRef = useRef(canManage); canManageRef.current = canManage;
   const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visible, initialClientId]);
   const scopeRef = useRef(scope); scopeRef.current = scope;
@@ -194,7 +195,7 @@ export function AssignmentCreateForm({
   useEffect(() => {
     let cancelled = false;
     setClients([]); setEmployees([]); setServices([]); setListsLoading(false);
-    if (!visible || !tenantId) return;
+    if (!visible || !tenantId || !canManage) return;
     setListsError(null); setListsLoading(true);
 
     void (async () => {
@@ -237,7 +238,7 @@ export function AssignmentCreateForm({
       } finally { if (!cancelled) setListsLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [scope, profile?.roleKey, tenantId, visible, listsRetry]);
+  }, [scope, profile?.roleKey, tenantId, visible, listsRetry, canManage]);
 
   const subjectOptions = useMemo(
     () =>

@@ -8,6 +8,7 @@ import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentMod
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
@@ -30,18 +31,18 @@ function dateTime(value?: string | null) {
 export function VisitExecutionScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const tenantId = useServiceTenantId(); const { profile } = useAuth(); const { can, isReadOnly } = usePermissions(); const router = useRouter();
-  const allowed = can('assist.execution.view');
-  const scope = JSON.stringify([tenantId, id, profile?.id, profile?.roleKey, allowed, can('assist.execution.manage'), isReadOnly]);
+  const tenantId = useServiceTenantId(); const { profile } = useAuth(); const { can, roleKey } = usePermissions(); const router = useRouter();
+  const allowed = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.view'));
+  const scope = JSON.stringify([tenantId, id, profile?.id, profile?.roleKey, roleKey, allowed, can('assist.execution.manage')]);
   if (!allowed || !tenantId || !id) return <AssignmentsWorkspaceShell title="Einsatz durchführen" description="Einsatzakte und Nachbearbeitung" onBack={() => router.back()}><div className="aw-alert" data-tone="warning" role="alert">{!allowed ? 'Sie haben keine Berechtigung, diese Einsatzdurchführung anzusehen.' : !tenantId ? 'Bitte wählen Sie zuerst ein Unternehmen aus.' : 'Es wurde kein Einsatz ausgewählt.'}</div></AssignmentsWorkspaceShell>;
   return <ExecutionWorkspace key={scope} id={id} tenantId={tenantId} />;
 }
 function ExecutionWorkspace({ id, tenantId }: { id: string; tenantId: string }) {
-  const router = useRouter(); const { can, check, isReadOnly } = usePermissions(); const { profile } = useAuth(); const actor = usePortalActor();
+  const router = useRouter(); const { can, check, roleKey } = usePermissions(); const { profile } = useAuth(); const actor = usePortalActor();
   const { data: visit, loading, error, refreshError, refresh, refreshAfterSave, notFound } = useVisitDispositionDetail(id);
   const [drafts, setDrafts] = useState<Record<string, VisitTaskStatus>>({});
   const [state, setState] = useState({ dirty: false, busy: false });
-  const canManage = can('assist.execution.manage') && !isReadOnly;
+  const canManage = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.manage'));
   // The scoped query may resolve a legacy/series ID to its concrete visit ID.
   const safeVisit = visit?.tenantId === tenantId ? visit : null;
   const [preparing, setPreparing] = useState(false); const [prepareError, setPrepareError] = useState<string | null>(null);

@@ -7,6 +7,7 @@ import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visit
 import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { useAssistDocumentationBlocks } from '@/hooks/assistCatalog/useAssistCatalog';
 import { berlinDateTimeInput } from '@/lib/employeeLogbook/employeeLogbookDate';
 import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
@@ -39,9 +40,9 @@ function visitTimes(visit: VisitDispositionDetail): Omit<Times, 'pause' | 'trave
 
 /** Remount every draft and async operation when the record, company, actor or permission changes. */
 export function AdministrativeVisitFollowUpPanel(props: Props) {
-  const { profile } = useAuth(); const { can, isReadOnly } = usePermissions();
-  const allowed = !isReadOnly && can('assist.execution.manage') && props.visit.tenantId === props.tenantId;
-  const scope = JSON.stringify([props.tenantId, props.visit.id, profile?.id, profile?.roleKey, allowed]);
+  const { profile } = useAuth(); const { can, roleKey } = usePermissions();
+  const allowed = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.manage') && props.visit.tenantId === props.tenantId);
+  const scope = JSON.stringify([props.tenantId, props.visit.id, profile?.id, profile?.roleKey, roleKey, allowed]);
   return <FollowUpEditor key={scope} {...props} allowed={allowed} />;
 }
 function FollowUpEditor({ visit, tenantId, onSaved, onMessage, onTaskDraftsChange, onStateChange, allowed }: Props & { allowed: boolean }) {

@@ -5,6 +5,7 @@ import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreferen
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { deleteVisitDisposition } from '@/lib/assist/visitService';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { formatDate, formatTime, formatTimeRange, formatDurationMinutes, formatAssignmentWeekdayDate } from '@/lib/formatters/dateTimeFormatters';
@@ -46,21 +47,21 @@ function ProofChips({ item }: { item: AssignmentListItem }) {
 }
 
 export function AssignmentsListView(props: Props) {
-  const { can } = usePermissions();
+  const { can, roleKey } = usePermissions();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
-  if (!can('assist.assignments.view')) return <div className="aw-workspace"><AssignmentsWorkspaceStyles /><div className="aw-alert" data-tone="info" role="status">Sie haben keine Berechtigung, die Einsatzplanung zu öffnen.</div></div>;
+  if (!roleKey || isPortalOnlyRole(roleKey) || !can('assist.assignments.view')) return <div className="aw-workspace"><AssignmentsWorkspaceStyles /><div className="aw-alert" data-tone="info" role="status">Sie haben keine Berechtigung, die Einsatzplanung zu öffnen.</div></div>;
   return <AssignmentsListContent key={JSON.stringify([tenantId, profile?.id, profile?.employeeId, profile?.roleKey])} {...props} />;
 }
 
 function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = false, externalRefreshKey = 0, createOpen, initialCreateClientId, onCreateOpenChange }: Props) {
   const router = useFlowRouter();
   const list = useAssignmentList();
-  const { can, isReadOnly } = usePermissions();
+  const { can, roleKey } = usePermissions();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
-  const canManage = can('assist.assignments.manage') && !isReadOnly;
-  const canExecute = can('assist.execution.manage') && !isReadOnly;
+  const canManage = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.assignments.manage'));
+  const canExecute = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.manage'));
   const canCalendar = can('assist.assignments.view');
   const { viewMode, setViewMode } = useDesktopListViewPreference(`assist.assignments.workspace:${tenantId}:${profile?.id ?? ''}`, 'cards');
   const [filtersOpen, setFiltersOpen] = useState(false);

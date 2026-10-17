@@ -4,8 +4,10 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
+import type { RoleKey } from '@/types';
 const f = vi.hoisted(() => ({
   tenant: 'tenant-a', actor: 'actor-a', allowed: true, create: vi.fn(), update: vi.fn(), clients: vi.fn(), employees: vi.fn(), catalog: vi.fn(),
+  roleKey: 'business_admin' as RoleKey | null, canView: true, readonly: false,
   package: vi.fn(), close: vi.fn(), saved: vi.fn(), push: vi.fn(), dispatch: vi.fn(), prevent: vi.fn(),
 }));
 vi.mock('react-native', () => ({ Platform: { OS: 'web' }, StyleSheet: { create: (s: unknown) => s },
@@ -16,8 +18,8 @@ vi.mock('expo-router', () => ({ useRouter: () => ({ push: f.push }), useNavigati
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: f.prevent }));
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
-vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => f.allowed, isReadOnly: false }) }));
-vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: 'business_admin' } }) }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: (key: string) => key === 'assist.assignments.view' ? f.canView : f.allowed, isReadOnly: f.readonly, roleKey: f.roleKey }) }));
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: f.roleKey } }) }));
 vi.mock('@/components/assist/useAssignmentFormOptions.web', () => ({ useAssignmentFormOptions: () => ({
   options: { subjects: [], assignmentTypes: [], serviceCategories: [], riskFlags: [], taskItems: [], budgetSources: [], taskPackages: [{ id: 'pkg', label: 'Paket' }] },
   loading: false, error: null, reload() {},
@@ -43,7 +45,7 @@ const deferred = () => { let resolve!: (value: any) => void; const promise = new
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.allowed = true;
+  vi.clearAllMocks(); f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.allowed = true; f.roleKey = 'business_admin'; f.canView = true; f.readonly = false;
   f.clients.mockResolvedValue({ ok: true, data: [{ id: 'client', firstName: 'Anna', lastName: 'Test' }] });
   f.employees.mockResolvedValue({ ok: true, data: [{ id: 'employee', firstName: 'Tom', lastName: 'Test' }] });
   f.catalog.mockResolvedValue({ ok: true, data: { items: [] } });
@@ -64,6 +66,44 @@ async function fill(label: string, value: string) {
 }
 
 describe('Web assignment forms use actual controls and preserve write boundaries', () => {
+  it('lets dispatch save a draft with positive assignment permissions while Office master data is read-only', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true; await create(); await step('Prüfen'); await click('Entwurf speichern');
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.create.mock.calls[0][1]).toMatchObject({ clientId: 'client', saveAsDraft: true });
+  });
+  it.each([
+    { label: 'missing manage', roleKey: 'dispatch', canView: true, allowed: false },
+    { label: 'missing view', roleKey: 'dispatch', canView: false, allowed: true },
+    { label: 'employee portal', roleKey: 'employee_portal', canView: true, allowed: true },
+    { label: 'client portal', roleKey: 'client_portal', canView: true, allowed: true },
+    { label: 'family portal', roleKey: 'family_portal', canView: true, allowed: true },
+    { label: 'no role', roleKey: null, canView: true, allowed: true },
+  ] as const)('does not load or mutate the create form for $label', async ({ roleKey, canView, allowed }) => {
+    f.roleKey = roleKey; f.canView = canView; f.allowed = allowed; await create();
+    expect(document.body.textContent).toContain('Keine Berechtigung zum Anlegen');
+    expect(f.clients).not.toHaveBeenCalled(); expect(f.employees).not.toHaveBeenCalled(); expect(f.catalog).not.toHaveBeenCalled();
+    expect(f.create).not.toHaveBeenCalled();
+    expect([...document.body.querySelectorAll('button')].some(b => b.textContent === 'Entwurf speichern')).toBe(false);
+  });
+  it('lets dispatch edit the same visit while Office master data is read-only', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true; await edit(); await fill('Bezeichnung *', 'Geänderte Planung'); await click('Änderungen speichern');
+    expect(f.update).toHaveBeenCalledOnce();
+    expect(f.update).toHaveBeenCalledWith('tenant-a', id, expect.objectContaining({ title: 'Geänderte Planung' }), 'dispatch', 'this_only');
+  });
+  it.each([
+    { label: 'missing manage', roleKey: 'dispatch', canView: true, allowed: false },
+    { label: 'missing view', roleKey: 'dispatch', canView: false, allowed: true },
+    { label: 'employee portal', roleKey: 'employee_portal', canView: true, allowed: true },
+    { label: 'client portal', roleKey: 'client_portal', canView: true, allowed: true },
+    { label: 'family portal', roleKey: 'family_portal', canView: true, allowed: true },
+    { label: 'no role', roleKey: null, canView: true, allowed: true },
+  ] as const)('does not load or mutate the edit form for $label', async ({ roleKey, canView, allowed }) => {
+    f.roleKey = roleKey; f.canView = canView; f.allowed = allowed; await edit();
+    expect(document.body.textContent).toContain('Keine Berechtigung zum Bearbeiten');
+    expect(f.clients).not.toHaveBeenCalled(); expect(f.employees).not.toHaveBeenCalled(); expect(f.catalog).not.toHaveBeenCalled();
+    expect(f.update).not.toHaveBeenCalled();
+    expect([...document.body.querySelectorAll('button')].some(b => b.textContent === 'Änderungen speichern')).toBe(false);
+  });
   it('creates one draft for two synchronous save clicks', async () => {
     const pending = deferred(); f.create.mockReturnValue(pending.promise); await create(); await step('Prüfen');
     const save = button('Entwurf speichern'); await act(async () => { save.click(); save.click(); });
