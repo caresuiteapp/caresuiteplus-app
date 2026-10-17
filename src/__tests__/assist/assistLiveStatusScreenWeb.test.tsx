@@ -68,6 +68,87 @@ const change = async (label: string, value: string) => {
 };
 
 describe('Live-Status Web workspace integration', () => {
+  it('leaves native filter selections untouched while the live clock advances', async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(new Date('2026-10-17T08:00:00Z'));
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    f.monitoring.overview = overview([row({ status: 'gestartet', displayStatus: 'gestartet', tracking: {
+      assignmentId: 'assignment-a', tenantId: 'tenant-a', status: 'gestartet', consent: { granted: false, grantedAt: null, explainedAt: null },
+      gpsPermission: 'undetermined', trackingActive: false, lastPosition: null, geofence: null, warnings: [], arrivalProof: null, assistVisible: false, clientPortalVisible: false,
+      timers: { driveSeconds: 0, serviceSeconds: 120, pauseSeconds: 0, activeTimer: 'service', driveStartedAt: null, serviceStartedAt: '2026-10-17T07:58:00Z', pauseStartedAt: null },
+    } })]);
+    await render();
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLSelectElement;
+    const selectionWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
+    try {
+      for (const [index, select] of [employee, status].entries()) {
+        select.focus();
+        await act(async () => vi.advanceTimersByTime(3_000));
+        expect(host.textContent).toContain(`00:02:0${(index + 1) * 3}`);
+        expect(document.activeElement).toBe(select);
+        expect(host.querySelector(`[aria-label="${select.getAttribute('aria-label')}"]`)).toBe(select);
+        // Reassigning selected on a controlled native select can dismiss its open
+        // browser picker even when React preserves the element and its focus.
+        expect(selectionWrites).not.toHaveBeenCalled();
+      }
+    } finally { selectionWrites.mockRestore(); visibility.mockRestore(); }
+  });
+
+  it('preserves native filter selection when fresh data has unchanged employee options', async () => {
+    await render();
+    await change('Mitarbeitende filtern', 'employee-b');
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    const status = host.querySelector('[aria-label="Einsatzstatus filtern"]') as HTMLSelectElement;
+    employee.focus();
+    const selectionWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
+    try {
+      f.monitoring.overview = {
+        ...f.monitoring.overview,
+        generatedAt: '2026-10-17T08:00:05Z',
+        rows: f.monitoring.overview.rows.map((value: AssistLiveMonitoringRow) => ({ ...value })),
+      };
+      await render();
+      expect(host.querySelector('[aria-label="Mitarbeitende filtern"]')).toBe(employee);
+      expect(host.querySelector('[aria-label="Einsatzstatus filtern"]')).toBe(status);
+      expect(document.activeElement).toBe(employee);
+      expect(employee.value).toBe('employee-b');
+      expect(selectionWrites).not.toHaveBeenCalled();
+    } finally { selectionWrites.mockRestore(); }
+    await change('Einsatzstatus filtern', 'active');
+    expect(status.value).toBe('active');
+    expect(host.textContent).toContain('Bea Muster');
+    expect(host.textContent).not.toContain('Erika Beispiel');
+    await press('Filter zurücksetzen');
+    expect(employee.value).toBe('');
+    expect(status.value).toBe('all');
+    expect(host.textContent).toContain('Erika Beispiel');
+  });
+
+  it('updates real employee option changes and discards filter selection after permission changes', async () => {
+    await render();
+    const employee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    await change('Mitarbeitende filtern', 'employee-b');
+    f.monitoring.overview = overview([
+      row({ employeeName: 'Clara Umbenannt' }),
+      row({ assignmentId: 'assignment-c', visitId: 'visit-c', clientName: 'Carla Neu', employeeId: 'employee-c', employeeName: 'Dora Neu' }),
+    ]);
+    await render();
+    expect([...employee.options].map(option => [option.value, option.textContent])).toEqual([
+      ['', 'Alle Mitarbeitenden'], ['employee-a', 'Clara Umbenannt'], ['employee-c', 'Dora Neu'],
+    ]);
+    await change('Mitarbeitende filtern', 'employee-c');
+    expect(host.textContent).toContain('Carla Neu');
+    expect(host.textContent).not.toContain('Erika Beispiel');
+    f.denied.add('assist.assignments.manage');
+    await render();
+    const nextEmployee = host.querySelector('[aria-label="Mitarbeitende filtern"]') as HTMLSelectElement;
+    expect(nextEmployee).not.toBe(employee);
+    expect(nextEmployee.value).toBe('');
+    expect(host.textContent).toContain('Erika Beispiel');
+  });
+
   it('keeps equal employee names distinct by identity and filters the visible assignments', async () => {
     await render(); await change('Mitarbeitende filtern', 'employee-b');
     expect(host.textContent).toContain('Bea Muster'); expect(host.textContent).not.toContain('Erika Beispiel');

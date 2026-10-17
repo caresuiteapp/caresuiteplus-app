@@ -63,6 +63,47 @@ describe('Problem inbox Web workflows and confirmed repair', () => {
     f.fetch.mockResolvedValue({ ok: true, data: snapshot(initialItems().map(value => ({ ...value, employeeName: 'Alex Beispiel' }))) });
     await render(); await employee('employee-b'); expect(names()).toEqual(['Berta Beispiel']);
   });
+  it('leaves a focused employee picker untouched by parent rerenders and unchanged refresh results', async () => {
+    await render({ refreshToken: 0 });
+    const select = host.querySelector('select')!;
+    select.focus();
+    const selectedWrites = vi.spyOn(HTMLOptionElement.prototype, 'selected', 'set');
+    try {
+      await render({ refreshToken: 0 });
+      expect(host.querySelector('select')).toBe(select);
+      expect(document.activeElement).toBe(select);
+      expect(selectedWrites).not.toHaveBeenCalled();
+
+      // The service returns fresh objects, but the visible options and value are unchanged.
+      await render({ refreshToken: 1 });
+      expect(f.fetch).toHaveBeenCalledTimes(2);
+      expect(host.querySelector('select')).toBe(select);
+      expect(document.activeElement).toBe(select);
+      expect(selectedWrites).not.toHaveBeenCalled();
+    } finally {
+      selectedWrites.mockRestore();
+    }
+  });
+  it('updates changed employee options and keeps selection and reset functional after refresh', async () => {
+    await render({ refreshToken: 0 });
+    await employee('employee-b');
+    const select = host.querySelector('select')!;
+    expect(select.value).toBe('employee-b');
+    const refreshed = initialItems().map(value => value.employeeId === 'employee-b' ? { ...value, employeeName: 'Kim Neuer Name' } : value);
+    refreshed.push(item({ id: 'problem-c', assignmentId: 'assignment-c', visitId: 'visit-c', clientName: 'Cora Beispiel', employeeId: 'employee-c', employeeName: 'Charlie Beispiel' }));
+    f.fetch.mockResolvedValueOnce({ ok: true, data: snapshot(refreshed) });
+    await render({ refreshToken: 1 });
+    expect(host.querySelector('select')).toBe(select);
+    expect([...select.options].find(option => option.value === 'employee-b')?.textContent).toBe('Kim Neuer Name');
+    expect(select.value).toBe('employee-b');
+    expect(names()).toEqual(['Berta Beispiel']);
+    await employee('employee-c');
+    expect(select.value).toBe('employee-c');
+    expect(names()).toEqual(['Cora Beispiel']);
+    await click('Filter zurücksetzen');
+    expect(select.value).toBe('');
+    expect(names()).toHaveLength(3);
+  });
   it('keeps the last result on refresh failure and allows a real retry', async () => {
     await render(); f.fetch.mockResolvedValueOnce({ ok: false, error: 'Die Verbindung ist unterbrochen.' }); await click('Erneut prüfen');
     expect(names()).toHaveLength(2); expect(host.textContent).toContain('Die Verbindung ist unterbrochen.'); expect(f.count).toHaveBeenLastCalledWith(null);
