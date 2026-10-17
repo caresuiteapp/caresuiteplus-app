@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { RoleKey } from '@/types';
 const f = vi.hoisted(() => ({ tenant: 'tenant-a', actor: 'actor-a', readonly: false, canView: true, canManage: true, canExecute: true,
-  roleKey: 'business_admin' as RoleKey | null,
+  roleKey: 'business_admin' as RoleKey | null, focused: true,
   list: vi.fn(), remove: vi.fn(), confirm: vi.fn(), push: vi.fn(), back: vi.fn(), setParams: vi.fn(), selected: vi.fn(),
-  params: {} as { create?: string | string[]; clientId?: string | string[] }, createProps: {} as any,
+  params: {} as { create?: string | string[]; clientId?: string | string[]; assignmentDate?: string | string[]; employeeId?: string | string[] }, createProps: {} as any,
 }));
 vi.mock('react-native', () => ({ Platform: { OS: 'web' }, AppState: { addEventListener: () => ({ remove() {} }) } }));
-vi.mock('expo-router', () => ({ useRouter: () => ({ push: f.push, back: f.back, setParams: f.setParams }), useLocalSearchParams: () => f.params }));
+vi.mock('expo-router', () => ({ useRouter: () => ({ push: f.push, back: f.back, setParams: f.setParams }), useLocalSearchParams: () => f.params, useIsFocused: () => f.focused }));
 vi.mock('@/hooks/useFlowRouter', () => ({ useFlowRouter: () => ({ push: f.push, back: f.back }) }));
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: f.roleKey } }) }));
@@ -27,7 +27,7 @@ vi.mock('@/hooks/useDesktopListViewPreference', async () => { const { useState }
 vi.mock('@/hooks/usePageFlag', async () => { const { useState } = await import('react'); return { usePageFlag: (_: string, initial: boolean) => useState(initial) }; });
 vi.mock('@/hooks/usePageRecord', async () => { const { useState } = await import('react'); return { usePageRecord: (_: string, initial: unknown) => useState(initial) }; });
 vi.mock('@/hooks/usePageTab', async () => { const { useState } = await import('react'); return { usePageTab: (_: string, initial: unknown) => useState(initial) }; });
-vi.mock('@/components/assist/AssignmentCreateForm', () => ({ AssignmentCreateForm: (props: any) => {
+vi.mock('@/components/assist/AssignmentCreateForm.web', () => ({ AssignmentCreateForm: (props: any) => {
   f.createProps = props;
   return props.visible ? <section aria-label="Einsatzformular"><span>{props.initialClientId || 'Keine Vorauswahl'}</span><button onClick={() => props.onCreated('created-id')}>Erstellung bestätigt</button><button onClick={props.onClose}>Formular schließen</button></section> : null;
 } }));
@@ -43,7 +43,7 @@ const deferred = () => { let resolve!: (value: any) => void; const promise = new
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-16T09:00:00Z')); vi.clearAllMocks();
-  f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.canView = true; f.canManage = true; f.canExecute = true; f.roleKey = 'business_admin'; f.params = {}; f.createProps = {};
+  f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.canView = true; f.canManage = true; f.canExecute = true; f.roleKey = 'business_admin'; f.focused = true; f.params = {}; f.createProps = {};
   f.list.mockImplementation(async () => ({ ok: true, data: rows() })); f.confirm.mockResolvedValue(true); f.remove.mockResolvedValue({ ok: true, data: { id: 'visit-a' } });
   f.setParams.mockImplementation((params: any) => { f.params = { ...f.params, ...params }; });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -59,6 +59,19 @@ async function choose(label: string, value: string) {
   await act(async () => { select!.value = value; select!.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 describe('Web assignment list controls and record actions', () => {
+  it('carries the selected tour day and employee into planning and resets them for a fresh creation', async () => {
+    f.params = { create: ['1'], assignmentDate: ['2026-11-03', '2026-11-04'], employeeId: ['employee-b', 'ignored'] };
+    await screen();
+    expect(f.createProps).toMatchObject({ visible: true, initialAssignmentDate: '2026-11-03', initialEmployeeId: 'employee-b' });
+    await click('Formular schließen'); await click('Neuer Einsatz');
+    expect(f.createProps).toMatchObject({ visible: true, initialAssignmentDate: null, initialEmployeeId: null });
+  });
+  it('rejects impossible route dates and does not consume a creation link in a background workspace', async () => {
+    f.params = { create: '1', assignmentDate: '2026-02-31', employeeId: 'employee-b' }; f.focused = false;
+    await screen(); expect(f.setParams).not.toHaveBeenCalled(); expect(f.createProps.visible).toBe(false);
+    f.focused = true; await screen();
+    expect(f.createProps).toMatchObject({ visible: true, initialAssignmentDate: null, initialEmployeeId: 'employee-b' });
+  });
   it('opens distinct detail, edit and execution targets for the selected record', async () => {
     await mount(); await click('Anna Muster'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-a');
     await click('Einsatz für Anna Muster bearbeiten'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-a/edit');
@@ -98,7 +111,7 @@ describe('Web assignment list controls and record actions', () => {
   it('consumes an array create query once with the requested client and keeps modal selection local', async () => {
     f.params = { create: ['1'], clientId: ['client-a', 'ignored'] }; await screen();
     expect(f.createProps.visible).toBe(true); expect(f.createProps.initialClientId).toBe('client-a');
-    expect(f.setParams).toHaveBeenCalledWith({ create: undefined, clientId: undefined });
+    expect(f.setParams).toHaveBeenCalledWith({ create: undefined, clientId: undefined, assignmentDate: undefined, employeeId: undefined });
     await click('Formular schließen'); await click('Anna Muster'); expect(host.querySelector('[aria-label="Einsatzdetails"]')?.textContent).toContain('visit-a');
     expect(f.push).not.toHaveBeenCalled();
   });
@@ -106,7 +119,7 @@ describe('Web assignment list controls and record actions', () => {
     f.roleKey = 'dispatch'; f.readonly = true;
     f.params = { create: '1', clientId: 'client-a' }; await screen();
     expect(f.createProps.visible).toBe(true); expect(f.createProps.initialClientId).toBe('client-a');
-    expect(f.setParams).toHaveBeenCalledWith({ create: undefined, clientId: undefined });
+    expect(f.setParams).toHaveBeenCalledWith({ create: undefined, clientId: undefined, assignmentDate: undefined, employeeId: undefined });
     await click('Formular schließen'); await click('Neuer Einsatz');
     expect(host.querySelector('[aria-label="Einsatzformular"]')).not.toBeNull();
   });

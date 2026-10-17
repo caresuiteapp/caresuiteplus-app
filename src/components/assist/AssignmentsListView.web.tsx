@@ -12,13 +12,14 @@ import { formatDate, formatTime, formatTimeRange, formatDurationMinutes, formatA
 import { VISIT_BILLING_STATUS_LABELS, VISIT_PROOF_STATUS_LABELS, type VisitBillingStatus, type VisitProofStatus } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_WORKSPACE_STATUS_LABELS, resolveAssignmentWorkspaceStatus, type AssignmentWorkspaceStatusFilter } from '@/lib/assist/assignmentWorkspaceModel.web';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import { AssignmentCreateForm } from './AssignmentCreateForm';
+import { AssignmentCreateForm } from './AssignmentCreateForm.web';
 import { AssignmentsWorkspaceShell, AssignmentsWorkspaceStyles, AssignmentWorkspaceIcon as Icon } from './AssignmentsWorkspaceShell.web';
 import { assignmentsListCss } from './assignmentsListCss.web';
 
 type Props = {
   onAssignmentPress?: (id: string) => void; selectedId?: string | null; embedded?: boolean;
   externalRefreshKey?: number; createOpen?: boolean; initialCreateClientId?: string | null;
+  initialCreateAssignmentDate?: string | null; initialCreateEmployeeId?: string | null;
   onCreateOpenChange?: (open: boolean) => void;
 };
 const tones: Record<string, string> = { planned: '#4c8ace', running: '#209f9f', follow_up: '#d49a43', completed: '#409866', cancelled: '#c76d74', draft: '#90a2b5', no_show: '#c97559' };
@@ -54,7 +55,7 @@ export function AssignmentsListView(props: Props) {
   return <AssignmentsListContent key={JSON.stringify([tenantId, profile?.id, profile?.employeeId, profile?.roleKey])} {...props} />;
 }
 
-function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = false, externalRefreshKey = 0, createOpen, initialCreateClientId, onCreateOpenChange }: Props) {
+function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = false, externalRefreshKey = 0, createOpen, initialCreateClientId, initialCreateAssignmentDate, initialCreateEmployeeId, onCreateOpenChange }: Props) {
   const router = useFlowRouter();
   const list = useAssignmentList();
   const { can, roleKey } = usePermissions();
@@ -145,7 +146,7 @@ function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = fals
         return <article key={item.id} className="awl-card" data-selected={selectedId === item.id} style={{ '--awl-accent': tones[status] } as CSSProperties}><div className="awl-card-body"><div className="awl-card-top"><div className="awl-date-badge"><strong>{parts.find(part => part.type === 'day')?.value ?? '–'}</strong><small>{parts.find(part => part.type === 'month')?.value ?? 'Termin'}</small></div><div className="awl-card-statuses"><span className="aw-chip" data-tone={status}>{ASSIGNMENT_WORKSPACE_STATUS_LABELS[status]}</span>{item.isAtRisk ? <span className="aw-chip" data-tone="warning">Planung prüfen</span> : null}</div></div><div><h3><button type="button" className="awl-name" onClick={() => open(item.id)}>{item.clientName || 'Name fehlt'}</button></h3><p className="awl-service">{item.serviceName || item.title || 'Leistung nicht hinterlegt'}</p></div><div className="awl-time"><Icon name="clock" size={17} /><div><strong>{timeRange(item)}</strong><small>{formatAssignmentWeekdayDate(item.scheduledStart)}{plannedDuration(item) ? ` · ${plannedDuration(item)} geplant` : ''}</small></div></div><div className="awl-card-meta"><div><Icon name="person" size={16} /><span>{item.employeeName || 'Noch nicht zugeordnet'}</span></div><div><Icon name="location" size={16} /><span>{item.location || 'Kein Einsatzort hinterlegt'}</span></div></div><ProofChips item={item} />{item.actualStartAt || item.actualEndAt ? <div className="awl-lifecycle">{item.actualStartAt ? <span>Begonnen <strong>{formatTime(item.actualStartAt)}</strong></span> : null}{item.actualEndAt ? <span>Beendet <strong>{formatTime(item.actualEndAt)}</strong></span> : null}</div> : null}</div><footer className="awl-card-actions">{actionButtons(item)}</footer></article>;
       })}</div>}
     {list.items.length ? <div className="awl-pagination"><p>{list.items.length} von {list.filteredCount} passenden Einsätzen angezeigt</p>{list.hasMore ? <button type="button" className="aw-button" onClick={list.loadMore}>Weitere Einsätze anzeigen <Icon name="plus" size={16} /></button> : null}</div> : null}
-    {canManage ? <AssignmentCreateForm visible={wizardVisible} initialClientId={initialCreateClientId} onClose={() => setWizardVisible(false)} onCreated={id => { if (!mounted.current) return; setWizardVisible(false); void refresh(); open(id); }} /> : null}
+    {canManage ? <AssignmentCreateForm visible={wizardVisible} initialClientId={initialCreateClientId} initialAssignmentDate={initialCreateAssignmentDate} initialEmployeeId={initialCreateEmployeeId} onClose={() => setWizardVisible(false)} onCreated={id => { if (!mounted.current) return; setWizardVisible(false); void refresh(); open(id); }} /> : null}
   </>;
   return embedded ? <div className="aw-workspace" data-cs-assignments-surface="light"><AssignmentsWorkspaceStyles /><div className="aw-content">{content}</div></div>
     : <AssignmentsWorkspaceShell title="Einsätze" description="Planung, Durchführung und Nachweise – mit einem klaren Überblick über den nächsten Schritt." actions={actions}>{content}</AssignmentsWorkspaceShell>;
