@@ -18,6 +18,7 @@ import { useAssignmentFormOptions } from "./useAssignmentFormOptions.web";
 import { useAuth } from "@/lib/auth/context";
 import { useServiceTenantId } from "@/hooks/useTenantId";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { fetchClientList } from "@/lib/office/clientListService";
 import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeListService";
 import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
@@ -98,14 +99,14 @@ export function AssignmentEditForm({
   const tenantId = useServiceTenantId();
   const router = useRouter();
   const { profile } = useAuth();
-  const { can, isReadOnly } = usePermissions();
+  const { can, roleKey } = usePermissions();
+  const canManage = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.assignments.manage'));
   const {
     options,
     loading: optionsLoading,
     error: optionsError,
     reload: reloadOptions,
-  } = useAssignmentFormOptions();
-  const canManage = can("assist.assignments.manage") && !isReadOnly;
+  } = useAssignmentFormOptions(canManage);
   const canManageRef = useRef(canManage); canManageRef.current = canManage;
   const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visitId, initialVisit.id]);
   const scopeRef = useRef(scope); scopeRef.current = scope;
@@ -150,7 +151,7 @@ export function AssignmentEditForm({
   useEffect(() => {
     let cancelled = false;
     setClients([]); setEmployees([]); setServices([]); setListsLoading(false);
-    if (!tenantId) return;
+    if (!tenantId || !canManage) return;
     setListsError(null); setListsLoading(true);
     void (async () => {
       try {
@@ -192,7 +193,7 @@ export function AssignmentEditForm({
       } finally { if (!cancelled) setListsLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [tenantId, profile?.id, profile?.roleKey, listsRetry]);
+  }, [tenantId, profile?.id, profile?.roleKey, listsRetry, canManage]);
 
   const subjectOptions = useMemo(
     () =>

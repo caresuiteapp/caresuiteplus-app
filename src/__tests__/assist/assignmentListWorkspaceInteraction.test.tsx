@@ -4,7 +4,9 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AssignmentListItem } from '@/types/modules/assist';
-const f = vi.hoisted(() => ({ tenant: 'tenant-a', actor: 'actor-a', readonly: false, canView: true, canManage: true,
+import type { RoleKey } from '@/types';
+const f = vi.hoisted(() => ({ tenant: 'tenant-a', actor: 'actor-a', readonly: false, canView: true, canManage: true, canExecute: true,
+  roleKey: 'business_admin' as RoleKey | null,
   list: vi.fn(), remove: vi.fn(), confirm: vi.fn(), push: vi.fn(), back: vi.fn(), setParams: vi.fn(), selected: vi.fn(),
   params: {} as { create?: string | string[]; clientId?: string | string[] }, createProps: {} as any,
 }));
@@ -12,9 +14,9 @@ vi.mock('react-native', () => ({ Platform: { OS: 'web' }, AppState: { addEventLi
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: f.push, back: f.back, setParams: f.setParams }), useLocalSearchParams: () => f.params }));
 vi.mock('@/hooks/useFlowRouter', () => ({ useFlowRouter: () => ({ push: f.push, back: f.back }) }));
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
-vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: 'business_admin' } }) }));
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: f.roleKey } }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
-vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: (permission: string) => permission.endsWith('.view') ? f.canView : f.canManage, isReadOnly: f.readonly }) }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: (permission: string) => permission === 'assist.execution.manage' ? f.canExecute : permission.endsWith('.view') ? f.canView : f.canManage, isReadOnly: f.readonly, roleKey: f.roleKey }) }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ useLiveRefresh: () => ({ isLiveConnected: false }), DEFAULT_LIVE_POLL_MS: 30000 }));
 vi.mock('@/hooks/core', async () => ({ useAsyncQuery: (await import('@/hooks/core/useAsyncQuery')).useAsyncQuery, OPERATIONAL_LIVE_POLL_MS: 15000 }));
 vi.mock('@/lib/realtime', () => ({ subscribeToAssistOperationsChanges: vi.fn() }));
@@ -41,7 +43,7 @@ const deferred = () => { let resolve!: (value: any) => void; const promise = new
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-16T09:00:00Z')); vi.clearAllMocks();
-  f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.canView = true; f.canManage = true; f.params = {}; f.createProps = {};
+  f.tenant = 'tenant-a'; f.actor = 'actor-a'; f.readonly = false; f.canView = true; f.canManage = true; f.canExecute = true; f.roleKey = 'business_admin'; f.params = {}; f.createProps = {};
   f.list.mockImplementation(async () => ({ ok: true, data: rows() })); f.confirm.mockResolvedValue(true); f.remove.mockResolvedValue({ ok: true, data: { id: 'visit-a' } });
   f.setParams.mockImplementation((params: any) => { f.params = { ...f.params, ...params }; });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -61,6 +63,19 @@ describe('Web assignment list controls and record actions', () => {
     await mount(); await click('Anna Muster'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-a');
     await click('Einsatz für Anna Muster bearbeiten'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-a/edit');
     await click('Durchführung und Nachbearbeitung für Anna Muster öffnen'); expect(f.push).toHaveBeenLastCalledWith('/assist/assignments/visit-a/execute');
+  });
+  it('lets dispatch execute with read-only Office data and without assignment manage permission', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true; f.canManage = false; await mount();
+    await click('Durchführung und Nachbearbeitung für Anna Muster öffnen');
+    expect(f.push).toHaveBeenCalledWith('/assist/assignments/visit-a/execute');
+    expect(host.querySelector('[aria-label="Einsatz für Anna Muster bearbeiten"]')).toBeNull();
+    f.canExecute = false; await mount();
+    expect(host.querySelector('[aria-label="Durchführung und Nachbearbeitung für Anna Muster öffnen"]')).toBeNull();
+  });
+  it('does not grant execution from assignment manage permission alone', async () => {
+    f.canExecute = false; await mount();
+    expect(host.querySelector('[aria-label="Einsatz für Anna Muster bearbeiten"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Durchführung und Nachbearbeitung für Anna Muster öffnen"]')).toBeNull();
   });
   it('uses the embedded detail callback without navigating away', async () => {
     await mount({ onAssignmentPress: f.selected, embedded: true }); await click('Berta Beispiel');
@@ -87,6 +102,26 @@ describe('Web assignment list controls and record actions', () => {
     await click('Formular schließen'); await click('Anna Muster'); expect(host.querySelector('[aria-label="Einsatzdetails"]')?.textContent).toContain('visit-a');
     expect(f.push).not.toHaveBeenCalled();
   });
+  it('lets dispatch plan the requested client without permission to edit Office master data', async () => {
+    f.roleKey = 'dispatch'; f.readonly = true;
+    f.params = { create: '1', clientId: 'client-a' }; await screen();
+    expect(f.createProps.visible).toBe(true); expect(f.createProps.initialClientId).toBe('client-a');
+    expect(f.setParams).toHaveBeenCalledWith({ create: undefined, clientId: undefined });
+    await click('Formular schließen'); await click('Neuer Einsatz');
+    expect(host.querySelector('[aria-label="Einsatzformular"]')).not.toBeNull();
+  });
+  it('requires assignment view as well as manage before consuming a create link', async () => {
+    f.canView = false; f.params = { create: '1', clientId: 'client-a' }; await screen();
+    expect(f.list).not.toHaveBeenCalled(); expect(f.setParams).not.toHaveBeenCalled();
+    expect(host.querySelector('[aria-label="Einsatzformular"]')).toBeNull();
+  });
+  it.each(['employee_portal', 'client_portal', 'family_portal', null] as const)('rejects a %s session even with stale assignment permissions', async (roleKey) => {
+    f.roleKey = roleKey; f.params = { create: '1', clientId: 'client-a' }; await screen();
+    expect(f.list).not.toHaveBeenCalled(); expect(f.setParams).not.toHaveBeenCalled();
+    expect(host.querySelector('[aria-label="Einsatzformular"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Durchführung und Nachbearbeitung für Anna Muster öffnen"]')).toBeNull();
+    expect(host.textContent).toContain('keine Berechtigung');
+  });
   it('never deletes a cancelled confirmation and leaves a failed delete visible', async () => {
     f.confirm.mockResolvedValueOnce(false); await mount(); await click('Einsatz für Anna Muster löschen'); expect(f.remove).not.toHaveBeenCalled();
     f.remove.mockResolvedValueOnce({ ok: false, error: 'Nachweise verhindern das Löschen' }); await click('Einsatz für Anna Muster löschen');
@@ -104,11 +139,17 @@ describe('Web assignment list controls and record actions', () => {
     f.tenant = 'tenant-b'; await mount(); await act(async () => confirmation.resolve(true));
     expect(f.remove).not.toHaveBeenCalled(); expect(clients()).toHaveLength(2);
   });
-  it('hides every mutation action in read-only mode and does not load unauthorized lists', async () => {
-    f.readonly = true; await mount();
+  it('hides every mutation action without assignment manage permission and does not load unauthorized lists', async () => {
+    f.readonly = true; f.canManage = false; await mount();
     expect([...host.querySelectorAll('button')].some(b => /Neuer Einsatz|bearbeiten|löschen/.test(b.getAttribute('aria-label') || b.textContent || ''))).toBe(false);
     await click('Anna Muster'); expect(f.push).toHaveBeenCalledWith('/assist/assignments/visit-a');
     await act(async () => root.render(<span/>)); f.list.mockClear(); f.canView = false; await mount();
     expect(f.list).not.toHaveBeenCalled(); expect(host.textContent).toContain('keine Berechtigung');
+  });
+  it('does not delete after assignment manage permission is revoked during confirmation', async () => {
+    const confirmation = deferred(); f.confirm.mockReturnValue(confirmation.promise); await mount();
+    await click('Einsatz für Anna Muster löschen'); f.canManage = false; await mount();
+    await act(async () => confirmation.resolve(true)); expect(f.remove).not.toHaveBeenCalled();
+    expect(clients()).toHaveLength(2);
   });
 });
