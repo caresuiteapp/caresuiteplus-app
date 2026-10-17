@@ -9,7 +9,7 @@ vi.mock('@/lib/auth/context',()=>({useAuth:()=>({profile:h.profile})}));
 vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({can:()=>true})}));
 vi.mock('@/components/documents/DocumentsWorkspaceShell.web',()=>({DocumentsWorkspaceShell:({children,beforeNavigate}:{children:React.ReactNode;beforeNavigate?:()=>boolean})=>{h.navigationGuard=beforeNavigate??null;return <main>{children}</main>;},DocumentWorkspaceIcon:()=>null}));
 vi.mock('@/components/office/officeDocumentWorkspace.web',()=>({officeDocumentWorkspaceCss:'',documentSize:()=> '3 B'}));
-vi.mock('@/lib/office/officeDocumentsService.web',()=>({loadOfficeUploadClients:h.clients,uploadOfficeDocument:h.upload,OFFICE_UPLOAD_MAX_BYTES:20*1024*1024}));
+vi.mock('@/lib/office/officeDocumentsService',()=>({loadOfficeUploadClients:h.clients,uploadOfficeDocument:h.upload,OFFICE_UPLOAD_MAX_BYTES:20*1024*1024}));
 let container:HTMLDivElement;let root:ReturnType<typeof createRoot>;
 beforeEach(()=>{h.tenant='tenant-a';vi.clearAllMocks();h.clients.mockResolvedValue({ok:true,data:[{id:'client-a',name:'Ada Test'}]});container=document.createElement('div');document.body.appendChild(container);root=createRoot(container);Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});});
 afterEach(async()=>{await act(async()=>root.unmount());container.remove();vi.unstubAllGlobals();});

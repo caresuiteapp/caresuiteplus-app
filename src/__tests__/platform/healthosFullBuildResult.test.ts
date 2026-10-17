@@ -8,7 +8,7 @@ const directories: string[] = [];
 const commit = 'a'.repeat(40);
 const fixture = () => ({
   id: '821300e7-838d-4289-9087-b1b0a7b4bf41', platform: 'ANDROID', status: 'FINISHED',
-  appVersion: '0.4.0', appBuildVersion: '41', buildProfile: 'healthos-full-aab', gitCommitHash: commit,
+  appVersion: '0.5.0', appBuildVersion: '41', buildProfile: 'healthos-full-aab', gitCommitHash: commit,
   project: { id: '567bda34-8356-4de8-9349-a0de3143567e' }, artifacts: { buildUrl: 'https://artifacts.example.test/full.aab' },
 });
 function run(value: unknown, baseline: unknown = '40') {

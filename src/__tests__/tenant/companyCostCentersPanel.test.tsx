@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn(), dirty: false, permitted: true }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: () => h.permitted ? null : { ok: false, error: 'Kein Zugriff' } }));
 vi.mock('@/hooks/useUnsavedWebChanges.web', () => ({ useUnsavedWebChanges: (dirty: boolean, busy: boolean) => { h.dirty = dirty; return async () => !dirty && !busy; } }));
-vi.mock('@/lib/tenant/companyCostCenters.web', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/tenant/companyCostCenters.web')>(), loadCompanyCostCenters: (...args: unknown[]) => h.load(...args), saveCompanyCostCenter: (...args: unknown[]) => h.save(...args) }));
+vi.mock('@/lib/tenant/companyCostCenters', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/tenant/companyCostCenters.web')>(), loadCompanyCostCenters: (...args: unknown[]) => h.load(...args), saveCompanyCostCenter: (...args: unknown[]) => h.save(...args) }));
 import { CompanyCostCentersPanel } from '@/components/company/CompanyCostCentersPanel.web';
 const T = '11111111-1111-4111-8111-111111111111'; const C = '22222222-2222-4222-8222-222222222222';
 const cost = { id: C, code: 'VERW', name: 'Verwaltung', organizationId: null, isActive: true, updatedAt: 'v1' };

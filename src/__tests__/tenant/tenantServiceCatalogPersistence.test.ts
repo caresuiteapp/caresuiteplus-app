@@ -4,7 +4,7 @@ import type { SaveCatalogItemInput } from '@/lib/tenant/tenantServiceCatalogServ
 type Query = { table: string; action: string; payload?: unknown; filters: [string, unknown][]; selected: boolean };
 type Result = { data: unknown; error: unknown };
 const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn() }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ isLiveServiceMode: () => true, guardServiceTenant: f.tenant }));

@@ -36,6 +36,7 @@ type ScreenShellProps = {
   hideMobileLogout?: boolean;
   mobileContentPaddingBottom?: number;
   compactHeader?: boolean;
+  contentOwnsHeader?: boolean;
 };
 
 /** Verbindliche Seitenschale für alle Module und Portale. */
@@ -55,6 +56,7 @@ export function ScreenShell({
   hideMobileLogout = false,
   mobileContentPaddingBottom,
   compactHeader = false,
+  contentOwnsHeader = false,
 }: ScreenShellProps) {
   const pathname = usePathname();
   const segments = useSegments();
@@ -72,7 +74,7 @@ export function ScreenShell({
       ? Platform.OS === 'web'
         ? (webSafeAreaCalc('bottom', MOBILE_AUTH_BOTTOM_RESERVE) as number)
         : MOBILE_AUTH_BOTTOM_RESERVE + Math.max(insets.bottom, spacing.sm)
-      : (mobileContentPaddingBottom ?? spacing.xxl);
+      : (mobileContentPaddingBottom ?? (Platform.OS === 'web' ? spacing.xxl : 20));
 
   const styles = useMemo(
     () =>
@@ -121,7 +123,7 @@ export function ScreenShell({
         },
         centralPopupPageHeader: {
           flexWrap: isPhone ? 'wrap' : 'nowrap',
-          minHeight: isPhone ? 66 : 84,
+          minHeight: Platform.OS === 'web' ? (isPhone ? 66 : 84) : 54,
           flexShrink: 0,
           paddingHorizontal: isPhone ? spacing.md : spacing.lg,
           paddingVertical: isPhone ? spacing.sm : spacing.md,
@@ -210,19 +212,19 @@ export function ScreenShell({
             ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
             : {})}
         >
-          <View
+          {!contentOwnsHeader ? <View
             style={styles.centralPopupPageHeader}
             {...(Platform.OS === 'web'
               ? ({ dataSet: { csCentralPopupPageHeader: 'true' } } as object)
               : {})}
           >
             <View style={styles.centralPopupTitleGroup}>
-              <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text>
+              {Platform.OS === 'web' ? <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text> : null}
               <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupTitle}>{title}</Text>
               {subtitle ? <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
             </View>
             {effectiveRightSlot ? <View style={styles.centralPopupActions}>{effectiveRightSlot}</View> : null}
-          </View>
+          </View> : null}
           <HealthOSPageSurface padded={false}>{body}</HealthOSPageSurface>
         </View>
       </SurfaceContrastProvider>

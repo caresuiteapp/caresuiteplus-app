@@ -37,7 +37,7 @@ test('local version reservation follows the real EAS baseline', () => {
 });
 
 test('local release identity excludes wrong app, edition and reused versions', () => {
-  const identity = { applicationId: 'app.caresuitehealthos', versionName: '0.4.0', versionCode: 43 };
+  const identity = { applicationId: 'app.caresuitehealthos', versionName: '0.5.0', versionCode: 43 };
   requireIdentity(identity, 42);
   for (const changed of [{ applicationId: 'com.helloworld' }, { versionName: '0.3.7' }, { versionCode: 42 }, { versionCode: 0 }, { versionCode: 2100000001 }]) assert.throws(() => requireIdentity({ ...identity, ...changed }, 42));
   assert.throws(() => requireIdentity(identity, 39));

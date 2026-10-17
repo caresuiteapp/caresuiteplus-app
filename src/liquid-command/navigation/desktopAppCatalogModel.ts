@@ -44,7 +44,7 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     const route = normalized.route;
     if (seen.has(route)) return;
     seen.add(route);
-    const label = Platform.OS === 'web' && (route === '/unternehmen' || route.startsWith('/business/office/document') || route === '/business/templates/documents-hub') ? normalized.label : app.label;
+    const label = (route === '/unternehmen' || route.startsWith('/business/office/document') || route === '/business/templates/documents-hub') ? normalized.label : app.label;
     apps.push({ ...app, route, label });
   };
   widgetApps.forEach(app => add({ ...app, glyph: app.category === 'Workspace' ? 'G' : '↗' }));
