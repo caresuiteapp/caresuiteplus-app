@@ -9,6 +9,7 @@ import {
   type AssistProblemCategory, type AssistProblemItem,
 } from '@/lib/assist/assistProblemWorkspaceService.web';
 import { AssistProblemInboxStyles } from './AssistProblemInboxStyles.web';
+import { AssistLiveFilterSelect } from './AssistLiveFilterSelect.web';
 
 type Props = {
   refreshToken?: number;
@@ -90,7 +91,9 @@ function ProblemInbox({ tenantId, allowed, isScopeCurrent, refreshToken = 0, onC
   const employees = useMemo(() => {
     const byId = new Map<string, string>();
     for (const item of items) if (item.employeeId) byId.set(item.employeeId, employee(item));
-    return [...byId].sort((a, b) => a[1].localeCompare(b[1], 'de'));
+    return [{ value: '', label: 'Alle Mitarbeitenden' },
+      ...[...byId].sort((a, b) => a[1].localeCompare(b[1], 'de')).map(([value, label]) => ({ value, label })),
+      ...(items.some(item => !item.employeeId) ? [{ value: 'unassigned', label: 'Ohne Zuordnung' }] : [])];
   }, [items]);
   const counts = useMemo(() => items.reduce((acc, item) => ({ ...acc, [item.category]: (acc[item.category] ?? 0) + 1 }), {} as Partial<Record<AssistProblemCategory, number>>), [items]);
   const groups = useMemo(() => {
@@ -157,7 +160,7 @@ function ProblemInbox({ tenantId, allowed, isScopeCurrent, refreshToken = 0, onC
         {snapshot && !snapshot.complete ? <div className="pbi-alert" data-tone="warning" role="status"><strong>Nur teilweise geprüft</strong><p>{snapshot.checkedAssignments} Einsätze wurden geprüft{snapshot.totalAssignments != null ? `, ${snapshot.totalAssignments} liegen im Prüfbereich` : ''}. Weitere offene Punkte sind möglich.</p>{snapshot.warnings.length ? <details><summary>Was noch nicht geprüft werden konnte</summary><ul>{snapshot.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details> : null}</div> : null}
         {loading && !snapshot ? <div role="status" aria-label="Problem-Inbox wird geprüft"><div className="pbi-skeleton"/><p className="pbi-note">Einsatzdaten, Nachweise und Arbeitszeiten werden geprüft.</p></div> : null}
         {snapshot && items.length > 0 ? <>
-          <div className="pbi-tools"><label className="pbi-field pbi-field--search"><span>Suche</span><input type="search" aria-label="Problem-Inbox durchsuchen" placeholder="Name, Datum, Leistung oder Problem" value={query} onChange={event => setQuery(event.target.value)} /></label><label className="pbi-field"><span>Mitarbeitende</span><select aria-label="Problem-Inbox nach Mitarbeitenden filtern" value={employeeId} onChange={event => setEmployeeId(event.target.value)}><option value="">Alle Mitarbeitenden</option>{employees.map(([id, name]) => <option key={id} value={id}>{name}</option>)}{items.some(item => !item.employeeId) ? <option value="unassigned">Ohne Zuordnung</option> : null}</select></label></div>
+          <div className="pbi-tools"><label className="pbi-field pbi-field--search"><span>Suche</span><input type="search" aria-label="Problem-Inbox durchsuchen" placeholder="Name, Datum, Leistung oder Problem" value={query} onChange={event => setQuery(event.target.value)} /></label><AssistLiveFilterSelect className="pbi-field" label="Mitarbeitende" ariaLabel="Problem-Inbox nach Mitarbeitenden filtern" value={employeeId} options={employees} onChange={setEmployeeId} /></div>
           <div className="pbi-categories" aria-label="Problembereich filtern"><button type="button" className="pbi-category" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>Alle<span>{items.length}</span></button>{(Object.entries(CATEGORIES) as [AssistProblemCategory, string][]).map(([key, label]) => <button type="button" key={key} className="pbi-category" aria-pressed={category === key} onClick={() => setCategory(key)}>{label}<span>{counts[key] ?? 0}</span></button>)}</div>
           <div className="pbi-summary"><p>{groups.reduce((sum, group) => sum + group.problems.length, 0)} {hasUnverified ? 'Prüfhinweise' : 'offene Punkte'} in {groups.length} {groups.length === 1 ? 'Einsatz' : 'Einsätzen'}</p>{hasFilters ? <button type="button" className="pbi-button pbi-button--quiet" onClick={reset}>Filter zurücksetzen</button> : null}</div>
           {groups.length ? <div className="pbi-list">{visibleGroups.map(({ id, item, problems }, index) => {

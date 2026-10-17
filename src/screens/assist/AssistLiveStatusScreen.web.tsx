@@ -3,6 +3,7 @@ import { ScreenShell } from '@/components/layout/ScreenShell.web';
 import { AssignmentDetailGlassModal } from '@/components/assist/AssignmentDetailGlassModal.web';
 import { AssistExecutionProblemInboxPanel } from '@/components/assist/AssistExecutionProblemInboxPanel.web';
 import { AssistLiveStatusMapPanel } from '@/components/assist/AssistLiveStatusMapPanel.web';
+import { AssistLiveFilterSelect } from '@/components/assist/AssistLiveFilterSelect.web';
 import { AssistLiveStatusWorkspaceStyles, LiveStatusIcon } from '@/components/assist/AssistLiveStatusWorkspaceStyles.web';
 import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMonitoring.web';
 import { isFreshLivePosition } from '@/features/assistLive/getAssistLiveMonitoringWorkspace';
@@ -58,6 +59,8 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
   const patchState = useCallback((patch: Partial<LiveWorkspaceState>) => {
     if (active()) setState(previous => ({ ...previous, ...patch }));
   }, [active]);
+  const selectEmployee = useCallback((employeeId: string) => patchState({ employeeId, selectedId: null }), [patchState]);
+  const selectStatus = useCallback((status: string) => patchState({ status: status as LiveWorkspaceState['status'], selectedId: null }), [patchState]);
   const refresh = useCallback(() => {
     if (!active()) return;
     void monitor.refresh();
@@ -74,7 +77,7 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
   const employeeOptions = useMemo(() => {
     const employees = new Map<string, string>();
     rows.forEach(row => { if (row.employeeId) employees.set(row.employeeId, liveReadableName(row.employeeName, 'Name nicht hinterlegt')); });
-    return [...employees].sort((a, b) => a[1].localeCompare(b[1], 'de-DE'));
+    return [{ value: '', label: 'Alle Mitarbeitenden' }, ...[...employees].sort((a, b) => a[1].localeCompare(b[1], 'de-DE')).map(([value, label]) => ({ value, label }))];
   }, [rows]);
   const filteredRows = useMemo(() => {
     const query = normalizeLiveSearch(state.query);
@@ -115,7 +118,7 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
   const timeLabel = generatedAt && Number.isFinite(Date.parse(generatedAt)) ? new Date(generatedAt).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : null;
 
   return <ScreenShell title="Live-Status" contentOwnsHeader showBack={false} showBreadcrumbs={false}>
-    <div className="ls-workspace" data-cs-live-status="web-workspace-r1">
+    <div className="ls-workspace" data-cs-live-status="web-workspace-r2">
       <AssistLiveStatusWorkspaceStyles />
       <header className="ls-heading">
         <button type="button" className="ls-button ls-button--quiet ls-button--icon" aria-label="Zurück" onClick={() => { if (router.canGoBack()) router.back(); else router.replace('/Desktop'); }}><LiveStatusIcon name="back" /></button>
@@ -143,8 +146,8 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
         <section className="ls-section" id={`${sectionId}-live`} hidden={state.view !== 'live'} aria-label="Tagesübersicht">
           <div className="ls-filters">
             <label className="ls-field ls-field--search"><span>Suchen</span><input type="search" aria-label="Live-Status durchsuchen" placeholder="Klient:in, Mitarbeitende oder Einsatz" maxLength={200} value={state.query} onChange={event => patchState({ query: event.currentTarget.value, selectedId: null })} /></label>
-            <label className="ls-field"><span>Mitarbeitende</span><select aria-label="Mitarbeitende filtern" value={state.employeeId} onChange={event => patchState({ employeeId: event.currentTarget.value, selectedId: null })}><option value="">Alle Mitarbeitenden</option>{employeeOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-            <label className="ls-field"><span>Einsatzstatus</span><select aria-label="Einsatzstatus filtern" value={state.status} onChange={event => patchState({ status: event.currentTarget.value as LiveWorkspaceState['status'], selectedId: null })}>{LIVE_FILTERS.map(option => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+            <AssistLiveFilterSelect className="ls-field" label="Mitarbeitende" ariaLabel="Mitarbeitende filtern" value={state.employeeId} options={employeeOptions} onChange={selectEmployee} />
+            <AssistLiveFilterSelect className="ls-field" label="Einsatzstatus" ariaLabel="Einsatzstatus filtern" value={state.status} options={LIVE_FILTERS} onChange={selectStatus} />
             {hasFilter ? <button type="button" className="ls-button ls-button--quiet" onClick={() => patchState({ ...emptyLiveWorkspaceState(), view: state.view })}>Filter zurücksetzen</button> : null}
           </div>
           <div className="ls-grid">
