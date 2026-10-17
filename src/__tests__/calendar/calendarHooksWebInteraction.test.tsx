@@ -11,7 +11,7 @@ vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: () => null }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => null, isLiveServiceMode: () => true }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
-vi.mock('@/lib/supabase/errors', () => ({ toGermanSupabaseError: (error: { message: string }) => error.message }));
+vi.mock('@/lib/supabase/errors', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/lib/supabase/errors')>()), toGermanSupabaseError: (error: { message: string }) => error.message }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 30_000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
 vi.mock('@/lib/calendar/calendarWorkspaceService', () => ({ getWorkspaceCalendarEvents: f.events }));
 vi.mock('@/lib/calendar/employeeMonthPlanningService', () => ({ listPlanningEmployees: f.employees, loadPlanningSnapshot: f.planning }));

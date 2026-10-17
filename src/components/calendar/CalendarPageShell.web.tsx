@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import type { CalendarViewConfig } from '@/types/calendar';
 import { useAuth } from '@/lib/auth/context';
@@ -14,6 +14,7 @@ import { addDays, addWeeks, formatDayHeader, formatMonthYear, formatWeekRange, s
 import { addCalendarMonthsClamped, addCalendarYearsClamped } from '@/lib/calendar/calendarWebViewModel';
 import { calendarAnchor, calendarWorkspaceKey, readCalendarWorkspace, saveCalendarWorkspace, type CalendarWorkspaceState } from '@/lib/calendar/calendarWorkspaceState.web';
 import { ASSIGNMENT_CALENDAR_VISUALS, resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
+import { ASSIGNMENT_CALENDAR_COLORS, calendarEventColorVariables } from '@/lib/calendar/calendarEventColors.web';
 import { resolveCalendarFormWritePermission } from '@/lib/calendar/calendarEventSaveService';
 import { OfficeCalendarSettingsModal } from '@/components/office/calendar/OfficeCalendarSettingsModal.web';
 import { CalendarToolbar } from './CalendarToolbar.web';
@@ -147,7 +148,7 @@ function CalendarWorkspace({ config, onEventPress, showCreateAction = true, show
     {canViewPlanning && (planning.error || planning.employeeError) ? <div className="cw-notice" data-tone="warning" role="alert"><p>{planning.error ?? planning.employeeError}</p><button type="button" className="cw-button" onClick={planning.refresh}>Planung erneut laden</button></div> : null}
     {employeeId && (!calendarReady || !planning.ready) ? <div className="cw-notice"><p>Verfügbarkeiten werden erst nach dem vollständigen Laden aller Termine und Abwesenheiten angezeigt.</p></div> : null}
     {planabilityByDay && visiblePlanningDates.length ? <div className="cw-availability" aria-label="Verfügbarkeiten im Zeitraum">{visiblePlanningDates.map((date) => <div className="cw-availability-day" key={date}><span>{date.slice(8)}.{date.slice(5, 7)}.</span><EmployeePlanabilityBadge value={planabilityByDay[date] ?? dayPlanability(date, monthSlots, planningEvents)} /></div>)}</div> : null}
-    {planningScope ? <div className="cw-legend" aria-label="Einsatzstatus-Legende">{Object.values(ASSIGNMENT_CALENDAR_VISUALS).map((visual) => <span key={visual.state} className="cw-legend-item"><span className="cw-dot" style={{ '--cw-status': visual.color } as CSSProperties} />{visual.legendLabel}</span>)}</div> : null}
+    {planningScope ? <div className="cw-legend" aria-label="Einsatzstatus-Legende">{Object.values(ASSIGNMENT_CALENDAR_VISUALS).map((visual) => <span key={visual.state} className="cw-legend-item" style={calendarEventColorVariables(ASSIGNMENT_CALENDAR_COLORS[visual.state])}><span className="cw-legend-symbol" aria-hidden="true">{visual.symbol}</span>{visual.legendLabel}</span>)}</div> : null}
     <div className="cw-board" aria-busy={loading || refreshing}>
       {refreshError ? <div className="cw-stale">Die angezeigten Daten sind möglicherweise unvollständig. Verfügbarkeit und Planung erst nach erfolgreichem Aktualisieren verwenden.</div> : null}
       {loading && !events.length ? <div className="cw-loading" role="status">Kalender wird geladen…</div> : <>

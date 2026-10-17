@@ -6,7 +6,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 
 export type TenantCalendarSettingsOptions = { scope?: 'office' | 'assist' };
@@ -15,6 +15,15 @@ const storageKey = (tenant: string, scope: string) => `caresuite:web-calendar-se
 export function subscribeTenantCalendarSettings(listener: (settings: TenantCalendarSettings) => void) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
+}
+function settingsError(error: unknown, operation: 'load' | 'save'): string {
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+  if (isSupabaseMissingTableError(error) || code === '42P01') {
+    return operation === 'load'
+      ? 'Die Kalendereinstellungen sind derzeit nicht verfügbar. Bitte erneut laden.'
+      : 'Die Kalendereinstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.';
+  }
+  return toGermanSupabaseError(error);
 }
 function normalizeSettings(tenantId: string, raw: unknown, scope: 'office' | 'assist'): TenantCalendarSettings {
   const base = scope === 'assist' ? buildDefaultAssistCalendarSettings(tenantId) : buildDefaultTenantCalendarSettings(tenantId);
@@ -49,7 +58,7 @@ export async function fetchTenantCalendarSettings(tenantId: string, actorRoleKey
     if (!client) return { ok: false, error: 'Kalendereinstellungen konnten nicht geladen werden. Keine Datenbankverbindung.' };
     const { data, error } = await fromUnknownTable(client, 'tenant_calendar_settings')
       .select('settings, updated_at').eq('tenant_id', tenantId).maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) return { ok: false, error: settingsError(error, 'load') };
     return { ok: true, data: normalizeSettings(tenantId, data?.settings, scope) };
   } catch (cause) {
     return { ok: false, error: cause instanceof Error ? cause.message : 'Kalendereinstellungen konnten nicht geladen werden.' };
@@ -72,7 +81,7 @@ export async function saveTenantCalendarSettings(tenantId: string, form: TenantC
       const { data, error } = await fromUnknownTable(client, 'tenant_calendar_settings')
         .upsert({ tenant_id: tenantId, settings: toTenantCalendarSettingsForm(settings), updated_at: settings.updatedAt }, { onConflict: 'tenant_id' })
         .select('tenant_id, settings, updated_at').single();
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      if (error) return { ok: false, error: settingsError(error, 'save') };
       if (!data || data.tenant_id !== tenantId) return { ok: false, error: 'Die Speicherung der Kalendereinstellungen wurde nicht bestätigt.' };
     }
     // The existing database stores one tenant-wide setting shared by Office and Assist.
