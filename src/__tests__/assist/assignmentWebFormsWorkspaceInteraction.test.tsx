@@ -66,6 +66,18 @@ async function fill(label: string, value: string) {
 }
 
 describe('Web assignment forms use actual controls and preserve write boundaries', () => {
+  it('saves the selected tour day and employee through the actual create form', async () => {
+    await act(async () => root.render(<AssignmentCreateForm visible initialClientId="client" initialAssignmentDate="2026-11-03" initialEmployeeId="employee" onClose={f.close} onCreated={f.saved}/>));
+    await step('Prüfen'); await click('Entwurf speichern');
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.create.mock.calls[0][1]).toMatchObject({ clientId: 'client', assignmentDate: '2026-11-03', employeeId: 'employee', saveAsDraft: true });
+  });
+  it('does not save a preselected employee who is absent from the current permitted options', async () => {
+    await act(async () => root.render(<AssignmentCreateForm visible initialClientId="client" initialAssignmentDate="2026-11-03" initialEmployeeId="foreign-employee" onClose={f.close} onCreated={f.saved}/>));
+    await step('Prüfen'); await click('Entwurf speichern');
+    expect(f.create).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('aus den aktuellen Auswahllisten wählen');
+  });
   it('lets dispatch save a draft with positive assignment permissions while Office master data is read-only', async () => {
     f.roleKey = 'dispatch'; f.readonly = true; await create(); await step('Prüfen'); await click('Entwurf speichern');
     expect(f.create).toHaveBeenCalledOnce();

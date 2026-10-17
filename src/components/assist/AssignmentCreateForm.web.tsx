@@ -24,6 +24,7 @@ import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeList
 import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
 import { createVisitFromWizard } from "@/lib/assist/visitService";
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
+import { validAssistDate } from '@/lib/assist/assistClientsWorkspaceModel.web';
 import { AssignmentClientBillingSummary as ClientBillingProfileSummary } from "./AssignmentBillingBudgetPanel.web";
 import { AssignmentBillingBudgetPanel } from "./AssignmentBillingBudgetPanel.web";
 import {
@@ -54,6 +55,8 @@ import { spacing, typography } from "@/theme";
 type AssignmentCreateFormProps = {
   visible: boolean;
   initialClientId?: string | null;
+  initialAssignmentDate?: string | null;
+  initialEmployeeId?: string | null;
   onClose: () => void;
   onCreated?: (id: string) => void;
 };
@@ -118,6 +121,8 @@ function syncOptionalTaskDrafts(
 export function AssignmentCreateForm({
   visible,
   initialClientId = null,
+  initialAssignmentDate = null,
+  initialEmployeeId = null,
   onClose,
   onCreated,
 }: AssignmentCreateFormProps) {
@@ -135,7 +140,7 @@ export function AssignmentCreateForm({
     reload: reloadOptions,
   } = useAssignmentFormOptions(visible && canManage);
   const canManageRef = useRef(canManage); canManageRef.current = canManage;
-  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visible, initialClientId]);
+  const scope = JSON.stringify([tenantId, profile?.id, profile?.roleKey, visible, initialClientId, initialAssignmentDate, initialEmployeeId]);
   const scopeRef = useRef(scope); scopeRef.current = scope;
   const mounted = useRef(false);
   const submitScope = useRef<string | null>(null);
@@ -184,13 +189,13 @@ export function AssignmentCreateForm({
     setClients([]); setEmployees([]); setServices([]); setListsLoading(false);
     if (!visible || !tenantId) return;
     setSection("basis");
-    const freshForm = { ...EMPTY_VISIT_WIZARD_DATA, assignmentDate: new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()), clientId: initialClientId ?? "" };
+    const freshForm = { ...EMPTY_VISIT_WIZARD_DATA, assignmentDate: validAssistDate(initialAssignmentDate) ? initialAssignmentDate : new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date()), clientId: initialClientId ?? "", employeeId: initialEmployeeId?.trim() ?? "" };
     initialForm.current = JSON.stringify(freshForm); setForm(freshForm);
     setError(null);
     setRemovedTaskKeys(new Set());
     setBudgetAllocation(null);
     setBudgetManualOverride(null);
-  }, [scope, initialClientId, tenantId, visible]);
+  }, [scope, initialClientId, initialAssignmentDate, initialEmployeeId, tenantId, visible]);
 
   useEffect(() => {
     let cancelled = false;
