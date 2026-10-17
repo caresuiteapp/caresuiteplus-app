@@ -25,7 +25,7 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
 const readStatus = (value: string): StatusFilter => ['review', 'recording', 'completed', 'cancelled'].includes(value) ? value as StatusFilter : 'all';
 const readSignal = (value: string): SignalFilter => value === 'live' || value === 'attention' ? value : 'all';
 const readSort = (value: string): Sort => ['oldest', 'employee', 'distance'].includes(value) ? value as Sort : 'newest';
-const sourceValue = (value: string) => value === 'logbook' || value === 'legacy' ? value : undefined;
+const sourceValue = (value: string): AssistMobilityTrip['source'] | undefined => value === 'logbook' || value === 'legacy' ? value : undefined;
 const tripKey = (row: AssistMobilityTrip) => row.source + ':' + row.id;
 const datetime = (value: string | null | undefined) => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) + ' Uhr' : 'Nicht hinterlegt';
 const distance = (value: number | null) => value === null ? 'Nicht erfasst' : value.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' km';
@@ -109,7 +109,7 @@ function Journal({ scope, scopeKey, initialSelectedId, editing, setEditing, edit
   const [month, setMonth] = useState(requestedMonth); const [search, setSearch] = useState(requestedSearch); const [employee, setEmployee] = useState(requestedEmployee);
   const [status, setStatus] = useState<StatusFilter>(requestedStatus); const [view, setView] = useState<'table' | 'cards'>(requestedView);
   const [sort, setSort] = useState<Sort>(requestedSort); const [purpose, setPurpose] = useState(requestedPurpose);
-  const [selectedId, setSelectedId] = useState(requestedTrip); const [selectedSource, setSelectedSource] = useState(requestedSource);
+  const [selectedId, setSelectedId] = useState(requestedTrip); const [selectedSource, setSelectedSource] = useState<AssistMobilityTrip['source'] | undefined>(requestedSource);
   const selectionRef = useRef({ id: selectedId, source: selectedSource });
   selectionRef.current = { id: selectedId, source: selectedSource };
   const [notice, setNotice] = useState(''); const heading = useRef<HTMLHeadingElement>(null);
