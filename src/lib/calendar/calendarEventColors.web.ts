@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
-import { resolveAssignmentCalendarVisual, type AssignmentCalendarState } from './assignmentCalendarStatus';
+import { resolveAssignmentCalendarVisual, type AssignmentCalendarState } from './assignmentCalendarPresentation.web';
 
 export type CalendarEventColors = { accent: string; background: string; hover: string; border: string };
 

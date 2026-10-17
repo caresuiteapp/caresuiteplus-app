@@ -39,12 +39,33 @@ beforeEach(() => {
   document.body.append(host);
   root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); });
 const render = async (element: React.ReactNode) => { await act(async () => root.render(element)); };
 const click = async (element: Element) => { await act(async () => (element as HTMLElement).click()); };
 const buttonWith = (text: string) => [...host.querySelectorAll('button')].find(button => (button.textContent ?? '').includes(text));
 
 describe('Web calendar view interactions', () => {
+  it.each(['month', 'week', 'day', 'agenda', 'list'] as const)('shows matching status labels and colors for future tasks and past follow-up in the %s view', async view => {
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(anchor);
+    const events = [
+      event({ id: 'future', type: 'einsatz', status: 'bestaetigt', isIncomplete: true, start: instant(19, 15), end: instant(19, 16) }),
+      event({ id: 'follow-up', type: 'einsatz', status: 'bestaetigt', isIncomplete: true, start: instant(19, 8), end: instant(19, 9) }),
+    ];
+    const shared = { events, onEventPress: vi.fn() };
+    await render(view === 'month' ? <OfficeCalendarMonthView {...shared} anchor={anchor} weekStartDay={1} maxCollapsedEvents={3} />
+      : view === 'week' ? <OfficeCalendarWeekView {...shared} anchor={anchor} weekStartDay={1} weekFullDay dayViewStartHour={6} />
+      : view === 'day' ? <OfficeCalendarDayView {...shared} anchor={anchor} dayViewStartHour={6} />
+      : view === 'agenda' ? <CalendarAgendaList {...shared} />
+      : <CalendarListView {...shared} />);
+    for (const [id, label, background] of [['future', 'Geplant / bestätigt', '#D9E7FF'], ['follow-up', 'Nacharbeit offen', '#FFE3BA']]) {
+      const chip = host.querySelector(`[data-calendar-event-id="${id}"]`) as HTMLElement;
+      expect(chip).toBeTruthy();
+      expect(chip.querySelector('.cs-calendar-event-status')?.textContent).toContain(label);
+      expect(chip.getAttribute('aria-label')).toContain(label);
+      expect(chip.style.getPropertyValue('--event-background')).toBe(background);
+    }
+  });
+
   it.each(['month', 'week', 'day', 'agenda', 'list'] as const)('opens the selected event once in the %s view', async view => {
     const selected = event();
     const onEventPress = vi.fn();

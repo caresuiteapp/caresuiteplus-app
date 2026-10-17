@@ -11,6 +11,7 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 const groups = {
   'Web monitoring, scoped state and map interaction': [
     'assist/assistLiveStatusScreenWeb.test.tsx',
+    'assist/assistLiveFilterSelectWeb.test.tsx',
     'assist/assistLiveWorkspacePresentation.test.ts',
     'assist/assistLiveWorkspaceData.test.ts',
     'assist/assistLiveWorkspaceHook.test.tsx',

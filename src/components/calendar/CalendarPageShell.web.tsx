@@ -13,7 +13,7 @@ import { dayPlanability, datesInMonth, monthKey, filterEmployeeEvents, planningA
 import { addDays, addWeeks, formatDayHeader, formatMonthYear, formatWeekRange, startOfWeek, toDateKey, getMonthGridDays } from '@/lib/office/calendarDateUtils';
 import { addCalendarMonthsClamped, addCalendarYearsClamped } from '@/lib/calendar/calendarWebViewModel';
 import { calendarAnchor, calendarWorkspaceKey, readCalendarWorkspace, saveCalendarWorkspace, type CalendarWorkspaceState } from '@/lib/calendar/calendarWorkspaceState.web';
-import { ASSIGNMENT_CALENDAR_VISUALS, resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
+import { ASSIGNMENT_CALENDAR_VISUALS, resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarPresentation.web';
 import { ASSIGNMENT_CALENDAR_COLORS, calendarEventColorVariables } from '@/lib/calendar/calendarEventColors.web';
 import { resolveCalendarFormWritePermission } from '@/lib/calendar/calendarEventSaveService';
 import { OfficeCalendarSettingsModal } from '@/components/office/calendar/OfficeCalendarSettingsModal.web';
