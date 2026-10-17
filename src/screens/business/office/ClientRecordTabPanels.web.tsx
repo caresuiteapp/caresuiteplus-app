@@ -8,6 +8,7 @@ import { ClientRecordContractsPanel } from '@/components/office/ClientRecordCont
 import { usePageTab } from '@/hooks/usePageTab';
 import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations.web';
 import type { DocumentWorkflow } from '@/lib/documents/documentRecommendations';
+import { ClientCareGradeBudgetsPanel } from '@/components/office/ClientCareGradeBudgetsPanel.web';
 export {
   ClientRecordConsentsPanel, ClientRecordMedicationPanel, ClientRecordVitalsPanel,
   ClientRecordTimelinePanel, ClientRecordModulesPanel, ClientRecordPortalPanel,
@@ -24,7 +25,13 @@ const workflows: Record<string, DocumentWorkflow> = {
 };
 
 /** Only persisted client identifiers enter suggestions; existing record panels keep their behavior. */
-export function ClientRecordTabContent(props: Parameters<typeof RecordTabContent>[0]) {
+export function ClientRecordTabContent(props: Parameters<typeof RecordTabContent>[0] & {
+  onBudgetDirtyChange?: (dirty: boolean) => void;
+  onBudgetBusyChange?: (busy: boolean) => void;
+}) {
+  if (['pflegegrad_budgets', 'pflegegrad_anspruch', 'leistungen_abrechnung', 'budget', 'budgetverlauf', 'warnungen'].includes(props.tab)) {
+    return <ClientCareGradeBudgetsPanel clientId={props.clientId} clientName={props.fullClient ? `${props.fullClient.firstName} ${props.fullClient.lastName}`.trim() : undefined} onRecordRefresh={props.onRecordRefresh} onDirtyChange={props.onBudgetDirtyChange} onBusyChange={props.onBudgetBusyChange} />;
+  }
   if (props.tab === 'mehr') return <ClientRecordAdditionalPanels {...props} />;
   const workflow = workflows[props.tab];
   return <>
