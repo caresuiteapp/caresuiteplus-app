@@ -11,6 +11,7 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 const groups = {
   'Web views, date restoration and profile planning interactions': [
     'calendar/assistCalendarScreenWeb.test.tsx',
+    'calendar/calendarShellIdentityWeb.test.tsx',
     'calendar/calendarShellWebInteraction.test.tsx',
     'calendar/calendarViewsWebInteraction.test.tsx',
     'calendar/calendarWebViewModel.test.ts',
