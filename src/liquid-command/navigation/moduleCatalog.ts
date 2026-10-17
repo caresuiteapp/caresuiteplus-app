@@ -185,6 +185,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: Platform.OS === 'web' ? `${WEB_DESKTOP_ROUTE}?area=decisions` : '/?area=decisions' },
   ],
   office: [
+    ...(Platform.OS === 'web' ? [{ id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', pageType: 'work-list' as const, route: '/office/notizen' }] : []),
     { id: 'company', label: 'Unternehmen', description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Stammdaten, Standorte und Organisation', pageType: 'record', route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard' },
     { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/business/office/clients' },
     { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/business/office/employees' },

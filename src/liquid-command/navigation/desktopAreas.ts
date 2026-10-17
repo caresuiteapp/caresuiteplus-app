@@ -31,3 +31,9 @@ export function introduceOfficeDocumentCatalogWidget(ids: readonly string[], ava
   if (introduced || !availableIds.includes(catalogId) || ids.includes(catalogId)) return [...ids];
   return [catalogId, ...ids];
 }
+
+/** Add Notes once at the end, preserving every saved placement and an empty desktop. */
+export function introduceOfficeNotesWidget(ids: readonly string[], availableIds: readonly string[], introduced: boolean): string[] {
+  if (introduced || ids.length === 0 || !availableIds.includes('notes') || ids.includes('notes')) return [...ids];
+  return [...ids, 'notes'];
+}
