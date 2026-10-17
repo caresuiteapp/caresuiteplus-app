@@ -1,0 +1,170 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
+import type { CalendarViewConfig } from '@/types/calendar';
+import { useAuth } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useEmployeeMonthPlanning } from '@/hooks/useEmployeeMonthPlanning.web';
+import { useCalendarEvents } from '@/hooks/useCalendarEvents.web';
+import { useTenantCalendarSettings } from '@/hooks/useTenantCalendarSettings.web';
+import { EmployeeMonthPlanningModal } from './EmployeeMonthPlanningModal.web';
+import { EmployeePlanabilityBadge } from './EmployeePlanabilityBadge';
+import { dayPlanability, datesInMonth, monthKey, filterEmployeeEvents, planningAbsenceEvents } from '@/lib/calendar/employeeMonthPlanning';
+import { addDays, addWeeks, formatDayHeader, formatMonthYear, formatWeekRange, startOfWeek, toDateKey, getMonthGridDays } from '@/lib/office/calendarDateUtils';
+import { addCalendarMonthsClamped, addCalendarYearsClamped } from '@/lib/calendar/calendarWebViewModel';
+import { calendarAnchor, calendarWorkspaceKey, readCalendarWorkspace, saveCalendarWorkspace, type CalendarWorkspaceState } from '@/lib/calendar/calendarWorkspaceState.web';
+import { ASSIGNMENT_CALENDAR_VISUALS, resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
+import { resolveCalendarFormWritePermission } from '@/lib/calendar/calendarEventSaveService';
+import { OfficeCalendarSettingsModal } from '@/components/office/calendar/OfficeCalendarSettingsModal.web';
+import { CalendarToolbar } from './CalendarToolbar.web';
+import { CalendarEventGrid } from './CalendarEventGrid.web';
+import { CalendarEventCreateModal } from './CalendarEventCreateModal.web';
+import { CalendarWorkspaceIcon, CalendarWorkspaceStyles } from './CalendarWorkspaceStyles.web';
+import { OfficeAssignmentProfileCalendarPlanner, type AssignmentProfileDropHandler } from './OfficeAssignmentProfileCalendarPlanner.web';
+
+export type CalendarPageShellProps = {
+  config: CalendarViewConfig; onEventPress?: (event: CalendarEvent) => void;
+  showCreateAction?: boolean; showSettings?: boolean;
+};
+export function CalendarPageShell(props: CalendarPageShellProps) {
+  const tenantId = useServiceTenantId();
+  const { profile, user } = useAuth();
+  const windowId = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('csWindow') ?? '';
+  const storageKey = calendarWorkspaceKey(tenantId ?? '', user?.id ?? profile?.id ?? '', props.config.moduleKey, windowId);
+  return <CalendarWorkspace key={`${storageKey}:${profile?.roleKey ?? ''}`} {...props} storageKey={storageKey} />;
+}
+
+function CalendarWorkspace({ config, onEventPress, showCreateAction = true, showSettings = true, storageKey }: CalendarPageShellProps & { storageKey: string }) {
+  const tenantId = useServiceTenantId();
+  const { can, isReadOnly } = usePermissions();
+  const planningScope = ['all', 'office', 'assist'].includes(config.moduleKey);
+  const canManagePlanning = !isReadOnly && (can('assist.assignments.manage') || can('office.employees.absences.manage'));
+  const canViewPlanning = planningScope && (canManagePlanning || can('office.employees.absences.view'));
+  const canSettings = showSettings && !isReadOnly && can('business.tenant.manage');
+  const writePermission = resolveCalendarFormWritePermission({ sourceContext: 'calendar', moduleKey: config.moduleKey, sourceType: 'custom_event' });
+  const canCreate = showCreateAction && !isReadOnly && !!writePermission && can(writePermission);
+  const settingsHook = useTenantCalendarSettings(config.moduleKey === 'assist' ? 'assist' : 'office');
+  const { settings, form } = settingsHook;
+  const [initial] = useState(() => readCalendarWorkspace(storageKey,
+    typeof window !== 'undefined' && window.innerWidth < 600 && (!config.defaultView || config.defaultView === 'month') ? 'agenda' : config.defaultView ?? 'month'));
+  const [state, setState] = useState(initial.state);
+  const interacted = useRef(false);
+  const defaultApplied = useRef(initial.restored);
+  const patch = useCallback((next: Partial<CalendarWorkspaceState>) => { interacted.current = true; setState((previous) => ({ ...previous, ...next })); }, []);
+  useEffect(() => { saveCalendarWorkspace(storageKey, state); }, [storageKey, state]);
+  useEffect(() => {
+    if (settingsHook.loading || defaultApplied.current || !settings) return;
+    defaultApplied.current = true;
+    if (!interacted.current) setState((previous) => ({ ...previous,
+      view: typeof window !== 'undefined' && window.innerWidth < 600 && settings.defaultView === 'month' ? 'agenda' : settings.defaultView }));
+  }, [settingsHook.loading, settings]);
+  const anchor = useMemo(() => calendarAnchor(state.anchor) ?? new Date(), [state.anchor]);
+  const viewMode = state.view;
+  const employeeId = canViewPlanning ? state.employeeId : '';
+  const [planningOpen, setPlanningOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const weekStartDay = settings?.weekStartDay ?? 1;
+  const visibleRange = useMemo(() => {
+    let start: Date; let end: Date;
+    if (viewMode === 'day') { start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate()); end = addDays(start, 1); }
+    else if (viewMode === 'week' || viewMode === 'agenda') { start = startOfWeek(anchor, weekStartDay); end = addDays(start, 7); }
+    else if (viewMode === 'year') { start = new Date(anchor.getFullYear(), 0, 1); end = new Date(anchor.getFullYear() + 1, 0, 1); }
+    else if (viewMode === 'month') { const days = getMonthGridDays(anchor, weekStartDay); start = days[0].date; end = addDays(days[days.length - 1].date, 1); }
+    else { start = new Date(anchor.getFullYear(), anchor.getMonth(), 1); end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1); }
+    return { start, end };
+  }, [anchor, viewMode, weekStartDay]);
+  const fetchRange = useMemo(() => ({
+    start: new Date(Math.min(+visibleRange.start, +new Date(anchor.getFullYear(), anchor.getMonth(), 1))),
+    end: new Date(Math.max(+visibleRange.end, +new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1)) - 1),
+  }), [visibleRange, anchor]);
+  const calendar = useCalendarEvents(fetchRange.start.toISOString(), fetchRange.end.toISOString(), config);
+  const { events, allEvents, calendarReady, loading, refreshing, error, refreshError, refresh, refreshWithResult } = calendar;
+  const selectedMonth = monthKey(anchor);
+  const planning = useEmployeeMonthPlanning(tenantId, employeeId, monthKey(fetchRange.start), monthKey(fetchRange.end), canViewPlanning);
+  const employeeName = planning.employees.find((employee) => employee.id === employeeId)?.name ?? '';
+  const selectedPlan = planning.plans.find((plan) => plan.employee_id === employeeId && plan.month === `${selectedMonth}-01`);
+  const monthSlots = planning.plans.filter((plan) => plan.employee_id === employeeId).flatMap((plan) => plan.slots);
+  const planningEvents = [...filterEmployeeEvents(allEvents, employeeId), ...planning.absences];
+  const planabilityByDay = canViewPlanning && employeeId && planning.ready && calendarReady
+    ? Object.fromEntries([...new Set(planning.plans.filter((plan) => plan.employee_id === employeeId).flatMap((plan) => datesInMonth(plan.month.slice(0, 7))).concat(datesInMonth(selectedMonth)))].map((date) => [date, dayPlanability(date, monthSlots, planningEvents)]))
+    : undefined;
+  const displayEvents = useMemo(() => {
+    const blocked = canViewPlanning ? planning.plans.flatMap((plan) => planningAbsenceEvents(plan, planning.employees.find((employee) => employee.id === plan.employee_id)?.name ?? 'Mitarbeitende')) : [];
+    const combined = filterEmployeeEvents([...events, ...blocked.filter((event) => !settings || settings.visibleTypes[event.type])], employeeId);
+    const query = state.query.trim().toLocaleLowerCase('de-DE');
+    const startKey = toDateKey(visibleRange.start), lastKey = toDateKey(addDays(visibleRange.end, -1));
+    return [...new Map(combined.map((event) => [event.id, event])).values()].filter((event) => {
+      const starts = +new Date(event.start), ends = +new Date(event.end);
+      const within = event.allDay ? event.start.slice(0, 10) <= lastKey && event.end.slice(0, 10) >= startKey
+        : starts < +visibleRange.end && (ends > +visibleRange.start || ends === starts && starts >= +visibleRange.start);
+      if (!within) return false;
+      if (state.status !== 'all' && resolveAssignmentCalendarVisual(event)?.state !== state.status) return false;
+      return !query || [event.title, event.clientName, event.employeeName, event.serviceTitle].filter(Boolean).join(' ').toLocaleLowerCase('de-DE').includes(query);
+    });
+  }, [events, planning.plans, planning.employees, employeeId, canViewPlanning, state.query, state.status, visibleRange, settings]);
+  const title = viewMode === 'day' ? formatDayHeader(anchor) : viewMode === 'week' || viewMode === 'agenda' ? formatWeekRange(anchor, weekStartDay)
+    : viewMode === 'year' ? String(anchor.getFullYear()) : formatMonthYear(anchor);
+  const navigate = (amount: number) => {
+    const next = viewMode === 'day' ? addDays(anchor, amount) : viewMode === 'week' || viewMode === 'agenda' ? addWeeks(anchor, amount)
+      : viewMode === 'year' ? addCalendarYearsClamped(anchor, amount) : addCalendarMonthsClamped(anchor, amount);
+    if (calendarAnchor(toDateKey(next))) patch({ anchor: toDateKey(next) });
+  };
+  const reload = () => { planning.refresh(); void refresh(); };
+  const handleEventPress = (event: CalendarEvent) => {
+    if (event.sourceType === 'employee_month_plan' && canManagePlanning && event.employeeId) {
+      patch({ employeeId: event.employeeId, anchor: `${(event.sourceId ?? event.start).slice(0, 7)}-15` }); setPlanningOpen(true);
+    } else onEventPress?.(event);
+  };
+  const filtered = Boolean(employeeId || state.query || state.status !== 'all');
+  const visiblePlanningDates = viewMode === 'day' ? [toDateKey(anchor)] : viewMode === 'week' || viewMode === 'agenda'
+    ? Array.from({ length: 7 }, (_, index) => toDateKey(addDays(visibleRange.start, index))) : [];
+  const renderCalendar = ({ selectedProfileId, onProfileDrop }: { selectedProfileId: string | null; onProfileDrop?: AssignmentProfileDropHandler }) => <div className="cw-workspace">
+    <CalendarWorkspaceStyles />
+    <CalendarToolbar viewMode={viewMode} onViewModeChange={(view) => patch({ view })} title={title}
+      onPrev={() => navigate(-1)} onNext={() => navigate(1)} onToday={() => patch({ anchor: toDateKey(new Date()) })}
+      anchor={state.anchor} onAnchorChange={(value) => { if (calendarAnchor(value)) patch({ anchor: value }); }}
+      onOpenSettings={canSettings ? () => setSettingsOpen(true) : undefined} onCreate={canCreate ? () => setCreateOpen(true) : undefined} />
+    <div className="cw-controls">
+      <label className="cw-field cw-search"><span>Suche</span><input type="search" aria-label="Kalender durchsuchen" placeholder="Termin, Klient oder Mitarbeitende suchen" value={state.query} maxLength={200} onChange={(event) => patch({ query: event.target.value })} /></label>
+      {canViewPlanning ? <label className="cw-field"><span>Mitarbeitende</span><select aria-label="Kalender für Mitarbeitende" value={employeeId} onChange={(event) => { patch({ employeeId: event.target.value }); setPlanningOpen(false); }}>
+        <option value="">Alle Mitarbeitenden</option>{employeeId && !planning.employees.some((employee) => employee.id === employeeId) ? <option value={employeeId}>Ausgewählte Person {planning.loading ? 'wird geladen…' : '(nicht verfügbar)'}</option> : null}
+        {planning.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+      </select></label> : null}
+      {planningScope ? <label className="cw-field"><span>Einsatzstatus</span><select aria-label="Einsatzstatus filtern" value={state.status} onChange={(event) => patch({ status: event.target.value as CalendarWorkspaceState['status'] })}>
+        <option value="all">Alle Ereignisse</option>{Object.values(ASSIGNMENT_CALENDAR_VISUALS).map((visual) => <option key={visual.state} value={visual.state}>{visual.legendLabel}</option>)}
+      </select></label> : null}
+      <div className="cw-controls-actions">
+        {canManagePlanning && canViewPlanning && employeeId ? <button type="button" className="cw-button" disabled={!planning.ready || !calendarReady || planning.loading || !employeeName} onClick={() => setPlanningOpen(true)}><CalendarWorkspaceIcon name="people" />Verfügbarkeit</button> : null}
+        <button type="button" className="cw-button" disabled={loading || refreshing || planning.loading} onClick={reload}><span className={loading || refreshing ? 'cw-spin' : undefined}><CalendarWorkspaceIcon name="refresh" /></span>Aktualisieren</button>
+      </div>
+    </div>
+    <div className="cw-filter-footer"><p role="status"><span className="cw-count">{displayEvents.length}</span> {displayEvents.length === 1 ? 'Eintrag' : 'Einträge'} im Zeitraum{employeeName ? ` · ${employeeName}` : ''}{refreshing ? ' · Wird aktualisiert…' : ''}</p>
+      {filtered ? <button type="button" className="cw-button cw-button--quiet" onClick={() => patch({ employeeId: '', query: '', status: 'all' })}>Filter zurücksetzen</button> : null}
+    </div>
+    {error || refreshError ? <div className="cw-notice" data-tone="error" role="alert"><p>{error ?? refreshError}</p><button type="button" className="cw-button" onClick={reload}>Erneut laden</button></div> : null}
+    {settingsHook.error && !settingsOpen ? <div className="cw-notice" data-tone="warning" role="alert"><p>{settingsHook.error}</p><button type="button" className="cw-button" onClick={() => void settingsHook.refresh()}>Einstellungen erneut laden</button></div> : null}
+    {canViewPlanning && (planning.error || planning.employeeError) ? <div className="cw-notice" data-tone="warning" role="alert"><p>{planning.error ?? planning.employeeError}</p><button type="button" className="cw-button" onClick={planning.refresh}>Planung erneut laden</button></div> : null}
+    {employeeId && (!calendarReady || !planning.ready) ? <div className="cw-notice"><p>Verfügbarkeiten werden erst nach dem vollständigen Laden aller Termine und Abwesenheiten angezeigt.</p></div> : null}
+    {planabilityByDay && visiblePlanningDates.length ? <div className="cw-availability" aria-label="Verfügbarkeiten im Zeitraum">{visiblePlanningDates.map((date) => <div className="cw-availability-day" key={date}><span>{date.slice(8)}.{date.slice(5, 7)}.</span><EmployeePlanabilityBadge value={planabilityByDay[date] ?? dayPlanability(date, monthSlots, planningEvents)} /></div>)}</div> : null}
+    {planningScope ? <div className="cw-legend" aria-label="Einsatzstatus-Legende">{Object.values(ASSIGNMENT_CALENDAR_VISUALS).map((visual) => <span key={visual.state} className="cw-legend-item"><span className="cw-dot" style={{ '--cw-status': visual.color } as CSSProperties} />{visual.legendLabel}</span>)}</div> : null}
+    <div className="cw-board" aria-busy={loading || refreshing}>
+      {refreshError ? <div className="cw-stale">Die angezeigten Daten sind möglicherweise unvollständig. Verfügbarkeit und Planung erst nach erfolgreichem Aktualisieren verwenden.</div> : null}
+      {loading && !events.length ? <div className="cw-loading" role="status">Kalender wird geladen…</div> : <>
+        {!displayEvents.length && !error && !['agenda', 'list'].includes(viewMode) ? <div className="cw-empty"><h3>{filtered ? 'Keine passenden Einträge' : 'Noch keine Einträge'}</h3><p>{filtered ? 'Passe die Suche oder die Filter an.' : config.emptyStateMessage ?? 'Für diesen Zeitraum sind keine Kalendereinträge vorhanden.'}</p></div> : null}
+        <div className="cw-board-content"><CalendarEventGrid viewMode={viewMode} anchor={anchor} events={displayEvents} rangeStart={visibleRange.start} rangeEnd={visibleRange.end}
+          planabilityByDay={planabilityByDay} weekStartDay={weekStartDay} maxCollapsedEvents={settings?.maxCollapsedEvents ?? 3}
+          dayViewStartHour={settings?.dayViewStartHour ?? 6} weekFullDay={settings?.weekFullDay ?? true} onEventPress={handleEventPress}
+          onSelectMonth={(month) => patch({ anchor: toDateKey(new Date(anchor.getFullYear(), month, 1)), view: 'month' })}
+          onSelectDate={(date) => patch({ anchor: toDateKey(date), view: 'day' })}
+          selectedAssignmentProfileId={selectedProfileId} onAssignmentProfileDrop={onProfileDrop} /></div>
+      </>}
+    </div>
+  </div>;
+  return <>
+    {planningScope ? <OfficeAssignmentProfileCalendarPlanner employeeIdFilter={employeeId} readOnly={isReadOnly || !can('assist.assignments.manage')} dataReady={calendarReady && (!canViewPlanning || planning.ready)} onScheduled={() => { planning.refresh(); return refreshWithResult(); }}>{renderCalendar}</OfficeAssignmentProfileCalendarPlanner> : renderCalendar({ selectedProfileId: null })}
+    {planningOpen && employeeId && tenantId && planning.ready && calendarReady && canManagePlanning && canViewPlanning ? <EmployeeMonthPlanningModal key={`${tenantId}:${employeeId}:${selectedMonth}`} tenantId={tenantId} employeeId={employeeId} employeeName={employeeName} month={selectedMonth} initial={selectedPlan} events={planningEvents} onClose={() => setPlanningOpen(false)} onSaved={() => setPlanningOpen(false)} /> : null}
+    {canSettings ? <OfficeCalendarSettingsModal visible={settingsOpen} initial={form} saving={settingsHook.saving} error={settingsHook.error} disabled={settingsHook.loading} onClose={() => setSettingsOpen(false)} onSave={async (next) => { const result = await settingsHook.save(next); if (!result.ok) throw new Error(result.error); patch({ view: next.defaultView }); setSettingsOpen(false); }} /> : null}
+    {canCreate ? <CalendarEventCreateModal visible={createOpen} sourceContext="calendar" calendarScope={config.calendarScope} moduleKey={config.moduleKey} accentColor="#1675d8" onClose={() => setCreateOpen(false)} onCreated={() => setCreateOpen(false)} /> : null}
+  </>;
+}
