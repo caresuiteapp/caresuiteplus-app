@@ -1,18 +1,17 @@
-import type { CSSProperties } from 'react';
 import { useRouter } from 'expo-router';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { CalendarEventLabel, calendarEventAccessibleLabel } from '@/components/calendar/CalendarEventLabel.web';
 import { isCancelledCalendarEvent } from '@/lib/calendar/calendarEventDisplay';
-import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
+import { calendarEventColorVariables, resolveCalendarEventColors } from '@/lib/calendar/calendarEventColors.web';
 
 type Props = { event: CalendarEvent; compact?: boolean; showTime?: boolean; onEventPress?: (event: CalendarEvent) => void };
 export function OfficeCalendarEventChip({ event, compact = false, showTime = true, onEventPress }: Props) {
   const router = useRouter();
-  const visual = resolveAssignmentCalendarVisual(event);
+  const colors = resolveCalendarEventColors(event);
   const label = calendarEventAccessibleLabel(event);
   const props = {
     className: 'cs-calendar-event', 'data-calendar-event-id': event.id, 'data-compact': compact, 'data-cancelled': isCancelledCalendarEvent(event),
-    style: { '--event-accent': visual?.color ?? event.color } as CSSProperties,
+    style: calendarEventColorVariables(colors),
     title: label, 'aria-label': label,
   };
   const content = <CalendarEventLabel event={event} variant={compact ? 'compact' : 'stacked'} showTime={showTime} showService={!compact} />;

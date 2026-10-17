@@ -5,7 +5,10 @@ vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: f.guard, isLiveServiceMode: () => f.live }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => f.client }));
-vi.mock('@/lib/supabase/errors', () => ({ toGermanSupabaseError: (error: { message: string }) => error.message }));
+vi.mock('@/lib/supabase/errors', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/lib/supabase/errors')>(),
+  toGermanSupabaseError: (error: { message: string }) => error.message,
+}));
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => {
   let payload: unknown;
   const chain = { select: () => chain, eq: () => chain, maybeSingle: () => f.read(), upsert: (value: unknown) => { payload = value; return chain; }, single: () => f.write(payload) };
@@ -24,6 +27,21 @@ describe('Web calendar settings persistence', () => {
     const listener = vi.fn(), unsubscribe = subscribeTenantCalendarSettings(listener);
     f.write.mockResolvedValue({ data: null, error: { message: 'RLS verweigert' } });
     expect(await saveTenantCalendarSettings('tenant-a', form(), 'business_admin')).toEqual({ ok: false, error: 'RLS verweigert' });
+    expect(listener).not.toHaveBeenCalled(); expect(f.storageWrite).not.toHaveBeenCalled(); unsubscribe();
+  });
+  it.each(['PGRST205', '42P01'])('reports an unavailable calendar settings table while loading (%s)', async (code) => {
+    f.read.mockResolvedValue({ data: null, error: { code, message: 'Missing tenant_calendar_settings' } });
+    const result = await fetchTenantCalendarSettings('tenant-a', 'business_admin');
+    expect(result).toEqual({ ok: false, error: 'Die Kalendereinstellungen sind derzeit nicht verfügbar. Bitte erneut laden.' });
+    expect(f.write).not.toHaveBeenCalled();
+    expect(f.storageRead).not.toHaveBeenCalled();
+  });
+  it('does not claim settings were saved when the central settings table is unavailable', async () => {
+    const listener = vi.fn(), unsubscribe = subscribeTenantCalendarSettings(listener);
+    f.write.mockResolvedValue({ data: null, error: { code: 'PGRST205', message: 'Missing tenant_calendar_settings' } });
+    expect(await saveTenantCalendarSettings('tenant-a', form(), 'business_admin')).toEqual({
+      ok: false, error: 'Die Kalendereinstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.',
+    });
     expect(listener).not.toHaveBeenCalled(); expect(f.storageWrite).not.toHaveBeenCalled(); unsubscribe();
   });
   it('requires a returned row from the intended tenant', async () => {
