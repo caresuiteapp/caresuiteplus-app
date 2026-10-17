@@ -63,7 +63,7 @@ const person = (id: string, firstName: string, lastName: string, changes: Partia
   id, firstName, lastName, name: firstName + ' ' + lastName, clientNumber: 'K-' + id,
   dateOfBirth: '1950-05-02', careLevel: 'pg2', careLevelLabel: 'Pflegegrad 2',
   costCarrier: 'Techniker Krankenkasse', insuranceNumber: 'A123456789', selfPay: false,
-  phone: '02323 123456', mobile: '+49 171 1234567', email: 'anna@example.test',
+  phone: '02323 123456', mobile: '+49 171 1234567', email: firstName.toLocaleLowerCase('de-DE') + '@example.test',
   street: 'Beispielstraße 7', postalCode: '44623', city: 'Herne', address: 'Beispielstraße 7, 44623 Herne',
   assignmentId: 'assignment-' + id, assignedAt: '2026-01-01T10:00:00Z',
   primaryEmployeeId: 'employee-primary', primaryEmployeeName: 'Anne Adler', primaryEmployeeAvailable: true,
@@ -194,6 +194,7 @@ describe('Assist roster search, filters and navigation', () => {
       ['Anne Adler', ['Anna Müller', 'Ben Schuster', 'Clara Ziegler']],
       ['A123456789', ['Anna Müller', 'Ben Schuster', 'Clara Ziegler']],
       ['Techniker Bochum', ['Ben Schuster']],
+      ['ben@example.test', ['Ben Schuster']],
     ] as [string, string[]][]) { await search(query); expect(names()).toEqual(expected); }
     await search('keine passende Person'); expect(names()).toEqual([]); expect(host.textContent).toContain('Keine passenden Klient:innen');
     await click(button('Filter zurücksetzen')); expect(names()).toHaveLength(3);
