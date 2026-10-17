@@ -447,6 +447,7 @@
   "/office/messages/compose",
   "/office/messages/settings",
   "/office/messages/templates",
+  "/office/notizen",
   "/office/portal-preview",
   "/office/qm",
   "/office/qm/ai-assistant",
