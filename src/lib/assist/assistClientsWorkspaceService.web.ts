@@ -10,15 +10,19 @@ import { activeAssistAssignments, addAssistDays, assistBerlinTimestamp, assistTe
 export type { AssistWorkspaceClient, AssistWorkspaceVisit, AssistClientsWorkspaceSnapshot } from './assistClientsWorkspaceModel.web';
 
 type ReadResult = { data: AssistWorkspaceRow[] | null; error: unknown };
+type RawReadResult = { data: unknown; error: unknown };
 const PAGE_SIZE = 500;
 const PERSON_COLUMNS = 'id,tenant_id,client_number,first_name,last_name,full_name,date_of_birth,care_level,status,phone,mobile,email,street,house_number,postal_code,city,cost_bearer,insurance_name,insurance_number,billing_party,deleted_at';
 const VISIT_COLUMNS = 'id,tenant_id,client_id,employee_id,legacy_assignment_id,title,service_name,assignment_date,planned_start_at,planned_end_at,actual_start_at,actual_end_at,finished_at,planning_status,execution_status,canonical_status,recurrence_json,updated_at,on_the_way_at,arrived_at,documentation_status,proof_status';
-async function readPages(makePage: (from: number, to: number) => PromiseLike<ReadResult>): Promise<ReadResult> {
+function isWorkspaceRows(value: unknown): value is AssistWorkspaceRow[] {
+  return Array.isArray(value) && value.every(row => row !== null && typeof row === 'object' && !Array.isArray(row));
+}
+async function readPages(makePage: (from: number, to: number) => PromiseLike<RawReadResult>): Promise<ReadResult> {
   const data: AssistWorkspaceRow[] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const page = await makePage(offset, offset + PAGE_SIZE - 1);
     if (page.error) return { data: null, error: page.error };
-    if (!Array.isArray(page.data)) return { data: null, error: { message: 'Die Datenantwort ist unvollständig.' } };
+    if (!isWorkspaceRows(page.data)) return { data: null, error: { message: 'Die Datenantwort ist unvollständig.' } };
     data.push(...page.data);
     if (page.data.length < PAGE_SIZE) return { data, error: null };
   }
@@ -28,7 +32,7 @@ function chunks(ids: string[]): string[][] {
   for (let index = 0; index < ids.length; index += 100) result.push(ids.slice(index, index + 100));
   return result;
 }
-async function readChunks(ids: string[], makePage: (ids: string[], from: number, to: number) => PromiseLike<ReadResult>): Promise<ReadResult> {
+async function readChunks(ids: string[], makePage: (ids: string[], from: number, to: number) => PromiseLike<RawReadResult>): Promise<ReadResult> {
   const data: AssistWorkspaceRow[] = [];
   for (const group of chunks([...new Set(ids)])) {
     const result = await readPages((from, to) => makePage(group, from, to));

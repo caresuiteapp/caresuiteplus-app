@@ -201,6 +201,19 @@ describe('scoped, paginated read-only Web service', () => {
     state.resolve.mockImplementation((call: Call) => call.table === 'client_insurance_profiles' ? { data: null, error: { message: 'offline' } } : original(call));
     expect((await load()).ok).toBe(false);
   });
+  it('rejects malformed database rows instead of treating them as an empty roster', async () => {
+    for (const data of [null, {}, ['invalid row'], [null], [[]]]) {
+      state.resolve.mockResolvedValue({ data, error: null });
+      const result = await load();
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toContain('Assist-Zuordnungen konnten nicht geladen werden');
+    }
+  });
+  it('marks malformed planning rows unavailable while retaining valid client records', async () => {
+    const original = state.resolve.getMockImplementation()!;
+    state.resolve.mockImplementation((call: Call) => call.table === 'assist_visits' ? { data: ['invalid row'], error: null } : original(call));
+    expect(await load()).toMatchObject({ ok: true, data: { visitsAvailable: false, clients: [{ id: clientId, planningStatus: 'unknown', sevenDayVisitCount: null }] } });
+  });
   it('keeps client records when visit or execution reads fail but marks all planning unknown', async () => {
     const original = state.resolve.getMockImplementation()!;
     state.resolve.mockImplementation((call: Call) => call.table === 'assist_visit_execution_state' ? { data: null, error: { message: 'offline' } } : original(call));
