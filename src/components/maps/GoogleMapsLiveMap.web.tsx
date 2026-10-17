@@ -38,6 +38,9 @@ export type GoogleMapsLiveMapProps = {
   demoMode?: boolean;
   lastUpdatedLabel?: string;
   tenantId?: string | null;
+  appearance?: 'default' | 'light';
+  showMeta?: boolean;
+  showControls?: boolean;
   /** Optional refresh when map visible (e.g. refetch live positions). */
   onVisiblePoll?: () => void;
 };
@@ -99,6 +102,9 @@ function GoogleMapsLiveMapInner({
   lastUpdatedLabel = 'Letzte Aktualisierung',
   tenantId = null,
   onVisiblePoll,
+  appearance = 'default',
+  showMeta = true,
+  showControls = false,
 }: GoogleMapsLiveMapProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -111,7 +117,7 @@ function GoogleMapsLiveMapInner({
 
   const primaryMarker = useMemo(() => {
     if (selectedMarkerId) {
-      return resolvedMarkers.find((m) => m.id === selectedMarkerId) ?? resolvedMarkers[0] ?? null;
+      return resolvedMarkers.find((m) => m.id === selectedMarkerId) ?? null;
     }
     return resolvedMarkers[0] ?? null;
   }, [resolvedMarkers, selectedMarkerId]);
@@ -192,7 +198,7 @@ function GoogleMapsLiveMapInner({
       for (const coordinate of path) bounds.extend(coordinate);
     }
     const firstCapturedAt = resolvedRouteSegments[0]?.[0]?.capturedAt ?? 'route';
-    const fitKey = `${routeIdentity ?? 'route'}:${firstCapturedAt}`;
+    const fitKey = routeIdentity ?? firstCapturedAt;
     if (fittedRouteRef.current !== fitKey) {
       map.fitBounds(bounds);
       fittedRouteRef.current = fitKey;
@@ -233,13 +239,30 @@ function GoogleMapsLiveMapInner({
       ? formatMapLastUpdated(position.capturedAt)
       : null;
 
+  const light = appearance === 'light';
+  const centerSelection = () => {
+    if (primaryMarker) map?.panTo({ lat: primaryMarker.latitude, lng: primaryMarker.longitude });
+  };
+  const showRoute = () => {
+    if (!map || !google) return;
+    const bounds = new google.maps.LatLngBounds();
+    const points = resolvedRouteSegments.flat();
+    if (!points.length) return;
+    points.forEach(point => bounds.extend({ lat: point.latitude, lng: point.longitude }));
+    map.fitBounds(bounds);
+  };
+
   return (
     <View style={styles.container}>
-      <View style={[styles.mapFrame, { height }]}>
-        <div ref={mapContainerRef as unknown as Ref<HTMLDivElement>} style={{ width: '100%', height: '100%' }} />
+      {showControls ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+        <button type="button" className="lsm-button" disabled={!ready || !primaryMarker} onClick={centerSelection}>Auswahl zentrieren</button>
+        <button type="button" className="lsm-button" disabled={!ready || !resolvedRouteSegments.length} onClick={showRoute}>Route anzeigen</button>
+      </div> : null}
+      <View style={[styles.mapFrame, light && styles.mapFrameLight, { height }]}>
+        <div ref={mapContainerRef as unknown as Ref<HTMLDivElement>} aria-label="Standortkarte" role="region" style={{ width: '100%', height: '100%' }} />
         {!ready && !mapError ? (
           <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>Karte wird geladen…</Text>
+            <Text style={[styles.loadingText, light && styles.textLight]}>Karte wird geladen…</Text>
           </View>
         ) : null}
         {!isVisible && onVisiblePoll ? (
@@ -248,8 +271,8 @@ function GoogleMapsLiveMapInner({
           </View>
         ) : null}
       </View>
-      {mapError ? <View style={styles.fallback}><Text style={styles.fallbackText}>Karte nicht erreichbar. GPS-Daten bleiben erhalten.</Text><Pressable accessibilityRole="button" onPress={() => { fittedRouteRef.current=null; setRetryKey(v=>v+1); }}><Text style={styles.meta}>Erneut versuchen</Text></Pressable>{resolvedMarkers.map(marker=><Text key={marker.id} style={styles.meta}>{marker.label}: {marker.latitude.toFixed(5)}, {marker.longitude.toFixed(5)}</Text>)}</View> : null}
-      <View style={styles.metaRow}>
+      {mapError ? <View style={[styles.fallback, light && styles.fallbackLight]}><Text style={[styles.fallbackText, light && styles.textLight]}>Karte nicht erreichbar. GPS-Daten bleiben erhalten.</Text><Pressable accessibilityRole="button" onPress={() => { fittedRouteRef.current=null; setRetryKey(v=>v+1); }}><Text style={[styles.meta, light && styles.textLight]}>Erneut versuchen</Text></Pressable>{resolvedMarkers.map(marker=><Text key={marker.id} style={[styles.meta, light && styles.textLight]}>{marker.label}: {marker.latitude.toFixed(5)}, {marker.longitude.toFixed(5)}</Text>)}</View> : null}
+      {showMeta ? <View style={styles.metaRow}>
         {plannedRoutePoints.length > 1 ? <Text style={styles.meta}>Routing: FOSSGIS · © OpenStreetMap-Mitwirkende · <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer" style={{color:'#79C9FF'}}>Kartenfehler melden</a></Text> : null}
         {primaryMarker?.label ? <Text style={styles.meta}>{primaryMarker.label}</Text> : null}
         {updated ? (
@@ -272,7 +295,7 @@ function GoogleMapsLiveMapInner({
             {resolvedRouteSegments.length === 1 ? 'zusammenhängende GPS-Spur' : 'zusammenhängende GPS-Spuren'}
           </Text>
         ) : null}
-      </View>
+      </View> : null}
     </View>
   );
 }
@@ -281,6 +304,9 @@ export const GoogleMapsLiveMap = memo(GoogleMapsLiveMapInner);
 
 const styles = StyleSheet.create({
   container: { gap: spacing.xs },
+  mapFrameLight: { backgroundColor: '#EDF5FC', borderColor: '#D4E5F2', borderRadius: 16 },
+  fallbackLight: { backgroundColor: '#F8FBFF', borderColor: '#D4E5F2' },
+  textLight: { color: '#334E68' },
   mapFrame: {
     borderRadius: 12,
     overflow: 'hidden',

@@ -93,31 +93,40 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
       }
     });
 
+    // Live marker arrivals/removals must not undo a user's camera position.
     const markerSetKey = markers.map((marker) => marker.id).sort().join('|');
-    if (markers.length === 1 && fittedMarkerSetRef.current !== markerSetKey) {
+    if (markers.length === 1 && fittedMarkerSetRef.current == null && fittedMarkerSetRef.current !== markerSetKey) {
       map.setCenter({ lat: markers[0].latitude, lng: markers[0].longitude });
       fittedMarkerSetRef.current = markerSetKey;
-    } else if (markers.length > 1 && fittedMarkerSetRef.current !== markerSetKey) {
+    } else if (markers.length > 1 && fittedMarkerSetRef.current == null && fittedMarkerSetRef.current !== markerSetKey) {
       const bounds = new google.maps.LatLngBounds();
       markers.forEach((m) => bounds.extend({ lat: m.latitude, lng: m.longitude }));
       map.fitBounds(bounds);
       fittedMarkerSetRef.current = markerSetKey;
     }
 
-    if (selectedMarkerId && lastSelectedMarkerRef.current !== selectedMarkerId) {
+    if (!selectedMarkerId || !nextIds.has(selectedMarkerId)) {
+      if (lastSelectedMarkerRef.current) infoWindowRef.current.close();
+      lastSelectedMarkerRef.current = null;
+    }
+
+    if (selectedMarkerId) {
       const selected = markers.find((m) => m.id === selectedMarkerId);
       const marker = existing.get(selectedMarkerId);
       if (selected && marker) {
-        map.panTo({ lat: selected.latitude, lng: selected.longitude });
         const info = infoWindowRef.current;
         const html =
           selected.infoHtml ??
           buildInfoContent?.(selected, demoMode) ??
           `<strong>${escapeLabel(selected.label)}</strong>`;
+        // Refresh visible GPS/time details without reopening a dismissed popup or moving the camera.
         info.setContent(html);
-        info.open({ map, anchor: marker });
+        if (lastSelectedMarkerRef.current !== selectedMarkerId) {
+          map.panTo({ lat: selected.latitude, lng: selected.longitude });
+          info.open({ map, anchor: marker });
+          lastSelectedMarkerRef.current = selectedMarkerId;
+        }
       }
-      lastSelectedMarkerRef.current = selectedMarkerId;
     }
   }, [map, google, markers, selectedMarkerId, demoMode, buildInfoContent]);
 }
