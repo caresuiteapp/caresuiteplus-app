@@ -214,7 +214,7 @@ describe('read-only scoped planning service', () => {
       expect((await load()).ok).toBe(false);
     }
   });
-  it.each([null, {}, ['invalid'], [null]])('rejects malformed canonical payload %j', async data => {
+  it.each([null, {}, ['invalid'], [null]].map(data => ({ data })))('rejects malformed canonical payload $data', async ({ data }) => {
     state.resolve.mockImplementation(() => ({ data, error: null })); expect((await load()).ok).toBe(false);
   });
   it('paginates canonical and optional data past 500 records without truncation', async () => {

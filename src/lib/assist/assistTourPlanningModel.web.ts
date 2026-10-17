@@ -188,8 +188,8 @@ export function buildAssistTourPlanning(source: AssistTourPlanningSource): Assis
     const initial = lifecycle(data);
     if (((rule.pattern && rule.pattern !== 'none') || rule.parentSeriesId) && !ownEvidence && ['active', 'follow_up', 'completed'].includes(initial.status)) data = { ...data, canonical_status: 'confirmed', execution_status: 'pending', planning_status: 'confirmed', legacy_status: undefined, execution_state_status: undefined };
     const status = lifecycle(data), client = clients.get(String(row.client_id)), employeeId = assistText(row.employee_id);
-    const street = [assistText(client?.street), assistText(client?.house_number)].filter(Boolean).join(' '), city = [assistText(client?.postal_code), assistText(client?.city)].filter(Boolean).join(' ');
-    const address = assistText(row.address_snapshot) ?? (street && city ? `${street}, ${city}` : null);
+    const streetName = assistText(client?.street), houseNumber = assistText(client?.house_number), postalCode = assistText(client?.postal_code), cityName = assistText(client?.city);
+    const address = assistText(row.address_snapshot) ?? (streetName && houseNumber && postalCode && cityName ? `${streetName} ${houseNumber}, ${postalCode} ${cityName}` : null);
     const visit: AssistTourVisit = { id: String(row.id), clientId: String(row.client_id), clientName: name(client) ?? 'Klientenname nicht verfügbar', address, title: assistText(row.title) ?? assistText(row.service_name) ?? 'Einsatz', employeeId, employeeName: employees.find(item => item.id === employeeId)?.name ?? null, scheduledStart: new Date(start).toISOString(), scheduledEnd: new Date(end).toISOString(), durationMinutes: Math.round((end - start) / 60000), ...status, issues: [], canReassign: ['planned', 'confirmed'].includes(status.status) && !ownEvidence, isVirtual: row.is_virtual === true };
     if (!address) visit.issues.push(issue('missing_address', 'Vollständige Einsatzadresse fehlt.', 'warning'));
     if (!client) visit.issues.push(issue('client_unknown', 'Klientenakte konnte nicht geladen werden.', 'unknown'));
