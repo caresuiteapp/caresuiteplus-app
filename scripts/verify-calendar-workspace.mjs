@@ -41,6 +41,8 @@ const groups = {
   ],
   'Calendar writes, source receipts and form recovery': [
     'calendar/calendarWebDialogs.test.tsx',
+    'calendar/calendarPlanningTemplatesWeb.test.ts',
+    'calendar/calendarTemplatePickerWeb.test.tsx',
     'calendar/officeCalendarMutationTruth.test.ts',
     'calendar/officeCalendarFormRecovery.test.tsx',
     'office/officePlanningReadAndWriteReceipts.test.ts',
