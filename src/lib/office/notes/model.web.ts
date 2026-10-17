@@ -97,7 +97,7 @@ export function validateNoteDraft(draft: NoteDraft): string | null {
   if (typeof draft.pinned !== 'boolean' || !validDate(draft.dueDate)) return 'Bitte die Fälligkeit der Notiz prüfen.';
   if (!Array.isArray(draft.tags) || draft.tags.length > 30 || draft.tags.some(tag => !isText(tag, 40) || !tag.trim())) return 'Maximal 30 Schlagworte mit jeweils 40 Zeichen sind möglich.';
   const content = draft.content;
-  if (!isObject(content) || !['text', 'cues', 'summary'].every(key => isText(content[key], 100_000))) return 'Text, Stichworte und Zusammenfassung dürfen jeweils höchstens 100.000 Zeichen enthalten.';
+  if (!isObject(content) || !(['text', 'cues', 'summary'] as const).every(key => isText(content[key], 100_000))) return 'Text, Stichworte und Zusammenfassung dürfen jeweils höchstens 100.000 Zeichen enthalten.';
   if (!validItems(content.fields, 80) || content.fields.some(field => !isText(field.label, 100) || !isText(field.value, 5000))) return 'Bitte die Angaben prüfen: maximal 80 Felder, 100 Zeichen je Bezeichnung und 5.000 Zeichen je Inhalt.';
   if (!validItems(content.tasks, 200) || content.tasks.some(task => !isText(task.text, 2000) || !isText(task.assignee, 160) || !validStatus(task.status) || !validDate(task.dueDate))) return 'Bitte die Aufgaben prüfen: maximal 200 Einträge mit gültigem Status und Datum.';
   if (!validItems(content.sources, 100) || content.sources.some(source => !isText(source.title, 240) || !safeSource(source.url))) return 'Quellen benötigen einen gültigen HTTP- oder HTTPS-Link. Maximal 100 Quellen sind möglich.';

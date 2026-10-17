@@ -80,7 +80,7 @@ describe('durable personal Office note service', () => {
     expect(f.calls[1].operations).toContainEqual(['range', [100, 199]]);
     for (const call of f.calls) {
       expect(call.table).toBe('office_private_notes');
-      expect(call.operations).toEqual(expect.arrayContaining(scope));
+      expect(call.operations).toEqual(expect.arrayContaining([...scope]));
       expect(call.operations.some(([method]) => method === 'is')).toBe(false);
     }
   });
