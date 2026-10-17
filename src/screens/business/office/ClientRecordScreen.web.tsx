@@ -1,7 +1,7 @@
 import { usePageFlag } from '@/hooks/usePageFlag';
-import { usePageTab } from '@/hooks/usePageTab';
+import { useBudgetRecordTabs } from '@/hooks/useBudgetRecordTabs.web';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { DetailInfoRow } from '@/components/detail';
@@ -168,11 +168,14 @@ function ClientRecordScreenContent({
   /** Opens ClientMasterDataEditModal on first render (e.g. list deep link ?edit=1). */
   initialMasterDataEditOpen?: boolean;
 } = {}) {
-  const { id: routeId, tab: tabParam, edit: editParam } = useLocalSearchParams<{
+  const { id: routeId, tab: rawTabParam, edit: editParam, csPage_ClientRecordScreen_activeTab: rawStoredTab } = useLocalSearchParams<{
     id: string;
-    tab?: string;
+    tab?: string | string[];
     edit?: string;
+    csPage_ClientRecordScreen_activeTab?: string | string[];
   }>();
+  const tabParam = Array.isArray(rawTabParam) ? rawTabParam[0] : rawTabParam;
+  const storedUrlTab = resolveClientRecordTabKey(Array.isArray(rawStoredTab) ? rawStoredTab[0] : rawStoredTab);
   const id = clientIdProp ?? routeId;
   const router = useRouter();
   const { profile } = useAuth();
@@ -184,26 +187,14 @@ function ClientRecordScreenContent({
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const resolvedTabParam = resolveClientRecordTabKey(initialTabOverride ?? tabParam);
+  const initialChoice = resolvedTabParam ?? storedUrlTab;
   const initialTab =
-    resolvedTabParam && tabs.includes(resolvedTabParam)
-      ? resolvedTabParam
+    initialChoice && tabs.includes(initialChoice)
+      ? initialChoice
       : 'uebersicht';
-  const [storedTab, setActiveTab] = usePageTab<ClientRecordTabKey>('ClientRecordScreen.activeTab', initialTab);
-  const activeTab = tabs.includes(storedTab) ? storedTab : initialTab;
-  const selectTab = (tab: ClientRecordTabKey) => {
-    if (!tabs.includes(tab)) return;
-    setActiveTab(tab);
-    if (Platform.OS === 'web') router.setParams({ tab });
-  };
+  const { activeTab, selectTab, onBudgetDirtyChange, onBudgetBusyChange, budgetNavigationNotice } = useBudgetRecordTabs({ tabs, initialTab, requestedTab: resolvedTabParam, storedUrlTab });
   const [masterDataEditOpen, setMasterDataEditOpen] = usePageFlag('ClientRecordScreen.masterDataEditOpen', initialMasterDataEditOpen);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
-
-  useEffect(() => {
-    const resolved = resolveClientRecordTabKey(resolvedTabParam);
-    if (resolved && tabs.includes(resolved)) {
-      setActiveTab(resolved);
-    }
-  }, [resolvedTabParam, tabs, setActiveTab]);
 
   const handleEditMasterData = onEditMasterData ?? (() => setMasterDataEditOpen(true));
   const hostsLocalEditModal = !onEditMasterData;
@@ -323,6 +314,7 @@ function ClientRecordScreenContent({
 
       <ClientRecordNavigation tabs={tabs} value={activeTab} onChange={selectTab}>
       <View style={styles.tabPanel}>
+        {budgetNavigationNotice ? <p role="status" style={{ margin: 0, padding: '12px 15px', border: '1px solid #dfc88d', borderRadius: 12, background: '#fff8e8', color: '#79551d', fontSize: 'calc(12px * var(--app-font-scale, 1))' }}>{budgetNavigationNotice}</p> : null}
         {activeTab === 'uebersicht' && overview ? (
           <ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} clientId={detail.id} />
         ) : null}
@@ -357,6 +349,8 @@ function ClientRecordScreenContent({
             fullClient={fullClient}
             canViewSensitive={fullQuery.canViewSensitive}
             onRecordRefresh={handleRecordRefresh}
+            onBudgetDirtyChange={onBudgetDirtyChange}
+            onBudgetBusyChange={onBudgetBusyChange}
           />
         ) : null}
         {!['uebersicht', 'stammdaten', 'kontakt', 'leistungsbereiche'].includes(activeTab) ? (
@@ -366,6 +360,8 @@ function ClientRecordScreenContent({
             fullClient={fullClient}
             canViewSensitive={fullQuery.canViewSensitive}
             onRecordRefresh={handleRecordRefresh}
+            onBudgetDirtyChange={onBudgetDirtyChange}
+            onBudgetBusyChange={onBudgetBusyChange}
           />
         ) : null}
       </View>
