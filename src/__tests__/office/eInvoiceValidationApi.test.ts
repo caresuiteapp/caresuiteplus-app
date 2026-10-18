@@ -84,7 +84,7 @@ describe('authenticated authoritative e-invoice validation endpoint', () => {
     const bytes = new TextEncoder().encode('<test>' + 'Exact original bytes. '.repeat(20) + '</test>');
     const wrapped = Buffer.from(bytes).toString('base64').match(/.{1,76}/g)!.join('\n');
     const item = { ...stored(), original_base64: wrapped, extracted_xml_base64: wrapped, original_sha256: digest(bytes), extracted_xml_sha256: digest(bytes) };
-    const state = setup({ item }); expect((await state.run()).code).toBe(200); expect(state.validate.mock.calls[0][0].xml).toEqual(bytes);
+    const state = setup({ item }); expect((await state.run()).code).toBe(200); expect(Array.from(state.validate.mock.calls[0][0].xml)).toEqual(Array.from(bytes));
   });
   it('rejects client-substituted XML that is not the uploaded original or its actual PDF attachment', async () => {
     const item = stored(); const altered = new TextEncoder().encode('<test>Substituted XML</test>');

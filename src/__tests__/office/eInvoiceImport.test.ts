@@ -54,10 +54,16 @@ describe('structured invoice preview', () => {
     const result = parseOfficeEInvoiceXml(encode(ubl('credit', true)));
     expect(result.syntax).toBe('ubl_credit_note'); expect(result.lines[0].quantity).toBe('2'); expect(result.totals.payable).toBe('119.00');
   });
-  it('accepts non-ASCII namespace prefixes and displays the explicit price base', () => {
-    const xml = ubl('rechnungÄ').replace('<b:PriceAmount>50.00</b:PriceAmount>', '<b:PriceAmount>50.00</b:PriceAmount><b:BaseQuantity unitCode="HUR">100</b:BaseQuantity>');
+  it('displays the explicit price base independently of the namespace prefix', () => {
+    const xml = ubl('rechnung').replace('<b:PriceAmount>50.00</b:PriceAmount>', '<b:PriceAmount>50.00</b:PriceAmount><b:BaseQuantity unitCode="HUR">100</b:BaseQuantity>');
     const result = parseOfficeEInvoiceXml(encode(xml)); expect(result.invoiceNumber).toBe('RE-2026-17');
     expect(result.lines[0]).toMatchObject({ priceBaseQuantity: '100', priceBaseUnitCode: 'HUR' });
+  });
+  it('allows valid Unicode prefixes through the security preflight', () => {
+    // Happy DOM 20.14 does not implement Unicode XML prefix parsing. Exercise
+    // our preflight here; native browser DOMParser remains the XML authority.
+    vi.stubGlobal('DOMParser', undefined);
+    expect(() => parseOfficeEInvoiceXml(encode(ubl('rechnungÄ')))).toThrow('benötigt einen Webbrowser');
   });
   it('reads CII parties, lines, date and totals through exact namespaces', () => {
     const result = parseOfficeEInvoiceXml(encode(cii()));

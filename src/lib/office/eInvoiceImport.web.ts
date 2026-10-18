@@ -244,7 +244,7 @@ export function parseOfficeEInvoiceXml(bytes: Uint8Array): OfficeEInvoiceXmlPrev
   if (!data) throw new Error('Die Datei enthält keine unterstützte UBL-Rechnung, UBL-Gutschrift oder CII-Rechnung.');
   let profile = Object.hasOwn(profiles, data.profileId) ? profiles[data.profileId] : { label: data.profileId ? 'Unbekanntes Profil' : 'Profil nicht angegeben', support: 'unknown' as const };
   if (data.syntax !== 'cii' && profile.label.includes('ZUGFeRD') && profile.support === 'supported') profile = { label: 'Profil passt nicht zur XML-Syntax', support: 'unknown' };
-  const warnings = ['Die Angaben wurden aus dem XML gelesen. Das Auslesen allein bestätigt weder Formatkonformität noch sachliche Richtigkeit.'];
+  const warnings = ['Die Angaben wurden aus dem XML gelesen. Das Auslesen allein ersetzt keine Normprüfung oder sachliche Prüfung.'];
   if (profile.support === 'excluded') warnings.push('MINIMUM und BASIC-WL sind keine vollständigen E-Rechnungsprofile. Das Original kann zur Klärung abgelegt werden.');
   else if (profile.support === 'unknown') warnings.push('Das deklarierte Profil wird nicht erkannt. Die Datei darf nicht als formatgeprüfte E-Rechnung behandelt werden.');
   if (!data.invoiceNumber || !data.seller.name || !data.buyer.name || !data.currency || !data.totals.payable) warnings.push('Wesentliche Angaben fehlen in der strukturierten Vorschau. Bitte den Absender um Prüfung bitten.');
