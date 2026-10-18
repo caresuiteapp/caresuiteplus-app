@@ -94,8 +94,23 @@
     "resources/cii/16b/xsd/CrossIndustryInvoice_ReusableAggregateBusinessInformationEntity_100pD16B.xsd": "cc682d67791ffe16c45320619ff089a1c8f3ad22691fc426e4056f2e67909fe0",
     "sef/en16931-ubl.sef.json": "782ced0eef362887cad30c0f216cbd89b2aaf9edfeaebe0a7cb91b48c0071eb2",
     "sef/en16931-cii.sef.json": "5f6727829a5839c5b3963bf39113808494ba9b3184f24250dc538f220087d172",
-    "sef/xrechnung-ubl.sef.json": "10795ea50c7f67531ef9aa5df0d17b9670e9bb9983aa1e4e9d0352d666982dfa",
-    "sef/xrechnung-cii.sef.json": "bcf1822128d6ae4519805f4d5c1420f9938fe208c396e7a570cd979422508573",
-    "scenarios.xml": "3e8161a39dfaa6aea4d990b279aab848be4f4c6169e820f354a159bda7693fb0"
+    "sef/xrechnung-ubl.sef.json": "2a72c51ef13a651cc77b49613f40c14faef194e2fc8e94f00222c4640a46c200",
+    "sef/xrechnung-cii.sef.json": "d857f14320acda7c2493244b9a367eae672c27893556e06b23194606edd14719",
+    "scenarios.xml": "3e8161a39dfaa6aea4d990b279aab848be4f4c6169e820f354a159bda7693fb0",
+    "sources/en16931-ubl.original.xsl": "759f2d2e830c7fd1d5a6e8b4f61e5dbafc7a7805862c4ae1c749eeac6adde698",
+    "sources/xrechnung-ubl.original.xsl": "e32d831668facbbd5136cc0119bf1dd6f92ac20738aa3b3f021586f5a305c738",
+    "sources/xrechnung-ubl.saxonjs.xsl": "bcc38194f3956c4d2f796bad5ecadf8239129d5fd4a556e7b6fe824fb3e3a7a6",
+    "sources/en16931-cii.original.xsl": "0911e927f13f9ae2cdc7f973643f27bf0ad3c5da02483c04a5b8a47eb4822199",
+    "sources/xrechnung-cii.original.xsl": "ec54f662803a87f527ec606d1320bc404f1657a848af6a76f37f32905e4aac40",
+    "sources/xrechnung-cii.saxonjs.xsl": "598a541ca7fec046dca2e2ccaa12c625fac2762e0719a9ef9488c5a9479c98a9"
+  },
+  "compatibilityPatch": {
+    "name": "saxonjs-2.7-iban-exact-modulo",
+    "version": "1",
+    "change": "xr:checkIBAN digit-only string cast xs:integer to xs:decimal; identical mathematical modulo97; all assertions unchanged",
+    "files": [
+      "sources/xrechnung-ubl.saxonjs.xsl",
+      "sources/xrechnung-cii.saxonjs.xsl"
+    ]
   }
 }

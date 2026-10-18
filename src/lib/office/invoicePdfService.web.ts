@@ -183,6 +183,13 @@ export async function fetchInvoicePdfData(
   };
 }
 
+/** Every zero-rated position needs a visible explanation; one unrelated line must not cover the others. */
+export function hasInvoicePdfZeroTaxReasons(invoice: OfficePdfInvoice): boolean {
+  if (invoice.taxNotice?.trim()) return true;
+  return invoice.lineItems.every((item, index) => (item.taxRatePercent ?? 0) !== 0 ||
+    invoice.lineTaxNotes?.some(note => note.position === index + 1 && !!note.reason.trim()) === true);
+}
+
 export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   const { company, invoice } = data;
   const errors: string[] = [];
@@ -221,8 +228,7 @@ export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   if (itemGross !== invoice.amountCents) {
     errors.push('Positionssumme und Rechnungsbetrag stimmen nicht überein.');
   }
-  const hasZeroTax = invoice.lineItems.some((item) => (item.taxRatePercent ?? 0) === 0);
-  if (hasZeroTax && !invoice.taxNotice?.trim()) {
+  if (!hasInvoicePdfZeroTaxReasons(invoice)) {
     warnings.push('Für Positionen mit 0 % Umsatzsteuer fehlt eine Begründung. Bitte den Steuerhinweis fachlich prüfen.');
   }
   if (!company.bic) warnings.push('BIC fehlt; innerhalb des SEPA-Raums meist entbehrlich.');
@@ -496,7 +502,7 @@ export function draftToPdfInvoice(tenantId: string, draft: InvoiceOfficeDraft): 
     servicePeriodStart: draft.servicePeriodStart, servicePeriodEnd: draft.servicePeriodEnd, status: 'draft',
     createdAt: draft.invoiceDate, updatedAt: draft.expectedUpdatedAt || draft.invoiceDate, billingModule: modules.size === 1 ? draft.lines[0].productKey : 'mixed',
     actualBuyer: draft.eInvoice?.buyerConfirmed ? { ...draft.eInvoice.buyer, country: draft.eInvoice.buyerCountryCode || draft.eInvoice.buyer.country } : undefined, buyerReference: draft.eInvoice?.buyerReference, buyerVatId: draft.eInvoice?.buyerVatId,
-    lineTaxNotes: draft.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() }] : []),
+    lineTaxNotes: draft.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() || line.eInvoiceTax?.exemptionReasonCode.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() || `Befreiungscode ${line.eInvoiceTax.exemptionReasonCode.trim()}` }] : []),
     recipient: { ...draft.recipient, customerNumber: draft.clientNumber || '' }, taxNotice: draft.footerText, notes: null, footerText: draft.footerText,
     lineItems: calculated.lines.map((line, index) => ({ id: line.id || `preview-${index}`, description: line.description, quantity: line.quantity, unit: line.unit,
       unitPriceCents: line.unitPriceCents, taxRatePercent: line.taxRatePercent, netTotalCents: line.netCents, taxCents: line.taxCents, totalCents: line.totalCents })),
@@ -511,7 +517,7 @@ export function officeInvoiceToPdfInvoice(invoice: OfficeInvoice): OfficePdfInvo
     servicePeriodStart: invoice.servicePeriodStart, servicePeriodEnd: invoice.servicePeriodEnd, billingModule: invoice.billingModule,
     createdAt: invoice.createdAt, updatedAt: invoice.updatedAt, recipient: { ...invoice.recipient, customerNumber: invoice.clientNumber },
     actualBuyer: invoice.eInvoice?.buyerConfirmed ? { ...invoice.eInvoice.buyer, country: invoice.eInvoice.buyerCountryCode || invoice.eInvoice.buyer.country } : undefined, buyerReference: invoice.eInvoice?.buyerReference, buyerVatId: invoice.eInvoice?.buyerVatId,
-    lineTaxNotes: invoice.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() }] : []),
+    lineTaxNotes: invoice.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() || line.eInvoiceTax?.exemptionReasonCode.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() || `Befreiungscode ${line.eInvoiceTax.exemptionReasonCode.trim()}` }] : []),
     taxNotice: invoice.footerText, footerText: invoice.footerText || '', notes: null, pdfStoragePath: invoice.pdfFilePath,
     companySnapshot: invoice.companySnapshot ? normalizeInvoiceCompanySnapshot(invoice.companySnapshot) : null,
     lineItems: invoice.lines.map(line => ({ id: line.id, description: line.description, quantity: line.quantity, unit: line.unit,

@@ -4,7 +4,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { fetchOfficeInvoice, fetchOfficeInvoiceIssuePreview, finalizeOfficeInvoiceIssue } from './invoiceWorkspaceService.web';
 import type { OfficeInvoice, OfficeInvoiceMutationResult } from './invoiceWorkspaceTypes.web';
-import { generateInvoicePdf, normalizeInvoiceCompanySnapshot, officeInvoiceToPdfInvoice, validateInvoicePdf } from './invoicePdfService.web';
+import { generateInvoicePdf, hasInvoicePdfZeroTaxReasons, normalizeInvoiceCompanySnapshot, officeInvoiceToPdfInvoice, validateInvoicePdf } from './invoicePdfService.web';
 import { loadInvoiceProofPages } from './invoiceProofAttachments.web';
 import { assessOfficeEInvoiceRequirement } from './eInvoiceModel.web';
 
@@ -52,7 +52,7 @@ async function performIssue(tenantId: string, invoice: OfficeInvoice, role: Role
     const company = normalizeInvoiceCompanySnapshot(preview.data.companySnapshot);
     const validation = validateInvoicePdf({ invoice: pdfInvoice, company });
     if (validation.errors.length) return fail(validation.errors.join(' '));
-    if (pdfInvoice.lineItems.some(line => (line.taxRatePercent ?? 0) === 0) && !pdfInvoice.taxNotice?.trim()) return fail('Für Positionen mit 0 % Umsatzsteuer fehlt die Begründung. Bitte vor der Ausstellung den Steuerhinweis ergänzen.');
+    if (!hasInvoicePdfZeroTaxReasons(pdfInvoice)) return fail('Für Positionen mit 0 % Umsatzsteuer fehlt die Begründung. Bitte vor der Ausstellung den Steuerhinweis bei jeder betroffenen Position oder im Rechnungstext ergänzen.');
     const proofIds = fresh.data.includeProofs ? fresh.data.selectedProofIds : [];
     if (fresh.data.includeProofs && !proofIds.length) return fail('Bitte Leistungsnachweise auswählen oder die Rechnung ohne Anlagen speichern.');
     const annexPages = await loadInvoiceProofPages({ tenantId, clientId: fresh.data.clientId || '', start: fresh.data.servicePeriodStart || '',

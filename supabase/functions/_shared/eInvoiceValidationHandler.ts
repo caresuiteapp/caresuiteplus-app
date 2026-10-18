@@ -8,8 +8,11 @@ const HASH = /^[a-f0-9]{64}$/;
 const row = (value: unknown): Row => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const one = (value: unknown): Row => row(Array.isArray(value) ? value[0] : value);
+class ValidationResponseError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
 async function boundedJson(response: Response): Promise<Row> {
-  if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Die vollständige Formatprüfung ist gerade nicht erreichbar. Bitte erneut versuchen.');
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Die vollständige Formatprüfung ist gerade nicht erreichbar. Bitte erneut versuchen.');
   const reader = response.body?.getReader(); if (!reader) throw new Error('Die Formatprüfung hat kein Ergebnis geliefert.');
   const chunks: Uint8Array[] = []; let length = 0;
   while (true) {
@@ -20,7 +23,18 @@ async function boundedJson(response: Response): Promise<Row> {
   }
   const bytes = new Uint8Array(length); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  return row(JSON.parse(new TextDecoder().decode(bytes)));
+  let result: Row;
+  try { result = row(JSON.parse(new TextDecoder().decode(bytes))); }
+  catch { throw new Error('Die Formatprüfung hat kein lesbares Ergebnis geliefert. Bitte erneut versuchen.'); }
+  if (!response.ok) {
+    // Only this fixed, authenticated first-party endpoint supplies these bounded
+    // user-facing errors. Never relay infrastructure HTML or unexpected bodies.
+    if ([400, 403, 404, 409, 422].includes(response.status) && result.ok === false && typeof result.error === 'string' && result.error.length > 0 && result.error.length <= 4000) {
+      throw new ValidationResponseError(result.error, response.status);
+    }
+    throw new Error('Die vollständige Formatprüfung ist gerade nicht erreichbar. Bitte erneut versuchen.');
+  }
+  return result;
 }
 /** The caller is authenticated by the existing PDF handler; only this server invokes the trusted validation write RPCs. */
 export function createEInvoiceValidationHandler(dependencies: Dependencies) {
@@ -74,7 +88,7 @@ export function createEInvoiceValidationHandler(dependencies: Dependencies) {
       if (checked.sourceRevision !== preview.source_revision || checked.invoiceNumber !== preview.invoice_number || typeof checked.xmlBase64 !== 'string' || checked.xmlBase64.length > 3500000) return respond({ ok: false, error: 'Die geprüften Ausstellungsdaten stimmen nicht überein.' }, 409);
       let xmlBytes: Uint8Array;
       try { xmlBytes = Uint8Array.from(atob(checked.xmlBase64), character => character.charCodeAt(0)); } catch { return respond({ ok: false, error: 'Die geprüfte XML-Datei ist beschädigt.' }, 503); }
-      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', xmlBytes)), value => value.toString(16).padStart(2, '0')).join('');
+      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(xmlBytes))), value => value.toString(16).padStart(2, '0')).join('');
       if (hash !== checked.xmlSha256) return respond({ ok: false, error: 'Die XML-Prüfsumme stimmt nicht mit dem Prüfergebnis überein.' }, 409);
       const recorded = await service.rpc('office_einvoice_record_validation', { p_tenant_id: tenantId, p_invoice_id: entityId,
         p_expected_updated_at: input.expectedUpdatedAt, p_source_revision: preview.source_revision, p_invoice_number: preview.invoice_number,
@@ -83,6 +97,7 @@ export function createEInvoiceValidationHandler(dependencies: Dependencies) {
       if (recorded.error || receipt.xml_sha256 !== hash) return respond({ ok: false, error: 'Die geprüfte XML-Datei konnte nicht für diesen Rechnungsstand gesichert werden. Bitte erneut versuchen.' }, 409);
       return respond({ ok: true, invoiceId: entityId, xmlSha256: hash, invoiceNumber: preview.invoice_number, sourceRevision: preview.source_revision, validation: report });
     } catch (error) {
+      if (error instanceof ValidationResponseError) return respond({ ok: false, error: error.message }, error.status);
       return respond({ ok: false, error: error instanceof Error && error.name !== 'AbortError' ? error.message : 'Die Formatprüfung konnte nicht abgeschlossen werden. Bitte erneut versuchen.' }, 503);
     }
   };

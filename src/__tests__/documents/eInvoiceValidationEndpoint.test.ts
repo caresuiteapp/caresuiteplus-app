@@ -147,4 +147,14 @@ describe('Trusted e-invoice validation authority', () => {
       expect((await test.post()).status).toBe(503); expect(test.writes()).toHaveLength(0);
     }
   });
+  it('preserves actionable validation and stale-source errors from the fixed server without storing a receipt', async () => {
+    for (const status of [409, 422]) {
+      const test = harness();
+      test.state.response = new Response(JSON.stringify({ ok: false, error: 'Bitte den tatsächlichen Leistungsempfänger ergänzen.' }), { status, headers: { 'Content-Type': 'application/json' } });
+      const response = await test.post();
+      expect(response.status).toBe(status);
+      expect((await response.json()).error).toBe('Bitte den tatsächlichen Leistungsempfänger ergänzen.');
+      expect(test.writes()).toHaveLength(0);
+    }
+  });
 });

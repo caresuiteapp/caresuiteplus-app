@@ -24,6 +24,10 @@ export function escapeOfficeInvoiceXml(value: string): string {
 const tag = (name: string, value: string): string => `<${name}>${escapeOfficeInvoiceXml(value)}</${name}>`;
 const amount = (name: string, value: number): string => `<cbc:${name} currencyID="EUR">${cents(value)}</cbc:${name}>`;
 const optionalTag = (name: string, value: string): string => value ? tag(name, value) : '';
+function canonicalPdfBase64(value: string): boolean {
+  if (!value.startsWith('JVBERi0') || value.length > Math.ceil(20 * 1024 * 1024 / 3) * 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return false;
+  try { return btoa(atob(value)) === value; } catch { return false; }
+}
 function validIban(value: string): boolean {
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(value)) return false;
   const reordered = `${value.slice(4)}${value.slice(0, 4)}`.replace(/[A-Z]/g, letter => String(letter.charCodeAt(0) - 55));
@@ -78,7 +82,7 @@ export function prepareOfficeInvoiceUbl(invoice: OfficeEInvoiceUblSource, previe
   let attachmentBytes = 0;
   const documents = selected.map(id => {
     const item = attachments.find(entry => entry.id === id)!;
-    if (item.mimeType !== 'application/pdf' || !item.fileName || item.fileName.length > 200 || /[\/\\\u0000-\u001f]/.test(item.fileName) || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(item.base64) || !item.base64.startsWith('JVBERi0')) throw new Error('Ein Leistungsnachweis liegt nicht als gültige unveränderte PDF-Anlage vor.');
+    if (item.mimeType !== 'application/pdf' || !item.fileName || item.fileName.length > 200 || /[\/\\\u0000-\u001f]/.test(item.fileName) || !canonicalPdfBase64(item.base64)) throw new Error('Ein Leistungsnachweis liegt nicht als gültige unveränderte PDF-Anlage vor.');
     attachmentBytes += item.base64.length * 3 / 4;
     if (attachmentBytes > 20 * 1024 * 1024) throw new Error('Die XML-Anlagen überschreiten die zulässige Gesamtgröße von 20 MB.');
     return `<cac:AdditionalDocumentReference>${tag('cbc:ID', item.id)}${optionalTag('cbc:DocumentDescription', item.description)}<cac:Attachment><cbc:EmbeddedDocumentBinaryObject mimeCode="application/pdf" filename="${escapeOfficeInvoiceXml(item.fileName)}">${item.base64}</cbc:EmbeddedDocumentBinaryObject></cac:Attachment></cac:AdditionalDocumentReference>`;

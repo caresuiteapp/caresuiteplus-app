@@ -161,7 +161,6 @@
   ],
   "functions": {
     "api/einvoice/validate.ts": {
-      "memory": 2048,
       "maxDuration": 60,
       "includeFiles": "{api/_lib/einvoice-rules/**,api/_lib/einvoice-pdf-worker.mjs,node_modules/libxml2-wasm/lib/**,node_modules/pdfjs-dist/legacy/build/**,node_modules/@napi-rs/canvas/**}"
     }

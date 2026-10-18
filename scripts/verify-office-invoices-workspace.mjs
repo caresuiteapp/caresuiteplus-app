@@ -13,9 +13,11 @@ const groups = {
     'office/officeEInvoiceModelWeb.test.ts',
     'office/eInvoiceImport.test.ts',
     'office/eInvoicePdfExtractionBridge.test.ts',
+    'office/eInvoicePdfOriginalServer.test.ts',
     'office/eInvoiceValidationApi.test.ts',
     'office/eInvoiceInboxServiceWeb.test.ts',
     'office/eInvoiceExportServiceWeb.test.ts',
+    'office/eInvoiceInboxOriginalPreviewWeb.test.tsx',
     'documents/eInvoiceValidationEndpoint.test.ts',
     'office/invoiceWorkspaceTypesWeb.test.ts',
     'office/invoiceWorkspaceServiceWeb.test.ts',
@@ -46,8 +48,10 @@ if (missing.length) {
   console.error(`[office-invoices-release] Required project files are missing:\n${missing.map(file => `- ${file}`).join('\n')}`);
   process.exit(1);
 }
-const sql = spawnSync(process.execPath, ['scripts/verify-office-invoice-sql.mjs'], { cwd: root, stdio: 'inherit' });
-if (sql.error || sql.status !== 0) process.exit(sql.status && sql.status > 0 ? sql.status : 1);
+for (const script of ['scripts/verify-office-invoice-sql.mjs', 'scripts/verify-office-einvoice-sql.mjs', 'scripts/verify-office-einvoice-db.mjs', 'scripts/verify-office-einvoice-validator.mjs']) {
+  const result = spawnSync(process.execPath, [script], { cwd: root, stdio: 'inherit' });
+  if (result.error || result.status !== 0) process.exit(result.status && result.status > 0 ? result.status : 1);
+}
 for (const [label, files] of Object.entries(groups)) console.log(`[office-invoices-release] ${label}: ${files.length} suites`);
 const result = spawnSync(process.execPath, [vitest, 'run', '--maxWorkers=1', ...tests], {
   cwd: root, stdio: 'inherit', env: { ...process.env, TZ: 'Europe/Berlin' },

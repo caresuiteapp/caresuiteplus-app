@@ -26,7 +26,7 @@ vi.mock('jspdf/dist/jspdf.es.min.js', () => ({ jsPDF: class {
   output() { return new TextEncoder().encode('%PDF-1.7\n').buffer; }
 } }));
 
-import { draftToPdfInvoice, fetchInvoicePdfData, prepareOfficeInvoicePdf, renderInvoicePdfDocument, validateInvoicePdf } from '@/lib/office/invoicePdfService.web';
+import { draftToPdfInvoice, fetchInvoicePdfData, hasInvoicePdfZeroTaxReasons, prepareOfficeInvoicePdf, renderInvoicePdfDocument, validateInvoicePdf } from '@/lib/office/invoicePdfService.web';
 
 const tenant = '11111111-1111-4111-8111-111111111111';
 const draft = (): InvoiceOfficeDraft => ({ requestId: '22222222-2222-4222-8222-222222222222', clientId: '33333333-3333-4333-8333-333333333333', invoiceNumber: '',
@@ -64,6 +64,15 @@ describe('Web invoice PDF truth and pagination', () => {
     const input = draft(); input.notes = 'Interner Bearbeitungsvermerk: nicht weitergeben';
     const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) }; await renderInvoicePdfDocument(payload);
     expect(payload.invoice.notes).toBeNull(); expect(f.renders.some(row => row.text.includes('Interner Bearbeitungsvermerk'))).toBe(false);
+  });
+  it('accepts visible per-position zero-tax explanations and rejects partial coverage', () => {
+    const input = draft(); input.footerText = ''; input.lines.push({ ...input.lines[0], description: 'Zweite Leistung' });
+    input.lines[0].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'E', exemptionReason: 'Erste Rechtsgrundlage' };
+    expect(hasInvoicePdfZeroTaxReasons(draftToPdfInvoice(tenant, input))).toBe(false);
+    input.lines[1].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'AE', exemptionReasonCode: 'VATEX-EU-AE' };
+    const complete = draftToPdfInvoice(tenant, input); expect(hasInvoicePdfZeroTaxReasons(complete)).toBe(true);
+    expect(validateInvoicePdf({ ...data(), invoice: complete }).warnings.some(message => message.includes('Begründung'))).toBe(false);
+    expect(complete.lineTaxNotes?.[1].reason).toBe('Befreiungscode VATEX-EU-AE');
   });
   it('does not print an unconfirmed buyer as the actual recipient', async () => {
     const input = draft(); input.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...input.recipient, name: 'Noch ungeprüft' } };

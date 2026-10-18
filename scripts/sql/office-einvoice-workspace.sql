@@ -426,7 +426,7 @@ BEGIN
     OR p_report->>'scope' IS DISTINCT FROM 'structured_xml'
     OR p_report#>>'{ruleSet,name}' IS DISTINCT FROM 'KoSIT XRechnung'
     OR p_report#>>'{ruleSet,version}' IS DISTINCT FROM '2026-08-31'
-    OR p_report#>>'{ruleSet,sha256}' IS DISTINCT FROM 'f3e6fce0fb96b25a6aa3a646dc67ab9b21615dffeb177cffe1f260f36c09e147'
+    OR p_report#>>'{ruleSet,sha256}' IS DISTINCT FROM 'cd4e642f4957a95fd17006afced517dc58526a17e6bd9f3097bf596d54d575c2'
     OR jsonb_array_length(p_report->'checks')<>3
     OR NOT (p_report->'checks' @> '[{"kind":"syntax","status":"passed"},{"kind":"xsd","status":"passed"},{"kind":"business_rules","status":"passed"}]'::jsonb)
     OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_report->'findings') f WHERE f->>'severity'='error')) THEN
@@ -590,6 +590,81 @@ REVOKE ALL ON FUNCTION care_security.office_einvoice_issue_guard() FROM PUBLIC,a
 DROP TRIGGER IF EXISTS office_einvoice_issue_guard ON public.invoices;
 CREATE TRIGGER office_einvoice_issue_guard BEFORE INSERT OR UPDATE ON public.invoices
   FOR EACH ROW EXECUTE FUNCTION care_security.office_einvoice_issue_guard();
+
+-- A zero-VAT position may carry its own explicit exemption reason. The legacy
+-- common footer remains a fallback; every uncovered zero-VAT position blocks release.
+CREATE OR REPLACE FUNCTION care_security.office_invoice_issue_preview(p_tenant_id uuid,p_invoice_id uuid,p_expected_updated_at timestamptz)
+RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $body$
+DECLARE v_invoice public.invoices;v_settings public.tenant_billing_settings;v_company jsonb;v_lines jsonb;v_sources jsonb;
+  v_proofs jsonb;v_number text;v_next integer;v_snapshot jsonb;v_name text;v_total numeric;v_source public.service_records;
+BEGIN
+  IF auth.uid() IS NULL OR p_tenant_id IS DISTINCT FROM public.current_tenant_id()
+    OR (public.current_portal_type() IS NOT NULL AND public.current_portal_type()<>'business')
+    OR NOT coalesce(care_security.office_actor(p_tenant_id,'office.invoices.view'),false)
+    OR NOT coalesce(care_security.office_actor(p_tenant_id,'office.invoices.status_change'),false) THEN
+    RAISE EXCEPTION 'Keine Berechtigung zur Rechnungsfreigabe.' USING ERRCODE='42501';
+  END IF;
+  SELECT * INTO v_invoice FROM public.invoices WHERE tenant_id=p_tenant_id AND id=p_invoice_id;
+  IF NOT FOUND OR NOT v_invoice.office_managed OR v_invoice.status<>'draft' OR v_invoice.issued_at IS NOT NULL
+    OR p_expected_updated_at IS NULL OR v_invoice.updated_at IS DISTINCT FROM p_expected_updated_at THEN
+    RAISE EXCEPTION 'Der Rechnungsentwurf wurde inzwischen geändert. Bitte aktualisieren.' USING ERRCODE='40001';
+  END IF;
+  SELECT * INTO v_settings FROM public.tenant_billing_settings WHERE tenant_id=p_tenant_id;
+  IF NOT FOUND OR v_settings.next_invoice_number IS NULL OR v_settings.next_invoice_number<1
+    OR nullif(btrim(v_settings.invoice_prefix),'') IS NULL THEN
+    RAISE EXCEPTION 'Rechnungspräfix und nächste Rechnungsnummer müssen in den Unternehmenseinstellungen hinterlegt sein.';
+  END IF;
+  v_next:=v_settings.next_invoice_number;
+  LOOP
+    IF v_next>=2147483647 THEN RAISE EXCEPTION 'Der Rechnungsnummernkreis ist ausgeschöpft.'; END IF;
+    v_number:=btrim(v_settings.invoice_prefix)||'-'||to_char(v_invoice.invoice_date,'YYYY')||'-'||lpad(v_next::text,greatest(5,length(v_next::text)),'0');
+    EXIT WHEN NOT EXISTS(SELECT 1 FROM public.invoices WHERE tenant_id=p_tenant_id AND invoice_number=v_number AND id<>p_invoice_id);
+    v_next:=v_next+1;
+  END LOOP;
+  v_company:=care_security.office_invoice_company(p_tenant_id);
+  FOREACH v_name IN ARRAY ARRAY['legalName','street','postalCode','city','country','bankName','iban'] LOOP
+    IF nullif(btrim(v_company->>v_name),'') IS NULL THEN RAISE EXCEPTION 'Unternehmensangabe für die Rechnung fehlt: %.',v_name; END IF;
+  END LOOP;
+  IF nullif(btrim(v_company->>'taxNumber'),'') IS NULL AND nullif(btrim(v_company->>'vatId'),'') IS NULL THEN
+    RAISE EXCEPTION 'Steuernummer oder Umsatzsteuer-ID des Unternehmens fehlt.';
+  END IF;
+  IF v_invoice.due_date IS NULL OR v_invoice.due_date<v_invoice.invoice_date OR v_invoice.service_period_from IS NULL
+    OR v_invoice.service_period_to IS NULL OR v_invoice.service_period_to<v_invoice.service_period_from
+    OR nullif(btrim(v_invoice.recipient_name),'') IS NULL OR nullif(btrim(v_invoice.recipient_street),'') IS NULL
+    OR nullif(btrim(v_invoice.recipient_postal_code),'') IS NULL OR nullif(btrim(v_invoice.recipient_city),'') IS NULL THEN
+    RAISE EXCEPTION 'Empfänger, Leistungszeitraum oder Fälligkeitsdatum ist unvollständig.';
+  END IF;
+  SELECT jsonb_agg(to_jsonb(i) ORDER BY i.sort_order,i.id),sum(i.gross_amount) INTO v_lines,v_total
+    FROM public.invoice_items i WHERE tenant_id=p_tenant_id AND invoice_id=p_invoice_id;
+  IF v_lines IS NULL OR v_total IS DISTINCT FROM v_invoice.total_amount OR v_total<=0 THEN
+    RAISE EXCEPTION 'Die gespeicherten Rechnungspositionen und Rechnungssumme stimmen nicht überein.';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.invoice_items WHERE tenant_id=p_tenant_id AND invoice_id=p_invoice_id AND vat_rate=0
+      AND nullif(btrim(e_invoice_tax->>'exemptionReason'),'') IS NULL
+      AND nullif(btrim(e_invoice_tax->>'exemptionReasonCode'),'') IS NULL)
+    AND nullif(btrim(v_invoice.footer_text),'') IS NULL THEN
+    RAISE EXCEPTION 'Bitte die Grundlage für Rechnungspositionen ohne Umsatzsteuer angeben.';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.invoice_items i LEFT JOIN public.service_records s ON s.id=i.service_record_id AND s.tenant_id=i.tenant_id
+    WHERE i.tenant_id=p_tenant_id AND i.invoice_id=p_invoice_id AND i.service_record_id IS NOT NULL
+      AND (s.id IS NULL OR s.billed_invoice_id IS DISTINCT FROM p_invoice_id OR s.client_id IS DISTINCT FROM v_invoice.client_id
+        OR s.status::text NOT IN ('approved','billable') OR s.total_amount IS DISTINCT FROM i.net_amount)) THEN
+    RAISE EXCEPTION 'Eine Rechnungsquelle hat sich geändert oder ist nicht mehr abrechenbar.';
+  END IF;
+  FOR v_source IN SELECT * FROM public.service_records WHERE tenant_id=p_tenant_id AND billed_invoice_id=p_invoice_id ORDER BY id LOOP
+    PERFORM care_security.office_invoice_assert_source(v_source,true);
+  END LOOP;
+  SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]'::jsonb) INTO v_sources FROM public.service_records s
+    WHERE s.tenant_id=p_tenant_id AND s.billed_invoice_id=p_invoice_id;
+  v_proofs:=care_security.office_invoice_proofs(v_invoice);
+  v_snapshot:=jsonb_build_object('invoice',to_jsonb(v_invoice),'lines',v_lines,'sources',v_sources,'proofs',v_proofs,
+    'company',v_company,'invoice_number',v_number);
+  RETURN jsonb_build_object('invoice_number',v_number,'company_snapshot',v_company,'source_revision',md5(v_snapshot::text),
+    'snapshot',v_snapshot,'next_invoice_number',v_next+1);
+END
+$body$;
+REVOKE ALL ON FUNCTION care_security.office_invoice_issue_preview(uuid,uuid,timestamptz) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION care_security.office_invoice_issue_preview(uuid,uuid,timestamptz) TO authenticated;
 
 -- The existing lifecycle implementation below is preserved apart from atomic
 -- structured metadata persistence and a shared lock on seller tax settings.

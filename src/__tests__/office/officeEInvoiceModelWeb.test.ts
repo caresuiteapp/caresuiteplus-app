@@ -82,6 +82,8 @@ describe('Office e-invoice explicit facts and safe UBL output', () => {
     expect(() => prepareOfficeInvoiceUbl(draft, preview, metadata())).toThrow(/Anlagen/);
     const annex = { id: 'record:one', fileName: 'original.pdf', mimeType: 'application/pdf' as const, description: 'Signierter Originalnachweis', base64: 'JVBERi0xLjcKJSVFT0YK' };
     const output = prepareOfficeInvoiceUbl(draft, preview, metadata(), [annex]);
+    const largeAnnex = { ...annex, base64: btoa('%PDF-1.7\n' + 'x'.repeat(1024 * 1024) + '\n%%EOF') };
+    expect(prepareOfficeInvoiceUbl(draft, preview, metadata(), [largeAnnex]).xml).toContain(largeAnnex.base64);
     expect(output.xml).toContain(annex.base64); expect(output.xml).toContain('Signierter Originalnachweis');
     expect(() => prepareOfficeInvoiceUbl(draft, preview, metadata(), [{ ...annex, id: 'record:two' }])).toThrow();
   });

@@ -84,6 +84,8 @@ const issueGuard = fn('care_security.office_einvoice_issue_guard').body;
 check(issueGuard.includes('v.source_revision=md5(NEW.issued_snapshot::text)') && issueGuard.includes('v.xml_sha256=NEW.e_invoice_xml_sha256'), 'Issuance guard must check the immutable receipt against the frozen snapshot and artifact.');
 check(issueGuard.includes('OLD.issued_at IS NOT NULL') && issueGuard.includes('OLD.e_invoice_validation_id'), 'Issued metadata and artifact references must remain immutable.');
 const mutation = fn('care_security.office_invoice_mutation').body;
+const issuePreview = fn('care_security.office_invoice_issue_preview').body;
+check(issuePreview.includes("AND nullif(btrim(e_invoice_tax->>'exemptionReason'),'') IS NULL") && issuePreview.includes("AND nullif(btrim(e_invoice_tax->>'exemptionReasonCode'),'') IS NULL") && issuePreview.includes("AND nullif(btrim(v_invoice.footer_text),'') IS NULL"), 'Every zero-VAT position needs a reason, reason code, or the legacy shared footer.');
 check(mutation.includes('expected_updated_at=p_expected_updated_at') && mutation.includes("source_revision=v_preview->>'source_revision'") && mutation.includes("invoice_number=v_preview->>'invoice_number'"), 'Finalization must use an exact current revision/number receipt.');
 check(mutation.indexOf('SELECT * INTO v_einvoice_validation') < mutation.indexOf('UPDATE public.tenant_billing_settings SET next_invoice_number='), 'Invalid validation must fail before allocating a final number.');
 check(mutation.includes('e_invoice_xml_sha256=v_einvoice_validation.xml_sha256,e_invoice_validation_id=v_einvoice_validation.id'), 'PDF, XML, snapshot and number must finalize in the existing atomic transaction.');
