@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
 import { InvoiceEditor } from '@/components/office/invoices/InvoiceEditor.web';
 import { invoiceEditorCss } from '@/components/office/invoices/invoiceEditorStyles.web';
@@ -20,9 +21,10 @@ export function InvoiceEditScreen() {
 }
 function InvoiceEditLoader({ tenantId, roleKey, invoiceId, scopeKey }: { tenantId: string; roleKey: RoleKey; invoiceId: string; scopeKey: string }) {
   const router = useRouter();
+  const [reloadVersion, setReloadVersion] = useState(0);
   const query = useAsyncQuery(() => fetchOfficeInvoice(tenantId, invoiceId, roleKey), [tenantId, invoiceId, roleKey], { queryKey: scopeKey, retryCount: 0 });
   if (query.loading) return <div className="ie" role="status" aria-label="Rechnungsentwurf wird geladen"><div className="ie-loading" /><div className="ie-loading" /></div>;
   if (query.error || !query.data) return <div className="ie ie-panel ie-empty"><h2>Rechnung nicht verfügbar</h2><p role="alert">{query.error || 'Der Rechnungsentwurf wurde nicht gefunden.'}</p><button onClick={() => void query.refresh()}>Erneut laden</button></div>;
   if (query.data.status !== 'draft') return <section className="ie ie-panel ie-empty"><h2>Diese Rechnung ist abgeschlossen</h2><p>Freigegebene Rechnungen können nicht mehr direkt verändert werden. Die gespeicherten Rechnungsdaten bleiben erhalten.</p><button onClick={() => router.replace(`/business/office/invoices/${invoiceId}` as never)}>Rechnung ansehen</button></section>;
-  return <InvoiceEditor key={`${scopeKey}:${query.data.updatedAt}`} {...{ tenantId, roleKey, scopeKey }} initialInvoice={query.data} />;
+  return <InvoiceEditor key={`${scopeKey}:${query.data.updatedAt}:${reloadVersion}`} {...{ tenantId, roleKey, scopeKey }} initialInvoice={query.data} onReload={async () => { if (!await query.refreshWithResult()) throw new Error('Der aktuelle Rechnungsstand konnte nicht geladen werden. Ihre Eingaben bleiben erhalten.'); setReloadVersion(value => value + 1); }} />;
 }

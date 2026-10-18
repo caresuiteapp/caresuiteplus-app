@@ -57,6 +57,16 @@ describe('Web invoice PDF truth and pagination', () => {
     expect(errors).toContain('Positionssumme und Rechnungsbetrag stimmen nicht überein.');
     expect(errors.some(error => error.startsWith('Position 1:'))).toBe(true);
   });
+  it('preserves canonical cent rounding for decimal quantities at a half-cent boundary', async () => {
+    const payload = data();
+    payload.invoice.lineItems = [{ id: 'one', description: 'Prüfposition', quantity: 0.29, unit: 'hour', unitPriceCents: 50, taxRatePercent: 19,
+      netTotalCents: 15, taxCents: 3, totalCents: 18 }];
+    payload.invoice.amountCents = 18;
+    expect(validateInvoicePdf(payload).errors).toEqual([]);
+    await renderInvoicePdfDocument(payload);
+    expect(f.renders.some(row => row.text === '0,15 €')).toBe(true);
+    expect(f.renders.some(row => row.text === '0,03 €')).toBe(true);
+  });
   it('does not invent tax exemption claims for a zero percent rate', async () => {
     const payload = data(); payload.invoice.taxNotice = '';
     const result = await renderInvoicePdfDocument(payload);
@@ -94,5 +104,15 @@ describe('Web invoice PDF truth and pagination', () => {
     f.query.mockResolvedValue({ data: { id: 'invoice-1', tenant_id: tenant, pdf_file_path: `tenant/${tenant}/different.pdf` }, error: null });
     const result = await prepareOfficeInvoicePdf(tenant, { ...data().invoice, id: 'invoice-1', status: 'sent', pdfStoragePath: `tenant/${tenant}/invoices/one.pdf` }, 'business_admin');
     expect(result.ok).toBe(false); expect(f.download).not.toHaveBeenCalled();
+  });
+  it('retrieves an issued original without loading present-day company or bank information', async () => {
+    const path = `tenant/${tenant}/invoices/original.pdf`;
+    f.query.mockResolvedValue({ data: { id: 'invoice-1', tenant_id: tenant, pdf_file_path: path }, error: null });
+    const bytes = new TextEncoder().encode('%PDF-1.7\noriginal invoice');
+    f.download.mockResolvedValue({ data: new Blob([bytes], { type: 'application/pdf' }), error: null });
+    const result = await prepareOfficeInvoicePdf(tenant, { ...data().invoice, id: 'invoice-1', status: 'sent', pdfStoragePath: path }, 'business_admin');
+    expect(result.ok && result.data.bytes).toEqual(bytes);
+    expect(f.query).toHaveBeenCalledExactlyOnceWith('invoices');
+    expect(f.renders).toEqual([]);
   });
 });

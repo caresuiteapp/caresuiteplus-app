@@ -102,9 +102,9 @@ function total(values: (number | null)[]): number | null {
   const amount = values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
   return Number.isSafeInteger(amount) ? amount : null;
 }
-/** Live balances for invoices belonging to a service month, not cash receipts in that month. */
+/** Live balances for invoices dated in a month, not cash receipts in that month. */
 export function buildOfficeInvoiceMonthSummary(month: string, invoices: OfficeInvoice[]): OfficeInvoiceMonthSummary {
-  const selected = invoices.filter(invoice => (invoice.servicePeriodStart || invoice.invoiceDate).slice(0, 7) === month);
+  const selected = invoices.filter(invoice => invoice.invoiceDate.slice(0, 7) === month);
   const issued = selected.filter(invoice => !['draft', 'cancelled', 'written_off'].includes(invoice.status));
   return { month, invoices: selected, draftCount: selected.filter(invoice => invoice.status === 'draft').length, issuedCount: issued.length,
     totalCents: total(issued.map(invoice => invoice.amountCents)), openCents: total(issued.map(invoice => invoice.openCents)),
@@ -112,7 +112,7 @@ export function buildOfficeInvoiceMonthSummary(month: string, invoices: OfficeIn
 }
 export async function fetchOfficeInvoiceMonthSummary(tenantId: string, month: string, role?: RoleKey | null): Promise<ServiceResult<OfficeInvoiceMonthSummary>> {
   const blocked = denied<OfficeInvoiceMonthSummary>(tenantId, role); if (blocked) return blocked;
-  if (!invoiceRunPeriod(month)) return { ok: false, error: 'Bitte einen gültigen Leistungsmonat auswählen.' };
+  if (!invoiceRunPeriod(month)) return { ok: false, error: 'Bitte einen gültigen Rechnungsmonat auswählen.' };
   const invoices = await fetchOfficeInvoices(tenantId, role); if (!invoices.ok) return invoices;
   return { ok: true, data: buildOfficeInvoiceMonthSummary(month, invoices.data) };
 }

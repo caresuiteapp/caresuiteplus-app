@@ -45,7 +45,7 @@ async function readAll(tenantId: string, table: string, columns: string, equal: 
     if (ids) query = query.in('id', ids);
     const { data, error } = await query.order('id', { ascending: true }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     if (error) throw new Error(toGermanSupabaseError(error));
-    const next = (data ?? []) as Row[];
+    const next = (data ?? []) as unknown as Row[];
     if (next.some(row => row.tenant_id !== tenantId || (ids && !ids.includes(text(row.id))) || Object.entries(equal).some(([key, value]) => row[key] !== value))) throw new Error('Die geladenen Rechnungsdaten gehören nicht zur gewählten Ansicht.');
     for (const row of next) {
       if (!text(row.id) || seenIds.has(text(row.id))) throw new Error('Die Rechnungsdaten haben sich während des Ladens geändert. Bitte erneut laden.');

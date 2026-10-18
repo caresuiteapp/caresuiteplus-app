@@ -18,7 +18,7 @@ function clientBilling(client: OfficeInvoiceClient): Pick<InvoiceOfficeDraft, 'r
   };
   return { recipient: { ...client.recipient }, recipientType: 'client', billingParty: 'self_payer' };
 }
-type Props = { tenantId: string; roleKey: RoleKey; initialInvoice?: OfficeInvoice; initialModule?: OfficeInvoiceProductKey; initialClientId?: string; scopeKey: string };
+type Props = { tenantId: string; roleKey: RoleKey; initialInvoice?: OfficeInvoice; initialModule?: OfficeInvoiceProductKey; initialClientId?: string; scopeKey: string; onReload?: () => Promise<void> };
 function freshLine(productKey: OfficeInvoiceProductKey): OfficeInvoiceDraftLine { return { description: '', quantity: 1, unit: 'hour', unitPriceCents: 0, taxRatePercent: 0, productKey }; }
 function lineText(line: OfficeInvoiceDraftLine): InvoiceEditorLineText { return { quantity: Number.isFinite(line.quantity) ? String(line.quantity).replace('.', ',') : '', price: Number.isSafeInteger(line.unitPriceCents) ? (line.unitPriceCents / 100).toFixed(2).replace('.', ',') : '', tax: Number.isFinite(line.taxRatePercent) ? String(line.taxRatePercent).replace('.', ',') : '' }; }
 
@@ -28,7 +28,7 @@ export function makeInvoiceEditorDraft(invoice?: OfficeInvoice, module: OfficeIn
   return { requestId: crypto.randomUUID(), clientId: '', invoiceNumber: '', invoiceDate: today, dueDate: invoiceEditorDueDate(today, 14), servicePeriodStart: period.start, servicePeriodEnd: period.end, recipient: { ...emptyRecipient }, recipientType: 'client', billingParty: 'self_payer', notes: '', footerText: '', includeProofs: false, selectedProofIds: [], lines: [freshLine(module)] };
 }
 
-export function InvoiceEditor({ tenantId, roleKey, initialInvoice, initialModule = 'assist', initialClientId, scopeKey }: Props) {
+export function InvoiceEditor({ tenantId, roleKey, initialInvoice, initialModule = 'assist', initialClientId, scopeKey, onReload }: Props) {
   const router = useRouter(); const navigation = useNavigation();
   const [draft, setDraft] = useState(() => makeInvoiceEditorDraft(initialInvoice, initialModule));
   const [texts, setTexts] = useState(() => draft.lines.map(lineText));
@@ -102,11 +102,18 @@ export function InvoiceEditor({ tenantId, roleKey, initialInvoice, initialModule
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : 'Der Entwurf konnte nicht gespeichert werden. Bitte den gespeicherten Stand prüfen.'); }
     finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
+  async function reloadInvoice() {
+    if (!onReload || !canLeave()) return;
+    lock.current = true; setBusy(true); setError('');
+    try { await onReload(); }
+    catch (cause) { if (mounted.current) { leaveAllowed.current = false; setError(cause instanceof Error ? cause.message : 'Der aktuelle Rechnungsstand konnte nicht geladen werden.'); } }
+    finally { lock.current = false; if (mounted.current) setBusy(false); }
+  }
   if (savedId) return <section className="ie ie-panel ie-empty" data-testid="invoice-editor-saved"><span className="ie-badge" data-tone="success">Gespeichert</span><h2>Rechnungsentwurf gespeichert</h2><p>Der Entwurf kann jetzt geprüft, weiterbearbeitet oder freigegeben werden.</p><button className="ie-primary" onClick={() => router.replace(`/business/office/invoices/${savedId}` as never)}>Rechnung öffnen</button></section>;
   return <section className="ie ie-fade" data-testid="invoice-editor">
     <header className="ie-header"><div className="ie-heading"><span className="ie-mark" aria-hidden="true">▤</span><div><p className="ie-eyebrow">Office · Rechnungen</p><h1>{initialInvoice ? 'Entwurf bearbeiten' : 'Einzelrechnung erstellen'}</h1><p>{(initialInvoice?.invoiceNumber.startsWith('DRAFT-') ? '' : initialInvoice?.invoiceNumber) || 'Empfänger und Positionen festlegen. Vor dem Speichern als PDF prüfen.'}</p></div></div><div className="ie-actions"><button disabled={busy} onClick={() => { if (canLeave()) router.back(); }}>Zurück</button><button className="ie-primary" disabled={busy || stale} onClick={() => void save()}>{busy ? 'Wird gespeichert …' : 'Entwurf speichern'}</button></div></header>
     {(options.error || options.refreshError) && <div className="ie-notice" data-tone="error" role="alert">{options.error || options.refreshError}<br />Änderungen bleiben bis zum erfolgreichen Laden gesperrt. <button disabled={busy} onClick={() => void options.refresh()}>Erneut laden</button></div>}
-    {error && <div className="ie-notice" data-tone="error" role="alert">{error}</div>}
+    {error && <div className="ie-notice" data-tone="error" role="alert">{error}{onReload && <><br /><button disabled={busy} onClick={() => void reloadInvoice()}>Aktuellen Rechnungsstand laden</button></>}</div>}
     {showIssues && validation.length > 0 && <div className="ie-notice" data-tone="error" role="alert"><strong>Bitte vor dem Speichern prüfen:</strong><ul>{[...new Set(validation)].map(issue => <li key={issue}>{issue}</li>)}</ul></div>}
     {initialInvoice && (!initialInvoice.recipientType || !initialInvoice.billingParty) && <div className="ie-notice" data-tone="warning">In diesem älteren Entwurf fehlen Empfängerart und Kostenträger. Bitte die Zuordnung vor dem Speichern prüfen.</div>}{options.loading && <div className="ie-notice" role="status">Klienten und Leistungskatalog werden geladen …</div>}
     <div className="ie-layout"><div className="ie-main"><section className="ie-panel"><div className="ie-panel-head"><div><p className="ie-step">01 · EMPFÄNGER & ZEITRAUM</p><h2>Rechnungsangaben</h2></div><span className="ie-badge">Entwurf</span></div>

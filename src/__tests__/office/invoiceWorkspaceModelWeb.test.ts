@@ -40,7 +40,7 @@ describe('Invoice workspace filters and truthful balances', () => {
     const rows = [makeInvoice('a', { amountCents: null, dueDate: null }), makeInvoice('b', { amountCents: 0 }), makeInvoice('c', { amountCents: 100 })];
     expect(selectWorkspaceInvoices(rows, { ...filter, sort: 'amount' }).map(row => row.id)).toEqual(['c', 'b', 'a']);
     expect(selectWorkspaceInvoices(rows, { ...filter, sort: 'due' }).at(-1)?.id).toBe('a');
-    expect(formatInvoiceMoney(null)).toBe('—'); expect(formatInvoiceMoney(Number.NaN)).toBe('—'); expect(formatInvoiceDate(null)).toBe('—');
+    expect(formatInvoiceMoney(null)).toBe('—'); expect(formatInvoiceMoney(Number.NaN)).toBe('—'); expect(formatInvoiceDate(null)).toBe('—'); expect(formatInvoiceDate('2026-02-31')).toBe('—');
     expect(addInvoiceDays('2026-10-25', 14)).toBe('2026-11-08');
     expect(invoiceDisplayNumber(makeInvoice('x', { status: 'draft', invoiceNumber: 'DRAFT-uuid' }))).toBe('Entwurf');
     expect(invoiceDisplayNumber(makeInvoice('x', { status: 'sent', invoiceNumber: '' }))).toBe('Rechnungsnummer fehlt');

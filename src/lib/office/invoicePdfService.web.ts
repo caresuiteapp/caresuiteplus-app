@@ -173,7 +173,7 @@ export async function fetchInvoicePdfData(
         iban: value(bank ?? billing, 'iban'),
         bic: value(bank ?? billing, 'bic'),
         logoUrl: value(branding, 'logo_url'),
-        footerText: invoice.footerText?.trim() || value(billing, 'invoice_footer_text'),
+        footerText: value(billing, 'invoice_footer_text'),
       },
     },
   };
@@ -205,10 +205,10 @@ export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   require(Boolean(company.bankName && company.iban), 'Bankverbindung für die Zahlung fehlt.');
 
   invoice.lineItems.forEach((item, index) => {
-    const rate = item.taxRatePercent ?? 0;
-    const net = Math.round(item.quantity * item.unitPriceCents);
-    const tax = Math.round(net * rate / 100);
-    if (!item.description.trim() || !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isSafeInteger(item.unitPriceCents) || item.unitPriceCents < 0 || !Number.isFinite(rate) || rate < 0 || rate > 100 || !Number.isSafeInteger(item.totalCents) || item.totalCents !== net + tax || (item.netTotalCents !== undefined && item.netTotalCents !== net) || (item.taxCents !== undefined && item.taxCents !== tax)) {
+    try {
+      const { netCents, taxCents, totalCents } = pdfLineAmounts(item);
+      if (!item.description.trim() || item.totalCents !== totalCents || (item.netTotalCents !== undefined && item.netTotalCents !== netCents) || (item.taxCents !== undefined && item.taxCents !== taxCents)) throw new Error('Beträge stimmen nicht überein.');
+    } catch {
       errors.push(`Position ${index + 1}: Menge, Einzelpreis oder Steuerbetrag ist ungültig.`);
     }
   });
@@ -225,6 +225,12 @@ export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   if (invoice.status === 'draft') warnings.push('Der PDF-Entwurf erhält ein sichtbares ENTWURF-Wasserzeichen.');
 
   return { errors, warnings };
+}
+
+function pdfLineAmounts(item: InvoiceDetail['lineItems'][number]) {
+  // All PDF math follows the same decimal-to-cent contract as drafts and SQL.
+  return calculateOfficeInvoiceLines([{ description: item.description, quantity: item.quantity, unit: item.unit || '',
+    unitPriceCents: item.unitPriceCents, taxRatePercent: item.taxRatePercent ?? 0, productKey: 'assist' }]).lines[0];
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -411,9 +417,9 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
     }
   });
   reserve(38); y += 8;
-  const net = invoice.lineItems.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPriceCents), 0);
+  const net = invoice.lineItems.reduce((sum, item) => sum + pdfLineAmounts(item).netCents, 0);
   const taxGroups = new Map<number, number>();
-  invoice.lineItems.forEach(item => { const rate = item.taxRatePercent ?? 0; taxGroups.set(rate, (taxGroups.get(rate) || 0) + Math.round(Math.round(item.quantity * item.unitPriceCents) * rate / 100)); });
+  invoice.lineItems.forEach(item => { const rate = item.taxRatePercent ?? 0; taxGroups.set(rate, (taxGroups.get(rate) || 0) + pdfLineAmounts(item).taxCents); });
   const totalRow = (label: string, value: number, bold = false) => { reserve(9); font(bold ? 10 : 8.8, bold); write(label, 112, y); write(formatMoney(value), right, y, { align: 'right' }); y += bold ? 10 : 7; };
   totalRow('Nettobetrag', net);
   for (const [rate, value] of taxGroups) totalRow(`Umsatzsteuer ${formatQuantity(rate)} %`, value);
@@ -523,7 +529,8 @@ export async function prepareOfficeInvoicePdf(tenantId: string, invoice: OfficeP
       const downloaded = await client.storage.from('office-documents').download(invoice.pdfStoragePath);
       if (downloaded.error || !downloaded.data) return { ok: false, error: 'Die archivierte Rechnung konnte nicht geöffnet werden. Bitte erneut versuchen.' };
       const bytes = new Uint8Array(await downloaded.data.arrayBuffer());
-      await validateInvoicePdfBytes(bytes);
+      const archivedHash = /\/generated\/invoice-[^/]+\/([a-f0-9]{64})\.pdf$/i.exec(invoice.pdfStoragePath)?.[1];
+      await validateInvoicePdfBytes(bytes, archivedHash);
       return { ok: true, data: { fileName: `${sanitizeFileName(invoice.invoiceNumber)}_${sanitizeFileName(invoice.clientName)}.pdf`, bytes, validation: { errors: [], warnings: [] } } };
     }
     const loaded = await fetchInvoicePdfData(tenantId, invoice, actorRoleKey);

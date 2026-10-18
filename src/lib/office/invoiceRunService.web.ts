@@ -11,8 +11,8 @@ import {
 } from './invoiceRunModel.web';
 export * from './invoiceRunModel.web';
 
-const SOURCE_COLUMNS = 'id,tenant_id,client_id,assignment_id,product_key,service_date,record_number,status,actual_minutes,billable_minutes,hourly_rate,total_amount,billed_invoice_id,updated_at,pdf_url,source_receipt';
-const CLIENT_COLUMNS = 'id,tenant_id,first_name,last_name,street,house_number,postal_code,city,country,email,billing_party';
+const SOURCE_COLUMNS = 'id,tenant_id,client_id,assignment_id,signature_id,documentation_entry_id,product_key,service_date,record_number,status,actual_minutes,billable_minutes,hourly_rate,total_amount,billed_invoice_id,updated_at,pdf_url,source_receipt';
+const CLIENT_COLUMNS = 'id,tenant_id,first_name,last_name,street,house_number,postal_code,city,country,email,billing_party,deleted_at';
 const BILLING_COLUMNS = 'id,tenant_id,client_id,billing_type,invoice_recipient,payment_terms_days';
 const RECIPIENT_COLUMNS = 'id,tenant_id,client_id,carrier_type,name_snapshot,address_snapshot,insurance_number,policy_number,billing_relevant,is_primary,valid_from,valid_until,archived_at';
 const SETTINGS_COLUMNS = 'id,tenant_id,insurance_vat_rate,self_payer_vat_rate,invoice_footer_text,invoice_notes,payment_terms_days';

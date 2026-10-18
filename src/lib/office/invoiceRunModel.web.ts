@@ -135,11 +135,13 @@ function sourceLine(source: InvoiceRunRow, tenantId: string, clientId: string, t
   if (value(source, 'assignment_id')) {
     const validReceipt = receipt?.version === 'workflow-assignment-record-v1' && receipt.tenant_id === tenantId
       && receipt.client_id === clientId && receipt.assignment_id === source.assignment_id
+      && berlinDateKey(value(receipt, 'service_started_at')) === serviceDate
       && number(receipt, 'actual_minutes') === actual && Boolean(value(receipt, 'pdf_storage_path'))
       && /^(sha256:)?[0-9a-f]{64}$/.test(value(receipt, 'pdf_sha256'))
       && Number.isFinite(Date.parse(value(receipt, 'attested_at'))) && Date.parse(value(receipt, 'attested_at')) <= now;
     if (!validReceipt) fail('Die bestätigte signierte Nachweisfassung fehlt oder passt nicht zum Einsatz.');
   }
+  if (!value(source, 'assignment_id') && (!value(source, 'signature_id') || !value(source, 'documentation_entry_id'))) fail('Die Zuordnung zur unterschriebenen Nachweisfassung fehlt.');
   if (includeProofs && !value(receipt, 'pdf_storage_path') && !value(source, 'pdf_url')) fail('Für die gewählte Anlage ist keine Nachweis-PDF hinterlegt.');
   if (minutes == null || minutes <= 0 || rate == null || rate <= 0 || !['assist', 'pflege', 'stationaer', 'beratung'].includes(product)) return { line: null, blockers };
   const calculated = Math.round(minutes / 60 * Math.round(rate * 100));
@@ -197,6 +199,7 @@ export function buildInvoiceRunPreview(tenantId: string, input: InvoiceRunInput,
       { start: sourceDates[0], end: sourceDates[sourceDates.length - 1] }, input.recipientIdsByClient?.[clientId]);
     const blockers = [...recipient.blockers];
     if (clients.length !== 1) blockers.push('Die Klientenzuordnung fehlt oder ist nicht eindeutig.');
+    if (value(client, 'deleted_at')) blockers.push('Die Klientenakte wurde gelöscht. Bitte die Zuordnung prüfen.');
     const configuredTax = settings ? number(settings, recipient.billingParty === 'self_payer' ? 'self_payer_vat_rate' : 'insurance_vat_rate') : null;
     const tax = input.taxRatePercent ?? configuredTax;
     if (validVat(tax) && tax > 0 && input.taxRatePercent === undefined) blockers.push('Bitte bestätigen, dass die gespeicherten Leistungsbeträge Nettobeträge sind, und den Umsatzsteuersatz für diesen Lauf auswählen.');

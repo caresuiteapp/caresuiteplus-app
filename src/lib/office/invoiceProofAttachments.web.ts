@@ -26,22 +26,23 @@ async function readProofSources(tenantId: string, clientId: string, start: strin
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Die Leistungsnachweise können gerade nicht geladen werden.' };
   const result = await fetchAllPortalRows<Record<string, unknown> & { id: string }>((from, to) => fromUnknownTable(client, 'service_records')
-    .select('id,tenant_id,client_id,record_number,service_date,status,pdf_url,source_receipt,billed_invoice_id', { count: 'exact' })
+    .select('id,tenant_id,client_id,assignment_id,record_number,service_date,status,source_receipt,billed_invoice_id', { count: 'exact' })
     .eq('tenant_id', tenantId).eq('client_id', clientId).gte('service_date', start).lte('service_date', end)
     .order('service_date').order('id').range(from, to));
   if (!result.ok) return { ok: false, error: 'Leistungsnachweise konnten nicht vollständig geprüft werden. Bitte erneut laden.' };
   if (result.data.some(row => row.tenant_id !== tenantId || row.client_id !== clientId)) return { ok: false, error: 'Die Zuordnung eines Leistungsnachweises ist ungültig.' };
   const sources = result.data.map(row => {
     const receipt = object(row.source_receipt);
-    const storagePath = text(receipt.pdf_storage_path) || text(row.pdf_url);
+    const storagePath = text(receipt.pdf_storage_path);
     const status = text(row.status);
     const serviceDate = text(row.service_date).slice(0, 10);
     const signed = ['signed', 'approved', 'billable', 'billed'].includes(status);
-    const correctScope = (!receipt.tenant_id || receipt.tenant_id === tenantId) && (!receipt.client_id || receipt.client_id === clientId);
+    const correctScope = receipt.tenant_id === tenantId && receipt.client_id === clientId;
+    const attested = Boolean(text(row.assignment_id)) && receipt.assignment_id === row.assignment_id &&
+      receipt.version === 'workflow-assignment-record-v1' && /^(sha256:)?[0-9a-f]{64}$/.test(text(receipt.pdf_sha256));
     const unavailableReason = !signed ? 'Der Leistungsnachweis ist noch nicht unterschrieben oder freigegeben.'
-      : !correctScope ? 'Die Zuordnung des gespeicherten Nachweises stimmt nicht überein.'
+      : !attested || !correctScope || !storagePath ? 'Die Original-PDF ist nicht verlässlich bestätigt. Bitte den Einsatzabschluss prüfen.'
       : !isOfficeInvoiceDate(serviceDate) || serviceDate < start || serviceDate > end ? 'Der Leistungsnachweis liegt außerhalb des Rechnungszeitraums.'
-      : !storagePath ? 'Für diesen Leistungsnachweis wurde noch keine PDF gespeichert.'
       : !isTenantStoragePath(storagePath, tenantId) ? 'Der gespeicherte PDF-Verweis ist ungültig.' : null;
     return { id: `record:${row.id}`, title: text(row.record_number) ? `Leistungsnachweis ${text(row.record_number)}` : `Leistungsnachweis ${serviceDate}`,
       serviceDate, status, storagePath, expectedHash: text(receipt.pdf_sha256) || null, invoiceId: text(row.billed_invoice_id) || null,

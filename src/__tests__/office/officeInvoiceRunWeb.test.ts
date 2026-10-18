@@ -10,7 +10,7 @@ const now = new Date('2026-10-18T08:00:00Z');
 function data(): InvoiceRunSourceData {
   return {
     sources: [{ id: sourceId, tenant_id: tenant, client_id: client, product_key: 'assist', service_date: '2026-09-15',
-      status: 'approved', actual_minutes: 120, billable_minutes: 120, hourly_rate: 32.75, total_amount: 65.5,
+      status: 'approved', signature_id: '77777777-7777-4777-8777-777777777777', documentation_entry_id: '88888888-8888-4888-8888-888888888888', actual_minutes: 120, billable_minutes: 120, hourly_rate: 32.75, total_amount: 65.5,
       updated_at: '2026-09-16T12:00:00Z', record_number: 'LN-001', assignment_id: null }],
     clients: [{ id: client, tenant_id: tenant, first_name: 'Test', last_name: 'Klient', street: 'Testweg', house_number: '1', postal_code: '12345', city: 'Teststadt', country: 'Deutschland' }],
     billingProfiles: [{ id: 'billing', tenant_id: tenant, client_id: client, billing_type: 'selbstzahler', invoice_recipient: null, payment_terms_days: 14 }],
@@ -89,7 +89,7 @@ describe('Web Rechnungslauf – echte Leistungsquellen', () => {
     const original = data(); original.sources[0].assignment_id = 'assignment';
     expect(preview(original).groups[0].blockers.join(' ')).toMatch(/bestätigte signierte Nachweisfassung/);
     original.sources[0].source_receipt = { version: 'workflow-assignment-record-v1', tenant_id: tenant, client_id: client,
-      assignment_id: 'assignment', actual_minutes: 120, pdf_storage_path: `tenant/${tenant}/proof.pdf`, pdf_sha256: 'a'.repeat(64), attested_at: '2026-09-16T12:00:00Z' };
+      assignment_id: 'assignment', service_started_at: '2026-09-15T08:00:00Z', actual_minutes: 120, pdf_storage_path: `tenant/${tenant}/proof.pdf`, pdf_sha256: 'a'.repeat(64), attested_at: '2026-09-16T12:00:00Z' };
     expect(preview(original, { includeProofs: true }).groups[0].eligible).toBe(true);
     (original.sources[0].source_receipt as Record<string, unknown>).client_id = 'foreign';
     expect(preview(original).groups[0].eligible).toBe(false);

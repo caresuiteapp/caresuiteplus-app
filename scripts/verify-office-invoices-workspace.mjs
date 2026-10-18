@@ -19,6 +19,7 @@ const groups = {
     'office/invoicePreviewInteractionWeb.test.tsx',
     'office/officeInvoiceRunWeb.test.ts',
     'office/officeInvoiceRunServiceWeb.test.ts',
+    'office/officeInvoiceFinanceWorkspaceWeb.test.ts',
     'office/officeInvoicePdfWeb.test.ts',
     'office/officeInvoiceProofAttachmentsWeb.test.ts',
     'office/officeInvoiceIssuePdfWeb.test.ts',
@@ -38,6 +39,8 @@ if (missing.length) {
   console.error(`[office-invoices-release] Required project files are missing:\n${missing.map(file => `- ${file}`).join('\n')}`);
   process.exit(1);
 }
+const sql = spawnSync(process.execPath, ['scripts/verify-office-invoice-sql.mjs'], { cwd: root, stdio: 'inherit' });
+if (sql.error || sql.status !== 0) process.exit(sql.status && sql.status > 0 ? sql.status : 1);
 for (const [label, files] of Object.entries(groups)) console.log(`[office-invoices-release] ${label}: ${files.length} suites`);
 const result = spawnSync(process.execPath, [vitest, 'run', '--maxWorkers=1', ...tests], {
   cwd: root, stdio: 'inherit', env: { ...process.env, TZ: 'Europe/Berlin' },

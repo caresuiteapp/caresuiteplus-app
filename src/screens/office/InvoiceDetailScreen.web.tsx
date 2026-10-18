@@ -72,18 +72,18 @@ function InvoiceDetailWorkspace({ tenantId, roleKey, scopeKey, invoiceId, canEdi
     setPayment({ amount: '', paymentDate: invoiceEditorToday(), method: 'bank_transfer', reference: '', notes: '' }); setDelivery({ channel: 'email', date: invoiceEditorToday(), reference: '' }); setDeliveryConfirmed(false);
   }
   async function issue() {
-    if (!invoice || !canChangeStatus || invoice.status !== 'draft' || !invoice.officeManaged || actionDisabled) return;
+    if (lock.current || !invoice || !canChangeStatus || invoice.status !== 'draft' || !invoice.officeManaged || actionDisabled) return;
     if (!window.confirm(`Rechnung für ${invoice.recipient.name} über ${money(invoice.amountCents)} verbindlich freigeben?\n\nDie endgültige Rechnungsnummer und das PDF werden gespeichert. Danach sind die Rechnungsdaten nicht mehr direkt bearbeitbar. Die Rechnung wird dabei nicht versendet.`)) return;
     const id = actionId(`issue:${invoice.updatedAt}`);
     await operate('issue', 'Rechnung freigegeben. Rechnungsnummer und PDF wurden unveränderlich gespeichert.', () => issueOfficeInvoicePdf(tenantId, invoice, roleKey, id));
   }
   async function remove() {
-    if (!invoice || !canChangeStatus || invoice.status !== 'draft' || !invoice.officeManaged || actionDisabled) return;
+    if (lock.current || !invoice || !canChangeStatus || invoice.status !== 'draft' || !invoice.officeManaged || actionDisabled) return;
     if (!window.confirm('Diesen Rechnungsentwurf wirklich verwerfen? Verknüpfte Leistungsnachweise werden wieder für die Abrechnung freigegeben.')) return;
     await operate('delete', 'Entwurf verworfen.', () => deleteOfficeInvoiceDraft(tenantId, invoice.id, invoice.updatedAt, actionId(`delete:${invoice.updatedAt}`), roleKey), true);
   }
   async function savePayment() {
-    if (!invoice || !canChangeStatus || actionDisabled || invoice.openCents == null) return;
+    if (lock.current || !invoice || !canChangeStatus || actionDisabled || invoice.openCents == null) return;
     const amount = parseInvoiceEditorDecimal(payment.amount);
     if (amount == null || amount <= 0 || Math.round(amount * 100) > invoice.openCents) { setNotice({ tone: 'error', text: 'Der Zahlungsbetrag muss größer als null sein und darf den offenen Rechnungsbetrag nicht überschreiten.' }); return; }
     if (!payment.reference.trim() || !payment.paymentDate || payment.paymentDate > invoiceEditorToday()) { setNotice({ tone: 'error', text: 'Bitte ein gültiges Zahlungsdatum und eine Buchungsreferenz angeben.' }); return; }
@@ -92,7 +92,7 @@ function InvoiceDetailWorkspace({ tenantId, roleKey, scopeKey, invoiceId, canEdi
     await operate('payment', 'Zahlungseingang gebucht. Der offene Betrag und der Zahlungsstatus wurden aktualisiert.', () => recordOfficeInvoicePayment(tenantId, invoice.id, invoice.updatedAt, input, roleKey));
   }
   async function saveDelivery() {
-    if (!invoice || !canChangeStatus || actionDisabled || !deliveryConfirmed) return;
+    if (lock.current || !invoice || !canChangeStatus || actionDisabled || !deliveryConfirmed) return;
     if (!delivery.reference.trim() || !delivery.date || delivery.date > invoiceEditorToday()) { setNotice({ tone: 'error', text: 'Bitte ein gültiges Versanddatum und einen Versandnachweis oder eine Referenz angeben.' }); return; }
     const reason = `Extern übermittelt am ${delivery.date}; ${delivery.channel}; ${delivery.reference.trim()}`;
     await operate('delivery', 'Die bereits erfolgte Übermittlung wurde dokumentiert. Es wurde keine Nachricht aus CareSuite versendet.', () => transitionOfficeInvoice(tenantId, invoice.id, invoice.updatedAt, 'sent', reason, actionId(`delivery:${invoice.updatedAt}:${JSON.stringify(delivery)}`), roleKey, delivery));

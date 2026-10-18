@@ -54,8 +54,8 @@ export function calculateOfficeInvoiceLines(lines: OfficeInvoiceDraftLine[]) {
     if (!Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isSafeInteger(Math.round(line.quantity * 100)) ||
       Math.abs(line.quantity * 100 - Math.round(line.quantity * 100)) > 0.00001 || !Number.isSafeInteger(line.unitPriceCents) || line.unitPriceCents < 0 ||
       !Number.isFinite(line.taxRatePercent) || line.taxRatePercent < 0 || line.taxRatePercent > 100 || Math.abs(line.taxRatePercent * 100 - Math.round(line.taxRatePercent * 100)) > 0.00001) throw new Error('Eine Rechnungsposition enthält ungültige Werte.');
-    const netCents = Number((BigInt(Math.round(line.quantity * 100)) * BigInt(line.unitPriceCents) + 50n) / 100n);
-    const taxCents = Number((BigInt(netCents) * BigInt(Math.round(line.taxRatePercent * 100)) + 5000n) / 10000n);
+    const netCents = Number((BigInt(Math.round(line.quantity * 100)) * BigInt(line.unitPriceCents) + BigInt(50)) / BigInt(100));
+    const taxCents = Number((BigInt(netCents) * BigInt(Math.round(line.taxRatePercent * 100)) + BigInt(5000)) / BigInt(10000));
     const totalCents = netCents + taxCents;
     if (![netCents, taxCents, totalCents].every(Number.isSafeInteger)) throw new Error('Der Rechnungsbetrag ist zu groß.');
     return { ...line, netCents, taxCents, totalCents };

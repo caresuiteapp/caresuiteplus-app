@@ -27,9 +27,9 @@ const request = '33333333-3333-4333-8333-333333333333';
 const source = '44444444-4444-4444-8444-444444444444';
 function fixture(): InvoiceRunPreview {
   const result = buildInvoiceRunPreview(tenant, { month: '2026-09', includeProofs: false, invoiceDate: '2026-10-01' }, {
-    sources: [{ id: source, tenant_id: tenant, client_id: client, product_key: 'assist', service_date: '2026-09-15', status: 'approved',
+    sources: [{ id: source, tenant_id: tenant, client_id: client, product_key: 'assist', service_date: '2026-09-15', status: 'approved', signature_id: '77777777-7777-4777-8777-777777777777', documentation_entry_id: '88888888-8888-4888-8888-888888888888',
       actual_minutes: 60, billable_minutes: 60, hourly_rate: 30, total_amount: 30, updated_at: '2026-09-16T12:00:00Z' }],
-    clients: [{ id: client, tenant_id: tenant, first_name: 'Test', last_name: 'Person', street: 'Weg 1', postal_code: '12345', city: 'Ort' }],
+    clients: [{ id: client, tenant_id: tenant, first_name: 'Test', last_name: 'Person', street: 'Weg 1', postal_code: '12345', city: 'Ort', country: 'Deutschland' }],
     billingProfiles: [{ id: 'profile', tenant_id: tenant, client_id: client, billing_type: 'selbstzahler', payment_terms_days: 14 }],
     recipients: [], settings: [{ id: 'settings', tenant_id: tenant, self_payer_vat_rate: 0 }],
   }, new Date('2026-10-18T12:00:00Z'), () => request);

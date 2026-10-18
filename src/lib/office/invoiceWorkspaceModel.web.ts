@@ -16,7 +16,7 @@ export function invoiceFilter(value: string): InvoiceWorkspaceStatus { return in
 export function invoiceSort(value: string): InvoiceWorkspaceSort { return ['newest', 'due', 'number', 'client', 'amount'].includes(value) ? value as InvoiceWorkspaceSort : 'newest'; }
 export function invoiceDay(date = new Date()): string { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date); }
 export function addInvoiceDays(day: string, days: number): string { const date = new Date(`${day}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
-export function formatInvoiceDate(day: string | null): string { return day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day.split('-').reverse().join('.') : '—'; }
+export function formatInvoiceDate(day: string | null): string { if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return '—'; const parsed = new Date(`${day}T12:00:00Z`); return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day ? day.split('-').reverse().join('.') : '—'; }
 export function formatInvoiceMoney(cents: number | null): string { return validCents(cents) ? new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100) : '—'; }
 export function invoiceDisplayNumber(row: Pick<InvoiceWorkspaceRow, 'invoiceNumber' | 'status'>): string { return !row.invoiceNumber || /^DRAFT-/i.test(row.invoiceNumber) ? row.status === 'draft' ? 'Entwurf' : 'Rechnungsnummer fehlt' : row.invoiceNumber; }
 function validCents(value: number | null): value is number { return typeof value === 'number' && Number.isSafeInteger(value); }

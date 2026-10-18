@@ -80,9 +80,12 @@ BEGIN
     IF TG_TABLE_NAME='invoice_items' AND TG_OP<>'DELETE' AND nullif(v_new->>'service_record_id','') IS NOT NULL THEN
       -- A legacy line writer must wait for a concurrent managed source claim,
       -- then evaluate the committed owner instead of an earlier snapshot.
-      PERFORM 1 FROM public.service_records WHERE id=(v_new->>'service_record_id')::uuid FOR UPDATE;
+      PERFORM 1 FROM public.service_records WHERE id=(v_new->>'service_record_id')::uuid
+        AND tenant_id=(v_new->>'tenant_id')::uuid FOR UPDATE;
+      IF NOT FOUND THEN RAISE EXCEPTION 'Der Leistungsnachweis gehört nicht zum Rechnungsmandanten.' USING ERRCODE='23514'; END IF;
       IF EXISTS (SELECT 1 FROM public.service_records s JOIN public.invoices i ON i.id=s.billed_invoice_id
-        WHERE s.id=(v_new->>'service_record_id')::uuid AND i.office_managed AND i.id<>(v_new->>'invoice_id')::uuid) THEN
+        WHERE s.id=(v_new->>'service_record_id')::uuid AND s.tenant_id=(v_new->>'tenant_id')::uuid
+          AND i.tenant_id=s.tenant_id AND i.office_managed AND i.id<>(v_new->>'invoice_id')::uuid) THEN
         RAISE EXCEPTION 'Dieser Leistungsnachweis gehört bereits zu einer anderen Rechnung.' USING ERRCODE='23514';
       END IF;
     END IF;
@@ -185,7 +188,10 @@ BEGIN
     IF NOT FOUND OR a.client_id IS DISTINCT FROM p_source.client_id OR a.employee_id IS DISTINCT FROM p_source.employee_id
       OR a.status::text<>'completed' OR a.actual_start_at IS NULL OR a.actual_end_at IS NULL
       OR NOT isfinite(a.actual_start_at) OR NOT isfinite(a.actual_end_at) OR a.actual_end_at<a.actual_start_at
-      OR a.actual_end_at>clock_timestamp() THEN RAISE EXCEPTION 'Der bestätigte Einsatzabschluss ist nicht mehr gültig.'; END IF;
+      OR a.actual_end_at>clock_timestamp()
+      OR p_source.service_date IS DISTINCT FROM (a.actual_start_at AT TIME ZONE 'Europe/Berlin')::date THEN
+      RAISE EXCEPTION 'Der bestätigte Einsatzabschluss oder sein Leistungsdatum ist nicht mehr gültig.';
+    END IF;
     IF nullif(p_source.source_receipt->>'visit_id','') IS NOT NULL THEN
       IF NOT EXISTS(SELECT 1 FROM public.assist_visits v WHERE v.tenant_id=p_source.tenant_id
         AND v.id=(p_source.source_receipt->>'visit_id')::uuid AND (v.id=a.id OR v.legacy_assignment_id=a.id)
@@ -232,10 +238,18 @@ BEGIN
       RAISE EXCEPTION 'Die gespeicherte Nachweisfassung wurde geändert. Bitte den Einsatzabschluss prüfen.';
     END IF;
   ELSE
-    -- A non-assignment proof still needs a real, currently valid signature.
-    IF NOT EXISTS(SELECT 1 FROM public.signatures WHERE tenant_id=p_source.tenant_id AND id=p_source.signature_id
-      AND client_id=p_source.client_id AND status::text='signed' AND nullif(btrim(signature_data),'') IS NOT NULL
-      AND signed_at<=clock_timestamp()) THEN RAISE EXCEPTION 'Ein gültiger unterschriebener Leistungsnachweis fehlt.'; END IF;
+    -- A standalone proof cannot reuse an unrelated old signature from the same
+    -- client. Lock and verify its exact current documentation and signature.
+    SELECT * INTO d FROM public.documentation_entries WHERE tenant_id=p_source.tenant_id AND id=p_source.documentation_entry_id
+      AND client_id=p_source.client_id AND employee_id IS NOT DISTINCT FROM p_source.employee_id AND assignment_id IS NULL
+      AND status::text IN ('saved','signature_required','completed','approved') AND nullif(btrim(free_text),'') IS NOT NULL FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Die aktuelle Dokumentation des Leistungsnachweises fehlt.'; END IF;
+    SELECT * INTO s FROM public.signatures WHERE tenant_id=p_source.tenant_id AND id=p_source.signature_id
+      AND client_id=p_source.client_id AND employee_id IS NOT DISTINCT FROM p_source.employee_id AND assignment_id IS NULL
+      AND documentation_entry_id=d.id AND status::text='signed' AND nullif(btrim(signature_data),'') IS NOT NULL
+      AND length(btrim(signer_name))>=2 AND signed_at>=d.updated_at AND signed_at<=clock_timestamp()
+      AND (signed_at AT TIME ZONE 'Europe/Berlin')::date>=p_source.service_date FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Ein gültiger unterschriebener Leistungsnachweis fehlt.'; END IF;
   END IF;
 END
 $body$;
@@ -263,7 +277,14 @@ BEGIN
       RAISE EXCEPTION 'Ein ausgewählter Leistungsnachweis gehört nicht zu dieser Rechnung oder ist nicht freigegeben.';
     END IF;
     PERFORM care_security.office_invoice_assert_source(v_source,false);
-    v_path:=coalesce(nullif(v_source.source_receipt->>'pdf_storage_path',''),nullif(v_source.pdf_url,''));
+    -- A plausible same-tenant URL is not proof that those PDF bytes belong to
+    -- the current signature. Only the existing trusted byte attestation may
+    -- supply an annex; standalone manual lines remain usable without an annex.
+    IF v_source.assignment_id IS NULL OR v_source.source_receipt->>'version' IS DISTINCT FROM 'workflow-assignment-record-v1'
+      OR coalesce(v_source.source_receipt->>'pdf_sha256','') !~ '^(sha256:)?[0-9a-f]{64}$' THEN
+      RAISE EXCEPTION 'Die Original-PDF dieses Leistungsnachweises ist nicht verlässlich bestätigt. Bitte die Anlage im Einsatzabschluss prüfen.';
+    END IF;
+    v_path:=nullif(v_source.source_receipt->>'pdf_storage_path','');
     IF v_path IS NULL OR v_path NOT LIKE 'tenant/'||p_invoice.tenant_id||'/%' OR v_path LIKE '%..%'
       OR NOT EXISTS(SELECT 1 FROM storage.objects WHERE bucket_id='office-documents' AND name=v_path
         AND metadata->>'mimetype'='application/pdf' AND coalesce((metadata->>'size')::bigint,0)>0) THEN
