@@ -78,7 +78,7 @@ function recurrenceDates(row: AssistWorkspaceRow, date: string): string[] {
   return result;
 }
 
-function expandRows(source: AssistTourPlanningSource): AssistWorkspaceRow[] {
+export function expandAssistTourPlanningRows(source: Pick<AssistTourPlanningSource, 'tenantId' | 'date' | 'visits'>): AssistWorkspaceRow[] {
   const unique = new Map<string, AssistWorkspaceRow>();
   for (const row of scoped(source.visits, source.tenantId)) {
     if (!assistText(row.id) || !assistText(row.client_id) || row.employee_id != null && !assistText(row.employee_id)) throw new Error('Eine Einsatzzuordnung ist unvollständig.');
@@ -175,7 +175,7 @@ export function buildAssistTourPlanning(source: AssistTourPlanningSource): Assis
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) { snapshot.checks.absences = 'unknown'; continue; }
     snapshot.absences.push({ employeeId: String(row.employee_id), start, end, requested: row.status === 'requested' });
   }
-  for (const row of expandRows(source)) {
+  for (const row of expandAssistTourPlanningRows(source)) {
     const start = Date.parse(String(row.planned_start_at)), end = Date.parse(String(row.planned_end_at));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) throw new Error('Ein Einsatz enthält ungültige Anfangs- oder Endzeiten.');
     if (!overlaps(start, end, dayStart, dayEnd)) continue;
