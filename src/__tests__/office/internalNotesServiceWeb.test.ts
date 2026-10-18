@@ -13,7 +13,8 @@ const draft = (): InternalNoteDraft => ({ title: ' Rückruf ', body: ' Bitte heu
 const receipt = () => ({ dispatch_id: ID, created_at: NOW, tenant_id: TENANT, sender_user_id: USER });
 const delivery = (changes: Record<string, unknown> = {}) => ({ id: DELIVERY, employee_id: EMPLOYEE, recipient_user_id: USER, display_name: 'Alex', status: 'open', read_at: null, response: '', revision: 1, updated_at: NOW, ...changes });
 const note = (changes: Record<string, unknown> = {}) => ({ id: ID, tenant_id: TENANT, sender_user_id: USER, sender_name: 'Verwaltung', title: 'Rückruf', body: 'Bitte heute zurückrufen.', type: 'callback', priority: 'normal', due_date: null, created_at: NOW, deliveries: [delivery()], ...changes });
-const response = (data: unknown) => ({ data, error: null });
+type RpcResponse = { data: unknown; error: { code?: string; message?: string } | null };
+const response = (data: unknown): RpcResponse => ({ data, error: null });
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; };
 let service: typeof import('@/lib/office/notes/internalService.web');
 beforeEach(async () => {
