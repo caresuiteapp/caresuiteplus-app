@@ -116,8 +116,8 @@ BEGIN
     v_number := (p_snapshot->>v_key)::numeric;
     IF v_number<0 OR v_number>2147483647 OR trunc(v_number)<>v_number THEN RAISE EXCEPTION 'Ungültiger Zahlenwert: %',v_key; END IF;
   END LOOP;
-  IF (p_snapshot->>'hourlyRateCents')::integer <> CASE WHEN v_setting.compensation_type='hourly' THEN round(v_setting.compensation_amount*100)::integer ELSE 0 END
-    OR (p_snapshot->>'fixedSalaryCents')::integer <> CASE WHEN v_setting.compensation_type='salary' THEN round(v_setting.compensation_amount*100)::integer ELSE 0 END THEN
+  IF (p_snapshot->>'hourlyRateCents')::integer <> (CASE WHEN v_setting.compensation_type='hourly' THEN round(v_setting.compensation_amount*100)::integer ELSE 0 END)
+    OR (p_snapshot->>'fixedSalaryCents')::integer <> (CASE WHEN v_setting.compensation_type='salary' THEN round(v_setting.compensation_amount*100)::integer ELSE 0 END) THEN
     RAISE EXCEPTION 'Die Vergütung wurde inzwischen geändert.';
   END IF;
   IF jsonb_typeof(p_snapshot->'expenseClaims') IS DISTINCT FROM 'array' OR EXISTS (
