@@ -184,7 +184,7 @@ describe('Office payroll publication commits the version and receipt together', 
     expect(retry).toEqual(first);
     expect(await stored('payroll_month_statements')).toHaveLength(1);
     expect(await stored('payroll_month_audit_log')).toHaveLength(1);
-    await expect(publish({ ...request, snapshot: { ...request.snapshot, employeeName: 'Changed' } })).rejects.toThrow(/Kennung/);
+    await expect(publish({ ...request, snapshot: { ...request.snapshot, employeeName: 'Changed' } })).rejects.toThrow(/Veröffentlichungskennung wurde bereits anders verwendet/);
   });
 
   it('rejects another caller using a stale version without superseding the new version', async () => {
