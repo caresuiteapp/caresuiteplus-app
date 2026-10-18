@@ -43,7 +43,8 @@ beforeEach(async () => {
     earnedGrossCents: 1500, projectedGrossCents: 1500, approvedExpensesCents: 0, pendingExpensesCents: 0,
     advancesCents: 0, deductionsCents: 0, payoutGrossCents: 1500, projectedTotalPayoutCents: 1500,
     generatedAt: stamp, expenseClaims: [], latestStatement: null, pendingPortalUploads: [], calculationReady: true,
-    blockers: [], warnings: [], unapprovedEntryCount: 0, employmentStatus: 'active', statementHistory: [] };
+    blockers: [], warnings: [], unapprovedEntryCount: 0, employmentStatus: 'active', statementHistory: [],
+    preview: { compensationAvailable: true, actualTimeAvailable: true, grossAvailable: true, expensesAvailable: true, timeAccountAvailable: true, absenceAvailable: true, provisional: false, notes: [] } };
   mock.read.mockImplementation(async () => ({ ok: true, data: { employees: [{ ...employee, generatedAt: '2026-10-18T05:01:00.000Z' }] } }));
   mock.rpc.mockImplementation(async (name: string, input: Record<string, unknown>) => name === 'payroll_office_source_revision'
     ? { data: 'a'.repeat(32), error: null } : name === 'review_office_payroll_expense' ? { data: claimRow, error: null }
@@ -65,6 +66,7 @@ describe('Office payroll publication', () => {
     expect(mock.from).not.toHaveBeenCalled();
     const input = mock.rpc.mock.calls.find(([name]) => name === 'publish_office_payroll_statement')?.[1];
     expect(input.p_snapshot).not.toHaveProperty('latestStatement'); expect(input.p_snapshot).not.toHaveProperty('blockers');
+    expect(input.p_snapshot).not.toHaveProperty('preview');
     expect(input.p_snapshot.generatedAt).toBe('2026-10-18T05:01:00.000Z');
   });
   it('does not publish changed amounts the user has not reviewed', async () => {
@@ -89,6 +91,16 @@ describe('Office payroll publication', () => {
     employee.calculationReady = true; employee.latestStatement = { status: 'confirmed' } as PayrollOfficeEmployeeMonth['latestStatement'];
     expect((await api.publishPayrollStatement(tenant, employee, 'business_admin')).ok).toBe(false);
     expect(mock.rpc).not.toHaveBeenCalled();
+  });
+  it('never publishes available preview amounts while monthly data remains incomplete', async () => {
+    employee.calculationReady = false;
+    employee.blockers = ['Vertragliche Arbeitstage fehlen'];
+    employee.preview = { ...employee.preview, timeAccountAvailable: false, absenceAvailable: false, provisional: true,
+      notes: ['Vorschau nur aus erfassten und geplanten Zeiten.'] };
+    expect(employee.projectedGrossCents).toBeGreaterThan(0);
+    expect(await api.publishPayrollStatement(tenant, employee, 'business_admin')).toMatchObject({ ok: false,
+      error: expect.stringContaining('Vertragliche Arbeitstage') });
+    expect(mock.rpc).not.toHaveBeenCalled(); expect(mock.render).not.toHaveBeenCalled(); expect(mock.upload).not.toHaveBeenCalled();
   });
   it('does not publish on a renderer error or mismatched uploaded content', async () => {
     mock.render.mockRejectedValueOnce(new Error('PDF fehlgeschlagen'));

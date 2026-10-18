@@ -11,7 +11,7 @@ import { readAllOfficeAccountRows, hasOfficeContractSchedule } from '@/lib/wfm/w
 import { calculateContractTargetMinutesForRange } from '@/lib/wfm/wfmContractTarget';
 import { listPlannedVisitsForPeriod } from '@/lib/wfm/wfmOfficePlannedVisitRepository.web';
 import { getWfmOfficeEmployeeTimeAccounts } from '@/lib/wfm/wfmOfficeZeitkontenService.web';
-import { calculatePayrollSnapshot, calculatePayrollTimeAccountBalance } from './payrollCalculator.web';
+import { calculatePayrollSnapshot, calculatePayrollTimeAccountBalance, payrollExpenseTotals } from './payrollCalculator.web';
 import { isMiniJobEmploymentType, resolvePayrollMaxPayoutHours } from './payrollPayoutPolicy.web';
 import { employeeAssignmentTimeLines, isPayrollConductedAssignmentStatus, isPayrollEmployeeInPeriod, payrollAbsenceCredits, payrollAbsenceWorkConflicts, payrollBerlinDay, payrollEmploymentRange, isPayrollDate, payrollNumber, payrollPeriodRange, payrollPlannedVisitLine, payrollRemainingPlannedMinutes, payrollSettingsIssues, payrollTimeReadiness, nextPayrollDay, type PayrollOfficeEmployeeMonth, type PayrollOfficeMonthOverview, type PayrollRow } from './payrollOfficeReadModel.web';
 
@@ -118,24 +118,30 @@ function buildEmployee(input: {
   const absences = input.absences.filter(row => row.employee_id === employeeId);
   const expenses = input.expenses.filter(row => row.employeeId === employeeId);
   const history = input.statements.filter(row => row.employeeId === employeeId);
-  const blockers = payrollSettingsIssues(payroll);
-  if ((employee.entry_date != null && !isPayrollDate(employee.entry_date)) || (employee.exit_date != null && !isPayrollDate(employee.exit_date))
-    || (isPayrollDate(employee.entry_date) && isPayrollDate(employee.exit_date) && employee.entry_date > employee.exit_date)) blockers.push('Ein- oder Austrittsdatum ist ungültig. Bitte die Personalakte korrigieren.');
+  const settingsIssues = payrollSettingsIssues(payroll);
+  const blockers = [...settingsIssues];
   const warnings: string[] = [];
-  if (!hasOfficeContractSchedule(contract?.work_days)) blockers.push('Die vertraglichen Arbeitstage fehlen. Sollzeit und bezahlte Abwesenheiten sind nicht verlässlich berechenbar.');
+  const previewNotes: string[] = [];
+  const validEmploymentDates = !((employee.entry_date != null && !isPayrollDate(employee.entry_date)) || (employee.exit_date != null && !isPayrollDate(employee.exit_date))
+    || (isPayrollDate(employee.entry_date) && isPayrollDate(employee.exit_date) && employee.entry_date > employee.exit_date));
+  if (!validEmploymentDates) blockers.push('Ein- oder Austrittsdatum ist ungültig. Bitte die Personalakte korrigieren.');
+  const hasSchedule = hasOfficeContractSchedule(contract?.work_days);
+  if (!hasSchedule) blockers.push('Die vertraglichen Arbeitstage fehlen. Sollzeit und bezahlte Abwesenheiten sind nicht verlässlich berechenbar.');
   const fullAbsences = payrollAbsenceCredits(absences, contract?.work_days, employmentRange.fromDate, employmentRange.toDate);
   const accruedAbsences = payrollAbsenceCredits(absences, contract?.work_days, employmentRange.fromDate, today < employmentRange.toDate ? today : employmentRange.toDate);
   if (fullAbsences.overlap) blockers.push('Verschiedene bezahlte Abwesenheiten überschneiden sich. Bitte die Abwesenheiten zuerst klären.');
-  const fullMonthTarget = hasOfficeContractSchedule(contract?.work_days) && employmentRange.fromDate <= employmentRange.toDate
-    ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0;
+  const targetAvailable = hasSchedule && validEmploymentDates && employmentRange.fromDate <= employmentRange.toDate;
+  const fullMonthTarget = targetAvailable ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0;
   const times = payrollTimeReadiness(account, now);
   blockers.push(...times.calculationIssues);
-  if (employmentRange.fromDate > employmentRange.toDate && payroll?.compensation_type === 'salary') blockers.push('Der Monat liegt außerhalb des Beschäftigungszeitraums. Ein Monatslohn kann dafür nicht verlässlich angesetzt werden.');
+  const accountAvailable = Boolean(account && Number.isFinite(account.actualMinutes) && account.actualMinutes >= 0 && Number.isFinite(account.travelMinutes) && account.travelMinutes >= 0);
+  const salaryOutsideEmployment = employmentRange.fromDate > employmentRange.toDate && payroll?.compensation_type === 'salary';
+  if (salaryOutsideEmployment) blockers.push('Der Monat liegt außerhalb des Beschäftigungszeitraums. Ein Monatslohn kann dafür nicht verlässlich angesetzt werden.');
   const lines: PayrollAssignmentTimeLine[] = employeeAssignmentTimeLines(account, input.visits, employeeId);
-  if (payrollAbsenceWorkConflicts(absences, lines)) blockers.push('Bezahlte Abwesenheiten überschneiden sich mit Einsatzplanung oder Arbeitszeit. Bitte zuerst die Einträge abgleichen.');
-  if (lines.some(line => isPayrollConductedAssignmentStatus(line.status) && !line.actualStartAt && !line.actualEndAt)) {
-    blockers.push('Abgeschlossene Einsätze ohne erfasste Ist-Zeit müssen in Arbeitszeit geprüft werden.');
-  }
+  const absenceConflict = payrollAbsenceWorkConflicts(absences, lines);
+  if (absenceConflict) blockers.push('Bezahlte Abwesenheiten überschneiden sich mit Einsatzplanung oder Arbeitszeit. Bitte zuerst die Einträge abgleichen.');
+  const completedWithoutCapture = lines.some(line => isPayrollConductedAssignmentStatus(line.status) && !line.actualStartAt && !line.actualEndAt);
+  if (completedWithoutCapture) blockers.push('Abgeschlossene Einsätze ohne erfasste Ist-Zeit müssen in Arbeitszeit geprüft werden.');
   if (lines.some(line => (line.actualStartAt || line.actualEndAt) && (line.workDate < employmentRange.fromDate || line.workDate > employmentRange.toDate))) {
     blockers.push('Erfasste Arbeitszeit liegt außerhalb des Beschäftigungszeitraums. Bitte Personalakte und Zeitbuchungen abgleichen.');
   }
@@ -148,47 +154,74 @@ function buildEmployee(input: {
       : 'Das vertragliche Soll und Abwesenheiten sind auf den Beschäftigungszeitraum begrenzt.');
   }
   if (times.unapprovedEntryCount) warnings.push('Die erfassten Zeiten sind vorläufig. Veröffentlichung erst nach Klärung und Freigabe.');
-  const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+  const amount = payrollNumber(payroll?.compensation_amount);
+  const compensationCents = amount == null ? 0 : Math.round((amount + Number.EPSILON * Math.max(1, amount)) * 100);
+  const compensationAvailable = (payroll?.compensation_type === 'hourly' || payroll?.compensation_type === 'salary')
+    && amount != null && amount > 0 && Number.isSafeInteger(compensationCents) && compensationCents > 0;
+  let payoutPolicyAvailable = settingsIssues.length === 0;
   let maxPayoutHours: number | null = null;
-  if (!blockers.length) {
-    try { maxPayoutHours = resolvePayrollMaxPayoutHours({ periodYear: year, employmentType: employee.employment_type, compensationType: payroll?.compensation_type, compensationAmount: payrollNumber(payroll?.compensation_amount), configuredMaxPayoutHours: payroll?.max_payout_hours_month == null ? null : payrollNumber(payroll.max_payout_hours_month) }); }
-    catch (cause) { blockers.push(cause instanceof Error ? cause.message : 'Die Auszahlungsgrenze konnte nicht bestimmt werden.'); }
+  // A time-review problem must not hide a valid pay rate or bypass its configured cap.
+  if (payoutPolicyAvailable) {
+    try { maxPayoutHours = resolvePayrollMaxPayoutHours({ periodYear: year, employmentType: employee.employment_type, compensationType: payroll?.compensation_type, compensationAmount: amount, configuredMaxPayoutHours: payroll?.max_payout_hours_month == null ? null : payrollNumber(payroll.max_payout_hours_month) }); }
+    catch (cause) { payoutPolicyAvailable = false; blockers.push(cause instanceof Error ? cause.message : 'Die Auszahlungsgrenze konnte nicht bestimmt werden.'); }
   }
   if (isMiniJobEmploymentType(employee.employment_type)) warnings.push('Die monatliche Begrenzung ersetzt keine Prüfung von Jahresverdienst und Sonderzahlungen.');
+  const hasPaidAbsences = absences.some(row => ['approved', 'active', 'completed'].includes(asString(row.status)) && !['unpaid_leave', 'parental_leave'].includes(asString(row.absence_type)));
+  // A confirmed empty absence result is a real zero even when no contract schedule exists.
+  // Conflicting or unquantifiable absences are omitted from the preview, never silently credited twice.
+  const absenceAvailable = !hasPaidAbsences || (targetAvailable && !fullAbsences.overlap && !absenceConflict);
+  const vacationMinutes = absenceAvailable ? accruedAbsences.vacationMinutes : 0;
+  const sickMinutes = absenceAvailable ? accruedAbsences.sickMinutes : 0;
+  const otherPaidAbsenceMinutes = absenceAvailable ? accruedAbsences.otherPaidAbsenceMinutes : 0;
+  const projectedPaidAbsenceMinutes = absenceAvailable ? Math.max(0, fullAbsences.totalMinutes - accruedAbsences.totalMinutes) : 0;
+  if (!absenceAvailable) previewNotes.push('Die Vorschau enthält keine unklaren bezahlten Abwesenheiten. Diese werden nach Klärung ergänzt.');
+  if (times.calculationIssues.length || completedWithoutCapture) previewNotes.push('Die Vorschau verwendet nur vorhandene abgeschlossene Zeiterfassungen. Fehlende, offene oder abgelehnte Zeiten werden nicht geschätzt.');
+  if (!hasSchedule) previewNotes.push('Der hinterlegte Lohn kann angezeigt werden. Für das Zeitkonto fehlt die vertragliche Sollzeit.');
+  if (!accountAvailable) previewNotes.push('Ein vollständiges Arbeitszeitkonto fehlt. Eine Vergütung nach Stunden lässt sich daraus noch nicht berechnen.');
+  const timeAccountAvailable = accountAvailable && targetAvailable && absenceAvailable;
+  const timeAccountBalanceMinutes = timeAccountAvailable ? calculatePayrollTimeAccountBalance({ actualWorkMinutes: times.actualWorkMinutes,
+    vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, targetMinutes: fullMonthTarget }) : 0;
+  let expensesAvailable = true;
+  let expenseTotals = { approvedExpensesCents: 0, pendingExpensesCents: 0, reimbursedExpensesCents: 0 };
+  try { expenseTotals = payrollExpenseTotals(expenses, { employeeId, periodYear: year, periodMonth: month }); }
+  catch (cause) { expensesAvailable = false; blockers.push(cause instanceof Error ? cause.message : 'Die Auslagensummen konnten nicht verlässlich berechnet werden.'); }
+  const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
   const plannedMinutes = payrollRemainingPlannedMinutes(input.visits, account, employeeId, now);
-  const projectedPaidAbsenceMinutes = Math.max(0, fullAbsences.totalMinutes - accruedAbsences.totalMinutes);
   const calculateInput = {
     employeeId, employeeName: [asString(employee.first_name), asString(employee.last_name)].filter(Boolean).join(' ') || 'Mitarbeitende ohne Namensangabe',
     employeeNumber: asNullableString(employee.employee_number), periodYear: year, periodMonth: month,
     compensationType: (payroll?.compensation_type === 'hourly' ? 'hourly' : 'salary') as 'hourly' | 'salary',
-    compensationAmount: payrollNumber(payroll?.compensation_amount) ?? 0, maxPayoutHours,
+    compensationAmount: compensationAvailable ? amount! : 0, maxPayoutHours,
     overflowToTimeAccount: isMiniJobEmploymentType(employee.employment_type) || payroll?.overflow_to_time_account !== false,
-    actualWorkMinutes: times.actualWorkMinutes, travelMinutes: account?.travelMinutes ?? 0,
-    vacationMinutes: accruedAbsences.vacationMinutes, sickMinutes: accruedAbsences.sickMinutes, otherPaidAbsenceMinutes: accruedAbsences.otherPaidAbsenceMinutes,
-    projectedPaidAbsenceMinutes, targetWorkMinutes: fullMonthTarget,
+    actualWorkMinutes: times.actualWorkMinutes, travelMinutes: accountAvailable ? account!.travelMinutes : 0,
+    vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, projectedPaidAbsenceMinutes, targetWorkMinutes: fullMonthTarget,
     monthlyPlannedMinutes: input.visits.filter(visit => visit.employeeId === employeeId).reduce((sum, visit) => sum + payrollPlannedVisitLine(visit).plannedMinutes, 0),
-    plannedMinutes, timeAccountBalanceMinutes: calculatePayrollTimeAccountBalance({ actualWorkMinutes: times.actualWorkMinutes,
-      vacationMinutes: accruedAbsences.vacationMinutes, sickMinutes: accruedAbsences.sickMinutes, otherPaidAbsenceMinutes: accruedAbsences.otherPaidAbsenceMinutes, targetMinutes: fullMonthTarget }),
-    expenses, assignmentTimeLines: lines, nextMonthPreview: nextMonthPreviewForEmployee(input.nextVisits, employeeId, next.year, next.month), now: new Date(now).toISOString(),
+    plannedMinutes, timeAccountBalanceMinutes, expenses: expensesAvailable ? expenses : [], assignmentTimeLines: lines,
+    nextMonthPreview: nextMonthPreviewForEmployee(input.nextVisits, employeeId, next.year, next.month), now: new Date(now).toISOString(),
   };
-  let calculationReady = blockers.length === 0;
-  let snapshot: PayrollStatementSnapshot;
-  try {
-    if (!calculationReady) throw new Error('Berechnung unvollständig.');
-    snapshot = calculatePayrollSnapshot(calculateInput);
-  } catch (cause) {
-    if (calculationReady) blockers.push(cause instanceof Error ? cause.message : 'Die Gehaltsberechnung konnte nicht verlässlich erstellt werden.');
-    calculationReady = false;
-    // Required base fields remain structurally compatible; financial values are explicitly unavailable in the Web model.
-    snapshot = { ...calculateInput, hourlyRateCents: 0, fixedSalaryCents: 0, maxPayoutMinutes: null,
-      creditedActualMinutes: times.actualWorkMinutes + accruedAbsences.totalMinutes,
-      targetActualDifferenceMinutes: times.actualWorkMinutes + accruedAbsences.totalMinutes - fullMonthTarget,
-      payableMinutes: 0, overtimeTransferMinutes: 0, earnedGrossCents: 0, projectedGrossCents: 0,
-      approvedExpensesCents: 0, pendingExpensesCents: 0, advancesCents: 0, deductionsCents: 0, payoutGrossCents: 0,
-      projectedTotalPayoutCents: 0, generatedAt: new Date(now).toISOString(), expenseClaims: expenses };
+  let grossAvailable = compensationAvailable && payoutPolicyAvailable && validEmploymentDates && !salaryOutsideEmployment
+    && (payroll?.compensation_type === 'salary' || accountAvailable);
+  // Base numeric fields remain structurally compatible. Each unavailable value is explicitly hidden using its preview flag.
+  let snapshot: PayrollStatementSnapshot = { ...calculateInput,
+    hourlyRateCents: compensationAvailable && payroll?.compensation_type === 'hourly' ? compensationCents : 0,
+    fixedSalaryCents: compensationAvailable && payroll?.compensation_type === 'salary' ? compensationCents : 0,
+    maxPayoutMinutes: null, creditedActualMinutes: times.actualWorkMinutes + vacationMinutes + sickMinutes + otherPaidAbsenceMinutes,
+    targetActualDifferenceMinutes: timeAccountBalanceMinutes, payableMinutes: 0, overtimeTransferMinutes: 0,
+    earnedGrossCents: 0, projectedGrossCents: 0, approvedExpensesCents: 0, pendingExpensesCents: 0,
+    advancesCents: 0, deductionsCents: 0, payoutGrossCents: 0, projectedTotalPayoutCents: 0,
+    generatedAt: new Date(now).toISOString(), expenseClaims: expenses };
+  if (grossAvailable) {
+    try { snapshot = { ...calculatePayrollSnapshot(calculateInput), expenseClaims: expenses }; }
+    catch (cause) { grossAvailable = false; blockers.push(cause instanceof Error ? cause.message : 'Die Bruttovorschau konnte nicht verlässlich berechnet werden.'); }
   }
-  return { ...snapshot, calculationReady, blockers: [...new Set([...blockers, ...times.blockers])], warnings,
-    unapprovedEntryCount: times.unapprovedEntryCount, employmentStatus: asString(employee.status), statementHistory: history,
+  const calculationReady = blockers.length === 0 && grossAvailable && expensesAvailable && timeAccountAvailable;
+  const finalBlockers = [...new Set([...blockers, ...times.blockers])];
+  return { ...snapshot, ...expenseTotals,
+    projectedTotalPayoutCents: grossAvailable && expensesAvailable ? snapshot.projectedTotalPayoutCents : 0,
+    calculationReady, preview: { compensationAvailable, actualTimeAvailable: accountAvailable, grossAvailable, expensesAvailable, timeAccountAvailable, absenceAvailable,
+      provisional: !calculationReady || finalBlockers.length > 0, notes: previewNotes },
+    blockers: finalBlockers, warnings, unapprovedEntryCount: times.unapprovedEntryCount,
+    employmentStatus: asString(employee.status), statementHistory: history,
     latestStatement: history.find(statement => statement.status !== 'superseded' && statement.status !== 'draft') ?? history[0] ?? null,
     pendingPortalUploads: input.uploads.filter(upload => upload.employeeId === employeeId) };
 }
@@ -243,12 +276,14 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
       employee, payroll: payroll.get(asString(employee.id)), contract: contracts.get(asString(employee.id)), account: accounts.get(asString(employee.id)),
       absences, expenses, statements, uploads, visits: plannedRes.data, nextVisits: nextPlannedRes.data, year, month, now,
     })).sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'de'));
-    const valid = result.filter(employee => employee.calculationReady);
+    const grossPreviews = result.filter(employee => employee.preview.grossAvailable);
+    const expensePreviews = result.filter(employee => employee.preview.expensesAvailable);
     return { ok: true, data: { periodYear: year, periodMonth: month, generatedAt: new Date(now).toISOString(), employees: result,
-      totalsComplete: valid.length === result.length, totals: {
-        earnedGrossCents: valid.reduce((sum, employee) => sum + employee.earnedGrossCents, 0), projectedGrossCents: valid.reduce((sum, employee) => sum + employee.projectedGrossCents, 0),
-        approvedExpensesCents: valid.reduce((sum, employee) => sum + employee.approvedExpensesCents, 0), plannedMinutes: result.reduce((sum, employee) => sum + employee.plannedMinutes, 0),
-        overtimeTransferMinutes: valid.reduce((sum, employee) => sum + employee.overtimeTransferMinutes, 0),
+      totalsComplete: result.every(employee => employee.calculationReady),
+      previewCounts: { gross: grossPreviews.length, expenses: expensePreviews.length, timeAccounts: result.filter(employee => employee.preview.timeAccountAvailable).length, total: result.length }, totals: {
+        earnedGrossCents: grossPreviews.reduce((sum, employee) => sum + employee.earnedGrossCents, 0), projectedGrossCents: grossPreviews.reduce((sum, employee) => sum + employee.projectedGrossCents, 0),
+        approvedExpensesCents: expensePreviews.reduce((sum, employee) => sum + employee.approvedExpensesCents, 0), plannedMinutes: result.reduce((sum, employee) => sum + employee.plannedMinutes, 0),
+        overtimeTransferMinutes: grossPreviews.reduce((sum, employee) => sum + employee.overtimeTransferMinutes, 0),
       } } };
   } catch (cause) {
     return { ok: false, error: cause instanceof Error ? cause.message : 'Die Gehaltsstatistik konnte nicht vollständig geladen werden. Bitte erneut versuchen.' };
