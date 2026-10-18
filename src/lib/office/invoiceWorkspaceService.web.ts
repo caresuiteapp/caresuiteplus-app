@@ -8,6 +8,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { isInvoiceStatus } from './invoiceStatus';
 import { isOfficeInvoiceDate, isOfficeInvoiceUuid, validateOfficeInvoiceDraft } from './invoiceWorkspaceTypes.web';
+import { normalizeOfficeEInvoiceMetadata, normalizeOfficeEInvoiceLineTax } from './eInvoiceModel.web';
 import type {
   InvoiceOfficeDraft, OfficeInvoice, OfficeInvoiceCatalogOption, OfficeInvoiceClient, OfficeInvoiceDraftLine,
   OfficeInvoiceEditorOptions, OfficeInvoiceLine, OfficeInvoiceMutationResult, OfficeInvoicePaymentInput,
@@ -17,8 +18,8 @@ export * from './invoiceWorkspaceTypes.web';
 
 type Row = Record<string, unknown>;
 const PAGE_SIZE = 500;
-const INVOICE_COLUMNS = 'id,tenant_id,client_id,invoice_number,status,invoice_date,due_date,service_period_from,service_period_to,service_month,total_amount,paid_amount,open_amount,created_at,updated_at,recipient_name,recipient_street,recipient_house_number,recipient_postal_code,recipient_city,recipient_country,recipient_email,notes,footer_text,pdf_file_path,cancellation_reason,include_service_proofs,selected_proof_ids,company_snapshot,customer_snapshot,office_managed,recipient_type,billing_party';
-const ITEM_COLUMNS = 'id,tenant_id,invoice_id,description,quantity,unit,unit_price,net_amount,vat_amount,vat_rate,gross_amount,product_key,service_date,service_record_id,sort_order';
+const INVOICE_COLUMNS = 'id,tenant_id,client_id,invoice_number,status,invoice_date,due_date,service_period_from,service_period_to,service_month,total_amount,paid_amount,open_amount,created_at,updated_at,recipient_name,recipient_street,recipient_house_number,recipient_postal_code,recipient_city,recipient_country,recipient_email,notes,footer_text,pdf_file_path,cancellation_reason,include_service_proofs,selected_proof_ids,company_snapshot,customer_snapshot,office_managed,recipient_type,billing_party,e_invoice_metadata';
+const ITEM_COLUMNS = 'id,tenant_id,invoice_id,description,quantity,unit,unit_price,net_amount,vat_amount,vat_rate,gross_amount,product_key,service_date,service_record_id,sort_order,e_invoice_tax';
 const CLIENT_COLUMNS = 'id,tenant_id,first_name,last_name,client_number,status,street,house_number,postal_code,city,country,email,insurance_name,insurance_number,billing_party,deleted_at';
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const nullableText = (value: unknown): string | null => text(value) || null;
@@ -86,7 +87,7 @@ function mapLine(row: Row, sources: Map<string, Row>): OfficeInvoiceLine {
     unitPriceCents: money(row.unit_price) ?? Number.NaN, taxRatePercent: number(row.vat_rate),
     productKey: text(row.product_key) as OfficeInvoiceProductKey, serviceDate: nullableText(row.service_date) ?? undefined,
     serviceRecordId: nullableText(row.service_record_id) ?? undefined, sourceUpdatedAt: nullableText(source?.updated_at) ?? undefined,
-    netCents: money(row.net_amount), taxCents: money(row.vat_amount), totalCents: money(row.gross_amount) };
+    netCents: money(row.net_amount), taxCents: money(row.vat_amount), totalCents: money(row.gross_amount), eInvoiceTax: normalizeOfficeEInvoiceLineTax(row.e_invoice_tax) };
 }
 function mapInvoice(row: Row, clients: Map<string, Row>, items: Row[], sources: Map<string, Row>): OfficeInvoice {
   const status = text(row.status);
@@ -127,7 +128,7 @@ function mapInvoice(row: Row, clients: Map<string, Row>, items: Row[], sources: 
     clientNumber: text(customer?.clientNumber) || text(client?.client_number), insuranceNumber: customer ? text(customer.insuranceNumber) : text(client?.insurance_number), invoiceNumber: text(row.invoice_number).startsWith('DRAFT-') ? '' : text(row.invoice_number), status: status as InvoiceStatus,
     invoiceDate: text(row.invoice_date), dueDate: nullableText(row.due_date),
     servicePeriodStart: nullableText(row.service_period_from), servicePeriodEnd: nullableText(row.service_period_to),
-    amountCents, paidCents, openCents, billingModule: modules.size > 1 ? 'mixed' : modules.size === 1 ? [...modules][0] : null,
+    amountCents, paidCents, openCents, eInvoice: normalizeOfficeEInvoiceMetadata(row.e_invoice_metadata), billingModule: modules.size > 1 ? 'mixed' : modules.size === 1 ? [...modules][0] : null,
     updatedAt: text(row.updated_at), createdAt: text(row.created_at), recipient, recipientType: nullableText(row.recipient_type) as OfficeInvoiceRecipientType | null, billingParty: nullableText(row.billing_party) as OfficeInvoiceBillingParty | null, officeManaged: row.office_managed === true, notes: nullableText(row.notes), footerText: nullableText(row.footer_text),
     includeProofs: row.include_service_proofs === true, selectedProofIds: Array.isArray(row.selected_proof_ids) ? row.selected_proof_ids.filter((id): id is string => typeof id === 'string') : [], companySnapshot: row.company_snapshot && typeof row.company_snapshot === 'object' && !Array.isArray(row.company_snapshot) ? row.company_snapshot as Record<string, unknown> : null, lines, issues, pdfFilePath: nullableText(row.pdf_file_path), cancellationReason: nullableText(row.cancellation_reason) };
 }
@@ -209,7 +210,8 @@ async function mutate(tenantId: string, invoiceId: string | null, expectedUpdate
 }
 function serializeLine(line: OfficeInvoiceDraftLine): Row {
   return { id: line.id ?? null, description: line.description.trim(), quantity: line.quantity, unit: line.unit.trim(), unit_price_cents: line.unitPriceCents,
-    vat_rate: line.taxRatePercent, product_key: line.productKey, service_date: line.serviceDate || null, service_record_id: line.serviceRecordId || null, source_updated_at: line.sourceUpdatedAt || null };
+    vat_rate: line.taxRatePercent, product_key: line.productKey, service_date: line.serviceDate || null, service_record_id: line.serviceRecordId || null, source_updated_at: line.sourceUpdatedAt || null,
+    ...(line.eInvoiceTax ? { e_invoice_tax: line.eInvoiceTax } : {}) };
 }
 export async function saveOfficeInvoiceDraft(tenantId: string, input: InvoiceOfficeDraft, role?: RoleKey | null): Promise<ServiceResult<OfficeInvoiceMutationResult>> {
   const denied = checkAccess<OfficeInvoiceMutationResult>(tenantId, role, 'office.invoices.create'); if (denied) return denied;
@@ -220,6 +222,7 @@ export async function saveOfficeInvoiceDraft(tenantId: string, input: InvoiceOff
     recipient_name: input.recipient.name.trim(), recipient_street: input.recipient.street.trim(), recipient_house_number: input.recipient.houseNumber.trim(),
     recipient_postal_code: input.recipient.postalCode.trim(), recipient_city: input.recipient.city.trim(), recipient_country: input.recipient.country.trim(), recipient_email: input.recipient.email.trim(),
     notes: input.notes.trim(), footer_text: input.footerText.trim(), include_service_proofs: input.includeProofs, selected_proof_ids: input.selectedProofIds ?? [], lines: input.lines.map(serializeLine),
+    ...(input.eInvoice ? { e_invoice_metadata: input.eInvoice } : {}),
   });
 }
 export async function deleteOfficeInvoiceDraft(tenantId: string, invoiceId: string, expectedUpdatedAt: string, requestId: string, role?: RoleKey | null): Promise<ServiceResult<OfficeInvoiceMutationResult>> {
@@ -259,7 +262,8 @@ export async function finalizeOfficeInvoiceIssue(tenantId: string, invoiceId: st
   const denied = checkAccess<OfficeInvoiceMutationResult>(tenantId, role, 'office.invoices.status_change'); if (denied) return denied;
   if (!input.invoiceNumber.trim() || !input.sourceRevision || !input.pdfFilePath || !/^[a-f0-9]{64}$/i.test(input.pdfSha256) || !input.companySnapshot || Array.isArray(input.companySnapshot)) return { ok: false, error: 'Die endgültige Rechnungsdatei ist unvollständig. Bitte die Ausstellung erneut starten.' };
   return mutate(tenantId, invoiceId, expectedUpdatedAt, input.requestId, 'set_status', { status: 'ready', invoice_number: input.invoiceNumber,
-    source_revision: input.sourceRevision, company_snapshot: input.companySnapshot, pdf_file_path: input.pdfFilePath, pdf_sha256: input.pdfSha256 });
+    source_revision: input.sourceRevision, company_snapshot: input.companySnapshot, pdf_file_path: input.pdfFilePath, pdf_sha256: input.pdfSha256,
+    ...(input.eInvoiceXmlSha256 ? { e_invoice_xml_sha256: input.eInvoiceXmlSha256 } : {}) });
 }
 export async function recordOfficeInvoicePayment(tenantId: string, invoiceId: string, expectedUpdatedAt: string,
   input: OfficeInvoicePaymentInput, role?: RoleKey | null): Promise<ServiceResult<OfficeInvoiceMutationResult>> {

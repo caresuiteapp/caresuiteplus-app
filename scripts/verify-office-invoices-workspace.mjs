@@ -10,6 +10,13 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 // interaction. They do not issue live invoices or prove authenticated layout.
 const groups = {
   'Office invoice workspace': [
+    'office/officeEInvoiceModelWeb.test.ts',
+    'office/eInvoiceImport.test.ts',
+    'office/eInvoicePdfExtractionBridge.test.ts',
+    'office/eInvoiceValidationApi.test.ts',
+    'office/eInvoiceInboxServiceWeb.test.ts',
+    'office/eInvoiceExportServiceWeb.test.ts',
+    'documents/eInvoiceValidationEndpoint.test.ts',
     'office/invoiceWorkspaceTypesWeb.test.ts',
     'office/invoiceWorkspaceServiceWeb.test.ts',
     'office/invoiceWorkspaceModelWeb.test.ts',

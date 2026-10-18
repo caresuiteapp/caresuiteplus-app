@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InvoicePdfData } from '@/lib/office/invoicePdfService.web';
 import type { InvoiceOfficeDraft } from '@/lib/office/invoiceWorkspaceTypes.web';
+import { createEmptyOfficeEInvoiceMetadata, createEmptyOfficeEInvoiceLineTax } from '@/lib/office/eInvoiceModel.web';
 
 const f = vi.hoisted(() => ({ query: vi.fn(), download: vi.fn(), renders: [] as Array<{ page: number; text: string; y: number }>, pages: 1 }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (role: string) => role === 'denied' ? { ok: false, error: 'Kein Zugriff.' } : null }));
@@ -47,6 +48,27 @@ describe('Web invoice PDF truth and pagination', () => {
     expect(f.renders.some(row => row.text.includes('ENTWURF'))).toBe(true);
     expect(f.query).not.toHaveBeenCalled();
     expect(payload.invoice.invoiceNumber).toBe('');
+  });
+  it('shows the confirmed actual buyer separately from the payer without changing invoice amounts', async () => {
+    const input = draft(); input.recipient = { ...input.recipient, name: 'Beispiel Pflegekasse' };
+    input.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...input.recipient, name: 'Leistungsempfänger GmbH', street: 'Vertragsstraße' }, buyerConfirmed: true, buyerReference: 'Auftrag-42', buyerVatId: 'DE123456789' };
+    input.lines[0].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'E', legalBasis: 'ustg_4_8_29', exemptionReason: 'Geprüfte Rechtsgrundlage' };
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) };
+    expect(payload.invoice.recipientName).toBe('Beispiel Pflegekasse'); expect(payload.invoice.amountCents).toBe(13100);
+    await renderInvoicePdfDocument(payload);
+    const text = f.renders.map(row => row.text).join(' ');
+    expect(text).toContain('Beispiel Pflegekasse'); expect(text).toContain('Tatsächlicher Leistungsempfänger'); expect(text).toContain('Leistungsempfänger GmbH');
+    expect(text).toContain('Auftrag-42'); expect(text).toContain('DE123456789'); expect(text).toContain('Geprüfte Rechtsgrundlage');
+  });
+  it('keeps the Office internal note out of the externally shared PDF', async () => {
+    const input = draft(); input.notes = 'Interner Bearbeitungsvermerk: nicht weitergeben';
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) }; await renderInvoicePdfDocument(payload);
+    expect(payload.invoice.notes).toBeNull(); expect(f.renders.some(row => row.text.includes('Interner Bearbeitungsvermerk'))).toBe(false);
+  });
+  it('does not print an unconfirmed buyer as the actual recipient', async () => {
+    const input = draft(); input.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...input.recipient, name: 'Noch ungeprüft' } };
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) }; await renderInvoicePdfDocument(payload);
+    expect(payload.invoice.actualBuyer).toBeUndefined(); expect(f.renders.some(row => row.text.includes('Noch ungeprüft'))).toBe(false);
   });
   it('requires issued identity, exact cents and mathematically correct tax', () => {
     const payload = data(); payload.invoice.status = 'ready';

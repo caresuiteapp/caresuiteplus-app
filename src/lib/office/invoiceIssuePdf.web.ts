@@ -6,9 +6,10 @@ import { fetchOfficeInvoice, fetchOfficeInvoiceIssuePreview, finalizeOfficeInvoi
 import type { OfficeInvoice, OfficeInvoiceMutationResult } from './invoiceWorkspaceTypes.web';
 import { generateInvoicePdf, normalizeInvoiceCompanySnapshot, officeInvoiceToPdfInvoice, validateInvoicePdf } from './invoicePdfService.web';
 import { loadInvoiceProofPages } from './invoiceProofAttachments.web';
+import { assessOfficeEInvoiceRequirement } from './eInvoiceModel.web';
 
 const inFlight = new Map<string, Promise<ServiceResult<OfficeInvoiceMutationResult>>>();
-type Attempt = { requestId: string; invoiceNumber: string; companySnapshot: Record<string, unknown>; sourceRevision: string; pdfFilePath: string; pdfSha256: string };
+type Attempt = { requestId: string; invoiceNumber: string; companySnapshot: Record<string, unknown>; sourceRevision: string; pdfFilePath: string; pdfSha256: string; eInvoiceXmlSha256?: string };
 const uploadedAttempts = new Map<string, Attempt>();
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
 
@@ -32,8 +33,21 @@ async function performIssue(tenantId: string, invoice: OfficeInvoice, role: Role
     const fresh = await fetchOfficeInvoice(tenantId, invoice.id, role);
     if (!fresh.ok) return fresh;
     if (fresh.data.updatedAt !== invoice.updatedAt || fresh.data.status !== 'draft') return fail('Die Rechnung wurde inzwischen geändert oder ausgestellt. Bitte neu laden.');
+    if (fresh.data.eInvoice?.format === 'pdf' && assessOfficeEInvoiceRequirement(fresh.data.eInvoice, { invoiceDate: fresh.data.invoiceDate,
+      servicePeriodStart: fresh.data.servicePeriodStart, servicePeriodEnd: fresh.data.servicePeriodEnd, totalCents: fresh.data.amountCents, lines: fresh.data.lines }).status === 'required') return fail('Nach den bestätigten Angaben ist eine strukturierte E-Rechnung erforderlich. Bitte XRechnung auswählen oder die Einordnung korrigieren.');
     const preview = await fetchOfficeInvoiceIssuePreview(tenantId, invoice.id, invoice.updatedAt, role);
     if (!preview.ok) return preview;
+    let eInvoiceXmlSha256: string | undefined;
+    if (fresh.data.eInvoice?.format === 'xrechnung') {
+      await sameActor();
+      const checked = await invokeEdgeFunction<{ invoiceId: string; xmlSha256: string; invoiceNumber: string; sourceRevision: string }>('render-document-pdf', {
+        action: 'validate_einvoice_issue', tenantId, invoiceId: invoice.id, expectedUpdatedAt: invoice.updatedAt,
+        sourceRevision: preview.data.sourceRevision, invoiceNumber: preview.data.invoiceNumber,
+      });
+      if (!checked.ok) return checked;
+      if (checked.data.invoiceId !== invoice.id || checked.data.sourceRevision !== preview.data.sourceRevision || checked.data.invoiceNumber !== preview.data.invoiceNumber || !/^[a-f0-9]{64}$/.test(checked.data.xmlSha256)) return fail('Die geprüfte XML-Datei gehört nicht zu diesem Rechnungsstand. Bitte neu laden.');
+      eInvoiceXmlSha256 = checked.data.xmlSha256;
+    }
     const pdfInvoice = { ...officeInvoiceToPdfInvoice(fresh.data), invoiceNumber: preview.data.invoiceNumber, status: 'ready' as const };
     const company = normalizeInvoiceCompanySnapshot(preview.data.companySnapshot);
     const validation = validateInvoicePdf({ invoice: pdfInvoice, company });
@@ -57,7 +71,7 @@ async function performIssue(tenantId: string, invoice: OfficeInvoice, role: Role
     if (!upload.ok) return upload;
     const pdfFilePath = `tenant/${tenantId}/generated/invoice-${invoice.id}/${pdfSha256}.pdf`;
     if (upload.data.pdfPath !== pdfFilePath || upload.data.sha256 !== pdfSha256) return fail('Der gespeicherte PDF-Inhalt wurde nicht bestätigt. Die Rechnung wurde nicht ausgestellt.');
-    const attempt = { ...preview.data, requestId: requestId || crypto.randomUUID(), pdfFilePath, pdfSha256 };
+    const attempt = { ...preview.data, requestId: requestId || crypto.randomUUID(), pdfFilePath, pdfSha256, ...(eInvoiceXmlSha256 ? { eInvoiceXmlSha256 } : {}) };
     uploadedAttempts.set(key, attempt);
     await sameActor();
     const result = await finalizeOfficeInvoiceIssue(tenantId, invoice.id, invoice.updatedAt, attempt, role);
