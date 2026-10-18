@@ -13,6 +13,7 @@ const body = () => ({ tenantId: tenant, documentId, pdfBase64: base64 });
 let actor: Record<string, unknown>;
 let role: Record<string, unknown>;
 let document: Record<string, unknown>;
+let invoice: Record<string, unknown>;
 let authOk: boolean;
 let permission: boolean;
 let securityReady: boolean;
@@ -21,15 +22,19 @@ let uploadError: { statusCode: string } | null;
 let jobError: unknown;
 let storedBytes: Uint8Array;
 const upload = vi.fn(); const download = vi.fn(); const upsert = vi.fn();
+const rpcCalls = vi.fn(); const filters = vi.fn();
 
 function client() {
   return {
     auth: { getUser: async () => ({ data: { user: authOk ? { id: 'verified-user' } : null }, error: null }) },
-    rpc: async (name: string) => name === 'care_security_pdf_upload_ready'
-      ? { data: securityReady, error: securityError } : { data: permission, error: null },
+    rpc: async (name: string, args?: Record<string, unknown>) => {
+      rpcCalls(name, args);
+      return name === 'care_security_pdf_upload_ready'
+        ? { data: securityReady, error: securityError } : { data: permission, error: null };
+    },
     from: (table: string) => {
-      const result = () => ({ data: table === 'profiles' ? actor : table === 'roles' ? role : table === 'employees' ? { id: employeeId } : document, error: null });
-      const query = { eq: (_key: string, _value: unknown) => query, or: (_filter: string) => query,
+      const result = () => ({ data: table === 'profiles' ? actor : table === 'roles' ? role : table === 'employees' ? { id: employeeId } : table === 'invoices' ? invoice : document, error: null });
+      const query = { eq: (key: string, value: unknown) => { filters(table, key, value); return query; }, or: (_filter: string) => query,
         maybeSingle: async () => result(), single: async () => result() };
       return { select: () => query, upsert };
     },
@@ -46,6 +51,7 @@ beforeEach(() => {
   securityReady = true; securityError = null;
   actor = { id: 'profile-id', tenant_id: tenant, role_id: 'role-id', is_active: true, status: 'active' };
   role = { key: 'office_admin', tenant_id: tenant }; document = { id: documentId, status: 'draft', locked_at: null };
+  invoice = { id: documentId, status: 'draft', office_managed: true, updated_at: '2026-10-18T08:00:00+00:00' };
   upload.mockImplementation(async () => ({ error: uploadError }));
   download.mockImplementation(async () => ({ data: new Blob([new Uint8Array(storedBytes)]), error: null }));
   upsert.mockImplementation(async () => ({ error: jobError }));
@@ -87,6 +93,25 @@ describe('PDF upload endpoint', () => {
   it('requires a scoped employee for a payroll PDF', async () => {
     expect((await post({ ...body(), documentId: `payroll-${documentId}` })).status).toBe(400);
     expect((await post({ ...body(), documentId: `payroll-${documentId}`, employeeId })).status).toBe(200);
+  });
+  it('uploads an invoice only for the checked tenant draft and invoice permission', async () => {
+    const response = await post({ ...body(), documentId: `invoice-${documentId}`, expectedUpdatedAt: invoice.updated_at });
+    expect(response.status).toBe(200);
+    expect(rpcCalls).toHaveBeenCalledWith('has_permission', { p_permission_key: 'office.invoices.status_change' });
+    expect(filters).toHaveBeenCalledWith('invoices', 'tenant_id', tenant);
+    expect(filters).toHaveBeenCalledWith('invoices', 'id', documentId);
+    expect(upsert.mock.calls[0][0]).toMatchObject({ related_entity_table: 'invoices', related_entity_id: documentId });
+    expect(upload.mock.calls[0][0]).toMatch(new RegExp(`/generated/invoice-${documentId}/[a-f0-9]{64}\\.pdf$`));
+  });
+  it.each(['missing revision', 'stale revision', 'issued invoice', 'unmanaged legacy', 'missing permission'])('rejects invoice upload for %s before storage', async kind => {
+    const value: Record<string, unknown> = { ...body(), documentId: `invoice-${documentId}`, expectedUpdatedAt: invoice.updated_at };
+    if (kind === 'missing revision') delete value.expectedUpdatedAt;
+    if (kind === 'stale revision') value.expectedUpdatedAt = '2026-10-18T07:59:00+00:00';
+    if (kind === 'issued invoice') invoice.status = 'sent';
+    if (kind === 'unmanaged legacy') invoice.office_managed = false;
+    if (kind === 'missing permission') permission = false;
+    expect((await post(value)).status).toBe(kind === 'missing revision' ? 400 : kind === 'missing permission' ? 403 : 409);
+    expect(upload).not.toHaveBeenCalled(); expect(upsert).not.toHaveBeenCalled();
   });
   it.each(['employee', 'client', 'family', 'relative', 'caregiver', 'nurse', 'EMPLOYEE_PORTAL', 'Client_Portal', 'Family_Portal', 'Employee', 'NURSE'])('denies the legacy or differently cased portal role %s before storage', async key => {
     role.key = key;

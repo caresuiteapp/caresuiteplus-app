@@ -7,6 +7,7 @@ const out = path.join(root, 'public/calendar-reader/v1');
 await mkdir(out, { recursive: true });
 const copy = async (source, target) => cp(path.join(root, source), path.join(out, target), { recursive: true });
 await copy('scripts/calendar-reader/reader.mjs', 'reader.mjs');
+await copy('scripts/calendar-reader/invoice-pdf.mjs', 'invoice-pdf.mjs');
 await copy('node_modules/pdfjs-dist/legacy/build/pdf.mjs', 'pdf.mjs');
 await copy('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', 'pdf.worker.mjs');
 for (const dir of ['cmaps', 'standard_fonts', 'wasm']) await copy(`node_modules/pdfjs-dist/${dir}`, dir);
