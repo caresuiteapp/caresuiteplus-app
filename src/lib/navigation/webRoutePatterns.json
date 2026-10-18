@@ -204,6 +204,7 @@
   "/business/office/invoices/[id]",
   "/business/office/invoices/[id]/edit",
   "/business/office/invoices/dunning",
+  "/business/office/invoices/inbox",
   "/business/office/invoices/month-end",
   "/business/office/invoices/new",
   "/business/office/invoices/payments",

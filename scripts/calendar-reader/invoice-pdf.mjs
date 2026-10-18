@@ -29,3 +29,33 @@ window.CareSuiteInvoicePdfV1 = {
     } finally { await task.destroy(); }
   },
 };
+
+// Separate from render(): incoming hybrid PDFs must retain their embedded XML
+// and original bytes. Never turn an incoming invoice into a rasterised annex.
+window.CareSuiteInvoiceXmlV1 = {
+  async extractAttachments(bytes) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 10 * 1024 * 1024) {
+      throw new Error('Die PDF-Datei ist leer oder überschreitet 10 MB.');
+    }
+    const task = getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, enableXfa: false,
+      useSystemFonts: false, disableFontFace: true, disableAutoFetch: true, disableStream: true, stopAtErrors: true });
+    let timer;
+    try {
+      return await Promise.race([
+        (async () => {
+          const pdf = await task.promise;
+          const attachments = Object.values(await pdf.getAttachments() || {});
+          if (attachments.length > 32) throw new Error('Die PDF enthält mehr als 32 eingebettete Dateien.');
+          let total = 0;
+          return attachments.map(attachment => {
+            const bytes = new Uint8Array(attachment.content);
+            total += bytes.length;
+            if (total > 5 * 1024 * 1024) throw new Error('Die eingebetteten Dateien überschreiten zusammen 5 MB.');
+            return { name: String(attachment.filename || 'anlage.xml').slice(0, 512), bytes };
+          });
+        })(),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Die PDF konnte innerhalb von 20 Sekunden nicht sicher gelesen werden.')), 20_000); }),
+      ]);
+    } finally { clearTimeout(timer); await task.destroy(); }
+  },
+};

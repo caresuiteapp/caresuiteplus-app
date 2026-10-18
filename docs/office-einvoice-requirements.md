@@ -1,15 +1,30 @@
 # Office-Rechnungen: Anforderungen an E-Rechnungen
 
-Stand: 18. Oktober 2026. Ergänzung des Nutzerauftrags zur Rechnungsverwaltung; diese Datei dokumentiert Anforderungen und den geprüften Iststand. Sie schaltet keine E-Rechnungsfunktion frei und ersetzt keine steuerliche Einordnung eines einzelnen Umsatzes.
+Stand: 18. Oktober 2026. Diese Datei beschreibt die Anforderungen und den Implementierungsstand der Office-E-Rechnungen. Eine erfolgreiche Prüfung des Codes ersetzt weder den Nachweis einer veröffentlichten Version noch die steuerliche Einordnung eines einzelnen Umsatzes.
 
-## Geprüfter Iststand
+## Implementierungsstand
 
-- Der produktive Office-Web-Ablauf erstellt, zeigt und archiviert PDF-Rechnungen. Eine gewöhnliche PDF enthält damit noch keinen strukturierten E-Rechnungsdatensatz.
-- `src/lib/documents/eInvoiceService.ts` ist keine produktive Export- oder Validierungsengine: Beide Verfügbarkeitskennzeichen sind `false`; die vorbereiteten Daten sind JSON, enthalten einen Demo-Verkäufernamen und erzeugen kein normgerechtes XML. Der dortige Status `validated` wird lediglich aus einer leeren Fehlerliste abgeleitet. Dieser Status ist kein Normnachweis und darf nicht für eine produktive Freigabe übernommen werden.
-- Die neue Office-Rechnungsoberfläche verwendet diesen vorbereiteten Baustein nicht. Der bestehende Dokumenten-Upload ist kein vollständiger Rechnungseingang für das Unternehmen.
-- Die Rechnungsspeicherung besitzt bereits eingefrorene Rechnungsdaten und einen Hash der ausgestellten PDF. Das belegt allein weder die Aufbewahrung eines strukturierten Originals noch eine vollständige GoBD-Konformität des Gesamtverfahrens.
+Der Arbeitsstand enthält inzwischen einen eigenen Rechnungseingang und die Ausstellung von XRechnung im Office-Web-Ablauf. Die folgenden Angaben beschreiben den vorhandenen Code. Eine produktive Freigabe und vollständige Ende-zu-Ende-Abnahme dürfen erst nach den unten genannten Prüfungen behauptet werden.
 
-Für die Umsetzung die bestehende Kette aus `office_invoice_issue_preview`, `invoiceIssuePdf.web.ts` und atomarer Freigabe erweitern. XML-Dateien nicht nachträglich aus veränderlichen Firmen- oder Klientendaten zu einer bereits ausgestellten Rechnung erzeugen. Steuernummer und USt-ID stammen aus `tenants`; steuerliche Einstellungen wie die Kleinunternehmerregelung aus `tenant_tax_profiles`. Derzeit fehlen insbesondere strukturierte Steuerkategorien je Position sowie die eindeutige geschäftliche Rolle und elektronische Adresse des Leistungsempfängers. Vor einem XML-Import die tatsächlich produktiven Storage-MIME-Einstellungen und Zugriffsregeln prüfen; eine vorhandene Dateiauswahl ist kein Beleg, dass XML sicher gespeichert werden kann.
+| Bereich | Implementierter Ablauf | Grenze |
+| --- | --- | --- |
+| Rechnungseingang | Unternehmensbezogener XML-/Hybrid-PDF-Import ohne Klientenzwang; Originalbytes und extrahierte XML getrennt mit Hashes; strukturierte Vorschau, sachlicher Prüfstatus, Originaldownload | Kein automatischer Abruf aus einem E-Mail-Postfach, keine automatische Buchung oder Zahlung |
+| Eingangsprüfung | Serverseitige erneute Extraktion hybrider Originale; Prüfung der passenden XML-Syntax und unterstützten Profilkennung; getrennte technische und sachliche Prüfung | Nicht unterstützte Profile bleiben als solche erkennbar; keine pauschale ZUGFeRD-, PDF/A- oder Signaturfreigabe |
+| Rechnung bearbeiten | PDF/XRechnung, tatsächlicher Leistungsempfänger getrennt vom Kostenträger, elektronische Adressen, Referenzen, Verkäuferkontakt und Steuerkategorie je Position | Unbekannte Rechtsangaben werden nicht aus Pflegebereich, Kostenträger oder 0 % Umsatzsteuer abgeleitet |
+| XML-Vorschau | XML aus erneut gelesenen Entwurfsdaten, eigener Entwurfshinweis und Download | Noch keine ausgestellte Rechnung; die vorgeschlagene Nummer ist nicht vergeben und die Vorschau besitzt keinen abschließenden Normnachweis |
+| XRechnung ausstellen | UBL aus dem bestätigten Rechnungsstand, echte XSD-/Schematron-Prüfung; Serverbeleg bindet XML-Hash, Datenstand und vorgeschlagene Nummer; atomare Freigabe mit PDF und XML | Eine fehlgeschlagene oder nicht verfügbare Prüfung verhindert die Ausstellung; keine automatische Ersatzfreigabe als PDF |
+| Ausgestellte Rechnung | Unveränderliches XML-Original mit passendem gespeicherten Prüfbeleg herunterladen; PDF bleibt als lesbare Darstellung verfügbar | Keine nachträgliche Neuerzeugung aus aktuellen Unternehmens- oder Klientendaten |
+| Leistungsnachweise | Optional ausgewählte Original-PDFs in der XML; ausgewählte PDF-Kopien als lesbare Rechnungsanlage | Größenlimits gelten für die gesamte strukturierte Datei; fehlerhafte Anlagen werden nicht still entfernt |
+
+Die Normprüfung verwendet versionierte lokale KoSIT-Regeln, XML-Schemata und EN-16931-/XRechnung-Schematron-Regeln. Das Regelpaket `2026-08-31` und seine Dateien sind mit Prüfsummen gebunden. `libxml2-wasm` verarbeitet die Schemata; `saxon-js` verarbeitet die vorbereiteten Regeldateien. Herkunft, Lizenzen und notwendige, dokumentierte Anpassungen der Regeln stehen unter `api/_lib/einvoice-rules/2026-08-31/`. Gegenfälle und unabhängige KoSIT-Prüfergebnisse müssen die tatsächliche Ausführung der Geschäftsregeln belegen. Ein bloß erfolgreicher Transformationsaufruf reicht nicht aus.
+
+Die derzeit implementierten Grenzen sind 10 MB für ein eingehendes Original, 5 MB für dessen XML und 2,5 MB für eine auszustellende XML einschließlich eingebetteter Anlagen. Ein hybrides Original wird nicht durch die PDF.js-Bildkonvertierung für Leistungsnachweis-Kopien ersetzt. PDF/A-Eigenschaften, Signaturen und die vollständige formale Konformität eines ZUGFeRD-Containers werden nicht als geprüft ausgewiesen. Die Ausgabe von ZUGFeRD-PDF/A-3 ist weiterhin offen. Der Rechnungslauf erstellt weiterhin prüfbare Entwürfe; die E-Rechnungsangaben werden vor der Einzel-Ausstellung ergänzt und geprüft. Ein automatischer Versand, Peppol-Zugang oder Zugang zu einem B2G-Portal ist nicht Bestandteil dieses Ablaufs.
+
+Die neue Datenbanklogik liegt in `scripts/sql/office-einvoice-workspace.sql`. Eingangsoriginale und ausgestellte XML werden innerhalb des abgegrenzten Rechnungsarchivs gespeichert; dafür wird keine allgemeine XML-Uploadberechtigung des Dokumenten-Storage vorausgesetzt. Signierte Leistungsnachweise bleiben in ihrem vorhandenen Originalspeicher. Zugriffe sind an Mandant, Person, Rolle und Rechnung gebunden. Der vorhandene Edge-Dienst bestätigt serverseitige Prüfbelege; selbst übermittelte XML oder Browser-Prüfergebnisse dürfen keine Freigabe begründen.
+
+Die bestehenden Funktionen `office_invoice_issue_preview`, `invoiceIssuePdf.web.ts` und die atomare Freigabe bleiben der gemeinsame Ausstellungsweg. Steuernummer und USt-ID stammen aus `tenants`; die für diesen Vorgang maßgebliche steuerliche Einordnung wird ausdrücklich an der Rechnung erfasst. Ein automatischer Abgleich sämtlicher Angaben mit `tenant_tax_profiles` ist damit noch nicht belegt. Die PDF zeigt den bestätigten tatsächlichen Leistungsempfänger und positionsbezogene Befreiungsgründe. Interne Office-Notizen werden nicht in die weiterzugebende Rechnung übernommen.
+
+Der alte Baustein `src/lib/documents/eInvoiceService.ts` bleibt außerhalb dieses produktiven Ablaufs. Seine Demo-Daten und der dort aus einer leeren Fehlerliste abgeleitete Status `validated` sind weiterhin kein Normnachweis und dürfen nicht verwendet werden. Eine normale PDF sowie ein XML-Entwurf bleiben von einer ausgestellten und tatsächlich geprüften E-Rechnung zu unterscheiden. Auch ein unverändertes Original mit Hash belegt allein keine vollständige GoBD-Konformität des gesamten Verfahrens.
 
 ## Rechtliche Einordnung für die Produktlogik
 
@@ -36,7 +51,7 @@ Die Punkte 1–6 sind Produktanforderungen aus den unten genannten Rechtsgrundla
 
 ### Ausstellung und Rechnungslauf
 
-- Ziel: produktive XRechnung; ZUGFeRD als zusätzlicher geprüfter Ausgabeweg. Erzeugung und Validierung sind echte Implementierungsaufgaben und derzeit noch offen.
+- XRechnung ist als strukturierter Ausgabeweg implementiert; ihre Freigabe setzt die belegte Prüfung der gesamten Ausstellungsstrecke voraus. ZUGFeRD bleibt ein zusätzlicher, noch umzusetzender Ausgabeweg.
 - Erforderliche Verkäufer-, Käufer-, Adress-, Steuer-, Zahlungs- und Referenzdaten vollständig aus bestätigten Daten beziehen. Elektronische Adressen und deren Kennzeichnung, Käuferreferenz sowie gegebenenfalls Leitweg-ID nach dem konkret gewählten Profil prüfen; keine erfundenen Ersatzwerte.
 - B2B/B2C/B2G, Ansässigkeit, Kleinunternehmerregelung, Umsatzjahr und begründete Steuerbefreiung ausdrücklich erfassen beziehungsweise bestätigen. Unbekannte Werte bleiben „zu prüfen“.
 - Steuerkategorie und gegebenenfalls Befreiungsgrund je Position beziehungsweise Steuergruppe unterstützen. Gemischte steuerpflichtige und steuerfreie Leistungen nicht mit einer einzigen pauschalen Ausnahme freigeben.
@@ -59,7 +74,16 @@ Die nachfolgende technische Validierung ist ein Abnahmekriterium von CareSuite. 
 - Fehlende Daten, unzulässige Profile, Rundungsfehler, Steuergruppen, ungültige Einheiten und widersprüchliche Summen verhindern eine behauptete erfolgreiche Validierung; Warnungen bleiben sichtbar.
 - Originaldateien lassen sich vollständig und unverändert wieder herunterladen. Tests decken Mandantentrennung, Wiederholung, unterbrochene Speicherung und Änderungen zwischen Vorschau und Freigabe ab.
 - Empfang und Ausstellung besitzen jeweils einen belegten End-to-End-Nachweis mit freigegebenen Testdaten außerhalb produktiver Geschäftsdaten. Bestehende Beschränkungen zu Installationen, Infrastruktur und Android bleiben bestehen; fehlende Fähigkeiten werden als konkrete Lücke ausgewiesen.
-- Die Begriffe „E-Rechnung“, „validiert“ und „revisionssicher“ werden nur im nachgewiesenen Umfang verwendet. Bis zur tatsächlichen Umsetzung lautet der Produktstatus: PDF-Rechnungen verfügbar, vollständiger E-Rechnungsein- und -ausgang noch offen.
+- Die Begriffe „E-Rechnung“, „validiert“ und „revisionssicher“ werden nur im nachgewiesenen Umfang verwendet. Implementierung, erfolgreiche Formatprüfung einer konkreten Datei, Produktivveröffentlichung und vollständige Ende-zu-Ende-Abnahme werden getrennt dokumentiert. Eine nicht belegte Veröffentlichung oder Prüfung darf nicht als abgeschlossen gemeldet werden.
+
+## Nachweisstand vom 18. Oktober 2026
+
+- Die Datenbank-Erweiterung wurde als `20261018160544_office_einvoice_workspace` angewendet. Die zugehörige Datei in `supabase/migrations/` ist bytegleich mit `scripts/sql/office-einvoice-workspace.sql` (SHA-256 `f9bb4288f975d8af6a340efb37389d8b546a2ce0dc7226b28d2f2a86b229358e`). Vorher entsprachen die vier bestehenden Rechnungsfunktionen exakt der Ausgangsmigration. Nachher wurden Funktionskörper, RPC-Rechte, vier Schutztrigger und RLS ohne direkten Clientzugriff nachgelesen; der PostgREST-Schemacache wurde neu geladen.
+- `scripts/verify-office-einvoice-flow.mjs` verbindet die tatsächliche API, UBL-Erzeugung, XSD-/Schematron-Prüfung, den Edge-Prüfhandler und die SQL-Funktionen in einer isolierten PostgreSQL-Instanz. Zehn Szenarien mit acht tatsächlichen Regelläufen bestehen: XML-/Hybrid-Eingang, Ausgang ohne sowie mit einem und zwei Originalnachweisen, bytegleiche Originale, Wiederholung, ungültige Summen/Steuerkennung, vertauschte PDF/XML-Dateien sowie parallele Änderungen an Entwurf oder Nachweis.
+- Der Integrationstest benötigt Node ab 22.15 und die vorhandenen Projektabhängigkeiten. Auf der vorhandenen Node-24-Umgebung wurde er mit den bereits verfügbaren, zum Lockfile passenden Abhängigkeiten ausgeführt. Er installiert nichts und sendet keine Anfragen an produktive Dienste.
+- Authentifizierung, HTTP-Transport, Storage, PDF-Erstellung und die vorherige Nachweisattestierung sind dabei ausdrücklich synthetische Adapter. Insbesondere wird ein fertiger PDF-Renderjob als Testvorbedingung angelegt. Dies ersetzt weder den angemeldeten Browserablauf noch einen veröffentlichten Ende-zu-Ende-Nachweis. Diese Abnahme und eine visuelle Prüfung in breiter und schmaler Darstellung bleiben offen; die produktive Freigabe des vollständigen E-Rechnungsablaufs ist damit weiterhin nicht belegt.
+- Die Korrektur der Eingangsoberfläche behält die Schriftgröße des Office-Arbeitsbereichs bei und ersetzt die abgeschnittene native Dateiauswahl durch einen beschrifteten Button. Die sechs vorhandenen Interaktionstests bestehen; daraus wird keine visuelle Abnahme abgeleitet.
+- Amtliche Quellen wurden erneut geprüft: § 14 und § 27 Abs. 38 UStG sowie die Informationen des Bayerischen Landesamts für Steuern bestätigen die berücksichtigten Fristen und Ausnahmen. KoSIT führt weiterhin XRechnung 3.0 und das technische Bundle vom 31.08.2026; die Veröffentlichung vom 13.10.2026 betrifft die Visualisierung, XRechnung 4.0 ist noch eine Vorversion. Die BMF-FAQ war beim erneuten Abruf mit HTTP 503 nicht verfügbar.
 
 ## Amtliche Grundlagen
 
@@ -71,4 +95,4 @@ Die nachfolgende technische Validierung ist ein Abnahmekriterium von CareSuite. 
 - [FeRD – ZUGFeRD-Profile und hybrides Dateiformat](https://www.ferd-net.de/standards/zugferd-faq)
 - [KoSIT – Versionen und Prüf-Bundles für XRechnung](https://xeinkauf.de/xrechnung/versionen-und-bundles/)
 
-Vor der Implementierung beziehungsweise Freigabe erneut auf Rechts- und Versionsänderungen prüfen. Die genannten Quellen ersetzen keinen geprüften technischen Validator.
+Vor jeder Freigabe erneut auf Rechts- und Versionsänderungen prüfen. Die genannten Quellen ersetzen keinen geprüften technischen Validator.

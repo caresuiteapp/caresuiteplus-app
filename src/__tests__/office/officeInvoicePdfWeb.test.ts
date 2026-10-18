@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InvoicePdfData } from '@/lib/office/invoicePdfService.web';
 import type { InvoiceOfficeDraft } from '@/lib/office/invoiceWorkspaceTypes.web';
+import { createEmptyOfficeEInvoiceMetadata, createEmptyOfficeEInvoiceLineTax } from '@/lib/office/eInvoiceModel.web';
 
 const f = vi.hoisted(() => ({ query: vi.fn(), download: vi.fn(), renders: [] as Array<{ page: number; text: string; y: number }>, pages: 1 }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (role: string) => role === 'denied' ? { ok: false, error: 'Kein Zugriff.' } : null }));
@@ -25,7 +26,7 @@ vi.mock('jspdf/dist/jspdf.es.min.js', () => ({ jsPDF: class {
   output() { return new TextEncoder().encode('%PDF-1.7\n').buffer; }
 } }));
 
-import { draftToPdfInvoice, fetchInvoicePdfData, prepareOfficeInvoicePdf, renderInvoicePdfDocument, validateInvoicePdf } from '@/lib/office/invoicePdfService.web';
+import { draftToPdfInvoice, fetchInvoicePdfData, hasInvoicePdfZeroTaxReasons, prepareOfficeInvoicePdf, renderInvoicePdfDocument, validateInvoicePdf } from '@/lib/office/invoicePdfService.web';
 
 const tenant = '11111111-1111-4111-8111-111111111111';
 const draft = (): InvoiceOfficeDraft => ({ requestId: '22222222-2222-4222-8222-222222222222', clientId: '33333333-3333-4333-8333-333333333333', invoiceNumber: '',
@@ -47,6 +48,36 @@ describe('Web invoice PDF truth and pagination', () => {
     expect(f.renders.some(row => row.text.includes('ENTWURF'))).toBe(true);
     expect(f.query).not.toHaveBeenCalled();
     expect(payload.invoice.invoiceNumber).toBe('');
+  });
+  it('shows the confirmed actual buyer separately from the payer without changing invoice amounts', async () => {
+    const input = draft(); input.recipient = { ...input.recipient, name: 'Beispiel Pflegekasse' };
+    input.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...input.recipient, name: 'Leistungsempfänger GmbH', street: 'Vertragsstraße' }, buyerConfirmed: true, buyerReference: 'Auftrag-42', buyerVatId: 'DE123456789' };
+    input.lines[0].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'E', legalBasis: 'ustg_4_8_29', exemptionReason: 'Geprüfte Rechtsgrundlage' };
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) };
+    expect(payload.invoice.recipientName).toBe('Beispiel Pflegekasse'); expect(payload.invoice.amountCents).toBe(13100);
+    await renderInvoicePdfDocument(payload);
+    const text = f.renders.map(row => row.text).join(' ');
+    expect(text).toContain('Beispiel Pflegekasse'); expect(text).toContain('Tatsächlicher Leistungsempfänger'); expect(text).toContain('Leistungsempfänger GmbH');
+    expect(text).toContain('Auftrag-42'); expect(text).toContain('DE123456789'); expect(text).toContain('Geprüfte Rechtsgrundlage');
+  });
+  it('keeps the Office internal note out of the externally shared PDF', async () => {
+    const input = draft(); input.notes = 'Interner Bearbeitungsvermerk: nicht weitergeben';
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) }; await renderInvoicePdfDocument(payload);
+    expect(payload.invoice.notes).toBeNull(); expect(f.renders.some(row => row.text.includes('Interner Bearbeitungsvermerk'))).toBe(false);
+  });
+  it('accepts visible per-position zero-tax explanations and rejects partial coverage', () => {
+    const input = draft(); input.footerText = ''; input.lines.push({ ...input.lines[0], description: 'Zweite Leistung' });
+    input.lines[0].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'E', exemptionReason: 'Erste Rechtsgrundlage' };
+    expect(hasInvoicePdfZeroTaxReasons(draftToPdfInvoice(tenant, input))).toBe(false);
+    input.lines[1].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'AE', exemptionReasonCode: 'VATEX-EU-AE' };
+    const complete = draftToPdfInvoice(tenant, input); expect(hasInvoicePdfZeroTaxReasons(complete)).toBe(true);
+    expect(validateInvoicePdf({ ...data(), invoice: complete }).warnings.some(message => message.includes('Begründung'))).toBe(false);
+    expect(complete.lineTaxNotes?.[1].reason).toBe('Befreiungscode VATEX-EU-AE');
+  });
+  it('does not print an unconfirmed buyer as the actual recipient', async () => {
+    const input = draft(); input.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...input.recipient, name: 'Noch ungeprüft' } };
+    const payload = { ...data(), invoice: draftToPdfInvoice(tenant, input) }; await renderInvoicePdfDocument(payload);
+    expect(payload.invoice.actualBuyer).toBeUndefined(); expect(f.renders.some(row => row.text.includes('Noch ungeprüft'))).toBe(false);
   });
   it('requires issued identity, exact cents and mathematically correct tax', () => {
     const payload = data(); payload.invoice.status = 'ready';

@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import type { OfficeInvoice } from '@/lib/office/invoiceWorkspaceTypes.web';
+import { createEmptyOfficeEInvoiceMetadata } from '@/lib/office/eInvoiceModel.web';
 const f = vi.hoisted(() => ({ fresh: vi.fn(), preview: vi.fn(), finalize: vi.fn(), render: vi.fn(), upload: vi.fn(), annex: vi.fn(), actor: vi.fn(), calls: [] as string[] }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (role: string) => role === 'denied' ? { ok: false, error: 'Kein Zugriff.' } : null }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ auth: { getUser: f.actor } }) }));
 vi.mock('@/lib/supabase/edgeFunctions', () => ({ invokeEdgeFunction: f.upload }));
 vi.mock('@/lib/office/invoiceWorkspaceService.web', () => ({ fetchOfficeInvoice: f.fresh, fetchOfficeInvoiceIssuePreview: f.preview, finalizeOfficeInvoiceIssue: f.finalize }));
 vi.mock('@/lib/office/invoiceProofAttachments.web', () => ({ loadInvoiceProofPages: f.annex }));
-vi.mock('@/lib/office/invoicePdfService.web', () => ({ generateInvoicePdf: f.render, normalizeInvoiceCompanySnapshot: (value: unknown) => value,
-  officeInvoiceToPdfInvoice: (invoice: OfficeInvoice) => ({ ...invoice, taxNotice: invoice.footerText, lineItems: invoice.lines }), validateInvoicePdf: () => ({ errors: [], warnings: [] }) }));
+vi.mock('@/lib/office/invoicePdfService.web', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/office/invoicePdfService.web')>();
+  return { generateInvoicePdf: f.render, normalizeInvoiceCompanySnapshot: (value: unknown) => value,
+    officeInvoiceToPdfInvoice: actual.officeInvoiceToPdfInvoice,
+    hasInvoicePdfZeroTaxReasons: actual.hasInvoicePdfZeroTaxReasons,
+    validateInvoicePdf: () => ({ errors: [], warnings: [] }) };
+});
 import { issueOfficeInvoicePdf } from '@/lib/office/invoiceIssuePdf.web';
 
 let sequence = 0;
@@ -68,5 +74,29 @@ describe('Invoice issuance commits the exact prepared archive', () => {
     expect((await issueOfficeInvoicePdf(source.tenantId, source, 'business_admin')).ok).toBe(false);
     expect((await issueOfficeInvoicePdf(source.tenantId, source, 'business_admin')).ok).toBe(true);
     expect(f.upload).toHaveBeenCalledTimes(1); expect(f.finalize.mock.calls[0][3]).toEqual(f.finalize.mock.calls[1][3]);
+  });
+  it('validates XRechnung before PDF and binds the exact XML receipt to finalization', async () => {
+    const source = invoice(); source.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), format: 'xrechnung' };
+    f.fresh.mockResolvedValue({ ok: true, data: source });
+    const uploadPdf = f.upload.getMockImplementation()!;
+    f.upload.mockImplementation(async (name: string, input: Record<string, unknown>) => {
+      if (input.action === 'validate_einvoice_issue') {
+        f.calls.push('validate-xml');
+        return { ok: true, data: { invoiceId: source.id, xmlSha256: 'a'.repeat(64), invoiceNumber: 'RE-100', sourceRevision: 'revision-1' } };
+      }
+      return uploadPdf(name, input);
+    });
+    expect((await issueOfficeInvoicePdf(source.tenantId, source, 'business_admin')).ok).toBe(true);
+    expect(f.calls).toEqual(['preflight', 'validate-xml', 'render', 'upload', 'finalize']);
+    expect(f.finalize.mock.calls[0][3]).toMatchObject({ eInvoiceXmlSha256: 'a'.repeat(64), sourceRevision: 'revision-1', invoiceNumber: 'RE-100' });
+  });
+  it('does not render or issue when XML validation fails or belongs to a different revision', async () => {
+    for (const checked of [{ ok: false, error: 'BR-CO-10: Die Summe stimmt nicht.' },
+      { ok: true, data: { xmlSha256: 'a'.repeat(64), invoiceNumber: 'RE-100', sourceRevision: 'changed' } }]) {
+      const source = invoice(); source.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), format: 'xrechnung' };
+      f.fresh.mockResolvedValue({ ok: true, data: source }); f.upload.mockResolvedValue(checked);
+      expect((await issueOfficeInvoicePdf(source.tenantId, source, 'business_admin')).ok).toBe(false);
+      expect(f.render).not.toHaveBeenCalled(); expect(f.finalize).not.toHaveBeenCalled();
+    }
   });
 });

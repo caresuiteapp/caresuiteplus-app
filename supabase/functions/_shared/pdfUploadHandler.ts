@@ -7,7 +7,7 @@ type SelectQuery = {
   maybeSingle: () => PromiseLike<RowResult>;
   single: () => PromiseLike<RowResult>;
 };
-type PdfClient = {
+export type PdfClient = {
   auth: { getUser: () => PromiseLike<{ data: { user: { id: string } | null }; error: unknown }> };
   rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
   from: (table: string) => {
@@ -25,6 +25,7 @@ type Dependencies = {
   serviceClient: () => PdfClient;
   respond: (body: unknown, status?: number) => Response;
   corsHeaders: Record<string, string>;
+  eInvoiceHandler?: (input: Record<string, unknown>, authorization: string, userId: string, userClient: PdfClient) => Promise<Response>;
 };
 
 /** Client-rendered PDF storage; neither document completion nor signature attestation. */
@@ -61,7 +62,14 @@ export function createPdfUploadHandler(dependencies: Dependencies) {
     let offset = 0;
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
     let input;
-    try { input = parsePdfUpload(JSON.parse(new TextDecoder().decode(bytes))); }
+    try {
+      const payload = JSON.parse(new TextDecoder().decode(bytes));
+      if (payload && typeof payload === 'object' && !Array.isArray(payload) && ['validate_einvoice_issue', 'validate_einvoice_inbox'].includes(payload.action)) {
+        if (!dependencies.eInvoiceHandler) return dependencies.respond({ ok: false, error: 'Die E-Rechnungsprüfung ist noch nicht freigeschaltet.' }, 503);
+        return await dependencies.eInvoiceHandler(payload, authorization, verified.data.user.id, userClient);
+      }
+      input = parsePdfUpload(payload);
+    }
     catch (error) { return dependencies.respond({ ok: false, error: error instanceof Error ? error.message : 'Ungültige PDF-Anfrage.' }, 400); }
     const service = dependencies.serviceClient();
     const userId = verified.data.user.id;

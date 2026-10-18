@@ -5,7 +5,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { calculateOfficeInvoiceLines, isOfficeInvoiceDate, validateOfficeInvoiceDraft, type InvoiceOfficeDraft, type OfficeInvoice } from './invoiceWorkspaceTypes.web';
+import { calculateOfficeInvoiceLines, isOfficeInvoiceDate, validateOfficeInvoiceDraft, type InvoiceOfficeDraft, type OfficeInvoice, type OfficeInvoiceRecipient } from './invoiceWorkspaceTypes.web';
 import { loadInvoiceProofPages, validateInvoicePdfBytes, type InvoiceProofPage } from './invoiceProofAttachments.web';
 import { isTenantStoragePath } from '@/lib/storage/storagePaths';
 
@@ -16,6 +16,10 @@ export type OfficePdfInvoice = InvoiceDetail & {
   pdfStoragePath?: string | null;
   companySnapshot?: InvoicePdfCompany | null;
   recipientName?: string;
+  actualBuyer?: OfficeInvoiceRecipient;
+  buyerReference?: string;
+  buyerVatId?: string;
+  lineTaxNotes?: Array<{ position: number; reason: string }>;
   insuredNumber?: string;
   clientNumber?: string;
   footerText?: string;
@@ -179,6 +183,13 @@ export async function fetchInvoicePdfData(
   };
 }
 
+/** Every zero-rated position needs a visible explanation; one unrelated line must not cover the others. */
+export function hasInvoicePdfZeroTaxReasons(invoice: OfficePdfInvoice): boolean {
+  if (invoice.taxNotice?.trim()) return true;
+  return invoice.lineItems.every((item, index) => (item.taxRatePercent ?? 0) !== 0 ||
+    invoice.lineTaxNotes?.some(note => note.position === index + 1 && !!note.reason.trim()) === true);
+}
+
 export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   const { company, invoice } = data;
   const errors: string[] = [];
@@ -217,8 +228,7 @@ export function validateInvoicePdf(data: InvoicePdfData): InvoicePdfValidation {
   if (itemGross !== invoice.amountCents) {
     errors.push('Positionssumme und Rechnungsbetrag stimmen nicht überein.');
   }
-  const hasZeroTax = invoice.lineItems.some((item) => (item.taxRatePercent ?? 0) === 0);
-  if (hasZeroTax && !invoice.taxNotice?.trim()) {
+  if (!hasInvoicePdfZeroTaxReasons(invoice)) {
     warnings.push('Für Positionen mit 0 % Umsatzsteuer fehlt eine Begründung. Bitte den Steuerhinweis fachlich prüfen.');
   }
   if (!company.bic) warnings.push('BIC fehlt; innerhalb des SEPA-Raums meist entbehrlich.');
@@ -381,7 +391,13 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   y = Math.max(addressY, infoY) + 8;
   font(23, true); write(draft ? 'Rechnungsentwurf' : 'Rechnung', left, y); y += 10;
   if (draft) paragraph('ENTWURF · Keine Zahlungsaufforderung. Die Vorschau vergibt keine Rechnungsnummer.', 8, true, accent);
-  if (invoice.recipientName && invoice.recipientName !== invoice.clientName) paragraph(`Leistungen für ${invoice.clientName}`, 9, true, ink);
+  if (invoice.actualBuyer) {
+    paragraph('Tatsächlicher Leistungsempfänger', 8, true, ink);
+    paragraph([invoice.actualBuyer.name, `${invoice.actualBuyer.street} ${invoice.actualBuyer.houseNumber}`.trim(), `${invoice.actualBuyer.postalCode} ${invoice.actualBuyer.city}`.trim(), invoice.actualBuyer.country].filter(Boolean).join(' · '), 8.6);
+    if (invoice.buyerVatId) paragraph(`USt-ID des Leistungsempfängers: ${invoice.buyerVatId}`, 8.2);
+    if (invoice.buyerReference) paragraph(`Käuferreferenz: ${invoice.buyerReference}`, 8.2);
+  }
+  if (invoice.recipientName && invoice.recipientName !== invoice.clientName) paragraph(`${invoice.actualBuyer ? 'Zugeordnete Klientin / zugeordneter Klient' : 'Leistungen für'} ${invoice.clientName}`, 9, true, ink);
   paragraph('Für die im genannten Zeitraum erbrachten Leistungen berechnen wir:', 9);
   y += 2;
   const tableHeader = () => {
@@ -424,6 +440,7 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   totalRow('Nettobetrag', net);
   for (const [rate, value] of taxGroups) totalRow(`Umsatzsteuer ${formatQuantity(rate)} %`, value);
   totalRow('Rechnungsbetrag', invoice.amountCents, true); y += 3;
+  for (const taxNote of invoice.lineTaxNotes ?? []) paragraph(`Position ${taxNote.position}: ${taxNote.reason}`, 8.2);
   if (invoice.taxNotice?.trim()) paragraph(invoice.taxNotice.trim(), 8.2);
   if (invoice.notes?.trim()) paragraph(invoice.notes.trim(), 8.6);
   reserve(24);
@@ -484,7 +501,9 @@ export function draftToPdfInvoice(tenantId: string, draft: InvoiceOfficeDraft): 
     invoiceNumber: draft.invoiceNumber, issuedDate: draft.invoiceDate, dueDate: draft.dueDate, amountCents: calculated.totalCents, currency: 'EUR',
     servicePeriodStart: draft.servicePeriodStart, servicePeriodEnd: draft.servicePeriodEnd, status: 'draft',
     createdAt: draft.invoiceDate, updatedAt: draft.expectedUpdatedAt || draft.invoiceDate, billingModule: modules.size === 1 ? draft.lines[0].productKey : 'mixed',
-    recipient: { ...draft.recipient, customerNumber: draft.clientNumber || '' }, taxNotice: draft.footerText, notes: draft.notes, footerText: draft.footerText,
+    actualBuyer: draft.eInvoice?.buyerConfirmed ? { ...draft.eInvoice.buyer, country: draft.eInvoice.buyerCountryCode || draft.eInvoice.buyer.country } : undefined, buyerReference: draft.eInvoice?.buyerReference, buyerVatId: draft.eInvoice?.buyerVatId,
+    lineTaxNotes: draft.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() || line.eInvoiceTax?.exemptionReasonCode.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() || `Befreiungscode ${line.eInvoiceTax.exemptionReasonCode.trim()}` }] : []),
+    recipient: { ...draft.recipient, customerNumber: draft.clientNumber || '' }, taxNotice: draft.footerText, notes: null, footerText: draft.footerText,
     lineItems: calculated.lines.map((line, index) => ({ id: line.id || `preview-${index}`, description: line.description, quantity: line.quantity, unit: line.unit,
       unitPriceCents: line.unitPriceCents, taxRatePercent: line.taxRatePercent, netTotalCents: line.netCents, taxCents: line.taxCents, totalCents: line.totalCents })),
     auditEntries: [], allowedStatusActions: [], nextActionHint: '' };
@@ -497,7 +516,9 @@ export function officeInvoiceToPdfInvoice(invoice: OfficeInvoice): OfficePdfInvo
     currency: 'EUR', status: invoice.status, dueDate: invoice.dueDate || '', issuedDate: invoice.invoiceDate,
     servicePeriodStart: invoice.servicePeriodStart, servicePeriodEnd: invoice.servicePeriodEnd, billingModule: invoice.billingModule,
     createdAt: invoice.createdAt, updatedAt: invoice.updatedAt, recipient: { ...invoice.recipient, customerNumber: invoice.clientNumber },
-    taxNotice: invoice.footerText, footerText: invoice.footerText || '', notes: invoice.notes, pdfStoragePath: invoice.pdfFilePath,
+    actualBuyer: invoice.eInvoice?.buyerConfirmed ? { ...invoice.eInvoice.buyer, country: invoice.eInvoice.buyerCountryCode || invoice.eInvoice.buyer.country } : undefined, buyerReference: invoice.eInvoice?.buyerReference, buyerVatId: invoice.eInvoice?.buyerVatId,
+    lineTaxNotes: invoice.lines.flatMap((line, index) => line.eInvoiceTax?.exemptionReason.trim() || line.eInvoiceTax?.exemptionReasonCode.trim() ? [{ position: index + 1, reason: line.eInvoiceTax.exemptionReason.trim() || `Befreiungscode ${line.eInvoiceTax.exemptionReasonCode.trim()}` }] : []),
+    taxNotice: invoice.footerText, footerText: invoice.footerText || '', notes: null, pdfStoragePath: invoice.pdfFilePath,
     companySnapshot: invoice.companySnapshot ? normalizeInvoiceCompanySnapshot(invoice.companySnapshot) : null,
     lineItems: invoice.lines.map(line => ({ id: line.id, description: line.description, quantity: line.quantity, unit: line.unit,
       unitPriceCents: line.unitPriceCents, taxRatePercent: line.taxRatePercent, netTotalCents: line.netCents!, taxCents: line.taxCents!, totalCents: line.totalCents! })),

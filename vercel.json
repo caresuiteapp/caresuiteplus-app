@@ -49,6 +49,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/einvoice/validate",
+      "destination": "/api/einvoice/validate"
+    },
+    {
       "source": "/landingpage",
       "destination": "/landingpage/index.html"
     },
@@ -154,5 +158,14 @@
       "destination": "/Desktop",
       "permanent": false
     }
+  ],
+  "functions": {
+    "api/einvoice/validate.ts": {
+      "maxDuration": 60,
+      "includeFiles": "{api/_lib/einvoice-rules/**,api/_lib/einvoice-pdf-worker.mjs,node_modules/libxml2-wasm/lib/**,node_modules/pdfjs-dist/legacy/build/**,node_modules/@napi-rs/canvas/**}"
+    }
+  },
+  "regions": [
+    "fra1"
   ]
 }

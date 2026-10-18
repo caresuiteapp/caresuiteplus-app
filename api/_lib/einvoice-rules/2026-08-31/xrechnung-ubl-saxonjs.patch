@@ -1,0 +1,11 @@
+--- XRechnung-UBL-validation.xsl
++++ XRechnung-UBL-saxonjs.xsl
+@@ -12,7 +12,7 @@
+    <xsl:function xmlns="http://purl.oclc.org/dsdl/schematron" name="xr:checkIBAN" as="xs:boolean">
+       <xsl:param name="iban" as="xs:string"/>
+       <xsl:variable name="normalizedIban" select="normalize-space(replace($iban, '([\s])', ''))"/>
+-      <xsl:sequence select="matches($normalizedIban, $XR-IBAN-REGEX) and                           xs:integer(string-join(for $cp in string-to-codepoints(concat(substring($normalizedIban,5),upper-case(substring($normalizedIban,1,2)),substring($normalizedIban,3,2))) return (if($cp &gt; 64) then string($cp - 55) else string($cp - 48)),'')) mod 97 = 1"/>
++      <xsl:sequence select="matches($normalizedIban, $XR-IBAN-REGEX) and                           xs:decimal(string-join(for $cp in string-to-codepoints(concat(substring($normalizedIban,5),upper-case(substring($normalizedIban,1,2)),substring($normalizedIban,3,2))) return (if($cp &gt; 64) then string($cp - 55) else string($cp - 48)),'')) mod 97 = 1"/>
+    </xsl:function>
+    <function xmlns="http://www.w3.org/1999/XSL/Transform" name="u:gln" as="xs:boolean">
+       <param name="val"/>

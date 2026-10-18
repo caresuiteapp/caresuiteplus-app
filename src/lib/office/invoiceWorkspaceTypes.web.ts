@@ -1,4 +1,5 @@
 import type { InvoiceBillingModule, InvoiceStatus } from '@/types/modules/billing';
+import type { OfficeEInvoiceMetadata, OfficeEInvoiceLineTax } from './eInvoiceTypes.web';
 
 export type OfficeInvoiceProductKey = 'assist' | 'pflege' | 'stationaer' | 'beratung';
 export type OfficeInvoiceRecipientType = 'client' | 'relative' | 'care_insurance' | 'health_insurance' | 'social_welfare' | 'company' | 'other';
@@ -7,6 +8,7 @@ export type OfficeInvoiceRecipient = { name: string; street: string; houseNumber
 export type OfficeInvoiceDraftLine = {
   id?: string; description: string; quantity: number; unit: string; unitPriceCents: number; taxRatePercent: number;
   productKey: OfficeInvoiceProductKey; serviceDate?: string; serviceRecordId?: string; sourceUpdatedAt?: string;
+  eInvoiceTax?: OfficeEInvoiceLineTax;
 };
 export type OfficeInvoiceLine = OfficeInvoiceDraftLine & { id: string; netCents: number | null; taxCents: number | null; totalCents: number | null };
 export type InvoiceOfficeDraft = {
@@ -16,6 +18,7 @@ export type InvoiceOfficeDraft = {
   recipient: OfficeInvoiceRecipient; recipientType: OfficeInvoiceRecipientType; billingParty: OfficeInvoiceBillingParty;
   notes: string; footerText: string; includeProofs: boolean; selectedProofIds?: string[];
   lines: OfficeInvoiceDraftLine[];
+  eInvoice?: OfficeEInvoiceMetadata;
 };
 export type OfficeInvoice = {
   id: string; tenantId: string; clientId: string | null; clientName: string; clientNumber: string; insuranceNumber: string;
@@ -27,6 +30,7 @@ export type OfficeInvoice = {
   officeManaged: boolean; notes: string | null; footerText: string | null;
   includeProofs: boolean; selectedProofIds: string[]; lines: OfficeInvoiceLine[]; issues: string[];
   pdfFilePath: string | null; cancellationReason: string | null; companySnapshot: Record<string, unknown> | null;
+  eInvoice?: OfficeEInvoiceMetadata;
 };
 export type OfficeInvoiceClient = { id: string; name: string; clientNumber: string; status: string; recipient: OfficeInvoiceRecipient; insuranceName: string; insuranceNumber: string; billingParty: string };
 export type OfficeInvoiceCatalogOption = { id: string; name: string; description: string; unit: string; productKey: OfficeInvoiceProductKey; unitPriceCents: number; taxRatePercent: number; taxNotice: string };
@@ -38,7 +42,7 @@ export type OfficeInvoicePaymentInput = {
 };
 export type OfficeInvoiceIssueArchive = { pdfFilePath: string; companySnapshot: Record<string, unknown>; selectedProofIds: string[] };
 export type OfficeInvoiceIssuePreview = { invoiceNumber: string; companySnapshot: Record<string, unknown>; sourceRevision: string };
-export type OfficeInvoiceIssueInput = OfficeInvoiceIssuePreview & { requestId: string; pdfFilePath: string; pdfSha256: string };
+export type OfficeInvoiceIssueInput = OfficeInvoiceIssuePreview & { requestId: string; pdfFilePath: string; pdfSha256: string; eInvoiceXmlSha256?: string };
 export type OfficeInvoiceDeliveryEvidence = { channel: 'email' | 'post' | 'personal' | 'other'; date: string; reference: string };
 
 export function isOfficeInvoiceDate(value: string): boolean {
