@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import type { WfmOfficeEmployeeTimeAccount } from '@/types/modules/wfmOfficeTimekeeping';
+import type { WfmOfficeEmployeeTimeAccount, WfmOfficeTimeEntryStatus } from '@/types/modules/wfmOfficeTimekeeping';
 const state = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>, errors: {} as Record<string, unknown>, reads: [] as string[],
   accounts: [] as WfmOfficeEmployeeTimeAccount[], accountError: '', denied: false, tenantDenied: false, connected: true,
@@ -25,13 +25,30 @@ function seedEmployee(id = 'e1', extra: Record<string, unknown> = {}) {
   (state.rows.employee_payroll_settings ??= []).push({ tenant_id: 'tenant-1', employee_id: id, compensation_type: 'hourly', compensation_amount: '20', max_payout_hours_month: '1', overflow_to_time_account: true });
   (state.rows.employee_contract_settings ??= []).push({ tenant_id: 'tenant-1', employee_id: id, work_days: { mon: 8 } });
 }
-function seedAccount(reviewStatus = 'approved') {
-  state.accounts.push({ employeeId: 'e1', employeeName: 'Ada e1', actualMinutes: 120, travelMinutes: 0, absenceMinutes: 0,
-    targetMinutes: 999, entries: [{ id: 'entry-1', tenantId: 'tenant-1', employeeId: 'e1', employeeName: 'Ada e1', workDate: '2026-10-12',
-      actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T10:00:00Z', netMinutes: 120, pauseMinutes: 0,
-      reviewStatus, rowKind: 'unplanned_actual', flags: [], plannedDurationMinutes: 0, source: 'manual_addition' }],
-  } as WfmOfficeEmployeeTimeAccount);
+function seedAccount(reviewStatus: WfmOfficeTimeEntryStatus = 'approved') {
+  const approved = reviewStatus === 'approved' || reviewStatus === 'exported';
+  const account: WfmOfficeEmployeeTimeAccount = {
+    employeeId: 'e1', employeeName: 'Ada e1', plannedMinutes: 0, actualMinutes: 120,
+    approvedMinutes: approved ? 120 : 0, exportedMinutes: 0, saldoMinutes: -879,
+    openReviewCount: approved ? 0 : 1, targetMinutes: 999, targetSource: 'saved_account',
+    overtimeMinutes: 0, undertimeMinutes: 879, travelMinutes: 0, absenceMinutes: 0,
+    vacationDaysUsed: 0, sickDays: 0, annualVacationDays: 30, remainingVacationDays: 30,
+    vacationYear: 2026, payrollStatements: [],
+    entries: [{
+      id: 'entry-1', tenantId: 'tenant-1', employeeId: 'e1', employeeName: 'Ada e1', workDate: '2026-10-12',
+      assignmentId: null, visitId: null, clientLabel: null, plannedStartAt: null, plannedEndAt: null,
+      actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T10:00:00Z',
+      startDeviationMinutes: null, endDeviationMinutes: null, startAmpel: null, endAmpel: null, overallAmpel: null,
+      startJustification: null, endJustification: null, startJustificationAt: null, endJustificationAt: null,
+      grossMinutes: 120, netMinutes: 120, pauseMinutes: 0, travelMinutes: 0, workKind: 'nachtrag',
+      status: reviewStatus, reviewStatus, exportStatus: 'not_exported', source: 'manual_addition',
+      sessionId: null, officeComment: null, hasOpenOfficeMessage: false,
+      rowKind: 'unplanned_actual', flags: [], plannedDurationMinutes: 0,
+    }],
+  };
+  state.accounts.push(account);
 }
+
 beforeEach(() => {
   state.rows = {}; state.errors = {}; state.reads = []; state.accounts = []; state.accountError = ''; state.denied = false; state.tenantDenied = false; state.connected = true;
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-18T10:00:00Z'));

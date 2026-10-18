@@ -101,9 +101,16 @@ async function requireSameActor(db: Client, expected: string) {
   if (await actorId(db) !== expected) throw new Error('Die Anmeldung hat sich geändert. Bitte die Monatsdaten neu laden.');
 }
 async function sourceRevision(db: Client, tenantId: string, employee: PayrollOfficeEmployeeMonth): Promise<string> {
-  const response = await db.rpc('payroll_office_source_revision' as never, {
+  // This additive RPC is not yet represented in generated database types.
+  // Keep its payload unknown until the response has been validated below.
+  const revisionClient = db as unknown as {
+    rpc(name: 'payroll_office_source_revision', args: {
+      p_tenant_id: string; p_employee_id: string; p_year: number; p_month: number;
+    }): PromiseLike<{ data: unknown; error: import('@supabase/supabase-js').PostgrestError | null }>;
+  };
+  const response = await revisionClient.rpc('payroll_office_source_revision', {
     p_tenant_id: tenantId, p_employee_id: employee.employeeId, p_year: employee.periodYear, p_month: employee.periodMonth,
-  } as never);
+  });
   if (response.error) throw new Error(toGermanSupabaseError(response.error));
   if (typeof response.data !== 'string' || !/^[0-9a-f]{32}$/.test(response.data)) throw new Error('Der aktuelle Datenstand konnte nicht bestätigt werden.');
   return response.data;
