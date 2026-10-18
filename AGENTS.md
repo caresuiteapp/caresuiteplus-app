@@ -33,3 +33,6 @@ Der Nutzer möchte für diesen Auftrag keine zusätzliche Software oder neue Tes
 
 ## Desktop-Bereiche ab 13.10.2026
 Mein Desktop enthält Office, Assist, Pflege, Stationär, Beratung, Roboter, Premium und Einstellungen. Jeder Bereich speichert seine Widget-Auswahl getrennt nach Mandant und Person. Navigation, Apps, Widgets und Workflow-Vorschläge gehören zum ausgewählten Bereich. Bestehende Freigaben und Schutzsperren bleiben wirksam; Bereichsauswahl aktiviert keine unfertigen Fachmodule.
+
+## E-Rechnungen ab 18.10.2026
+Bei der Weiterentwicklung der Office-Rechnungen die Anforderungen in `docs/office-einvoice-requirements.md` berücksichtigen. Eine normale PDF, ein JSON-Entwurf oder eine reine Pflichtfeldprüfung belegt keine gültige E-Rechnung. Empfang, Ausstellung, Formatvalidierung und Aufbewahrung getrennt behandeln. Ausnahmen anhand des tatsächlichen Leistungsempfängers und der steuerlichen Einordnung prüfen; weder Pflegeleistungen noch Krankenkassen als Kostenträger pauschal einordnen. Die derzeit produktive PDF-Rechnung darf nicht als vollständig E-Rechnungs-fähig oder pauschal revisionssicher bezeichnet werden. Vor einer produktiven E-Rechnungsfreigabe müssen die dokumentierten Abnahmekriterien erfüllt und die dann geltenden amtlichen Vorgaben erneut geprüft sein.
