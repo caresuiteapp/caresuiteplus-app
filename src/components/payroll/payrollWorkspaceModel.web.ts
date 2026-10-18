@@ -1,9 +1,10 @@
 import type { PayrollEmployeeMonth, PayrollExpenseClaim } from '@/types/modules/payrollMonth';
+import type { PayrollOfficePreviewAvailability } from '@/lib/payroll/payrollOfficeReadModel.web';
 
 export type PayrollStatusFilter = 'all' | 'needs_review' | 'not_published' | 'published' | 'confirmed' | 'rejected' | 'blocked';
 export type PayrollSort = 'name' | 'gross' | 'expenses';
 export type PayrollDetailTab = 'overview' | 'times' | 'expenses' | 'uploads' | 'statements' | 'next';
-export type PayrollWorkspaceEmployee = PayrollEmployeeMonth & { calculationReady?: boolean; blockers?: string[]; warnings?: string[]; unapprovedEntryCount?: number };
+export type PayrollWorkspaceEmployee = PayrollEmployeeMonth & { calculationReady?: boolean; blockers?: string[]; warnings?: string[]; unapprovedEntryCount?: number; preview?: PayrollOfficePreviewAvailability };
 export const payrollStatementLabels: Record<string, string> = { draft: 'Entwurf', published: 'Antwort ausstehend', confirmed: 'Bestätigt', rejected: 'Abgelehnt', superseded: 'Ersetzt', locked: 'Gesperrt', paid: 'Ausgezahlt' };
 export const payrollExpenseLabels: Record<string, string> = { draft: 'Entwurf', submitted: 'Eingereicht', needs_info: 'Rückfrage offen', approved: 'Genehmigt', partially_approved: 'Teilweise genehmigt', rejected: 'Abgelehnt', reimbursed: 'Erstattet' };
 export const queryText = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -26,12 +27,23 @@ export function selectPayrollEmployees<T extends PayrollWorkspaceEmployee>(rows:
     if (filters.status === 'blocked') return row.calculationReady === false || (row.blockers?.length ?? 0) > 0;
     return filters.status === 'all' || status === filters.status;
   }).sort((a, b) => {
-    const order = filters.sort === 'gross' ? (a.calculationReady === false ? -1 : a.projectedGrossCents) - (b.calculationReady === false ? -1 : b.projectedGrossCents) : filters.sort === 'expenses' ? pendingExpenses(a) - pendingExpenses(b) : 0;
+    const order = filters.sort === 'gross' ? (a.preview?.grossAvailable ? a.projectedGrossCents : -1) - (b.preview?.grossAvailable ? b.projectedGrossCents : -1) : filters.sort === 'expenses' ? pendingExpenses(a) - pendingExpenses(b) : 0;
     return -order || a.employeeName.localeCompare(b.employeeName, 'de-DE', { sensitivity: 'base' }) || a.employeeId.localeCompare(b.employeeId);
   });
 }
 export function payrollWorkspaceTotals(rows: readonly PayrollWorkspaceEmployee[]) {
-  return { complete: rows.every(row => row.calculationReady !== false), earned: rows.reduce((sum, row) => sum + row.earnedGrossCents, 0), projected: rows.reduce((sum, row) => sum + row.projectedGrossCents, 0), expenses: rows.reduce((sum, row) => sum + row.approvedExpensesCents, 0), pending: rows.reduce((sum, row) => sum + pendingExpenses(row), 0), confirmed: rows.filter(row => ['confirmed', 'locked', 'paid'].includes(row.latestStatement?.status ?? '')).length };
+  const gross = rows.filter(row => row.preview?.grossAvailable);
+  const expenses = rows.filter(row => row.preview?.expensesAvailable);
+  return { complete: gross.length === rows.length, totalCount: rows.length, grossCount: gross.length, expenseCount: expenses.length,
+    provisional: rows.some(row => row.preview?.provisional && (row.preview.grossAvailable || row.preview.expensesAvailable)),
+    earned: gross.reduce((sum, row) => sum + row.earnedGrossCents, 0), projected: gross.reduce((sum, row) => sum + row.projectedGrossCents, 0),
+    expenses: expenses.reduce((sum, row) => sum + row.approvedExpensesCents, 0), pending: rows.reduce((sum, row) => sum + pendingExpenses(row), 0),
+    confirmed: rows.filter(row => ['confirmed', 'locked', 'paid'].includes(row.latestStatement?.status ?? '')).length };
+}
+export function payrollTotalHint(available: number, total: number, provisional: boolean, fullHint: string): string {
+  if (!available && total) return `Keine berechenbaren Werte · 0/${total} Personen`;
+  if (available < total) return `Teilsumme · ${available}/${total} Personen${provisional ? ' · vorläufig' : ''}`;
+  return provisional ? `Vorläufig · ${available}/${total} Personen` : fullHint;
 }
 export function validatePayrollExpenseDraft(claim: PayrollExpenseClaim, amount: string, note: string, status: 'approved' | 'rejected' | 'needs_info') {
   const raw = amount.trim(); const cents = Math.round(Number(raw.replace(',', '.')) * 100); const trimmedNote = note.trim();

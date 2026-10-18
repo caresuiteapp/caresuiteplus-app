@@ -2,9 +2,20 @@ import type { PayrollAssignmentTimeLine, PayrollEmployeeMonth, PayrollMonthOverv
 import type { WfmOfficeEmployeeTimeAccount, WfmOfficePlannedVisit, WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { calculateOfficeAbsenceCredit, hasOfficeContractSchedule, officeAccountRecordedMinutes } from '@/lib/wfm/wfmOfficeAccountTotals';
 
+export type PayrollOfficePreviewAvailability = {
+  compensationAvailable: boolean;
+  actualTimeAvailable: boolean;
+  grossAvailable: boolean;
+  expensesAvailable: boolean;
+  timeAccountAvailable: boolean;
+  absenceAvailable: boolean;
+  provisional: boolean;
+  notes: string[];
+};
 export type PayrollOfficeEmployeeMonth = PayrollEmployeeMonth & {
-  /** False means financial placeholders must be rendered as unavailable, never as a zero salary. */
+  /** Full calculation readiness; independently available preview fields use preview flags. */
   calculationReady: boolean;
+  preview: PayrollOfficePreviewAvailability;
   blockers: string[];
   warnings: string[];
   unapprovedEntryCount: number;
@@ -16,6 +27,7 @@ export type PayrollOfficeEmployeeMonth = PayrollEmployeeMonth & {
 export type PayrollOfficeMonthOverview = Omit<PayrollMonthOverview, 'employees'> & {
   employees: PayrollOfficeEmployeeMonth[];
   totalsComplete: boolean;
+  previewCounts: { gross: number; expenses: number; timeAccounts: number; total: number };
 };
 export type PayrollRow = Record<string, unknown>;
 const text = (value: unknown): string => typeof value === 'string' ? value : '';

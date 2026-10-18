@@ -21,6 +21,7 @@ const groups = {
     'wfm/wfmOfficeReviewDraftWeb.test.ts',
     'wfm/wfmManualEntryDraftWeb.test.ts',
     'wfm/wfmOwnTimeTrackingWeb.test.tsx',
+    'wfm/wfmOfficeOwnIdentityWeb.test.ts',
     'wfm/wfmOfficeReviewWebInteraction.test.tsx',
     'wfm/wfmOfficeTimekeepingWeb.test.ts',
     'wfm/wfmOfficeTimekeepingReadsWeb.test.ts',

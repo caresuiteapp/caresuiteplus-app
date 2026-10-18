@@ -64,8 +64,8 @@ export function payrollPublicationComparable(value: unknown): string {
 }
 
 export function payrollSnapshotForPublication(employee: PayrollOfficeEmployeeMonth): PayrollWebStatementSnapshot {
-  const { latestStatement, pendingPortalUploads, calculationReady, blockers, warnings, unapprovedEntryCount, employmentStatus, statementHistory, ...snapshot } = employee;
-  void latestStatement; void pendingPortalUploads; void calculationReady; void blockers; void warnings; void unapprovedEntryCount; void employmentStatus; void statementHistory;
+  const { latestStatement, pendingPortalUploads, calculationReady, blockers, warnings, unapprovedEntryCount, employmentStatus, statementHistory, preview, ...snapshot } = employee;
+  void latestStatement; void pendingPortalUploads; void calculationReady; void blockers; void warnings; void unapprovedEntryCount; void employmentStatus; void statementHistory; void preview;
   return snapshot;
 }
 

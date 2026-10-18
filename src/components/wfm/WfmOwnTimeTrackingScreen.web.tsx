@@ -8,7 +8,8 @@ import { fetchPortalTimeTrackingSettings } from '@/lib/timeTracking/timeTracking
 import { getWfmTodayStatus, isWfmSessionActive, isWfmSessionPaused, listWfmWorkTypesForClockIn, wfmClockIn, wfmClockOut, wfmPause, wfmResume, wfmSwitchWorkType } from '@/lib/wfm';
 import { wfmOfficeCheckInByToken } from '@/lib/wfm/wfmCheckinService';
 import { listWfmRuleViolationsForDate } from '@/lib/wfm/wfmRuleEngine';
-import { todayWorkDate, resolveEmployeeIdForUser } from '@/lib/wfm/wfmWorkSessionRepository';
+import { todayWorkDate } from '@/lib/wfm/wfmWorkSessionRepository';
+import { resolveOfficeOwnIdentity } from '@/lib/wfm/wfmOfficeOwnIdentity.web';
 import type { ServiceResult } from '@/types';
 import type { WfmWorkTypeKey } from '@/types/modules/wfm';
 import { WfmSecondaryWorkspace, WfmWebNotice, useWfmUnsavedChanges } from './WfmSecondaryWorkspace.web';
@@ -19,10 +20,10 @@ const duration = (minutes: number | undefined) => minutes == null || !Number.isF
 
 export function WfmOwnTimeTrackingScreen() {
   const tenantId = useServiceTenantId(); const { user, profile } = useAuth(); const userId = user?.id ?? profile?.id ?? ''; const knownEmployeeId = profile?.employeeId ?? null;
-  const { can, check, roleKey } = usePermissions(); const canView = can('time.tracking.own.view'); const focused = useIsFocused(); const router = useRouter();
-  const identityScope = `${tenantId}:${userId}:${knownEmployeeId}:${roleKey}:${canView}`;
-  const employeeQuery = useAsyncQuery(useCallback(() => resolveEmployeeIdForUser(tenantId!, userId, knownEmployeeId), [tenantId, userId, knownEmployeeId]), [tenantId, userId, knownEmployeeId], { enabled: !!tenantId && !!userId && canView, queryKey: identityScope });
-  const employeeId = employeeQuery.data;
+  const { can, check, roleKey, permissions } = usePermissions(); const canView = can('time.tracking.own.view'); const focused = useIsFocused(); const router = useRouter();
+  const identityScope = `${tenantId}:${userId}:${knownEmployeeId}:${roleKey}:${canView}:${[...permissions].sort().join(',')}`;
+  const employeeQuery = useAsyncQuery(useCallback(() => resolveOfficeOwnIdentity({ tenantId: tenantId!, userId, roleKey, effectivePermissions: permissions }), [tenantId, userId, roleKey, permissions]), [tenantId, userId, roleKey, permissions], { enabled: !!tenantId && !!userId && canView, queryKey: identityScope });
+  const employeeId = employeeQuery.data?.employeeId ?? null;
   const scope = `${identityScope}:${employeeId}`; const scopeRef = useRef(scope); scopeRef.current = scope;
   const options = useMemo(() => ({ employeeId, source: 'office' as const }), [employeeId]);
   const [workType, setWorkType] = useState<WfmWorkTypeKey>('buero'); const [consent, setConsent] = useState(false); const [code, setCode] = useState('');
@@ -56,7 +57,7 @@ export function WfmOwnTimeTrackingScreen() {
   const start = () => { if (!startBlocked) void action(() => wfmClockIn(tenantId!, userId, roleKey, workType, options), 'Arbeitstag gestartet.'); };
   const checkIn = () => { if (!startBlocked && /^[A-Z0-9]{8}$/.test(code)) void action(() => wfmOfficeCheckInByToken(tenantId!, userId, roleKey, code, { employeeId }), 'Im Büro eingecheckt.'); };
   return <WfmSecondaryWorkspace title="Eigene Erfassung" description="Arbeitsbeginn, Pausen und Tätigkeiten für Ihren Arbeitstag." actions={<button disabled={!ready || busy || status.refreshing} onClick={() => void Promise.all([status.refresh(), settings.refresh(), warnings.refresh()])}>Aktualisieren</button>}>
-    {!canView ? <WfmWebNotice>{check('time.tracking.own.view').reason ?? 'Keine Berechtigung.'}</WfmWebNotice> : employeeQuery.loading ? <WfmWebNotice>Mitarbeiterzuordnung wird geprüft…</WfmWebNotice> : !employeeId || employeeQuery.error || employeeQuery.refreshError ? <section className="wts-panel"><h3>Mitarbeiterzuordnung prüfen</h3><WfmWebNotice tone="error">{employeeQuery.error || employeeQuery.refreshError || 'Es ist kein Mitarbeiterprofil verknüpft.'}<button onClick={() => void employeeQuery.refresh()}>Erneut prüfen</button></WfmWebNotice><p>Für Ihre persönliche Stempeluhr benötigt Ihr Zugang ein Mitarbeiterprofil. Die Verwaltung des Teams bleibt über die freigegebenen Zeitkonten erreichbar.</p>{(can('time.tracking.admin.view') || can('time.tracking.team.view')) && <div className="wts-actions"><button onClick={() => router.push('/business/office/time-tracking/zeitkonten')}>Zeitkonten öffnen</button></div>}</section> : <>
+    {!canView ? <WfmWebNotice>{check('time.tracking.own.view').reason ?? 'Keine Berechtigung.'}</WfmWebNotice> : employeeQuery.loading ? <WfmWebNotice>Mitarbeiterzuordnung wird geprüft…</WfmWebNotice> : !employeeId || employeeQuery.error || employeeQuery.refreshError ? <section className="wts-panel"><h3>{employeeQuery.error || employeeQuery.refreshError ? 'Mitarbeiterzuordnung nicht verfügbar' : 'Keine persönliche Zeiterfassung eingerichtet'}</h3>{employeeQuery.error || employeeQuery.refreshError ? <WfmWebNotice tone="error">{employeeQuery.error || employeeQuery.refreshError}<button onClick={() => void employeeQuery.refresh()}>Erneut prüfen</button></WfmWebNotice> : <><p>Ihr Verwaltungszugang ist keinem Mitarbeiterprofil zugeordnet. Für eine persönliche Stempeluhr muss die Personalverwaltung Ihren Zugang mit Ihrem eigenen Mitarbeiterprofil verknüpfen.</p><div className="wts-actions"><button onClick={() => void employeeQuery.refresh()}>Zuordnung erneut prüfen</button></div></>}<p>Die Verwaltung der Arbeitszeiten Ihres Teams bleibt über die freigegebenen Zeitkonten erreichbar.</p>{(can('time.tracking.admin.view') || can('time.tracking.team.view')) && <div className="wts-actions"><button onClick={() => router.push('/business/office/time-tracking/zeitkonten')}>Zeitkonten öffnen</button></div>}</section> : <>
       {status.loading && <WfmWebNotice>Arbeitstag wird geladen…</WfmWebNotice>}{(status.error || status.refreshError) && <WfmWebNotice tone="error">{status.error || status.refreshError}</WfmWebNotice>}
       {(settings.error || settings.refreshError) && <WfmWebNotice tone="error">{settings.error || settings.refreshError}<button onClick={() => void settings.refresh()}>Einstellungen erneut laden</button></WfmWebNotice>}{settings.data?.moduleEnabled === false && <WfmWebNotice>Die eigene Zeiterfassung ist deaktiviert. Ein laufender Arbeitstag kann weiterhin beendet werden.</WfmWebNotice>}
       {error && <WfmWebNotice tone="error">{error}</WfmWebNotice>}{message && <WfmWebNotice tone="success">{message}</WfmWebNotice>}
