@@ -1,6 +1,6 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const MAX_PDF_BYTES = 20 * 1024 * 1024;
-export type PdfUploadInput = { tenantId: string; documentId: string; employeeId: string | null; pdfBytes: Uint8Array };
+export type PdfUploadInput = { tenantId: string; documentId: string; employeeId: string | null; expectedUpdatedAt: string | null; pdfBytes: Uint8Array };
 
 /** Validate the upload envelope, not the truth of a signed document's contents. */
 export function parsePdfUpload(value: unknown): PdfUploadInput {
@@ -9,10 +9,14 @@ export function parsePdfUpload(value: unknown): PdfUploadInput {
   const tenantId = typeof body.tenantId === 'string' ? body.tenantId.trim() : '';
   const documentId = typeof body.documentId === 'string' ? body.documentId.trim() : '';
   const employeeId = typeof body.employeeId === 'string' ? body.employeeId.trim() : null;
-  if (!UUID.test(tenantId) || !(UUID.test(documentId) || /^payroll-/.test(documentId) && UUID.test(documentId.slice(8)))) {
+  const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt.trim() : null;
+  if (!UUID.test(tenantId) || !(UUID.test(documentId) || /^(payroll|invoice)-/.test(documentId) && UUID.test(documentId.slice(8)))) {
     throw new Error('Mandant oder Dokument-ID ist ungültig.');
   }
   if (documentId.startsWith('payroll-') && (!employeeId || !UUID.test(employeeId))) throw new Error('Die Mitarbeiterzuordnung zur Monatsübersicht fehlt.');
+  if (documentId.startsWith('invoice-') && (!expectedUpdatedAt || !/^\d{4}-\d{2}-\d{2}T/.test(expectedUpdatedAt) || !Number.isFinite(Date.parse(expectedUpdatedAt)))) {
+    throw new Error('Der geprüfte Rechnungsstand fehlt. Bitte die Rechnung neu laden.');
+  }
   const encoded = typeof body.pdfBase64 === 'string' ? body.pdfBase64.trim() : '';
   if (!encoded) throw new Error('Eine erzeugte PDF-Datei fehlt. HTML allein ist keine PDF-Datei.');
   if (encoded.length > Math.ceil(MAX_PDF_BYTES / 3) * 4 || encoded.length % 4 !== 0
@@ -28,7 +32,7 @@ export function parsePdfUpload(value: unknown): PdfUploadInput {
     || !/startxref\s+\d+\s+%%EOF\s*$/.test(text)) {
     throw new Error('Die Datei enthält keine vollständige PDF-Struktur. Bitte das Dokument erneut erzeugen.');
   }
-  return { tenantId, documentId, employeeId, pdfBytes };
+  return { tenantId, documentId, employeeId, expectedUpdatedAt, pdfBytes };
 }
 export async function pdfSha256(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));

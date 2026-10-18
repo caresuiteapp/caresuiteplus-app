@@ -77,10 +77,21 @@ export function createPdfUploadHandler(dependencies: Dependencies) {
       return dependencies.respond({ ok: false, error: 'Keine Verwaltungsberechtigung für diesen Upload.' }, 403);
     }
     const payroll = input.documentId.startsWith('payroll-');
-    const permission = await userClient.rpc('has_permission', { p_permission_key: payroll ? 'office.employees.edit' : 'documents.finalize' });
+    const invoice = input.documentId.startsWith('invoice-');
+    const permission = await userClient.rpc('has_permission', { p_permission_key: invoice ? 'office.invoices.status_change' : payroll ? 'office.employees.edit' : 'documents.finalize' });
     const administrator = role.data.is_admin_role === true || ['owner', 'admin', 'business_admin'].includes(String(role.data.key));
     if (permission.error || permission.data !== true && !administrator) return dependencies.respond({ ok: false, error: 'Die Dokumentberechtigung fehlt.' }, 403);
-    if (payroll) {
+    if (invoice) {
+      const record = await service.from('invoices').select('id,status,updated_at,office_managed')
+        .eq('tenant_id', input.tenantId).eq('id', input.documentId.slice(8)).maybeSingle();
+      if (record.error || !record.data) return dependencies.respond({ ok: false, error: 'Rechnung nicht gefunden.' }, 404);
+      if (record.data.office_managed !== true || record.data.status !== 'draft') {
+        return dependencies.respond({ ok: false, error: 'Nur ein Rechnungsentwurf darf zur Ausstellung vorbereitet werden.' }, 409);
+      }
+      if (record.data.updated_at !== input.expectedUpdatedAt) {
+        return dependencies.respond({ ok: false, error: 'Der Rechnungsentwurf wurde geändert. Bitte neu laden und die Vorschau erneut prüfen.' }, 409);
+      }
+    } else if (payroll) {
       const employee = await service.from('employees').select('id').eq('tenant_id', input.tenantId).eq('id', input.employeeId).maybeSingle();
       if (employee.error || !employee.data) return dependencies.respond({ ok: false, error: 'Mitarbeitende:r nicht gefunden.' }, 403);
     } else {
@@ -106,8 +117,8 @@ export function createPdfUploadHandler(dependencies: Dependencies) {
     const job = await service.from('document_render_jobs').upsert({
       id: await pdfUploadJobId(input, String(actor.data.id), hash), tenant_id: input.tenantId,
       job_type: 'pdf', job_status: 'completed', pdf_path: storagePath,
-      related_entity_table: payroll ? 'payroll_month_statements' : 'generated_documents',
-      related_entity_id: payroll ? input.documentId.slice(8) : input.documentId,
+      related_entity_table: invoice ? 'invoices' : payroll ? 'payroll_month_statements' : 'generated_documents',
+      related_entity_id: invoice || payroll ? input.documentId.slice(8) : input.documentId,
       created_by: actor.data.id, finished_at: new Date().toISOString(),
     }, { onConflict: 'id', ignoreDuplicates: true });
     if (job.error) return dependencies.respond({ ok: false, error: 'Der PDF-Upload konnte nicht vollständig bestätigt werden. Bitte erneut versuchen.' }, 503);
