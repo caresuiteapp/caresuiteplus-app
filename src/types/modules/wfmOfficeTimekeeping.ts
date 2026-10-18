@@ -227,6 +227,10 @@ export interface WfmOfficeEmployeeTimeAccount {
   saldoMinutes: number;
   openReviewCount: number;
   targetMinutes: number;
+  /** Available on the Office web account; a contractual zero is an explicit target. */
+  targetSource?: 'contract' | 'saved_account' | 'planned';
+  /** Year to which vacationDaysUsed and sickDays belong. */
+  vacationYear?: number;
   overtimeMinutes: number;
   undertimeMinutes: number;
   travelMinutes: number;
