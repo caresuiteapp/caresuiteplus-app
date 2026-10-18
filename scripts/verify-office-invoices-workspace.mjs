@@ -48,7 +48,7 @@ if (missing.length) {
   console.error(`[office-invoices-release] Required project files are missing:\n${missing.map(file => `- ${file}`).join('\n')}`);
   process.exit(1);
 }
-for (const script of ['scripts/verify-office-invoice-sql.mjs', 'scripts/verify-office-einvoice-sql.mjs', 'scripts/verify-office-einvoice-db.mjs', 'scripts/verify-office-einvoice-validator.mjs']) {
+for (const script of ['scripts/verify-office-invoice-sql.mjs', 'scripts/verify-office-einvoice-sql.mjs', 'scripts/verify-office-einvoice-db.mjs', 'scripts/verify-office-einvoice-validator.mjs', 'scripts/verify-office-einvoice-node-runtime.mjs']) {
   const result = spawnSync(process.execPath, [script], { cwd: root, stdio: 'inherit' });
   if (result.error || result.status !== 0) process.exit(result.status && result.status > 0 ? result.status : 1);
 }
