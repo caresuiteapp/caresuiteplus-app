@@ -72,6 +72,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
   const promptRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLElement>(null);
+  const initialFocusDone = useRef(false);
   const dirty = draft !== null && JSON.stringify(draft) !== baseline;
   const filtered = useMemo(() => filterCompanyCatalog(items, category, query, initialModuleKey), [items, category, query, initialModuleKey]);
   const available = useMemo(() => filterCompanyCatalog(items, 'all', '', initialModuleKey), [items, initialModuleKey]);
@@ -104,7 +105,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
     setError('');
     if (moduleLocked) { setLoading(false); setError('Dieser Katalog ist noch nicht freigegeben.'); return; }
     try {
-      const result = await fetchTenantServiceCatalog(tenantId, roleKey);
+      const result = await fetchTenantServiceCatalog(tenantId, roleKey, initialModuleKey);
       if (request !== sequence.current) return;
       if (!result.ok) { setError(result.error); return; }
       setItems(result.data.items);
@@ -124,6 +125,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
   useEffect(() => {
     if (!visible) return;
     savePending.current = false;
+    initialFocusDone.current = false;
     setSaving(false);
     setCategory(initialCategory ?? 'all');
     setQuery('');
@@ -135,6 +137,16 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
     void load();
     return () => { sequence.current += 1; historySequence.current += 1; };
   }, [visible, initialCategory, load, selectDraft]);
+
+  useEffect(() => {
+    if (!visible || loading || !draft || initialFocusDone.current || (!initialItemId && !startCreating)) return;
+    const frame = requestAnimationFrame(() => {
+      initialFocusDone.current = true;
+      editorRef.current?.scrollIntoView({ block: 'nearest' });
+      editorRef.current?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [visible, loading, draft, initialItemId, startCreating]);
 
   useEffect(() => {
     if (!visible || !dirty) return;

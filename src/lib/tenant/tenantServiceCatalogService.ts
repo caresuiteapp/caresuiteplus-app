@@ -338,6 +338,7 @@ export async function seedAssistCatalogIfEmpty(tenantId: string): Promise<Servic
 export async function fetchTenantServiceCatalog(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  moduleKey?: TenantModuleKey,
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
   if (webDenied) return webDenied;
@@ -353,10 +354,11 @@ export async function fetchTenantServiceCatalog(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { data: catalogRows, error } = await fromUnknownTable(client, 'tenant_service_catalog')
+  let catalogQuery = fromUnknownTable(client, 'tenant_service_catalog')
     .select('*')
-    .eq('tenant_id', tenantId)
-    .order('sort_order');
+    .eq('tenant_id', tenantId);
+  if (Platform.OS === 'web' && moduleKey) catalogQuery = catalogQuery.eq('module_key', moduleKey);
+  const { data: catalogRows, error } = await catalogQuery.order('sort_order');
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
@@ -535,7 +537,7 @@ export async function saveTenantServiceCatalogItem(
           Number(old.tax_rate) === pricePayload.tax_rate && old.tax_mode === pricePayload.tax_mode &&
           (!input.validFrom || old.valid_from === input.validFrom) &&
           (input.validTo === undefined || (old.valid_to ?? null) === input.validTo)) {
-        return fetchTenantServiceCatalog(tenantId, actorRoleKey);
+        return fetchTenantServiceCatalog(tenantId, actorRoleKey, Platform.OS === 'web' ? input.moduleKey : undefined);
       }
       const versionResult = await fromUnknownTable(client, 'tenant_service_price_versions').insert({
         tenant_id: tenantId,
@@ -562,7 +564,7 @@ export async function saveTenantServiceCatalogItem(
     }
   }
 
-  return fetchTenantServiceCatalog(tenantId, actorRoleKey);
+  return fetchTenantServiceCatalog(tenantId, actorRoleKey, Platform.OS === 'web' ? input.moduleKey : undefined);
 }
 
 export function resetTenantServiceCatalogStore(): void {

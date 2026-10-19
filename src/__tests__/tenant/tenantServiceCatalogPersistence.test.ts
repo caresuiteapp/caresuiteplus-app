@@ -99,4 +99,9 @@ describe('company catalogue confirms price persistence', () => {
     f.replies = [success([{ id: 'item-a' }]), success([{ catalog_id: 'item-a', price_net: 20 }, { catalog_id: 'item-a', price_net: 40 }])];
     expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin')).toMatchObject({ ok: false, error: expect.stringContaining('mehrere Standardpreise') });
   });
+  it('scopes the editor read to its module so unrelated prices cannot block it', async () => {
+    f.replies = [success([])];
+    expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(true);
+    expect(f.queries[0].filters).toContainEqual(['module_key', 'assist']);
+  });
 });

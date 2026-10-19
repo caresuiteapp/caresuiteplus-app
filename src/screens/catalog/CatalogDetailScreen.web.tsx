@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -28,6 +28,7 @@ function PriceInformation({ item }: { item: CatalogWorkspaceItem }) {
 
 function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useCatalogWorkspaceData> }) {
   const router = useFlowRouter();
+  const headingId = useId();
   const catalog = data.snapshot?.catalogs.find(item => item.id === id);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -60,8 +61,8 @@ function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useC
             { label: 'Preis offen', value: catalog.missingPriceCount, detail: 'Aktiv, ohne gültigen Preis', icon: 'alert', tone: catalog.missingPriceCount ? 'amber' : 'slate' },
           ]}/>
           <div className="cw-summary"><div><h2>Ein Katalog für Ihre Leistungen</h2><p>Prüfen Sie Bezeichnung, Einheit und den aktuell gültigen Standardpreis. Fahrtkosten und Zuschläge sind als eigene Positionen gekennzeichnet. {data.canEdit ? 'Änderungen und Preisverläufe öffnen Sie direkt über „Bearbeiten“.' : 'Ihr Zugang bietet Lesezugriff auf diesen Katalog.'}</p></div><CatalogStatus active={catalog.activeCount > 0}/></div>
-          <section className="cw-panel" aria-labelledby="catalog-positions-heading">
-            <div className="cw-panel-heading"><div><h2 id="catalog-positions-heading">Katalogpositionen</h2><p>Preisstand {formatCatalogDate(data.snapshot?.asOf)} · {data.canEdit ? 'Bearbeitung freigegeben' : 'Lesezugriff'}</p></div><CatalogViewToggle value={view} onChange={setView}/></div>
+          <section className="cw-panel" aria-labelledby={headingId}>
+            <div className="cw-panel-heading"><div><h2 id={headingId}>Katalogpositionen</h2><p>Preisstand {formatCatalogDate(data.snapshot?.asOf)} · {data.canEdit ? 'Bearbeitung freigegeben' : 'Lesezugriff'}</p></div><CatalogViewToggle value={view} onChange={setView}/></div>
             <div className="cw-toolbar">
               <label className="cw-search"><CatalogIcon kind="search"/><input type="search" aria-label="Katalogpositionen durchsuchen" value={query} onChange={event => setQuery(event.target.value)} placeholder="Bezeichnung, Kürzel oder Einheit suchen…"/></label>
               <label className="cw-field"><span>Kategorie</span><select value={category} onChange={event => setCategory(event.target.value)}><option value="all">Alle Kategorien</option>{Object.entries(CATALOG_CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>

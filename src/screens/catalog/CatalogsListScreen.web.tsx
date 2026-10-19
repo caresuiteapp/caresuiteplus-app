@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useFlowRouter } from '@/hooks/useFlowRouter';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
 import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal.web';
@@ -13,6 +13,7 @@ export function CatalogsListScreen() {
 
 function CatalogsList({ data }: { data: ReturnType<typeof useCatalogWorkspaceData> }) {
   const router = useFlowRouter();
+  const headingId = useId();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('name');
@@ -51,8 +52,8 @@ function CatalogsList({ data }: { data: ReturnType<typeof useCatalogWorkspaceDat
             { label: 'Aktiv', value: active, detail: 'Aktive Katalogpositionen', icon: 'check', tone: 'teal' },
             { label: 'Preis offen', value: missing, detail: 'Aktiv, ohne gültigen Preis', icon: 'alert', tone: missing ? 'amber' : 'slate' },
           ]}/>
-          <section className="cw-panel" aria-labelledby="catalog-list-heading">
-            <div className="cw-panel-heading"><div><h2 id="catalog-list-heading">Ihre Leistungskataloge</h2><p>Katalog öffnen, Positionen prüfen und Preise bearbeiten.</p></div><CatalogViewToggle value={view} onChange={setView}/></div>
+          <section className="cw-panel" aria-labelledby={headingId}>
+            <div className="cw-panel-heading"><div><h2 id={headingId}>Ihre Leistungskataloge</h2><p>Katalog öffnen, Positionen prüfen und Preise bearbeiten.</p></div><CatalogViewToggle value={view} onChange={setView}/></div>
             <div className="cw-toolbar">
               <label className="cw-search"><CatalogIcon kind="search"/><input type="search" aria-label="Kataloge durchsuchen" value={query} onChange={event => setQuery(event.target.value)} placeholder="Katalog oder Leistung suchen…"/></label>
               <label className="cw-field"><span>Status</span><select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">Alle Kataloge</option><option value="active">Mit aktiven Positionen</option><option value="inactive">Ohne aktive Positionen</option><option value="missing">Mit offenen Preisen</option></select></label>
