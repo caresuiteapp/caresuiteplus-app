@@ -1,4 +1,5 @@
 export const desktopAppsWidgetsCenterCss = `
+.cs-center-area-switcher { width: min(300px,calc(225px * var(--cs-center-scale,1))); min-width: 0; max-width: 100%; flex-shrink: 1; }
 .cs-apps-center, .cs-apps-center-footer {
   color: #15304e; font: 400 calc(14px * var(--cs-center-scale, 1))/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-width: 0; width: 100%; box-sizing: border-box;
@@ -86,6 +87,10 @@ export const desktopAppsWidgetsCenterCss = `
   .cs-apps-center-footer .cs-center-button:hover { background: #1054b8; }
 }
 @media (max-width:680px) {
+  div:has(> div > .cs-center-area-switcher) { flex-wrap: wrap; }
+  div:has(> div > .cs-center-area-switcher) > div:first-child { flex-basis: 100% !important; }
+  div:has(> .cs-center-area-switcher) { flex: 1 1 100% !important; min-width: 0; }
+  .cs-center-area-switcher { width: auto; flex: 1 1 0; }
   .cs-apps-center { gap: 16px; }
   .cs-apps-center .cs-center-toolbar { align-items: stretch; }
   .cs-apps-center .cs-center-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
@@ -99,3 +104,4 @@ export const desktopAppsWidgetsCenterCss = `
   .cs-apps-center .cs-center-card:hover .cs-center-artwork-preview > .cs-desktop-catalog-artwork { transform: none; }
 }
 `;
+

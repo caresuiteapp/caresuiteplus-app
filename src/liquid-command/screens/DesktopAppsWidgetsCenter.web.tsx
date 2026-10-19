@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEv
 import { Image, type ImageSourcePropType } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
+import { DesktopAreaSwitcher, type DesktopAreaOption } from '../components/DesktopAreaSwitcher.web';
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork.web';
+import type { DesktopAreaKey } from '../navigation/desktopAreas';
 import type { DesktopApp } from '../navigation/desktopAppCatalog.web';
 import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
 import { desktopAppsWidgetsCenterCss } from './desktopAppsWidgetsCenterCss.web';
@@ -14,7 +16,11 @@ export type DesktopAppsWidgetsCenterProps = {
   visible: boolean;
   onClose: () => void;
   areaLabel: string;
+  selectedArea: DesktopAreaKey;
+  areas: readonly DesktopAreaOption[];
+  onSelectArea: (area: DesktopAreaKey) => void;
   initialTab: DesktopCenterTab;
+  onTabChange?: (tab: DesktopCenterTab) => void;
   apps: readonly DesktopApp[];
   widgets: readonly WidgetDefinition[];
   workflows: readonly DesktopWorkflow[];
@@ -55,7 +61,7 @@ function BackgroundPreview({ background }: { background: BackgroundDefinition })
 }
 
 export function DesktopAppsWidgetsCenter({
-  visible, onClose, areaLabel, initialTab, apps, widgets, workflows, backgrounds,
+  visible, onClose, areaLabel, selectedArea, areas, onSelectArea, initialTab, onTabChange, apps, widgets, workflows, backgrounds,
   desktopIds, backgroundId, recoverableCount, onRecover, onOpen, onToggleWidget,
   onMoveWidget, onBackground, saveStatus, onRetrySave,
 }: DesktopAppsWidgetsCenterProps) {
@@ -70,13 +76,17 @@ export function DesktopAppsWidgetsCenter({
   useEffect(() => {
     if (!visible) return;
     setTab(initialTab);
+  }, [visible, initialTab]);
+
+  useEffect(() => {
+    if (!visible) return;
     setQuery('');
     setCategory('Alle');
     setSelectedOnly(false);
-  }, [visible, areaLabel, initialTab]);
+  }, [visible, selectedArea, initialTab]);
 
   const resetFilters = () => { setQuery(''); setCategory('Alle'); setSelectedOnly(false); };
-  const selectTab = (next: DesktopCenterTab) => { setTab(next); resetFilters(); };
+  const selectTab = (next: DesktopCenterTab) => { setTab(next); onTabChange?.(next); resetFilters(); };
   const tabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: DesktopCenterTab) => {
     const index = TABS.findIndex(item => item.id === current);
     let next: DesktopCenterTab;
@@ -108,14 +118,18 @@ export function DesktopAppsWidgetsCenter({
   const descriptions: Record<DesktopCenterTab, string> = {
     apps: `Öffnen Sie die Arbeitsbereiche für ${areaLabel}.`,
     widgets: 'Wählen Sie Ihre Schnellzugriffe und Live-Widgets. Die Auswahl gilt für Ihren Desktop in diesem Bereich.',
-    workflows: 'Direkt zum passenden Arbeitsbereich für eine häufige Aufgabe.',
+    workflows: `Häufige Abläufe für ${areaLabel}. Weitere Abläufe finden Sie auf den anderen Desktops.`,
     backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
   };
 
   if (!visible) return null;
 
   return <PlatformModal surfaceScope="company" visible={visible} title={`${areaLabel} · Apps & Widgets`}
-    subtitle="Arbeitsbereiche öffnen und Ihren persönlichen Desktop gestalten."
+    subtitle={`Sie sehen Apps, Widgets und Workflows für ${areaLabel}. Oben können Sie den Desktop wechseln.`}
+    headerActions={<div className="cs-center-area-switcher" style={style}>
+      <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea}
+        appearance="light" label="Desktop im Katalog wechseln" scale={effectiveScale}/>
+    </div>}
     onClose={onClose} maxWidth={1180} minWidth={260} maxHeightRatio={0.94} glowColor="#1764d4"
     bodyStyle={{ padding: 20, backgroundColor: '#f4f8fd', flexGrow: 0 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="cs-apps-center-footer" style={style}>
@@ -214,3 +228,4 @@ export function DesktopAppsWidgetsCenter({
     </div>
   </PlatformModal>;
 }
+

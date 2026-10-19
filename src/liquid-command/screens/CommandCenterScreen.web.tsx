@@ -15,6 +15,7 @@ import {
 import { useDesktopPreferences, desktopPreferenceStorage } from "@/hooks/useDesktopPreferences.web";
 import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
+import { DesktopAreaSwitcher } from "../components/DesktopAreaSwitcher.web";
 import { canonicalDesktopCatalogRoute, filterDesktopCatalogEntries } from "../navigation/appsWidgetsCatalogModel.web";
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { useRouter } from "expo-router";
@@ -67,6 +68,8 @@ export function CommandCenterScreen() {
   const tenant = permissions.tenantId ?? '';
   const user = auth.user?.id ?? '';
   const identity = JSON.stringify([tenant, user]);
+  // Keep the catalogue open, including its tab, while the area-scoped desktop remounts.
+  const [center, setCenter] = useState<{ identity: string; tab: CenterTab } | null>(null);
   const [selection, setSelection] = useState<{ identity: string; area: DesktopAreaKey } | null>(null);
   const [selectionWarning, setSelectionWarning] = useState(false);
   const selectionRequest = useRef(0);
@@ -102,10 +105,16 @@ export function CommandCenterScreen() {
     <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
   </View></View>;
   if (selection?.identity !== identity) return <View style={[styles.background, styles.loadingHost]}><Text style={styles.desktopSubtitle}>Desktop wird wiederhergestellt…</Text></View>;
-  return <View style={{ flex: 1, minHeight: 0 }}>{selectionWarning ? <View style={styles.desktopActions}><Text accessibilityRole="alert" style={styles.desktopSubtitle}>Der Desktop-Bereich konnte nicht dauerhaft gespeichert werden.</Text><Pressable accessibilityRole="button" accessibilityLabel="Desktop-Bereich erneut speichern" onPress={() => setSelectedArea(selectedArea)} style={styles.editButton}><Text style={styles.editText}>Erneut speichern</Text></Pressable></View> : null}<ModuleDesktopScreen key={`${identity}:${availableSignature}:${selectedArea}`} tenantId={tenant} availableSignature={availableSignature} selectedArea={selectedArea} onSelectArea={setSelectedArea} /></View>;
+  return <View style={{ flex: 1, minHeight: 0 }}>{selectionWarning ? <View style={styles.desktopActions}><Text accessibilityRole="alert" style={styles.desktopSubtitle}>Der Desktop-Bereich konnte nicht dauerhaft gespeichert werden.</Text><Pressable accessibilityRole="button" accessibilityLabel="Desktop-Bereich erneut speichern" onPress={() => setSelectedArea(selectedArea)} style={styles.editButton}><Text style={styles.editText}>Erneut speichern</Text></Pressable></View> : null}<ModuleDesktopScreen key={`${identity}:${availableSignature}:${selectedArea}`} tenantId={tenant} availableSignature={availableSignature} selectedArea={selectedArea} onSelectArea={setSelectedArea}
+    centerTab={center?.identity === identity ? center.tab : 'apps'} centerOpen={center?.identity === identity}
+    onOpenCenter={tab => setCenter({ identity, tab })} onCloseCenter={() => setCenter(null)} /></View>;
 }
 
-function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSelectArea }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void }) {
+function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSelectArea, centerTab, centerOpen, onOpenCenter, onCloseCenter }: {
+  tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey;
+  onSelectArea: (area: DesktopAreaKey) => void; centerTab: CenterTab; centerOpen: boolean;
+  onOpenCenter: (tab: CenterTab) => void; onCloseCenter: () => void;
+}) {
   const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
   const permissions = usePermissions();
   const router = useRouter();
@@ -115,7 +124,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
   const headerNarrow = width - (compact ? 24 : 40) < 780 * Math.max(1, fontScale);
-  const headerStacked = width - (compact ? 24 : 40) < 1360 * Math.max(1, fontScale);
+  const headerStacked = width - (compact ? 24 : 40) < 1560 * Math.max(1, fontScale);
   const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(234 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
@@ -135,8 +144,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopPage, setDesktopPage] = useState(0);
   const [editMode, setEditMode] = useState(false);
-  const [centerOpen, setCenterOpen] = useState(false);
-  const [centerTab, setCenterTab] = useState<CenterTab>("apps");
   const [navigationQuery, setNavigationQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const profile = auth.profile;
@@ -155,8 +162,9 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   }, [profile?.roleKey]);
   const matchesSearch = (app: DesktopApp, value: string) =>
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
-  const areaAllowed = selectedArea === 'settings' || selectedArea === 'premium' ||
-    (selectedArea === 'robotics' ? permissions.can('robotics.access' as PermissionKey) : availableKeys.includes(selectedArea as ProductKey));
+  const desktopAreas = DESKTOP_AREAS.map(area => ({ ...area, disabled: !(area.key === 'settings' || area.key === 'premium' ||
+    (area.key === 'robotics' ? permissions.can('robotics.access' as PermissionKey) : availableKeys.includes(area.key as ProductKey))) }));
+  const areaAllowed = desktopAreas.some(area => area.key === selectedArea && !area.disabled);
   const moduleApps = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(apps, selectedArea, permissions) : [], [apps, areaAllowed, selectedArea, permissions]);
   const moduleWidgets = useMemo<WidgetDefinition[]>(() => {
     const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS, selectedArea, permissions).map(widget => ({ ...widget, route: canonicalDesktopCatalogRoute(widget.route) })) : [];
@@ -180,7 +188,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
   useEffect(() => setMobileSidebarOpen(false), [compact]);
   useEffect(() => {
-    setDesktopPage(0); setCenterOpen(false); setProfileOpen(false); setEditMode(false);
+    setDesktopPage(0); setProfileOpen(false); setEditMode(false);
     setMobileSidebarOpen(false); setNavigationQuery('');
   }, [tenantId, owner, selectedArea]);
   useEffect(() => {
@@ -194,12 +202,16 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     if (compact) setMobileSidebarOpen(false);
     else { setSidebarOpen(false); requestAnimationFrame(() => navigationRailRef.current?.focus()); }
   };
-  const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); setCenterTab(tab); setCenterOpen(true); };
+  const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); onOpenCenter(tab); };
   const leaveDesktop = async (action: () => void | Promise<void>) => {
     if (saveStatus === 'error' && !await confirmAction({ title: 'Auswahl noch nicht gespeichert', message: 'Die letzte Desktop-Auswahl konnte nicht gespeichert werden. Möchten Sie den Bereich trotzdem verlassen? Sie können abbrechen und das Speichern erneut versuchen.', confirmLabel: 'Trotzdem verlassen' })) return;
     await action();
   };
-  const openWidget = (widget: Pick<DesktopApp, "route">) => { void leaveDesktop(() => { setCenterOpen(false); setMobileSidebarOpen(false); router.push(widget.route as never); }); };
+  const selectDesktop = (area: DesktopAreaKey) => {
+    if (area === selectedArea || !desktopAreas.some(item => item.key === area && !item.disabled)) return;
+    void leaveDesktop(() => onSelectArea(area));
+  };
+  const openWidget = (widget: Pick<DesktopApp, "route">) => { void leaveDesktop(() => { onCloseCenter(); setMobileSidebarOpen(false); router.push(widget.route as never); }); };
   const togglePinned = (id: string) => moduleWidgetIds.includes(id) && setDesktopIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
   const movePinned = (id: string, direction: -1 | 1) => setDesktopIds(current => {
     const index = current.indexOf(id), target = index + direction;
@@ -257,7 +269,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : `max-content minmax(${280 * Math.max(1, fontScale)}px, ${360 * Math.max(1, fontScale)}px) max-content max-content max-content max-content max-content`, justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : `max-content minmax(${280 * Math.max(1, fontScale)}px, ${360 * Math.max(1, fontScale)}px) max-content max-content max-content max-content max-content max-content`, justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
@@ -280,6 +292,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
         </View>
         <View style={[styles.actions, headerStacked && styles.actionsSecondRow, !mobile && { gridColumn: headerStacked ? "1 / -1" : "auto", marginLeft: "auto", flexWrap: headerStacked ? "wrap" : "nowrap" } as unknown as ViewStyle, mobile && styles.actionsMobile, !mobile && !headerStacked && { display: "contents" } as unknown as ViewStyle]} testID="desktop-topbar-actions">
           {compact && <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>}
+          <DesktopAreaSwitcher selectedArea={selectedArea} areas={desktopAreas} onSelectArea={selectDesktop} appearance="header" scale={effectiveScale} />
           <PortalTextSizeControls dense={mobile} appearance="desktop-header" />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, styles.headerAppsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
@@ -324,7 +337,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <View testID="desktop-workspace-header" style={[styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
             <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
               <Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text>
-              <View style={styles.areaTabs}>{DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityState={{ selected: selectedArea === area.key }} onPress={() => { void leaveDesktop(() => onSelectArea(area.key)); }} style={[styles.tab, selectedArea === area.key && styles.tabActive]}><Text style={[styles.tabText, selectedArea === area.key && styles.tabTextActive]}>{area.label}</Text></Pressable>)}</View>
             </View>
             <View style={styles.desktopActions}>
               {desktopPages > 1 ? <View style={styles.desktopActions}>
@@ -370,7 +382,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <Pressable onPress={event => event.stopPropagation()} style={[styles.glass, styles.sidebar, styles.sidebarDrawer, { width: Math.min(width - 24, 300 * fontScale) }]}>{sidebarContent}</Pressable>
         </Pressable>
       </Modal>
-      <DesktopAppsWidgetsCenter visible={centerOpen} onClose={() => setCenterOpen(false)} areaLabel={moduleLabel} initialTab={centerTab}
+      <DesktopAppsWidgetsCenter visible={centerOpen} onClose={onCloseCenter} areaLabel={moduleLabel} initialTab={centerTab}
+        selectedArea={selectedArea} areas={desktopAreas} onSelectArea={selectDesktop} onTabChange={onOpenCenter}
         apps={moduleApps} widgets={moduleWidgets} workflows={moduleWorkflows} backgrounds={BACKGROUNDS}
         desktopIds={desktopIds} backgroundId={backgroundId} recoverableCount={missingSavedWidgets.length}
         onRecover={() => setDesktopIds(ids => [...new Set([...ids, ...missingSavedWidgets])])}
@@ -393,7 +406,6 @@ const styles = StyleSheet.create({
   neoDock: { width: 76, height: 80, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   brandGroup: { flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0, maxWidth: "100%", flexShrink: 1 },
   headerAppsButton: { ...desktopHeaderControl, justifyContent: "center", paddingVertical: 0, flexShrink: 0 },
-  areaTabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
@@ -451,6 +463,7 @@ const styles = StyleSheet.create({
   imageStage: { height: 178, margin: 10, marginTop: 0, marginBottom: 10, borderRadius: 13, backgroundColor: "rgba(4,23,47,0.5)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, categoryPill: { position: "absolute", top: 7, left: 7, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(1,14,31,0.78)" }, categoryText: { color: "#B9DCEB", fontSize: 11, fontWeight: "900", textTransform: "uppercase" }, removeButton: { position: "absolute", top: 7, right: 7, width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,159,176,0.52)", backgroundColor: "rgba(91,15,33,0.9)", alignItems: "center", justifyContent: "center" }, removeText: { color: "#FFD4DC", fontSize: 20 },
   labelBar: { minHeight: 64, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }, widgetLabel: { flex: 1, minWidth: 0, color: "#F3FBFF", fontSize: 18, lineHeight: 24, fontWeight: "700" }, arrow: { color: "#77DFFF", fontSize: 13, fontWeight: "900" },
   emptyCard: { borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(126,208,244,0.25)", backgroundColor: "rgba(4,23,44,0.34)", alignItems: "center", justifyContent: "center" }, emptyPlus: { color: "#78E4FF", fontSize: 24 }, emptyTitle: { color: "#E9F8FF", fontSize: 13, fontWeight: "900" }, emptyCopy: { color: "#91B5CA", fontSize: 11, marginTop: 2 },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.8)", alignItems: "center", justifyContent: "center", padding: 18 }, centerSubtitle: { color: "#AFC9DC", fontSize: 13, marginTop: 3 }, closeButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, borderColor: "rgba(145,211,245,0.2)", backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#FFF", fontSize: 27 }, tab: { minHeight: 40, paddingVertical: 8, borderRadius: 12, paddingHorizontal: 15, justifyContent: "center", backgroundColor: "#0B223D", borderWidth: 1, borderColor: "#466887" }, tabActive: { backgroundColor: "#075577", borderWidth: 1, borderColor: "#62DCFF" }, tabText: { color: "#F0F7FF", fontSize: 13, fontWeight: "900" }, tabTextActive: { color: "#FFF" }, searchInput: { backgroundColor: "transparent", borderWidth: 0, flex: 1, minWidth: 0, minHeight: 42, color: "#FFF", fontSize: 16 }, pinButton: { minHeight: 40, paddingVertical: 8, borderRadius: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(104,218,255,0.32)", backgroundColor: "rgba(9,61,91,0.64)", justifyContent: "center" }, pinText: { color: "#BEEBFA", fontSize: 11, fontWeight: "900" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.8)", alignItems: "center", justifyContent: "center", padding: 18 }, centerSubtitle: { color: "#AFC9DC", fontSize: 13, marginTop: 3 }, closeButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, borderColor: "rgba(145,211,245,0.2)", backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#FFF", fontSize: 27 }, searchInput: { backgroundColor: "transparent", borderWidth: 0, flex: 1, minWidth: 0, minHeight: 42, color: "#FFF", fontSize: 16 }, pinButton: { minHeight: 40, paddingVertical: 8, borderRadius: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(104,218,255,0.32)", backgroundColor: "rgba(9,61,91,0.64)", justifyContent: "center" }, pinText: { color: "#BEEBFA", fontSize: 11, fontWeight: "900" },
   profilePanel: { width: "100%", maxWidth: 520, borderRadius: 27, padding: 20 }, profileHeader: { flexDirection: "row", alignItems: "center", gap: 13 }, profileIdentity: { flex: 1 }, profilePanelName: { color: "#FFF", fontSize: 18, fontWeight: "900" }, profilePanelRole: { color: "#9DDFFF", fontSize: 13, fontWeight: "800", marginTop: 2 }, profileDivider: { height: 1, backgroundColor: "rgba(138,211,255,0.2)", marginVertical: 13 }, profileRow: { minHeight: 62, borderRadius: 15, borderWidth: 1, borderColor: "rgba(122,202,255,0.18)", backgroundColor: "rgba(6,27,57,0.72)", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, profileRowTitle: { color: "#FFF", fontSize: 12, fontWeight: "900" }, profileRowCopy: { color: "#AAC4DE", fontSize: 13, marginTop: 2 }, logout: { minHeight: 48, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255,120,143,0.46)", backgroundColor: "rgba(145,25,48,0.26)", alignItems: "center", justifyContent: "center" }, logoutText: { color: "#FFDCE2", fontSize: 12, fontWeight: "900" },
 });
+
