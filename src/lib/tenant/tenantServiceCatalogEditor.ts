@@ -1,4 +1,4 @@
-import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
 import { formatServicePriceUnit } from '@/lib/tenant/serviceCatalogLabels';
 import type { ServiceCatalogCategory, TenantModuleKey, TenantServiceCatalogItem } from '@/types/tenant/tenantCenter';
 
@@ -23,7 +23,7 @@ export function formatCatalogPrice(item: Pick<TenantServiceCatalogItem, 'default
 
 export function filterCompanyCatalog(items: TenantServiceCatalogItem[], category: CatalogCategoryFilter, query: string, moduleKey?: TenantModuleKey) {
   const term = query.trim().toLocaleLowerCase('de-DE');
-  return items.filter((item) => !isUnreleasedModuleKey(item.moduleKey) && (!moduleKey || item.moduleKey === moduleKey) &&
+  return items.filter((item) => !isUnreleasedCatalogModuleKey(item.moduleKey) && (!moduleKey || item.moduleKey === moduleKey) &&
     (category === 'all' || item.category === category) &&
     (!term || `${item.name} ${item.description}`.toLocaleLowerCase('de-DE').includes(term)))
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'de'));

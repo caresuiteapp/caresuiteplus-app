@@ -33,6 +33,11 @@ export function isUnreleasedModuleKey(productKey: string): productKey is Product
   return UNRELEASED_MODULE_KEYS.includes(productKey as ProductKey);
 }
 
+/** The consultation workplace release covers visits and documentation, not pricing or billing. */
+export function isUnreleasedCatalogModuleKey(productKey: string): boolean {
+  return productKey === 'beratung' || isUnreleasedModuleKey(productKey);
+}
+
 /** Returns the globally locked product for one of its root or deep-link routes. */
 export function getUnreleasedModuleKeyFromPath(path: string): ProductKey | null {
   const pathname = (path.split(/[?#]/, 1)[0]?.toLocaleLowerCase('de-DE') ?? '').replace(/\/+$/, '');
