@@ -44,7 +44,7 @@ Der gezielte TypeScript-Check für die neuen Oberflächen und gemeinsamen Fachty
 
 Der Einstieg bleibt standardmäßig geschlossen. `EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED=true` ist erst nach erfolgreicher Abnahme zu setzen. Serverseitig muss `tenant_has_platform_module('consulting', tenant_id)` ausdrücklich `true` liefern. Fehlende Modulzuordnungen gewähren keinen Zugriff.
 
-Die neue Migration `20261019193008_consultation_workspace.sql` setzt das vorhandene Company-Access-/Scope-System und die aktiven Portalidentitäten voraus. Produktions- und Staging-Schema unterscheiden sich; deshalb keine pauschale Anwendung aller älteren, vorbereiteten Beratungsmigrationen. Die neue Migration wurde ausschließlich im isolierten Testsystem ausgeführt. Keine Anwendung auf Produktivdaten, keine Veröffentlichung und kein Merge in diesem Arbeitsstand.
+Die neue Migration `20261019202713_consultation_workspace.sql` setzt das vorhandene Company-Access-/Scope-System und die aktiven Portalidentitäten voraus. Produktions- und Staging-Schema unterscheiden sich; deshalb keine pauschale Anwendung aller älteren, vorbereiteten Beratungsmigrationen. Die Migration wurde am 19.10.2026 nach ausdrücklicher Freigabe produktiv angewendet. Die vom Migrationsdienst vergebene Version `20261019202713` wird unverändert auch im Repository geführt. Die sechs Tabellen, RLS, fehlende direkte Tabellenrechte, die beiden SECURITY-INVOKER-RPCs und die Abweisung nicht authentifizierter Aufrufe wurden in Produktion geprüft. Es wurden keine produktiven Testfälle angelegt. Der vollständige Produktionsbuild und die Veröffentlichung folgen getrennt.
 
 Vor einer operativen Komplettfreigabe fehlen insbesondere:
 

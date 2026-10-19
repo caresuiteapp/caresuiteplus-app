@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { companyFixture, id } from './company_access_fixture.mjs';
 
-const migration=readFileSync(new URL('../migrations/20261019193008_consultation_workspace.sql',import.meta.url),'utf8');
+const migration=readFileSync(new URL('../migrations/20261019202713_consultation_workspace.sql',import.meta.url),'utf8');
 const signature=(role)=>({name:role==='counselor'?'Synthetic Counselor':'Synthetic Client',role,authority:'',image:'data:image/png;base64,'+'A'.repeat(240)});
 const answers={schemaVersion:1,participants:[{id:'p',name:'Synthetic Client',role:'Pflegebedürftige Person',authority:''}],clientPerspective:'Möchte zu Hause bleiben.',caregiverPerspective:'Wünscht Entlastung.',situation:'Pflege zu Hause.',burden:'',topics:['Mobilität'],guidance:'Hilfsmittel besprochen.',careSecured:'yes',risk:'none',riskNotes:'',riskAction:'',findingsConsent:'no',goals:[],materials:'',measures:[{id:'m',title:'Hilfsmittel prüfen',owner:'Beratung',due:'2026-11-01',status:'open',outcome:''}],summary:'Nächste Schritte vereinbart.',followUpDate:'',followUpNote:''};
 
