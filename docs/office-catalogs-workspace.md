@@ -19,12 +19,14 @@ Die Empfängerauswahl der internen Weitergabe wurde durch die Differenz zwischen
 
 Die Prüfung bleibt auf interne Notizen begrenzt. Aktive Identität, Office-Zugriff, Mandanten-/Bereichsgrenzen und ausdrücklich entzogene Versandberechtigungen bleiben erhalten. Kein produktiver Testversand erfolgt.
 
-Die SQL-Korrektur ist separat auf der Datenbank anzuwenden und mit der tatsächlich vergebenen Migration zu dokumentieren. Eine reine Web-Veröffentlichung behebt die produktive Empfängerauswahl noch nicht. Bestehende Migrationen werden nicht rückwirkend verändert.
+Die SQL-Korrektur wurde am 19.10.2026 auf `caresuiteplus-production` als Migration `20261019014202_office_internal_notes_access` angewendet. Die archivierte Migration entspricht dem geprüften SQL-Skript. Bestehende Migrationen bleiben unverändert.
 
 ## Verifikation
 
 Die vorhandene `verify:company:release`-Prüfung enthält die neuen Katalogmodell-, Service- und Interaktionstests sowie die erweiterten Editor-/Persistenztests. `verify:office-notes:release` enthält den Empfänger-Servicetest und 20 isolierte PostgreSQL-Szenarien einschließlich der inkrementellen Berechtigungskorrektur. Die Produktionsbuild-Kette führt TypeScript und beide Prüfungen aus.
 
-Lokal bestanden: 13 direkte Modellprüfungen mit vorhandenem Node, JavaScript-Syntaxprüfung der Prüfskripte, Diff-Prüfung und 670 Web-Routenmuster. Vitest, TypeScript, Expo und PGlite sind in dieser Sitzung lokal nicht installiert; keine zusätzliche Installation vorgenommen. Cloud-Prüfergebnis wird im Pull Request dokumentiert.
+Lokal bestanden: 13 direkte Modellprüfungen mit vorhandenem Node, JavaScript-Syntaxprüfung der Prüfskripte, Diff-Prüfung und 670 Web-Routenmuster. Vitest, TypeScript, Expo und PGlite sind in dieser Sitzung lokal nicht installiert; keine zusätzliche Installation vorgenommen. Der Vercel-Hauptbuild für `d34442e` wurde am 19.10.2026 um 01:33 UTC erfolgreich abgeschlossen. Der Security-Advisor zeigt nach der Datenbankkorrektur keine neuen Befunde gegenüber dem unmittelbar vorher erhobenen Stand.
+
+Produktiv lesend geprüft: exakte Funktionskörper, Sicherheitsmodus, fester Suchpfad und Ausführungsrechte aller fünf betroffenen Funktionen stimmen mit dem geprüften Stand überein. Kein Identitätswechsel und kein Testversand wurden verwendet.
 
 Offen: tatsächliche Sichtprüfung in breitem und schmalem angemeldetem Desktopfenster sowie ein authentifizierter Ablauf mit vorgesehenen Testkonten. DOM-Interaktionstests gelten nicht als visuelle Abnahme. Produktive Daten wurden für die Prüfung nicht verändert.
