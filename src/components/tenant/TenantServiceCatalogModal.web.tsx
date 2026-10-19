@@ -8,7 +8,7 @@ import { filterCompanyCatalog, formatCatalogPrice, parseCatalogAmount, type Cata
 import { formatServiceTaxMode, SERVICE_TAX_MODE_OPTIONS } from '@/lib/tenant/serviceCatalogLabels';
 import { ALL_TRAVEL_ROUTE_TYPES, createTravelPolicyFromPreset, DEFAULT_TRAVEL_COMPENSATION_POLICY } from '@/lib/travel/travelCompensationPolicy';
 import { TRAVEL_POLICY_PRESET_LABELS, TRAVEL_ROUTE_TYPE_LABELS, type TravelCompensationPolicy, type TravelPolicyPreset, type TravelRouteType } from '@/types/modules/travelCompensation';
-import type { ServiceCatalogCategory, ServicePriceUnit, ServiceTaxMode, TenantModuleKey, TenantServiceCatalogItem } from '@/types/tenant/tenantCenter';
+import type { ServiceCatalogCategory, ServicePriceUnit, ServiceTaxMode, TenantModuleKey, TenantServiceCatalogItem, TenantServicePrice } from '@/types/tenant/tenantCenter';
 
 export type TenantServiceCatalogModalProps = {
   visible: boolean;
@@ -16,11 +16,13 @@ export type TenantServiceCatalogModalProps = {
   effectivePermissions?: readonly PermissionKey[];
   initialModuleKey?: TenantModuleKey;
   initialCategory?: ServiceCatalogCategory;
+  initialItemId?: string;
+  startCreating?: boolean;
   onClose: () => void;
   onSaved?: () => void;
 };
 
-type Draft = { item: TenantServiceCatalogItem; price: string };
+type Draft = { item: TenantServiceCatalogItem; price: string; validFrom: string; validTo: string };
 const CATEGORIES: { key: CatalogCategoryFilter; label: string }[] = [
   { key: 'all', label: 'Alle' }, { key: 'service', label: 'Leistungen' },
   { key: 'travel', label: 'Fahrtkosten' }, { key: 'surcharge', label: 'Zuschläge' },
@@ -30,7 +32,8 @@ const UNIT_OPTIONS: { key: ServicePriceUnit; label: string }[] = [
   { key: 'hour', label: 'Stunde' }, { key: 'visit', label: 'Besuch' }, { key: 'day', label: 'Tag' },
   { key: 'flat', label: 'Pauschale' }, { key: 'km', label: 'Kilometer' }, { key: 'percent', label: 'Prozent' },
 ];
-const toDraft = (item: TenantServiceCatalogItem): Draft => ({ item, price: item.defaultPriceNet == null ? '' : item.defaultPriceNet.toFixed(2).replace('.', ',') });
+const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const toDraft = (item: TenantServiceCatalogItem, price?: TenantServicePrice): Draft => ({ item, price: item.defaultPriceNet == null ? '' : item.defaultPriceNet.toFixed(2).replace('.', ','), validFrom: price?.validFrom || today(), validTo: price?.validTo || '' });
 const dateLabel = (date: string) => new Date(date).toLocaleDateString('de-DE');
 
 type RouteListKey = keyof Pick<TravelCompensationPolicy, 'logbookRouteTypes' | 'payrollRouteTypes' | 'workTimeRouteTypes' | 'clientBillingRouteTypes'>;
@@ -45,10 +48,12 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
   return <label className="tscm-field"><span>{label}</span>{children}{hint ? <small>{hint}</small> : null}</label>;
 }
 
-export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey = 'assist', initialCategory, onClose, onSaved, effectivePermissions }: TenantServiceCatalogModalProps) {
+export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey = 'assist', initialCategory, initialItemId, startCreating = false, onClose, onSaved, effectivePermissions }: TenantServiceCatalogModalProps) {
   const { roleKey, can } = usePermissions();
-  const allowed = effectivePermissions ? effectivePermissions.includes('business.tenant.manage') : can('business.tenant.manage');
+  const moduleLocked = isUnreleasedModuleKey(initialModuleKey);
+  const allowed = !moduleLocked && (effectivePermissions ? effectivePermissions.includes('business.tenant.manage') : can('business.tenant.manage'));
   const [items, setItems] = useState<TenantServiceCatalogItem[]>([]);
+  const [prices, setPrices] = useState<TenantServicePrice[]>([]);
   const [category, setCategory] = useState<CatalogCategoryFilter>(initialCategory ?? 'all');
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -68,11 +73,11 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
   const errorRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLElement>(null);
   const dirty = draft !== null && JSON.stringify(draft) !== baseline;
-  const filtered = useMemo(() => filterCompanyCatalog(items, category, query), [items, category, query]);
-  const available = useMemo(() => filterCompanyCatalog(items, 'all', ''), [items]);
+  const filtered = useMemo(() => filterCompanyCatalog(items, category, query, initialModuleKey), [items, category, query, initialModuleKey]);
+  const available = useMemo(() => filterCompanyCatalog(items, 'all', '', initialModuleKey), [items, initialModuleKey]);
 
-  const selectDraft = useCallback((next: TenantServiceCatalogItem | null) => {
-    const value = next ? toDraft(next) : null;
+  const selectDraft = useCallback((next: TenantServiceCatalogItem | null, price?: TenantServicePrice) => {
+    const value = next ? toDraft(next, price) : null;
     setDraft(value);
     setBaseline(JSON.stringify(value));
     setError('');
@@ -82,21 +87,39 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
     setHistoryError('');
   }, []);
 
+  const newDraft = useCallback((source: TenantServiceCatalogItem[], nextCategory: ServiceCatalogCategory) => {
+    const item: TenantServiceCatalogItem = {
+      id: '', moduleKey: initialModuleKey, serviceKey: `${initialModuleKey}.${nextCategory}.custom_${crypto.randomUUID()}`, name: '', description: '',
+      unit: nextCategory === 'travel' ? 'km' : nextCategory === 'surcharge' ? 'percent' : 'hour',
+      category: nextCategory, isActive: true, sortOrder: Math.max(0, ...source.filter(value => value.moduleKey === initialModuleKey).map(value => value.sortOrder)) + 10,
+      defaultPriceNet: null, defaultTaxMode: 'none',
+      travelPolicy: nextCategory === 'travel' ? DEFAULT_TRAVEL_COMPENSATION_POLICY : null,
+    };
+    selectDraft(item); setBaseline(''); setSuccess('');
+  }, [initialModuleKey, selectDraft]);
+
   const load = useCallback(async () => {
     const request = ++sequence.current;
     setLoading(true);
     setError('');
+    if (moduleLocked) { setLoading(false); setError('Dieser Katalog ist noch nicht freigegeben.'); return; }
     try {
       const result = await fetchTenantServiceCatalog(tenantId, roleKey);
       if (request !== sequence.current) return;
       if (!result.ok) { setError(result.error); return; }
       setItems(result.data.items);
+      setPrices(result.data.prices);
+      if (initialItemId) {
+        const selected = result.data.items.find(item => item.id === initialItemId && item.moduleKey === initialModuleKey);
+        if (selected) selectDraft(selected, result.data.prices.find(price => price.catalogId === selected.id));
+        else setError('Die gewählte Position ist in diesem Katalog nicht mehr verfügbar.');
+      } else if (startCreating && allowed) newDraft(result.data.items, initialCategory ?? 'service');
     } catch {
       if (request === sequence.current) setError('Der Katalog konnte nicht geladen werden. Bitte erneut versuchen.');
     } finally {
       if (request === sequence.current) setLoading(false);
     }
-  }, [tenantId, roleKey]);
+  }, [tenantId, roleKey, moduleLocked, initialItemId, initialModuleKey, initialCategory, startCreating, allowed, newDraft, selectDraft]);
 
   useEffect(() => {
     if (!visible) return;
@@ -107,9 +130,10 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
     setSuccess('');
     setPendingAction(null);
     setItems([]);
+    setPrices([]);
     selectDraft(null);
     void load();
-    return () => { sequence.current += 1; };
+    return () => { sequence.current += 1; historySequence.current += 1; };
   }, [visible, initialCategory, load, selectDraft]);
 
   useEffect(() => {
@@ -134,20 +158,13 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
   };
   const changeItem = (patch: Partial<TenantServiceCatalogItem>) => setDraft((old) => old ? { ...old, item: { ...old.item, ...patch } } : old);
   const selectItem = (item: TenantServiceCatalogItem) => guard(() => {
-    selectDraft(item); setSuccess('');
+    selectDraft(item, prices.find(price => price.catalogId === item.id)); setSuccess('');
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   });
   const createItem = () => guard(() => {
+    if (!allowed) return;
     const nextCategory = category === 'all' ? 'service' : category;
-    const moduleKey = isUnreleasedModuleKey(initialModuleKey) ? 'assist' : initialModuleKey;
-    const item: TenantServiceCatalogItem = {
-      id: '', moduleKey, serviceKey: `${moduleKey}.${nextCategory}.custom_${crypto.randomUUID()}`, name: '', description: '',
-      unit: nextCategory === 'travel' ? 'km' : nextCategory === 'surcharge' ? 'percent' : 'hour',
-      category: nextCategory, isActive: true, sortOrder: Math.max(0, ...available.map((value) => value.sortOrder)) + 10,
-      defaultPriceNet: null, defaultTaxMode: nextCategory === 'surcharge' ? 'none' : 'exempt_4_16',
-      travelPolicy: nextCategory === 'travel' ? DEFAULT_TRAVEL_COMPENSATION_POLICY : null,
-    };
-    selectDraft(item); setBaseline(''); setSuccess('');
+    newDraft(available, nextCategory);
     requestAnimationFrame(() => { editorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); editorRef.current?.querySelector('input')?.focus(); });
   });
 
@@ -165,14 +182,16 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
       const result = await saveTenantServiceCatalogItem(tenantId, {
         ...draft.item, id: draft.item.id || undefined,
         priceNet: amount ?? undefined, taxMode: draft.item.defaultTaxMode ?? 'none',
+        validFrom: draft.validFrom, validTo: draft.validTo || null,
         taxRate: draft.item.defaultTaxMode === 'standard_19' ? 19 : 0,
         travelPolicy: draft.item.category === 'travel' ? draft.item.travelPolicy ?? DEFAULT_TRAVEL_COMPENSATION_POLICY : null,
       }, roleKey);
       if (request !== sequence.current) return;
       if (!result.ok) { setError(result.error); return; }
       setItems(result.data.items);
+      setPrices(result.data.prices);
       const updated = result.data.items.find((item) => item.serviceKey === draft.item.serviceKey);
-      selectDraft(updated ?? null);
+      selectDraft(updated ?? null, result.data.prices.find(price => price.catalogId === updated?.id));
       setCategory(draft.item.category);
       setSuccess(`„${draft.item.name.trim()}“ wurde gespeichert.`);
       onSaved?.();
@@ -235,7 +254,11 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
               <Field label="Abrechnungseinheit"><select value={current.unit} onChange={(event) => changeItem({ unit: event.target.value as ServicePriceUnit })}>{UNIT_OPTIONS.map((unit) => <option key={unit.key} value={unit.key}>{unit.label}</option>)}</select></Field>
               <Field label={current.unit === 'percent' ? 'Zuschlag (%)' : 'Nettopreis (€)'} hint={current.unit === 'percent' ? 'Prozentualer Zuschlag auf die zugehörige Leistung.' : current.defaultPriceNet != null ? 'Für eine kostenlose Position 0,00 eintragen.' : 'Leer lassen, wenn noch kein Preis vereinbart ist.'}><input inputMode="decimal" value={draft.price} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="0,00" /></Field>
               <Field label="Steuerregel" hint={parseCatalogAmount(draft.price) === null ? 'Die Steuerregel wird mit einem Preis gespeichert.' : undefined}><select disabled={parseCatalogAmount(draft.price) === null} value={current.defaultTaxMode ?? 'none'} onChange={(event) => changeItem({ defaultTaxMode: event.target.value as ServiceTaxMode })}>{SERVICE_TAX_MODE_OPTIONS.map((mode) => <option key={mode.key} value={mode.key}>{mode.label}</option>)}</select></Field>
+              <Field label="Preis gültig ab"><input type="date" value={draft.validFrom} disabled={parseCatalogAmount(draft.price) === null} onChange={event => setDraft({ ...draft, validFrom: event.target.value })} /></Field>
+              <Field label="Preis gültig bis" hint="Optional; einschließlich dieses Tages."><input type="date" value={draft.validTo} min={draft.validFrom} disabled={parseCatalogAmount(draft.price) === null} onChange={event => setDraft({ ...draft, validTo: event.target.value })} /></Field>
             </div>
+            {current.id && dirty && parseCatalogAmount(draft.price) !== null ? <p className="tscm-price-hint">Änderungen ersetzen den hinterlegten Standardpreis. Der vorherige Stand bleibt in der Preishistorie erhalten. Ein zukünftiger Gültigkeitsbeginn lässt davor keinen aktuellen Standardpreis bestehen.</p> : null}
+            {parseCatalogAmount(draft.price) !== null && (draft.validFrom > today() || !!draft.validTo && draft.validTo < today()) ? <p className="tscm-confirm">Dieser Preis ist heute nicht gültig. Prüfen Sie den Zeitraum, bevor Sie ihn für neue Leistungen verwenden.</p> : null}
             <label className="tscm-check tscm-active"><input type="checkbox" checked={current.isActive} onChange={(event) => changeItem({ isActive: event.target.checked })} /><span><strong>Position aktiv verwenden</strong><small>Inaktive Positionen bleiben erhalten und können später wieder aktiviert werden.</small></span></label>
             {current.category === 'travel' ? <div className="tscm-travel"><h4>Fahrtkostenregel</h4><p>Wählen Sie, welche Fahrten dokumentiert, vergütet oder abgerechnet werden.</p><Field label="Voreinstellung"><select value={(current.travelPolicy ?? DEFAULT_TRAVEL_COMPENSATION_POLICY).preset} onChange={(event) => {
               const preset = event.target.value as TravelPolicyPreset;
@@ -244,7 +267,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
               {TRAVEL_ROWS.map((row) => <div key={row.key} className="tscm-travel-row"><strong>{row.label}</strong><div>{ALL_TRAVEL_ROUTE_TYPES.map((route) => <label className="tscm-check" key={route}><input type="checkbox" checked={(current.travelPolicy ?? DEFAULT_TRAVEL_COMPENSATION_POLICY)[row.key].includes(route)} onChange={() => updateRoutes(row.key, route)} /><span>{TRAVEL_ROUTE_TYPE_LABELS[route]}</span></label>)}</div></div>)}
             </div> : null}
           </fieldset>
-          {current.id ? <details key={current.id} className="tscm-history" onToggle={(event) => { if (event.currentTarget.open) void loadHistory(); }}><summary>Preishistorie ansehen</summary><p className="tscm-history-current">Aktuell: {formatCatalogPrice(current)}</p>
+          {current.id ? <details key={current.id} className="tscm-history" onToggle={(event) => { if (event.currentTarget.open) void loadHistory(); }}><summary>Preishistorie ansehen</summary><p className="tscm-history-current">Hinterlegter Preis: {formatCatalogPrice(current)}</p>
             {historyLoading ? <p role="status">Preishistorie wird geladen…</p> : historyError ? <div role="alert"><p>{historyError}</p><button type="button" className="tscm-button" onClick={() => void loadHistory()}>Erneut laden</button></div> : history?.length ? history.map((entry) => <div className="tscm-history-row" key={entry.id}><strong>Preiswert: {new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(entry.priceNet)}</strong><span>{formatServiceTaxMode(entry.taxMode)}</span><small>Gültig ab {dateLabel(entry.validFrom)} · ersetzt am {dateLabel(entry.changedAt)}</small></div>) : history ? <p>Es sind noch keine früheren Preise gespeichert.</p> : null}
           </details> : null}
         </section> : !loading && available.length ? <section className="tscm-editor-hint"><span aria-hidden="true">€</span><h3>Preise klar hinterlegt</h3><p>Wählen Sie eine Position, um Bezeichnung, Preis, Steuerregel oder Fahrtkosten zu bearbeiten.</p></section> : null}

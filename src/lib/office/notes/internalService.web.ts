@@ -107,7 +107,10 @@ export async function listInternalRecipients(actor: InternalNoteActor): Promise<
       return { employeeId: item.employee_id as string, displayName: item.display_name };
     }, item => item.employeeId);
     return { ok: true, data: recipients };
-  } catch (error) { return failure(error); }
+  } catch (error) {
+    if (row(error).code === '42501') return { ok: false, error: 'Die Mitarbeitendenauswahl ist für diesen Zugang nicht freigegeben.' };
+    return failure(error);
+  }
 }
 export async function listInternalNotes(actor: InternalNoteActor, box: InternalNoteBox): Promise<InternalNoteResult<InternalNote[]>> {
   actor = snapshot(actor);

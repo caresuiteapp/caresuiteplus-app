@@ -54,7 +54,7 @@ const useWebLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : u
 const POPUP_TITLES: Record<string, string> = {
   company: 'Unternehmen', unternehmen: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
   'time-tracking': 'Arbeitszeit', payroll: 'Gehaltsstatistik', invoices: 'Rechnungen',
-  documents: 'Dokumente', messages: 'Nachrichten', portals: 'Portale & Zugänge',
+  documents: 'Dokumente', catalogs: 'Kataloge', messages: 'Nachrichten', portals: 'Portale & Zugänge',
   inventory: 'Inventar', inventar: 'Inventar', audit: 'Audit', 'audit-log': 'Audit', assignments: 'Einsätze', einsaetze: 'Einsätze',
   calendar: 'Kalender & Einsatzplanung', kalender: 'Kalender & Einsatzplanung',
   'live-status': 'Live-Status', evidence: 'Nachweise', nachweise: 'Nachweise',
@@ -63,6 +63,7 @@ const POPUP_TITLES: Record<string, string> = {
 };
 
 function popupTitle(pathname: string): string {
+  if (/^\/office\/catalogs(?:\/|$)/.test(pathname)) return pathname === '/office/catalogs/create' ? 'Katalogposition anlegen' : 'Kataloge';
   const documentTitle = documentsWorkspaceRouteTitle(pathname);
   if (documentTitle) return documentTitle;
   const segment = pathname.split('/').filter(Boolean).at(-1) ?? '';

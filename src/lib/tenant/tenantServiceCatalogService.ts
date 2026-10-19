@@ -17,6 +17,7 @@ import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServic
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import { formatServicePriceUnitShort } from '@/lib/tenant/serviceCatalogLabels';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
+import { isUnreleasedModuleKey } from '@/lib/modules/constants';
 import {
   DEFAULT_TRAVEL_COMPENSATION_POLICY,
   normalizeTravelCompensationPolicy,
@@ -374,6 +375,9 @@ export async function fetchTenantServiceCatalog(
   }
 
   const priceByCatalog = new Map(priceRows.map((row) => [String(row.catalog_id), row]));
+  if (Platform.OS === 'web' && priceByCatalog.size !== priceRows.length) {
+    return { ok: false, error: 'Für eine Position sind mehrere Standardpreise hinterlegt. Bitte die Preiszuordnung prüfen, bevor Sie den Katalog bearbeiten.' };
+  }
   const items = ((catalogRows ?? []) as Record<string, unknown>[]).map((row) =>
     mapCatalogRow(row, priceByCatalog.get(String(row.id))),
   );
@@ -406,6 +410,7 @@ export type SaveCatalogItemInput = {
   taxMode?: ServiceTaxMode;
   taxRate?: number;
   validFrom?: string;
+  validTo?: string | null;
   travelPolicy?: TravelCompensationPolicy | null;
 };
 
@@ -414,6 +419,7 @@ export async function saveTenantServiceCatalogItem(
   input: SaveCatalogItemInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
+  const effectiveFrom = input.validFrom ?? (Platform.OS === 'web' ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) : new Date().toISOString().slice(0, 10));
   const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
   if (webDenied) return webDenied;
   const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
@@ -423,6 +429,14 @@ export async function saveTenantServiceCatalogItem(
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
     if (!input.name.trim()) return { ok: false, error: 'Bitte eine Bezeichnung eingeben.' };
+    if (isUnreleasedModuleKey(input.moduleKey)) return { ok: false, error: 'Dieser Katalog ist noch nicht freigegeben.' };
+    if (!['assist', 'pflege', 'stationaer', 'beratung'].includes(input.moduleKey) || !['service', 'travel', 'surcharge'].includes(input.category) || !['hour', 'visit', 'day', 'flat', 'km', 'percent'].includes(input.unit)) {
+      return { ok: false, error: 'Bitte einen gültigen Katalog, eine Kategorie und eine Abrechnungseinheit auswählen.' };
+    }
+    const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(`${value}T12:00:00Z`)) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
+    if (input.priceNet != null && (!validDate(effectiveFrom) || input.validTo != null && (!validDate(input.validTo) || input.validTo < effectiveFrom))) {
+      return { ok: false, error: 'Bitte einen gültigen Preiszeitraum eingeben. Das Enddatum darf nicht vor dem Startdatum liegen.' };
+    }
     if (input.priceNet != null && (!Number.isFinite(input.priceNet) || input.priceNet < 0 || input.priceNet > 99999999.99)) {
       return { ok: false, error: 'Bitte einen gültigen, nicht negativen Preis eingeben.' };
     }
@@ -497,7 +511,8 @@ export async function saveTenantServiceCatalogItem(
       price_net: input.priceNet,
       tax_rate: input.taxRate ?? (Platform.OS === 'web' && input.taxMode === 'standard_19' ? 19 : 0),
       tax_mode: input.taxMode ?? 'exempt_4_16',
-      valid_from: input.validFrom ?? new Date().toISOString().slice(0, 10),
+      valid_from: effectiveFrom,
+      ...(Platform.OS === 'web' && input.validTo !== undefined ? { valid_to: input.validTo } : {}),
       is_default: true,
       updated_at: new Date().toISOString(),
     };
@@ -518,7 +533,8 @@ export async function saveTenantServiceCatalogItem(
       const old = existingPrice as Record<string, unknown>;
       if (Platform.OS === 'web' && Number(old.price_net) === pricePayload.price_net &&
           Number(old.tax_rate) === pricePayload.tax_rate && old.tax_mode === pricePayload.tax_mode &&
-          (!input.validFrom || old.valid_from === input.validFrom)) {
+          (!input.validFrom || old.valid_from === input.validFrom) &&
+          (input.validTo === undefined || (old.valid_to ?? null) === input.validTo)) {
         return fetchTenantServiceCatalog(tenantId, actorRoleKey);
       }
       const versionResult = await fromUnknownTable(client, 'tenant_service_price_versions').insert({

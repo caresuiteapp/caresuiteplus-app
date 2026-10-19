@@ -136,6 +136,12 @@ describe('internal note service scope and receipts', () => {
     f.rpc.mockResolvedValueOnce(response({ items: [{ employee_id: 'invalid', display_name: 'Alex' }], total: 1 }));
     expect((await service.listInternalRecipients(actor)).ok).toBe(false);
   });
+  it('reports denied recipient access as an employee-selection issue and keeps existing note errors separate', async () => {
+    f.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'PRIVATE SERVER DETAIL' } });
+    expect(await service.listInternalRecipients(actor)).toEqual({ ok: false, error: 'Die Mitarbeitendenauswahl ist für diesen Zugang nicht freigegeben.' });
+    f.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'PRIVATE SERVER DETAIL' } });
+    expect(await service.listInternalNotes(actor, 'sent')).toEqual({ ok: false, error: 'Für diesen internen Eintrag besteht keine aktuelle Zugriffsberechtigung.' });
+  });
   it('checks sender scope and recipient-specific inbox identity without giving the receiver other deliveries', async () => {
     f.rpc.mockResolvedValueOnce(response({ items: [note()], total: 1 }));
     expect(await service.listInternalNotes(actor, 'sent')).toMatchObject({ ok: true, data: [{ senderUserId: USER, tenantId: TENANT, dueDate: '' }] });
