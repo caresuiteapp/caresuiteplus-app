@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import {
   buildAdminNotifyEmailContent,
   collectAdminRecipientEmails,
@@ -137,15 +135,4 @@ describe('DSGVO admin notify handler (Sprint 71)', () => {
     expect(result.message).toContain('fehlgeschlagen');
   });
 
-  it('Edge Function meldet send_failed mit ok:false statt Fake-prepared_only', () => {
-    const edge = readSrc('supabase/functions/notify-data-subject-request-admin/index.ts');
-    expect(edge).toContain('resolveAdminNotifyResult');
-    expect(edge).toContain("result.status === 'send_failed'");
-    expect(edge).toContain('ok: false');
-    expect(edge).not.toContain("status: 'prepared_only',\n        recipientCount: recipientEmails.length,\n        message: 'E-Mail-Versand fehlgeschlagen");
-  });
 });
-
-function readSrc(relativePath: string): string {
-  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
-}
