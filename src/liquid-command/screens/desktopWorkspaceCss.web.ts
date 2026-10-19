@@ -6,7 +6,6 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   const labelHeight = Math.ceil((mobile ? 32 : 48) * scale + (mobile ? 12 : 16));
   return `
-    input#desktop-catalog-search,
     input#desktop-navigation-search {
       background: transparent !important;
       color: #EAF6FF !important;
@@ -14,21 +13,16 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       caret-color: #81DFFF !important;
       border: 0 !important;
     }
-    input#desktop-catalog-search::placeholder,
     input#desktop-navigation-search::placeholder {
       color: #AFC9DC !important;
       -webkit-text-fill-color: #AFC9DC !important;
       opacity: 1;
     }
-    [data-testid="app-catalog"], [data-testid="widget-catalog"] {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, ${280 * scale}px), 1fr));
-      gap: 10px;
-      margin: 0;
-    }
-    [data-testid="app-catalog"] > div, [data-testid="widget-catalog"] > div {
-      min-width: 0;
-      padding: 0;
+    .desktop-page-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 88px; height: 88px; max-width: 100%; max-height: 100%; border-radius: 25px; color: #a6e4ff;
+      background: linear-gradient(145deg,rgba(69,174,232,.25),rgba(20,67,125,.35));
+      border: 1px solid rgba(139,211,255,.3); box-shadow: 0 12px 28px rgba(4,16,40,.24);
     }
     [data-cs-desktop-navigation-workspace] {
       transition: grid-template-columns 240ms cubic-bezier(.2,.8,.2,1);
