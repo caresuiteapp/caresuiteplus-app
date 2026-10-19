@@ -16,6 +16,12 @@ Die Pflege-Erweiterungen aus app/src/scripts/supabase wurden dreiseitig übernom
 - Staging-Schnittstellenfreigabe bestätigt: Migration 20261019210100 ambulatory_workspace_guarded_api_access.
 - Keine produktiven Testdaten angelegt. Keine produktiven RPC-Freigaben oder App-Promotion in diesem Integrationsschritt.
 
+## Abschließender Integrationslauf
+
+Nach Pfadumstellung und Wiederherstellung der historischen Fixtures: **12.447 Tests, 12.105 bestanden, 342 fehlgeschlagen, 0 abgebrochen**. Der gesamte heutige Integrationsstand ist damit nicht freigegeben. Die historischen 12.598 bestandenen Tests dürfen nicht als aktuelles Ergebnis ausgegeben werden.
+
+Ein weiterer, deutlich kleinerer Staging-Sitzungstest scheiterte ebenfalls am Connector mit `Invalid or expired requestState`; er ist kein bestandener Rechte-Nachweis.
+
 ## Produktionsblocker
 
 1. Abgleich literal erkannter RPC-Aufrufe in Pflege/Assessment/Klienten: 163 eindeutige Namen, davon 132 im Produktionskatalog nicht vorhanden. Das ist eine statische Teilinventur, keine Vollständigkeitszusage für dynamische RPC-Aufrufe.
