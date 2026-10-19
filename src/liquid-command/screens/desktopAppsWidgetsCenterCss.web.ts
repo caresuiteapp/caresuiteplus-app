@@ -37,20 +37,19 @@ export const desktopAppsWidgetsCenterCss = `
 .cs-apps-center .cs-center-desktop-summary span { font-size: .93em; }
 .cs-apps-center .cs-center-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,calc(260px * var(--cs-center-scale,1))),1fr)); gap: 14px; }
 .cs-apps-center .cs-center-card { position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid #d7e3f1; border-radius: 19px; background: #fff; box-shadow: 0 4px 16px #1a426b06; overflow: hidden; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-.cs-apps-center .cs-center-app-card, .cs-apps-center .cs-center-workflow-card { width: 100%; padding: 18px; gap: 14px; text-align: left; color: #15304e; }
-.cs-apps-center .cs-center-card-identity { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
-.cs-apps-center .cs-center-card-identity > div:last-child { min-width: 0; }
+.cs-apps-center .cs-center-app-card, .cs-apps-center .cs-center-workflow-card { width: 100%; padding: 0; text-align: left; color: #15304e; }
+.cs-apps-center .cs-center-card-heading { min-width: 0; padding: 16px 16px 12px; }
 .cs-apps-center .cs-center-glyph { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; border: 1px solid #d4e4f8; border-radius: 13px; background: linear-gradient(145deg,#eff7ff,#e5efff); color: #1764b8; font-size: 21px; font-weight: 750; }
 .cs-apps-center .cs-center-card h3 { font-size: 1.07em; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .cs-apps-center .cs-center-card-kind { display: block; color: #61768e; font-size: .86em; margin-top: 3px; }
 .cs-apps-center .cs-center-card-description { color: #4b637c; overflow-wrap: anywhere; }
 .cs-apps-center .cs-center-card-link { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto; padding-top: 4px; color: #175db4; font-weight: 650; font-size: .95em; }
-.cs-apps-center .cs-center-widget-heading { padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 7px; }
+.cs-apps-center .cs-center-widget-heading { display: flex; flex-direction: column; gap: 7px; }
 .cs-apps-center .cs-center-widget-heading h3 { min-height: 1.4em; }
-.cs-apps-center .cs-center-widget-preview { display: flex; align-items: center; justify-content: center; height: calc(130px * var(--cs-center-scale,1)); min-height: 130px; margin: 0 12px; overflow: hidden; border: 1px solid #e1eaf4; border-radius: 13px; background: radial-gradient(ellipse at 50% 80%,#dcecff,#f3f8fe 70%); pointer-events: none; }
-.cs-apps-center .cs-center-widget-preview > .cs-center-glyph { width: 64px; height: 64px; font-size: 31px; }
-.cs-apps-center .cs-center-widget-body { display: flex; flex: 1; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
-.cs-apps-center .cs-center-widget-body > p { flex: 1; }
+.cs-apps-center .cs-center-artwork-preview { display: flex; align-items: center; justify-content: center; height: 160px; min-height: 160px; margin: 0 12px; padding: 8px; overflow: hidden; border: 1px solid #e1eaf4; border-radius: 13px; background: radial-gradient(ellipse at 50% 80%,#dcecff,#f3f8fe 70%); pointer-events: none; }
+.cs-apps-center .cs-center-artwork-preview > .cs-desktop-catalog-artwork { max-width: 240px; filter: drop-shadow(0 8px 8px #2363a51a); transition: transform 180ms ease; }
+.cs-apps-center .cs-center-card-body { display: flex; flex: 1; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
+.cs-apps-center .cs-center-card-body > p { flex: 1; }
 .cs-apps-center .cs-center-badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid #bedecf; border-radius: 7px; background: #eaf7ef; color: #206040; font-size: .79em; font-weight: 650; }
 .cs-apps-center .cs-center-badge-muted { border-color: #dce5f1; color: #5b7189; background: #f4f7fb; }
 .cs-apps-center .cs-center-button, .cs-apps-center-footer .cs-center-button { min-height: 42px; padding: 9px 13px; border: 1px solid #b4ceec; border-radius: 11px; background: #eaf3ff; color: #1455a4; font-weight: 650; line-height: 1.4; }
@@ -81,6 +80,7 @@ export const desktopAppsWidgetsCenterCss = `
 @media (hover:hover) and (pointer:fine) {
   .cs-apps-center :is(.cs-center-app-card,.cs-center-workflow-card,.cs-center-background-card):hover { transform: translateY(-2px); border-color: #91b6e4; box-shadow: 0 9px 24px #173e7212; }
   .cs-apps-center .cs-center-widget-card:hover { border-color: #a6c3e5; }
+  .cs-apps-center :is(.cs-center-app-card,.cs-center-widget-card,.cs-center-workflow-card):hover .cs-center-artwork-preview > .cs-desktop-catalog-artwork { transform: translateY(-3px) scale(1.025); }
   .cs-apps-center :is(.cs-center-chip,.cs-center-tab):hover { color: #1455a4; background: #f8fbff; }
   .cs-apps-center .cs-center-button:hover { background: #daeaff; }
   .cs-apps-center-footer .cs-center-button:hover { background: #1054b8; }
@@ -90,12 +90,12 @@ export const desktopAppsWidgetsCenterCss = `
   .cs-apps-center .cs-center-toolbar { align-items: stretch; }
   .cs-apps-center .cs-center-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
   .cs-apps-center .cs-center-search { max-width: none; flex-basis: 100%; }
-  .cs-apps-center .cs-center-card-identity { gap: 10px; }
   .cs-apps-center .cs-center-chip { min-height: 42px; }
   .cs-apps-center .cs-center-section-heading { gap: 5px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .cs-apps-center *, .cs-apps-center-footer * { transition: none !important; animation: none !important; }
   .cs-apps-center .cs-center-card:hover { transform: none; }
+  .cs-apps-center .cs-center-card:hover .cs-center-artwork-preview > .cs-desktop-catalog-artwork { transform: none; }
 }
 `;

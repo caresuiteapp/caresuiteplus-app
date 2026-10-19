@@ -16,7 +16,7 @@ const Pressable = forwardRef<HTMLButtonElement, any>((props, ref) => <button typ
 const native = {
   Platform: { OS: 'web' },
   StyleSheet: { create: (value: any) => value, flatten: (value: any): any => Array.isArray(value) ? Object.assign({}, ...value.map(native.StyleSheet.flatten)) : value ?? {} },
-  Image: () => null, ImageBackground: Box, Text: (props: any) => <span>{props.children}</span>,
+  Image: (props: any) => <img alt="" data-native-image-source={JSON.stringify(props.source)} />, ImageBackground: Box, Text: (props: any) => <span>{props.children}</span>,
   TextInput: (props: any) => <input aria-label={props.accessibilityLabel} value={props.value} onInput={event => props.onChangeText(event.currentTarget.value)} />,
   Modal: (props: any) => props.visible ? <div role="dialog">{props.children}</div> : null,
   useWindowDimensions: () => ({ width: api.width, height: 1000 }),
@@ -253,18 +253,26 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen öffnen')).toBeNull();
   });
 
-  it('renders icons for apps, widgets and workflows and checks creation permission before offering an intake workflow', async () => {
+  it('renders picture artwork for every app, widget and workflow and checks creation permission before offering an intake workflow', async () => {
+    const expectPicture = (card: Element) => {
+      const artwork = card.querySelector('[data-testid="desktop-catalog-artwork"]');
+      expect(artwork).toBeTruthy();
+      expect(artwork?.querySelector('img[data-native-image-source]')).toBeTruthy();
+      expect(artwork?.querySelector('svg')).toBeNull();
+    };
     seed(['clients']); await render(); await open();
     const apps = dialog().querySelector('[data-testid="center-app-catalog"]')!;
     expect(apps.children.length).toBeGreaterThan(0);
-    [...apps.children].forEach(card => expect(card.querySelector('svg[aria-hidden="true"]')).toBeTruthy());
+    [...apps.children].forEach(expectPicture);
     await click(tab('Widgets'));
     const widgets = dialog().querySelector('[data-testid="center-widget-catalog"]')!;
     expect(widgets.children.length).toBeGreaterThan(0);
-    [...widgets.children].forEach(card => expect(card.querySelector('svg[aria-hidden="true"]')).toBeTruthy());
+    [...widgets.children].forEach(expectPicture);
     await click(tab('Workflows'));
     const intake = label('Klient:in aufnehmen: Ablauf öffnen');
-    expect(intake?.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    const workflows = dialog().querySelectorAll('[aria-label$=": Ablauf öffnen"]');
+    expect(workflows.length).toBeGreaterThan(0);
+    workflows.forEach(expectPicture);
     await click(intake);
     expect(api.push).toHaveBeenCalledWith('/business/office/clients/new');
     expect(savedIds()).toEqual(['clients']);

@@ -18,12 +18,6 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       -webkit-text-fill-color: #AFC9DC !important;
       opacity: 1;
     }
-    .desktop-page-icon {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 88px; height: 88px; max-width: 100%; max-height: 100%; border-radius: 25px; color: #a6e4ff;
-      background: linear-gradient(145deg,rgba(69,174,232,.25),rgba(20,67,125,.35));
-      border: 1px solid rgba(139,211,255,.3); box-shadow: 0 12px 28px rgba(4,16,40,.24);
-    }
     [data-cs-desktop-navigation-workspace] {
       transition: grid-template-columns 240ms cubic-bezier(.2,.8,.2,1);
     }
