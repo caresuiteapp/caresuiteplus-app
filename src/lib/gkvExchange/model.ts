@@ -1,4 +1,5 @@
 import { calculatePrice, type PricingRule } from './pricing';
+import { careCaseIssues, careLineIssues } from './care';
 import { adjustmentIssues, hasAdjustmentsShape, type Adjustment } from './adjustments';
 /** §105 SGB XI. Field order and limits: TA1 6.4.0, TA3 6.4.0 (01.05.2026). */
 export const GKV_SPEC = {
@@ -30,6 +31,7 @@ export type ServiceLine = {
   sourceId?: string; day: string; startTime?: string; remuneration: string;
   sourceItemId?: string; sourceItemUpdatedAt?: string; sourceRecordUpdatedAt?: string; sourceDescription?: string;
   pricingRule?: PricingRule; contractReference?: string; distanceKm?: string;
+  careEndsNextDay?: boolean; sourceItemServiceDate?: string;
   adjustments?: Adjustment[]; adjustmentRule?: string;
   qualification: string; code: string; unitPriceCents: number; quantityHundredths: number;
   duration: string; pointValue?: string; points?: string; employeeNumber?: string;
@@ -90,7 +92,8 @@ export function hasDraftShape(value: unknown): value is ExchangeDraft {
       && typeof c.proofConfirmed === 'boolean' && numbers(c, ['coPaymentCents','aidCents','grossCents']) && Array.isArray(c.lines) && c.lines.length <= 1000
       && c.lines.every(l => record(l) && textKeys(l, ['day','remuneration','qualification','code','duration'])
         && optionalText(l,['sourceId','sourceItemId','sourceItemUpdatedAt','sourceRecordUpdatedAt','sourceDescription','pricingRule','contractReference','distanceKm','pointValue','points','startTime','employeeNumber','secondEmployeeNumber'])
-        && optionalText(l, ['adjustmentRule']) && (l.adjustments === undefined || hasAdjustmentsShape(l.adjustments))
+        && optionalText(l, ['adjustmentRule','sourceItemServiceDate']) && (l.careEndsNextDay === undefined || typeof l.careEndsNextDay === 'boolean')
+        && (l.adjustments === undefined || hasAdjustmentsShape(l.adjustments))
         && numbers(l, ['unitPriceCents','quantityHundredths','totalCents'])));
 }
 export function cents(value: number): string {
@@ -149,7 +152,9 @@ export function validateDraft(input: unknown): Issue[] {
   else if (d.profile.taxExemptionCode !== '01') add('profile.taxExemptionCode', 'Dieses Exportprofil unterstützt ausschließlich den bestätigten Befreiungsschlüssel 01 aus TA3.');
   if (d.profile.taxNumber) field(d.profile.taxNumber, 'profile.taxNumber', 20);
   if (d.profile.senderIk !== d.profile.providerIk) add('profile.senderIk', 'Dieser Export unterstützt Selbstabrechnung. Die Sammelabrechnung über ein Abrechnungszentrum benötigt einen eigenen geprüften Adapter.');
-  if (['02','03','04','05','06','08','11','12','14','15'].includes(d.serviceType)) add('serviceType', 'Dieses Fachprofil ist noch nicht zur Dateierzeugung freigegeben.');
+  if (['06','08','11','12','14'].includes(d.serviceType)) add('serviceType', 'Dieses Fachprofil ist noch nicht zur Dateierzeugung freigegeben.');
+  const careProviderCodes: Record<string,string[]> = { '02':['81','82','83','84'], '03':['86','87','88','89'], '04':['91','92','93','94'], '05':['96','97','98','99'], '15':['35','36','37','39'] };
+  if (careProviderCodes[d.serviceType] && !careProviderCodes[d.serviceType].includes(d.profile.billingCode)) add('profile.billingCode', 'Der Abrechnungscode muss zur Tages-, Nacht-, Kurzzeit-, vollstationären beziehungsweise ambulanten Pflegeart passen.');
   if (d.channel === 'kim') {
     if (!['01','07','10'].includes(d.serviceType)) add('channel', 'Version 6.4.0 erlaubt diese Leistungsart nicht im vollelektronischen KIM-Verfahren.');
     if (d.serviceType === '10' && !d.profile.ambulatoryProvider) add('channel', 'Entlastungsleistungen sind über KIM nur für Leistungserbringer der ambulanten Pflege zugelassen.');
@@ -179,10 +184,14 @@ export function validateDraft(input: unknown): Issue[] {
       const lp = `${path}.lines.${j}`;
       if (!l || typeof l !== 'object') { add(lp, 'Leistungsposition fehlt.'); continue; }
       strings(l, ['day','remuneration','qualification','code','duration'], `${lp}.`);
-      if (!/^\d{2}$/.test(l.day) || !isDate(`${d.month}-${l.day}`)) add(`${lp}.day`, 'Leistungstag liegt nicht im Abrechnungsmonat.');
-      else if (`${d.month}-${l.day}` > day || (isDate(c.invoiceDate) && `${d.month}-${l.day}` > c.invoiceDate)) add(`${lp}.day`, 'Eine Leistung darf nicht nach Rechnungsdatum oder Dateierstellung liegen.');
+      const monthly = l.day === '99' && l.remuneration === '04' && l.pricingRule === 'care_monthly';
+      if (!monthly && (!/^\d{2}$/.test(l.day) || !isDate(`${d.month}-${l.day}`))) add(`${lp}.day`, 'Leistungstag liegt nicht im Abrechnungsmonat.');
+      else if (!monthly && (`${d.month}-${l.day}` > day || (isDate(c.invoiceDate) && `${d.month}-${l.day}` > c.invoiceDate))) add(`${lp}.day`, 'Eine Leistung darf nicht nach Rechnungsdatum oder Dateierstellung liegen.');
       if (['01','02','03','06'].includes(l.remuneration) && !/^([01]\d|2[0-3])[0-5]\d$/.test(l.startTime || '')) add(`${lp}.startTime`, 'Tatsächliche Beginnzeit im Format HHMM erforderlich.');
-      if (!['01','02','06','07','08','99'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Dieses Vergütungsprofil ist für den Export noch nicht freigegeben.');
+      if (!['01','02','03','04','06','07','08','99'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Dieses Vergütungsprofil ist für den Export noch nicht freigegeben.');
+      if (['02','03'].includes(d.serviceType) && !['03','06'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Für dieses Tages-/Nachtpflegeprofil sind Pflegesatz und Beförderungsentgelt verfügbar.');
+      if (['04','05'].includes(d.serviceType) && l.remuneration !== '04') add(`${lp}.remuneration`, 'Dieses stationäre Grundprofil benötigt den stationären Pflegesatz.');
+      if (d.serviceType === '15' && (l.remuneration !== '02' || !/^[1-6]0$/.test(l.code))) add(`${lp}.code`, 'Ergänzende DiPA-Unterstützung benötigt Zeitvergütung mit Zeitart 0.');
       if (!/^[0-48]$/.test(l.qualification)) add(`${lp}.qualification`, 'Qualifikationsschlüssel 0–4 oder 8 erforderlich.');
       if (!/^[A-Za-z0-9]{1,10}$/.test(l.code)) add(`${lp}.code`, 'Vertraglicher Leistungsschlüssel fehlt.');
       if (l.remuneration === '08' && (d.serviceType !== '09' || !['1','2'].includes(l.code))) add(`${lp}.code`, 'Beratungspauschale: 1 für vor Ort, 2 für Video.');
@@ -191,7 +200,7 @@ export function validateDraft(input: unknown): Issue[] {
       if (l.remuneration === '99' && l.code !== '99') add(`${lp}.code`, 'Ohne Vertragspreisregelung gilt Schlüssel 99.');
       if (l.remuneration === '06' && !['01','02','03','04'].includes(l.code)) add(`${lp}.code`, 'Wegegebühr: Schlüssel 01 bis 04.');
       if (!/^\d{1,4}$/.test(l.duration) || (l.remuneration === '02' && Number(l.duration) < 1)) add(`${lp}.duration`, 'Dauer oder Kilometerangabe ist ungültig.');
-      if (!['02','06'].includes(l.remuneration) && l.duration !== '00') add(`${lp}.duration`, 'Für diese Vergütungsart ist 00 zu melden.');
+      if (!['02','03','04','06'].includes(l.remuneration) && l.duration !== '00') add(`${lp}.duration`, 'Für diese Vergütungsart ist 00 zu melden.');
       if (l.remuneration === '06' && l.code !== '04' && l.duration !== '00') add(`${lp}.duration`, 'Bei Wegepauschalen ist 00 zu melden.');
       for (const key of ['unitPriceCents','totalCents','quantityHundredths'] as const) if (!Number.isSafeInteger(l[key]) || l[key] < (key === 'quantityHundredths' ? 1 : 0) || l[key] > (key === 'quantityHundredths' ? 999999 : 999999999999)) add(`${lp}.${key}`, 'Betrag oder Menge ist ungültig.');
       if (l.remuneration === '02') {
@@ -206,12 +215,14 @@ export function validateDraft(input: unknown): Issue[] {
         if (Number(l.duration) !== Number(expected.duration)) add(`${lp}.duration`, 'Gemeldete Kilometer stimmen nicht mit der kaufmännisch gerundeten Strecke überein.');
       } catch (error) { add(`${lp}.totalCents`, error instanceof Error ? error.message : 'Berechnungsgrundlage ist unvollständig.'); }
       for (const issue of adjustmentIssues(l, d.serviceType)) add(`${lp}.${issue.path}`, issue.message);
+      for (const issue of careLineIssues(l, d.serviceType, d.month, c.invoiceDate, day)) add(`${lp}.${issue.path}`, issue.message);
       if (Object.hasOwn(l, 'surcharges')) add(lp, 'Unbekannte Zuschlagsdaten dürfen nicht ohne ZUS-Berechnung exportiert werden.');
       if ((d.profile.ambulatoryProvider || d.profile.employeeNumberRequired) && !/^\d{9}$/.test(l.employeeNumber || '')) add(`${lp}.employeeNumber`, 'Beschäftigtennummer oder belegter Ersatzwert erforderlich.');
       if (l.secondEmployeeNumber && !/^\d{9}$/.test(l.secondEmployeeNumber)) add(`${lp}.secondEmployeeNumber`, 'Zweite Beschäftigtennummer ist ungültig.');
       if (l.sourceId) { if (sources.has(l.sourceId)) add(`${lp}.sourceId`, 'Diese Leistung wurde im Paket mehrfach ausgewählt.'); sources.add(l.sourceId); }
       calculated += l.totalCents;
     }
+    for (const issue of careCaseIssues(c)) add(`${path}.${issue.path}`, issue.message);
     for (const key of ['grossCents','coPaymentCents','aidCents'] as const) if (!Number.isSafeInteger(c[key]) || c[key] < 0 || c[key] > 999999999999) add(`${path}.${key}`, 'Ungültiger Fallbetrag.');
     if (calculated !== c.grossCents) add(`${path}.grossCents`, 'Fallsumme stimmt nicht mit den Leistungspositionen überein.');
     if (c.coPaymentCents + c.aidCents > c.grossCents) add(`${path}.aidCents`, 'Eigenanteil und Beihilfe übersteigen den Bruttobetrag.');

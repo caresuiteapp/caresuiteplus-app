@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { newLine, parseHundredths, recalculateLine, withLines } from '@/lib/gkvExchange/editor';
 import { calculateBasePrice, PRICING_RULES, type PricingRule } from '@/lib/gkvExchange/pricing';
+import { CARE_RATE_CODES, carePeriod, daysInMonth } from '@/lib/gkvExchange/care';
 import { ADJUSTMENT_CALCULATIONS, ADJUSTMENT_CODES, ADJUSTMENT_RULE, ADJUSTMENT_TARIFFS, calculateAdjustments, type Adjustment } from '@/lib/gkvExchange/adjustments';
 import { cents, type BillingCase, type ExchangeProfile, type ServiceLine } from '@/lib/gkvExchange/model';
 
@@ -67,7 +68,7 @@ export function CaseEditor({ value, index, onChange, onRemove, onReload }: { val
         <Field label="Postleitzahl" value={value.postalCode || ''} maxLength={10} onChange={v => set('postalCode', v)} />
         <Field label="Ort" value={value.city || ''} maxLength={40} onChange={v => set('city', v)} />
       </div>
-      <div><h3>Leistungspositionen</h3>{value.lines.map((line, lineIndex) => <LineEditor key={`${lineIndex}:${line.sourceId || ''}`} value={line} index={lineIndex} onChange={next => changeLine(lineIndex, next)} onRemove={() => onChange(withLines(value, value.lines.filter((_, i) => i !== lineIndex)))} />)}
+      <div><h3>Leistungspositionen</h3>{value.lines.map((line, lineIndex) => <LineEditor key={`${lineIndex}:${line.sourceId || ''}`} value={line} month={value.month} index={lineIndex} onChange={next => changeLine(lineIndex, next)} onRemove={() => onChange(withLines(value, value.lines.filter((_, i) => i !== lineIndex)))} />)}
         <button type="button" style={{ marginTop: 12 }} onClick={() => onChange(withLines(value, [...value.lines, newLine()]))} disabled={value.lines.length >= 1000}>Leistung hinzufügen</button>
       </div>
       <div className="gx-grid"><MoneyField label="Eigenanteil / Zuzahlung (€)" value={value.coPaymentCents} onChange={v => set('coPaymentCents', v)} /><MoneyField label="Beihilfe (€)" value={value.aidCents} onChange={v => set('aidCents', v)} /></div>
@@ -77,34 +78,50 @@ export function CaseEditor({ value, index, onChange, onRemove, onReload }: { val
   </details>;
 }
 
-function LineEditor({ value, index, onChange, onRemove }: { value: ServiceLine; index: number; onChange: (value: ServiceLine) => void; onRemove: () => void }) {
+function LineEditor({ value, month, index, onChange, onRemove }: { value: ServiceLine; month: string; index: number; onChange: (value: ServiceLine) => void; onRemove: () => void }) {
   const set = <K extends keyof ServiceLine>(key: K, next: ServiceLine[K]) => {
     const line = { ...value, [key]: next };
     if ((key === 'pointValue' || key === 'points') && !line.pointValue && !line.points) line.pricingRule = undefined;
     if (key === 'code' && line.remuneration === '06' && line.code !== '04') { line.pricingRule = undefined; line.distanceKm = ''; line.duration = '00'; }
+    if (key === 'duration' && line.pricingRule === 'care_daily') {
+      const period = carePeriod(line);
+      if (period) { line.day = String(period.first).padStart(2, '0'); line.quantityHundredths = (period.last - period.first + 1) * 100; }
+    }
     onChange(line);
   };
   const time = value.remuneration === '02';
   const distance = value.remuneration === '06' && value.code === '04';
   const points = value.remuneration === '01';
-  const changeRemuneration = (remuneration: string) => onChange({ ...value, remuneration, pricingRule: undefined, pointValue: '', points: '', distanceKm: '', duration: '00', code: '' });
+  const partialCare = value.remuneration === '03', fullCare = value.remuneration === '04';
+  const changeRemuneration = (remuneration: string) => onChange({ ...value, remuneration, pricingRule: undefined, pointValue: '', points: '', distanceKm: '', duration: '00', code: '', careEndsNextDay: false,
+    ...(remuneration === '04' ? { startTime: '' } : {}), ...(value.day === '99' ? { day: '' } : {}) });
+  const changePricing = (rule: string) => {
+    const line = { ...value, pricingRule: rule ? rule as PricingRule : undefined };
+    if (rule === 'care_monthly') Object.assign(line, { day: '99', duration: `01${daysInMonth(month)}`, quantityHundredths: 100, startTime: '' });
+    if (rule === 'care_attendance') line.quantityHundredths = 100;
+    if (rule === 'care_daily') { const period = carePeriod(line); if (period) Object.assign(line, { day: String(period.first).padStart(2, '0'), quantityHundredths: (period.last - period.first + 1) * 100 }); }
+    onChange(line);
+  };
   return <section className="gx-line" aria-label={`Leistung ${index + 1}`}><div className="gx-card-title"><h3>Leistung {index + 1}</h3><button type="button" aria-label={`Leistung ${index + 1} entfernen`} className="gx-danger" onClick={onRemove}>Entfernen</button></div>
     {value.sourceDescription && <p className="gx-subtle">Rechnungsposition: {value.sourceDescription}</p>}
     <div className="gx-grid">
-      <Field label="Tag im Monat (TT)" value={value.day} maxLength={2} onChange={v => set('day', v)} />
-      <Field label="Tatsächlicher Beginn (HHMM)" value={value.startTime || ''} maxLength={4} onChange={v => set('startTime', v)} />
-      <Choice label="Vergütungsart" value={value.remuneration} onChange={changeRemuneration}><option value="">Auswählen</option><option value="01">01 · Leistungskomplex</option><option value="02">02 · Zeitvergütung</option><option value="06">06 · Wegegebühr</option><option value="07">07 · Entlastungsleistung</option><option value="08">08 · Beratungspauschale</option><option value="99">99 · Ohne Vertragspreisregelung</option></Choice>
+      <Field label={fullCare ? 'Erster Leistungstag / 99 bei fester Monatspauschale' : 'Tag im Monat (TT)'} value={value.day} maxLength={2} onChange={v => set('day', v)} />
+      {!fullCare && <Field label="Tatsächlicher Beginn (HHMM)" value={value.startTime || ''} maxLength={4} onChange={v => set('startTime', v)} />}
+      <Choice label="Vergütungsart" value={value.remuneration} onChange={changeRemuneration}><option value="">Auswählen</option><option value="01">01 · Leistungskomplex</option><option value="02">02 · Zeitvergütung</option><option value="03">03 · Tages-/Nachtpflege-Pflegesatz</option><option value="04">04 · Vollstationärer Pflegesatz / Kurzzeitpflege</option><option value="06">06 · Wegegebühr</option><option value="07">07 · Entlastungsleistung</option><option value="08">08 · Beratungspauschale</option><option value="99">99 · Ohne Vertragspreisregelung</option></Choice>
       <Choice label="Qualifikationsschlüssel" value={value.qualification} onChange={v => set('qualification', v)}><option value="">Auswählen</option>{['0','1','2','3','4','8'].map(code => <option key={code} value={code}>{code === '0' ? '0 · Nicht abhängig' : `Schlüssel ${code}`}</option>)}</Choice>
-      <Field label="Vertraglicher Leistungsschlüssel" value={value.code} maxLength={10} onChange={v => set('code', v)} />
+      {partialCare || fullCare ? <Choice label="Vertraglicher Pflegesatz" value={value.code} onChange={v => set('code', v)}><option value="">Auswählen</option>{Object.entries(CARE_RATE_CODES).filter(([key]) => partialCare ? key !== '02' : key !== '01').map(([key,label]) => <option key={key} value={key}>{key} · {label}</option>)}</Choice>
+        : <Field label="Vertraglicher Leistungsschlüssel" value={value.code} maxLength={10} onChange={v => set('code', v)} />}
       <MoneyField label={time ? 'Preis je verschlüsselter Zeiteinheit (€)' : distance ? 'Preis je Kilometer (€)' : 'Einzelpreis (€)'} value={value.unitPriceCents} onChange={v => set('unitPriceCents', v)} />
       <MoneyField label={time || distance ? 'Anzahl gleicher Leistungen (nicht Minuten / km)' : 'Anzahl / Menge'} value={value.quantityHundredths} onChange={v => set('quantityHundredths', v)} />
-      {!distance && <Field label={time ? 'Tatsächliche Dauer je Leistung (Minuten)' : 'Dauer (00)'} value={value.duration} maxLength={4} onChange={v => set('duration', v)} />}
+      {!distance && <Field label={time ? 'Tatsächliche Dauer je Leistung (Minuten)' : partialCare ? 'Tatsächliches Ende (HHMM)' : fullCare ? 'Von-/Bis-Tag (TTTT)' : 'Dauer (00)'} value={value.duration} maxLength={4} hint={fullCare ? 'Beispiel 0107: 1. bis einschließlich 7. Tag; Tagesanzahl wird bei bestätigter Tagesregel übernommen.' : undefined} onChange={v => set('duration', v)} />}
       {distance && <Field label="Tatsächlich gefahrene Kilometer" value={value.distanceKm || ''} maxLength={7} hint={`Gemeldete ganze Kilometer: ${value.duration}`} onChange={v => set('distanceKm', v)} />}
       {points && <><Field label="Punktwert (€; optional)" value={value.pointValue || ''} maxLength={7} hint="Bis fünf Nachkommastellen, laut Vergütungsvereinbarung." onChange={v => set('pointValue', v)} /><Field label="Punktzahl (optional)" value={value.points || ''} maxLength={4} onChange={v => set('points', v)} /></>}
-      {(time || distance || value.pointValue || value.points) && <><Choice label="Vertraglich vereinbarte Berechnung" value={value.pricingRule || ''} onChange={v => set('pricingRule', v ? v as PricingRule : undefined)}><option value="">Auswählen und Vertrag prüfen</option>{Object.entries(PRICING_RULES).filter(([key]) => time ? key.startsWith('time_') : distance ? key === 'kilometres_rounded' : key === 'points_unit').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</Choice><Field label="Vertrag / Vergütungsvereinbarung mit Gültigkeit" value={value.contractReference || ''} maxLength={200} onChange={v => set('contractReference', v)} /></>}
+      {(time || distance || partialCare || fullCare || value.pointValue || value.points) && <><Choice label="Vertraglich vereinbarte Berechnung" value={value.pricingRule || ''} onChange={changePricing}><option value="">Auswählen und Vertrag prüfen</option>{Object.entries(PRICING_RULES).filter(([key]) => time ? key.startsWith('time_') : distance ? key === 'kilometres_rounded' : partialCare ? key === 'care_attendance' : fullCare ? ['care_daily','care_monthly'].includes(key) : key === 'points_unit').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</Choice><Field label="Vertrag / Vergütungsvereinbarung mit Gültigkeit" value={value.contractReference || ''} maxLength={200} onChange={v => set('contractReference', v)} /></>}
       <Field label="Beschäftigtennummer" value={value.employeeNumber || ''} maxLength={9} onChange={v => set('employeeNumber', v)} />
       <Field label="Zweite Beschäftigtennummer" value={value.secondEmployeeNumber || ''} maxLength={9} onChange={v => set('secondEmployeeNumber', v)} />
-    </div><AdjustmentsEditor value={value} onChange={onChange} /><div className="gx-total"><small>Schlüssel und Vergütung müssen der Vereinbarung mit der Pflegekasse entsprechen.</small><span className="gx-money">{money(value.totalCents)}</span></div>
+    </div>{partialCare && <label className="gx-check"><input type="checkbox" checked={value.careEndsNextDay || false} onChange={e => set('careEndsNextDay', e.target.checked)} />Nachtpflege endet am Folgetag; Beginn und Ende sind tatsächliche Zeiten.</label>}
+    {(partialCare || fullCare) && <p className="gx-subtle">Pflegesätze für Halbtag oder Abwesenheit unverändert aus dem Vertrag übernehmen. Es erfolgt keine automatische Halbierung oder Kürzung. Unterbringung, Verpflegung, Investitionskosten und stationäre Zuschläge sind in diesem Grundprofil noch nicht enthalten.</p>}
+    <AdjustmentsEditor value={value} onChange={onChange} /><div className="gx-total"><small>Schlüssel und Vergütung müssen der Vereinbarung mit der Pflegekasse entsprechen.</small><span className="gx-money">{money(value.totalCents)}</span></div>
   </section>;
 }
 
@@ -139,7 +156,7 @@ function AdjustmentsEditor({ value, onChange }: { value: ServiceLine; onChange: 
         </section>;
       })}
       {entries.length > 0 && (preview ? <p className="gx-subtle">Basisbetrag {money(preview.base)} · einschließlich Zu- und Abschlägen {money(value.totalCents)}</p> : <p role="status" className="gx-subtle">{problem}</p>)}
-      <button type="button" disabled={entries.length >= 20} onClick={() => setEntries([...entries, { tariff: '', kind: '', code: '', text: '', allocation: '', calculation: '', direction: '', value: '', contractReference: '' }])}>Zu- oder Abschlag hinzufügen</button>
+      <button type="button" disabled={entries.length >= 20 || ['03','04'].includes(value.remuneration)} onClick={() => setEntries([...entries, { tariff: '', kind: '', code: '', text: '', allocation: '', calculation: '', direction: '', value: '', contractReference: '' }])}>Zu- oder Abschlag hinzufügen</button>
     </div>
   </details>;
 }

@@ -33,7 +33,7 @@ await db.query('INSERT INTO clients SELECT * FROM jsonb_populate_record(NULL::cl
 await db.query('INSERT INTO invoices SELECT * FROM jsonb_populate_record(NULL::invoices,$1::jsonb)',[JSON.stringify({...source,include_service_proofs:true,proof_fixture:source.proofs})]);
 await db.query('INSERT INTO invoice_items SELECT * FROM jsonb_populate_record(NULL::invoice_items,$1::jsonb)',[JSON.stringify(source.items[0])]);
 await db.query('INSERT INTO service_records SELECT * FROM jsonb_populate_record(NULL::service_records,$1::jsonb)',[JSON.stringify({...source.records[0],verified_fixture:true})]);
-for(const migration of ['20261019192628_gkv_exchange_workspace.sql','20261019195742_gkv_invoice_source_snapshot.sql'])await db.exec(await readFile(new URL(`../../supabase/migrations/${migration}`,import.meta.url),'utf8'));
+for(const migration of ['20261019214752_gkv_exchange_workspace.sql','20261019214757_gkv_invoice_source_snapshot.sql'])await db.exec(await readFile(new URL(`../../supabase/migrations/${migration}`,import.meta.url),'utf8'));
 async function actor({tenant=tenantId,user=userId,portal='',permissions='office.invoices.view,office.invoices.create',role='authenticated'}={}){
   await db.exec('RESET ROLE');
   for(const [key,value]of Object.entries({'test.tenant_id':tenant,'test.user_id':user,'test.portal':portal,'test.permissions':permissions}))await db.query('SELECT set_config($1,$2,false)',[key,value]);
@@ -53,7 +53,7 @@ try {await test('GKV migrations execute with real PostgreSQL RLS, functions and 
     await assert.rejects(cmd('save',input),e=>e.code==='40001');
   });
   await db.exec('RESET ROLE');
-  await db.exec(await readFile(new URL('../../supabase/migrations/20261019210847_gkv_revision_history.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261019214802_gkv_revision_history.sql',import.meta.url),'utf8'));
   await actor();
   await t.test('direct table mutations and private replay rows are inaccessible',async()=>{
     await assert.rejects(db.query("UPDATE gkv_exchange_batches SET status='accepted'"),e=>e.code==='42501');

@@ -68,6 +68,9 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | --- | --- |
 | Selbstabrechnung, eigenes Absender-IK | Implementiert |
 | Leistungsarten 01, 07, 09, 10, 13 | Grundprofile für klassische Prüfdateien |
+| Tages-/Nachtpflege 02/03 | Vereinbarter voller/halber Pflegesatz je tatsächlichem Tag, Beginn/Ende, bestätigter Folgetag bei Nachtpflege, passende Anbietergruppe; Beförderungsentgelt separat |
+| Kurzzeit-/vollstationäre Pflege 04/05 | Vertraglich bestätigter Tagessatz einschließlich Von-/Bis-Tag oder feste Pauschale für den vollständigen Kalendermonat; eigener Abwesenheitspreis, keine überlappenden Zeiträume |
+| DiPA-Unterstützung 15 | Ambulante Anbietergruppe, Zeitvergütung mit Zeitart 0 und ausdrücklicher Vertragsgrundlage |
 | Vergütungsarten 01, 06 mit Pauschalen 01–03, 07, 08, 99 | Einzelpreis × Menge mit ganzzahliger Centberechnung |
 | Beratungspauschale | Schlüssel 1 vor Ort / 2 Video, nur Leistungsart 09 |
 | Entlastungsleistung | Anbieterbezogene Schlüssel aus TA 3, nur Leistungsart 10 |
@@ -76,7 +79,7 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | Punktwert | Leistungskomplexe: bis fünf Dezimalstellen, Einzelpreis kaufmännisch auf Cent, danach Menge |
 | Kilometervergütung | Tatsächliche Strecke bis zwei Dezimalstellen, ganze Kilometer kaufmännisch gerundet; bestätigte Vertragsregel erforderlich |
 | Einfache ambulante Zuschläge/Abzüge | ZUS-Berechnung 11 (prozentual) und 12 (fester Betrag), nur einzelne Pauschalen/Leistungskomplexe mit Menge 1; ausdrücklich bestätigte Vertragsgrundlage |
-| Weitere Zuschlagsberechnungen, Hilfsmittel, stationäre Fachprofile, besondere Abrechnungsfälle | Noch zu implementieren und fachlich abzunehmen |
+| Weitere Zuschlagsberechnungen, Hilfsmittel, stationäre Sonderfälle, Leistungsarten 08/11/12/14 | Noch zu implementieren und fachlich abzunehmen |
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
 | KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Noch nicht angeschlossen |
@@ -99,6 +102,24 @@ noch zum Echtversand freigegeben. Es ist auch keine XRechnung oder ZUGFeRD-Datei
 `src/lib/gkvExchange/model.ts` enthält Version, Eingabeformen und Fachprüfungen.
 `editor.ts` verarbeitet Dezimalzahlen ohne binäre Rundung bei gespeicherten
 Geldbeträgen. `pricing.ts` verwendet BigInt für Multiplikation, rationale Zeitanteile und kaufmännische Cent-Rundung. Die tatsächliche Dauer bleibt erhalten, auch bei einem Vertrag über angefangene Einheiten. Anzahl ist dabei die Anzahl gleicher Leistungen, nicht nochmals die Minuten- oder Kilometerzahl. Punktwert und Punktzahl werden in ELS ausgegeben. Die auswählbaren Berechnungsregeln sind explizite Vertragsmodelle, keine bundesweit vorgegebenen Vergütungstarife. Ihre Eignung für den jeweiligen Tarif und die Annahmestelle muss unabhängig geprüft werden; abweichende Vertragsrundungen bleiben ununterstützt.
+
+`care.ts` prüft die neuen Pflegesatzprofile. Bei Tages-/Nachtpflege enthält ELS
+das tatsächliche Ende als HHMM. Halbtage verwenden ihren ausdrücklich erfassten
+Vertragspreis; die Software halbiert keinen Tagessatz. Nachtpflege über
+Mitternacht benötigt eine ausdrückliche Folgetagsangabe. Monatsüberschreitende
+Nachtpflege und teilstationäre Abwesenheit werden bis zur Implementierung ihrer
+besonderen Zeitzuordnung blockiert.
+
+Bei stationärer Tagesberechnung enthält ELS den Von-/Bis-Tag als TTTT. Die
+Eingabemaske übernimmt die Anzahl einschließlich beider Grenztage; diese
+Zählweise muss vertraglich bestätigt sein. Andere Zählweisen werden nicht
+angenähert. Die feste Monatspauschale erfordert ESK 99, den vollständigen
+Kalendermonat und Menge 1. Der ursprüngliche Rechnungspositionstag bleibt als
+Quellreferenz erhalten; die Quellrechnung muss den vollständigen Monat abdecken.
+Ein einzelner Einsatznachweis reicht dafür nicht aus. Anwesenheits- und
+Abwesenheitszeiträume dürfen sich innerhalb eines Falls nicht überschneiden.
+Unterkunft, Verpflegung, Investitionskosten, weitere Zuschläge, Leistungsrecht
+und automatische Kürzungen sind durch dieses Grundprofil nicht abgedeckt.
 
 `edifact.ts` erzeugt UNB/UNZ und PLGA-/PLAA-Nachrichten, zählt UNH/UNT und
 maskiert EDIFACT-Steuerzeichen. Der Parser verarbeitet Aufhebungszeichen in
@@ -150,7 +171,22 @@ Quellrevisionen, eindeutiger Zuordnung und unveränderlichen Artefakten nötig.
 
 ### Datenbank
 
-Migrationen: `20261019192628_gkv_exchange_workspace.sql`, `20261019195742_gkv_invoice_source_snapshot.sql` und `20261019210847_gkv_revision_history.sql`, mit der vorhandenen Supabase CLI erzeugt. Alle drei wurden lokal in PostgreSQL 17.5/PGlite ausgeführt, nicht auf einem Remoteprojekt eingespielt. Die Tests verwenden Vertragsdoubles für die vorhandene Office-Autorisierung und Nachweisverifikation; deren echte Supabase-Integration bleibt zu prüfen.
+Migrationen: `20261019214752_gkv_exchange_workspace.sql`,
+`20261019214757_gkv_invoice_source_snapshot.sql` und
+`20261019214802_gkv_revision_history.sql`. Die ursprünglich mit der vorhandenen
+Supabase CLI angelegten Migrationen wurden am 19.10.2026 nach lokalen Tests im
+verbundenen Projekt `euagyyztvmemuaiumvxm` angewendet. Die Dateiversionen stimmen
+mit den vom Migrationsdienst vergebenen und anschließend ausgelesenen Versionen
+überein. Es wurden keine bestehenden Rechnungen verändert und keine fachlichen
+Testdaten im Remoteprojekt angelegt. RLS, Rollenrechte und RPC-Suchpfade wurden
+danach im Datenbankkatalog kontrolliert; der Advisor meldet keine neuen Warnungen.
+
+Alle drei Migrationen laufen zusätzlich in PostgreSQL 17.5/PGlite. Neben den
+isolierten Zugriffstests führt `office-flow.mjs` die tatsächlichen vorhandenen
+Office-Rechnungs- und Nachweisfunktionen aus: Rechnung ausstellen, Quellen
+übernehmen, GKV-Paket speichern und Prüfbytes über den tatsächlichen API-Handler
+erzeugen. Auth-Claims, HTTP/Storage-Zugriff und PDF-Erzeugung bleiben hierbei
+Testdoubles. Das ersetzt keinen Test mit Supabase Auth und PostgREST.
 
 - `gkv_exchange_batches`: mandantenbezogene Entwürfe und Revisionen.
 - `gkv_exchange_settings`: versioniertes Anbieterprofil.
@@ -217,7 +253,7 @@ werden nicht durch erfundene Empfänger oder pauschale Fallbacks ersetzt.
 
 ## Schritte bis zur vollständigen Produktivfreigabe
 
-1. **Fachliche Erweiterung:** übrige Vergütungsprofile, weitere ZUS-Berechnungen/HIL, stationäre Fälle,
+1. **Fachliche Erweiterung:** übrige Vergütungsprofile, weitere ZUS-Berechnungen/HIL, stationäre Sonderfälle,
    Änderungen im Leistungsmonat, Korrektur-/Stornoverfahren, Abrechnungszentren
    und vollständige Vertragspreisbildung implementieren. Gegen echte, freigegebene
    Testfälle der jeweils relevanten Annahmestelle prüfen.
@@ -253,16 +289,19 @@ Bestätigungshäkchen ersetzen.
 
 ## Integration und Veröffentlichung
 
-Die derzeitige Produktionsstruktur besitzt die verwendeten Rechnungsfelder.
-Das vorhandene Stagingprojekt hat bei der Metadatenprüfung einen älteren
-Rechnungsstand gezeigt. Vor einem Integrationstest muss der passende vorhandene
-Releaseprozess die abhängigen Office-Migrationen bereitstellen. Es wurden nur
-Metadaten gelesen, keine Patienten- oder Rechnungsdatensätze und keine
-Remote-Schreibvorgänge ausgeführt.
+Die verbundene Produktionsdatenbank enthält die abhängige Office-Struktur und
+seit 19.10.2026 die drei GKV-Migrationen. Das vorhandene Stagingprojekt hat bei
+der Metadatenprüfung einen älteren Rechnungsstand gezeigt und wurde nicht
+verändert. Für dortige Tests muss der vorhandene Releaseprozess zuerst die
+abhängigen Office-Migrationen bereitstellen.
 
-Danach beide neuen Migrationen im vorgesehenen Releaseablauf anwenden und die
-Web-/API-Änderungen gemeinsam bereitstellen. Bei fehlender Migration zeigt die
-Oberfläche einen Fehler mit Wiederholungsmöglichkeit. Erst die dokumentierte
-Integrations- und Sichtprüfung berechtigt zur Freigabe der neuen Oberfläche.
+Die Web-/API-Änderungen liegen im Draft-PR 129. Die Vercel-Vorschau führt im
+verfügbaren Browser zur Vercel-Anmeldung; eine Sichtprüfung der neuen Oberfläche
+ist noch nicht erfolgt. Der Datenbankstand allein gibt weder Oberfläche noch
+Echtversand frei. Bei fehlender Migration zeigt die Oberfläche einen Fehler mit
+Wiederholungsmöglichkeit. Die tatsächlichen TI-Einstellungen und vorhandenen
+Edge-Funktionen enthalten derzeit keinen produktiven KIM-/DTA-Transportadapter.
+Für dessen Umsetzung werden der konkrete Dienst und dessen freigegebene
+Schnittstelle benötigt; Demo-KIM wird nicht als Echtversand ausgegeben.
 
 Prüfprotokoll: [verification.md](verification.md).

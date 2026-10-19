@@ -1,5 +1,6 @@
 import { blankCase, isDate, type BillingCase, type Issue, type ServiceLine } from './model';
 import { newLine, parseHundredths } from './editor';
+import { daysInMonth } from './care';
 
 export type SourceRow = Record<string, unknown>;
 export type InvoiceSnapshot = SourceRow & { items: SourceRow[]; records: SourceRow[]; proofs: SourceRow[]; client: SourceRow };
@@ -52,7 +53,7 @@ export function importInvoiceCase(source: InvoiceSnapshot, month: string): Billi
     if (amount(item.vat_amount) !== 0 || amount(item.vat_rate) !== 0 || amount(item.net_amount) !== amount(item.gross_amount)) throw new Error('Dieses Profil unterstützt nur vollständig umsatzsteuerbefreite Rechnungspositionen.');
     const record = source.records.find(r => r.id === item.service_record_id);
     const line: ServiceLine = { ...newLine(), sourceItemId:text(item.id), sourceItemUpdatedAt:text(item.updated_at),
-      sourceDescription:text(item.description), sourceId:text(item.service_record_id) || undefined,
+      sourceDescription:text(item.description), sourceItemServiceDate:item.service_date, sourceId:text(item.service_record_id) || undefined,
       sourceRecordUpdatedAt:record ? text(record.updated_at) : undefined, day:item.service_date.slice(8),
       unitPriceCents:amount(item.unit_price), quantityHundredths:amount(item.quantity), totalCents:amount(item.gross_amount) };
     if (![line.unitPriceCents,line.quantityHundredths,line.totalCents].every(Number.isSafeInteger)) throw new Error('Ein Rechnungsbetrag hat eine nicht unterstützte Genauigkeit.');
@@ -77,7 +78,15 @@ export function verifyCaseSources(c: BillingCase, source: InvoiceSnapshot): Issu
     const item = source.items.find(i => i.id === l.sourceItemId);
     if (!item) continue;
     gross += amount(item.gross_amount);
-    if (!l.sourceItemUpdatedAt || item.updated_at !== l.sourceItemUpdatedAt || item.service_date !== `${c.month}-${l.day}`
+    const monthly = l.remuneration === '04' && l.pricingRule === 'care_monthly' && l.day === '99';
+    const dateMatches = monthly
+      ? isDate(l.sourceItemServiceDate) && item.service_date === l.sourceItemServiceDate && item.service_date.slice(0,7) === c.month
+        && isDate(source.service_period_from) && isDate(source.service_period_to)
+        && source.service_period_from === `${c.month}-01` && source.service_period_to === `${c.month}-${daysInMonth(c.month)}`
+        && !l.sourceId
+      : item.service_date === `${c.month}-${l.day}`;
+    if (monthly && !dateMatches) add(`lines.${index}.day`, 'Eine stationäre Monatspauschale benötigt eine Rechnung für den vollständigen Monat und ihre unveränderte Quellposition. Ein einzelner verknüpfter Einsatz ist kein Monatsnachweis.');
+    if (!l.sourceItemUpdatedAt || item.updated_at !== l.sourceItemUpdatedAt || !dateMatches
       || amount(item.gross_amount) !== l.totalCents || amount(item.net_amount) !== l.totalCents || amount(item.vat_amount) !== 0
       || amount(item.vat_rate) !== 0 || (item.service_record_id || undefined) !== l.sourceId) add(`lines.${index}`,'Rechnungsposition, Datum, Steuer oder Betrag wurde geändert oder stimmt nicht überein.');
     if (l.sourceId) {

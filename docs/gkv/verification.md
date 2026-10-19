@@ -8,7 +8,7 @@ Stand: 19.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**54 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**64 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
 | Bereich | Nachweis |
@@ -19,6 +19,8 @@ Es wurde kein zusätzliches Testframework installiert.
 | Parser | Abgebrochene Segmente, falsche Zähler, doppelte/falsche Referenzen |
 | Fachprüfung | Beträge, Dubletten innerhalb des Pakets, Nachweise, Beschäftigtennummern, Steuer- und Versionsgrenzen |
 | Berechnung | Sechs Zeit-Einheiten, anteilige/angefangene Einheiten, Kilometergrenzen, fünfstellige Punktwerte, halbe Centbeträge und Überlaufablehnung |
+| Pflegeprofile | Tatsächliche Endzeit, Halbtag mit eigenem Vertragspreis, Nachtpflege über Mitternacht, expliziter Folgetag, stationäre Tagesbereiche/Abwesenheit, Monatspauschale mit ESK 99, Schaltjahr, Überschneidungen, Anbietergruppe und DiPA-Zeitart |
+| Monatliche Quellen | Originaler Positionstag bleibt erhalten, vollständiger Quellrechnungszeitraum erforderlich, einzelner Einsatznachweis reicht nicht für eine Monatspauschale |
 | Zuschläge/Abzüge | Prozent/fester Betrag, unveränderter Basisbetrag, einzelne Cent-Rundung, Vorzeichen, ZUS-Feldpositionen und Ende-Kennzeichen, fünf Dezimalstellen, Tarifbereiche, Pflichtangaben, negative Summen, Feldgrenzen und weiterhin genauer Quellrechnungsabgleich |
 | Routing | Mehrstufige Zuordnung, Ablaufdaten, falscher Übermittlungsweg, Mehrdeutigkeit, UEM-Gültigkeit, VZD-Kennzeichen |
 | Rückmeldemodell | Korrelation, wiederholte Zustellmeldung, unzulässige Statussprünge |
@@ -35,31 +37,57 @@ node --import ./tests/gkv-exchange/register.mjs tests/gkv-exchange/database.mjs 
 
 Alle drei tatsächlichen GKV-Migrationen werden im Arbeitsspeicher ausgeführt. Geprüft sind RLS, Mandanten-/Portal-/Rollenwechsel, entzogenes Direkt-Schreibrecht, private Wiederholungsquittungen, idempotente Aufträge, Inhaltskonflikte, Revisionen, Fremdrechnungen, Profilrevisionen, Abbruch bei ungültigen Quellen und fehlende Berechtigung öffentlicher RPCs. Die Revisionsmigration wird im Test nach dem ersten Paket angewendet: Übernahme des vorhandenen Stands, spätere unveränderte Historie, Datenstand-Hashes, Herkunftsverknüpfung, neue Entwurfskennung, zurückgesetzte Bestätigungen, wiederholte Kopieraufträge und Seiten über 20 Revisionen werden tatsächlich in PostgreSQL geprüft. Authentifizierte Benutzer können die Historie weder ändern noch löschen oder ergänzen; Portal-, Fremdmandanten- und anonyme Zugriffe scheitern. Die Tests für veraltete Revisionen verwenden aufeinanderfolgende Konflikte; ein Lasttest konkurrierender Datenbankverbindungen ist damit nicht belegt.
 
-Die vorhandenen Office-Helfer und Auth-Claims sind ausdrücklich Vertragsdoubles; echte Supabase-Authentifizierung und die vollständigen Office-Nachweisprüfer sind damit nicht integriert getestet. Es wurden keine produktiven Daten verändert.
+In dieser isolierten Datenbanksuite sind Office-Helfer und Auth-Claims ausdrücklich
+Vertragsdoubles. Ergänzend bestehen **fünf Integrationsszenarien** mit den
+tatsächlichen vorhandenen Office-SQL-Funktionen und dem GKV-API-Handler:
 
-Die echten Komponenten `CaseEditor` und `RevisionHistory` wurden zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel, erneute Quellübernahme, Zuschlag/Abzug mit ungültiger Eingabe/Korrektur/Entfernen bestanden. Historie: Nachladeaktion, schreibgeschützter Stand, Auswahl einzelner Fälle, erforderliche Übernahmebegründung, Leser ohne Kopieraktion, Ladefehler/Wiederholung und Schließen bestanden. Transportcallbacks der Historienoberfläche sind ausdrücklich Doubles. **Dies sind DOM-Funktionsprüfungen, keine visuellen oder vollständigen Ende-zu-Ende-Prüfungen.**
+```bash
+node --import ./tests/gkv-exchange/register.mjs tests/gkv-exchange/office-flow.mjs /pfad/zur/vorhandenen/pglite
+```
 
-Ein gezielter strenger TypeScript-Check für Fachkern, Quellprüfung, Export-API, `GkvEditors.web.tsx` und `GkvRevisionHistory.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier. GitHub meldet für den darauf aufbauenden Stand `9bac3f7` erfolgreiche Vercel-Deployments von `caresuiteplus-app`, `caresuiteplusapp` und `repository`; diese Statusmeldungen belegen nicht den Build der hier neu ergänzten Zuschläge und Historie.
+Geprüft: Entwurf aus Leistungs-/Nachweisdaten, Ausstellen über Office-RPCs,
+Quellübernahme, GKV-Speicherung, EDIFACT-/AUF-Bytes und SHA-256; Ablehnung
+geänderter Dokumente, Unterschriften, Leistungsabschlüsse und Attestierungen;
+fehlende/geänderte Original-PDFs sowie Änderungen während des Exports;
+entzogene Rechte, inaktive Profile, Portal-/Fremdmandanten-/anonyme Zugriffe;
+historische Kopie mit zurückgesetzter Nachweisbestätigung und erneuter Prüfung.
+Der Legacy-Einsatzpfad wird tatsächlich durch die Office-Nachweisprüfer geführt.
+Auth-Claims, HTTP/Storage-Transport und PDF-Erzeugung sind Doubles. Der alternative
+Assist-Visit-Nachweispfad und echte Supabase-Auth-/PostgREST-Requests sind damit
+nicht belegt. Im Remoteprojekt wurden keine fachlichen Testdaten angelegt.
+
+Die echten Komponenten `CaseEditor` und `RevisionHistory` wurden zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel, erneute Quellübernahme, Zuschlag/Abzug mit ungültiger Eingabe/Korrektur/Entfernen bestanden. Neu geprüft sind halber Pflegesatz ohne automatische Halbierung, Nachtpflege-Folgetag, Tageszählung aus Von/Bis, Monatspauschale mit Kennzeichen 99 und Rücksetzen ungeeigneter Angaben beim Profilwechsel. Historie: Nachladeaktion, schreibgeschützter Stand, Auswahl einzelner Fälle, erforderliche Übernahmebegründung, Leser ohne Kopieraktion, Ladefehler/Wiederholung und Schließen bestanden. Transportcallbacks der Historienoberfläche sind ausdrücklich Doubles. **Dies sind DOM-Funktionsprüfungen, keine visuellen oder vollständigen Ende-zu-Ende-Prüfungen.**
+
+Ein gezielter strenger TypeScript-Check für Fachkern einschließlich Pflegeprofilen, Quellprüfung, Export-API, `GkvEditors.web.tsx` und `GkvRevisionHistory.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier. GitHub meldet für Stand `f283cf2` erfolgreiche Vercel-Deployments von `caresuiteplusapp` und `repository`; diese enthalten die Zuschläge und Historie. Die Projekte `caresuiteplus-app` und `caresuiteplus` meldeten bei dieser Prüfung noch `pending`. Die neuen Pflegeprofile benötigen ihren eigenen nachfolgenden Buildnachweis.
 
 Die TSX-/TypeScript-Quelldateien der neuen Oberfläche, der Eingabekomponenten,
 des Datenzugriffs und der geänderten Rechnungsnavigation wurden mit dem bereits
 in Playwright enthaltenen Babel-Parser und Transform geprüft. Das belegt
 syntaktische Verarbeitbarkeit, **keinen vollständigen TypeScript-Typcheck**.
 
-Die vorhandenen Tabellenfelder und die Office-Berechtigungsfunktion wurden
-über reine Metadatenabfragen geprüft. Die Migration enthält Vorbedingungen
-für die vorhandene Berechtigungs- und Rechnungsstruktur.
+Die drei GKV-Migrationen wurden am 19.10.2026 im verbundenen Projekt
+`euagyyztvmemuaiumvxm` angewendet. Anschließend wurden die bestätigten Versionen
+`20261019214752`, `20261019214757` und `20261019214802`, Tabellen, RLS,
+direkte Rollenrechte, RPC-Ausführungsrechte und feste Suchpfade ausgelesen.
+Alle fünf öffentlichen Tabellen haben RLS und keine direkten Schreibrechte für
+Anwendungsbenutzer. Öffentliche RPCs laufen als Invoker; anonyme Aufrufe haben
+kein Ausführungsrecht. Die private Quittungstabelle ist direkt unzugänglich.
+Die Advisor-Zahlen auf Warnstufe blieben unverändert. Hinzu kam ausschließlich
+der erwartete Infohinweis `rls_enabled_no_policy` für die absichtlich direkt
+gesperrte private Quittungstabelle. Bestehende, nicht durch GKV eingeführte
+Advisor-Warnungen wurden nicht geändert.
 
 ## Nicht ausgeführt / noch erforderlich
 
-- **Visuelle Prüfung und Browserinteraktionen:** Der lokale Start des vorhandenen
-  Playwright-Werkzeugs scheiterte an einer fehlenden Chromium-/Headless-Laufzeit.
-  Gemäß `AGENTS.md` wurde keine zusätzliche Software installiert. Damit liegen
-  keine Screenshots oder Layoutfreigabe für die neue Oberfläche vor.
+- **Visuelle Prüfung und Browserinteraktionen:** Die tatsächliche Vercel-Vorschau
+  wurde im vorhandenen Cloud-Browser geöffnet und leitet zur Vercel-Anmeldung
+  weiter. Der lokale Umgebung fehlt außerdem Chromium; gemäß `AGENTS.md` wurde
+  keine zusätzliche Software installiert. Damit liegen keine Screenshots oder
+  Layoutfreigabe für die neue Oberfläche vor.
 - **Vollständiger Projektbuild und Typcheck:** Die Projektabhängigkeiten sind in
   dieser Arbeitsumgebung nicht vollständig vorhanden. Die zusätzliche Babel-
   Prüfung ersetzt weder Metro/Expo-Build noch `tsc`.
-- **Supabase-Integration:** Migrationen lokal in PostgreSQL/PGlite getestet, nicht remote angewendet. Tests mit der tatsächlichen Office-Autorisierung, den vorhandenen Nachweisprüfern, PostgREST und Storage bleiben erforderlich. Das vorhandene Stagingprojekt benötigt zuvor die aktuelle Office-Rechnungsstruktur.
+- **Supabase-Integration:** Migrationen sind remote angewendet und katalogseitig geprüft. Der vollständige Weg mit echter Anmeldung, Office-Autorisierung, PostgREST und Storage bleibt erforderlich. Die tatsächlichen Office-Nachweisprüfer sind im isolierten Integrationslauf für den Legacy-Einsatzpfad geprüft. Das vorhandene Stagingprojekt benötigt zuvor die aktuelle Office-Rechnungsstruktur.
 - **Echte Dienstintegration:** Kein DTA-/KIM-Transport, keine SMC-B-Signatur,
   keine Annahmestellenvalidierung und kein Ende-zu-Ende-Nachweis. Die erzeugte
   Referenzdatei ist ein Entwicklungstest, keine amtliche Prüffreigabe.

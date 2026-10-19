@@ -1,5 +1,6 @@
 import type { ServiceLine } from './model';
 import { calculateAdjustments } from './adjustments';
+import { CARE_PRICING_RULES } from './care';
 
 /** Integer arithmetic only. Rounding is commercial, once at the documented boundary. */
 function round(numerator: bigint, denominator: bigint): bigint {
@@ -19,6 +20,7 @@ export function formatFixed(value: string, whole: number, scale: number): string
 }
 export const TIME_UNIT_MINUTES: Record<string, number> = { '1': 1, '2': 5, '3': 15, '4': 60, '5': 1440, '6': 10 };
 export const PRICING_RULES = {
+  ...CARE_PRICING_RULES,
   time_proportional: 'Zeitanteilig; Rundung des Positionsbetrags auf Cent',
   time_started_unit: 'Je angefangener Zeiteinheit; Rundung des Positionsbetrags auf Cent',
   kilometres_rounded: 'Ganze, kaufmännisch gerundete Kilometer × Preis × Anzahl',
@@ -33,7 +35,7 @@ export function calculateBasePrice(line: ServiceLine): PriceResult {
       || line.unitPriceCents > 999999999999 || line.quantityHundredths < 1 || line.quantityHundredths > 999999) throw new Error('Einzelpreis oder Menge ist ungültig.');
   let price = BigInt(line.unitPriceCents), multiplier = 1n, divisor = 1n, duration = line.duration;
   const points = Boolean(line.pointValue || line.points);
-  const special = line.remuneration === '02' || (line.remuneration === '06' && line.code === '04') || points;
+  const special = ['02','03','04'].includes(line.remuneration) || (line.remuneration === '06' && line.code === '04') || points;
   if (special && (typeof line.contractReference !== 'string' || !line.contractReference.trim() || line.contractReference.length > 200)) throw new Error('Vertragsgrundlage für Berechnung und Rundung angeben.');
   if (line.remuneration === '02') {
     if (points || !['time_proportional', 'time_started_unit'].includes(line.pricingRule || '')) throw new Error('Die vertragliche Berechnung der Zeitvergütung auswählen.');
@@ -41,6 +43,9 @@ export function calculateBasePrice(line: ServiceLine): PriceResult {
     if (!unit || !/^[1-6][0-9A-D]$/.test(line.code) || !/^\d{1,4}$/.test(duration) || Number(duration) < 1) throw new Error('Zeitart und tatsächliche Dauer in Minuten erforderlich.');
     multiplier = BigInt(duration); divisor = BigInt(unit);
     if (line.pricingRule === 'time_started_unit') { multiplier = (multiplier + divisor - 1n) / divisor; divisor = 1n; }
+  } else if (line.remuneration === '03' || line.remuneration === '04') {
+    const allowed = line.remuneration === '03' ? ['care_attendance'] : ['care_daily', 'care_monthly'];
+    if (points || !allowed.includes(line.pricingRule || '') || line.quantityHundredths % 100 !== 0) throw new Error('Stationären Pflegesatz mit ausdrücklicher Vertragsregel und ganzer Anzahl erfassen.');
   } else if (line.remuneration === '06' && line.code === '04') {
     if (points || line.pricingRule !== 'kilometres_rounded') throw new Error('Die vertragliche Kilometerberechnung bestätigen.');
     const distance = fixedDecimal(line.distanceKm, 4, 2);

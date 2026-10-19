@@ -41,6 +41,17 @@ try{
   await fill('Zuschlagswert (%)','25');assert.equal(current.grossCents,432);
   await React.act(async()=>container.querySelector('[aria-label="Zu- oder Abschlag 1 entfernen"]').click());assert.equal(current.grossCents,576);assert.equal(current.lines[0].adjustmentRule,undefined);
   console.log('PASS: time, malformed money/recovery, kilometres, flat-rate reset, points/reset, source reload, surcharge/deduction/invalid recovery/removal (DOM only).');
+  await fill('Vergütungsart','03');await fill('Vertraglicher Pflegesatz','01');await fill('Einzelpreis (€)','90,01');await fill('Tatsächlicher Beginn (HHMM)','0900');await fill('Tatsächliches Ende (HHMM)','1300');await fill('Vertraglich vereinbarte Berechnung','care_attendance');
+  assert.equal(current.grossCents,9001);assert.equal(current.lines[0].quantityHundredths,100);
+  const nextDay=[...container.querySelectorAll('label')].find(label=>label.textContent.includes('Nachtpflege endet am Folgetag')).querySelector('input');
+  await React.act(async()=>nextDay.click());assert.equal(current.lines[0].careEndsNextDay,true);
+  await fill('Vergütungsart','04');assert.equal(current.lines[0].careEndsNextDay,false);assert.equal(field('Tatsächlicher Beginn (HHMM)'),undefined);
+  await fill('Vertraglicher Pflegesatz','00');await fill('Einzelpreis (€)','100,01');await fill('Vertraglich vereinbarte Berechnung','care_daily');await fill('Von-/Bis-Tag (TTTT)','0107');
+  assert.equal(current.lines[0].day,'01');assert.equal(current.lines[0].quantityHundredths,700);assert.equal(current.grossCents,70007);
+  await fill('Vertraglich vereinbarte Berechnung','care_monthly');assert.equal(current.lines[0].day,'99');assert.equal(current.lines[0].duration,'0131');assert.equal(current.lines[0].quantityHundredths,100);assert.equal(current.grossCents,10001);
+  assert.equal([...container.querySelectorAll('button')].find(b=>b.textContent==='Zu- oder Abschlag hinzufügen').disabled,true);
+  await fill('Vergütungsart','02');assert.equal(current.lines[0].day,'');assert.equal(current.lines[0].pricingRule,undefined);
+  console.log('PASS: agreed partial-care price, next-day choice/reset, inclusive day calculation, monthly selection and remuneration reset (DOM only).');
   let copied='',historyControls;
   const saved={tenant_id:'11111111-1111-4111-8111-111111111111',batch_id:'22222222-2222-4222-8222-222222222222',revision:1,status:'draft',draft_sha256:'a'.repeat(64),recorded_at:'2026-10-19T12:00:00Z',capture_kind:'change',draft:linkedFixture().draft};
   saved.draft.cases.push({...saved.draft.cases[0],invoiceNumber:'RE2026-2',lastName:'Zweite Testperson'});
