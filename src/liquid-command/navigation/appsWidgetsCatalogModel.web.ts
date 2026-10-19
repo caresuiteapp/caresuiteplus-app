@@ -64,6 +64,8 @@ const WORKSPACE: CatalogRule = { module: 'office', roles: ['business_admin', 'bu
 // Only actual launcher destinations are listed. A newly added or unknown deep
 // link must be reviewed rather than inherit a broad module-level permission.
 const RULES: Readonly<Record<string, CatalogRule>> = {
+  '/beratung': { module: 'beratung', all: ['beratung.cases.view', 'office.clients.view_sensitive'] },
+  '/beratung/arbeitsplatz': { module: 'beratung', all: ['beratung.cases.view', 'office.clients.view_sensitive'] },
   '/settings': {}, '/settings/profile': {}, '/settings/appearance': {},
   '/settings/data-request': {}, '/settings/account-deletion': {}, '/support': {},
   '/settings/tenant': COMPANY, '/settings/tenant/notifications': COMPANY,

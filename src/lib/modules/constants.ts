@@ -1,4 +1,8 @@
 import type { ProductKey } from '@/types';
+import { Platform } from 'react-native';
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
+
+const consultationWebReleased = Platform.OS === 'web' && isConsultationWorkspaceEnabled();
 
 export const OFFICE_MODULE_KEY: ProductKey = 'office';
 
@@ -21,7 +25,7 @@ export const ALL_PRODUCT_KEYS: ProductKey[] = [OFFICE_MODULE_KEY, ...SPECIALTY_M
 export const UNRELEASED_MODULE_KEYS: readonly ProductKey[] = [
   'pflege',
   'stationaer',
-  'beratung',
+  ...(!consultationWebReleased ? ['beratung' as const] : []),
   'akademie',
 ];
 
@@ -31,7 +35,12 @@ export function isUnreleasedModuleKey(productKey: string): productKey is Product
 
 /** Returns the globally locked product for one of its root or deep-link routes. */
 export function getUnreleasedModuleKeyFromPath(path: string): ProductKey | null {
-  const pathname = path.split(/[?#]/, 1)[0]?.toLocaleLowerCase('de-DE') ?? '';
+  const pathname = (path.split(/[?#]/, 1)[0]?.toLocaleLowerCase('de-DE') ?? '').replace(/\/+$/, '');
+  if (pathname === '/beratung' || pathname.startsWith('/beratung/')) {
+    // Release only the shared web workplace. Legacy screens stay protected.
+    const workplace = pathname === '/beratung' || /^\/beratung\/arbeitsplatz(?:\/[^/]+)?$/.test(pathname);
+    return consultationWebReleased && workplace ? null : 'beratung';
+  }
   return (
     UNRELEASED_MODULE_KEYS.find(
       (productKey) => pathname === `/${productKey}` || pathname.startsWith(`/${productKey}/`),

@@ -1,9 +1,14 @@
 import type { ModuleNavConfig } from '@/types/navigation/platform';
+import { Platform } from 'react-native';
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
 
 export const beratungNav: ModuleNavConfig = {
   moduleKey: 'beratung',
   label: 'Beratung',
-  groups: [
+  groups: Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? [{
+    title: 'Beratung & Schulungen',
+    items: [{ key: 'workspace', label: 'Beratungsarbeitsplatz', icon: '📋', href: '/beratung/arbeitsplatz' }],
+  }] : [
     {
       title: 'Übersicht',
       items: [{ key: 'dashboard', label: 'Dashboard', icon: '🏠', href: '/beratung' }],
