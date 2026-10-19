@@ -1,3 +1,4 @@
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
 import { Platform } from 'react-native';
 import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
@@ -247,6 +248,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'occupancy', label: 'Belegung', description: 'Kapazität und Prognose', pageType: 'analytics', route: '/stationaer/belegung' },
   ],
   beratung: [
+    ...(Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? [{ id: 'workspace', label: 'Beratung & Schulungen', description: 'Zuweisung, Durchführung und fachliche Prüfung', pageType: 'work-list' as const, route: '/beratung/arbeitsplatz' }] : []),
     { id: 'cases', label: 'Beratungsfälle', description: 'Status, Verantwortung und Verlauf', pageType: 'work-list', route: '/beratung/faelle' },
     { id: 'appointments', label: 'Termine', description: 'Planung und Vorbereitung', pageType: 'planning', route: '/beratung/calendar' },
     { id: 'assessments', label: 'Assessments', description: 'Geführte Erhebung', pageType: 'editor', route: '/beratung/erstgespraech' },

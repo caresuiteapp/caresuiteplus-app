@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } 
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientPortalSettings } from '@/hooks/useClientPortalSettings';
 import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
@@ -74,7 +75,11 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
       route: '/portal/employee/tasks', group: 'work',
     };
-    return [items[0], tasks, ...items.slice(1)];
+    const consultation: LiquidPortalNavigationItem[] = isConsultationWorkspaceEnabled() ? [{
+      id: 'consultation', label: 'Beratung & Schulungen', glyph: '◎',
+      route: '/portal/employee/beratung', group: 'work',
+    }] : [];
+    return [items[0], tasks, ...consultation, ...items.slice(1)];
   }, [kind, clientPortalSettings]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));

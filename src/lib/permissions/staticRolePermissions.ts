@@ -80,6 +80,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'pflege.acceptance.manage': 'Pflege-Gesamtabnahme durchführen',
   'beratung.access': 'Beratung-Modul öffnen',
   'beratung.cases.view': 'Beratungsfälle ansehen',
+  'beratung.cases.manage': 'Beratungsfälle und Termine planen',
+  'beratung.cases.review': 'Beratungsdokumentation fachlich prüfen',
+  'beratung.qualifications.manage': 'Beratungsqualifikationen freigeben',
   'akademie.access': 'Akademie-Modul öffnen',
   'akademie.courses.view': 'Kurse ansehen',
   'stationaer.access': 'Stationär-Modul öffnen',
@@ -828,6 +831,7 @@ const MODULE_VIEW_ALL: PermissionKey[] = [
 
 export const ROLE_PERMISSIONS: RolePermissionMap = {
   business_admin: [
+    'beratung.cases.manage', 'beratung.cases.review', 'beratung.qualifications.manage',
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
     ...ASSIST_BUDGET_OVERRIDE,
@@ -849,6 +853,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'system.budget_templates.edit',
   ],
   business_manager: [
+    'beratung.cases.manage', 'beratung.cases.review',
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
     ...ASSIST_BUDGET_OVERRIDE,
@@ -890,6 +895,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...COMPLIANCE_VIEW,
   ],
   dispatch: [
+    'beratung.cases.manage',
     ...OFFICE_VIEW,
     'office.clients.view_sensitive',
     'office.catalogs.view',
@@ -940,6 +946,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...TIME_TRACKING_OWN,
   ],
   counselor: [
+    'beratung.cases.manage', 'beratung.cases.review',
     ...OFFICE_VIEW,
     'office.clients.view_sensitive',
     ...ASSIST_VIEW,
