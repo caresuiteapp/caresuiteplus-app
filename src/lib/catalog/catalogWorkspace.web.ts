@@ -8,7 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { loadCompanyAccess } from '@/lib/tenant/companyAccessService.web';
 import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
-import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
 import { INVOICE_MODULES, isInvoiceModuleKey } from '@/lib/office/invoiceModules';
 import { buildCatalogWorkspace, isCatalogDate, type CatalogWorkspacePrice, type CatalogWorkspaceRow, type CatalogWorkspaceSnapshot } from './catalogWorkspaceModel.web';
 
@@ -83,7 +83,7 @@ export async function fetchCatalogWorkspace(
     if (!access.ok) return access;
     if (access.data.scopeLimited) return { ok: false, error: 'Für unternehmensweite Kataloge benötigen Sie Zugriff ohne Bereichsbeschränkung.' };
     const canEdit = permissions.includes('business.tenant.manage') && access.data.permissions.includes('business.tenant.manage');
-    const enabledModules = INVOICE_MODULES.filter(module => !isUnreleasedModuleKey(module.key) && hasEffectiveModuleGateAccess(module.key, tenantId)).map(module => module.key);
+    const enabledModules = INVOICE_MODULES.filter(module => !isUnreleasedCatalogModuleKey(module.key) && hasEffectiveModuleGateAccess(module.key, tenantId)).map(module => module.key);
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: 'Die Katalogverbindung ist nicht verfügbar.' };
     if (!enabledModules.length) return { ok: true, data: buildCatalogWorkspace([], [], [], canEdit) };
