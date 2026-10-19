@@ -1,9 +1,8 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Image, type ImageSourcePropType } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { GoogleWorkspaceWidget } from '@/components/googleWorkspace/GoogleWorkspaceWidget.web';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
-import { DesktopCatalogIcon } from '../components/DesktopCatalogIcon.web';
+import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork.web';
 import type { DesktopApp } from '../navigation/desktopAppCatalog.web';
 import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
 import { desktopAppsWidgetsCenterCss } from './desktopAppsWidgetsCenterCss.web';
@@ -174,8 +173,9 @@ export function DesktopAppsWidgetsCenter({
 
         {tab === 'apps' ? <div className="cs-center-grid" data-testid="center-app-catalog">
           {filteredApps.map(app => <button key={app.id} type="button" className="cs-center-card cs-center-app-card" aria-label={`App ${app.label} öffnen`} onClick={() => onOpen(app.route)}>
-            <div className="cs-center-card-identity"><span className="cs-center-glyph" aria-hidden="true"><DesktopCatalogIcon route={app.route} label={app.label}/></span><div><h3>{app.label}</h3><span className="cs-center-card-kind">{app.group ?? app.category}</span></div></div>
-            <p className="cs-center-card-description">{app.description}</p><span className="cs-center-card-link">Arbeitsbereich öffnen <span aria-hidden="true">↗</span></span>
+            <div className="cs-center-card-heading"><h3>{app.label}</h3><span className="cs-center-card-kind">{app.group ?? app.category}</span></div>
+            <div className="cs-center-artwork-preview"><DesktopCatalogArtwork route={app.route} label={app.label}/></div>
+            <div className="cs-center-card-body"><p className="cs-center-card-description">{app.description}</p><span className="cs-center-card-link">Arbeitsbereich öffnen <span aria-hidden="true">↗</span></span></div>
           </button>)}
         </div> : null}
 
@@ -184,9 +184,9 @@ export function DesktopAppsWidgetsCenter({
             const position = desktopIds.indexOf(widget.id);
             const pinned = position >= 0;
             return <article key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
-              <div className="cs-center-widget-heading"><div className="cs-center-card-identity"><span className="cs-center-glyph" aria-hidden="true"><DesktopCatalogIcon route={widget.route} label={widget.label}/></span><div><h3>{widget.label}</h3><span className="cs-center-card-kind">{widget.category}</span></div></div><span className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf Ihrem Desktop' : widget.workspaceService ? 'Live-Widget · Vorschau' : 'Schnellzugriff · Vorschau'}</span></div>
-              <div className="cs-center-widget-preview" aria-hidden="true">{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} preview fontScale={Math.max(1, effectiveScale)}/> : widget.images ? <Image source={widget.images.small} resizeMode="contain" style={{ width: '100%', height: '100%' }} accessible={false}/> : <span className="cs-center-glyph"><DesktopCatalogIcon route={widget.route} label={widget.label} size={36}/></span>}</div>
-              <div className="cs-center-widget-body"><p className="cs-center-card-description">{widget.description}</p>
+              <div className="cs-center-card-heading cs-center-widget-heading"><div><h3>{widget.label}</h3><span className="cs-center-card-kind">{widget.category}</span></div><span className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf Ihrem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</span></div>
+              <div className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></div>
+              <div className="cs-center-card-body cs-center-widget-body"><p className="cs-center-card-description">{widget.description}</p>
                 <div className="cs-center-widget-actions"><button type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`}
                   aria-label={`${widget.label} ${pinned ? 'vom Desktop entfernen' : 'zum Desktop hinzufügen'}`} onClick={() => onToggleWidget(widget.id)}>{pinned ? '− Vom Desktop entfernen' : '+ Zum Desktop hinzufügen'}</button>
                   {pinned ? <div className="cs-center-reorder"><span>Position {position + 1}</span><button type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</button><button type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</button></div> : null}
@@ -198,7 +198,9 @@ export function DesktopAppsWidgetsCenter({
 
         {tab === 'workflows' ? <div className="cs-center-grid" data-testid="center-workflow-catalog">
           {filteredWorkflows.map(workflow => <button key={workflow.id} type="button" className="cs-center-card cs-center-workflow-card" aria-label={`${workflow.label}: Ablauf öffnen`} onClick={() => onOpen(workflow.route)}>
-            <div className="cs-center-card-identity"><span className="cs-center-glyph" aria-hidden="true"><DesktopCatalogIcon route={workflow.route} label={workflow.label}/></span><div><h3>{workflow.label}</h3><span className="cs-center-card-kind">{areaLabel}</span></div></div><p className="cs-center-card-description">{workflow.text}</p><span className="cs-center-card-link">Ablauf öffnen <span aria-hidden="true">↗</span></span>
+            <div className="cs-center-card-heading"><h3>{workflow.label}</h3><span className="cs-center-card-kind">{areaLabel}</span></div>
+            <div className="cs-center-artwork-preview"><DesktopCatalogArtwork route={workflow.route} label={workflow.label}/></div>
+            <div className="cs-center-card-body"><p className="cs-center-card-description">{workflow.text}</p><span className="cs-center-card-link">Ablauf öffnen <span aria-hidden="true">↗</span></span></div>
           </button>)}
         </div> : null}
 

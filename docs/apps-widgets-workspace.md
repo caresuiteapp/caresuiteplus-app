@@ -4,7 +4,7 @@
 
 Das Center zeigt Apps, Widgets, Workflows und Hintergründe in einer hellen Oberfläche. Beim Öffnen sind alle Einträge des gewählten Bereichs sichtbar. Die Suche berücksichtigt Titel, Beschreibung und Kategorie; Filter lassen sich zurücksetzen. Tabs sind per Tastatur bedienbar, aktive Auswahl und Speicherzustand sind beschriftet.
 
-Jede verfügbare Seite hat ein passendes SVG-Icon in der Navigation, im App-Katalog und als Widget. Bestehende Widget-Bilder bleiben erhalten. Workflow-Karten haben ebenfalls Icons und öffnen den jeweiligen Arbeitsbereich; sie behaupten keine automatische Ausführung. Alle Hintergrundvorschauen verwenden dieselbe 16:9-Bildfläche mit `cover`, auch bei fehlgeschlagenem Bildladen.
+Jede verfügbare Seite erhält ein plastisches Bild-Icon aus dem vorhandenen Premium-Bildsatz in der Navigation, im App-Katalog und als Widget. Verwandte Seiten verwenden passende gemeinsame Motive. Apps, Widgets und Workflows haben im Center gleich hohe, zentrierte Bildflächen mit `contain`; auch Notizen und zusätzliche Seiten verwenden echte PNG-Bilder. Bestehende Premium-Motive bleiben erhalten. Google-Widgets behalten auf dem Desktop ihre Live-Inhalte und erhalten ein Bild-Icon in der Kopfzeile; im Katalog zeigen sie eine Bildvorschau. Workflow-Karten öffnen den jeweiligen Arbeitsbereich; sie behaupten keine automatische Ausführung. Alle Hintergrundvorschauen verwenden dieselbe 16:9-Bildfläche mit `cover`, auch bei fehlgeschlagenem Bildladen.
 
 Widgets lassen sich hinzufügen, entfernen und vor- oder zurückschieben. Mehr als zwölf Widgets werden auf weitere Desktop-Seiten verteilt. Doppelte Seiten-Aliase werden zusammengeführt. Modul-, Rollen- und Fachberechtigungen begrenzen den Katalog; gesperrte oder unfertige Seiten werden dadurch nicht freigeschaltet.
 
@@ -18,7 +18,7 @@ Speicherfehler sind sichtbar und können mit der aktuellen Auswahl erneut versuc
 
 ## Prüfung
 
-Die vorhandene Office-Notes-Releaseprüfung umfasst zusätzlich Katalogrechte, Icon-Zuordnung, Speicherwarteschlange und 14 Screen-Interaktionsfälle mit dem tatsächlichen Center und Preference-Hook. Dazu gehören Suche, Navigation, Widget-Reihenfolge, mehrere Seiten, Hintergründe, Wiederherstellung, Rechtewechsel, Speicherfehler und Tastaturbedienung. Die Host- und Speicherschnittstellen werden isoliert simuliert; produktive Daten werden nicht verändert.
+Die vorhandene Office-Notes-Releaseprüfung umfasst zusätzlich Katalogrechte, Bild-Zuordnung, Speicherwarteschlange und 14 Screen-Interaktionsfälle mit dem tatsächlichen Center und Preference-Hook. Der Bildtest prüft alle tatsächlichen Katalogrouten, vorhandene PNG-Dateien in drei Größen und Bilder in jeder App-, Widget- und Workflow-Karte. Dazu gehören Suche, Navigation, Widget-Reihenfolge, mehrere Seiten, Hintergründe, Wiederherstellung, Rechtewechsel, Speicherfehler und Tastaturbedienung. Die Host- und Speicherschnittstellen werden isoliert simuliert; produktive Daten werden nicht verändert.
 
 Lokale Modellprüfungen, Syntaxprüfung der vorhandenen Gate-Skripte, Routenprüfung und `git diff --check` wurden ausgeführt. TypeScript, Vitest und Export laufen im vorhandenen Cloud-Build, da im Checkout keine installierten Projektabhängigkeiten vorhanden sind. Der konkrete Build-Status wird im Pull Request festgehalten.
 
