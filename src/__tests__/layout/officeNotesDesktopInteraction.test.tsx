@@ -22,7 +22,7 @@ const dependencies: Record<string, unknown> = {
   'expo-router': { useRouter: () => ({ push: api.push }) },
   '@react-native-async-storage/async-storage': api,
   '@/lib/auth': { useAuth: () => ({ user: { id: api.user }, profile: { roleKey: 'business_admin' }, signOut: vi.fn() }) },
-  '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: api.tenant, can: () => true, hasModuleGate: (module: string) => module === 'office' }) },
+  '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: api.tenant, roleKey: 'business_admin', can: () => true, hasModuleGate: (module: string) => module === 'office' }) },
   '@/hooks/useModuleAccess': { useModuleAccess: () => ({}) },
   '@/hooks/useDesktopWeather.web': { useDesktopWeather: () => ({ data: null, place: null, message: 'Standort wählen' }) },
   '@/design/web/WebFontScaleProvider': { useWebFontScale: () => ({ scale: 1, effectiveScale: 1 }) },
@@ -30,6 +30,7 @@ const dependencies: Record<string, unknown> = {
   '@/components/help/HelpButton.web': { HelpButton: () => null },
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: () => null },
+  '@/components/layout/platform/platformmodal': { PlatformModal: (props: any) => props.visible ? <div role="dialog" aria-label={props.title}>{props.children}{props.footerContent}</div> : null },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
 };
 const bundle = buildSync({ entryPoints: ['src/liquid-command/screens/CommandCenterScreen.web.tsx'], bundle: true, write: false, platform: 'node', format: 'cjs', jsx: 'automatic', loader: { '.png': 'empty', '.jpg': 'empty' }, external: Object.keys(dependencies) }).outputFiles[0].text;
