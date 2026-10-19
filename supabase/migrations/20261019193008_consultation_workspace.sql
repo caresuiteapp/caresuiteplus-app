@@ -75,7 +75,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog 
   AND care_security.company_permission(p_tenant,'office.clients.view_sensitive')
   AND NOT EXISTS(SELECT 1 FROM public.employee_data_scopes s JOIN public.employees e ON e.id=s.employee_id AND e.tenant_id=s.tenant_id
     WHERE s.tenant_id=p_tenant AND e.profile_id=care_security.company_profile(p_tenant)
-      AND lower(btrim(s.module)) IN ('beratung','consultation')
+      AND lower(btrim(s.module)) IN ('beratung','consultation','consulting')
       AND (s.scope_type<>'tenant' OR nullif(btrim(s.scope_value),'') IS NOT NULL AND btrim(s.scope_value)<>p_tenant::text))
 $b$;
 CREATE FUNCTION care_security.consultation_employee(p_tenant uuid)
@@ -180,7 +180,7 @@ RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalo
 DECLARE v_office boolean:=care_security.consultation_office(p_tenant,'beratung.cases.view'); v_employee uuid:=care_security.consultation_employee(p_tenant); v_ids uuid[];
 BEGIN
  IF auth.uid() IS NULL OR p_tenant IS DISTINCT FROM public.current_tenant_id() OR NOT v_office AND v_employee IS NULL
-  OR public.tenant_has_platform_module('beratung',p_tenant) IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Kein Zugriff auf diesen Beratungsarbeitsplatz.'; END IF;
+  OR public.tenant_has_platform_module('consulting',p_tenant) IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Kein Zugriff auf diesen Beratungsarbeitsplatz.'; END IF;
  IF NOT coalesce(p_employee_view,true) AND NOT v_office THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Kein Verwaltungszugriff.'; END IF;
  SELECT coalesce(array_agg(e.id),'{}') INTO v_ids FROM public.consultation_encounters e WHERE e.tenant_id=p_tenant
   AND (p_case IS NULL OR e.case_id=p_case) AND ((v_office AND NOT p_employee_view) OR e.assigned_employee_id=v_employee);
@@ -213,7 +213,7 @@ DECLARE
  v_assigned uuid; v_start timestamptz; v_end timestamptz; v_kind text; v_client jsonb; v_actor text; v_note text:=coalesce(p_data->>'note','');
 BEGIN
  IF auth.uid() IS NULL OR p_tenant IS DISTINCT FROM public.current_tenant_id() OR (NOT v_office AND v_employee IS NULL)
-  OR public.tenant_has_platform_module('beratung',p_tenant) IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Kein Zugriff.'; END IF;
+  OR public.tenant_has_platform_module('consulting',p_tenant) IS DISTINCT FROM true THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Kein Zugriff.'; END IF;
  IF p_request IS NULL OR jsonb_typeof(p_data) IS DISTINCT FROM 'object' OR octet_length(p_data::text)>1000000 THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='Ungültiger Auftrag.'; END IF;
  IF p_action NOT IN ('create','add_visit','plan','read','start','finish','save','submit','return','approve','cancel','no_show','comment','qualify') THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='Unbekannter Vorgang.'; END IF;
  -- Serialize identical requests before checking versions; replay never creates a second signature or visit.
