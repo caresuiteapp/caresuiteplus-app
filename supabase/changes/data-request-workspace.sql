@@ -1,4 +1,5 @@
--- Reviewed change proposal. Not an applied migration.
+-- Reviewed change proposal; the base change was applied to staging via SQL Editor.
+-- No production rollout or formal migration-history record is implied.
 -- Generate the migration filename with the installed Supabase CLI before release.
 -- See docs/data-request-workspace-rollout.md. No production test fixtures.
 BEGIN;
@@ -99,6 +100,10 @@ CREATE TABLE IF NOT EXISTS data_request_private.submissions (
   fingerprint text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS data_request_submissions_tenant_id_idx
+  ON data_request_private.submissions (tenant_id);
+CREATE INDEX IF NOT EXISTS data_request_submissions_profile_id_idx
+  ON data_request_private.submissions (profile_id);
 ALTER TABLE data_request_private.submissions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON data_request_private.submissions FROM PUBLIC, anon, authenticated, service_role;
 
@@ -161,14 +166,25 @@ FOR UPDATE TO authenticated
 USING (data_request_private.admin_allowed(tenant_id, 'security.manage'))
 WITH CHECK (data_request_private.admin_allowed(tenant_id, 'security.manage'));
 
--- The existing audit trigger stores old_data/new_data. Protect those copies too.
-DROP POLICY IF EXISTS data_request_audit_visibility ON public.audit_logs;
-CREATE POLICY data_request_audit_visibility ON public.audit_logs AS RESTRICTIVE
-FOR SELECT TO authenticated USING (
-  table_name IS DISTINCT FROM 'data_subject_requests'
-  OR data_request_private.admin_allowed(tenant_id,'security.view')
-  OR data_request_private.admin_allowed(tenant_id,'security.manage')
-);
+-- Production audit triggers store old_data/new_data. Protect those copies when
+-- the existing audit table is present; do not create audit infrastructure here.
+DO $audit_policy$
+BEGIN
+  IF to_regclass('public.audit_logs') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS data_request_audit_visibility ON public.audit_logs';
+    EXECUTE $policy$
+      CREATE POLICY data_request_audit_visibility ON public.audit_logs AS RESTRICTIVE
+      FOR SELECT TO authenticated USING (
+        table_name IS DISTINCT FROM 'data_subject_requests'
+        OR data_request_private.admin_allowed(tenant_id,'security.view')
+        OR data_request_private.admin_allowed(tenant_id,'security.manage')
+      )
+    $policy$;
+  ELSE
+    RAISE NOTICE 'public.audit_logs is absent: audit-copy policy was not installed; audit-copy protection remains unverified in this environment';
+  END IF;
+END;
+$audit_policy$;
 
 CREATE OR REPLACE FUNCTION data_request_private.set_server_timestamps()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
@@ -418,3 +434,4 @@ COMMENT ON SCHEMA data_request_private IS
   'Unexposed implementation schema for scoped data-request functions. Do not expose via Data API.';
 NOTIFY pgrst, 'reload schema';
 COMMIT;
+

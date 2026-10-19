@@ -1,5 +1,6 @@
 -- DML-only isolated fixture verification; no schema or function creation.
--- NOT RUN at authoring time. Production execution is prohibited.
+-- Available assertions passed on approved staging; audit-copy coverage was unavailable.
+-- Production execution is prohibited.
 -- On the SAME connection, opt in: caresuite.allow_data_request_fixture_tests = yes.
 -- The complete script must execute as one transaction and must finish with ROLLBACK.
 BEGIN;
@@ -7,6 +8,7 @@ DO $test$
 DECLARE
   v_scope jsonb; v_input jsonb; v_a jsonb; v_b jsonb;
   v_state text; v_count bigint; v_time timestamptz; v_claim uuid;
+  v_audit_check_performed boolean := false;
 BEGIN
   IF current_setting('caresuite.allow_data_request_fixture_tests',true) IS DISTINCT FROM 'yes' THEN
     RAISE EXCEPTION 'Explicit isolated-fixture test opt-in required; never run in production';
@@ -288,8 +290,13 @@ DELETE FROM public.profiles WHERE id='d1710000-0000-4000-8000-000000000105';
   SELECT count(*) INTO v_count FROM public.data_subject_requests;
   IF (v_count=0) IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: portal token is not internal admin'; END IF;
 
-  SELECT count(*) INTO v_count FROM public.audit_logs WHERE table_name='data_subject_requests';
-  IF (v_count=0) IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: portal cannot read audit copies'; END IF;
+  IF to_regclass('public.audit_logs') IS NOT NULL THEN
+    SELECT count(*) INTO v_count FROM public.audit_logs WHERE table_name='data_subject_requests';
+    IF (v_count=0) IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: portal cannot read audit copies'; END IF;
+    v_audit_check_performed := true;
+  ELSE
+    RAISE NOTICE 'SKIP: public.audit_logs is absent; audit-copy visibility was not tested and is not a passed assertion';
+  END IF;
 
   EXECUTE 'RESET ROLE';
   UPDATE public.profiles SET is_active=false WHERE id='d1710000-0000-4000-8000-000000000103';
@@ -349,7 +356,11 @@ DELETE FROM public.profiles WHERE id='d1710000-0000-4000-8000-000000000105';
   IF (v_b->>'recorded'='true') IS DISTINCT FROM true THEN RAISE EXCEPTION 'FAIL: notification finalization'; END IF;
 
   EXECUTE 'RESET ROLE';
-  RAISE NOTICE 'All data-request fixture assertions passed; transaction will roll back';
+  RAISE NOTICE 'Available data-request fixture assertions passed; audit-copy assertion performed: %; transaction will roll back', v_audit_check_performed;
 END;
 $test$;
+SELECT
+  'ALL_AVAILABLE_ASSERTIONS_PASSED'::text AS test_result,
+  to_regclass('public.audit_logs') IS NOT NULL AS audit_copy_tested;
 ROLLBACK;
+
