@@ -1,3 +1,4 @@
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
 import { Platform } from 'react-native';
 import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
@@ -146,8 +147,10 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
     label: 'Beratung',
     shortLabel: 'Beratung',
     glyph: '◎',
-    route: '/beratung',
-    description: 'Fälle, Assessments, Empfehlungen und Follow-up.',
+    route: Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? '/beratung/arbeitsplatz' : '/beratung',
+    description: Platform.OS === 'web' && isConsultationWorkspaceEnabled()
+      ? 'Pflegeberatung, häusliche Schulungen und gemeinsame Besuchsdokumentation.'
+      : 'Fälle, Assessments, Empfehlungen und Follow-up.',
     primaryAction: 'Beratungsfall anlegen',
   },
   {
@@ -246,7 +249,9 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'services', label: 'Leistungen', description: 'Durchführung und Nachweise', pageType: 'work-list', route: '/stationaer/tagesstruktur' },
     { id: 'occupancy', label: 'Belegung', description: 'Kapazität und Prognose', pageType: 'analytics', route: '/stationaer/belegung' },
   ],
-  beratung: [
+  beratung: Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? [
+    { id: 'workspace', label: 'Beratung & Schulungen', description: 'Zuweisung, Durchführung und fachliche Prüfung', pageType: 'work-list', route: '/beratung/arbeitsplatz' },
+  ] : [
     { id: 'cases', label: 'Beratungsfälle', description: 'Status, Verantwortung und Verlauf', pageType: 'work-list', route: '/beratung/faelle' },
     { id: 'appointments', label: 'Termine', description: 'Planung und Vorbereitung', pageType: 'planning', route: '/beratung/calendar' },
     { id: 'assessments', label: 'Assessments', description: 'Geführte Erhebung', pageType: 'editor', route: '/beratung/erstgespraech' },

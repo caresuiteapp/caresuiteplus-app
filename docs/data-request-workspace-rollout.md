@@ -4,7 +4,11 @@
 
 `supabase/changes/data-request-workspace.sql` ist ein überprüfbarer SQL-Änderungsvorschlag und **keine angewandte Produktionsmigration**. In der vorhandenen Arbeitsumgebung war keine Supabase-CLI verfügbar; es wurde keine zusätzliche Software installiert und kein Migrationsdateiname erfunden. Eine spätere versionierte Repository-Migration muss mit der vorhandenen, freigegebenen CLI erzeugt werden. Eine Ausführung über Supabase-MCP erzeugt eine eigene serverseitige Migrationshistorie und muss mit der Repository-Historie abgeglichen werden.
 
-Die Metadaten wurden am 19.10.2026 ausschließlich lesend mit Produktion und bestehendem Staging verglichen. Es wurden keine produktiven Anfragen, Profile oder Kontaktdaten als Testdaten abgerufen oder verändert. Der SQL-Vorschlag und der Fixturetest wurden nicht ausgeführt. Die automatische Freigabeprüfung hat die beantragte dauerhafte Änderung von Policies und Berechtigungen im bestehenden Staging abgelehnt, weil dafür eine zusätzliche ausdrückliche Freigabe erforderlich ist. Dadurch wurde keine Stagingmigration angewandt. Eine spätere Freigabe muss sich auf den konkret geprüften SQL-Stand beziehen; tatsächliche Testergebnisse sind anschließend zu ergänzen.
+Die Metadaten wurden am 19.10.2026 ausschließlich lesend mit Produktion und bestehendem Staging verglichen. Es wurden keine produktiven Anfragen, Profile oder Kontaktdaten als Testdaten abgerufen oder verändert. Nach der ursprünglichen Ablehnung durch die automatische Freigabeprüfung hat der Nutzer die Anwendung des konkret vorbereiteten SQL-Stands aus PR 131 auf dem bestehenden Staging `shwpweerzsfkqaivmaoc` und dessen anschließende Prüfung ausdrücklich freigegeben.
+
+Die Ausführung bleibt technisch blockiert: Auch der dritte Aufruf von `apply_migration` nach erneuter Nutzeraufforderung scheiterte mit dem Connectorfehler `Invalid or expired requestState`. Es wurde keine Stagingmigration angewandt; der SQL-Vorschlag und die Fixturetests wurden nicht ausgeführt. Die vorhandene Nutzerfreigabe und der technische Connectorfehler sind getrennt zu behandeln. Tatsächliche Ausführungs- und Testergebnisse müssen nach erfolgreicher Wiederaufnahme ergänzt werden.
+
+Die produktive Übernahme, die visuelle Abnahme der betroffenen Oberflächen sowie die vollständigen authentifizierten Ende-zu-Ende-Prüfungen bleiben offen. Die Stagingfreigabe ist keine Produktionsfreigabe und ersetzt diese Nachweise nicht.
 
 ## Funktions- und Sicherheitsvertrag
 
@@ -55,7 +59,7 @@ Die Versandfunktion muss Typ und Kontaktangaben aus der gespeicherten Anfrage le
 
 Der Fixturetest liegt unter `supabase/tests/data-request-workspace.sql`. Er benötigt ausdrücklich freigegebenes Staging oder eine isolierte Testdatenbank sowie auf derselben Verbindung die Einstellung `caresuite.allow_data_request_fixture_tests = yes`. Niemals in Produktion ausführen. Er verwendet ausschließlich reservierte künstliche IDs, prüft vorher auf Kollisionen, verwendet einen einzigen DO-Block ohne neue Tabellen oder Funktionen und beendet sämtliche Fixtureänderungen mit ROLLBACK. Er versendet keine E-Mails.
 
-Geprüft werden insbesondere:
+Vorbereitet sind insbesondere Prüfungen für:
 
 - eigener Zugriff, Mandantentrennung und fehlende interne Felder in Selfservice-Antworten;
 - Legacy-Profilzuordnung, abweichende erwartete Identität und inaktive Profile;
@@ -90,3 +94,4 @@ Die Oberfläche nennt eine Regelfrist von einem Monat ab Eingang, nicht pauschal
 - [Supabase: Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Supabase: Column Level Security](https://supabase.com/docs/guides/database/postgres/column-level-security)
 - [Supabase: Datenbankfunktionen](https://supabase.com/docs/guides/database/functions)
+

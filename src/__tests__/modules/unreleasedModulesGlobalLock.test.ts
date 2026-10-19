@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('@/lib/beratung/workspaceRelease', () => ({ isConsultationWorkspaceEnabled: () => false }));
 import type { ProductKey, TenantProduct } from '@/types';
 import {
   activateFreeModule,

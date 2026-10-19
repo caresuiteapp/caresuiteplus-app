@@ -1,6 +1,6 @@
 import type { ServiceCatalogCategory, ServicePriceUnit, ServiceTaxMode, TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { INVOICE_MODULES } from '@/lib/office/invoiceModules';
-import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
 import { formatServicePriceUnit } from '@/lib/tenant/serviceCatalogLabels';
 
 export type CatalogWorkspaceItem = {
@@ -99,7 +99,7 @@ export function buildCatalogWorkspace(
 ): CatalogWorkspaceSnapshot {
   const pricesByItem = new Map<string, CatalogWorkspacePrice[]>();
   for (const price of prices) pricesByItem.set(price.catalog_id, [...(pricesByItem.get(price.catalog_id) ?? []), price]);
-  const catalogs = INVOICE_MODULES.filter(module => !isUnreleasedModuleKey(module.key) && enabledModules.includes(module.key)).map(module => {
+  const catalogs = INVOICE_MODULES.filter(module => !isUnreleasedCatalogModuleKey(module.key) && enabledModules.includes(module.key)).map(module => {
     const id = `tenant-service:${module.key}`;
     const catalogRows = rows.filter(row => row.module_key === module.key).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'de') || a.id.localeCompare(b.id));
     const items: CatalogWorkspaceItem[] = catalogRows.map(row => {
