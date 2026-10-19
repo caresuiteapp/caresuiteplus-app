@@ -12,6 +12,10 @@ const tests = [
   'src/__tests__/office/notesVisualEditors.test.tsx',
   'src/__tests__/office/officeNotesEditorInteraction.test.tsx',
   'src/__tests__/office/officeNotesExport.test.ts',
+  'src/__tests__/office/internalNotesModelWeb.test.ts',
+  'src/__tests__/office/internalNotesServiceWeb.test.ts',
+  'src/__tests__/office/internalNotesForwardingInteraction.test.tsx',
+  'src/__tests__/portal/employeeInternalNotesInteraction.test.tsx',
   'src/__tests__/office/officeNotesScreenWeb.test.tsx',
   'src/__tests__/navigation/officeNotesDesktop.test.ts',
   'src/__tests__/layout/officeNotesDesktopInteraction.test.tsx',
@@ -24,4 +28,6 @@ if (tests.some(file => !existsSync(resolve(root, file)))) {
 }
 const result = spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=1', ...tests], { cwd: root, stdio: 'inherit', env: { ...process.env, TZ: 'Europe/Berlin' } });
 if (result.error || result.status !== 0) process.exit(result.status || 1);
+const database = spawnSync(process.execPath, ['scripts/verify-office-internal-notes-db.mjs'], { cwd: root, stdio: 'inherit', env: process.env });
+if (database.error || database.status !== 0) process.exit(database.status || 1);
 console.log('[office-notes-release] Notes, persistence boundaries and desktop regressions passed. Tests use isolated data; browser geometry and authenticated production workflows require separate verification.');

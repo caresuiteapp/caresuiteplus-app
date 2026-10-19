@@ -4,10 +4,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NoteSaveOperation, NotesActor, OfficeNote } from '@/lib/office/notes/types.web';
 
-const api = vi.hoisted(() => ({ list: vi.fn(), load: vi.fn(), save: vi.fn(), archive: vi.fn(), remove: vi.fn(), confirm: vi.fn(), leave: vi.fn(), replace: vi.fn(), download: vi.fn() }));
+const api = vi.hoisted(() => ({ list: vi.fn(), load: vi.fn(), save: vi.fn(), archive: vi.fn(), remove: vi.fn(), confirm: vi.fn(), leave: vi.fn(), replace: vi.fn(), download: vi.fn(), recipients: vi.fn(), send: vi.fn(), sent: vi.fn(), recover: vi.fn() }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ replace: api.replace }) }));
 vi.mock('@/lib/office/notes/service.web', () => ({ listNotes: api.list, loadNote: api.load, saveNote: api.save, setNoteArchived: api.archive, deleteNote: api.remove }));
 vi.mock('@/lib/office/notes/export.web', () => ({ downloadNote: api.download }));
+vi.mock('@/lib/office/notes/internalService.web', () => ({ listInternalRecipients: api.recipients, sendInternalNote: api.send, listInternalNotes: api.sent, recoverPendingInternalNoteSend: api.recover }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: api.confirm }));
 vi.mock('@/hooks/useUnsavedWebChanges.web', () => ({ useUnsavedWebChanges: (dirty: boolean, busy: boolean) => async () => !busy && (!dirty || await api.leave()) }));
 import { NotesWorkspace } from '@/components/office/notes/NotesWorkspace.web';
@@ -27,6 +28,9 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   records.clear(); Object.values(api).forEach(mock => mock.mockReset());
   api.leave.mockResolvedValue(true); api.confirm.mockResolvedValue(true);
+  api.recipients.mockResolvedValue({ ok: true, data: [{ employeeId: '30000000-0000-4000-8000-000000000001', displayName: 'Anna Beispiel' }] });
+  api.sent.mockResolvedValue({ ok: true, data: [] }); api.recover.mockResolvedValue({ ok: true, data: null });
+  api.send.mockResolvedValue({ ok: true, data: { dispatchId: '40000000-0000-4000-8000-000000000001', createdAt: timestamp } });
   api.list.mockImplementation(async (owner: NotesActor) => ({ ok: true, data: clone([...records.values()].filter(item => item.tenantId === owner.tenantId && item.ownerUserId === owner.userId)) }));
   api.load.mockImplementation(async (_owner: NotesActor, id: string) => ({ ok: true, data: clone(records.get(id) ?? null) }));
   api.save.mockImplementation(async (owner: NotesActor, operation: NoteSaveOperation) => { const result = saved(owner, operation); records.set(result.id, result); return { ok: true, data: clone(result) }; });
@@ -53,6 +57,23 @@ const change = async (label: string, value: string, scope: ParentNode = host) =>
 const newDraft = async (title = 'Neue Gedanken') => { await click('Neue Notiz'); await change('Titel der Notiz', title, editor()); await change('Notiztext', 'Der persönliche Entwurf bleibt erhalten.', editor()); };
 
 describe('personal Notes workspace workflows', () => {
+  it('keeps an uncertain forwarding instance recoverable through the sent view and preserves the private unsaved draft', async () => {
+    records.set('alpha', note('alpha', 'Private Notiz'));
+    await render({ ...actor, permissions: ['office.access', 'communication.send_message'] }); await open('Private Notiz'); await change('Notiztext', 'Noch privater Entwurf', editor());
+    await click('Intern weitergeben'); await change('Inhalt der Übermittlung', 'Nur die ausgewählte Aufgabe');
+    await act(async () => host.querySelector<HTMLInputElement>('.ni-recipient input')!.click()); await click('Weiter zur Vorschau');
+    api.send.mockResolvedValueOnce({ ok: false, uncertain: true, error: 'Bestätigung fehlt' }); await click('Jetzt intern senden');
+    const attempt = structuredClone(api.send.mock.calls[0]);
+    await click('Ausgang prüfen'); expect(host.querySelector('.ni-forward-host')?.hasAttribute('hidden')).toBe(true); expect(host.querySelector('.ni-outbox')).toBeTruthy();
+    expect(button('Neue Übermittlung')).toBeUndefined(); await click('Übermittlung fortsetzen'); await click('Übermittlung erneut prüfen');
+    expect(api.send.mock.calls[1]).toEqual(attempt); expect(api.save).not.toHaveBeenCalled(); expect(records.get('alpha')?.content.text).toBe('');
+    await click('Meine Notizen'); expect(field('Notiztext', editor()).value).toBe('Noch privater Entwurf');
+  });
+
+  it('keeps sent entries readable when the user cannot send new ones', async () => {
+    await render(); await click('Weitergegeben'); expect(api.sent).toHaveBeenCalledWith(actor, 'sent'); expect(button('Neue Übermittlung')).toBeUndefined();
+  });
+
   it('fills a real template, saves it once, closes and reopens the confirmed record', async () => {
     await render(); const template = [...host.querySelectorAll<HTMLButtonElement>('.nw-template-card')].find(item => item.querySelector('strong')?.textContent === 'Kontakt')!;
     await act(async () => template.click());

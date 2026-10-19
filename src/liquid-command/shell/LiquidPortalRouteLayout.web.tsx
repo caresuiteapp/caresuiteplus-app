@@ -20,6 +20,7 @@ import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   releasedLiquidPortalNavigation,
   liquidPortalLoginRoutes,
+  type LiquidPortalNavigationItem,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
@@ -65,7 +66,16 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const { active: messengerFocusActive } = usePortalMessengerFocus();
   const [moreOpen, setMoreOpen] = useState(false);
   const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
-  const navigation = useMemo(() => releasedLiquidPortalNavigation(kind, clientPortalSettings), [kind, clientPortalSettings]);
+  const navigation = useMemo(() => {
+    const items = releasedLiquidPortalNavigation(kind, clientPortalSettings);
+    if (kind !== 'employee') return items;
+    // This receiving workflow is released for Web only; keep native navigation unchanged.
+    const tasks: LiquidPortalNavigationItem = {
+      id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
+      route: '/portal/employee/tasks', group: 'work',
+    };
+    return [items[0], tasks, ...items.slice(1)];
+  }, [kind, clientPortalSettings]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
   const profileRoute =
