@@ -1,4 +1,5 @@
 import { cents, validateDraft, type ExchangeDraft } from './model';
+import { formatFixed } from './pricing';
 
 export type Segment = string[][];
 type Decimal = { decimal: string };
@@ -97,7 +98,7 @@ export function buildTestInterchange(d: ExchangeDraft): { name: string; text: st
       segment('MAN',[c.month.replace('-',''),'','',c.careGrade])];
     for (const l of [...c.lines].sort((a,b) => `${a.day}${a.startTime || ''}`.localeCompare(`${b.day}${b.startTime || ''}`))) {
       body.push(segment('ESK',[l.day,l.startTime || '']), segment('ELS',[[d.serviceType,l.remuneration,l.qualification,l.code],
-        decimal(l.unitPriceCents),'','',l.duration,decimal(l.quantityHundredths),l.employeeNumber || '',l.secondEmployeeNumber || '']));
+        decimal(l.unitPriceCents), l.pointValue ? {decimal:formatFixed(l.pointValue,1,5)} : '', l.points || '', l.duration,decimal(l.quantityHundredths),l.employeeNumber || '',l.secondEmployeeNumber || '']));
     }
     body.push(segment('IAF',[decimal(c.grossCents),decimal(c.coPaymentCents),decimal(c.aidCents),decimal(net)]));
     message('PLAA',body);

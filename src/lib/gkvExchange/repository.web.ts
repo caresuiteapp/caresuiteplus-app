@@ -4,7 +4,8 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import type { RoleKey } from '@/types';
-import { blankCase, hasDraftShape, hasProfileShape, type BatchStatus, type ExchangeDraft, type ExchangeProfile } from './model';
+import { hasDraftShape, hasProfileShape, type BatchStatus, type ExchangeDraft, type ExchangeProfile } from './model';
+import { importInvoiceCase, readSourceSnapshot, UUID } from './sources';
 
 export type Batch = {id:string;tenant_id:string;revision:number;draft:ExchangeDraft;status:BatchStatus;updated_at:string};
 export type Event = {id:string;event_type:string;created_at:string;details:Record<string,unknown>};
@@ -54,22 +55,16 @@ export async function readDirectory(tenantId:string,role:RoleKey,id:string):Prom
 export async function readInvoiceSources(tenantId:string,role:RoleKey,month:string):Promise<SourceInvoice[]> {
   const client=connection(tenantId,role);const end=new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),0).getDate();
   const {data,error}=await fromUnknownTable(client,'invoices').select('id,invoice_number,status,total_amount,updated_at,client_id').eq('tenant_id',tenantId)
-    .gte('service_period_from',`${month}-01`).lte('service_period_to',`${month}-${end}`).neq('status','cancelled').order('invoice_date',{ascending:false}).limit(100);
+    .gte('service_period_from',`${month}-01`).lte('service_period_to',`${month}-${end}`).neq('status','cancelled').neq('status','draft').order('invoice_date',{ascending:false}).limit(100);
   if(error)failure(error);return (data||[]) as unknown as SourceInvoice[];
 }
 export async function readInvoiceCase(tenantId:string,role:RoleKey,id:string,month:string) {
-  const client=connection(tenantId,role);const {data,error}=await fromUnknownTable(client,'invoices').select('*').eq('tenant_id',tenantId).eq('id',id).single();if(error)failure(error);
-  const invoice=data as Row;if(invoice.status==='cancelled')throw new Error('Diese Rechnung wurde storniert.');
-  const c=blankCase(month,String(invoice.invoice_date||''));c.sourceInvoiceId=id;c.sourceUpdatedAt=String(invoice.updated_at||'');c.invoiceNumber=String(invoice.invoice_number||'');
-  c.proofIds=Array.isArray(invoice.selected_proof_ids)?invoice.selected_proof_ids as string[]:[];
-  if(invoice.client_id){
-    const result=await fromUnknownTable(client,'clients').select('*').eq('tenant_id',tenantId).eq('id',invoice.client_id).single();if(result.error)failure(result.error);
-    const person=result.data as Row;c.clientId=String(person.id);c.firstName=String(person.first_name||'');c.lastName=String(person.last_name||'');
-    c.birthDate=String(person.birth_date||person.date_of_birth||'');c.insuranceNumber=String(person.insurance_number||'');
-    c.street=String(person.street||'');c.houseNumber=String(person.house_number||'');c.postalCode=String(person.postal_code||'');c.city=String(person.city||'');c.careGrade=String(person.care_grade||person.care_level||'');
-  }
-  // Rates and service codes cannot safely be inferred from a PDF description.
-  return c;
+  if(!UUID.test(id))throw new Error('Ungültige Rechnungsreferenz.');
+  const client=connection(tenantId,role,true);
+  const rpc=client.rpc.bind(client) as unknown as (name:string,args:Row)=>Promise<{data:unknown;error:unknown}>;
+  const {data,error}=await rpc('gkv_invoice_source_snapshot',{p_tenant_id:tenantId,p_invoice_ids:[id]});
+  if(error)failure(error);
+  return importInvoiceCase(readSourceSnapshot(data,tenantId,[id])[0],month);
 }
 export async function requestTestExport(tenantId:string,role:RoleKey,batch:Batch) {
   const client=connection(tenantId,role,true);const {data,error}=await client.auth.getSession();if(error||!data.session)throw new Error('Bitte erneut anmelden.');
@@ -78,7 +73,8 @@ export async function requestTestExport(tenantId:string,role:RoleKey,batch:Batch
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(typeof result.error==='string'?result.error:'Die Prüfdatei konnte nicht erstellt werden.');
   if(result.kind!=='unencrypted_test'||result.revision!==batch.revision||!/^TPFL0\d{3}$/.test(result.name)||! /^[a-f0-9]{64}$/.test(result.sha256)
     ||typeof result.dataBase64!=='string'||result.dataBase64.length>2_700_000||typeof result.orderBase64!=='string'||atob(result.orderBase64).length!==348)throw new Error('Die Antwort des Exportdienstes ist unvollständig.');
-  return result as {name:string;sha256:string;dataBase64:string;orderBase64:string;note:string};
+  if(result.sourceReport && (!['checkedInvoices','checkedItems','checkedServiceRecords','checkedPdfFiles','manualCases'].every(key=>Number.isSafeInteger(result.sourceReport[key])&&result.sourceReport[key]>=0)||! /^[a-f0-9]{64}$/.test(result.sourceReport.sourceSha256)))throw new Error('Der Quellprüfbericht ist unvollständig.');
+  return result as {name:string;sha256:string;dataBase64:string;orderBase64:string;note:string;sourceReport?:{checkedInvoices:number;checkedItems:number;checkedServiceRecords:number;checkedPdfFiles:number;manualCases:number;sourceSha256:string}};
 }
 export function downloadBytes(name:string,bytes:Uint8Array) {
   const blob=new Blob([new Uint8Array(bytes).buffer],{type:'application/octet-stream'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);

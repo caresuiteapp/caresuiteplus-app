@@ -40,9 +40,7 @@ unverändert.
    speichern. Die Umsatzsteuerbefreiung wird nicht aus der Branche abgeleitet.
 2. Ein Paket für genau eine Leistungsart, Pflegekasse und einen Monat anlegen.
    Bestehende Pakete behalten eine Kopie ihres Vertragsstands.
-3. Rechnungs- und Personendaten aus einer vorhandenen Rechnung übernehmen oder
-   einen Fall erfassen. Preise, Leistungsziffern, Beschäftigtennummern und
-   Nachweisbestätigung ausdrücklich ergänzen. Es gibt keine erfundenen Tarife.
+3. Ausgestellte Rechnungen mit Personendaten, sämtlichen Positionen und Nachweisreferenzen übernehmen oder einen manuellen Prüffall erfassen. Vertragsziffern, Beschäftigtennummern und fachliche Nachweisbestätigung ergänzen. Beträge werden übernommen; GKV-Schlüssel und Vergütungsverträge werden nicht aus Beschreibungstexten geraten. Geänderte Quellen können im Fall erneut übernommen werden.
 4. Die fall- und positionsbezogenen Prüfhindernisse bearbeiten und den Entwurf
    speichern. Unvollständige Textangaben sind als Entwurf zulässig; ungültige
    Zahleneingaben müssen vor der Speicherung korrigiert werden.
@@ -67,10 +65,12 @@ Vollarchiv mit serverseitiger Suche/Paginierung ist noch nicht implementiert.
 | Beratungspauschale | Schlüssel 1 vor Ort / 2 Video, nur Leistungsart 09 |
 | Entlastungsleistung | Anbieterbezogene Schlüssel aus TA 3, nur Leistungsart 10 |
 | Steuerbefreiung | Ausschließlich ausdrücklich bestätigter Schlüssel 01; andere Steuerfälle blockiert |
-| Zeitvergütung, Punktwert, Kilometervergütung | Noch nicht exportierbar; keine pauschale Ersatzberechnung |
+| Zeitvergütung | Zeitanteilig oder je angefangener verschlüsselter Einheit; ausdrückliche Vertragsreferenz und Auswahl erforderlich |
+| Punktwert | Leistungskomplexe: bis fünf Dezimalstellen, Einzelpreis kaufmännisch auf Cent, danach Menge |
+| Kilometervergütung | Tatsächliche Strecke bis zwei Dezimalstellen, ganze Kilometer kaufmännisch gerundet; bestätigte Vertragsregel erforderlich |
 | Zuschläge/Abzüge, Hilfsmittel, stationäre Fachprofile, besondere Abrechnungsfälle | Noch zu implementieren und fachlich abzunehmen |
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
-| Automatischer Nachweisabgleich mit dem Mitarbeiterportal | Noch nicht implementiert; vorhandene Referenzen werden übernommen, Bestätigung ist manuell |
+| Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
 | KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Noch nicht angeschlossen |
 | Verschlüsselter klassischer Echtversand | Noch nicht angeschlossen |
 
@@ -90,7 +90,7 @@ noch zum Echtversand freigegeben. Es ist auch keine XRechnung oder ZUGFeRD-Datei
 
 `src/lib/gkvExchange/model.ts` enthält Version, Eingabeformen und Fachprüfungen.
 `editor.ts` verarbeitet Dezimalzahlen ohne binäre Rundung bei gespeicherten
-Geldbeträgen. Für Multiplikation und Cent-Rundung werden ganze Zahlen verwendet.
+Geldbeträgen. `pricing.ts` verwendet BigInt für Multiplikation, rationale Zeitanteile und kaufmännische Cent-Rundung. Die tatsächliche Dauer bleibt erhalten, auch bei einem Vertrag über angefangene Einheiten. Anzahl ist dabei die Anzahl gleicher Leistungen, nicht nochmals die Minuten- oder Kilometerzahl. Punktwert und Punktzahl werden in ELS ausgegeben. Die auswählbaren Berechnungsregeln sind explizite Vertragsmodelle, keine bundesweit vorgegebenen Vergütungstarife. Ihre Eignung für den jeweiligen Tarif und die Annahmestelle muss unabhängig geprüft werden; abweichende Vertragsrundungen bleiben ununterstützt.
 
 `edifact.ts` erzeugt UNB/UNZ und PLGA-/PLAA-Nachrichten, zählt UNH/UNT und
 maskiert EDIFACT-Steuerzeichen. Der Parser verarbeitet Aufhebungszeichen in
@@ -106,10 +106,11 @@ keinen Service-Role-Schlüssel und akzeptiert keine frei eingereichte Abrechnung
 Die zusätzliche RPC `gkv_exchange_export_allowed` prüft serverseitig sowohl
 Lese- als auch Erstellrechte.
 
-Vor der Ausgabe werden der gespeicherte Stand, Modus, Fachprüfungen und die
-verknüpften Quellrechnungen geprüft: Mandant, Änderungsstand, Rechnungsnummer,
-Betrag, Person und Stornierung. Die Paketrevision wird nach der Dateierzeugung
-erneut gelesen. Der Rückgabewert enthält Byteinhalt, SHA-256 und die Einordnung
+Vor der Ausgabe werden Stand, Modus und Fachprüfungen geprüft. Die neue RPC `gkv_invoice_source_snapshot` lädt alle ausgewählten Rechnungspositionen, zugehörigen Leistungsdatensätze und ausgewählten Originalnachweise. Sie prüft den Office-Zugang und ruft die vorhandenen Funktionen `office_invoice_assert_source` und `office_invoice_proofs` auf.
+
+Der Export gleicht Rechnungsnummer, Datum, Person, Betrag, jede Positionsreferenz und Revision ab. Fehlende, doppelte, geänderte oder steuerpflichtige Positionen blockieren. Bei Zeitpositionen aus Leistungsdatensätzen müssen Dauer und Anzahl zur bestätigten abrechenbaren Dauer passen. Die Nachweisauswahl und ihre Revisionen müssen unverändert sein. Ausgewählte Original-PDFs werden mit dem Benutzer-JWT aus dem erlaubten Mandantenpfad geladen und bytegenau gegen den bestätigten SHA-256 geprüft. Externe URLs, fremde Pfade und Umleitungen sind ausgeschlossen; Grenzen: 20 MB je PDF, 50 MB insgesamt, 40 Sekunden Prüfbudget.
+
+Nach der Dateierzeugung werden die Quellen nochmals vollständig geprüft und mit dem ersten Stand verglichen; auch Paketrevision und Status werden erneut gelesen. Die Antwort weist getrennte Prüfzahlen für Rechnungen, Positionen, Leistungsdatensätze und PDFs sowie manuelle Fälle aus. Manuelle Prüffälle haben keinen automatischen Quellnachweis. Die PDF-Prüfsumme belegt Byteidentität, keine PDF/A-Eigenschaft oder KIM-Signatur. Der Rückgabewert enthält Byteinhalt, SHA-256 und die Einordnung
 `unencrypted_test`. Es gibt keine Versandfunktion, keinen Mail-Fallback und
 keinen Endpunkt, der Produktionsdateien herausgibt.
 
@@ -119,9 +120,7 @@ Quellrevisionen, eindeutiger Zuordnung und unveränderlichen Artefakten nötig.
 
 ### Datenbank
 
-Migration: `20261019192628_gkv_exchange_workspace.sql`, Dateiname mit der
-bereits vorhandenen Supabase CLI erzeugt. Die Migration wurde nicht auf einem
-Remoteprojekt eingespielt.
+Migrationen: `20261019192628_gkv_exchange_workspace.sql` und `20261019195742_gkv_invoice_source_snapshot.sql`, mit der vorhandenen Supabase CLI erzeugt. Beide wurden lokal in PostgreSQL 17.5/PGlite ausgeführt, nicht auf einem Remoteprojekt eingespielt. Die Tests verwenden Vertragsdoubles für die vorhandene Office-Autorisierung und Nachweisverifikation; deren echte Supabase-Integration bleibt zu prüfen.
 
 - `gkv_exchange_batches`: mandantenbezogene Entwürfe und Revisionen.
 - `gkv_exchange_settings`: versioniertes Anbieterprofil.
@@ -172,9 +171,7 @@ werden nicht durch erfundene Empfänger oder pauschale Fallbacks ersetzt.
    Änderungen im Leistungsmonat, Korrektur-/Stornoverfahren, Abrechnungszentren
    und vollständige Vertragspreisbildung implementieren. Gegen echte, freigegebene
    Testfälle der jeweils relevanten Annahmestelle prüfen.
-2. **Nachweise:** Rechnungspositionen atomar an tatsächlich erbrachte Leistungen
-   und freigegebene Nachweise binden; Doppelabrechnung über mehrere Pakete
-   verhindern. Aufbewahrung, Wiederherstellung, Berichtigungen und Fristen mit
+2. **Nachweise:** Den implementierten Quellabgleich um eine atomare Reservierung für den Echtversand und unveränderliche Exportartefakte erweitern; Doppelabrechnung über mehrere Pakete verhindern. Aufbewahrung, Wiederherstellung, Berichtigungen und Fristen mit
    dem bestehenden Dokumentensystem verbinden.
 3. **Klassischer Versand:** vorhandenen/ausgewählten DTA-Dienst anschließen,
    tatsächliche Verschlüsselung und Zertifikatsprüfung durchführen, AUF-Metadaten
@@ -213,7 +210,7 @@ Releaseprozess die abhängigen Office-Migrationen bereitstellen. Es wurden nur
 Metadaten gelesen, keine Patienten- oder Rechnungsdatensätze und keine
 Remote-Schreibvorgänge ausgeführt.
 
-Danach die neue Migration im vorgesehenen Releaseablauf anwenden und die
+Danach beide neuen Migrationen im vorgesehenen Releaseablauf anwenden und die
 Web-/API-Änderungen gemeinsam bereitstellen. Bei fehlender Migration zeigt die
 Oberfläche einen Fehler mit Wiederholungsmöglichkeit. Erst die dokumentierte
 Integrations- und Sichtprüfung berechtigt zur Freigabe der neuen Oberfläche.

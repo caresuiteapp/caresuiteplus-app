@@ -8,7 +8,7 @@ Stand: 19.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**27 Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**44 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
 | Bereich | Nachweis |
@@ -18,12 +18,25 @@ Es wurde kein zusätzliches Testframework installiert.
 | Zeichensatz | Latin-1, Umlaute, EDIFACT-Aufhebungszeichen, Ablehnung nicht darstellbarer Zeichen |
 | Parser | Abgebrochene Segmente, falsche Zähler, doppelte/falsche Referenzen |
 | Fachprüfung | Beträge, Dubletten innerhalb des Pakets, Nachweise, Beschäftigtennummern, Steuer- und Versionsgrenzen |
-| Berechnung | Dezimalzahlen, halbe Centbeträge, große ganzzahlige Produkte |
+| Berechnung | Sechs Zeit-Einheiten, anteilige/angefangene Einheiten, Kilometergrenzen, fünfstellige Punktwerte, halbe Centbeträge und Überlaufablehnung |
 | Routing | Mehrstufige Zuordnung, Ablaufdaten, falscher Übermittlungsweg, Mehrdeutigkeit, UEM-Gültigkeit, VZD-Kennzeichen |
 | Rückmeldemodell | Korrelation, wiederholte Zustellmeldung, unzulässige Statussprünge |
 | Export-API | Authentifizierung, Berechtigung, kein vom Client eingereichter Dateikörper, Mandant, Revision und parallele Änderung |
-| Quellrechnungen | Fremder Mandant, geänderter Stand, Stornierung, abweichende Nummer, Summe oder Person |
+| Quellen | Rechnung und vollständige Positionen, Steuer, Datum, Person, Revisionen, Leistungsdauer, Nachweisauswahl und Hash |
+| Original-PDF | Tatsächliche Byteprüfung, geänderte/fehlende PDF, Größenlimit, fremde Pfade, Traversal und URL-Ablehnung |
 | Fehlerausgabe | Keine Nutzdaten bei Fehlern, keine Details aus internen Ausnahmen, kein alternativer Versandpfad |
+
+Zusätzlich wurden **12 Datenbankfälle (13 Testeinträge einschließlich Suite)** mit der bereits vorhandenen PGlite-Laufzeit auf PostgreSQL 17.5 ausgeführt:
+
+```bash
+node --import ./tests/gkv-exchange/register.mjs tests/gkv-exchange/database.mjs /pfad/zur/vorhandenen/pglite/dist/index.js
+```
+
+Beide tatsächlichen GKV-Migrationen werden im Arbeitsspeicher ausgeführt. Geprüft sind RLS, Mandanten-/Portal-/Rollenwechsel, entzogenes Direkt-Schreibrecht, private Wiederholungsquittungen, idempotente Aufträge, Inhaltskonflikte, Revisionen, Fremdrechnungen, Profilrevisionen, Abbruch bei ungültigen Quellen und fehlende Berechtigung öffentlicher RPCs. Die vorhandenen Office-Helfer und Auth-Claims sind ausdrücklich Vertragsdoubles; echte Supabase-Authentifizierung und die vollständigen Office-Nachweisprüfer sind damit nicht integriert getestet. Es wurden keine produktiven Daten verändert.
+
+Das echte `CaseEditor`-Formular wurde zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel sowie erneute Quellübernahme bestanden. **Dies ist eine DOM-Funktionsprüfung, keine visuelle Prüfung.**
+
+Ein gezielter strenger TypeScript-Check für Fachkern, Quellprüfung, Export-API und `GkvEditors.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier.
 
 Die TSX-/TypeScript-Quelldateien der neuen Oberfläche, der Eingabekomponenten,
 des Datenzugriffs und der geänderten Rechnungsnavigation wurden mit dem bereits
@@ -43,10 +56,7 @@ für die vorhandene Berechtigungs- und Rechnungsstruktur.
 - **Vollständiger Projektbuild und Typcheck:** Die Projektabhängigkeiten sind in
   dieser Arbeitsumgebung nicht vollständig vorhanden. Die zusätzliche Babel-
   Prüfung ersetzt weder Metro/Expo-Build noch `tsc`.
-- **Datenbankmigration:** Nicht remote angewendet und nicht in einer lokalen
-  PostgreSQL-Instanz ausgeführt. Die RLS-/RPC-Logik ist daher noch durch reale
-  SQL-Integrationstests zu belegen. Das vorhandene Stagingprojekt benötigt zuvor
-  die aktuelle Office-Rechnungsstruktur.
+- **Supabase-Integration:** Migrationen lokal in PostgreSQL/PGlite getestet, nicht remote angewendet. Tests mit der tatsächlichen Office-Autorisierung, den vorhandenen Nachweisprüfern, PostgREST und Storage bleiben erforderlich. Das vorhandene Stagingprojekt benötigt zuvor die aktuelle Office-Rechnungsstruktur.
 - **Echte Dienstintegration:** Kein DTA-/KIM-Transport, keine SMC-B-Signatur,
   keine Annahmestellenvalidierung und kein Ende-zu-Ende-Nachweis. Die erzeugte
   Referenzdatei ist ein Entwicklungstest, keine amtliche Prüffreigabe.

@@ -1,8 +1,26 @@
 import { blankDraft, blankCase } from '../../src/lib/gkvExchange/model.ts';
+import { importInvoiceCase } from '../../src/lib/gkvExchange/sources.ts';
+import { createHash } from 'node:crypto';
 export const tenantId = '11111111-1111-4111-8111-111111111111';
 export const batchId = '22222222-2222-4222-8222-222222222222';
 export const userId = '33333333-3333-4333-8333-333333333333';
 export const invoiceId = '44444444-4444-4444-8444-444444444444';
+export const itemId = '55555555-5555-4555-8555-555555555555';
+export const recordId = '66666666-6666-4666-8666-666666666666';
+export const pdfBytes = Buffer.from('%PDF-1.7\nFictional integrity fixture only\n%%EOF');
+export function linkedFixture({proof=false,record=false}={}) {
+  const source = { id:invoiceId,tenant_id:tenantId,updated_at:'2026-10-18T10:00:00Z',status:'issued',invoice_number:'RE2026-1',invoice_date:'2026-10-18',total_amount:'80.00',client_id:userId,
+    service_period_from:'2026-10-01',service_period_to:'2026-10-31',selected_proof_ids:proof?[`record:${recordId}`]:[],
+    client:{id:userId,tenant_id:tenantId,first_name:'Erika',last_name:'Mustermann',date_of_birth:'1950-01-01',insurance_number:'A123456789',care_level:'2'},
+    items:[{id:itemId,tenant_id:tenantId,invoice_id:invoiceId,updated_at:'2026-10-18T10:00:00Z',service_record_id:record?recordId:null,description:'Fiktive Beratung',service_date:'2026-10-16',quantity:'1.00',unit:'Stück',unit_price:'80.00',net_amount:'80.00',gross_amount:'80.00',vat_amount:'0.00',vat_rate:'0.00',sort_order:1}],
+    records:record?[{id:recordId,tenant_id:tenantId,client_id:userId,updated_at:'2026-10-18T09:00:00Z',service_date:'2026-10-16',actual_minutes:60,billable_minutes:60,status:'billed',billed_invoice_id:invoiceId,source_receipt:{}}]:[],
+    proofs:proof?[{id:`record:${recordId}`,updated_at:'2026-10-18T09:00:00Z',service_date:'2026-10-16',path:`tenant/${tenantId}/proofs/example.pdf`,sha256:createHash('sha256').update(pdfBytes).digest('hex')}]:[],
+  };
+  const draft=fixture();const original=draft.cases[0];draft.cases=[importInvoiceCase(source,'2026-10')];
+  Object.assign(draft.cases[0],{documentNumber:original.documentNumber,proofConfirmed:true});
+  Object.assign(draft.cases[0].lines[0],original.lines[0]);
+  return {draft,source};
+}
 /** Deliberately fictional data. Never submit these fixtures to an insurer. */
 export function fixture() {
   const draft = blankDraft(new Date('2026-10-19T10:15:30.000Z'));

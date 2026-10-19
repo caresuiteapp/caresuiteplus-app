@@ -66,7 +66,7 @@ test('draft persistence accepts incomplete text but rejects unsafe numeric struc
 test('decimal parsing and cent rounding are exact at half cents and large values', () => {
   assert.equal(parseHundredths('1,01'), 101); assert.equal(parseHundredths('0.09'), 9); assert.ok(Number.isNaN(parseHundredths('1,001'))); assert.ok(Number.isNaN(parseHundredths('-1')));
   assert.equal(lineTotal({unitPriceCents:101,quantityHundredths:50}), 51);
-  assert.equal(lineTotal({unitPriceCents:999999999999,quantityHundredths:999999}), 9999989999990000);
+  assert.ok(Number.isNaN(lineTotal({unitPriceCents:999999999999,quantityHundredths:999999})));
 });
 const query = { insuranceIk:'181234567', service:'09',channel:'classic',day:'2026-10-19',state:'05' };
 test('KOTR import follows insurance to payer to recipient and preserves validity', () => {

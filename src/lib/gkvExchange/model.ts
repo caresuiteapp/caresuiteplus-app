@@ -1,3 +1,4 @@
+import { calculatePrice, type PricingRule } from './pricing';
 /** §105 SGB XI. Field order and limits: TA1 6.4.0, TA3 6.4.0 (01.05.2026). */
 export const GKV_SPEC = {
   version: '6.4.0', validFrom: '2026-05-01', validUntil: '2027-01-31',
@@ -26,12 +27,15 @@ export type ExchangeProfile = {
 };
 export type ServiceLine = {
   sourceId?: string; day: string; startTime?: string; remuneration: string;
+  sourceItemId?: string; sourceItemUpdatedAt?: string; sourceRecordUpdatedAt?: string; sourceDescription?: string;
+  pricingRule?: PricingRule; contractReference?: string; distanceKm?: string;
   qualification: string; code: string; unitPriceCents: number; quantityHundredths: number;
   duration: string; pointValue?: string; points?: string; employeeNumber?: string;
   secondEmployeeNumber?: string; totalCents: number;
 };
 export type BillingCase = {
   sourceInvoiceId?: string; sourceUpdatedAt?: string; clientId?: string; proofIds?: string[];
+  sourceProofs?: { recordId: string; updatedAt: string; pdfSha256: string }[];
   invoiceNumber: string; invoiceDate: string; documentNumber: string;
   insuranceNumber: string; lastName: string; firstName: string; birthDate: string;
   street?: string; houseNumber?: string; postalCode?: string; city?: string;
@@ -68,6 +72,7 @@ export const isIk = (value: unknown): value is string => typeof value === 'strin
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 const textKeys = (value: Record<string, unknown>, keys: string[]) => keys.every(key => typeof value[key] === 'string');
 const numbers = (value: Record<string, unknown>, keys: string[]) => keys.every(key => Number.isSafeInteger(value[key]) && Number(value[key]) >= 0 && Number(value[key]) <= 999999999999);
+const optionalText = (value: Record<string, unknown>, keys: string[]) => keys.every(key => value[key] === undefined || typeof value[key] === 'string');
 export function hasProfileShape(value: unknown): value is ExchangeProfile {
   return record(value) && textKeys(value, ['providerIk','senderIk','name','billingCode','tariffCode','fundType','stateCode','taxExemptionCode'])
     && typeof value.ambulatoryProvider === 'boolean' && typeof value.employeeNumberRequired === 'boolean';
@@ -77,8 +82,13 @@ export function hasDraftShape(value: unknown): value is ExchangeDraft {
   return record(value) && hasProfileShape(value.profile) && textKeys(value, ['channel','mode','serviceType','payerIk','insuranceIk','receiverIk','physicalReceiverIk','month','createdAt'])
     && numbers(value, ['sequence','transferNumber','interchangeReference','correction']) && Array.isArray(value.cases) && value.cases.length <= 500
     && value.cases.every(c => record(c) && textKeys(c, ['invoiceNumber','invoiceDate','documentNumber','insuranceNumber','lastName','firstName','birthDate','careGrade','month'])
+      && optionalText(c,['sourceInvoiceId','sourceUpdatedAt','clientId'])
+      && (c.proofIds === undefined || Array.isArray(c.proofIds) && c.proofIds.length <= 30 && c.proofIds.every(id => typeof id === 'string'))
+      && (c.sourceProofs === undefined || Array.isArray(c.sourceProofs) && c.sourceProofs.length <= 30 && c.sourceProofs.every(p => record(p) && textKeys(p,['recordId','updatedAt','pdfSha256'])))
       && typeof c.proofConfirmed === 'boolean' && numbers(c, ['coPaymentCents','aidCents','grossCents']) && Array.isArray(c.lines) && c.lines.length <= 1000
-      && c.lines.every(l => record(l) && textKeys(l, ['day','remuneration','qualification','code','duration']) && numbers(l, ['unitPriceCents','quantityHundredths','totalCents'])));
+      && c.lines.every(l => record(l) && textKeys(l, ['day','remuneration','qualification','code','duration'])
+        && optionalText(l,['sourceId','sourceItemId','sourceItemUpdatedAt','sourceRecordUpdatedAt','sourceDescription','pricingRule','contractReference','distanceKm','pointValue','points','startTime','employeeNumber','secondEmployeeNumber'])
+        && numbers(l, ['unitPriceCents','quantityHundredths','totalCents'])));
 }
 export function cents(value: number): string {
   if (!Number.isSafeInteger(value) || value < 0 || value > 999999999999) throw new Error('Ungültiger Geldbetrag.');
@@ -181,16 +191,18 @@ export function validateDraft(input: unknown): Issue[] {
       if (!['02','06'].includes(l.remuneration) && l.duration !== '00') add(`${lp}.duration`, 'Für diese Vergütungsart ist 00 zu melden.');
       if (l.remuneration === '06' && l.code !== '04' && l.duration !== '00') add(`${lp}.duration`, 'Bei Wegepauschalen ist 00 zu melden.');
       for (const key of ['unitPriceCents','totalCents','quantityHundredths'] as const) if (!Number.isSafeInteger(l[key]) || l[key] < (key === 'quantityHundredths' ? 1 : 0) || l[key] > (key === 'quantityHundredths' ? 999999 : 999999999999)) add(`${lp}.${key}`, 'Betrag oder Menge ist ungültig.');
-      if (l.pointValue || l.points) add(`${lp}.pointValue`, 'Punktwertabrechnung benötigt einen gesonderten geprüften Berechnungsweg.');
       if (l.remuneration === '02') {
         if (!/^[1-6][0-9A-D]$/.test(l.code)) add(`${lp}.code`, 'Zeitvergütung benötigt den zweistelligen Schlüssel aus TA3.');
-        add(`${lp}.totalCents`, 'Die vertragliche Berechnung und Rundung der Zeitvergütung ist noch nicht für den Export implementiert.');
-      } else if (l.remuneration === '06' && l.code === '04') {
-        add(`${lp}.totalCents`, 'Kilometervergütung benötigt einen gesonderten vertraglichen Berechnungsweg.');
-      } else if (Number.isSafeInteger(l.unitPriceCents) && Number.isSafeInteger(l.quantityHundredths)) {
-        const expected = Number((BigInt(l.unitPriceCents) * BigInt(l.quantityHundredths) + 50n) / 100n);
-        if (!Number.isSafeInteger(expected) || l.totalCents !== expected) add(`${lp}.totalCents`, 'Positionssumme stimmt nicht mit Einzelpreis × Menge überein.');
+        if (/[AB]$/.test(l.code) && d.serviceType !== '09') add(`${lp}.code`, 'Zeitart A/B ist für den Beratungsbesuch vorgesehen.');
+        if (typeof l.code === 'string' && l.code.endsWith('0') && d.serviceType !== '15') add(`${lp}.code`, 'Zeitart 0 ist für ergänzende Unterstützungsleistungen für DiPA vorgesehen.');
       }
+      try {
+        const expected = calculatePrice(l);
+        if (l.totalCents !== expected.totalCents) add(`${lp}.totalCents`, 'Positionssumme stimmt nicht mit der gewählten Berechnungsregel überein.');
+        if (l.unitPriceCents !== expected.unitPriceCents) add(`${lp}.unitPriceCents`, 'Einzelpreis stimmt nicht mit Punktwert × Punktzahl überein.');
+        if (Number(l.duration) !== Number(expected.duration)) add(`${lp}.duration`, 'Gemeldete Kilometer stimmen nicht mit der kaufmännisch gerundeten Strecke überein.');
+      } catch (error) { add(`${lp}.totalCents`, error instanceof Error ? error.message : 'Berechnungsgrundlage ist unvollständig.'); }
+      if (Object.hasOwn(l, 'adjustments') || Object.hasOwn(l, 'surcharges')) add(lp, 'Zuschläge dürfen erst mit dem gesonderten ZUS-Berechnungsweg exportiert werden.');
       if ((d.profile.ambulatoryProvider || d.profile.employeeNumberRequired) && !/^\d{9}$/.test(l.employeeNumber || '')) add(`${lp}.employeeNumber`, 'Beschäftigtennummer oder belegter Ersatzwert erforderlich.');
       if (l.secondEmployeeNumber && !/^\d{9}$/.test(l.secondEmployeeNumber)) add(`${lp}.secondEmployeeNumber`, 'Zweite Beschäftigtennummer ist ungültig.');
       if (l.sourceId) { if (sources.has(l.sourceId)) add(`${lp}.sourceId`, 'Diese Leistung wurde im Paket mehrfach ausgewählt.'); sources.add(l.sourceId); }
