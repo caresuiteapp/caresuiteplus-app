@@ -335,6 +335,35 @@ export async function seedAssistCatalogIfEmpty(tenantId: string): Promise<Servic
   return seedTenantServiceCatalogIfEmpty(tenantId);
 }
 
+/** Web editors need the complete inventory to recognize already saved templates. */
+async function readWebCatalogPages(
+  load: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown; count: number | null }>,
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  const seen = new Set<string>();
+  let expected: number | null = null;
+  for (let offset = 0; offset < 20000; offset += 250) {
+    const page = await load(offset, offset + 249);
+    if (page.error) throw page.error;
+    if (!Array.isArray(page.data) || !Number.isSafeInteger(page.count) || Number(page.count) < 0
+        || expected !== null && page.count !== expected || page.data.length > 250) {
+      throw new Error('Unvollständige Katalogdaten.');
+    }
+    expected = page.count;
+    for (const value of page.data) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)
+          || typeof value.id !== 'string' || !value.id.trim() || seen.has(value.id)) {
+        throw new Error('Der Katalog wurde während des Ladens geändert.');
+      }
+      seen.add(value.id);
+      rows.push(value as Record<string, unknown>);
+    }
+    if (rows.length === expected) return rows;
+    if (rows.length > Number(expected) || page.data.length < 250) throw new Error('Unvollständige Katalogdaten.');
+  }
+  throw new Error('Der Katalog ist für diese Ansicht zu umfangreich.');
+}
+
 export async function fetchTenantServiceCatalog(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
@@ -354,26 +383,50 @@ export async function fetchTenantServiceCatalog(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  let catalogQuery = fromUnknownTable(client, 'tenant_service_catalog')
-    .select('*')
-    .eq('tenant_id', tenantId);
-  if (Platform.OS === 'web' && moduleKey) catalogQuery = catalogQuery.eq('module_key', moduleKey);
-  const { data: catalogRows, error } = await catalogQuery.order('sort_order');
-
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-  const catalogIds = (catalogRows ?? []).map((row: Record<string, unknown>) => String(row.id));
+  let catalogRows: Record<string, unknown>[] = [];
   let priceRows: Record<string, unknown>[] = [];
-  if (catalogIds.length) {
-    const priceRes = await fromUnknownTable(client, 'tenant_service_prices')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .in('catalog_id', catalogIds)
-      .eq('is_default', true);
-    if (Platform.OS === 'web' && priceRes.error) {
-      return { ok: false, error: toGermanSupabaseError(priceRes.error) };
+  if (Platform.OS === 'web') {
+    try {
+      catalogRows = await readWebCatalogPages((from, to) => {
+        let query = fromUnknownTable(client, 'tenant_service_catalog')
+          .select('*', { count: 'exact' }).eq('tenant_id', tenantId);
+        if (moduleKey) query = query.eq('module_key', moduleKey);
+        return query.order('id').range(from, to);
+      });
+      if (catalogRows.some((row) => row.tenant_id !== tenantId || moduleKey && row.module_key !== moduleKey)) {
+        throw new Error('Die Katalogpositionen gehören nicht zum ausgewählten Katalog.');
+      }
+      const priceIds = new Set<string>();
+      for (let offset = 0; offset < catalogRows.length; offset += 150) {
+        const ids = catalogRows.slice(offset, offset + 150).map((row) => String(row.id));
+        const idSet = new Set(ids);
+        const batch = await readWebCatalogPages((from, to) => fromUnknownTable(client, 'tenant_service_prices')
+          .select('*', { count: 'exact' }).eq('tenant_id', tenantId).in('catalog_id', ids)
+          .eq('is_default', true).order('id').range(from, to));
+        for (const row of batch) {
+          const id = String(row.id);
+          if (row.tenant_id !== tenantId || !idSet.has(String(row.catalog_id)) || row.is_default !== true || priceIds.has(id)) {
+            throw new Error('Die Preise gehören nicht eindeutig zum ausgewählten Katalog.');
+          }
+          priceIds.add(id);
+          priceRows.push(row);
+        }
+      }
+      catalogRows.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0) || String(a.id).localeCompare(String(b.id)));
+    } catch {
+      return { ok: false, error: 'Die Katalogpositionen und Preise konnten nicht vollständig geladen werden. Bitte erneut versuchen.' };
     }
-    priceRows = (priceRes.data ?? []) as Record<string, unknown>[];
+  } else {
+    const { data, error } = await fromUnknownTable(client, 'tenant_service_catalog')
+      .select('*').eq('tenant_id', tenantId).order('sort_order');
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    catalogRows = (data ?? []) as Record<string, unknown>[];
+    const catalogIds = catalogRows.map((row) => String(row.id));
+    if (catalogIds.length) {
+      const priceRes = await fromUnknownTable(client, 'tenant_service_prices')
+        .select('*').eq('tenant_id', tenantId).in('catalog_id', catalogIds).eq('is_default', true);
+      priceRows = (priceRes.data ?? []) as Record<string, unknown>[];
+    }
   }
 
   const priceByCatalog = new Map(priceRows.map((row) => [String(row.catalog_id), row]));

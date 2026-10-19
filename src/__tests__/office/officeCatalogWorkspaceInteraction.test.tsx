@@ -160,11 +160,59 @@ describe('Office catalogue Web interactions (DOM; not visual acceptance)', () =>
     expect(host.textContent).toContain('Lesezugriff');
     expect(host.querySelector('button[aria-label="Assist-Leistungskatalog bearbeiten"]')).toBeNull();
     expect(Array.from(host.querySelectorAll('button')).some(node => node.textContent?.trim() === 'Neue Position')).toBe(false);
+    expect(Array.from(host.querySelectorAll('button')).some(node => node.textContent?.trim() === 'Standardvorlagen')).toBe(false);
     await click('Assist-Leistungskatalog öffnen');
     await render(true);
     expect(host.textContent).toContain('Alltagsbegleitung');
     expect(host.querySelector('button[aria-label$=" bearbeiten"]')).toBeNull();
+    expect(Array.from(host.querySelectorAll('button')).some(node => node.textContent?.trim() === 'Standardvorlagen')).toBe(false);
     expect(host.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it.each([false, true])('opens standard templates in the catalogue module and keeps a new position independent (detail: %s)', async detail => {
+    await render(detail);
+    await click('Standardvorlagen');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({
+      visible: true, tenantId: 'tenant-a', initialModuleKey: 'assist', startWithTemplates: true, startCreating: false,
+      effectivePermissions: expect.arrayContaining(['business.tenant.manage']),
+    }));
+    expect(f.editor.mock.lastCall?.[0].initialItemId).toBeUndefined();
+    await click('Editor schließen');
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    await click('Neue Position');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({ initialModuleKey: 'assist', startCreating: true, startWithTemplates: false }));
+    await click('Editor schließen');
+    await click(detail ? 'Wochenendzuschlag bearbeiten' : 'Assist-Leistungskatalog bearbeiten');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({ initialModuleKey: 'assist', startCreating: false, startWithTemplates: false }));
+    await click('Editor schließen');
+    await click('Standardvorlagen');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({ startWithTemplates: true, startCreating: false }));
+    expect(f.editor.mock.lastCall?.[0].initialItemId).toBeUndefined();
+    expect(f.push).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('offers templates and a blank position in an available empty catalogue (detail: %s)', async detail => {
+    const snapshot = fixture();
+    Object.assign(snapshot.catalogs[0], { items: [], itemCount: 0, activeCount: 0, inactiveCount: 0, missingPriceCount: 0, updatedAt: null });
+    f.fetch.mockResolvedValue({ ok: true, data: snapshot });
+    await render(detail);
+    expect(host.textContent).toContain('Standardvorlage auswählen oder eigene Position anlegen.');
+    await click('Standardvorlage auswählen');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({ initialModuleKey: 'assist', startWithTemplates: true, startCreating: false }));
+    await click('Editor schließen');
+    await click('Eigene Position anlegen');
+    expect(f.editor).toHaveBeenLastCalledWith(expect.objectContaining({ initialModuleKey: 'assist', startWithTemplates: false, startCreating: true }));
+  });
+
+  it('hides template actions when no released catalogue is available or the requested catalogue is missing', async () => {
+    f.fetch.mockResolvedValue({ ok: true, data: { ...fixture(), catalogs: [] } });
+    await render();
+    expect(host.textContent).toContain('Noch kein Katalog verfügbar');
+    expect(Array.from(host.querySelectorAll('button')).some(node => node.textContent?.includes('Standardvorlage'))).toBe(false);
+    await render(true);
+    expect(host.textContent).toContain('Katalog nicht verfügbar');
+    expect(Array.from(host.querySelectorAll('button')).some(node => node.textContent?.includes('Standardvorlage'))).toBe(false);
+    expect(f.editor).not.toHaveBeenCalled();
   });
 
   it('filters positions by category, status and text, then restores all positions', async () => {

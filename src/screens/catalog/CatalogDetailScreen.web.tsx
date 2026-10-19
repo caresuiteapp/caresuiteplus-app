@@ -34,7 +34,7 @@ function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useC
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState('all');
   const [view, setView] = useState<'cards' | 'table'>('table');
-  const [editor, setEditor] = useState<{ itemId?: string; create: boolean } | null>(null);
+  const [editor, setEditor] = useState<{ itemId?: string; create: boolean; templates: boolean } | null>(null);
   const [saved, setSaved] = useState(false);
   const filtered = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('de-DE');
@@ -44,8 +44,8 @@ function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useC
   }, [catalog, category, status, query]);
   const back = () => router.replace('/office/catalogs');
   const reset = () => { setQuery(''); setCategory('all'); setStatus('all'); };
-  const edit = (itemId?: string, create = false) => { setSaved(false); setEditor({ itemId, create }); };
-  const actions = <>{data.allowed ? <CatalogRefresh loading={data.loading} onRefresh={() => void data.refresh()}/> : null}{catalog && data.canEdit ? <button type="button" className="cw-button cw-button--primary" onClick={() => edit(undefined, true)}><CatalogIcon kind="plus"/>Neue Position</button> : null}</>;
+  const edit = (itemId?: string, create = false, templates = false) => { setSaved(false); setEditor({ itemId, create, templates }); };
+  const actions = <>{data.allowed ? <CatalogRefresh loading={data.loading} onRefresh={() => void data.refresh()}/> : null}{catalog && data.canEdit ? <><button type="button" className="cw-button" onClick={() => edit(undefined, false, true)}><CatalogIcon kind="book"/>Standardvorlagen</button><button type="button" className="cw-button cw-button--primary" onClick={() => edit(undefined, true)}><CatalogIcon kind="plus"/>Neue Position</button></> : null}</>;
   return <>
     <CatalogWorkspace title={catalog?.name ?? 'Katalog'} subtitle="Leistungen und Standardpreise im Detail." actions={actions} back={back} busy={data.loading}>
       {!data.allowed ? <CatalogState kind="locked" title="Kein Zugriff auf diesen Katalog" message="Für diesen Bereich benötigen Sie eine Office-Freigabe und die Berechtigung, Kataloge anzusehen."/> :
@@ -69,7 +69,7 @@ function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useC
               <label className="cw-field"><span>Status</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="all">Alle Positionen</option><option value="active">Aktiv</option><option value="inactive">Inaktiv</option><option value="missing">Aktiv · Preis offen</option></select></label>
             </div>
             <div className="cw-list-meta"><span role="status">{filtered.length} von {catalog.itemCount} Positionen</span>{query || category !== 'all' || status !== 'all' ? <button type="button" className="cw-text-button" onClick={reset}>Filter zurücksetzen</button> : <span>Geldbeträge netto · Zuschläge in Prozent</span>}</div>
-            {catalog.itemCount === 0 ? <CatalogState title="Die erste Position anlegen" message={data.canEdit ? 'Hinterlegen Sie eine Leistung mit Bezeichnung, Einheit und Standardpreis. Auch Fahrtkosten und Zuschläge können Sie hier ergänzen.' : 'In diesem Katalog wurden noch keine Positionen hinterlegt.'} action={data.canEdit ? <button type="button" className="cw-button cw-button--primary" onClick={() => edit(undefined, true)}><CatalogIcon kind="plus"/>Position anlegen</button> : undefined}/> : filtered.length === 0 ? <CatalogState title="Keine passenden Positionen" message="Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück." action={<button type="button" className="cw-button" onClick={reset}>Alle Positionen anzeigen</button>}/> : view === 'cards' ?
+            {catalog.itemCount === 0 ? <CatalogState title="Die erste Position anlegen" message={data.canEdit ? 'Standardvorlage auswählen oder eigene Position anlegen. Bezeichnung, Einheit und Preis können Sie vor dem Speichern anpassen.' : 'In diesem Katalog wurden noch keine Positionen hinterlegt.'} action={data.canEdit ? <><button type="button" className="cw-button cw-button--primary" onClick={() => edit(undefined, false, true)}><CatalogIcon kind="book"/>Standardvorlage auswählen</button><button type="button" className="cw-button" onClick={() => edit(undefined, true)}><CatalogIcon kind="plus"/>Eigene Position anlegen</button></> : undefined}/> : filtered.length === 0 ? <CatalogState title="Keine passenden Positionen" message="Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück." action={<button type="button" className="cw-button" onClick={reset}>Alle Positionen anzeigen</button>}/> : view === 'cards' ?
               <div className="cw-cards cw-position-cards">{filtered.map(item => <article key={item.id} className="cw-position-card">
                 <div className="cw-card-top"><span className={`cw-category cw-category--${item.category}`}>{CATALOG_CATEGORY_LABELS[item.category]}</span><CatalogStatus active={item.isActive}/></div>
                 <div><h3>{item.label}</h3><span className="cw-code">{item.code}</span></div>{item.description ? <p>{item.description}</p> : null}
@@ -81,6 +81,6 @@ function CatalogDetail({ id, data }: { id?: string; data: ReturnType<typeof useC
           <p className="cw-footnote">„Preis offen“ zählt aktive Positionen ohne heute gültigen Standardpreis. Ein zukünftiger Preis wird separat mit seinem Beginn angezeigt. Ein Preis von 0,00 € ist ein hinterlegter Preis.</p>
         </>}
     </CatalogWorkspace>
-    {editor && catalog && data.canEdit && data.tenantId ? <TenantServiceCatalogModal key={`${data.scope}:${catalog.moduleKey}:${editor.itemId ?? ''}:${editor.create}`} visible tenantId={data.tenantId} initialModuleKey={catalog.moduleKey} initialItemId={editor.itemId} startCreating={editor.create} effectivePermissions={data.permissions} onClose={() => setEditor(null)} onSaved={() => { setSaved(true); void data.refresh(); }}/> : null}
+    {editor && catalog && data.canEdit && data.tenantId ? <TenantServiceCatalogModal key={`${data.scope}:${catalog.moduleKey}:${editor.itemId ?? ''}:${editor.create}:${editor.templates}`} visible tenantId={data.tenantId} initialModuleKey={catalog.moduleKey} initialItemId={editor.itemId} startCreating={editor.create} startWithTemplates={editor.templates} effectivePermissions={data.permissions} onClose={() => setEditor(null)} onSaved={() => { setSaved(true); void data.refresh(); }}/> : null}
   </>;
 }
