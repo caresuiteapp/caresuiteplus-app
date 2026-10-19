@@ -15,7 +15,6 @@ import {
 import { useDesktopPreferences, desktopPreferenceStorage } from "@/hooks/useDesktopPreferences.web";
 import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
-import { DesktopAreaSwitcher } from "../components/DesktopAreaSwitcher.web";
 import { canonicalDesktopCatalogRoute, filterDesktopCatalogEntries } from "../navigation/appsWidgetsCatalogModel.web";
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { useRouter } from "expo-router";
@@ -124,7 +123,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const mobile = width < 900;
   const compact = width < 900 * fontScale;
   const headerNarrow = width - (compact ? 24 : 40) < 780 * Math.max(1, fontScale);
-  const headerStacked = width - (compact ? 24 : 40) < 1560 * Math.max(1, fontScale);
+  const headerStacked = width - (compact ? 24 : 40) < 1360 * Math.max(1, fontScale);
   const headerLogoWidth = Math.max(0, Math.min(width - (compact ? 48 : 64), Math.round(234 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
@@ -269,7 +268,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : `max-content minmax(${280 * Math.max(1, fontScale)}px, ${360 * Math.max(1, fontScale)}px) max-content max-content max-content max-content max-content max-content`, justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar, !mobile && { display: "grid", gridTemplateColumns: headerNarrow ? "minmax(0, 1fr)" : headerStacked ? "max-content minmax(0, 1fr)" : `max-content minmax(${280 * Math.max(1, fontScale)}px, ${360 * Math.max(1, fontScale)}px) max-content max-content max-content max-content max-content`, justifyContent: headerStacked ? "normal" : "space-between", gap: 12, padding: 9 } as unknown as ViewStyle]} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
@@ -292,7 +291,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
         </View>
         <View style={[styles.actions, headerStacked && styles.actionsSecondRow, !mobile && { gridColumn: headerStacked ? "1 / -1" : "auto", marginLeft: "auto", flexWrap: headerStacked ? "wrap" : "nowrap" } as unknown as ViewStyle, mobile && styles.actionsMobile, !mobile && !headerStacked && { display: "contents" } as unknown as ViewStyle]} testID="desktop-topbar-actions">
           {compact && <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>}
-          <DesktopAreaSwitcher selectedArea={selectedArea} areas={desktopAreas} onSelectArea={selectDesktop} appearance="header" scale={effectiveScale} />
           <PortalTextSizeControls dense={mobile} appearance="desktop-header" />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, styles.headerAppsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
@@ -337,6 +335,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <View testID="desktop-workspace-header" style={[styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
             <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
               <Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text>
+              <View style={styles.areaTabs}>{DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityState={{ selected: selectedArea === area.key }} onPress={() => { if (area.key !== selectedArea) void leaveDesktop(() => onSelectArea(area.key)); }} style={[styles.tab, selectedArea === area.key && styles.tabActive]}><Text style={[styles.tabText, selectedArea === area.key && styles.tabTextActive]}>{area.label}</Text></Pressable>)}</View>
             </View>
             <View style={styles.desktopActions}>
               {desktopPages > 1 ? <View style={styles.desktopActions}>
@@ -406,6 +405,11 @@ const styles = StyleSheet.create({
   neoDock: { width: 76, height: 80, flexShrink: 0, alignItems: "center", justifyContent: "center" },
   brandGroup: { flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0, maxWidth: "100%", flexShrink: 1 },
   headerAppsButton: { ...desktopHeaderControl, justifyContent: "center", paddingVertical: 0, flexShrink: 0 },
+  areaTabs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
+  tab: { minHeight: 40, paddingVertical: 8, borderRadius: 12, paddingHorizontal: 15, justifyContent: "center", backgroundColor: "#0B223D", borderWidth: 1, borderColor: "#466887" },
+  tabActive: { backgroundColor: "#075577", borderWidth: 1, borderColor: "#62DCFF" },
+  tabText: { color: "#F0F7FF", fontSize: 13, fontWeight: "900" },
+  tabTextActive: { color: "#FFF" },
   actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
   iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
   appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },

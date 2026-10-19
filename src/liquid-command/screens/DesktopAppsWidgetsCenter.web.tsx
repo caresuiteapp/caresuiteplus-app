@@ -124,12 +124,7 @@ export function DesktopAppsWidgetsCenter({
 
   if (!visible) return null;
 
-  return <PlatformModal surfaceScope="company" visible={visible} title={`${areaLabel} · Apps & Widgets`}
-    subtitle={`Sie sehen Apps, Widgets und Workflows für ${areaLabel}. Oben können Sie den Desktop wechseln.`}
-    headerActions={<div className="cs-center-area-switcher" style={style}>
-      <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea}
-        appearance="light" label="Desktop im Katalog wechseln" scale={effectiveScale}/>
-    </div>}
+  return <PlatformModal surfaceScope="company" visible={visible} title="Apps & Widgets"
     onClose={onClose} maxWidth={1180} minWidth={260} maxHeightRatio={0.94} glowColor="#1764d4"
     bodyStyle={{ padding: 20, backgroundColor: '#f4f8fd', flexGrow: 0 }} sheetStyle={{ backgroundColor: '#f4f8fd' }}
     footerContent={<div className="cs-apps-center-footer" style={style}>
@@ -142,6 +137,7 @@ export function DesktopAppsWidgetsCenter({
     </div>}>
     <style>{desktopAppsWidgetsCenterCss}</style>
     <div className="cs-apps-center" style={style} data-testid="desktop-apps-widgets-center">
+      <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea} scale={effectiveScale}/>
       <div className="cs-center-toolbar">
         <div className="cs-center-tabs" role="tablist" aria-label="Apps und Widgets">
           {TABS.map(item => <button type="button" className="cs-center-tab" key={item.id} id={`${id}-${item.id}-tab`}
