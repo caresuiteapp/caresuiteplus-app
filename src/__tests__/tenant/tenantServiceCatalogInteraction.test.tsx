@@ -91,4 +91,93 @@ describe('company catalogue interactions (DOM, not visual acceptance)', () => {
     expect(host.textContent).toContain('nicht mehr verfügbar');
     expect(field('Bezeichnung *')).toBeUndefined();
   });
+
+  it('opens all six standard templates without creating or seeding positions', async () => {
+    await render(undefined, 'tenant-a', { startWithTemplates: true });
+    expect(host.querySelectorAll('.tscm-template-card')).toHaveLength(6);
+    expect(field('Bezeichnung *')).toBeUndefined();
+    expect(f.save).not.toHaveBeenCalled(); expect(f.seed).not.toHaveBeenCalled();
+    await click(button('Schließen')); expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('creates an editable template draft with an open price and saves only on confirmation', async () => {
+    f.fetch.mockResolvedValue({ ok: true, data: { items: [], prices: [] } });
+    f.save.mockImplementation(async (_tenant: string, value: TenantServiceCatalogItem & { priceNet?: number }) => ({ ok: true, data: {
+      items: [{ ...value, id: 'new-position', defaultPriceNet: value.priceNet ?? null }], prices: [],
+    } }));
+    await render(undefined, 'tenant-a', { startWithTemplates: true });
+    await click(host.querySelector<HTMLButtonElement>('button[aria-label="Alltagsbegleitung: Vorlage verwenden"]')!);
+    expect(field('Bezeichnung *').value).toBe('Alltagsbegleitung');
+    expect(field('Abrechnungseinheit').value).toBe('hour');
+    expect(field('Nettopreis (€)').value).toBe('');
+    expect(field('Steuerregel').value).toBe('');
+    expect(f.save).not.toHaveBeenCalled();
+    await change('Bezeichnung *', 'Individuelle Alltagsbegleitung');
+    await click(button('Position anlegen'));
+    expect(f.save).toHaveBeenCalledOnce();
+    expect(f.save).toHaveBeenCalledWith('tenant-a', expect.objectContaining({
+      id: undefined, serviceKey: expect.stringMatching(/^assist\.alltagsbegleitung\.template_/),
+      name: 'Individuelle Alltagsbegleitung', priceNet: undefined, taxMode: 'none', unit: 'hour',
+    }), 'business_admin');
+    expect(saved).toHaveBeenCalledOnce();
+    await click(button('Standardvorlagen'));
+    expect(host.querySelector('button[aria-label="Alltagsbegleitung: Vorhandene Position öffnen"]')).not.toBeNull();
+  });
+
+  it('requires an explicit tax rule before saving a template with a price', async () => {
+    f.fetch.mockResolvedValue({ ok: true, data: { items: [], prices: [] } });
+    await render(undefined, 'tenant-a', { startWithTemplates: true });
+    await click(host.querySelector<HTMLButtonElement>('button[aria-label="Alltagsbegleitung: Vorlage verwenden"]')!);
+    await change('Nettopreis (€)', '40,00');
+    await click(button('Position anlegen'));
+    expect(f.save).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('Bitte eine Steuerregel für diesen Preis auswählen.');
+    expect(field('Nettopreis (€)').value).toBe('40,00');
+    await act(async () => {
+      const select = field('Steuerregel');
+      select.value = 'standard_19';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await click(button('Position anlegen'));
+    expect(f.save).toHaveBeenCalledOnce();
+    expect(f.save).toHaveBeenCalledWith('tenant-a', expect.objectContaining({ priceNet: 40, taxMode: 'standard_19', taxRate: 19 }), 'business_admin');
+  });
+
+  it('opens an existing inactive standard position with its own values and price period unchanged', async () => {
+    const existing = { ...item, serviceKey: 'assist.alltagsbegleitung', name: 'Eigene Begleitung', isActive: false };
+    f.fetch.mockResolvedValue({ ok: true, data: { items: [existing], prices: [{ catalogId: item.id, validFrom: '2027-02-01', validTo: '2027-03-31' }] } });
+    await render(undefined, 'tenant-a', { startWithTemplates: true });
+    expect(host.textContent).toContain('Bereits im Katalog · inaktiv');
+    await click(host.querySelector<HTMLButtonElement>('button[aria-label="Alltagsbegleitung: Vorhandene Position öffnen"]')!);
+    expect(field('Bezeichnung *').value).toBe('Eigene Begleitung');
+    expect(field('Nettopreis (€)').value).toBe('32,75');
+    expect(field('Preis gültig ab').value).toBe('2027-02-01');
+    expect(host.querySelector<HTMLInputElement>('.tscm-active input')?.checked).toBe(false);
+    expect(button('Änderungen speichern').disabled).toBe(true);
+    expect(f.save).not.toHaveBeenCalled();
+  });
+
+  it('protects edited values when switching to another template and returns to the editor on cancel', async () => {
+    await render(); await selectFirst(); await change('Bezeichnung *', 'Mein Entwurf');
+    await click(button('Standardvorlagen'));
+    const choose = () => host.querySelector<HTMLButtonElement>('button[aria-label="Fahrtkosten (Kilometer): Vorlage verwenden"]')!;
+    await click(choose()); expect(host.querySelector('[role="alertdialog"]')).not.toBeNull();
+    expect(f.save).not.toHaveBeenCalled();
+    await click(button('Weiter bearbeiten')); expect(field('Bezeichnung *').value).toBe('Mein Entwurf');
+    await click(button('Standardvorlagen')); await click(choose()); await click(button('Änderungen verwerfen'));
+    expect(field('Bezeichnung *').value).toBe('Fahrtkosten (Kilometer)');
+    expect(field('Kategorie').value).toBe('travel'); expect(field('Abrechnungseinheit').value).toBe('km');
+    expect(f.save).not.toHaveBeenCalled();
+  });
+
+  it('blocks template use without edit permission or a successfully loaded catalogue', async () => {
+    f.allowed = false; await render(undefined, 'tenant-a', { startWithTemplates: true });
+    expect(Array.from(host.querySelectorAll<HTMLButtonElement>('.tscm-template-card button')).every(node => node.disabled)).toBe(true);
+    expect(f.save).not.toHaveBeenCalled();
+    f.allowed = true; f.fetch.mockResolvedValue({ ok: false, error: 'Katalog nicht erreichbar.' });
+    await render(undefined, 'tenant-b', { startWithTemplates: true });
+    expect(host.textContent).toContain('Katalog nicht erreichbar.');
+    expect(host.querySelectorAll('.tscm-template-card')).toHaveLength(0);
+    expect(f.save).not.toHaveBeenCalled(); expect(f.seed).not.toHaveBeenCalled();
+  });
 });

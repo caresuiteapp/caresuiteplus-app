@@ -1,37 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SaveCatalogItemInput } from '@/lib/tenant/tenantServiceCatalogService';
 
-type Query = { table: string; action: string; payload?: unknown; filters: [string, unknown][]; selected: boolean };
-type Result = { data: unknown; error: unknown };
-const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn() }));
+type Query = { table: string; action: string; payload?: unknown; filters: [string, unknown][]; inFilters: [string, unknown[]][]; selected: boolean; count?: string; range?: [number, number]; orders: string[] };
+type Result = { data: unknown; error: unknown; count?: number | null };
+const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn(), platform: 'web' }));
+vi.mock('react-native', () => ({ Platform: { get OS() { return f.platform; } } }));
 vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ isLiveServiceMode: () => true, guardServiceTenant: f.tenant }));
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unknown, table: string) => {
-  const query: Query = { table, action: 'select', filters: [], selected: false }; f.queries.push(query);
+  const query: Query = { table, action: 'select', filters: [], inFilters: [], selected: false, orders: [] }; f.queries.push(query);
   const chain = {
-    select: () => { query.selected = true; return chain; },
+    select: (_columns?: string, options?: { count?: string }) => { query.selected = true; query.count = options?.count; return chain; },
     update: (payload: unknown) => { query.action = 'update'; query.payload = payload; return chain; },
     insert: (payload: unknown) => { query.action = 'insert'; query.payload = payload; return chain; },
     upsert: (payload: unknown) => { query.action = 'upsert'; query.payload = payload; return chain; },
     eq: (key: string, value: unknown) => { query.filters.push([key, value]); return chain; },
-    in: () => chain, order: () => chain,
+    in: (key: string, values: unknown[]) => { query.inFilters.push([key, values]); return chain; },
+    order: (key: string) => { query.orders.push(key); return chain; },
+    range: (from: number, to: number) => { query.range = [from, to]; return chain; },
     single: () => chain, maybeSingle: () => chain,
-    then: (resolve: (result: Result) => unknown) => Promise.resolve(f.replies.shift() ?? { data: [], error: null }).then(resolve),
+    then: (resolve: (result: Result) => unknown) => Promise.resolve(f.replies.shift() ?? { data: [], error: null, count: 0 }).then(resolve),
   };
   return chain;
 } }));
 import { fetchTenantServiceCatalog, saveTenantServiceCatalogItem } from '@/lib/tenant/tenantServiceCatalogService';
 const input: SaveCatalogItemInput = { id: 'item-a', moduleKey: 'assist', serviceKey: 'assist.test', name: 'Begleitung', category: 'service', unit: 'hour', priceNet: 32.75, taxMode: 'standard_19' };
-const success = (data: unknown = { id: 'item-a' }): Result => ({ data, error: null });
+const success = (data: unknown = { id: 'item-a' }, count: number | null = Array.isArray(data) ? data.length : null): Result => ({ data, error: null, count });
 const failure: Result = { data: null, error: { message: 'Datenbank nicht erreichbar' } };
 const oldPrice = { id: 'price-a', price_net: 30, tax_rate: 19, tax_mode: 'standard_19', valid_from: '2026-01-01', valid_to: null };
-beforeEach(() => { vi.clearAllMocks(); f.queries = []; f.replies = []; f.permission.mockReturnValue(null); f.access.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: false } }); f.tenant.mockReturnValue(null); });
+const catalogRow = (id = 'item-a', sortOrder = 10) => ({ id, tenant_id: 'tenant-a', module_key: 'assist', service_key: `assist.${id}`, name: id, unit: 'hour', category: 'service', is_active: true, sort_order: sortOrder });
+const priceRow = (catalogId = 'item-a', id = `price-${catalogId}`) => ({ ...oldPrice, id, tenant_id: 'tenant-a', catalog_id: catalogId, is_default: true });
+beforeEach(() => { vi.clearAllMocks(); f.queries = []; f.replies = []; f.platform = 'web'; f.permission.mockReturnValue(null); f.access.mockResolvedValue({ ok: true, data: { permissions: ['business.tenant.manage'], scopeLimited: false } }); f.tenant.mockReturnValue(null); });
 
 describe('company catalogue confirms price persistence', () => {
   it('propagates failed price reads instead of displaying an empty price', async () => {
-    f.replies = [success([{ id: 'item-a' }]), failure];
+    f.replies = [success([catalogRow()]), failure];
     expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin')).ok).toBe(false);
   });
   it.each(['read', 'history', 'update', 'insert'])('does not report success when price %s fails', async (step) => {
@@ -96,12 +101,126 @@ describe('company catalogue confirms price persistence', () => {
     }
   });
   it('reports multiple default prices instead of choosing one arbitrarily', async () => {
-    f.replies = [success([{ id: 'item-a' }]), success([{ catalog_id: 'item-a', price_net: 20 }, { catalog_id: 'item-a', price_net: 40 }])];
+    f.replies = [success([catalogRow()]), success([priceRow('item-a', 'price-a'), priceRow('item-a', 'price-b')])];
     expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin')).toMatchObject({ ok: false, error: expect.stringContaining('mehrere Standardpreise') });
   });
   it('scopes the editor read to its module so unrelated prices cannot block it', async () => {
     f.replies = [success([])];
     expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(true);
     expect(f.queries[0].filters).toContainEqual(['module_key', 'assist']);
+  });
+  it('keeps the tax choice open when no saved price or tax mode exists', async () => {
+    for (const prices of [[], [{ ...priceRow(), tax_mode: null }]]) {
+      f.replies = [success([catalogRow()]), success(prices)];
+      const result = await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist');
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      expect(result.data.items[0].defaultTaxMode).toBeNull();
+      expect(result.data.items[0].defaultPriceNet).toBe(prices.length ? 30 : null);
+    }
+  });
+});
+
+describe('company catalogue loads complete web inventories', () => {
+  it('loads later catalog pages and scopes every 150-id price batch to the tenant', async () => {
+    const rows = Array.from({ length: 251 }, (_, index) => catalogRow(`item-${String(index).padStart(3, '0')}`, 251 - index));
+    const prices = rows.map((row) => priceRow(row.id));
+    f.replies = [success(rows.slice(0, 250), 251), success(rows.slice(250), 251), success(prices.slice(0, 150)), success(prices.slice(150))];
+    const result = await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.items).toHaveLength(251);
+    expect(result.data.prices).toHaveLength(251);
+    expect(result.data.items[0].id).toBe('item-250');
+    expect(result.data.items.every((item) => item.defaultPriceNet === 30)).toBe(true);
+    const catalogs = f.queries.filter((query) => query.table === 'tenant_service_catalog');
+    expect(catalogs.map((query) => query.range)).toEqual([[0, 249], [250, 499]]);
+    for (const query of catalogs) expect(query.filters).toContainEqual(['module_key', 'assist']);
+    const priceQueries = f.queries.filter((query) => query.table === 'tenant_service_prices');
+    expect(priceQueries.map((query) => query.inFilters[0])).toEqual([
+      ['catalog_id', rows.slice(0, 150).map((row) => row.id)],
+      ['catalog_id', rows.slice(150).map((row) => row.id)],
+    ]);
+    for (const query of f.queries) {
+      expect(query.filters).toContainEqual(['tenant_id', 'tenant-a']);
+      expect(query.count).toBe('exact');
+      expect(query.orders).toEqual(['id']);
+    }
+    for (const query of priceQueries) expect(query.filters).toContainEqual(['is_default', true]);
+  });
+
+  it('returns no partial inventory when a later catalog page fails', async () => {
+    f.replies = [success(Array.from({ length: 250 }, (_, index) => catalogRow(`item-${index}`)), 251), failure];
+    const result = await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist');
+    expect(result).toEqual({ ok: false, error: expect.stringContaining('nicht vollständig geladen') });
+    expect(f.queries).toHaveLength(2);
+    expect(f.queries.every((query) => query.table === 'tenant_service_catalog')).toBe(true);
+  });
+
+  it('returns no partially priced inventory when a later price batch fails', async () => {
+    const rows = Array.from({ length: 151 }, (_, index) => catalogRow(`item-${index}`));
+    f.replies = [success(rows), success(rows.slice(0, 150).map((row) => priceRow(row.id))), failure];
+    expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toEqual({ ok: false, error: expect.stringContaining('nicht vollständig geladen') });
+    expect(f.queries.filter((query) => query.table === 'tenant_service_prices')).toHaveLength(2);
+  });
+
+  it.each(['catalog', 'prices'])('rejects missing, invalid and incomplete counts for %s', async (table) => {
+    for (const count of [undefined, null, -1, 0.5, 0, 2]) {
+      f.queries = [];
+      const page: Result = { data: table === 'catalog' ? [catalogRow()] : [priceRow()], error: null, count };
+      f.replies = table === 'catalog' ? [page] : [success([catalogRow()]), page];
+      expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toEqual({ ok: false, error: expect.stringContaining('nicht vollständig geladen') });
+    }
+  });
+
+  it('rejects changed counts, missing pages and duplicate ids across catalog pages', async () => {
+    const firstPage = Array.from({ length: 250 }, (_, index) => catalogRow(`item-${index}`));
+    for (const nextPage of [success([catalogRow('last')], 252), success([], 251), success([firstPage[0]], 251)]) {
+      f.queries = [];
+      f.replies = [success(firstPage, 251), nextPage];
+      expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toEqual({ ok: false, error: expect.stringContaining('nicht vollständig geladen') });
+    }
+  });
+
+  it('reads later price pages before reporting multiple saved default prices', async () => {
+    const prices = Array.from({ length: 251 }, (_, index) => priceRow('item-a', `price-${index}`));
+    f.replies = [success([catalogRow()]), success(prices.slice(0, 250), 251), success(prices.slice(250), 251)];
+    expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toMatchObject({ ok: false, error: expect.stringContaining('mehrere Standardpreise') });
+    expect(f.queries.filter((query) => query.table === 'tenant_service_prices').map((query) => query.range)).toEqual([[0, 249], [250, 499]]);
+  });
+
+  it('does not accept incomplete or repeated later price pages', async () => {
+    const firstPage = Array.from({ length: 250 }, (_, index) => priceRow('item-a', `price-${index}`));
+    for (const nextPage of [failure, success([], 251), success([priceRow('item-a', 'last')], 252), success([firstPage[0]], 251)]) {
+      f.queries = [];
+      f.replies = [success([catalogRow()]), success(firstPage, 251), nextPage];
+      expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toEqual({ ok: false, error: expect.stringContaining('nicht vollständig geladen') });
+    }
+  });
+
+  it('rejects rows outside the selected tenant, module or price batch', async () => {
+    for (const row of [{ ...catalogRow(), tenant_id: 'tenant-other' }, { ...catalogRow(), module_key: 'pflege' }]) {
+      f.replies = [success([row])];
+      expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(false);
+    }
+    for (const row of [{ ...priceRow(), tenant_id: 'tenant-other' }, priceRow('foreign-item'), { ...priceRow(), is_default: false }]) {
+      f.replies = [success([catalogRow()]), success([row])];
+      expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(false);
+    }
+  });
+
+  it('preserves the native query flow without counts, pages or module filters', async () => {
+    f.platform = 'android';
+    f.replies = [success([catalogRow()]), success([priceRow()])];
+    expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(true);
+    expect(f.queries).toHaveLength(2);
+    expect(f.queries[0].orders).toEqual(['sort_order']);
+    expect(f.queries[0].filters).toEqual([['tenant_id', 'tenant-a']]);
+    expect(f.queries[1].orders).toEqual([]);
+    expect(f.queries[1].inFilters).toEqual([['catalog_id', ['item-a']]]);
+    for (const query of f.queries) {
+      expect(query.count).toBeUndefined();
+      expect(query.range).toBeUndefined();
+    }
   });
 });

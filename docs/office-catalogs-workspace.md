@@ -13,6 +13,16 @@ Stand: 19.10.2026. Der Auftrag betrifft Web/Desktop; native Katalogbildschirme b
 - Nicht freigegebene Fachmodule bleiben gesperrt. Lesen erfordert Katalogfreigabe, Office-/Fachmodulzugang und unbeschränkten Unternehmenszugriff. Schreiben erfordert die effektive Unternehmensverwaltungsberechtigung; die bestehenden serverseitigen Regeln gelten weiter.
 - Mandanten-/Profilwechsel verwerfen alte Abfrageergebnisse. Nach Aktualisierungsfehlern bleibt der letzte geladene Stand ausdrücklich als solcher sichtbar.
 
+## Standardvorlagen: Ergänzung vom 19.10.2026
+
+Die Web-Katalogübersicht und -details öffnen über „Standardvorlagen“ eine Auswahl im bestehenden Positionseditor, auch bei einem leeren Katalog. Enthalten sind die sechs vorhandenen Assist-Grundpositionen: Alltagsbegleitung, Entlastungsleistung, Verhinderungspflege, Haushaltshilfe, Fahrtkosten pro Kilometer und Wochenendzuschlag. Gesperrte Fachmodule werden dadurch nicht freigeschaltet.
+
+Die Auswahl erzeugt nur einen bearbeitbaren Entwurf mit Bezeichnung, Beschreibung, Kategorie und Einheit. Preis und Steuerregel bleiben offen; bei Eingabe eines Preises muss die Steuerregel ausdrücklich gewählt werden. Erst „Position anlegen“ schreibt in den Unternehmenskatalog. Der alte pauschale Seeder wird nicht aufgerufen; eine Datenbankmigration ist für diese Ergänzung nicht nötig.
+
+Vorhandene Positionen werden anhand ihres ursprünglichen Vorlagenschlüssels, der Kennung einer früher übernommenen Vorlage oder der passenden Bezeichnung mit gleicher Einheit/Kategorie erkannt. „Vorhandene Position öffnen“ erhält eigene Werte, Preisgültigkeit und Aktivstatus. Neue Entwürfe erhalten eine eigene Kennung; sie überschreiben keine bestehenden Vorlagenpositionen. Gleichzeitiges Anlegen in mehreren Fenstern ist nicht durch eine neue datenbankweite Eindeutigkeitsregel gesperrt.
+
+Ungespeicherte Änderungen bleiben beim Wechsel geschützt. Die Auswahl wartet auf erfolgreich geladene Bestandsdaten und erfordert Schreibrechte. Der Web-Editor liest den vollständigen Katalog in gezählten Seiten und Preise in begrenzten ID-Gruppen; unvollständige Daten werden als Fehler gemeldet. Native-Abfragen bleiben unverändert. Zusätzliche Modell-, Persistenz- und DOM-Interaktionstests laufen über das bestehende Company-Release-Gate. Direkte Modellprüfungen mit Node sind lokal bestanden; vollständige Cloud-Prüfung und Veröffentlichungsstand werden im zugehörigen Pull Request dokumentiert. Angemeldete Sicht-/End-to-End-Prüfung bleibt separat offen.
+
 ## Korrektur der Mitarbeitendenauswahl
 
 Die Empfängerauswahl der internen Weitergabe wurde durch die Differenz zwischen der vorhandenen älteren Nachrichtenfreigabe `messages.can_create` und dem neuen Schlüssel `communication.send_message` blockiert. Die inkrementelle Korrektur liegt in `scripts/sql/office-internal-notes-access.sql`.
