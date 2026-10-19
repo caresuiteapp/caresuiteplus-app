@@ -9,7 +9,7 @@ CREATE TABLE public.roles(id uuid PRIMARY KEY,key text,tenant_id uuid,is_admin_r
 CREATE TABLE public.profiles(id uuid PRIMARY KEY,auth_user_id uuid,tenant_id uuid,role_id uuid,display_name text,status text DEFAULT 'active',is_active boolean DEFAULT true);
 CREATE TABLE public.employees(id uuid PRIMARY KEY,tenant_id uuid,profile_id uuid,first_name text,last_name text,status text DEFAULT 'aktiv',deleted_at timestamptz);
 CREATE TABLE public.employee_portal_accounts(id uuid PRIMARY KEY,tenant_id uuid,employee_id uuid,auth_user_id uuid,status text DEFAULT 'active',blocked_at timestamptz);
-CREATE TABLE public.role_permissions(role_id uuid,tenant_id uuid,permission_key text,can_view boolean DEFAULT false);
+CREATE TABLE public.role_permissions(role_id uuid,tenant_id uuid,permission_key text,can_view boolean DEFAULT false,can_create boolean DEFAULT false);
 CREATE TABLE public.role_permission_sets(tenant_id uuid,role_key text,permission_key text);
 CREATE TABLE public.employee_permission_overrides(tenant_id uuid,employee_id uuid,permission_key text,allowed boolean,valid_from timestamptz,valid_until timestamptz);
 CREATE TABLE public.employee_role_assignments(tenant_id uuid,employee_id uuid,role_template_id uuid,role_key text);

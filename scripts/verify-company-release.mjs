@@ -9,6 +9,9 @@ const tests = ['tenant', 'inventory', 'documents', 'navigation'].flatMap(directo
     .filter(name => /\.test\.tsx?$/.test(name) && relevant.test(name))
     .map(name => `src/__tests__/${directory}/${name}`),
 ).sort();
+tests.push(...readdirSync(resolve(root, 'src/__tests__/office'))
+  .filter(name => /^(?:office)?catalogWorkspace.*\.test\.tsx?$/i.test(name))
+  .map(name => `src/__tests__/office/${name}`));
 function run(label, args) {
   console.log(`\n[company-release] ${label}`);
   const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit' });

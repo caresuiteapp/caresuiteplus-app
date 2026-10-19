@@ -78,4 +78,30 @@ describe('company catalogue confirms price persistence', () => {
     expect((await saveTenantServiceCatalogItem('tenant-a', input, 'business_admin')).ok).toBe(false);
     expect(f.queries).toHaveLength(1);
   });
+  it('rejects locked modules and invalid validity periods before any write', async () => {
+    for (const patch of [
+      { moduleKey: 'pflege' as const },
+      { validFrom: '2026-02-30' },
+      { validFrom: '2026-10-19', validTo: '2026-10-18' },
+      { validFrom: '' },
+      { validTo: '2000-01-01' },
+    ]) expect((await saveTenantServiceCatalogItem('tenant-a', { ...input, ...patch }, 'business_admin')).ok).toBe(false);
+    expect(f.queries).toHaveLength(0);
+  });
+  it('saves an explicit validity end and can remove a previous end date', async () => {
+    for (const validTo of ['2027-12-31', null]) {
+      f.queries = []; f.replies = [success(), success({ ...oldPrice, valid_to: '2026-12-31' }), success(), success(), success([])];
+      expect((await saveTenantServiceCatalogItem('tenant-a', { ...input, validFrom: '2026-01-01', validTo }, 'business_admin')).ok).toBe(true);
+      expect(f.queries.find(query => query.table === 'tenant_service_prices' && query.action === 'update')?.payload).toMatchObject({ valid_from: '2026-01-01', valid_to: validTo });
+    }
+  });
+  it('reports multiple default prices instead of choosing one arbitrarily', async () => {
+    f.replies = [success([{ id: 'item-a' }]), success([{ catalog_id: 'item-a', price_net: 20 }, { catalog_id: 'item-a', price_net: 40 }])];
+    expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin')).toMatchObject({ ok: false, error: expect.stringContaining('mehrere Standardpreise') });
+  });
+  it('scopes the editor read to its module so unrelated prices cannot block it', async () => {
+    f.replies = [success([])];
+    expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(true);
+    expect(f.queries[0].filters).toContainEqual(['module_key', 'assist']);
+  });
 });

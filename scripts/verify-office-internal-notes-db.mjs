@@ -33,7 +33,7 @@ const read = (box='sent',id=null,tenant=ids.tenant,limit=50,offset=0) => value('
 const update = (id,revision,action='read',status=null,response=null) => value('SELECT public.office_internal_note_delivery_update($1,$2,$3,$4,$5,$6) AS result',[ids.tenant,id,revision,action,status,response]);
 
 try {
-  for (const file of ['scripts/fixtures/office-internal-notes-test-schema.sql','supabase/migrations/20261015085833_company_access.sql','supabase/migrations/20261017060524_office_private_notes.sql','scripts/sql/office-internal-notes.sql']) await db.exec(readFileSync(resolve(root,file),'utf8'));
+  for (const file of ['scripts/fixtures/office-internal-notes-test-schema.sql','supabase/migrations/20261015085833_company_access.sql','supabase/migrations/20261017060524_office_private_notes.sql','supabase/migrations/20261019003023_office_internal_notes.sql','scripts/sql/office-internal-notes-access.sql']) await db.exec(readFileSync(resolve(root,file),'utf8'));
   for (const id of [ids.sender,ids.otherSender,ids.employeeUser,ids.employeeUser2,ids.outsider,ids.otherTenantUser,ids.viewer]) await db.query('INSERT INTO auth.users(id) VALUES($1)',[id]);
   await db.query('INSERT INTO public.tenants VALUES($1),($2)',[ids.tenant,ids.otherTenant]);
   await db.query("INSERT INTO public.roles(id,key,is_admin_role) VALUES($1,'owner',true),($2,'viewer',false)",[ids.ownerRole,ids.viewerRole]);
@@ -167,6 +167,51 @@ try {
     assert.equal(result.rows.length,4); assert.ok(result.rows.every(row=>row.prosecdef===false));
     const grants=await owner("SELECT has_table_privilege('authenticated','care_security.office_internal_notes','SELECT') AS reads,has_table_privilege('authenticated','care_security.office_internal_note_deliveries','UPDATE') AS writes");
     assert.equal(grants.rows[0].reads,false); assert.equal(grants.rows[0].writes,false);
+  });
+  await pass('legacy messages.can_create grants recipient selection and sending without changing company permissions',async()=>{
+    // Actual older production roles contain an explicit Office grant and a
+    // coarse messages grant, but no exact communication.send_message row.
+    await owner("INSERT INTO public.role_permissions(role_id,permission_key,can_create) VALUES($1,'office.access',false),($1,'messages',true)",[ids.ownerRole]);
+    await actor();
+    assert.equal(await value("SELECT care_security.company_actor($1,'communication.send_message') AS result",[ids.tenant]),false);
+    assert.equal((await recipients()).total,1);
+    const legacyReceipt=await send(payload({recipient_employee_ids:[ids.employee2]}));
+    assert.equal((await read('sent',legacyReceipt.dispatch_id)).items[0].deliveries.length,1);
+    await owner("UPDATE public.role_permissions SET can_create=false WHERE role_id=$1 AND permission_key='messages'",[ids.ownerRole]);
+    await actor(); await denied(recipients()); await denied(send(payload({recipient_employee_ids:[ids.employee2]})));
+    await owner("UPDATE public.role_permissions SET can_create=true,tenant_id=$1 WHERE role_id=$2 AND permission_key='messages'",[ids.otherTenant,ids.ownerRole]);
+    await actor(); await denied(recipients());
+    await owner("UPDATE public.role_permissions SET tenant_id=NULL WHERE role_id=$1 AND permission_key='messages'",[ids.ownerRole]);
+    await actor(); assert.equal((await recipients()).total,1);
+  });
+  await pass('legacy sending cannot bypass tenant replacement sets, explicit employee denial, scope or inactive identity',async()=>{
+    await owner("INSERT INTO public.role_permission_sets(tenant_id,role_key,permission_key) VALUES($1,'owner','office.access')",[ids.tenant]);
+    await actor(); await denied(recipients()); await denied(send(payload({recipient_employee_ids:[ids.employee2]})));
+    await owner('DELETE FROM public.role_permission_sets');
+    const senderEmployee=randomUUID();
+    await owner("INSERT INTO public.employees(id,tenant_id,profile_id,first_name,last_name,status) VALUES($1,$2,$3,'Sending','Employee','active')",[senderEmployee,ids.tenant,ids.senderProfile]);
+    for (const permission of ['communication.send_message','messages']) {
+      await owner("INSERT INTO public.employee_permission_overrides(tenant_id,employee_id,permission_key,allowed) VALUES($1,$2,$3,false)",[ids.tenant,senderEmployee,permission]);
+      await actor(); await denied(recipients()); await denied(send(payload({recipient_employee_ids:[ids.employee2]})));
+      await owner('DELETE FROM public.employee_permission_overrides WHERE employee_id=$1',[senderEmployee]);
+    }
+    // Exact grants retain their existing precedence; the coarse legacy deny
+    // only disables the legacy fallback, not an explicitly granted action.
+    await owner("INSERT INTO public.role_permissions(role_id,permission_key) VALUES($1,'communication.send_message')",[ids.ownerRole]);
+    await owner("INSERT INTO public.employee_permission_overrides(tenant_id,employee_id,permission_key,allowed) VALUES($1,$2,'messages',false)",[ids.tenant,senderEmployee]);
+    await actor(); assert.equal((await recipients()).total,1);
+    await owner("INSERT INTO public.employee_permission_overrides(tenant_id,employee_id,permission_key,allowed) VALUES($1,$2,'communication.send_message',false)",[ids.tenant,senderEmployee]);
+    await actor(); await denied(recipients()); await denied(send(payload({recipient_employee_ids:[ids.employee2]})));
+    await owner('DELETE FROM public.employee_permission_overrides WHERE employee_id=$1',[senderEmployee]);
+    await owner("DELETE FROM public.role_permissions WHERE role_id=$1 AND permission_key='communication.send_message'",[ids.ownerRole]);
+    await owner("INSERT INTO public.employee_data_scopes(tenant_id,employee_id,module,scope_type,scope_value) VALUES($1,$2,'office','location','other')",[ids.tenant,senderEmployee]);
+    await actor(); await denied(recipients());
+    await owner('DELETE FROM public.employee_data_scopes WHERE employee_id=$1',[senderEmployee]);
+    await owner('UPDATE public.profiles SET is_active=false WHERE id=$1',[ids.senderProfile]);
+    await actor(); await denied(recipients());
+    await owner('UPDATE public.profiles SET is_active=true WHERE id=$1',[ids.senderProfile]);
+    await actor(); assert.equal((await recipients()).total,1);
+    await denied(db.query('SELECT care_security.internal_note_can_send($1)',[ids.tenant]));
   });
   console.log(`[office-internal-notes-db] ${checks} isolated PostgreSQL checks passed; no hosted data accessed.`);
 } catch(error) { console.error(`[office-internal-notes-db] FAIL ${error.code??''}: ${error.message}${error.where?' ('+error.where+')':''}`); process.exitCode=1;

@@ -55,6 +55,27 @@ RETURNS text LANGUAGE sql IMMUTABLE STRICT SET search_path=pg_catalog AS $body$
     ||chr(8196)||chr(8197)||chr(8198)||chr(8199)||chr(8200)||chr(8201)||chr(8202)||chr(8232)||chr(8233)||chr(8239)||chr(8287)||chr(12288)||chr(65279))
 $body$;
 
+-- Older role rows grant sending through messages.can_create. Keep that existing
+-- grant usable here without broadening company permissions or ignoring a more
+-- specific employee denial / tenant replacement permission set.
+CREATE OR REPLACE FUNCTION care_security.internal_note_can_send(p_tenant uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $body$
+DECLARE v_profile uuid; v_role uuid; v_role_key text;
+BEGIN
+  IF NOT coalesce(care_security.internal_note_auth_active(auth.uid())
+    AND care_security.company_actor(p_tenant,'office.access'),false) THEN RETURN false; END IF;
+  IF coalesce(care_security.company_actor(p_tenant,'communication.send_message'),false) THEN RETURN true; END IF;
+  v_profile:=care_security.company_profile(p_tenant);
+  IF v_profile IS NULL THEN RETURN false; END IF;
+  SELECT p.role_id,r.key INTO v_role,v_role_key FROM public.profiles p JOIN public.roles r ON r.id=p.role_id WHERE p.id=v_profile;
+  IF EXISTS(SELECT 1 FROM public.role_permission_sets s WHERE s.tenant_id=p_tenant AND s.role_key=v_role_key)
+    OR EXISTS(SELECT 1 FROM public.employee_permission_overrides o JOIN public.employees e ON e.id=o.employee_id AND e.tenant_id=o.tenant_id
+      WHERE e.profile_id=v_profile AND o.tenant_id=p_tenant AND o.permission_key IN ('communication.send_message','messages') AND o.allowed IS FALSE
+        AND (o.valid_from IS NULL OR o.valid_from<=now()) AND (o.valid_until IS NULL OR o.valid_until>=now())) THEN RETURN false; END IF;
+  RETURN EXISTS(SELECT 1 FROM public.role_permissions rp WHERE rp.role_id=v_role AND rp.permission_key='messages' AND rp.can_create IS TRUE
+    AND (to_jsonb(rp)->>'tenant_id' IS NULL OR to_jsonb(rp)->>'tenant_id'=p_tenant::text));
+END $body$;
+
 CREATE OR REPLACE FUNCTION care_security.internal_note_recipients(p_tenant uuid)
 RETURNS TABLE(employee_id uuid,display_name text,recipient_user_id uuid,portal_account_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $body$
@@ -95,7 +116,7 @@ CREATE OR REPLACE FUNCTION care_security.office_internal_note_recipients(p_tenan
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $body$
 DECLARE v_result jsonb;
 BEGIN
-  IF NOT coalesce(care_security.internal_note_auth_active(auth.uid()) AND care_security.company_actor(p_tenant_id,'office.access') AND care_security.company_actor(p_tenant_id,'communication.send_message'),false) THEN
+  IF NOT care_security.internal_note_can_send(p_tenant_id) THEN
     RAISE EXCEPTION 'Active Office sending access required' USING ERRCODE='42501'; END IF;
   IF p_query IS NULL OR length(p_query)>120 OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 OR p_offset IS NULL OR p_offset<0 THEN
     RAISE EXCEPTION 'Invalid recipient query' USING ERRCODE='22023'; END IF;
@@ -112,7 +133,7 @@ DECLARE v_payload jsonb; v_ids uuid[]; v_count integer; v_date date; v_note care
 BEGIN
   IF auth.uid() IS NULL OR auth.uid() IS DISTINCT FROM p_sender_user_id OR p_tenant_id IS DISTINCT FROM public.current_tenant_id() THEN
     RAISE EXCEPTION 'Sending identity changed; reopen the reviewed draft' USING ERRCODE='42501'; END IF;
-  IF NOT coalesce(care_security.internal_note_auth_active(auth.uid()) AND care_security.company_actor(p_tenant_id,'office.access') AND care_security.company_actor(p_tenant_id,'communication.send_message'),false) THEN
+  IF NOT care_security.internal_note_can_send(p_tenant_id) THEN
     RAISE EXCEPTION 'Active Office sending access required' USING ERRCODE='42501'; END IF;
   IF p_request_id IS NULL OR p_payload IS NULL OR jsonb_typeof(p_payload)<>'object' THEN
     RAISE EXCEPTION 'Invalid send request' USING ERRCODE='22023'; END IF;
@@ -227,7 +248,7 @@ CREATE OR REPLACE FUNCTION public.office_internal_note_delivery_update(p_tenant_
 RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path=pg_catalog AS $body$
   SELECT care_security.office_internal_note_delivery_update(p_tenant_id,p_delivery_id,p_expected_revision,p_action,p_status,p_response)
 $body$;
-REVOKE ALL ON FUNCTION care_security.internal_note_trim(text),care_security.internal_note_auth_active(uuid),care_security.internal_note_recipients(uuid),care_security.internal_note_employee(uuid),
+REVOKE ALL ON FUNCTION care_security.internal_note_trim(text),care_security.internal_note_auth_active(uuid),care_security.internal_note_can_send(uuid),care_security.internal_note_recipients(uuid),care_security.internal_note_employee(uuid),
   care_security.internal_note_delivery_json(care_security.office_internal_note_deliveries) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION care_security.office_internal_note_recipients(uuid,text,integer,integer),care_security.office_internal_note_send(uuid,uuid,uuid,jsonb),
   care_security.office_internal_note_read(uuid,text,uuid,integer,integer),care_security.office_internal_note_delivery_update(uuid,uuid,integer,text,text,text) FROM PUBLIC,anon,authenticated,service_role;
