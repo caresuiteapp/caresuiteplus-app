@@ -138,6 +138,12 @@ export type ClientIntakeFormData = {
   documentCategories: string[];
   hourlyRate: string;
   taskCategories: string[];
+  /** Fachliche Aufnahmeentscheidung; never inferred from a saved draft or document. */
+  intakeCareNeedSummary: string;
+  intakeCapacityStatus: '' | 'confirmed' | 'not_confirmed' | 'unavailable';
+  intakeCapacityReference: string;
+  intakeAdmissionDecision: '' | 'accepted' | 'rejected' | 'pending';
+  intakeAdmissionDecisionReason: string;
 };
 
 export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
@@ -275,6 +281,11 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   documentCategories: [],
   hourlyRate: '',
   taskCategories: [],
+  intakeCareNeedSummary: '',
+  intakeCapacityStatus: '',
+  intakeCapacityReference: '',
+  intakeAdmissionDecision: '',
+  intakeAdmissionDecisionReason: '',
 };
 
 export type ClientIntakeErrors = Partial<Record<string, string>>;

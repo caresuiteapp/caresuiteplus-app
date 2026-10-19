@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalOfficeMessages(
   filter: PortalOfficeInboxFilter = 'open',
@@ -24,11 +25,14 @@ export function usePortalOfficeMessages(
     roleKey,
     displayName,
     isLinkedReady,
+    familyAccess,
   } = usePortalActor();
   const portalAccountId = portalSession?.accountId ?? null;
   const portalClientId = portalSession?.clientId ?? null;
   const portalEmployeeId = portalSession?.employeeId ?? null;
   const portalRoleKey = portalSession?.roleKey ?? null;
+  const familyMessagesAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'messages');
 
   const query = useAsyncQuery(
     () => {
@@ -57,7 +61,7 @@ export function usePortalOfficeMessages(
       clientId,
       employeeId,
     ],
-    { enabled: enabled && !!tenantId && isLinkedReady, queryKey: JSON.stringify([tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter]) },
+    { enabled: enabled && !!tenantId && isLinkedReady && familyMessagesAllowed, queryKey: JSON.stringify([tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter]) },
   );
 
   const refresh = query.refresh;
@@ -78,7 +82,9 @@ export function usePortalOfficeMessages(
           query.error,
           'Ihre Nachrichten konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
         )
-      : null,
+      : roleKey === 'family_portal' && !familyMessagesAllowed
+        ? 'Nachrichten sind für diesen Angehörigenzugang nicht freigegeben.'
+        : null,
     refreshing: query.refreshing,
     refresh,
     refreshWithResult: query.refreshWithResult,

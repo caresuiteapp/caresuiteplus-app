@@ -124,6 +124,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'contract-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       contractNumber: 'PV-2025-0018', contractStart: '2025-02-01', contractEnd: null,
+      contractPartner: 'Techniker Krankenkasse', serviceBasis: 'Ambulante Sachleistung nach SGB XI', contractVersion: 1,
       serviceType: 'sachleistung', hourlyRateCents: 4200, weeklyHours: 10,
       status: 'aktiv', signedAt: daysAgo(150), documentId: 'doc-wm-contract',
       notes: 'Körperpflege und Grundpflege', createdAt: daysAgo(150), updatedAt: now,

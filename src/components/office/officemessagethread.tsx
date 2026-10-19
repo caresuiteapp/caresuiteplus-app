@@ -18,6 +18,7 @@ import { officeMessengerEmptyStyles } from '@/components/office/officemessengerl
 import { usePermissions } from '@/hooks/usePermissions';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { isClosedAppStatus } from '@/lib/office/messagestatuslabels';
+import { planOfficeMessageOpen } from '@/lib/office/messageFollowUpState';
 
 type OfficeMessageThreadProps = {
   threadId: string | null;
@@ -166,9 +167,8 @@ export function OfficeMessageThread({
 
   useEffect(() => {
     if (!threadId || !detail) return;
-    const needsReadTransition =
-      detail.unreadCount > 0 || detail.status === 'new' || detail.status === 'received';
-    if (!needsReadTransition) return;
+    const openPlan = planOfficeMessageOpen(detail);
+    if (!openPlan.markMessagesRead) return;
 
     const readKey = `${threadId}:${detail.lastMessageAt ?? detail.updatedAt}`;
     if (processedReadKeyRef.current === readKey) return;
@@ -180,16 +180,9 @@ export function OfficeMessageThread({
         setLifecycleError(readResult.error);
         return;
       }
-      if (detail.status === 'new' || detail.status === 'received') {
-        const statusResult = await updateStatus('in_progress');
-        if (!statusResult.ok) {
-          setLifecycleError(statusResult.error);
-          return;
-        }
-      }
       onThreadChanged?.();
     })();
-  }, [detail, markAsRead, onThreadChanged, threadId, updateStatus]);
+  }, [detail, markAsRead, onThreadChanged, threadId]);
 
   if (!threadId) {
     return (

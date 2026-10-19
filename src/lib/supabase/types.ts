@@ -14863,12 +14863,15 @@ export type Database = {
           client_id: string
           contract_end: string | null
           contract_number: string
+          contract_partner: string | null
           contract_start: string
+          contract_version: number | null
           created_at: string
           document_id: string | null
           hourly_rate_cents: number
           id: string
           notes: string | null
+          service_basis: string | null
           service_type: string
           signed_at: string | null
           status: string
@@ -14880,12 +14883,15 @@ export type Database = {
           client_id: string
           contract_end?: string | null
           contract_number: string
+          contract_partner?: string | null
           contract_start: string
+          contract_version?: number | null
           created_at?: string
           document_id?: string | null
           hourly_rate_cents?: number
           id?: string
           notes?: string | null
+          service_basis?: string | null
           service_type?: string
           signed_at?: string | null
           status?: string
@@ -14897,12 +14903,15 @@ export type Database = {
           client_id?: string
           contract_end?: string | null
           contract_number?: string
+          contract_partner?: string | null
           contract_start?: string
+          contract_version?: number | null
           created_at?: string
           document_id?: string | null
           hourly_rate_cents?: number
           id?: string
           notes?: string | null
+          service_basis?: string | null
           service_type?: string
           signed_at?: string | null
           status?: string

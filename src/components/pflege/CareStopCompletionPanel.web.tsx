@@ -1,0 +1,29 @@
+import { useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
+import { ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { CareWriteReconciliationNotice } from './CareWriteReconciliationNotice';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { formatTime } from '@/lib/formatters/dateTimeFormatters';
+import type { RoleKey } from '@/types';
+import { completeCareStop, fetchCareStopCompletionContext, newCareStopCompletionRequestId, type CareStopCompletionContext } from '@/lib/pflege/careStopCompletionService';
+import { validateCareStopCompletionDraft, type CareStopCompletionInput, type CareStopRiskState } from '@/lib/pflege/careStopCompletionDomain';
+import { freezeCareStopWriteRequest } from '@/lib/pflege/careStopWriteReconciliationDomain';
+
+export function CareStopCompletionPanel({stopId,tenantId,role,disabled,onCompleted}:{stopId:string;tenantId:string;role?:RoleKey|null;disabled?:boolean;onCompleted:()=>void|Promise<void>}){
+ const {c}=useCareLightPalette();const [context,setContext]=useState<CareStopCompletionContext|null>(null);const [documentation,setDocumentation]=useState('');const [mandatoryConfirmed,setMandatoryConfirmed]=useState(false);const [riskState,setRiskState]=useState<CareStopRiskState|''>('');const [riskDetail,setRiskDetail]=useState('');const [riskAction,setRiskAction]=useState('');const [followUp,setFollowUp]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');const frozen=useRef<CareStopCompletionInput|null>(null);const alive=useRef(true);
+ async function load(){setBusy(true);setError('');const r=await fetchCareStopCompletionContext(tenantId,role,stopId);if(!alive.current)return;setBusy(false);if(!r.ok)setError(r.error);else setContext(r.data);}
+ useEffect(()=>{alive.current=true;frozen.current=null;void load();return()=>{alive.current=false;};},[stopId,tenantId,role]);
+ async function submit(){if(busy||!context)return;if(!frozen.current){const draft={documentation,mandatoryConfirmed,riskState,riskDetail,riskAction,followUp};const checked=validateCareStopCompletionDraft(draft);if(!checked.ok){setError(checked.error);return;}frozen.current={...checked.data,stopId,expectedStopUpdatedAt:context.stopUpdatedAt,requestId:newCareStopCompletionRequestId()};}setBusy(true);setError('');const r=await completeCareStop(tenantId,role,frozen.current);if(!alive.current)return;setBusy(false);if(!r.ok){setError(`${r.error} Bei unklarem Ausgang dieselbe unveränderte Anfrage erneut senden.`);return;}frozen.current=null;await onCompleted();}
+ const reconciliation=(()=>{if(!frozen.current)return null;const{requestId,...payload}=frozen.current;return freezeCareStopWriteRequest('stop_completion',requestId,payload);})();
+ async function acceptReconciliation(){frozen.current=null;setError('');await onCompleted();}
+ if(busy&&!context)return <LoadingState message="Abschlussvoraussetzungen werden geprüft…"/>;
+ return <SectionPanel title="Einsatz sicher abschließen" subtitle="Pflichtangaben · offene Risiken · tatsächliche Zeiten · Freigabe getrennt">
+  {error?<ErrorState message={error} onRetry={()=>void load()}/>:null}{reconciliation?<CareWriteReconciliationNotice tenantId={tenantId} role={role} request={reconciliation} disabled={busy||disabled} onConfirmed={()=>acceptReconciliation()}/>:null}
+  {context?<><Text style={{color:c.text}}>Tatsächlicher Beginn: {formatTime(context.actualStartedAt)} · Planaufgaben: {context.documentedTaskCount}/{context.plannedTaskCount} dokumentiert</Text>{context.openTaskCount>0?<Text accessibilityRole="alert" style={{color:c.danger}}>Noch {context.openTaskCount} Planaufgaben ohne Einzeldokumentation. Abschluss bleibt gesperrt.</Text>:null}{context.deviationCount>0?<Text accessibilityRole="alert" style={{color:c.warning}}>In {context.deviationCount} Aufgabennachweisen liegt eine Abweichung/Nichtdurchführung vor. Risiko und Folgeschritt ausdrücklich dokumentieren.</Text>:null}
+  <PremiumInput label="Pflichtdokumentation / Besonderheiten" value={documentation} onChangeText={setDocumentation} multiline editable={!busy&&!disabled&&!frozen.current}/>
+  <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}><PremiumButton variant="secondary" title={`${mandatoryConfirmed?'Bestätigt: ':''}Alle Pflichtangaben geprüft`} disabled={busy||disabled||!!frozen.current} onPress={()=>setMandatoryConfirmed(v=>!v)}/><PremiumButton variant="secondary" title={`${riskState==='none'?'Ausgewählt: ':''}Keine offenen Risiken`} disabled={busy||disabled||!!frozen.current} onPress={()=>{setRiskState('none');setRiskDetail('');setRiskAction('');setFollowUp('');}}/><PremiumButton variant="secondary" title={`${riskState==='documented'?'Ausgewählt: ':''}Offenes Risiko dokumentieren`} disabled={busy||disabled||!!frozen.current} onPress={()=>setRiskState('documented')}/></View>
+  {riskState==='documented'?<><PremiumInput label="Offenes Risiko / Abweichung" value={riskDetail} onChangeText={setRiskDetail} multiline editable={!busy&&!disabled&&!frozen.current}/><PremiumInput label="Getroffene Maßnahme" value={riskAction} onChangeText={setRiskAction} multiline editable={!busy&&!disabled&&!frozen.current}/><PremiumInput label="Verbindlicher Folgeauftrag / Zuständigkeit" value={followUp} onChangeText={setFollowUp} multiline editable={!busy&&!disabled&&!frozen.current}/></>:null}
+  <Text style={{color:c.muted}}>Der Server setzt das tatsächliche Ende. Der Abschluss erzeugt eine neue Dokumentation und einen unveränderlichen Abschlussbeleg; er ist keine pflegerische, rechtliche oder abrechnungsbezogene Freigabe. Freigabestatus bleibt „ausstehend“.</Text><PremiumButton title={frozen.current?'Dieselbe Abschlussanfrage erneut senden':'Einsatz dokumentiert abschließen'} disabled={busy||disabled||context.openTaskCount>0} loading={busy} onPress={()=>void submit()}/></>:null}
+ </SectionPanel>;
+}
+

@@ -1,17 +1,16 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-
-function readClientId(data: { client_id?: string | null } | null): string | null {
-  const clientId = data?.client_id;
-  return clientId?.trim() || null;
-}
+import {
+  isClientPortalScopeId,
+  resolveClientPortalLinkRow,
+} from './clientPortalActorScope';
 
 /** Reads client_id for the signed-in auth user — fallback when session lacks clientId. */
 export async function fetchPortalClientIdForAuthUser(
   tenantId: string,
 ): Promise<string | null> {
-  if (!tenantId.trim()) return null;
+  if (!isClientPortalScopeId(tenantId)) return null;
 
   const supabase = getSupabaseClient();
   if (!supabase) return null;
@@ -20,7 +19,7 @@ export async function fetchPortalClientIdForAuthUser(
   if (authError || !authData.user?.id) return null;
 
   const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
-    .select('client_id')
+    .select('id, tenant_id, client_id')
     .eq('tenant_id', tenantId)
     .eq('auth_user_id', authData.user.id)
     .eq('portal_enabled', true)
@@ -33,14 +32,19 @@ export async function fetchPortalClientIdForAuthUser(
     return null;
   }
 
-  const clientId = readClientId(data as { client_id?: string | null } | null);
+  const access = data as {
+    id?: string | null;
+    tenant_id?: string | null;
+    client_id?: string | null;
+  } | null;
+  const clientId = resolveClientPortalLinkRow(tenantId, access);
   if (clientId) return clientId;
 
   const { data: relativeData, error: relativeError } = await fromUnknownTable(
     supabase,
     'relative_portal_codes',
   )
-    .select('client_id')
+    .select('id, tenant_id, client_id')
     .eq('tenant_id', tenantId)
     .eq('auth_user_id', authData.user.id)
     .maybeSingle();
@@ -52,7 +56,12 @@ export async function fetchPortalClientIdForAuthUser(
     return null;
   }
 
-  return readClientId(relativeData as { client_id?: string | null } | null);
+  const relative = relativeData as {
+    id?: string | null;
+    tenant_id?: string | null;
+    client_id?: string | null;
+  } | null;
+  return resolveClientPortalLinkRow(tenantId, relative);
 }
 
 /** Reads client_id for a portal access row — RLS scopes to the signed-in portal actor. */
@@ -60,13 +69,13 @@ export async function fetchPortalClientIdByAccessAccount(
   tenantId: string,
   portalAccountId: string,
 ): Promise<string | null> {
-  if (!tenantId.trim() || !portalAccountId.trim()) return null;
+  if (!isClientPortalScopeId(tenantId) || !isClientPortalScopeId(portalAccountId)) return null;
 
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
   const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
-    .select('client_id')
+    .select('id, tenant_id, client_id')
     .eq('tenant_id', tenantId)
     .eq('id', portalAccountId)
     .maybeSingle();
@@ -78,7 +87,12 @@ export async function fetchPortalClientIdByAccessAccount(
     return null;
   }
 
-  const clientId = readClientId(data as { client_id?: string | null } | null);
+  const access = data as {
+    id?: string | null;
+    tenant_id?: string | null;
+    client_id?: string | null;
+  } | null;
+  const clientId = resolveClientPortalLinkRow(tenantId, access, portalAccountId);
   if (clientId) return clientId;
 
   return fetchPortalClientIdForAuthUser(tenantId);

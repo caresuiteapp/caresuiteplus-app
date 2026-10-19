@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { TrainingInstructionBoundaryPanel } from '@/components/office/TrainingInstructionBoundaryPanel';
+import { TrainingDeadlineBoundaryPanel } from '@/components/office/TrainingDeadlineBoundaryPanel';
 import { ScreenShell } from '@/components/layout';
 import { InfoBanner, LoadingState, PremiumCard, SectionPanel } from '@/components/ui';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
@@ -65,6 +67,8 @@ export function TrainingManagementScreen() {
         <InfoBanner message={TRAINING_PREPARED_MESSAGE} variant="info" />
       ) : null}
       {error ? <InfoBanner message={error} variant="warning" /> : null}
+      <TrainingInstructionBoundaryPanel />
+      <TrainingDeadlineBoundaryPanel />
 
       <SectionPanel title="Dashboard">
         <View style={styles.tileGrid}>

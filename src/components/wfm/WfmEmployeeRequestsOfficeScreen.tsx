@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
+import { AbsenceReturnBoundaryPanel } from '@/components/wfm/AbsenceReturnBoundaryPanel';
 import {
   EmptyState,
   ErrorState,
@@ -156,6 +157,8 @@ export function WfmEmployeeRequestsOfficeScreen() {
 
   return (
     <ScreenShell title="Abwesenheiten" subtitle="Urlaub und Abwesenheiten" showBack={false} scroll>
+      <AbsenceReturnBoundaryPanel />
+
       <AuroraSegmentedControl
         options={FILTER_OPTIONS}
         value={filter}

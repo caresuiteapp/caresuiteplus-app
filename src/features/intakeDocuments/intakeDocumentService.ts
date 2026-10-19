@@ -14,6 +14,7 @@ import {
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
 import {
   listTenantIntakeDocumentTemplates,
+  confirmPersistedIntakeDocumentsForClient,
   persistIntakeDocumentsForClient,
 } from './intakeDocumentRepository';
 import type {
@@ -434,6 +435,16 @@ export async function persistClientIntakeDocuments(
     return { ok: true, data: undefined };
   }
   return persistIntakeDocumentsForClient(tenantId, clientId, form, actorProfileId);
+}
+
+export async function confirmClientIntakeDocuments(
+  tenantId: string,
+  clientId: string,
+  form: ClientIntakeFormData,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<void>> {
+  if (getServiceMode() !== 'supabase') return { ok: true, data: undefined };
+  return confirmPersistedIntakeDocumentsForClient(tenantId, clientId, form, actorProfileId);
 }
 
 export function resolveDefaultContractType(form: ClientIntakeFormData): string | null {

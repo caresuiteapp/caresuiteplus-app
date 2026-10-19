@@ -23,21 +23,20 @@ describe('employee portal R23 production acceptance', () => {
     }
   });
 
-  it('uses tenant-wide client records and the complete team calendar without cross-tenant reads', () => {
+  it('limits client records to the authenticated employee assignments', () => {
     const clients = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
-    const calendarHook = readSrc('src/hooks/useEmployeePortalCalendarEvents.ts');
-    const migration = readSrc(
-      'supabase/migrations/20260801170000_employee_portal_team_records_calendar.sql',
-    );
+    const patch = readSrc('supabase/patches/ambulatory_employee_portal_scope.sql');
 
-    expect(clients).toContain('loadAllTenantClients');
-    expect(clients).toContain('loadTeamClientVisits');
+    expect(clients).toContain('loadEmployeeClientVisits');
+    expect(clients).toContain(".eq('employee_id', employeeId)");
+    expect(clients).toContain('loadClientsByIds');
+    expect(clients).not.toContain('loadAllTenantClients');
+    expect(clients).not.toContain('fetchLivePortalAppointmentsForEmployeeTeam');
     expect(clients).toContain(".eq('tenant_id', tenantId)");
     expect(clients).toContain('sanitizeEmployeePortalPayload');
-    expect(calendarHook).toContain('getEmployeePortalTeamCalendarEvents');
-    expect(migration).toContain('tenant_id = public.current_tenant_id()');
-    expect(migration).toContain('public.is_employee_portal_rls_context(tenant_id)');
-    expect(migration).not.toMatch(/FOR\s+(INSERT|UPDATE|DELETE)/i);
+    expect(patch).toContain('tenant_id = public.current_tenant_id()');
+    expect(patch).toContain('employee_id = public.resolve_current_employee_id()');
+    expect(patch).not.toMatch(/FOR\s+(INSERT|UPDATE|DELETE)/i);
   });
 
   it('never returns soft-deleted conversations to employee or client portals', () => {

@@ -27,6 +27,7 @@ import {
   type LegalDocumentTemplateKey,
 } from '@/lib/clients/legalDocumentWorkflowService';
 import { spacing, typography } from '@/theme';
+import { ClientFinancingWorkspace } from '@/components/office/ClientFinancingWorkspace';
 
 const TEMPLATES: { key: LegalDocumentTemplateKey; label: string }[] = [
   { key: 'datenschutz', label: 'Datenschutzeinwilligung' },
@@ -176,6 +177,8 @@ export function ClientLegalDocumentsScreen({ focus }: ClientLegalDocumentsScreen
         />
         {actionError ? <InfoBanner variant="danger" title="Fehler" message={actionError} /> : null}
         {savedOk ? <SuccessState message="Dokument in Klient:innenakte gespeichert." /> : null}
+
+        {focus === 'contracts' ? <ClientFinancingWorkspace clientId={clientId} /> : null}
 
         <SectionPanel title="Vorlage wählen">
           <View style={styles.templateRow}>

@@ -1,0 +1,12 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {readPlanAmendmentHistory} from '../../src/lib/careAssessment/planAmendmentHistoryRuntime.ts';
+import {planAmendmentHistoryVersion} from '../../src/lib/careAssessment/planAmendmentHistoryDomain.ts';
+import {historyRecord} from './fixtures/plan-amendment-history.mjs';
+import {tenant,assessment,client,now,id} from './fixtures/plan-amendment.mjs';
+const env=records=>({version:planAmendmentHistoryVersion,tenantId:tenant,assessmentId:assessment,count:records.length,records});
+test('read-only RPC validates all original records',async()=>{let calls=0;const r=await readPlanAmendmentHistory(async(name,args)=>{calls++;assert.equal(name,'read_ambulatory_plan_amendments');assert.deepEqual(args,{requested_tenant:tenant,requested_assessment:assessment});return {data:env([historyRecord()]),error:null};},tenant,assessment,client,now);assert(r.ok);assert.equal(r.data.length,1);assert.equal(calls,1);});
+for(const index of [0,1,2])test(`invalid context ${index} never invokes RPC`,async()=>{const args=[tenant,assessment,client];args[index]='';let calls=0;const r=await readPlanAmendmentHistory(async()=>{calls++;return {data:null,error:null};},...args,now);assert.equal(r.ok,false);assert.equal(calls,0);});
+for(const code of ['42501','54000','08006'])test(`database ${code} is not an empty successful history`,async()=>{const r=await readPlanAmendmentHistory(async()=>({data:env([]),error:{code,message:'Historie nicht erreichbar'}}),tenant,assessment,client,now);assert.equal(r.ok,false);assert.equal(r.error,'Historie nicht erreichbar');});
+test('transport exception remains visible',async()=>{const r=await readPlanAmendmentHistory(async()=>{throw Error('Timeout');},tenant,assessment,client,now);assert.equal(r.ok,false);assert.equal(r.error,'Timeout');});
+for(const [name,data] of [['missing data',null],['raw array',[]],['wrong tenant',{...env([]),tenantId:id(99)}],['partial history',{...env([]),count:1}],['one corrupt record',env([{...historyRecord(),actorName:''}])]])test(name,async()=>{const r=await readPlanAmendmentHistory(async()=>({data,error:null}),tenant,assessment,client,now);assert.equal(r.ok,false);});
+test('confirmed complete empty response stays distinguishable',async()=>{const r=await readPlanAmendmentHistory(async()=>({data:env([]),error:null}),tenant,assessment,client,now);assert.deepEqual(r,{ok:true,data:[]});});

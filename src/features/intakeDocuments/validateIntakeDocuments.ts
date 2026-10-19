@@ -70,7 +70,8 @@ export function validateIntakeDocumentsStep(
     complete: privacyOk,
   });
   if (!privacyOk) {
-    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
+    errors.intakePrivacy =
+      `Datenschutz-Einwilligung muss vor der Aktivierung vollständig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
 
   const contractKey = resolveContractTemplateKey(form);
@@ -85,7 +86,8 @@ export function validateIntakeDocumentsStep(
     complete: contractOk,
   });
   if (!contractOk) {
-    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie können die Aufnahme als Entwurf speichern.`;
+    errors.intakeContract =
+      `Kundenvertrag muss vor der Aktivierung vollständig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
   }
 
   if (form.intakeAssignmentEnabled) {

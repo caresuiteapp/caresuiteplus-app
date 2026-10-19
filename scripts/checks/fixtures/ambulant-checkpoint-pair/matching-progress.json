@@ -1,0 +1,218 @@
+{
+  "target": "Mindestens 50% vollständig abgenommen in jedem der 26 Bereiche",
+  "total": 262,
+  "required": 131,
+  "accepted": 1,
+  "acceptancePercent": 0.38167938931297707,
+  "reached": false,
+  "areas": [
+    {
+      "letter": "A",
+      "area": "System und Organisation",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 1,
+      "locallyStarted": 4
+    },
+    {
+      "letter": "B",
+      "area": "Aufnahme und Stammdaten",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 4
+    },
+    {
+      "letter": "C",
+      "area": "SIS und Assessments",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 9
+    },
+    {
+      "letter": "D",
+      "area": "Pflegeplanung und Evaluation",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 7
+    },
+    {
+      "letter": "E",
+      "area": "Dokumentation und Protokolle",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 6
+    },
+    {
+      "letter": "F",
+      "area": "Grundpflege und Prophylaxen",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 2
+    },
+    {
+      "letter": "G",
+      "area": "Ernährung und Ausscheidung",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 5
+    },
+    {
+      "letter": "H",
+      "area": "Medikamente und Verabreichung",
+      "total": 16,
+      "requiredForHalf": 8,
+      "accepted": 0,
+      "locallyStarted": 9
+    },
+    {
+      "letter": "I",
+      "area": "Behandlungspflege",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 11
+    },
+    {
+      "letter": "J",
+      "area": "Wunden und Verbände",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 7
+    },
+    {
+      "letter": "K",
+      "area": "Vitalwerte und Verlaufsbewertung",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 11
+    },
+    {
+      "letter": "L",
+      "area": "Atmung und außerklinische Intensivpflege",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 0
+    },
+    {
+      "letter": "M",
+      "area": "Demenz und psychische Gesundheit",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 1
+    },
+    {
+      "letter": "N",
+      "area": "Palliative Pflege und besondere Lebenslagen",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 0
+    },
+    {
+      "letter": "O",
+      "area": "Beratung und Koordination",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 3
+    },
+    {
+      "letter": "P",
+      "area": "Hygiene und Material",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 10
+    },
+    {
+      "letter": "Q",
+      "area": "Personal und Delegation",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 10
+    },
+    {
+      "letter": "R",
+      "area": "Dienst und Tourenplanung",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 12
+    },
+    {
+      "letter": "S",
+      "area": "Einsatz und Leistungsnachweise",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 10
+    },
+    {
+      "letter": "T",
+      "area": "Finanzierung und Verträge",
+      "total": 10,
+      "requiredForHalf": 5,
+      "accepted": 0,
+      "locallyStarted": 10
+    },
+    {
+      "letter": "U",
+      "area": "Abrechnung und Forderungen",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 12
+    },
+    {
+      "letter": "V",
+      "area": "Qualität und Prüfungen",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 8
+    },
+    {
+      "letter": "W",
+      "area": "Kommunikation und Portale",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 8
+    },
+    {
+      "letter": "X",
+      "area": "Datenschutz und rechtliche Nachweise",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 1
+    },
+    {
+      "letter": "Y",
+      "area": "Technik und Bedienbarkeit",
+      "total": 12,
+      "requiredForHalf": 6,
+      "accepted": 0,
+      "locallyStarted": 5
+    },
+    {
+      "letter": "Z",
+      "area": "Innovation und Entlastung",
+      "total": 8,
+      "requiredForHalf": 4,
+      "accepted": 0,
+      "locallyStarted": 1
+    }
+  ]
+}

@@ -98,6 +98,7 @@ export async function grantTIConsentService(
       status: 'granted',
       grantedAt: new Date().toISOString(),
       grantedBy,
+      revokedAt: null,
     });
     if (!updated.ok) return updated;
     await appendTIAudit(
@@ -146,8 +147,7 @@ export async function revokeTIConsentService(
   if (getServiceMode() === 'supabase') {
     const updated = await tiConsentsSupabaseRepository.updateStatus(tenantId, consentId, {
       status: 'revoked',
-      grantedAt: null,
-      grantedBy: null,
+      revokedAt: new Date().toISOString(),
     });
     if (!updated.ok) return updated;
     await appendTIAudit(

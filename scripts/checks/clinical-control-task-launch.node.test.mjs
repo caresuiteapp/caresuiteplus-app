@@ -1,0 +1,11 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {parseControlTaskLaunch,resolveControlTaskLaunch} from '../../src/lib/pflege/clinicalControlTaskLaunch.ts';
+import {control} from './fixtures/plan-review-controls.mjs';
+import {id,tenant,client,now} from './fixtures/plan-amendment.mjs';
+const launch={clientId:client,taskId:id(400)};
+test('native task link carries IDs only and reloads complete authorized current history',()=>{const c=control(),r=resolveControlTaskLaunch(launch,[c],tenant,client,now);assert.deepEqual(parseControlTaskLaunch({...launch,view:'controls'}),launch);assert.deepEqual(r,c);r.events[0].draft.title='consumer mutation';assert.notEqual(r.events[0].draft.title,c.events[0].draft.title);});
+test('no task ID leaves existing source link flow intact',()=>assert.equal(parseControlTaskLaunch({clientId:client,sourceId:id(1000),sourceKind:'plan_evaluation'}),null));
+for(const params of [{...launch,taskId:[id(400)]},{...launch,clientId:''},{...launch,taskId:'not-a-native-id'},{...launch,sourceKind:'plan_evaluation'},{...launch,sourceId:id(1000)},{...launch,evaluationMeasureId:id(50)}])test(`invalid mixed/serialized task link ${JSON.stringify(params)}`,()=>assert.throws(()=>parseControlTaskLaunch(params)));
+test('absent task is not recreated or guessed from source title',()=>assert.throws(()=>resolveControlTaskLaunch(launch,[],tenant,client,now),/nicht vorhanden/));
+test('foreign client cannot adopt same-looking task identifier',()=>assert.throws(()=>resolveControlTaskLaunch({...launch,clientId:id(99)},[control()],tenant,client,now)));
+test('unrelated malformed task is checked before native ID selection',()=>{const c=control(),bad=control();bad.task.id=id(401);bad.actorNames={};assert.throws(()=>resolveControlTaskLaunch(launch,[c,bad],tenant,client,now));});

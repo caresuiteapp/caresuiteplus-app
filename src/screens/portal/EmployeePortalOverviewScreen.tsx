@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { EmployeeCareToursPanel } from '@/components/pflege/PortalCarePanels';
 import { EmployeePortalDashboardScreen } from '@/screens/portal/EmployeePortalDashboardScreen';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LoadingState } from '@/components/ui';
@@ -20,6 +21,7 @@ export function EmployeePortalOverviewScreen() {
 
   return (
     <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
+      <EmployeeCareToursPanel />
       <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {

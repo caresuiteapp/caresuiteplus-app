@@ -6,6 +6,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type {
   OfficeMessageCategory,
+  OfficeMessageThreadDetail,
   OfficeMessagePriority,
   OfficeMessageThread as OfficeMessageThreadType,
   OfficeThreadStatus,
@@ -20,6 +21,10 @@ import { exportOfficeMessageThread } from '@/lib/office/officeMessageExportServi
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import {
+  projectOfficeMessageFollowUp,
+  type OfficeMessageFollowUpCode,
+} from '@/lib/office/messageFollowUpState';
 
 const PRIORITY_OPTIONS: { key: OfficeMessagePriority; label: string }[] = [
   { key: 'low', label: 'Niedrig' },
@@ -36,7 +41,7 @@ const THREAD_TYPE_LABELS: Record<OfficeMessageThreadType['threadType'], string> 
 };
 
 type OfficeMessageContextPanelProps = {
-  thread: OfficeMessageThreadType | null;
+  thread: OfficeMessageThreadDetail | null;
   onThreadUpdated?: () => void;
   onUpdateStatus?: (status: OfficeThreadStatus) => Promise<{ ok: boolean; error?: string }>;
   onAssignSelf?: () => Promise<{ ok: boolean; error?: string }>;
@@ -44,6 +49,14 @@ type OfficeMessageContextPanelProps = {
   onUpdateCategory?: (categoryId: string) => Promise<{ ok: boolean; error?: string }>;
   readOnly?: boolean;
   sheet?: boolean;
+};
+
+const FOLLOW_UP_LABELS: Record<OfficeMessageFollowUpCode, string> = {
+  assign_owner: 'Verantwortung zuweisen',
+  contact_recipient: 'Kontakt aufnehmen',
+  await_response: 'Antwort ausstehend',
+  process_response: 'Antwort bearbeiten',
+  confirm_communication_closure: 'Kommunikationsabschluss belegen',
 };
 
 function ContextRow({ label, value }: { label: string; value: string }) {
@@ -82,6 +95,14 @@ export function OfficeMessageContextPanel({
   const [categories, setCategories] = useState<OfficeMessageCategory[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const followUpState = useMemo(() => {
+    if (!thread) return null;
+    try {
+      return projectOfficeMessageFollowUp(thread);
+    } catch {
+      return null;
+    }
+  }, [thread]);
 
   const styles = useMemo(
     () =>
@@ -210,6 +231,26 @@ export function OfficeMessageContextPanel({
             value={thread.assignedToUserName ?? thread.assignedToUserId ?? '—'}
           />
         ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.hint}>Rückmeldung nachhalten</Text>
+          <ContextRow
+            label="Anfrage"
+            value={followUpState?.inquiry ? new Date(followUpState.inquiry.sentAt).toLocaleString('de-DE') : 'Nicht vollständig geladen'}
+          />
+          <ContextRow
+            label="Kontaktversuche"
+            value={String(followUpState?.contactAttempts.length ?? 0)}
+          />
+          <ContextRow label="Antworten" value={String(followUpState?.responses.length ?? 0)} />
+          <ContextRow
+            label="Offene Folgeschritte"
+            value={followUpState?.openFollowUps.length
+              ? followUpState.openFollowUps.map((item) => FOLLOW_UP_LABELS[item]).join(' · ')
+              : 'Keine im Kommunikationsverlauf'}
+          />
+          <ContextRow label="Aufgabenabschluss" value="Nicht aus Nachricht oder Lesebeleg abgeleitet" />
         </View>
 
         {!readOnly && !isClosed ? (

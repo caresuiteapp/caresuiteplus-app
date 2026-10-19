@@ -1,0 +1,44 @@
+import {useMemo,useState} from 'react';
+import {StyleSheet,Text,View} from 'react-native';
+import {InfoBanner,PremiumButton,SectionPanel} from '@/components/ui';
+import {spacing,typography} from '@/theme';
+import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
+import {PlanDetails,EntryDetails} from '../careAssessment/PlanEvaluationDetails.web';
+import {ProtocolEntryDetails} from './DailyProtocolDetails.web';
+import {validateEvaluationControlSnapshot} from '@/lib/careAssessment/planEvaluationControl';
+import {validateProtocolControlSnapshot} from '@/lib/pflege/dailyProtocolControl';
+import type {ControlSource} from '@/lib/pflege/clinicalControlDomain';
+import {controlSourceLabels} from '@/lib/pflege/clinicalControlForm';
+import {controlSourceComparisonLabels,type ControlSourceComparison} from '@/lib/pflege/clinicalControlSourceComparison';
+import {treatmentProfiles} from '@/lib/pflege/treatmentExecutionDomain';
+import {infusionEventLabels} from '@/lib/pflege/infusionCourseDomain';
+import {woundInstant} from '@/lib/pflege/woundCareDomain';
+const when=(v:string)=>woundInstant(v)===null?'Zeitpunkt nicht bestätigt':new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'}).format(new Date(v));
+function useSourceStyles(){const {c}=useCareLightPalette();return useMemo(()=>StyleSheet.create({body:{...typography.body,color:c.text},group:{gap:spacing.sm,minWidth:0}}),[c]);}
+export function ControlSourcePanel({source,current=false}:{source:ControlSource;current?:boolean}){
+ const styles=useSourceStyles(),s=source.snapshot;const textFields=['title','content','observations','interventions','result','deviation','escalation','wound_bed','intervention','response','display_value','unit','administered_dose','route','outcome','status','valid_from','valid_until'];
+ return <View style={styles.group}><Text style={styles.body}>{current?'Aktuell geladener Quellenbeleg':'Gesicherter Originalbeleg'}: {controlSourceLabels[source.kind]} · {source.id}</Text>{textFields.filter(k=>typeof s[k]==='string'&&String(s[k]).trim()).map(k=><Text key={k} style={styles.body}>{({title:'Bezeichnung',content:'Originalinhalt',observations:'Beobachtungen',interventions:'Maßnahmen',result:'Ergebnis',deviation:'Abweichung',escalation:'Rücksprache',wound_bed:'Wundbett',intervention:'Maßnahme',response:'Reaktion',display_value:'Messwert',unit:'Einheit',administered_dose:'Tatsächliche Gabe',route:'Applikationsweg',outcome:'Ergebnis',status:'Originalstatus',valid_from:'Gültig ab',valid_until:'Gültig bis'} as Record<string,string>)[k]}: {String(s[k])}</Text>)}{['performed_at','occurred_at','assessed_at','recorded_at'].filter(k=>typeof s[k]==='string').map(k=><Text key={k} style={styles.body}>{({performed_at:'Dokumentierter tatsächlicher Durchführungszeitpunkt',occurred_at:'Tatsächlicher Quellereigniszeitpunkt',assessed_at:'Tatsächlicher Befundzeitpunkt',recorded_at:'Quellenerfassungszeitpunkt'} as Record<string,string>)[k]} (Berlin): {when(String(s[k]))}{'\n'}Gesicherter Originalzeitpunkt: {String(s[k])}</Text>)}{source.kind==='plan_evaluation'?<EvaluationControlDetails source={source}/>:null}{source.kind==='protocol_event'?<ProtocolControlDetails source={source}/>:null}{source.kind==='treatment_execution'&&typeof s.details==='string'?<TreatmentOriginalDetails text={s.details}/>:null}{source.kind==='infusion_event'&&s.draft&&typeof s.draft==='object'?<InfusionOriginalDetails draft={s.draft as Record<string,unknown>}/>:null}<Text style={styles.body}>{current?'Aktuell geladene Quellenfassung. Ihre Verfügbarkeit belegt keine heutige klinische Gültigkeit. Spätere Änderungen gesondert im Quellverlauf prüfen.':'Damals gesicherte Fassung. Spätere Änderungen und Berichtigungen gesondert im Quellverlauf prüfen.'}</Text></View>;
+}
+export function ControlSourceComparisonDetails({comparison}:{comparison:ControlSourceComparison}){
+ const styles=useSourceStyles(),[showCurrent,setShowCurrent]=useState(false);
+ return <View style={styles.group}>
+  <InfoBanner variant={comparison.state==='identical'||comparison.state==='none'?'info':'warning'} message={controlSourceComparisonLabels[comparison.state]}/>
+  {comparison.original?<SectionPanel title="Damals gesicherter Originalbeleg"><ControlSourcePanel source={comparison.original}/></SectionPanel>:<Text style={styles.body}>In diesem Originalereignis wurde kein Ergebnisbeleg gespeichert.</Text>}
+  {comparison.current?<><Text style={styles.body}>Aktuell verfügbarer Quellenbezug: {controlSourceLabels[comparison.current.kind]} · {comparison.current.id}</Text>
+   {comparison.state==='changed'||showCurrent?<SectionPanel title="Aktuell verfügbare Quellenfassung"><ControlSourcePanel source={comparison.current} current/></SectionPanel>:null}
+   {comparison.state==='identical'?<PremiumButton title={showCurrent?'Identische aktuelle Quellenfassung einklappen':'Identische aktuelle Quellenfassung anzeigen'} variant="secondary" onPress={()=>setShowCurrent(value=>!value)}/>:null}
+  </>:null}
+ </View>;
+}
+function EvaluationControlDetails({source}:{source:ControlSource}){
+ const styles=useSourceStyles();try{validateEvaluationControlSnapshot(source.snapshot,String(source.snapshot.tenant_id),String(source.snapshot.client_id));const s=source.snapshot;return <View style={styles.group}><Text style={styles.body}>Original {s.root_id} · Fassung {s.sequence} · {s.actor_name} · erfasst {s.recorded_at}</Text><PlanDetails plan={s.plan}/><EntryDetails entry={s.draft.entry!} plan={s.plan}/><Text style={styles.body}>Dieser Beleg dokumentiert eine Pflegeplanbewertung. Eine eigene neue Folgeevaluation kann einen passenden Evaluationsauftrag belegen. Medikamentengabe oder Behandlung bescheinigt er nicht.</Text></View>;}catch(e){return <Text style={styles.body}>{e instanceof Error?e.message:'Evaluationsoriginal nicht vollständig lesbar.'}</Text>;}
+}
+function TreatmentOriginalDetails({text}:{text:string}){
+ const styles=useSourceStyles();let data:Record<string,unknown>;try{data=JSON.parse(text);if(!data||typeof data!=='object'||Array.isArray(data))throw Error();}catch{return <Text style={styles.body}>Original-Durchführungsangaben: {text}</Text>;}
+ let details:Record<string,unknown>=data;try{if(typeof data.detailsJson==='string')details=JSON.parse(data.detailsJson);if(!details||typeof details!=='object'||Array.isArray(details))details={};}catch{details={};}
+ const fields=treatmentProfiles[String(data.treatmentType)]?.fields??[];
+ return <View style={styles.group}>{fields.filter(f=>typeof details[f.key]==='string'&&String(details[f.key]).trim()).map(f=><Text key={f.key} style={styles.body}>{f.label}: {String(details[f.key])}</Text>)}{['observation','deviation','communication','personDecision','qualificationBasis','reviewReason'].filter(k=>typeof data[k]==='string'&&String(data[k]).trim()).map(k=><Text key={k} style={styles.body}>{({observation:'Beobachtung',deviation:'Abweichung',communication:'Rücksprache',personDecision:'Personenentscheidung',qualificationBasis:'Qualifikationsgrundlage',reviewReason:'Kontrollvereinbarung'} as Record<string,string>)[k]}: {String(data[k])}</Text>)}</View>;
+}
+function InfusionOriginalDetails({draft}:{draft:Record<string,unknown>}){const styles=useSourceStyles();return <View style={styles.group}><Text style={styles.body}>Originalereignis: {infusionEventLabels[String(draft.kind)]??'Ereignis nicht bestätigt'}{'\n'}Tatsächlicher Infusionsereigniszeitpunkt (Berlin): {when(String(draft.occurredAt))}{'\n'}Gesicherter tatsächlicher Originalzeitpunkt: {typeof draft.occurredAt==='string'?draft.occurredAt:'Nicht im Original enthalten'}</Text>{['observation','accessReview','communication','reviewReason','parameterBasis','rateMlHour','deliveredMl','remainingMl'].filter(k=>typeof draft[k]==='string'&&String(draft[k]).trim()).map(k=><Text key={k} style={styles.body}>{({observation:'Beobachtung',accessReview:'Zugangsbefund',communication:'Rücksprache',reviewReason:'Kontrollvereinbarung',parameterBasis:'Einstellungsgrundlage',rateMlHour:'Tatsächliche Rate (ml/h)',deliveredMl:'Tatsächliche Gesamtmenge (ml)',remainingMl:'Tatsächliche Restmenge (ml)'} as Record<string,string>)[k]}: {String(draft[k])}</Text>)}</View>;}
+
+function ProtocolControlDetails({source}:{source:ControlSource}){const styles=useSourceStyles();try{validateProtocolControlSnapshot(source.snapshot,String(source.snapshot.tenant_id),String(source.snapshot.client_id));const s=source.snapshot;return <View style={styles.group}><Text style={styles.body}>Protokollbezug: {s.root_id} · Fassung {s.sequence} · ursprüngliche Person: {s.actor_name}</Text>{s.draft.reason?<Text style={styles.body}>Berichtigungsgrund: {s.draft.reason}</Text>:null}<ProtocolEntryDetails entry={s.draft.entry!}/></View>;}catch(e){return <InfoBanner variant="error" message={e instanceof Error?e.message:'Gesicherter Protokollbeleg nicht vollständig lesbar.'}/>;}}

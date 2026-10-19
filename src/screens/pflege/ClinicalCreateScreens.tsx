@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 import { DedicatedListScreen } from '@/components/einzelseiten/DedicatedListScreen';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
@@ -10,6 +11,7 @@ import { fetchEligibleCareClients } from '@/lib/careAssessment';
 import { createClinicalHandover, fetchTreatmentExecutions, recordTreatmentExecution } from '@/lib/pflege/clinicalWorkflowService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing, typography } from '@/theme';
+import { AmbulatoryHandoverCreatePanel } from '@/components/pflege/AmbulatoryHandoverCreatePanel';
 
 function useCareClientOptions() {
   const tenantId = useServiceTenantId(); const { profile } = useAuth();
@@ -25,6 +27,7 @@ export function ClinicalHandoverCreateScreen() {
   const [background, setBackground] = useState(''); const [assessment, setAssessment] = useState('');
   const [recommendation, setRecommendation] = useState(''); const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null); const [saved, setSaved] = useState(false);
+  if (Platform.OS === 'web') return <ScreenShell title="Übergabe erstellen" subtitle="Änderung · offener Auftrag · Zuständigkeit · Empfang"><ScrollView contentContainerStyle={styles.content}><AmbulatoryHandoverCreatePanel tenantId={tenantId} role={role} clients={options} /></ScrollView></ScreenShell>;
   async function save() {
     if (!tenantId || busy || saved) return; setBusy(true); setError(null);
     const result = await createClinicalHandover(tenantId, clientId, { priority, title, situation, background, assessment, recommendation }, role);

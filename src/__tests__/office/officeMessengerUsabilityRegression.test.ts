@@ -85,12 +85,13 @@ describe('Office messenger usability regression', () => {
     expect(threadHeader).toContain('width: 32');
   });
 
-  it('moves opened chats automatically and exposes lifecycle actions visibly', () => {
+  it('keeps reading separate from explicit workflow actions', () => {
     const thread = readSrc('src/components/office/officemessagethread.tsx');
     const actions = readSrc('src/components/office/officemessageactionsmenu.tsx');
 
     expect(thread).toContain('await markAsRead()');
-    expect(thread).toContain("await updateStatus('in_progress')");
+    expect(thread).toContain('planOfficeMessageOpen(detail)');
+    expect(thread).not.toContain("await updateStatus('in_progress')");
     expect(thread).toContain('✓ Abschließen');
     expect(thread).toContain('🗑 Chat löschen');
     expect(actions).toContain('••• Verwalten');

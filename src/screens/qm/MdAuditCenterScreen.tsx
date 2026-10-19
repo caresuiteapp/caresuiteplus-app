@@ -2,10 +2,9 @@ import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { MdAuditCenterHero } from '@/components/qm';
+import { MdAuditCenterHero, QmStatusBadge, QualityInspectionEvidencePanel } from '@/components/qm';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
-import { QmStatusBadge } from '@/components/qm';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -90,6 +89,7 @@ export function MdAuditCenterScreen() {
         contentContainerStyle={styles.scroll}
       >
         <MdAuditCenterHero packageCount={items.length} openCount={openCount} roleKey={roleKey} />
+        <QualityInspectionEvidencePanel />
         <PremiumInput label="Mappe suchen" value={search} onChangeText={setSearch} placeholder="Titel oder Prüfjahr…" />
         {can('qm.create_md_package') ? (
           <PremiumButton title="Neue MD-Prüfungsmappe" onPress={handleCreate} loading={creating} fullWidth />

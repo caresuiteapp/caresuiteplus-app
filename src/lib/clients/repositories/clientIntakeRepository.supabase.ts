@@ -42,6 +42,80 @@ function unavailable(): { ok: false; error: string } {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+export type ClientIdentityConflictMatch = 'name_birth_date' | 'insurance_number';
+
+export type ClientIdentityConflict = {
+  clientId: string;
+  match: ClientIdentityConflictMatch;
+};
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
+/**
+ * Checks only exact, tenant-scoped identity conflicts before an intake insert.
+ * Similar names deliberately do not select or merge an existing person.
+ */
+export async function findExactClientIdentityConflictFromIntake(
+  tenantId: string,
+  form: ClientIntakeFormData,
+  draftClientId?: string | null,
+): Promise<ServiceResult<ClientIdentityConflict | null>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  const firstName = form.firstName.trim();
+  const lastName = form.lastName.trim();
+  const dateOfBirth = form.dateOfBirth.trim();
+  if (!tenantId.trim() || !firstName || !lastName || !dateOfBirth) {
+    return { ok: false, error: 'Die Identitätsprüfung benötigt Mandant, Name und Geburtsdatum.' };
+  }
+
+  let nameQuery = supabase
+    .from('clients')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .ilike('first_name', escapeLikePattern(firstName))
+    .ilike('last_name', escapeLikePattern(lastName))
+    .eq('date_of_birth', dateOfBirth);
+  if (isUuid(draftClientId)) nameQuery = nameQuery.neq('id', draftClientId);
+  const { data: nameMatches, error: nameError } = await nameQuery.limit(1);
+  if (nameError) return { ok: false, error: toGermanSupabaseError(nameError) };
+  if (nameMatches?.[0]?.id) {
+    if (!isUuid(nameMatches[0].id)) {
+      return { ok: false, error: 'Die Identitätsprüfung lieferte keine gültige native Personenkennung.' };
+    }
+    return {
+      ok: true,
+      data: { clientId: nameMatches[0].id, match: 'name_birth_date' },
+    };
+  }
+
+  const insuranceNumber = form.insuranceNumber.trim();
+  if (!insuranceNumber) return { ok: true, data: null };
+
+  let insuranceQuery = supabase
+    .from('clients')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .ilike('insurance_number', escapeLikePattern(insuranceNumber));
+  if (isUuid(draftClientId)) insuranceQuery = insuranceQuery.neq('id', draftClientId);
+  const { data: insuranceMatches, error: insuranceError } = await insuranceQuery.limit(1);
+  if (insuranceError) return { ok: false, error: toGermanSupabaseError(insuranceError) };
+  if (insuranceMatches?.[0]?.id) {
+    if (!isUuid(insuranceMatches[0].id)) {
+      return { ok: false, error: 'Die Identitätsprüfung lieferte keine gültige native Personenkennung.' };
+    }
+    return {
+      ok: true,
+      data: { clientId: insuranceMatches[0].id, match: 'insurance_number' },
+    };
+  }
+
+  return { ok: true, data: null };
+}
+
 function buildIntakeClientRecord(
   tenantId: string,
   form: ClientIntakeFormData,

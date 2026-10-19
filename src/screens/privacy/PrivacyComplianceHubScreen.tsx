@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
+import { PrivacyEvidenceWorkspace } from '@/components/privacy/PrivacyEvidenceWorkspace';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
@@ -111,6 +112,8 @@ export function PrivacyComplianceHubScreen() {
           <PremiumKpiCard label="Löschprüfungen" value={String(dashboard.pendingDeletionReviews)} />
         </View>
       </SectionPanel>
+
+      <PrivacyEvidenceWorkspace />
 
       <SectionPanel title="Bereiche" subtitle="Verarbeitung, Betroffenenrechte, Löschfristen">
         <View style={styles.tileGrid}>

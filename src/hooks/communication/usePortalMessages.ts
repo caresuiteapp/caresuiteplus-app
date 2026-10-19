@@ -4,6 +4,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { listThreads } from '@/features/communication/communication.service';
 import type { CommunicationAudience } from '@/features/communication/communication.types';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 function resolveAudience(roleKey: string | null | undefined): CommunicationAudience {
   switch (roleKey) {
@@ -23,10 +24,12 @@ function resolveAudience(roleKey: string | null | undefined): CommunicationAudie
 export function usePortalMessages(
   expectedAudience: Exclude<CommunicationAudience, 'business'>,
 ) {
-  const { actorId, roleKey } = usePortalActor();
+  const { actorId, roleKey, familyAccess } = usePortalActor();
   const tenantId = useServiceTenantId();
   const audience = resolveAudience(roleKey);
   const audienceMatches = audience === expectedAudience;
+  const familyMessagesAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'messages');
 
   const query = useAsyncQuery(
     () => {
@@ -37,7 +40,7 @@ export function usePortalMessages(
       return listThreads(tenantId, { filter: 'all' }, roleKey, actorId ?? undefined);
     },
     [tenantId, audienceMatches, roleKey, actorId],
-    { enabled: !!tenantId && audienceMatches },
+    { enabled: !!tenantId && audienceMatches && familyMessagesAllowed },
   );
 
   const items = useMemo(() => query.data ?? [], [query.data]);
@@ -61,6 +64,8 @@ export function usePortalMessages(
     loading: query.loading,
     error: !audienceMatches && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : roleKey === 'family_portal' && !familyMessagesAllowed
+      ? 'Nachrichten sind für diesen Angehörigenzugang nicht freigegeben.'
       : query.error,
     refreshing: query.refreshing,
     refresh,

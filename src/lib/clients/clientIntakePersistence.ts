@@ -198,7 +198,7 @@ export async function persistIntakeClientExtendedData(
         clientId,
         name: form.familyDoctor.trim(),
         phone: '',
-        relationship: 'arzt',
+        relationship: 'Hausarzt / Hausärztin',
         contactType: 'doctor',
       }),
     );

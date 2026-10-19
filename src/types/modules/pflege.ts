@@ -108,6 +108,10 @@ export type CareMedicalOrder = {
   validUntil: string | null;
   insurerApprovalRequired: boolean;
   insurerApprovalStatus: 'not_required' | 'pending' | 'approved' | 'rejected' | 'expired';
+  insurerApprovalReference?: string;
+  physicianBsnr?: string;
+  physicianLanr?: string;
+  sourceDocument?: string;
   frequency: string;
   executionInstructions: string;
   qualificationRequirement: string;
@@ -154,6 +158,7 @@ export type VitalReadingListItem = VitalReading & {
 };
 
 export type PflegeDashboardStats = {
+  unavailableKpiIds?: string[];
   totalPlans: number;
   activePlansCount: number;
   dueVitalsCount: number;

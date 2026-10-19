@@ -1,6 +1,10 @@
 import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import { ClientDocumentPreview } from '@/components/office/ClientDocumentPreview';
 import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
+import { ClientParallelFinancingSummary } from '@/components/office/ClientParallelFinancingSummary';
+import { ClientContractLifecycleSummary } from '@/components/office/ClientContractLifecycleSummary';
+import { ClientServiceCombinationSummary } from '@/components/office/ClientServiceCombinationSummary';
+import { ClientVariableEntitlementSummary } from '@/components/office/ClientVariableEntitlementSummary';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
@@ -16,6 +20,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { listClientDocuments } from '@/lib/clients/clientDocumentsService';
+import { assessClientContractBasis } from '@/lib/clients/clientContractBasisDomain';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import {
   filterClientContractDocuments,
@@ -39,6 +44,11 @@ type ClientRecordContractsPanelProps = {
 
 function formatEuro(cents: number): string {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+}
+
+function localCalendarDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 function contractDocumentStatusLabel(doc: ClientDocumentRecord): string {
@@ -107,6 +117,14 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
         </SectionPanel>
       ) : null}
 
+      <ClientParallelFinancingSummary clientId={clientId} />
+
+      <ClientServiceCombinationSummary clientId={clientId} />
+
+      <ClientVariableEntitlementSummary clientId={clientId} />
+
+      <ClientContractLifecycleSummary clientId={clientId} />
+
       <SectionPanel title="Verträge & Einwilligungen" subtitle="Aufnahme-Dokumente und Vertragsunterlagen">
         {structuredContracts.length === 0 && contractDocuments.length === 0 ? (
           <EmptyState
@@ -115,15 +133,30 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
           />
         ) : (
           <>
-            {structuredContracts.map((contract) => (
-              <PremiumCard key={contract.id} style={styles.card}>
-                <Text style={styles.primary}>{contract.contractNumber}</Text>
-                <Text style={styles.secondary}>
-                  {formatDate(contract.contractStart)} · {contract.status}
-                  {contract.signedAt ? ' · signiert' : ' · offen'}
-                </Text>
-              </PremiumCard>
-            ))}
+            {structuredContracts.map((contract) => {
+              const assessment = assessClientContractBasis(contract, localCalendarDate());
+              return (
+                <PremiumCard key={contract.id} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.primary}>{contract.contractNumber}</Text>
+                    <PremiumBadge
+                      label={assessment.state === 'documented_current' ? 'Grundlage dokumentiert' : 'Prüfung offen'}
+                      variant={assessment.state === 'documented_current' ? 'green' : 'orange'}
+                    />
+                  </View>
+                  <Text style={styles.secondary}>
+                    {formatDate(contract.contractStart)} · {contract.status}
+                    {contract.signedAt ? ' · Unterzeichnungszeit hinterlegt' : ' · Unterzeichnungszeit offen'}
+                  </Text>
+                  <Text style={styles.secondary}>
+                    {contract.contractPartner?.trim() || 'Vertragspartner offen'} · {contract.serviceBasis?.trim() || 'Leistungsgrundlage offen'} · Version {contract.contractVersion ?? 'offen'}
+                  </Text>
+                  <Text style={styles.secondary}>
+                    {assessment.summary} Keine Signaturauthentifizierung oder Rechtsprüfung.
+                  </Text>
+                </PremiumCard>
+              );
+            })}
             {contractDocuments.map((doc) => (
               <PremiumCard
                 key={doc.id}

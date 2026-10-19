@@ -1,0 +1,19 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const path = process.argv[2] ?? 'docs/audit/ambulant-az-katalog-2026-10-08.json';
+const catalog = JSON.parse(readFileSync(path, 'utf8'));
+
+catalog.version = 302;
+catalog.checkpointSummary = 'CP302: Das größere Web-Aufnahmepaket führt die ausdrückliche, berechtigte Personenwahl aus CP301 bis zu einer atomaren serverseitigen Erstreservierung derselben dauerhaft lokalen Aktenkennung fort. Eine private Anfragequittung, aktuelle Sitzung/Mandant/Rechte, mandantenweite Transaktionssperre, exakte Identitätskonflikte und Insert liegen in einem RPC-Transaktionsvertrag. Wiederholung derselben Anfrage gibt ausschließlich denselben unveränderten Lead zurück; fremde oder abweichende Anfragen bleiben gesperrt. 179 betroffene und 10459/10459 vollständige lokale Node-Fälle bestanden. Keine ausgeführte SQL-/RLS-/Live-SDK-/Browser- oder Fachabnahme; nur A-09 vollständig abgenommen, 198 begonnen, 50%-Ziel offen.';
+catalog.checkpointNodeLog = 'docs/audit/checks/ambulant-node-checkpoint302-2026-10-15-atomic-intake.log';
+
+const task = catalog.tasks.find(({ id }) => id === 'B-02');
+if (!task) throw new Error('B-02 fehlt');
+task.evidence = 'CP293–302: Der aktive Web-Aufnahmeablauf verbindet vollständige berechtigte Kandidatenprüfung, ausdrückliche Bestandswahl oder getrennte Neuanlage und lokale Wiederaufnahme nun mit einer atomaren serverseitigen Erstreservierung. Vor dem Write bleiben Sitzung, Serverbenutzer, Mandant, aktuelle Erstell-/Lese-/sensible Leserechte, Formularoriginal und dauerhaft reservierte UUID gebunden. Der RPC besitzt eine private Anfragequittung; dieselbe UUID ist Anfrage- und neue Aktenkennung. Eine mandantenweite Transaktionssperre ordnet Quittungsprüfung, exakten Namens-/Geburtsdatums- und Versicherungsabgleich, Insert und Quittung. Sicherheitsfelder sind nicht aus der Browsernutzlast steuerbar. Dieselbe bestätigte Anfrage liefert nur denselben eigenen offenen Lead; fremde, aktive, belegte oder inhaltlich abweichende Kennungen und unabhängige exakte Neuanlagen werden abgewiesen. Verlorene Antworten bleiben ungeklärt und erlauben keinen Ersatzinsert; die vorhandene Read-only-Aufklärung bleibt erhalten. 179 betroffene und 10459/10459 vollständige lokale Node-Fälle bestanden. Native Dateien/Android unverändert; keine ausgeführte SQL-/RLS-/Live-SDK-/Browser- oder Fachabnahme. Gesamt-Typecheck mangels tsc nicht ausführbar.';
+task.next = 'Die neue Migration in einer isolierten echten Supabase-Datenbank anwenden und Transaktion, Lock-Timeout, Rollback, RLS/Grants, Rechteentzug, zwei Geräte und Mikrosekundenrückgaben mit dem tatsächlichen SDK prüfen. Serverseitige Entscheidungs-/Kandidatenquittung mit vollständigem unverändertem Suchstand, Standortrechten und Auditbezug ergänzen; historische Identitätsvarianten fachlich klären, ohne Zusammenführung aus Namensähnlichkeit. Unklare Dokument-/Abschlussphasen anhand unveränderter nativer Belege auflösen. Echte Metro-/React-/Browserprüfung im gesamten Formular einschließlich Tastatur/Screenreader sowie qualifizierte Funktions-, Pflege-, Design-, Datenschutz- und Rechtsabnahmen bleiben offen.';
+
+const packet = catalog.packets.find(row => row[0] === 'B-P01');
+if (!packet) throw new Error('B-P01 fehlt');
+packet[6] = 'CP292–302: Erstkontakt-, Adress-/Planungs- und Identitätsoriginale bleiben erhalten. B-02 verbindet berechtigte vollständige Kandidatenprüfung, ausdrückliche Neuanlage/Bestandswahl und lokale Wiederaufnahme mit einem serverseitigen Transaktionsvertrag für die erste Akte. Dauerhafte Anfrage- und Aktenkennung, aktuelle Sitzung/Mandant/Rechte, private Quittung, mandantenweite Sperre, exakter Konfliktcheck und Insert werden gemeinsam ausgeführt; Wiederholung darf nur denselben offenen Lead bestätigen. 179 betroffene und 10459 Gesamtfälle lokal bestanden. Echte Supabase-/SQL-/RLS-/SDK-/Browserprüfung und alle vier Abnahmen offen.';
+
+writeFileSync(path, `${JSON.stringify(catalog, null, 2)}\n`);

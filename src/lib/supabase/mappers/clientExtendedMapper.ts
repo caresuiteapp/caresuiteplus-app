@@ -320,6 +320,9 @@ type ContractRow = {
   tenant_id: string;
   client_id: string;
   contract_number: string;
+  contract_partner?: string | null;
+  service_basis?: string | null;
+  contract_version?: number | null;
   contract_start: string;
   contract_end: string | null;
   service_type: ClientContract['serviceType'];
@@ -339,6 +342,9 @@ export function mapClientContract(row: ContractRow): ClientContract {
     tenantId: row.tenant_id,
     clientId: row.client_id,
     contractNumber: row.contract_number,
+    contractPartner: row.contract_partner ?? null,
+    serviceBasis: row.service_basis ?? null,
+    contractVersion: row.contract_version ?? null,
     contractStart: row.contract_start,
     contractEnd: row.contract_end,
     serviceType: row.service_type,

@@ -13,6 +13,7 @@ import {
   isRoleAllowedForPortalAudience,
   type OperationalPortalAudience,
 } from '@/lib/portal/portalAudience';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalAppointments(audience: OperationalPortalAudience) {
   const { authReady, user } = useAuth();
@@ -25,6 +26,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     isLinkedReady,
     isResolvingClientLink,
     isResolvingEmployeeLink,
+    familyAccess,
   } = usePortalActor();
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
@@ -36,12 +38,14 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
   const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
   const scopedRoleKey = roleMatchesAudience ? roleKey : null;
+  const familyAppointmentsAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'appointments');
 
   const needsSupabaseSession =
     roleKey === 'client_portal' || roleKey === 'family_portal' || roleKey === 'employee_portal';
   const supabaseSessionReady = !needsSupabaseSession || Boolean(user);
   const queryEnabled =
-    authReady && roleMatchesAudience && isLinkedReady && supabaseSessionReady;
+    authReady && roleMatchesAudience && isLinkedReady && supabaseSessionReady && familyAppointmentsAllowed;
 
   const liveConfig = useMemo(() => {
     if (!tenantId) return undefined;
@@ -141,6 +145,8 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
       ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : missingClientLink
       ? 'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+      : roleKey === 'family_portal' && !familyAppointmentsAllowed
+      ? 'Termine sind für diesen Angehörigenzugang nicht freigegeben.'
       : query.error
         ? toPortalUserFacingError(
             query.error,

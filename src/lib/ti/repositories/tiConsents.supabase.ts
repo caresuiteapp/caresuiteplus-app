@@ -47,18 +47,20 @@ export const tiConsentsSupabaseRepository = {
   async updateStatus(
     tenantId: string,
     consentId: string,
-    patch: Partial<Pick<TIConsent, 'status' | 'grantedAt' | 'grantedBy'>>,
+    patch: Partial<Pick<TIConsent, 'status' | 'grantedAt' | 'grantedBy' | 'revokedAt'>>,
   ): Promise<ServiceResult<TIConsent>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
 
+    const update: Record<string, unknown> = {};
+    if (Object.hasOwn(patch, 'status')) update.status = patch.status;
+    if (Object.hasOwn(patch, 'grantedAt')) update.granted_at = patch.grantedAt;
+    if (Object.hasOwn(patch, 'grantedBy')) update.granted_by = patch.grantedBy;
+    if (Object.hasOwn(patch, 'revokedAt')) update.revoked_at = patch.revokedAt;
+
     const { data, error } = await supabase
       .from(TABLE)
-      .update({
-        status: patch.status,
-        granted_at: patch.grantedAt,
-        granted_by: patch.grantedBy,
-      })
+      .update(update)
       .eq('tenant_id', tenantId)
       .eq('id', consentId)
       .select('*')

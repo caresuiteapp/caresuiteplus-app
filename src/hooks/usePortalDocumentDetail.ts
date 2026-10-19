@@ -9,6 +9,7 @@ import {
   type OperationalPortalAudience,
 } from '@/lib/portal/portalAudience';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalDocumentDetail(
   documentId: string | undefined,
@@ -23,6 +24,7 @@ export function usePortalDocumentDetail(
     isLinkedReady,
     isResolvingClientLink,
     isResolvingEmployeeLink,
+    familyAccess,
   } = usePortalActor();
   const profileId = actorId ?? '';
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
@@ -30,6 +32,10 @@ export function usePortalDocumentDetail(
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
   const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
   const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
+  const familyDocumentsAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
+  const familyDownloadAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'download_documents');
 
   const query = useAsyncQuery(
     () =>
@@ -45,6 +51,7 @@ export function usePortalDocumentDetail(
         !!documentId &&
         isLinkedReady &&
         roleMatchesAudience &&
+        familyDocumentsAllowed &&
         (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)),
     },
   );
@@ -67,8 +74,11 @@ export function usePortalDocumentDetail(
   const refresh = query.refresh;
 
   const download = useCallback(async () => {
+    if (!familyDownloadAllowed) {
+      return { ok: false as const, error: 'Downloads sind für diesen Angehörigenzugang nicht freigegeben.' };
+    }
     return downloadMutation.mutate(null);
-  }, [downloadMutation]);
+  }, [downloadMutation, familyDownloadAllowed]);
 
   return {
     data: query.data,
@@ -79,6 +89,8 @@ export function usePortalDocumentDetail(
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
         : audience === 'employee' && !resolvingLink && !scopedEmployeeId
           ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+                : roleKey === 'family_portal' && !familyDocumentsAllowed
+          ? 'Dokumente sind für diesen Angehörigenzugang nicht freigegeben.'
         : (query.error ?? query.refreshError)
           ? toPortalUserFacingError(
               (query.error ?? query.refreshError)!,

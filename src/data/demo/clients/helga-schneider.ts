@@ -126,6 +126,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'contract-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       contractNumber: 'PV-2024-0042', contractStart: '2024-07-01', contractEnd: null,
+      contractPartner: 'AOK Nordost', serviceBasis: 'Ambulante Betreuung nach SGB XI', contractVersion: 1,
       serviceType: 'betreuung', hourlyRateCents: 3800, weeklyHours: 6,
       status: 'aktiv', signedAt: daysAgo(200), documentId: 'doc-hs-contract',
       notes: 'Alltagsbegleitung und Haushalt', createdAt: daysAgo(200), updatedAt: now,

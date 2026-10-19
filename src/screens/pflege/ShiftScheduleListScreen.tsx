@@ -19,6 +19,7 @@ import {
   SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
 import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
+import { ShiftReleaseEvidencePanel } from '@/components/pflege/ShiftReleaseEvidencePanel';
 import { colors, spacing } from '@/theme';
 
 export function ShiftScheduleListScreen() {
@@ -69,6 +70,7 @@ export function ShiftScheduleListScreen() {
         onViewModeChange={setViewMode}
         showViewToggle={isDesktop}
       />
+      <ShiftReleaseEvidencePanel items={items} />
       {!importReady ? (
         <InfoBanner
           variant="warning"
@@ -101,7 +103,7 @@ export function ShiftScheduleListScreen() {
               message="Für diesen Zeitraum sind noch keine Dienstpläne hinterlegt."
             />
           ) : (
-            <ShiftScheduleListTable items={items} />
+            <ShiftScheduleListTable items={items} onSaved={query.refresh} />
           )}
         </ScrollView>
       </ScreenShell>
@@ -120,7 +122,7 @@ export function ShiftScheduleListScreen() {
             message="Für diesen Zeitraum sind noch keine Dienstpläne hinterlegt."
           />
         }
-        renderItem={({ item }) => <ShiftScheduleListCard item={item} />}
+        renderItem={({ item }) => <ShiftScheduleListCard item={item} onSaved={query.refresh} />}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />

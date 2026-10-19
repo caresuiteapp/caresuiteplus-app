@@ -60,6 +60,15 @@ const CLIENT_PORTAL_ACCESS_SAFE_SELECT = `
   modules_enabled, two_factor_enabled, created_at, updated_at, auth_user_id
 ` as const;
 
+const CONTACT_PORTAL_GRANT_ERROR =
+  'Ein Kontakt- oder Angehörigenvermerk erteilt keinen Portal- oder Aktenzugriff. Verwenden Sie dafür den getrennten Freigabeablauf.';
+
+function requestsContactPortalGrant(input: Partial<ClientContactInput>): boolean {
+  return input.isPortalUser === true
+    || (!!input.portalPermissions
+      && Object.values(input.portalPermissions).some((value) => value === true));
+}
+
 function getClient() {
   return getSupabaseClient();
 }
@@ -213,6 +222,7 @@ export const supabaseClientExtendedRepository = {
   ): Promise<ServiceResult<ClientContactRecord>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
+    if (requestsContactPortalGrant(input)) return { ok: false, error: CONTACT_PORTAL_GRANT_ERROR };
 
     const exists = await assertClientExists(tenantId, clientId);
     if (!exists.ok) return exists;
@@ -228,8 +238,14 @@ export const supabaseClientExtendedRepository = {
         email: input.email,
         is_emergency_contact: input.contactType === 'emergency_contact',
         contact_type: input.contactType,
-        is_portal_user: input.isPortalUser,
-        portal_permissions: input.portalPermissions,
+        is_portal_user: false,
+        portal_permissions: {
+          canViewAppointments: false,
+          canViewDocuments: false,
+          canViewCarePlan: false,
+          canSendMessages: false,
+          canViewBilling: false,
+        },
         notes: input.notes,
       })
       .select('*')
@@ -247,6 +263,7 @@ export const supabaseClientExtendedRepository = {
   ): Promise<ServiceResult<ClientContactRecord>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
+    if (requestsContactPortalGrant(input)) return { ok: false, error: CONTACT_PORTAL_GRANT_ERROR };
 
     const patch: Record<string, unknown> = {};
     if (input.firstName !== undefined) patch.first_name = input.firstName.trim();
@@ -263,8 +280,6 @@ export const supabaseClientExtendedRepository = {
       patch.is_emergency_contact = input.isEmergency;
       patch.contact_type = input.isEmergency ? 'emergency_contact' : 'relative';
     }
-    if (input.isPortalUser !== undefined) patch.is_portal_user = input.isPortalUser;
-    if (input.portalPermissions !== undefined) patch.portal_permissions = input.portalPermissions;
     if (input.notes !== undefined) patch.notes = input.notes;
 
     const { data, error } = await fromUnknownTable(supabase, 'client_contacts')

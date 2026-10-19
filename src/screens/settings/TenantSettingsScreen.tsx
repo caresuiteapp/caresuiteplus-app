@@ -25,6 +25,7 @@ import { TenantCustomFieldWizardModal } from '@/components/tenant/TenantCustomFi
 
 import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';
 
+import { OrganizationLifecycleWorkspace } from '@/components/tenant/OrganizationLifecycleWorkspace';
 import { ErrorState, LoadingState, PremiumButton, PremiumCard, SuccessState } from '@/components/ui';
 
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -383,6 +384,9 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
             </View>
           </>
         ) : null}
+
+        <Text style={[styles.sectionHeading, { color: text.muted }]}>Organisation und Stammdaten – Nachweisweg</Text>
+        <OrganizationLifecycleWorkspace />
       </View>
 
 

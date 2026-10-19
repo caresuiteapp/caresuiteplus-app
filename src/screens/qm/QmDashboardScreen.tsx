@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
+import { AmbulatoryProfessionalAcceptancePanel, ComplaintHandlingPanel, FallEventAnalysisPanel, QualityMeasureFollowUpPanel, QualityWorkspace, SafetyIncidentPanel } from '@/components/qm';
 import { CareLightModuleDashboard, ScreenShell } from '@/components/layout';
 import { CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
@@ -78,6 +79,12 @@ export function QmDashboardScreen() {
       {!isQmDashboardLiveReady() ? (
         <InfoBanner title="Teilbereiche in Vorbereitung" message={QM_DASHBOARD_PREPARED_MESSAGE} />
       ) : null}
+      <QualityWorkspace />
+      <ComplaintHandlingPanel />
+      <SafetyIncidentPanel />
+      <FallEventAnalysisPanel />
+      <QualityMeasureFollowUpPanel />
+      <AmbulatoryProfessionalAcceptancePanel />
       <CareLightModuleDashboard
         moduleKey="qm"
         showHeader={false}

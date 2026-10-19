@@ -22,6 +22,19 @@ import {
 } from '@/types/clientBilling';
 import type { ClientBillingPreviewLine } from '@/types/clientBilling';
 import { colors, spacing, typography } from '@/theme';
+import { ClientInvoiceFoundationReadinessSummary } from './ClientInvoiceFoundationReadinessSummary';
+import { ClientInvoiceDraftSummary } from './ClientInvoiceDraftSummary';
+import { ClientInvoiceApprovalSummary } from './ClientInvoiceApprovalSummary';
+import { ClientCostCarrierExportValidationSummary } from './ClientCostCarrierExportValidationSummary';
+import { ClientCostCarrierReturnSummary } from './ClientCostCarrierReturnSummary';
+import { ClientInvoiceAdjustmentSummary } from './ClientInvoiceAdjustmentSummary';
+import { ClientReceivablesSummary } from './ClientReceivablesSummary';
+import { ClientAccountingControlSummary } from './ClientAccountingControlSummary';
+import { ClientDunningSummary } from './ClientDunningSummary';
+import { ClientDirectDebitSummary } from './ClientDirectDebitSummary';
+import { ClientInvoiceCostShareSummary } from './ClientInvoiceCostShareSummary';
+import { ClientInvoicePeriodClosureSummary } from './ClientInvoicePeriodClosureSummary';
+import { ClientBillingWorkspace } from './ClientBillingWorkspace';
 
 function statusVariant(status: ClientBillingPreviewLine['status']) {
   switch (status) {
@@ -88,6 +101,19 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
 
   return (
     <View style={styles.panel}>
+      <ClientBillingWorkspace clientId={clientId} />
+      <ClientInvoiceFoundationReadinessSummary clientId={clientId} />
+      <ClientInvoiceDraftSummary clientId={clientId} />
+      <ClientInvoiceApprovalSummary clientId={clientId} />
+      <ClientCostCarrierExportValidationSummary clientId={clientId} />
+      <ClientCostCarrierReturnSummary clientId={clientId} />
+      <ClientInvoiceAdjustmentSummary clientId={clientId} />
+      <ClientReceivablesSummary clientId={clientId} />
+      <ClientDunningSummary clientId={clientId} />
+      <ClientDirectDebitSummary clientId={clientId} />
+      <ClientInvoiceCostShareSummary clientId={clientId} />
+      <ClientInvoicePeriodClosureSummary clientId={clientId} />
+      <ClientAccountingControlSummary clientId={clientId} />
       <SectionPanel
         title="Abrechnungsvorschau"
         subtitle="Vorbereitung ohne finale Rechnung"

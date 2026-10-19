@@ -3,6 +3,7 @@ import {
   DEFAULT_REVIEW_FILTERS, REVIEW_STATES, dateTime, elapsed, filterReviewEntries, matchesReviewState, serviceDay,
   type ReviewEntry, type ReviewFilters, type ReviewState,
 } from '@/lib/assist/proofReviewModel.web';
+import { getHousekeepingCareProofBoundaryWeb } from '@/lib/assist/housekeepingCareProofBoundary.web';
 import { proofReviewCss } from './proofReviewCss.web';
 
 const STATUS_LABELS: Record<string, string> = { draft: 'Entwurf', pending_review: 'In Prüfung', approved: 'Freigegeben', exported: 'PDF erzeugt', rejected: 'Abgelehnt', archived: 'Archiviert' };
@@ -18,6 +19,7 @@ function DateFact({ label, value, hint }: { label: string; value: string; hint?:
   return <div className="pr-fact"><dt>{label}</dt><dd>{value}</dd>{hint ? <small>{hint}</small> : null}</div>;
 }
 export function ProofReviewWorkspace({ entries, loadedAt, refreshing, error, onRefresh, onOpenVisit, renderProof }: Props) {
+  const housekeepingBoundary = getHousekeepingCareProofBoundaryWeb();
   const [filters, setFilters] = useState<ReviewFilters>({ ...DEFAULT_REVIEW_FILTERS });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -52,6 +54,10 @@ export function ProofReviewWorkspace({ entries, loadedAt, refreshing, error, onR
     <style>{proofReviewCss}</style>
     <div className="pr-intro"><div><span className="pr-eyebrow">LEISTUNGSNACHWEISE · ÜBERBLICK</span><h2>Nachweise und Unterschriften im Überblick</h2><p>Fehlende Nachweise erkennen, Freigaben prüfen und Unterschriften im Klientenportal nachverfolgen.</p></div>
       <button className="pr-button" disabled={refreshing} onClick={onRefresh}>{refreshing ? 'Wird aktualisiert…' : '↻ Aktualisieren'}</button>
+    </div>
+    <div className="pr-alert" role="note">
+      <strong>Abgrenzung Hauswirtschaft / Pflege.</strong> Katalog, Auftrag, geplante Zeit, Notiz, Assist-Einsatz und Assist-Leistungsnachweis bleiben Nachweise für Hauswirtschaft oder Alltagshilfe. Sie erzeugen keinen Grundpflege- oder Behandlungspflegenachweis; dafür ist eine eigenständige native Pflegedurchführung erforderlich.
+      <small className="pr-note">Status: {housekeepingBoundary.capability} · Assist-Nachweis {housekeepingBoundary.assistVisitProofMeaning} · Pflegeausführung {housekeepingBoundary.actualCareExecutionProof}</small>
     </div>
     {error ? <div className="pr-alert" role="alert"><strong>Aktualisierung fehlgeschlagen.</strong> {error} Die zuletzt geladenen Daten bleiben sichtbar.<button className="pr-link" onClick={onRefresh} disabled={refreshing}>Erneut versuchen</button></div> : null}
     <div className="pr-stats" aria-label="Statusübersicht für die aktuellen Filter">

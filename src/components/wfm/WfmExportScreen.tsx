@@ -44,6 +44,7 @@ import {
 import { WFM_CORRECTION_REASON_MIN_LENGTH } from '@/lib/wfm/wfmTimeExportPolicy';
 import type { WfmTimeExportPeriod } from '@/lib/wfm/wfmTimeExportPolicy';
 import { listReviewActionsForReviews, type WfmTimeReviewAction } from '@/lib/wfm/wfmTimeReviewService';
+import { PayrollRelevantTimeBoundaryPanel } from './PayrollRelevantTimeBoundaryPanel';
 
 function triggerWebFileDownload(content: string, mimeType: string, fileName: string): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -445,6 +446,7 @@ export function WfmExportScreen() {
       scroll
     >
       <View testID="wfm-export-screen" accessibilityLabel="Arbeitszeit-Export">
+        <PayrollRelevantTimeBoundaryPanel />
         <Text style={styles.periodLabel}>Zeitraum: {String(month).padStart(2, '0')}/{year}</Text>
 
         <SectionPanel title="Geprüfter Zeitenexport (P2.2)" subtitle="Freigegebene Reviews final exportieren">
