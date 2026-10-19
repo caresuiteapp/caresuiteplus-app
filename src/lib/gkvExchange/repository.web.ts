@@ -38,7 +38,7 @@ export async function readWorkspace(tenantId:string,role:RoleKey) {
   return {batches,settings,
     directories:(results[2].data||[]) as unknown as Omit<DirectoryRow,'source_text'>[]};
 }
-export async function command<T>(tenantId:string,role:RoleKey,action:string,input:Row,requestId=crypto.randomUUID()):Promise<T> {
+export async function command<T>(tenantId:string,role:RoleKey,action:string,input:Row,requestId:string=crypto.randomUUID()):Promise<T> {
   const client=connection(tenantId,role,true);
   const rpc=client.rpc.bind(client) as unknown as (name:string,args:Row)=>Promise<{data:unknown;error:unknown}>;
   const {data,error}=await rpc('gkv_exchange_command',{p_tenant_id:tenantId,p_request_id:requestId,p_action:action,p_input:input});
