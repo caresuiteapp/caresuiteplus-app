@@ -3,7 +3,7 @@ import React, { act, forwardRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { desktopAreaStorageKey, type DesktopAreaKey } from '@/liquid-command/navigation/desktopAreas';
+import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '@/liquid-command/navigation/desktopAreas';
 
 const memory = new Map<string, string>();
 const api = {
@@ -76,6 +76,7 @@ const render = async () => { await act(async () => root.render(<Desktop />)); };
 const remount = async () => { await act(async () => root.unmount()); root = createRoot(host); await render(); };
 const label = (name: string) => host.querySelector<HTMLElement>(`[aria-label="${name}"]`);
 const dialog = () => host.querySelector<HTMLElement>('[role="dialog"]')!;
+const workspaceHeader = () => host.querySelector<HTMLElement>('[data-testid="desktop-workspace-header"]')!;
 const click = async (element: HTMLElement | null | undefined) => { expect(element).toBeTruthy(); await act(async () => element!.click()); };
 const clickLabel = async (name: string) => { await click(label(name)); };
 const visibleText = (element: HTMLElement) => {
@@ -94,55 +95,82 @@ const type = async (name: string, value: string) => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 };
-const selectDesktop = async (area: DesktopAreaKey, inCatalog = false) => {
-  const select = label(inCatalog ? 'Desktop im Katalog wechseln' : 'Desktop wechseln') as HTMLSelectElement;
-  expect(select?.tagName).toBe('SELECT');
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, area);
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+const desktopChoice = (area: DesktopAreaKey) => {
+  const areaName = DESKTOP_AREAS.find(candidate => candidate.key === area)!.label;
+  return dialog().querySelector<HTMLButtonElement>(`[aria-label="${areaName}-Desktop auswählen"]`)!;
+};
+const selectDesktop = async (area: DesktopAreaKey) => { await click(desktopChoice(area)); };
+const expectSelectedDesktop = (area: DesktopAreaKey) => {
+  const chooser = dialog().querySelector('[role="group"][aria-label="Desktop im Katalog wechseln"]')!;
+  expect(chooser).toBeTruthy();
+  expect(chooser.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+  expect(desktopChoice(area).getAttribute('aria-pressed')).toBe('true');
 };
 const open = async (name = 'Apps') => { await clickLabel('Apps und Widgets öffnen'); if (name !== 'Apps') await click(tab(name)); };
 const savedIds = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as string[];
 
 describe('Apps and Widgets in the actual Web desktop', () => {
-  it('shows the current desktop in the top bar and restores a changed module after reload', async () => {
+  it('preserves the desktop area tabs, keeps the new chooser inside Apps and Widgets and restores the selection after reload', async () => {
     seed(['clients']); seed(['assignments'], 'assist'); await render();
-    const switcher = label('Desktop wechseln') as HTMLSelectElement;
-    expect(switcher?.tagName).toBe('SELECT');
-    expect(switcher.value).toBe('office');
-    expect(switcher.selectedOptions[0].textContent).toContain('Office');
+    const topbar = host.querySelector('[data-testid="desktop-topbar-actions"]')!;
+    expect(topbar).toBeTruthy();
+    expect(topbar.querySelector('[aria-label="Desktop wechseln"]')).toBeNull();
+    expect(topbar.querySelector('[aria-label="Desktop im Katalog wechseln"]')).toBeNull();
+    expect(label('Desktop im Katalog wechseln')).toBeNull();
+    expect(label('Office-Desktop auswählen')).toBeNull();
+    expect(workspaceHeader().querySelectorAll('[role="tab"]')).toHaveLength(8);
+    expect(tab('Office', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    await click(tab('Assist', workspaceHeader()));
+    expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    expect(label('Klient:innen öffnen')).toBeNull();
+    await click(tab('Office', workspaceHeader()));
+    expect(tab('Office', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    await open();
+    expectSelectedDesktop('office');
+    expect(dialog().querySelectorAll('[aria-label$="-Desktop auswählen"]')).toHaveLength(8);
+    expect(dialog().textContent).toContain('Aktueller Desktop: Office');
+    expect(label('Desktop wechseln')).toBeNull();
     await selectDesktop('assist');
-    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expectSelectedDesktop('assist');
+    expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
     expect(label('Einsätze öffnen')).toBeTruthy();
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(memory.get(selectionKey())).toBe('assist');
     expect(api.push).not.toHaveBeenCalled();
+    await clickLabel('Center schließen');
+    expect(label('Desktop im Katalog wechseln')).toBeNull();
+    expect(label('Assist-Desktop auswählen')).toBeNull();
     await remount();
-    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
     expect(label('Einsätze öffnen')).toBeTruthy();
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Desktop wechseln')).toBeNull();
+    expect(label('Desktop im Katalog wechseln')).toBeNull();
+    await open();
+    expectSelectedDesktop('assist');
   });
 
   it('keeps the catalog and Workflows tab open while switching desktops and resets the previous search', async () => {
     seed(['clients']); seed(['assignments'], 'assist'); await render(); await open('Workflows');
-    expect((label('Desktop im Katalog wechseln') as HTMLSelectElement).value).toBe('office');
+    expectSelectedDesktop('office');
     expect(dialog().textContent).toContain('1 von 1 Workflows');
     expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
     await type('Workflows durchsuchen', '___nicht_vorhanden___');
     expect(dialog().textContent).toContain('Keine passenden Workflows');
-    await selectDesktop('assist', true);
+    await selectDesktop('assist');
     expect(dialog()).toBeTruthy();
     expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
     expect((label('Workflows durchsuchen') as HTMLInputElement).value).toBe('');
-    expect((label('Desktop im Katalog wechseln') as HTMLSelectElement).value).toBe('assist');
-    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expectSelectedDesktop('assist');
     expect(dialog().textContent).toContain('2 von 2 Workflows');
     expect(label('Einsatz planen: Ablauf öffnen')).toBeTruthy();
     expect(label('Nachweise prüfen: Ablauf öffnen')).toBeTruthy();
     expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeNull();
     expect(memory.get(selectionKey())).toBe('assist');
     expect(savedIds()).toEqual(['clients']); expect(savedIds('assist')).toEqual(['assignments']);
-    await selectDesktop('office', true);
+    await selectDesktop('office');
     expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
     expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
     expect(label('Einsatz planen: Ablauf öffnen')).toBeNull();
@@ -155,7 +183,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     const currentDialog = dialog();
     const writes = api.multiSet.mock.calls.length;
     const singleWrites = api.setItem.mock.calls.length;
-    await selectDesktop('office', true);
+    await selectDesktop('office');
     expect(dialog()).toBe(currentDialog);
     expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
     expect((label('Workflows durchsuchen') as HTMLInputElement).value).toBe('aufnehmen');
@@ -170,18 +198,18 @@ describe('Apps and Widgets in the actual Web desktop', () => {
       seed(['clients']); seed(['assignments'], 'assist'); await render(); await open('Widgets');
       api.multiSet.mockRejectedValueOnce(new Error('Storage unavailable'));
       await clickLabel('Notizen zum Desktop hinzufügen');
-      await selectDesktop('office', true);
+      await selectDesktop('office');
       expect(confirm).not.toHaveBeenCalled();
-      await selectDesktop('assist', true);
+      await selectDesktop('assist');
       expect(confirm).toHaveBeenCalledOnce();
-      expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+      expectSelectedDesktop('office');
       expect(label('Notizen vom Desktop entfernen')).toBeTruthy();
       expect(savedIds()).toEqual(['clients']);
       await click(button('Speichern erneut versuchen'));
       expect(savedIds()).toEqual(['clients', 'notes']);
-      await selectDesktop('assist', true);
+      await selectDesktop('assist');
       expect(confirm).toHaveBeenCalledOnce();
-      expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+      expectSelectedDesktop('assist');
       expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
       expect(label('Einsätze vom Desktop entfernen')).toBeTruthy();
       expect(savedIds()).toEqual(['clients', 'notes']);
@@ -288,12 +316,12 @@ describe('Apps and Widgets in the actual Web desktop', () => {
   });
 
   it('separates widget selections by area, tenant and person', async () => {
-    seed(['clients']); seed(['assignments'], 'assist'); await render();
+    seed(['clients']); seed(['assignments'], 'assist'); await render(); await open('Widgets');
     await selectDesktop('assist');
     expect(label('Einsätze öffnen')).toBeTruthy(); expect(label('Klient:innen öffnen')).toBeNull();
-    await open('Widgets'); await clickLabel('Einsätze vom Desktop entfernen');
+    await clickLabel('Einsätze vom Desktop entfernen');
     expect(savedIds('assist')).toEqual([]); expect(savedIds()).toEqual(['clients']);
-    await selectDesktop('office', true);
+    await selectDesktop('office');
     expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
     expect(label('Klient:innen vom Desktop entfernen')).toBeTruthy();
     expect(label('Einsätze zum Desktop hinzufügen')).toBeNull();
@@ -329,12 +357,10 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     api.denied.add('office.documents.view'); seed([]); await render(); await open();
     expect(label('App Dokumentenkatalog öffnen')).toBeNull();
     await click(tab('Widgets')); expect(label('Dokumentenkatalog zum Desktop hinzufügen')).toBeNull();
-    const catalogSwitcher = label('Desktop im Katalog wechseln') as HTMLSelectElement;
-    const topbarSwitcher = label('Desktop wechseln') as HTMLSelectElement;
-    expect(catalogSwitcher.querySelector<HTMLOptionElement>('option[value="pflege"]')?.disabled).toBe(true);
-    expect(topbarSwitcher.querySelector<HTMLOptionElement>('option[value="pflege"]')?.disabled).toBe(true);
-    await selectDesktop('pflege', true);
-    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+    expect(desktopChoice('pflege').disabled).toBe(true);
+    expect(label('Desktop wechseln')).toBeNull();
+    await selectDesktop('pflege');
+    expectSelectedDesktop('office');
     expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
     expect(label('Notizen zum Desktop hinzufügen')).toBeTruthy();
     expect(memory.get(selectionKey())).not.toBe('pflege');
@@ -345,12 +371,10 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     if (reason === 'module') api.modules.delete('assist');
     else api.denied.add('assist.access');
     seed(['clients']); await render(); await open('Workflows');
-    for (const name of ['Desktop wechseln', 'Desktop im Katalog wechseln']) {
-      const select = label(name) as HTMLSelectElement;
-      expect(select.querySelector<HTMLOptionElement>('option[value="assist"]')?.disabled).toBe(true);
-    }
-    await selectDesktop('assist', true);
-    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+    expect(desktopChoice('assist').disabled).toBe(true);
+    expect(label('Desktop wechseln')).toBeNull();
+    await selectDesktop('assist');
+    expectSelectedDesktop('office');
     expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
     expect(label('Einsatz planen: Ablauf öffnen')).toBeNull();
     expect(memory.get(selectionKey())).not.toBe('assist');

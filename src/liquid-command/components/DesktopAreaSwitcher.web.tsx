@@ -1,5 +1,6 @@
 import { useId, type CSSProperties } from 'react';
 import type { DesktopAreaKey } from '../navigation/desktopAreas';
+import { DesktopCatalogArtwork } from './DesktopCatalogArtwork.web';
 import { desktopAreaSwitcherCss } from './desktopAreaSwitcherCss.web';
 
 export type DesktopAreaOption = {
@@ -12,37 +13,46 @@ export type DesktopAreaSwitcherProps = {
   selectedArea: DesktopAreaKey;
   areas: readonly DesktopAreaOption[];
   onSelectArea: (area: DesktopAreaKey) => void;
-  appearance?: 'header' | 'light';
-  label?: string;
   scale?: number;
 };
 
-/** Native selection keeps keyboard, touch and disabled-module behavior consistent. */
+const ARTWORK_ROUTES: Record<DesktopAreaKey, string> = {
+  office: '/office', assist: '/assist', pflege: '/pflege', stationaer: '/stationaer',
+  beratung: '/beratung', robotics: '/robotics', premium: '/business/subscription', settings: '/settings',
+};
+
+/** All catalogue areas stay visible; native buttons retain keyboard and permission behavior. */
 export function DesktopAreaSwitcher({
-  selectedArea, areas, onSelectArea, appearance = 'header', label = 'Desktop wechseln', scale = 1,
+  selectedArea, areas, onSelectArea, scale = 1,
 }: DesktopAreaSwitcherProps) {
   const id = useId();
+  const selectedLabel = areas.find(area => area.key === selectedArea)?.label ?? selectedArea;
   const style = { '--cs-desktop-area-scale': Math.max(1, Number.isFinite(scale) ? scale : 1) } as CSSProperties;
 
   return <>
     <style>{desktopAreaSwitcherCss}</style>
-    <label className="cs-desktop-area-switcher" data-appearance={appearance} htmlFor={id} style={style}>
-      <span className="cs-desktop-area-label-row">
-        <span>Aktueller Desktop</span>
-        <span className="cs-desktop-area-hint" aria-hidden="true">Desktop wechseln</span>
-      </span>
-      <span className="cs-desktop-area-control">
-        <select id={id} aria-label={label} value={selectedArea}
-          onChange={event => {
-            const next = areas.find(area => area.key === event.currentTarget.value);
-            if (next && !next.disabled && next.key !== selectedArea) onSelectArea(next.key);
-          }}>
-          {areas.map(area => <option key={area.key} value={area.key} disabled={area.disabled}>
-            {area.label}{area.disabled ? ' · Nicht freigegeben' : ''}
-          </option>)}
-        </select>
-        <span className="cs-desktop-area-chevron" aria-hidden="true"/>
-      </span>
-    </label>
+    <section className="cs-desktop-area-switcher" style={style} aria-labelledby={`${id}-heading`}>
+      <div className="cs-desktop-area-heading">
+        <h2 id={`${id}-heading`}>Desktop wechseln</h2>
+        <span className="cs-desktop-area-current"><span aria-hidden="true"/>Aktueller Desktop: <strong>{selectedLabel}</strong></span>
+      </div>
+      <div className="cs-desktop-area-options" role="group" aria-label="Desktop im Katalog wechseln">
+        {areas.map(area => {
+          const selected = area.key === selectedArea;
+          return <button type="button" key={area.key} className="cs-desktop-area-option"
+            aria-label={`${area.label}-Desktop auswählen`} aria-pressed={selected} disabled={area.disabled}
+            aria-describedby={area.disabled ? `${id}-${area.key}-status` : undefined}
+            onClick={() => { if (!area.disabled && !selected) onSelectArea(area.key); }}>
+            <DesktopCatalogArtwork route={ARTWORK_ROUTES[area.key]} label={area.label}
+              className="cs-desktop-area-artwork" size="2.5em"/>
+            <span className="cs-desktop-area-name">{area.label}</span>
+            <span className="cs-desktop-area-status" id={`${id}-${area.key}-status`}>
+              {area.disabled ? 'Nicht freigegeben' : selected ? 'Aktiv' : ' '}
+            </span>
+            {selected ? <span className="cs-desktop-area-check" aria-hidden="true">✓</span> : null}
+          </button>;
+        })}
+      </div>
+    </section>
   </>;
 }
