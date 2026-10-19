@@ -62,7 +62,7 @@ type ArtworkCatalog = {
 const artworkBundle = buildSync({
   stdin: {
     contents: `
-      export { desktopCatalogArtwork, desktopCatalogArtworkName } from './src/liquid-command/components/desktopCatalogArtwork.web';
+      export { desktopCatalogArtwork, desktopCatalogArtworkName } from './src/liquid-command/components/desktopCatalogArtworkModel.web';
       export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel';
       export { WIDGETS, WORKFLOWS } from './src/liquid-command/screens/administrationDesktopCatalog';
     `,

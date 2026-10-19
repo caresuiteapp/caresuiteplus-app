@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Image } from 'react-native';
 import type { WidgetDefinition } from '../screens/administrationDesktopCatalog';
-import { desktopCatalogArtwork } from './desktopCatalogArtwork.web';
+import { desktopCatalogArtwork } from './desktopCatalogArtworkModel.web';
 
 export type DesktopCatalogArtworkProps = {
   route: string;
