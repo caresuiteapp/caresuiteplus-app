@@ -49,11 +49,18 @@ unverändert.
    werden von dieser Anwendung nicht an eine Annahmestelle versandt.
 6. Bearbeitungsvermerke im Verlauf erfassen. Ein solcher Vermerk kann weder
    Annahme, Zustellung noch Bezahlung setzen.
+7. Gespeicherte Paketstände seitenweise laden und schreibgeschützt ansehen.
+   Einen früheren klassischen Prüfstand mit Begründung als neuen Testentwurf
+   übernehmen. Ursprung und ausgewählte Revision bleiben verknüpft;
+   Nachweisbestätigungen werden zurückgesetzt. Dies ist kein Kassenstorno und
+   kein fachlicher Korrekturversand. Dateinummern sind erneut zu koordinieren.
 
 Das Verzeichnis zeigt die 100 zuletzt geänderten Pakete, maximal 100 zur
 Übernahme angebotene Rechnungen, 30 Verzeichnisimporte und 100 Protokolleinträge.
 Diese Begrenzungen werden in der Oberfläche ausgewiesen. Ein historisches
 Vollarchiv mit serverseitiger Suche/Paginierung ist noch nicht implementiert.
+Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
+100er-Grenze nicht: Sie lädt jeweils 20 ältere Stände über einen Revisionscursor.
 
 ## Fachliche Grenzen der Dateierzeugung
 
@@ -68,7 +75,8 @@ Vollarchiv mit serverseitiger Suche/Paginierung ist noch nicht implementiert.
 | Zeitvergütung | Zeitanteilig oder je angefangener verschlüsselter Einheit; ausdrückliche Vertragsreferenz und Auswahl erforderlich |
 | Punktwert | Leistungskomplexe: bis fünf Dezimalstellen, Einzelpreis kaufmännisch auf Cent, danach Menge |
 | Kilometervergütung | Tatsächliche Strecke bis zwei Dezimalstellen, ganze Kilometer kaufmännisch gerundet; bestätigte Vertragsregel erforderlich |
-| Zuschläge/Abzüge, Hilfsmittel, stationäre Fachprofile, besondere Abrechnungsfälle | Noch zu implementieren und fachlich abzunehmen |
+| Einfache ambulante Zuschläge/Abzüge | ZUS-Berechnung 11 (prozentual) und 12 (fester Betrag), nur einzelne Pauschalen/Leistungskomplexe mit Menge 1; ausdrücklich bestätigte Vertragsgrundlage |
+| Weitere Zuschlagsberechnungen, Hilfsmittel, stationäre Fachprofile, besondere Abrechnungsfälle | Noch zu implementieren und fachlich abzunehmen |
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
 | KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Noch nicht angeschlossen |
@@ -98,6 +106,28 @@ einem Durchlauf. Die Ausgabe ist verlustfrei ISO 8859-1; nicht darstellbare
 Zeichen werden abgewiesen. Die Auftragsdatei hat feste Bytepositionen.
 Entschlüsselnde und physikalische Annahmestelle werden getrennt geführt.
 
+`adjustments.ts` ergänzt unabhängig berechnete Zu- und Abschläge für einzeln
+ausgewiesene ambulante Pauschalen und Leistungskomplexe. Berechnung 11 bezieht
+sich auf den unveränderten Basisbetrag, Berechnung 12 ist ein fester Betrag.
+Jedes Ergebnis wird separat mit BigInt kaufmännisch auf Cent gerundet; Abzüge
+werden mit eigenem Vorzeichen verrechnet. Die Vertragsregel muss ausdrücklich
+bestätigt werden. ZUS meldet den jeweiligen Differenzbetrag, fünf Nachkommastellen
+im Wert und die berechneten Ende-Kennzeichen. Die unveränderte Basis bleibt in ELS,
+die Gesamtsumme einschließlich der Zu-/Abschläge in IAF/GES.
+
+Tarifbereich, ambulante Zuschlagsart, Grund, Zuordnung zur Leistung/Wegegebühr,
+Wert, Vertragsreferenz und gegebenenfalls zweite Beschäftigtennummer werden
+geprüft. Der Tarifbereich verwendet die TA3-Schlüssel (Berlin 23), nicht die
+Routing-Bundeslandnummern. Nicht belegte Schlüssel, negative Positionssummen,
+Feldüberläufe und fremde Zuschlagsstrukturen blockieren die Ausgabe. Die
+Quellrechnung muss weiterhin genau den Gesamtbetrag einschließlich Zuschlägen
+enthalten; aus ihren Beschreibungstexten wird keine Zuschlagsregel abgeleitet.
+
+Mehrfachmengen, Zeit-/Kilometerzuschläge, Monats-/Tagesbeträge, Punktzuschläge,
+stationäre Abzüge und verkettete Ersatzwerte sind nicht durch dieses Profil
+abgedeckt. Die Vertragsmodelle und Segmentfolgen benötigen noch unabhängige
+Annahmestellen-Testfälle; die lokalen Tests sind keine Tarif- oder Normabnahme.
+
 ### Authentifizierter Export
 
 `POST /api/gkv/test-export` nimmt nur `tenantId`, `batchId` und `revision` an.
@@ -120,12 +150,13 @@ Quellrevisionen, eindeutiger Zuordnung und unveränderlichen Artefakten nötig.
 
 ### Datenbank
 
-Migrationen: `20261019192628_gkv_exchange_workspace.sql` und `20261019195742_gkv_invoice_source_snapshot.sql`, mit der vorhandenen Supabase CLI erzeugt. Beide wurden lokal in PostgreSQL 17.5/PGlite ausgeführt, nicht auf einem Remoteprojekt eingespielt. Die Tests verwenden Vertragsdoubles für die vorhandene Office-Autorisierung und Nachweisverifikation; deren echte Supabase-Integration bleibt zu prüfen.
+Migrationen: `20261019192628_gkv_exchange_workspace.sql`, `20261019195742_gkv_invoice_source_snapshot.sql` und `20261019210847_gkv_revision_history.sql`, mit der vorhandenen Supabase CLI erzeugt. Alle drei wurden lokal in PostgreSQL 17.5/PGlite ausgeführt, nicht auf einem Remoteprojekt eingespielt. Die Tests verwenden Vertragsdoubles für die vorhandene Office-Autorisierung und Nachweisverifikation; deren echte Supabase-Integration bleibt zu prüfen.
 
 - `gkv_exchange_batches`: mandantenbezogene Entwürfe und Revisionen.
 - `gkv_exchange_settings`: versioniertes Anbieterprofil.
 - `gkv_exchange_directories`: importierter Quelltext und SHA-256 zur Dublettenerkennung.
 - `gkv_exchange_events`: vom Server geschriebener Bearbeitungsverlauf.
+- `gkv_exchange_revisions`: gesonderte Schnappschüsse jeder Paketrevision mit Datenstand, Status und SHA-256 des kanonischen PostgreSQL-JSON-Texts.
 - `care_security.gkv_exchange_requests`: private Wiederholungsquittungen.
 
 Direkte Schreibrechte für `anon` und `authenticated` sind entzogen.
@@ -145,6 +176,25 @@ an dieser Stelle ein **nicht verifizierter Client-Vermerk**, kein serverseitiger
 Validierungsbeleg. Das wird ausdrücklich mit `verified: false` festgehalten.
 `feedback_note` erzeugt keinen Statuswechsel. Direkte Statusübergänge zu
 `sent`, `delivered` oder `accepted` sind über die vorhandenen RPCs nicht möglich.
+
+Die Revisionsmigration sperrt während der Einführung konkurrierende
+Paketänderungen und übernimmt nur den dann vorhandenen Stand. Vergangene
+Revisionen und Bearbeiter werden nicht erfunden. Danach schreibt ein privater
+Trigger jede neue Revision in derselben Transaktion. Direkte Inserts, Updates
+und Deletes durch Anwendungsbenutzer sind entzogen. Eine Übernahme verwendet
+die geschützte RPC `gkv_exchange_copy_revision`, liest den ursprünglichen
+Schnappschuss serverseitig, prüft den aktuellen Paketstand und erzeugt einen
+neuen Testentwurf mit eigener stabiler Kennung. Begründung und Herkunft werden
+beidseitig protokolliert. Unklare Wiederholungen mit derselben Auftragskennung
+liefern dasselbe Ergebnis; konkurrierende oder abweichende Aufträge blockieren.
+Originaldaten und Rechnungen werden dabei nicht überschrieben.
+
+Diese Historie ist ein Verlauf gespeicherter Entwurfsdaten. Sie speichert noch
+keine serverseitig attestierten Exportbytes, reserviert keine Rechnungen für
+den Echtversand und belegt weder eine vollständige revisionssichere Archivierung
+noch einen unabhängigen Herkunftsnachweis. Die Datenstand-Prüfsumme ist nicht
+mit der Prüfsumme einer EDIFACT-Datei gleichzusetzen. Kopien behalten ihre
+Quellrevisionen; veraltete Quellen blockieren den späteren Export wie bisher.
 
 ### Kostenträgerverzeichnis
 
@@ -167,7 +217,7 @@ werden nicht durch erfundene Empfänger oder pauschale Fallbacks ersetzt.
 
 ## Schritte bis zur vollständigen Produktivfreigabe
 
-1. **Fachliche Erweiterung:** übrige Vergütungsprofile, ZUS/HIL, stationäre Fälle,
+1. **Fachliche Erweiterung:** übrige Vergütungsprofile, weitere ZUS-Berechnungen/HIL, stationäre Fälle,
    Änderungen im Leistungsmonat, Korrektur-/Stornoverfahren, Abrechnungszentren
    und vollständige Vertragspreisbildung implementieren. Gegen echte, freigegebene
    Testfälle der jeweils relevanten Annahmestelle prüfen.

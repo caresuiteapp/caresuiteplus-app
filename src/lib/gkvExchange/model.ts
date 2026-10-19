@@ -1,4 +1,5 @@
 import { calculatePrice, type PricingRule } from './pricing';
+import { adjustmentIssues, hasAdjustmentsShape, type Adjustment } from './adjustments';
 /** §105 SGB XI. Field order and limits: TA1 6.4.0, TA3 6.4.0 (01.05.2026). */
 export const GKV_SPEC = {
   version: '6.4.0', validFrom: '2026-05-01', validUntil: '2027-01-31',
@@ -29,6 +30,7 @@ export type ServiceLine = {
   sourceId?: string; day: string; startTime?: string; remuneration: string;
   sourceItemId?: string; sourceItemUpdatedAt?: string; sourceRecordUpdatedAt?: string; sourceDescription?: string;
   pricingRule?: PricingRule; contractReference?: string; distanceKm?: string;
+  adjustments?: Adjustment[]; adjustmentRule?: string;
   qualification: string; code: string; unitPriceCents: number; quantityHundredths: number;
   duration: string; pointValue?: string; points?: string; employeeNumber?: string;
   secondEmployeeNumber?: string; totalCents: number;
@@ -88,6 +90,7 @@ export function hasDraftShape(value: unknown): value is ExchangeDraft {
       && typeof c.proofConfirmed === 'boolean' && numbers(c, ['coPaymentCents','aidCents','grossCents']) && Array.isArray(c.lines) && c.lines.length <= 1000
       && c.lines.every(l => record(l) && textKeys(l, ['day','remuneration','qualification','code','duration'])
         && optionalText(l,['sourceId','sourceItemId','sourceItemUpdatedAt','sourceRecordUpdatedAt','sourceDescription','pricingRule','contractReference','distanceKm','pointValue','points','startTime','employeeNumber','secondEmployeeNumber'])
+        && optionalText(l, ['adjustmentRule']) && (l.adjustments === undefined || hasAdjustmentsShape(l.adjustments))
         && numbers(l, ['unitPriceCents','quantityHundredths','totalCents'])));
 }
 export function cents(value: number): string {
@@ -202,7 +205,8 @@ export function validateDraft(input: unknown): Issue[] {
         if (l.unitPriceCents !== expected.unitPriceCents) add(`${lp}.unitPriceCents`, 'Einzelpreis stimmt nicht mit Punktwert × Punktzahl überein.');
         if (Number(l.duration) !== Number(expected.duration)) add(`${lp}.duration`, 'Gemeldete Kilometer stimmen nicht mit der kaufmännisch gerundeten Strecke überein.');
       } catch (error) { add(`${lp}.totalCents`, error instanceof Error ? error.message : 'Berechnungsgrundlage ist unvollständig.'); }
-      if (Object.hasOwn(l, 'adjustments') || Object.hasOwn(l, 'surcharges')) add(lp, 'Zuschläge dürfen erst mit dem gesonderten ZUS-Berechnungsweg exportiert werden.');
+      for (const issue of adjustmentIssues(l, d.serviceType)) add(`${lp}.${issue.path}`, issue.message);
+      if (Object.hasOwn(l, 'surcharges')) add(lp, 'Unbekannte Zuschlagsdaten dürfen nicht ohne ZUS-Berechnung exportiert werden.');
       if ((d.profile.ambulatoryProvider || d.profile.employeeNumberRequired) && !/^\d{9}$/.test(l.employeeNumber || '')) add(`${lp}.employeeNumber`, 'Beschäftigtennummer oder belegter Ersatzwert erforderlich.');
       if (l.secondEmployeeNumber && !/^\d{9}$/.test(l.secondEmployeeNumber)) add(`${lp}.secondEmployeeNumber`, 'Zweite Beschäftigtennummer ist ungültig.');
       if (l.sourceId) { if (sources.has(l.sourceId)) add(`${lp}.sourceId`, 'Diese Leistung wurde im Paket mehrfach ausgewählt.'); sources.add(l.sourceId); }

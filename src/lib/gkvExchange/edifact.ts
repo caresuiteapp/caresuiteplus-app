@@ -1,5 +1,6 @@
 import { cents, validateDraft, type ExchangeDraft } from './model';
-import { formatFixed } from './pricing';
+import { calculateBasePrice, formatFixed } from './pricing';
+import { calculateAdjustments } from './adjustments';
 
 export type Segment = string[][];
 type Decimal = { decimal: string };
@@ -99,6 +100,12 @@ export function buildTestInterchange(d: ExchangeDraft): { name: string; text: st
     for (const l of [...c.lines].sort((a,b) => `${a.day}${a.startTime || ''}`.localeCompare(`${b.day}${b.startTime || ''}`))) {
       body.push(segment('ESK',[l.day,l.startTime || '']), segment('ELS',[[d.serviceType,l.remuneration,l.qualification,l.code],
         decimal(l.unitPriceCents), l.pointValue ? {decimal:formatFixed(l.pointValue,1,5)} : '', l.points || '', l.duration,decimal(l.quantityHundredths),l.employeeNumber || '',l.secondEmployeeNumber || '']));
+      const amounts = calculateAdjustments(l, calculateBasePrice(l).totalCents);
+      for (const [index, adjustment] of (l.adjustments || []).entries()) {
+        body.push(segment('ZUS', [[adjustment.tariff, adjustment.kind, adjustment.code], adjustment.text,
+          adjustment.allocation, adjustment.calculation, adjustment.direction,
+          { decimal: formatFixed(adjustment.value, 4, 5) }, decimal(amounts[index].resultCents), amounts[index].end]));
+      }
     }
     body.push(segment('IAF',[decimal(c.grossCents),decimal(c.coPaymentCents),decimal(c.aidCents),decimal(net)]));
     message('PLAA',body);

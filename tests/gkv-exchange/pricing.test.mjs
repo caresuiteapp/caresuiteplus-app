@@ -39,5 +39,5 @@ test('point and time EDIFACT fields are emitted in their specified positions',()
 test('stored totals, kilometres, unit prices and unsupported surcharge data cannot bypass validation',()=>{
   const d=fixture();const l=line({remuneration:'06',code:'04',startTime:'0915',distanceKm:'3.5',duration:'3',pricingRule:'kilometres_rounded'});d.cases[0].lines=[l];assert.ok(validateDraft(d).some(x=>x.path.endsWith('duration')));
   assert.throws(()=>calculatePrice(line({unitPriceCents:999999999999,quantityHundredths:999999})));
-  const s=fixture();s.cases[0].lines[0].adjustments=[];assert.ok(validateDraft(s).some(x=>x.message.includes('ZUS')));
+  const s=fixture();s.cases[0].lines[0].surcharges=[];assert.ok(validateDraft(s).some(x=>x.message.includes('ZUS')));
 });

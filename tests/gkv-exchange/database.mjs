@@ -52,9 +52,15 @@ try {await test('GKV migrations execute with real PostgreSQL RLS, functions and 
     await assert.rejects(cmd('save',{...input,draft:{...fixture(),sequence:2}},request));
     await assert.rejects(cmd('save',input),e=>e.code==='40001');
   });
+  await db.exec('RESET ROLE');
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261019210847_gkv_revision_history.sql',import.meta.url),'utf8'));
+  await actor();
   await t.test('direct table mutations and private replay rows are inaccessible',async()=>{
     await assert.rejects(db.query("UPDATE gkv_exchange_batches SET status='accepted'"),e=>e.code==='42501');
     await assert.rejects(db.query('SELECT * FROM care_security.gkv_exchange_requests'),e=>e.code==='42501');
+    await assert.rejects(db.query("UPDATE gkv_exchange_revisions SET status='accepted'"),e=>e.code==='42501');
+    await assert.rejects(db.query('DELETE FROM gkv_exchange_revisions'),e=>e.code==='42501');
+    await assert.rejects(db.query('INSERT INTO gkv_exchange_revisions SELECT * FROM gkv_exchange_revisions'),e=>e.code==='42501');
   });
   await t.test('optimistic revision rejects a second writer and does not add audit rows',async()=>{
     const input={id:batchId,revision:1,draft:{...fixture(),sequence:2}};current=await cmd('save',input);assert.equal(current.revision,2);
@@ -63,6 +69,7 @@ try {await test('GKV migrations execute with real PostgreSQL RLS, functions and 
   await t.test('other tenants and portal sessions cannot read or execute',async()=>{
     for(const scope of [{tenant:other},{tenant:''},{portal:'client'},{user:''},{permissions:''}]){
       await actor(scope);assert.equal((await db.query('SELECT count(*)::int n FROM gkv_exchange_batches')).rows[0].n,0);
+      assert.equal((await db.query('SELECT count(*)::int n FROM gkv_exchange_revisions')).rows[0].n,0);
       await assert.rejects(cmd('save',{new_id:randomUUID(),draft:fixture()}),e=>e.code==='42501');
       await assert.rejects(snapshot(),e=>e.code==='42501');
     }await actor();
@@ -102,5 +109,58 @@ try {await test('GKV migrations execute with real PostgreSQL RLS, functions and 
     current=await cmd('cancel',{id:batchId,revision:current.revision});assert.equal(current.status,'cancelled');
     await assert.rejects(cmd('save',{id:batchId,revision:current.revision,draft:fixture()}));
     await assert.rejects(cmd('export_note',{id:batchId,revision:current.revision,sha256:'b'.repeat(64)}));
+  });
+  await t.test('history backfills only the current state and preserves every later saved version',async()=>{
+    const rows=(await db.query('SELECT *,draft_sha256=encode(sha256(convert_to(draft::text,\'UTF8\')),\'hex\') valid_hash FROM gkv_exchange_revisions WHERE batch_id=$1 ORDER BY revision',[batchId])).rows;
+    assert.deepEqual(rows.map(r=>r.revision),[1,2,3,4]);assert.ok(rows.every(r=>r.valid_hash));
+    assert.equal(rows[0].capture_kind,'backfill');assert.equal(rows[0].recorded_by,null);assert.equal(rows[0].draft.sequence,1);
+    assert.equal(rows[1].capture_kind,'change');assert.equal(rows[1].recorded_by,userId);assert.equal(rows[1].draft.sequence,2);
+    assert.deepEqual(rows.map(r=>r.status),['draft','draft','exported_test','cancelled']);
+    assert.notEqual(rows[0].draft_sha256,rows[1].draft_sha256);assert.equal(rows[1].draft_sha256,rows[2].draft_sha256);
+  });
+  const copy=async(input,request=randomUUID(),tenant=tenantId)=>(await db.query('SELECT public.gkv_exchange_copy_revision($1,$2,$3::jsonb) result',[tenant,request,JSON.stringify(input)])).rows[0].result;
+  const copyInput=()=>({batch_id:batchId,source_revision:1,expected_revision:current.revision,new_id:randomUUID(),reason:'Fiktive Überarbeitung nach Prüfrückmeldung'});
+  await t.test('revision copy preserves original, provenance and source checks while resetting confirmations',async()=>{
+    const input=copyInput(),request=randomUUID(),created=await copy(input,request);
+    assert.equal(created.id,input.new_id);assert.equal(created.status,'draft');assert.equal(created.revision,1);
+    assert.equal(created.origin_batch_id,batchId);assert.equal(created.origin_revision,1);
+    assert.equal(created.draft.sequence,1);assert.equal(created.draft.mode,'test');assert.equal(created.draft.cases[0].proofConfirmed,false);
+    assert.notEqual(created.draft.createdAt,fixture().createdAt);assert.deepEqual(await copy(input,request),created);
+    const parent=(await db.query('SELECT revision,status,draft FROM gkv_exchange_batches WHERE id=$1',[batchId])).rows[0];assert.equal(parent.revision,current.revision);assert.equal(parent.status,'cancelled');assert.equal(parent.draft.sequence,2);
+    assert.equal((await db.query('SELECT count(*)::int n FROM gkv_exchange_revisions WHERE batch_id=$1',[created.id])).rows[0].n,1);
+    const events=(await db.query("SELECT details FROM gkv_exchange_events WHERE event_type='revision_copy' AND batch_id=$1",[created.id])).rows;
+    assert.equal(events.length,1);assert.equal(events[0].details.source_revision,1);assert.equal(events[0].details.text,input.reason);
+    await assert.rejects(copy(input),e=>e.code==='40001');await assert.rejects(copy({...input,reason:'Anderer Auftrag'},request));
+    await actor({user:other});await assert.rejects(copy(input,request));await actor();
+  });
+  await t.test('copy rejects stale revisions, foreign scope, missing source and missing reason atomically',async()=>{
+    const before=(await db.query('SELECT count(*)::int n FROM gkv_exchange_batches')).rows[0].n;
+    for(const change of [{expected_revision:current.revision-1},{source_revision:999},{batch_id:other},{new_id:null},{reason:''}])await assert.rejects(copy({...copyInput(),...change}));
+    await actor({tenant:other});await assert.rejects(copy(copyInput(),randomUUID(),other));await actor();
+    assert.equal((await db.query('SELECT count(*)::int n FROM gkv_exchange_batches')).rows[0].n,before);
+  });
+  await t.test('copy is unavailable to view-only, anonymous and portal sessions',async()=>{
+    for(const scope of [{permissions:'office.invoices.view'},{portal:'employee'},{user:''},{role:'anon'}]){
+      await actor(scope);await assert.rejects(copy(copyInput()),e=>e.code==='42501');
+    }await actor();
+  });
+  await t.test('production and KIM revisions cannot be copied into a test workflow',async()=>{
+    for(const change of [{mode:'production'},{channel:'kim'}]){
+      const created=await cmd('save',{new_id:randomUUID(),draft:{...fixture(),...change}});
+      await assert.rejects(copy({...copyInput(),batch_id:created.id,source_revision:1,expected_revision:1}),/klassische Prüfstände/);
+    }
+  });
+  await t.test('revision cursor pages cannot repeat or hide stored states with equal timestamps',async()=>{
+    const created=await cmd('save',{new_id:randomUUID(),draft:fixture()});let latest=created;
+    for(let i=0;i<24;i++)latest=await cmd('save',{id:created.id,revision:latest.revision,draft:fixture()});
+    const page=(before=2147483647)=>db.query('SELECT revision FROM gkv_exchange_revisions WHERE tenant_id=$1 AND batch_id=$2 AND revision<$3 ORDER BY revision DESC LIMIT 20',[tenantId,created.id,before]);
+    const first=(await page()).rows,second=(await page(first.at(-1).revision)).rows;
+    assert.equal(first.length,20);assert.equal(second.length,5);assert.deepEqual([...first,...second].map(r=>r.revision),Array.from({length:25},(_,i)=>25-i));
+  });
+  await t.test('new RPC wrappers and capture trigger have restricted execution and fixed search paths',async()=>{
+    const rows=(await db.query("SELECT p.proname,n.nspname,p.prosecdef,p.proconfig,has_function_privilege('anon',p.oid,'EXECUTE') anon_execute FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.proname IN('gkv_exchange_copy_revision','gkv_exchange_capture_revision')")).rows;
+    assert.equal(rows.length,3);assert.ok(rows.every(r=>r.proconfig.includes('search_path=pg_catalog')&&!r.anon_execute));
+    assert.equal(rows.find(r=>r.nspname==='public').prosecdef,false);
+    assert.equal((await db.query("SELECT has_function_privilege('authenticated','care_security.gkv_exchange_capture_revision()','EXECUTE') allowed")).rows[0].allowed,false);
   });
 });}finally{await db.close();}

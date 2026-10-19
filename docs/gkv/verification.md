@@ -8,7 +8,7 @@ Stand: 19.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**44 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**54 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
 | Bereich | Nachweis |
@@ -19,6 +19,7 @@ Es wurde kein zusätzliches Testframework installiert.
 | Parser | Abgebrochene Segmente, falsche Zähler, doppelte/falsche Referenzen |
 | Fachprüfung | Beträge, Dubletten innerhalb des Pakets, Nachweise, Beschäftigtennummern, Steuer- und Versionsgrenzen |
 | Berechnung | Sechs Zeit-Einheiten, anteilige/angefangene Einheiten, Kilometergrenzen, fünfstellige Punktwerte, halbe Centbeträge und Überlaufablehnung |
+| Zuschläge/Abzüge | Prozent/fester Betrag, unveränderter Basisbetrag, einzelne Cent-Rundung, Vorzeichen, ZUS-Feldpositionen und Ende-Kennzeichen, fünf Dezimalstellen, Tarifbereiche, Pflichtangaben, negative Summen, Feldgrenzen und weiterhin genauer Quellrechnungsabgleich |
 | Routing | Mehrstufige Zuordnung, Ablaufdaten, falscher Übermittlungsweg, Mehrdeutigkeit, UEM-Gültigkeit, VZD-Kennzeichen |
 | Rückmeldemodell | Korrelation, wiederholte Zustellmeldung, unzulässige Statussprünge |
 | Export-API | Authentifizierung, Berechtigung, kein vom Client eingereichter Dateikörper, Mandant, Revision und parallele Änderung |
@@ -26,17 +27,19 @@ Es wurde kein zusätzliches Testframework installiert.
 | Original-PDF | Tatsächliche Byteprüfung, geänderte/fehlende PDF, Größenlimit, fremde Pfade, Traversal und URL-Ablehnung |
 | Fehlerausgabe | Keine Nutzdaten bei Fehlern, keine Details aus internen Ausnahmen, kein alternativer Versandpfad |
 
-Zusätzlich wurden **12 Datenbankfälle (13 Testeinträge einschließlich Suite)** mit der bereits vorhandenen PGlite-Laufzeit auf PostgreSQL 17.5 ausgeführt:
+Zusätzlich wurden **19 Datenbankfälle (20 Testeinträge einschließlich Suite)** mit der bereits vorhandenen PGlite-Laufzeit auf PostgreSQL 17.5 ausgeführt:
 
 ```bash
 node --import ./tests/gkv-exchange/register.mjs tests/gkv-exchange/database.mjs /pfad/zur/vorhandenen/pglite/dist/index.js
 ```
 
-Beide tatsächlichen GKV-Migrationen werden im Arbeitsspeicher ausgeführt. Geprüft sind RLS, Mandanten-/Portal-/Rollenwechsel, entzogenes Direkt-Schreibrecht, private Wiederholungsquittungen, idempotente Aufträge, Inhaltskonflikte, Revisionen, Fremdrechnungen, Profilrevisionen, Abbruch bei ungültigen Quellen und fehlende Berechtigung öffentlicher RPCs. Die vorhandenen Office-Helfer und Auth-Claims sind ausdrücklich Vertragsdoubles; echte Supabase-Authentifizierung und die vollständigen Office-Nachweisprüfer sind damit nicht integriert getestet. Es wurden keine produktiven Daten verändert.
+Alle drei tatsächlichen GKV-Migrationen werden im Arbeitsspeicher ausgeführt. Geprüft sind RLS, Mandanten-/Portal-/Rollenwechsel, entzogenes Direkt-Schreibrecht, private Wiederholungsquittungen, idempotente Aufträge, Inhaltskonflikte, Revisionen, Fremdrechnungen, Profilrevisionen, Abbruch bei ungültigen Quellen und fehlende Berechtigung öffentlicher RPCs. Die Revisionsmigration wird im Test nach dem ersten Paket angewendet: Übernahme des vorhandenen Stands, spätere unveränderte Historie, Datenstand-Hashes, Herkunftsverknüpfung, neue Entwurfskennung, zurückgesetzte Bestätigungen, wiederholte Kopieraufträge und Seiten über 20 Revisionen werden tatsächlich in PostgreSQL geprüft. Authentifizierte Benutzer können die Historie weder ändern noch löschen oder ergänzen; Portal-, Fremdmandanten- und anonyme Zugriffe scheitern. Die Tests für veraltete Revisionen verwenden aufeinanderfolgende Konflikte; ein Lasttest konkurrierender Datenbankverbindungen ist damit nicht belegt.
 
-Das echte `CaseEditor`-Formular wurde zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel sowie erneute Quellübernahme bestanden. **Dies ist eine DOM-Funktionsprüfung, keine visuelle Prüfung.**
+Die vorhandenen Office-Helfer und Auth-Claims sind ausdrücklich Vertragsdoubles; echte Supabase-Authentifizierung und die vollständigen Office-Nachweisprüfer sind damit nicht integriert getestet. Es wurden keine produktiven Daten verändert.
 
-Ein gezielter strenger TypeScript-Check für Fachkern, Quellprüfung, Export-API und `GkvEditors.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier.
+Die echten Komponenten `CaseEditor` und `RevisionHistory` wurden zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel, erneute Quellübernahme, Zuschlag/Abzug mit ungültiger Eingabe/Korrektur/Entfernen bestanden. Historie: Nachladeaktion, schreibgeschützter Stand, Auswahl einzelner Fälle, erforderliche Übernahmebegründung, Leser ohne Kopieraktion, Ladefehler/Wiederholung und Schließen bestanden. Transportcallbacks der Historienoberfläche sind ausdrücklich Doubles. **Dies sind DOM-Funktionsprüfungen, keine visuellen oder vollständigen Ende-zu-Ende-Prüfungen.**
+
+Ein gezielter strenger TypeScript-Check für Fachkern, Quellprüfung, Export-API, `GkvEditors.web.tsx` und `GkvRevisionHistory.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier. GitHub meldet für den darauf aufbauenden Stand `9bac3f7` erfolgreiche Vercel-Deployments von `caresuiteplus-app`, `caresuiteplusapp` und `repository`; diese Statusmeldungen belegen nicht den Build der hier neu ergänzten Zuschläge und Historie.
 
 Die TSX-/TypeScript-Quelldateien der neuen Oberfläche, der Eingabekomponenten,
 des Datenzugriffs und der geänderten Rechnungsnavigation wurden mit dem bereits
@@ -75,6 +78,9 @@ für die vorhandene Berechtigungs- und Rechnungsstruktur.
    Aktionen; Speicher-, Fehler-, Leer- und Ladezustände sowie Tastaturbedienung prüfen.
 5. Paket anlegen, Profil speichern, Rechnung übernehmen, Positionen ergänzen,
    speichern, Prüfdateien erzeugen/herunterladen und nach Neuladen wieder öffnen.
+   Zuschläge anhand vertraglich freigegebener Referenzfälle prüfen. Frühere
+   Paketstände ansehen, nachladen und mit Begründung in einen neuen Prüfentwurf
+   übernehmen; Original, Herkunft und zurückgesetzte Nachweisbestätigung prüfen.
    Unvollständige Zahlen, veraltete Rechnungen und fehlende Nachweise müssen
    die vorgesehenen Aktionen blockieren.
 6. Rollen-/Mandantenwechsel während laufender Requests darf keine fremden Daten

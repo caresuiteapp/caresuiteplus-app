@@ -1,4 +1,5 @@
 import type { ServiceLine } from './model';
+import { calculateAdjustments } from './adjustments';
 
 /** Integer arithmetic only. Rounding is commercial, once at the documented boundary. */
 function round(numerator: bigint, denominator: bigint): bigint {
@@ -27,7 +28,7 @@ export type PricingRule = keyof typeof PRICING_RULES;
 export type PriceResult = { totalCents: number; unitPriceCents: number; duration: string };
 
 /** Contract choice is explicit: TA defines the fields, not a nationwide tariff or rounding contract. */
-export function calculatePrice(line: ServiceLine): PriceResult {
+export function calculateBasePrice(line: ServiceLine): PriceResult {
   if (![line.unitPriceCents, line.quantityHundredths].every(n => Number.isSafeInteger(n) && n >= 0)
       || line.unitPriceCents > 999999999999 || line.quantityHundredths < 1 || line.quantityHundredths > 999999) throw new Error('Einzelpreis oder Menge ist ungültig.');
   let price = BigInt(line.unitPriceCents), multiplier = 1n, divisor = 1n, duration = line.duration;
@@ -56,4 +57,10 @@ export function calculatePrice(line: ServiceLine): PriceResult {
   const total = round(price * multiplier * BigInt(line.quantityHundredths), divisor * 100n);
   if (total > 999999999999n) throw new Error('Positionsbetrag überschreitet die Feldlänge.');
   return { totalCents: Number(total), unitPriceCents: Number(price), duration };
+}
+
+export function calculatePrice(line: ServiceLine): PriceResult {
+  const base = calculateBasePrice(line);
+  const adjustments = calculateAdjustments(line, base.totalCents);
+  return { ...base, totalCents: base.totalCents + adjustments.reduce((sum, entry) => sum + entry.signedCents, 0) };
 }

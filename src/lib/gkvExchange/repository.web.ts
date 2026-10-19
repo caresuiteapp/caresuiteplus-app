@@ -4,10 +4,12 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import type { RoleKey } from '@/types';
-import { hasDraftShape, hasProfileShape, type BatchStatus, type ExchangeDraft, type ExchangeProfile } from './model';
+import { hasDraftShape, hasProfileShape, STATUS_LABELS, type BatchStatus, type ExchangeDraft, type ExchangeProfile } from './model';
 import { importInvoiceCase, readSourceSnapshot, UUID } from './sources';
+import type { RevisionSummary, SavedRevision } from './history';
+export type { RevisionSummary, SavedRevision } from './history';
 
-export type Batch = {id:string;tenant_id:string;revision:number;draft:ExchangeDraft;status:BatchStatus;updated_at:string};
+export type Batch = {id:string;tenant_id:string;revision:number;draft:ExchangeDraft;status:BatchStatus;updated_at:string;origin_batch_id?:string|null;origin_revision?:number|null};
 export type Event = {id:string;event_type:string;created_at:string;details:Record<string,unknown>};
 export type DirectoryRow = {id:string;filename:string;source_text:string;imported_at:string};
 type Row=Record<string,unknown>;
@@ -28,7 +30,7 @@ function failure(error:unknown):never {
 export async function readWorkspace(tenantId:string,role:RoleKey) {
   const client=connection(tenantId,role);
   const results=await Promise.all([
-    fromUnknownTable(client,'gkv_exchange_batches').select('id,tenant_id,revision,draft,status,updated_at').eq('tenant_id',tenantId).order('updated_at',{ascending:false}).order('id').limit(100),
+    fromUnknownTable(client,'gkv_exchange_batches').select('id,tenant_id,revision,draft,status,updated_at,origin_batch_id,origin_revision').eq('tenant_id',tenantId).order('updated_at',{ascending:false}).order('id').limit(100),
     fromUnknownTable(client,'gkv_exchange_settings').select('tenant_id,profile,revision').eq('tenant_id',tenantId).maybeSingle(),
     fromUnknownTable(client,'gkv_exchange_directories').select('id,filename,imported_at').eq('tenant_id',tenantId).order('imported_at',{ascending:false}).limit(30),
   ]);
@@ -42,8 +44,40 @@ export async function readWorkspace(tenantId:string,role:RoleKey) {
 export async function command<T>(tenantId:string,role:RoleKey,action:string,input:Row,requestId:string=crypto.randomUUID()):Promise<T> {
   const client=connection(tenantId,role,true);
   const rpc=client.rpc.bind(client) as unknown as (name:string,args:Row)=>Promise<{data:unknown;error:unknown}>;
-  const {data,error}=await rpc('gkv_exchange_command',{p_tenant_id:tenantId,p_request_id:requestId,p_action:action,p_input:input});
+  const {data,error}=await rpc(action==='copy_revision'?'gkv_exchange_copy_revision':'gkv_exchange_command',
+    {p_tenant_id:tenantId,p_request_id:requestId,...(action==='copy_revision'?{}:{p_action:action}),p_input:input});
   if(error)failure(error);return data as T;
+}
+export async function readBatch(tenantId:string,role:RoleKey,id:string):Promise<Batch> {
+  if(!UUID.test(id))throw new Error('Ungültige Paketkennung.');
+  const client=connection(tenantId,role);const {data,error}=await fromUnknownTable(client,'gkv_exchange_batches')
+    .select('id,tenant_id,revision,draft,status,updated_at,origin_batch_id,origin_revision').eq('tenant_id',tenantId).eq('id',id).single();
+  if(error)failure(error);const batch=data as unknown as Batch;
+  if(!batch||batch.id!==id||batch.tenant_id!==tenantId||!hasDraftShape(batch.draft))throw new Error('Der gespeicherte Paketstand ist unlesbar.');
+  return batch;
+}
+const revisionColumns='tenant_id,batch_id,revision,status,draft_sha256,recorded_at,capture_kind';
+function validRevision(row:RevisionSummary,tenantId:string,batchId:string):boolean {
+  return Boolean(row&&row.tenant_id===tenantId&&row.batch_id===batchId&&Number.isSafeInteger(row.revision)&&row.revision>0
+    &&Object.hasOwn(STATUS_LABELS,row.status)&&/^[a-f0-9]{64}$/.test(row.draft_sha256)
+    &&typeof row.recorded_at==='string'&&Number.isFinite(Date.parse(row.recorded_at))&&['change','backfill'].includes(row.capture_kind));
+}
+export async function readRevisions(tenantId:string,role:RoleKey,batchId:string,before?:number) {
+  if(!UUID.test(batchId)||(before!==undefined&&(!Number.isSafeInteger(before)||before<1)))throw new Error('Ungültige Revisionsabfrage.');
+  const client=connection(tenantId,role);let query=fromUnknownTable(client,'gkv_exchange_revisions').select(revisionColumns)
+    .eq('tenant_id',tenantId).eq('batch_id',batchId).order('revision',{ascending:false}).limit(21);
+  if(before!==undefined)query=query.lt('revision',before);
+  const {data,error}=await query;if(error)failure(error);const rows=(data||[]) as unknown as RevisionSummary[];
+  if(rows.some(row=>!validRevision(row,tenantId,batchId)))throw new Error('Die gespeicherten Stände sind unlesbar.');
+  return {rows:rows.slice(0,20),hasMore:rows.length>20};
+}
+export async function readRevision(tenantId:string,role:RoleKey,batchId:string,revision:number):Promise<SavedRevision> {
+  if(!UUID.test(batchId)||!Number.isSafeInteger(revision)||revision<1)throw new Error('Ungültige Revisionsabfrage.');
+  const client=connection(tenantId,role);const {data,error}=await fromUnknownTable(client,'gkv_exchange_revisions').select(`${revisionColumns},draft`)
+    .eq('tenant_id',tenantId).eq('batch_id',batchId).eq('revision',revision).single();
+  if(error)failure(error);const saved=data as unknown as SavedRevision;
+  if(!validRevision(saved,tenantId,batchId)||saved.revision!==revision||!hasDraftShape(saved.draft))throw new Error('Der gespeicherte Stand ist unlesbar.');
+  return saved;
 }
 export async function readEvents(tenantId:string,role:RoleKey,batchId:string):Promise<Event[]> {
   const client=connection(tenantId,role);const {data,error}=await fromUnknownTable(client,'gkv_exchange_events').select('id,event_type,created_at,details').eq('tenant_id',tenantId).eq('batch_id',batchId).order('created_at',{ascending:false}).order('id').limit(100);

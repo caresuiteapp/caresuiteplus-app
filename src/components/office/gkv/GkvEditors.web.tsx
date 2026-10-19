@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { newLine, parseHundredths, recalculateLine, withLines } from '@/lib/gkvExchange/editor';
-import { PRICING_RULES, type PricingRule } from '@/lib/gkvExchange/pricing';
+import { calculateBasePrice, PRICING_RULES, type PricingRule } from '@/lib/gkvExchange/pricing';
+import { ADJUSTMENT_CALCULATIONS, ADJUSTMENT_CODES, ADJUSTMENT_RULE, ADJUSTMENT_TARIFFS, calculateAdjustments, type Adjustment } from '@/lib/gkvExchange/adjustments';
 import { cents, type BillingCase, type ExchangeProfile, type ServiceLine } from '@/lib/gkvExchange/model';
 
 export function Field({ label, value, onChange, type = 'text', maxLength, hint }: {
@@ -103,6 +104,42 @@ function LineEditor({ value, index, onChange, onRemove }: { value: ServiceLine; 
       {(time || distance || value.pointValue || value.points) && <><Choice label="Vertraglich vereinbarte Berechnung" value={value.pricingRule || ''} onChange={v => set('pricingRule', v ? v as PricingRule : undefined)}><option value="">Auswählen und Vertrag prüfen</option>{Object.entries(PRICING_RULES).filter(([key]) => time ? key.startsWith('time_') : distance ? key === 'kilometres_rounded' : key === 'points_unit').map(([key,label]) => <option key={key} value={key}>{label}</option>)}</Choice><Field label="Vertrag / Vergütungsvereinbarung mit Gültigkeit" value={value.contractReference || ''} maxLength={200} onChange={v => set('contractReference', v)} /></>}
       <Field label="Beschäftigtennummer" value={value.employeeNumber || ''} maxLength={9} onChange={v => set('employeeNumber', v)} />
       <Field label="Zweite Beschäftigtennummer" value={value.secondEmployeeNumber || ''} maxLength={9} onChange={v => set('secondEmployeeNumber', v)} />
-    </div><div className="gx-total"><small>Schlüssel und Vergütung müssen der Vereinbarung mit der Pflegekasse entsprechen.</small><span className="gx-money">{money(value.totalCents)}</span></div>
+    </div><AdjustmentsEditor value={value} onChange={onChange} /><div className="gx-total"><small>Schlüssel und Vergütung müssen der Vereinbarung mit der Pflegekasse entsprechen.</small><span className="gx-money">{money(value.totalCents)}</span></div>
   </section>;
+}
+
+function AdjustmentsEditor({ value, onChange }: { value: ServiceLine; onChange: (value: ServiceLine) => void }) {
+  const entries = value.adjustments || [];
+  const setEntries = (adjustments: Adjustment[]) => onChange({ ...value, adjustments, adjustmentRule: adjustments.length ? value.adjustmentRule : undefined });
+  let preview: { base: number; deltas: number[] } | null = null;
+  let problem = '';
+  try { const base = calculateBasePrice(value).totalCents; preview = { base, deltas: calculateAdjustments(value, base).map(a => a.signedCents) }; }
+  catch (error) { problem = error instanceof Error ? error.message : 'Berechnungsgrundlage prüfen.'; }
+  return <details className="gx-adjustments" open={entries.length > 0}>
+    <summary>Vertragliche Zuschläge und Abzüge {entries.length > 0 && `· ${entries.length}`}</summary>
+    <div className="gx-stack" style={{ marginTop: 14 }}>
+      <p className="gx-subtle">Für einzeln ausgewiesene Pauschalen oder Leistungskomplexe mit Menge 1. Prozentuale und feste Beträge beziehen sich jeweils auf denselben Basisbetrag; jeder Zu- oder Abschlag wird kaufmännisch auf Cent gerundet. Zeit-, Kilometer-, Monats- und verkettete Ersatzwertberechnungen sind hier noch nicht verfügbar.</p>
+      {entries.length > 0 && <Choice label="Vertragliche Zuschlagsberechnung" value={value.adjustmentRule || ''} onChange={adjustmentRule => onChange({ ...value, adjustmentRule })}><option value="">Vertrag prüfen und auswählen</option><option value={ADJUSTMENT_RULE}>Unveränderter Basisbetrag; jeden Zu-/Abschlag einzeln auf Cent runden</option></Choice>}
+      {entries.map((entry, index) => {
+        const set = (key: keyof Adjustment, next: string) => setEntries(entries.map((a, i) => i === index ? { ...a, [key]: next } : a));
+        return <section className="gx-adjustment" key={index} aria-label={`Zu- oder Abschlag ${index + 1}`}>
+          <div className="gx-card-title"><h4>Zu- oder Abschlag {index + 1}</h4><button type="button" className="gx-danger" aria-label={`Zu- oder Abschlag ${index + 1} entfernen`} onClick={() => setEntries(entries.filter((_, i) => i !== index))}>Entfernen</button></div>
+          <div className="gx-grid">
+            <Choice label="Tarifbereich des Zuschlags" value={entry.tariff} onChange={v => set('tariff', v)}><option value="">Auswählen</option>{Object.entries(ADJUSTMENT_TARIFFS).map(([key, label]) => <option key={key} value={key}>{key} · {label}</option>)}</Choice>
+            <Choice label="Zuschlagsart" value={entry.kind} onChange={v => set('kind', v)}><option value="">Auswählen</option><option value="1">1 · Ambulant</option></Choice>
+            <Choice label="Grund des Zu- oder Abschlags" value={entry.code} onChange={v => set('code', v)}><option value="">Auswählen</option>{Object.entries(ADJUSTMENT_CODES).map(([key, label]) => <option key={key} value={key}>{key} · {label}</option>)}</Choice>
+            <Field label="Beschreibung des Zuschlags" value={entry.text} maxLength={50} hint="Bei Schlüssel 00 erforderlich." onChange={v => set('text', v)} />
+            <Choice label="Zuschlagszuordnung" value={entry.allocation} onChange={v => set('allocation', v)}><option value="">Auswählen</option><option value="1">1 · Leistung</option><option value="2">2 · Wegegebühr</option></Choice>
+            <Choice label="Berechnungsart des Zuschlags" value={entry.calculation} onChange={v => set('calculation', v)}><option value="">Auswählen</option>{Object.entries(ADJUSTMENT_CALCULATIONS).map(([key, label]) => <option key={key} value={key}>{key} · {label}</option>)}</Choice>
+            <Choice label="Zuschlag oder Abzug" value={entry.direction} onChange={v => set('direction', v)}><option value="">Auswählen</option><option value="1">Zuschlag (+)</option><option value="0">Abzug (−)</option></Choice>
+            <Field label={entry.calculation === '11' ? 'Zuschlagswert (%)' : 'Zuschlagswert (€)'} value={entry.value} maxLength={10} hint="Bis fünf Nachkommastellen." onChange={v => set('value', v)} />
+            <Field label="Vertragsgrundlage des Zuschlags" value={entry.contractReference} maxLength={200} hint="Vertragsstelle und Gültigkeitszeitraum." onChange={v => set('contractReference', v)} />
+          </div>
+          {preview && <p className="gx-money">{preview.deltas[index] >= 0 ? '+' : '−'} {money(Math.abs(preview.deltas[index]))}</p>}
+        </section>;
+      })}
+      {entries.length > 0 && (preview ? <p className="gx-subtle">Basisbetrag {money(preview.base)} · einschließlich Zu- und Abschlägen {money(value.totalCents)}</p> : <p role="status" className="gx-subtle">{problem}</p>)}
+      <button type="button" disabled={entries.length >= 20} onClick={() => setEntries([...entries, { tariff: '', kind: '', code: '', text: '', allocation: '', calculation: '', direction: '', value: '', contractReference: '' }])}>Zu- oder Abschlag hinzufügen</button>
+    </div>
+  </details>;
 }
