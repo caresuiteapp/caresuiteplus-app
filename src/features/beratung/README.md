@@ -25,7 +25,7 @@ Die Verwaltung benötigt `beratung.cases.view` und `office.clients.view_sensitiv
 
 Im Mitarbeiterportal werden nur aktive, authentifizierte Portalkonten mit aktiver Personalzuordnung akzeptiert. Zugriff besteht ausschließlich auf persönlich zugewiesene Besuche. Durchführung erfordert außerdem eine gültige Freigabe der jeweiligen Leistungsart. Die Portalansicht erhält keine allgemeine Klienten- oder Mitarbeiterliste. Manipulierbare `user_metadata` begründen keine Berechtigung.
 
-Bestehende Beratungs- und Assist-Tabellen werden nicht umgeschrieben. Die bisherige Fallverwaltung bleibt erreichbar. Neue native Routen sind lediglich erforderliche Fallback-Weiterleitungen; Android-Funktionen und die geschützte Assist-Durchführung werden nicht erweitert.
+Bestehende Beratungs- und Assist-Tabellen werden nicht umgeschrieben. Die bisherigen Beratungsseiten bleiben von dieser Freigabe ausgenommen. Neue native Routen sind lediglich erforderliche Fallback-Weiterleitungen; Android-Funktionen und die geschützte Assist-Durchführung werden nicht erweitert.
 
 ## Nachweis der Prüfung
 
@@ -34,7 +34,8 @@ Bestehende Beratungs- und Assist-Tabellen werden nicht umgeschrieben. Die bisher
 1. PostgreSQL/PGlite: beide Leistungsarten, Mandantentrennung, zugewiesene Personen, aktive Konten, Qualifikationen, Überschneidungen, negative Einwilligung, Pflichtfelder, Versionskonflikte, Request-Wiederholung, unveränderbare alte Fassungen, Rückgabe, Freigabe, Modulabschaltung, individuelle Denies und beschränkte Datenbereiche.
 2. Fachmodell: Halbjahreszeiträume, optionale Quartale bei PG 4/5, ungültige Kalendertage, getrennte Dokumentationspflichten und Identitätsgrenzen der Speicherentwürfe.
 3. Echte Web-Komponenten und echter RPC-Client in Happy DOM gegen die isolierte Datenbank: Freigabe → Fall → Zuweisung → Portal → Durchführung → Speichern → Routenwechsel mit Entwurf → Ende → Einreichung → Rückfrage → Korrektur → Freigabe. Ein zweiter Schreibvorgang während der Unterschriftensammlung wird abgewiesen. Geometrie und Canvas-Zeichnung sind in diesem Test simuliert.
-4. Generierte Web-Routen und erforderliche Plattform-Fallbacks.
+4. Freigabeschalter, tatsächliche Desktop-/Apps-Kataloge, Rollen-/Modulfilter und Direktrouten: nur der neue Arbeitsplatz wird im Web sichtbar. Altrouten, andere gesperrte Module und native Einstiege bleiben geschützt.
+5. Generierte Web-Routen und erforderliche Plattform-Fallbacks.
 
 Der gezielte TypeScript-Check für die neuen Oberflächen und gemeinsamen Fachtypen ist zusätzlich erfolgreich. Der vollständige Expo-Build und die vollständige Testsuite wurden in dieser Arbeitsumgebung nicht ausgeführt; die vollständigen Expo-Abhängigkeiten stehen hier nicht bereit.
 
