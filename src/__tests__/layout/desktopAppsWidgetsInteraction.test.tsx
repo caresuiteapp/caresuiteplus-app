@@ -94,10 +94,100 @@ const type = async (name: string, value: string) => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 };
+const selectDesktop = async (area: DesktopAreaKey, inCatalog = false) => {
+  const select = label(inCatalog ? 'Desktop im Katalog wechseln' : 'Desktop wechseln') as HTMLSelectElement;
+  expect(select?.tagName).toBe('SELECT');
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, area);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+};
 const open = async (name = 'Apps') => { await clickLabel('Apps und Widgets öffnen'); if (name !== 'Apps') await click(tab(name)); };
 const savedIds = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as string[];
 
 describe('Apps and Widgets in the actual Web desktop', () => {
+  it('shows the current desktop in the top bar and restores a changed module after reload', async () => {
+    seed(['clients']); seed(['assignments'], 'assist'); await render();
+    const switcher = label('Desktop wechseln') as HTMLSelectElement;
+    expect(switcher?.tagName).toBe('SELECT');
+    expect(switcher.value).toBe('office');
+    expect(switcher.selectedOptions[0].textContent).toContain('Office');
+    await selectDesktop('assist');
+    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(memory.get(selectionKey())).toBe('assist');
+    expect(api.push).not.toHaveBeenCalled();
+    await remount();
+    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expect(label('Einsätze öffnen')).toBeTruthy();
+  });
+
+  it('keeps the catalog and Workflows tab open while switching desktops and resets the previous search', async () => {
+    seed(['clients']); seed(['assignments'], 'assist'); await render(); await open('Workflows');
+    expect((label('Desktop im Katalog wechseln') as HTMLSelectElement).value).toBe('office');
+    expect(dialog().textContent).toContain('1 von 1 Workflows');
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
+    await type('Workflows durchsuchen', '___nicht_vorhanden___');
+    expect(dialog().textContent).toContain('Keine passenden Workflows');
+    await selectDesktop('assist', true);
+    expect(dialog()).toBeTruthy();
+    expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
+    expect((label('Workflows durchsuchen') as HTMLInputElement).value).toBe('');
+    expect((label('Desktop im Katalog wechseln') as HTMLSelectElement).value).toBe('assist');
+    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+    expect(dialog().textContent).toContain('2 von 2 Workflows');
+    expect(label('Einsatz planen: Ablauf öffnen')).toBeTruthy();
+    expect(label('Nachweise prüfen: Ablauf öffnen')).toBeTruthy();
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeNull();
+    expect(memory.get(selectionKey())).toBe('assist');
+    expect(savedIds()).toEqual(['clients']); expect(savedIds('assist')).toEqual(['assignments']);
+    await selectDesktop('office', true);
+    expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
+    expect(label('Einsatz planen: Ablauf öffnen')).toBeNull();
+    expect(api.push).not.toHaveBeenCalled();
+  });
+
+  it('does not reset the catalog or write preferences when selecting the current desktop', async () => {
+    seed(['clients']); await render(); await open('Workflows');
+    await type('Workflows durchsuchen', 'aufnehmen');
+    const currentDialog = dialog();
+    const writes = api.multiSet.mock.calls.length;
+    const singleWrites = api.setItem.mock.calls.length;
+    await selectDesktop('office', true);
+    expect(dialog()).toBe(currentDialog);
+    expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
+    expect((label('Workflows durchsuchen') as HTMLInputElement).value).toBe('aufnehmen');
+    expect(api.multiSet).toHaveBeenCalledTimes(writes);
+    expect(api.setItem).toHaveBeenCalledTimes(singleWrites);
+    expect(api.push).not.toHaveBeenCalled();
+  });
+
+  it('keeps unsaved widget edits when a desktop switch is cancelled and switches after a successful retry', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      seed(['clients']); seed(['assignments'], 'assist'); await render(); await open('Widgets');
+      api.multiSet.mockRejectedValueOnce(new Error('Storage unavailable'));
+      await clickLabel('Notizen zum Desktop hinzufügen');
+      await selectDesktop('office', true);
+      expect(confirm).not.toHaveBeenCalled();
+      await selectDesktop('assist', true);
+      expect(confirm).toHaveBeenCalledOnce();
+      expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+      expect(label('Notizen vom Desktop entfernen')).toBeTruthy();
+      expect(savedIds()).toEqual(['clients']);
+      await click(button('Speichern erneut versuchen'));
+      expect(savedIds()).toEqual(['clients', 'notes']);
+      await selectDesktop('assist', true);
+      expect(confirm).toHaveBeenCalledOnce();
+      expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('assist');
+      expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
+      expect(label('Einsätze vom Desktop entfernen')).toBeTruthy();
+      expect(savedIds()).toEqual(['clients', 'notes']);
+    } finally { confirm.mockRestore(); }
+  });
+
   it('opens Settings with usable apps, searches all categories and recovers from an empty result', async () => {
     chooseArea('settings'); await render(); await open();
     expect(dialog().textContent).toContain('Einstellungen');
@@ -199,11 +289,15 @@ describe('Apps and Widgets in the actual Web desktop', () => {
 
   it('separates widget selections by area, tenant and person', async () => {
     seed(['clients']); seed(['assignments'], 'assist'); await render();
-    await click(tab('Assist', host));
+    await selectDesktop('assist');
     expect(label('Einsätze öffnen')).toBeTruthy(); expect(label('Klient:innen öffnen')).toBeNull();
     await open('Widgets'); await clickLabel('Einsätze vom Desktop entfernen');
     expect(savedIds('assist')).toEqual([]); expect(savedIds()).toEqual(['clients']);
-    await clickLabel('Center schließen'); await click(tab('Office', host));
+    await selectDesktop('office', true);
+    expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
+    expect(label('Klient:innen vom Desktop entfernen')).toBeTruthy();
+    expect(label('Einsätze zum Desktop hinzufügen')).toBeNull();
+    await clickLabel('Center schließen');
     expect(label('Klient:innen öffnen')).toBeTruthy();
     const firstTenantKey = key(); api.tenant = 'tenant-b'; seed(['notes']); await render();
     expect(label('Notizen öffnen')).toBeTruthy(); expect(label('Klient:innen öffnen')).toBeNull();
@@ -235,8 +329,31 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     api.denied.add('office.documents.view'); seed([]); await render(); await open();
     expect(label('App Dokumentenkatalog öffnen')).toBeNull();
     await click(tab('Widgets')); expect(label('Dokumentenkatalog zum Desktop hinzufügen')).toBeNull();
-    await clickLabel('Center schließen'); await click(tab('Pflege', host)); await open();
-    expect(dialog().querySelector('[aria-label^="App "]')).toBeNull();
+    const catalogSwitcher = label('Desktop im Katalog wechseln') as HTMLSelectElement;
+    const topbarSwitcher = label('Desktop wechseln') as HTMLSelectElement;
+    expect(catalogSwitcher.querySelector<HTMLOptionElement>('option[value="pflege"]')?.disabled).toBe(true);
+    expect(topbarSwitcher.querySelector<HTMLOptionElement>('option[value="pflege"]')?.disabled).toBe(true);
+    await selectDesktop('pflege', true);
+    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+    expect(tab('Widgets').getAttribute('aria-selected')).toBe('true');
+    expect(label('Notizen zum Desktop hinzufügen')).toBeTruthy();
+    expect(memory.get(selectionKey())).not.toBe('pflege');
+    expect(api.push).not.toHaveBeenCalled();
+  });
+
+  it.each(['module', 'permission'] as const)('prevents switching to Assist without its %s access', async reason => {
+    if (reason === 'module') api.modules.delete('assist');
+    else api.denied.add('assist.access');
+    seed(['clients']); await render(); await open('Workflows');
+    for (const name of ['Desktop wechseln', 'Desktop im Katalog wechseln']) {
+      const select = label(name) as HTMLSelectElement;
+      expect(select.querySelector<HTMLOptionElement>('option[value="assist"]')?.disabled).toBe(true);
+    }
+    await selectDesktop('assist', true);
+    expect((label('Desktop wechseln') as HTMLSelectElement).value).toBe('office');
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
+    expect(label('Einsatz planen: Ablauf öffnen')).toBeNull();
+    expect(memory.get(selectionKey())).not.toBe('assist');
     expect(api.push).not.toHaveBeenCalled();
   });
 
@@ -293,3 +410,4 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     await clickLabel('Center schließen'); expect(host.querySelector('[role="dialog"]')).toBeNull();
   });
 });
+
