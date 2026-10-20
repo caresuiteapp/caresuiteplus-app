@@ -1,4 +1,4 @@
-import type { ConsultationAnswers, ConsultationGoal, ConsultationKind, ConsultationMeasure, ConsultationQualification } from './workspaceModel';
+import type { ConsultationAnswers, ConsultationGoal, ConsultationKind, ConsultationMeasure, ConsultationQualification, ConsultationTeamTemplate } from './workspaceModel';
 
 /** Planning aids only. Never create findings, consent, completed exercises or signatures. */
 export type ConsultationTemplate = {
@@ -10,6 +10,7 @@ export type ConsultationTemplate = {
   preparation: string;
   prompts: string[];
   goal?: string;
+  sourceLabel?: string;
 };
 
 export const CONSULTATION_TEMPLATES: readonly ConsultationTemplate[] = [
@@ -84,4 +85,11 @@ export function dateAfterDays(days: number, today = berlinDate()): string {
 
 export function qualificationCovers(q: ConsultationQualification, kind: ConsultationKind, start: string, end = start): boolean {
   return q.active && q.service_kind === kind && q.valid_from <= start && (!q.valid_until || q.valid_until >= end);
+}
+
+/** Published copies only; edits and archives never rewrite an existing visit. */
+export function consultationTemplateCatalog(team: ConsultationTeamTemplate[] = []): readonly ConsultationTemplate[] {
+  return [...CONSULTATION_TEMPLATES, ...team.filter(t => !t.archived && t.published).map(t => ({
+    ...t.published!, id: `team:${t.id}:${t.publishedVersion}`, sourceLabel: `Teamvorlage · Fassung ${t.publishedVersion}`,
+  }))];
 }

@@ -14,6 +14,17 @@ function input(w,label,value){const scope=w.document.querySelector('dialog[open]
 async function saved(w){await until(()=>w.document.querySelector('.cw-notice')?.textContent.includes('bestätigt'),'Server acknowledgement missing');await until(()=>!w.document.querySelector('.cw-modal button:disabled')||!w.document.querySelector('.cw-modal'),'Mutation did not finish');}
 try{
  const office=await mount('office');await until(()=>office.document.querySelector('h3')?.textContent==='Noch keine Besuche vorhanden');
+ // Team templates persist as drafts and are published with a deliberate review.
+ click(office,'Teamvorlagen');await until(()=>office.document.querySelector('dialog[open]'));
+ click(office,'+ Teamvorlage erstellen');await until(()=>office.document.querySelector('dialog form'));
+ input(office,'Mit einem Standardbaustein beginnen','45-transfer');await new Promise(r=>setTimeout(r,20));click(office,'Standard als Ausgangspunkt übernehmen');await new Promise(r=>setTimeout(r,20));
+ input(office,'Vorlagentitel','Lernbaustein des Teams');await new Promise(r=>setTimeout(r,20));click(office,'Vorlagenentwurf speichern');
+ await until(()=>[...office.document.querySelectorAll('dialog button')].some(b=>b.textContent==='Teamfreigabe vorbereiten'));
+ click(office,'Teamfreigabe vorbereiten');await until(()=>[...office.document.querySelectorAll('dialog button')].some(b=>b.textContent==='Geprüfte Fassung freigeben'));
+ assert.equal([...office.document.querySelectorAll('dialog button')].find(b=>b.textContent==='Geprüfte Fassung freigeben').disabled,true);
+ input(office,'Prüfvermerk zur Teamfreigabe','Synthetische fachliche Prüfung.');await new Promise(r=>setTimeout(r,20));click(office,'Geprüfte Fassung freigeben');
+ await until(()=>office.document.querySelector('dialog .cw-template-card')?.textContent.includes('Freigabe 2'));
+ office.document.querySelector('button[aria-label="Dialog schließen"]').click();await until(()=>!office.document.querySelector('dialog'));
  click(office,'Qualifikationen');await until(()=>office.document.querySelector('dialog[open]'));
  input(office,'Mitarbeitende Person','00000000-0000-4000-8000-000000000041');await new Promise(r=>setTimeout(r,20));
  assert.equal(office.document.querySelector('dialog input[type=checkbox]').checked,false);office.document.querySelector('dialog input[type=checkbox]').click();input(office,'Gültig ab','2025-01-01');input(office,'Geprüfte Nachweise / Vertragsgrundlage','Synthetischer Qualifikationsnachweis');
@@ -101,7 +112,8 @@ try{
  click(portal,'Übergabe gelesen');await until(()=>[...portal.document.querySelectorAll('button')].find(b=>b.textContent==='Besuch jetzt beginnen')?.disabled===false);click(portal,'Besuch jetzt beginnen');await until(()=>portal.document.querySelector('.cw-subtitle')?.textContent.includes('In Durchführung'));
  click(portal,'+ Person ergänzen');await until(()=>portal.document.querySelector('.cw-repeat-item'));input(portal,'Name','Synthetische Pflegeperson');click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Situation & Beratung');
  input(portal,'Aktuelle Pflegesituation','Synthetischer Schulungsfall.');input(portal,'Handlungsbedarf','none');click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Lernziele & Übungen');
- input(portal,'Schulungsbaustein auswählen','45-transfer');await until(()=>portal.document.querySelector('.cw-template-preview'));click(portal,'Lernziel übernehmen');await until(()=>portal.document.querySelector('.cw-repeat-item'));
+ const teamOption=[...portal.document.querySelectorAll('select option')].find(o=>o.textContent.includes('Lernbaustein des Teams'));assert.ok(teamOption,'Published team template in employee portal');
+ input(portal,'Schulungsbaustein auswählen',teamOption.value);await until(()=>portal.document.querySelector('.cw-template-preview'));click(portal,'Lernziel übernehmen');await until(()=>portal.document.querySelector('.cw-repeat-item'));
  assert.equal([...portal.document.querySelectorAll('select')].find(s=>s.closest('label').textContent.startsWith('Lernergebnis')).value,'');
  assert.ok([...portal.document.querySelectorAll('button')].find(b=>b.textContent==='Lernziel bereits vorhanden')?.disabled);
  click(portal,'Zwischenspeichern');await until(()=>portal.document.querySelector('.cw-save-state')?.textContent.startsWith('Serverstand'));
@@ -115,6 +127,22 @@ try{
  click(office,'Aktualisieren');await until(()=>[...office.document.querySelectorAll('button')].some(b=>b.textContent==='Fachlich freigeben'));click(office,'Fachlich freigeben');await until(()=>office.document.querySelector('.cw-subtitle')?.textContent.includes('Fachlich freigegeben'));
  await server.fixture.actor();const trainingResult=await server.fixture.load(false,training.case_id);const approved=trainingResult.revisions[0].snapshot.answers;
  assert.equal(approved.goals[0].result,'supported');assert.equal(approved.goals[0].method,'Gemeinsam unter Anleitung geübt');assert.equal(approved.measures[0].status,'open');assert.equal(approved.measures[0].owner,'Pflegende Person');assert.equal(approved.materials,'Individuelle Übungsanleitung');
- console.log('PASS: §37.3 and §45 real forms + RPC + isolated PostgreSQL: explicit qualification → template/preparation → duration/assignment → portal → partial goal without fabricated outcome → actual exercise/material/recommendation → sign/submit → review; conflicts, draft recovery and signed revisions preserved.');
+ // The approved recommendation becomes a shared task, without rewriting signatures.
+ await until(()=>office.document.querySelectorAll('.cw-task-card').length===1);
+ click(office,'Rückmeldung erfassen');await until(()=>office.document.querySelector('dialog[open]'));
+ input(office,'Rückmeldung / Ergebnis / Grund der Änderung','Rückmeldung der Pflegeperson zusätzlich dokumentiert.');await new Promise(r=>setTimeout(r,20));
+ click(portal,'Aktualisieren');await until(()=>portal.document.querySelectorAll('.cw-task-card').length===1);
+ click(portal,'Rückmeldung erfassen');await until(()=>portal.document.querySelector('dialog[open]'));
+ input(portal,'Aufgabenstatus','done');input(portal,'Rückmeldung / Ergebnis / Grund der Änderung','Übungsfortschritt telefonisch bestätigt.');await new Promise(r=>setTimeout(r,20));click(portal,'Rückmeldung speichern');
+ await until(()=>!portal.document.querySelector('dialog'));
+ await until(()=>office.document.querySelector('dialog .cw-alert-warning')?.textContent.includes('zwischenzeitlich'));
+ assert.equal([...office.document.querySelectorAll('dialog button')].find(b=>b.textContent==='Rückmeldung speichern').disabled,true);
+ click(office,'Aktuellen Status übernehmen – meine Rückmeldung behalten');await new Promise(r=>setTimeout(r,20));
+ assert.ok(office.document.querySelector('dialog textarea').value.includes('zusätzlich dokumentiert'));click(office,'Rückmeldung speichern');await until(()=>!office.document.querySelector('dialog'));
+ click(office,'Erledigt',office.document.querySelector('.cw-followups'));await until(()=>office.document.querySelector('.cw-task-card')?.textContent.includes('zusätzlich dokumentiert'));
+ await server.fixture.actor();const followed=await server.fixture.load(false,training.case_id);assert.equal(followed.followUps[0].status,'done');assert.equal(followed.followUps[0].version,3);assert.deepEqual(followed.revisions,trainingResult.revisions);assert.deepEqual(followed.encounters[0].answers,trainingResult.encounters[0].answers);assert.equal(followed.encounters[0].version,trainingResult.encounters[0].version);
+ click(portal,'← Alle Besuche');await until(()=>portal.document.querySelector('.cw-visits'));click(portal,'Erledigt',portal.document.querySelector('.cw-followups'));await until(()=>portal.document.querySelector('.cw-task-card')?.textContent.includes('zusätzlich dokumentiert'));
+ assert.ok(![...portal.document.querySelectorAll('button')].some(b=>b.textContent==='Teamvorlagen'),'No template management in the employee portal');
+ console.log('PASS: office + employee §37.3/§45 forms, qualification, team draft/publication/application, planning, actual documentation/signatures/review, shared follow-up completion and simultaneous-edit recovery; signed revisions unchanged.');
 }catch(e){console.error(e);console.error(windows.at(-1)?.document.querySelector('main')?.textContent.slice(-6000));process.exitCode=1;}
 finally{for(const w of windows)await w.happyDOM.close();await server.close();}

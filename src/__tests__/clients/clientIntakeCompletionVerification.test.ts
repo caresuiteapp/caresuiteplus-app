@@ -7,6 +7,7 @@ import { applyDocumentSignature, finalizeDocument, openDocumentPreview, updateIn
 import { mapSystemRow, mapTenantRow, type SystemTemplateRow, type TenantTemplateRow } from '@/features/intakeDocuments/intakeTemplateMapping';
 import { requireCompleteIntakeForm, requireIntakePng, verifyIntakeCompletionDocuments, type IntakeTemplateRow } from '@/features/intakeDocuments/intakeCompletionVerification';
 import type { IntakeDocumentTemplate } from '@/features/intakeDocuments/intakeDocumentTypes';
+import { prepareIntakeDocumentPackage, signIntakeDocumentPackage } from '@/features/intakeDocuments/intakeDocumentPackage';
 
 const NOW = '2026-10-14T12:30:00.000Z';
 const UPDATED_AT = '2026-10-13T09:00:00.000Z';
@@ -92,6 +93,19 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date(NOW)); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('server intake completion verification', () => {
+  it('accepts the new jointly signed package with both roles through the unchanged server verifier', async () => {
+    const form = completeForm({ intakeAssignmentEnabled: true, intakeOptionalConsents: ['communication_consent_default'] });
+    const systems = systemRows(), templates = systems.map(mapSystemRow);
+    const prepared = prepareIntakeDocumentPackage(form, templates, TENANT);
+    expect(prepared.issues).toEqual([]);
+    const signed = signIntakeDocumentPackage(prepared.form, templates, prepared.documents, {
+      client: { role: 'client', dataUrl: PNG, signedAt: NOW }, employee: { role: 'employee', dataUrl: PNG, signedAt: NOW },
+    }, TENANT);
+    expect(signed.ok).toBe(true); if (!signed.ok) return;
+    const verified = await verifyIntakeCompletionDocuments({ form: signed.form, systemTemplates: systems, tenantTemplates: [], tenantDisplay: TENANT, now: Date.parse(NOW) });
+    expect(verified).toHaveLength(4);
+    expect(verified.map(document => document.finalizedHtml)).toEqual(signed.form.intakeDocuments.map(document => document.finalizedHtml));
+  });
   it('accepts exact originals from complete form, mapped database templates and real PNGs without rewriting them', async () => {
     const input = fixture({ form: { intakeAssignmentEnabled: true, intakeOptionalConsents: ['communication_consent_default'] } });
     const before = structuredClone(input);

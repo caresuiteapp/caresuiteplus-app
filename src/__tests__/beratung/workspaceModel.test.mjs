@@ -70,4 +70,11 @@ test('filters combine Berlin calendar dates, assigned staff, archived states and
  assert.deepEqual(filterConsultationVisits(w,{...f,status:'all',kind:'45'},'2026-10-20'),[]);
  assert.deepEqual(filterConsultationVisits(w,{...f,search:'Entlastung',employee:'e'},'2026-10-20').map(e=>e.id),['a','d']);
  assert.deepEqual(visits.map(e=>e.id),['a','b','c','d']);
+ // After approval, due filters and sorting use the independently updated tasks.
+ const withTasks={...w,capabilities:{followUps:true},followUps:[{id:'t',encounter_id:'d',status:'done',due_date:'2026-10-19'}]};
+ assert.deepEqual(filterConsultationVisits(withTasks,{...f,status:'due'},'2026-10-20'),[]);
+ const reopened={...withTasks,followUps:[{...withTasks.followUps[0],status:'open',due_date:'2026-10-25'}]};
+ assert.deepEqual(filterConsultationVisits(reopened,{...f,status:'due'},'2026-10-20'),[]);
+ assert.deepEqual(filterConsultationVisits(reopened,{...f,status:'due'},'2026-10-25').map(e=>e.id),['d']);
+ assert.equal(visits[3].answers.followUpDate,'2026-10-19','signed date remains unchanged');
 });

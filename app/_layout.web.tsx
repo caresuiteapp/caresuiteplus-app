@@ -61,6 +61,7 @@ const POPUP_TITLES: Record<string, string> = {
   budgets: 'Budgets', abrechnungsquellen: 'Budgets', 'portal-access': 'Portale',
   hilfe: 'Hilfe & Anleitungen', support: 'Support & Hilfe', 'command-center': 'Command Center', office: 'Office', assist: 'Assist', settings: 'Einstellungen', profile: 'Profil',
   'data-request': 'Datenauskunft & Export', 'data-requests': 'Betroffenenanfragen',
+  subscription: 'Plattform & Module',
 };
 
 function popupTitle(pathname: string): string {

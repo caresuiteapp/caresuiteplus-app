@@ -29,7 +29,7 @@ const native = {
 };
 const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
-  'expo-router': { usePathname: () => '/', useRouter: () => ({ push: api.push }) },
+  'expo-router': { usePathname: () => '/', useLocalSearchParams: () => ({}), useRouter: () => ({ push: api.push, setParams: vi.fn() }) },
   '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet, setItem: api.setItem },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },

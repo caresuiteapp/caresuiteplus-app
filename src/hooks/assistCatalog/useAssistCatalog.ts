@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AssistAssignmentOptions,
   CatalogDefinition,
@@ -14,25 +14,40 @@ import {
   loadCatalogs,
 } from '@/lib/assistCatalog';
 
+function useStableFilters(filters: CatalogListFilters): CatalogListFilters {
+  const { groupKey, catalogKey, catalogType, moduleScope, isActive, isSystem, targetArea, search, includeInactive } = filters;
+  return useMemo(() => ({ groupKey, catalogKey, catalogType, moduleScope, isActive, isSystem, targetArea, search, includeInactive }),
+    [groupKey, catalogKey, catalogType, moduleScope, isActive, isSystem, targetArea, search, includeInactive]);
+}
+
 export function useAssistCatalogItems(catalogKey: string, filters: CatalogListFilters = {}) {
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const stableFilters = useStableFilters(filters);
+  const request = useRef(0);
 
   const reload = useCallback(async () => {
-    if (!tenantId) return;
+    const id = ++request.current;
+    if (!tenantId) { setItems([]); setError(null); setLoading(false); return; }
     setLoading(true);
     setError(null);
-    const res = await loadCatalogItems(tenantId, catalogKey, filters, profile?.roleKey);
-    if (res.ok) setItems(res.data);
-    else setError(res.error);
-    setLoading(false);
-  }, [tenantId, catalogKey, filters, profile?.roleKey]);
+    try {
+      const res = await loadCatalogItems(tenantId, catalogKey, stableFilters, profile?.roleKey);
+      if (id !== request.current) return;
+      if (res.ok) setItems(res.data);
+      else { setItems([]); setError(res.error); }
+    } catch {
+      if (id === request.current) { setItems([]); setError('Die Leistungen konnten nicht geladen werden. Bitte erneut versuchen.'); }
+    } finally { if (id === request.current) setLoading(false); }
+  }, [tenantId, catalogKey, stableFilters, profile?.roleKey]);
 
   useEffect(() => {
+    setItems([]);
     void reload();
+    return () => { request.current += 1; };
   }, [reload]);
 
   return { items, loading, error, reload };
@@ -80,14 +95,20 @@ export function useAssistCatalogDefinitions(filters: CatalogListFilters = {}) {
   const { profile } = useAuth();
   const [definitions, setDefinitions] = useState<CatalogDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const stableFilters = useStableFilters(filters);
 
   useEffect(() => {
-    if (!tenantId) return;
-    void loadCatalogs(tenantId, filters, profile?.roleKey).then((res) => {
+    let cancelled = false;
+    setDefinitions([]);
+    if (!tenantId) { setLoading(false); return; }
+    setLoading(true);
+    void loadCatalogs(tenantId, stableFilters, profile?.roleKey).then((res) => {
+      if (cancelled) return;
       if (res.ok) setDefinitions(res.data);
       setLoading(false);
-    });
-  }, [tenantId, profile?.roleKey, filters]);
+    }).catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [tenantId, profile?.roleKey, stableFilters]);
 
   return { definitions, loading };
 }
