@@ -63,7 +63,7 @@ beforeEach(() => {
     tenantId: 'tenant-a', contextHint: '', submitting: false, submitError: null, createdId: null, loading: false, loadError: null, notFound: false,
     isEditMode: false, draftLoaded: true, draftRestored: false, draftSaveFeedback: null, draftSaving: false, draftConflict: false, draftClientId: null, reloadServerDraft: vi.fn().mockResolvedValue(true), draftIsSaved: false, discardingDraft: false, hasPersistedDraft: false,
     updateField: vi.fn(), updateBillingTypes: vi.fn(), updateFundingSources: vi.fn(), updateCostBearerTypes: vi.fn(), commitCostBearer: vi.fn(), removeCostBearer: vi.fn(), replaceForm: vi.fn(), toggleCareContext: vi.fn(), toggleArrayField: vi.fn(),
-    nextStep: vi.fn().mockReturnValue(true), prevStep: vi.fn(), goToStep: vi.fn(), submit: vi.fn().mockResolvedValue('client-created'), discardDraft: vi.fn().mockResolvedValue(true), saveDraft: vi.fn().mockResolvedValue(true), resetWizard: vi.fn(), retryLoad: vi.fn(),
+    nextStep: vi.fn().mockReturnValue(true), prevStep: vi.fn(), goToStep: vi.fn(), submit: vi.fn().mockResolvedValue('client-created'), discardDraft: vi.fn().mockResolvedValue(true), saveDraft: vi.fn().mockResolvedValue(true), saveDocumentPackage: vi.fn().mockResolvedValue(true), resetWizard: vi.fn(), retryLoad: vi.fn(),
     isFirstStep: true, isLastStep: false, isSuccess: false,
   };
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
