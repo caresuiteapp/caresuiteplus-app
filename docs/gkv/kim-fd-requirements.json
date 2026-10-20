@@ -8,7 +8,11 @@
   "requirements": [
     {
       "id": "A_21383",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "LOGIN/PLAIN am lokalen mTLS-Listener belegt; produktive TI-Authentisierung und unabhängige Prüfung fehlen."
     },
     {
       "id": "KOM-LE-A_2185-01",
@@ -16,15 +20,27 @@
     },
     {
       "id": "A_24022-02",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Angekündigte und tatsächliche 21-MiB-Grenze lokal belegt; fdgerr_5 und unabhängige Konformität fehlen."
     },
     {
       "id": "KOM-LE-A_2131-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale Nichtzustellung wird per DSN gemeldet; Weiterleitung/DNS und andere Fachdienste fehlen."
     },
     {
       "id": "A_21777",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale DSNs enthalten keine ursprünglichen Nutzdaten; vollständige Fehler-/MIME-Profile und FD-zu-FD-Versand fehlen."
     },
     {
       "id": "KOM-LE-A_2223-01",
@@ -44,7 +60,11 @@
     },
     {
       "id": "A_25296",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "8BITMIME angeboten und begrenzt angenommen; serverübergreifender Versand und unabhängige Konformität fehlen."
     },
     {
       "id": "A_20978-01",
@@ -52,15 +72,27 @@
     },
     {
       "id": "A_21455-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Neuprovisionierung und case-insensitive Zuordnung belegt; öffentliche Registrierung/VZD, vollständige Altadresskompatibilität und Zulassung fehlen."
     },
     {
       "id": "A_21456-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Domainalphabet/Länge und case-insensitive Zuordnung belegt; produktive Domainverwaltung/TI-Anbindung fehlen."
     },
     {
       "id": "A_21816",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Fremde Domains werden abgewiesen; eigener lokaler Dienst ist noch kein vollständiger FD-zu-FD-Relay."
     },
     {
       "id": "A_22415",
@@ -72,11 +104,19 @@
     },
     {
       "id": "A_23421",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "SMTP-AUTH/MAIL-FROM-Bindung lokal belegt; TI-Betrieb und unabhängige Abnahme fehlen."
     },
     {
       "id": "A_23422-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Originator-Teilmenge, Self-Send-Ausnahme und echte AUT-Signaturen gegen gepinnte Test-Aussteller belegt; TSL-Beschaffung/Signatur/Service-Status, volle TI-PKI und konfigurative Regeln/Monitoring fehlen."
     },
     {
       "id": "KOM-LE-A_2133",
@@ -180,31 +220,59 @@
     },
     {
       "id": "A_28584",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "ESMTP-Begrüßung, SIZE, AUTH LOGIN/PLAIN, 8BITMIME, ENHANCEDSTATUSCODES und DSN lokal belegt; TI-Interoperabilität fehlt."
     },
     {
       "id": "KOM-LE-A_2147-02",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale DSN mit Arrival-Date/In-Reply-To und Empfängerblöcken belegt; Weiterleitung an andere Fachdienste fehlt."
     },
     {
       "id": "A_20771-03",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "fdgerr_1/2/3/4 und einzelne Plaintext-fdgerr_6 lokal belegt; fdgerr_5, ECC/weitere CMS- und MIME-Profile fehlen."
     },
     {
       "id": "KOM-LE-A_2148-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "PLAIN mit abgeleiteter Authorization-ID und Abweisung fremder IDs belegt; unabhängige TI-Abnahme fehlt."
     },
     {
       "id": "KOM-LE-A_2149",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Deaktivierter lokaler Empfänger erzeugt Fehlermeldung statt Originalzustellung; FD-zu-FD-Pfad fehlt."
     },
     {
       "id": "KOM-LE-A_2150",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Deaktivierung verhindert SMTP-Authentisierung und Commit bestehender Sitzungen; vollständige Deregistrierung/VZD fehlt."
     },
     {
       "id": "A_28585-01",
-      "status": "open"
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "CAPA TOP/USER/UIDL und echte TOP-Verarbeitung lokal belegt; unabhängige TI-Interoperabilität fehlt."
     },
     {
       "id": "KOM-LE-A_2152",

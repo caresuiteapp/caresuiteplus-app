@@ -129,13 +129,18 @@ dafür nicht angeboten.
   drei Fehlversuchen, atomare Fehlversuchszähler und Passwortwechsel mit altem Passwort.
 - Kontodeaktivierung, Postfachquote, stabile UID und Message-ID-Dublettenprüfung;
   veränderte Nutzbytes unter derselben Message-ID werden zurückgewiesen.
+- Groß-/Kleinschreibung beider Adressteile ist bedeutungslos. Neue Konten verwenden
+  das KIM-Zeichenalphabet; vorhandene gemischte Schreibweisen behalten ihre
+  Speicher-/Verschlüsselungsidentität. Bereits kollidierende Altkonten stoppen
+  die Öffnung, statt automatisch zusammengeführt zu werden.
 - Verschlüsselte Mail-/Anhangsspeicherung, exklusive Postfachsitzung mit Ablauf
   und Tokenbindung. Ein veralteter Prozess kann keine Löschungen mehr bestätigen.
 - KAS-Speicherkern mit zufälliger Ressourcenkennung, Empfängerliste, Besitzerlöschung,
   HEAD-Metadaten, Quote und Ablaufbereinigung einschließlich einstündiger Karenz.
 
 `services/kim/pop3.mjs` implementiert den POP3-Zustandsautomaten für USER/PASS,
-STAT, LIST, UIDL, RETR, DELE, RSET, NOOP, CAPA und QUIT. Löschungen werden erst mit
+STAT, LIST, UIDL, RETR, TOP, DELE, RSET, NOOP, CAPA und QUIT. TOP liefert Header
+und die angeforderte Zahl an Bodyzeilen mit Dot-Transparenz. Löschungen werden erst mit
 QUIT transaktional bestätigt; ein Verbindungsabbruch verwirft sie. RETR verarbeitet
 Dot-Transparenz. `pop3-server.mjs` verbindet den Kern jetzt mit einem echten
 TLS-Listener. Ein gültiges Clientzertifikat und die zusätzliche serverseitige
@@ -144,12 +149,106 @@ Eingabelimits sind begrenzt; der Host muss den Listener ausdrücklich starten.
 Die Tests verbinden diesen Listener mit dem eigenen Abrufclient. Die gewöhnliche
 Test-PKI ersetzt weiterhin keine TI-ECC-/TSL-/Sperrprüfung oder gematik-Zulassung.
 
-**Vertrauensgrenze:** Kontoprovisionierung und Speicheroperationen sind interne
-Methoden. Es gibt keinen öffentlichen Registrierungs-/KAS-Endpunkt und keinen
-fertigen KIM-SMTP-Server. `installAccount` darf erst hinter erfolgreicher
-AUT-/VZD-Registrierung angeschlossen werden; `tlsVerified` ersetzt keinen TI-
-Zertifikatsprüfer. Die Speicherung eines BLOBs prüft keine KIM-S/MIME-Signatur.
-Die lokalen Speicher-/POP3-Tests behaupten deshalb keine KIM-Interoperabilität.
+### Lokale SMTP-Annahme und Zustellmeldungen
+
+`smtp-server.mjs` verbindet nun einen echten mTLS-Listener mit diesem Postfach.
+Er unterstützt EHLO/HELO, AUTH LOGIN/PLAIN, MAIL/RCPT/DATA, RSET/NOOP/QUIT,
+SIZE, 8BITMIME, ENHANCEDSTATUSCODES sowie DSN-Parameter ENVID/RET/NOTIFY/ORCPT.
+Nur ausdrücklich konfigurierte lokale KIM-Domains werden angenommen. Externe
+Weiterleitung und FD-zu-FD-Verkehr werden nicht angeboten. Der authentisierte
+Benutzer muss mit MAIL FROM übereinstimmen; fremde PLAIN-Authorization-IDs
+scheitern. Passwortwechsel und Deaktivierung entziehen bestehenden SMTP-Sitzungen
+die Berechtigung, auch unmittelbar vor DATA-Abschluss.
+
+Zeilen, Befehle, Empfängerzahl, gleichzeitige Verbindungen und die gesamte
+Verbindungsdauer sind begrenzt. Bare-LF/CR, NUL, überlange Zeilen, deklarierte
+und tatsächlich überschrittene 21 MiB werden zurückgewiesen. Dot-Transparenz wird
+vor der Größen-/Inhaltsprüfung entfernt. Nach einer ungültigen DATA-Rahmung wird
+die Verbindung geschlossen, sodass anschließende Bytes keine neue Transaktion bilden.
+
+`message-auth.mjs` prüft den tatsächlichen JWT-Signaturwert von `X-KIM-Auth`
+mit BP256R1/Brainpool-P256r1 oder PS256/RSA-PSS/SHA-256/Salt 32. `aud`, `sub`,
+`nbf`, TTL, optionales `exp`, `jti`, Tokenform und doppelte JSON-Schlüssel werden
+kontrolliert. Die eingebettete AUT-Urkunde muss zeitlich gültig, zum Signieren
+geeignet, mit C.HP.AUT-/C.HCI.AUT-Policy versehen und von einem explizit gepinnten
+Aussteller mathematisch korrekt signiert sein. Der Ausstellerbestand läuft nach
+höchstens 24 Stunden ab. Weder Betriebssystem-Wurzeln noch im Token mitgelieferte
+Wurzeln oder URLs erzeugen Vertrauen.
+
+**Das ist noch kein TSL-Prüfer:** Beschaffung, XML-Signatur, Service-Status und
+Freigabe des TI-Vertrauensbestandes sowie die vollständige TI-PKI-/Algorithmuspolicy
+fehlen. Die mathematische PS256-Prüfung akzeptiert Schlüssel ab 2048 Bit; daraus
+folgt keine Zulässigkeit eines solchen Schlüssels im aktuellen TI-Betrieb. Für diese
+Tests wird ausschließlich eine eigene, ausdrücklich unvertrauenswürdige Test-CA
+konfiguriert. Der AUT-Check ersetzt ebenso wenig die TSL-/Sperrprüfung der mTLS-
+Komponentenzertifikate. Der SMTP-FD muss gemäß A_23422-01 nicht selbst AUT-OCSP
+oder Telematik-ID/VZD-Zuordnung pro Nachricht aufrufen; die vorgeschriebenen
+Prüfungen des empfangenden Clientmoduls bleiben davon unberührt.
+
+`message.mjs` prüft From/Sender/Reply-To, Auth-Header, Message-ID, Expires,
+Version, Betreff und MIME-Hülle. Die normativ vorgegebene Ausnahme für Versand
+genau an sich selbst gilt nur für Originator-/AUT-Prüfungen, nicht für die übrige
+Annahme. Die Originatorprüfung unterstützt eine begrenzte RFC-5322-Teilmenge
+(Dot-Atom-Adressen, Anzeigenamen und Adresslisten); vollständige Kommentare/
+Gruppen und alle historischen Adressformen fehlen. Die konfigurative Deaktivierung
+einzelner Prüfungen samt vorgeschriebenem Monitoring aus A_23422-01(4) fehlt;
+es gibt aktuell keinen Abschaltpfad.
+
+`envelope.mjs` prüft ausschließlich die **äußere** CMS-DER-Teilmenge mit
+RSA-OAEP/SHA-256, AES-256-GCM, 12-Byte-Nonce, 16-Byte-Tag, eingebettetem Ciphertext,
+Issuer/Serial und vollständiger `recipient-emails`-Zuordnung für Sender und
+Empfänger. Dieser Fachdienst besitzt keinen Empfänger-Privatschlüssel: innere
+Signatur, GCM-Authentizität, signierte Attributkopie, VZD-Zuordnung, CAdES und
+Pflege-XML sind damit nicht geprüft. ECC-KARI, BER und weitere CMS-Varianten sind
+noch nicht implementiert; erkannte nicht unterstützte Varianten ergeben einen
+temporären SMTP-Fehler, keine Freigabe.
+
+Bei zulässiger lokaler Annahme speichert `commitLocalSubmission` die tatsächlichen
+Nachrichten, alle benötigten DSNs und einen verschlüsselten Ergebnisdatensatz in
+**einer** SQLite-Transaktion. Erst danach wird SMTP 250 gesendet. Deaktivierte oder
+volle Empfänger werden getrennt als fehlgeschlagene Zustellung behandelt. Kann
+eine notwendige DSN nicht gespeichert werden, werden auch sämtliche Original-
+zustellungen zurückgerollt; der Client erhält einen temporären Fehler.
+
+Der Wiederholungsschlüssel umfasst Absender und Message-ID; der Fingerprint bindet
+Originalbytes, Empfänger und DSN-Parameter. Gleiche Wiederholungen erhalten dasselbe
+Ergebnis, Änderungen einen Konflikt. Das Journal bleibt nach POP3-Löschung und
+Neustart erhalten. Pro Absender sind standardmäßig 10.000 Journaleinträge erlaubt;
+bei Erreichen der Grenze werden neue Aufträge temporär abgelehnt. Es gibt noch
+keinen automatischen Aufbewahrungs-/Bereinigungslauf für dieses Journal; alte
+Schlüssel werden nicht stillschweigend zugunsten neuer Sendungen entfernt.
+Auch Wiederholungen durchlaufen die aktuelle Annahmeprüfung. Ein inzwischen
+abgelaufener AUT-Nachweis wird nicht durch den Journalbestand freigegeben;
+eine erneute Signierung mit veränderten Nachrichtenbytes unter derselben
+Message-ID ist ein Konflikt. Die betriebliche Auflösung solcher späten Wiederholungen
+ist noch zu ergänzen.
+
+`dsn.mjs` erzeugt lokale RFC-3464-Meldungen mit Arrival-Date, äußerem In-Reply-To,
+ENVID, optionalem Original-Recipient und einem Statusblock je betroffenem Empfänger.
+Sie enthalten keine Originalheader, AUT-Token oder ursprünglichen Nutzdaten.
+`fdgerr_1/2/3/4` führen ausschließlich zur Fehlermeldung. `fdgerr_6` übernimmt nur
+einen eindeutig dekodierbaren einzelnen text/plain-Part (UTF-8/ASCII, 7bit/8bit/
+Base64); andere MIME-Varianten bleiben offen. Bei Größenüberschreitung wird sicher
+mit SMTP 552 abgelehnt; die zusätzliche `fdgerr_5`-Erzeugung ist noch nicht
+implementiert. Lokal erzeugte DSNs tragen einen leeren Rückweg; ein Netzwerk-
+versand solcher Meldungen an andere Fachdienste ist noch nicht vorhanden.
+
+**Vertrauensgrenze:** Kontoprovisionierung und Speicheroperationen bleiben interne
+Methoden. `installAccount` darf erst hinter erfolgreicher AUT-/VZD-Registrierung
+angeschlossen werden. Es gibt keinen öffentlichen Registrierungs-/KAS-Endpunkt
+und keinen gestarteten oder produktiv zugelassenen KIM-Dienst. Der CareSuite-
+Versandworker gibt seine KIM-Sperre durch diesen neuen Listener nicht auf.
+
+### Begrenzung der vorhandenen Kryptolaufzeit
+
+Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
+AuthEnvelopedData `authAttrs/unauthAttrs` die Tags 2/3. RFC 5083 §2.1 verlangt 1/2.
+Der eigene Strukturprüfer folgt RFC 5083. Der Test prüft die echte OAEP/GCM-
+Verschlüsselung durch Entschlüsselung **vor** Ergänzung des normgerechten
+unauthAttrs-Attributs. Die anschließende ASN.1-Prüfung ist getrennt; ein vollständiger
+unabhängiger CMS-Roundtrip mit diesem Attribut ist hier nicht nachgewiesen.
+Die Abweichung muss für das eigene Clientmodul gelöst werden. Es wurden weder
+Pakete installiert noch Transportbytes an den abweichenden Decoder angepasst.
 
 ## Anforderungen und verbleibende Implementierung
 
@@ -166,7 +265,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
 | Eigener KIM-Client | Konnektor-/SMC-B-Anbindung, VZD, ECC-S/MIME, CAdES je Nutzkomponente, XML-Erzeugung und echte XSD-/Beziehungsprüfung, Empfang/Fehlerpfade |
-| Eigener KIM-Fachdienst | TI-Netzanbindung, TSL-/OCSP-/AUT-Prüfer, vollständiger AccountManager und VZD-Schreibvorgänge, TI-Identitätsprüfung vor dem vorhandenen mTLS-POP3-Listener, mTLS-SMTP/HTTPS, geschlossenes Relay, Routing/DNS, DSN-Erzeugung, Abwesenheit, KAS-REST |
+| Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
 | Abnahme | Unabhängige Code-/Sicherheitsprüfung, ITSG-Nachweissoftwareprüfung, gematik Produkt-/Anbieterzulassung, kontrollierte Inbetriebnahme und Interoperabilität |
@@ -198,6 +297,23 @@ lokalen Testservers, den eigenen mTLS-POP3-Dienst, die Inbox und die Korrelation
 Die DSN bleibt auch dort unbestätigter Herkunft. Ein separater Prozess wird nach
 dem dauerhaften Empfang mit SIGKILL beendet; beim Neustart bleiben Original und
 Dublettenprüfung erhalten. Dies ist lokale Integration, kein Annahmestellen-E2E.
+
+Der zusätzliche SMTP-Test betreibt den eigenen Listener, authentisiert einen
+echten signierten AUT-Testtoken, nimmt echte äußere CMS-Ciphertextbytes an,
+erzeugt die DSN und ruft das Original über den eigenen POP3-Pfad ab. Der verschlüsselte
+innere Inhalt ist ausdrücklich nur eine Fixture, kein vollständiges signiertes
+KIM-/Pflege-Dokument. Ein weiterer Prozess wird nach SMTP-COMMIT, aber vor Ausgabe
+der 250-Antwort mit SIGKILL beendet; Wiederholung nach Neustart und POP3-Löschung
+erzeugt keine zweite Zustellung.
+
+Normative Grundlage dieses Inkrements: [FD 1.24.0](https://gemspec.gematik.de/docs/gemSpec/gemSpec_FD_KOMLE/gemSpec_FD_KOMLE_V1.24.0/),
+[CM 1.23.0 / A_28582](https://gemspec.gematik.de/docs/gemSpec/gemSpec_CM_KOMLE/gemSpec_CM_KOMLE_V1.23.0/),
+[S/MIME 1.8.0](https://gemspec.gematik.de/docs/gemWeitere/gemSMIME_KOMLE/gemSMIME_KOMLE_V1.8.0/),
+[OID 3.26.0](https://gemspec.gematik.de/docs/gemSpec/gemSpec_OID/gemSpec_OID_V3.26.0/),
+[RFC 5083](https://www.rfc-editor.org/rfc/rfc5083),
+[OpenSSL-3.0.13-Quelltext](https://github.com/openssl/openssl/blob/openssl-3.0.13/crypto/cms/cms_asn1.c),
+[RFC 3461](https://www.rfc-editor.org/rfc/rfc3461) und
+[RFC 3464](https://www.rfc-editor.org/rfc/rfc3464).
 
 ## Primärquellen
 

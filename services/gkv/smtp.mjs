@@ -47,7 +47,7 @@ export async function sendSmtp(message, config) {
   if (!bytes.length || bytes.length > 32_000_000 || /[^\x09\x0d\x0a\x20-\x7e]/.test(wire) || /(?<!\r)\n|\r(?!\n)/.test(wire) || !wire.endsWith('\r\n') || wire.split('\r\n').some(l => l.length > 998)) throw new Error('SMTP_MIME');
   const timeout = config.timeoutMs ?? 30_000;
   if (!Number.isSafeInteger(timeout) || timeout < 100 || timeout > 120_000) throw new Error('SMTP_TIMEOUT_CONFIGURATION');
-  const tlsOptions = { servername: config.servername, rejectUnauthorized: true, minVersion: 'TLSv1.2', ...(config.ca ? { ca: config.ca } : {}), ...(config.cert && config.key ? { cert: config.cert, key: config.key } : {}) };
+  const tlsOptions = { servername: config.servername, rejectUnauthorized: true, minVersion: 'TLSv1.2', ...(config.ca ? { ca: config.ca } : {}), ...(config.cert && config.key ? { cert: config.cert, key: config.key, passphrase: config.passphrase } : {}) };
   let socket = config.mode === 'tls' ? tls.connect({ host: config.host, port: config.port, ...tlsOptions }) : net.connect({ host: config.host, port: config.port });
   let replies = new Replies(socket);
   const timer = setTimeout(() => replies.fail('SMTP_TIMEOUT'), timeout);

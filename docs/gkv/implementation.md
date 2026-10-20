@@ -10,6 +10,11 @@ KIM einschließlich eigenem Fachdienst**. Der neue ausführbare Dienstkern und d
 noch offenen Integrations-/Zulassungsschritte sind in
 [own-services.md](own-services.md) beschrieben. Ein externer DTA- oder KIM-Anbieter
 ist nicht mehr die vorgesehene Implementierungsabhängigkeit.
+Der aktuelle Dienststand verbindet auch einen eigenen lokalen mTLS-SMTP-Eingang,
+mathematische AUT-Tokenprüfung, begrenzte äußere CMS-Prüfung, atomare Postfach-
+zustellung und selbst erzeugte Zustellmeldungen mit dem vorhandenen POP3-Empfang.
+TI-Vertrauensbeschaffung, vollständiges ECC-KIM, externe Fachdienstweiterleitung
+und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
 ## Verbindliche Quellen und Versionsstand
 

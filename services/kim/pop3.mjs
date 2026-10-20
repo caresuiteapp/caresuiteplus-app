@@ -20,7 +20,7 @@ export class Pop3Session {
     if (!match) return Buffer.from('-ERR invalid command\r\n');
     const command = match[1].toUpperCase(), arg = match[2], ok = text => Buffer.from(`+OK${text ? ` ${text}` : ''}\r\n`);
     const multi = lines => Buffer.from(`+OK\r\n${lines.length ? lines.join('\r\n') + '\r\n' : ''}.\r\n`);
-    if (command === 'CAPA' && arg === undefined) return multi(['USER', 'UIDL', 'RESP-CODES', 'IMPLEMENTATION CareSuite']);
+    if (command === 'CAPA' && arg === undefined) return multi(['TOP', 'USER', 'UIDL', 'RESP-CODES', 'IMPLEMENTATION CareSuite']);
     if (command === 'QUIT' && arg === undefined) {
       if (this.#session) this.#store.endMailbox(this.#user, this.#session.token, [...this.#deleted]);
       this.#closed = true; return ok('bye');
@@ -40,6 +40,15 @@ export class Pop3Session {
     if (command === 'NOOP' && arg === undefined) return ok();
     if (command === 'RSET' && arg === undefined) { this.#deleted.clear(); return ok(); }
     if ((command === 'LIST' || command === 'UIDL') && arg === undefined) return multi(active.map(m => `${m.number} ${command === 'LIST' ? m.octets : m.uid}`));
+    if (command === 'TOP' && /^[1-9]\d{0,8} (?:0|[1-9]\d{0,8})$/.test(arg ?? '')) {
+      const [number, count] = arg.split(' ').map(Number), m = active.find(entry => entry.number === number);
+      if (!m) return Buffer.from('-ERR no such message\r\n');
+      const wire = this.#store.readMessage(this.#user, this.#session.token, m.uid).toString('latin1'), split = wire.indexOf('\r\n\r\n');
+      if (split < 0 || !wire.endsWith('\r\n') || /(?<!\r)\n|\r(?!\n)/.test(wire)) throw new Error('POP3_NONCANONICAL_MESSAGE');
+      const content = wire.slice(split + 4), body = content ? content.slice(0, -2).split('\r\n').slice(0, count) : [];
+      const top = wire.slice(0, split + 4) + (body.length ? body.join('\r\n') + '\r\n' : '');
+      return Buffer.concat([ok(), Buffer.from(top.replace(/(^|\r\n)\./g, '$1..') + '.\r\n', 'latin1')]);
+    }
     if (['LIST', 'UIDL', 'RETR', 'DELE'].includes(command) && /^[1-9]\d{0,8}$/.test(arg ?? '')) {
       const m = active.find(m => m.number === Number(arg));
       if (!m) return Buffer.from('-ERR no such message\r\n');

@@ -8,8 +8,61 @@ Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**127 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**146 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Eigener lokaler KIM-SMTP-Pfad am 20.10.2026
+
+Die 127 bisherigen Fälle und **19 neue Prüfungen** aus `kim-smtp.test.mjs` wurden
+gemeinsam erfolgreich ausgeführt. Es gab keine übersprungenen oder ausstehenden Tests.
+
+- Tatsächliche Brainpool-P256r1- und RSA-PSS-Token-Signaturen, Aussteller-Pins,
+  AUT-Zertifikatspolicy, Signaturmanipulation, Sender/Audience/Gültigkeit und
+  doppelte JSON-Schlüssel einschließlich maskierter Schreibweise.
+- Echter mTLS-SMTP-Listener mit LOGIN/PLAIN, Groß-/Kleinschreibung, Senderbindung,
+  geschlossenen Empfängerdomains, Zustandswechseln und unzulässiger Authorization-ID.
+  Fehlendes Clientzertifikat, falscher TLS-Hostname und fehlende Hostfreigabe
+  scheitern, bevor Zugangsdaten abgefragt werden; die Verbindungsdauer ist begrenzt.
+- Prüfung der äußeren OAEP/GCM-Struktur und Empfängerzuordnung; tatsächlicher
+  verschlüsselter Testinhalt. Manipulierte/fehlende Zuordnung wird erkannt.
+  Erkannte nicht unterstützte CMS-Varianten und abgelaufenes Vertrauen werden
+  nicht als gültige Zustellung behandelt.
+- From/Sender/Reply-To, ungültiger/doppelter AUT-Header und die normativ vorgegebene
+  Self-Send-Ausnahme. Betreff-/Versions-/Content-Type-/CMS-Fehler erzeugen nur die
+  zugehörige fdgerr-DSN. Die erlaubte fdgerr_6-Plaintextkopie bleibt begrenzt.
+- Original und selbst erzeugte DSN landen tatsächlich im eigenen Postfach;
+  der eigene mTLS-POP3-Client ruft die exakten Bytes in die verschlüsselte Inbox ab.
+  DSNs enthalten Arrival-Date, In-Reply-To, Empfängerblöcke, ENVID/ORCPT und keinen
+  AUT-Token oder gewöhnlichen Originalbody. NOTIFY NEVER erzeugt keine Erfolgs-DSN.
+- Mehrere lokale Empfänger, doppelte RCPT-Adressen, volle/deaktivierte Postfächer
+  und ein volles Absenderpostfach für die notwendige DSN. Beim letzten Fehler
+  wird auch eine bereits innerhalb der Transaktion geschriebene Zustellung zurückgerollt.
+- Gleichzeitige Wiederholung, geänderte Bytes/ENVID, Journalquote, Wiederöffnen
+  und POP3-Löschung. Ein eigener Serverprozess stirbt per SIGKILL nach SQLite-COMMIT
+  vor der 250-Antwort; danach erzeugt die Wiederholung weder Original noch DSN erneut.
+- Passwortwechsel während DATA entzieht die Annahmeberechtigung. Alte gemischte
+  Adressschreibweisen bleiben mit ihrer Verschlüsselungsbindung lesbar; neue
+  Case-Aliase erzeugen kein zweites Konto.
+- Echte Übertragung von mehr als 21 MiB ohne SIZE-Ankündigung, Überschreitung eines
+  kleineren SIZE, Bare-LF/SMTP-Smuggling-Versuch und abgebrochene DATA-Eingabe.
+  Keine dieser Eingaben erzeugt eine gespeicherte Zustellung.
+- POP3 TOP liefert nur Header und die angeforderte Zahl Bodyzeilen, korrekt
+  dot-escaped, ohne implizite Löschung.
+
+**Beleggrenzen:** Testkonten und Test-PKI haben keine TI-Identität/Zulassung.
+AUT-Aussteller sind lokal gepinnt, nicht durch einen fertigen TSL-Prüfer gewonnen.
+Der CMS-Testinhalt ist eine ausdrücklich opake Fixture, keine gültige innere
+KIM-Signatur oder Pflege-XML. Die echte Verschlüsselung wird unabhängig entschlüsselt,
+bevor das normgerechte unauthAttrs-Attribut ergänzt wird. Der installierte
+OpenSSL-3.0.13-Decoder hat dort eine von RFC 5083 abweichende Tagdefinition;
+dieser vollständige CMS-Roundtrip bleibt offen (Details in `own-services.md`).
+ECC-CMS, vollständige TI-PKI, FD-zu-FD-Weiterleitung, fdgerr_5, übrige MIME-Varianten,
+AccountManager/VZD und Betrieb sind weiterhin nicht vollständig implementiert.
+
+Alle elf geänderten/neuen MJS-Dateien wurden mit `node --check`, der Diff mit
+`git diff --check` geprüft. Keine Oberflächen-/Android-Änderung in diesem Inkrement.
+Am Vorgänger **e211462** waren beim letzten Abruf zwei Vercel-Projekte erfolgreich
+und zwei noch ausstehend. Der Status des neuen Commits wird separat im PR dokumentiert.
 
 ## Versandworker und Empfang am 20.10.2026
 
