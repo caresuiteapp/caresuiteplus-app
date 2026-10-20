@@ -135,7 +135,12 @@ var EMPTY_CLIENT_INTAKE_FORM = {
   contractTypes: [],
   documentCategories: [],
   hourlyRate: "",
-  taskCategories: []
+  taskCategories: [],
+  intakeCareNeedSummary: "",
+  intakeCapacityStatus: "",
+  intakeCapacityReference: "",
+  intakeAdmissionDecision: "",
+  intakeAdmissionDecisionReason: ""
 };
 
 // src/lib/clients/clientIntakeFieldRules.ts
@@ -1465,7 +1470,7 @@ function validateIntakeDocumentsStep(form, templates) {
     complete: privacyOk
   });
   if (!privacyOk) {
-    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
+    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung vollst\xE4ndig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
   const contractKey = resolveContractTemplateKey(form);
   const contractTemplate = contractKey ? templates.find((t) => t.templateKey === contractKey) : void 0;
@@ -1477,7 +1482,7 @@ function validateIntakeDocumentsStep(form, templates) {
     complete: contractOk
   });
   if (!contractOk) {
-    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie k\xF6nnen die Aufnahme als Entwurf speichern.`;
+    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung vollst\xE4ndig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
   }
   if (form.intakeAssignmentEnabled) {
     const assignmentTemplate = templates.find((t) => t.templateKey === ASSIGNMENT_TEMPLATE_KEY);
