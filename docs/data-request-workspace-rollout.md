@@ -1,8 +1,10 @@
 # Datenauskunft & Export: Backend und Veröffentlichung
 
-## Stand dieses Änderungsvorschlags
+## Bereitstellungsstand
 
-`supabase/changes/data-request-workspace.sql` enthält die auf dem bestehenden Staging bereitgestellte Änderung und ist **keine angewandte Produktionsmigration**. Die Bereitstellung erfolgte über den SQL-Editor und erzeugte keinen formalen Eintrag in der Supabase-Migrationshistorie. In der vorhandenen Arbeitsumgebung war keine Supabase-CLI verfügbar; es wurde keine zusätzliche Software installiert und kein Migrationsdateiname erfunden. Vor einer produktiven Übernahme muss die versionierte Repository-Migration mit der freigegebenen CLI erzeugt und die bereits vorhandene Stagingstruktur mit der Migrationshistorie abgeglichen werden.
+Am 20.10.2026 wurde die ausdrücklich freigegebene Produktionsmigration `data_request_workspace_v1` auf `euagyyztvmemuaiumvxm` erfolgreich angewandt. Die Supabase-Migrationshistorie bestätigt die serverseitig erzeugte Version `20261020055824`. Die angewandte SQL-Abfrage entspricht Blob `bc37956a76cc59bcfde91d6011c4dc6afad49412` aus `supabase/changes/data-request-workspace.sql`; sie wird unverändert unter `supabase/migrations/20261020055824_data_request_workspace_v1.sql` versioniert. Die Nummer stammt aus dem tatsächlichen Migrationseintrag. In dieser Arbeitsumgebung war keine Supabase-CLI verfügbar; zusätzliche Software wurde nicht installiert.
+
+Die vorausgegangene Bereitstellung auf Staging `shwpweerzsfkqaivmaoc` erfolgte über den SQL-Editor und erzeugte dort keinen formalen Migrationseintrag. Die vorhandene Stagingstruktur muss deshalb bei der nächsten CLI-Synchronisierung mit der Migrationshistorie abgeglichen werden; der Produktionsnachweis ersetzt diesen Abgleich nicht.
 
 Die Metadaten wurden am 19.10.2026 ausschließlich lesend mit Produktion und bestehendem Staging verglichen. Es wurden keine produktiven Anfragen, Profile oder Kontaktdaten als Testdaten abgerufen oder verändert. Nach der ursprünglichen Ablehnung durch die automatische Freigabeprüfung hat der Nutzer die Anwendung des konkret vorbereiteten SQL-Stands aus PR 131 auf dem bestehenden Staging `shwpweerzsfkqaivmaoc` und dessen anschließende Prüfung ausdrücklich freigegeben.
 
@@ -14,9 +16,11 @@ Die anschließende Sicherheitsprüfung meldete für die neuen privaten Tabellen 
 
 Die beiden zusätzlichen Fremdschlüsselindizes `data_request_submissions_tenant_id_idx` und `data_request_submissions_profile_id_idx` wurden anschließend erfolgreich über den SQL-Editor angelegt und ihre Definitionen über `pg_indexes` bestätigt. Die erneute Performanceprüfung enthält **keine** Meldung `unindexed_foreign_keys` mehr für `data_request_private`. Für die neuen, bislang ungenutzten Indizes verbleiben erwartete INFO-Hinweise [Unused Index](https://supabase.com/docs/guides/observability/advisors?lint=0005_unused_index). Die bereits zuvor vorhandenen INFO-Hinweise [Unindexed Foreign Keys](https://supabase.com/docs/guides/observability/advisors?lint=0001_unindexed_foreign_keys) zu `public.data_subject_requests.client_id` und `public.data_subject_requests.employee_id` bleiben getrennt davon bestehen; diese Indizes wurden im vorliegenden Nachtrag nicht verändert.
 
-Es wurde weder produktiv ausgerollt noch die Supabase-Edge-Funktion für Benachrichtigungen bereitgestellt. Die erfolgreichen SQL-Tests belegen keinen tatsächlichen Mailversand und keine Browserabläufe mit angemeldeten Fachanwendern.
+Die anschließende Produktionsabfrage bestätigt den öffentlichen Workspace-RPC, das private Schema und die drei eingeschränkten Request-Policies. Die restriktive Policy `data_request_audit_visibility` ist auf der in Produktion vorhandenen Audittabelle aktiv. Anonymer RPC-Zugriff, authentifiziertes DELETE und TRUNCATE, Änderung von `tenant_id` sowie direktes Lesen von `data_request_private.submissions` sind weiterhin nicht erlaubt. Diese Metadatenprüfung belegt die installierten Regeln, keinen authentifizierten Audit-Ende-zu-Ende-Test.
 
-Die produktive Übernahme, die visuelle Abnahme der betroffenen Oberflächen sowie die vollständigen authentifizierten Ende-zu-Ende-Prüfungen bleiben offen. Die Stagingfreigabe ist keine Produktionsfreigabe und ersetzt diese Nachweise nicht.
+Die Edge-Funktion `notify-data-subject-request-admin` ist in Produktion als Version 1 mit Status `ACTIVE` und `verify_jwt = true` bereitgestellt. Ein tatsächlicher Mailversand wurde nicht geprüft. Es wurden keine produktiven Daten für Fixturetests verändert.
+
+Alle vier Vercel-Builds des geprüften PR-Stands `9f1666c6f67b72970e0e6205691b5edd79cffdf7` sind erfolgreich. Die Veröffentlichung der Weboberfläche ist separat am endgültigen Merge-Commit nachzuweisen. Die visuelle Abnahme der betroffenen Oberflächen sowie die vollständigen authentifizierten Ende-zu-Ende-Prüfungen bleiben offen; die ausdrückliche Produktionsfreigabe ersetzt diese Nachweise nicht.
 
 ## Funktions- und Sicherheitsvertrag
 
