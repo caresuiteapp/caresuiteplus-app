@@ -307,9 +307,10 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   }, [isEditMode, editClientId, includeIntakeDocuments, tenantId, profile?.roleKey, current, loadRevision, skipNextSave]);
 
   const persistDraft = useCallback(
-    async (options?: { showFeedback?: boolean; forSubmit?: boolean }) => {
+    async (options?: { showFeedback?: boolean; forSubmit?: boolean; snapshot?: ClientIntakeFormData }) => {
+      const formToSave = options?.snapshot ?? form;
       if (isEditMode || !current() || scope.completed || scope.discarding || scope.reconciling || (submitLock.current && !options?.forSubmit)) return false;
-      if (!userId || !tenantId || !hasIntakeDraftContent({ form, stepIndex })) {
+      if (!userId || !tenantId || !hasIntakeDraftContent({ form: formToSave, stepIndex })) {
         if (options?.showFeedback) setDraftSaveFeedback({ message: 'Kein Entwurf zum Speichern oder keine aktive Mandantensitzung.', variant: 'warning' });
         return false;
       }
@@ -320,7 +321,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
         setDraftSaving(true);
         let localSaved = false;
         const saveLocal = async () => {
-          await saveClientIntakeDraft(userId, tenantId, { form, stepIndex, clientId: scope.clientId,
+          await saveClientIntakeDraft(userId, tenantId, { form: formToSave, stepIndex, clientId: scope.clientId,
             serverRevision: scope.serverRevision, serverFormSnapshot: scope.serverFormSnapshot, pendingSave: scope.pendingSave, pendingReconciliation: scope.pendingReconciliation });
           localSaved = true;
         };
@@ -366,9 +367,9 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
               return usable();
             };
             if (scope.pendingSave && !await sendPending()) return false;
-            if (scope.serverFormSnapshot !== JSON.stringify(form)) {
+            if (scope.serverFormSnapshot !== JSON.stringify(formToSave)) {
               scope.pendingSave = { operationId: (await import('expo-crypto')).randomUUID(),
-                expectedRevision: scope.serverRevision, form };
+                expectedRevision: scope.serverRevision, form: formToSave };
               if (!usable()) return false;
               // Persist retry identity BEFORE sending, including the exact payload.
               await saveLocal();
@@ -376,7 +377,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
             }
           }
           if (!usable()) return false;
-          scope.savedSnapshot = JSON.stringify([form, stepIndex]);
+          scope.savedSnapshot = JSON.stringify([formToSave, stepIndex]);
           setDraftSaveFeedback({ message: getServiceMode() === 'supabase'
             ? 'Vollständiger Entwurf im Unternehmen gespeichert. Die Aufnahme ist noch nicht abgeschlossen.'
             : 'Entwurf auf diesem Gerät gespeichert.', variant: 'success' });
@@ -672,6 +673,12 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     return persistDraft({ showFeedback: true });
   }, [persistDraft]);
 
+  const saveDocumentPackage = useCallback(async (nextForm: ClientIntakeFormData) => {
+    if (!current() || isEditMode || submitLock.current || scope.completed || scope.discarding || scope.reconciling) return false;
+    replaceForm(nextForm);
+    return persistDraft({ showFeedback: true, snapshot: nextForm });
+  }, [current, isEditMode, persistDraft, replaceForm, scope, submitLock]);
+
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);
     if (hasIntakeErrors(stepErrors)) {
@@ -828,6 +835,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     submit,
     discardDraft,
     saveDraft,
+    saveDocumentPackage,
     resetWizard,
     isFirstStep: stepIndex === 0,
     isLastStep: stepIndex === steps.length - 1,

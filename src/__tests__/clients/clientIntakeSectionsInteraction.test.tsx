@@ -18,7 +18,7 @@ vi.mock('@/components/office/assistCatalog/AssistCatalogMultiSelect', () => ({ A
 vi.mock('@/components/inputs/CareAddressSearch', () => ({ CareAddressSearch: () => <div>Adresssuche</div> }));
 vi.mock('@/components/inputs/CareDateInput', () => ({ CareDateInput: ({ label, value }: { label: string; value: string }) => <label>{label}<input aria-label={label} value={value} readOnly /></label> }));
 vi.mock('@/components/inputs/CareCostBearerTypeFields', () => ({ CareCostBearerTypeFields: ({ type }: { type: string }) => <div data-carrier={type}>Kostenträgerdaten</div> }));
-vi.mock('@/components/inputs/CareIntakeDocumentsStepPanel', () => ({ CareIntakeDocumentsStepPanel: () => <div data-testid="contract-panel">Vertragspanel</div> }));
+vi.mock('@/components/inputs/CareIntakeDocumentsStepPanel.web', () => ({ CareIntakeDocumentsStepPanel: () => <div data-testid="contract-panel">Vertragspanel</div> }));
 vi.mock('@/components/documents/DocumentModuleTemplatesPanel', () => ({ DocumentModuleTemplatesPanel: ({ clientId }: { clientId: string }) => <div data-template-client={clientId}>Dokumentvorlagen</div> }));
 vi.mock('@/lib/clients/clientIntakeService', async () => {
   const { getVisibleSectionsForClientContext } = await import('@/lib/clients/clientIntakeFieldRules');
