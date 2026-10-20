@@ -8,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clientSuites = [
   'clientIntakeCompletionTruth.test.ts',
   'clientIntakeDocuments.test.ts',
+  'clientIntakeDocumentPackage.test.ts',
+  'clientIntakeDocumentPackageInteraction.test.tsx',
   'clientIntakeDraftRepository.test.ts',
   'clientIntakeDraftStorage.test.ts',
   'clientIntakeExperienceInteraction.test.tsx',
@@ -23,7 +25,7 @@ const clientSuites = [
   'intakeDocumentSnapshotPreservation.test.ts',
   'clientIntakeReadIntegrity.test.ts',
 ].map(name => `src/__tests__/clients/${name}`);
-const suites = [...clientSuites, 'src/__tests__/office/clientsListExperienceInteraction.test.tsx'];
+const suites = [...clientSuites, 'src/__tests__/office/clientsListExperienceInteraction.test.tsx', 'src/__tests__/assistCatalog/assistCatalogLoading.test.tsx'];
 const sqlSuite = 'supabase/tests/client_intake_transaction.test.mjs';
 const typescript = 'node_modules/typescript/bin/tsc';
 const vitest = 'node_modules/vitest/vitest.mjs';

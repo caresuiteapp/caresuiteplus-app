@@ -302,3 +302,17 @@ describe('client intake identity, draft and submission behavior', () => {
     expect(h.remove).not.toHaveBeenCalled();
   });
 });
+
+it('persists the just-signed package snapshot immediately, including both signatures, and restores it', async () => {
+  await render(); await name('Erika');
+  const signed = { ...wizard.form, intakeDocuments: [{ templateKey: 'client_contract_assist', documentType: 'client_contract',
+    title: 'Aufnahmevertrag', status: 'finalized', isRequired: true, source: 'system', version: 3,
+    previewHtml: '<p>Signed original</p>', finalizedHtml: '<p>Signed original</p>', renderedPdfPath: null,
+    missingPlaceholders: [], unresolvedKeys: [], previewOpenedAt: '2026-10-20T07:00:00Z', finalizedAt: '2026-10-20T07:01:00Z',
+    signatures: { client: { role: 'client', dataUrl: 'data:image/png;base64,Y2xpZW50', signedAt: '2026-10-20T07:00:30Z' },
+      employee: { role: 'employee', dataUrl: 'data:image/png;base64,ZW1wbG95ZWU=', signedAt: '2026-10-20T07:00:40Z' } } }] } as any;
+  let saved = false; await act(async () => { saved = await wizard.saveDocumentPackage(signed); });
+  expect(saved).toBe(true); expect(h.remote.mock.calls.at(-1)?.[1]).toEqual(signed);
+  const stored = JSON.parse(h.store.get(key())!); expect(stored.form.intakeDocuments).toEqual(signed.intakeDocuments);
+  expect(wizard.form.intakeDocuments).toEqual(signed.intakeDocuments);
+});

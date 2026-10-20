@@ -5,7 +5,7 @@ import { CareMultiCatalogSelect } from '@/components/inputs/CareMultiCatalogSele
 import { CareAddressSearch } from '@/components/inputs/CareAddressSearch';
 import { CareDateInput } from '@/components/inputs/CareDateInput';
 import { CareCostBearerTypeFields } from '@/components/inputs/CareCostBearerTypeFields';
-import { CareIntakeDocumentsStepPanel } from '@/components/inputs/CareIntakeDocumentsStepPanel';
+import { CareIntakeDocumentsStepPanel } from '@/components/inputs/CareIntakeDocumentsStepPanel.web';
 import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import type { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
@@ -167,7 +167,7 @@ export function ClientIntakeSectionContent({ section, wizard, panelViewContext, 
   } else if (section === 'vertraege_einwilligungen') {
     const originals = form.intakeDocuments.filter(hasCollectedIntakeOriginal);
     content = <>
-      <div className="cs-intake-contracts"><CareIntakeDocumentsStepPanel form={form} errors={errors} tenantId={tenantId} onChange={replaceForm} panelViewContext={panelViewContext} /></div>
+      <div className="cs-intake-contracts"><CareIntakeDocumentsStepPanel form={form} errors={errors} tenantId={tenantId} onChange={replaceForm} panelViewContext={panelViewContext} onPersistPackage={wizard.isEditMode ? undefined : wizard.saveDocumentPackage} /></div>
       {!wizard.isEditMode && originals.length ? <Group title="Eine neue Dokumentfassung prüfen" description="Wenn Angaben oder Vorlagen geändert wurden, prüfen und unterschreiben Sie eine neue Fassung. Das bisherige Original bleibt erhalten."><div className="cs-intake-evidence-list">{originals.map((document) => <div key={document.templateKey}><strong>{document.title}</strong><button type="button" className="cs-intake-correct" disabled={wizard.submitting || wizard.draftSaving || (form.intakeDocumentHistory?.length ?? 0) >= 64} onClick={() => replaceForm(restartIntakeDocumentReview(form, document.templateKey))}>Neue Fassung prüfen</button></div>)}</div>{(form.intakeDocumentHistory?.length ?? 0) >= 64 ? <Note>Die maximale Anzahl früherer Fassungen ist erreicht. Die vorhandenen Originale bleiben erhalten.</Note> : null}</Group> : null}
       {form.intakeDocumentHistory?.length ? <Group title="Frühere Originalfassungen" description="Diese Fassungen bleiben unverändert erhalten und ersetzen keine neue Prüfung.">{form.intakeDocumentHistory.map((document, index) => <details key={`${document.templateKey}-${index}`} className="cs-intake-optional-group"><summary>{document.title || 'Aufnahmedokument'}<span>{documentEvidence(document)}</span></summary><div>{document.finalizedHtml || document.previewHtml ? <iframe title={`${document.title || 'Aufnahmedokument'} – frühere Originalfassung ${index + 1}`} srcDoc={document.finalizedHtml || document.previewHtml || ''} sandbox="" referrerPolicy="no-referrer" loading="lazy" style={{ width: '100%', height: 480, border: 0 }} /> : <Note>Für diese Fassung ist kein Dokumentinhalt verfügbar. Die erfassten Unterschriften bleiben im Entwurf erhalten.</Note>}</div></details>)}</Group> : null}
     </>;
