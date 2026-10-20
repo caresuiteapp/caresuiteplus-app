@@ -10,18 +10,18 @@ async function mount(actor){const window=new Window({url:`${server.url}/?actor=$
 async function until(check,message='UI state not reached'){for(let i=0;i<250;i++){const value=check();if(value)return value;await new Promise(r=>setTimeout(r,20));}throw new Error(message);}
 function button(w,text,scope=w.document){const el=[...scope.querySelectorAll('button')].find(x=>x.textContent.trim()===text);assert.ok(el,`Button: ${text}`);assert.equal(el.disabled,false,`Enabled: ${text}`);return el;}
 function click(w,text,scope){button(w,text,scope).click();}
-function input(w,label,value){const el=[...w.document.querySelectorAll('label')].find(x=>x.firstElementChild?.textContent===label)?.querySelector('input,textarea,select');assert.ok(el,`Field: ${label}`);assert.equal(el.disabled,false);const proto=el.tagName==='TEXTAREA'?w.HTMLTextAreaElement.prototype:el.tagName==='SELECT'?w.HTMLSelectElement.prototype:w.HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,value);el.dispatchEvent(new w.Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));}
+function input(w,label,value){const scope=w.document.querySelector('dialog[open]')??w.document;const el=[...scope.querySelectorAll('label')].find(x=>x.firstElementChild?.textContent===label)?.querySelector('input,textarea,select');assert.ok(el,`Field: ${label}`);assert.equal(el.disabled,false);const proto=el.tagName==='TEXTAREA'?w.HTMLTextAreaElement.prototype:el.tagName==='SELECT'?w.HTMLSelectElement.prototype:w.HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,value);el.dispatchEvent(new w.Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));}
 async function saved(w){await until(()=>w.document.querySelector('.cw-notice')?.textContent.includes('bestätigt'),'Server acknowledgement missing');await until(()=>!w.document.querySelector('.cw-modal button:disabled')||!w.document.querySelector('.cw-modal'),'Mutation did not finish');}
 try{
  const office=await mount('office');await until(()=>office.document.querySelector('h3')?.textContent==='Noch keine Besuche vorhanden');
  click(office,'Qualifikationen');await until(()=>office.document.querySelector('dialog[open]'));
  input(office,'Mitarbeitende Person','00000000-0000-4000-8000-000000000041');await new Promise(r=>setTimeout(r,20));
- input(office,'Gültig ab','2025-01-01');input(office,'Geprüfte Nachweise / Vertragsgrundlage','Synthetischer Qualifikationsnachweis');
+ assert.equal(office.document.querySelector('dialog input[type=checkbox]').checked,false);office.document.querySelector('dialog input[type=checkbox]').click();input(office,'Gültig ab','2025-01-01');input(office,'Geprüfte Nachweise / Vertragsgrundlage','Synthetischer Qualifikationsnachweis');
  await new Promise(r=>setTimeout(r,20));click(office,'Freigabe speichern');await until(()=>office.document.querySelector('dialog')?.textContent.includes('Qualifikationsfreigabe gespeichert.'));office.document.querySelector('button[aria-label="Dialog schließen"]').click();
  click(office,'+ Neuen Fall anlegen');await until(()=>office.document.querySelector('dialog[open]'));
- input(office,'Klientin / Klient','00000000-0000-4000-8000-000000000050');input(office,'Anlass und Hinweise für die Beratungsperson','Bitte den Entlastungsbedarf besprechen.');await new Promise(r=>setTimeout(r,20));click(office,'Fallakte anlegen');
+ input(office,'Vorlage für die Vorbereitung','37-relief');await new Promise(r=>setTimeout(r,20));click(office,'Vorbereitung ergänzen');await new Promise(r=>setTimeout(r,20));assert.ok(office.document.querySelector('dialog textarea').value.includes('Entlastung'));input(office,'Klientin / Klient','00000000-0000-4000-8000-000000000050');input(office,'Anlass und Hinweise für die Beratungsperson','Bitte den Entlastungsbedarf besprechen.');await new Promise(r=>setTimeout(r,20));click(office,'Fallakte anlegen');
  await until(()=>office.document.querySelector('h2')?.textContent==='Erika Sommer','New case not opened');
- input(office,'Beratungsperson','00000000-0000-4000-8000-000000000041');input(office,'Beginn (Ortszeit des Geräts)','2026-11-20T10:00');input(office,'Ende (Ortszeit des Geräts)','2026-11-20T11:00');await new Promise(r=>setTimeout(r,20));click(office,'Termin zuweisen');
+ input(office,'Beratungsperson','00000000-0000-4000-8000-000000000041');input(office,'Beginn (Ortszeit des Geräts)','2026-11-20T10:00');await new Promise(r=>setTimeout(r,20));click(office,'60 Minuten');await new Promise(r=>setTimeout(r,20));click(office,'Termin zuweisen');
  await until(()=>office.document.querySelector('.cw-subtitle')?.textContent.includes('Geplant'),'Planning not acknowledged');
  const portal=await mount('portal');await until(()=>portal.document.querySelector('.cw-visit'));
  assert.equal(portal.document.querySelector('.cw-visit-person strong').textContent,'Erika Sommer');portal.document.querySelector('.cw-visit').click();
@@ -77,6 +77,44 @@ try{
  click(portal,'Aktualisieren');await until(()=>portal.document.querySelector('.cw-subtitle')?.textContent.includes('Fachlich freigegeben'));
  const caseId=new URL(visitLocation).pathname.split('/').at(-1);await server.fixture.actor();const persisted=await server.fixture.load(false,caseId);
  assert.equal(persisted.revisions.length,2);assert.equal(persisted.revisions[1].snapshot.answers.findingsConsent,'no');assert.equal(persisted.revisions[1].snapshot.answers.followUpNote,'');assert.equal(persisted.revisions[0].snapshot.answers.followUpNote,'Telefonische Rückmeldung vereinbart.');
- console.log('PASS: real web forms + RPC + isolated PostgreSQL: qualify → create → plan → portal → start → save → recover draft → finish → sign/submit → return → correct/resign → approve.');
+ // A second complete visit uses the training library and persists only actual observations.
+ click(office,'← Alle Besuche');await until(()=>office.document.querySelector('.cw-visits'));
+ click(office,'Qualifikationen');await until(()=>office.document.querySelector('dialog[open]'));
+ input(office,'Mitarbeitende Person','00000000-0000-4000-8000-000000000041');await new Promise(r=>setTimeout(r,20));
+ input(office,'Leistungsart','45');await new Promise(r=>setTimeout(r,20));
+ assert.equal(office.document.querySelector('dialog input[type=checkbox]').checked,false);
+ office.document.querySelector('.cw-evidence-builder').open=true;
+ input(office,'Bezeichnung / Referenz / Ablageort','Synthetische Schulungsqualifikation');input(office,'Ausstellende oder vertragliche Stelle','Teststelle');input(office,'Geprüft am','2026-10-01');await new Promise(r=>setTimeout(r,20));click(office,'Nachweis ergänzen');
+ input(office,'Gültig ab','2025-01-01');office.document.querySelector('dialog input[type=checkbox]').click();await new Promise(r=>setTimeout(r,20));click(office,'Freigabe speichern');
+ await until(()=>office.document.querySelector('dialog')?.textContent.includes('Qualifikationsfreigabe gespeichert.'));office.document.querySelector('button[aria-label="Dialog schließen"]').click();
+ click(office,'Vorlagenbibliothek');await until(()=>office.document.querySelector('dialog[open]'));
+ input(office,'Vorlagen für','45');input(office,'Vorlagen suchen','Transfers');await until(()=>office.document.querySelectorAll('.cw-template-card').length===1);
+ office.document.querySelector('.cw-template-card').click();await until(()=>office.document.querySelector('.cw-template-preview'));
+ click(office,'Mit dieser Vorlage planen');await until(()=>office.document.querySelector('dialog h2')?.textContent==='Neuen Beratungsfall anlegen');
+ input(office,'Klientin / Klient','00000000-0000-4000-8000-000000000050');await new Promise(r=>setTimeout(r,20));click(office,'Fallakte anlegen');
+ await until(()=>office.document.querySelector('.cw-subtitle')?.textContent.includes('Häusliche Schulung § 45 · Noch zu planen'));
+ input(office,'Beratungsperson','00000000-0000-4000-8000-000000000041');input(office,'Beginn (Ortszeit des Geräts)','2026-11-21T10:00');await new Promise(r=>setTimeout(r,20));click(office,'45 Minuten');await new Promise(r=>setTimeout(r,20));click(office,'Termin zuweisen');
+ await until(()=>office.document.querySelector('.cw-subtitle')?.textContent.includes('Geplant'));
+ click(portal,'← Alle Besuche');await until(()=>portal.document.querySelector('.cw-visits'));click(portal,'Aktualisieren');await until(()=>portal.document.querySelector('.cw-visit .cw-training'));
+ portal.document.querySelector('.cw-visit .cw-training').closest('button').click();await until(()=>[...portal.document.querySelectorAll('button')].some(b=>b.textContent==='Übergabe gelesen'));
+ assert.ok(portal.document.querySelector('.cw-handover').textContent.includes('Gewünschten Transfer'));
+ click(portal,'Übergabe gelesen');await until(()=>[...portal.document.querySelectorAll('button')].find(b=>b.textContent==='Besuch jetzt beginnen')?.disabled===false);click(portal,'Besuch jetzt beginnen');await until(()=>portal.document.querySelector('.cw-subtitle')?.textContent.includes('In Durchführung'));
+ click(portal,'+ Person ergänzen');await until(()=>portal.document.querySelector('.cw-repeat-item'));input(portal,'Name','Synthetische Pflegeperson');click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Situation & Beratung');
+ input(portal,'Aktuelle Pflegesituation','Synthetischer Schulungsfall.');input(portal,'Handlungsbedarf','none');click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Lernziele & Übungen');
+ input(portal,'Schulungsbaustein auswählen','45-transfer');await until(()=>portal.document.querySelector('.cw-template-preview'));click(portal,'Lernziel übernehmen');await until(()=>portal.document.querySelector('.cw-repeat-item'));
+ assert.equal([...portal.document.querySelectorAll('select')].find(s=>s.closest('label').textContent.startsWith('Lernergebnis')).value,'');
+ assert.ok([...portal.document.querySelectorAll('button')].find(b=>b.textContent==='Lernziel bereits vorhanden')?.disabled);
+ click(portal,'Zwischenspeichern');await until(()=>portal.document.querySelector('.cw-save-state')?.textContent.startsWith('Serverstand'));
+ await server.fixture.portal();const training=(await server.fixture.load(true)).encounters.find(e=>e.service_kind==='45');
+ assert.equal(training.answers.goals.length,1);assert.equal(training.answers.goals[0].result,'');assert.equal(training.answers.goals[0].practice,'');assert.equal(training.answers.goals[0].method,'');assert.equal(training.answers.findingsConsent,'');
+ click(portal,'Gemeinsam unter Anleitung geübt');input(portal,'Gemeinsam durchgeführte Übung','Synthetische dokumentierte Übung.');input(portal,'Lernergebnis','supported');click(portal,'Individuelle Übungsanleitung');click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Empfehlungen & nächste Schritte');
+ input(portal,'Gemeinsames Ergebnis des Besuchs','Synthetisch vereinbarter nächster Schritt.');input(portal,'Empfehlung vorbereiten','practice');await new Promise(r=>setTimeout(r,20));click(portal,'Empfehlung übernehmen');await until(()=>portal.document.querySelector('.cw-repeat-item'));
+ click(portal,'Pflegende Person');click(portal,'In 7 Tagen');await new Promise(r=>setTimeout(r,20));click(portal,'Weiter →');await until(()=>portal.document.querySelector('.cw-section-heading h2')?.textContent==='Prüfen & bestätigen');
+ click(portal,'Besuch jetzt beenden');await until(()=>portal.document.querySelector('.cw-subtitle')?.textContent.includes('Dokumentation offen'));
+ click(portal,'Unterschreiben & einreichen');await until(()=>portal.document.querySelector('dialog[open]'));sign(portal);await new Promise(r=>setTimeout(r,20));click(portal,'Verbindlich einreichen');await until(()=>portal.document.querySelector('.cw-subtitle')?.textContent.includes('Zur Prüfung'));
+ click(office,'Aktualisieren');await until(()=>[...office.document.querySelectorAll('button')].some(b=>b.textContent==='Fachlich freigeben'));click(office,'Fachlich freigeben');await until(()=>office.document.querySelector('.cw-subtitle')?.textContent.includes('Fachlich freigegeben'));
+ await server.fixture.actor();const trainingResult=await server.fixture.load(false,training.case_id);const approved=trainingResult.revisions[0].snapshot.answers;
+ assert.equal(approved.goals[0].result,'supported');assert.equal(approved.goals[0].method,'Gemeinsam unter Anleitung geübt');assert.equal(approved.measures[0].status,'open');assert.equal(approved.measures[0].owner,'Pflegende Person');assert.equal(approved.materials,'Individuelle Übungsanleitung');
+ console.log('PASS: §37.3 and §45 real forms + RPC + isolated PostgreSQL: explicit qualification → template/preparation → duration/assignment → portal → partial goal without fabricated outcome → actual exercise/material/recommendation → sign/submit → review; conflicts, draft recovery and signed revisions preserved.');
 }catch(e){console.error(e);console.error(windows.at(-1)?.document.querySelector('main')?.textContent.slice(-6000));process.exitCode=1;}
 finally{for(const w of windows)await w.happyDOM.close();await server.close();}

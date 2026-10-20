@@ -7,7 +7,7 @@ export function Field({ label, hint, children }: {
 }) {
     return <label className="cw-field"><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
 }
-export function TextField({ label, value, onChange, multiline = false, placeholder = '', disabled = false, type = 'text', required = false }: {
+export function TextField({ label, value, onChange, multiline = false, placeholder = '', disabled = false, type = 'text', required = false, maxLength = 10000 }: {
     label: string;
     value: string;
     onChange: (v: string) => void;
@@ -16,8 +16,9 @@ export function TextField({ label, value, onChange, multiline = false, placehold
     disabled?: boolean;
     type?: string;
     required?: boolean;
+    maxLength?: number;
 }) {
-    const props = { value, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value), placeholder, disabled, required, maxLength: 10000 };
+    const props = { value, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value), placeholder, disabled, required, maxLength };
     return <Field label={label}>{multiline ? <textarea {...props} rows={4}/> : <input {...props} type={type}/>}</Field>;
 }
 export function SelectField({ label, value, onChange, children, disabled = false }: {

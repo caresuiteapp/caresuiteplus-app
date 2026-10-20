@@ -64,6 +64,7 @@ const POPUP_TITLES: Record<string, string> = {
 };
 
 function popupTitle(pathname: string): string {
+  if (/^\/beratung\/arbeitsplatz(?:\/[^/]+)?\/?$/.test(pathname)) return /^\/beratung\/arbeitsplatz\/?$/.test(pathname) ? 'Beratung & Schulungen' : 'Beratungsakte';
   if (/^\/office\/catalogs(?:\/|$)/.test(pathname)) return pathname === '/office/catalogs/create' ? 'Katalogposition anlegen' : 'Kataloge';
   const documentTitle = documentsWorkspaceRouteTitle(pathname);
   if (documentTitle) return documentTitle;

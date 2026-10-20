@@ -162,7 +162,9 @@ export const EVENT_LABELS: Record<string, string> = {
 };
 export const TOPICS = ['Pflege im Alltag', 'Mobilität und Transfers', 'Sturz und Wohnumgebung', 'Haut und Druckbelastung',
     'Essen und Trinken', 'Kontinenz', 'Demenz und Kommunikation', 'Arzneimittelorganisation', 'Hygiene',
-    'Hitzeschutz', 'Belastung der Pflegeperson', 'Leistungen und Hilfsmittel', 'Notfallvorsorge'];
+    'Hitzeschutz', 'Belastung der Pflegeperson', 'Leistungen und Hilfsmittel', 'Notfallvorsorge',
+    'Nächtliche Versorgung', 'Schmerz und Wohlbefinden', 'Sehen und Hören', 'Soziale Teilhabe',
+    'Entlastungsangebote', 'Anpassung der Wohnumgebung', 'Weiterführende Pflegeberatung'];
 export const LEARNING_LABELS: Record<LearningResult, string> = {
     '': 'Bitte einschätzen', understood: 'In eigenen Worten erklärt', supported: 'Mit Unterstützung ausgeführt',
     independent: 'Selbstständig gezeigt', practice_needed: 'Weiterer Übungsbedarf',
