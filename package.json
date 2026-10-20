@@ -126,7 +126,7 @@
     "verify:office-invoices:release": "node scripts/verify-office-invoices-workspace.mjs",
     "verify:consultation:release": "node scripts/verify-consultation-workspace.mjs",
     "verify:data-request:release": "node scripts/verify-data-request-workspace.mjs",
-    "verify:subscription:release": "vitest run src/__tests__/billing/subscriptionWorkspaceWeb.test.ts src/__tests__/billing/subscriptionWorkspaceHookWeb.test.ts src/__tests__/layout/desktopCenterRequestWeb.test.ts src/__tests__/business/subscriptionWorkspaceUiWeb.test.ts src/__tests__/layout/desktopAppsWidgetsInteraction.test.tsx src/__tests__/layout/desktopHomeInteraction.test.tsx"
+    "verify:subscription:release": "vitest run src/__tests__/billing/subscriptionWorkspaceWeb.test.ts src/__tests__/billing/subscriptionWorkspaceHookWeb.test.ts src/__tests__/layout/desktopCenterRequestWeb.test.ts src/__tests__/business/subscriptionWorkspaceUiWeb.test.ts src/__tests__/layout/desktopAppsWidgetsInteraction.test.tsx src/__tests__/layout/desktopHomeInteraction.test.tsx src/__tests__/layout/officeNotesDesktopInteraction.test.tsx"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
