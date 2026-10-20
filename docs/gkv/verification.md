@@ -1,6 +1,6 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 19.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
 ## Ausgeführt
 
@@ -8,7 +8,7 @@ Stand: 19.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**64 Fach-/API-Prüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**87 Fach-/API-/Transportprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
 | Bereich | Nachweis |
@@ -28,6 +28,48 @@ Es wurde kein zusätzliches Testframework installiert.
 | Quellen | Rechnung und vollständige Positionen, Steuer, Datum, Person, Revisionen, Leistungsdauer, Nachweisauswahl und Hash |
 | Original-PDF | Tatsächliche Byteprüfung, geänderte/fehlende PDF, Größenlimit, fremde Pfade, Traversal und URL-Ablehnung |
 | Fehlerausgabe | Keine Nutzdaten bei Fehlern, keine Details aus internen Ausnahmen, kein alternativer Versandpfad |
+
+## Erweiterung am 20.10.2026
+
+Die 87 Tests wurden nach den Änderungen an Hilfsmitteln, Sondervereinbarungen,
+Quellprüfung und Transportvorbereitung vollständig erneut ausgeführt. Sie enthalten
+23 neue Tests gegenüber dem vorherigen Stand mit 64 Tests:
+
+- HIL-Feldfolge, Einzelsteuer, enthaltene Steuer ohne doppelte Addition,
+  ausdrückliche Befreiung, Genehmigung, reservierte Schlüssel, Wiedereinsatz,
+  Produktnummer, Mengen und Zuzahlungen.
+- Steuerpflichtige Quellübernahme und tatsächlicher Prüfexport-API-Handler:
+  exakter Abgleich von Netto, Steuer, Brutto, Stückpreis, Menge und Steuersatz;
+  geänderte Werte liefern keine Datei.
+- Sonderprofile 08/11/12/14, Bewilligungs-/Vertragszeitraum, Fallhöchstbetrag,
+  Vereinbarung zum Datenaustausch und vollständige Monatspauschale.
+- DTA-AUF mit tatsächlicher Ciphertext-Länge, falsche Signatur-/Empfängerbindung,
+  KIM-Dateiname, MIME-Anhang, DSN-Optionen, Größen-/UTF-8-Grenzen, manipulierte
+  Dateien/Empfänger und veraltete Prüfstände.
+- Gleichzeitige Versandversuche, Timeout, fehlende Quittung, Speicherfehler nach
+  Versand und fehlender Provider: kein blinder zweiter Aufruf.
+
+**Grenze dieser Transporttests:** Kryptografie, XSD-/CMS-Prüfung, Provider und
+atomarer dauerhafter Journalzugriff sind injizierte Testdoubles. Der Prüflauf
+belegt die Aufruf- und Ablehnungslogik, keine echte Verschlüsselung, SMC-B-Signatur,
+dauerhafte Outbox, Annahmestellenvalidierung oder Ende-zu-Ende-Übermittlung.
+
+Die 11 geänderten/neuen TS-/TSX-Dateien wurden zusätzlich mit dem bereits in
+Playwright vorhandenen Babel-Transform verarbeitet. Das ist eine Syntaxprüfung,
+kein TypeScript-Typcheck. Die lokale Umgebung enthält diesmal weder den Compiler
+noch die React-/happy-dom-/esbuild-/PGlite-Abhängigkeiten der früheren Zusatzläufe.
+Gemäß `AGENTS.md` wurde nichts installiert. Die folgenden DOM-/Datenbank-/gezielten
+Typprüfungen stammen daher aus dem vorherigen Stand und sind **kein neuer Nachweis
+für diese Erweiterung**. Der neue vollständige Build wird über die bestehende
+Vercel-Anbindung geprüft; Ergebnis siehe PR #129.
+
+Die verbundene Tabelle `public.ti_providers` war am 20.10.2026 leer. Kein DTA-/KIM-
+Dienst ist in den vorhandenen Edge-Funktionen implementiert. GitHub-Zugriff ist
+verfügbar; der Vercel-Pluginzugriff auf das Projektteam liefert 403 wegen fehlendem
+Scope. Die Vorschau bleibt geschützt. Es erfolgte kein erneuter Passkey-/Login-
+Versuch; eine visuelle Prüfung der neuen Eingabefelder ist weiter offen.
+
+## Frühere Zusatzprüfungen (Stand vor dieser Erweiterung)
 
 Zusätzlich wurden **19 Datenbankfälle (20 Testeinträge einschließlich Suite)** mit der bereits vorhandenen PGlite-Laufzeit auf PostgreSQL 17.5 ausgeführt:
 
@@ -58,7 +100,7 @@ nicht belegt. Im Remoteprojekt wurden keine fachlichen Testdaten angelegt.
 
 Die echten Komponenten `CaseEditor` und `RevisionHistory` wurden zusätzlich mit den vorhandenen React-/happy-dom-/esbuild-Paketen bedient (`editor-check.mjs`): Zeitberechnung, ungültiger Geldwert und Korrektur, Kilometer, Rückkehr zur Wegepauschale, Punktwerte und Entfernen der Punktregel, erneute Quellübernahme, Zuschlag/Abzug mit ungültiger Eingabe/Korrektur/Entfernen bestanden. Neu geprüft sind halber Pflegesatz ohne automatische Halbierung, Nachtpflege-Folgetag, Tageszählung aus Von/Bis, Monatspauschale mit Kennzeichen 99 und Rücksetzen ungeeigneter Angaben beim Profilwechsel. Historie: Nachladeaktion, schreibgeschützter Stand, Auswahl einzelner Fälle, erforderliche Übernahmebegründung, Leser ohne Kopieraktion, Ladefehler/Wiederholung und Schließen bestanden. Transportcallbacks der Historienoberfläche sind ausdrücklich Doubles. **Dies sind DOM-Funktionsprüfungen, keine visuellen oder vollständigen Ende-zu-Ende-Prüfungen.**
 
-Ein gezielter strenger TypeScript-Check für Fachkern einschließlich Pflegeprofilen, Quellprüfung, Export-API, `GkvEditors.web.tsx` und `GkvRevisionHistory.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier. GitHub meldet für Stand `f283cf2` erfolgreiche Vercel-Deployments von `caresuiteplusapp` und `repository`; diese enthalten die Zuschläge und Historie. Die Projekte `caresuiteplus-app` und `caresuiteplus` meldeten bei dieser Prüfung noch `pending`. Die neuen Pflegeprofile benötigen ihren eigenen nachfolgenden Buildnachweis.
+Ein gezielter strenger TypeScript-Check für Fachkern einschließlich Pflegeprofilen, Quellprüfung, Export-API, `GkvEditors.web.tsx` und `GkvRevisionHistory.web.tsx` mit den vorhandenen echten Node-/React-Typen besteht. Er umfasst nicht den gesamten Expo-Abhängigkeitsbaum. Die beiden im Vercel-Log gemeldeten Fehler wurden mit Commit `a1e122d` korrigiert: explizite Env-Felder und ein ausdrücklich als `string` deklarierter Request-Identifier. Am 20.10.2026 meldeten alle vier Vercel-Projekte für den vorherigen Stand `4f28da4` erfolgreiche Deployments. Dieser Build enthält die Pflegeprofile, aber noch nicht die in diesem Dokument neu beschriebenen Hilfsmittel-/Sonder- und Transportänderungen.
 
 Die TSX-/TypeScript-Quelldateien der neuen Oberfläche, der Eingabekomponenten,
 des Datenzugriffs und der geänderten Rechnungsnavigation wurden mit dem bereits

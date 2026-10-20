@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createGkvTestExportHandler } from '../../api/_lib/gkv-test-export.ts';
+import { emptyAid } from '../../src/lib/gkvExchange/special.ts';
 import { fixture, tenantId, batchId, userId, invoiceId, linkedFixture, pdfBytes } from './fixtures.mjs';
 
 function setup(options = {}) {
@@ -73,6 +74,19 @@ test('linked invoices must match tenant, revision, number, amount and patient', 
 test('export verifies canonical line references and rejects partial or altered financial mappings',async()=>{
   for(const mutate of [s=>{s.items[0].gross_amount='79.99';},s=>{s.items[0].updated_at='2026-10-18T11:00:00Z';},s=>{s.items[0].vat_amount='1.00';},s=>{s.items[0].service_date='2026-10-15';},s=>{s.items=[];}]){
     const {draft,source}=linkedFixture();mutate(source);const r=await setup({draft,invoices:[source]}).request();assert.equal(r.code,409);assert.equal(r.body.dataBase64,undefined);
+  }
+});
+test('taxable aid export checks canonical net, tax and gross before returning HIL bytes',async()=>{
+  const {draft,source}=linkedFixture();draft.serviceType='06';
+  Object.assign(draft.profile,{billingCode:'19',taxTreatment:'taxable',taxExemptionCode:'',taxNumber:'123/456/789'});
+  const c=draft.cases[0],l=c.lines[0];c.grossCents=23808;
+  Object.assign(l,{remuneration:'05',code:'5001010001',unitPriceCents:10003,quantityHundredths:200,totalCents:23808,contractReference:'Fiktiver Liefervertrag',aid:{...emptyAid(),kind:'technical',vatTreatment:'add',vatCode:'1',supplyCode:'00',approvalReference:'GEN-1'}});
+  source.total_amount='238.08';Object.assign(source.items[0],{unit_price:'100.03',quantity:'2',net_amount:'200.06',vat_amount:'38.02',vat_rate:'19',gross_amount:'238.08'});
+  const result=await setup({draft,invoices:[source]}).request();assert.equal(result.code,200);
+  assert.ok(Buffer.from(result.body.dataBase64,'base64').toString('latin1').includes("HIL+1+19,01+0,00+GEN-1++00'"));
+  for(const change of [{vat_amount:'38.01'},{net_amount:'200.07'},{vat_rate:'7'},{quantity:'1'},{unit_price:'100.04'}]){
+    const changed=structuredClone(source);Object.assign(changed.items[0],change);
+    const r=await setup({draft,invoices:[changed]}).request();assert.equal(r.code,409);assert.equal(r.body.dataBase64,undefined);
   }
 });
 test('upstream signature checks and mutations during PDF verification fail closed',async()=>{

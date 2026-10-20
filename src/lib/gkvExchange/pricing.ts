@@ -1,6 +1,7 @@
 import type { ServiceLine } from './model';
 import { calculateAdjustments } from './adjustments';
 import { CARE_PRICING_RULES } from './care';
+import { aidAmounts } from './special';
 
 /** Integer arithmetic only. Rounding is commercial, once at the documented boundary. */
 function round(numerator: bigint, denominator: bigint): bigint {
@@ -21,6 +22,7 @@ export function formatFixed(value: string, whole: number, scale: number): string
 export const TIME_UNIT_MINUTES: Record<string, number> = { '1': 1, '2': 5, '3': 15, '4': 60, '5': 1440, '6': 10 };
 export const PRICING_RULES = {
   ...CARE_PRICING_RULES,
+  special_monthly: 'Bewilligter fester Betrag für den vollständigen Kalendermonat',
   time_proportional: 'Zeitanteilig; Rundung des Positionsbetrags auf Cent',
   time_started_unit: 'Je angefangener Zeiteinheit; Rundung des Positionsbetrags auf Cent',
   kilometres_rounded: 'Ganze, kaufmännisch gerundete Kilometer × Preis × Anzahl',
@@ -58,6 +60,8 @@ export function calculateBasePrice(line: ServiceLine): PriceResult {
     const value = fixedDecimal(line.pointValue, 1, 5);
     if (value === null || value <= 0n || typeof line.points !== 'string' || !/^\d{1,4}$/.test(line.points) || Number(line.points) < 1) throw new Error('Punktwert (bis fünf Nachkommastellen) und positive Punktzahl erforderlich.');
     price = round(value * BigInt(line.points), 1000n);
+  } else if (line.remuneration === '99' && line.pricingRule === 'special_monthly') {
+    if (line.day !== '99' || line.quantityHundredths !== 100 || line.duration !== '00') throw new Error('Feste Monatspauschale mit Kennzeichen 99 und Menge 1 erfassen.');
   } else if (line.pricingRule) throw new Error('Berechnungsregel passt nicht zur gewählten Vergütungsart.');
   const total = round(price * multiplier * BigInt(line.quantityHundredths), divisor * 100n);
   if (total > 999999999999n) throw new Error('Positionsbetrag überschreitet die Feldlänge.');
@@ -66,6 +70,7 @@ export function calculateBasePrice(line: ServiceLine): PriceResult {
 
 export function calculatePrice(line: ServiceLine): PriceResult {
   const base = calculateBasePrice(line);
+  if (line.remuneration === '05') return { ...base, totalCents: aidAmounts(line).totalCents };
   const adjustments = calculateAdjustments(line, base.totalCents);
   return { ...base, totalCents: base.totalCents + adjustments.reduce((sum, entry) => sum + entry.signedCents, 0) };
 }

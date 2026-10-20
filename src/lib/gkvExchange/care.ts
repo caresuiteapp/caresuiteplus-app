@@ -21,7 +21,7 @@ export function careLineIssues(line: ServiceLine, serviceType: string, month: st
   const issues: Issue[] = [];
   const add = (path: string, message: string) => issues.push({ path, message, severity: 'error' });
   if (!['03', '04'].includes(line.remuneration)) {
-    if (line.day === '99') add('day', 'Monatskennzeichen 99 ist hier nur mit der bestätigten stationären Monatspauschale verfügbar.');
+    if (line.day === '99' && !(line.remuneration === '99' && line.pricingRule === 'special_monthly' && ['08','12','14'].includes(serviceType))) add('day', 'Monatskennzeichen 99 benötigt eine unterstützte feste Monatspauschale.');
     if (line.careEndsNextDay) add('careEndsNextDay', 'Ein Folgetag ist nur beim Nachtpflege-Pflegesatz verfügbar.');
     return issues;
   }

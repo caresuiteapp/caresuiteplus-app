@@ -1,6 +1,7 @@
 import { cents, validateDraft, type ExchangeDraft } from './model';
 import { calculateBasePrice, formatFixed } from './pricing';
 import { calculateAdjustments } from './adjustments';
+import { aidAmounts } from './special';
 
 export type Segment = string[][];
 type Decimal = { decimal: string };
@@ -75,9 +76,14 @@ function berlinStamp(iso: string): string {
 }
 /** Self-billing, one provider, payer, service type and month. Does not send or attest certification. */
 export function buildTestInterchange(d: ExchangeDraft): { name: string; text: string; bytes: Uint8Array; order: Uint8Array } {
+  if (d.mode === 'production') throw new Error('Echtdateien benötigen einen serverseitig freigegebenen Versandadapter.');
+  const file=buildClassicPayload(d);
+  return { ...file, order: buildTestOrder(d,file.bytes.length) };
+}
+/** Serializer only, NOT a release or sending API. Production callers must attest and reserve the exact bytes. */
+export function buildClassicPayload(d: ExchangeDraft): { name:string;text:string;bytes:Uint8Array } {
   const errors = validateDraft(d).filter(issue => issue.severity === 'error');
   if (errors.length) throw new Error(errors[0].message);
-  if (d.mode === 'production') throw new Error('Echtdateien benötigen einen serverseitig freigegebenen Versandadapter.');
   if (d.channel !== 'classic') throw new Error('KIM benötigt einzeln signierte Nachweise und eine gegen die amtlichen Schemata geprüfte XML-Nutzdatendatei.');
   const stamp = berlinStamp(d.createdAt), p = d.profile;
   const output = [segment('UNB', [['UNOC',3],p.senderIk,d.receiverIk,[stamp.slice(0,8),stamp.slice(8,12)],d.interchangeReference,logicalFileName(d),d.mode === 'test' ? 0 : 1])];
@@ -89,7 +95,7 @@ export function buildTestInterchange(d: ExchangeDraft): { name: string; text: st
     message('PLGA',[
       segment('FKT',['01','',p.providerIk,d.payerIk,d.insuranceIk,p.senderIk]), rec,
       segment('SRD',[[p.billingCode,p.tariffCode],d.serviceType]),
-      segment('UST',[p.taxNumber || '', 'J',p.taxExemptionCode]),
+      segment('UST',[p.taxNumber || '', p.taxTreatment === 'taxable' ? '' : 'J',p.taxExemptionCode]),
       segment('GES',[decimal(c.grossCents),decimal(c.coPaymentCents),decimal(c.aidCents),decimal(net)]),
       segment('NAM',[p.name,p.name2 || '']),
     ]);
@@ -106,6 +112,11 @@ export function buildTestInterchange(d: ExchangeDraft): { name: string; text: st
           adjustment.allocation, adjustment.calculation, adjustment.direction,
           { decimal: formatFixed(adjustment.value, 4, 5) }, decimal(amounts[index].resultCents), amounts[index].end]));
       }
+      if (l.aid) {
+        const a=l.aid, amounts=aidAmounts(l);
+        body.push(segment('HIL',[a.vatTreatment==='add'?a.vatCode:'', a.vatTreatment==='add'?decimal(amounts.vatUnitCents):'',
+          decimal(a.coPaymentCents),a.approvalReference,a.approvalDate.replaceAll('-',''),a.supplyCode,a.description,a.productCode,a.inventoryNumber]));
+      }
     }
     body.push(segment('IAF',[decimal(c.grossCents),decimal(c.coPaymentCents),decimal(c.aidCents),decimal(net)]));
     message('PLAA',body);
@@ -113,22 +124,30 @@ export function buildTestInterchange(d: ExchangeDraft): { name: string; text: st
   output.push(segment('UNZ',[reference,d.interchangeReference]));
   const text = output.join(''); const bytes = latin1Bytes(text);
   validateEnvelope(parseEdifact(text));
-  return { name: physicalFileName(d), text, bytes, order: buildTestOrder(d, bytes.length, stamp) };
+  return { name: physicalFileName(d), text, bytes };
 }
 /** Unencrypted TEST order only. Encryption fields must describe actual ciphertext in production. */
 export function buildTestOrder(d: ExchangeDraft, byteLength: number, stamp = berlinStamp(d.createdAt)): Uint8Array {
   if (d.mode === 'production' || !Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > 999999999999) throw new Error('Ungültiger Prüfauftrag.');
+  return buildOrder(d,byteLength,byteLength,false,stamp);
+}
+/** Must be called only AFTER the server's crypto adapter verified actual PKCS#7 encryption/signature. */
+export function buildEncryptedOrder(d:ExchangeDraft, originalLength:number, encryptedLength:number):Uint8Array {
+  if(d.channel!=='classic'||![originalLength,encryptedLength].every(n=>Number.isSafeInteger(n)&&n>0&&n<=999999999999))throw new Error('Ungültiger verschlüsselter Auftrag.');
+  return buildOrder(d,originalLength,encryptedLength,true,berlinStamp(d.createdAt));
+}
+function buildOrder(d:ExchangeDraft,byteLength:number,transferLength:number,encrypted:boolean,stamp:string):Uint8Array {
   const output = Array(348).fill(' ');
   const put = (start: number, length: number, value: string | number, numeric = false) => {
     const text = String(value); if (text.length > length || (numeric && !/^\d+$/.test(text))) throw new Error('Auftragsfeld überschreitet seine Feldlänge.');
     output.splice(start - 1,length,...(numeric ? text.padStart(length,'0') : text.padEnd(length,' ')));
   };
-  put(1,6,'500000'); put(7,2,'01'); put(9,8,348,true); put(17,3,0,true); put(20,5,'TPFL0'); put(25,3,d.transferNumber,true);
+  put(1,6,'500000'); put(7,2,'01'); put(9,8,348,true); put(17,3,0,true); put(20,5,d.mode==='production'?'EPFL0':'TPFL0'); put(25,3,d.transferNumber,true);
   put(33,15,d.profile.senderIk); put(48,15,d.profile.senderIk); put(63,15,d.receiverIk); put(78,15,d.physicalReceiverIk);
   put(93,6,0,true); put(99,6,0,true); put(105,11,logicalFileName(d)); put(116,14,stamp,true);
   for (const start of [130,144,158]) put(start,14,0,true);
-  put(172,6,0,true); put(178,1,0,true); put(179,12,byteLength,true); put(191,12,byteLength,true);
-  put(203,2,'I1'); put(205,2,0,true); put(207,2,0,true); put(209,2,0,true);
+  put(172,6,0,true); put(178,1,0,true); put(179,12,byteLength,true); put(191,12,transferLength,true);
+  put(203,2,'I1'); put(205,2,0,true); put(207,2,encrypted?'02':'00'); put(209,2,encrypted?'02':'00');
   put(214,5,0,true); put(219,8,0,true); put(228,2,0,true); put(230,1,5,true); put(231,10,0,true);
   put(319,2,d.serviceType);
   return latin1Bytes(output.join(''));

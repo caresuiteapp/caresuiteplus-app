@@ -1,6 +1,6 @@
 # Pflegekassen-Datenaustausch nach § 105 SGB XI
 
-Stand: 19.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
+Stand: 20.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
 klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
@@ -74,16 +74,18 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | Vergütungsarten 01, 06 mit Pauschalen 01–03, 07, 08, 99 | Einzelpreis × Menge mit ganzzahliger Centberechnung |
 | Beratungspauschale | Schlüssel 1 vor Ort / 2 Video, nur Leistungsart 09 |
 | Entlastungsleistung | Anbieterbezogene Schlüssel aus TA 3, nur Leistungsart 10 |
-| Steuerbefreiung | Ausschließlich ausdrücklich bestätigter Schlüssel 01; andere Steuerfälle blockiert |
+| Steuerbehandlung | Bestätigter Befreiungsschlüssel 01; zusätzlich steuerpflichtige Pflegehilfsmittel mit Steuernummer und ausdrücklich gewähltem Satz 19 % / 7 % je Position |
+| Pflegehilfsmittel 06 / Vergütung 05 | HIL-Segment, technische/Verbrauchshilfsmittel, Positionsnummer, Genehmigung, Lieferung, Produktbesonderheit, Inventar und Zuzahlung; ganze Mengen, explizite Vertrags- und Steuerregel |
+| Sonderleistungen 08/11/12/14 | Fallbezogener Bescheid/Vertrag, Zeitraum, Höchstbetrag und Datenaustauschvereinbarung; Einzelbeträge, bei 08/12/14 vollständige Monatspauschale; bei 11 zusätzlich Komplex-/Zeitvergütung |
 | Zeitvergütung | Zeitanteilig oder je angefangener verschlüsselter Einheit; ausdrückliche Vertragsreferenz und Auswahl erforderlich |
 | Punktwert | Leistungskomplexe: bis fünf Dezimalstellen, Einzelpreis kaufmännisch auf Cent, danach Menge |
 | Kilometervergütung | Tatsächliche Strecke bis zwei Dezimalstellen, ganze Kilometer kaufmännisch gerundet; bestätigte Vertragsregel erforderlich |
 | Einfache ambulante Zuschläge/Abzüge | ZUS-Berechnung 11 (prozentual) und 12 (fester Betrag), nur einzelne Pauschalen/Leistungskomplexe mit Menge 1; ausdrücklich bestätigte Vertragsgrundlage |
-| Weitere Zuschlagsberechnungen, Hilfsmittel, stationäre Sonderfälle, Leistungsarten 08/11/12/14 | Noch zu implementieren und fachlich abzunehmen |
+| Weitere Zuschlagsberechnungen und stationäre Sonderfälle | Noch zu implementieren und fachlich abzunehmen; neue Sonderprofile decken nur die ausdrücklich beschriebenen Vertragsmodelle ab |
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
-| KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Noch nicht angeschlossen |
-| Verschlüsselter klassischer Echtversand | Noch nicht angeschlossen |
+| KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Serverseitige Paket-/MIME-Vorbereitung und Prüfverträge vorhanden; XML-Erzeuger, echte XSD-/CMS-Prüfer und TI-Dienst fehlen |
+| Verschlüsselter klassischer Echtversand | Interne Vorbereitung mit Prüfung der tatsächlichen Ciphertext-Bytes und AUF-Länge; konkreter Kryptografie-/Transportdienst und dauerhafte Versandwarteschlange fehlen |
 
 Bei TA 1 Version 6.4.0 ist KIM auf die dort genannten Leistungsarten 01, 07
 und 10 beschränkt; bei 10 gilt zusätzlich die Einschränkung auf ambulante
@@ -149,6 +151,33 @@ stationäre Abzüge und verkettete Ersatzwerte sind nicht durch dieses Profil
 abgedeckt. Die Vertragsmodelle und Segmentfolgen benötigen noch unabhängige
 Annahmestellen-Testfälle; die lokalen Tests sind keine Tarif- oder Normabnahme.
 
+### Pflegehilfsmittel und Sondervereinbarungen
+
+`special.ts` berechnet Pflegehilfsmittel mit BigInt: bei Nettopreisen Steuer je
+Stück kaufmännisch auf Cent runden, danach Menge; bei Bruttopreisen die enthaltene
+Steuer ausweisen, ohne sie nochmals hinzuzurechnen. Nur ganze Liefermengen sind
+unterstützt. Netto, Steuer, Brutto, Menge, Nettostückpreis und Steuersatz müssen
+mit der Quellrechnung exakt übereinstimmen. Eine andere Rundung der Quellrechnung
+wird abgewiesen; Originalrechnungen werden weder umgeschrieben noch angepasst.
+Die Auswahl der steuerlichen Einordnung bleibt ausdrücklich erforderlich.
+
+Technische Hilfsmittel benötigen Genehmigungskennzeichen und Lieferkennzeichen.
+Reservierte Schlüssel werden abgewiesen. Eine zweistellige Produktgruppe
+benötigt eine Bezeichnung; eine vergebene Positionsnummer hat zehn Stellen.
+Produktbesonderheiten und Inventarnummern werden entsprechend der erklärten
+Vertragsanforderung geprüft; Wiedereinsatz erfordert die Inventarnummer. Die
+Summe der HIL-Zuzahlungen muss der Fallzuzahlung entsprechen. Es werden keine
+Zuzahlungsobergrenzen oder Leistungsansprüche automatisch festgesetzt.
+
+Die Sonderprofile 08, 11, 12 und 14 verlangen die tatsächliche Bewilligung oder
+Vertragsreferenz, ihren Zeitraum, einen für den Fall bestätigten Kassenhöchstbetrag
+und die Vereinbarung zum Datenaustausch. Dies ist eine zusätzliche Anwendungssperre,
+kein Nachweis der Echtheit eines Bescheids. 08/12/14 unterstützen Vergütung 99;
+11 zusätzlich Komplex- und Zeitvergütung. Eine feste Pauschale bei 08/12/14
+benötigt den abgeschlossenen vollständigen Monat, ESK 99, Menge 1 und eine einzige
+Position. Vertrags- und Quellzeitraum müssen passen. Vertragswerte werden nicht
+als allgemeine gesetzliche Pauschalen vorbelegt.
+
 ### Authentifizierter Export
 
 `POST /api/gkv/test-export` nimmt nur `tenantId`, `batchId` und `revision` an.
@@ -159,15 +188,58 @@ Lese- als auch Erstellrechte.
 
 Vor der Ausgabe werden Stand, Modus und Fachprüfungen geprüft. Die neue RPC `gkv_invoice_source_snapshot` lädt alle ausgewählten Rechnungspositionen, zugehörigen Leistungsdatensätze und ausgewählten Originalnachweise. Sie prüft den Office-Zugang und ruft die vorhandenen Funktionen `office_invoice_assert_source` und `office_invoice_proofs` auf.
 
-Der Export gleicht Rechnungsnummer, Datum, Person, Betrag, jede Positionsreferenz und Revision ab. Fehlende, doppelte, geänderte oder steuerpflichtige Positionen blockieren. Bei Zeitpositionen aus Leistungsdatensätzen müssen Dauer und Anzahl zur bestätigten abrechenbaren Dauer passen. Die Nachweisauswahl und ihre Revisionen müssen unverändert sein. Ausgewählte Original-PDFs werden mit dem Benutzer-JWT aus dem erlaubten Mandantenpfad geladen und bytegenau gegen den bestätigten SHA-256 geprüft. Externe URLs, fremde Pfade und Umleitungen sind ausgeschlossen; Grenzen: 20 MB je PDF, 50 MB insgesamt, 40 Sekunden Prüfbudget.
+Der Export gleicht Rechnungsnummer, Datum, Person, Betrag, jede Positionsreferenz und Revision ab. Fehlende, doppelte und geänderte Positionen blockieren. Steuerpflichtige Positionen sind ausschließlich im ausdrücklich gewählten Hilfsmittelprofil mit vollständigem Netto-/Steuer-/Bruttoabgleich zulässig. Bei Zeitpositionen aus Leistungsdatensätzen müssen Dauer und Anzahl zur bestätigten abrechenbaren Dauer passen. Die Nachweisauswahl und ihre Revisionen müssen unverändert sein. Ausgewählte Original-PDFs werden mit dem Benutzer-JWT aus dem erlaubten Mandantenpfad geladen und bytegenau gegen den bestätigten SHA-256 geprüft. Externe URLs, fremde Pfade und Umleitungen sind ausgeschlossen; Grenzen: 20 MB je PDF, 50 MB insgesamt, 40 Sekunden Prüfbudget.
 
 Nach der Dateierzeugung werden die Quellen nochmals vollständig geprüft und mit dem ersten Stand verglichen; auch Paketrevision und Status werden erneut gelesen. Die Antwort weist getrennte Prüfzahlen für Rechnungen, Positionen, Leistungsdatensätze und PDFs sowie manuelle Fälle aus. Manuelle Prüffälle haben keinen automatischen Quellnachweis. Die PDF-Prüfsumme belegt Byteidentität, keine PDF/A-Eigenschaft oder KIM-Signatur. Der Rückgabewert enthält Byteinhalt, SHA-256 und die Einordnung
-`unencrypted_test`. Es gibt keine Versandfunktion, keinen Mail-Fallback und
-keinen Endpunkt, der Produktionsdateien herausgibt.
+`unencrypted_test`. Dieser öffentliche Endpunkt bietet keinen Versand und gibt keine Produktionsdateien heraus.
 
 Die Quellprüfung im Prüfexport ist keine atomare Reservierung einer Rechnung
 für den Echtversand. Dafür ist später eine serverseitige Transaktion mit
 Quellrevisionen, eindeutiger Zuordnung und unveränderlichen Artefakten nötig.
+
+### Serverseitige Vorbereitung des Echtversands
+
+`api/_lib/gkv-transport.ts` ist ein internes Modul, kein erreichbarer Versandendpunkt.
+Es nimmt ausschließlich vom Server bereitzustellende Adapter und Prüfbelege an.
+Die Oberfläche bleibt beim Prüfexport. Die neuen Funktionen leisten:
+
+- Klassisch: Freigabeprüfung gegen den SHA-256 der tatsächlichen Nutzbytes,
+  Prüfung des vom Kryptografieadapter erzeugten PKCS#7-Containers auf Inhalt,
+  Signatur-/Empfängerbindung und Hash; AUF aus der tatsächlichen verschlüsselten
+  Dateilänge mit Kennzeichen 02/02. Ein unverändertes Klartext-Ergebnis wird
+  abgewiesen. Der unabhängige Kryptografieadapter selbst ist noch nicht vorhanden.
+- KIM: Begrenzung auf 15.000.000 XML-Bytes, gültiges UTF-8 ohne BOM, Bindung des
+  Prüfbelegs an die Datei und des Schema-/Signaturprüfers an Leistungserbringer,
+  Kasse, Leistungsart, Monat und logische Version 1.2.0. Der Prüfer muss jede
+  signierte Komponente und ihre IMG-Zuordnung prüfen. Diese Implementierung
+  enthält weder XML-Erzeuger noch echten XSD-/CMS-Prüfer.
+- KIM-MIME: genau ein Base64-XML-Anhang mit `Content-Description: PFL`, leerer
+  Textteil, vorgeschriebener Betreff/Dateiname und `X-KIM-Dienstkennung`.
+  Zustellbenachrichtigung wird als SMTP-DSN-Option angefordert. TI-Verschlüsselung
+  und tatsächlicher SMTP-Versand erfolgen erst durch das anzuschließende KIM-Modul.
+- Datei-/Empfängermanifest: Hashes, Größen, Absender, Empfänger, Kasse, Monat,
+  Leistungsart und Prüftag bleiben gebunden. Nach Änderungen oder Tageswechsel
+  ist eine neue Prüfung nötig. Der Versionswechsel am 01.02.2027 bleibt gesperrt.
+- Einzelversand: stabile Auftragskennung, atomarer Claim als erforderlicher
+  Journalvertrag; nur der erfolgreiche Claim darf den Provider aufrufen. Timeout,
+  fehlende Quittung oder Fehler nach Versand führen zu keiner automatischen
+  Zweitübermittlung. `sent` bedeutet lediglich Provider-Übernahme, weder Zustellung,
+  fachliche Annahme noch Zahlung.
+
+**Noch nicht implementiert/angeschlossen:** dauerhafter transaktionaler Claim und
+Outbox, Reservierung über mehrere Abrechnungspakete, aktuelle serverseitige
+Quell-/Routing-/Zertifikatsprüfung im Versandablauf, Virenprüfer, unveränderliche
+Artefaktablage, VZD-Adressbindung, konkreter Versandadapter, sichere Provider-
+Quittungsabfrage und Rückmeldeverarbeitung. Ein In-Memory-Journal ist ausschließlich
+Testdouble und darf keinen Echtbetrieb tragen. Ein Client-Hash oder Häkchen ist
+kein serverseitiger Prüfbeleg. Die KIM-Adressen müssen aus dem verifizierten
+serverseitigen Routing stammen; syntaktische Mailprüfung allein reicht nicht.
+
+Am 20.10.2026 ergab die schreibgeschützte Prüfung der verbundenen Supabase-Datenbank:
+`public.ti_providers` enthält keine Einträge. Die vorhandenen Edge-Funktionen
+enthalten keinen DTA-/KIM-Transport. Provider-Zugang, API-Vertrag, Annahmestellen-
+Teilnahme und Zertifikate/SMC-B werden für die konkrete Anschlussimplementierung
+benötigt. Es wurden keine Echtdaten übermittelt und keine Providerdaten ergänzt.
 
 ### Datenbank
 
@@ -253,23 +325,23 @@ werden nicht durch erfundene Empfänger oder pauschale Fallbacks ersetzt.
 
 ## Schritte bis zur vollständigen Produktivfreigabe
 
-1. **Fachliche Erweiterung:** übrige Vergütungsprofile, weitere ZUS-Berechnungen/HIL, stationäre Sonderfälle,
+1. **Fachliche Erweiterung:** übrige Vertragsvarianten, weitere ZUS-Berechnungen und stationäre Sonderfälle,
    Änderungen im Leistungsmonat, Korrektur-/Stornoverfahren, Abrechnungszentren
    und vollständige Vertragspreisbildung implementieren. Gegen echte, freigegebene
    Testfälle der jeweils relevanten Annahmestelle prüfen.
 2. **Nachweise:** Den implementierten Quellabgleich um eine atomare Reservierung für den Echtversand und unveränderliche Exportartefakte erweitern; Doppelabrechnung über mehrere Pakete verhindern. Aufbewahrung, Wiederherstellung, Berichtigungen und Fristen mit
    dem bestehenden Dokumentensystem verbinden.
 3. **Klassischer Versand:** vorhandenen/ausgewählten DTA-Dienst anschließen,
-   tatsächliche Verschlüsselung und Zertifikatsprüfung durchführen, AUF-Metadaten
-   aus dem verschlüsselten Ergebnis bilden; Versand nur nach Teilnahmeabstimmung,
+   tatsächliche Verschlüsselung und Zertifikatsprüfung hinter den implementierten
+   Prüfvertrag anschließen; AUF-Metadaten werden bereits aus dem Ergebnis gebildet; Versand nur nach Teilnahmeabstimmung,
    Virenprüfung und Annahmestellentest.
 4. **KIM:** echten KIM-/TI-Anschluss und SMC-B bereitstellen; amtliche XML-Schemata
    versioniert hinterlegen und tatsächlich validieren; jede vorgeschriebene
    Komponente signieren und Signaturen prüfen; Softwareprüfung und gültige
    PROD-/MOD-ID nachweisen. Größenlimit und Versandstruktur beachten.
 5. **Versandsteuerung:** unveränderliche Dateiartefakte, serverseitig vergebene
-   Nummern, Versandwarteschlange, dokumentierte Wiederholungsregeln und einen
-   Zustand für unklaren Versand implementieren. Ein Timeout darf keine blinde
+   Nummern, Versandwarteschlange, dokumentierte Wiederholungsregeln und die
+   dauerhafte Speicherung des implementierten Zustands für unklaren Versand ergänzen. Ein Timeout darf keine blinde
    Zweitübermittlung auslösen.
 6. **Rückmeldungen:** authentifizierten Provider-Rückkanal/Import, eindeutige
    Message-ID-/Hash-Korrelation, Dublettenschutz, Fehlerbezug und Korrekturlauf

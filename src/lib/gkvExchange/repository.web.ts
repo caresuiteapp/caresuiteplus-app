@@ -92,13 +92,13 @@ export async function readInvoiceSources(tenantId:string,role:RoleKey,month:stri
     .gte('service_period_from',`${month}-01`).lte('service_period_to',`${month}-${end}`).neq('status','cancelled').neq('status','draft').order('invoice_date',{ascending:false}).limit(100);
   if(error)failure(error);return (data||[]) as unknown as SourceInvoice[];
 }
-export async function readInvoiceCase(tenantId:string,role:RoleKey,id:string,month:string) {
+export async function readInvoiceCase(tenantId:string,role:RoleKey,id:string,month:string,serviceType?:string) {
   if(!UUID.test(id))throw new Error('Ungültige Rechnungsreferenz.');
   const client=connection(tenantId,role,true);
   const rpc=client.rpc.bind(client) as unknown as (name:string,args:Row)=>Promise<{data:unknown;error:unknown}>;
   const {data,error}=await rpc('gkv_invoice_source_snapshot',{p_tenant_id:tenantId,p_invoice_ids:[id]});
   if(error)failure(error);
-  return importInvoiceCase(readSourceSnapshot(data,tenantId,[id])[0],month);
+  return importInvoiceCase(readSourceSnapshot(data,tenantId,[id])[0],month,serviceType);
 }
 export async function requestTestExport(tenantId:string,role:RoleKey,batch:Batch) {
   const client=connection(tenantId,role,true);const {data,error}=await client.auth.getSession();if(error||!data.session)throw new Error('Bitte erneut anmelden.');

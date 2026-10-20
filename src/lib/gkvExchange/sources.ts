@@ -1,6 +1,7 @@
 import { blankCase, isDate, type BillingCase, type Issue, type ServiceLine } from './model';
 import { newLine, parseHundredths } from './editor';
 import { daysInMonth } from './care';
+import { aidAmounts } from './special';
 
 export type SourceRow = Record<string, unknown>;
 export type InvoiceSnapshot = SourceRow & { items: SourceRow[]; records: SourceRow[]; proofs: SourceRow[]; client: SourceRow };
@@ -38,7 +39,7 @@ export function readSourceSnapshot(value: unknown, tenantId: string, ids: string
   }
   return value.invoices as InvoiceSnapshot[];
 }
-export function importInvoiceCase(source: InvoiceSnapshot, month: string): BillingCase {
+export function importInvoiceCase(source: InvoiceSnapshot, month: string, serviceType?: string): BillingCase {
   if (['draft','cancelled'].includes(text(source.status)) || !isDate(source.invoice_date)) throw new Error('Bitte eine ausgestellte Rechnung mit gültigem Datum auswählen.');
   const c = blankCase(month, source.invoice_date);
   Object.assign(c, { sourceInvoiceId: source.id, sourceUpdatedAt: source.updated_at, clientId: source.client_id,
@@ -50,7 +51,9 @@ export function importInvoiceCase(source: InvoiceSnapshot, month: string): Billi
   });
   c.lines = [...source.items].sort((a,b) => Number(a.sort_order) - Number(b.sort_order) || text(a.id).localeCompare(text(b.id))).map(item => {
     if (!isDate(item.service_date) || item.service_date.slice(0,7) !== month) throw new Error('Alle übernommenen Positionen müssen im gewählten Leistungsmonat liegen.');
-    if (amount(item.vat_amount) !== 0 || amount(item.vat_rate) !== 0 || amount(item.net_amount) !== amount(item.gross_amount)) throw new Error('Dieses Profil unterstützt nur vollständig umsatzsteuerbefreite Rechnungspositionen.');
+    if (serviceType !== '06' && (amount(item.vat_amount) !== 0 || amount(item.vat_rate) !== 0 || amount(item.net_amount) !== amount(item.gross_amount))) throw new Error('Dieses Profil unterstützt nur vollständig umsatzsteuerbefreite Rechnungspositionen.');
+    if (serviceType === '06' && (![item.net_amount,item.vat_amount,item.gross_amount,item.vat_rate].every(v => Number.isSafeInteger(amount(v)))
+      || amount(item.net_amount)+amount(item.vat_amount)!==amount(item.gross_amount) || ![0,700,1900].includes(amount(item.vat_rate)))) throw new Error('Steuerbeträge der Hilfsmittelrechnung sind unvollständig oder widersprüchlich.');
     const record = source.records.find(r => r.id === item.service_record_id);
     const line: ServiceLine = { ...newLine(), sourceItemId:text(item.id), sourceItemUpdatedAt:text(item.updated_at),
       sourceDescription:text(item.description), sourceItemServiceDate:item.service_date, sourceId:text(item.service_record_id) || undefined,
@@ -78,17 +81,18 @@ export function verifyCaseSources(c: BillingCase, source: InvoiceSnapshot): Issu
     const item = source.items.find(i => i.id === l.sourceItemId);
     if (!item) continue;
     gross += amount(item.gross_amount);
-    const monthly = l.remuneration === '04' && l.pricingRule === 'care_monthly' && l.day === '99';
+    const monthly = l.day === '99' && (l.remuneration === '04' && l.pricingRule === 'care_monthly' || l.remuneration === '99' && l.pricingRule === 'special_monthly');
     const dateMatches = monthly
       ? isDate(l.sourceItemServiceDate) && item.service_date === l.sourceItemServiceDate && item.service_date.slice(0,7) === c.month
         && isDate(source.service_period_from) && isDate(source.service_period_to)
         && source.service_period_from === `${c.month}-01` && source.service_period_to === `${c.month}-${daysInMonth(c.month)}`
         && !l.sourceId
       : item.service_date === `${c.month}-${l.day}`;
-    if (monthly && !dateMatches) add(`lines.${index}.day`, 'Eine stationäre Monatspauschale benötigt eine Rechnung für den vollständigen Monat und ihre unveränderte Quellposition. Ein einzelner verknüpfter Einsatz ist kein Monatsnachweis.');
+    if (monthly && !dateMatches) add(`lines.${index}.day`, 'Eine Monatspauschale benötigt eine Rechnung für den vollständigen Monat und ihre unveränderte Quellposition. Ein einzelner verknüpfter Einsatz ist kein Monatsnachweis.');
+    let taxMatches=amount(item.net_amount)===l.totalCents && amount(item.vat_amount)===0 && amount(item.vat_rate)===0;
+    if(l.remuneration==='05') { try { const a=aidAmounts(l);taxMatches=amount(item.net_amount)===a.netCents && amount(item.vat_amount)===a.vatCents && amount(item.vat_rate)===a.vatRate*100 && amount(item.quantity)===l.quantityHundredths && amount(item.unit_price)===a.netCents/(l.quantityHundredths/100); }catch{taxMatches=false;} }
     if (!l.sourceItemUpdatedAt || item.updated_at !== l.sourceItemUpdatedAt || !dateMatches
-      || amount(item.gross_amount) !== l.totalCents || amount(item.net_amount) !== l.totalCents || amount(item.vat_amount) !== 0
-      || amount(item.vat_rate) !== 0 || (item.service_record_id || undefined) !== l.sourceId) add(`lines.${index}`,'Rechnungsposition, Datum, Steuer oder Betrag wurde geändert oder stimmt nicht überein.');
+      || amount(item.gross_amount) !== l.totalCents || !taxMatches || (item.service_record_id || undefined) !== l.sourceId) add(`lines.${index}`,'Rechnungsposition, Datum, Steuer oder Betrag wurde geändert oder stimmt nicht überein.');
     if (l.sourceId) {
       const record = source.records.find(r => r.id === l.sourceId);
       if (!record || !l.sourceRecordUpdatedAt || record.updated_at !== l.sourceRecordUpdatedAt

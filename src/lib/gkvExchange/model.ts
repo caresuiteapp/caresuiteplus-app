@@ -1,6 +1,7 @@
 import { calculatePrice, type PricingRule } from './pricing';
 import { careCaseIssues, careLineIssues } from './care';
 import { adjustmentIssues, hasAdjustmentsShape, type Adjustment } from './adjustments';
+import { aidIssues, hasAidShape, hasAgreementShape, specialCaseIssues, type AidDetails, type SpecialAgreement } from './special';
 /** §105 SGB XI. Field order and limits: TA1 6.4.0, TA3 6.4.0 (01.05.2026). */
 export const GKV_SPEC = {
   version: '6.4.0', validFrom: '2026-05-01', validUntil: '2027-01-31',
@@ -25,14 +26,14 @@ export type ExchangeProfile = {
   providerIk: string; senderIk: string; name: string; name2?: string;
   billingCode: string; tariffCode: string; fundType: FundType; stateCode: string;
   ambulatoryProvider: boolean; employeeNumberRequired: boolean;
-  taxExemptionCode: string; taxNumber?: string;
+  taxExemptionCode: string; taxNumber?: string; taxTreatment?: 'exempt' | 'taxable';
 };
 export type ServiceLine = {
   sourceId?: string; day: string; startTime?: string; remuneration: string;
   sourceItemId?: string; sourceItemUpdatedAt?: string; sourceRecordUpdatedAt?: string; sourceDescription?: string;
   pricingRule?: PricingRule; contractReference?: string; distanceKm?: string;
   careEndsNextDay?: boolean; sourceItemServiceDate?: string;
-  adjustments?: Adjustment[]; adjustmentRule?: string;
+  adjustments?: Adjustment[]; adjustmentRule?: string; aid?: AidDetails;
   qualification: string; code: string; unitPriceCents: number; quantityHundredths: number;
   duration: string; pointValue?: string; points?: string; employeeNumber?: string;
   secondEmployeeNumber?: string; totalCents: number;
@@ -45,7 +46,7 @@ export type BillingCase = {
   street?: string; houseNumber?: string; postalCode?: string; city?: string;
   careGrade: string; month: string; proofConfirmed: boolean;
   coPaymentCents: number; aidCents: number; grossCents: number;
-  lines: ServiceLine[];
+  lines: ServiceLine[]; agreement?: SpecialAgreement;
 };
 export type ExchangeDraft = {
   profile: ExchangeProfile; channel: Channel; mode: FileMode; serviceType: ServiceType;
@@ -79,6 +80,8 @@ const numbers = (value: Record<string, unknown>, keys: string[]) => keys.every(k
 const optionalText = (value: Record<string, unknown>, keys: string[]) => keys.every(key => value[key] === undefined || typeof value[key] === 'string');
 export function hasProfileShape(value: unknown): value is ExchangeProfile {
   return record(value) && textKeys(value, ['providerIk','senderIk','name','billingCode','tariffCode','fundType','stateCode','taxExemptionCode'])
+    && optionalText(value, ['name2','taxNumber'])
+    && (value.taxTreatment === undefined || ['exempt','taxable'].includes(String(value.taxTreatment)))
     && typeof value.ambulatoryProvider === 'boolean' && typeof value.employeeNumberRequired === 'boolean';
 }
 /** Incomplete text fields may be saved; malformed structures and non-finite numbers may not. */
@@ -87,6 +90,7 @@ export function hasDraftShape(value: unknown): value is ExchangeDraft {
     && numbers(value, ['sequence','transferNumber','interchangeReference','correction']) && Array.isArray(value.cases) && value.cases.length <= 500
     && value.cases.every(c => record(c) && textKeys(c, ['invoiceNumber','invoiceDate','documentNumber','insuranceNumber','lastName','firstName','birthDate','careGrade','month'])
       && optionalText(c,['sourceInvoiceId','sourceUpdatedAt','clientId'])
+      && (c.agreement === undefined || hasAgreementShape(c.agreement))
       && (c.proofIds === undefined || Array.isArray(c.proofIds) && c.proofIds.length <= 30 && c.proofIds.every(id => typeof id === 'string'))
       && (c.sourceProofs === undefined || Array.isArray(c.sourceProofs) && c.sourceProofs.length <= 30 && c.sourceProofs.every(p => record(p) && textKeys(p,['recordId','updatedAt','pdfSha256'])))
       && typeof c.proofConfirmed === 'boolean' && numbers(c, ['coPaymentCents','aidCents','grossCents']) && Array.isArray(c.lines) && c.lines.length <= 1000
@@ -94,6 +98,7 @@ export function hasDraftShape(value: unknown): value is ExchangeDraft {
         && optionalText(l,['sourceId','sourceItemId','sourceItemUpdatedAt','sourceRecordUpdatedAt','sourceDescription','pricingRule','contractReference','distanceKm','pointValue','points','startTime','employeeNumber','secondEmployeeNumber'])
         && optionalText(l, ['adjustmentRule','sourceItemServiceDate']) && (l.careEndsNextDay === undefined || typeof l.careEndsNextDay === 'boolean')
         && (l.adjustments === undefined || hasAdjustmentsShape(l.adjustments))
+        && (l.aid === undefined || hasAidShape(l.aid))
         && numbers(l, ['unitPriceCents','quantityHundredths','totalCents'])));
 }
 export function cents(value: number): string {
@@ -148,11 +153,13 @@ export function validateDraft(input: unknown): Issue[] {
   if (!/^(11|15|16|17|18|19|35|36|37|39|81|82|83|84|86|87|88|89|91|92|93|94|96|97|98|99)$/.test(d.profile.billingCode)) add('profile.billingCode', 'Abrechnungscode gemäß Vertrag auswählen.');
   if (!/^[A-Za-z0-9]{5}$/.test(d.profile.tariffCode)) add('profile.tariffCode', 'Das vertragliche Tarifkennzeichen muss fünfstellig sein.');
   if (!/^(0[1-9]|1[0-6])$/.test(d.profile.stateCode)) add('profile.stateCode', 'Bundesland für das Empfängerrouting fehlt.');
-  if (!d.profile.taxExemptionCode) add('profile.taxExemptionCode', 'Die umsatzsteuerliche Einordnung muss vor dem Export bestätigt werden.');
+  if (d.profile.taxTreatment !== undefined && !['exempt','taxable'].includes(d.profile.taxTreatment)) add('profile.taxTreatment', 'Steuerbehandlung ist ungültig.');
+  if (d.profile.taxTreatment === 'taxable') {
+    if (d.serviceType !== '06' || d.profile.taxExemptionCode || typeof d.profile.taxNumber !== 'string' || !d.profile.taxNumber.trim()) add('profile.taxTreatment', 'Steuerpflichtiges Profil: Pflegehilfsmittel, Steuernummer und kein Befreiungsschlüssel erforderlich.');
+  } else if (!d.profile.taxExemptionCode) add('profile.taxExemptionCode', 'Die umsatzsteuerliche Einordnung muss vor dem Export bestätigt werden.');
   else if (d.profile.taxExemptionCode !== '01') add('profile.taxExemptionCode', 'Dieses Exportprofil unterstützt ausschließlich den bestätigten Befreiungsschlüssel 01 aus TA3.');
   if (d.profile.taxNumber) field(d.profile.taxNumber, 'profile.taxNumber', 20);
   if (d.profile.senderIk !== d.profile.providerIk) add('profile.senderIk', 'Dieser Export unterstützt Selbstabrechnung. Die Sammelabrechnung über ein Abrechnungszentrum benötigt einen eigenen geprüften Adapter.');
-  if (['06','08','11','12','14'].includes(d.serviceType)) add('serviceType', 'Dieses Fachprofil ist noch nicht zur Dateierzeugung freigegeben.');
   const careProviderCodes: Record<string,string[]> = { '02':['81','82','83','84'], '03':['86','87','88','89'], '04':['91','92','93','94'], '05':['96','97','98','99'], '15':['35','36','37','39'] };
   if (careProviderCodes[d.serviceType] && !careProviderCodes[d.serviceType].includes(d.profile.billingCode)) add('profile.billingCode', 'Der Abrechnungscode muss zur Tages-, Nacht-, Kurzzeit-, vollstationären beziehungsweise ambulanten Pflegeart passen.');
   if (d.channel === 'kim') {
@@ -184,11 +191,11 @@ export function validateDraft(input: unknown): Issue[] {
       const lp = `${path}.lines.${j}`;
       if (!l || typeof l !== 'object') { add(lp, 'Leistungsposition fehlt.'); continue; }
       strings(l, ['day','remuneration','qualification','code','duration'], `${lp}.`);
-      const monthly = l.day === '99' && l.remuneration === '04' && l.pricingRule === 'care_monthly';
+      const monthly = l.day === '99' && (l.remuneration === '04' && l.pricingRule === 'care_monthly' || l.remuneration === '99' && l.pricingRule === 'special_monthly');
       if (!monthly && (!/^\d{2}$/.test(l.day) || !isDate(`${d.month}-${l.day}`))) add(`${lp}.day`, 'Leistungstag liegt nicht im Abrechnungsmonat.');
       else if (!monthly && (`${d.month}-${l.day}` > day || (isDate(c.invoiceDate) && `${d.month}-${l.day}` > c.invoiceDate))) add(`${lp}.day`, 'Eine Leistung darf nicht nach Rechnungsdatum oder Dateierstellung liegen.');
       if (['01','02','03','06'].includes(l.remuneration) && !/^([01]\d|2[0-3])[0-5]\d$/.test(l.startTime || '')) add(`${lp}.startTime`, 'Tatsächliche Beginnzeit im Format HHMM erforderlich.');
-      if (!['01','02','03','04','06','07','08','99'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Dieses Vergütungsprofil ist für den Export noch nicht freigegeben.');
+      if (!['01','02','03','04','05','06','07','08','99'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Dieses Vergütungsprofil ist für den Export noch nicht freigegeben.');
       if (['02','03'].includes(d.serviceType) && !['03','06'].includes(l.remuneration)) add(`${lp}.remuneration`, 'Für dieses Tages-/Nachtpflegeprofil sind Pflegesatz und Beförderungsentgelt verfügbar.');
       if (['04','05'].includes(d.serviceType) && l.remuneration !== '04') add(`${lp}.remuneration`, 'Dieses stationäre Grundprofil benötigt den stationären Pflegesatz.');
       if (d.serviceType === '15' && (l.remuneration !== '02' || !/^[1-6]0$/.test(l.code))) add(`${lp}.code`, 'Ergänzende DiPA-Unterstützung benötigt Zeitvergütung mit Zeitart 0.');
@@ -205,7 +212,7 @@ export function validateDraft(input: unknown): Issue[] {
       for (const key of ['unitPriceCents','totalCents','quantityHundredths'] as const) if (!Number.isSafeInteger(l[key]) || l[key] < (key === 'quantityHundredths' ? 1 : 0) || l[key] > (key === 'quantityHundredths' ? 999999 : 999999999999)) add(`${lp}.${key}`, 'Betrag oder Menge ist ungültig.');
       if (l.remuneration === '02') {
         if (!/^[1-6][0-9A-D]$/.test(l.code)) add(`${lp}.code`, 'Zeitvergütung benötigt den zweistelligen Schlüssel aus TA3.');
-        if (/[AB]$/.test(l.code) && d.serviceType !== '09') add(`${lp}.code`, 'Zeitart A/B ist für den Beratungsbesuch vorgesehen.');
+        if (/[AB]$/.test(l.code) && !['09','11'].includes(d.serviceType)) add(`${lp}.code`, 'Zeitart A/B ist für den Beratungsbesuch vorgesehen.');
         if (typeof l.code === 'string' && l.code.endsWith('0') && d.serviceType !== '15') add(`${lp}.code`, 'Zeitart 0 ist für ergänzende Unterstützungsleistungen für DiPA vorgesehen.');
       }
       try {
@@ -216,6 +223,7 @@ export function validateDraft(input: unknown): Issue[] {
       } catch (error) { add(`${lp}.totalCents`, error instanceof Error ? error.message : 'Berechnungsgrundlage ist unvollständig.'); }
       for (const issue of adjustmentIssues(l, d.serviceType)) add(`${lp}.${issue.path}`, issue.message);
       for (const issue of careLineIssues(l, d.serviceType, d.month, c.invoiceDate, day)) add(`${lp}.${issue.path}`, issue.message);
+      for (const issue of aidIssues(l, d, c.invoiceDate)) add(`${lp}.${issue.path}`, issue.message);
       if (Object.hasOwn(l, 'surcharges')) add(lp, 'Unbekannte Zuschlagsdaten dürfen nicht ohne ZUS-Berechnung exportiert werden.');
       if ((d.profile.ambulatoryProvider || d.profile.employeeNumberRequired) && !/^\d{9}$/.test(l.employeeNumber || '')) add(`${lp}.employeeNumber`, 'Beschäftigtennummer oder belegter Ersatzwert erforderlich.');
       if (l.secondEmployeeNumber && !/^\d{9}$/.test(l.secondEmployeeNumber)) add(`${lp}.secondEmployeeNumber`, 'Zweite Beschäftigtennummer ist ungültig.');
@@ -223,6 +231,7 @@ export function validateDraft(input: unknown): Issue[] {
       calculated += l.totalCents;
     }
     for (const issue of careCaseIssues(c)) add(`${path}.${issue.path}`, issue.message);
+    for (const issue of specialCaseIssues(c, d)) add(`${path}.${issue.path}`, issue.message);
     for (const key of ['grossCents','coPaymentCents','aidCents'] as const) if (!Number.isSafeInteger(c[key]) || c[key] < 0 || c[key] > 999999999999) add(`${path}.${key}`, 'Ungültiger Fallbetrag.');
     if (calculated !== c.grossCents) add(`${path}.grossCents`, 'Fallsumme stimmt nicht mit den Leistungspositionen überein.');
     if (c.coPaymentCents + c.aidCents > c.grossCents) add(`${path}.aidCents`, 'Eigenanteil und Beihilfe übersteigen den Bruttobetrag.');

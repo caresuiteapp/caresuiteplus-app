@@ -36,6 +36,6 @@ function RevisionPreview({ value }: { value: SavedRevision }) {
   return <div className="gx-stack">
     <details><summary>Leistungserbringer und Vertrag ansehen</summary><fieldset disabled className="gx-readonly"><ProfileEditor value={value.draft.profile} onChange={() => {}} /></fieldset></details>
     {value.draft.cases.length > 0 && <Choice label="Gespeicherten Fall ansehen" value={String(caseIndex)} onChange={next => setCaseIndex(Number(next))}>{value.draft.cases.map((c, index) => <option key={index} value={index}>{index + 1} · {c.invoiceNumber || 'Ohne Rechnungsnummer'} · {c.firstName} {c.lastName}</option>)}</Choice>}
-    {current && <fieldset disabled className="gx-readonly"><CaseEditor key={caseIndex} value={current} index={0} onChange={() => {}} onRemove={() => {}} /></fieldset>}
+    {current && <fieldset disabled className="gx-readonly"><CaseEditor key={caseIndex} value={current} index={0} serviceType={value.draft.serviceType} onChange={() => {}} onRemove={() => {}} /></fieldset>}
   </div>;
 }
