@@ -43,6 +43,7 @@ class Replies {
 export async function sendSmtp(message, config) {
   if (!mailbox(message.from) || !mailbox(message.to) || !domain(config.ehlo) || !domain(config.servername) || !config.host || !Number.isInteger(config.port) || config.port < 1 || config.port > 65535 || !['tls', 'starttls'].includes(config.mode)) throw new Error('SMTP_CONFIGURATION');
   const bytes = Buffer.from(message.mime), wire = bytes.toString('latin1');
+  if (message.dsn?.envelopeId !== undefined && !/^[A-Za-z0-9._-]{1,100}$/.test(message.dsn.envelopeId)) throw new Error('SMTP_ENVELOPE_ID');
   if (!bytes.length || bytes.length > 32_000_000 || /[^\x09\x0d\x0a\x20-\x7e]/.test(wire) || /(?<!\r)\n|\r(?!\n)/.test(wire) || !wire.endsWith('\r\n') || wire.split('\r\n').some(l => l.length > 998)) throw new Error('SMTP_MIME');
   const timeout = config.timeoutMs ?? 30_000;
   if (!Number.isSafeInteger(timeout) || timeout < 100 || timeout > 120_000) throw new Error('SMTP_TIMEOUT_CONFIGURATION');
@@ -75,7 +76,7 @@ export async function sendSmtp(message, config) {
       const auth = Buffer.concat([Buffer.from(`\0${username}\0`), Buffer.from(password)]);
       try { await command(`AUTH PLAIN ${auth.toString('base64')}`, [235]); } finally { auth.fill(0); }
     }
-    const dsn = message.dsn ? ' RET=HDRS' : '';
+    const dsn = message.dsn ? ` RET=HDRS${message.dsn.envelopeId ? ` ENVID=${message.dsn.envelopeId}` : ''}` : '';
     await command(`MAIL FROM:<${message.from}>${size ? ` SIZE=${bytes.length}` : ''}${dsn}`, [250]);
     await command(`RCPT TO:<${message.to}>${message.dsn ? ' NOTIFY=SUCCESS,FAILURE,DELAY' : ''}`, [250, 251]);
     await command('DATA', [354]);

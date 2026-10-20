@@ -8,10 +8,56 @@ Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**108 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**127 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
-## Eigenentwicklung am 20.10.2026
+## Versandworker und Empfang am 20.10.2026
+
+Die 108 bisherigen Fälle plus **19 neue Dienstprüfungen** wurden gemeinsam
+erfolgreich ausgeführt (`npm run verify:gkv:services`). Die neuen Tests belegen:
+
+- Message-ID, DSN-ENVID, Ziel und AUF-Dateifakten liegen vor SMTP dauerhaft vor;
+  zwei konkurrierende Worker versenden nur einmal. Fehlende DATA-Bestätigung
+  bleibt auch nach Wiederöffnen unklar und löst keine Wiederholung aus.
+- Veraltete Freigaben, mehrdeutige/abgeschaltete/fremde Routen und nachträglich
+  geänderte Empfänger werden vor dem Versand blockiert; ENVID-Injektion scheitert.
+  Andere Groß-/Kleinschreibung einer Rechnungs-UUID umgeht keine Reservierung.
+- RFC-3464-Aktionen bleiben getrennt. Doppelte/kollidierende Kennungen, widersprüchlicher
+  Status, falscher Empfänger und ein Hinweis auf einen noch ungesendeten Auftrag
+  führen zur Quarantäne. ENVID allein kann einen zuvor damit versendeten Auftrag zuordnen.
+- Anlage-7-Rückmeldung wird nur über beide Dateifakten, AUF-Zeit, DAV-IK und
+  Transfernummer zugeordnet. Zitierte Originale/Dubletten reichen nicht aus;
+  Base64 und Quoted-Printable werden vor der Prüfung dekodiert.
+- Originalbytes und Auswertung bleiben verschlüsselt erhalten. Falscher
+  Speicherschlüssel, andere Mandanten, UID-Inhaltskonflikt und geänderte
+  Postfachidentität werden erkannt. Unausgewertete Originale sind wiederaufnehmbar.
+- Echter mTLS-POP3-Listener des eigenen Mailstore mit dem eigenen TLS-Abrufclient:
+  Clientfreigabe, Authentisierung, UIDL/LIST/RETR, Dot-Transparenz, Speicherung,
+  Auswertung, DELE und QUIT. Die entfernte Löschung erfolgt erst nach lokaler Persistenz.
+- Tatsächliches SIGKILL eines separaten Abrufprozesses nach dem Speichern:
+  Original bleibt im Postfach, Neustart erkennt Dublette und schließt den Abruf ab.
+- Falscher TLS-Hostname, fehlendes/nicht freigegebenes Clientzertifikat,
+  Inbox-Quote, übergroße Nachrichten, doppelte UID, falsche RETR-Größe,
+  verlorene QUIT-Antwort und geänderte Bytes beim Wiederabruf.
+- Zeitgrenzen für eine stumme TLS-Gegenstelle und eine hängende Passwortabfrage.
+- Gemeinsamer Dienstlauf: echte TLS-SMTP-Übermittlung des SECON-Pakets, synthetische
+  DSN vom lokalen Testserver, eigenes mTLS-POP3, verschlüsselte Inbox und genaue
+  Zuordnung. Der nächste Lauf versendet und verarbeitet nichts erneut.
+
+**Grenzen:** Es handelt sich um lokale Integration mit fiktiver PKI und Testkonten,
+nicht um TI-/Annahmestellen-Interoperabilität. Auch korrekt korrelierte Quittungen
+bleiben `unverified`; die Tests prüfen ausdrücklich, dass weder Rechnungsstatus
+noch Versandreservierung verändert werden. Vollständige Herkunftsprüfung,
+PFL/FEH-XML/CMS, TA-6-Fachrückmeldungen und die kanonische Office-/Supabase-
+Übernahme fehlen weiterhin. Der eigene Dienst ist noch nicht bereitgestellt.
+
+Die geänderten/neuen MJS-Dateien wurden mit `node --check` geprüft;
+`git diff --check` bestand. Keine neue Software oder Testinfrastruktur installiert.
+Der vorherige Commit **51d15b2** hat vier erfolgreiche Vercel-Deployments.
+Für dieses Inkrement wird der Buildstatus ausschließlich am neuen Commit gelesen
+und im PR #129 festgehalten.
+
+## Vorheriger eigener Dienstkern am 20.10.2026 (51d15b2)
 
 Die 87 bisherigen Fälle plus **21 neue Dienstprüfungen** wurden gemeinsam
 ausgeführt (`npm run verify:gkv:services`). Der neue Dienstkern verwendet echte

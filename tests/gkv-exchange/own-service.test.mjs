@@ -15,6 +15,7 @@ import { inspectEnvelope, inspectSigned, der } from '../../services/gkv/der.mjs'
 import { DurableOutbox } from '../../services/gkv/outbox.mjs';
 import { buildClassicMessage, classicSmtpProvider } from '../../services/gkv/classic-provider.mjs';
 import { sendSmtp } from '../../services/gkv/smtp.mjs';
+import { dispatchPending } from '../../services/gkv/dispatch-worker.mjs';
 import { createRegistrationRequest } from '../../services/gkv/registration.mjs';
 import { prepareClassicDelivery, dispatchOnce, sha256 } from '../../api/_lib/gkv-transport.ts';
 import { buildClassicPayload } from '../../src/lib/gkvExchange/edifact.ts';
@@ -125,7 +126,7 @@ test('SIGKILL after a durable claim never makes the job eligible for a second se
   } finally { await rm(s.dir, { recursive: true, force: true }); }
 });
 
-async function smtpServer({ rejectAt, disconnectAfterData, advertiseDsn = true } = {}) {
+async function smtpServer({ rejectAt, disconnectAfterData, advertiseDsn = true, onMail } = {}) {
   const commands = [], data = []; const sockets = new Set();
   const server = tls.createServer(pki.tls, socket => {
     sockets.add(socket); socket.on('error', () => {}); socket.on('close', () => sockets.delete(socket));
@@ -142,7 +143,7 @@ async function smtpServer({ rejectAt, disconnectAfterData, advertiseDsn = true }
           if (rejectAt && line.startsWith(rejectAt)) { socket.write('550 5.7.1 rejected\r\n'); continue; }
           if (line.startsWith('EHLO')) socket.write(`250-localhost.test\r\n250-SIZE 32000000\r\n${advertiseDsn ? '250-DSN\r\n' : ''}250 AUTH PLAIN\r\n`);
           else if (line.startsWith('AUTH')) socket.write('235 2.7.0 authenticated\r\n');
-          else if (line.startsWith('MAIL') || line.startsWith('RCPT')) socket.write('250 2.1.0 ok\r\n');
+          else if (line.startsWith('MAIL') || line.startsWith('RCPT')) { if (line.startsWith('MAIL')) onMail?.(); socket.write('250 2.1.0 ok\r\n'); }
           else if (line === 'DATA') { inData = true; socket.write('354 continue\r\n'); }
           else if (line === 'QUIT') socket.end('221 bye\r\n');
         }
@@ -232,4 +233,56 @@ test('silent TLS handshake is bounded by the SMTP deadline', async () => {
     const message = buildClassicMessage(prepared, { from: 'sender@test.invalid', to: 'receiver@test.invalid', messageId: '<timeout@client.test>', date: new Date() });
     await assert.rejects(sendSmtp(message, { host: '127.0.0.1', port: server.address().port, servername: 'localhost.test', ehlo: 'client.test', mode: 'tls', ca: pki.roots, timeoutMs: 100 }), /TIMEOUT/);
   } finally { for (const s of sockets) s.destroy(); await new Promise(resolve => server.close(resolve)); }
+});
+
+test('worker persists Message-ID, ENVID and exact AUF correlation before SMTP, races once and survives lost ACK', async () => {
+  const s = await storeFixture(), second = new DurableOutbox({ path: s.path, key: s.key }); let observed;
+  const server = await smtpServer({ disconnectAfterData: true, onMail: () => { observed = second.dispatchBinding(s.job.tenantId, s.job.id); } });
+  const route = { id: 'test-receiver', version: '2026-10', enabled: true, tenantId: s.job.tenantId, ...context,
+    from: 'sender@test.invalid', to: 'receiver@test.invalid', dsn: true, smtp: server.config };
+  try {
+    const runs = await Promise.all([s.box, second].map(outbox => dispatchPending({ outbox, tenantId: s.job.tenantId, routes: [route] })));
+    assert.equal(runs.flat().filter(r => r.state === 'delivery_unknown').length, 1);
+    assert.equal(server.commands.filter(c => c === 'DATA').length, 1);
+    assert.equal(observed.messageId, `<${s.job.id}@test.invalid>`); assert.equal(observed.envelopeId, s.job.id);
+    assert.ok(server.commands.some(c => c.includes(`ENVID=${s.job.id}`)));
+    assert.ok(server.data.includes(`Message-ID: ${observed.messageId}`));
+    assert.equal(observed.classicFacts.files[1].size, prepared.files[0].bytes.length);
+    assert.equal(s.box.read(s.job.tenantId, s.job.id).state, 'delivery_unknown');
+    assert.deepEqual(await dispatchPending({ outbox: second, tenantId: s.job.tenantId, routes: [route] }), []);
+    assert.throws(() => second.bindDispatch(s.job.tenantId, s.job.id, { routeId: route.id, routeVersion: route.version,
+      from: route.from, to: 'changed@test.invalid', dsn: true, createdAt: new Date().toISOString() }), /ROUTE_CHANGED/);
+    assert.equal(second.dispatchBinding(randomUUID(), s.job.id), null);
+    s.box.close(); const reopened = new DurableOutbox({ path: s.path, key: s.key });
+    assert.deepEqual(reopened.dispatchBinding(s.job.tenantId, s.job.id), observed); reopened.close();
+  } finally { second.close(); await server.close(); await rm(s.dir, { recursive: true, force: true }); }
+});
+test('worker blocks stale releases, ambiguous routes, disabled routes and changed bound recipients before network I/O', async () => {
+  const s = await storeFixture();
+  const route = { id: 'test', version: '1', enabled: true, tenantId: s.job.tenantId, ...context, from: 'sender@test.invalid', to: 'receiver@test.invalid' };
+  const run = (routes, extra) => dispatchPending({ outbox: s.box, tenantId: s.job.tenantId, routes, ...extra });
+  try {
+    assert.equal((await run([route], { now: () => new Date('2026-01-01T12:00:00Z') }))[0].reason, 'CURRENT_RELEASE_REQUIRED');
+    assert.equal((await run([route, { ...route, id: 'other' }]))[0].reason, 'ROUTE_AMBIGUOUS');
+    assert.equal((await run([{ ...route, enabled: false }]))[0].reason, 'ROUTE_UNAVAILABLE');
+    assert.equal((await run([{ ...route, tenantId: randomUUID() }]))[0].reason, 'ROUTE_UNAVAILABLE');
+    s.box.bindDispatch(s.job.tenantId, s.job.id, { routeId: route.id, routeVersion: route.version, from: route.from, to: route.to, createdAt: new Date().toISOString() });
+    assert.equal((await run([{ ...route, to: 'changed@test.invalid' }]))[0].reason, 'DISPATCH_BINDING_REJECTED');
+    assert.equal(s.box.read(s.job.tenantId, s.job.id).state, 'queued');
+    assert.deepEqual(s.box.events(s.job.tenantId, s.job.id).map(e => e.state), ['queued']);
+  } finally { s.box.close(); await rm(s.dir, { recursive: true, force: true }); }
+});
+test('SMTP rejects injected ENVID before opening a connection', async () => {
+  const message = buildClassicMessage(prepared, { from: 'sender@test.invalid', to: 'receiver@test.invalid', messageId: '<test@test.invalid>', date: new Date() });
+  await assert.rejects(sendSmtp({ ...message, dsn: { envelopeId: 'id\r\nRCPT TO:<bad@test.invalid>' } },
+    { host: '127.0.0.1', port: 1, servername: 'localhost.test', ehlo: 'client.test', mode: 'tls' }), /SMTP_ENVELOPE_ID/);
+});
+test('a different UUID letter case cannot bypass an existing invoice reservation', async () => {
+  const s = await storeFixture(), invoice = 'abcdefab-cdef-4abc-8def-abcdefabcdef';
+  try {
+    const job = { ...s.job, id: randomUUID(), batchId: randomUUID(), invoiceIds: [invoice] }; s.box.enqueue(job);
+    assert.throws(() => s.box.enqueue({ ...job, id: randomUUID(), batchId: randomUUID(), invoiceIds: [invoice.toUpperCase()] }), /OUTBOX_IDENTITY/);
+    assert.throws(() => s.box.enqueue({ ...job, id: randomUUID(), batchId: randomUUID() }));
+    assert.equal(s.box.read(s.job.tenantId, job.id).state, 'queued');
+  } finally { s.box.close(); await rm(s.dir, { recursive: true, force: true }); }
 });

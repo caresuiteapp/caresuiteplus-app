@@ -91,7 +91,8 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
 | KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Serverseitige Paket-/MIME-Vorbereitung und Prüfverträge vorhanden; XML-Erzeuger, echte XSD-/CMS-Prüfer und TI-Dienst fehlen |
-| Verschlüsselter klassischer Echtversand | Eigener SECON-/TLS-SMTP-Kern und verschlüsselte dauerhafte Outbox lokal integriert und getestet; kanonischer Freigabe-/Reservierungsablauf und Betriebsanschluss fehlen |
+| Verschlüsselter klassischer Echtversand | Eigener SECON-/TLS-SMTP-Kern, verschlüsselte Outbox und Worker mit dauerhafter Versandbindung lokal integriert; kanonischer Freigabe-/Reservierungsablauf und Betriebsanschluss fehlen |
+| Technischer Rückmeldeeingang | Eigener TLS-POP3-Abruf, verschlüsselte Inbox und begrenzte DSN-/Anlage-7-Korrelation; Herkunft bleibt ungeprüft, keine automatische Fachstatusübernahme |
 
 Bei TA 1 Version 6.4.0 ist KIM auf die dort genannten Leistungsarten 01, 07
 und 10 beschränkt; bei 10 gilt zusätzlich die Einschränkung auf ambulante
@@ -235,12 +236,17 @@ Die Oberfläche bleibt beim Prüfexport. Die neuen Funktionen leisten:
 
 **Lokal implementiert:** dauerhafter transaktionaler Claim, verschlüsselte Outbox
 und paketübergreifende Reservierung im eigenen Versanddienst; TLS-/STARTTLS-SMTP
-mit genau einem Dateipaar und ohne automatische Wiederholung.
+mit genau einem Dateipaar und ohne automatische Wiederholung. Der Worker bindet
+Route, Ziel, Message-ID, DSN-ENVID und AUF-Fakten vor dem Senden. Ein eigener
+TLS-POP3-Abruf speichert Originalquittungen verschlüsselt vor DELE/QUIT. Begrenzte
+DSN-/Anlage-7-Korrelation und Wiederanlauf sind mit dem eigenen mTLS-POP3-Listener
+verbunden und getestet. Ergebnisse bleiben unbestätigter Herkunft und ändern
+keinen Rechnungsstatus; siehe own-services.md für die genaue Formatabdeckung.
 **Noch nicht implementiert/angeschlossen:** atomare Reservierung gegenüber den
 kanonischen Office-Rechnungen in Supabase, aktuelle serverseitige
 Quell-/Routing-/Zertifikatsprüfung im Versandablauf, Virenprüfer, unveränderliche
-Aufbewahrung mit Betriebs-/Backupkonzept, VZD-Adressbindung, sichere Quittungs-
-Quittungsabfrage und Rückmeldeverarbeitung. Ein In-Memory-Journal ist ausschließlich
+Aufbewahrung mit Betriebs-/Backupkonzept, VZD-Adressbindung, Herkunftsprüfung von
+Quittungen, weitere Rückmeldeformate und kanonische Fachstatusübernahme. Ein In-Memory-Journal ist ausschließlich
 Testdouble und darf keinen Echtbetrieb tragen. Ein Client-Hash oder Häkchen ist
 kein serverseitiger Prüfbeleg. Die KIM-Adressen müssen aus dem verifizierten
 serverseitigen Routing stammen; syntaktische Mailprüfung allein reicht nicht.
@@ -343,23 +349,23 @@ werden nicht durch erfundene Empfänger oder pauschale Fallbacks ersetzt.
    Testfälle der jeweils relevanten Annahmestelle prüfen.
 2. **Nachweise:** Den implementierten Quellabgleich um eine atomare Reservierung für den Echtversand und unveränderliche Exportartefakte erweitern; Doppelabrechnung über mehrere Pakete verhindern. Aufbewahrung, Wiederherstellung, Berichtigungen und Fristen mit
    dem bestehenden Dokumentensystem verbinden.
-3. **Klassischer Versand:** vorhandenen/ausgewählten DTA-Dienst anschließen,
-   tatsächliche Verschlüsselung und Zertifikatsprüfung hinter den implementierten
-   Prüfvertrag anschließen; AUF-Metadaten werden bereits aus dem Ergebnis gebildet; Versand nur nach Teilnahmeabstimmung,
-   Virenprüfung und Annahmestellentest.
-4. **KIM:** echten KIM-/TI-Anschluss und SMC-B bereitstellen; amtliche XML-Schemata
+3. **Klassischer Versand:** eigenen SECON-/SMTP-Dienst mit kanonischer
+   Freigabe und aktuellem Zertifikats-/Verzeichnisbetrieb verbinden;
+   AUF-Metadaten entstehen bereits aus den tatsächlichen verschlüsselten Bytes.
+   Versand erst nach Teilnahmeabstimmung, Virenprüfung und Annahmestellentest.
+4. **KIM:** eigenen KIM-Client und Fachdienst vervollständigen, TI-Anschluss und SMC-B anbinden; amtliche XML-Schemata
    versioniert hinterlegen und tatsächlich validieren; jede vorgeschriebene
    Komponente signieren und Signaturen prüfen; Softwareprüfung und gültige
    PROD-/MOD-ID nachweisen. Größenlimit und Versandstruktur beachten.
-5. **Versandsteuerung:** unveränderliche Dateiartefakte, serverseitig vergebene
-   Nummern, Versandwarteschlange, dokumentierte Wiederholungsregeln und die
-   dauerhafte Speicherung des implementierten Zustands für unklaren Versand ergänzen. Ein Timeout darf keine blinde
-   Zweitübermittlung auslösen.
-6. **Rückmeldungen:** authentifizierten Provider-Rückkanal/Import, eindeutige
-   Message-ID-/Hash-Korrelation, Dublettenschutz, Fehlerbezug und Korrekturlauf
-   implementieren. Technische Zustellung, fachliche Annahme und Zahlung bleiben
-   getrennte Sachverhalte. `lifecycle.ts` ist dafür ein getestetes Grundmodell,
-   derzeit kein angeschlossener Rückmeldeprozess.
+5. **Versandsteuerung:** vorhandene persistente Outbox, Worker und Versandbindung
+   mit kanonischer Rechnungsreservierung, serverseitiger Nummernvergabe und
+   revisionsgebundener Übergabe verbinden. Der bestehende Timeoutpfad verhindert
+   blinde Zweitübermittlung; eine belegte Auflösung unklarer Sendungen fehlt noch.
+6. **Rückmeldungen:** vorhandenen Abruf und die verschlüsselte Inbox um echte
+   Herkunftsprüfung, weitere Fachformate, TA-6-Fehlerbezug und Korrekturlauf ergänzen.
+   Technische Zustellung, fachliche Annahme und Zahlung bleiben getrennt.
+   `lifecycle.ts` darf erst nach dieser Prüfung mit einer transaktionalen
+   kanonischen Übernahme verbunden werden.
 7. **Betrieb:** Berechtigungs-, Wiederherstellungs-, Last- und Ende-zu-Ende-Tests
    abschließen, Dokumentationsaufbewahrung von mindestens zwei Jahren und
    Sicherung bis zur Zahlung organisatorisch/technisch belegen. Eine unveränderte
@@ -385,7 +391,8 @@ ist noch nicht erfolgt. Der Datenbankstand allein gibt weder Oberfläche noch
 Echtversand frei. Bei fehlender Migration zeigt die Oberfläche einen Fehler mit
 Wiederholungsmöglichkeit. Die tatsächlichen TI-Einstellungen und vorhandenen
 Edge-Funktionen enthalten derzeit keinen produktiven KIM-/DTA-Transportadapter.
-Für dessen Umsetzung werden der konkrete Dienst und dessen freigegebene
-Schnittstelle benötigt; Demo-KIM wird nicht als Echtversand ausgegeben.
+Die eigenen Dienste werden nach Vervollständigung, unabhängiger Prüfung und
+erforderlichen Zulassungen über die kanonische Freigabeschnittstelle angeschlossen;
+Demo-KIM wird nicht als Echtversand ausgegeben.
 
 Prüfprotokoll: [verification.md](verification.md).

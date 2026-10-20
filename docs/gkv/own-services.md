@@ -56,6 +56,71 @@ Antwort-/Zeitlimits, CRLF und Dot-Transparenz werden umgesetzt. Keine automatisc
 Wiederholung nach fehlendem DATA-Acknowledgement. `sent` bedeutet nur die
 SMTP-Annahme nach DATA, keine Zustellung, Fachannahme oder Zahlung.
 
+## Versandworker und Rückmeldeeingang
+
+`dispatch-worker.mjs` verarbeitet eine begrenzte Menge freigegebener, bereits
+eingereihter Aufträge eines Mandanten. Nur genau eine aktivierte, passende
+Serverroute darf senden. Vor dem Claim werden Route/Version, Zieladresse,
+Message-ID, optionaler DSN-ENVID und die Dateifakten der tatsächlichen AUF
+dauerhaft gebunden. Eine spätere Zieländerung oder mehrdeutige Route blockiert
+den Auftrag. Veraltete Pakete bleiben bis zur neuen Freigabe gesperrt; ein
+KIM-Paket wird nicht über gewöhnliches SMTP verschickt.
+
+`exchange-worker.mjs` verbindet Versand, Wiederaufnahme noch nicht ausgewerteter
+Eingänge und Postfachabruf in `runExchangeCycle`. Jeder Lauf ist begrenzt; der
+Host entscheidet über die nächste Ausführung. Unterbrochene/unklare Sendungen
+werden nicht erneut eingereiht. Der Host lädt die gemeinsamen TypeScript-Module
+mit `node --import ./services/gkv/register.mjs <host-script.mjs>`; der Loader
+öffnet selbst keine Verbindung. Es gibt weiterhin keinen öffentlich erreichbaren
+Endpunkt zum Einstellen oder Freigeben von Echtaufträgen.
+
+`inbox.mjs` bewahrt Originalnachrichten und Auswertung mit AES-256-GCM in SQLite
+auf. Postfachkennung, Mandant, Server und Benutzername bilden eine unveränderliche
+Bindung. UIDL-Dubletten werden bytegenau geprüft; dieselbe UID mit anderen Bytes
+ist ein Konflikt. Quote, Größenlimit, Hash und Transaktion gelten vor der
+Löschfreigabe im entfernten Postfach. Unausgewertete Originale bleiben nach einem
+Prozessabbruch wiederaufnehmbar. Dies ist keine manipulationssichere Archivierung
+gegen Datenbankadministratoren und enthält noch kein Aufbewahrungs-/Löschkonzept.
+
+`pop3-client.mjs` verwendet ausschließlich implizites TLS mit Hostnamenprüfung.
+Passwörter werden erst nach erfolgreicher TLS-Prüfung abgerufen. UIDL und LIST
+müssen eindeutig zusammenpassen; RETR-Größe und Dot-Transparenz werden geprüft.
+Ein Original wird zuerst dauerhaft gespeichert, dann mit DELE vorgemerkt und
+erst durch ein erfolgreiches QUIT als entfernt bestätigt. Bei fehlender
+QUIT-Antwort bleibt die Löschbestätigung offen. Wiederabruf ist idempotent;
+unterschiedliche Bytes unter derselben UID werden niemals blind gelöscht.
+Netzoperationen und asynchrone Hostcallbacks haben denselben Zeitrahmen.
+
+`receipt-parser.mjs` und `receipt-worker.mjs` verarbeiten eine ausdrücklich
+begrenzte Teilmenge der Rückmeldungen:
+
+- RFC-3464-DSN als `multipart/report` mit genau einem Statuspart, optionalen
+  Originalheadern und begrenzter Empfängerliste. Message-ID und ENVID sind
+  verschiedene Kennungen; widersprüchliche Angaben werden zurückgewiesen.
+  Bei unseren Einzelversänden muss genau der gebundene Empfänger vorliegen.
+  `delivered`, `failed`, `delayed`, `relayed` und `expanded` bleiben getrennt.
+- GKV-Anlage-7-Betreff für Annahmebestätigung/Dateiablehnung mit zwei vollständigen
+  Dateizeilen: beide Namen, Größen, AUF-Erstellzeit, Transfernummer und physisches
+  DAV-IK müssen zum Versand passen. Dateinamen allein reichen nicht. Zitierte
+  Originalnachrichten werden nicht als Bestätigung ausgewertet. Plaintext mit
+  ASCII/UTF-8/Latin-1 und 7bit/8bit/Base64/Quoted-Printable ist unterstützt.
+- Doppelte kritische Header, Mehrdeutigkeit, Größen-/Kennungskonflikte,
+  unbekannte Formate und nicht unterstützte MIME-Varianten bleiben mit ihren
+  Originalbytes in Quarantäne. Das gilt auch für Ablehnungen ohne vollständige
+  Dateiangaben. S/MIME, PFL/FEH-XML, freie TA-6-Fehlertexte, HTML und
+  `multipart/alternative` werden hier nicht ungeprüft als Fachrückmeldung gelesen.
+
+**Herkunft und Status:** TLS authentifiziert die Verbindung zum Postfach. Ein
+Absenderheader, eine passende Message-ID oder ein Dateipaar beweisen nicht die
+Herkunft einer darin enthaltenen Mail. Deshalb bleiben sämtliche Ergebnisse
+dieses Empfängers ausdrücklich `authenticity: unverified`. Sie ändern keine
+Rechnungs-/Versandzustände, geben keine Reservierung frei und starten keinen
+Korrekturversand. Eine Annahmebestätigung nach Anlage 7 bedeutet Dateieingang zur
+Weiterverarbeitung; sie ist keine fachliche Abrechnungsannahme. Für automatische
+Statusänderungen fehlen noch der echte Herkunftsprüfer und die kanonische,
+transaktionale Rückmeldeübernahme. Eine rein lokale Boolesche Freigabe wird
+dafür nicht angeboten.
+
 ## Implementierte Teile des eigenen KIM-Fachdienstes
 
 `services/kim/mailstore.mjs` implementiert reale, persistente Speicheroperationen:
@@ -72,7 +137,12 @@ SMTP-Annahme nach DATA, keine Zustellung, Fachannahme oder Zahlung.
 `services/kim/pop3.mjs` implementiert den POP3-Zustandsautomaten für USER/PASS,
 STAT, LIST, UIDL, RETR, DELE, RSET, NOOP, CAPA und QUIT. Löschungen werden erst mit
 QUIT transaktional bestätigt; ein Verbindungsabbruch verwirft sie. RETR verarbeitet
-Dot-Transparenz. Dieser Kern ist noch kein erreichbarer POP3-Netzdienst.
+Dot-Transparenz. `pop3-server.mjs` verbindet den Kern jetzt mit einem echten
+TLS-Listener. Ein gültiges Clientzertifikat und die zusätzliche serverseitige
+Clientfreigabe sind vor dem Begrüßungstext erforderlich. Verbindungs-, Zeit- und
+Eingabelimits sind begrenzt; der Host muss den Listener ausdrücklich starten.
+Die Tests verbinden diesen Listener mit dem eigenen Abrufclient. Die gewöhnliche
+Test-PKI ersetzt weiterhin keine TI-ECC-/TSL-/Sperrprüfung oder gematik-Zulassung.
 
 **Vertrauensgrenze:** Kontoprovisionierung und Speicheroperationen sind interne
 Methoden. Es gibt keinen öffentlichen Registrierungs-/KAS-Endpunkt und keinen
@@ -94,9 +164,9 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | --- | --- |
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
-| Klassischer Empfang | Originalquittungen abrufen/authentifizieren, Nachrichten korrelieren, TA-6-Fachrückmeldungen verarbeiten, unklare Sendungen anhand echter Annahmestellenbelege auflösen |
+| Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
 | Eigener KIM-Client | Konnektor-/SMC-B-Anbindung, VZD, ECC-S/MIME, CAdES je Nutzkomponente, XML-Erzeugung und echte XSD-/Beziehungsprüfung, Empfang/Fehlerpfade |
-| Eigener KIM-Fachdienst | TI-Netzanbindung, TSL-/OCSP-/AUT-Prüfer, vollständiger AccountManager und VZD-Schreibvorgänge, mTLS-SMTP/POP3/HTTPS, geschlossenes Relay und Authentizitätsprüfung, Routing/DNS, DSN, Abwesenheit, KAS-REST |
+| Eigener KIM-Fachdienst | TI-Netzanbindung, TSL-/OCSP-/AUT-Prüfer, vollständiger AccountManager und VZD-Schreibvorgänge, TI-Identitätsprüfung vor dem vorhandenen mTLS-POP3-Listener, mTLS-SMTP/HTTPS, geschlossenes Relay, Routing/DNS, DSN-Erzeugung, Abwesenheit, KAS-REST |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
 | Abnahme | Unabhängige Code-/Sicherheitsprüfung, ITSG-Nachweissoftwareprüfung, gematik Produkt-/Anbieterzulassung, kontrollierte Inbetriebnahme und Interoperabilität |
@@ -122,13 +192,20 @@ echte signierte CRLs, echte TLS-/STARTTLS-Sockets auf Loopback sowie separate
 Prozesse und SIGKILL. Kein Netzwerkzugriff auf eine Annahmestelle oder die TI.
 Prüfbelege zu Vertragsfreigabe, Quellen, Teilnahme und E2E-Abnahme im Pakettest
 bleiben explizite Fixtures. Die Kryptografie, SMTP-Verarbeitung und lokale
-Haltbarkeit dieses Inkrements sind echte Implementierungen.
+Haltbarkeit dieses Inkrements sind echte Implementierungen. Ein gemeinsamer
+Test führt einen Auftrag über tatsächliches TLS-SMTP, eine synthetische DSN des
+lokalen Testservers, den eigenen mTLS-POP3-Dienst, die Inbox und die Korrelation.
+Die DSN bleibt auch dort unbestätigter Herkunft. Ein separater Prozess wird nach
+dem dauerhaften Empfang mit SIGKILL beendet; beim Neustart bleiben Original und
+Dublettenprüfung erhalten. Dies ist lokale Integration, kein Annahmestellen-E2E.
 
 ## Primärquellen
 
 - [GKV SECON, gültig ab 01.01.2026](https://www.gkv-datenaustausch.de/media/dokumente/standards_und_normen/technische_spezifikationen/Anlage_16_-_Security_Schnittstelle.pdf), insbesondere 2, 3, 4 und 5.8.
 - [SECON Best Practice](https://www.gkv-datenaustausch.de/media/dokumente/standards_und_normen/technische_spezifikationen/Best_Practice_Security.pdf), PSS/OAEP-Defaultparameter und CMS-Version.
 - [GKV E-Mail-Anlage 7](https://www.gkv-datenaustausch.de/media/dokumente/standards_und_normen/technische_spezifikationen/Anlage_7_-_E-Mail.pdf), 3.2.
+- [RFC 3464: Delivery Status Notifications](https://www.rfc-editor.org/rfc/rfc3464) und [RFC 1939: POP3](https://www.rfc-editor.org/rfc/rfc1939).
+- [GKV TA 1 Anhang 6: Fehlermeldeverfahren](https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/technische_anlagen_aktuell_2/20030131_TA1_ANH6.pdf): unterschiedliche Rückmeldeformen, keine universelle maschinenlesbare Fachquittung.
 - [KIM Fachdienst 1.24.0, freigegeben 04.05.2026](https://gemspec.gematik.de/docs/gemSpec/gemSpec_FD_KOMLE/gemSpec_FD_KOMLE_V1.24.0/).
 - [KIM Produktsteckbriefe](https://gemspec.gematik.de/docs/gemProdT/gemProdT_FD_KOMLE/) und [Zulassungsverfahren](https://fachportal.gematik.de/zulassung/antraege-und-verfahrensbeschreibungen/anwendungen).
 - [OpenSSL CMS](https://docs.openssl.org/3.0/man1/openssl-cms/).

@@ -1,8 +1,12 @@
 import { createHash } from 'node:crypto';
 import { openStore, transaction, Vault, isUuid } from './storage.mjs';
 import { verifyPreparedDelivery } from '../../api/_lib/gkv-transport.ts';
+import { classicFacts } from './classic-provider.mjs';
+import { mailbox } from './smtp.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
+export const classicReceiptKey = facts => hash(JSON.stringify([facts.senderIk, facts.receiverIk, facts.transfer,
+  [...facts.files].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0).map(f => [f.name, f.size, f.stamp])]));
 const serialize = d => JSON.stringify({ ...d, files: d.files.map(f => ({ ...f, bytes: Buffer.from(f.bytes).toString('base64') })) });
 const deserialize = v => { const d = JSON.parse(v); d.files = d.files.map(f => ({ ...f, bytes: Buffer.from(f.bytes, 'base64') })); verifyPreparedDelivery(d); return d; };
 
@@ -29,6 +33,13 @@ export class DurableOutbox {
         sequence INTEGER PRIMARY KEY, job TEXT NOT NULL REFERENCES gkv_jobs(id),
         state TEXT NOT NULL, created_at TEXT NOT NULL
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS gkv_dispatch_bindings (
+        job TEXT PRIMARY KEY REFERENCES gkv_jobs(id), tenant TEXT NOT NULL,
+        message_id TEXT NOT NULL, envelope_id TEXT, classic_key TEXT, content BLOB NOT NULL,
+        UNIQUE(tenant,message_id), UNIQUE(tenant,envelope_id)
+      ) STRICT;
+      CREATE INDEX IF NOT EXISTS gkv_pending_jobs ON gkv_jobs(tenant,state,created_at,id);
+      CREATE INDEX IF NOT EXISTS gkv_classic_receipts ON gkv_dispatch_bindings(tenant,classic_key);
     `);
   }
   #event(id, state, time) { this.#db.prepare('INSERT INTO gkv_job_events(job,state,created_at) VALUES(?,?,?)').run(id, state, time); }
@@ -56,6 +67,46 @@ export class DurableOutbox {
     const delivery = deserialize(this.#vault.open(row.content, `${tenant}:${id}:${row.manifest}`).toString());
     if (delivery.manifestSha256 !== row.manifest) throw new Error('OUTBOX_MANIFEST');
     return { id, batchId: row.batch, revision: row.revision, state: row.state, providerReference: row.provider_reference, delivery };
+  }
+  pending(tenant, limit = 20) {
+    if (!isUuid(tenant) || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error('OUTBOX_QUERY');
+    return this.#db.prepare("SELECT id FROM gkv_jobs WHERE tenant=? AND state='queued' ORDER BY created_at,id LIMIT ?").all(tenant, limit).map(r => r.id);
+  }
+  dispatchBinding(tenant, id) {
+    const row = this.#db.prepare('SELECT b.*,j.manifest FROM gkv_dispatch_bindings b JOIN gkv_jobs j ON j.id=b.job AND j.tenant=b.tenant WHERE b.tenant=? AND b.job=?').get(tenant, id);
+    if (!row) return null;
+    const binding = JSON.parse(this.#vault.open(row.content, `${tenant}:${id}:${row.manifest}:dispatch`).toString());
+    if (binding.messageId !== row.message_id || (binding.envelopeId ?? null) !== row.envelope_id || binding.classicKey !== row.classic_key || binding.manifestSha256 !== row.manifest) throw new Error('OUTBOX_DISPATCH_INTEGRITY');
+    return binding;
+  }
+  /** Persist before claim/network I/O. A bound job cannot silently change destination or route version. */
+  bindDispatch(tenant, id, { routeId, routeVersion, from, to, dsn = false, createdAt }) {
+    if (![routeId, routeVersion].every(s => typeof s === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(s)) || !mailbox(from) || !mailbox(to)
+      || typeof dsn !== 'boolean' || typeof createdAt !== 'string' || !Number.isFinite(Date.parse(createdAt))) throw new Error('OUTBOX_DISPATCH_CONFIGURATION');
+    return transaction(this.#db, () => {
+      const job = this.read(tenant, id);
+      if (!job) throw new Error('OUTBOX_JOB');
+      const old = this.dispatchBinding(tenant, id);
+      if (old) {
+        if (old.routeId !== routeId || old.routeVersion !== routeVersion || old.from !== from || old.to !== to || Boolean(old.envelopeId) !== dsn) throw new Error('OUTBOX_ROUTE_CHANGED');
+        return old;
+      }
+      if (job.state !== 'queued') throw new Error('OUTBOX_STATE');
+      const facts = classicFacts(job.delivery), messageId = `<${id}@${from.split('@')[1]}>`, envelopeId = dsn ? id : null;
+      const binding = { routeId, routeVersion, from, to, createdAt: new Date(createdAt).toISOString(), messageId, envelopeId,
+        manifestSha256: job.delivery.manifestSha256, classicKey: classicReceiptKey(facts), classicFacts: facts };
+      const content = this.#vault.seal(Buffer.from(JSON.stringify(binding)), `${tenant}:${id}:${job.delivery.manifestSha256}:dispatch`);
+      this.#db.prepare('INSERT INTO gkv_dispatch_bindings(job,tenant,message_id,envelope_id,classic_key,content) VALUES(?,?,?,?,?,?)')
+        .run(id, tenant, messageId, envelopeId, binding.classicKey, content);
+      return binding;
+    });
+  }
+  receiptCandidates(tenant, { messageId = null, envelopeId = null, classicKey = null }) {
+    if (!isUuid(tenant)) throw new Error('OUTBOX_TENANT');
+    // Union first: conflicting identifiers must be detected, not silently reduced to a convenient match.
+    return this.#db.prepare(`SELECT b.job,j.state FROM gkv_dispatch_bindings b JOIN gkv_jobs j ON j.id=b.job AND j.tenant=b.tenant WHERE b.tenant=? AND
+      (b.message_id=? OR b.envelope_id=? OR b.classic_key=?) LIMIT 4`).all(tenant, messageId, envelopeId, classicKey)
+      .map(r => ({ id: r.job, binding: this.dispatchBinding(tenant, r.job), state: r.state }));
   }
   journal(tenant) {
     if (!isUuid(tenant)) throw new Error('OUTBOX_TENANT');
