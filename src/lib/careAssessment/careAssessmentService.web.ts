@@ -117,24 +117,26 @@ export async function addCareAssessmentEvaluation(
 }
 
 /** Web request identity is provided by the mounted form and retained on an uncertain result. */
-export async function writeAmbulatoryAssessmentRequest(tenantId:string,requestId:string,payload:AssessmentDraftRequest,role?:RoleKey|null){
- const denied=enforcePermission<never>(role,'pflege.assessments.manage')??enforcePermission<never>(role,'pflege.plans.view')??guardServiceTenant(tenantId);
+export async function writeAmbulatoryAssessmentRequest(tenantId:string,requestId:string,payload:AssessmentDraftRequest,role?:RoleKey|null):Promise<ServiceResult<{id:string}>&{uncertain?:boolean}>{
+ const denied=enforcePermission<{id:string}>(role,'pflege.assessments.manage')??enforcePermission<{id:string}>(role,'pflege.plans.view')??guardServiceTenant(tenantId);
  if(denied)return denied;
  const client=getSupabaseClient();if(!client)return {ok:false as const,error:'Pflegeassessment-Datenbank nicht verbunden.'};
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))return {ok:false as const,error:'Ungültige Anfrage-ID.'};
  const rpc=client as unknown as {rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:unknown}>};
- return runAssessmentDraftRequest(payload,()=>withServiceQueryTimeout(rpc.rpc('write_ambulatory_assessment_draft',{request_id:requestId,payload}),'Assessment speichern',20_000),error=>{
+ const result=await runAssessmentDraftRequest(payload,()=>withServiceQueryTimeout(rpc.rpc('write_ambulatory_assessment_draft',{request_id:requestId,payload}),'Assessment speichern',20_000),error=>{
   const value=error as {code?:string;status?:number};return {message:toGermanSupabaseError(error as Parameters<typeof toGermanSupabaseError>[0]),definite:isDefiniteMedicationRejection(value?.code,value?.status)};
  });
+ return result.ok?{ok:true,data:{id:result.id}}:result;
 }
 
-export async function applyAmbulatoryAssessmentLifecycle(tenantId:string,requestId:string,payload:AssessmentLifecycleRequest,role?:RoleKey|null){
- const denied=enforcePermission<never>(role,'pflege.assessments.manage')??enforcePermission<never>(role,'pflege.plans.view')??guardServiceTenant(tenantId);
+export async function applyAmbulatoryAssessmentLifecycle(tenantId:string,requestId:string,payload:AssessmentLifecycleRequest,role?:RoleKey|null):Promise<ServiceResult<{id:string}>&{uncertain?:boolean}>{
+ const denied=enforcePermission<{id:string}>(role,'pflege.assessments.manage')??enforcePermission<{id:string}>(role,'pflege.plans.view')??guardServiceTenant(tenantId);
  if(denied)return denied;
  const client=getSupabaseClient();if(!client)return {ok:false as const,error:'Pflegeassessment-Datenbank nicht verbunden.'};
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))return {ok:false as const,error:'Ungültige Anfrage-ID.'};
  const rpc=client as unknown as {rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:unknown}>};
- return runAssessmentLifecycleRequest(payload,()=>withServiceQueryTimeout(rpc.rpc('apply_ambulatory_assessment_lifecycle',{request_id:requestId,payload}),'Assessmentaktion',20_000),error=>{
+ const result=await runAssessmentLifecycleRequest(payload,()=>withServiceQueryTimeout(rpc.rpc('apply_ambulatory_assessment_lifecycle',{request_id:requestId,payload}),'Assessmentaktion',20_000),error=>{
   const value=error as {code?:string;status?:number};return {message:toGermanSupabaseError(error as Parameters<typeof toGermanSupabaseError>[0]),definite:isDefiniteMedicationRejection(value?.code,value?.status)};
  });
+ return result.ok?{ok:true,data:{id:result.id}}:result;
 }

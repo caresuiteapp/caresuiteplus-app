@@ -120,7 +120,7 @@ function CreateForm({ subjectType, items, loading, error }: {
   const creation=useMedicationSubmission<AssessmentLifecycleRequest>(!resident&&(!!subjectId||!!reason||!!reasonDetail),async(requestId,payload)=>{
     if(!tenantId||payload.action!=='create')return {ok:false,error:'Aufnahmebezug fehlt.'};
     const result=await applyAmbulatoryAssessmentLifecycle(tenantId,requestId,payload,profile?.roleKey);
-    if(result.ok)confirmedId.current=result.id;return result;
+    if(result.ok)confirmedId.current=result.data.id;return result;
   },()=>{setCreatedId(confirmedId.current);setSubjectId('');setReason('');setReasonDetail('');});
   const creationLocked=!resident&&(creation.locked||!!createdId);
   const base = resident ? '/stationaer/assessment' : '/pflege/sis';

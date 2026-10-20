@@ -38,8 +38,8 @@ export function TourPlanningWorkspace() {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const authority = useMemo<TourPlanningAuthority | null>(() => {
     if (!boundary.owner || boundary.owner.demo || !boundary.owner.accessToken || !baseRights.every((key) => boundary.grants.includes(key))) return null;
-    const own = boundary.owner;
-    return { tenantId: own.tenantId, actorId: own.profileId, accessToken: own.accessToken, expiresAt: own.expiresAt, isCurrent: () => mounted.current && reference.current === boundary && carePermissionOwnerIsCurrent(own) && boundary.canCurrent() };
+    const own = boundary.owner, accessToken = boundary.owner.accessToken;
+    return { tenantId: own.tenantId, actorId: own.profileId, accessToken, expiresAt: own.expiresAt, isCurrent: () => mounted.current && reference.current === boundary && carePermissionOwnerIsCurrent(own) && boundary.canCurrent() };
   }, [boundary]);
   const content = permissions.loading ? <LoadingState message="Aktuelle Tourenplanungsrechte werden geprüft…" /> : permissions.error ? <ErrorState message={permissions.error} onRetry={permissions.refreshPermissions} /> : !authority || !authority.isCurrent() ? <InfoBanner variant="warning" message={owner?.demo ? 'Verbindliche Tourenplanung benötigt ein angemeldetes Betriebskonto.' : 'Das aktuelle Recht zum Lesen der Dienst- und Tourenplanung ist nicht bestätigt.'} /> : <View style={{ gap: spacing.lg }}><PlanningInbox key={`inbox:${boundary.number}`} authority={authority} />{tourPlanningContextRights.every(key => boundary.grants.includes(key as PermissionKey)) ? <AuthorizedPlanning key={boundary.number} authority={authority} grants={boundary.grants} /> : <InfoBanner variant="info" message="Hier stehen die persönlich adressierten Planfassungen zur Verfügung. Die Planung mit Personalunterlagen benötigt die zugehörigen Personal-, Akten- und Dokumentenrechte." />}</View>;
   return <ScreenShell title="Dienst- und Tourenplanung" subtitle="Planfassung, Regeln, Zuordnung, Veröffentlichung, Empfang, Fahrt und Wartung getrennt belegen">{content}</ScreenShell>;

@@ -1,1 +1,0 @@
-export { PilotReadinessHero } from './PilotReadinessHero';

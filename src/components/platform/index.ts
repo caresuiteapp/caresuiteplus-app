@@ -1,9 +1,0 @@
-export { PlatformHubHero } from './PlatformHubHero';
-export { OcrJobsListHero } from './OcrJobsListHero';
-export { AiJobsListHero } from './AiJobsListHero';
-export { OcrJobDetailHero } from './OcrJobDetailHero';
-export { AiJobDetailHero } from './AiJobDetailHero';
-export { OcrJobsListTable } from './OcrJobsListTable';
-export { AiJobsListTable } from './AiJobsListTable';
-export { OcrJobsListView } from './OcrJobsListView';
-export { AiJobsListView } from './AiJobsListView';

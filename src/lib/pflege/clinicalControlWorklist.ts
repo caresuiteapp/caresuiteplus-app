@@ -35,7 +35,7 @@ function agreement(source:ControlSource,now:number):ControlAgreement{
    validateInfusionRequest(String(s.tenant_id),s.request_payload,now);const payload=s.request_payload as {episode:{id:string;clientId:string;title:string};draft:Record<string,unknown>};
    if(payload.episode.id!==s.episode_id||payload.episode.clientId!==s.client_id||!sameWoundJson(payload.draft,s.draft))throw Error('Infusionsvereinbarung und Originalereignis passen nicht zusammen.');d=payload.draft;due=d.reviewAt;r.title=payload.episode.title;
   }
-  const at=woundInstant(source.kind==='plan_evaluation'?d.evaluatedAt:d.occurredAt),recorded=woundInstant(s.created_at??s.recorded_at);
+  const at=woundInstant(source.kind==='plan_evaluation'?d.evaluatedAt:d.occurredAt),recorded=woundInstant(Reflect.get(s,'created_at')??Reflect.get(s,'recorded_at'));
   if(at===null||recorded===null||at>BigInt(now)*1000n||recorded<at||recorded>BigInt(now)*1000n||typeof d.reviewReason!=='string'||!d.reviewReason.trim()||d.reviewReason.length>4000||typeof due!=='string')throw Error('Originalzeitpunkt oder Kontrollvereinbarung unvollständig.');
   const state=String(d.reviewState);if(!['scheduled','pending','not_required','completed'].includes(state)||state==='completed'&&(source.kind!=='infusion_event'||d.kind!=='review')||d.kind==='review'&&state!=='completed')throw Error('Kontrollzustand nicht eindeutig belegt.');
   if(state==='scheduled'?(woundInstant(due)===null||(['protocol_event','plan_evaluation'].includes(source.kind)?woundInstant(due)!<at:woundInstant(due)!<=at)):due!=='')throw Error('Originalfrist widerspricht der Kontrollvereinbarung.');

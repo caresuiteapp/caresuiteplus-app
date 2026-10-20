@@ -1,2 +1,0 @@
-import{getSupabaseClient}from'@/lib/supabase/client';import{withServiceQueryTimeout}from'@/lib/services/queryTimeout';import type{HandoverSdk}from'@/lib/pflege/caseHandoverRepository.web';import{createQualityRepository}from'./qualityWorkspaceRepository.web';
-export const qualityWorkspaceRepository=createQualityRepository({getSdk:()=>getSupabaseClient()as unknown as HandoverSdk|null,query:(request,operation)=>withServiceQueryTimeout(Promise.resolve(request),operation,20_000)});

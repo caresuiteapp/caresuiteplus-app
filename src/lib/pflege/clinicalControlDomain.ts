@@ -48,10 +48,11 @@ function actualEvidence(source:ControlSource,task:ControlTask,at:string,now:numb
  if(source.kind==='plan_evaluation')assertEvaluationControlEvidence(s,task.tenantId,task.clientId,now);
  if(source.kind==='protocol_event')assertProtocolControlEvidence(s,task.tenantId,task.clientId,now);
  if(source.kind==='treatment_execution')validateTreatmentSource(s);
+ const evidence:Record<string,unknown>=source.snapshot;
  const occurred=time(controlEvidenceAt(source),'Original-Ergebniszeitpunkt',now);if(occurred>time(at,'Kontrollergebnis',now))throw Error('Ergebnisbeleg liegt nach der dokumentierten Kontrolle.');
- if(source.kind==='treatment_execution'&&!['performed','partial'].includes(String(s.outcome)))throw Error('Ausgebliebene Behandlung ist kein tatsächlicher Durchführungsbeleg.');
- if(source.kind==='medication_administration'&&!['administered','late'].includes(String(s.status)))throw Error('Ausgebliebene Gabe ist kein tatsächlicher Durchführungsbeleg.');
- if(source.kind==='vital_measurement'){text(s.display_value,'Tatsächlicher Messwert');text(s.unit,'Messeinheit');if(!s.values||typeof s.values!=='object'||Array.isArray(s.values)||!Object.keys(s.values).length)throw Error('Strukturierte Messwerte fehlen.');}
+ if(source.kind==='treatment_execution'&&!['performed','partial'].includes(String(evidence.outcome)))throw Error('Ausgebliebene Behandlung ist kein tatsächlicher Durchführungsbeleg.');
+ if(source.kind==='medication_administration'&&!['administered','late'].includes(String(evidence.status)))throw Error('Ausgebliebene Gabe ist kein tatsächlicher Durchführungsbeleg.');
+ if(source.kind==='vital_measurement'){text(evidence.display_value,'Tatsächlicher Messwert');text(evidence.unit,'Messeinheit');if(!evidence.values||typeof evidence.values!=='object'||Array.isArray(evidence.values)||!Object.keys(evidence.values).length)throw Error('Strukturierte Messwerte fehlen.');}
 }
 function policy(v:unknown,at:string,now:number):asserts v is ControlPolicy{
  if(!controlExact(v,['assigneeId','backupId','dueAt','priority','escalationAt','escalationRecipientId'])||!uuid(v.assigneeId)||!(v.backupId===''||uuid(v.backupId))||v.backupId===v.assigneeId||!uuid(v.escalationRecipientId)||!['routine','important','urgent'].includes(String(v.priority)))throw Error('Zuständigkeit, Vertretung, Priorität und Eskalationsperson ausdrücklich festlegen.');

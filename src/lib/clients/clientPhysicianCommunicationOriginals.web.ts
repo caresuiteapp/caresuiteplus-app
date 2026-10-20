@@ -82,7 +82,8 @@ export function captureClientPhysicianCommunicationOriginalsWeb(
     || !Array.isArray(supplied.threads) || !Object.hasOwn(supplied, 'threads') || !Object.hasOwn(supplied, 'histories') || !Array.isArray(supplied.histories)) {
     throw Error('Der vollständige native Kommunikationsbestand ist nicht eindeutig geliefert.');
   }
-  const threads = captureClientNativePage(supplied.threads, scope, null);
+  const originalThreads = supplied.threads;
+  const threads = captureClientNativePage(originalThreads, scope, null);
   if (threads.length !== supplied.histories.length) throw Error('Nicht jeder native Kommunikationsthread hat einen vollständigen Verlaufsbeleg.');
   const seen = new Set<string>();
   const histories = supplied.histories.map((history, index) => {
@@ -91,7 +92,7 @@ export function captureClientPhysicianCommunicationOriginalsWeb(
       throw Error('Ein nativer Kommunikationsverlauf ist nicht vollständig gekennzeichnet.');
     }
     const thread = threads[index];
-    if (!sameClientNativeOriginal(history.thread, supplied.threads[index])) {
+    if (!sameClientNativeOriginal(history.thread, originalThreads[index])) {
       throw Error('Der Kommunikationsverlauf ist nicht eindeutig an seinen nativen Thread gebunden.');
     }
     const threadId = thread.id as string;
