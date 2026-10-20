@@ -1,10 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CareSignatureModal } from './CareSignatureModal';
+import { IntakePackageCorrections } from './IntakePackageCorrections.web';
 import { useTenantDisplayMeta } from '@/hooks/useTenantDisplayMeta';
 import { getServiceMode } from '@/lib/services/mode';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { listApplicableIntakeTemplates, listAvailableContractTypes } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { loadIntakeDocumentTemplates } from '@/features/intakeDocuments/intakeDocumentService';
 import { changeIntakeDocumentSelection, INTAKE_SIGNATURE_ROLE_LABELS, prepareIntakeDocumentPackage, signIntakeDocumentPackage,
@@ -19,6 +21,7 @@ type Props = {
   form: ClientIntakeFormData; errors: ClientIntakeErrors; tenantId: string | null;
   onChange: (form: ClientIntakeFormData) => void; panelViewContext?: LlganViewContext;
   onPersistPackage?: (form: ClientIntakeFormData) => Promise<boolean>;
+  onNavigateSection?: (section: IntakeSectionKey) => void;
 };
 const OPTIONAL = [
   { key: ASSIGNMENT_TEMPLATE_KEY, title: 'Abtretungserklärung / Direktabrechnung' },
@@ -42,7 +45,7 @@ export function buildIntakePackagePreview(documents: IntakeDocumentState[]): str
     }).join('\n')}</body></html>`;
 }
 
-export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange, onPersistPackage }: Props) {
+export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange, onPersistPackage, onNavigateSection }: Props) {
   const tenant = useTenantDisplayMeta();
   const titleId = useId();
   const [templates, setTemplates] = useState<IntakeDocumentTemplate[]>([]);
@@ -50,7 +53,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [review, setReview] = useState<IntakeDocumentPackage | null>(null);
-  const [phase, setPhase] = useState<'preview' | 'signatures'>('preview');
+  const [phase, setPhase] = useState<'preview' | 'corrections' | 'signatures'>('preview');
   const [captures, setCaptures] = useState<Partial<Record<IntakeSignatureRole, IntakeDocumentSignature>>>({});
   const [role, setRole] = useState<IntakeSignatureRole | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -100,7 +103,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   }, [hasUnsavedCaptures, busy]);
 
   useEffect(() => {
-    if (!review) return;
+    if (!review || role) return;
     const previous = document.activeElement as HTMLElement | null;
     dialog.current?.focus();
     const handleKey = (event: KeyboardEvent) => {
@@ -114,7 +117,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     };
     document.addEventListener('keydown', handleKey, true);
     return () => { document.removeEventListener('keydown', handleKey, true); previous?.focus(); };
-  }, [Boolean(review), role]);
+  }, [Boolean(review), role, phase]);
 
   const changeSelection = (selection: Parameters<typeof changeIntakeDocumentSelection>[1]) => {
     try { onChange(changeIntakeDocumentSelection(form, selection)); setIssues([]); setSaveState('none'); setPendingSave(null); }
@@ -123,6 +126,11 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const open = () => {
     const prepared = prepareIntakeDocumentPackage(form, templates, tenant);
     onChange(prepared.form); setReview(prepared); setPhase('preview'); setCaptures({}); setAcknowledged(false); setIssues(prepared.issues);
+  };
+  const applyCorrections = (next: ClientIntakeFormData) => {
+    const prepared = prepareIntakeDocumentPackage(next, templates, tenant);
+    onChange(prepared.form); setReview(prepared); setIssues(prepared.issues);
+    setCaptures({}); setAcknowledged(false); setPhase('preview'); setSaveState('none');
   };
   const persist = async (next: ClientIntakeFormData) => {
     setPendingSave(next);
@@ -176,19 +184,22 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     {!review ? notice : null}
     {!review && pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => { const prepared = prepareIntakeDocumentPackage(pendingSave, templates, tenant); setReview(prepared); }} >Unterzeichnetes Paket erneut sichern</button> : null}
     {Object.entries(errors).filter(([key, value]) => key.startsWith('intake') && value).length && !review ? <div className="cs-contract-notice is-error">Bitte die gemeinsame Vorschau öffnen und die dort angezeigten Angaben und Unterschriften vervollständigen.</div> : null}
-    {review && typeof document !== 'undefined' ? createPortal(<div className="cs-contract-backdrop"><style>{intakeDocumentPackageCss}</style><div ref={dialog} tabIndex={-1} className="cs-contract-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <header className="cs-contract-dialog-header"><div><h2 id={titleId}>{phase === 'preview' ? 'Ihr vollständiges Dokumentenpaket' : 'Dokumentenpaket gemeinsam unterschreiben'}</h2><p>{review.documents.length} Unterlagen für {[form.firstName, form.lastName].filter(Boolean).join(' ')} · {phase === 'preview' ? '1. Gemeinsam prüfen' : '2. Unterschriften erfassen'}</p></div><button type="button" className="cs-contract-close" aria-label="Paketvorschau schließen" onClick={close} disabled={busy}>×</button></header>
+    {/* The native-web signature modal has its own portal. Remove this higher layer
+        while capturing so neither its backdrop nor its focus trap hides the canvas. */}
+    {review && !role && typeof document !== 'undefined' ? createPortal(<div className="cs-contract-backdrop"><style>{intakeDocumentPackageCss}</style><div ref={dialog} tabIndex={-1} className="cs-contract-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <header className="cs-contract-dialog-header"><div><h2 id={titleId}>{phase === 'signatures' ? 'Dokumentenpaket gemeinsam unterschreiben' : phase === 'corrections' ? 'Angaben für das Dokumentenpaket ergänzen' : 'Ihr vollständiges Dokumentenpaket'}</h2><p>{review.documents.length} Unterlagen für {[form.firstName, form.lastName].filter(Boolean).join(' ')} · {phase === 'signatures' ? '2. Unterschriften erfassen' : '1. Gemeinsam prüfen'}</p></div><button type="button" className="cs-contract-close" aria-label="Paketvorschau schließen" onClick={close} disabled={busy}>×</button></header>
       <div className="cs-contract-dialog-body">
         {phase === 'preview' ? <>{issues.length || saveState !== 'none' ? <div style={{ marginBottom: 16 }}>{notice}</div> : null}<div className="cs-contract-review"><nav className="cs-contract-index" aria-label="Unterlagen im Paket"><h3>Im Paket enthalten</h3><ol>{review.documents.map((document, index) => <li key={document.templateKey}><button type="button" onClick={() => frame.current?.contentDocument?.getElementById(`package-document-${index}`)?.scrollIntoView({ block: 'start' })}><span>{String(index + 1).padStart(2, '0')}</span><span>{document.title}</span></button></li>)}</ol></nav><iframe ref={frame} className="cs-contract-preview" title="Gesamte Vertragsvorschau" srcDoc={preview} sandbox="allow-same-origin" /></div></> :
+        phase === 'corrections' ? <IntakePackageCorrections formId={`${titleId}-corrections`} form={form} issues={review.issues} tenantId={tenantId} onApply={applyCorrections} onNavigate={onNavigateSection ? section => { setReview(null); onNavigateSection(section); } : undefined}/> :
         <div className="cs-contract-signing"><p>Die Unterschriften gelten für das soeben geprüfte Paket. Sie werden automatisch in die passenden Felder der jeweiligen Dokumente eingesetzt.</p>{notice}
           <div className="cs-contract-signatures">{review.roles.map(requiredRole => <section key={requiredRole} className={`cs-contract-signature${captures[requiredRole] ? ' is-captured' : ''}`}><h3>{INTAKE_SIGNATURE_ROLE_LABELS[requiredRole]}</h3><p>{captures[requiredRole] ? 'Unterschrift erfasst' : 'Unterschrift erforderlich'}</p><div className="cs-contract-signature-image">{captures[requiredRole] ? <img src={captures[requiredRole]!.dataUrl} alt={`Erfasste Unterschrift ${INTAKE_SIGNATURE_ROLE_LABELS[requiredRole]}`} /> : <span>Noch nicht unterschrieben</span>}</div><button type="button" className="cs-contract-button" onClick={() => setRole(requiredRole)} disabled={busy}>{captures[requiredRole] ? 'Neu zeichnen' : 'Jetzt unterschreiben'}</button></section>)}</div>
           <label className="cs-contract-acknowledgement"><input type="checkbox" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)} disabled={busy}/><span>Die ausgewählten Unterlagen wurden gemeinsam geprüft. Die erfassten Unterschriften sollen in die vorgesehenen Felder übernommen und mit diesen Dokumentfassungen gespeichert werden.</span></label>
           <details className="cs-contract-included"><summary>Diese {review.documents.length} Dokumente werden unterschrieben</summary><ul>{review.documents.map(document => <li key={document.templateKey}>{document.title}{document.status === 'finalized' ? ' · bereits unterzeichnet' : ''}</li>)}</ul></details>
         </div>}
       </div>
-      <footer className="cs-contract-dialog-footer"><p>{busy ? 'Unterzeichnetes Paket wird gesichert …' : phase === 'preview' ? 'Alle Unterlagen sind in einer gemeinsamen Vorschau enthalten.' : 'Nach der Übernahme bleiben die unterschriebenen Fassungen gesperrt.'}</p><div>
-        {phase === 'signatures' ? <button type="button" className="cs-contract-button" onClick={() => setPhase('preview')} disabled={busy}>Zur Vorschau</button> : null}
-        {pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => void finish()} disabled={busy}>Erneut sichern</button> : phase === 'preview' && review.roles.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('signatures')} disabled={review.issues.length > 0 || loading || Boolean(loadError)}>Gemeinsam unterschreiben</button> : phase === 'signatures' ? <button type="button" className="cs-contract-button is-primary" disabled={!allCaptured || !acknowledged || busy} onClick={() => void finish()}>Unterzeichnetes Paket sichern</button> : <button type="button" className="cs-contract-button is-primary" onClick={close} disabled={busy}>Fertig</button>}
+      <footer className="cs-contract-dialog-footer"><p>{busy ? 'Unterzeichnetes Paket wird gesichert …' : phase === 'corrections' || (phase === 'preview' && review.issues.length) ? 'Vor dem Unterschreiben müssen die angezeigten Angaben ergänzt werden.' : phase === 'preview' ? 'Alle Unterlagen sind in einer gemeinsamen Vorschau enthalten.' : 'Nach der Übernahme bleiben die unterschriebenen Fassungen gesperrt.'}</p><div>
+        {phase !== 'preview' ? <button type="button" className="cs-contract-button" onClick={() => setPhase('preview')} disabled={busy}>{phase === 'corrections' ? 'Abbrechen' : 'Zur Vorschau'}</button> : null}
+        {pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => void finish()} disabled={busy}>Erneut sichern</button> : phase === 'corrections' ? <button type="submit" form={`${titleId}-corrections`} className="cs-contract-button is-primary" disabled={loading || Boolean(loadError)}>Angaben übernehmen & Vorschau aktualisieren</button> : phase === 'preview' && review.issues.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('corrections')} disabled={loading || Boolean(loadError)}>Angaben ergänzen</button> : phase === 'preview' && review.roles.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('signatures')} disabled={loading || Boolean(loadError)}>Gemeinsam unterschreiben</button> : phase === 'signatures' ? <button type="button" className="cs-contract-button is-primary" disabled={!allCaptured || !acknowledged || busy} onClick={() => void finish()}>Unterzeichnetes Paket sichern</button> : <button type="button" className="cs-contract-button is-primary" onClick={close} disabled={busy}>Fertig</button>}
       </div></footer>
     </div></div>, document.body) : null}
     {role ? <CareSignatureModal visible key={role} label={`${INTAKE_SIGNATURE_ROLE_LABELS[role]} · ${review?.documents.length ?? 0} Dokumente`} onConfirm={dataUrl => { setCaptures(previous => ({ ...previous, [role]: { role, dataUrl, signedAt: new Date().toISOString() } })); setRole(null); }} onClose={() => setRole(null)} /> : null}

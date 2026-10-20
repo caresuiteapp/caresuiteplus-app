@@ -9,7 +9,7 @@ import { finalizeIntakeDocumentHtml } from './renderIntakeDocumentPreview';
 export const INTAKE_SIGNATURE_ROLE_LABELS: Record<IntakeSignatureRole, string> = {
   client: 'Klient:in', employee: 'Mitarbeitende:r', legal_representative: 'Vertretung',
 };
-export type PackageIssue = { title: string; message: string };
+export type PackageIssue = { title: string; message: string; templateKey?: string; missingKeys?: string[] };
 export type IntakeDocumentPackage = {
   form: ClientIntakeFormData;
   documents: IntakeDocumentState[];
@@ -49,7 +49,10 @@ export function prepareIntakeDocumentPackage(
     const signatureLabels = new Set(Object.entries(template.placeholderSchema)
       .filter(([key]) => key.startsWith('signature.')).map(([, meta]) => meta.label));
     const missing = document.missingPlaceholders.filter(label => !signatureLabels.has(label) && !label.startsWith('Unterschrift '));
-    if (missing.length) issues.push({ title: template.title, message: missing.join(', ') });
+    if (missing.length) issues.push({ title: template.title, message: missing.join(', '), templateKey: template.templateKey,
+      missingKeys: Object.entries(template.placeholderSchema)
+        .filter(([key, meta]) => !key.startsWith('signature.') && meta.required && missing.includes(meta.label || key))
+        .map(([key]) => key) });
     if (document.status === 'finalized') {
       if (hasIntakeRenderBinding(document) && document.finalizedAt && (
         document.version !== template.version || document.source !== template.source
