@@ -57,6 +57,7 @@ function verify(state:State):void{
     ||!isCurrentFallRiskReviewOriginalContextWeb(i.fallReader,i.fallReceipt,o.f,current.expected)
     ||!isCurrentFallRiskReviewSisBindingWeb(i.fallReader,i.fallReceipt,i.mentalReader,i.mentalReceipt))throw denied();
    const visit={auth:current.expected.auth,tenantId:current.expected.tenantId,clientId:current.expected.clientId,sdk:current.expected.sdk};
+   if(!i.visitReceipt||typeof i.visitReceipt!=='object')throw denied();
    if(!isCurrentCareQualityVisitOriginalContextWeb(i.visitReader,i.visitReceipt,o.v,visit))throw denied();
    if(currentMentalHealthOriginalsWeb(i.mentalReader,i.mentalReceipt)!==o.m||currentFallRiskReviewOriginalsWeb(i.fallReader,i.fallReceipt)!==o.f||currentCareQualityVisitOriginalsWeb(i.visitReader,i.visitReceipt)!==o.v||o.f.sis!==o.m)throw denied();
    local(state);

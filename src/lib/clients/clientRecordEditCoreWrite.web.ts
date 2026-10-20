@@ -1,3 +1,4 @@
+import type { Database } from '@/lib/supabase/types';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import type { IntakeSectionKey } from './clientIntakeFieldRules';
 import { CLIENT_MASTER_DATA_SECTION_KEYS } from './clientMasterDataSections';
@@ -180,7 +181,7 @@ export async function executeClientEditCoreWriteWeb(intent:ClientEditCoreIntent,
       // Frozen controller conservatively marks possible mutation before this
       // callback. Never manufacture a no-write proof after callback ingress.
       invoked=true;gate(entry,attempt);
-      const query=db.from('clients').update(entry.payload).eq('id',scope.clientId).eq('tenant_id',scope.tenantId).eq('updated_at',entry.version).select(entry.selector).single();
+      const query=db.from('clients').update(entry.payload as Database['public']['Tables']['clients']['Update']).eq('id',scope.clientId).eq('tenant_id',scope.tenantId).eq('updated_at',entry.version).select(entry.selector).single();
       return {then<TResult1=unknown,TResult2=never>(
         onfulfilled?: ((value:unknown)=>TResult1|PromiseLike<TResult1>)|null,
         onrejected?: ((reason:unknown)=>TResult2|PromiseLike<TResult2>)|null,

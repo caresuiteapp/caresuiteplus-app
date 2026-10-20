@@ -152,7 +152,7 @@ export class CareRiskReviewWrite{
    return finish(entry,entry.requestStarted?'uncertain':'blocked_before_request');
   }
  }
- summary(outcome:CareRiskReviewOutcome):CareRiskReviewWriteSummary|null{const e=outcomes.get(outcome);return e?.controller===controllers.get(this)?e.summary:null;}
+ summary(outcome:CareRiskReviewOutcome):CareRiskReviewWriteSummary|null{const e=outcomes.get(outcome);return e!==undefined&&e.controller===controllers.get(this)?e.summary:null;}
  mayFollowup(outcome:CareRiskReviewOutcome):boolean{const e=outcomes.get(outcome);return !!e&&e.controller===controllers.get(this)&&e.summary?.status==='risk_response_acknowledged'&&e.outcome===outcome&&journals.get(e.target)===e&&gate(e);}
  /** Current private composition only. Never Child/Query/Shared/AI props. Actual server-before,
   * audit UUID/reviewer and audit timestamp are not returned by this RPC. */

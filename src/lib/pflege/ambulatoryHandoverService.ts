@@ -13,7 +13,7 @@ import type { CareDocumentationListItem } from './careDocumentationTypes';
 type Row = Record<string, unknown>;
 const text = (value: unknown) => value == null ? '' : String(value);
 
-export async function fetchAmbulatoryHandovers(tenantId: string, role: RoleKey | null | undefined): Promise<ServiceResult<CareDocumentationListItem[]>> {
+export async function fetchAmbulatoryHandovers(tenantId: string, role: RoleKey | null = null): Promise<ServiceResult<CareDocumentationListItem[]>> {
   const denied = enforcePermission<CareDocumentationListItem[]>(role, 'pflege.handovers.view'); if (denied) return denied;
   const blocked = guardServiceTenant(tenantId); if (blocked) return blocked;
   if (getServiceMode() !== 'supabase') return { ok: false, error: 'Verbindliche Übergaben sind ausschließlich live verfügbar.' };
@@ -39,7 +39,7 @@ export async function fetchAmbulatoryHandovers(tenantId: string, role: RoleKey |
   return { ok: true, data: rows.map(row => { const id = text(row.id), expected = counts(recipientResult.data, id), received = counts(acknowledgementResult.data, id), complete = expected > 0 && received === expected, task = summaries.get(id); const taskText = !task ? 'Auftragsstatus nicht ermittelt' : task.unavailable ? `${task.unavailable}/${task.total} Originalaufträge nicht zugänglich` : `${task.completed}/${task.total} tatsächlich erledigt${task.actionDue ? ` · ${task.actionDue} fällig/eskalationsrelevant` : ''}${task.policyChanged ? ` · ${task.policyChanged} Zuständigkeit/Frist fortgeschrieben` : ''}`; return { id, tenantId, title: text(row.title), clientName: names.get(text(row.client_id)) ?? '—', employeeName: text(row.created_by_name), recordedAt: text(row.created_at), updatedAt: text(row.created_at), status: received === 0 ? 'aktiv' : received < expected ? 'in_bearbeitung' : 'abgeschlossen', hasSignature: complete, pdfReady: false, contentPreview: `${text(row.priority)} · Empfang ${received}/${expected} · ${taskText}. Empfang und Erinnerungen erledigen keinen Auftrag.` }; }) };
 }
 
-export async function createAmbulatoryHandover(tenantId: string, role: RoleKey | null | undefined, input: AmbulatoryHandoverInput): Promise<ServiceResult<{ id: string }>> {
+export async function createAmbulatoryHandover(tenantId: string, role: RoleKey | null = null, input: AmbulatoryHandoverInput): Promise<ServiceResult<{ id: string }>> {
   const denied = enforcePermission<{ id: string }>(role, 'pflege.handovers.manage'); if (denied) return denied;
   const blocked = guardServiceTenant(tenantId); if (blocked) return blocked;
   if (getServiceMode() !== 'supabase') return { ok: false, error: 'Verbindliche Übergaben sind ausschließlich live verfügbar.' };

@@ -56,7 +56,7 @@ export const tourPlanningLabels: Record<TourPlanningKind, string> = {
 export const tourPlanningBaseRights = ['pflege.plans.view'] as const;
 export const tourPlanningContextRights = ['pflege.plans.view', 'office.employees.view', 'office.employees.view_sensitive', 'office.clients.view', 'office.clients.view_sensitive', 'office.documents.view', 'pflege.documentation.view'] as const;
 export const tourPlanningWriteRights = (kind: TourPlanningKind) => kind === 'acknowledge' ? ['pflege.plans.view'] as const : ['pflege.plans.manage'] as const;
-const fail = (message: string): never => { throw Error(message); };
+function fail(message: string): never { throw Error(message); }
 export const tourPlanningObject = (value: unknown): value is TourPlanningRow => !!value && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 export const tourPlanningId = (value: unknown): value is string => woundUuid(value) && value === value.toLowerCase();
 const instant = (value: unknown): value is string => typeof value === 'string' && woundInstant(value) !== null;

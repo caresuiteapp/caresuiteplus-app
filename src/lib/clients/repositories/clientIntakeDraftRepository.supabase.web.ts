@@ -274,7 +274,7 @@ export async function confirmClientIntakeDraft(
     const { data, error } = await supabase.from('clients').select('*')
       .eq('tenant_id', tenantId).eq('id', clientId).maybeSingle();
     if (error || getSupabaseClient() !== supabase || !nativeRow(data) || data.id !== clientId
-      || Object.entries(patch).some(([key, value]) => data[key] !== value)) {
+      || Object.entries(patch).some(([key, value]) => Object.getOwnPropertyDescriptor(data, key)?.value !== value)) {
       return { ok: false, error: UNCONFIRMED_MESSAGE };
     }
     return { ok: true, data: { id: clientId } };

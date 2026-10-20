@@ -43,7 +43,7 @@ function assertJson(v:unknown,depth=0):void{
 }
 function controlEvidenceAt(source:ControlSource):unknown{return source.snapshot[source.kind==='treatment_execution'?'performed_at':'occurred_at'];}
 function actualEvidence(source:ControlSource,task:ControlTask,at:string,now:number):void{
- validateControlSource(source,task);const s=source.snapshot;
+ validateControlSource(source,task);const s=source.snapshot as Record<string,unknown>;
  if(!['treatment_execution','medication_administration','vital_measurement','protocol_event','plan_evaluation'].includes(source.kind))throw Error('Diese Belegart ist noch nicht als tatsächlicher Ergebnisbeleg angebunden.');
  if(source.kind==='plan_evaluation')assertEvaluationControlEvidence(s,task.tenantId,task.clientId,now);
  if(source.kind==='protocol_event')assertProtocolControlEvidence(s,task.tenantId,task.clientId,now);
@@ -125,7 +125,8 @@ export function controlReadModel(task:ControlTask,events:ControlEvent[],now=Date
  const s=controlHistory(task,events,now),at=BigInt(now)*1000n,active=s.status==='open';const current=s.escalations.filter(e=>e.draft.kind==='escalate'&&e.draft.policyEventId===s.policyEventId),sent=current.filter(e=>e.draft.kind==='escalate'&&e.draft.delivery==='sent');
  const acknowledgedIds=new Set(s.acknowledgements.flatMap(a=>a.draft.kind==='acknowledge'?[a.draft.escalationEventId]:[]));
  const pending=sent.filter(e=>!acknowledgedIds.has(e.id));const last=current.at(-1),lastFailed=last?.draft.kind==='escalate'&&last.draft.delivery==='failed';
- return {...s,overdue:active&&woundInstant(s.policy.dueAt)!<=at,escalationState:!active?'closed':pending.length?'awaiting_response':lastFailed?'failed_due':sent.length?'acknowledged':woundInstant(s.policy.escalationAt)!<=at?'due':'scheduled',pendingResponseCount:active?pending.length:0,failedEscalationPending:active&&lastFailed,events:structuredClone(events)};
+ const escalationState: 'closed'|'awaiting_response'|'failed_due'|'acknowledged'|'due'|'scheduled' = !active?'closed':pending.length?'awaiting_response':lastFailed?'failed_due':sent.length?'acknowledged':woundInstant(s.policy.escalationAt)!<=at?'due':'scheduled';
+ return {...s,overdue:active&&woundInstant(s.policy.dueAt)!<=at,escalationState,pendingResponseCount:active?pending.length:0,failedEscalationPending:active&&lastFailed,events:structuredClone(events)};
 }
 /** Grouping retains every task ID; no deduplication by title/source/patient or summary checkbox. */
 export function controlQueue(records:{task:ControlTask;events:ControlEvent[]}[],now=Date.now()){

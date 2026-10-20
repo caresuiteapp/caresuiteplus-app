@@ -24,7 +24,7 @@ export function ClientInvoiceDraftSummary({ clientId }: { clientId: string }) {
   return <SectionPanel title="Rechnungsentwurf" subtitle="Nachrechenbare Positionen; Freigabe und Versand bleiben getrennt">
     <View style={{gap:spacing.xs,marginBottom:spacing.sm}}>
       <Text style={typography.caption}>Zahlungsziel in Tagen (1–365)</Text>
-      <TextInput accessibilityLabel="Zahlungsziel in Tagen" value={paymentTerm} onChangeText={setPaymentTerm} inputMode="numeric" style={{borderWidth:1,borderColor:valid?colors.border:colors.error,borderRadius:6,padding:spacing.sm}}/>
+      <TextInput accessibilityLabel="Zahlungsziel in Tagen" value={paymentTerm} onChangeText={setPaymentTerm} inputMode="numeric" style={{borderWidth:1,borderColor:valid?colors.borderSoft:colors.error,borderRadius:6,padding:spacing.sm}}/>
     </View>
     {sources.length===0?<EmptyState title="Keine validierte Grundlage" message="Ein Entwurf benötigt genau eine vollständig gebundene und nachrechenbare Rechnungsgrundlage."/>:sources.map((source)=><PremiumCard key={source.foundationId} style={{marginBottom:spacing.sm}}>
       <PremiumBadge label="Nur Entwurf" variant="orange"/>

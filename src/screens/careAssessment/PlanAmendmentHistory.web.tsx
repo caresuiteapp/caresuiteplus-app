@@ -21,7 +21,7 @@ import {PlanDetails,EntryDetails} from './PlanEvaluationDetails.web';
 const body={...typography.body,color:colors.textSecondary};
 function AmendmentOriginal({record:r,sourceState}:{record:PlanAmendmentHistoryRecord;sourceState:AmendmentSourceState|null}){
  const [expanded,setExpanded]=useState(false),p=r.payload;
- return <SectionPanel title={p.target.measures[0].title}>
+ return <SectionPanel title={p.target.measures[0].title ?? 'Maßnahme ohne Titel'}>
   <Text style={body}>{r.actorName} · gespeichert {r.recordedAt}</Text>
   <Text style={body}>Planversion {String(r.result.planVersion)} · Änderungsstand {String(r.result.previousRevision)} → {String(r.result.draftRevision)} · Status {String(r.result.status)}</Text>
   {sourceState?<InfoBanner variant={sourceState.state==='unchanged'?'info':'warning'} message={`${amendmentSourceStateLabels[sourceState.state]}.${sourceState.currentHeadId?` Damaliger Kopf: ${sourceState.originalHeadId}. Aktueller Kopf: ${sourceState.currentHeadId}.`:''} Der damalige Änderungsbeleg bleibt erhalten.`}/>:<InfoBanner variant="warning" message="Der aktuelle Zustand der Evaluationsquelle ist noch nicht geprüft. Die hier gezeigte damalige Originalquelle bleibt erhalten."/>}

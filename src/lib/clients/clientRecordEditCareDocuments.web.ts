@@ -184,7 +184,7 @@ export class ClientCareDocumentPreflightReader {
             if(name!=='systems'&&name!=='tenants')q=q.eq('client_id',scope.clientId);
             q=q.order('id',{ascending:true}).limit(200);if(cursor!==null)q=q.gt('id',cursor);return q;
           });
-          const page=name==='systems'||name==='tenants'?templatePage(data,name==='systems'?null:scope.tenantId,cursor):captureClientNativePage(data,scope,cursor);
+          const page: ClientNativeRow[]=name==='systems'||name==='tenants'?templatePage(data,name==='systems'?null:scope.tenantId,cursor):captureClientNativePage(data,scope,cursor);
           this.gate(entry);if(!page.length)break;rows.push(...page);cursor=String(page[page.length-1].id).toLowerCase();
         }
         pools[name]=rows;

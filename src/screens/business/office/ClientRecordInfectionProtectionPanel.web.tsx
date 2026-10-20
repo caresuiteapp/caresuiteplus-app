@@ -76,7 +76,8 @@ export function ClientRecordInfectionProtectionPanel({ captureRead }: Props) {
       const result = await fetchClientInfectionProtectionOriginalReadWeb(read!.tenantId, read!.clientId,
         { canRead: true, canViewSensitive: true, assertCurrentRead: assertRead });
       assertRead();
-      if (!result.ok || result.data.state !== 'requested') return result;
+      if (!result.ok) return result;
+      if (result.data.state !== 'requested') return {ok:false as const,error:'Der vollständige eigene Originalbestand wurde nicht angefordert.'};
       const envelope = Object.freeze({ owner: read!.owner, key: readKey, ticket, entries: result.data.collection.entries });
       generation.trusted = { envelope, originals: result.data.collection };
       return { ok: true as const, data: envelope };

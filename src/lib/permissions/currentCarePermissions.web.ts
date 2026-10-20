@@ -41,8 +41,10 @@ async function permissionPages(client: NonNullable<ReturnType<typeof getSupabase
       await assertSession();
       assertCurrent();
       const tenant = table === 'role_permission_sets';
-      let query = client.from(table).select(tenant ? 'id,tenant_id,role_key,permission_key' : 'id,role_id,permission_key').eq(tenant ? 'role_key' : 'role_id', value).order('id', { ascending: true }).limit(pageSize);
-      if (tenant) query = query.eq('tenant_id', tenantId);
+      let query = tenant
+        ? client.from('role_permission_sets').select('id,tenant_id,role_key,permission_key').eq('role_key',value).order('id',{ascending:true}).limit(pageSize)
+        : client.from('role_permissions').select('id,role_id,permission_key').eq('role_id',value).order('id',{ascending:true}).limit(pageSize);
+      if (tenant) { if(!tenantId) throw failure(); query = query.eq('tenant_id', tenantId); }
       if (cursor) query = query.gt('id', cursor);
       const raw = await new Promise<unknown>((resolve, reject) => {
         // Invoke the native thenable synchronously: await(query) would defer dispatch to another microtask.
@@ -57,7 +59,7 @@ async function permissionPages(client: NonNullable<ReturnType<typeof getSupabase
       if (!rows.length) return permissions;
       // Inspect the entire supplied page before extending the private result/cursor.
       const captured: { id: string; key: PermissionKey }[] = [];
-      let previous = cursor;
+      let previous: string | null = cursor;
       for (const entry of rows) {
         const row = object(entry, tenant ? ['id', 'tenant_id', 'role_key', 'permission_key'] : ['id', 'role_id', 'permission_key']);
         if (!uuid(row.id) || (tenant ? !uuid(row.tenant_id) || row.tenant_id.toLowerCase() !== tenantId?.toLowerCase() || row.role_key !== value : !uuid(row.role_id) || row.role_id.toLowerCase() !== value.toLowerCase())) throw failure();

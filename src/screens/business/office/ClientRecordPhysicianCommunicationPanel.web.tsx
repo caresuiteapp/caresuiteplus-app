@@ -105,7 +105,8 @@ export function ClientRecordPhysicianCommunicationPanel({ captureRead }: Props) 
       const result = await fetchClientPhysicianCommunicationOriginalReadWeb(read!.tenantId, read!.clientId,
         { canRead: true, canViewSensitive: true, canViewCommunicationCenter: true, assertCurrentRead: assertRead });
       assertRead();
-      if (!result.ok || result.data.state !== 'requested') return result;
+      if (!result.ok) return result;
+      if (result.data.state !== 'requested') return {ok:false as const,error:'Der vollständige eigene Originalbestand wurde nicht angefordert.'};
       const entries = project(result.data.collection);
       assertRead();
       const envelope = Object.freeze({ owner: read!.owner, key: readKey, ticket, entries });

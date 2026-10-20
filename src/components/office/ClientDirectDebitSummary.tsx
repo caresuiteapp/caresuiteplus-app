@@ -1,1 +1,1 @@
-export function ClientDirectDebitSummary(){return null;}
+export function ClientDirectDebitSummary(_props: { clientId: string }){return null;}

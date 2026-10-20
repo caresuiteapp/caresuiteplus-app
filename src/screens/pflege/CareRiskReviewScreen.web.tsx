@@ -9,7 +9,7 @@ import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
 import {spacing,typography} from '@/theme';
 import {useAuth} from '@/lib/auth/context';
 import {useServiceTenantId} from '@/hooks/useTenantId';
-import {useCareRuntimePermissions} from '@/hooks/pflege/useCareRuntimePermissions';
+import {useCareRuntimePermissions} from '@/hooks/pflege/useCareRuntimePermissions.web';
 import {onAuthStateChange} from '@/lib/supabase/authService';
 import {confirmAction} from '@/lib/platform/confirmAction';
 import {woundUuid} from '@/lib/pflege/woundCareDomain';

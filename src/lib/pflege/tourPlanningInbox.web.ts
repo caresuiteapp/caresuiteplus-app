@@ -5,7 +5,7 @@ import { tourPlanningId, tourPlanningJson, tourPlanningObject, tourPlanningVersi
 /** Deliberate publication projection, not a rewritten original event: no raw tour notes, other recipients or personnel histories. */
 export type PlanningInboxPublication = { id: string; tenantId: string; planId: string; sequence: number; actorId: string; actorName: string; recordedAt: string; version: TourPlanningVersion; versionLabel: string; validFrom: string; validUntil: string; packet: TourPlanningRow | null };
 export type PlanningInboxEntry = { publication: PlanningInboxPublication; recipient: TourPlanningPerson; headId: string; current: boolean; acknowledgement: TourPlanningEvent | null };
-const fail = (): never => { throw Error('Die vollständigen persönlichen Planfassungen sind nicht bestätigt.'); };
+function fail(): never { throw Error('Die vollständigen persönlichen Planfassungen sind nicht bestätigt.'); }
 const exact = (v: unknown, keys: string[]): v is TourPlanningRow => tourPlanningObject(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
 const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 4000;
 function event(value: unknown): asserts value is TourPlanningEvent {

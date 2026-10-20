@@ -25,7 +25,7 @@ export async function readConnectedReviewPage(c:Context):Promise<Result<Connecte
   const guard=await authority(c),rows:ConnectedReviewOriginal[]=[],cursors=new Set<string>();let at:string|null=null,id:string|null=null;
   for(let page=0;page<100;page++){
    await guard.check();
-   const response=await withServiceQueryTimeout(guard.db.rpc('web_read_connected_specialist_review_page',{p_tenant_id:c.tenantId,p_client_id:c.clientId,p_actor_profile_id:c.actorId,p_domain:c.domain??null,p_cursor_recorded_at:at,p_cursor_id:id,p_page_size:100}),'Fachprüfungen vollständig laden',20_000);await guard.check();
+   const response: { data: unknown; error: unknown; status?: number } = await withServiceQueryTimeout(guard.db.rpc('web_read_connected_specialist_review_page',{p_tenant_id:c.tenantId,p_client_id:c.clientId,p_actor_profile_id:c.actorId,p_domain:c.domain??null,p_cursor_recorded_at:at,p_cursor_id:id,p_page_size:100}),'Fachprüfungen vollständig laden',20_000);await guard.check();
    if(response.error||!object(response.data)||!Array.isArray(response.data.rows)||response.data.rows.length>100)throw Error(unavailable);
    if(response.data.rows.length===0)return {ok:true,data:rows};
    const nextAt=response.data.nextCursorRecordedAt,nextId=response.data.nextCursorId;
@@ -42,7 +42,7 @@ async function operation(input:ConnectedReviewPacket,isCurrent:()=>boolean,confi
  let dispatched=false;
  try{
   const guard=await authority({...packet,isCurrent});await guard.check();dispatched=!confirm;
-  const response=await withServiceQueryTimeout(guard.db.rpc(confirm?'web_confirm_connected_specialist_review':'web_commit_connected_specialist_review',confirm?{p_tenant_id:packet.tenantId,p_client_id:packet.clientId,p_actor_profile_id:packet.actorId,p_request_id:packet.requestId,p_packet:packet}:{p_packet:packet}),'Fachprüfung transaktional sichern oder Quittung lesen',20_000);await guard.check();
+  const response: { data: unknown; error: unknown; status?: number } = await withServiceQueryTimeout(guard.db.rpc(confirm?'web_confirm_connected_specialist_review':'web_commit_connected_specialist_review',confirm?{p_tenant_id:packet.tenantId,p_client_id:packet.clientId,p_actor_profile_id:packet.actorId,p_request_id:packet.requestId,p_packet:packet}:{p_packet:packet}),'Fachprüfung transaktional sichern oder Quittung lesen',20_000);await guard.check();
   if(response.error){const code=object(response.error)?String(response.error.code??''):'';return {ok:false,error:toGermanSupabaseError(response.error as Parameters<typeof toGermanSupabaseError>[0]),...(!confirm&&response.data===null&&['22007','22008','22023','22P02','23514','40001','42501'].includes(code)?{rejected:true}:{uncertain:true})};}
   const saved=receipt(response.data,packet);return saved?{ok:true,data:saved}:{ok:false,error:unavailable,uncertain:true};
  }catch(cause){return {ok:false,error:cause instanceof Error?cause.message:unavailable,...(dispatched||confirm?{uncertain:true}:{rejected:true})};}

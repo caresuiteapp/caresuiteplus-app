@@ -1,3 +1,4 @@
+import type { Database } from '@/lib/supabase/types';
 import type { ServiceResult } from '@/types';
 import type { TIConsent } from '@/types/modules/ti';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -52,7 +53,7 @@ export const tiConsentsSupabaseRepository = {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
 
-    const update: Record<string, unknown> = {};
+    const update: Database['public']['Tables']['ti_consents']['Update'] = {};
     if (Object.hasOwn(patch, 'status')) update.status = patch.status;
     if (Object.hasOwn(patch, 'grantedAt')) update.granted_at = patch.grantedAt;
     if (Object.hasOwn(patch, 'grantedBy')) update.granted_by = patch.grantedBy;

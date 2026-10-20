@@ -104,12 +104,12 @@ export class ClientCareDocumentAppendPlanner {
       const sdk=getSupabaseClient(),life=this.lifetime;if(!sdk)throw denied();
       const gate=()=>{
         try{
-          if(!this.alive||life!==this.lifetime||generations.get(this.controller)!==generation||entry?.valid===false)throw denied();
+          if(!this.alive||life!==this.lifetime||generations.get(this.controller)!==generation||(entry !== null && !entry.valid))throw denied();
           this.controller.assertRead(this.lease);
           // Recheck earlier grants after all callbacks, then owner and native SDK.
           for(let pass=0;pass<2;pass++)for(const key of keys){const grant:unknown=this.permission(key);if(grant!==true){if(grant instanceof Promise)void grant.catch(()=>{});throw denied();}}
           this.controller.assertRead(this.lease);
-          if(!this.alive||life!==this.lifetime||generations.get(this.controller)!==generation||entry?.valid===false
+          if(!this.alive||life!==this.lifetime||generations.get(this.controller)!==generation||(entry !== null && !entry.valid)
             ||getServiceMode()!=='supabase'||getSupabaseClient()!==sdk||getServiceMode()!=='supabase')throw denied();
         }catch(error){if(entry)entry.valid=false;throw error;}
       };

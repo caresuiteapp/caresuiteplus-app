@@ -38,7 +38,7 @@ export function supplyReadRights(kind: SupplyKind): string[] {
 }
 export const supplyObject = (v: unknown): v is SupplyRow => !!v && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 export const supplyId = (v: unknown): v is string => woundUuid(v) && v === v.toLowerCase();
-const fail = (m: string): never => { throw Error(m); };
+function fail(m: string): never { throw Error(m); }
 function exact(v: unknown, keys: string[]): v is SupplyRow { return supplyObject(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k)); }
 export function supplyJson(value: unknown, limit = 2_000_000) {
  const visit = (v: unknown, depth = 0): void => {

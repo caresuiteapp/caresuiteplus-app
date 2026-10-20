@@ -1,3 +1,4 @@
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
@@ -75,5 +76,5 @@ function MultiOriginalPicker({ label, rows, value, disabled, onChange }: { label
   return <View style={styles.stack}><Text style={styles.heading}>{label} *</Text><SourcePicker label={`${label} hinzufügen`} rows={available} value={candidate} disabled={disabled} onChange={setCandidate} /><PremiumButton title="Ausgewähltes Original übernehmen" variant="secondary" disabled={disabled || !candidate || !available.some(row => row.id === candidate)} onPress={() => { onChange([...ids, candidate].join(',')); setCandidate(''); }} />{selected.length ? selected.map(row => <View key={row.id} style={styles.item}><Text style={styles.body}>{row.label}</Text><PremiumButton title="Aus Auswahl entfernen" variant="secondary" disabled={disabled} onPress={() => onChange(ids.filter(id => id !== row.id).join(','))} /></View>) : <Text style={styles.caption}>Noch kein Original ausgewählt.</Text>}</View>;
 }
 
-function useStyles() { const adaptive = useAdaptiveContentStyles(); return useMemo(() => StyleSheet.create({ stack: { gap: spacing.md }, actions: { gap: spacing.sm }, item: { ...adaptive.subtleCard, padding: spacing.md, gap: spacing.xs }, heading: { color: colors.textPrimary, fontWeight: '700' }, body: { color: colors.textPrimary, lineHeight: 21 }, caption: { color: colors.textSecondary, lineHeight: 19 } }), [adaptive]); }
+function useStyles() { const { c } = useCareLightPalette(); const adaptive = useAdaptiveContentStyles(); return useMemo(() => StyleSheet.create({ stack: { gap: spacing.md }, actions: { gap: spacing.sm }, item: { backgroundColor:c.surfaceAlt,borderColor:c.border, padding: spacing.md, gap: spacing.xs }, heading: { color: colors.textPrimary, fontWeight: '700' }, body: { color: colors.textPrimary, lineHeight: 21 }, caption: { color: colors.textSecondary, lineHeight: 19 } }), [adaptive,c]); }
 export default VisitExecutionWorkspace;

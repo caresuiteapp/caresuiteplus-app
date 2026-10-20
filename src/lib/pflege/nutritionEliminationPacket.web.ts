@@ -159,7 +159,7 @@ export function nutritionReviewOriginalIssue(v:unknown,c:{tenantId:string;client
   ids.add(e.id);requests.add(e.requestId);
  }
  const first=o.history[0],last=o.history.at(-1)!;
- return first.id!==o.rootId||o.id!==o.headId||last.id!==o.headId||o.status!==({request:'requested',return:'returned',accept:'accepted'} as const)[last.action]?'Prüfkopf stimmt nicht mit der vollständigen Historie überein.':null;
+ return first.id!==o.rootId||o.id!==o.headId||last.id!==o.headId||o.status!==(last.action==='request'?'requested':last.action==='return'?'returned':last.action==='accept'?'accepted':null)?'Prüfkopf stimmt nicht mit der vollständigen Historie überein.':null;
 }
 export function nutritionReviewPacketIssue(v:unknown):string|null{
  const p=v as NutritionReviewPacket;

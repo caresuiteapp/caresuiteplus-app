@@ -10,7 +10,7 @@ export type InfusionEvent={id:string;episodeId:string;tenantId:string;clientId:s
 export type InfusionCourse={status:'not_started'|'running'|'paused'|'finished'|'aborted';headId:string;sequence:number;containerId:string;configuration:Pick<InfusionEventDraft,'deviceMode'|'deviceId'|'deviceModel'|'rateMlHour'>|null;runningMicroseconds:bigint;lastKnownDeliveredMl:string|null;latestAmountState:string|null;amountsComplete:boolean;reviewRequired:boolean;reviewCompleted:boolean;corrections:Map<string,InfusionEvent[]>};
 const object=(v:unknown):v is Row=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function exact(v:unknown,keys:string[]):v is Row{return object(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));}
-const fail=(message:string):never=>{throw Error(message);};
+function fail(message:string): never {throw Error(message);}
 const nonempty=(v:string)=>!!v.trim();
 /** Up to six decimal places, exact microlitre fractions. Bounds are technical, not clinical. */
 export function infusionDecimal(v:string):bigint|null{

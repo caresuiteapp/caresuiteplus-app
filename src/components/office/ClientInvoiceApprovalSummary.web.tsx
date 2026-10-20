@@ -23,7 +23,7 @@ export function ClientInvoiceApprovalSummary({ clientId }: { clientId: string })
     setMessage(result.ok?`Freigabeversion ${result.data.approvalVersion} wurde unveränderlich gespeichert – noch nicht versendet und nicht als bezahlt gewertet.`:result.error);
     setSubmitting(null);if(result.ok)await query.refresh();
   }
-  const fieldStyle={borderWidth:1,borderColor:inputValid?colors.border:colors.error,borderRadius:6,padding:spacing.sm};
+  const fieldStyle={borderWidth:1,borderColor:inputValid?colors.borderSoft:colors.error,borderRadius:6,padding:spacing.sm};
   return <SectionPanel title="Rechnungsfreigabe" subtitle="Vier-Augen-Prüfung einer konkreten Entwurfsfassung">
     <View style={{gap:spacing.xs,marginBottom:spacing.sm}}>
       <Text style={typography.caption}>Steuerbehandlung: tax_exempt_healthcare oder taxable</Text>

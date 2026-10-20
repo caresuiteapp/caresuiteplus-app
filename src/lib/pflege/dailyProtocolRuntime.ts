@@ -3,7 +3,7 @@ import {dailyProtocolVersion,protocolUuid,decodeProtocolSnapshot,snapshotProtoco
 import {sameWoundJson} from './woundCareDomain.ts';
 import {isDefiniteMedicationRejection} from './medicationRequestState.ts';
 import type {ControlRpc,ControlResult} from './clinicalControlRuntime.ts';
-export const protocolWritePermission=(action:string)=>['record','replace','void'].includes(action)?'pflege.documentation.create':(()=>{throw Error('Unbekannte Protokollhandlung.');})();
+export const protocolWritePermission=(action:string): 'pflege.documentation.create'=>['record','replace','void'].includes(action)?'pflege.documentation.create':(()=>{throw Error('Unbekannte Protokollhandlung.');})();
 export function protocolRevision(request:ProtocolRequest,record:ProtocolRecord|null,tenant:string,now=Date.now(),original:ProtocolRecord|null=null):void{
  snapshotProtocolRequest(request,now);if(!protocolUuid(tenant))throw Error('Eigener Mandant fehlt.');if(request.draft.action==='record'){if(record!==null)throw Error('Originalbezug bereits vorhanden.');return;}
  if(!record)throw Error('Aktuelles Original nicht mehr zugänglich.');const [r]=decodeProtocolSnapshot({version:dailyProtocolVersion,tenantId:tenant,clientId:request.clientId,count:1,records:[record]},tenant,request.clientId,now);const state=protocolHistory(r.root,r.events,now);

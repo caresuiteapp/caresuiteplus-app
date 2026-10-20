@@ -1,1 +1,1 @@
-export function ClientDunningSummary(){return null;}
+export function ClientDunningSummary(_props: { clientId: string }){return null;}

@@ -10,7 +10,7 @@ function cloneOriginal(v:unknown,seen=new Set<object>()):unknown{
  seen.add(v as object);const out:Original|unknown[]=Array.isArray(v)?[]:{};
  if(Array.isArray(v)&&Object.getPrototypeOf(v)!==Array.prototype)throw Error('Originale Datumsangabe ist kein natives Array.');
  const descriptors=Object.getOwnPropertyDescriptors(v);
- for(const key of Reflect.ownKeys(descriptors)){if(Array.isArray(v)&&key==='length')continue;const d=descriptors[key];if(typeof key!=='string'||!('value' in d)||!d.enumerable||Array.isArray(v)&&(!/^(0|[1-9]\d*)$/.test(key)||Number(key)>=v.length))throw Error('Originale Datumsangabe enthält ungeklärte DTO-Felder.');Object.defineProperty(out,key,{value:cloneOriginal(d.value,seen),enumerable:true,writable:true,configurable:true});}
+ for(const key of Reflect.ownKeys(descriptors)){if(Array.isArray(v)&&key==='length')continue;if(typeof key!=='string')throw Error('Originale Datumsangabe enthält ungeklärte DTO-Felder.');const d=descriptors[key];if(!('value' in d)||!d.enumerable||Array.isArray(v)&&(!/^(0|[1-9]\d*)$/.test(key)||Number(key)>=v.length))throw Error('Originale Datumsangabe enthält ungeklärte DTO-Felder.');Object.defineProperty(out,key,{value:cloneOriginal(d.value,seen),enumerable:true,writable:true,configurable:true});}
  if(Array.isArray(v))for(let i=0;i<v.length;i++)if(!Object.hasOwn(v,i))throw Error('Originale Datumsangabe enthält fehlende Arraypositionen.');seen.delete(v as object);return out;
 }
 const date=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&woundInstant(`${v}T00:00:00Z`)!==null;

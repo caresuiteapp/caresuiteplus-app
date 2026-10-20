@@ -43,8 +43,8 @@ export function SupplyWorkspace() {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const authority = useMemo<SupplyAuthority | null>(() => {
     if (!boundary.owner || boundary.owner.demo || !boundary.owner.accessToken || !baseRights.every(k => boundary.grants.includes(k))) return null;
-    const own = boundary.owner;
-    return { tenantId: own.tenantId, actorId: own.profileId, accessToken: own.accessToken, expiresAt: own.expiresAt,
+    const own = boundary.owner, accessToken = boundary.owner.accessToken;
+    return { tenantId: own.tenantId, actorId: own.profileId, accessToken, expiresAt: own.expiresAt,
       isCurrent: () => mounted.current && reference.current === boundary && carePermissionOwnerIsCurrent(own) && boundary.canCurrent() };
   }, [boundary]);
   const content = permissions.loading ? <LoadingState message="Aktuelle Material- und Aktenrechte werden geprüft…" /> : permissions.error ?

@@ -28,7 +28,7 @@ export function ClientRecordDiagnosisNotesPanel({ diagnoses, clientId, canViewSt
 const styles = StyleSheet.create({
   list: { gap: spacing.md },
   card: { gap: spacing.xs },
-  note: { ...typography.bodyStrong, color: colors.text },
+  note: { ...typography.bodyStrong, color: colors.textPrimary },
   meta: { ...typography.body, color: colors.textMuted },
   warning: { ...typography.caption, color: colors.textMuted },
 });

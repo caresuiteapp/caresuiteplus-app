@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
-import { CareWriteReconciliationNotice } from './CareWriteReconciliationNotice';
+import { CareWriteReconciliationNotice } from './CareWriteReconciliationNotice.web';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { formatTime } from '@/lib/formatters/dateTimeFormatters';
 import type { RoleKey } from '@/types';

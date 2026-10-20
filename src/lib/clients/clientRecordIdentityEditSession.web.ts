@@ -148,7 +148,7 @@ export function subscribeClientIdentityEditWeb(token:ClientIdentityEditToken,lis
 }
 export function viewClientIdentityEditWeb(token:ClientIdentityEditToken):ClientIdentityEditView|null {
   const g=generations.get(token);if(!g||!current(g))return null;
-  const o=g.attachment.owner,busy=o.pending||g.stage==='loading',uncertain=unknown(o),dirty=changed(g);
+  const o=g.attachment.owner,busy=o.pending||(['loading'] as readonly string[]).includes(g.stage),uncertain=unknown(o),dirty=changed(g);
   const fields:Partial<Record<ClientIdentityEditField,{value:string;editable:boolean;state:string;error?:string}>>={};
   if(g.read&&g.draft&&!uncertain&&g.stage!=='saving')for(const field of CLIENT_IDENTITY_EDIT_FIELDS){
     const meta=g.read.fields[field],resolved=['native','derived','absent'].includes(meta?.status??'unresolved');
@@ -211,12 +211,12 @@ export async function closeClientIdentityEditWeb(
 ):Promise<boolean> {
   const g=generations.get(token);if(!g||!current(g))return false;
   const o=g.attachment.owner;
-  if(o.pending||unknown(o)||g.stage==='loading')return false;
+  if(o.pending||unknown(o)||(['loading'] as readonly string[]).includes(g.stage))return false;
   const serial=++g.closeSerial,revision=g.revision;
   if(changed(g)&&!g.receipt) {
     try {if(await confirmDiscard()!==true)return false;}catch{return false;}
   }
-  if(!current(g)||serial!==g.closeSerial||revision!==g.revision||o.pending||unknown(o)||g.stage==='loading')return false;
+  if(!current(g)||serial!==g.closeSerial||revision!==g.revision||o.pending||unknown(o)||(['loading'] as readonly string[]).includes(g.stage))return false;
   g.closed=true;g.valid=false;g.listeners.clear();
   // Local discard is explicit; pending/unknown entries never reach this branch.
   g.draft=null;g.read=null;g.lease=null;

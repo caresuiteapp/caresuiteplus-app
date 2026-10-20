@@ -1,3 +1,4 @@
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup, PremiumInput } from '@/components/ui';
@@ -17,4 +18,4 @@ export function PlanningTimeField({ label, value, onChange, disabled }: { label:
   return <View style={styles.stack}><PremiumInput label={label} value={tourPlanningLocalTime(value)} onChangeText={onChange} placeholder="JJJJ-MM-TTTHH:MM:SS" editable={!disabled} /><Text style={styles.caption}>Ortszeit: {Intl.DateTimeFormat().resolvedOptions().timeZone}{/(Z|[+-]\d{2}:\d{2})$/.test(value) ? ` · ursprünglicher Zeitpunkt: ${value}` : ''}</Text>{candidates.length > 1 ? <><Text style={styles.body}>Diese Ortszeit tritt zweimal auf. Den tatsächlichen UTC-Abstand wählen.</Text><FilterChipGroup wrap options={candidates} value={value} onChange={disabled ? undefined : onChange} /></> : null}</View>;
 }
 
-function useStyles() { const adaptive = useAdaptiveContentStyles(); return useMemo(() => StyleSheet.create({ stack: { minWidth: 0, gap: spacing.md }, item: { ...adaptive.subtleCard, minWidth: 0, padding: spacing.md, gap: spacing.xs }, heading: { color: colors.textPrimary, fontWeight: '700', flexShrink: 1 }, body: { color: colors.textPrimary, lineHeight: 21, flexShrink: 1 }, caption: { color: colors.textSecondary, lineHeight: 19, flexShrink: 1 } }), [adaptive]); }
+function useStyles() { const { c } = useCareLightPalette(); const adaptive = useAdaptiveContentStyles(); return useMemo(() => StyleSheet.create({ stack: { minWidth: 0, gap: spacing.md }, item: { backgroundColor:c.surfaceAlt,borderColor:c.border, minWidth: 0, padding: spacing.md, gap: spacing.xs }, heading: { color: colors.textPrimary, fontWeight: '700', flexShrink: 1 }, body: { color: colors.textPrimary, lineHeight: 21, flexShrink: 1 }, caption: { color: colors.textSecondary, lineHeight: 19, flexShrink: 1 } }), [adaptive,c]); }

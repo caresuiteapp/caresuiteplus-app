@@ -2,7 +2,7 @@ import { sameWoundJson, woundInstant, woundUuid } from './woundCareDomain.ts';
 import { decodePersonnelHistory } from '../office/personnelWorkspaceDomain.web.ts';
 import type { TourPlanningCommand, TourPlanningContext, TourPlanningEvent, TourPlanningKind, TourPlanningRow, TourPlanningSource, TourPlanningState } from './tourPlanningWorkspaceDomain.web.ts';
 
-const fail = (message: string): never => { throw Error(message); };
+function fail(message: string): never { throw Error(message); }
 const object = (v: unknown): v is TourPlanningRow => !!v && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 const id = (v: unknown): v is string => woundUuid(v) && v === v.toLowerCase();
 const text = (v: unknown, max = 4000): v is string => typeof v === 'string' && !!v.trim() && v.length <= max && !v.includes('\u0000');

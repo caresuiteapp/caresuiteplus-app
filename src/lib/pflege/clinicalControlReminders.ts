@@ -51,7 +51,7 @@ export function validateReminderEntry(v:unknown):asserts v is ReminderQueueEntry
  if(!Array.isArray(used)||used.length!==v.attempt||Array.from({length:used.length},(_,i)=>i).some(i=>!Object.hasOwn(used,i)||!uuid(used[i]))||new Set(used).size!==used.length||instant(v.reminder.dueAt,'Frist')>instant(v.updatedAt,'Verarbeitung'))throw Error('Reservierungshistorie oder Fälligkeit widersprüchlich.');
  const leased=v.phase==='leased'||v.phase==='uncertain';
  if(leased?(!uuid(v.leaseToken)||instant(v.leaseUntil,'Reservierungsfrist')<=instant(v.updatedAt,'Verarbeitung')&&v.phase==='leased'):v.phase==='delivered'?(!uuid(v.leaseToken)||v.leaseUntil!==''):v.leaseToken!==''||v.leaseUntil!=='')throw Error('Reservierungsstand widersprüchlich.');
- if((leased||v.phase==='delivered')&&v.leaseToken!==v.usedTokens.at(-1))throw Error('Reservierung gehört nicht zum letzten tatsächlichen Versuch.');
+ if((leased||v.phase==='delivered')&&v.leaseToken!==used.at(-1))throw Error('Reservierung gehört nicht zum letzten tatsächlichen Versuch.');
  if(v.phase==='queued'?v.attempt!==0:v.phase==='cancelled'?false:(v.attempt as number)<1)throw Error('Versuchsanzahl widersprüchlich.');
  if(v.phase==='delivered'?!v.receiptId.trim():v.receiptId!=='')throw Error('Nur bestätigte Zustellung besitzt einen Versandbeleg.');
  if(['failed','uncertain','cancelled'].includes(String(v.phase))&&!v.lastError.trim())throw Error('Tatsächlicher technischer Grund fehlt.');

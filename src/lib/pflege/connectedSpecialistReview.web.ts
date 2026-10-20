@@ -127,7 +127,7 @@ export function connectedReviewOriginalIssue(v:unknown,c:{tenantId:string;client
   ids.add(e.id);requests.add(e.requestId);
  }
  const first=o.history[0],last=o.history.at(-1)!;
- return first.id!==o.rootId||o.id!==o.headId||last.id!==o.headId||o.status!==({request:'requested',return:'returned',accept:'accepted'} as const)[last.action]?'Fachprüfkopf stimmt nicht mit der vollständigen Historie überein.':null;
+ return first.id!==o.rootId||o.id!==o.headId||last.id!==o.headId||o.status!==(last.action==='request'?'requested':last.action==='return'?'returned':last.action==='accept'?'accepted':null)?'Fachprüfkopf stimmt nicht mit der vollständigen Historie überein.':null;
 }
 
 export function connectedReviewPacketIssue(v:unknown):string|null{

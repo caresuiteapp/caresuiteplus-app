@@ -23,7 +23,7 @@ export const visitExecutionLabels: Record<VisitExecutionKind, string> = {
 export const visitExecutionBaseRights = ['pflege.plans.view', 'pflege.risks.view', 'pflege.proofs.view', 'office.clients.view', 'office.clients.view_sensitive'] as const;
 export const visitExecutionWriteRights = (kind: VisitExecutionKind) => kind === 'proof' || kind === 'confirm' ? ['pflege.proofs.create'] as const : ['pflege.plans.manage'] as const;
 
-const fail = (message: string): never => { throw Error(message); };
+function fail(message: string): never { throw Error(message); }
 export const visitObject = (v: unknown): v is VisitRow => !!v && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 export const visitId = (v: unknown): v is string => typeof v === 'string' && woundUuid(v) && v === v.toLowerCase();
 const instant = (v: unknown): v is string => typeof v === 'string' && woundInstant(v) !== null;

@@ -1,3 +1,4 @@
+import {writeAmbulatoryAssessmentRequest,applyAmbulatoryAssessmentLifecycle} from '@/lib/careAssessment/careAssessmentService.web';
 import {createCareAssessmentQueryAttempt,assertCareAssessmentQueryAttempt,assertCareAssessmentQueryLifetime,type CareAssessmentQueryAttempt} from '@/lib/careAssessment/careAssessmentQueryAttempt.web';
 import {PlanEvaluationPanel} from './PlanEvaluationPanel.web';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
@@ -50,8 +51,6 @@ import {
   getRiskLabel,
   saveCareAssessment,
   transitionCareAssessment,
-  writeAmbulatoryAssessmentRequest,
-  applyAmbulatoryAssessmentLifecycle,
 } from '@/lib/careAssessment';
 import type {
   CareAssessment,

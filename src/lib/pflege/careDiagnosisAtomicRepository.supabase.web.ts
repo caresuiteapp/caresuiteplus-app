@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
 import type { CareDiagnosis } from '@/types/modules/pflege';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -73,7 +74,7 @@ export async function recordCareDiagnosisAtomically(input: CareDiagnosisAtomicOr
   if (!original) return { ok: false, error: 'Die vollständige ärztliche Angabe und ihre native Anfragebindung fehlen.' };
   if (!client) return { ok: false, error: 'Live-Datenbank ist nicht verfügbar.' };
   const boundClient = client;
-  const { data, error } = await client.rpc('web_record_care_diagnosis_with_history', args(original));
+  const { data, error } = await (client as SupabaseClient).rpc('web_record_care_diagnosis_with_history', args(original));
   if (getSupabaseClient() !== boundClient) return { ok: false, error: 'Die Sitzung hat während der Speicherung gewechselt.' };
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   const mapped = mapReceipt(data, original);
@@ -85,7 +86,7 @@ export async function confirmCareDiagnosisAtomicWrite(input: CareDiagnosisAtomic
   if (!original) return { ok: false, error: 'Die gespeicherte Diagnoseanfrage ist unvollständig.' };
   if (!client) return { ok: false, error: 'Live-Datenbank ist nicht verfügbar.' };
   const boundClient = client;
-  const { data, error } = await client.rpc('web_confirm_care_diagnosis_with_history', {
+  const { data, error } = await (client as SupabaseClient).rpc('web_confirm_care_diagnosis_with_history', {
     p_tenant_id: original.tenantId, p_client_id: original.clientId,
     p_actor_profile_id: original.actorId, p_request_id: original.requestId,
   });

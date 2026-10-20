@@ -21,7 +21,7 @@ export type ControlAgreement={evaluationMeasureId?:string;key:string;source:Cont
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 /** Only explicit original fields. No text extraction, medical interval or current clinical need inferred. */
 function agreement(source:ControlSource,now:number):ControlAgreement{
- const s=source.snapshot,r:ControlAgreement={key:controlSourceKey(source),source:structuredClone(source),state:'unavailable',reason:'',dueAt:'',occurredAt:'',title:typeof s.title==='string'?s.title:source.id,issue:''};
+ const s=source.snapshot as Record<string,unknown>,r:ControlAgreement={key:controlSourceKey(source),source:structuredClone(source),state:'unavailable',reason:'',dueAt:'',occurredAt:'',title:typeof s.title==='string'?s.title:source.id,issue:''};
  try{
   let d:Record<string,unknown>,due:unknown;
   if(source.kind==='treatment_execution'){

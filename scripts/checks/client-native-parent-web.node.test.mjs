@@ -44,9 +44,7 @@ const funding=compose('src/types/clients/clientFundingSource.ts',{},['normalizeC
 const normalize=compose('src/lib/clients/clientIntakeCareLevel.ts',{},['normalizeIntakeCareLevelForDb']);
 const cost=compose('src/lib/clients/clientIntakeCostBearerConfig.ts',{},['resolvePrimaryCostBearerName']);
 const statusWrite=compose('src/lib/services/clients/clientStatusBridge.ts',{},['workflowStatusToRemote']);
-const serviceSource=read('src/lib/clients/clientIntakeService.ts');
-const validationBody=strip(serviceSource.slice(serviceSource.indexOf('export function validateIntakeStep('),serviceSource.indexOf('export async function submitClientIntake(')).replace(/\bexport /g,''));
-const validation=new Function('getRequiredFieldsForClientContext',validationBody+';return {validateIntakeStep,hasIntakeErrors};')(fieldRules.getRequiredFieldsForClientContext);
+const validation=(await import(new URL('./helpers/current-intake-validation.mjs',import.meta.url).href)).currentIntakeValidation;
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const q=read('src/hooks/core/useAsyncQuery.ts'),queryBody=q.slice(q.indexOf('function isTransientQueryError(')).replace('export function useAsyncQuery','function useAsyncQuery');
 const s=read('src/screens/pflege/ClientRecordWorkspace365.web.tsx');

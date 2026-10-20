@@ -73,9 +73,7 @@ async function harness(options={}){
  const statusWrite=compose('src/lib/services/clients/clientStatusBridge.ts',{},['workflowStatusToRemote']);
  const core=compose('src/lib/clients/clientRecordEditCoreWrite.web.ts',{...common,...normalize,...cost,...statusWrite,CLIENT_MASTER_DATA_SECTION_KEYS,isOwnClientEditOriginalRead:reader.isOwnClientEditOriginalRead,getServiceMode:()=>state.mode},['captureClientEditCoreWriteWeb','executeClientEditCoreWriteWeb','mayContinueClientEditCoreWriteWeb']);
  const {getRequiredFieldsForClientContext}=compose('src/lib/clients/clientIntakeFieldRules.ts',{},['getRequiredFieldsForClientContext']);
- const serviceSource=read('src/lib/clients/clientIntakeService.ts');
- const validationBody=strip(serviceSource.slice(serviceSource.indexOf('export function validateIntakeStep('),serviceSource.indexOf('export async function submitClientIntake(')).replace(/\bexport /g,''));
- const validation=new Function('getRequiredFieldsForClientContext',validationBody+';return {validateIntakeStep,hasIntakeErrors};')(getRequiredFieldsForClientContext);
+ const validation=(await import(new URL('./helpers/current-intake-validation.mjs',import.meta.url).href)).currentIntakeValidation;
  save=compose('src/lib/clients/clientRecordMasterDataSave.web.ts',{...native,...core,...validation,getSupabaseClient:()=>state.noSdk?null:state.sdkOverride??db,getServiceMode:()=>state.mode},['captureClientMasterDataSaveWeb','executeClientMasterDataSaveWeb','recognizeOwnClientMasterDataSaveReceipt','mayFollowupClientMasterDataSaveWeb']);
  const legacy=compose('src/lib/clients/repositories/clientIntakeRepository.supabase.ts',{...common,...normalize,...cost,...statusWrite,SERVICE_ERRORS:{supabaseUnavailable:'No SDK'},isUuid:()=>true,resolveIntakeBillingProfileType:()=>null},['updateClientFromIntake']);
  const initCalls=calls.splice(0);

@@ -79,7 +79,7 @@ export function captureClientPhysicianCommunicationOriginalsWeb(
   assertClientNativeScope(scope);
   const supplied = cloneClientNativeOriginal(input);
   if (!ownRow(supplied) || Reflect.ownKeys(supplied).some(key => typeof key !== 'string' || !['threads', 'histories'].includes(key))
-    || !Object.hasOwn(supplied, 'threads') || !Object.hasOwn(supplied, 'histories') || !Array.isArray(supplied.histories)) {
+    || !Array.isArray(supplied.threads) || !Object.hasOwn(supplied, 'threads') || !Object.hasOwn(supplied, 'histories') || !Array.isArray(supplied.histories)) {
     throw Error('Der vollständige native Kommunikationsbestand ist nicht eindeutig geliefert.');
   }
   const threads = captureClientNativePage(supplied.threads, scope, null);

@@ -276,7 +276,7 @@ function MedicationCreateEditor(props: Props) {
   }
   function reloadClients() { if (nativeCurrent() && runtime.current.canLoadClients) void latest.current.refresh(); }
   const dirty = status !== 'confirmed' && !same(value, initialForm);
-  usePreventRemove(dirty || status === 'busy' || status === 'uncertain' || confirmingRead, ({ data }) => { void handleLeave(() => navigation.dispatch(data.action)); });
+  usePreventRemove(dirty || (['busy','uncertain'] as readonly string[]).includes(status) || confirmingRead, ({ data }) => { void handleLeave(() => navigation.dispatch(data.action)); });
   useEffect(() => {
     if ((!dirty && status !== 'busy' && status !== 'uncertain' && !confirmingRead) || typeof window === 'undefined') return;
     const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
@@ -308,7 +308,7 @@ function MedicationCreateEditor(props: Props) {
   if (!canLoadClients || !ready) return <ScreenShell title="Medikation anlegen" onBack={() => { void handleLeave(); }}>
     {canLoadClients && clientsQuery.loading ? <LoadingState message="Klientenbestand wird geladen…" /> : <ErrorState message={poolError ?? clientsQuery.error ?? clientsQuery.refreshError ?? 'Der aktuelle Benutzerbezug oder die erforderlichen Rechte sind nicht verfügbar.'} />}
     <PremiumButton title="Klientenbestand erneut laden" disabled={!canLoadClients} onPress={reloadClients} />
-    <PremiumButton title="Zurück" disabled={status === 'busy' || status === 'uncertain'} variant="secondary" onPress={() => { void handleLeave(); }} />
+    <PremiumButton title="Zurück" disabled={(['busy','uncertain'] as readonly string[]).includes(status)} variant="secondary" onPress={() => { void handleLeave(); }} />
   </ScreenShell>;
   return (
     <ScreenShell title="Medikation anlegen" subtitle={`Ambulante Pflege und Intensivpflege · ${roleLabel ?? 'Pflegefachkraft'}`} onBack={() => { void handleLeave(); }}>
@@ -340,7 +340,7 @@ function MedicationCreateEditor(props: Props) {
           <Text style={styles.fieldLabel}>Intensivpflegerelevant</Text><FilterChipGroup options={yesNo} value={intensive ? 'yes' : 'no'} onChange={value => change("intensive", value === "yes")} />
           {intensive ? <><Text style={styles.fieldLabel}>Pumpengabe</Text><FilterChipGroup options={yesNo} value={pumpRequired ? 'yes' : 'no'} onChange={value => change("pumpRequired", value === "yes")} /><View style={styles.twoCols}><PremiumInput label="Laufgeschwindigkeit" placeholder="z. B. 2 ml/h" value={infusionRate} onChangeText={value => change("infusionRate", value)} editable={!writeBlocked} /><PremiumInput label="Verdünnung / Trägerlösung" value={dilution} onChangeText={value => change("dilution", value)} editable={!writeBlocked} /></View></> : null}
         </SectionPanel>
-        <View style={styles.actions}><PremiumButton title={status === 'busy' ? 'Wird gespeichert…' : 'Verordnung speichern'} disabled={writeBlocked || !clientId || !name.trim()} onPress={() => { void handleSave(); }} /><PremiumButton title="Abbrechen" variant="secondary" disabled={status === "busy" || status === "uncertain"} onPress={() => { void handleLeave(); }} /></View>
+        <View style={styles.actions}><PremiumButton title={status === 'busy' ? 'Wird gespeichert…' : 'Verordnung speichern'} disabled={writeBlocked || !clientId || !name.trim()} onPress={() => { void handleSave(); }} /><PremiumButton title="Abbrechen" variant="secondary" disabled={(['busy','uncertain'] as readonly string[]).includes(status)} onPress={() => { void handleLeave(); }} /></View>
       </ScrollView>
     </ScreenShell>
   );

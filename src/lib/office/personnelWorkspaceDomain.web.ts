@@ -20,7 +20,7 @@ export const personnelLabels:Record<PersonnelKind,string>={
 };
 export const personnelBaseRights=['office.employees.view','office.employees.view_sensitive'] as const;
 export const personnelWriteRights=(_kind:PersonnelKind)=>['office.employees.edit'] as const;
-const fail=(m:string):never=>{throw Error(m);};
+function fail(m:string): never {throw Error(m);}
 export const personnelObject=(v:unknown):v is PersonnelRow=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 export const personnelId=(v:unknown):v is string=>woundUuid(v)&&v===v.toLowerCase();
 const instant=(v:unknown):v is string=>typeof v==='string'&&woundInstant(v)!==null;
