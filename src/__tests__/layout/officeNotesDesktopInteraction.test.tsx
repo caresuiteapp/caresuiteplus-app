@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { desktopAreaStorageKey } from '@/liquid-command/navigation/desktopAreas';
 
 const memory = new Map<string, string>();
-const api = { user: 'user-a', tenant: 'tenant-a', push: vi.fn(), getItem: vi.fn(), setItem: vi.fn(), multiSet: vi.fn() };
+const api = { user: 'user-a', tenant: 'tenant-a', push: vi.fn(), setParams: vi.fn(), getItem: vi.fn(), setItem: vi.fn(), multiSet: vi.fn() };
 const Box = forwardRef<HTMLDivElement, any>((props, ref) => <div ref={ref} data-testid={props.testID}>{props.children}</div>);
 const Pressable = forwardRef<HTMLDivElement, any>((props, ref) => <div ref={ref} role={props.accessibilityRole ?? 'button'} aria-label={props.accessibilityLabel} aria-disabled={props.disabled} onClick={props.disabled ? undefined : props.onPress}>{props.children}</div>);
 const native = {
@@ -19,9 +19,9 @@ const native = {
 const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
   '@/lib/platform/reactNativeWebCompat.web': { WebView: Box, WebPressable: Pressable, WebScrollView: Box },
-  'expo-router': { useRouter: () => ({ push: api.push }) },
+  'expo-router': { useRouter: () => ({ push: api.push, setParams: api.setParams }), usePathname: () => '/Desktop', useLocalSearchParams: () => ({}) },
   '@react-native-async-storage/async-storage': api,
-  '@/lib/auth': { useAuth: () => ({ user: { id: api.user }, profile: { roleKey: 'business_admin' }, signOut: vi.fn() }) },
+  '@/lib/auth': { useAuth: () => ({ authReady: true, isAuthenticated: true, user: { id: api.user }, profile: { roleKey: 'business_admin' }, signOut: vi.fn() }) },
   '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: api.tenant, roleKey: 'business_admin', can: () => true, hasModuleGate: (module: string) => module === 'office' }) },
   '@/hooks/useModuleAccess': { useModuleAccess: () => ({}) },
   '@/hooks/useDesktopWeather.web': { useDesktopWeather: () => ({ data: null, place: null, message: 'Standort wählen' }) },
@@ -82,3 +82,4 @@ describe('Office Notes in the actual Web desktop', () => {
     await render(); expect(memory.get(key())).toBe('["clients"]'); expect(memory.has(`${key()}.notes.v1`)).toBe(false); expect(api.multiSet).not.toHaveBeenCalled();
   });
 });
+
