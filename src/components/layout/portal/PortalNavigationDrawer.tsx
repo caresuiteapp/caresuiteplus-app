@@ -1,0 +1,197 @@
+import { useMemo } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import { useRouter, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+import { withAlpha } from '@/design/tokens/motion';
+import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
+import { useAuth } from '@/lib/auth/context';
+import {
+  MOBILE_EDGE_INSET,
+  MOBILE_MIN_TOUCH_TARGET,
+  webSafeAreaPadding,
+} from '@/lib/platform/webSafeArea';
+import type { ShellTabConfig } from '@/types/navigation/shell';
+
+type PortalNavigationDrawerProps = {
+  visible: boolean;
+  onClose: () => void;
+  tabs: ShellTabConfig[];
+  accentColor?: string;
+  portalLabel?: string;
+};
+
+const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+
+/** Overlay drawer for compact portal shell — full nav list, not slide-out sidebar. */
+export function PortalNavigationDrawer({
+  visible,
+  onClose,
+  tabs,
+  accentColor = '#1478FF',
+  portalLabel = 'Portal',
+}: PortalNavigationDrawerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
+  const drawerText = {
+    primary: '#FFFFFF',
+    secondary: 'rgba(255,255,255,0.78)',
+    muted: 'rgba(255,255,255,0.62)',
+  };
+  const activeKey = resolveActiveTabKey(pathname, tabs);
+
+  const drawerSurface = useMemo(() => {
+    return {
+      backgroundColor: spatialCare.navigationStrong,
+      borderColor: spatialCare.borderGlow,
+    } as ViewStyle;
+  }, []);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+      testID="portal-navigation-drawer"
+    >
+      <View style={styles.overlay}>
+        <View
+          style={[
+            styles.panel,
+            drawerSurface,
+            {
+              paddingTop: webSafeAreaPadding('top', insets.top + careSpacing.sm) as number,
+              paddingBottom: webSafeAreaPadding('bottom', insets.bottom + careSpacing.sm) as number,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(38,42,72,0.99)', 'rgba(12,15,34,0.995)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={[styles.ambientOrb, { backgroundColor: withAlpha(accentColor, 0.13) }]} pointerEvents="none" />
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: drawerText.primary }]}>{portalLabel}</Text>
+            <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityRole="button" accessibilityLabel="Schließen">
+              <Text style={[styles.closeText, { color: drawerText.muted }]}>✕</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {tabs.map((tab) => {
+              const active = tab.key === activeKey;
+              return (
+                <Pressable
+                  key={tab.key}
+                  onPress={() => {
+                    onClose();
+                    router.push(tab.href as never);
+                  }}
+                  style={[
+                    styles.navRow,
+                    active && { backgroundColor: withAlpha(accentColor, 0.12), borderColor: withAlpha(accentColor, 0.45) },
+                    webCursor,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={styles.navIcon}>{tab.icon}</Text>
+                  <Text style={[styles.navLabel, { color: active ? drawerText.primary : drawerText.secondary }, active && { fontWeight: '700' }]}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={[styles.logoutSection, { borderTopColor: drawerSurface.borderColor as string }]}>
+            <Pressable
+              onPress={() => {
+                onClose();
+                void signOut().then(() => router.replace('/' as never));
+              }}
+              style={[styles.logoutRow, webCursor]}
+              accessibilityRole="button"
+              accessibilityLabel="Abmelden"
+              testID="portal-drawer-logout"
+            >
+              <Text style={styles.navIcon}>⎋</Text>
+              <Text style={[styles.logoutLabel, { color: drawerText.primary }]}>Abmelden</Text>
+            </Pressable>
+          </View>
+        </View>
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Menü schließen" />
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { flex: 1, flexDirection: 'row' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(5, 7, 22, 0.82)' },
+  panel: { width: '80%', maxWidth: 330, borderRightWidth: 1, elevation: 24, overflow: 'hidden' },
+  ambientOrb: { position: 'absolute', width: 230, height: 230, borderRadius: 115, left: -105, top: 70 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: careSpacing.md,
+    paddingBottom: careSpacing.sm,
+  },
+  headerTitle: { ...careTypography.h3, fontWeight: '800', flex: 1, minWidth: 0 },
+  closeBtn: {
+    width: MOBILE_MIN_TOUCH_TARGET,
+    height: MOBILE_MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeText: { fontSize: 18, fontWeight: '700' },
+  scrollContent: { paddingHorizontal: MOBILE_EDGE_INSET, paddingBottom: careSpacing.md, gap: careSpacing.xs },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  navIcon: { fontSize: 17, width: 27, textAlign: 'center' },
+  navLabel: { ...careTypography.body, fontSize: 15, lineHeight: 20, fontWeight: '600', flex: 1 },
+  logoutSection: {
+    borderTopWidth: 1,
+    marginTop: careSpacing.sm,
+    paddingHorizontal: MOBILE_EDGE_INSET,
+    paddingTop: careSpacing.sm,
+    paddingBottom: careSpacing.xs,
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 10,
+  },
+  logoutLabel: { ...careTypography.body, fontWeight: '700', flex: 1 },
+});

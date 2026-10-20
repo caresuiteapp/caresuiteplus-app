@@ -1,0 +1,12 @@
+# office-preview-dagmar-2026-07-13
+Mandant: 56180c22-b894-4fab-b55e-a563c94dd6e7
+Klient:in: Dagmar Ritzenhoff
+Termin: 2026-07-13
+Rendered ID: 78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-13
+Status (UI): bestaetigt
+Proof: none
+Dokumentation: none
+Aufgaben offen: true
+Check-in/out: null / 2026-07-06T09:00:16.339+00:00
+Start/Einsatz antreten möglich: true
+Ergebnis: PASS

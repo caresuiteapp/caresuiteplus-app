@@ -1,0 +1,73 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { userFriendlyLabel } from '@/lib/ui/uiVisibility';
+import { galaxyPalette } from '@/design/tokens/galaxy';
+
+const root = path.join(__dirname, '..', '..', '..');
+
+function readSrc(relativePath: string): string {
+  return readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+describe('Design Reset (Prompt 101)', () => {
+  it('galaxy palette defines core space colors', () => {
+    expect(galaxyPalette.deepSpace).toBe('#17182D');
+    expect(galaxyPalette.careOrange).toBe('#FF6B1A');
+    expect(galaxyPalette.galaxyCyan).toBe('#22D3EE');
+  });
+
+  it('StatusBadge maps preparedOnly to Vorbereitet', () => {
+    expect(userFriendlyLabel('preparedOnly')).toBe('Vorbereitet');
+    expect(userFriendlyLabel('comingSoon')).toBe('Demnächst');
+    const badge = readSrc('src/design/components/StatusBadge.tsx');
+    expect(badge).toContain('UI_PREPARED_LABEL');
+  });
+
+  it('AppStartScreen uses premium space shell and glass portal cards', () => {
+    const source = readSrc('src/screens/AppStartScreen.tsx');
+    expect(source).toContain('AppScreen');
+    expect(source).toContain('PortalCard');
+    expect(source).toContain('fetchAppStartSnapshot');
+    const portal = readSrc('src/design/components/PortalCard.tsx');
+    expect(portal).toContain('GlassCard');
+    expect(portal).toContain('CareSuiteIcon');
+  });
+
+  it('Business login renders without broken prototype text patterns', () => {
+    const source = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
+    expect(source).toContain('AuthLayout');
+    expect(source).toContain('InputField');
+    expect(source).not.toContain('Prototyp');
+    expect(source).not.toContain('preparedOnly Auth');
+  });
+
+  it('Business register uses the free registration without a module chooser', () => {
+    const source = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
+    expect(source).toContain('RegisterOrganizationScreen as BusinessRegisterScreen');
+    const shared = readSrc('src/liquid-command/screens/AccessScreens.tsx');
+    expect(shared).toContain('Unternehmen kostenlos registrieren');
+    expect(shared).not.toContain('MODULE_OPTIONS');
+  });
+
+  it('PremiumPreparedNotice labels premium connectors', () => {
+    const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
+    expect(notice).toContain('PremiumBadge');
+    expect(notice).toContain('IN_PREPARATION_LABEL');
+    expect(notice).toContain('DATEV');
+    expect(notice).toContain('KIM');
+  });
+
+  it('auth routes remain reachable via canonical paths', () => {
+    expect(readSrc('app/auth/business-login.tsx')).toContain('BusinessAccessScreen');
+    expect(readSrc('app/auth/register-business.tsx')).toContain('RegisterOrganizationScreen');
+    expect(readSrc('app/auth/forgot-password.tsx')).toContain('PasswordRecoveryScreen');
+  });
+
+  it('design system exports care tokens and components', () => {
+    expect(readSrc('src/design/tokens/index.ts')).toContain('careSuiteColors');
+    expect(readSrc('src/design/components/index.ts')).toContain('SpaceBackground');
+    expect(readSrc('src/design/components/index.ts')).toContain('GlassCard');
+    expect(readSrc('src/design/components/index.ts')).toContain('AuthPageShell');
+  });
+});

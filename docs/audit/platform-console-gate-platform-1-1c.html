@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>CareSuite+ PLATFORM.1.1c — Gate-Bericht (Final)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 980px; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.4rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .blocked { color: #b00020; font-weight: 700; }
+    .partial { color: #b45309; font-weight: 700; }
+    .ok { color: #0d7a3e; font-weight: 700; }
+    code { font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>PLATFORM.1.1c — Owner Live-Smoke &amp; Staging Gate</h1>
+  <p><strong>Entscheidung:</strong> <span class="ok">Staging-Freigabe JA</span> (interne technische Abnahme) · <span class="blocked">Production NEIN</span></p>
+
+  <h2>1. Git / Precheck</h2>
+  <table>
+    <tr><th>Branch</th><td>main</td></tr>
+    <tr><th>HEAD</th><td><code>50378c6078143ada02ec9d31a42b1ab861a3b0b7</code></td></tr>
+    <tr><th>Staging</th><td><code>https://shwpweerzsfkqaivmaoc.supabase.co</code></td></tr>
+    <tr><th>0246</th><td>Lokal reordered + ORDER BY Fix</td></tr>
+    <tr><th>0247 / 0249</th><td class="ok">Remote angewendet</td></tr>
+    <tr><th>0250</th><td class="ok">Remote angewendet (<code>platform_list_tenants_order_fix</code>)</td></tr>
+  </table>
+
+  <h2>2. Owner Bootstrap</h2>
+  <table>
+    <tr><th>Status</th><td class="ok">JA</td></tr>
+    <tr><th>User (maskiert)</th><td><code>4b76fc06-…e104</code> · <code>cares***@gmail.com</code></td></tr>
+    <tr><th>auth.users Join</th><td class="ok">Erfolgreich</td></tr>
+    <tr><th>role / status</th><td class="ok">platform_owner / active</td></tr>
+    <tr><th>Owner-Anzahl</th><td class="ok">1</td></tr>
+    <tr><th>@example.test Owner</th><td class="ok">0</td></tr>
+  </table>
+
+  <h2>3. Owner RPC Capabilities</h2>
+  <table>
+    <tr><th>platform_get_current_user.role</th><td class="ok">platform_owner</td></tr>
+    <tr><th>tenants.read / suspend</th><td class="ok">true / true</td></tr>
+    <tr><th>modules.write</th><td class="ok">true</td></tr>
+    <tr><th>billing.write / payments.write</th><td class="ok">true / true</td></tr>
+    <tr><th>flags.write / support.write / system.write</th><td class="ok">true / true / true</td></tr>
+    <tr><th>platform_get_dashboard_summary</th><td class="ok">OK</td></tr>
+    <tr><th>platform_list_tenants</th><td class="ok">OK (nach 0250-Fix)</td></tr>
+    <tr><th>platform_get_tenant_detail</th><td class="ok">OK (Staging Test Tenant)</td></tr>
+  </table>
+
+  <h2>4. Access Matrix</h2>
+  <table>
+    <tr><th>anon EXECUTE platform RPCs</th><td class="ok">false</td></tr>
+    <tr><th>anon SELECT platform_*</th><td class="ok">false</td></tr>
+    <tr><th>Mandantenuser platform_list_tenants</th><td class="ok">42501 platform_forbidden</td></tr>
+    <tr><th>Mandantenuser capabilities</th><td class="ok">false</td></tr>
+    <tr><th>/platform UI E2E Owner</th><td class="partial">Nicht automatisiert — manueller Login mit caresuiteapp@gmail.com empfohlen</td></tr>
+    <tr><th>/platform/forbidden Mandant</th><td class="partial">RouteGuard implementiert + RPC-Block; UI-E2E manuell</td></tr>
+  </table>
+
+  <h2>5. Module Enforcement Live (Testmandant staging-wfm-p21-test)</h2>
+  <table>
+    <tr><th>academy enable → disable → restore</th><td class="ok">OK</td></tr>
+    <tr><th>tenant_list_platform_modules</th><td class="ok">academy enabled nach Restore</td></tr>
+    <tr><th>tenant_has_platform_module(academy)</th><td class="ok">true (enabled state)</td></tr>
+    <tr><th>Audit module.enabled/disabled</th><td class="ok">3 Einträge mit reason</td></tr>
+  </table>
+
+  <h2>6. Mutation + Audit Smoke</h2>
+  <table>
+    <tr><th>platform_set_tenant_module + Audit</th><td class="ok">JA</td></tr>
+    <tr><th>platform_update_invoice_status ohne reason</th><td class="ok">22023 reason_required</td></tr>
+    <tr><th>platform_start/end_support_session</th><td class="ok">readonly default, closed + Audit</td></tr>
+    <tr><th>platform_update_system_setting (owner)</th><td class="ok">OK + Audit</td></tr>
+  </table>
+
+  <h2>7. Security Advisor</h2>
+  <p>Platform anon EXECUTE: geschlossen auf Kern-RPCs. Rest-WARNs (~22 platform-bezogen, davon authenticated SECURITY DEFINER — dokumentiert, Capability-intern geschützt).</p>
+
+  <h2>8. Tests / Build</h2>
+  <table>
+    <tr><th>Platform + Module Tests</th><td class="ok">25/25</td></tr>
+    <tr><th>Platform Typecheck</th><td class="ok">0 Fehler</td></tr>
+    <tr><th>Expo export DEMO=false</th><td class="ok">OK</td></tr>
+    <tr><th>Gesamt-Typecheck</th><td class="partial">Altlasten (~467)</td></tr>
+  </table>
+
+  <h2>9. Freigaben</h2>
+  <table>
+    <tr><th>Staging-Freigabe (intern)</th><td class="ok">JA</td></tr>
+    <tr><th>Production-Freigabe</th><td class="blocked">NEIN — PLATFORM.1.2, Operator-UI, Gesamt-Typecheck</td></tr>
+  </table>
+
+  <h2>10. Offene Risiken / Follow-up</h2>
+  <ul>
+    <li>Manueller UI-Spot-Check: Login als Owner → /platform/dashboard, Mandant → /platform/forbidden</li>
+    <li>0250 lokal in Repo; bei Commit mit 0246/0249 einplanen</li>
+    <li>Billing/Support/Discounts Operator-UI noch Placeholder</li>
+    <li>2 verbleibende anon-Platform-WARNs im Advisor prüfen (PLATFORM.1.2)</li>
+  </ul>
+
+  <h2>11. Geänderte Dateien (1.1c Resume)</h2>
+  <ul>
+    <li><code>supabase/migrations/0250_platform_list_tenants_order_fix.sql</code> (neu, remote angewendet)</li>
+    <li><code>supabase/migrations/0246_platform_console_foundation_live.sql</code> (ORDER BY Fix)</li>
+    <li><code>docs/audit/platform-console-gate-platform-1-1c.html</code></li>
+  </ul>
+</body>
+</html>

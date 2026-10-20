@@ -1,0 +1,92 @@
+[
+  {
+    "file": "google-play-badge-de.png",
+    "url": "https://play.google.com/intl/en_us/badges/static/images/badges/de_badge_web_generic.png",
+    "bytes": 15496,
+    "dimensions": [
+      646,
+      250
+    ],
+    "format": "PNG",
+    "contentType": "image/png"
+  },
+  {
+    "file": "caresuite-assist-icon.webp",
+    "url": "https://play-lh.googleusercontent.com/7hcLdiseL6ic-nSVEISl5bGcOLzkYm4diZ9yOw7YJ2B6DSIHWG7Na7nhoU2z7C6-EbUrsvwwlRRvfAd_n_c0sw=s256-rw",
+    "bytes": 92296,
+    "dimensions": [
+      256,
+      256
+    ],
+    "format": "WEBP",
+    "contentType": "image/webp"
+  },
+  {
+    "file": "store-screenshot-0.png",
+    "url": "https://play-lh.googleusercontent.com/fy6d3IrdHpYTTLPn8OcbKFnvUYY38Uum-_XBmu11V5mKM_ke9rLX8ZrDbaeVGGKwNsvSa--d3wKSMDkzuVUS5Q=w1052-h592",
+    "bytes": 50578,
+    "dimensions": [
+      333,
+      592
+    ],
+    "format": "PNG",
+    "contentType": "image/png"
+  },
+  {
+    "file": "caresuite-assist-employee-home.png",
+    "url": "https://play-lh.googleusercontent.com/Ha24DsPYuLnbUW7fqF46PI5iq8rHOmxddn7DkHL07CuOKBNYPUgqxQJ1QXV0rUJcX8E8jaCf51dV31G2xSF4PQ=s0",
+    "bytes": 317762,
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "format": "PNG",
+    "contentType": "image/png",
+    "role": "Mitarbeitendenportal: Startseite"
+  },
+  {
+    "file": "store-screenshot-2.png",
+    "url": "https://play-lh.googleusercontent.com/1wiaYiBs2qMHh3fHNsPUE1gPqW2CndNaP1vbffWKilNAoIduCkWL0WXVO-vIBrkBwQMwpEtBq6Y8ug_pbdi6YQ=w1052-h592",
+    "bytes": 27519,
+    "dimensions": [
+      333,
+      592
+    ],
+    "format": "PNG",
+    "contentType": "image/png"
+  },
+  {
+    "file": "caresuite-assist-client-home.png",
+    "url": "https://play-lh.googleusercontent.com/30palmQ9hZ-6KdRYmIOZLWGhMJOV_SfSI4LdHU65fjReZvrWHXcQymGLIr3w_higUftwWmJulJS-JaAlYm-xTD4=s0",
+    "bytes": 313174,
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "format": "PNG",
+    "contentType": "image/png",
+    "role": "Klientenportal: Startseite mit nächstem Einsatz"
+  },
+  {
+    "file": "store-screenshot-4.png",
+    "url": "https://play-lh.googleusercontent.com/3M-tGiVF9k3ziVF8vp5NRiZYPAPTQY5vu0w0BYwD0E5Rpf-72elX6k8HnJtRoLEa6YXj9ZBIQzH-E4GbAMRH-WY=w1052-h592",
+    "bytes": 78772,
+    "dimensions": [
+      333,
+      592
+    ],
+    "format": "PNG",
+    "contentType": "image/png"
+  },
+  {
+    "file": "store-screenshot-5.png",
+    "url": "https://play-lh.googleusercontent.com/xCr8_2dMnRXIkyOEmtzVKNMQUcUsdON8oFjE-glQk6NGz5frhQkTRMLOcCZAffmBVP1DqNcUCp1jgrlkQnCNBq4=w1052-h592",
+    "bytes": 57480,
+    "dimensions": [
+      333,
+      592
+    ],
+    "format": "PNG",
+    "contentType": "image/png"
+  }
+]

@@ -1,0 +1,55 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
+import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
+
+export type AiEntityType =
+  | 'client'
+  | 'employee'
+  | 'appointment'
+  | 'document'
+  | 'case'
+  | 'task';
+
+export function resolveEntityRoute(
+  entityType: AiEntityType | string,
+  entityId: string,
+  options?: { tab?: string; documentId?: string },
+): string {
+  switch (entityType) {
+    case 'client':
+      if (options?.tab === 'documents') {
+        return `${clientRecordRoute(entityId)}/documents`;
+      }
+      if (options?.tab === 'care') {
+        return `${clientRecordRoute(entityId)}/care`;
+      }
+      return clientRecordRoute(entityId);
+    case 'employee':
+      return `/business/office/employees/${entityId}`;
+    case 'appointment':
+      return `/office/appointments/${entityId}`;
+    case 'document':
+      if (options?.documentId) {
+        return `/business/office/clients/${entityId}/documents?doc=${options.documentId}`;
+      }
+      return `${clientRecordRoute(entityId)}/documents`;
+    case 'case':
+      return `/beratung/faelle/${entityId}`;
+    case 'task':
+      return `/business/office/clients/${entityId}?tab=aufgaben`;
+    default:
+      return clientRecordRoute(entityId);
+  }
+}
+
+export function resolveModuleHomeRoute(module: string): string {
+  const map: Record<string, string> = {
+    business: BUSINESS_HOME_ROUTE,
+    office: '/business/office',
+    assist: '/assist',
+    beratung: '/beratung',
+    akademie: '/akademie',
+    stationaer: '/stationaer',
+    dashboard: BUSINESS_HOME_ROUTE,
+  };
+  return map[module] ?? BUSINESS_HOME_ROUTE;
+}

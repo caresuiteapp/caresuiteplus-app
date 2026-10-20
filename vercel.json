@@ -1,0 +1,171 @@
+{
+  "buildCommand": "npm run build:web:production",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=(self)"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/_expo/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/einvoice/validate",
+      "destination": "/api/einvoice/validate"
+    },
+    {
+      "source": "/landingpage",
+      "destination": "/landingpage/index.html"
+    },
+    {
+      "source": "/landingpage/",
+      "destination": "/landingpage/index.html"
+    },
+    {
+      "source": "/caresuite",
+      "destination": "/caresuite/index.html"
+    },
+    {
+      "source": "/caresuite/",
+      "destination": "/caresuite/index.html"
+    },
+    {
+      "source": "/datenschutz",
+      "destination": "/datenschutz/index.html"
+    },
+    {
+      "source": "/datenschutz/",
+      "destination": "/datenschutz/index.html"
+    },
+    {
+      "source": "/nutzungsbedingungen",
+      "destination": "/nutzungsbedingungen/index.html"
+    },
+    {
+      "source": "/nutzungsbedingungen/",
+      "destination": "/nutzungsbedingungen/index.html"
+    },
+    {
+      "source": "/impressum",
+      "destination": "/impressum/index.html"
+    },
+    {
+      "source": "/impressum/",
+      "destination": "/impressum/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/Business",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/Business/",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/Business/dashboard",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/Zentrale",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/plattform",
+      "destination": "/platform",
+      "permanent": false
+    },
+    {
+      "source": "/plattform/:path*",
+      "destination": "/platform/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/command",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/command/",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/business",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/business/",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/business/dashboard",
+      "destination": "/Desktop",
+      "permanent": false
+    },
+    {
+      "source": "/zentrale",
+      "destination": "/Desktop",
+      "permanent": false
+    }
+  ],
+  "functions": {
+    "api/einvoice/validate.ts": {
+      "maxDuration": 60,
+      "includeFiles": "{api/_lib/einvoice-rules/**,api/_lib/einvoice-pdf-worker.mjs,node_modules/libxml2-wasm/lib/**,node_modules/pdfjs-dist/legacy/build/**,node_modules/@napi-rs/canvas/**}"
+    }
+  },
+  "regions": [
+    "fra1"
+  ]
+}

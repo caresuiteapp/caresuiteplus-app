@@ -1,0 +1,1650 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { useAuth } from '@/lib/auth';
+import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
+import { useOfficeMessageNavBadges } from '@/hooks/useOfficeMessageNavBadges';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
+import {
+  LiquidBackdrop,
+  LiquidButton,
+  LiquidDivider,
+  LiquidIconButton,
+  LiquidGlyph,
+  LiquidState,
+  LiquidStatus,
+  LiquidSurface,
+  LiquidText,
+  LiquidField,
+} from '../components/LiquidPrimitives';
+import {
+  liquidColors,
+  liquidLayers,
+  liquidRadius,
+  liquidSpace,
+} from '../foundation/tokens';
+import { useLiquidLayout } from '../foundation/useLiquidLayout';
+import {
+  getLiquidModule,
+  liquidGlobalShortcuts,
+  liquidModules,
+  liquidWorkAreas,
+} from '../navigation/moduleCatalog';
+import type { LiquidModuleKey } from '../types';
+import {
+  getEditionModules,
+  getEditionShortcuts,
+} from '@/lib/platform/healthOSStoreEdition';
+import { isUnreleasedModuleKey, isUnreleasedModuleRoute } from '@/lib/modules/constants';
+
+const editionModules = getEditionModules(liquidModules).filter(
+  (module) => !isUnreleasedModuleKey(module.key),
+);
+const editionShortcuts = getEditionShortcuts(liquidGlobalShortcuts).filter(
+  (shortcut) => !isUnreleasedModuleRoute(shortcut.route),
+);
+
+type LiquidCommandShellProps = {
+  activeModule: LiquidModuleKey;
+  activeArea?: string | null;
+  title: string;
+  subtitle: string;
+  contextLabel?: string;
+  contextDetail?: string;
+  children: ReactNode;
+  aside?: ReactNode;
+  asideWidth?: number;
+  primaryActionLabel?: string;
+  onPrimaryAction?: () => void;
+  allowPhoneLandscape?: boolean;
+  contentMode?: 'scroll' | 'fill';
+  showPageHeader?: boolean;
+  showContextBar?: boolean;
+};
+
+function RotateDeviceScreen() {
+  return (
+    <LiquidBackdrop>
+      <View style={styles.rotate}>
+        <LiquidSurface active contentStyle={styles.rotateCard}>
+          <LiquidGlyph glyph="↻" size={34} />
+          <LiquidText variant="title" accessibilityRole="header">Smartphone drehen</LiquidText>
+          <LiquidText variant="body" style={styles.centerText}>
+            CareSuite HealthOS wird auf Smartphones im Hochformat bedient. Für Unterschrift,
+            Kamera, Dokumentenscan und Medien kann Querformat gezielt freigegeben werden.
+          </LiquidText>
+        </LiquidSurface>
+      </View>
+    </LiquidBackdrop>
+  );
+}
+
+
+function WorkAreaNavigation({
+  moduleKey,
+  activeArea,
+  messageBadge,
+}: {
+  moduleKey: LiquidModuleKey;
+  activeArea?: string | null;
+  messageBadge?: string;
+}) {
+  const router = useRouter();
+  const layout = useLiquidLayout();
+  const areas = liquidWorkAreas[moduleKey];
+  if (!areas.length) return null;
+
+  const items = areas.map((area, index) => {
+        const selected = activeArea ? activeArea === area.id : index === 0;
+        return (
+          <Pressable
+            key={area.id}
+            accessibilityRole="tab"
+            accessibilityLabel={`${area.label}. ${area.description}${area.id === 'communication' && messageBadge ? `. ${messageBadge}` : ''}`}
+            accessibilityState={{ selected }}
+            onPress={() => router.push(area.route as never)}
+            style={({ pressed }) => [
+              styles.areaChip,
+              selected && styles.areaSelected,
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={[styles.areaMarker, selected && styles.areaMarkerActive]} />
+            <View style={styles.areaCopy}>
+              <Text style={[styles.areaLabel, selected && styles.areaLabelActive]}>{area.label}</Text>
+            </View>
+            {area.id === 'communication' && messageBadge ? (
+              <View style={styles.navUnreadBadge}>
+                <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      });
+
+  if (layout.isDesktop || layout.isTablet) {
+    return <View style={[styles.areaHorizontal, styles.areaWrap]}>{items}</View>;
+  }
+
+  return <ScrollView horizontal showsHorizontalScrollIndicator style={styles.areaHorizontal} contentContainerStyle={styles.areaHorizontalContent}>{items}</ScrollView>;
+}
+
+
+function CommandPalette({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const results = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    const moduleResults = [
+      ...editionShortcuts.map((shortcut) => ({
+        id: `shortcut-${shortcut.id}`,
+        label: shortcut.label,
+        description: shortcut.description,
+        route: shortcut.route,
+        glyph: shortcut.glyph,
+        keywords: shortcut.keywords,
+      })),
+      ...editionModules.flatMap((module) => [
+      {
+        id: `module-${module.key}`,
+        label: module.label,
+        description: module.description,
+        route: module.route,
+        glyph: module.glyph,
+        keywords: `${module.label} ${module.description}`,
+      },
+      ...liquidWorkAreas[module.key].map((area) => ({
+        id: `${module.key}-${area.id}`,
+        label: `${module.label} · ${area.label}`,
+        description: area.description,
+        route: area.route,
+        glyph: module.glyph,
+        keywords: `${module.label} ${area.label} ${area.description}`,
+      })),
+    ]),
+    ];
+    if (!normalized) return moduleResults.slice(0, 18);
+    return moduleResults
+      .filter((item) =>
+        `${item.label} ${item.description} ${item.keywords}`.toLowerCase().includes(normalized),
+      )
+      .slice(0, 24);
+  }, [query]);
+
+  const open = (route: string) => {
+    onClose();
+    setQuery('');
+    router.push(route as never);
+  };
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable accessibilityLabel="Befehlspalette schließen" onPress={onClose} style={styles.modalBackdrop}>
+        <Pressable
+          accessibilityRole="none"
+          onPress={(event) => event.stopPropagation()}
+          style={styles.paletteWrap}
+        >
+          <LiquidSurface active contentStyle={styles.palette}>
+            <View style={styles.paletteHeader}>
+              <View style={styles.paletteTitle}>
+                <LiquidText variant="kicker">COMMAND PALETTE</LiquidText>
+                <LiquidText variant="section" accessibilityRole="header">Suchen und öffnen</LiquidText>
+              </View>
+              <LiquidIconButton label="Schließen" glyph="×" onPress={onClose} />
+            </View>
+            <LiquidField
+              label="Suche"
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Modul, Datensatz oder Aktion suchen"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <ScrollView style={styles.paletteResults} keyboardShouldPersistTaps="handled">
+              {results.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  onPress={() => open(item.route)}
+                  style={({ pressed }) => [
+                    styles.paletteResult,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View style={styles.paletteGlyph}>
+                    <LiquidGlyph glyph={item.glyph} size={20} />
+                  </View>
+                  <View style={styles.paletteResultCopy}>
+                    <Text style={styles.paletteResultLabel}>{item.label}</Text>
+                    <Text style={styles.paletteResultDescription}>{item.description}</Text>
+                  </View>
+                  <LiquidGlyph glyph="›" size={18} />
+                </Pressable>
+              ))}
+              {!results.length ? (
+                <View style={styles.noResults}>
+                  <LiquidText variant="section">Keine Treffer</LiquidText>
+                  <LiquidText variant="meta">
+                    Prüfen Sie die Schreibweise oder öffnen Sie ein Modul über das Dock.
+                  </LiquidText>
+                </View>
+              ) : null}
+            </ScrollView>
+          </LiquidSurface>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function NotificationCenter({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable
+        accessibilityLabel="Benachrichtigungen schließen"
+        onPress={onClose}
+        style={styles.modalBackdrop}
+      >
+        <Pressable
+          accessibilityRole="none"
+          onPress={(event) => event.stopPropagation()}
+          style={styles.noticeWrap}
+        >
+          <LiquidSurface active contentStyle={styles.noticePanel}>
+            <View style={styles.paletteHeader}>
+              <View style={styles.paletteTitle}>
+                <LiquidText variant="kicker">BENACHRICHTIGUNGEN</LiquidText>
+                <LiquidText variant="section" accessibilityRole="header">
+                  Aktueller Arbeitskontext
+                </LiquidText>
+              </View>
+              <LiquidIconButton label="Schließen" glyph="×" onPress={onClose} />
+            </View>
+            <LiquidState
+              kind="empty"
+              title="Keine neuen Meldungen"
+              message="Es liegen keine systembestätigten Benachrichtigungen für diesen Kontext vor."
+            />
+          </LiquidSurface>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ProfileMenu({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const auth = useAuth();
+  const displayName =
+    auth.profile?.displayName || auth.user?.displayName || 'CareSuite Profil';
+  const role = auth.profile?.roleKey ?? 'CareSuite';
+  const avatarUrl = auth.profile?.avatarUrl?.trim() || undefined;
+  const avatarVersion = auth.profile?.updatedAt ?? auth.profile?.avatarUrl;
+
+  const open = (route: string) => {
+    onClose();
+    router.push(route as never);
+  };
+
+  const signOut = async () => {
+    onClose();
+    await auth.signOut();
+    router.replace('/auth' as never);
+  };
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable accessibilityLabel="Profilmenü schließen" onPress={onClose} style={styles.modalBackdrop}>
+        <Pressable
+          accessibilityRole="none"
+          onPress={(event) => event.stopPropagation()}
+          style={styles.profileMenuWrap}
+        >
+          <LiquidSurface active contentStyle={styles.profileMenu}>
+            <View style={styles.profileMenuHeader}>
+              <TopbarProfileAvatar
+                name={displayName}
+                avatarUrl={avatarUrl}
+                avatarVersion={avatarVersion}
+                accentColor={liquidColors.blue400}
+                size="lg"
+              />
+              <View style={styles.profileMenuIdentity}>
+                <Text numberOfLines={1} style={styles.profileMenuName}>{displayName}</Text>
+                <Text numberOfLines={1} style={styles.profileMenuRole}>{role}</Text>
+              </View>
+              <LiquidIconButton label="Schließen" glyph="×" onPress={onClose} />
+            </View>
+            <LiquidDivider />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/settings/profile')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="♙" size={21} /></View>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Profil & Sicherheit</Text>
+                <Text style={styles.profileMenuDetail}>Persönliche Angaben und Zugang</Text>
+              </View>
+              <LiquidGlyph glyph="›" size={18} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/office/messages')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="▱" size={21} /></View>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Nachrichten</Text>
+                <Text style={styles.profileMenuDetail}>Unterhaltungen und Aufgaben</Text>
+              </View>
+              <LiquidGlyph glyph="›" size={18} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/business/office/payroll')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="€" size={21} /></View>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Gehaltsstatistik</Text>
+                <Text style={styles.profileMenuDetail}>Monatsübersicht und Zeitkonto</Text>
+              </View>
+              <LiquidGlyph glyph="›" size={18} />
+            </Pressable>
+            <LiquidDivider />
+            <LiquidButton
+              fullWidth
+              icon="↪"
+              label="Sicher abmelden"
+              variant="danger"
+              onPress={() => void signOut()}
+            />
+          </LiquidSurface>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function CommandBar({
+  activeModule,
+  onOpenSearch,
+  onOpenNotifications,
+  onOpenProfile,
+}: {
+  activeModule: LiquidModuleKey;
+  onOpenSearch: () => void;
+  onOpenNotifications: () => void;
+  onOpenProfile: () => void;
+}) {
+  const layout = useLiquidLayout();
+  const { isPhone } = layout;
+  const router = useRouter();
+  const { profile, user } = useAuth();
+  const displayName = profile?.displayName || user?.displayName || 'Profil';
+  const role = profile?.roleKey ?? 'CareSuite';
+  const module = getLiquidModule(activeModule);
+  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
+  const avatarVersion = profile?.updatedAt ?? profile?.avatarUrl;
+
+  return (
+    <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
+      <View style={styles.commandIdentity}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="CareSuite HealthOS Startseite"
+          onPress={() => router.push((Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/') as never)}
+          style={({ pressed }) => [styles.orbitBrand, pressed && styles.pressed]}
+        >
+          <Text style={styles.orbitBrandCare}>CareSuite</Text>
+          <Text style={styles.orbitBrandHealth}>HealthOS</Text>
+          <View style={styles.orbitBrandBadge}>
+            <Text style={styles.orbitBrandBadgeText}>ORBIT</Text>
+          </View>
+        </Pressable>
+        {!isPhone ? <View style={styles.commandIdentityDivider} /> : null}
+        {!isPhone ? (
+          <View style={styles.commandContext}>
+            <Text style={styles.commandEyebrow}>{module.label.toUpperCase()}</Text>
+            <Text numberOfLines={1} style={styles.commandTitle}>{module.description}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.commandActions}>
+        {!isPhone ? (
+          <LiquidIconButton label="Suchen" glyph="⌕" onPress={onOpenSearch} />
+        ) : null}
+        {!isPhone ? (
+          layout.width < 1320
+            ? <PortalTextSizeControls compact />
+            : <PortalTextSizeControls />
+        ) : null}
+        {!isPhone ? (
+          <View accessible accessibilityLabel="Live" style={styles.commandLive}>
+            <View style={styles.commandLiveDot} />
+            <Text style={styles.commandLiveLabel}>Live</Text>
+          </View>
+        ) : null}
+        <LiquidIconButton
+          label="Benachrichtigungen"
+          glyph="☷"
+          onPress={onOpenNotifications}
+        />
+        {!isPhone ? (
+          <View style={styles.profile}>
+            {layout.width >= 1320 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Profil ${displayName} öffnen`}
+                onPress={onOpenProfile}
+                style={({ pressed }) => [styles.profileCopy, pressed && styles.pressed]}
+              >
+                <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
+                <Text numberOfLines={1} style={styles.profileRole}>{role}</Text>
+              </Pressable>
+            ) : null}
+            <TopbarProfileAvatar
+              name={displayName}
+              avatarUrl={avatarUrl}
+              avatarVersion={avatarVersion}
+              accentColor={liquidColors.blue400}
+              size="lg"
+            />
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function BottomNavigation({
+  activeModule,
+  onPrimaryAction,
+  messageBadge,
+}: {
+  activeModule: LiquidModuleKey;
+  onPrimaryAction: () => void;
+  messageBadge?: string;
+}) {
+  const router = useRouter();
+  const items = [
+    { key: 'home', label: 'Heute', glyph: '⌂', route: Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/' },
+    { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist/einsaetze' },
+    { key: 'action', label: 'Neu', glyph: '+', route: null },
+    { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/business/messages' },
+    { key: 'settings', label: 'Profil', glyph: '♙', route: '/settings/profile' },
+  ] as const;
+
+  return (
+    <View accessibilityRole="tablist" style={styles.bottomNav}>
+      {items.map((item) => {
+        const selected = item.key === activeModule;
+        const central = item.key === 'action';
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="tab"
+            accessibilityLabel={`${item.label}${item.key === 'messages' && messageBadge ? `. ${messageBadge}` : ''}`}
+            accessibilityState={{ selected }}
+            onPress={() => item.route ? router.push(item.route as never) : onPrimaryAction()}
+            style={({ pressed }) => [
+              styles.bottomItem,
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={[
+              styles.bottomGlyph,
+              selected && styles.bottomGlyphActive,
+              central && styles.bottomGlyphCentral,
+            ]}>
+              <LiquidGlyph active={selected || central} glyph={item.glyph} size={22} />
+              {item.key === 'messages' && messageBadge ? (
+                <View style={styles.bottomUnreadBadge}>
+                  <Text style={styles.bottomUnreadBadgeText}>{messageBadge}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.bottomLabel, selected && styles.bottomLabelActive]}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function LiquidCommandShell({
+  activeModule,
+  activeArea,
+  title,
+  subtitle,
+  contextLabel = 'Aktiver Arbeitskontext',
+  contextDetail = 'Heute · alle Standorte',
+  children,
+  aside,
+  asideWidth = 336,
+  primaryActionLabel,
+  onPrimaryAction,
+  allowPhoneLandscape = false,
+  contentMode = 'scroll',
+  showPageHeader = true,
+  showContextBar = true,
+}: LiquidCommandShellProps) {
+  const pathname = usePathname();
+  const layout = useLiquidLayout();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [pageScrollHeight, setPageScrollHeight] = useState(0);
+  const [fillContentOffset, setFillContentOffset] = useState(0);
+  const { badges: messageBadges } = useOfficeMessageNavBadges(true);
+  const messageBadge = messageBadges.messages;
+  const module = getLiquidModule(activeModule);
+  const actionLabel = primaryActionLabel ?? module.primaryAction;
+  const action = onPrimaryAction ?? (() => setPaletteOpen(true));
+  const isDesktopHome = pathname === '/' || (Platform.OS === 'web' && pathname === WEB_DESKTOP_ROUTE);
+  const boundedPopup = !isDesktopHome && contentMode === 'fill';
+  const measuredFillHeight =
+    !boundedPopup && contentMode === 'fill' && pageScrollHeight > 0
+      ? Math.max(320, pageScrollHeight + fillContentOffset)
+      : null;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !isDesktopHome) return;
+
+    const handleDocumentWheel = (event: WheelEvent) => {
+      const outer = document.querySelector<HTMLElement>(
+        '[data-testid="liquid-command-page-scroll"]',
+      );
+      const target = event.target instanceof HTMLElement ? event.target : null;
+
+      if (!outer || !target || !outer.contains(target)) {
+        return;
+      }
+
+      const deltaY = Number(event.deltaY || 0);
+      const maxOuterScroll = Math.max(0, outer.scrollHeight - outer.clientHeight);
+      if (!deltaY || maxOuterScroll <= 1) return;
+
+      if (deltaY > 0 && outer.scrollTop < maxOuterScroll - 1) {
+        event.preventDefault();
+        outer.scrollTop = Math.min(maxOuterScroll, outer.scrollTop + deltaY);
+        return;
+      }
+
+      if (deltaY >= 0 || outer.scrollTop <= 1) return;
+
+      let node: HTMLElement | null = target;
+      let innerHasScrollOffset = false;
+      while (node && node !== outer) {
+        if (node.scrollHeight > node.clientHeight + 1 && node.scrollTop > 1) {
+          innerHasScrollOffset = true;
+          break;
+        }
+        node = node.parentElement;
+      }
+
+      if (!innerHasScrollOffset) {
+        event.preventDefault();
+        outer.scrollTop = Math.max(0, outer.scrollTop + deltaY);
+      }
+    };
+
+    document.addEventListener('wheel', handleDocumentWheel, { capture: true, passive: false });
+    return () => document.removeEventListener('wheel', handleDocumentWheel, { capture: true });
+  }, [isDesktopHome, pathname]);
+
+  if (Platform.OS !== 'web' && layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
+    return <RotateDeviceScreen />;
+  }
+
+  const showAreaNavigation =
+    activeModule !== 'home' && liquidWorkAreas[activeModule].length > 0;
+
+  const workspaceContent = (
+    <View
+      style={[
+        styles.workspace,
+        contentMode === 'fill' && styles.workspaceFill,
+        measuredFillHeight ? styles.measuredFillSurface : null,
+        measuredFillHeight ? { height: measuredFillHeight, minHeight: measuredFillHeight } : null,
+      ]}
+    >
+      {contentMode === 'fill' ? (
+        <View
+          style={[
+            styles.contentFill,
+            { padding: boundedPopup && (layout.isPhone || !showPageHeader) ? 0 : layout.contentPadding },
+            !layout.isDesktop && !boundedPopup && styles.contentFillCompact,
+          ]}
+        >
+          {showPageHeader ? (
+            <View style={styles.pageHeader}>
+              <View style={styles.pageHeading}>
+                <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
+                  {title}
+                </LiquidText>
+                <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+              </View>
+            </View>
+          ) : null}
+          <View
+            style={styles.contentPrimaryFill}
+            onLayout={(event) => {
+              const nextOffset = Math.max(0, Math.round(event.nativeEvent.layout.y));
+              setFillContentOffset((current) => current === nextOffset ? current : nextOffset);
+            }}
+          >
+            {children}
+          </View>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.content,
+            { padding: layout.contentPadding },
+            !showPageHeader && styles.contentWithoutHeader,
+            layout.isPhone && styles.contentPhone,
+          ]}
+        >
+          {showPageHeader ? (
+            <View style={styles.pageHeader}>
+              <View style={styles.pageHeading}>
+                <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                <LiquidText
+                  variant={layout.isPhone ? 'title' : 'display'}
+                  accessibilityRole="header"
+                >
+                  {title}
+                </LiquidText>
+                <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+              </View>
+              {(!layout.isPhone || Platform.OS !== 'web') ? (
+                <LiquidButton compact={layout.isPhone} label={actionLabel} icon="+" onPress={action} />
+              ) : null}
+            </View>
+          ) : null}
+          <View
+            style={[
+              styles.contentColumns,
+              aside && layout.isDesktop ? styles.contentColumnsWithAside : null,
+            ]}
+          >
+            <View style={styles.contentPrimary}>{children}</View>
+            {aside && (layout.isDesktop || Platform.OS !== 'web') ? (
+              <View style={[styles.contentAside, { width: layout.isDesktop ? asideWidth : '100%' }, !layout.isDesktop && { marginTop: 16 }]}>{aside}</View>
+            ) : null}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  if (!isDesktopHome) {
+    return (
+      <View
+        accessibilityViewIsModal
+        style={styles.centralPopupContent}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
+          : {})}
+      >
+        {boundedPopup ? (
+          <View style={styles.centralPopupFill} testID="liquid-command-page-fill">
+            {workspaceContent}
+          </View>
+        ) : <ScrollView
+          testID="liquid-command-page-scroll"
+          style={styles.centralPopupScroll}
+          contentContainerStyle={styles.centralPopupScrollContent}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
+        >
+          {workspaceContent}
+        </ScrollView>}
+        <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        <NotificationCenter visible={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+        <ProfileMenu visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      </View>
+    );
+  }
+
+  return (
+    <LiquidBackdrop>
+      <View style={styles.shell}>
+        <View style={styles.shellMain}>
+          <CommandBar
+            activeModule={activeModule}
+            onOpenSearch={() => setPaletteOpen(true)}
+            onOpenNotifications={() => setNotificationsOpen(true)}
+            onOpenProfile={() => setProfileOpen(true)}
+          />
+          <ScrollView
+            testID="liquid-command-page-scroll"
+            style={styles.shellScroll}
+            contentContainerStyle={styles.shellScrollContent}
+            onLayout={(event) => {
+              const nextHeight = Math.max(0, Math.round(event.nativeEvent.layout.height));
+              setPageScrollHeight((current) => current === nextHeight ? current : nextHeight);
+            }}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
+            {showContextBar ? (
+              <View style={styles.contextBar}>
+                <View style={styles.contextCopy}>
+                  <Text style={styles.contextLabel}>{contextLabel}</Text>
+                  <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
+                </View>
+                <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
+              </View>
+            ) : null}
+            {showAreaNavigation ? (
+              <WorkAreaNavigation
+                moduleKey={activeModule}
+                activeArea={activeArea}
+                messageBadge={messageBadge}
+              />
+            ) : null}
+            {layout.isDesktop ? (
+              <View
+                style={[
+                  styles.workspaceFrame,
+                  contentMode === 'fill' && styles.workspaceFrameFill,
+                  measuredFillHeight ? styles.measuredFillSurface : null,
+                  measuredFillHeight ? { height: measuredFillHeight, minHeight: measuredFillHeight } : null,
+                ]}
+              >
+                {workspaceContent}
+              </View>
+            ) : workspaceContent}
+          </ScrollView>
+        </View>
+      </View>
+      <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <NotificationCenter
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
+      <ProfileMenu visible={profileOpen} onClose={() => setProfileOpen(false)} />
+    </LiquidBackdrop>
+  );
+}
+
+const styles = StyleSheet.create({
+  centralPopupContent: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
+    backgroundColor: Platform.OS === 'web' ? 'rgba(4, 17, 37, 0.96)' : '#F6FAFF',
+    overflow: 'hidden',
+    borderRadius: Platform.OS === 'web' ? 28 : 18,
+    borderWidth: 1,
+    borderColor: 'rgba(132, 213, 255, 0.5)',
+    shadowColor: '#071A37',
+    shadowOpacity: 0.46,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 18 },
+  },
+  centralPopupFill: { flex: 1, minHeight: 0, minWidth: 0 },
+  centralPopupScroll: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}) },
+  centralPopupScrollContent: { flexGrow: 1 },
+  orbitModuleBar: {
+    minHeight: 76,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: liquidLayers.dock,
+  },
+  orbitBrand: {
+    flexShrink: 0,
+    minHeight: 46,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  orbitBrandCare: {
+    color: '#0B1220',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  orbitBrandHealth: {
+    color: '#0284C7',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '500',
+    letterSpacing: -0.5,
+  },
+  orbitBrandBadge: {
+    marginLeft: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#0B1220',
+  },
+  orbitBrandBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  orbitModuleItems: {
+    minWidth: '100%',
+    flexGrow: 1,
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+  },
+  orbitModuleItem: {
+    minWidth: 174,
+    minHeight: 56,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    flexGrow: 1,
+    flexBasis: 174,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+  orbitModuleItemCompact: {
+    minWidth: 112,
+    flexBasis: 112,
+    paddingHorizontal: 10,
+  },
+  orbitModuleItemActive: {
+    borderColor: 'rgba(37,99,235,0.24)',
+    backgroundColor: 'rgba(37,99,235,0.1)',
+  },
+  orbitModuleLabel: {
+    color: '#475569',
+    flexShrink: 0,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  orbitModuleLabelActive: {
+    color: '#0B1220',
+  },
+  orbitModuleGlyph: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.08)',
+    backgroundColor: 'rgba(248,251,255,0.94)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orbitModuleGlyphActive: {
+    borderColor: 'rgba(37,99,235,0.32)',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+  },
+  shell: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  noticeWrap: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'flex-end',
+    margin: 24,
+  },
+  noticePanel: {
+    padding: 20,
+    gap: 16,
+  },
+  profileMenuWrap: {
+    width: '100%',
+    maxWidth: 430,
+    alignSelf: 'flex-end',
+    margin: 24,
+  },
+  profileMenu: {
+    padding: 18,
+    gap: 12,
+  },
+  profileMenuHeader: {
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileMenuAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileMenuAvatarLabel: {
+    color: '#0B1220',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  profileMenuIdentity: {
+    minWidth: 0,
+    flex: 1,
+  },
+  profileMenuName: {
+    color: '#0B1220',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '800',
+  },
+  profileMenuRole: {
+    color: '#64748B',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  profileMenuRow: {
+    minHeight: 64,
+    paddingHorizontal: 10,
+    borderRadius: liquidRadius.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileMenuGlyph: {
+    width: 32,
+    color: liquidColors.blue200,
+    fontSize: 22,
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  profileMenuCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 2,
+  },
+  profileMenuLabel: {
+    color: '#0B1220',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  profileMenuDetail: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  shellMain: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  shellScroll: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+  },
+  shellScrollContent: {
+    width: '100%',
+    minHeight: '100%',
+    flexGrow: 1,
+  },
+  contentWithoutHeader: {
+    paddingTop: 0,
+  },
+  dock: {
+    width: 232,
+    paddingHorizontal: 14,
+    paddingVertical: 20,
+    borderRightWidth: 1,
+    borderRightColor: liquidColors.white12,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    alignItems: 'stretch',
+    gap: 18,
+    zIndex: liquidLayers.dock,
+  },
+  dockBrand: {
+    gap: 14,
+  },
+  dockBrandCopy: {
+    gap: 3,
+    paddingHorizontal: 4,
+  },
+  dockKicker: {
+    color: liquidColors.blue200,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  dockTitle: {
+    color: '#0B1220',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  dockItems: {
+    gap: 6,
+    paddingBottom: 20,
+    paddingTop: 2,
+  },
+  dockItem: {
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: liquidRadius.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  dockItemActive: {
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(37,99,235,0.12)',
+  },
+  dockGlyph: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: 'rgba(37,99,235,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dockGlyphActive: {
+    backgroundColor: 'rgba(22,131,255,0.24)',
+  },
+  dockItemCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 1,
+  },
+  navUnreadBadge: {
+    minWidth: 42,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navUnreadBadgeText: {
+    color: '#0B1220',
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
+  },
+  dockLabel: {
+    color: '#334155',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  dockLabelActive: {
+    color: '#0B1220',
+  },
+  dockItemDetail: {
+    color: liquidColors.blue200,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '700',
+    letterSpacing: 0.35,
+  },
+  dockLogout: {
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderTopColor: liquidColors.white12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  dockLogoutLabel: {
+    color: '#334155',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  commandBar: {
+    minHeight: 82,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white12,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    zIndex: liquidLayers.dock,
+  },
+  commandBarPhone: {
+    minHeight: 72,
+    paddingHorizontal: 16,
+  },
+  commandIdentity: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  commandIdentityDivider: {
+    width: 1,
+    height: 38,
+    backgroundColor: 'rgba(15,23,42,0.12)',
+  },
+  commandContext: {
+    minWidth: 0,
+    maxWidth: 480,
+    flex: 1,
+    gap: 4,
+  },
+  commandEyebrow: {
+    color: liquidColors.blue200,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  commandTitle: {
+    color: '#0B1220',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  commandActions: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  commandLive: {
+    minWidth: 78,
+    height: 44,
+    paddingHorizontal: 13,
+    borderRadius: liquidRadius.small,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.42)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  commandLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#1683FF',
+  },
+  commandLiveLabel: {
+    color: '#1683FF',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  profile: {
+    minHeight: 60,
+    maxWidth: 250,
+    paddingLeft: 11,
+    paddingRight: 3,
+    borderRadius: liquidRadius.small,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  profileCopy: {
+    minWidth: 0,
+    alignItems: 'flex-end',
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(37,99,235,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileName: {
+    maxWidth: 150,
+    color: '#0B1220',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  profileRole: {
+    color: '#64748B',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  contextBar: {
+    minHeight: 44,
+    paddingHorizontal: 22,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white08,
+    backgroundColor: 'rgba(248,251,255,0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: liquidSpace[3],
+  },
+  contextCopy: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 9,
+  },
+  contextLabel: {
+    color: '#172033',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  contextDetail: {
+    minWidth: 0,
+    flex: 1,
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  workspace: {
+    width: '100%',
+    minWidth: 0,
+    flexDirection: 'row',
+  },
+  workspaceFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+  workspaceFrame: {
+    minWidth: 0,
+    margin: 12,
+  },
+  workspaceFrameFill: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  measuredFillSurface: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
+  areaRow: {
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  areaSelected: {
+    borderLeftColor: liquidColors.blue500,
+    backgroundColor: 'rgba(20,120,255,0.12)',
+  },
+  areaMarker: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: liquidColors.white32,
+  },
+  areaMarkerActive: {
+    backgroundColor: liquidColors.blue400,
+  },
+  areaCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 2,
+  },
+  areaLabel: {
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  areaLabelActive: {
+    color: '#0B1220',
+  },
+  areaDescription: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  areaHorizontal: {
+    flexGrow: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white08,
+    backgroundColor: 'rgba(248,251,255,0.82)',
+  },
+  areaHorizontalContent: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    gap: 7,
+  },
+  areaWrap: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    gap: 7,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  areaChip: {
+    minHeight: 36,
+    paddingHorizontal: 11,
+    borderRadius: liquidRadius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: 'rgba(37,99,235,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  contentFill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    gap: 14,
+  },
+  contentFillCompact: {
+    paddingBottom: 104,
+  },
+  contentPrimaryFill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  content: {
+    width: '100%',
+    maxWidth: 1920,
+    alignSelf: 'center',
+    paddingBottom: 48,
+    gap: 16,
+  },
+  contentPhone: {
+    paddingBottom: Platform.OS === 'web' ? 112 : 24,
+  },
+  pageHeader: {
+    flexDirection: 'row',
+    flexWrap: Platform.OS === 'web' ? 'nowrap' : 'wrap',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  pageHeading: {
+    minWidth: 0,
+    flex: 1,
+    gap: 6,
+  },
+  pageSubtitle: {
+    maxWidth: 760,
+    color: '#334155',
+  },
+  contentColumns: {
+    width: '100%',
+  },
+  contentColumnsWithAside: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  contentPrimary: {
+    minWidth: 0,
+    flex: 1,
+    gap: 14,
+  },
+  contentAside: {
+    width: 336,
+    gap: 14,
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: Platform.OS === 'web' ? 10 : 14,
+    minHeight: 74,
+    paddingHorizontal: 6,
+    paddingVertical: 7,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    zIndex: liquidLayers.dock,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.34,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  bottomItem: {
+    minWidth: 56,
+    minHeight: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  bottomGlyph: {
+    minWidth: 34,
+    height: 32,
+    paddingHorizontal: 8,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomUnreadBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -15,
+    minWidth: 36,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomUnreadBadgeText: {
+    color: '#0B1220',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '900',
+  },
+  bottomGlyphActive: {
+    backgroundColor: 'rgba(37,99,235,0.12)',
+  },
+  bottomGlyphCentral: {
+    width: 46,
+    height: 46,
+    marginTop: -18,
+    borderRadius: 23,
+    borderWidth: 1,
+    borderColor: liquidColors.blue200,
+    backgroundColor: liquidColors.blue600,
+  },
+  bottomGlyphText: {
+    color: '#334155',
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  bottomGlyphTextActive: {
+    color: '#0B1220',
+  },
+  bottomLabel: {
+    color: '#64748B',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '600',
+  },
+  bottomLabelActive: {
+    color: liquidColors.blue200,
+  },
+  modalBackdrop: {
+    flex: 1,
+    padding: 18,
+    backgroundColor: 'rgba(15,23,42,0.34)',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  paletteWrap: {
+    width: '100%',
+    maxWidth: 760,
+    maxHeight: '88%',
+    marginTop: Platform.OS === 'web' ? 50 : 28,
+  },
+  palette: {
+    padding: 18,
+    gap: 16,
+  },
+  paletteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  paletteTitle: {
+    gap: 3,
+  },
+  paletteResults: {
+    maxHeight: 520,
+  },
+  paletteResult: {
+    minHeight: 66,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white08,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paletteGlyph: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paletteGlyphText: {
+    color: liquidColors.blue200,
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  paletteResultCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 2,
+  },
+  paletteResultLabel: {
+    color: '#0B1220',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  paletteResultDescription: {
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  noResults: {
+    paddingVertical: 28,
+    alignItems: 'center',
+    gap: 5,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
+  focused: {
+    borderWidth: 2,
+    borderColor: liquidColors.blue200,
+  },
+  rotate: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rotateCard: {
+    maxWidth: 660,
+    padding: 28,
+    alignItems: 'center',
+    gap: 14,
+  },
+  centerText: {
+    textAlign: 'center',
+  },
+});

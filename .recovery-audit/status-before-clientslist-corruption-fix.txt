@@ -1,0 +1,10 @@
+﻿ D app/office/(tabs)/messages.tsx
+ M src/data/demo/officeDashboard.ts
+ M src/hooks/useClientList.ts
+ M src/hooks/useEmployeeList.ts
+ M src/lib/navigation/modulenav/index.ts
+ M src/lib/navigation/officeNavigation.ts
+ M src/lib/services/clients/clientListQueryOptions.ts
+M  src/lib/supabase/mappers/clientMapper.ts
+ M src/screens/office/EmployeesListScreen.tsx
+?? .recovery-audit/status-before-clientslist-corruption-fix.txt

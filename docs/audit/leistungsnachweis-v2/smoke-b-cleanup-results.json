@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-07-06T10:23:45.581Z",
+  "proofId": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
+  "visitId": "678696dc-0568-4501-aa09-22305f2fa372",
+  "dryRun": false,
+  "before": {
+    "status": "draft",
+    "pdfStoragePath": null,
+    "pdfHash": null,
+    "signatureId": "569b15b7-b473-4f18-9990-a0f73c41f498",
+    "fingerprint": {
+      "taskCount": 4,
+      "taskTitles": [
+        "Küche aufräumen",
+        "Boden wischen",
+        "Wäsche sortieren",
+        "Fenster putzen"
+      ],
+      "signedAt": "2026-07-02T16:19:47.544+00:00",
+      "signerName": "Erika Mustermann",
+      "visitTimesHash": "{\"arrivedAt\":\"2026-07-02T16:18:20.475+00:00\",\"activeTimer\":null,\"driveSeconds\":23,\"pauseSeconds\":null,\"totalSeconds\":45,\"driveStartedAt\":\"2026-07-02T16:17:57.143+00:00\",\"pauseStartedAt\":null,\"serviceEndedAt\":\"2026-07-02T16:18:54.688+00:00\",\"serviceSeconds\":22,\"serviceStartedAt\":\"2026-07-02T16:18:32.66+00:00\"}",
+      "documentation": "submitted",
+      "documentationNote": "submitted",
+      "statusFields": {
+        "clientName": "Erika Mustermann",
+        "serviceName": "P0-E2E Testeinsatz"
+      }
+    }
+  },
+  "cleanupVariant": "B",
+  "cleanupReason": "Audit-Entwurf hatte vor Smoke B nachweislich tasks: [] (siehe proof-inventory / pre-smoke scan). Nur Test-Tasks entfernt.",
+  "afterPlanned": {
+    "taskCount": 0,
+    "preserved": {
+      "signedAt": "2026-07-02T16:19:47.544+00:00",
+      "signerName": "Erika Mustermann",
+      "visitTimes": "present",
+      "pdfStoragePath": null
+    }
+  },
+  "patchStatus": 200,
+  "after": {
+    "status": "draft",
+    "pdfStoragePath": null,
+    "pdfHash": null,
+    "signatureId": "569b15b7-b473-4f18-9990-a0f73c41f498",
+    "fingerprint": {
+      "taskCount": 0,
+      "taskTitles": [],
+      "signedAt": "2026-07-02T16:19:47.544+00:00",
+      "signerName": "Erika Mustermann",
+      "visitTimesHash": "{\"arrivedAt\":\"2026-07-02T16:18:20.475+00:00\",\"activeTimer\":null,\"driveSeconds\":23,\"pauseSeconds\":null,\"totalSeconds\":45,\"driveStartedAt\":\"2026-07-02T16:17:57.143+00:00\",\"pauseStartedAt\":null,\"serviceEndedAt\":\"2026-07-02T16:18:54.688+00:00\",\"serviceSeconds\":22,\"serviceStartedAt\":\"2026-07-02T16:18:32.66+00:00\"}",
+      "documentation": "submitted",
+      "documentationNote": "submitted",
+      "statusFields": {
+        "clientName": "Erika Mustermann",
+        "serviceName": "P0-E2E Testeinsatz"
+      }
+    }
+  },
+  "verification": {
+    "signatureUnchanged": true,
+    "visitTimesUnchanged": true,
+    "statusUnchanged": true,
+    "pdfArtifactUnchanged": true,
+    "tasksCleared": true
+  },
+  "passAll": true
+}

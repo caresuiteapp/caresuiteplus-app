@@ -1,0 +1,180 @@
+{
+  "generatedAt": "2026-07-06T08:11:13.985Z",
+  "baseUrl": "http://localhost:8091",
+  "phase": "k16_manual_device_gate",
+  "k15SmokeRetest": {
+    "passed": 40,
+    "failed": 0,
+    "total": 40,
+    "exitCode": 0
+  },
+  "k15SmokeRegression": false,
+  "summary": {
+    "passed": 9,
+    "failed": 6,
+    "total": 15
+  },
+  "checks": [
+    {
+      "id": "seed_k15",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "k15_smoke_retest",
+      "pass": true,
+      "detail": "40/40"
+    },
+    {
+      "id": "login",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "desktop_overview",
+      "pass": true,
+      "detail": "overview_loaded"
+    },
+    {
+      "id": "desktop_messenger_inbox",
+      "pass": true,
+      "detail": "inbox"
+    },
+    {
+      "id": "desktop_messenger_thread",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "desktop_documents",
+      "pass": true,
+      "detail": "documents_tab"
+    },
+    {
+      "id": "desktop_proofs_card",
+      "pass": false,
+      "detail": "missing"
+    },
+    {
+      "id": "manual_signature_detail",
+      "pass": true,
+      "detail": "detail_ready"
+    },
+    {
+      "id": "manual_signature_cta",
+      "pass": true,
+      "detail": "sign_cta"
+    },
+    {
+      "id": "manual_signature_modal",
+      "pass": false,
+      "detail": "modal_missing"
+    },
+    {
+      "id": "manual_signature_completed",
+      "pass": false,
+      "detail": "modal_not_opened"
+    },
+    {
+      "id": "manual_proofs_pdf_button",
+      "pass": false,
+      "detail": "missing"
+    },
+    {
+      "id": "manual_proofs_pdf_action",
+      "pass": false,
+      "detail": "no_button",
+      "skipped": true
+    },
+    {
+      "id": "manual_proofs_sign_button",
+      "pass": false,
+      "detail": "missing"
+    }
+  ],
+  "deviceMatrix": {
+    "iphone_safari": {
+      "tested": false,
+      "browser": "Safari",
+      "messenger": "nicht_geprüft",
+      "keyboardSafeArea": "nicht_geprüft",
+      "documents": "nicht_geprüft",
+      "proofs": "nicht_geprüft",
+      "overall": "nicht_geprüft",
+      "note": "Kein physisches iPhone in dieser Audit-Session verfügbar"
+    },
+    "android_chrome": {
+      "tested": false,
+      "browser": "Chrome",
+      "messenger": "nicht_geprüft",
+      "keyboardSafeArea": "nicht_geprüft",
+      "documents": "nicht_geprüft",
+      "proofs": "nicht_geprüft",
+      "overall": "nicht_geprüft",
+      "note": "Kein physisches Android-Gerät in dieser Audit-Session verfügbar"
+    },
+    "ipad_safari": {
+      "tested": false,
+      "browser": "Safari/Chrome",
+      "messenger": "nicht_geprüft",
+      "keyboardSafeArea": "nicht_geprüft",
+      "documents": "nicht_geprüft",
+      "proofs": "nicht_geprüft",
+      "overall": "nicht_geprüft",
+      "note": "Kein physisches iPad in dieser Audit-Session verfügbar"
+    },
+    "desktop_chrome": {
+      "tested": true,
+      "browser": "Chromium (Desktop-Gegencheck)",
+      "messenger": "grün",
+      "keyboardSafeArea": "n/a",
+      "documents": "grün",
+      "proofs": "rot",
+      "overall": "rot",
+      "note": "Playwright Chromium auf localhost — kein Ersatz für echte Geräte"
+    }
+  },
+  "physicalDevicesTested": false,
+  "desktopCounterCheckOnly": true,
+  "signatureManual": {
+    "completed": false,
+    "reason": "modal_not_opened"
+  },
+  "proofsManual": {
+    "pdfBinaryTested": false,
+    "uiHonest": true
+  },
+  "screenshots": [
+    {
+      "name": "desktop_overview",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k16-manual-device-gate-screenshots/desktop_overview.png"
+    },
+    {
+      "name": "desktop_messenger_thread",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k16-manual-device-gate-screenshots/desktop_messenger_thread.png"
+    },
+    {
+      "name": "desktop_proofs",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k16-manual-device-gate-screenshots/desktop_proofs.png"
+    },
+    {
+      "name": "signature_detail_desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k16-manual-device-gate-screenshots/signature_detail_desktop.png"
+    },
+    {
+      "name": "signature_modal_desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k16-manual-device-gate-screenshots/signature_modal_desktop.png"
+    }
+  ],
+  "deployApproved": false,
+  "codeChangesInK16": false,
+  "k15Smoke": {
+    "passed": 40,
+    "failed": 0,
+    "total": 40,
+    "exitCode": 0
+  },
+  "login": {
+    "displayName": "Erika Mustermann"
+  }
+}

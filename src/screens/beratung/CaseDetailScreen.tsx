@@ -1,0 +1,112 @@
+import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
+import { CaseDetailHero } from '@/components/beratung';
+import { DetailInfoRow } from '@/components/detail';
+import { LockedActionBanner } from '@/components/permissions';
+import { ScreenShell } from '@/components/layout';
+import { ErrorState, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
+import { useCounselingCaseDetail } from '@/hooks/useCounselingCaseDetail';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/lib/auth/context';
+import { spacing, typography } from '@/theme';
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('de-DE', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function CaseDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { profile } = useAuth();
+  const { isReadOnly, roleLabel } = usePermissions();
+  const roleKey = profile?.roleKey ?? 'counselor';
+
+  const { data: counselingCase, loading, error, refresh, notFound } = useCounselingCaseDetail(id);
+
+  if (loading) {
+    return (
+      <ScreenShell title="Beratungsfall" subtitle="Wird geladen…">
+        <LoadingState message="Falldetails werden geladen…" />
+      </ScreenShell>
+    );
+  }
+
+  if (notFound || error) {
+    return (
+      <ScreenShell title="Beratungsfall" subtitle="Fehler">
+        <ErrorState
+          title={notFound ? 'Nicht gefunden' : 'Fehler'}
+          message={error ?? 'Der Beratungsfall existiert nicht.'}
+          onRetry={refresh}
+        />
+        <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
+
+  if (!counselingCase) return null;
+
+  return (
+    <ScreenShell
+      title={counselingCase.subject}
+      subtitle={`${counselingCase.clientName} · ${roleLabel ?? 'Demo'}`}
+      rightSlot={
+        <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
+      }
+    >
+      <CaseDetailHero
+        counselingCase={counselingCase}
+        roleKey={roleKey}
+        isReadOnly={isReadOnly}
+      />
+
+      {isReadOnly ? (
+        <LockedActionBanner
+          title="Lesemodus"
+          message="Sie können Fälle einsehen, aber nicht bearbeiten."
+          roleLabel={roleLabel}
+        />
+      ) : null}
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <SectionPanel title="Fallinformationen">
+          <DetailInfoRow label="Kategorie" value={counselingCase.category} />
+          <DetailInfoRow label="Eröffnet" value={formatDateTime(counselingCase.openedAt)} />
+          {counselingCase.closedAt ? (
+            <DetailInfoRow label="Abgeschlossen" value={formatDateTime(counselingCase.closedAt)} />
+          ) : null}
+          {counselingCase.nextAppointmentAt ? (
+            <DetailInfoRow
+              label="Nächster Termin"
+              value={formatDateTime(counselingCase.nextAppointmentAt)}
+            />
+          ) : null}
+        </SectionPanel>
+
+        <SectionPanel title="Beteiligte">
+          <DetailInfoRow label="Klient:in" value={counselingCase.clientName} />
+          <DetailInfoRow label="Berater:in" value={counselingCase.counselorName} />
+        </SectionPanel>
+
+        {counselingCase.summary ? (
+          <SectionPanel title="Zusammenfassung">
+            <Text style={styles.notes}>{counselingCase.summary}</Text>
+          </SectionPanel>
+        ) : null}
+      </ScrollView>
+    </ScreenShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
+  notes: { ...typography.body },
+});

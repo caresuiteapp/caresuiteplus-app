@@ -1,0 +1,158 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { PortalTabScreen } from './PortalTabScreen';
+import {
+  EmptyState, ErrorState, InfoBanner, LoadingState, PremiumBadge,
+  PremiumButton, PremiumCard, PremiumInput, SectionPanel,
+  WorkflowFeedbackOverlay, type WorkflowFeedbackKind,
+} from '@/components/ui';
+import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium } from '@/design/tokens/portalPremium';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import {
+  createExpenseClaim, decidePayrollStatement,
+  formatPayrollBalanceMinutes, formatPayrollMoney, formatPayrollMinutes, getPayrollPdfUrl,
+  loadEmployeePayrollMonth, uploadExpenseReceipt,
+} from '@/lib/payroll';
+import { EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/types/modules/payrollMonth';
+import { typography } from '@/theme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+
+const expenseCategories = Object.keys(EXPENSE_CATEGORY_LABELS) as ExpenseCategory[];
+const expenseStatus: Record<string, string> = { draft: 'Entwurf', submitted: 'Zur Prüfung', needs_info: 'Rückfrage', approved: 'Genehmigt', partially_approved: 'Teilweise genehmigt', rejected: 'Abgelehnt', reimbursed: 'Erstattet' };
+const statementStatus: Record<string, string> = { published: 'Bitte prüfen', confirmed: 'Bestätigt', rejected: 'Abgelehnt', locked: 'Gesperrt', paid: 'Ausgezahlt' };
+
+export function EmployeePayrollMonthScreen() {
+  const now = new Date(); const actor = usePortalActor();
+  const { isPhone } = useDeviceClass();
+  const [year, setYear] = useState(now.getFullYear()); const [month, setMonth] = useState(now.getMonth() + 1);
+  const [category, setCategory] = useState<ExpenseCategory>('receipt');
+  const [expenseDate, setExpenseDate] = useState(now.toISOString().slice(0, 10));
+  const [description, setDescription] = useState(''); const [purpose, setPurpose] = useState('');
+  const [amount, setAmount] = useState(''); const [mileageKm, setMileageKm] = useState('');
+  const [mileageRate, setMileageRate] = useState('0,30'); const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState(''); const [vehicle, setVehicle] = useState('');
+  const [receipt, setReceipt] = useState<{ uri: string; name: string; mimeType?: string | null } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [feedback, setFeedback] = useState<{ message: string; kind: WorkflowFeedbackKind } | null>(null);
+  const [busyMessage, setBusyMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
+  const query = useAsyncQuery(useCallback(async () => {
+    if (!actor.tenantId || !actor.employeeId) return { ok: false as const, error: 'Mitarbeitendenkonto ist nicht vollständig verknüpft.' };
+    return loadEmployeePayrollMonth(actor.tenantId, actor.employeeId, year, month);
+  }, [actor.tenantId, actor.employeeId, year, month]), [actor.tenantId, actor.employeeId, year, month], { enabled: !!actor.tenantId && !!actor.employeeId, queryKey: `payroll-month:${actor.tenantId}:${actor.employeeId}:${year}:${month}` });
+  useEffect(() => {
+    const cents = query.data?.mileageRateCents;
+    if (typeof cents === 'number' && Number.isFinite(cents)) {
+      setMileageRate((cents / 100).toFixed(2).replace('.', ','));
+    }
+  }, [query.data?.mileageRateCents]);
+  const label = useMemo(() => new Date(year, month - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }), [year, month]);
+  const changeMonth = (delta: number) => { const date = new Date(year, month - 1 + delta, 1); setYear(date.getFullYear()); setMonth(date.getMonth() + 1); setExpenseDate(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-01`); setFeedback(null); };
+  async function chooseReceipt() {
+    const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
+    if (!result.canceled && result.assets[0]) setReceipt({ uri: result.assets[0].uri, name: result.assets[0].name, mimeType: result.assets[0].mimeType });
+  }
+  async function submitExpense() {
+    if (!actor.tenantId || !actor.employeeId || saveLock.current) return;
+    setFeedback(null);
+    let receiptPath: string | null = null;
+    if (category !== 'mileage' && !receipt) {
+      setFeedback({ kind: 'warning', message: 'Bitte laden Sie die Quittung, Rechnung oder das Ticket als Beleg hoch.' });
+      return;
+    }
+    saveLock.current = true; setSaving(true);
+    try {
+      if (receipt) {
+        setBusyMessage('Beleg wird sicher hochgeladen…');
+        const uploaded = await uploadExpenseReceipt({ tenantId: actor.tenantId, employeeId: actor.employeeId, uri: receipt.uri, fileName: receipt.name, mimeType: receipt.mimeType });
+        if (!uploaded.ok) { setFeedback({ kind: 'error', message: uploaded.error }); return; }
+        receiptPath = uploaded.data.path;
+      }
+      setBusyMessage('Auslage wird geprüft und eingereicht…');
+      const km = Number(mileageKm.replace(',', '.')); const rateCents = Math.round(Number(mileageRate.replace(',', '.')) * 100);
+      const amountCents = category === 'mileage' ? Math.round(km * rateCents) : Math.round(Number(amount.replace(',', '.')) * 100);
+      const result = await createExpenseClaim({ tenantId: actor.tenantId, employeeId: actor.employeeId, expenseDate, category, description, businessPurpose: purpose, amountCents, receiptPath, mileageKm: category === 'mileage' ? km : null, mileageRateCents: category === 'mileage' ? rateCents : null, origin: origin || null, destination: destination || null, vehicleLabel: vehicle || null });
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      setBusyMessage('Monatsübersicht wird aktualisiert…');
+      setDescription(''); setPurpose(''); setAmount(''); setMileageKm(''); setOrigin(''); setDestination(''); setVehicle(''); setReceipt(null);
+      const refreshed = await query.refreshWithResult();
+      setFeedback({ kind: refreshed === false ? 'warning' : 'success', message: refreshed === false ? 'Auslage wurde eingereicht. Die Monatsübersicht konnte noch nicht aktualisiert werden.' : 'Auslage wurde mit Beleg zur Prüfung eingereicht.' });
+    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Auslage konnte nicht eingereicht werden. Bitte erneut versuchen.' });
+    } finally {
+      saveLock.current = false; setBusyMessage(null);
+      setSaving(false);
+    }
+  }
+  async function decide(decision: 'confirm' | 'reject') {
+    const statement = query.data?.statement; if (!statement || saveLock.current || query.loading) return;
+    if (decision === 'reject' && rejectReason.trim().length < 3) { setFeedback({ kind: 'warning', message: 'Bitte einen Ablehnungsgrund mit mindestens drei Zeichen eintragen.' }); return; }
+    saveLock.current = true;
+    setSaving(true); setFeedback(null); setBusyMessage(decision === 'confirm' ? 'Monatsübersicht wird bestätigt…' : 'Rückmeldung wird übermittelt…');
+    try {
+      const result = await decidePayrollStatement(statement.id, decision, rejectReason);
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      setRejectReason(''); const refreshed = await query.refreshWithResult();
+      setFeedback({ kind: refreshed === false ? 'warning' : 'success', message: refreshed === false ? 'Rückmeldung wurde gespeichert. Die Monatsübersicht konnte noch nicht aktualisiert werden.' : decision === 'confirm' ? 'Monatsübersicht verbindlich bestätigt.' : 'Monatsübersicht wurde mit Begründung abgelehnt.' });
+    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Rückmeldung konnte nicht gespeichert werden. Bitte erneut versuchen.' });
+    } finally {
+      saveLock.current = false; setBusyMessage(null); setSaving(false);
+    }
+  }
+  async function open(path: string | null) {
+    if (!path) return;
+    setFeedback(null); setBusyMessage('Dokument wird vorbereitet…');
+    try {
+      const result = await getPayrollPdfUrl(path);
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      await Linking.openURL(result.data);
+    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Dokument konnte nicht geöffnet werden. Bitte erneut versuchen.' });
+    } finally { setBusyMessage(null); }
+  }
+
+  if (query.loading && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><LoadingState message="Monatsübersicht wird geladen…" /></PortalTabScreen>;
+  if (query.error && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><ErrorState title="Nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
+  const statement = query.data?.statement; const snapshot = statement?.snapshot;
+  return <PortalTabScreen title="Gehalt & Auslagen" subtitle="Monatsübersicht prüfen, PDF bestätigen und Auslagen einreichen" scroll>
+    <View style={styles.page} testID="employee-payroll-month-screen">
+      <WorkflowFeedbackOverlay
+        kind={feedback?.kind}
+        loading={saving || Boolean(busyMessage)}
+        loadingMessage={busyMessage ?? 'Vorgang wird ausgeführt…'}
+        message={feedback?.message}
+        onDismiss={() => setFeedback(null)}
+      />
+      {query.refreshError ? <InfoBanner variant="warning" message={`Monatsübersicht nicht aktuell: ${query.refreshError}`} /> : null}
+      <View style={styles.monthBar}><PremiumButton title="←" disabled={saving} size="sm" variant="secondary" onPress={() => changeMonth(-1)} /><Text style={styles.monthTitle}>{label}</Text><PremiumButton title="→" disabled={saving} size="sm" variant="secondary" onPress={() => changeMonth(1)} /></View>
+      <SectionPanel title="Meine Monatsübersicht" subtitle="Erfasste Werte und Planung bis Monatsende">
+        {!statement || !snapshot ? <EmptyState title="Noch nicht veröffentlicht" message="Office hat für diesen Monat noch keine PDF-Übersicht zur Prüfung freigegeben." /> : <PremiumCard style={[styles.statement, isPhone && styles.statementPhone]}>
+          <View style={[styles.heading, isPhone && styles.headingPhone]}><View style={styles.flex}><Text style={styles.title}>Version {statement.version}</Text><Text style={styles.muted}>Stand {new Date(snapshot.generatedAt).toLocaleString('de-DE')}</Text></View><PremiumBadge label={statementStatus[statement.status] ?? statement.status} variant={statement.status === 'confirmed' || statement.status === 'paid' ? 'green' : statement.status === 'rejected' ? 'orange' : 'cyan'} /></View>
+          <View style={styles.metrics}><Text style={styles.metric}>Arbeitszeit <Text style={styles.strong}>{formatPayrollMinutes(snapshot.actualWorkMinutes)}</Text></Text><Text style={styles.metric}>Fahrzeit <Text style={styles.strong}>{formatPayrollMinutes(snapshot.travelMinutes)}</Text></Text><Text style={styles.metric}>Urlaub <Text style={styles.strong}>{formatPayrollMinutes(snapshot.vacationMinutes)}</Text></Text><Text style={styles.metric}>Krank <Text style={styles.strong}>{formatPayrollMinutes(snapshot.sickMinutes)}</Text></Text><Text style={styles.metric}>Geplant <Text style={styles.strong}>{formatPayrollMinutes(snapshot.plannedMinutes)}</Text></Text><Text style={styles.metric}>Zeitkonto <Text style={styles.strong}>{formatPayrollBalanceMinutes(snapshot.timeAccountBalanceMinutes)}</Text></Text></View>
+          <View style={styles.moneyGrid}><View style={[styles.moneyItem, isPhone && styles.moneyItemPhone]}><Text style={styles.muted}>Erarbeitetes Brutto</Text><Text style={styles.money}>{formatPayrollMoney(snapshot.earnedGrossCents)}</Text></View><View style={[styles.moneyItem, isPhone && styles.moneyItemPhone]}><Text style={styles.muted}>Voraussichtliches Brutto</Text><Text style={styles.money}>{formatPayrollMoney(snapshot.projectedGrossCents)}</Text></View><View style={[styles.moneyItem, isPhone && styles.moneyItemPhone]}><Text style={styles.muted}>Genehmigte Auslagen</Text><Text style={styles.money}>{formatPayrollMoney(snapshot.approvedExpensesCents)}</Text></View><View style={[styles.moneyItem, isPhone && styles.moneyItemPhone]}><Text style={styles.muted}>Voraussichtliche Gesamtauszahlung</Text><Text style={styles.total}>{formatPayrollMoney(snapshot.projectedTotalPayoutCents)}</Text></View></View>
+          <InfoBanner message="Geplante Einsätze sind als Prognose gekennzeichnet und noch keine endgültig erarbeitete Vergütung." />
+          <PremiumButton title={statement.pdfPath ? "PDF-Vorschau öffnen" : "PDF noch nicht verfügbar"} disabled={!statement.pdfPath} variant="secondary" fullWidth={isPhone} onPress={() => void open(statement.pdfPath)} />
+          {statement.status === 'published' ? <View style={styles.decision}><Text style={styles.title}>Ist die Monatsübersicht vollständig und richtig?</Text><PremiumInput label="Ablehnungsgrund (nur bei Ablehnung)" placeholder="Zum Beispiel: Mir fehlen noch Stunden vom …" value={rejectReason} onChangeText={setRejectReason} multiline /><View style={[styles.actions, isPhone && styles.actionsPhone]}><PremiumButton title="Verbindlich bestätigen" fullWidth={isPhone} loading={saving} onPress={() => void decide('confirm')} /><PremiumButton title="Ablehnen" variant="secondary" fullWidth={isPhone} loading={saving} onPress={() => void decide('reject')} /></View></View> : null}
+          {statement.status === 'confirmed' || statement.status === 'locked' || statement.status === 'paid' ? <InfoBanner message="Diese Version wurde bestätigt. Sie kann nur noch als PDF geöffnet und nicht mehr verändert werden." /> : null}
+          {statement.employeeDecisionReason ? <InfoBanner message={`Ihr Ablehnungsgrund: ${statement.employeeDecisionReason}`} /> : null}
+        </PremiumCard>}
+      </SectionPanel>
+      <SectionPanel title="Neue Auslage einreichen" subtitle="Quittungen, Kilometer, Tickets und sonstige dienstliche Kosten">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>{expenseCategories.map((key) => <Pressable key={key} onPress={() => setCategory(key)} style={[styles.category, category === key && styles.categoryActive]}><Text style={[styles.categoryText, category === key && styles.categoryTextActive]}>{EXPENSE_CATEGORY_LABELS[key]}</Text></Pressable>)}</ScrollView>
+        <View style={styles.form}><PremiumInput label="Datum (JJJJ-MM-TT)" value={expenseDate} onChangeText={setExpenseDate} /><PremiumInput label="Beschreibung" value={description} onChangeText={setDescription} placeholder="Was wurde bezahlt?" /><PremiumInput label="Geschäftlicher Zweck" value={purpose} onChangeText={setPurpose} placeholder="Bezug zum Einsatz / zur Tätigkeit" />
+          {category === 'mileage' ? <><View style={styles.twoCols}><PremiumInput label="Kilometer" value={mileageKm} onChangeText={setMileageKm} keyboardType="decimal-pad" /><PremiumInput label="EUR je km" value={mileageRate} onChangeText={setMileageRate} keyboardType="decimal-pad" /></View><PremiumInput label="Start" value={origin} onChangeText={setOrigin} /><PremiumInput label="Ziel" value={destination} onChangeText={setDestination} /><PremiumInput label="Fahrzeug / Kennzeichen" value={vehicle} onChangeText={setVehicle} /></> : <PremiumInput label="Betrag (EUR)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />}
+          <View style={[styles.actions, isPhone && styles.actionsPhone]}><PremiumButton title={receipt ? `Beleg: ${receipt.name}` : category === 'mileage' ? 'Optionalen Beleg auswählen' : 'Quittung / Ticket auswählen'} variant="secondary" fullWidth={isPhone} onPress={() => void chooseReceipt()} /><PremiumButton title="Auslage einreichen" fullWidth={isPhone} loading={saving} onPress={() => void submitExpense()} /></View>
+        </View>
+      </SectionPanel>
+      <SectionPanel title="Meine Auslagen" subtitle="Prüf- und Erstattungsstatus">
+        {!query.data?.expenses.length ? <EmptyState title="Keine Auslagen" message="Für diesen Monat wurden noch keine Auslagen eingereicht." /> : query.data.expenses.map((claim) => <PremiumCard key={claim.id} style={styles.expense}><View style={[styles.heading, isPhone && styles.headingPhone]}><View style={styles.flex}><Text style={styles.strong}>{claim.description}</Text><Text style={styles.muted}>{claim.expenseDate} · {EXPENSE_CATEGORY_LABELS[claim.category]}{claim.automaticSource ? ' · Fahrtenbuch' : ''}</Text></View><PremiumBadge label={expenseStatus[claim.status] ?? claim.status} variant={claim.status === 'approved' || claim.status === 'reimbursed' ? 'green' : claim.status === 'rejected' ? 'orange' : 'cyan'} /></View><Text style={styles.amount}>{formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</Text>{claim.mileageKm != null ? <Text style={styles.muted}>{claim.mileageKm.toLocaleString('de-DE')} km × {((claim.mileageRateCents ?? 0) / 100).toFixed(2).replace('.', ',')} EUR</Text> : null}{claim.receiptPath ? <PremiumButton title="Beleg öffnen" size="sm" variant="ghost" fullWidth={isPhone} onPress={() => void open(claim.receiptPath)} /> : null}{claim.officeNote ? <Text style={styles.muted}>Office: {claim.officeNote}</Text> : null}{claim.rejectionReason ? <Text style={styles.rejected}>Ablehnungsgrund: {claim.rejectionReason}</Text> : null}</PremiumCard>)}
+      </SectionPanel>
+    </View>
+  </PortalTabScreen>;
+}
+
+const styles = StyleSheet.create({
+  page: { width: '100%', gap: careSpacing.md }, monthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, monthTitle: { ...typography.h3, flexShrink: 1, textAlign: 'center', color: portalPremium.text.primary, textTransform: 'capitalize' }, statement: { padding: careSpacing.lg, gap: careSpacing.md }, statementPhone: { padding: careSpacing.md }, heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm }, headingPhone: { alignItems: 'flex-start', flexWrap: 'wrap' }, title: { ...typography.h3, color: portalPremium.text.primary }, muted: { ...typography.caption, color: portalPremium.text.muted }, flex: { flex: 1, minWidth: 0 }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs }, metric: { ...typography.caption, color: portalPremium.text.secondary, borderWidth: 1, borderColor: portalPremium.borderSoft, backgroundColor: portalPremium.surfaceSoft, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 }, strong: { color: portalPremium.text.primary, fontWeight: '700' }, moneyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, moneyItem: { minWidth: 180, flexGrow: 1, gap: 2 }, moneyItemPhone: { minWidth: '46%', flexBasis: '46%' }, money: { ...typography.h3, color: portalPremium.text.primary }, total: { ...typography.h2, color: portalPremium.accent.blue }, decision: { gap: careSpacing.sm, borderTopWidth: 1, borderTopColor: portalPremium.borderSoft, paddingTop: careSpacing.md }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, actionsPhone: { flexDirection: 'column', alignItems: 'stretch' }, categoryRow: { gap: careSpacing.xs, paddingVertical: careSpacing.xs }, category: { borderWidth: 1, borderColor: portalPremium.borderSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: portalPremium.surfaceRaised }, categoryActive: { borderColor: portalPremium.accent.blue, backgroundColor: portalPremium.surfaceMuted }, categoryText: { ...typography.caption, color: portalPremium.text.secondary }, categoryTextActive: { color: portalPremium.accent.blueDark, fontWeight: '700' }, form: { gap: careSpacing.sm }, twoCols: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, expense: { padding: careSpacing.md, gap: careSpacing.sm, marginBottom: careSpacing.sm }, amount: { ...typography.h3, color: portalPremium.accent.blue }, rejected: { ...typography.caption, color: portalPremium.accent.danger },
+});

@@ -1,0 +1,88 @@
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { AccessListHero } from '@/components/access';
+import { ScreenShell } from '@/components/layout';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { fetchEmployeePortalAccountsList } from '@/lib/auth/accessManagementService';
+import { ACCESS_STATUS_LABELS } from './accessLabels';
+import { colors, spacing, typography } from '@/theme';
+
+export function EmployeePortalAccountsScreen() {
+  const router = useRouter();
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchEmployeePortalAccountsList(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId },
+  );
+
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Mitarbeitendenportal" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
+
+  if (query.loading && !query.data) {
+    return (
+      <ScreenShell title="Mitarbeitendenportal" subtitle="Wird geladen…" scroll>
+        <LoadingState message="Mitarbeiterzugänge werden geladen…" />
+      </ScreenShell>
+    );
+  }
+
+  if (query.error && !query.data) {
+    return (
+      <ScreenShell title="Mitarbeitendenportal" subtitle="Fehler" scroll>
+        <ErrorState message={query.error} onRetry={query.refresh} />
+      </ScreenShell>
+    );
+  }
+
+  const items = query.data ?? [];
+
+  return (
+    <ScreenShell title="Mitarbeitendenportal" subtitle="Zugänge & Benutzer" scroll>
+      <AccessListHero variant="employee-portal" itemCount={items.length} />
+      <PremiumButton
+        title="Mitarbeiterzugang erstellen"
+        fullWidth
+        onPress={() => router.push('/business/office/access/employee-portal/new' as never)}
+      />
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        scrollEnabled={false}
+        ListEmptyComponent={<EmptyState title="Keine Mitarbeiterzugänge" message="Erstellen Sie den ersten Zugang." />}
+        renderItem={({ item }) => (
+          <Pressable onPress={() => router.push(`/business/office/access/employee-portal/${item.id}` as never)}>
+            <PremiumCard accentColor={colors.cyan}>
+              <Text style={styles.title}>{item.employeeName ?? item.username}</Text>
+              <Text style={styles.meta}>
+                {[item.employeeNumber, item.username].filter(Boolean).join(' · ')}
+              </Text>
+              <Text style={styles.status}>Status: {ACCESS_STATUS_LABELS[item.status]}</Text>
+            </PremiumCard>
+          </Pressable>
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      />
+    </ScreenShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  title: { ...typography.bodyStrong },
+  meta: { ...typography.caption, color: colors.textSecondary },
+  status: { ...typography.caption },
+  separator: { height: spacing.sm },
+});

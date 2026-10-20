@@ -1,0 +1,102 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const root = path.join(__dirname, '..', '..', '..');
+
+function readSrc(relativePath: string): string {
+  return readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+describe('PortalShellLayout', () => {
+  it('client root layout uses the canonical Liquid portal wrapper', () => {
+    const layout = readSrc('app/portal/client/_layout.tsx');
+    expect(layout).toContain('LiquidPortalRouteLayout');
+    expect(layout).toContain('kind="client"');
+    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('LiquidPortalRouteLayout');
+  });
+
+  it('employee portal uses PortalShellLayout not PlatformShell', () => {
+    const shell = readSrc('src/components/portal/PortalShell.tsx');
+    expect(shell).toContain('PortalShellLayout');
+    expect(shell).not.toContain("from '@/components/layout'");
+    expect(shell).not.toContain('PlatformShell');
+  });
+
+  it('PortalShellLayout composes client-only nav components', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    expect(shell).toContain('PortalLeftNav');
+    expect(shell).toContain('PortalTopBar');
+    expect(shell).toContain('PortalRightSidebar');
+    expect(shell).toContain('PortalMobileNav');
+    expect(shell).not.toContain('PlatformShell');
+    expect(shell).not.toContain('MainModuleRail');
+    expect(shell).not.toContain('ModuleNavSidebar');
+    expect(shell).not.toContain('RightContextPanel');
+  });
+
+  it('PortalTopBar has client-facing search and no office tenant menu', () => {
+    const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');
+    expect(topbar).toContain('Im Portal suchen');
+    expect(topbar).toContain('Klient:innenportal');
+    expect(topbar).not.toContain('Module & Lizenzen');
+    expect(topbar).not.toContain('Benutzer & Zugänge');
+    expect(topbar).not.toContain('Mandant wechseln');
+  });
+
+  it('PortalShellLayout keeps messenger scroll stable without remounting children', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    expect(shell).toContain('scrollEnabled={!messengerFocusActive}');
+    expect(shell).not.toMatch(/messengerFocusActive\s*\?\s*\(\s*\n?\s*<View style=\{\[styles\.mainScroll/);
+  });
+
+  it('PortalTopBar profile dropdown stays above scroll body for clicks', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');
+    expect(shell).toContain('<View style={styles.topBarHost}>');
+    expect(shell).toContain("overflow: 'visible'");
+    expect(shell).toContain('zIndex: 20');
+    expect(topbar).toContain('profileWrap');
+    expect(topbar).toMatch(/profileWrap:[\s\S]*zIndex: 12/);
+    expect(topbar).toContain("label: 'Abmelden'");
+    expect(topbar).toContain('router.push(item.href');
+  });
+
+  it('PortalLeftNav builds from portal engine not office nav', () => {
+    const nav = readSrc('src/components/layout/portal/PortalLeftNav.tsx');
+    expect(nav).toContain('buildPortalNavigation');
+    expect(nav).not.toContain('getModuleNavConfig');
+    expect(nav).not.toContain('OFFICE_TABS');
+    expect(nav).not.toContain('BUSINESS_TABS');
+  });
+
+  it('PortalRightSidebar excludes office admin actions', () => {
+    const sidebar = readSrc('src/components/layout/portal/PortalRightSidebar.tsx');
+    expect(sidebar).toContain('SCHNELLZUGRIFF');
+    expect(sidebar).toContain('usePortalSidebarData');
+    expect(sidebar).not.toContain('Klient:in anlegen');
+    expect(sidebar).not.toContain('Rechnung erstellen');
+    expect(sidebar).not.toContain('Modulstatus');
+  });
+
+  it('portal navigation registry prepares pflege stationaer beratung keys', () => {
+    const registry = readSrc('src/lib/portal/engine/portalNavigationRegistry.ts');
+    expect(registry).toContain("'pflege'");
+    expect(registry).toContain("'stationaer'");
+    expect(registry).toContain("'beratung'");
+    expect(registry).toContain('implemented: true');
+    expect(registry).toContain('implemented: false');
+  });
+
+  it('assist left nav omits Nachweise and Aktivitäten sidebar items', () => {
+    const navBuilder = readSrc('src/lib/portal/engine/buildPortalNavigation.ts');
+    const registry = readSrc('src/lib/portal/engine/portalNavigationRegistry.ts');
+    const matrix = readSrc('src/lib/portal/engine/portalFeatureMatrix.ts');
+    expect(navBuilder).toContain('isPortalFeatureShownInPrimaryNav');
+    expect(registry).toContain('PORTAL_PRIMARY_NAV_HIDDEN_FEATURE_KEYS');
+    expect(registry).toContain("'nachweise'");
+    expect(registry).toContain("'aktivitaeten'");
+    expect(matrix).toContain("featureKey: 'nachweise'");
+    expect(matrix).toContain('showInPrimaryNav: false');
+  });
+});

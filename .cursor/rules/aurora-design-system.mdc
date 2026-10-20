@@ -1,0 +1,36 @@
+---
+description: CareSuite+ Aurora Space Glass Design — systemweite UI-Regeln
+globs:
+  - src/components/**
+  - src/screens/**
+  - src/design/**
+  - app/**
+---
+
+# Aurora Design System
+
+CareSuite+ verwendet **ausschließlich** das Aurora Space Glass Design auf allen Modul-Screens.
+
+## Pflicht
+
+- **Header:** `AuroraPageHeader`, `PremiumListHeroFrame`, `AuroraDetailHeader` — bunter Violet→Pink→Cyan-Gradient, keine weißen/dunklen Flachköpfe
+- **Buttons:** `AuroraGradientButton` / `PremiumButton` (Primary = Purple/Pink-Gradient, weiße Schrift)
+- **Cards:** `AuroraGlassCard`, `PremiumCard`, Glass-Surfaces — **keine** `#fff` / `careLightColors.surface`
+- **Tabs/Chips:** `AuroraSegmentedControl`, `SegmentedTabs` — aktive Option mit Aurora-Gradient
+- **Text auf dunklem Hintergrund:** immer `#FFFFFF` / `careSuiteAuroraTheme.text.primary`
+
+## Verboten in neuen Screens
+
+- Orange als Standard-CTA (`#FF9500`, `CareLightButton` primary)
+- Weiße Cards/Header/Tabellen
+- `CareLightListHeroFrame` direkt (nutze `PremiumListHeroFrame`)
+- Inline-Hex-Farben statt `@/theme/careSuiteAurora` / `useLegacyTheme()`
+
+## Tokens
+
+Import: `@/theme/careSuiteAurora`, `@/components/aurora`
+
+## Ausnahmen
+
+- Signature Canvas, PDF/HTML-Vorschau-Inhalte dürfen weiß bleiben
+- `PreparedModeBanner` / Feature-Status-Badges sind kein Demo-Design

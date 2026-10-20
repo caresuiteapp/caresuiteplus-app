@@ -1,0 +1,40 @@
+const LIQUID_ROUTE_ROOTS = [
+  '/Desktop',
+  '/liquid-command',
+  '/hilfe',
+  '/auth',
+  '/office',
+  '/unternehmen',
+  '/assist',
+  '/pflege',
+  '/stationaer',
+  '/beratung',
+  '/akademie',
+  '/robotics',
+  '/platform',
+  '/settings',
+  '/portal',
+  '/business',
+  '/communication',
+  '/insight',
+  '/medical',
+  '/onboarding',
+  '/admin',
+  '/zentrale',
+  '/public',
+  '/design-system',
+] as const;
+
+/**
+ * Central cut-over boundary for the Greenfield UI.
+ *
+ * Routes listed here must never receive the legacy animated background,
+ * welcome overlays or legacy application shell. Productive services remain
+ * available behind the new Liquid Command screens.
+ */
+export function isLiquidCommandRoutePath(pathname: string): boolean {
+  if (pathname === '/') return true;
+  return LIQUID_ROUTE_ROOTS.some(
+    (root) => pathname === root || pathname.startsWith(`${root}/`),
+  );
+}

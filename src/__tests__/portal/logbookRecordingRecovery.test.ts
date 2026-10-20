@@ -1,0 +1,22 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { finishEmployeeLogbookRecording } from '@/lib/employeeLogbook/employeeLogbookAutomation';
+import type { LogbookTrip } from '@/types/modules/employeeLogbook';
+const m=vi.hoisted(()=>({load:vi.fn(),finish:vi.fn(),point:vi.fn(),stop:vi.fn(),flush:vi.fn(),start:vi.fn()}));
+vi.mock('react-native',()=>({Platform:{OS:'web'}}));
+vi.mock('@/lib/employeeLogbook/employeeLogbookRepository.supabase',()=>({loadLogbookTrip:m.load,finishLogbookTrip:m.finish}));
+vi.mock('@/lib/employeeLogbook/employeeLogbookTracking',()=>({getCurrentLogbookPoint:m.point,stopNativeBackgroundTracking:m.stop,startNativeBackgroundTracking:m.start}));
+vi.mock('@/lib/employeeLogbook/employeeLogbookPointQueue',()=>({flushLogbookPointQueue:m.flush}));
+vi.mock('@/lib/office/employeeMobilityService',()=>({}));
+vi.mock('@/features/liveTracking/useSingleGeolocationWatch',()=>({}));
+const trip={id:'trip',tenantId:'tenant',employeeId:'employee',status:'recording',startedAt:'2026-09-14T06:30:00Z'} as LogbookTrip;
+const input={trip,tenantId:'tenant',employeeId:'employee'};
+beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-14T07:00:00Z'));m.load.mockResolvedValue(trip);m.finish.mockResolvedValue({...trip,status:'confirmation_required'});m.point.mockRejectedValue(new Error('indoor'));m.stop.mockResolvedValue(undefined);m.flush.mockResolvedValue({sent:0,remaining:0});});
+afterEach(()=>vi.useRealTimers());
+describe('manual and return-trip recovery',()=>{
+ it('finishes using stored points when GPS never resolves',async()=>{m.point.mockImplementation(()=>new Promise(()=>{}));const result=finishEmployeeLogbookRecording(input);await vi.advanceTimersByTimeAsync(1501);expect((await result).status).toBe('confirmation_required');expect(m.finish).toHaveBeenCalledWith('trip',expect.objectContaining({points:[]}));});
+ it('coalesces repeated taps and stops tracking once',async()=>{await Promise.all(Array.from({length:5},()=>finishEmployeeLogbookRecording(input)));expect(m.finish).toHaveBeenCalledTimes(1);expect(m.stop).toHaveBeenCalledTimes(1);});
+ it('does not request present-day GPS for an old trip',async()=>{m.load.mockResolvedValue({...trip,startedAt:'2026-09-11T07:00:00Z'});m.finish.mockResolvedValue({...trip,status:'review_required'});m.flush.mockResolvedValue({sent:0,remaining:2});expect((await finishEmployeeLogbookRecording(input)).status).toBe('review_required');expect(m.point).not.toHaveBeenCalled();});
+ it('recovers a committed finish after a response is lost without restarting',async()=>{m.finish.mockRejectedValue(new Error('response lost'));m.load.mockResolvedValueOnce(trip).mockResolvedValue({...trip,status:'confirmation_required'});expect((await finishEmployeeLogbookRecording(input)).status).toBe('confirmation_required');expect(m.start).not.toHaveBeenCalled();});
+ it('keeps an unsaved finish as an error',async()=>{m.finish.mockRejectedValue(new Error('not saved'));await expect(finishEmployeeLogbookRecording(input)).rejects.toThrow('not saved');expect(m.start).not.toHaveBeenCalled();});
+ it('does not discard queued points for a current trip',async()=>{m.flush.mockResolvedValue({sent:0,remaining:2});await expect(finishEmployeeLogbookRecording(input)).rejects.toThrow('GPS-Punkte');expect(m.finish).not.toHaveBeenCalled();});
+});

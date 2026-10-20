@@ -1,0 +1,313 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
+import type {
+  PayrollAssignmentTimeLine,
+  PayrollExpenseClaim,
+  PayrollNextMonthPreview,
+  PayrollStatementSnapshot,
+} from '@/types/modules/payrollMonth';
+
+export type PayrollCalculationInput = {
+  employeeId: string;
+  employeeName: string;
+  employeeNumber?: string | null;
+  periodYear: number;
+  periodMonth: number;
+  compensationType: 'salary' | 'hourly';
+  compensationAmount: number;
+  maxPayoutHours?: number | null;
+  overflowToTimeAccount?: boolean;
+  actualWorkMinutes: number;
+  travelMinutes: number;
+  vacationMinutes: number;
+  sickMinutes: number;
+  otherPaidAbsenceMinutes: number;
+  targetWorkMinutes?: number;
+  monthlyPlannedMinutes?: number;
+  plannedMinutes: number;
+  timeAccountBalanceMinutes?: number;
+  advancesCents?: number;
+  deductionsCents?: number;
+  expenses: PayrollExpenseClaim[];
+  assignmentTimeLines?: PayrollAssignmentTimeLine[];
+  nextMonthPreview?: PayrollNextMonthPreview;
+  now?: string;
+};
+
+const nonNegative = (value: number | null | undefined) =>
+  Number.isFinite(value) ? Math.max(0, Math.round(value ?? 0)) : 0;
+
+export function moneyFromMinutes(minutes: number, hourlyRateCents: number): number {
+  return Math.round((nonNegative(minutes) / 60) * nonNegative(hourlyRateCents));
+}
+
+export function calculatePayrollTimeAccountBalance(input: {
+  actualWorkMinutes: number;
+  vacationMinutes?: number;
+  sickMinutes?: number;
+  otherPaidAbsenceMinutes?: number;
+  targetMinutes: number;
+}): number {
+  const creditedMinutes =
+    nonNegative(input.actualWorkMinutes) +
+    nonNegative(input.vacationMinutes) +
+    nonNegative(input.sickMinutes) +
+    nonNegative(input.otherPaidAbsenceMinutes);
+  return creditedMinutes - nonNegative(input.targetMinutes);
+}
+
+export function calculatePayrollSnapshot(input: PayrollCalculationInput): PayrollStatementSnapshot {
+  const actualWorkMinutes = nonNegative(input.actualWorkMinutes);
+  const vacationMinutes = nonNegative(input.vacationMinutes);
+  const sickMinutes = nonNegative(input.sickMinutes);
+  const otherPaidAbsenceMinutes = nonNegative(input.otherPaidAbsenceMinutes);
+  const targetWorkMinutes = nonNegative(input.targetWorkMinutes);
+  const plannedMinutes = nonNegative(input.plannedMinutes);
+  const contractualPayableMinutes =
+    actualWorkMinutes + vacationMinutes + sickMinutes + otherPaidAbsenceMinutes;
+  const maxPayoutMinutes = input.maxPayoutHours == null
+    ? null
+    : Math.round(Math.max(0, input.maxPayoutHours) * 60);
+  const payableMinutes = maxPayoutMinutes == null
+    ? contractualPayableMinutes
+    : Math.min(contractualPayableMinutes, maxPayoutMinutes);
+  const overtimeTransferMinutes = input.overflowToTimeAccount === false
+    ? 0
+    : Math.max(0, contractualPayableMinutes - payableMinutes);
+  const hourlyRateCents = input.compensationType === 'hourly'
+    ? Math.round(Math.max(0, input.compensationAmount) * 100)
+    : 0;
+  const fixedSalaryCents = input.compensationType === 'salary'
+    ? Math.round(Math.max(0, input.compensationAmount) * 100)
+    : 0;
+  const earnedGrossCents = input.compensationType === 'salary'
+    ? fixedSalaryCents
+    : moneyFromMinutes(payableMinutes, hourlyRateCents);
+  const projectedPayableMinutes = maxPayoutMinutes == null
+    ? contractualPayableMinutes + plannedMinutes
+    : Math.min(contractualPayableMinutes + plannedMinutes, maxPayoutMinutes);
+  const projectedGrossCents = input.compensationType === 'salary'
+    ? fixedSalaryCents
+    : moneyFromMinutes(projectedPayableMinutes, hourlyRateCents);
+  const approvedExpensesCents = input.expenses.reduce(
+    (sum, item) => sum + (
+      item.status === 'approved' || item.status === 'partially_approved' || item.status === 'reimbursed'
+        ? nonNegative(item.approvedAmountCents ?? item.amountCents)
+        : 0
+    ),
+    0,
+  );
+  const pendingExpensesCents = input.expenses.reduce(
+    (sum, item) => sum + (
+      item.status === 'submitted' || item.status === 'needs_info'
+        ? nonNegative(item.amountCents)
+        : 0
+    ),
+    0,
+  );
+  const advancesCents = nonNegative(input.advancesCents);
+  const deductionsCents = nonNegative(input.deductionsCents);
+
+  return {
+    employeeId: input.employeeId,
+    employeeName: input.employeeName,
+    employeeNumber: input.employeeNumber ?? null,
+    periodYear: input.periodYear,
+    periodMonth: input.periodMonth,
+    compensationType: input.compensationType,
+    hourlyRateCents,
+    fixedSalaryCents,
+    maxPayoutMinutes,
+    actualWorkMinutes,
+    travelMinutes: Math.min(actualWorkMinutes, nonNegative(input.travelMinutes)),
+    vacationMinutes,
+    sickMinutes,
+    otherPaidAbsenceMinutes,
+    targetWorkMinutes,
+    creditedActualMinutes: contractualPayableMinutes,
+    targetActualDifferenceMinutes: contractualPayableMinutes - targetWorkMinutes,
+    monthlyPlannedMinutes: nonNegative(input.monthlyPlannedMinutes ?? input.plannedMinutes),
+    plannedMinutes,
+    payableMinutes,
+    overtimeTransferMinutes,
+    timeAccountBalanceMinutes: Math.round(input.timeAccountBalanceMinutes ?? 0),
+    earnedGrossCents,
+    projectedGrossCents,
+    approvedExpensesCents,
+    pendingExpensesCents,
+    advancesCents,
+    deductionsCents,
+    payoutGrossCents: Math.max(0, earnedGrossCents - advancesCents - deductionsCents),
+    projectedTotalPayoutCents: Math.max(
+      0,
+      projectedGrossCents + approvedExpensesCents - advancesCents - deductionsCents,
+    ),
+    generatedAt: input.now ?? new Date().toISOString(),
+    expenseClaims: input.expenses,
+    assignmentTimeLines: input.assignmentTimeLines ?? [],
+    nextMonthPreview: input.nextMonthPreview,
+  };
+}
+
+export const formatPayrollMoney = (cents: number): string =>
+  new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+
+export function formatPayrollMinutes(minutes: number): string {
+  const sign = minutes < 0 ? '−' : '';
+  const absolute = Math.abs(Math.round(minutes));
+  return `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')} Std.`;
+}
+
+export function formatPayrollBalanceMinutes(minutes: number): string {
+  const rounded = Math.round(minutes);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '±';
+  const absolute = Math.abs(rounded);
+  return `${sign} ${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')} Std.`;
+}
+
+function escapePayrollHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+const formatDate = (value: string): string => {
+  const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? escapePayrollHtml(value) : parsed.toLocaleDateString('de-DE');
+};
+
+const formatTime = (value: string | null): string => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatTimeRange = (start: string | null, end: string | null): string =>
+  start || end ? `${formatTime(start)} - ${formatTime(end)}` : '-';
+
+function assignmentRows(lines: PayrollAssignmentTimeLine[], includeActual: boolean): string {
+  return lines.map((line) => `<tr>
+    <td>${formatDate(line.workDate)}</td>
+    <td><strong>${escapePayrollHtml(line.clientLabel ?? 'Ohne Klientenzuordnung')}</strong><br><span class="muted">${escapePayrollHtml(line.assignmentTitle)}</span></td>
+    <td>${formatTimeRange(line.plannedStartAt, line.plannedEndAt)}<br><span class="muted">${formatPayrollMinutes(line.plannedMinutes)}</span></td>
+    ${includeActual ? `<td>${formatTimeRange(line.actualStartAt, line.actualEndAt)}<br><span class="muted">${formatPayrollMinutes(line.actualMinutes)}</span></td>
+    <td>${formatPayrollMinutes(line.travelMinutes)}</td>
+    <td class="${line.differenceMinutes < 0 ? 'negative' : line.differenceMinutes > 0 ? 'positive' : ''}">${formatPayrollBalanceMinutes(line.differenceMinutes)}</td>` : ''}
+    <td>${escapePayrollHtml(line.status || 'geplant')}</td>
+  </tr>`).join('');
+}
+
+function chunkPayrollRows<T>(items: T[], pageSize: number): T[][] {
+  if (items.length === 0) return [];
+  const pageCount = Math.ceil(items.length / pageSize);
+  const balancedPageSize = Math.ceil(items.length / pageCount);
+  return Array.from({ length: pageCount }, (_, index) =>
+    items.slice(index * balancedPageSize, (index + 1) * balancedPageSize));
+}
+
+function payrollPage(content: string, pageNumber: number, pageCount: number): string {
+  return `<main class="pdf-page" data-pdf-page="${pageNumber}">
+    <div class="pdf-content">${content}</div>
+    <footer>CareSuite HealthOS · Abrechnungsübersicht · Seite ${pageNumber} von ${pageCount}</footer>
+  </main>`;
+}
+
+export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, version: number): string {
+  const month = new Date(snapshot.periodYear, snapshot.periodMonth - 1, 1).toLocaleDateString('de-DE', {
+    month: 'long', year: 'numeric',
+  });
+  const approvedExpenses = snapshot.expenseClaims
+    .filter((claim) => ['approved', 'partially_approved', 'reimbursed'].includes(claim.status))
+  const expenseRows = (claims: PayrollExpenseClaim[]) => claims
+    .map((claim) => `<tr><td>${escapePayrollHtml(claim.expenseDate)}</td><td>${escapePayrollHtml(claim.description)}</td><td>${formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</td></tr>`)
+    .join('');
+  const currentAssignments = snapshot.assignmentTimeLines ?? [];
+  const nextMonthPreview = snapshot.nextMonthPreview;
+  const creditedActualMinutes = snapshot.creditedActualMinutes ?? (
+    snapshot.actualWorkMinutes + snapshot.vacationMinutes + snapshot.sickMinutes + snapshot.otherPaidAbsenceMinutes
+  );
+  const targetWorkMinutes = snapshot.targetWorkMinutes ?? snapshot.monthlyPlannedMinutes ?? 0;
+  const targetActualDifferenceMinutes = snapshot.targetActualDifferenceMinutes ?? (creditedActualMinutes - targetWorkMinutes);
+  const nextMonthLabel = nextMonthPreview
+    ? new Date(nextMonthPreview.periodYear, nextMonthPreview.periodMonth - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+    : 'Folgemonat';
+  const currentAssignmentChunks = chunkPayrollRows(currentAssignments, 8);
+  const nextAssignmentChunks = chunkPayrollRows(nextMonthPreview?.assignments ?? [], 9);
+  const pageContents: string[] = [];
+
+  pageContents.push(`<div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${escapePayrollHtml(snapshot.employeeName)}</h1>
+  <div class="meta">${month} · Version ${version} · erstellt ${new Date(snapshot.generatedAt).toLocaleString('de-DE')}</div>
+  <div class="grid">
+   <div class="row"><span>Erfasste Arbeitszeit</span><strong>${formatPayrollMinutes(snapshot.actualWorkMinutes)}</strong></div>
+   <div class="row"><span>davon Fahrzeit</span><strong>${formatPayrollMinutes(snapshot.travelMinutes)}</strong></div>
+   <div class="row"><span>Urlaub</span><strong>${formatPayrollMinutes(snapshot.vacationMinutes)}</strong></div>
+   <div class="row"><span>Krankheit</span><strong>${formatPayrollMinutes(snapshot.sickMinutes)}</strong></div>
+   <div class="row"><span>Weitere bezahlte Abwesenheit</span><strong>${formatPayrollMinutes(snapshot.otherPaidAbsenceMinutes)}</strong></div>
+   <div class="row"><span>Gesamter Monatsplan</span><strong>${formatPayrollMinutes(snapshot.monthlyPlannedMinutes ?? snapshot.plannedMinutes)}</strong></div>
+   <div class="row"><span>Vertragliches Soll</span><strong>${formatPayrollMinutes(targetWorkMinutes)}</strong></div>
+   <div class="row"><span>Anrechenbares Ist</span><strong>${formatPayrollMinutes(creditedActualMinutes)}</strong></div>
+   <div class="row"><span>Soll-/Ist-Differenz</span><strong>${formatPayrollBalanceMinutes(targetActualDifferenceMinutes)}</strong></div>
+   <div class="row"><span>Zeitkonto-Übertrag</span><strong>${formatPayrollMinutes(snapshot.overtimeTransferMinutes)}</strong></div>
+  </div></div>
+  <h2>Vergütung</h2>
+  <div class="row"><span>Bis heute erarbeitetes Brutto</span><strong>${formatPayrollMoney(snapshot.earnedGrossCents)}</strong></div>
+  <div class="row forecast"><span>Geplante Einsätze bis Monatsende (noch offen)</span><strong>${formatPayrollMinutes(snapshot.plannedMinutes)}</strong></div>
+  <div class="row forecast"><span>Voraussichtliches Monatsbrutto</span><strong>${formatPayrollMoney(snapshot.projectedGrossCents)}</strong></div>
+  <div class="row"><span>Genehmigte Auslagen</span><strong>${formatPayrollMoney(snapshot.approvedExpensesCents)}</strong></div>
+  <div class="row"><span>Vorschüsse / Abzüge</span><strong>− ${formatPayrollMoney(snapshot.advancesCents + snapshot.deductionsCents)}</strong></div>
+  <div class="row total"><span>Voraussichtliche Gesamtauszahlung</span><strong>${formatPayrollMoney(snapshot.projectedTotalPayoutCents)}</strong></div>
+  <h2>Genehmigte Auslagen und Erstattungen</h2>
+  ${approvedExpenses.length ? `<table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows(approvedExpenses.slice(0, 5))}</tbody></table>${approvedExpenses.length > 5 ? '<p class="continued">Weitere Auslagen auf der Folgeseite.</p>' : ''}` : '<p>Keine genehmigten Auslagen in diesem Abrechnungsmonat.</p>'}`);
+
+  const remainingExpenses = approvedExpenses.slice(5);
+  chunkPayrollRows(remainingExpenses, 18).forEach((claims, index, chunks) => {
+    pageContents.push(`<h2>Genehmigte Auslagen und Erstattungen${chunks.length > 1 ? ` · Fortsetzung ${index + 1}` : ' · Fortsetzung'}</h2>
+      <table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows(claims)}</tbody></table>`);
+  });
+
+  if (currentAssignmentChunks.length === 0) {
+    pageContents.push(`<h2>Einsätze und erfasste Arbeitszeiten · ${month}</h2>
+      <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
+      <div class="empty">Für diesen Monat sind keine Einsatz- oder Zeiterfassungszeilen vorhanden.</div>`);
+  } else {
+    currentAssignmentChunks.forEach((lines, index) => {
+      pageContents.push(`<h2>Einsätze und erfasste Arbeitszeiten · ${month}${currentAssignmentChunks.length > 1 ? ` · ${index + 1}/${currentAssignmentChunks.length}` : ''}</h2>
+        <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
+        <table><thead><tr><th style="width:11%">Datum</th><th style="width:23%">Klient:in / Einsatz</th><th style="width:14%">Soll</th><th style="width:14%">Ist</th><th style="width:9%">Fahrt</th><th style="width:12%">Differenz</th><th style="width:17%">Status</th></tr></thead><tbody>${assignmentRows(lines, true)}</tbody></table>`);
+    });
+  }
+
+  if (nextAssignmentChunks.length === 0) {
+    pageContents.push(`<h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}</h2>
+      <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
+      <div class="empty">Für den Folgemonat sind noch keine Einsätze geplant.</div>`);
+  } else {
+    nextAssignmentChunks.forEach((lines, index) => {
+      pageContents.push(`<h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}${nextAssignmentChunks.length > 1 ? ` · ${index + 1}/${nextAssignmentChunks.length}` : ''}</h2>
+        <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
+        <table><thead><tr><th style="width:14%">Datum</th><th style="width:40%">Klient:in / Einsatz</th><th style="width:25%">Geplante Zeit</th><th style="width:21%">Status</th></tr></thead><tbody>${assignmentRows(lines, false)}</tbody></table>
+        ${index === nextAssignmentChunks.length - 1 ? '<div class="notice">Geplante Einsätze sind eine Prognose und noch kein endgültig entstandener Vergütungsanspruch. Bruttolohn und Auslagenersatz werden getrennt ausgewiesen. Diese Abrechnungsversion wird nach Bestätigung unveränderbar archiviert.</div>' : ''}`);
+    });
+  }
+
+  const pages = pageContents.map((content, index) => payrollPage(content, index + 1, pageContents.length)).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${CARESUITE_DOCUMENT_FONT_CSS}
+    @page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family: ${CARESUITE_FONT_STACK};color:#17192b;font-size:11px;line-height:1.45}
+    .pdf-page{position:relative;width:794px;height:1123px;padding:48px 46px 42px;background:#fff;overflow:hidden;break-after:page}.pdf-content{height:100%;overflow:hidden}
+    footer{position:absolute;left:46px;right:46px;bottom:18px;padding-top:7px;border-top:1px solid #ececf1;color:#777b8e;font-size:8px;text-align:right}
+    h1{font-size:24px;margin:0;color:#17192b} h2{font-size:15px;margin-top:24px;color:#343757}
+    .brand{color:#177d8d;font-weight:800;letter-spacing:1px}.meta{color:#686b7e;margin:6px 0 18px}
+    .hero{border:1px solid #b9dfe4;border-radius:18px;padding:22px;background:#f5fbfc}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:16px}
+    .row{display:flex;justify-content:space-between;border-bottom:1px solid #ececf1;padding:7px 0}
+    .total{font-size:15px;font-weight:800;color:#0f6875}.forecast{color:#7657c8}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{padding:9px 6px;border-bottom:1px solid #ececf1;text-align:left;vertical-align:top;overflow-wrap:break-word}th{background:#f4f5f8}
+    thead{display:table-header-group}tr{break-inside:avoid}.muted{color:#686b7e;font-size:10px}.positive{color:#087a65;font-weight:700}.negative{color:#b4283d;font-weight:700}
+    .section-subtitle{color:#686b7e;margin:-8px 0 10px}.empty{padding:12px;background:#f4f5f8;border-radius:10px;color:#686b7e}.continued{color:#686b7e;font-style:italic}
+    .notice{margin-top:24px;padding:14px;border-radius:12px;background:#f4f5f8;color:#55586b}
+  </style></head><body>${pages}</body></html>`;
+}

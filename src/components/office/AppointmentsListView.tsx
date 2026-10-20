@@ -1,0 +1,383 @@
+import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { useAiPageContext } from '@/ai/useAiPageContext';
+import { AdaptiveActionBar } from '@/components/adaptive';
+import { AppointmentListCard } from './AppointmentListCard';
+import { AppointmentsListHero } from './AppointmentsListHero';
+import { AppointmentsListTable } from './AppointmentsListTable';
+import { LockedActionBanner } from '@/components/permissions';
+import {
+  EmptyState,
+  ErrorState,
+  FilterChipGroup,
+  LoadingState,
+  PremiumButton,
+  PremiumInput,
+  SuccessState,
+} from '@/components/ui';
+import { buildAppointmentListKpis } from '@/lib/office/appointmentListStats';
+import { useAppointmentList } from '@/hooks/useAppointmentList';
+import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
+import { isDesktopClass } from '@/lib/platform/breakpoints';
+import { useTableColumnSort } from '@/lib/table/tableColumnSort';
+import { useAuth } from '@/lib/auth/context';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
+
+type AppointmentsListViewProps = {
+  onAppointmentPress?: (id: string) => void;
+  selectedId?: string | null;
+  embedded?: boolean;
+  onCreatePress?: () => void;
+  externalRefreshKey?: number;
+};
+
+export function AppointmentsListView({
+  onAppointmentPress,
+  selectedId = null,
+  embedded = false,
+  onCreatePress,
+  externalRefreshKey = 0,
+}: AppointmentsListViewProps) {
+  const router = useRouter();
+  const { profile } = useAuth();
+  const { can, isReadOnly, roleLabel, check } = usePermissions();
+  const { shellVariant } = usePlatformLayout();
+  const deviceClass = useDeviceClass();
+  const isDesktop = isDesktopClass(deviceClass);
+  const { viewMode, setViewMode } = useDesktopListViewPreference('office.appointments');
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+
+  useAiPageContext({
+    pageTitle: 'Termine & Dienstplan',
+    entityType: 'schedule',
+    summary: 'Office-Terminliste',
+    metadata: { viewMode },
+  });
+
+  const canView = can('office.appointments.view');
+  const canCreate = can('office.appointments.edit') && !isReadOnly;
+  const handleCreate = onCreatePress ?? (() => router.push('/office/appointments?create=1' as never));
+  const roleKey = profile?.roleKey ?? 'business_admin';
+
+  const {
+    items,
+    totalCount,
+    filteredCount,
+    loading,
+    error,
+    refreshError,
+    refreshing,
+    showSuccess,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+    sortKey,
+    setSortKey,
+    sortOptions,
+    statusFilters,
+    hasMore,
+    loadMore,
+    refresh,
+    resetFilters,
+    hasActiveFilters,
+    isEmpty,
+    isFilterEmpty,
+    allItems,
+  } = useAppointmentList();
+
+  useEffect(() => { if (externalRefreshKey > 0) void refresh(); }, [externalRefreshKey, refresh]);
+
+  const kpis = useMemo(() => buildAppointmentListKpis(allItems), [allItems]);
+  const compactHero = embedded || shellVariant === 'desktop';
+  const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
+    title: 'title',
+    startsAt: 'startsAt',
+  });
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        flatList: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        toolbar: {
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+          backgroundColor: 'transparent',
+        },
+        filterLabel: {
+          ...typography.label,
+          marginTop: spacing.xs,
+          color: colors.textSecondary,
+        },
+        list: {
+          paddingBottom: spacing.xxl,
+          backgroundColor: 'transparent',
+        },
+        loadMore: {
+          marginTop: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        footer: {
+          ...typography.caption,
+          textAlign: 'center',
+          marginVertical: spacing.md,
+          color: colors.textMuted,
+        },
+        embeddedCta: {
+          position: 'absolute',
+          top: spacing.sm,
+          right: spacing.md,
+          zIndex: 2,
+        },
+        embeddedHeader: {
+          marginBottom: spacing.xs,
+          paddingRight: spacing.xxl,
+        },
+        embeddedTitle: {
+          ...typography.h3,
+          color: colors.textPrimary,
+        },
+        embeddedMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+        actionMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+      }),
+    [colors, typography],
+  );
+
+  const handleAppointmentPress = (id: string) => {
+    if (onAppointmentPress) {
+      onAppointmentPress(id);
+      return;
+    }
+    router.push(`/office/appointments/${id}` as never);
+  };
+
+  if (!canView) {
+    return (
+      <LockedActionBanner
+        message={check('office.appointments.view').reason ?? 'Keine Berechtigung.'}
+        roleLabel={roleLabel}
+      />
+    );
+  }
+
+  const toolbar = (
+    <View style={styles.toolbar} testID="filter-bar">
+      {embedded ? (
+        <View style={styles.embeddedHeader}>
+          <Text style={styles.embeddedTitle}>Termine</Text>
+          <Text style={styles.embeddedMeta}>
+            {filteredCount} von {totalCount}
+          </Text>
+        </View>
+      ) : (
+        <AppointmentsListHero
+          kpis={kpis}
+          roleKey={roleKey}
+          filteredCount={filteredCount}
+          totalCount={totalCount}
+          canCreate={canCreate}
+          isReadOnly={isReadOnly}
+          onCreatePress={() => handleCreate()}
+          compact={compactHero}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          showViewToggle={isDesktop && !embedded}
+        />
+      )}
+
+      {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
+      {refreshError ? <ErrorState message={`Die Terminliste konnte nicht aktualisiert werden: ${refreshError}`} onRetry={refresh} /> : null}
+
+      <PremiumInput
+        label="Suche"
+        placeholder="Titel, Klient:in oder Ort…"
+        value={search}
+        onChangeText={setSearch}
+        hint={`${filteredCount} von ${totalCount} Terminen`}
+      />
+
+      <Text style={styles.filterLabel}>Status</Text>
+      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+
+      <Text style={styles.filterLabel}>Sortierung</Text>
+      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+    </View>
+  );
+
+  if (loading && items.length === 0) {
+    return (
+      <View style={styles.container} testID="list-wrapper">
+        {!embedded ? toolbar : null}
+        <LoadingState message="Termine werden geladen…" />
+      </View>
+    );
+  }
+
+  if (error && items.length === 0 && totalCount === 0) {
+    return (
+      <View style={styles.container} testID="list-wrapper">
+        <ErrorState message={error} onRetry={refresh} />
+      </View>
+    );
+  }
+
+  const emptyContent = isEmpty ? (
+    <EmptyState
+      title="Noch keine Termine"
+      message={
+        canCreate
+          ? 'Legen Sie den ersten Termin an, um die Planung zu starten.'
+          : `Noch keine Termine vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
+      }
+      actionLabel={canCreate ? 'Termin anlegen' : undefined}
+      onAction={
+        canCreate ? () => handleCreate() : undefined
+      }
+    />
+  ) : isFilterEmpty ? (
+    <EmptyState
+      title="Keine Treffer"
+      message="Für Ihre Suche oder Filter wurden keine Termine gefunden."
+      actionLabel="Filter zurücksetzen"
+      onAction={resetFilters}
+    />
+  ) : null;
+
+  const footerContent =
+    hasMore ? (
+      <PremiumButton
+        title="Weitere laden"
+        variant="secondary"
+        fullWidth
+        onPress={loadMore}
+        style={styles.loadMore}
+      />
+    ) : filteredCount > 0 ? (
+      <Text style={styles.footer}>
+        {filteredCount} Termine angezeigt
+        {hasActiveFilters ? ' (gefiltert)' : ''}
+      </Text>
+    ) : null;
+
+  if (useTableLayout) {
+    return (
+      <View style={styles.container} testID="list-wrapper">
+        <ScrollView
+          style={styles.flatList}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+          }
+        >
+          {toolbar}
+          {emptyContent ?? (
+            <>
+              <AppointmentsListTable
+                appointments={items}
+                selectedId={selectedId}
+                onAppointmentPress={handleAppointmentPress}
+                onOpenDetail={(id) => router.push(`/office/appointments/${id}` as never)}
+                sortColumnKey={tableSort.sortColumnKey}
+                sortDirection={tableSort.sortDirection}
+                onSortColumn={tableSort.onSortColumn}
+              />
+              {footerContent}
+            </>
+          )}
+          {useTableLayout && !embedded ? (
+            <AdaptiveActionBar
+              tertiary={
+                <Text style={styles.actionMeta}>
+                  {filteredCount} von {totalCount} Terminen
+                </Text>
+              }
+              secondary={
+                hasActiveFilters ? (
+                  <PremiumButton
+                    title="Filter zurücksetzen"
+                    variant="ghost"
+                    size="sm"
+                    onPress={resetFilters}
+                  />
+                ) : (
+                  <PremiumButton title="Aktualisieren" variant="ghost" size="sm" onPress={refresh} />
+                )
+              }
+              primary={
+                canCreate ? (
+                  <PremiumButton
+                    title="+ Neu"
+                    size="sm"
+                    onPress={handleCreate}
+                  />
+                ) : undefined
+              }
+            />
+          ) : null}
+        </ScrollView>
+        {embedded && canCreate ? (
+          <View style={styles.embeddedCta}>
+            <PremiumButton
+              title="+ Neu"
+              size="sm"
+              onPress={handleCreate}
+            />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container} testID="list-wrapper">
+      <FlatList
+        style={styles.flatList}
+        data={items}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={toolbar}
+        ListEmptyComponent={emptyContent}
+        ListFooterComponent={footerContent}
+        renderItem={({ item }) => (
+          <AppointmentListCard
+            appointment={item}
+            selected={selectedId === item.id}
+            onPress={() => handleAppointmentPress(item.id)}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+        }
+      />
+      {embedded && canCreate ? (
+        <View style={styles.embeddedCta}>
+          <PremiumButton
+            title="+ Neu"
+            size="sm"
+            onPress={handleCreate}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}

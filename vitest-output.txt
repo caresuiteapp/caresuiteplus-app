@@ -1,0 +1,1541 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+ RUN  v3.2.6 C:/Users/Kevin Reinhardt/Documents/CareSuite+
+
+ Ô£ô src/__tests__/e2e/livePilotRemote.test.ts (4 tests) 570ms
+   Ô£ô Live-Pilot Remote E2E (anon, unauthenticated) > communication_threads table is reachable on remote  394ms
+ Ô£ô src/__tests__/office/clientNotesPortalIsolation.test.ts (4 tests) 940ms
+   Ô£ô ClientNotes Portal Isolation > toPortalView entfernt internalNotes  311ms
+   Ô£ô ClientNotes Portal Isolation > Timeline-Portalfilter schlie├ƒt interne Ereignisse aus  302ms
+ Ô£ô src/__tests__/templates/templateSystem.test.ts (8 tests) 1153ms
+   Ô£ô templateSystem ÔÇö Paket F > l├ñdt Mandantenvorlagen nach Erstellung  321ms
+   Ô£ô templateSystem ÔÇö Paket F > Template kann im Demo-Modus erstellt und archiviert werden  317ms
+ Ô£ô src/__tests__/office/clientFullDetail.test.ts (4 tests) 1255ms
+   Ô£ô ClientFullDetail > l├ñdt vollst├ñndige Akte f├╝r Helga Schneider  313ms
+   Ô£ô ClientFullDetail > l├ñdt vollst├ñndige Akte f├╝r Werner M├╝ller  308ms
+   Ô£ô ClientFullDetail > maskiert sensible Felder ohne Berechtigung  319ms
+   Ô£ô ClientFullDetail > liefert Minimal-Fallback f├╝r Clients ohne Full-Detail  313ms
+ Ô£ô src/__tests__/pflege/pflegeBatch3.test.ts (13 tests) 979ms
+   Ô£ô Pflege Sprint Batch 3 (Sprint 77) > sisListService und Repository nutzen assessment_runs Live-Basis  467ms
+ Ô£ô src/__tests__/office/officeMessagesList.test.ts (14 tests) 2010ms
+   Ô£ô Office Nachrichten list > fetchOfficeMessages liefert Demo-Office-Nachrichten  362ms
+   Ô£ô Office Nachrichten list > fetchOfficeMessageDetail liefert Demo-Detail  360ms
+   Ô£ô Office Nachrichten list > sendDomainMessage persistiert Office-Nachricht  551ms
+   Ô£ô Office Nachrichten list > replyToOfficeMessage sendet Demo-Antwort  722ms
+ Ô£ô src/__tests__/office/officeContentArchitecture.test.ts (16 tests) 2003ms
+   Ô£ô Office content architecture > officeModules Spezial-Services liefern Demo-Daten  852ms
+ Ô£ô src/__tests__/qm/qmModule.test.ts (22 tests) 1939ms
+   Ô£ô QM AI Assistant > erstellt KI-Entwurf ohne echten LLM  305ms
+   Ô£ô QM AI Assistant > akzeptiert und verwirft Entw├╝rfe  621ms
+ ÔØ» src/__tests__/pflege/pflegeBatch2.test.ts (12 tests | 2 failed) 503ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > VitalReadingsListHero und View nutzen DesktopListViewToggle 2ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > CarePlansListHero und View nutzen DesktopListViewToggle 1ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > VitalReadingsListTable nutzt PremiumDataTable 0ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > ShiftScheduleListHero nutzt PremiumListHeroFrame mit Import-extern Badge 1ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > fetchShiftScheduleList liefert Demo-Schichten mit guardServiceTenant 205ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > buildShiftScheduleListKpis berechnet Schicht-Kennzahlen 1ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > CareDocumentationListHero und Service nutzen care_records Live-Basis 258ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > Pflegedokumentation Route existiert 1ms
+   ├ù Pflege Sprint Batch 2 (Sprint 76) > MedicationDetailHero und Service sind preparedOnly 18ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'eMP in Vorbereitung'
+   ├ù Pflege Sprint Batch 2 (Sprint 76) > WoundDocumentationDetailHero und Service sind preparedOnly 12ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'BodyMap in Vorbereitung'
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > Medikation und Wund Listen navigieren zu Detail-Routen 1ms
+   Ô£ô Pflege Sprint Batch 2 (Sprint 76) > pflegeModuleConfig exportiert Live-Readiness f├╝r Pl├ñne und Dokumentation 1ms
+ Ô£ô src/__tests__/office/clientContacts.test.ts (2 tests) 949ms
+   Ô£ô ClientContacts > erstellt und aktualisiert Kontakt  735ms
+ ÔØ» src/__tests__/pflege/pflegePremiumHeroesBatch.test.ts (11 tests | 2 failed) 673ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > PflegeDashboardHero nutzt PremiumListHeroFrame mit Dashboard-KPIs 2ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > PflegeIndexScreen nutzt CareLight premium dashboard 1ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > buildPflegeDashboardKpis berechnet Pl├ñne, Vitalwerte und Hinweise 1ms
+   ├ù Pflege Premium Heroes Batch (Sprint 75) > SisOverviewHero und Screen nutzen PremiumListHeroFrame 19ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'Live-Sync in Vorbereitung'
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > buildSisListKpis berechnet Assessments und Pr├╝ffristen 1ms
+   ├ù Pflege Premium Heroes Batch (Sprint 75) > PflegeReportsHero und SettingsHero nutzen PremiumListHeroFrame 9ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'MDK-Export in Vorbereitung'
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > buildPflegeReportKpis deckt MDK und Wundf├ñlle ab 210ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > Medikation und Wunddokumentation Services nutzen guardServiceTenant  425ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > MedicationListHero und WoundDocumentationListHero haben externe Anbindungs-Badges 2ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > buildMedicationListKpis und buildWoundDocumentationListKpis liefern Kennzahlen 1ms
+   Ô£ô Pflege Premium Heroes Batch (Sprint 75) > Pflege Medikation und Wunddokumentation Routen existieren 1ms
+ Ô£ô src/__tests__/office/officeAppointmentsList.test.ts (10 tests) 679ms
+   Ô£ô Office Termine list > fetchAppointmentList liefert Demo-Termine  368ms
+ Ô£ô src/__tests__/privacy/dsgvoAdminList.test.ts (4 tests) 640ms
+ Ô£ô src/__tests__/office/officeInvoicesList.test.ts (9 tests) 769ms
+   Ô£ô Office Rechnungen list > fetchInvoiceList liefert Demo-Rechnungen  415ms
+   Ô£ô Office Rechnungen list > fetchInvoiceDetail liefert Demo-Detail  314ms
+ Ô£ô src/__tests__/e2e/serviceFlows.test.ts (5 tests) 637ms
+ Ô£ô src/__tests__/ti/tiAudit.test.ts (4 tests) 608ms
+ Ô£ô src/__tests__/preparedOnlyElimination.test.ts (7 tests) 661ms
+   Ô£ô Prepared-only elimination sprint > Pflege CRUD services return demo data  634ms
+ Ô£ô src/__tests__/pflege/pflegeCarePlansList.test.ts (9 tests) 534ms
+ Ô£ô src/__tests__/office/officeEmployeesList.test.ts (14 tests) 569ms
+ Ô£ô src/__tests__/pflege/pflegeVitalReadingsList.test.ts (10 tests) 461ms
+ Ô£ô src/__tests__/templates/templateCatalogSeeds.test.ts (8 tests) 508ms
+   Ô£ô template catalog seeds > dropdown options are non-empty for MVP catalog types  498ms
+ Ô£ô src/__tests__/assist/assistAssignmentsList.test.ts (9 tests) 581ms
+   Ô£ô Assist Einsatzplanung list > fetchAssignmentList liefert Demo-Eins├ñtze  301ms
+ Ô£ô src/__tests__/pflege/pflegeBatch4.test.ts (9 tests) 437ms
+   Ô£ô Pflege Sprint Batch 4 (Sprint 78) > Batch 3 Live-Wiring bleibt intakt (Regression)  422ms
+ Ô£ô src/__tests__/wp/wp019-fundament.test.ts (2 tests) 420ms
+   Ô£ô WP19 > Dashboard-Service liefert Snapshot  416ms
+ Ô£ô src/__tests__/office/officeClientsList.test.ts (14 tests) 401ms
+   Ô£ô Office Klient:innen list > fetchClientList liefert Demo-Klient:innen  386ms
+ ÔØ» src/__tests__/assist/assistTrackingList.test.ts (8 tests | 1 failed) 371ms
+   Ô£ô Assist Live-Tracking list > enforcePermission sch├╝tzt Tracking-Service 2ms
+   Ô£ô Assist Live-Tracking list > fetchTrackingDashboard liefert Demo-Tracking-Daten  338ms
+   Ô£ô Assist Live-Tracking list > buildTrackingKpis berechnet Kennzahlen aus Demo-Daten 0ms
+   Ô£ô Assist Live-Tracking list > TrackingListView hat Suche, Filter und States 3ms
+   ├ù Assist Live-Tracking list > TrackingListHero nutzt PremiumListHeroFrame 13ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'GPS in Vorbereitung'
+   Ô£ô Assist Live-Tracking list > TripsListScreen integriert SegmentedTabs f├╝r Fahrten + Tracking 10ms
+   Ô£ô Assist Live-Tracking list > tripLogService nutzt guardServiceTenant f├╝r Tracking 1ms
+   Ô£ô Assist Live-Tracking list > seed-live-pilot.mjs ist safe INSERT-only 1ms
+ Ô£ô src/__tests__/assist/assistTripsList.test.ts (12 tests) 314ms
+   Ô£ô Assist Fahrten list > fetchTripLogList liefert Demo-Fahrten  303ms
+ Ô£ô src/__tests__/communication/communicationCenterList.test.ts (13 tests) 271ms
+ Ô£ô src/__tests__/office/officeDashboard.test.ts (7 tests) 295ms
+ Ô£ô src/__tests__/core/calendarGrouping.test.ts (2 tests) 293ms
+ Ô£ô src/__tests__/office/officeDocumentsList.test.ts (9 tests) 329ms
+ Ô£ô src/__tests__/communication/communicationCenter.test.ts (10 tests) 290ms
+ Ô£ô src/__tests__/assist/assistExecutionsList.test.ts (12 tests) 291ms
+ Ô£ô src/__tests__/stationaer/stationaerResidentsList.test.ts (13 tests) 276ms
+ Ô£ô src/__tests__/beratung/beratungCasesList.test.ts (10 tests) 269ms
+ Ô£ô src/__tests__/akademie/akademieCoursesList.test.ts (13 tests) 281ms
+ ÔØ» src/__tests__/office/employeeDetailHero.test.ts (6 tests | 1 failed) 300ms
+   Ô£ô Office Employee Detail Hero (Sprint 69) > EmployeeDetailHero nutzt PremiumListHeroFrame mit buildEmployeeDetailKpis 2ms
+   ├ù Office Employee Detail Hero (Sprint 69) > EmployeeDetailHero zeigt ehrliches preparedOnly-Badge 18ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'Vollprofil in Vorbereitung'
+   Ô£ô Office Employee Detail Hero (Sprint 69) > EmployeeDetailScreen ersetzt flache PremiumCard-Header durch Hero 1ms
+   Ô£ô Office Employee Detail Hero (Sprint 69) > buildEmployeeDetailKpis berechnet Betriebszugeh├Ârigkeit, Abteilung und Kontakt 1ms
+   Ô£ô Office Employee Detail Hero (Sprint 69) > employeeDetailService nutzt guardServiceTenant ohne service_role 0ms
+   Ô£ô Office Employee Detail Hero (Sprint 69) > fetchEmployeeDetail liefert Demo-Vollprofil 276ms
+ Ô£ô src/__tests__/akademie/courseDetailHero.test.ts (4 tests) 266ms
+ Ô£ô src/__tests__/stationaer/residentDetailHero.test.ts (4 tests) 253ms
+ Ô£ô src/__tests__/beratung/beratungCaseDetailHero.test.ts (4 tests) 258ms
+ Ô£ô src/__tests__/pflege/carePlanDetailHero.test.ts (4 tests) 275ms
+ Ô£ô src/__tests__/ti/kimMailbox.test.ts (6 tests) 196ms
+ Ô£ô src/__tests__/wp/wp579-qa.test.ts (2 tests) 201ms
+ Ô£ô src/__tests__/reporting/reportingList.test.ts (10 tests) 200ms
+ Ô£ô src/__tests__/wp/wp559-security.test.ts (2 tests) 200ms
+ Ô£ô src/__tests__/wp/wp539-release.test.ts (2 tests) 212ms
+ Ô£ô src/__tests__/wp/wp259-assist-planning.test.ts (2 tests) 138ms
+ Ô£ô src/__tests__/wp/wp599-roadmap.test.ts (2 tests) 192ms
+ Ô£ô src/__tests__/qm/qmHandbookEntry.test.ts (5 tests) 144ms
+ Ô£ô src/__tests__/wp/wp319-trips.test.ts (2 tests) 127ms
+ Ô£ô src/__tests__/wp/wp279-execution.test.ts (2 tests) 124ms
+ Ô£ô src/__tests__/wp/wp379-pflege.test.ts (2 tests) 134ms
+ Ô£ô src/__tests__/wp/wp339-employee-portal.test.ts (2 tests) 133ms
+ Ô£ô src/__tests__/wp/wp359-client-portal.test.ts (2 tests) 129ms
+ Ô£ô src/__tests__/wp/wp459-catalog.test.ts (2 tests) 127ms
+ Ô£ô src/__tests__/wp/wp399-stationaer.test.ts (2 tests) 139ms
+ Ô£ô src/__tests__/wp/wp179-clients.test.ts (2 tests) 139ms
+ Ô£ô src/__tests__/wp/wp139-business.test.ts (2 tests) 143ms
+ Ô£ô src/__tests__/wp/wp479-platform.test.ts (2 tests) 124ms
+ Ô£ô src/__tests__/wp/wp239-billing.test.ts (2 tests) 140ms
+ Ô£ô src/__tests__/wp/wp219-docs.test.ts (2 tests) 128ms
+ Ô£ô src/__tests__/wp/wp439-akademie.test.ts (2 tests) 135ms
+ Ô£ô src/__tests__/wp/wp499-integrations.test.ts (2 tests) 130ms
+ Ô£ô src/__tests__/wp/wp419-beratung.test.ts (2 tests) 131ms
+ Ô£ô src/__tests__/wp/wp199-employees.test.ts (2 tests) 125ms
+ Ô£ô src/__tests__/wp/wp159-office.test.ts (2 tests) 139ms
+ Ô£ô src/__tests__/wp/wp299-care-records.test.ts (2 tests) 135ms
+ Ô£ô src/__tests__/auth/temporaryPassword.test.ts (5 tests) 65ms
+ Ô£ô src/__tests__/stationaer/stationaerExtensionHeroes.test.ts (11 tests) 60ms
+ Ô£ô src/__tests__/pflege/pflegeBatch5.test.ts (10 tests) 61ms
+ Ô£ô src/__tests__/privacy/dsgvoAdminSla.test.ts (7 tests) 46ms
+ Ô£ô src/__tests__/sprint104ExtensionDetail.test.ts (8 tests) 46ms
+ Ô£ô src/__tests__/design/adaptiveShellAdoption.test.ts (21 tests) 12ms
+ Ô£ô src/__tests__/auth/authAccessModel.test.ts (10 tests) 49ms
+ Ô£ô src/__tests__/office/officeBillingHeroes.test.ts (5 tests) 29ms
+ Ô£ô src/__tests__/portal/portalMessageDetailHero.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/design/visualReality.test.ts (64 tests) 31ms
+ Ô£ô src/__tests__/platform/platformOcrAiHeroesSprint103.test.ts (9 tests) 35ms
+ Ô£ô src/__tests__/office/appointmentDetailHero.test.ts (3 tests) 35ms
+ Ô£ô src/__tests__/platform/storeConfig.test.ts (31 tests) 14ms
+ ÔØ» src/__tests__/privacy/dsgvoScreens.test.ts (30 tests | 1 failed) 59ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > DataRequestScreen und AccountDeletionRequestScreen existieren 2ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > App-Routen verbinden DSGVO-Screens 1ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > preparedOnly im Demo-Modus: Submit deaktiviert 1ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > Live-Submit nur mit backendReady-Guard und echtem Service 1ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > nutzt supportLinks f├╝r Datenschutz, Hilfe und Support-E-Mail 0ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > Shell-Footer verlinken Betroffenenrechte 1ms
+   Ô£ô DSGVO data-subject screens (Sprint 47) > AccountDeletionScreen warnt vor unwiderruflicher L├Âschung 0ms
+   Ô£ô DSGVO data_subject_requests repository (Sprint 49) > Migration 0031 ist safe CREATE TABLE IF NOT EXISTS mit RLS 1ms
+   Ô£ô DSGVO data_subject_requests repository (Sprint 49) > Screens setzen requestType f├╝r Live-Insert 1ms
+   Ô£ô EAS readiness sync (Sprint 48) > app.config.ts spiegelt supportLinks vollst├ñndig 1ms
+   Ô£ô EAS readiness sync (Sprint 48) > store-readiness-check pr├╝ft DSGVO preparedOnly und app.config 1ms
+   Ô£ô Assist GPS preparedOnly polish (Sprint 50) > gpsTrackingConfig bleibt ehrlich preparedOnly 0ms
+   Ô£ô Assist GPS preparedOnly polish (Sprint 50) > TrackingListView zeigt GPS-Vorbereitung-Banner 0ms
+   ├ù Assist GPS preparedOnly polish (Sprint 50) > TrackingListHero zeigt GPS-Badge statt irref├╝hrendem Demo-Label 41ms
+     ÔåÆ expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'GPS in Vorbereitung'
+   Ô£ô DSGVO Admin-Listenansicht (Sprint 51) > Admin-Route und Screen existieren 1ms
+   Ô£ô DSGVO Admin-Listenansicht (Sprint 51) > Admin-Service nutzt guardServiceTenant und Live-Repo listForTenant 1ms
+   Ô£ô DSGVO Admin-Listenansicht (Sprint 51) > Admin-UI ist read-only mit business_admin KPI-Hero 1ms
+   Ô£ô DSGVO Admin-Listenansicht (Sprint 51) > SecurityHub verlinkt DSGVO-Anfragen 0ms
+   Ô£ô DSGVO Admin Status-Update (Sprint 58) > Migration 0032 f├╝gt Admin-UPDATE RLS hinzu (safe ADD, kein DROP) 0ms
+   Ô£ô DSGVO Admin Status-Update (Sprint 58) > Admin-Service und Repo unterst├╝tzen updateStatus ohne service_role 0ms
+   Ô£ô DSGVO Admin Status-Update (Sprint 58) > Admin-ListView bietet Status-FilterChips bei security.manage 0ms
+   Ô£ô DSGVO Admin Fristen + Export (Sprint 59) > SLA-Konstanten und Frist-Berechnung aus created_at/received_at 0ms
+   Ô£ô DSGVO Admin Fristen + Export (Sprint 59) > Admin-Service exportiert CSV nur Live (preparedOnly) 0ms
+   Ô£ô DSGVO Admin Fristen + Export (Sprint 59) > Admin-ListView zeigt Frist-Badges und Export preparedOnly 0ms
+   Ô£ô DSGVO Admin E-Mail notify (Sprint 71) > Edge Function notify-data-subject-request-admin existiert mit Resend prepared_only 1ms
+   Ô£ô DSGVO Admin E-Mail notify (Sprint 71) > submitDataSubjectRequest ruft Admin-Notify nach erfolgreichem Insert auf 0ms
+   Ô£ô DSGVO Admin E-Mail notify (Sprint 71) > Admin-UI zeigt ehrliche Admin-Mail-Badges und Banner 0ms
+   Ô£ô Portal Dashboard Hero polish (Sprint 52) > PortalDashboardHero nutzt PremiumListHeroFrame f├╝r beide Portale 0ms
+   Ô£ô Portal Dashboard Hero polish (Sprint 52) > PortalOverviewTab ersetzt DashboardHero durch PortalDashboardHero 0ms
+   Ô£ô Portal Dashboard Hero polish (Sprint 52) > Portal-Schnellaktionen haben echte Tab-Routen 0ms
+ Ô£ô src/__tests__/core/liveSupabaseWiring.test.ts (25 tests) 17ms
+ Ô£ô src/__tests__/sprint107AccessAdminHeroes.test.ts (14 tests) 10ms
+ Ô£ô src/__tests__/qm/qmDocumentDetailHero.test.ts (4 tests) 8ms
+ Ô£ô src/__tests__/billing/freePlatformStrategy.test.ts (14 tests) 12ms
+ Ô£ô src/__tests__/beratung/beratungExtensionHeroes.test.ts (7 tests) 8ms
+ Ô£ô src/__tests__/core/moduleAccess.test.ts (14 tests) 11ms
+ Ô£ô src/__tests__/office/officeDesktopListViewPreference.test.ts (16 tests) 14ms
+ Ô£ô src/__tests__/auth/liveSupabaseAuth.test.ts (5 tests) 14ms
+ Ô£ô src/__tests__/core/applyLiveMigrations.test.ts (5 tests) 6ms
+ Ô£ô src/__tests__/sprint109-111.test.ts (11 tests) 13ms
+ Ô£ô src/__tests__/assist/assistExecutionsViewToggle.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/qm/qmHandbookLive.test.ts (11 tests) 70ms
+ Ô£ô src/__tests__/assist/tripsCompleteAndTrackingLive.test.ts (10 tests) 9ms
+ Ô£ô src/__tests__/reporting/pdlCockpitLive.test.ts (7 tests) 9ms
+ Ô£ô src/__tests__/stationaer/stationaerExtensionDesktopTables.test.ts (9 tests) 17ms
+ Ô£ô src/__tests__/akademie/akademieExtensionHeroes.test.ts (11 tests) 10ms
+ Ô£ô src/__tests__/auth/usernameGenerator.test.ts (8 tests) 11ms
+ Ô£ô src/__tests__/templates/templateListPremium.test.ts (8 tests) 12ms
+ Ô£ô src/__tests__/clients/clientIntakeRecordRebuild.test.ts (20 tests) 11ms
+ Ô£ô src/__tests__/design/useDeviceClass.test.ts (4 tests) 4ms
+ Ô£ô src/__tests__/beratung/beratungCasesViewToggle.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/billing/pricingModel.test.ts (9 tests) 9ms
+ Ô£ô src/__tests__/auth/appStartPage.test.ts (12 tests) 11ms
+ Ô£ô src/__tests__/akademie/coursesLiveMigration.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/stationaer/stationaerResidentsViewToggle.test.ts (4 tests) 8ms
+ Ô£ô src/__tests__/core/p0Restblocker.test.ts (11 tests) 12ms
+ Ô£ô src/__tests__/qm/qmDocumentLive.test.ts (12 tests) 12ms
+ Ô£ô src/__tests__/stationaer/residentsLiveMigration.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/sprint112-114.test.ts (10 tests) 8ms
+ Ô£ô src/__tests__/platform/breakpoints.test.ts (5 tests) 5ms
+ Ô£ô src/__tests__/office/officeClientsViewToggle.test.ts (3 tests) 6ms
+ Ô£ô src/__tests__/office/officeDetailHeroes.test.ts (7 tests) 14ms
+ ÔØ» src/__tests__/assist/gpsLocationService.test.ts (12 tests | 1 failed) 32ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > isGpsTrackingLiveReady bleibt false 3ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > gpsLocationService nutzt guardServiceTenant und blockGpsPreparedOnly 1ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > requestGpsForegroundPermission blockiert im preparedOnly-Modus 1ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > getCurrentGpsPosition blockiert im preparedOnly-Modus 1ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > startTripGpsSession blockiert im preparedOnly-Modus 0ms
+   Ô£ô gpsLocationService preparedOnly guards (Sprint 74) > getGpsPermissionStatus liefert undetermined ohne Live-GPS 0ms
+   Ô£ô Assist GPS UI wiring (Sprint 74) > TripsListView zeigt GPS-Vorbereitung-Banner 0ms
+   ├ù Assist GPS UI wiring (Sprint 74) > TripsListHero zeigt GPS-Badge 22ms
+     ÔåÆ expected 'import { StyleSheet, Text, View } froÔÇª' to contain 'GPS in Vorbereitung'
+   Ô£ô Assist GPS UI wiring (Sprint 74) > gpsLocationService ist eigenst├ñndiger Assist-Service 1ms
+   Ô£ô Assist GPS UI wiring (Sprint 74) > app.config.ts deklariert expo-location Plugin 0ms
+   Ô£ô EAS readiness (Sprint 73) > eas-preflight Script existiert 0ms
+   Ô£ô EAS readiness (Sprint 73) > eas-preview-builds Doc existiert 0ms
+ Ô£ô src/__tests__/sprint105DesktopTables.test.ts (8 tests) 8ms
+ Ô£ô src/__tests__/portal/portalDocumentDetailHero.test.ts (3 tests) 7ms
+ Ô£ô src/__tests__/akademie/akademieCoursesViewToggle.test.ts (4 tests) 8ms
+ Ô£ô src/__tests__/office/officeDocumentsInvoicesAppointmentsViewToggle.test.ts (7 tests) 8ms
+ Ô£ô src/__tests__/communication/communicationCompose.test.ts (5 tests) 7ms
+ Ô£ô src/__tests__/release/releaseRoadmapListHero.test.ts (8 tests) 9ms
+ Ô£ô src/__tests__/ops/opsSecurityQaHubHero.test.ts (10 tests) 10ms
+ Ô£ô src/__tests__/insight/insightDataSourcesSprint102.test.ts (8 tests) 8ms
+ Ô£ô src/__tests__/design/adaptiveComponents.test.ts (5 tests) 9ms
+ Ô£ô src/__tests__/modules/businessModuleHubHero.test.ts (6 tests) 7ms
+ Ô£ô src/__tests__/navigation/moduleExtensionNav.test.ts (5 tests) 8ms
+ Ô£ô src/__tests__/sprint106AuthOnboardingPolish.test.ts (6 tests) 6ms
+ Ô£ô src/__tests__/ti/tiConsent.test.ts (5 tests) 9ms
+ Ô£ô src/__tests__/core/designTokenConsolidation.test.ts (8 tests) 6ms
+ Ô£ô src/__tests__/qm/qmExtensionHeroes.test.ts (7 tests) 7ms
+ Ô£ô src/__tests__/navigation/routesRegistry.test.ts (4 tests) 6ms
+ Ô£ô src/__tests__/core/clientValidation.test.ts (5 tests) 5ms
+ Ô£ô src/__tests__/core/p0BuildLiveBlockers.test.ts (8 tests) 8ms
+ Ô£ô src/__tests__/qm/qmReadConfirmationLive.test.ts (7 tests) 7ms
+ Ô£ô src/__tests__/assist/tripsLiveMigration.test.ts (2 tests) 6ms
+ Ô£ô src/__tests__/stationaer/residentsLiveDetail.test.ts (6 tests) 8ms
+ Ô£ô src/__tests__/sprint115-116.test.ts (7 tests) 9ms
+ Ô£ô src/__tests__/reporting/reportsLiveDetail.test.ts (8 tests) 9ms
+ Ô£ô src/__tests__/reporting/reportingReportsViewToggle.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/assist/tripsLiveDetail.test.ts (6 tests) 9ms
+ Ô£ô src/__tests__/core/serviceMode.test.ts (5 tests) 8ms
+ Ô£ô src/__tests__/core/tenantResolver.test.ts (5 tests) 7ms
+ Ô£ô src/__tests__/insight/insightLiveWiring.test.ts (7 tests) 5ms
+ Ô£ô src/__tests__/business/businessDetailHeroes.test.ts (4 tests) 8ms
+ Ô£ô src/__tests__/privacy/dsgvoAdminNotify.test.ts (10 tests) 8ms
+ Ô£ô src/__tests__/auth/portalCodeGenerator.test.ts (5 tests) 6ms
+ Ô£ô src/__tests__/assist/gpsMigration.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/stationaer/stationaerDashboardHero.test.ts (4 tests) 7ms
+ Ô£ô src/__tests__/templates/templateCenterEntry.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/release/releaseRoadmapHubHero.test.ts (6 tests) 8ms
+ Ô£ô src/__tests__/portal/portalTabHero.test.ts (6 tests) 8ms
+ Ô£ô src/__tests__/pilot/pilotReadiness.test.ts (6 tests) 7ms
+ Ô£ô src/__tests__/akademie/coursesLiveDetail.test.ts (6 tests) 8ms
+ Ô£ô src/__tests__/office/employeesLiveDetail.test.ts (6 tests) 6ms
+ Ô£ô src/__tests__/reporting/reportsLiveMigration.test.ts (2 tests) 7ms
+ Ô£ô src/__tests__/insight/insightListDetail.test.ts (7 tests) 8ms
+ Ô£ô src/__tests__/portal/portalRelativeHero.test.ts (2 tests) 4ms
+ Ô£ô src/__tests__/ti/kimMessageDetailHero.test.ts (6 tests) 7ms
+ Ô£ô src/__tests__/integrations/integrationsHubHero.test.ts (5 tests) 7ms
+ Ô£ô src/__tests__/office/officeEmployeesViewToggle.test.ts (3 tests) 7ms
+ Ô£ô src/__tests__/portal/portalAppointmentDetailHero.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/assist/assistCalendarHero.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/platform/platformLayout.test.ts (4 tests) 4ms
+ Ô£ô src/__tests__/insight/insightModuleScaffold.test.ts (5 tests) 5ms
+ Ô£ô src/__tests__/assist/assistAssignmentsViewToggle.test.ts (3 tests) 14ms
+ Ô£ô src/__tests__/insight/insightExportDetail.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/ti/tiAuditLogHero.test.ts (2 tests) 4ms
+ Ô£ô src/__tests__/ti/tiDashboardHero.test.ts (4 tests) 6ms
+ Ô£ô src/__tests__/assist/assistTripsViewToggle.test.ts (3 tests) 14ms
+ Ô£ô src/__tests__/integrations/integrationDetailHero.test.ts (4 tests) 6ms
+ Ô£ô src/__tests__/akademie/akademieDashboardHero.test.ts (4 tests) 6ms
+ Ô£ô src/__tests__/design/designAuditScript.test.ts (2 tests) 6ms
+ Ô£ô src/__tests__/office/officeDashboardHero.test.ts (3 tests) 8ms
+ Ô£ô src/__tests__/qm/qmDashboardHero.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/stationaer/livingAreasListHero.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/assist/assistDashboardHero.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/beratung/beratungDashboardHero.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/portal/portalAnnouncementsHero.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/business/businessExtensionListHeroes.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/ti/tiConsentListHero.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/portal/portalEmployeeAssignmentDetailHero.test.ts (2 tests) 18ms
+ Ô£ô src/__tests__/assist/careRecordsListHero.test.ts (2 tests) 4ms
+ Ô£ô src/__tests__/wp/wp519-reporting.test.ts (5 tests) 5ms
+ Ô£ô src/__tests__/reporting/pdlCockpitHero.test.ts (3 tests) 5ms
+ Ô£ô src/__tests__/ti/tiPermissions.test.ts (8 tests) 4ms
+ Ô£ô src/__tests__/design/appStartResponsiveLayout.test.ts (5 tests) 8ms
+ Ô£ô src/__tests__/ti/kimMailboxHero.test.ts (2 tests) 5ms
+ Ô£ô src/__tests__/core/workflowEngine.test.ts (4 tests) 5ms
+ Ô£ô src/__tests__/wp/wp099-auth.test.ts (2 tests) 4ms
+ Ô£ô src/__tests__/design/themeBridge.test.ts (5 tests) 4ms
+ Ô£ô src/__tests__/design/adaptiveKpiGrid.test.ts (5 tests) 6ms
+ Ô£ô src/__tests__/core/permissions.test.ts (3 tests) 8ms
+ Ô£ô src/__tests__/design/useResponsiveValue.test.ts (5 tests) 4ms
+ Ô£ô src/__tests__/core/employeeValidation.test.ts (2 tests) 3ms
+ Ô£ô src/__tests__/core/premiumDataTableSort.test.ts (4 tests) 4ms
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 8 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/assist/assistTrackingList.test.ts > Assist Live-Tracking list > TrackingListHero nutzt 
+PremiumListHeroFrame
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'GPS in Vorbereitung'
+
+- Expected
++ Received
+
+- GPS in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import type { TrackingListKpi } from '@/data/demo/trackingStats';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import { designTokens, spacing } from '@/theme';
++
++ type TrackingListHeroProps = {
++   kpis: TrackingListKpi[];
++   roleKey: RoleKey;
++   positionCount: number;
++   eventCount: number;
++   isReadOnly: boolean;
++   compact?: boolean;
++ };
++
++ export function TrackingListHero({
++   kpis,
++   roleKey,
++   positionCount,
++   eventCount,
++   isReadOnly,
++   compact = false,
++ }: TrackingListHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: {
++     flexDirection: 'row',
++     gap: spacing.md,
++   },
++   textCol: {
++     flex: 1,
++     gap: 2,
++   },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: {
++     ...typography.h2,
++   },
++   meta: {
++     ...typography.caption,
++     color: colors.textMuted,
++   },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.amber,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(255,193,7,0.35)',
++   },
++   iconText: {
++     fontSize: 22,
++   },
++   badges: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiRow: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiItem: {
++     flex: 1,
++     minWidth: 100,
++   },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>ASSIST</Text>
++           <Text style={styles.title}>Live-Tracking</Text>
++           <Text style={styles.meta}>
++             {positionCount} Positionen ┬À {eventCount} Geofence-Ereignisse
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++         </View>
++         {!compact ? (
++           <View style={styles.iconBadge}>
++             <Text style={styles.iconText}>­ƒôì</Text>
++           </View>
++         ) : null}
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isGpsTrackingLiveReady() ? (
++           <PremiumBadge label="GPS extern" variant="orange" dot />
++         ) : null}
++         <PremiumBadge label="Geofence-Snapshot" variant="muted" />
++       </View>
++       {!compact ? (
++         <View style={styles.kpiRow}>
++           {kpis.map((kpi) => (
++             <PremiumKpiCard
++               key={kpi.id}
++               label={kpi.label}
++               value={kpi.value}
++               subValue={kpi.subValue}
++               icon={kpi.icon}
++               accentColor={kpi.accentColor}
++               style={styles.kpiItem}
++             />
++           ))}
++         </View>
++       ) : null}
++     </PremiumListHeroFrame>
++   );
++ }
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/assist/assistTrackingList.test.ts:51:20
+     49|     expect(source).toContain('Live-Tracking');
+     50|     expect(source).toContain('isGpsTrackingLiveReady');
+     51|     expect(source).toContain('GPS in Vorbereitung');
+       |                    ^
+     52|   });
+     53| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/8]ÔÄ»
+
+ FAIL  src/__tests__/assist/gpsLocationService.test.ts > Assist GPS UI wiring (Sprint 74) > TripsListHero zeigt 
+GPS-Badge
+AssertionError: expected 'import { StyleSheet, Text, View } froÔÇª' to contain 'GPS in Vorbereitung'
+
+- Expected
++ Received
+
+- GPS in Vorbereitung
++ import { StyleSheet, Text, View } from 'react-native';
++ import {
++   DesktopListViewToggle,
++   CareLightButton,
++   CareLightKpiCard,
++   CareLightListHeroFrame,
++   PremiumBadge,
++   type DesktopListViewMode,
++ } from '@/components/ui';
++ import { careLightColors } from '@/design/tokens/lightTheme';
++ import { careSpacing } from '@/design/tokens/spacing';
++ import { careTypography } from '@/design/tokens/typography';
++ import { moduleColor } from '@/design/tokens/modules';
++ import type { TripListKpi } from '@/data/demo/tripListStats';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import { designTokens } from '@/theme';
++
++ type TripsListHeroProps = {
++   kpis: TripListKpi[];
++   roleKey: RoleKey;
++   filteredCount: number;
++   totalCount: number;
++   isReadOnly: boolean;
++   compact?: boolean;
++   viewMode?: DesktopListViewMode;
++   onViewModeChange?: (mode: DesktopListViewMode) => void;
++   showViewToggle?: boolean;
++ };
++
++ export function TripsListHero({
++   kpis,
++   roleKey,
++   filteredCount,
++   totalCount,
++   isReadOnly,
++   compact = false,
++   viewMode = 'table',
++   onViewModeChange,
++   showViewToggle = false,
++ }: TripsListHeroProps) {
++   const accent = moduleColor('assist');
++
++   return (
++     <CareLightListHeroFrame accentColor={accent}>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>ASSIST</Text>
++           <Text style={styles.title}>Fahrtenbuch</Text>
++           <Text style={styles.meta}>
++             {filteredCount} von {totalCount} Fahrten
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++         </View>
++         {!compact ? (
++           <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
++             <Text style={styles.iconText}>­ƒÜù</Text>
++           </View>
++         ) : null}
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isGpsTrackingLiveReady() ? (
++           <PremiumBadge label="GPS extern" variant="orange" dot />
++         ) : null}
++       </View>
++       {showViewToggle && onViewModeChange ? (
++         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
++       ) : null}
++       {!compact ? (
++         <View style={styles.kpiRow}>
++           {kpis.map((kpi) => (
++             <CareLightKpiCard
++               key={kpi.id}
++               label={kpi.label}
++               value={String(kpi.value)}
++               subValue={kpi.subValue}
++               icon={kpi.icon}
++               accentColor={kpi.accentColor}
++               style={styles.kpiItem}
++             />
++           ))}
++         </View>
++       ) : null}
++     </CareLightListHeroFrame>
++   );
++ }
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++ const styles = StyleSheet.create({
++   topRow: { flexDirection: 'row', gap: careSpacing.md },
++   textCol: { flex: 1, gap: 2 },
++   eyebrow: {
++     ...careTypography.caption,
++     color: careLightColors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++     fontWeight: '700',
++   },
++   title: { ...careTypography.h2, color: careLightColors.navy },
++   meta: { ...careTypography.caption, color: careLightColors.muted },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: careLightColors.border,
++   },
++   iconText: { fontSize: 22 },
++   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
++   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
++   kpiItem: { flex: 1, minWidth: 100 },
++ });
++
++
+
+ ÔØ» src/__tests__/assist/gpsLocationService.test.ts:89:18
+     87|   it('TripsListHero zeigt GPS-Badge', () => {
+     88|     const hero = readSrc('src/components/assist/TripsListHero.tsx');
+     89|     expect(hero).toContain('GPS in Vorbereitung');
+       |                  ^
+     90|     expect(hero).toContain('isGpsTrackingLiveReady');
+     91|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/8]ÔÄ»
+
+ FAIL  src/__tests__/office/employeeDetailHero.test.ts > Office Employee Detail Hero (Sprint 69) > EmployeeDetailHero 
+zeigt ehrliches preparedOnly-Badge
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'Vollprofil in Vorbereitung'
+
+- Expected
++ Received
+
+- Vollprofil in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import { ROLE_LABELS } from '@/data/demo';
++ import {
++   buildEmployeeDetailKpis,
++   buildEmployeeDetailSubtitle,
++ } from '@/lib/office/employeeDetailStats';
++ import { isEmployeeDetailLiveReady } from '@/lib/office/employeeModuleConfig';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import type { EmployeeDetail } from '@/types/modules/employeeDetail';
++ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
++ import { designTokens, spacing } from '@/theme';
++
++ type EmployeeDetailHeroProps = {
++   employee: EmployeeDetail;
++   roleKey: RoleKey;
++   isReadOnly: boolean;
++ };
++
++ function statusVariant(status: string) {
++   switch (status) {
++     case 'aktiv':
++       return 'green' as const;
++     case 'fehlerhaft':
++     case 'gesperrt':
++       return 'red' as const;
++     case 'in_bearbeitung':
++     case 'entwurf':
++       return 'orange' as const;
++     default:
++       return 'muted' as const;
++   }
++ }
++
++ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDetailHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: {
++     flexDirection: 'row',
++     gap: spacing.md,
++   },
++   textCol: {
++     flex: 1,
++     gap: 2,
++   },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: {
++     ...typography.h2,
++   },
++   meta: {
++     ...typography.caption,
++     color: colors.textMuted,
++   },
++   subtitle: {
++     ...typography.caption,
++     color: colors.textSecondary,
++   },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.orange,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(255,159,67,0.35)',
++   },
++   iconText: {
++     fontSize: 22,
++   },
++   badges: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++     alignItems: 'center',
++   },
++   kpiRow: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiItem: {
++     flex: 1,
++     minWidth: 100,
++   },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   const kpis = buildEmployeeDetailKpis(employee, mode);
++   const fullName = `${employee.firstName} ${employee.lastName}`;
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>OFFICE ┬À MITARBEITENDE:R</Text>
++           <Text style={styles.title}>{fullName}</Text>
++           <Text style={styles.meta}>
++             {employee.email}
++             {employee.phone ? ` ┬À ${employee.phone}` : ''}
++           </Text>
++           <Text style={styles.subtitle}>{buildEmployeeDetailSubtitle(employee)}</Text>
++         </View>
++         <View style={styles.iconBadge}>
++           <Text style={styles.iconText}>­ƒæñ</Text>
++         </View>
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge
++           label={WORKFLOW_STATUS_LABELS[employee.status]}
++           variant={statusVariant(employee.status)}
++           dot
++         />
++         {employee.jobTitle ? <PremiumBadge label={employee.jobTitle} variant="cyan" /> : null}
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isEmployeeDetailLiveReady() ? (
++           <PremiumBadge label="Teilweise live" variant="orange" dot />
++         ) : null}
++       </View>
++       <View style={styles.kpiRow}>
++         {kpis.map((kpi) => (
++           <PremiumKpiCard
++             key={kpi.id}
++             label={kpi.label}
++             value={kpi.value}
++             subValue={kpi.subValue}
++             icon={kpi.icon}
++             accentColor={kpi.accentColor}
++             style={styles.kpiItem}
++           />
++         ))}
++       </View>
++     </PremiumListHeroFrame>
++   );
++ }
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/office/employeeDetailHero.test.ts:28:18
+     26|     expect(config).toContain('isEmployeeDetailLiveReady');
+     27|     expect(hero).toContain('isEmployeeDetailLiveReady');
+     28|     expect(hero).toContain('Vollprofil in Vorbereitung');
+       |                  ^
+     29|     expect(isEmployeeDetailLiveReady()).toBe(false);
+     30|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/8]ÔÄ»
+
+ FAIL  src/__tests__/pflege/pflegeBatch2.test.ts > Pflege Sprint Batch 2 (Sprint 76) > MedicationDetailHero und 
+Service sind preparedOnly
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'eMP in Vorbereitung'
+
+- Expected
++ Received
+
+- eMP in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import {
++   buildMedicationDetailKpis,
++   type MedicationDetail,
++ } from '@/lib/pflege/medicationDetailStats';
++ import {
++   isMedicationLiveReady,
++   MEDICATION_DETAIL_PREPARED_MESSAGE,
++ } from '@/lib/pflege/pflegeModuleConfig';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
++ import { designTokens, spacing } from '@/theme';
++
++ type MedicationDetailHeroProps = {
++   detail: MedicationDetail;
++   roleKey: RoleKey;
++   isReadOnly: boolean;
++ };
++
++ function statusVariant(status: string) {
++   switch (status) {
++     case 'aktiv':
++       return 'green' as const;
++     case 'in_bearbeitung':
++       return 'orange' as const;
++     default:
++       return 'muted' as const;
++   }
++ }
++
++ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: MedicationDetailHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: { flexDirection: 'row', gap: spacing.md },
++   textCol: { flex: 1, gap: 2 },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: { ...typography.h2 },
++   meta: { ...typography.caption, color: colors.textMuted },
++   subtitle: { ...typography.caption, color: colors.textSecondary },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.cyan,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(98,243,255,0.35)',
++   },
++   iconText: { fontSize: 22 },
++   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
++   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
++   kpiItem: { flex: 1, minWidth: 100 },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   const kpis = buildMedicationDetailKpis(detail, mode);
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>PFLEGE ┬À MEDIKATION</Text>
++           <Text style={styles.title}>{detail.medicationName}</Text>
++           <Text style={styles.meta}>
++             {detail.clientName} ┬À {detail.dosage}
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++           <Text style={styles.subtitle}>{MEDICATION_DETAIL_PREPARED_MESSAGE}</Text>
++         </View>
++         <View style={styles.iconBadge}>
++           <Text style={styles.iconText}>­ƒÆè</Text>
++         </View>
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge
++           label={WORKFLOW_STATUS_LABELS[detail.status]}
++           variant={statusVariant(detail.status)}
++           dot
++         />
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isMedicationLiveReady() ? (
++           <PremiumBadge label="eMP extern" variant="orange" dot />
++         ) : null}
++       </View>
++       <View style={styles.kpiRow}>
++         {kpis.map((kpi) => (
++           <PremiumKpiCard
++             key={kpi.id}
++             label={kpi.label}
++             value={kpi.value}
++             subValue={kpi.subValue}
++             icon={kpi.icon}
++             accentColor={kpi.accentColor}
++             style={styles.kpiItem}
++           />
++         ))}
++       </View>
++     </PremiumListHeroFrame>
++   );
++ }
++
++ export { MEDICATION_DETAIL_PREPARED_MESSAGE };
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/pflege/pflegeBatch2.test.ts:87:18
+     85|   it('MedicationDetailHero und Service sind preparedOnly', async () =>ÔÇª
+     86|     const hero = readSrc('src/components/pflege/MedicationDetailHero.tÔÇª
+     87|     expect(hero).toContain('eMP in Vorbereitung');
+       |                  ^
+     88|     expect(readSrc('app/pflege/medikation/[id]/index.tsx')).toContain(ÔÇª
+     89| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/8]ÔÄ»
+
+ FAIL  src/__tests__/pflege/pflegeBatch2.test.ts > Pflege Sprint Batch 2 (Sprint 76) > WoundDocumentationDetailHero 
+und Service sind preparedOnly
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'BodyMap in Vorbereitung'
+
+- Expected
++ Received
+
+- BodyMap in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import {
++   buildWoundDocumentationDetailKpis,
++   type WoundDocumentationDetail,
++ } from '@/lib/pflege/woundDocumentationDetailStats';
++ import {
++   isWoundDocumentationLiveReady,
++   WOUND_DETAIL_PREPARED_MESSAGE,
++ } from '@/lib/pflege/pflegeModuleConfig';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
++ import { designTokens, spacing } from '@/theme';
++
++ type WoundDocumentationDetailHeroProps = {
++   detail: WoundDocumentationDetail;
++   roleKey: RoleKey;
++   isReadOnly: boolean;
++ };
++
++ function statusVariant(status: string) {
++   switch (status) {
++     case 'aktiv':
++       return 'green' as const;
++     case 'in_bearbeitung':
++       return 'orange' as const;
++     case 'archiviert':
++       return 'muted' as const;
++     default:
++       return 'muted' as const;
++   }
++ }
++
++ export function WoundDocumentationDetailHero({
++   detail,
++   roleKey,
++   isReadOnly,
++ }: WoundDocumentationDetailHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: { flexDirection: 'row', gap: spacing.md },
++   textCol: { flex: 1, gap: 2 },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: { ...typography.h2 },
++   meta: { ...typography.caption, color: colors.textMuted },
++   subtitle: { ...typography.caption, color: colors.textSecondary },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.danger,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(255,77,106,0.35)',
++   },
++   iconText: { fontSize: 22 },
++   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
++   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
++   kpiItem: { flex: 1, minWidth: 100 },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   const kpis = buildWoundDocumentationDetailKpis(detail, mode);
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>PFLEGE ┬À WUNDDOKUMENTATION</Text>
++           <Text style={styles.title}>{detail.bodyLocation}</Text>
++           <Text style={styles.meta}>
++             {detail.clientName} ┬À {detail.woundType}
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++           <Text style={styles.subtitle}>{WOUND_DETAIL_PREPARED_MESSAGE}</Text>
++         </View>
++         <View style={styles.iconBadge}>
++           <Text style={styles.iconText}>­ƒ®╣</Text>
++         </View>
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge
++           label={WORKFLOW_STATUS_LABELS[detail.status]}
++           variant={statusVariant(detail.status)}
++           dot
++         />
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isWoundDocumentationLiveReady() ? (
++           <PremiumBadge label="BodyMap extern" variant="orange" dot />
++         ) : null}
++       </View>
++       <View style={styles.kpiRow}>
++         {kpis.map((kpi) => (
++           <PremiumKpiCard
++             key={kpi.id}
++             label={kpi.label}
++             value={kpi.value}
++             subValue={kpi.subValue}
++             icon={kpi.icon}
++             accentColor={kpi.accentColor}
++             style={styles.kpiItem}
++           />
++         ))}
++       </View>
++     </PremiumListHeroFrame>
++   );
++ }
++
++ export { WOUND_DETAIL_PREPARED_MESSAGE };
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/pflege/pflegeBatch2.test.ts:101:18
+     99|   it('WoundDocumentationDetailHero und Service sind preparedOnly', asyÔÇª
+    100|     const hero = readSrc('src/components/pflege/WoundDocumentationDetaÔÇª
+    101|     expect(hero).toContain('BodyMap in Vorbereitung');
+       |                  ^
+    102|     expect(readSrc('app/pflege/wunddokumentation/[id]/index.tsx')).toCÔÇª
+    103|       'WoundDocumentationDetailScreen',
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/8]ÔÄ»
+
+ FAIL  src/__tests__/pflege/pflegePremiumHeroesBatch.test.ts > Pflege Premium Heroes Batch (Sprint 75) > 
+SisOverviewHero und Screen nutzen PremiumListHeroFrame
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'Live-Sync in Vorbereitung'
+
+- Expected
++ Received
+
+- Live-Sync in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import {
++   DesktopListViewToggle,
++   PremiumBadge,
++   PremiumKpiCard,
++   PremiumListHeroFrame,
++   type DesktopListViewMode,
++ } from '@/components/ui';
++ import { buildSisListKpis } from '@/lib/pflege/sisListStats';
++ import { isSisLiveReady, SIS_PREPARED_MESSAGE } from '@/lib/pflege/pflegeModuleConfig';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import type { SisAssessment } from '@/types/modules/pflege';
++ import { designTokens, spacing } from '@/theme';
++
++ type SisOverviewHeroProps = {
++   items: SisAssessment[];
++   roleKey: RoleKey;
++   isReadOnly: boolean;
++   viewMode?: DesktopListViewMode;
++   onViewModeChange?: (mode: DesktopListViewMode) => void;
++   showViewToggle?: boolean;
++ };
++
++ export function SisOverviewHero({
++   items,
++   roleKey,
++   isReadOnly,
++   viewMode = 'table',
++   onViewModeChange,
++   showViewToggle = false,
++ }: SisOverviewHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: {
++     flexDirection: 'row',
++     gap: spacing.md,
++   },
++   textCol: {
++     flex: 1,
++     gap: 2,
++   },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: {
++     ...typography.h2,
++   },
++   meta: {
++     ...typography.caption,
++     color: colors.textMuted,
++   },
++   subtitle: {
++     ...typography.caption,
++     color: colors.textSecondary,
++   },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.violet,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(124,92,255,0.35)',
++   },
++   iconText: {
++     fontSize: 22,
++   },
++   badges: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++     alignItems: 'center',
++   },
++   kpiRow: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiItem: {
++     flex: 1,
++     minWidth: 100,
++   },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   const kpis = buildSisListKpis(items, mode);
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>PFLEGE ┬À SIS</Text>
++           <Text style={styles.title}>SIS-Assessments</Text>
++           <Text style={styles.meta}>
++             {items.length} Assessments
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++           <Text style={styles.subtitle}>
++             Strukturierte Informationssammlung ÔÇö Bewertungen und Pr├╝ffristen im ├£berblick.
++           </Text>
++         </View>
++         <View style={styles.iconBadge}>
++           <Text style={styles.iconText}>­ƒôè</Text>
++         </View>
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {isSisLiveReady() ? (
++           <PremiumBadge label="Live assessment_runs" variant="green" dot />
++         ) : (
++           <PremiumBadge label="Teilweise live" variant="orange" dot />
++         )}
++       </View>
++       {showViewToggle && onViewModeChange ? (
++         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
++       ) : null}
++       <View style={styles.kpiRow}>
++         {kpis.map((kpi) => (
++           <PremiumKpiCard
++             key={kpi.id}
++             label={kpi.label}
++             value={kpi.value}
++             subValue={kpi.subValue}
++             icon={kpi.icon}
++             accentColor={kpi.accentColor}
++             style={styles.kpiItem}
++           />
++         ))}
++       </View>
++     </PremiumListHeroFrame>
++   );
++ }
++
++ export { SIS_PREPARED_MESSAGE };
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/pflege/pflegePremiumHeroesBatch.test.ts:55:18
+     53|     const screen = readSrc('src/screens/pflege/SisOverviewScreen.tsx');
+     54|     expect(hero).toContain('PremiumListHeroFrame');
+     55|     expect(hero).toContain('Live-Sync in Vorbereitung');
+       |                  ^
+     56|     expect(screen).toContain('SisOverviewHero');
+     57|     expect(screen).not.toContain('PremiumCard style={styles.header}');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/8]ÔÄ»
+
+ FAIL  src/__tests__/pflege/pflegePremiumHeroesBatch.test.ts > Pflege Premium Heroes Batch (Sprint 75) > 
+PflegeReportsHero und SettingsHero nutzen PremiumListHeroFrame
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'MDK-Export in Vorbereitung'
+
+- Expected
++ Received
+
+- MDK-Export in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import { buildPflegeReportKpis } from '@/lib/pflege/pflegeReportStats';
++ import {
++   isPflegeReportsLiveReady,
++   PFLEGE_REPORTS_PREPARED_MESSAGE,
++ } from '@/lib/pflege/pflegeModuleConfig';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import type { PflegeReportStats } from '@/types/modules/pflege';
++ import { designTokens, spacing } from '@/theme';
++
++ type PflegeReportsHeroProps = {
++   stats: PflegeReportStats;
++   roleKey: RoleKey;
++ };
++
++ export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: {
++     flexDirection: 'row',
++     gap: spacing.md,
++   },
++   textCol: {
++     flex: 1,
++     gap: 2,
++   },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: {
++     ...typography.h2,
++   },
++   meta: {
++     ...typography.caption,
++     color: colors.textMuted,
++   },
++   subtitle: {
++     ...typography.caption,
++     color: colors.textSecondary,
++   },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.amber,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(255,209,102,0.35)',
++   },
++   iconText: {
++     fontSize: 22,
++   },
++   badges: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++     alignItems: 'center',
++   },
++   kpiRow: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiItem: {
++     flex: 1,
++     minWidth: 100,
++   },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   const kpis = buildPflegeReportKpis(stats, mode);
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>PFLEGE ┬À AUSWERTUNGEN</Text>
++           <Text style={styles.title}>Pflege-Kennzahlen</Text>
++           <Text style={styles.meta}>KPIs, MDK-Export und Qualit├ñtsindikatoren</Text>
++           <Text style={styles.subtitle}>
++             ├£bersicht ├╝ber Pl├ñne, SIS-F├ñlligkeiten, Vitaldokumentation und Wundf├ñlle.
++           </Text>
++         </View>
++         <View style={styles.iconBadge}>
++           <Text style={styles.iconText}>­ƒôê</Text>
++         </View>
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isPflegeReportsLiveReady() ? (
++           <PremiumBadge label="MDK extern" variant="orange" dot />
++         ) : null}
++       </View>
++       <View style={styles.kpiRow}>
++         {kpis.map((kpi) => (
++           <PremiumKpiCard
++             key={kpi.id}
++             label={kpi.label}
++             value={kpi.value}
++             subValue={kpi.subValue}
++             icon={kpi.icon}
++             accentColor={kpi.accentColor}
++             style={styles.kpiItem}
++           />
++         ))}
++       </View>
+
+ Test Files  6 failed | 188 passed (194)
+      Tests  8 failed | 1304 passed (1312)
+   Start at  17:16:08
+   Duration  32.43s (transform 19.07s, setup 0ms, collect 36.86s, tests 30.86s, environment 87ms, prepare 46.45s)
+
++     </PremiumListHeroFrame>
++   );
++ }
++
++ export { PFLEGE_REPORTS_PREPARED_MESSAGE };
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/pflege/pflegePremiumHeroesBatch.test.ts:71:21
+     69|     const settings = readSrc('src/components/pflege/PflegeSettingsHeroÔÇª
+     70|     expect(reports).toContain('PremiumListHeroFrame');
+     71|     expect(reports).toContain('MDK-Export in Vorbereitung');
+       |                     ^
+     72|     expect(settings).toContain('PremiumListHeroFrame');
+     73|     expect(settings).toContain('Live-Sync in Vorbereitung');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/8]ÔÄ»
+
+ FAIL  src/__tests__/privacy/dsgvoScreens.test.ts > Assist GPS preparedOnly polish (Sprint 50) > TrackingListHero 
+zeigt GPS-Badge statt irref├╝hrendem Demo-Label
+AssertionError: expected 'import { useMemo } from \'react\';\niÔÇª' to contain 'GPS in Vorbereitung'
+
+- Expected
++ Received
+
+- GPS in Vorbereitung
++ import { useMemo } from 'react';
++ import { useLegacyTheme } from '@/design/tokens/themeBridge';
++ import { StyleSheet, Text, View } from 'react-native';
++ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
++ import type { TrackingListKpi } from '@/data/demo/trackingStats';
++ import { ROLE_LABELS } from '@/data/demo';
++ import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
++ import { isDemoMode } from '@/lib/supabase/config';
++ import type { RoleKey } from '@/types';
++ import { designTokens, spacing } from '@/theme';
++
++ type TrackingListHeroProps = {
++   kpis: TrackingListKpi[];
++   roleKey: RoleKey;
++   positionCount: number;
++   eventCount: number;
++   isReadOnly: boolean;
++   compact?: boolean;
++ };
++
++ export function TrackingListHero({
++   kpis,
++   roleKey,
++   positionCount,
++   eventCount,
++   isReadOnly,
++   compact = false,
++ }: TrackingListHeroProps) {
++   const { colors, typography, gradients, mode } = useLegacyTheme();
++   const styles = useMemo(
++     () =>
++       StyleSheet.create({
++   topRow: {
++     flexDirection: 'row',
++     gap: spacing.md,
++   },
++   textCol: {
++     flex: 1,
++     gap: 2,
++   },
++   eyebrow: {
++     ...typography.caption,
++     color: colors.cyan,
++     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
++   },
++   title: {
++     ...typography.h2,
++   },
++   meta: {
++     ...typography.caption,
++     color: colors.textMuted,
++   },
++   iconBadge: {
++     width: iconSize,
++     height: iconSize,
++     borderRadius: iconSize / 2,
++     backgroundColor: colors.amber,
++     alignItems: 'center',
++     justifyContent: 'center',
++     borderWidth: 2,
++     borderColor: 'rgba(255,193,7,0.35)',
++   },
++   iconText: {
++     fontSize: 22,
++   },
++   badges: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiRow: {
++     flexDirection: 'row',
++     flexWrap: 'wrap',
++     gap: spacing.sm,
++   },
++   kpiItem: {
++     flex: 1,
++     minWidth: 100,
++   },
++ }),
++     [colors, typography, gradients],
++   );
++
++
++   return (
++     <PremiumListHeroFrame>
++       <View style={styles.topRow}>
++         <View style={styles.textCol}>
++           <Text style={styles.eyebrow}>ASSIST</Text>
++           <Text style={styles.title}>Live-Tracking</Text>
++           <Text style={styles.meta}>
++             {positionCount} Positionen ┬À {eventCount} Geofence-Ereignisse
++             {isReadOnly ? ' ┬À Lesemodus' : ''}
++           </Text>
++         </View>
++         {!compact ? (
++           <View style={styles.iconBadge}>
++             <Text style={styles.iconText}>­ƒôì</Text>
++           </View>
++         ) : null}
++       </View>
++       <View style={styles.badges}>
++         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
++         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
++         {!isGpsTrackingLiveReady() ? (
++           <PremiumBadge label="GPS extern" variant="orange" dot />
++         ) : null}
++         <PremiumBadge label="Geofence-Snapshot" variant="muted" />
++       </View>
++       {!compact ? (
++         <View style={styles.kpiRow}>
++           {kpis.map((kpi) => (
++             <PremiumKpiCard
++               key={kpi.id}
++               label={kpi.label}
++               value={kpi.value}
++               subValue={kpi.subValue}
++               icon={kpi.icon}
++               accentColor={kpi.accentColor}
++               style={styles.kpiItem}
++             />
++           ))}
++         </View>
++       ) : null}
++     </PremiumListHeroFrame>
++   );
++ }
++
++ const iconSize = designTokens.hero.iconBadgeSize;
++
++
+
+ ÔØ» src/__tests__/privacy/dsgvoScreens.test.ts:121:18
+    119|   it('TrackingListHero zeigt GPS-Badge statt irref├╝hrendem Demo-Label'ÔÇª
+    120|     const hero = readSrc('src/components/assist/TrackingListHero.tsx');
+    121|     expect(hero).toContain('GPS in Vorbereitung');
+       |                  ^
+    122|     expect(hero).toContain('Geofence-Snapshot');
+    123|     expect(hero).not.toContain('Geofence-Demo');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/8]ÔÄ»
+

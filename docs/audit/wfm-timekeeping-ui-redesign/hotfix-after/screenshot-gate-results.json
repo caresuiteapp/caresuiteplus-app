@@ -1,0 +1,46 @@
+{
+  "phase": "hotfix-after",
+  "baseUrl": "http://localhost:8083",
+  "login": "office.staging@example.test",
+  "shots": [
+    {
+      "name": "01-offene-pruefungen.png",
+      "ok": true
+    },
+    {
+      "name": "02-offene-pruefungen-horizontal-scroll.png",
+      "ok": true
+    },
+    {
+      "name": "03-pruefen-panel.png",
+      "ok": true
+    },
+    {
+      "name": "04-zeitkonten.png",
+      "ok": true
+    },
+    {
+      "name": "05-export-p23.png",
+      "ok": true
+    },
+    {
+      "name": "06-mobile-card-layout.png",
+      "ok": true
+    }
+  ],
+  "gate": {
+    "ok": true,
+    "overlap": false,
+    "truncatedStatus": false,
+    "truncatedDauer": false,
+    "truncatedHeader": false,
+    "missingHeaders": [],
+    "actionReachable": true,
+    "tableScrollOk": true,
+    "pageScrollX": false,
+    "mobileCards": 0,
+    "badgeCount": 4,
+    "buttonCount": 1
+  },
+  "errors": []
+}

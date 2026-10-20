@@ -1,0 +1,203 @@
+import { describe, expect, it } from 'vitest';
+import {
+  filterEmployeePortalAppointments,
+  mapPortalAppointmentToListItem,
+} from '@/lib/portal/employeePortalLiveOverviewService';
+import {
+  isEmployeePortalAssignmentEditable,
+  isEmployeePortalAssignmentLocked,
+  resolveEmployeePortalAssignmentNavigationRoute,
+  resolveEmployeePortalAssignmentPendingFlags,
+  shouldNavigateEmployeePortalAssignmentToExecution,
+  shouldShowAssignmentInEmployeePortalList,
+} from '@/lib/portal/employeePortalAssignmentCompletion';
+import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
+
+const BASE: PortalAppointmentItem = {
+  id: 'assign-1',
+  title: 'Haushalt',
+  startsAt: '2026-07-07T10:00:00.000Z',
+  endsAt: '2026-07-07T12:00:00.000Z',
+  status: 'in_bearbeitung',
+  location: 'Musterstraße 1',
+  clientId: 'client-1',
+  employeeId: 'emp-1',
+  clientName: 'Max Mustermann',
+};
+
+describe('employeePortalAssignmentCompletion', () => {
+  it('keeps abgeschlossen assignments editable when documentation is still open', () => {
+    const flags = resolveEmployeePortalAssignmentPendingFlags({
+      status: 'abgeschlossen',
+      requiresDocumentation: true,
+      documentationStatus: 'draft',
+      assignmentIncomplete: true,
+    });
+    expect(flags.documentationPending).toBe(true);
+    expect(
+      isEmployeePortalAssignmentLocked({
+        status: 'abgeschlossen',
+        requiresDocumentation: true,
+        documentationStatus: 'draft',
+        assignmentIncomplete: true,
+      }),
+    ).toBe(false);
+    expect(
+      isEmployeePortalAssignmentEditable({
+        status: 'abgeschlossen',
+        requiresDocumentation: true,
+        documentationStatus: 'draft',
+        assignmentIncomplete: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('locks abgeschlossen assignments when documentation and signature are complete', () => {
+    expect(
+      isEmployeePortalAssignmentLocked({
+        status: 'abgeschlossen',
+        requiresDocumentation: true,
+        requiresSignature: true,
+        documentationStatus: 'submitted',
+        signatureStatus: 'captured',
+        assignmentIncomplete: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps aggregate-incomplete assignments unlocked without inventing a signature task', () => {
+    const item = mapPortalAppointmentToListItem({
+      ...BASE,
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+    });
+    expect(item.status).toBe('abgeschlossen');
+    expect(item.isLocked).toBe(false);
+    expect(item.documentationPending).toBe(false);
+    expect(item.signaturePending).toBe(false);
+  });
+
+  it('maps explicit visit dimensions to exactly the pending category', () => {
+    const documentation = mapPortalAppointmentToListItem({
+      ...BASE,
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+      documentationPending: true,
+      signaturePending: false,
+    });
+    const signature = mapPortalAppointmentToListItem({
+      ...BASE,
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+      documentationPending: false,
+      signaturePending: true,
+    });
+
+    expect(documentation.documentationPending).toBe(true);
+    expect(documentation.signaturePending).toBe(false);
+    expect(signature.documentationPending).toBe(false);
+    expect(signature.signaturePending).toBe(true);
+  });
+
+  it('hides only past fully complete abgeschlossen assignments from portal lists', () => {
+    const now = new Date('2026-07-07T12:00:00.000Z');
+    expect(
+      shouldShowAssignmentInEmployeePortalList({
+        status: 'abgeschlossen',
+        plannedStartAt: '2026-07-06T10:00:00.000Z',
+        requiresDocumentation: true,
+        requiresSignature: true,
+        documentationStatus: 'submitted',
+        signatureStatus: 'captured',
+        assignmentIncomplete: false,
+        now,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldShowAssignmentInEmployeePortalList({
+        status: 'abgeschlossen',
+        plannedStartAt: '2026-07-07T08:00:00.000Z',
+        requiresDocumentation: true,
+        requiresSignature: true,
+        documentationStatus: 'submitted',
+        signatureStatus: 'deferred_to_client_portal',
+        assignmentIncomplete: false,
+        now,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldShowAssignmentInEmployeePortalList({
+        status: 'abgeschlossen',
+        plannedStartAt: '2026-07-06T10:00:00.000Z',
+        assignmentIncomplete: true,
+        now,
+      }),
+    ).toBe(true);
+  });
+
+  it('filterEmployeePortalAppointments keeps incomplete abgeschlossen rows', () => {
+    const filtered = filterEmployeePortalAppointments([
+      {
+        ...BASE,
+        id: 'done-complete',
+        assignmentStatus: 'abgeschlossen',
+        assignmentIncomplete: false,
+        startsAt: '2026-07-06T10:00:00.000Z',
+      },
+      {
+        ...BASE,
+        id: 'done-open-signature',
+        assignmentStatus: 'abgeschlossen',
+        assignmentIncomplete: true,
+        startsAt: '2026-07-06T10:00:00.000Z',
+      },
+    ]);
+    expect(filtered.map((item) => item.id)).toEqual(['done-open-signature']);
+  });
+
+  it('routes open documentation assignments to execution, not detail', () => {
+    expect(
+      shouldNavigateEmployeePortalAssignmentToExecution({
+        status: 'beendet',
+        documentationPending: true,
+      }),
+    ).toBe(true);
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-doc-open',
+        status: 'dokumentation_offen',
+        documentationPending: true,
+      }),
+    ).toBe('/portal/employee/assignments/assign-doc-open/execute');
+  });
+
+  it('routes open signature assignments to execution', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-sig-open',
+        status: 'unterschrift_offen',
+        signaturePending: true,
+      }),
+    ).toBe('/portal/employee/assignments/assign-sig-open/execute');
+  });
+
+  it('routes future planned assignments to detail', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-future',
+        status: 'geplant',
+      }),
+    ).toBe('/portal/employee/assignments/assign-future');
+  });
+
+  it('routes active assignments to execution', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-active',
+        status: 'gestartet',
+      }),
+    ).toBe('/portal/employee/assignments/assign-active/execute');
+  });
+});

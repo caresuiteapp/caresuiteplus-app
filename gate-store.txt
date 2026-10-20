@@ -1,0 +1,33 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 store:audit
+> node scripts/store-audit.mjs
+
+CareSuite+ store-readiness-check
+
+Ô£ô 14 Store-/Deployment-Dokumente vorhanden
+Ô£ô app.config.ts spiegelt supportLinks (Hilfe, Datenschutz, Impressum, AGB, Support-E-Mail)
+Ô£ô app.config.ts: expo-location Plugin (Foreground-only, preparedOnly)
+Ô£ô App-Identit├ñt konsistent (CareSuite+, caresuite-plus, caresuiteplus)
+Ô£ô Bundle-ID / Package: de.caresuiteplus.app
+Ô£ô eas.json Profile development/preview/production
+Ô£ô EAS projectId gesetzt (nicht Platzhalter)
+Ô£ô eas-preflight.mjs vorhanden (npm run eas:preflight)
+Ô£ô GPS Tracking preparedOnly (isGpsTrackingLiveReady: false)
+ÔÜá eas.json submit.production.ios: Apple-Credentials noch Platzhalter
+ÔÜá Google Play Service-Account-Key fehlt (erwartet vor Submit)
+Ô£ô Referenzierte Store-Assets vorhanden (nicht Platzhalter-Gr├Â├ƒe)
+Ô£ô Android permissions: nur INTERNET (keine preparedOnly-Features)
+Ô£ô privacy-data-map.md vorhanden
+Ô£ô supportLinks.ts enth├ñlt Hilfe/Datenschutz/Impressum/AGB
+Ô£ô DSGVO Screens vorhanden (Live-Submit wenn Supabase + Migration 0031)
+
+ÔÜá 2 Warnung(en) ÔÇö Build-Vorbereitung OK, Store-Submission noch nicht ready
+

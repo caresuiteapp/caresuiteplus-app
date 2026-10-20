@@ -1,0 +1,515 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { LockedActionBanner } from '@/components/permissions';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { AuroraSegmentedControl } from '@/components/aurora';
+import {
+  ErrorState,
+  LoadingState,
+  PremiumButton,
+  PremiumKpiCard,
+  SectionPanel,
+  SuccessState,
+  InfoBanner,
+} from '@/components/ui';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
+import { moduleColor } from '@/design/tokens/modules';
+import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium } from '@/design/tokens/portalPremium';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { useAuth } from '@/lib/auth/context';
+import { fetchPortalTimeTrackingSettings } from '@/lib/timeTracking/timeTrackingSettingsService';
+import {
+  formatWfmStatusLabel,
+  getWfmTodayStatus,
+  isWfmSessionActive,
+  isWfmSessionPaused,
+  listWfmWorkTypesForClockIn,
+  wfmClockIn,
+  wfmClockOut,
+  wfmPause,
+  wfmResume,
+  wfmSwitchWorkType,
+} from '@/lib/wfm';
+import { WfmTimeAccountPanel } from '@/components/wfm/WfmTimeAccountPanel';
+import { WfmCheckinScanPanel } from '@/components/wfm/WfmCheckinScanPanel';
+import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
+import { WfmOfficeManualEntryPanel } from '@/components/wfm/WfmOfficeManualEntryPanel';
+import type { WfmEventSource, WfmWorkTypeKey } from '@/types/modules/wfm';
+import { typography } from '@/theme';
+
+const WORK_TYPES = listWfmWorkTypesForClockIn();
+
+function resolveWfmSource(pathname: string): WfmEventSource {
+  return pathname.startsWith('/portal/') ? 'portal' : 'office';
+}
+
+function eventTypeLabel(eventType: string): string {
+  const map: Record<string, string> = {
+    clock_in: 'Arbeitsbeginn',
+    clock_out: 'Feierabend',
+    pause_start: 'Pause',
+    pause_end: 'Fortsetzung',
+    homeoffice_start: 'Home Office',
+    homeoffice_end: 'Home Office Ende',
+    office_check_in: 'Büro',
+    office_check_out: 'Büro Ende',
+    visit_started: 'Einsatz',
+    standby_start: 'Bereitschaft',
+    training_start: 'Fortbildung',
+    meeting_start: 'Besprechung',
+    travel_start: 'Fahrt',
+  };
+  return map[eventType] ?? eventType;
+}
+
+function formatDuration(minutes: number): string {
+  const safeMinutes = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const remainder = safeMinutes % 60;
+  if (hours === 0) return `${remainder} Min.`;
+  if (remainder === 0) return `${hours} Std.`;
+  return `${hours} Std. ${remainder} Min.`;
+}
+
+export function TimeTrackingEmployeeScreen() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { profile, user } = useAuth();
+  const { employeeId: portalEmployeeId } = usePortalActor();
+  const tenantId = useServiceTenantId();
+  const userId = user?.id ?? profile?.id ?? '';
+  const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
+  const roleKey = profile?.roleKey ?? null;
+  const { can, check, roleLabel } = usePermissions();
+  const text = portalText;
+  const accent = moduleColor('office');
+  const wfmSource = resolveWfmSource(pathname);
+
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [selectedWorkType, setSelectedWorkType] = useState<WfmWorkTypeKey>('buero');
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const actionLock = useRef(false);
+  const [accountRevision, setAccountRevision] = useState(0);
+
+  const canView = can('time.tracking.own.view');
+  const canStart = can('time.tracking.own.start');
+  const canAdminView = can('time.tracking.admin.view');
+  const canTeamView = can('time.tracking.team.view');
+  const canUseTeamOverview = canAdminView || canTeamView;
+  const isAdminWithoutEmployee = !employeeId && canUseTeamOverview;
+
+  const wfmOptions = useMemo(
+    () => ({ employeeId, source: wfmSource }),
+    [employeeId, wfmSource],
+  );
+
+  const statusQuery = useAsyncQuery(
+    useCallback(async () => {
+      if (!tenantId || !canView || !userId) {
+        return {
+          ok: true as const,
+          data: { session: null, events: [], statusLabel: 'Nicht gestartet', blockCount: 0 },
+        };
+      }
+      if (isAdminWithoutEmployee) {
+        return {
+          ok: true as const,
+          data: { session: null, events: [], statusLabel: 'Administrator', blockCount: 0 },
+        };
+      }
+      return getWfmTodayStatus(tenantId, userId, roleKey, wfmOptions);
+    }, [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee]),
+    [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee],
+    { enabled: !!tenantId && !!userId && canView, queryKey: `workday:${tenantId}:${userId}:${employeeId ?? ''}:${roleKey ?? ''}` },
+  );
+
+  const settingsQuery = useAsyncQuery(
+    useCallback(async () => {
+      if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
+      return fetchPortalTimeTrackingSettings(tenantId, roleKey);
+    }, [tenantId, roleKey]),
+    [tenantId, roleKey],
+    { enabled: !!tenantId && canView, queryKey: `workday-settings:${tenantId}:${userId}:${roleKey ?? ''}` },
+  );
+
+  const session = statusQuery.data?.session ?? null;
+  const events = statusQuery.data?.events ?? [];
+  const statusLabel = statusQuery.data?.statusLabel ?? formatWfmStatusLabel(null);
+  const sessionActive = isWfmSessionActive(session);
+  const sessionPaused = isWfmSessionPaused(session);
+
+  useEffect(() => {
+    if (settingsQuery.data?.requirePrivacyConsent && sessionActive && !privacyAccepted) {
+      setShowPrivacyModal(false);
+    }
+  }, [settingsQuery.data, sessionActive, privacyAccepted]);
+
+  const refresh = useCallback(async () => {
+    await statusQuery.refresh();
+    setAccountRevision((value) => value + 1);
+  }, [statusQuery]);
+
+  const runAction = async (action: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (actionLock.current) return;
+    actionLock.current = true;
+    setActionLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await action();
+      if (!result.ok) { setError(result.error ?? 'Aktion fehlgeschlagen.'); return; }
+      await refresh();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Aktion fehlgeschlagen. Bitte erneut versuchen.'); }
+    finally { actionLock.current = false; setActionLoading(false); }
+  };
+
+  const handleStart = async () => {
+    if (!tenantId || !userId || !settingsQuery.data?.moduleEnabled || settingsQuery.loading || settingsQuery.error || settingsQuery.refreshError) return;
+    await runAction(async () => {
+      const result = await wfmClockIn(tenantId, userId, roleKey, selectedWorkType, wfmOptions);
+      if (result.ok) setMessage('Arbeitstag gestartet.');
+      return result;
+    });
+    setShowPrivacyModal(false);
+  };
+
+  const handlePause = () =>
+    void runAction(async () => wfmPause(tenantId!, userId, roleKey, wfmOptions));
+
+  const handleResume = () =>
+    void runAction(async () => wfmResume(tenantId!, userId, roleKey, wfmOptions));
+
+  const handleSwitch = () =>
+    void runAction(async () => {
+      const result = await wfmSwitchWorkType(tenantId!, userId, roleKey, selectedWorkType, wfmOptions);
+      if (result.ok) setMessage('Tätigkeit gewechselt.');
+      return result;
+    });
+
+  const handleClose = () =>
+    void runAction(async () => {
+      const result = await wfmClockOut(tenantId!, userId, roleKey, wfmOptions);
+      if (result.ok) setMessage('Arbeitstag abgeschlossen.');
+      return result;
+    });
+
+  const subtitle = pathname.startsWith('/portal/')
+    ? 'Ihre Arbeitszeit — live synchronisiert'
+    : 'Zentrale Zeiterfassung für Büro und Home Office';
+
+  if (!canView) {
+    return (
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle}>
+        <LockedActionBanner
+          message={
+            check('time.tracking.own.view').reason ??
+            'Sie haben keine Berechtigung, diese Arbeitszeiten zu öffnen.'
+          }
+          roleLabel={roleLabel}
+        />
+      </PortalTabScreen>
+    );
+  }
+
+  if (statusQuery.loading && !statusQuery.data) {
+    return (
+      <PortalTabScreen title="Arbeitszeit" subtitle="Wird geladen…">
+        <LoadingState message="Arbeitszeit wird geladen…" />
+      </PortalTabScreen>
+    );
+  }
+
+  if (statusQuery.error && !statusQuery.data) {
+    const isMissingEmployeeProfile =
+      (statusQuery.error.includes('Portalzugang') ||
+        statusQuery.error.includes('Kein Mitarbeiterprofil')) &&
+      canUseTeamOverview;
+    if (isMissingEmployeeProfile) {
+      return (
+        <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
+          <InfoBanner
+            variant="info"
+            title="Team-Übersicht nutzen"
+            message="Als Administrator haben Sie kein verknüpftes Mitarbeiterprofil. Nutzen Sie die Team-Übersicht zur Verwaltung der Arbeitszeiten."
+          />
+          <SectionPanel title="Team & Live">
+            <PremiumButton
+              title="Zur Team-Übersicht"
+              variant="primary"
+              onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
+            />
+            <PremiumButton
+              title="Live-Mitarbeiter"
+              variant="secondary"
+              onPress={() => router.push('/business/office/time-tracking/live' as never)}
+            />
+          </SectionPanel>
+        </PortalTabScreen>
+      );
+    }
+
+    return (
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle}>
+        <ErrorState title="Fehler" message={statusQuery.error} onRetry={() => void refresh()} />
+      </PortalTabScreen>
+    );
+  }
+
+  if (isAdminWithoutEmployee) {
+    return (
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
+        <InfoBanner
+          variant="info"
+          title="Team-Übersicht nutzen"
+          message="Als Administrator nutzen Sie die Team-Übersicht. Ein verknüpftes Mitarbeiterprofil ist für die persönliche Stempeluhr nicht erforderlich."
+        />
+        <SectionPanel title="Team & Live">
+          <PremiumButton
+            title="Zur Team-Übersicht"
+            variant="primary"
+            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
+          />
+          <PremiumButton
+            title="Live-Mitarbeiter"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/live' as never)}
+          />
+          {can('time.settings.manage') && !pathname.startsWith('/portal/') ? (
+            <PremiumButton
+              title="Einstellungen"
+              variant="ghost"
+              onPress={() => router.push('/business/office/time-tracking/einstellungen' as never)}
+            />
+          ) : null}
+        </SectionPanel>
+      </PortalTabScreen>
+    );
+  }
+
+  const startBlockedByPrivacy =
+    settingsQuery.data?.requirePrivacyConsent && !privacyAccepted && !sessionActive;
+
+  return (
+    <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
+      {statusQuery.refreshError ? <ErrorState title="Arbeitszeit nicht aktuell" message={statusQuery.refreshError} onRetry={() => void refresh()} /> : null}
+      {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
+      <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
+        <View style={styles.kpiRow}>
+          <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
+          <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
+          <PremiumKpiCard
+            label="Netto"
+            value={session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—'}
+            accentColor={accent}
+          />
+        </View>
+      </SectionPanel>
+
+      <SectionPanel
+        title={sessionActive ? 'Aktuelle Tätigkeit' : 'Tätigkeit vor dem Start'}
+        subtitle="Die Auswahl wird mit dem nächsten Start oder Wechsel gespeichert"
+      >
+        <AuroraSegmentedControl
+          options={WORK_TYPES.map((t) => ({ key: t.key, label: t.label }))}
+          value={selectedWorkType}
+          onChange={(key) => setSelectedWorkType(key as WfmWorkTypeKey)}
+        />
+      </SectionPanel>
+
+      <SectionPanel title={sessionActive ? 'Arbeitstag steuern' : 'Arbeitstag starten'}>
+        {!sessionActive ? (
+          <PremiumButton
+            title="Arbeitstag starten"
+            onPress={() =>
+              startBlockedByPrivacy ? setShowPrivacyModal(true) : void handleStart()
+            }
+            disabled={!canStart || actionLoading || settingsQuery.loading || !settingsQuery.data?.moduleEnabled || Boolean(settingsQuery.error || settingsQuery.refreshError)}
+          />
+        ) : null}
+        {sessionActive && !sessionPaused ? (
+          <>
+            <PremiumButton title="Pause" variant="secondary" onPress={handlePause} disabled={actionLoading} />
+            <PremiumButton title="Tätigkeit wechseln" variant="secondary" onPress={handleSwitch} disabled={actionLoading} />
+            <PremiumButton title="Tag abschließen" variant="secondary" onPress={handleClose} disabled={actionLoading} />
+          </>
+        ) : null}
+        {sessionPaused ? (
+          <>
+            <PremiumButton title="Fortsetzen" onPress={handleResume} disabled={actionLoading} />
+            <PremiumButton title="Tag abschließen" variant="secondary" onPress={handleClose} disabled={actionLoading} />
+          </>
+        ) : null}
+        {can('time.settings.manage') && !pathname.startsWith('/portal/') ? (
+          <PremiumButton
+            title="Einstellungen"
+            variant="ghost"
+            onPress={() => router.push('/business/office/time-tracking/einstellungen' as never)}
+          />
+        ) : null}
+      </SectionPanel>
+
+      <SectionPanel title="Zeitblöcke heute" subtitle="Erfasste Stempelungen des Arbeitstags">
+        {events.length === 0 ? (
+          <Text style={{ color: text.secondary }}>Noch keine Zeitblöcke erfasst.</Text>
+        ) : (
+          events.map((entry) => (
+            <View key={entry.id} style={styles.blockRow}>
+              <Text style={{ color: text.primary, ...typography.body }}>
+                {new Date(entry.occurredAt).toLocaleTimeString('de-DE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                — {eventTypeLabel(entry.eventType)}
+              </Text>
+            </View>
+          ))
+        )}
+      </SectionPanel>
+
+      {tenantId && userId ? (
+        <WfmCheckinScanPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+          session={session}
+          onSuccess={() => void refresh()}
+        />
+      ) : null}
+
+      {tenantId && userId ? (
+        <WfmRuleWarningsPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+          refreshKey={accountRevision}
+        />
+      ) : null}
+
+      {tenantId && userId ? (
+        <WfmTimeAccountPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+          refreshKey={accountRevision}
+        />
+      ) : null}
+
+      {tenantId && userId && can('time.tracking.admin.correct') && !pathname.startsWith('/portal/') ? (
+        <WfmOfficeManualEntryPanel
+          tenantId={tenantId}
+          actorId={userId}
+          roleKey={roleKey}
+          employees={employeeId ? [{ id: employeeId, name: profile?.displayName ?? profile?.email ?? 'Aktueller MA' }] : []}
+        />
+      ) : null}
+
+      {pathname.startsWith('/portal/') ? (
+        <SectionPanel title="Weitere Bereiche" subtitle="Auswertungen, Urlaub und Abwesenheiten">
+          <PremiumButton
+            title="Fahrten & Zeiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/times' as never)}
+          />
+          <PremiumButton
+            title="Urlaub"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/urlaub' as never)}
+          />
+          <PremiumButton
+            title="Abwesenheiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/abwesenheiten' as never)}
+          />
+        </SectionPanel>
+      ) : null}
+
+      {!pathname.startsWith('/portal/') && can('time.tracking.team.view') ? (
+        <SectionPanel title="Team & Live">
+          <PremiumButton
+            title="Team-Übersicht"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
+          />
+          <PremiumButton
+            title="Live-Mitarbeiter"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/live' as never)}
+          />
+        </SectionPanel>
+      ) : null}
+
+      {message ? <SuccessState title="Erfolg" message={message} /> : null}
+      {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
+
+      <PrivacyConsentModal
+        visible={showPrivacyModal}
+        onAccept={() => {
+          setPrivacyAccepted(true);
+          setShowPrivacyModal(false);
+          void handleStart();
+        }}
+        onDecline={() => setShowPrivacyModal(false)}
+      />
+    </PortalTabScreen>
+  );
+}
+
+const portalText = {
+  primary: portalPremium.text.primary,
+  secondary: portalPremium.text.secondary,
+  muted: portalPremium.text.muted,
+} as const;
+
+function PrivacyConsentModal(props: {
+  visible: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <Modal visible={props.visible} transparent animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>Datenschutz & Zeiterfassung</Text>
+          <Text style={styles.modalBody}>
+            CareSuite+ erfasst Arbeitszeiten zentral für Büro, Home Office und Einsätze. Es werden nur
+            Zeitstempel und Tätigkeitsarten gespeichert — keine Inhaltsdaten Ihrer Arbeit.
+          </Text>
+          <PremiumButton title="Verstanden & starten" onPress={props.onAccept} />
+          <PremiumButton title="Abbrechen" variant="ghost" onPress={props.onDecline} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  blockRow: { paddingVertical: careSpacing.xs },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: careSuiteModalScrim,
+    justifyContent: 'center',
+    padding: careSpacing.lg,
+  },
+  modalCard: {
+    backgroundColor: portalPremium.surfaceRaised,
+    borderWidth: 1,
+    borderColor: portalPremium.borderStrong,
+    borderRadius: 16,
+    padding: careSpacing.lg,
+    gap: careSpacing.sm,
+  },
+  modalTitle: { ...typography.h3, color: portalPremium.text.primary },
+  modalBody: { ...typography.body, color: portalPremium.text.secondary, marginBottom: careSpacing.sm },
+});

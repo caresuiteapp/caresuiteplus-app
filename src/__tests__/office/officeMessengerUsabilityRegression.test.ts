@@ -1,0 +1,106 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const root = path.join(__dirname, '..', '..', '..');
+
+function readSrc(relativePath: string): string {
+  return readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+describe('Office messenger usability regression', () => {
+  it('keeps message bodies selectable and provides a visible copy action', () => {
+    const source = readSrc('src/components/communication/ChatBubble.tsx');
+
+    expect(source).toContain('selectable');
+    expect(source).toContain('Clipboard.setStringAsync');
+    expect(source).toContain('Nachricht kopieren');
+    expect(source).toContain('Kopieren');
+  });
+
+  it('keeps the history scrollable and opens at the start of the latest message', () => {
+    const source = readSrc('src/components/office/officemessagethread.tsx');
+
+    expect(source).toContain('office-message-history');
+    expect(source).toContain('scrollToLatestMessage');
+    expect(source).toContain('messagesContent: { paddingVertical: spacing.sm, flexGrow: 1 }');
+    expect(source).toContain('keyboardShouldPersistTaps="handled"');
+  });
+
+  it('uses a compact composer with toolbar and integrated input shell', () => {
+    const source = readSrc('src/components/communication/ChatComposer.tsx');
+
+    expect(source).toContain('styles.toolbar');
+    expect(source).toContain('styles.inputShell');
+    expect(source).toContain('styles.sendButton');
+    expect(source).toContain('🎤 Sprache');
+    expect(source).toContain('🔒 Interne Notiz');
+  });
+
+  it('renders day separators and a compact attachment action', () => {
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+    const attachments = readSrc('src/components/office/officemessageattachmentpicker.tsx');
+
+    expect(thread).toContain('styles.dayDivider');
+    expect(thread).toContain("weekday: 'long'");
+    expect(attachments).toContain('accessibilityLabel="Anhang hinzufügen"');
+  });
+
+  it('responds to the real messenger workspace width instead of the browser width', () => {
+    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+
+    expect(screen).toContain('workspaceWidth');
+    expect(screen).toContain('event.nativeEvent.layout.width');
+    expect(screen).toContain('workspaceWidth < 920');
+  });
+
+  it('fits the real desktop height and keeps the composer inside the visible workspace', () => {
+    const shell = readSrc('src/components/messaging/MessengerShell.tsx');
+    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+
+    expect(shell).not.toContain('calc(100dvh - 200px)');
+    expect(shell).toContain('maxHeight: \'100%\'');
+    expect(shell).toContain("overflow: 'hidden' as const");
+    expect(screen).toContain("flexWrap: stackTopChrome ? 'wrap' : 'nowrap'");
+    expect(screen).toContain('minHeight: stackTopChrome ? undefined : 44');
+    expect(screen).toContain("canBroadcast && view === 'broadcasts'");
+    expect(thread).toContain("conversation: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }");
+  });
+
+  it('gives the history priority and keeps a real multiline writing area', () => {
+    const composer = readSrc('src/components/communication/ChatComposer.tsx');
+    const header = readSrc('src/components/layout/ScreenHeader.tsx');
+    const threadHeader = readSrc('src/components/office/officemessagethreadheader.tsx');
+
+    expect(composer).toContain('minHeight: isCompact ? 62 : 82');
+    expect(composer).toContain('minHeight: isCompact ? 46 : 66');
+    expect(composer).toContain('multiline');
+    expect(composer).toContain('fontSize: 16');
+    expect(composer).toContain('minHeight: 44');
+    expect(composer).toContain('setComposerWidth(Math.round(event.nativeEvent.layout.width))');
+    expect(composer).toContain("textAlignVertical: 'top'");
+    expect(composer).toContain("flexWrap: 'nowrap'");
+    expect(header).toContain('minHeight: compact ? 54');
+    expect(threadHeader).toContain('width: 32');
+  });
+
+  it('keeps reading separate from explicit workflow actions', () => {
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+    const actions = readSrc('src/components/office/officemessageactionsmenu.tsx');
+
+    expect(thread).toContain('await markAsRead()');
+    expect(thread).toContain('planOfficeMessageOpen(detail)');
+    expect(thread).not.toContain("await updateStatus('in_progress')");
+    expect(thread).toContain('✓ Abschließen');
+    expect(thread).toContain('🗑 Chat löschen');
+    expect(actions).toContain('••• Verwalten');
+  });
+
+  it('keeps automatic refresh as a fallback when realtime events are unavailable', () => {
+    const realtime = readSrc('src/lib/office/officemessagerealtime.ts');
+
+    expect(realtime).toContain('const POLL_INTERVAL_MS = 12_000');
+    expect(realtime.match(/createVisibilityAwareInterval/g)?.length).toBeGreaterThanOrEqual(4);
+  });
+});

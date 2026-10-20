@@ -1,0 +1,12 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { SupportWorkspace } from '../../src/components/support/SupportWorkspace';
+import { CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS } from '../../src/design/web/centralHealthOSPopupContractCss';
+import { HEALTHOS_PAGE_CONTRACT_CSS } from '../../src/design/web/healthOSPageContractCss';
+import { LLGAN_GLASS_SURFACE_CSS } from '../../src/design/web/lightLiquidGlassSurfaceCss';
+const style=document.createElement('style');
+style.textContent=LLGAN_GLASS_SURFACE_CSS+HEALTHOS_PAGE_CONTRACT_CSS+CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS+'html,body{height:100%;margin:0}#preview{height:calc(100vh - 70px);display:flex;padding:16px;box-sizing:border-box}#preview>div{flex:1}#qa{height:54px;padding:10px 16px;box-sizing:border-box;background:#071C38;color:white;font:14px system-ui}';
+document.head.appendChild(style);
+document.documentElement.setAttribute('data-cs-central-popup','');
+const platform=new URLSearchParams(location.search).get('platform')==='1';
+createRoot(document.getElementById('preview')!).render(<div data-cs-desktop-surface="light" style={{display:'flex',minWidth:0}}><SupportWorkspace platformMode={platform}/></div>);

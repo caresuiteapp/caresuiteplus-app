@@ -1,0 +1,157 @@
+{
+  "runtime": [
+    {
+      "file": "ort.wasm.min.js",
+      "bytes": 142930,
+      "sha256": "90533a3fd7006df7f897c0d63c468996da5c8e430e39964d92ebe586c4996614",
+      "urls": [
+        "https://unpkg.com/onnxruntime-web@1.18.0/dist/ort.wasm.min.js",
+        "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.wasm.min.js"
+      ]
+    },
+    {
+      "file": "ort-wasm-simd.wasm",
+      "bytes": 10595041,
+      "sha256": "f533b5f21790563d7556c611c3835ac65848ee326da2689aac54ed7d9cc8c6a4",
+      "urls": [
+        "https://unpkg.com/onnxruntime-web@1.18.0/dist/ort-wasm-simd.wasm",
+        "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort-wasm-simd.wasm"
+      ]
+    },
+    {
+      "file": "ort-wasm.wasm",
+      "bytes": 9758086,
+      "sha256": "ebe7ec327f83aabc07e3b58487522481ccff10941f24182ab0428d0123652ff2",
+      "urls": [
+        "https://unpkg.com/onnxruntime-web@1.18.0/dist/ort-wasm.wasm",
+        "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort-wasm.wasm"
+      ]
+    },
+    {
+      "file": "piper_phonemize.js",
+      "bytes": 120714,
+      "sha256": "fef0c2fc442d24fdef5c7c7cc37d5da2314407640fe11ab1bfe347c723dff19b",
+      "urls": [
+        "https://unpkg.com/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.js",
+        "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.js"
+      ]
+    },
+    {
+      "file": "piper_phonemize.wasm",
+      "bytes": 635212,
+      "sha256": "b777cd107a91d2bcc6a1ea46f2c26a662a7407394fe84589198aeaa83dd7a9d6",
+      "urls": [
+        "https://unpkg.com/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.wasm",
+        "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.wasm"
+      ]
+    },
+    {
+      "file": "piper_phonemize.data",
+      "bytes": 18077249,
+      "sha256": "29f1025eb23a5b5c192cd14a6efbce4509402ff265405072ee6f7d1a09b78f8c",
+      "urls": [
+        "https://unpkg.com/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.data",
+        "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize.data"
+      ]
+    },
+    {
+      "file": "licenses/piper-phonemize-source.tar.gz",
+      "bytes": 9787575,
+      "sha256": "7029b52aabc2512d36f4d98c6ede732c48a0e7128d0cd0e62379dfcee770038e",
+      "url": "https://codeload.github.com/wide-video/piper-phonemize/tar.gz/cfff8e52ebaea37c7e953ae2d06b174acb827ac4"
+    },
+    {
+      "file": "licenses/espeak-ng-source.tar.gz",
+      "bytes": 16321475,
+      "sha256": "37ebbabb010200be8ec26c61b770e93f964f4503a329d7d74c239a1a40051e43",
+      "url": "https://codeload.github.com/rhasspy/espeak-ng/tar.gz/0f65aa301e0d6bae5e172cc74197d32a6182200f"
+    }
+  ],
+  "model": {
+    "url": "https://huggingface.co/Thorsten-Voice/Piper/resolve/4c56824d7a76ee98b08a6e9046e640727397fac7/de_DE-thorsten-high.onnx",
+    "sha256": "9df1c43c61149ef9b39e618e2b861fbe41e1fcea9390b2dac62e8761573ea4f1",
+    "parts": [
+      {
+        "file": "voice-00.bin",
+        "bytes": 8388608,
+        "sha256": "0b9595986b65d3974922699603e4dabacbf531ac0aa3cb64d31c4768c0bd937e"
+      },
+      {
+        "file": "voice-01.bin",
+        "bytes": 8388608,
+        "sha256": "46cdfd0ddfd85d42bbc87885127fd357eaaa38a9f42419e0a0f96f47001a2145"
+      },
+      {
+        "file": "voice-02.bin",
+        "bytes": 8388608,
+        "sha256": "cf2fcf440b5c89f27c476311f50a1bf0fad841889909687619884c6aa4a70613"
+      },
+      {
+        "file": "voice-03.bin",
+        "bytes": 8388608,
+        "sha256": "69bd1ec0ccca1baf19a2688d3f9d25e42fb6925510025236cd000b8b60129e71"
+      },
+      {
+        "file": "voice-04.bin",
+        "bytes": 8388608,
+        "sha256": "abdd23fad3338819ee02e1e0a1f9b4a1cecaea3934adc6708252b79b9d86dc32"
+      },
+      {
+        "file": "voice-05.bin",
+        "bytes": 8388608,
+        "sha256": "032add49f2290c00fa651e30b3e07fac355a3d7d6490bf37e83b25ecca3b24f4"
+      },
+      {
+        "file": "voice-06.bin",
+        "bytes": 8388608,
+        "sha256": "b79d3a60f829d64a8a5a07223aa65207c51d32f9375f38dab36f5418d115ba5e"
+      },
+      {
+        "file": "voice-07.bin",
+        "bytes": 8388608,
+        "sha256": "8693e20d97bcdfba7f44cd7eb179bb6eb0dcc1974dfb233299c9563779d8c97a"
+      },
+      {
+        "file": "voice-08.bin",
+        "bytes": 8388608,
+        "sha256": "7d6c9484455c0a92616b8b686574e8a7bf40506ac5dec43476cba27b0fcc6c85"
+      },
+      {
+        "file": "voice-09.bin",
+        "bytes": 8388608,
+        "sha256": "47de2303ab1674d94467f9b557b48c23658e1510c6bcdc9e35283848598347d7"
+      },
+      {
+        "file": "voice-10.bin",
+        "bytes": 8388608,
+        "sha256": "e33773b7e7ca3eef49919dd27712638dd0e5fbd7a89e21eaa7346635ea693bf1"
+      },
+      {
+        "file": "voice-11.bin",
+        "bytes": 8388608,
+        "sha256": "e46a8f2aea1f9e9cceddf73157593e91ec1acc1522f242a2d042c5621fff30c4"
+      },
+      {
+        "file": "voice-12.bin",
+        "bytes": 8388608,
+        "sha256": "3975ecbb8db94fec24f9bd22405fc8d4a7b42e0604ec8afb0205cf48115f3aeb"
+      },
+      {
+        "file": "voice-13.bin",
+        "bytes": 4843297,
+        "sha256": "b2b545d717d2c0189cd4f69e478d37caedcec48082cf8751954eaa47c3bf9fdf"
+      }
+    ],
+    "bytes": 113895201
+  },
+  "bundledFiles": [
+    "licenses/ONNX-Runtime-MIT.txt",
+    "licenses/Piper-Phonemize-MIT.txt",
+    "licenses/Piper-WASM-README.md",
+    "licenses/THIRD-PARTY.md",
+    "licenses/eSpeak-NG-GPL3.txt",
+    "neo-worker.js",
+    "voice-config.json",
+    "voice-manifest.json"
+  ]
+}

@@ -1,0 +1,595 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing, radius } from '@/theme';
+import type { RoleKey } from '@/types';
+import {
+  listMessageAttachments,
+  resolveMessageAttachmentUrl,
+  type MessageAttachment,
+} from '@/lib/office/messageattachmentservice';
+import { isImageMimeType, isPdfMimeType, isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
+import {
+  revokeBlobPlaybackUrl,
+  toUserFacingAttachmentError,
+  VOICE_ATTACHMENT_LIST_TIMEOUT_MS,
+  VOICE_URL_RESOLVE_TIMEOUT_MS,
+  withMessagingTimeout,
+} from '@/lib/office/voicemessageutils';
+import { VoiceMessageAttachmentPlayer } from '@/components/office/voicemessageattachmentplayer';
+import { useAuth } from '@/lib/auth/context';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { MessageStatusTicks } from '@/components/communication/MessageStatusTicks';
+
+type AttachmentUrlState = {
+  url: string | null;
+  loading: boolean;
+  error: string | null;
+};
+
+type PreviewState = {
+  attachment: MessageAttachment;
+  url: string;
+  mode: 'image' | 'pdf';
+};
+
+type MessageAttachmentListProps = {
+  messageId: string;
+  isOwn?: boolean;
+  /** Nachricht besteht nur aus Anhängen — Bubble-Chrome hier rendern. */
+  attachmentOnly?: boolean;
+  /** Sprachnachricht ohne DB-Anhang (Teilfehler) — Fehlerzustand anzeigen. */
+  expectVoiceAttachment?: boolean;
+  senderDisplayName?: string;
+  sentAt?: string | null;
+  showStatus?: boolean;
+  messageStatus?: 'sent' | 'delivered' | 'read' | 'deleted';
+};
+
+function resolveAttachmentRoleKey(
+  profileRoleKey?: string | null,
+  portalRoleKey?: string | null,
+): RoleKey | null | undefined {
+  return (profileRoleKey ?? portalRoleKey) as RoleKey | null | undefined;
+}
+
+function formatSize(bytes: number | null): string {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function attachmentIcon(mimeType: string | null): string {
+  if (isImageMimeType(mimeType)) return '🖼️';
+  if (isPdfMimeType(mimeType)) return '📄';
+  if (isAudioMimeType(mimeType)) return '🎤';
+  return '📎';
+}
+
+export function MessageAttachmentList({
+  messageId,
+  isOwn = false,
+  attachmentOnly = false,
+  expectVoiceAttachment = false,
+  senderDisplayName,
+  sentAt,
+  showStatus = false,
+  messageStatus = 'sent',
+}: MessageAttachmentListProps) {
+  const { c } = useCareLightPalette();
+  const { colors, typography } = useLegacyTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const { profile, portalSession } = useAuth();
+  const tenantId = useServiceTenantId();
+  const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [urlById, setUrlById] = useState<Record<string, AttachmentUrlState>>({});
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [listAttempt, setListAttempt] = useState(0);
+  const loadingAttachmentIdsRef = useRef<Set<string>>(new Set());
+  const urlByIdRef = useRef<Record<string, AttachmentUrlState>>({});
+  const roleKey = resolveAttachmentRoleKey(profile?.roleKey, portalSession?.roleKey);
+
+  urlByIdRef.current = urlById;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        rowWrap: {
+          marginVertical: spacing.xs,
+          paddingHorizontal: spacing.md,
+          alignItems: isOwn ? 'flex-end' : 'flex-start',
+        },
+        bubble: {
+          maxWidth: '82%',
+          borderRadius: radius.lg,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          gap: spacing.sm,
+        },
+        bubbleOwn: {
+          backgroundColor: colors.orange,
+          borderBottomRightRadius: radius.sm,
+        },
+        bubbleOther: {
+          backgroundColor: colors.bgElevated,
+          borderWidth: 1,
+          borderColor: colors.borderCyan,
+          borderBottomLeftRadius: radius.sm,
+        },
+        inlineRoot: {
+          gap: spacing.xs,
+          maxWidth: '82%',
+          alignSelf: isOwn ? 'flex-end' : 'flex-start',
+          paddingHorizontal: attachmentOnly ? 0 : spacing.md,
+          paddingBottom: attachmentOnly ? 0 : spacing.sm,
+        },
+        sender: { ...typography.caption, color: colors.cyan, marginBottom: spacing.xs },
+        meta: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs,
+          marginTop: spacing.xs,
+        },
+        time: { ...typography.caption, color: colors.textMuted },
+        item: {
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: `${c.violet}08`,
+          overflow: 'hidden',
+        },
+        fileRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          padding: spacing.sm,
+        },
+        name: { ...typography.caption, color: c.text, flex: 1, fontWeight: '600' },
+        metaText: { ...typography.caption, color: c.muted },
+        thumb: {
+          width: Math.min(240, screenWidth * 0.55),
+          height: 160,
+          backgroundColor: `${c.muted}22`,
+        },
+        thumbLoading: {
+          width: Math.min(240, screenWidth * 0.55),
+          height: 120,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: `${c.muted}18`,
+        },
+        thumbError: {
+          padding: spacing.sm,
+          gap: spacing.xs,
+        },
+        errorText: { ...typography.caption, color: '#c0392b' },
+        listLoading: {
+          padding: spacing.sm,
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 48,
+        },
+        previewImage: {
+          width: '100%',
+          minHeight: 240,
+          maxHeight: Math.min(screenWidth * 0.85, 640),
+          borderRadius: radius.md,
+          backgroundColor: `${c.muted}18`,
+        },
+        pdfHint: { ...typography.body, color: c.muted, textAlign: 'center' },
+      }),
+    [attachmentOnly, c, colors, isOwn, screenWidth, typography],
+  );
+
+  useEffect(() => {
+    if (!tenantId || !messageId) {
+      setListLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setListLoading(true);
+    setListError(null);
+
+    void withMessagingTimeout(
+      listMessageAttachments(tenantId, messageId, roleKey),
+      VOICE_ATTACHMENT_LIST_TIMEOUT_MS,
+      'Attachment list timeout',
+    ).then((result) => {
+      if (cancelled) return;
+      setListLoading(false);
+      if (!result.ok) {
+        setListError(result.error);
+        setAttachments([]);
+        return;
+      }
+      setAttachments(result.data);
+    }).catch(() => {
+      if (cancelled) return;
+      setListLoading(false);
+      setListError(toUserFacingAttachmentError());
+      setAttachments([]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, messageId, roleKey, listAttempt]);
+
+  const loadUrl = useCallback(
+    async (attachment: MessageAttachment, force = false) => {
+      if (!tenantId) return;
+
+      const current = urlByIdRef.current[attachment.id];
+      if (loadingAttachmentIdsRef.current.has(attachment.id)
+        || (!force && (current?.url || current?.error))) return;
+      loadingAttachmentIdsRef.current.add(attachment.id);
+      setUrlById((prev) => ({ ...prev,
+        [attachment.id]: { url: null, loading: true, error: null },
+      }));
+
+      let resolved: Awaited<ReturnType<typeof resolveMessageAttachmentUrl>>;
+      try {
+        resolved = await withMessagingTimeout(
+          resolveMessageAttachmentUrl(tenantId, attachment),
+          VOICE_URL_RESOLVE_TIMEOUT_MS,
+          'URL resolve timeout',
+        );
+      } catch {
+        resolved = { ok: false, error: toUserFacingAttachmentError() };
+      } finally {
+        loadingAttachmentIdsRef.current.delete(attachment.id);
+      }
+
+      setUrlById((prev) => {
+        const previousUrl = prev[attachment.id]?.url;
+        if (previousUrl && previousUrl !== (resolved.ok ? resolved.data : null)) {
+          revokeBlobPlaybackUrl(previousUrl);
+        }
+        return {
+          ...prev,
+          [attachment.id]: {
+            url: resolved.ok ? resolved.data : null,
+            loading: false,
+            error: resolved.ok ? null : toUserFacingAttachmentError(),
+          },
+        };
+      });
+    },
+    [tenantId],
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const state of Object.values(urlByIdRef.current)) {
+        revokeBlobPlaybackUrl(state.url);
+      }
+    };
+  }, [messageId]);
+
+  useEffect(() => {
+    const stuck = Object.entries(urlById).filter(([, state]) => state.loading);
+    if (stuck.length === 0) return;
+
+    const timer = setTimeout(() => {
+      setUrlById((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [id, state] of Object.entries(prev)) {
+          if (state.loading) {
+            next[id] = { url: null, loading: false, error: toUserFacingAttachmentError() };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, VOICE_URL_RESOLVE_TIMEOUT_MS + 500);
+
+    return () => clearTimeout(timer);
+  }, [urlById]);
+
+  useEffect(() => {
+    if (!tenantId || attachments.length === 0) return;
+    for (const attachment of attachments) {
+      void loadUrl(attachment);
+    }
+  }, [attachments, loadUrl, tenantId]);
+
+  const openAttachment = async (attachment: MessageAttachment) => {
+    if (!tenantId) return;
+    try {
+      let url = urlById[attachment.id]?.url;
+      if (!url || Platform.OS !== 'web') {
+        const resolved = await withMessagingTimeout(resolveMessageAttachmentUrl(tenantId, attachment),
+          VOICE_URL_RESOLVE_TIMEOUT_MS, 'URL resolve timeout');
+        if (!resolved.ok) throw new Error(resolved.error);
+        url = resolved.data;
+        setUrlById((prev) => ({ ...prev, [attachment.id]: { url, loading: false, error: null } }));
+      }
+      if (isImageMimeType(attachment.mimeType)) {
+        setPreview({ attachment, url, mode: 'image' });
+        return;
+      }
+      if (isPdfMimeType(attachment.mimeType) && Platform.OS === 'web') {
+        setPreview({ attachment, url, mode: 'pdf' });
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      setUrlById((prev) => ({ ...prev,
+        [attachment.id]: { url: null, loading: false, error: toUserFacingAttachmentError() } }));
+    }
+  };
+
+  if (listLoading) {
+    if (!attachmentOnly) return null;
+    return (
+      <View style={styles.rowWrap}>
+        <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther, styles.listLoading]}>
+          <ActivityIndicator size="small" color={c.violet} accessibilityLabel="Anhänge werden geladen" />
+        </View>
+      </View>
+    );
+  }
+
+  if (listError) {
+    return (
+      <View style={styles.rowWrap}>
+        <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Anhänge erneut laden"
+            onPress={() => setListAttempt((current) => current + 1)}>
+            <Text style={styles.errorText}>Anhänge konnten nicht geladen werden. Erneut laden</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (attachments.length === 0) {
+    if (!expectVoiceAttachment) return null;
+
+    const missingVoice = (
+      <View style={[styles.item, styles.thumbError]}>
+        <Text style={styles.errorText}>{toUserFacingAttachmentError()}</Text>
+        <Text style={styles.metaText}>Sprachnachricht unvollständig</Text>
+      </View>
+    );
+
+    if (!attachmentOnly) {
+      return <View style={styles.inlineRoot}>{missingVoice}</View>;
+    }
+
+    return (
+      <View style={styles.rowWrap}>
+        <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+          {!isOwn && senderDisplayName ? (
+            <Text style={styles.sender}>{senderDisplayName}</Text>
+          ) : null}
+          {missingVoice}
+          <View style={styles.meta}>
+            {sentAt ? (
+              <Text style={styles.time}>
+                {new Date(sentAt).toLocaleTimeString('de-DE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ) : null}
+            {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} /> : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const renderAttachment = (attachment: MessageAttachment) => {
+    const urlState = urlById[attachment.id];
+    const accessibilityLabel = `Anhang öffnen: ${attachment.fileName}`;
+
+    if (isAudioMimeType(attachment.mimeType)) {
+      const voiceLoading = !urlState || urlState.loading;
+      if (voiceLoading) {
+        return (
+          <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
+            <ActivityIndicator size="small" color={c.violet} />
+            <Text style={styles.metaText}>Sprachnachricht wird geladen…</Text>
+          </View>
+        );
+      }
+
+      if (urlState.error || !urlState.url) {
+        return (
+          <Pressable
+            key={attachment.id}
+            style={[styles.item, styles.thumbError]}
+            onPress={() => void loadUrl(attachment, true)}
+            accessibilityRole="button"
+            accessibilityLabel="Sprachnachricht erneut laden"
+          >
+            <Text style={styles.errorText}>{toUserFacingAttachmentError()}</Text>
+            <Text style={styles.metaText}>Erneut laden</Text>
+          </Pressable>
+        );
+      }
+
+      return (
+        <View key={attachment.id} style={styles.item}>
+          <VoiceMessageAttachmentPlayer
+            url={urlState.url}
+            fileName={attachment.fileName}
+            onRetry={() => void loadUrl(attachment, true)}
+          />
+        </View>
+      );
+    }
+
+    if (isImageMimeType(attachment.mimeType)) {
+      const imageLoading = !urlState || urlState.loading;
+      if (imageLoading) {
+        return (
+          <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
+            <ActivityIndicator size="small" color={c.violet} />
+            <Text style={styles.metaText}>Vorschau wird geladen…</Text>
+          </View>
+        );
+      }
+
+      if (urlState?.error || !urlState?.url) {
+        return (
+          <Pressable
+            key={attachment.id}
+            style={[styles.item, styles.thumbError]}
+            onPress={() => void loadUrl(attachment, true)}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+          >
+            <Text style={styles.errorText}>Anhang nicht verfügbar</Text>
+            <Text style={styles.metaText}>Tippen zum erneuten Laden</Text>
+          </Pressable>
+        );
+      }
+
+      return (
+        <Pressable
+          key={attachment.id}
+          style={styles.item}
+          onPress={() => void openAttachment(attachment)}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+        >
+          <Image
+            source={{ uri: urlState.url }}
+            style={styles.thumb}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+          <View style={styles.fileRow}>
+            <Text style={styles.name}>{attachment.fileName}</Text>
+            <Text style={styles.metaText}>{formatSize(attachment.fileSizeBytes)}</Text>
+          </View>
+        </Pressable>
+      );
+    }
+
+    return (
+      <Pressable
+        key={attachment.id}
+        style={styles.item}
+        onPress={() => void openAttachment(attachment)}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        <View style={styles.fileRow}>
+          <Text style={styles.name}>
+            {attachmentIcon(attachment.mimeType)} {attachment.fileName}
+          </Text>
+          <Text style={styles.metaText}>{formatSize(attachment.fileSizeBytes)}</Text>
+        </View>
+        {urlState?.loading ? (
+          <View style={styles.thumbLoading}>
+            <ActivityIndicator size="small" color={c.violet} />
+          </View>
+        ) : null}
+        {urlState?.error ? (
+          <View style={styles.thumbError}>
+            <Text style={styles.errorText}>Anhang nicht verfügbar</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
+
+  const content = (
+    <View style={attachmentOnly ? undefined : styles.inlineRoot}>
+      {attachments.map(renderAttachment)}
+    </View>
+  );
+
+  const previewModal = (
+    <PlatformModal
+      visible={!!preview}
+      title={preview?.attachment.fileName ?? 'Anhang'}
+      onClose={() => setPreview(null)}
+      maxWidth={preview?.mode === 'image' ? 960 : 720}
+      footerActions={[
+        {
+          title: 'Schließen',
+          onPress: () => setPreview(null),
+        },
+        ...(preview?.mode === 'pdf'
+          ? [
+              {
+                title: 'Anhang öffnen',
+                onPress: () => {
+                  if (preview?.url) void Linking.openURL(preview.url);
+                },
+              },
+            ]
+          : []),
+      ]}
+    >
+      {preview?.mode === 'image' ? (
+        <Image
+          source={{ uri: preview.url }}
+          style={styles.previewImage}
+          resizeMode="contain"
+          accessibilityLabel={`Vorschau: ${preview.attachment.fileName}`}
+        />
+      ) : preview?.mode === 'pdf' && Platform.OS === 'web' ? (
+        <iframe
+          title={preview.attachment.fileName}
+          src={preview.url}
+          style={{
+            width: '100%',
+            height: Math.min(screenWidth * 0.75, 560),
+            border: 'none',
+            borderRadius: radius.md,
+            backgroundColor: '#fff',
+          }}
+        />
+      ) : preview ? (
+        <Text style={styles.pdfHint}>PDF wird in einem neuen Tab geöffnet…</Text>
+      ) : null}
+    </PlatformModal>
+  );
+
+  if (attachmentOnly) {
+    return (
+      <>
+        <View style={styles.rowWrap}>
+          <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+            {!isOwn && senderDisplayName ? (
+              <Text style={styles.sender}>{senderDisplayName}</Text>
+            ) : null}
+            {content}
+            <View style={styles.meta}>
+              {sentAt ? (
+                <Text style={styles.time}>
+                  {new Date(sentAt).toLocaleTimeString('de-DE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              ) : null}
+              {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} /> : null}
+            </View>
+          </View>
+        </View>
+        {previewModal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {content}
+      {previewModal}
+    </>
+  );
+}

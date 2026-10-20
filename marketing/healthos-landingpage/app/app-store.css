@@ -1,0 +1,305 @@
+.assist-app {
+  position: relative;
+  padding-block: clamp(76px, 7vw, 112px);
+  scroll-margin-top: 110px;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 76% 46%, #173a6070, transparent 58%),
+    linear-gradient(180deg, #050e18c9, #071420d9 55%, #07142091);
+}
+
+.assist-app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 5vw, 76px);
+  align-items: center;
+}
+
+.assist-app-copy { min-width: 0; }
+
+.assist-app-identity {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  margin-bottom: 32px;
+}
+
+.assist-app-identity > img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 8px 18px #0005);
+}
+
+.assist-app-identity > div { min-width: 0; }
+
+.assist-app-name {
+  display: block;
+  color: #f3f8ff;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.assist-app-availability {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: #a6c7e3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.assist-app-availability > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #91e5ff;
+  box-shadow: 0 0 12px #6fd8ff;
+  flex-shrink: 0;
+}
+
+.assist-app-copy h2 {
+  font-size: clamp(38px, 4.2vw, 60px);
+  line-height: 1.09;
+  letter-spacing: -.045em;
+  margin: 0;
+}
+
+.assist-app-copy > p {
+  margin: 24px 0 20px;
+  color: #b8cde0;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.assist-app-store-link {
+  display: block;
+  width: 258px;
+  max-width: 100%;
+  margin-left: -16px;
+  border-radius: 8px;
+}
+
+.assist-app-store-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.assist-app-store-link:focus-visible {
+  outline: 2px solid #b6edff;
+  outline-offset: 2px;
+}
+
+/* The stage moves light around two steady, readable devices. */
+.assist-app-screens {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  aspect-ratio: 540 / 690;
+  margin-inline: auto;
+  isolation: isolate;
+}
+
+.assist-app-scenery {
+  position: absolute;
+  inset: -5% -8% 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 48% 46%, #3198f023, transparent 66%);
+}
+
+.assist-app-orbit {
+  position: absolute;
+  width: 106%;
+  aspect-ratio: 1;
+  left: -3%;
+  top: 16%;
+  border: 1px solid #78c8ff28;
+  border-radius: 50%;
+  box-shadow: 0 0 40px #308be70d, inset 0 0 45px #56b7ff0d;
+  transform: rotate(-24deg) scaleY(.36);
+}
+
+.assist-app-orbit::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid transparent;
+  border-top-color: #8bddff9c;
+  border-radius: inherit;
+  animation: assist-app-orbit-light 18s linear infinite;
+  filter: drop-shadow(0 0 7px #66ceff62);
+}
+
+.assist-app-orbit-secondary {
+  width: 92%;
+  left: 5%;
+  top: 23%;
+  opacity: .42;
+  transform: rotate(28deg) scaleY(.59);
+}
+
+.assist-app-orbit-secondary::before { animation-duration: 24s; animation-direction: reverse; }
+
+.assist-app-floor {
+  position: absolute;
+  width: 88%;
+  height: 12%;
+  bottom: 2%;
+  left: 6%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #43b6ff24, #0c254124 44%, transparent 72%);
+  filter: blur(12px);
+  animation: assist-app-glow 8s ease-in-out infinite;
+}
+
+.assist-app-screen {
+  position: absolute;
+  margin: 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.assist-app-screen.employee {
+  z-index: 2;
+  width: 53%;
+  top: 2%;
+  left: 0;
+}
+
+.assist-app-screen.client {
+  z-index: 1;
+  width: 43%;
+  top: 17%;
+  right: 0;
+  transform: rotate(2.5deg);
+}
+
+.assist-app-image-shell {
+  position: relative;
+  padding: 7px;
+  border: 1px solid #b5d2e078;
+  border-radius: 37px;
+  background: linear-gradient(140deg, #a8bdca, #27313e 14%, #070d16 48%, #647b8d 82%, #14202b);
+  box-shadow:
+    0 30px 60px -18px #000a,
+    0 3px 8px #0008,
+    0 0 46px #409eff16,
+    inset 0 0 0 2px #09101bbb,
+    inset 0 1px 0 #effaff70;
+}
+
+.assist-app-image-shell::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #b9e3ff25;
+  border-radius: 34px;
+  pointer-events: none;
+}
+
+.assist-app-device-display {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 720 / 1602;
+  overflow: hidden;
+  border: 2px solid #080d16;
+  border-radius: 30px;
+  background: #f3f8fc;
+  isolation: isolate;
+}
+
+/* Google Play originals include a blank margin around the full Android screen.
+   This window trims only that margin; status, app content and navigation stay visible. */
+.assist-app-device-display > img {
+  position: absolute;
+  display: block;
+  width: 150%;
+  height: auto;
+  max-width: none;
+  left: -25%;
+  top: -9.98752%;
+}
+
+.assist-app-device-key {
+  position: absolute;
+  right: -3px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, #13202d, #9bb2c4, #384856);
+  box-shadow: 1px 0 2px #0006;
+}
+
+.assist-app-device-key.volume { top: 18%; height: 13%; }
+.assist-app-device-key.power { top: 36%; height: 7%; }
+
+.assist-app-screen figcaption {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 21px;
+  min-height: 31px;
+  padding: 5px 13px;
+  border: 1px solid #a0d0f32a;
+  border-radius: 999px;
+  background: linear-gradient(110deg, #17304ac9, #071725d9);
+  box-shadow: inset 0 1px 0 #e3f5ff0d, 0 6px 16px #0002;
+  color: #c2dcef;
+  font-size: 12px;
+  letter-spacing: .02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.assist-app-screen figcaption > i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #87d7fa;
+  box-shadow: 0 0 9px #69cfff50;
+}
+
+@keyframes assist-app-orbit-light { to { transform: rotate(360deg); } }
+@keyframes assist-app-glow { 50% { opacity: .5; } }
+
+@media (max-width: 850px) {
+  .assist-app-layout { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .assist-app-copy { text-align: center; }
+  .assist-app-identity { justify-content: center; text-align: left; margin-bottom: 25px; }
+  .assist-app-copy h2 { font-size: clamp(36px, 6vw, 52px); }
+  .assist-app-copy > p { margin-block: 20px 8px; font-size: 16px; }
+  .assist-app-store-link { margin-inline: auto; width: 238px; }
+  .assist-app-screens { max-width: 480px; }
+}
+
+@media (max-width: 480px) {
+  .assist-app { padding-block: 65px 74px; }
+  .assist-app-layout { gap: 27px; }
+  .assist-app-identity > img { width: 56px; height: 56px; }
+  .assist-app-name { font-size: 17px; }
+  .assist-app-copy h2 { font-size: clamp(32px, 9vw, 40px); }
+  .assist-app-screens { aspect-ratio: 335 / 440; max-width: 375px; }
+  .assist-app-screen.employee { width: 55%; top: 1%; }
+  .assist-app-screen.client { width: 42%; top: 20%; right: 1%; transform: rotate(2deg); }
+  .assist-app-image-shell { padding: 5px; border-radius: 25px; }
+  .assist-app-image-shell::before { inset: 2px; border-radius: 23px; }
+  .assist-app-device-display { border-width: 1px; border-radius: 19px; }
+  .assist-app-device-key { right: -2px; width: 2px; }
+  .assist-app-screen figcaption { font-size: 11px; min-height: 28px; margin-top: 17px; padding: 4px 9px; gap: 6px; }
+}
+
+.motion-paused .assist-app-orbit::before,
+.motion-paused .assist-app-floor { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .assist-app-orbit::before,
+  .assist-app-floor { animation: none; }
+}
+
+.cinematic .hero-app-link { min-height: 44px; }

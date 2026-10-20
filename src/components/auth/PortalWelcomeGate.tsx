@@ -1,0 +1,131 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth/context';
+import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
+import {
+  clearPortalWelcomePending,
+  hydratePortalWelcomePending,
+  isPortalWelcomeSeen,
+  markPortalWelcomeSeen,
+  type PortalWelcomeKind,
+} from '@/lib/auth/portalWelcomeSession';
+import {
+  resolvePortalScreenSubtitle,
+  TENANT_NAME_FALLBACK,
+} from '@/lib/portal/portalDisplayLabels';
+import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { ROLE_LABELS } from '@/data/constants';
+import { PortalWelcomeModal } from './PortalWelcomeModal';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
+
+const FALLBACK_TENANT = TENANT_NAME_FALLBACK;
+
+function resolvePortalWelcomeKind(
+  loginType: string | undefined,
+  roleKey: string | null | undefined,
+): PortalWelcomeKind | null {
+  if (loginType === 'employee_portal' || roleKey === 'employee_portal') return 'employee';
+  if (loginType === 'client_portal' || roleKey === 'client_portal' || roleKey === 'family_portal') {
+    return 'client';
+  }
+  return null;
+}
+
+/**
+ * Mandatory portal welcome — shown after employee or client login until dismissed.
+ */
+export function PortalWelcomeGate() {
+  const startupReady = useAppStartIntroReady();
+  const { authReady, isAuthenticated, portalSession, profile, user } = useAuth();
+  const { displayName, roleKey } = usePortalActor();
+  const tenantId = useServiceTenantId();
+  const [tenantName, setTenantName] = useState(FALLBACK_TENANT);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeKind, setWelcomeKind] = useState<PortalWelcomeKind | null>(null);
+
+  const portalKind = resolvePortalWelcomeKind(portalSession?.loginType, roleKey);
+  const isPortalSession = isAuthenticated && Boolean(portalSession) && Boolean(portalKind);
+  const accountId = portalSession?.accountId ?? profile?.id ?? '';
+
+  useEffect(() => {
+    if (!startupReady || !authReady || !isPortalSession || !portalKind) {
+      setShowWelcome(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      if (accountId.trim()) {
+        const alreadySeen = await isPortalWelcomeSeen(portalKind, accountId);
+        if (cancelled) return;
+        if (alreadySeen) {
+          clearPortalWelcomePending();
+          setShowWelcome(false);
+          return;
+        }
+      }
+
+      const pending = await hydratePortalWelcomePending();
+      if (cancelled || pending !== portalKind) {
+        setShowWelcome(false);
+        return;
+      }
+      setWelcomeKind(portalKind);
+      setShowWelcome(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, isPortalSession, portalKind, accountId, startupReady]);
+
+  useEffect(() => {
+    if (!tenantId) {
+      setTenantName(FALLBACK_TENANT);
+      return;
+    }
+
+    let cancelled = false;
+    void fetchTenantDisplayName(tenantId).then((name) => {
+      if (!cancelled && name?.trim()) setTenantName(name);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  const handleClose = () => {
+    if (welcomeKind) {
+      void markPortalWelcomeSeen(welcomeKind, accountId);
+    } else {
+      clearPortalWelcomePending();
+    }
+    setShowWelcome(false);
+  };
+
+  if (!startupReady || !isPortalSession || !welcomeKind) {
+    return null;
+  }
+
+  const resolvedName =
+    displayName ||
+    getPortalDisplayName(profile, user, portalSession, 'Willkommen');
+  const roleLabel = roleKey
+    ? (ROLE_LABELS[roleKey] ?? roleKey)
+    : resolvePortalScreenSubtitle(undefined, welcomeKind === 'employee' ? 'employee' : 'client');
+
+  return (
+    <PortalWelcomeModal
+      visible={showWelcome}
+      kind={welcomeKind}
+      displayName={resolvedName}
+      tenantName={tenantName}
+      roleLabel={roleLabel}
+      avatarUrl={profile?.avatarUrl}
+      onClose={handleClose}
+    />
+  );
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.caresuitehealthos",
+      "sha256_cert_fingerprints": [
+        "21:37:5B:D0:2E:0E:30:76:46:F0:61:6E:53:B7:59:79:6A:B4:EF:6D:5B:40:79:94:75:8D:FD:C6:09:DE:7F:6B"
+      ]
+    }
+  }
+]

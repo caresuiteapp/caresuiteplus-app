@@ -1,0 +1,15 @@
+export const SERVICE_ERRORS = {
+  unexpected: 'Ein unerwarteter Fehler ist aufgetreten.',
+  tenantDenied: 'Kein Zugriff auf diesen Mandanten.',
+  tenantNotFound: 'Mandant nicht gefunden oder kein Zugriff.',
+  notFound: 'Datensatz wurde nicht gefunden.',
+  clientNotFound: 'Klient:in wurde nicht gefunden.',
+  loadListFailed: 'Klient:innen konnten nicht geladen werden. Bitte erneut versuchen.',
+  loadDetailFailed: 'Detaildaten konnten nicht geladen werden.',
+  createFailed: 'Klient:in konnte nicht angelegt werden.',
+  updateFailed: 'Änderungen konnten nicht gespeichert werden.',
+  statusFailed: 'Status konnte nicht geändert werden.',
+  archiveFailed: 'Archivierung konnte nicht durchgeführt werden.',
+  statusNotAllowed: 'Dieser Statuswechsel ist nicht erlaubt.',
+  supabaseUnavailable: 'Supabase-Modus ist noch nicht aktiv (Arbeitspaket 010).',
+} as const;

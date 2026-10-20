@@ -1,0 +1,17 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {filterPlanReviewControls,emptyPlanReviewControlsFilter} from '../../src/lib/careAssessment/planReviewControlsFilter.ts';
+import {plan,record,tenant,assessment,client,now,time,id} from './fixtures/plan-amendment.mjs';
+import {control,addEvent,followEvaluation,resolveDraft} from './fixtures/plan-review-controls.mjs';
+const run=(f={},p=plan(),r=[record()],c=[control()])=>filterPlanReviewControls(p,r,c,tenant,assessment,client,{...emptyPlanReviewControlsFilter(),...f},now);
+test('native open-task filter selects its measure without changing whole task count',()=>{const v=run({control:'open'});assert.equal(v.matching,1);assert.equal(v.total,2);assert.equal(v.controlTotal,1);assert.equal(v.controlOpen,1);});
+test('task deadline is independent of unscheduled native plan',()=>{const v=run({control:'due',due:'unscheduled'});assert.equal(v.matching,1);assert.equal(v.visible[0].measure.nextEvaluationAt,null);});
+test('no-task filter does not treat withdrawn source as absent task',()=>{assert.equal(run({control:'none'}).visible[0].measure.id,id(51));assert.equal(run({control:'none'},plan(),[]).matching,1);});
+test('closed performed order does not remove reached native plan date',()=>{const p=plan();p.measures[0].nextEvaluationAt=time(11);const original=record();original.root.snapshot.measures[0].nextEvaluationAt=time(11);const f=followEvaluation();f.root.snapshot.measures[0].nextEvaluationAt=time(11);const c=addEvent(control(original),resolveDraft(f));const v=run({control:'completed',due:'reached'},p,[original,f],[c]);assert.equal(v.matching,1);assert.equal(v.reached,1);});
+test('matching individual criteria may still need whole-order-scope comparison',()=>{const p=plan();p.measures[1].intervention='Tatsächlich geändert';assert.equal(run({control:'needs_comparison',measureId:id(50)},p,[record()],[control(record(),'')]).matching,1);});
+test('same-source open task without discrepancy is absent from comparison filter',()=>assert.equal(run({control:'needs_comparison'}).matching,0));
+test('missing loaded evaluation source is retained in comparison filter',()=>assert.equal(run({control:'needs_comparison'},plan(),[]).matching,1));
+test('current measure and matching finding query intersects task filter',()=>{assert.equal(run({query:'Einzelbefund 50',control:'open'}).matching,1);assert.equal(run({query:'Einzelbefund 51',control:'open'}).matching,0);});
+test('removed original task survives current measure search in explicit separate section',()=>{const p=plan();p.measures=p.measures.slice(1);const v=run({query:'No match',control:'open'},p);assert.equal(v.matching,0);assert.equal(v.visibleUnlinkedControls.length,1);assert.equal(v.controlTotal,1);});
+test('nonmatching search cannot conceal malformed task original',()=>{const c=control();c.events[0].draft.source.snapshot.actor_name='Different historical author';assert.throws(()=>run({query:'No match',control:'none'},plan(),[record()],[c]));});
+for(const filter of [{control:'effective'},{control:null},{extra:true},{measureId:id(99)},{query:null}])test(`invalid task filter ${JSON.stringify(filter)} fails closed`,()=>assert.throws(()=>run(filter)));
+test('search and native task filtering leave inputs unchanged',()=>{const p=plan(),r=record(),c=control(),before=structuredClone({p,r,c});run({control:'due'},p,[r],[c]);assert.deepEqual({p,r,c},before);});

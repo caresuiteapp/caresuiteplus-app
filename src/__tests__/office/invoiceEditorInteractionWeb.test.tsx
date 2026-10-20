@@ -1,0 +1,111 @@
+// @vitest-environment happy-dom
+// These checks prove interaction and state isolation, not rendered layout quality.
+import React, { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { OfficeInvoice } from '@/lib/office/invoiceWorkspaceTypes.web';
+import { createEmptyOfficeEInvoiceMetadata, createEmptyOfficeEInvoiceLineTax } from '@/lib/office/eInvoiceModel.web';
+const h = vi.hoisted(() => ({ tenant: '11111111-1111-4111-8111-111111111111', portal: false, allowed: true, create: true, status: true, params: {} as Record<string, string>, read: vi.fn(), options: vi.fn(), save: vi.fn(), issue: vi.fn(), payment: vi.fn(), delivery: vi.fn(), remove: vi.fn(), xmlDraft: vi.fn(), xmlOriginal: vi.fn(), createUrl: vi.fn(), revokeUrl: vi.fn(), push: vi.fn(), back: vi.fn(), replace: vi.fn(), dispatch: vi.fn(), guarded: false, guard: null as null | ((event: { data: { action: unknown } }) => void) }));
+vi.mock('expo-router', () => ({ useIsFocused: () => true, useLocalSearchParams: () => h.params, useRouter: () => ({ push: h.push, back: h.back, replace: h.replace }), useNavigation: () => ({ dispatch: h.dispatch }) }));
+vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: (enabled: boolean, callback: typeof h.guard) => { h.guarded = enabled; h.guard = callback; } }));
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: true, isAuthenticated: true, user: { id: 'office-user' }, portalSession: h.portal ? {} : null }) }));
+vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => h.tenant }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ roleKey: 'billing', permissions: h.allowed ? ['office.invoices.view', ...(h.create ? ['office.invoices.create'] : []), ...(h.status ? ['office.invoices.status_change'] : [])] : [], isReadOnly: true, can: (permission: string) => h.allowed && (permission !== 'office.invoices.create' || h.create) && (permission !== 'office.invoices.status_change' || h.status) }) }));
+vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
+vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 30000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
+vi.mock('@/lib/services/queryTimeout', () => ({ NATIVE_SERVICE_QUERY_TIMEOUT_MS: 30000, withServiceQueryTimeout: (promise: Promise<unknown>) => promise }));
+vi.mock('@/lib/office/invoiceWorkspaceService.web', async () => ({ ...await vi.importActual('@/lib/office/invoiceWorkspaceTypes.web'), fetchOfficeInvoice: (...args: unknown[]) => h.read(...args), fetchOfficeInvoiceEditorOptions: (...args: unknown[]) => h.options(...args), saveOfficeInvoiceDraft: (...args: unknown[]) => h.save(...args), deleteOfficeInvoiceDraft: (...args: unknown[]) => h.remove(...args), recordOfficeInvoicePayment: (...args: unknown[]) => h.payment(...args), transitionOfficeInvoice: (...args: unknown[]) => h.delivery(...args) }));
+vi.mock('@/lib/office/eInvoiceExportService.web', () => ({ prepareOfficeEInvoiceDraft: (...args: unknown[]) => h.xmlDraft(...args), downloadOfficeIssuedEInvoice: (...args: unknown[]) => h.xmlOriginal(...args) }));
+vi.mock('@/lib/office/invoiceIssuePdf.web', () => ({ issueOfficeInvoicePdf: (...args: unknown[]) => h.issue(...args) }));
+vi.mock('@/components/office/invoices/InvoicePdfPreview.web', () => ({ InvoicePdfPreview: ({ disabled }: { disabled: boolean }) => <button disabled={disabled}>PDF-Vorschau erstellen</button> }));
+import { InvoiceCreateScreen } from '@/screens/office/InvoiceCreateScreen.web';
+import { InvoiceEditScreen } from '@/screens/office/InvoiceEditScreen.web';
+import { InvoiceDetailScreen } from '@/screens/office/InvoiceDetailScreen.web';
+const invoiceId = '22222222-2222-4222-8222-222222222222', clientId = '33333333-3333-4333-8333-333333333333';
+const ok = <T,>(data: T) => ({ ok: true as const, data });
+function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
+let host: HTMLDivElement; let root: Root; let invoice: OfficeInvoice; let screen: 'edit' | 'create' | 'detail';
+async function render() { await act(async () => { root.render(screen === 'create' ? <InvoiceCreateScreen /> : screen === 'detail' ? <InvoiceDetailScreen /> : <InvoiceEditScreen />); }); }
+function button(name: string) { const item = [...host.querySelectorAll<HTMLButtonElement>('button')].find(node => node.textContent === name || node.getAttribute('aria-label') === name); if (!item) throw new Error(`Button fehlt: ${name}`); return item; }
+function field(name: string) { const item = [...host.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select')].find(node => node.closest('label')?.textContent?.startsWith(name)); if (!item) throw new Error(`Feld fehlt: ${name}`); return item; }
+async function click(item: HTMLElement) { await act(async () => { item.click(); }); await render(); }
+async function change(name: string, value: string) { const item = field(name); const prototype = item instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : item instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype; await act(async () => { Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(item, value); item.dispatchEvent(new Event(item instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true })); }); await render(); }
+beforeEach(() => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); vi.clearAllMocks(); h.tenant = '11111111-1111-4111-8111-111111111111'; h.portal = false; h.allowed = true; h.create = true; h.status = true; h.params = { id: invoiceId }; h.guarded = false; h.guard = null; screen = 'edit';
+  invoice = { id: invoiceId, tenantId: h.tenant, clientId, clientName: 'Ada Muster', clientNumber: 'K-1', insuranceNumber: 'I-1', invoiceNumber: '', status: 'draft', invoiceDate: '2026-10-18', dueDate: '2026-11-01', servicePeriodStart: '2026-10-01', servicePeriodEnd: '2026-10-31', amountCents: 6550, paidCents: 0, openCents: 6550, billingModule: 'assist', updatedAt: '2026-10-18T07:30:00Z', createdAt: '2026-10-18T07:30:00Z', recipient: { name: 'Ada Muster', street: 'Musterstraße', houseNumber: '1', postalCode: '44623', city: 'Herne', country: 'Deutschland', email: '' }, recipientType: 'client', billingParty: 'self_payer', officeManaged: true, notes: '', footerText: 'Umsatzsteuerfrei.', includeProofs: false, selectedProofIds: [], lines: [{ id: '66666666-6666-4666-8666-666666666666', description: 'Alltagsbegleitung', quantity: 2, unit: 'hour', unitPriceCents: 3275, taxRatePercent: 0, productKey: 'assist', netCents: 6550, taxCents: 0, totalCents: 6550 }], issues: [], pdfFilePath: null, cancellationReason: null, companySnapshot: null };
+  h.read.mockReset().mockImplementation(async () => ok({ ...invoice })); h.options.mockReset().mockResolvedValue(ok({ clients: [{ id: clientId, name: 'Ada Muster', clientNumber: 'K-1', status: 'active', recipient: invoice.recipient, insuranceName: '', insuranceNumber: 'I-1', billingParty: 'self_payer' }], catalog: [] }));
+  const result = ok({ id: invoiceId, updatedAt: '2026-10-18T08:00:00Z' }); h.save.mockReset().mockResolvedValue(result); h.issue.mockReset().mockResolvedValue(result); h.payment.mockReset().mockResolvedValue(result); h.delivery.mockReset().mockResolvedValue(result); h.remove.mockReset().mockResolvedValue(result);
+  h.xmlDraft.mockReset().mockResolvedValue({ ok: false, error: 'Entwurf nicht verfügbar.' }); h.xmlOriginal.mockReset().mockResolvedValue({ ok: false, error: 'Original nicht verfügbar.' }); h.createUrl.mockReset().mockReturnValue('blob:invoice-xml'); h.revokeUrl.mockReset();
+  class InvoiceXmlURL extends URL { static createObjectURL = h.createUrl; static revokeObjectURL = h.revokeUrl; }
+  vi.stubGlobal('URL', InvoiceXmlURL);
+  vi.spyOn(window, 'confirm').mockReturnValue(true); host = document.createElement('div'); document.body.append(host); root = createRoot(host);
+});
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+describe('Invoice create and edit interactions', () => {
+  it('allows the billing role to edit invoices even when client records are read-only', async () => { await render(); expect(host.querySelector('[data-testid=invoice-editor]')).not.toBeNull(); expect(button('Entwurf speichern').disabled).toBe(false); });
+  it('blocks portal identities before reading invoices', async () => { h.portal = true; await render(); expect(h.read).not.toHaveBeenCalled(); expect(h.options).not.toHaveBeenCalled(); expect(host.textContent).toContain('Verwaltungszugang'); });
+  it('allows only drafts to open the editor', async () => { invoice.status = 'sent'; await render(); expect(host.textContent).toContain('nicht mehr direkt verändert'); expect(h.options).not.toHaveBeenCalled(); expect(h.save).not.toHaveBeenCalled(); });
+  it('retains entered values on stale-save errors and retries the same payload idempotently', async () => { h.save.mockResolvedValue({ ok: false, error: 'Der Bearbeitungsstand wurde geändert.' }); await render(); await change('Interne Notiz', 'Prüfung offen'); await click(button('Entwurf speichern')); expect(host.textContent).toContain('Bearbeitungsstand wurde geändert'); expect(field('Interne Notiz').value).toBe('Prüfung offen'); await click(button('Entwurf speichern')); expect(h.save.mock.calls[0][1]).toMatchObject({ expectedUpdatedAt: invoice.updatedAt, notes: 'Prüfung offen' }); expect(h.save.mock.calls[0][1].requestId).toBe(h.save.mock.calls[1][1].requestId); });
+  it('prevents duplicate saves and ignores responses from a previous tenant', async () => { const pending = deferred<{ ok: false; error: string }>(); h.save.mockReturnValue(pending.promise); await render(); await act(async () => { button('Entwurf speichern').click(); button('Entwurf speichern').click(); }); expect(h.save).toHaveBeenCalledTimes(1); h.tenant = '55555555-5555-4555-8555-555555555555'; await render(); await act(async () => pending.resolve({ ok: false, error: 'Alter Mandant' })); expect(host.textContent).not.toContain('Alter Mandant'); });
+  it('preserves unsaved fields when leaving is declined', async () => { await render(); await change('Interne Notiz', 'Noch nicht speichern'); expect(h.guarded).toBe(true); vi.mocked(window.confirm).mockReturnValue(false); await click(button('Zurück')); expect(h.back).not.toHaveBeenCalled(); expect(field('Interne Notiz').value).toBe('Noch nicht speichern'); });
+  it('locks linked source prices but keeps the description editable', async () => { invoice.lines[0].serviceRecordId = '44444444-4444-4444-8444-444444444444'; invoice.lines[0].sourceUpdatedAt = invoice.updatedAt; await render(); expect(field('Menge').disabled).toBe(true); expect(field('Einzelpreis').disabled).toBe(true); expect(field('Leistungsbeschreibung').disabled).toBe(false); });
+  it('does not infer the actual buyer or a tax exemption from the insurer and a zero rate', async () => {
+    invoice.recipient = { ...invoice.recipient, name: 'Beispiel Pflegekasse' }; invoice.recipientType = 'care_insurance'; invoice.billingParty = 'care_insurance';
+    await render();
+    expect(field('Art des Leistungsempfängers').value).toBe('unknown');
+    expect(field('Name des Leistungsempfängers').value).toBe('');
+    expect(field('Steuerkategorie, Position 1').value).toBe('');
+    expect(host.querySelector('[data-testid=einvoice-requirement-summary]')?.textContent).toContain('Einordnung prüfen');
+  });
+  it('preserves saved electronic invoice and line tax facts during an unrelated edit', async () => {
+    invoice.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...invoice.recipient }, buyerConfirmed: true, buyerReference: 'K-2026-15', sellerCountryCode: 'DE' };
+    invoice.lines[0].eInvoiceTax = { ...createEmptyOfficeEInvoiceLineTax(), category: 'E', unitCode: 'HUR', legalBasis: 'ustg_4_8_29', exemptionReason: 'Geprüfte Rechtsgrundlage' };
+    await render(); await change('Interne Notiz', 'Nachweis ergänzt'); await click(button('Entwurf speichern'));
+    expect(h.save.mock.calls[0][1]).toMatchObject({ eInvoice: invoice.eInvoice, lines: [{ eInvoiceTax: invoice.lines[0].eInvoiceTax }] });
+  });
+  it('requires explicit buyer copying and clears confirmation when the buyer address changes', async () => {
+    await render(); await click(button('Rechnungsanschrift übernehmen'));
+    const confirmation = [...host.querySelectorAll<HTMLInputElement>('input[type=checkbox]')].find(input => input.closest('label')?.textContent?.includes('tatsächlichen Leistungsempfänger'))!;
+    expect(confirmation.checked).toBe(false); await click(confirmation); expect(confirmation.checked).toBe(true);
+    await change('Straße des Leistungsempfängers', 'Neue Straße'); expect(confirmation.checked).toBe(false);
+    await click(button('Entwurf speichern'));
+    expect(h.save.mock.calls[0][1]).toMatchObject({ recipient: invoice.recipient, eInvoice: { buyer: { name: 'Ada Muster', street: 'Neue Straße' }, buyerConfirmed: false } });
+  });
+  it('clears the old buyer classification when selecting another client but preserves seller details', async () => {
+    const otherClient = { id: '77777777-7777-4777-8777-777777777777', name: 'Bert Beispiel', clientNumber: 'K-2', status: 'active', recipient: { ...invoice.recipient, name: 'Bert Beispiel' }, insuranceName: '', insuranceNumber: '', billingParty: 'self_payer' };
+    invoice.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), buyer: { ...invoice.recipient }, buyerConfirmed: true, buyerReference: 'Alte Referenz', sellerCountryCode: 'DE', sellerEndpoint: { schemeId: 'EM', value: 'buchhaltung@example.test' }, legal: { ...createEmptyOfficeEInvoiceMetadata().legal, recipientKind: 'b2b', buyerBusinessUse: 'yes', sellerDomestic: 'yes' } };
+    h.options.mockResolvedValue(ok({ clients: [otherClient], catalog: [] }));
+    await render(); await change('Klient:in', otherClient.id); await click(button('Entwurf speichern'));
+    expect(h.save.mock.calls[0][1]).toMatchObject({ clientId: otherClient.id, eInvoice: { buyer: { name: '' }, buyerConfirmed: false, buyerReference: '', sellerCountryCode: 'DE', sellerEndpoint: { schemeId: 'EM', value: 'buchhaltung@example.test' }, legal: { recipientKind: 'unknown', buyerBusinessUse: 'unknown', sellerDomestic: 'yes' } } });
+  });
+  it('does not save an unfinished numeric input as a zero price', async () => { await render(); await change('Einzelpreis', ''); await click(button('Entwurf speichern')); expect(h.save).not.toHaveBeenCalled(); expect(host.textContent).toContain('Einzelpreis'); });
+});
+describe('Invoice financial actions', () => {
+  it('does not offer PDF issuance for an explicitly selected XRechnung draft', async () => {
+    screen = 'detail'; invoice.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), format: 'xrechnung' }; await render();
+    expect(host.querySelector('[data-testid=einvoice-xml-draft-preview]')).not.toBeNull();
+    expect([...host.querySelectorAll('button')].some(node => node.textContent === 'Rechnung freigeben')).toBe(false);
+    expect(button('XRechnung ausstellen').disabled).toBe(false); expect(h.issue).not.toHaveBeenCalled();
+    h.issue.mockResolvedValue({ ok: false, error: 'Normprüfung: Käuferreferenz fehlt.' }); await click(button('XRechnung ausstellen'));
+    expect(h.issue).toHaveBeenCalledTimes(1); expect(host.textContent).toContain('Normprüfung: Käuferreferenz fehlt.'); expect(host.textContent).not.toContain('XRechnung ausgestellt.');
+  });
+  it('downloads only the issued XML archive and never regenerates it from current invoice data', async () => {
+    screen = 'detail'; invoice.status = 'ready'; invoice.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), format: 'xrechnung' };
+    const bytes = new TextEncoder().encode('<?xml version="1.0"?><Invoice>Original</Invoice>');
+    h.xmlOriginal.mockResolvedValue(ok({ bytes, fileName: 'Rechnung-42.xml', validationMessage: 'Gespeicherte Normprüfung: bestanden.' }));
+    await render(); await click(button('XML-Original laden'));
+    expect(h.xmlOriginal).toHaveBeenCalledWith(h.tenant, invoiceId, 'billing'); expect(h.xmlDraft).not.toHaveBeenCalled();
+    const download = host.querySelector<HTMLAnchorElement>('a[download="Rechnung-42.xml"]'); expect(download?.getAttribute('href')).toBe('blob:invoice-xml');
+    expect(host.textContent).toContain('Gespeicherte Normprüfung: bestanden.');
+  });
+  it('does not expose an XML download when the archived original could not be confirmed', async () => {
+    screen = 'detail'; invoice.status = 'ready'; invoice.eInvoice = { ...createEmptyOfficeEInvoiceMetadata(), format: 'xrechnung' };
+    h.xmlOriginal.mockResolvedValue({ ok: false, error: 'Hash der Originaldatei stimmt nicht überein.' });
+    await render(); await click(button('XML-Original laden'));
+    expect(host.textContent).toContain('Hash der Originaldatei stimmt nicht überein.'); expect(host.querySelector('a[download]')).toBeNull(); expect(h.createUrl).not.toHaveBeenCalled();
+  });
+  it('shows issuance errors instead of claiming success and prevents repeated clicks', async () => { screen = 'detail'; const pending = deferred<{ ok: false; error: string }>(); h.issue.mockReturnValue(pending.promise); await render(); await act(async () => { button('Rechnung freigeben').click(); button('Rechnung freigeben').click(); }); expect(h.issue).toHaveBeenCalledTimes(1); await act(async () => pending.resolve({ ok: false, error: 'Unternehmensanschrift fehlt.' })); expect(host.textContent).toContain('Unternehmensanschrift fehlt.'); expect(host.textContent).not.toContain('Rechnung freigegeben.'); });
+  it('records partial payments with the current revision and rejects overpayment', async () => { screen = 'detail'; invoice.status = 'sent'; await render(); await click(button('Zahlungseingang erfassen')); await change('Betrag', '70,00'); await change('Buchungsreferenz', 'Kontoauszug 20'); await click(button('Zahlung buchen')); expect(h.payment).not.toHaveBeenCalled(); await change('Betrag', '20,50'); await click(button('Zahlung buchen')); expect(h.payment).toHaveBeenCalledWith(h.tenant, invoiceId, invoice.updatedAt, expect.objectContaining({ amountCents: 2050, reference: 'Kontoauszug 20', method: 'bank_transfer' }), 'billing'); });
+  it('requires delivery evidence and an explicit confirmation before marking sent', async () => { screen = 'detail'; invoice.status = 'ready'; await render(); await click(button('Erfolgten Versand dokumentieren')); expect(button('Übermittlung dokumentieren').disabled).toBe(true); await change('Versandnachweis', 'Postausgang 42'); const checkbox = host.querySelector<HTMLInputElement>('input[type=checkbox]')!; await click(checkbox); await click(button('Übermittlung dokumentieren')); expect(h.delivery).toHaveBeenCalledWith(h.tenant, invoiceId, invoice.updatedAt, 'sent', expect.any(String), expect.any(String), 'billing', expect.objectContaining({ channel: 'email', reference: 'Postausgang 42' })); expect(host.textContent).toContain('keine Nachricht aus CareSuite versendet'); });
+  it('keeps issued legacy invoices read-only and does not show fabricated payment zeros', async () => { screen = 'detail'; invoice.status = 'sent'; invoice.officeManaged = false; invoice.paidCents = null; invoice.openCents = null; await render(); expect(host.textContent).toContain('schreibgeschützt'); expect([...host.querySelectorAll('button')].some(node => node.textContent === 'Zahlungseingang erfassen')).toBe(false); expect(host.querySelectorAll('.ie-kpi strong')[1].textContent).toBe('—'); });
+});

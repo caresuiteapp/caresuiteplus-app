@@ -1,0 +1,1 @@
+export { DeveloperHubHero } from './DeveloperHubHero';

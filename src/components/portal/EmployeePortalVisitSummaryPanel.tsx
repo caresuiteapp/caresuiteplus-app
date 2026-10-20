@@ -1,0 +1,102 @@
+import { useMemo } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import { PremiumButton, PremiumCard, SuccessState } from '@/components/ui';
+import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
+import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
+import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
+import { spacing, typography } from '@/theme';
+
+type EmployeePortalVisitSummaryPanelProps = {
+  visit: EmployeePortalAssignmentDetail;
+  onBack: () => void;
+  onReturnTrip?: () => void;
+};
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDuration(start: string | null, end: string | null): string {
+  if (!start || !end) return '—';
+  const mins = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return `${h} Std. ${m} Min.`;
+  return `${m} Min.`;
+}
+
+export function EmployeePortalVisitSummaryPanel({
+  visit,
+  onBack,
+  onReturnTrip,
+}: EmployeePortalVisitSummaryPanelProps) {
+  const text = employeePortalExecutionText;
+  const tasks = Array.isArray(visit.tasks) ? visit.tasks : [];
+  const tasksDone = countDoneTasks(tasks);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        wrap: { gap: spacing.md, paddingVertical: spacing.sm },
+        title: { ...typography.h3, color: text.primary },
+        row: { ...typography.body, color: text.secondary },
+        label: { ...typography.caption, color: text.muted },
+      }),
+    [text],
+  );
+
+  return (
+    <PremiumCard contentStyle={styles.wrap}>
+      <SuccessState message="Einsatz abgeschlossen" presentation="inline" />
+      <PremiumButton title="Nächsten Einsatz auswählen" fullWidth onPress={onBack} />
+      {onReturnTrip ? <PremiumButton title="Einsatztag beenden · Heim-/Bürofahrt" variant="secondary" fullWidth onPress={onReturnTrip} /> : null}
+      <Text style={styles.title}>{visit.clientName}</Text>
+      <Text style={styles.label}>Datum & Zeit</Text>
+      <Text style={styles.row}>
+        {formatDateTime(visit.actualStartAt ?? visit.plannedStartAt)} –{' '}
+        {formatDateTime(visit.actualEndAt ?? visit.plannedEndAt)}
+      </Text>
+      <Text style={styles.label}>Dauer</Text>
+      <Text style={styles.row}>
+        {formatDuration(visit.actualStartAt, visit.actualEndAt)}
+      </Text>
+      <Text style={styles.label}>Aufgaben</Text>
+      <Text style={styles.row}>
+        {tasksDone} / {tasks.length} erledigt
+      </Text>
+      <Text style={styles.label}>Dokumentation</Text>
+      <Text style={styles.row}>
+        {visit.documentationStatus === 'submitted' || visit.documentationStatus === 'locked'
+          ? 'Gespeichert'
+          : '—'}
+      </Text>
+      <Text style={styles.label}>Unterschrift</Text>
+      <Text style={styles.row}>
+        {visit.clientPortalSignatureCompleted
+          ? 'Klient:in hat unterschrieben'
+          : visit.signatureStatus === 'deferred_to_client_portal'
+            ? 'Ans Klient:innenportal gesendet'
+            : visit.signatureStatus === 'captured' || visit.signatureStatus === 'locked'
+              ? 'Gespeichert'
+              : visit.requiresSignature
+                ? 'Nicht erfasst'
+                : 'Nicht erforderlich'}
+      </Text>
+      <Text style={styles.label}>Leistungsnachweis</Text>
+      <Text style={styles.row}>
+        {visit.clientPortalSignatureCompleted || visit.signatureStatus === 'captured'
+          ? 'Wird erstellt bzw. geprüft'
+          : visit.signatureStatus === 'deferred_to_client_portal'
+            ? 'Nach Klient:innen-Unterschrift'
+            : 'Erstellt'}
+      </Text>
+    </PremiumCard>
+  );
+}

@@ -1,0 +1,118 @@
+import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { DetailInfoRow } from '@/components/detail';
+import { SignatureDisplay } from '@/components/signatures';
+import { InfoBanner, PremiumBadge, SectionPanel } from '@/components/ui';
+import type { VisitProofPreview } from '@/lib/assist/visitProofPreviewService';
+import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { spacing, typography } from '@/theme';
+
+type VisitProofPreviewPanelProps = {
+  preview: VisitProofPreview & {
+    visitTimes?: VisitTimesSummary | null;
+    signatureImageUrl?: string | null;
+  };
+  loading?: boolean;
+  pendingChanges?: number;
+};
+
+export function VisitProofPreviewPanel({ preview, loading, pendingChanges = 0 }: VisitProofPreviewPanelProps) {
+  const text = useAuroraAdaptiveText();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        header: { gap: spacing.xs, marginBottom: spacing.sm },
+        title: { ...typography.h3, color: text.primary },
+        row: { gap: spacing.xs },
+        tasksBlock: { gap: spacing.xs, paddingVertical: spacing.sm },
+        tasksTitle: { ...typography.caption, color: text.muted, fontWeight: '600' },
+        chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+        taskChip: {
+          borderWidth: 1,
+          borderColor: 'rgba(15,23,42,0.12)',
+          borderRadius: 16,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 4,
+          maxWidth: '100%',
+        },
+        taskChipText: { ...typography.caption, color: text.primary },
+        taskChipMeta: { ...typography.caption, color: text.muted, fontSize: 11 },
+      }),
+    [text],
+  );
+
+  const checklistFields = preview.fields.filter((field) => field.label !== 'Unterschrift' && field.label !== 'Dokumentation');
+  const signatureImageUrl =
+    preview.signatureImageUrl ??
+    (preview.signature?.dataUrl?.trim() ? preview.signature.dataUrl : null);
+
+  if (loading) {
+    return (
+      <SectionPanel title="Leistungsnachweis-Vorschau" subtitle="Wird geladen…">
+        <Text style={{ color: text.muted }}>Vorschau wird aus Snapshot und Einsatzdaten geladen…</Text>
+      </SectionPanel>
+    );
+  }
+
+  return (
+    <SectionPanel title="Leistungsnachweis-Vorschau" subtitle={preview.serviceName}>
+      {pendingChanges > 0 ? <InfoBanner variant="warning" message={`${pendingChanges} vorgemerkte Aufgabenänderung(en) in dieser Vorschau. Diese Änderungen sind noch nicht gespeichert und gehören noch nicht zum unterschriebenen Nachweis.`} /> : null}
+      {!preview.readyForExport ? (
+        <InfoBanner variant="warning" title="Unvollständig" message={preview.incompleteHint} />
+      ) : null}
+
+      <View style={styles.header}>
+        <Text style={styles.title}>{preview.title}</Text>
+        <PremiumBadge
+          label={pendingChanges ? 'Ungespeicherte Vorschau' : preview.readyForExport ? 'Prüfbereit' : 'Unvollständig'}
+          variant={!pendingChanges && preview.readyForExport ? 'green' : 'orange'}
+          dot
+        />
+      </View>
+
+      <View style={styles.row}>
+        {checklistFields.map((field) => (
+          <DetailInfoRow
+            key={field.label}
+            label={`${field.label}${field.required ? ' *' : ''}`}
+            value={field.missing ? `${field.value} (fehlt)` : field.value}
+          />
+        ))}
+      </View>
+
+      <View style={styles.tasksBlock}>
+        <Text style={styles.tasksTitle}>Aufgaben</Text>
+        {preview.tasks.length === 0 ? (
+          <Text style={styles.taskChipMeta}>Keine Aufgaben hinterlegt</Text>
+        ) : (
+          <View style={styles.chipRow}>
+            {preview.tasks.map((task) => (
+              <View key={task.id} style={styles.taskChip}>
+                <Text style={styles.taskChipText}>{task.title}</Text>
+                <Text style={styles.taskChipMeta}>{task.statusLabel}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {preview.documentationNote ? (
+        <View style={styles.tasksBlock}>
+          <Text style={styles.tasksTitle}>Dokumentation</Text>
+          <Text style={styles.taskChipText}>{preview.documentationNote}</Text>
+        </View>
+      ) : null}
+
+      <SignatureDisplay
+        label="Unterschrift Klient:in"
+        signatureImageUrl={signatureImageUrl}
+        signatureDataUrl={preview.signature?.dataUrl}
+        signerName={preview.signature?.signerName}
+        signedAt={preview.signature?.signedAt}
+        signatureType={preview.signature?.signerRole}
+      />
+    </SectionPanel>
+  );
+}

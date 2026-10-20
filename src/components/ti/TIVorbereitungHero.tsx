@@ -1,0 +1,107 @@
+import { useMemo } from 'react';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
+import { StyleSheet, Text, View } from 'react-native';
+import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { TI_PREPARED_MESSAGE, isTILiveReady } from '@/lib/ti/tiModuleConfig';
+
+import { designTokens, spacing } from '@/theme';
+
+type TIVorbereitungHeroProps = {
+  moduleLabel: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;
+  accentColor?: string;
+};
+
+export function TIVorbereitungHero({
+  moduleLabel,
+  title,
+  subtitle,
+  description,
+  icon,
+  accentColor,
+}: TIVorbereitungHeroProps) {
+  const { colors, typography } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
+  const accent = accentColor ?? colors.cyan;
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+  topRow: { flexDirection: 'row', gap: spacing.md },
+  textCol: { flex: 1, gap: 2 },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
+  iconBadge: {
+    width: iconSize,
+    height: iconSize,
+    borderRadius: iconSize / 2,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  iconText: { fontSize: 22 },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiItem: { flex: 1, minWidth: 100 },
+  desc: { ...typography.body, color: 'rgba(255,255,255,0.85)' },
+  hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+}),
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.body, typography.caption],
+  );
+
+
+  return (
+    <PremiumListHeroFrame>
+      <View style={styles.topRow}>
+        <View style={styles.textCol}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.meta}>{subtitle}</Text>
+        </View>
+        <View style={[styles.iconBadge, { borderColor: `${accent}55` }]}>
+          <Text style={styles.iconText}>{icon}</Text>
+        </View>
+      </View>
+      <View style={styles.badges}>
+        <PremiumBadge label={moduleLabel} variant="cyan" dot />
+        {!isTILiveReady() ? (
+          <PremiumBadge label="TI in Vorbereitung" variant="orange" dot />
+        ) : null}
+      </View>
+      <View style={styles.kpiRow}>
+        <PremiumKpiCard
+          label="Status"
+          value="Prep."
+          subValue="Kein Live-TI"
+          icon="📡"
+          accentColor={colors.violet}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Connector"
+          value="Demo"
+          subValue="TI-Gateway"
+          icon="🔌"
+          accentColor={colors.cyan}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Compliance"
+          value="gematik"
+          subValue="Konform geplant"
+          icon="🛡️"
+          accentColor={colors.success}
+          style={styles.kpiItem}
+        />
+      </View>
+      <Text style={styles.desc}>{description}</Text>
+      {!isTILiveReady() ? <Text style={styles.hint}>{TI_PREPARED_MESSAGE}</Text> : null}
+    </PremiumListHeroFrame>
+  );
+}
+
+const iconSize = designTokens.hero.iconBadgeSize;

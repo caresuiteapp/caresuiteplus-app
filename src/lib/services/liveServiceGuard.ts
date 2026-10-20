@@ -1,0 +1,80 @@
+import type { ServiceResult } from '@/types';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import {
+  assertDemoDataNotInProduction,
+  assertTenantAllowedForMode,
+  isInternalTest,
+  toGuardBlock,
+} from '@/lib/environment';
+import { getServiceMode } from '@/lib/services/mode';
+import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
+
+/** Mandantenprüfung für Live-Services. */
+export function guardServiceTenant(tenantId: string): { ok: false; error: string } | null {
+  // Demo-/Test-Repositories intentionally use readable, non-UUID tenant keys.
+  // Applying production tenant guards to the in-memory path breaks otherwise
+  // valid WFM overviews, audits and exports before their demo stores are read.
+  if (getServiceMode() !== 'supabase') {
+    // Local feature tests use readable tenant aliases; UUID-shaped foreign tenants
+    // must still be rejected so cross-tenant behavior is exercised in demo mode.
+    if (
+      tenantId === DEMO_TENANT_ID ||
+      tenantId.startsWith('tenant-') ||
+      isInternalTest(tenantId)
+    ) {
+      return null;
+    }
+    return { ok: false, error: 'Kein Zugriff auf diesen Mandanten.' };
+  }
+
+  const tenantErr = assertTenantForMode(tenantId);
+  if (tenantErr) {
+    return { ok: false, error: tenantErr.error };
+  }
+
+  const demoBlock = toGuardBlock(assertDemoDataNotInProduction(tenantId));
+  if (demoBlock) return demoBlock;
+
+  const modeBlock = toGuardBlock(assertTenantAllowedForMode(tenantId));
+  if (modeBlock) return modeBlock;
+
+  return null;
+}
+
+/** Blockiert Features ohne Supabase-Anbindung im Live-Modus. */
+export function blockDemoOnlyInLiveMode<T>(featureLabel: string): ServiceResult<T> | null {
+  if (getServiceMode() === 'supabase') {
+    return {
+      ok: false,
+      error: `${featureLabel} im Live-Modus noch nicht vollständig angebunden.`,
+    };
+  }
+  return null;
+}
+
+/** Verhindert Demo-Seed-Daten im Supabase-Modus. */
+export function assertLiveDataPath(featureLabel: string): ServiceResult<never> | null {
+  if (getServiceMode() === 'supabase') {
+    return {
+      ok: false,
+      error: `${featureLabel}: Demo-Daten im Live-Modus blockiert.`,
+    };
+  }
+  return null;
+}
+
+export function isLiveServiceMode(): boolean {
+  return getServiceMode() === 'supabase';
+}
+
+/** Mandantenprüfung + Live-Blocker für noch nicht angebundene Features.
+ *  internal_test tenants (E2E / QA) bypass the live-mode feature block. */
+export function guardLiveDemoFeature<T>(
+  tenantId: string,
+  featureLabel: string,
+): ServiceResult<T> | null {
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (isInternalTest(tenantId)) return null;
+  return blockDemoOnlyInLiveMode<T>(featureLabel);
+}

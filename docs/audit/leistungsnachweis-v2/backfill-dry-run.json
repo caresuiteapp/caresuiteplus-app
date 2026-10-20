@@ -1,0 +1,12 @@
+{
+  "mode": "dry-run",
+  "generatedAt": "2026-07-06T09:16:31.968Z",
+  "totals": {
+    "proofsKnown": "requires Supabase credentials — run against target env",
+    "dynamicallyRenderable": "snapshot + visitId present",
+    "missingSourceData": "no payload_snapshot or empty clientName",
+    "missingLogo": "no tenant logo in branding/settings",
+    "withTaskDeviations": "non-done fachliche tasks in snapshot"
+  },
+  "note": "This script is a scaffold. Connect Supabase in maintenance window to count assist_visit_proofs rows. No writes unless --write is passed."
+}

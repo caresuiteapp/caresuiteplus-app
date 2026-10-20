@@ -1,0 +1,629 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  LayoutChangeEvent,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PremiumButton } from '@/components/ui';
+import {
+  clampCanvasPointToSafeArea,
+  clientToCanvasPoint,
+  readCanvasCoordinateSpace,
+  scaleCanvasPoints,
+  type CanvasCoordinateSpace,
+} from '@/components/inputs/signatureCanvasCoords';
+import { exportSignatureCanvasPng } from '@/lib/signatures/normalizeSignatureCapture';
+import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
+import { resolveCareTypography } from '@/design/tokens/typography';
+import { useOrientation } from '@/hooks/useOrientation';
+import { spacing } from '@/theme';
+
+type Point = { x: number; y: number };
+
+const COMPACT_WIDTH = 320;
+const COMPACT_HEIGHT = 120;
+const STROKE_WIDTH_COMPACT = 2;
+const STROKE_WIDTH_LARGE = 3.5;
+const DEFAULT_LARGE_WIDTH = 600;
+const DEFAULT_LARGE_HEIGHT = 320;
+const FULLSCREEN_CANVAS_MIN_HEIGHT = 100;
+const SIGNATURE_SAFE_INSET = 8;
+
+const FALLBACK_TYPOGRAPHY = resolveCareTypography('dark');
+const FALLBACK_COLORS = legacyColorsFromPalette('dark');
+
+function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default' | 'bar') {
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        wrap: {
+          gap: fillAvailable && actionLayout === 'bar' ? spacing.xs : spacing.sm,
+          ...(fillAvailable
+            ? { flex: 1, minHeight: 0, flexDirection: 'column' as const }
+            : null),
+        },
+        label: { ...FALLBACK_TYPOGRAPHY.body, fontWeight: '600' },
+        canvasWrap: {
+          height: COMPACT_HEIGHT,
+          minWidth: 0,
+          borderWidth: 1,
+          borderColor: FALLBACK_COLORS.borderSoft,
+          borderRadius: fillAvailable ? 0 : 8,
+          backgroundColor: '#fff',
+          overflow: 'hidden',
+          ...(fillAvailable
+            ? {
+                flex: 1,
+                height: undefined,
+                minHeight: FULLSCREEN_CANVAS_MIN_HEIGHT,
+                alignSelf: 'stretch',
+              }
+            : null),
+        },
+        actions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          flexWrap: actionLayout === 'bar' ? 'nowrap' : 'wrap',
+          alignItems: 'center',
+          flexShrink: 0,
+          ...Platform.select({
+            web: { touchAction: 'manipulation' as const },
+            default: {},
+          }),
+        },
+        actionsBar: {
+          paddingTop: spacing.xs,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'stretch',
+        },
+        secondaryAction: {
+          flex: 1,
+          minWidth: 120,
+        },
+        confirmBar: {
+          flex: 1,
+          minWidth: 0,
+        },
+      }),
+    [actionLayout, fillAvailable],
+  );
+}
+
+type Props = {
+  label?: string;
+  onConfirm: (dataUrl: string) => void;
+  onClear?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onCancel?: () => void;
+  disabled?: boolean;
+  size?: 'compact' | 'large';
+  width?: number;
+  height?: number;
+  showLabel?: boolean;
+  fillAvailable?: boolean;
+  actionLayout?: 'default' | 'bar';
+};
+
+function resolveDimensions(
+  size: 'compact' | 'large',
+  width?: number,
+  height?: number,
+  measured?: { width: number; height: number },
+) {
+  if (measured && measured.width > 0 && measured.height > 0) {
+    return measured;
+  }
+  if (size === 'large') {
+    return {
+      width: width ?? DEFAULT_LARGE_WIDTH,
+      height: height ?? DEFAULT_LARGE_HEIGHT,
+    };
+  }
+  return { width: COMPACT_WIDTH, height: COMPACT_HEIGHT };
+}
+
+function SignatureActions({
+  actionLayout,
+  styles,
+  disabled,
+  hasStroke,
+  onClear,
+  onCancel,
+  onConfirm,
+  safeBottom = 0,
+}: {
+  actionLayout: 'default' | 'bar';
+  styles: ReturnType<typeof useSignatureCanvasStyles>;
+  disabled?: boolean;
+  hasStroke: boolean;
+  onClear: () => void;
+  onCancel?: () => void;
+  onConfirm: () => void;
+  safeBottom?: number;
+}) {
+  const confirmButton = (
+    <PremiumButton
+      title={actionLayout === 'bar' ? 'Bestätigen' : 'Unterschrift bestätigen'}
+      variant="primary"
+      onPress={onConfirm}
+      disabled={disabled || !hasStroke}
+      testID="portal-signature-confirm-button"
+      fullWidth={actionLayout === 'bar'}
+      style={actionLayout === 'bar' ? undefined : styles.confirmBar}
+    />
+  );
+
+  if (actionLayout === 'bar') {
+    return (
+      <View style={[styles.actions, styles.actionsBar, { paddingBottom: Math.max(spacing.sm, safeBottom) }]}>
+        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} style={styles.secondaryAction} />
+        {onCancel ? (
+          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} style={styles.secondaryAction} />
+        ) : null}
+        {confirmButton}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.actions}>
+      <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} />
+      {onCancel ? (
+        <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
+      ) : null}
+      {confirmButton}
+    </View>
+  );
+}
+
+function drawStrokePath(ctx: CanvasRenderingContext2D, stroke: Point[]) {
+  if (stroke.length < 1) return;
+  ctx.beginPath();
+  ctx.moveTo(stroke[0].x, stroke[0].y);
+  for (let index = 1; index < stroke.length; index += 1) {
+    ctx.lineTo(stroke[index].x, stroke[index].y);
+  }
+  ctx.stroke();
+}
+
+function WebSignatureCanvas({
+  label,
+  onConfirm,
+  onClear,
+  onDirtyChange,
+  onCancel,
+  disabled,
+  size = 'compact',
+  width: widthProp,
+  height: heightProp,
+  showLabel = true,
+  fillAvailable = false,
+  actionLayout = 'default',
+}: Props) {
+  const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
+  const insets = useSafeAreaInsets();
+  const orientation = useOrientation();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawing = useRef(false);
+  const activePointerId = useRef<number | null>(null);
+  const strokesRef = useRef<Point[][]>([]);
+  const currentStrokeRef = useRef<Point[]>([]);
+  const drawSpaceRef = useRef<CanvasCoordinateSpace | null>(null);
+  const drawingContextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
+  const touchInputActiveRef = useRef(false);
+  const frameRef = useRef<number | null>(null);
+  const queuedPointsRef = useRef<{ x: number; y: number }[]>([]);
+  const hasStrokeRef = useRef(false);
+  const [hasStroke, setHasStroke] = useState(false);
+  const dirtyCallback = useRef(onDirtyChange);
+  dirtyCallback.current = onDirtyChange;
+  useEffect(() => { dirtyCallback.current?.(hasStroke); }, [hasStroke]);
+  const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
+  const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
+  const strokeWidth = size === 'large' ? STROKE_WIDTH_LARGE : STROKE_WIDTH_COMPACT;
+
+  const handleCanvasLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!fillAvailable) return;
+      const { width, height } = event.nativeEvent.layout;
+      if (width < 1 || height < 1) return;
+      setMeasured((prev) => {
+        const next = { width: Math.floor(width), height: Math.floor(height) };
+        if (prev?.width === next.width && prev?.height === next.height) return prev;
+        return next;
+      });
+    },
+    [fillAvailable],
+  );
+
+  const redrawStrokes = useCallback(
+    (ctx: CanvasRenderingContext2D, space: CanvasCoordinateSpace) => {
+      ctx.clearRect(0, 0, space.drawWidth, space.drawHeight);
+      for (const stroke of strokesRef.current) {
+        drawStrokePath(ctx, stroke);
+      }
+      if (currentStrokeRef.current.length > 0) {
+        drawStrokePath(ctx, currentStrokeRef.current);
+      }
+    },
+    [],
+  );
+
+  const syncCanvasToDisplay = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+    if (displayWidth < 1 || displayHeight < 1) return null;
+
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const nextSpace: CanvasCoordinateSpace = {
+      displayWidth,
+      displayHeight,
+      drawWidth: displayWidth,
+      drawHeight: displayHeight,
+    };
+    const previousSpace = drawSpaceRef.current;
+
+    const backingWidth = Math.round(displayWidth * dpr);
+    const backingHeight = Math.round(displayHeight * dpr);
+    const sizeChanged = canvas.width !== backingWidth || canvas.height !== backingHeight;
+    if (sizeChanged) {
+      canvas.width = backingWidth;
+      canvas.height = backingHeight;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = strokeWidth;
+
+    if (
+      previousSpace &&
+      (previousSpace.drawWidth !== nextSpace.drawWidth ||
+        previousSpace.drawHeight !== nextSpace.drawHeight)
+    ) {
+      strokesRef.current = strokesRef.current.map((stroke) =>
+        scaleCanvasPoints(stroke, previousSpace, nextSpace),
+      );
+      if (currentStrokeRef.current.length > 0) {
+        currentStrokeRef.current = scaleCanvasPoints(
+          currentStrokeRef.current,
+          previousSpace,
+          nextSpace,
+        );
+      }
+    }
+
+    drawSpaceRef.current = nextSpace;
+    drawingContextRef.current = ctx;
+    canvasRectRef.current = rect;
+    if (sizeChanged || !previousSpace) redrawStrokes(ctx, nextSpace);
+    return { ctx, space: nextSpace };
+  }, [redrawStrokes, strokeWidth]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === 'undefined') {
+      syncCanvasToDisplay();
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      syncCanvasToDisplay();
+    });
+    observer.observe(canvas);
+    syncCanvasToDisplay();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [dims.height, dims.width, syncCanvasToDisplay]);
+
+  useEffect(() => {
+    if (!fillAvailable || typeof window === 'undefined') return;
+
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        syncCanvasToDisplay();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+    };
+  }, [fillAvailable, syncCanvasToDisplay]);
+
+  useEffect(() => {
+    syncCanvasToDisplay();
+  }, [orientation.isLandscape, orientation.width, orientation.height, syncCanvasToDisplay]);
+
+  const handleClear = useCallback(() => {
+    strokesRef.current = [];
+    currentStrokeRef.current = [];
+    const synced = syncCanvasToDisplay();
+    if (synced) {
+      synced.ctx.clearRect(0, 0, synced.space.drawWidth, synced.space.drawHeight);
+    }
+    setHasStroke(false);
+    hasStrokeRef.current = false;
+    onClear?.();
+  }, [onClear, syncCanvasToDisplay]);
+
+  const handleConfirm = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasStroke || disabled) return;
+    onConfirm(
+      exportSignatureCanvasPng(canvas, {
+        isLandscape: orientation.isLandscape,
+        orientationType: orientation.orientationType,
+        angle: orientation.angle,
+      }),
+    );
+  }, [disabled, hasStroke, onConfirm, orientation.angle, orientation.isLandscape, orientation.orientationType]);
+
+  const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = drawingContextRef.current ?? canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvasRectRef.current ?? canvas.getBoundingClientRect();
+    const space = drawSpaceRef.current ?? readCanvasCoordinateSpace(canvas);
+    const point = clampCanvasPointToSafeArea(
+      clientToCanvasPoint(clientX, clientY, rect, space),
+      space,
+      Math.max(SIGNATURE_SAFE_INSET, strokeWidth * 2),
+    );
+
+    if (start) {
+      currentStrokeRef.current = [point];
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
+      return;
+    }
+
+    const stroke = currentStrokeRef.current;
+    const lastPoint = stroke[stroke.length - 1];
+    if (lastPoint && lastPoint.x === point.x && lastPoint.y === point.y) return;
+
+    stroke.push(point);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    if (!hasStrokeRef.current) {
+      hasStrokeRef.current = true;
+      setHasStroke(true);
+    }
+  }, [strokeWidth]);
+
+  const drawQueuedPoints = useCallback(() => {
+    const points = queuedPointsRef.current;
+    queuedPointsRef.current = [];
+    for (const point of points) drawAt(point.x, point.y, false);
+  }, [drawAt]);
+
+  const endStroke = useCallback(() => {
+    if (currentStrokeRef.current.length > 1) {
+      strokesRef.current = [...strokesRef.current, currentStrokeRef.current];
+    }
+    currentStrokeRef.current = [];
+    drawing.current = false;
+    activePointerId.current = null;
+  }, []);
+
+  const beginStroke = useCallback(
+    (clientX: number, clientY: number, pointerId: number) => {
+      if (disabled) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      try {
+        canvas.setPointerCapture(pointerId);
+      } catch {
+        /* Playwright mouse automation may not provide a capturable pointer id */
+      }
+      drawing.current = true;
+      activePointerId.current = pointerId;
+      syncCanvasToDisplay();
+      drawAt(clientX, clientY, true);
+    },
+    [disabled, drawAt, syncCanvasToDisplay],
+  );
+
+  const continueStroke = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!drawing.current || disabled) return;
+      drawAt(clientX, clientY, false);
+    },
+    [disabled, drawAt],
+  );
+
+  const finishStroke = useCallback(
+    (pointerId: number) => {
+      if (activePointerId.current !== pointerId) return;
+      try {
+        canvasRef.current?.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+      endStroke();
+    },
+    [endStroke],
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof window === 'undefined') return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (disabled || event.touches.length !== 1) return;
+      event.preventDefault();
+      touchInputActiveRef.current = true;
+      const touch = event.touches[0];
+      if (!touch) return;
+      beginStroke(touch.clientX, touch.clientY, touch.identifier);
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!drawing.current || disabled || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      continueStroke(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      finishStroke(touch.identifier);
+      touchInputActiveRef.current = false;
+    };
+
+    if ('PointerEvent' in window) return;
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [beginStroke, continueStroke, disabled, finishStroke]);
+
+  useEffect(() => () => {
+    if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
+    frameRef.current = null;
+    queuedPointsRef.current = [];
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (disabled || touchInputActiveRef.current) return;
+      event.preventDefault();
+      beginStroke(event.clientX, event.clientY, event.pointerId);
+    },
+    [disabled, beginStroke],
+  );
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (touchInputActiveRef.current) return;
+      if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
+      event.preventDefault();
+      const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+      queuedPointsRef.current.push(
+        ...coalesced.map((point) => ({ x: point.clientX, y: point.clientY })),
+      );
+      if (frameRef.current == null) {
+        frameRef.current = requestAnimationFrame(() => {
+          frameRef.current = null;
+          drawQueuedPoints();
+        });
+      }
+    },
+    [disabled, drawQueuedPoints],
+  );
+
+  const handlePointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (touchInputActiveRef.current) return;
+      if (activePointerId.current !== event.pointerId) return;
+      event.preventDefault();
+      if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+      drawQueuedPoints();
+      finishStroke(event.pointerId);
+    },
+    [drawQueuedPoints, finishStroke],
+  );
+
+  /** Mouse fallback — Playwright automation uses mouse events, not always pointer capture. */
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (typeof window !== 'undefined' && 'PointerEvent' in window) return;
+      if (disabled || event.button !== 0 || activePointerId.current !== null || touchInputActiveRef.current) return;
+      event.preventDefault();
+      beginStroke(event.clientX, event.clientY, -1);
+    },
+    [disabled, beginStroke],
+  );
+
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!drawing.current || disabled || activePointerId.current !== -1 || touchInputActiveRef.current) return;
+      event.preventDefault();
+      continueStroke(event.clientX, event.clientY);
+    },
+    [disabled, continueStroke],
+  );
+
+  const handleMouseUp = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (activePointerId.current !== -1 || touchInputActiveRef.current) return;
+      event.preventDefault();
+      finishStroke(-1);
+    },
+    [finishStroke],
+  );
+
+  return (
+    <View style={styles.wrap}>
+      {showLabel && label ? <Text style={styles.label}>{label}</Text> : null}
+      <View style={[styles.canvasWrap, !fillAvailable ? { height: heightProp ?? (size === 'large' ? DEFAULT_LARGE_HEIGHT : COMPACT_HEIGHT) } : null]} onLayout={handleCanvasLayout}>
+        <canvas
+          ref={canvasRef}
+          aria-label="Unterschrift zeichnen"
+          data-signature-capture="true"
+          data-testid="portal-signature-canvas"
+          style={{
+            width: '100%',
+            height: fillAvailable ? '100%' : dims.height,
+            minHeight: fillAvailable ? FULLSCREEN_CANVAS_MIN_HEIGHT : undefined,
+            touchAction: 'none',
+            background: '#fff',
+            borderRadius: fillAvailable ? 0 : 8,
+            display: 'block',
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+      </View>
+      <SignatureActions
+        actionLayout={actionLayout}
+        styles={styles}
+        disabled={disabled}
+        hasStroke={hasStroke}
+        onClear={handleClear}
+        onCancel={onCancel}
+        onConfirm={handleConfirm}
+        safeBottom={actionLayout === 'bar' ? insets.bottom : 0}
+      />
+    </View>
+  );
+}
+
+export function CareSignatureCanvas(props: Props) {
+  return <WebSignatureCanvas {...props} />;
+}

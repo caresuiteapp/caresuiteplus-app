@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>PLATFORM.1.3 — Remote Sync Gate Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 980px; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.4rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .gruen { color: #0d7a3e; font-weight: 700; }
+    .gelb { color: #b45309; font-weight: 700; }
+    .rot { color: #b00020; font-weight: 700; }
+    .nt { color: #555; font-weight: 700; }
+    code { font-size: 0.9em; }
+    ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>PLATFORM.1.3 — Remote Sync ohne Deploy</h1>
+  <p>
+    <strong>Datum:</strong> 2026-07-08<br />
+    <strong>Production-Freigabe:</strong> <span class="rot">NEIN</span><br />
+    <strong>Deploy-Freigabe:</strong> <span class="rot">NEIN</span><br />
+    <strong>Push auf origin/main:</strong> <span class="rot">NEIN</span> (Divergenz)
+  </p>
+
+  <h2>1. Pre-Push Gate</h2>
+  <table>
+    <tr><th>Branch</th><td><code>main</code></td></tr>
+    <tr><th>HEAD vor Push</th><td><code>a53f6bf3</code></td></tr>
+    <tr><th>origin/main vor Push</th><td><code>f8da14d7</code></td></tr>
+    <tr><th>Workspace</th><td class="gruen">Sauber</td></tr>
+    <tr><th>origin/main Ancestor von main</th><td class="rot">NEIN</td><td><code>ancestor_exit=1</code></td></tr>
+    <tr><th>Divergenz</th><td class="gelb">GELB</td><td>Lokal +6 Commits (Platform), Remote +1 Commit (<code>f8da14d7 [deploy]</code> auf gleicher WFM-Basis <code>50378c60</code>)</td></tr>
+  </table>
+
+  <h2>2. Deploy-Risiko</h2>
+  <table>
+    <tr><th>Commits origin/main..main mit [deploy]</th><td class="gruen">NEIN — kein [deploy] in Platform-Commits</td></tr>
+    <tr><th>netlify.toml ignore-Regel</th><td class="gruen">Push ohne [deploy] → Build Canceled (exit 0)</td></tr>
+    <tr><th>Remote-only Commit</th><td><code>f8da14d7</code> — <code>chore(deploy): release wfm p22 reviewed time exports [deploy]</code> (leerer Deploy-Trigger)</td></tr>
+  </table>
+
+  <h2>3. Push-Entscheidung</h2>
+  <table>
+    <tr><th>Push auf origin/main</th><td class="rot">BLOCKIERT</td><td>Divergenz — kein ff-only, kein Force Push</td></tr>
+    <tr><th>Push-Ziel (Safety)</th><td class="gruen">JA</td><td><code>origin/safety/platform-1-local-main-a53f6bf3</code></td></tr>
+    <tr><th>Force Push</th><td class="gruen">NEIN</td></tr>
+    <tr><th>[deploy] in Push</th><td class="gruen">NEIN</td></tr>
+  </table>
+
+  <h2>4. Nach Push</h2>
+  <table>
+    <tr><th>origin/safety/platform-1-local-main-a53f6bf3</th><td><code>a53f6bf3</code></td></tr>
+    <tr><th>origin/main</th><td><code>f8da14d7</code> (unverändert)</td></tr>
+    <tr><th>main lokal</th><td><code>a53f6bf3</code> — weiterhin divergent zu origin/main</td></tr>
+    <tr><th>Production-Deploy ausgelöst</th><td class="gruen">NEIN</td><td>Safety-Branch-Push; origin/main unverändert</td></tr>
+  </table>
+
+  <h2>5. Remote-Inventar (Safety-Branch)</h2>
+  <table>
+    <tr><th>6cc1198b … a53f6bf3</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>app/platform/*</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>src/lib/platformConsole/*</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>Migrationen 0246–0251</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>docs/audit/platform-console-*</th><td class="gruen">Vorhanden</td></tr>
+  </table>
+
+  <h2>6. Preview / Staging Smoke</h2>
+  <table>
+    <tr><th>Strategie</th><td>Option C — Safety-Branch-Push statt main</td></tr>
+    <tr><th>Preview-URL verfügbar</th><td class="nt">NICHT GEPRÜFT</td><td>Kein Branch-Deploy für Safety-Branch konfiguriert / nicht abgerufen</td></tr>
+    <tr><th>Lokaler Smoke (Staging DB)</th><td class="gruen">GRÜN</td><td>Referenz: PLATFORM.1.2.4 — Owner Login, /platform/modules, alle Routen</td></tr>
+    <tr><th>Preview Owner Login</th><td class="nt">NICHT GETESTET</td></tr>
+    <tr><th>Preview /platform/modules</th><td class="nt">NICHT GETESTET</td></tr>
+  </table>
+
+  <h2>7. Tests / Build (lokal)</h2>
+  <table>
+    <tr><th>Platform Tests</th><td class="gruen">47/47</td></tr>
+    <tr><th>Platform Typecheck</th><td class="gruen">0 Fehler (Referenz 1.2.4)</td></tr>
+    <tr><th>Expo Export DEMO=false</th><td class="gruen">OK (Referenz 1.2.4)</td></tr>
+  </table>
+
+  <h2>8. Offene Risiken / Nächster Schritt</h2>
+  <ul>
+    <li><strong>Merge-Entscheidung erforderlich:</strong> <code>origin/main</code> (<code>f8da14d7</code> Deploy) und lokales <code>main</code> (<code>a53f6bf3</code> Platform) divergieren auf gemeinsamer Basis <code>50378c60</code>.</li>
+    <li>Empfohlen: PR <code>safety/platform-1-local-main-a53f6bf3</code> → <code>main</code> ohne [deploy], oder <code>git merge origin/main</code> lokal + Konfliktprüfung + erneuter Gate-Lauf.</li>
+    <li>Stash <code>edb40493</code> unverändert.</li>
+    <li>Production bleibt gesperrt bis PLATFORM.1.3 Production Readiness Gate.</li>
+  </ul>
+
+  <h2>9. Gesamturteil</h2>
+  <table>
+    <tr><th>Remote-Sync (Safety-Branch)</th><td class="gruen">GRÜN</td></tr>
+    <tr><th>Remote-Sync (origin/main)</th><td class="gelb">AUSSTEHEND — Divergenz</td></tr>
+    <tr><th>Deploy ausgelöst</th><td class="gruen">NEIN</td></tr>
+    <tr><th>Staging-Freigabe (intern)</th><td class="gruen">JA</td></tr>
+    <tr><th>Production-Freigabe</th><td class="rot">NEIN</td></tr>
+  </table>
+
+  <p><em>Erstellt: 2026-07-08 · PLATFORM.1.3 Remote Sync Gate</em></p>
+</body>
+</html>

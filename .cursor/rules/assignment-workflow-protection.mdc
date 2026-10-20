@@ -1,0 +1,42 @@
+---
+description: Schützt den Einsatz-Durchführungs-Workflow (MP + Assist) vor regressiven Änderungen
+alwaysApply: true
+---
+
+# Einsatz-Workflow — geschützter Critical Path
+
+Der **komplette Einsatzablauf** (Einwilligung → Anfahrt → Start → Aufgaben → Ende → Doku → Unterschrift → Abschluss) ist **produktionskritisch**. Er darf durch andere Refactors, UI-Redesigns oder Plattform-Arbeit **nicht** beschädigt werden.
+
+## RED ZONE — vor Änderungen
+
+1. **Gate ausführen:** `npm run audit:assignment-workflow-gate`
+2. Manifest prüfen: `src/lib/portal/assignmentWorkflowCriticalPath.ts`
+3. Bei Touch/Modal/Signatur-Themen zusätzlich: `src/__tests__/portal/employeePortalTabletTouchFix.test.ts`
+
+## Geschützte Dateien (Auszug)
+
+- `app/portal/employee/assignments/[id]/execute.tsx`
+- `src/screens/portal/EmployeePortalVisitExecutionScreen.tsx`
+- `src/components/portal/EmployeePortalVisit*Panel.tsx` (Tasks, Doku, Signatur, Abschluss)
+- `src/components/inputs/CareSignature*.tsx`, `src/components/ui/FullscreenOverlay.tsx`
+- `src/hooks/useEmployeePortalVisitExecution.ts`
+- `src/lib/portal/resolveVisitExecution*.ts`
+- Assist-Pendant: `app/assist/assignments/[id]/execute.tsx`
+
+## Verboten ohne explizite Einsatz-Freigabe
+
+- Verschachtelte `PlatformModal`-Stacks im laufenden Einsatz (z. B. Aufgabenstatus über Aufgaben-Modal)
+- `document.body` / Overlay mit `touchAction: 'none'` oder undurchsichtigem Vollbild-Host, der Klicks blockiert
+- `tryFullscreen: true` / Browser-Fullscreen bei Signatur auf Tablet
+- Entfernen von `releaseSignatureCaptureEnvironment()` beim Schließen/Mount der Execute-Seite
+- „Vereinfachen“ von Phase-/UI-State (`resolveVisitExecutionPhase`, `resolveVisitExecutionUiState`) ohne Gate + E2E
+
+## Pflicht bei jeder RED-ZONE-Änderung
+
+- Gate erneut grün
+- Kein `[deploy]` ohne grünes Gate
+- Tablet-Flow (Aufgaben → Doku → Unterschrift) manuell oder per Playwright-Smoke verifizieren
+
+## Scope-Regel für fremde Tasks
+
+Änderungen an geteilten Bausteinen (`PlatformModal`, `FullscreenOverlay`, Signature Canvas, Bottom Bar) gelten **automatisch** als Einsatz-relevant — Gate laufen lassen, auch wenn der Task „nur UI“ heißt.

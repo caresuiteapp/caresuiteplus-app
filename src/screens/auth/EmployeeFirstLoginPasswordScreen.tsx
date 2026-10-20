@@ -1,0 +1,132 @@
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { EmployeeFirstLoginHero } from '@/components/auth/EmployeeFirstLoginHero';
+import { ScreenShell } from '@/components/layout/ScreenShell';
+import { ErrorState, PremiumButton, SuccessState } from '@/components/ui';
+import { InputField } from '@/design/components';
+import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
+import { useAuth } from '@/lib/auth/context';
+import { spacing } from '@/theme';
+
+export function EmployeeFirstLoginPasswordScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ accountId?: string }>();
+  const { portalSession, updatePortalSession } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [completed, setCompleted] = useState(false);
+
+  const accountId = params.accountId ?? portalSession?.accountId;
+  const skipCurrentPassword =
+    portalSession?.loginType === 'employee_portal' &&
+    portalSession.mustChangePassword === true &&
+    Boolean(portalSession.sessionToken);
+
+  const handleSubmit = async () => {
+    if (!acceptedTerms) {
+      setError('Bitte bestätigen Sie Datenschutz und Nutzungsbedingungen.');
+      return;
+    }
+    if (!accountId) {
+      setError('Zugang nicht gefunden.');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    const result = await completeFirstLogin({
+      accountId,
+      sessionToken: portalSession?.sessionToken,
+      currentPassword: skipCurrentPassword ? undefined : currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+    setLoading(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    await updatePortalSession({ mustChangePassword: false });
+    markPortalWelcomePending('employee');
+    setCompleted(true);
+    router.replace(resolvePostLoginRoute('employee_portal') as never);
+  };
+
+  return (
+    <ScreenShell title="Bitte vergeben Sie ein eigenes Passwort." subtitle="Erstlogin abschließen" scroll>
+      <View style={styles.content}>
+        <EmployeeFirstLoginHero />
+      </View>
+      {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {!skipCurrentPassword ? (
+        <InputField
+          label="Einmalpasswort"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          autoCapitalize="none"
+          autoComplete="current-password"
+          autoCorrect={false}
+          importantForAutofill="yes"
+          secureTextEntry
+          spellCheck={false}
+          textContentType="password"
+        />
+      ) : null}
+      <InputField
+        label="Neues Passwort"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        autoCorrect={false}
+        importantForAutofill="yes"
+        secureTextEntry
+        spellCheck={false}
+        textContentType="newPassword"
+      />
+      <InputField
+        label="Passwort bestätigen"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        autoCorrect={false}
+        importantForAutofill="yes"
+        secureTextEntry
+        spellCheck={false}
+        textContentType="newPassword"
+      />
+      <PremiumButton
+        title={acceptedTerms ? 'Datenschutz bestätigt ✓' : 'Datenschutz / Nutzungsbedingungen bestätigen'}
+        variant={acceptedTerms ? 'primary' : 'secondary'}
+        onPress={() => setAcceptedTerms((prev) => !prev)}
+        fullWidth
+      />
+      <PremiumButton
+        title="Passwort speichern"
+        onPress={handleSubmit}
+        loading={loading}
+        fullWidth
+        disabled={!acceptedTerms || loading}
+      />
+      {completed ? (
+        <SuccessState message="Passwort gespeichert — Weiterleitung zum Mitarbeiterportal…" />
+      ) : (
+        <SuccessState message="Nach Abschluss wird das Einmalpasswort ungültig." />
+      )}
+    </ScreenShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { marginBottom: spacing.md },
+});

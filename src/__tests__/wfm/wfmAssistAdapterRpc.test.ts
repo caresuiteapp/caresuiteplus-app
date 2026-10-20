@@ -1,0 +1,300 @@
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+
+const TENANT = DEMO_TENANT_ID;
+const VISIT = 'visit-rpc-sync-1';
+
+const rpcMock = vi.fn();
+const fetchTimeEventsMock = vi.fn();
+
+vi.mock('@/lib/supabase/client', () => ({
+  getSupabaseClient: () => ({
+    rpc: (...args: unknown[]) => rpcMock(...args),
+    from: (table: string) => {
+      const query = {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
+        maybeSingle: async () => ({ data: table === 'assist_visit_signatures' ? {
+          id: 'signature-current', tenant_id: TENANT, visit_id: VISIT, signer_name: 'Client', signer_role: 'client',
+          storage_path: 'signature.png', payload_hash: 'payload', signature_hash: 'signature',
+          signed_at: '2026-07-02T09:00:00.000Z', signed_by_profile_id: 'auth-user-1', is_valid: true,
+          invalidated_at: null, invalidation_reason: null, metadata: {}, created_at: '2026-07-02T09:00:00.000Z', updated_at: '2026-07-02T09:00:00.000Z',
+        } : null, error: null }),
+      };
+      return query;
+    },
+  }),
+}));
+
+vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({
+  fetchTimeEventsForVisit: (...args: unknown[]) => fetchTimeEventsMock(...args),
+}));
+
+vi.mock('@/lib/wfm/wfmWorkSessionRepository', () => ({
+  fetchSessionForDate: vi.fn(async () => ({ ok: true as const, data: null })),
+  hasAssistWfmEvent: vi.fn(async () => false),
+  insertWorkSession: vi.fn(async () => ({ ok: true as const, data: { id: 'session-1' } })),
+  insertTimeEvent: vi.fn(async () => ({ ok: true as const, data: { id: 'evt-1' } })),
+  resolveAuthUserIdForWfmSession: vi.fn(async () => 'auth-user-1'),
+  resolveEmployeeIdForUser: vi.fn(async () => ({ ok: true as const, data: 'employee-1' })),
+  updateWorkSession: vi.fn(async (_id: string, patch: Record<string, unknown>) => ({
+    ok: true as const,
+    data: { id: 'session-1', ...patch },
+  })),
+  workDateFromIso: (iso: string) => iso.slice(0, 10),
+}));
+
+beforeEach(() => {
+  vi.resetModules();
+  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+  vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+  rpcMock.mockReset();
+  fetchTimeEventsMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('syncAssistVisitTimesToWfm — RPC path', () => {
+  it('returns ok when RPC inserts mirrored events', async () => {
+    rpcMock.mockResolvedValue({ data: 5, error: null });
+
+    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    const result = await syncAssistVisitTimesToWfm(TENANT, 'employee-1', 'auth-user-1', VISIT);
+
+    expect(result.ok).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith('sync_assist_visit_times_to_wfm', {
+      p_tenant_id: TENANT,
+      p_visit_id: VISIT,
+    });
+    expect(fetchTimeEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('treats RPC zero-insert as an idempotent already-synced success', async () => {
+    rpcMock.mockResolvedValue({ data: 0, error: null });
+    fetchTimeEventsMock.mockResolvedValue({
+      ok: true,
+      data: [
+        { eventType: 'service_start', occurredAt: '2026-07-02T08:00:00.000Z' },
+        { eventType: 'service_end', occurredAt: '2026-07-02T09:00:00.000Z' },
+      ],
+    });
+
+    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    const result = await syncAssistVisitTimesToWfm(TENANT, 'employee-1', 'auth-user-1', VISIT);
+
+    expect(result.ok).toBe(true);
+    expect(fetchTimeEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the portal-safe RPC for a single employee portal time event', async () => {
+    rpcMock.mockResolvedValue({ data: 1, error: null });
+
+    const { syncAssistTimeEventToWfmPortalSafe } = await import(
+      '@/lib/wfm/wfmAssistAdapter'
+    );
+    const result = await syncAssistTimeEventToWfmPortalSafe(
+      TENANT,
+      'employee-1',
+      'auth-user-1',
+      VISIT,
+      'drive_start',
+      '2026-08-03T00:19:00.000Z',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith('sync_assist_visit_times_to_wfm', {
+      p_tenant_id: TENANT,
+      p_visit_id: VISIT,
+    });
+  });
+
+  it('surfaces tenant access RPC errors without client fallback', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'sync_assist_visit_times_to_wfm: tenant access denied' },
+    });
+
+    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    const result = await syncAssistVisitTimesToWfm(TENANT, 'employee-1', 'auth-user-1', VISIT);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('tenant access denied');
+    }
+  });
+
+  it('falls back to client mirror only when RPC migration is missing', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'function sync_assist_visit_times_to_wfm does not exist' },
+    });
+    fetchTimeEventsMock.mockResolvedValue({
+      ok: true,
+      data: [{ eventType: 'service_start', occurredAt: '2026-07-02T08:00:00.000Z' }],
+    });
+
+    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    const result = await syncAssistVisitTimesToWfm(TENANT, 'employee-1', 'auth-user-1', VISIT);
+
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe('finalizeVisit WFM dual-scoring signal', () => {
+  it('preserves the completed proof and reports an unconfirmed WFM handoff', async () => {
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
+      hasPortalPersistedClientSignature: vi.fn(async () => true),
+    }));
+    vi.doMock('@/features/assistWorkflow/generateServiceRecord', () => ({
+      generateServiceRecord: vi.fn(async () => ({
+        ok: true,
+        data: { serviceRecordId: 'sr-1', proofPersisted: true, html: '<p/>' },
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
+      transitionAssistExecutionStatus: vi.fn(async () => ({
+        ok: true,
+        data: {
+          tenantId: TENANT,
+          assignmentId: VISIT,
+          employeeId: 'employee-1',
+          profileId: 'auth-user-1',
+          roleKey: 'employee_portal',
+          assistVisitId: VISIT,
+          assignmentStatus: 'abgeschlossen',
+          derivedStatus: 'abgeschlossen',
+          consistencyStatus: 'consistent',
+          inconsistencies: [],
+          repairOptions: [],
+          detail: {
+            assignmentId: VISIT,
+            tenantId: TENANT,
+            title: 'Test',
+            clientId: 'client-1',
+            clientName: 'Test',
+            locationAddress: 'X',
+            plannedStartAt: '2026-07-02T08:00:00.000Z',
+            plannedEndAt: '2026-07-02T09:00:00.000Z',
+            actualStartAt: null,
+            actualEndAt: null,
+            status: 'abgeschlossen',
+            canonicalStatus: 'completed',
+            notesForEmployee: '',
+            accessHints: null,
+            emergencyContact: null,
+            tasks: [{ id: 't1', title: 'T', description: '', required: true, status: 'done', completionNote: null, requiresNote: false }],
+            statusHistory: [],
+            pauseEvents: [],
+            documentationStatus: 'submitted',
+            signatureStatus: 'captured',
+            requiresSignature: true,
+            requiresDocumentation: true,
+            requiresRoute: false,
+            canStartExecution: false,
+            canOpenRoute: false,
+            canCaptureGps: false,
+            allowedTransitions: [],
+            isLocked: true,
+            enabledModules: [],
+          },
+          visitTimes: null,
+          timeEvents: [],
+          liveContext: null,
+          allowedActions: [],
+          diagnostics: {
+            isServiceStarted: true,
+            isServiceEnded: true,
+            isTravelEnded: true,
+            canEndService: false,
+            inconsistentStatus: false,
+            repairHint: null,
+          },
+        },
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
+      upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
+    }));
+    const deferredWfmSync = vi.fn(async () => ({
+        ok: false,
+        error: 'sync_assist_visit_times_to_wfm: tenant access denied',
+      }));
+    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({ syncAssistVisitTimesToWfm: deferredWfmSync }));
+    vi.doMock('@/lib/assist/repositories/assignmentRepository.supabase', () => ({ assignmentSupabaseRepository: { prepareServiceRecord: vi.fn(async () => ({ ok: true })) } }));
+
+    const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
+    const result = await finalizeVisit(
+      {
+        tenantId: TENANT,
+        assignmentId: VISIT,
+        employeeId: 'employee-1',
+        profileId: 'auth-user-1',
+        roleKey: 'employee_portal',
+        assistVisitId: VISIT,
+        assignmentStatus: 'unterschrift_offen',
+        derivedStatus: 'unterschrift_offen',
+        consistencyStatus: 'consistent',
+        inconsistencies: [],
+        repairOptions: [],
+        detail: {
+          assignmentId: VISIT,
+          tenantId: TENANT,
+          title: 'Test',
+          clientId: 'client-1',
+          clientName: 'Test',
+          locationAddress: 'X',
+          plannedStartAt: '2026-07-02T08:00:00.000Z',
+          plannedEndAt: '2026-07-02T09:00:00.000Z',
+          actualStartAt: null,
+          actualEndAt: null,
+          onTheWayAt: null,
+          arrivedAt: null,
+          status: 'unterschrift_offen',
+          canonicalStatus: 'signature_pending',
+          notesForEmployee: '',
+          accessHints: null,
+          emergencyContact: null,
+          tasks: [{ id: 't1', title: 'T', description: '', required: true, status: 'done', completionNote: null, requiresNote: false }],
+          statusHistory: [],
+          pauseEvents: [],
+          documentationStatus: 'submitted',
+          signatureStatus: 'captured',
+          requiresSignature: true,
+          requiresDocumentation: true,
+          requiresRoute: false,
+          canStartExecution: false,
+          canOpenRoute: false,
+          canCaptureGps: false,
+          allowedTransitions: ['abgeschlossen'],
+          isLocked: false,
+          enabledModules: [],
+        },
+        visitTimes: null,
+        timeEvents: [{ eventType: 'service_end', occurredAt: '2026-07-02T09:00:00.000Z' }],
+        liveContext: null,
+        allowedActions: ['finalize_visit'],
+        diagnostics: {
+          isServiceStarted: true,
+          isServiceEnded: true,
+          isTravelEnded: true,
+          canEndService: false,
+          inconsistentStatus: false,
+          repairHint: null,
+        },
+      },
+      'Erledigt',
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.wfmSyncFailed).toBe(true);
+      expect(result.data.proofPersisted).toBe(true);
+    }
+    const { flushDeferredTasks } = await import('@/lib/async/deferredTask');
+    await flushDeferredTasks();
+    expect(deferredWfmSync).toHaveBeenCalledWith(TENANT, 'employee-1', 'auth-user-1', VISIT);
+  });
+});

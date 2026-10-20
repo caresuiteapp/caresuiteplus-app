@@ -1,0 +1,222 @@
+import type { ServiceResult } from '@/types';
+import type { WfmOfficePlannedVisit } from '@/types/modules/wfmOfficeTimekeeping';
+import { getServiceMode } from '@/lib/services/mode';
+import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
+import { resolveAssignmentActualTimes } from './wfmAssignmentActualResolver';
+
+const CANCELLED_STATUSES = new Set(['cancelled', 'storniert', 'no_show', 'nicht_erschienen']);
+
+type AssignmentRow = {
+  id: string;
+  tenant_id: string;
+  client_id: string | null;
+  employee_id: string | null;
+  assignment_date: string;
+  planned_start_at: string | null;
+  planned_end_at: string | null;
+  duration_minutes: number | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
+  on_the_way_at: string | null;
+  arrived_at: string | null;
+  finished_at: string | null;
+  status: string | null;
+  title: string | null;
+  clients?: { first_name: string | null; last_name: string | null } | null;
+};
+
+const demoPlannedVisits = new Map<string, WfmOfficePlannedVisit[]>();
+
+function demoKey(tenantId: string, fromDate: string, toDate: string): string {
+  return `${tenantId}:${fromDate}:${toDate}`;
+}
+
+export function resetWfmOfficePlannedVisitDemoStore(): void {
+  demoPlannedVisits.clear();
+}
+
+export function seedWfmOfficePlannedVisits(tenantId: string, visits: WfmOfficePlannedVisit[]): void {
+  for (const visit of visits) {
+    const key = demoKey(tenantId, visit.workDate, visit.workDate);
+    const list = demoPlannedVisits.get(key) ?? [];
+    list.push(visit);
+    demoPlannedVisits.set(key, list);
+  }
+}
+
+function clientLabelFromRow(row: AssignmentRow): string | null {
+  const client = row.clients;
+  if (!client) return null;
+  const name = [client.first_name, client.last_name].filter(Boolean).join(' ').trim();
+  return name || null;
+}
+
+function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
+  if (!row.employee_id) return null;
+  const status = row.status ?? '';
+  if (CANCELLED_STATUSES.has(status)) return null;
+  const workDate = row.assignment_date?.slice(0, 10) ?? '';
+  if (!workDate) return null;
+  const actualTimes = resolveAssignmentActualTimes(row);
+  return {
+    assignmentId: row.id,
+    visitId: row.id,
+    tenantId: row.tenant_id,
+    employeeId: row.employee_id,
+    workDate,
+    plannedStartAt: row.planned_start_at,
+    plannedEndAt: row.planned_end_at,
+    plannedDurationMinutes: row.duration_minutes,
+    assignmentActualStartAt: actualTimes.startAt,
+    assignmentActualEndAt: actualTimes.endAt,
+    assignmentOnTheWayAt: row.on_the_way_at,
+    assignmentArrivedAt: row.arrived_at,
+    assignmentFinishedAt: row.finished_at,
+    clientLabel: clientLabelFromRow(row),
+    assignmentTitle: row.title?.trim() || 'Einsatz',
+    assignmentStatus: status,
+  };
+}
+
+/**
+ * Maps the canonical Assist visit projection into the Office timekeeping model.
+ * Keeping this mapping here makes Arbeitszeit consume the same planned/actual
+ * visit stock as Einsaetze, including materialised recurrence occurrences.
+ */
+export function mapCanonicalVisitToPlannedVisit(
+  visit: VisitDispositionListItem,
+): WfmOfficePlannedVisit | null {
+  if (!visit.employeeId || visit.planningStatus === 'draft') return null;
+  if (CANCELLED_STATUSES.has(visit.assignmentStatus)) return null;
+
+  const workDate = visit.scheduledStart?.slice(0, 10) ?? '';
+  if (!workDate) return null;
+
+  return {
+    assignmentId: visit.id,
+    visitId: visit.id,
+    tenantId: visit.tenantId,
+    employeeId: visit.employeeId,
+    workDate,
+    plannedStartAt: visit.scheduledStart,
+    plannedEndAt: visit.scheduledEnd,
+    plannedDurationMinutes: visit.durationMinutes,
+    assignmentActualStartAt: visit.actualStartAt ?? null,
+    assignmentActualEndAt: visit.actualEndAt ?? null,
+    assignmentOnTheWayAt: visit.onTheWayAt ?? null,
+    assignmentArrivedAt: visit.arrivedAt ?? null,
+    assignmentFinishedAt: visit.actualEndAt ?? null,
+    clientLabel: visit.clientName?.trim() || null,
+    assignmentTitle: visit.serviceName?.trim() || visit.title?.trim() || 'Einsatz',
+    assignmentStatus: visit.assignmentStatus,
+  };
+}
+
+async function listLegacyAssignmentsForPeriod(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const select =
+    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, duration_minutes, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, status, title, clients(first_name, last_name)';
+
+  const { data, error } = await fromUnknownTable(supabase, 'assignments')
+    .select(select)
+    .eq('tenant_id', tenantId)
+    .gte('assignment_date', fromDate)
+    .lte('assignment_date', toDate)
+    .not('employee_id', 'is', null)
+    .order('planned_start_at', { ascending: true });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const visits: WfmOfficePlannedVisit[] = [];
+  for (const row of (data ?? []) as unknown as AssignmentRow[]) {
+    const mapped = mapAssignmentRow(row);
+    if (mapped) visits.push(mapped);
+  }
+  return { ok: true, data: visits };
+}
+
+export async function listPlannedVisitsForPeriod(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
+  if (getServiceMode() !== 'supabase') {
+    const results: WfmOfficePlannedVisit[] = [];
+    for (const [key, list] of demoPlannedVisits.entries()) {
+      if (!key.startsWith(`${tenantId}:`)) continue;
+      for (const visit of list) {
+        if (visit.workDate >= fromDate && visit.workDate <= toDate) {
+          results.push(visit);
+        }
+      }
+    }
+    return { ok: true, data: results };
+  }
+
+  const canonical = await visitSupabaseRepository.list(tenantId, {
+    dateFrom: `${fromDate}T00:00:00`,
+    dateTo: `${toDate}T23:59:59`,
+  });
+
+  if (canonical.ok) {
+    return {
+      ok: true,
+      data: canonical.data
+        .map(mapCanonicalVisitToPlannedVisit)
+        .filter((visit): visit is WfmOfficePlannedVisit => visit !== null),
+    };
+  }
+
+  // Compatibility for installations in which assist_visits has not yet been
+  // migrated. Once the canonical source is available it always wins.
+  return listLegacyAssignmentsForPeriod(tenantId, fromDate, toDate);
+}
+
+export async function fetchActiveEmployeeIds(tenantId: string): Promise<ServiceResult<string[]>> {
+  if (getServiceMode() !== 'supabase') {
+    const ids = new Set<string>();
+    for (const [key] of demoPlannedVisits.entries()) {
+      if (!key.startsWith(`${tenantId}:`)) continue;
+    }
+    for (const list of demoPlannedVisits.values()) {
+      for (const v of list) {
+        if (v.tenantId === tenantId) ids.add(v.employeeId);
+      }
+    }
+    return { ok: true, data: [...ids] };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, status')
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return {
+    ok: true,
+    data: (data ?? [])
+      .filter((row) => String((row as { status?: unknown }).status ?? '').trim().toLowerCase() === 'active')
+      .map((row) => (row as { id: string }).id),
+  };
+}

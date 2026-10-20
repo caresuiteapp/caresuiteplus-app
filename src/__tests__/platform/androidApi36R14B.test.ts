@@ -1,0 +1,84 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const root = process.cwd();
+const readJson = (fileName: string) =>
+  JSON.parse(readFileSync(join(root, fileName), 'utf8')) as Record<string, any>;
+
+describe('R14-B Android API 36 and Expo SDK 57 baseline', () => {
+  it('uses the supported Expo SDK 57 dependency set', () => {
+    const packageJson = readJson('package.json');
+
+    expect(packageJson.engines.node).toBe('>=20.19.4');
+    expect(packageJson.dependencies.expo).toMatch(/^~57\./);
+    expect(packageJson.dependencies['expo-router']).toMatch(/^~57\./);
+    expect(packageJson.dependencies.react).toBe('19.2.3');
+    expect(packageJson.dependencies['react-native']).toBe('0.86.3');
+    expect(packageJson.dependencies['react-native-worklets']).toBeTruthy();
+    expect(packageJson.dependencies['expo-system-ui']).toMatch(/^~57\./);
+  });
+
+  it('targets Android 16/API 36 with a monotonic app version', () => {
+    const config = readFileSync(join(root, 'app.config.ts'), 'utf8');
+    const staticConfig = readJson('app.json').expo;
+
+    const configuredVersion = config.match(/version:\s*'([^']+)'/)?.[1] ?? '0.0.0';
+    expect(
+      configuredVersion.localeCompare('0.3.2', undefined, { numeric: true, sensitivity: 'base' }),
+    ).toBeGreaterThanOrEqual(0);
+    const configuredVersionCode = Number(
+      config.match(/versionCode:\s*(\d+)/)?.[1] ?? 0,
+    );
+    expect(configuredVersionCode).toBeGreaterThanOrEqual(24);
+    expect(config).toContain('compileSdkVersion: 36');
+    expect(config).toContain('targetSdkVersion: 36');
+    expect(config).toContain('minSdkVersion: 24');
+    expect(config).toContain('predictiveBackGestureEnabled: false');
+    expect(config).not.toContain('edgeToEdgeEnabled: false');
+
+    expect(
+      staticConfig.version.localeCompare('0.3.2', undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    ).toBeGreaterThanOrEqual(0);
+    expect(staticConfig.android.versionCode).toBeGreaterThanOrEqual(25);
+    expect(staticConfig.android.predictiveBackGestureEnabled).toBe(false);
+  });
+
+  it('pins the EAS workers and keeps the release AAB portal-only', () => {
+    const eas = readJson('eas.json');
+
+    expect(eas.cli.appVersionSource).toBe('remote');
+    expect(eas.build.production.node).toBe('20.19.4');
+    expect(eas.build.production.autoIncrement).toBe(true);
+    expect(eas.build['portal-only-aab'].extends).toBe('production');
+    expect(eas.build['portal-only-aab'].android.buildType).toBe('app-bundle');
+    expect(eas.build['portal-only-aab'].env.EXPO_PUBLIC_APP_EDITION).toBe('portal-only');
+    expect(eas.build['portal-only-aab'].env.EXPO_PUBLIC_FOLDER).toBe('public-portal');
+    expect(eas.submit['portal-only-internal'].android).toMatchObject({
+      applicationId: 'app.caresuitehealthos',
+      track: 'internal',
+      releaseStatus: 'completed',
+    });
+  });
+
+  it('uses the single pending-camera-result contract', () => {
+    const picker = readFileSync(
+      join(root, 'src/lib/portal/employeePortalMediaPicker.ts'),
+      'utf8',
+    );
+
+    expect(picker).toContain('const pending = await ImagePicker.getPendingResultAsync()');
+    expect(picker).not.toContain('pendingResults.at(-1)');
+  });
+
+  it('runs the resolved-config audit without Windows npx.cmd spawning', () => {
+    const audit = readFileSync(join(root, 'scripts/audit-android-api36.mjs'), 'utf8');
+
+    expect(audit).toContain("require.resolve('expo/bin/cli')");
+    expect(audit).toContain('process.execPath');
+    expect(audit).not.toContain('npx.cmd');
+  });
+});

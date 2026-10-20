@@ -1,0 +1,5 @@
+/public/bodymap3d/v2/*.glb binary
+/public/bodymap3d/v2/*.quality.json text eol=lf
+/docs/bodymap3d/qa/*.png binary
+/docs/bodymap3d/qa/*.json text eol=lf
+*.sh text eol=lf

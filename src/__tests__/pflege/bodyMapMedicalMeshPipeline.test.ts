@@ -1,0 +1,98 @@
+import { describe, expect, it } from 'vitest';
+import type { BodyMapModelSelection } from '@/types/modules/bodyMap';
+import {
+  canRenderMedicalMesh,
+  canPreviewMedicalMesh,
+  getMedicalMeshDefinition,
+  MEDICAL_MESH_VARIANTS,
+  resolveMedicalMeshVariantId,
+  zoneIdFromMedicalMesh,
+} from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
+
+const adultDivers = (
+  genitalAnatomy: BodyMapModelSelection['genitalAnatomy'],
+  chestAnatomy: BodyMapModelSelection['chestAnatomy'],
+): BodyMapModelSelection => ({
+  sex: 'divers',
+  ageGroup: 'erwachsener',
+  genitalAnatomy,
+  chestAnatomy,
+  skinTone: 'mittel',
+});
+
+describe('medizinische 3D-Mesh-Pipeline', () => {
+  it('registriert genau 24 Grundmodelle und sechs zusätzliche Divers-Varianten', () => {
+    expect(MEDICAL_MESH_VARIANTS).toHaveLength(30);
+    expect(new Set(MEDICAL_MESH_VARIANTS.map((entry) => entry.id)).size).toBe(30);
+  });
+
+  it('löst die sechs erwachsenen Divers-Konfigurationen eindeutig auf', () => {
+    expect(resolveMedicalMeshVariantId(adultDivers('penis', 'brueste'))).toBe(
+      'body-erwachsener-divers-penis-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('vulva', 'keine_brueste'))).toBe(
+      'body-erwachsener-divers-vulva-keine-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('unbekannt', 'brueste'))).toBe(
+      'body-erwachsener-divers-unbekannt-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('penis', 'keine_brueste'))).toBe(
+      'body-erwachsener-divers-penis-keine-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('vulva', 'brueste'))).toBe(
+      'body-erwachsener-divers-vulva-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('unbekannt', 'keine_brueste'))).toBe(
+      'body-erwachsener-divers-unbekannt-keine-brueste',
+    );
+  });
+
+  it('verwendet bis zur medizinischen Freigabe für alle Varianten den sicheren parametrischen Fallback', () => {
+    for (const definition of MEDICAL_MESH_VARIANTS) {
+      expect(canRenderMedicalMesh(definition)).toBe(false);
+    }
+    expect(
+      getMedicalMeshDefinition(adultDivers('penis', 'brueste')).reviewStatus,
+    ).toBe('technical-review');
+  });
+
+  it('zeigt alle 30 selbst entwickelten Referenzmeshes nur in der technischen Vorschau', () => {
+    const adultMale = MEDICAL_MESH_VARIANTS.find(
+      (entry) => entry.id === 'body-erwachsener-maennlich',
+    );
+    const adultFemale = MEDICAL_MESH_VARIANTS.find(
+      (entry) => entry.id === 'body-erwachsener-weiblich',
+    );
+    expect(adultMale?.assetPath).toBe(
+      '/bodymap3d/v2/body-erwachsener-maennlich-v2.glb',
+    );
+    expect(adultMale?.reviewStatus).toBe('technical-review');
+    expect(canPreviewMedicalMesh(adultMale!)).toBe(true);
+    expect(canRenderMedicalMesh(adultMale!)).toBe(false);
+    expect(adultFemale?.assetPath).toBe(
+      '/bodymap3d/v2/body-erwachsener-weiblich-v2.glb',
+    );
+    expect(adultFemale?.reviewStatus).toBe('technical-review');
+    expect(canPreviewMedicalMesh(adultFemale!)).toBe(true);
+    expect(canRenderMedicalMesh(adultFemale!)).toBe(false);
+    const technicalReferences = MEDICAL_MESH_VARIANTS.filter(
+      (entry) => entry.reviewStatus === 'technical-review',
+    );
+    expect(technicalReferences).toHaveLength(30);
+    for (const definition of technicalReferences) {
+      expect(definition.assetPath).toMatch(/^\/bodymap3d\/v2\/.+-v2\.glb$/);
+      expect(canPreviewMedicalMesh(definition)).toBe(true);
+      expect(canRenderMedicalMesh(definition)).toBe(false);
+    }
+  });
+
+  it('übernimmt Zonen-IDs aus GLB-Metadaten oder dem festgelegten Mesh-Namen', () => {
+    expect(
+      zoneIdFromMedicalMesh('beliebig', { anatomicalZoneId: 'surface-sacrum' }),
+    ).toBe('surface-sacrum');
+    expect(zoneIdFromMedicalMesh('zone__surface-heel-left', {})).toBe(
+      'surface-heel-left',
+    );
+    expect(zoneIdFromMedicalMesh('decoration', {})).toBeNull();
+  });
+});

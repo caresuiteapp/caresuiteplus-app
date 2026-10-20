@@ -1,0 +1,112 @@
+import { useCallback, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
+import { CsDocumentRequestCard } from '@/components/office/documentSignatures/CsDocumentRequestCard';
+import { EmptyState, ErrorState, LoadingState, SegmentedTabs } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
+import { spacing } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
+
+type FilterKey = 'open' | 'done';
+
+const FILTER_OPTIONS = [
+  { key: 'open', label: 'Offen' },
+  { key: 'done', label: 'Erledigt' },
+];
+
+export function EmployeeDocumentSignaturesScreen() {
+  const router = useRouter();
+  const tenantId = useServiceTenantId();
+  const { employeeId, roleKey, isLinkedReady, isResolvingEmployeeLink } = usePortalActor();
+  const { can } = usePermissions();
+  const [filter, setFilter] = useState<FilterKey>('open');
+
+  const query = useAsyncQuery(
+    useCallback(async () => {
+      if (!tenantId || !employeeId) return { ok: false as const, error: 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden.' };
+      return fetchPortalCsDocumentRequests({
+        tenantId,
+        roleKey: roleKey ?? 'employee_portal',
+        employeeId,
+        includeCompleted: filter === 'done',
+      });
+    }, [tenantId, employeeId, roleKey, filter]),
+    [tenantId, employeeId, roleKey, filter],
+    { enabled: isLinkedReady && roleKey === 'employee_portal', queryKey: JSON.stringify([tenantId, employeeId, roleKey, filter]) },
+  );
+  const loadError = !isResolvingEmployeeLink && !employeeId ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.' : query.error ?? query.refreshError;
+
+  const items =
+    filter === 'open'
+      ? (query.data ?? []).filter((r) => r.status !== 'completed' && r.status !== 'archived')
+      : (query.data ?? []).filter((r) => r.status === 'completed' || r.status === 'archived');
+
+  if (!can('portal.employee.documents.view' as never)) {
+    return (
+      <C14vSubpageShell title="Dokumente & Unterschriften" showBack accentColor={moduleColor('assist')}>
+        <EmptyState title="Kein Zugriff" message="Dokumente sind für Ihr Profil nicht freigegeben." />
+      </C14vSubpageShell>
+    );
+  }
+
+  return (
+    <C14vSubpageShell
+      title="Dokumente & Unterschriften"
+      subtitle="Offene Dokumente zum Unterschreiben"
+      showBack
+      accentColor={moduleColor('assist')}
+      actions={[{ key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const }]}
+    >
+      <View style={styles.filterCard}>
+        <SegmentedTabs
+          tabs={FILTER_OPTIONS}
+          activeKey={filter}
+          onSelect={(key) => setFilter(key as FilterKey)}
+          layout="wrap"
+        />
+      </View>
+      {(isResolvingEmployeeLink || query.loading) && !query.data ? <LoadingState message="Wird geladen…" /> : null}
+      {loadError ? <ErrorState message={loadError} onRetry={query.refresh} /> : null}
+      {items.length === 0 && !isResolvingEmployeeLink && !query.loading && !loadError ? (
+        <EmptyState
+          title={filter === 'open' ? 'Alles erledigt' : 'Noch keine erledigten Dokumente'}
+          message={
+            filter === 'open'
+              ? 'Es liegen keine offenen Dokumente vor.'
+              : 'Abgeschlossene Dokumente erscheinen hier im Archiv.'
+          }
+        />
+      ) : (
+        <View style={styles.list}>
+          {items.map((item) => (
+            <CsDocumentRequestCard
+              key={item.id}
+              item={item}
+              compact
+              openLabel={filter === 'done' ? 'Dokument ansehen' : 'Öffnen und unterschreiben'}
+              onOpen={() => router.push(`/portal/employee/documents/signatures/${item.id}` as never)}
+            />
+          ))}
+        </View>
+      )}
+    </C14vSubpageShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  filterCard: {
+    alignSelf: 'stretch',
+    padding: spacing.xs,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  list: { gap: spacing.sm, marginTop: spacing.md },
+});

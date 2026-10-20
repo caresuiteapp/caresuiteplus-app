@@ -1,0 +1,33 @@
+import { useLocalSearchParams } from 'expo-router';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
+import { ScreenShell } from '@/components/layout';
+import { EmployeePersonnelFilePanel } from '@/components/office/EmployeePersonnelFilePanel';
+import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
+import { PremiumButton } from '@/components/ui';
+
+export function EmployeePersonnelRecordScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+
+  if (!id) {
+    return (
+      <ScreenShell title="Personalakte" subtitle="Nicht gefunden">
+        <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
+
+  return (
+    <ScreenShell
+      title="Personalakte"
+      subtitle="Mitarbeitende · Office"
+      rightSlot={
+        <PremiumButton title="Zur Liste" size="sm" variant="ghost" onPress={() => router.back()} />
+      }
+    >
+      <PersonalWorkspaceSurface padded>
+        <EmployeePersonnelFilePanel employeeId={id} />
+      </PersonalWorkspaceSurface>
+    </ScreenShell>
+  );
+}

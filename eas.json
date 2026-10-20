@@ -1,0 +1,218 @@
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "node": "20.19.4",
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "development"
+      }
+    },
+    "preview": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "preview"
+      }
+    },
+    "production": {
+      "node": "20.19.4",
+      "environment": "production",
+      "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false"
+      }
+    },
+    "preview-apk": {
+      "extends": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "preview"
+      }
+    },
+    "production-aab": {
+      "extends": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false"
+      }
+    },
+    "healthos-core-apk": {
+      "extends": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "portal-only",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      }
+    },
+    "healthos-core-aab": {
+      "extends": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "portal-only",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      }
+    },
+    "portal-only-apk": {
+      "extends": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "portal-only",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      },
+      "environment": "production"
+    },
+    "portal-only-aab": {
+      "extends": "production",
+      "environment": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "portal-only",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      }
+    },
+    "healthos-full-apk": {
+      "extends": "production",
+      "environment": "production",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "full",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      },
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
+    },
+    "healthos-full-aab": {
+      "extends": "production",
+      "environment": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "credentialsSource": "remote",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/mapping/release/*"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_DEMO_MODE": "false",
+        "EXPO_PUBLIC_APP_EDITION": "full",
+        "EXPO_PUBLIC_FOLDER": "public-portal"
+      },
+      "buildArtifactPaths": [
+        "android/app/build/outputs/mapping/release/*"
+      ]
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "REPLACE_WITH_APPLE_ID",
+        "ascAppId": "REPLACE_WITH_ASC_APP_ID",
+        "appleTeamId": "REPLACE_WITH_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./secrets/google-play-service-account.json",
+        "track": "internal"
+      }
+    },
+    "portal-only-internal": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    },
+    "portal-only-production-draft": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    },
+    "healthos-full-internal": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    },
+    "healthos-full-production-draft": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}

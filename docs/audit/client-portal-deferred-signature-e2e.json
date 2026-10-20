@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-07-07T17:59:23.208Z",
+  "baseUrl": "https://caresuiteplus.app",
+  "proofId": "615c9e0e-b047-40ec-83d6-22cf23a07711",
+  "assignmentId": "9bf29d9f-964c-456d-a6c9-315c5b0159ef",
+  "checks": {
+    "db_admin_skipped": {
+      "pass": true,
+      "detail": "SUPABASE_SERVICE_ROLE_KEY not set"
+    },
+    "doris_db_skipped": {
+      "pass": true,
+      "detail": "admin key missing — Doris state verified separately via Supabase MCP"
+    },
+    "client_login": {
+      "pass": true,
+      "detail": "audit-client@caresuiteplus.test"
+    },
+    "client_supabase_jwt": {
+      "pass": true,
+      "detail": "jwt_present"
+    },
+    "ui_proofs_list_pending": {
+      "pass": true,
+      "detail": "☰\nCareSuite+\nKlient:innenportal\nEM\nLeistungsnachweise\nFreigegebene Nachweise mit PDF, Status und Historie\nP0-E2E Testeinsatz — Unterschrift ausstehend\nOFFEN\nJuli 2026\nPDF anzeigen\n"
+    },
+    "ui_proofs_sign_button": {
+      "pass": true,
+      "detail": "found"
+    },
+    "ui_detail_signature_hint": {
+      "pass": true,
+      "detail": "hint_visible"
+    },
+    "ui_detail_sign_button": {
+      "pass": false,
+      "detail": "missing — LIST_SELECT/canSign bug"
+    }
+  },
+  "blocker": "sign_button_not_visible_on_detail",
+  "pass": false
+}

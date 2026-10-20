@@ -1,0 +1,655 @@
+import type { RoleKey, ServiceResult } from '@/types';
+import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
+import type {
+  CreateOfficeThreadInput,
+  OfficeMessage,
+  OfficeMessageCategory,
+  OfficeMessageThread,
+  OfficeMessageThreadDetail,
+  OfficeThreadType,
+} from '@/types/office/messaging';
+import { enforcePermission } from '@/lib/permissions';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
+import {
+  filterPortalVisibleMessages,
+  isThreadClosed,
+  toDbThreadType,
+  validateCreateThread,
+  validateSendMessage,
+} from '@/lib/office/messagebusinessrules';
+import {
+  auditFromThread,
+  logOfficeMessageAuditEvent,
+} from '@/lib/office/officemessageauditservice';
+import {
+  buildNewMessageNotification,
+  notifyOfficeMessageEvent,
+} from '@/lib/office/officemessagenotifications';
+import {
+  fetchMessagesLive,
+  mapMessageRow,
+} from '@/lib/office/messageservice';
+import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import { isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
+import { uploadPortalMessageAttachment } from '@/lib/office/messageattachmentservice';
+import { OFFICE_MESSAGING_SCHEMA_ERROR, sortThreads } from '@/lib/office/messagethreadservice';
+import { enrichThreadsWithEmployeeGroupParticipants } from '@/lib/office/employeeGroupChatService';
+import { fromDbThreadStatus, PORTAL_THREAD_STATUS_LABELS } from '@/lib/office/messagestatuslabels';
+import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
+
+export type PortalOfficeAudience = 'client' | 'employee';
+
+export type PortalOfficeInboxFilter = 'open' | 'closed';
+
+export type PortalActor = {
+  audience: PortalOfficeAudience;
+  roleKey: RoleKey;
+  clientId: string | null;
+  employeeId: string | null;
+  profileId: string | null;
+  displayName: string;
+};
+
+const CLOSED_STATUSES = new Set(['resolved', 'closed', 'archived']);
+
+function officeMessagingError(error: string): ServiceResult<never> {
+  if (isMissingTableServiceError(error)) {
+    return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
+  }
+  return { ok: false, error };
+}
+
+function isMissingPortalCreateRpc(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string };
+  return (
+    candidate.code === 'PGRST202' ||
+    candidate.code === '42883' ||
+    candidate.message?.includes('portal_create_office_thread') === true &&
+      candidate.message?.toLowerCase().includes('not find') === true
+  );
+}
+
+export type PortalActorLinkOverrides = {
+  clientId?: string | null;
+  employeeId?: string | null;
+};
+
+export function resolvePortalActor(
+  roleKey: RoleKey | null | undefined,
+  portalSession: PortalSessionRecord | null,
+  profileId?: string | null,
+  displayName?: string | null,
+  linkOverrides?: PortalActorLinkOverrides,
+): ServiceResult<PortalActor> {
+  if (!roleKey) return { ok: false, error: 'Kein Profil für Portal-Nachrichten.' };
+
+  if (roleKey === 'client_portal' || roleKey === 'family_portal') {
+    const clientId = linkOverrides?.clientId ?? portalSession?.clientId ?? null;
+    if (!clientId) return { ok: false, error: 'Kein Klient:innen-Konto verknüpft.' };
+    return {
+      ok: true,
+      data: {
+        audience: 'client',
+        roleKey,
+        clientId,
+        employeeId: null,
+        profileId: profileId ?? portalSession?.accountId ?? null,
+        displayName: displayName ?? 'Klient:in',
+      },
+    };
+  }
+
+  if (roleKey === 'employee_portal') {
+    const employeeId = linkOverrides?.employeeId ?? portalSession?.employeeId ?? null;
+    if (!employeeId) return { ok: false, error: 'Kein Mitarbeiter:innen-Konto verknüpft.' };
+    return {
+      ok: true,
+      data: {
+        audience: 'employee',
+        roleKey,
+        clientId: null,
+        employeeId,
+        profileId: profileId ?? portalSession?.accountId ?? null,
+        displayName: displayName ?? 'Mitarbeiter:in',
+      },
+    };
+  }
+
+  return { ok: false, error: 'Keine Berechtigung für Portal-Nachrichten.' };
+}
+
+function expectedThreadType(audience: PortalOfficeAudience): OfficeThreadType {
+  return audience === 'client' ? 'client_office' : 'employee_office';
+}
+
+function threadBelongsToActor(thread: OfficeMessageThread, actor: PortalActor): boolean {
+  if (actor.audience === 'client') {
+    return thread.threadType === 'client_office' && thread.clientId === actor.clientId;
+  }
+  if (thread.threadType === 'employee_office') {
+    return thread.employeeId === actor.employeeId;
+  }
+  if (thread.threadType === 'employee_group_office') {
+    return (thread.employeeParticipantIds ?? []).includes(actor.employeeId ?? '');
+  }
+  return false;
+}
+
+function filterByInbox(
+  threads: OfficeMessageThread[],
+  filter: PortalOfficeInboxFilter,
+): OfficeMessageThread[] {
+  // Deleted conversations are an Office retention/audit concern. They must
+  // never reappear in participant portals, including the "closed" view.
+  const visibleThreads = threads.filter((thread) => thread.status !== 'deleted');
+  if (filter === 'closed') {
+    return visibleThreads.filter((thread) => CLOSED_STATUSES.has(thread.status));
+  }
+  return visibleThreads.filter((thread) => !CLOSED_STATUSES.has(thread.status));
+}
+
+function mapThreadRow(row: Record<string, unknown>): OfficeMessageThread | null {
+  const threadType = fromDbThreadType(String(row.thread_type ?? ''));
+  if (!threadType) return null;
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    threadType,
+    status: fromDbThreadStatus(String(row.status ?? 'open')),
+    priority: (row.priority as OfficeMessageThread['priority']) ?? 'normal',
+    subject: String(row.subject ?? ''),
+    categoryId: row.category_id ? String(row.category_id) : null,
+    categoryLabel: null,
+    clientId: row.client_id ? String(row.client_id) : null,
+    clientName: null,
+    employeeId: row.employee_id ? String(row.employee_id) : null,
+    employeeName: null,
+    participantName: null,
+    assignedToUserId: row.assigned_to_user_id ? String(row.assigned_to_user_id) : null,
+    assignedToUserName: null,
+    assignedAt: row.assigned_at ? String(row.assigned_at) : null,
+    closedAt: row.closed_at ? String(row.closed_at) : null,
+    closedByUserId: row.closed_by_user_id ? String(row.closed_by_user_id) : null,
+    participantProfileIds: [],
+    lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
+    lastMessagePreview: row.last_message_preview ? String(row.last_message_preview) : null,
+    unreadCount: Number(row.portal_unread_count ?? 0),
+    archivedAt: row.archived_at ? String(row.archived_at) : null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+async function fetchPortalThreadsLive(
+  tenantId: string,
+  actor: PortalActor,
+): Promise<ServiceResult<OfficeMessageThread[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const dbType = toDbThreadType(expectedThreadType(actor.audience));
+  let query = fromUnknownTable(supabase, 'message_threads')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .neq('status', 'deleted');
+
+  if (actor.audience === 'client') {
+    query = query.eq('thread_type', dbType).eq('client_id', actor.clientId!);
+  } else {
+    query = query.in('thread_type', ['employee', 'employee_group']);
+  }
+
+  const { data, error } = await query.order('last_message_at', {
+    ascending: false,
+    nullsFirst: false,
+  });
+
+  if (error) return officeMessagingError(toGermanSupabaseError(error));
+
+  let threads = (data ?? [])
+    .map((row) => mapThreadRow(row as Record<string, unknown>))
+    .filter((thread): thread is OfficeMessageThread => thread !== null);
+
+  if (actor.audience === 'employee') {
+    threads = await enrichThreadsWithEmployeeGroupParticipants(tenantId, threads);
+  }
+
+  threads = threads.filter((thread) => threadBelongsToActor(thread, actor));
+
+  return { ok: true, data: threads };
+}
+
+export async function fetchPortalOfficeCategories(
+  tenantId: string,
+  actor: PortalActor,
+): Promise<ServiceResult<OfficeMessageCategory[]>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.view' : 'portal.employee.messages.view';
+  const denied = enforcePermission<OfficeMessageCategory[]>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await supabase
+    .from('message_categories')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  if (error) return officeMessagingError(toGermanSupabaseError(error));
+
+  const audience = actor.audience;
+  const categories = (data ?? [])
+    .map((row) => ({
+      id: String(row.id),
+      tenantId: String(row.tenant_id),
+      key: String(row.key),
+      label: String(row.label),
+      audience: row.audience as OfficeMessageCategory['audience'],
+      sortOrder: Number(row.sort_order ?? 0),
+      isActive: Boolean(row.is_active),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+    }))
+    .filter((category) => category.audience === audience || category.audience === 'all');
+
+  return { ok: true, data: categories };
+}
+
+export async function fetchPortalOfficeThreads(
+  tenantId: string,
+  actor: PortalActor,
+  filter: PortalOfficeInboxFilter = 'open',
+): Promise<ServiceResult<OfficeMessageThread[]>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.view' : 'portal.employee.messages.view';
+  const denied = enforcePermission<OfficeMessageThread[]>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const [threadsResult, categoriesResult] = await Promise.all([
+    fetchPortalThreadsLive(tenantId, actor),
+    // Categories only supply optional display labels. Their availability must
+    // not prevent a permitted conversation from loading.
+    fetchPortalOfficeCategories(tenantId, actor).catch(() => null),
+  ]);
+  if (!threadsResult.ok) return threadsResult;
+
+  const byId = new Map(
+    (categoriesResult?.ok ? categoriesResult.data : []).map((category) => [category.id, category.label]),
+  );
+  const enriched = sortThreads(
+    filterByInbox(threadsResult.data, filter).map((thread) => ({
+      ...thread,
+      categoryLabel: thread.categoryId ? (byId.get(thread.categoryId) ?? null) : null,
+    })),
+  );
+
+  return { ok: true, data: enriched };
+}
+
+export async function fetchPortalOfficeThreadDetail(
+  tenantId: string,
+  threadId: string,
+  actor: PortalActor,
+): Promise<ServiceResult<OfficeMessageThreadDetail>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.view' : 'portal.employee.messages.view';
+  const denied = enforcePermission<OfficeMessageThreadDetail>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const threadResult = await fetchPortalThreadsLive(tenantId, actor);
+  if (!threadResult.ok) return threadResult;
+  const thread = threadResult.data.find((item) => item.id === threadId);
+  if (!thread) return { ok: false, error: 'Chat nicht gefunden.' };
+
+  const messagesResult = await fetchMessagesLive(tenantId, threadId);
+  if (!messagesResult.ok) return messagesResult;
+
+  const portalMessages = filterPortalVisibleMessages(messagesResult.data).filter(
+    (message) => !message.isSystemMessage,
+  );
+
+  return {
+    ok: true,
+    data: {
+      ...thread,
+      messages: portalMessages,
+      canReply: !isThreadClosed(thread.status),
+      isClosed: isThreadClosed(thread.status),
+    },
+  };
+}
+
+export async function createPortalOfficeThread(
+  tenantId: string,
+  actor: PortalActor,
+  input: Pick<CreateOfficeThreadInput, 'categoryId' | 'subject' | 'initialMessage'>,
+): Promise<ServiceResult<OfficeMessageThread>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.reply' : 'portal.employee.messages.reply';
+  const denied = enforcePermission<OfficeMessageThread>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const threadType = expectedThreadType(actor.audience);
+  const validation = validateCreateThread({
+    threadType,
+    clientId: actor.clientId,
+    employeeId: actor.employeeId,
+  });
+  if (!validation.ok) return validation;
+
+  const subject = input.subject.trim();
+  if (!subject) return { ok: false, error: 'Betreff darf nicht leer sein.' };
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const rpc = supabase as unknown as {
+    rpc: (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const atomicResult = await rpc.rpc('portal_create_office_thread', {
+    p_tenant_id: tenantId,
+    p_audience: actor.audience,
+    p_subject: subject,
+    p_category_id: input.categoryId ?? null,
+    p_initial_message: input.initialMessage?.trim() || null,
+  });
+
+  if (!atomicResult.error) {
+    const atomicRow = Array.isArray(atomicResult.data)
+      ? atomicResult.data[0]
+      : atomicResult.data;
+    const created = mapThreadRow((atomicRow ?? {}) as Record<string, unknown>);
+    if (!created) return { ok: false, error: 'Chat wurde gespeichert, konnte aber nicht angezeigt werden.' };
+
+    void logOfficeMessageAuditEvent({
+      tenantId,
+      action: 'office_message_thread_created',
+      summary: `Portal-Chat „${subject}" erstellt.`,
+      actorName: actor.displayName,
+      ...auditFromThread(created),
+    });
+
+    const notif = buildNewMessageNotification();
+    void notifyOfficeMessageEvent({
+      tenantId,
+      type: 'office_message_new',
+      threadId: created.id,
+      ...notif,
+    });
+
+    return { ok: true, data: created };
+  }
+
+  if (!isMissingPortalCreateRpc(atomicResult.error)) {
+    return officeMessagingError(toGermanSupabaseError(atomicResult.error));
+  }
+
+  // Compatibility only while a tenant is still receiving the migration. New
+  // production releases use the atomic RPC above.
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
+    .insert({
+      tenant_id: tenantId,
+      thread_type: toDbThreadType(threadType),
+      status: 'new',
+      priority: 'normal',
+      subject,
+      category_id: input.categoryId ?? null,
+      client_id: actor.clientId,
+      employee_id: actor.employeeId,
+      created_by_client_id: actor.audience === 'client' ? actor.clientId : null,
+      created_by_employee_id: actor.audience === 'employee' ? actor.employeeId : null,
+      last_message_at: now,
+      last_message_preview: input.initialMessage?.trim().slice(0, 120) ?? 'Neuer Chat',
+    })
+    .select('*')
+    .single();
+
+  if (error) return officeMessagingError(toGermanSupabaseError(error));
+
+  const createdThreadId = String(data.id);
+
+  if (input.initialMessage?.trim()) {
+    const messageResult = await supabase.from('messages').insert({
+      tenant_id: tenantId,
+      thread_id: createdThreadId,
+      body: input.initialMessage.trim(),
+      sender_client_id: actor.audience === 'client' ? actor.clientId : null,
+      sender_employee_id: actor.audience === 'employee' ? actor.employeeId : null,
+      sent_at: now,
+      status: 'sent',
+    });
+    if (messageResult.error) {
+      // Kein leerer/orphaned Chat, falls die erste Nachricht scheitert.
+      await fromUnknownTable(supabase, 'message_threads')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', createdThreadId);
+      return officeMessagingError(toGermanSupabaseError(messageResult.error));
+    }
+  }
+
+  // Direkt aus dem bestätigten INSERT abbilden. Ein nachgelagerter Inbox-Read
+  // darf einen bereits erfolgreich angelegten Chat nicht fälschlich als
+  // fehlgeschlagen melden (z. B. bei verzögerter RLS-/Realtime-Sichtbarkeit).
+  const created = mapThreadRow(data as Record<string, unknown>);
+  if (!created) return { ok: false, error: 'Chat konnte nicht erstellt werden.' };
+
+  void logOfficeMessageAuditEvent({
+    tenantId,
+    action: 'office_message_thread_created',
+    summary: `Portal-Chat „${subject}" erstellt.`,
+    actorName: actor.displayName,
+    ...auditFromThread(created),
+  });
+
+  const notif = buildNewMessageNotification();
+  void notifyOfficeMessageEvent({
+    tenantId,
+    type: 'office_message_new',
+    threadId: createdThreadId,
+    ...notif,
+  });
+
+  return { ok: true, data: created };
+}
+
+export async function sendPortalOfficeMessage(
+  tenantId: string,
+  threadId: string,
+  actor: PortalActor,
+  body: string,
+  attachments: PendingMessageAttachment[] = [],
+): Promise<ServiceResult<OfficeMessage>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.reply' : 'portal.employee.messages.reply';
+  const denied = enforcePermission<OfficeMessage>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const trimmed = body.trim();
+  if (!trimmed && attachments.length === 0) {
+    return { ok: false, error: 'Nachricht oder Anhang erforderlich.' };
+  }
+
+  const threadResult = await fetchPortalOfficeThreadDetail(tenantId, threadId, actor);
+  if (!threadResult.ok) return threadResult;
+
+  const validation = validateSendMessage(threadResult.data);
+  if (!validation.ok) return validation;
+
+  const now = new Date().toISOString();
+  const messageBody =
+    trimmed ||
+    (attachments.length === 1
+      ? isAudioMimeType(attachments[0]!.mimeType)
+        ? '🎤 Sprachnachricht'
+        : `📎 ${attachments[0]!.fileName}`
+      : `📎 ${attachments.length} Anhänge`);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      tenant_id: tenantId,
+      thread_id: threadId,
+      body: messageBody,
+      is_internal_note: false,
+      is_system_message: false,
+      sender_client_id: actor.audience === 'client' ? actor.clientId : null,
+      sender_employee_id: actor.audience === 'employee' ? actor.employeeId : null,
+      sent_at: now,
+      status: 'sent',
+    })
+    .select('*')
+    .single();
+
+  if (error) return officeMessagingError(toGermanSupabaseError(error));
+
+  const message = mapMessageRow(data as Record<string, unknown>);
+
+  for (const attachment of attachments) {
+    const uploadResult = await uploadPortalMessageAttachment({
+      tenantId,
+      threadId,
+      messageId: message.id,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      fileSizeBytes: attachment.fileSizeBytes,
+      fileData: attachment.fileData,
+      actorRoleKey: actor.roleKey,
+      profileId: actor.profileId,
+      actorName: actor.displayName,
+      audience: actor.audience,
+    });
+    if (!uploadResult.ok) {
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', message.id);
+      return uploadResult;
+    }
+  }
+
+  await supabase
+    .from('message_threads')
+    .update({
+      last_message_at: now,
+      last_message_preview: messageBody.slice(0, 120),
+      status: 'received',
+      updated_at: now,
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', threadId);
+
+  void logOfficeMessageAuditEvent({
+    tenantId,
+    action: 'office_message_sent',
+    summary: 'Portal-Nachricht gesendet.',
+    actorName: actor.displayName,
+    ...auditFromThread(threadResult.data),
+  });
+
+  const notif = buildNewMessageNotification();
+  void notifyOfficeMessageEvent({
+    tenantId,
+    type: 'office_message_reply',
+    threadId,
+    ...notif,
+  });
+
+  return { ok: true, data: message };
+}
+
+export async function startNewPortalThreadFromClosed(
+  tenantId: string,
+  closedThreadId: string,
+  actor: PortalActor,
+): Promise<ServiceResult<OfficeMessageThreadDetail>> {
+  const permission =
+    actor.audience === 'client' ? 'portal.client.messages.reply' : 'portal.employee.messages.reply';
+  const denied = enforcePermission<OfficeMessageThreadDetail>(actor.roleKey, permission);
+  if (denied) return denied;
+
+  const detailResult = await fetchPortalOfficeThreadDetail(tenantId, closedThreadId, actor);
+  if (!detailResult.ok) return detailResult;
+  if (!detailResult.data.isClosed) {
+    return { ok: false, error: 'Nur abgeschlossene Chats können neu gestartet werden.' };
+  }
+
+  const source = detailResult.data;
+  const now = new Date().toISOString();
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
+    .insert({
+      tenant_id: tenantId,
+      thread_type: toDbThreadType(source.threadType),
+      status: 'new',
+      priority: source.priority,
+      subject: source.subject,
+      category_id: source.categoryId,
+      client_id: source.clientId,
+      employee_id: source.employeeId,
+      created_by_client_id: actor.audience === 'client' ? actor.clientId : null,
+      created_by_employee_id: actor.audience === 'employee' ? actor.employeeId : null,
+      last_message_at: now,
+      last_message_preview: 'Neuer Chat gestartet',
+    })
+    .select('*')
+    .single();
+
+  if (error) return officeMessagingError(toGermanSupabaseError(error));
+
+  const newThreadId = String(data.id);
+  await supabase.from('messages').insert({
+    tenant_id: tenantId,
+    thread_id: newThreadId,
+    body: 'Neuer Chat gestartet — vorheriger Verlauf abgeschlossen.',
+    is_system_message: true,
+    sent_at: now,
+    status: 'sent',
+  });
+
+  return fetchPortalOfficeThreadDetail(tenantId, newThreadId, actor);
+}
+
+export function getPortalStatusLabel(status: OfficeMessageThread['status']): string {
+  return PORTAL_THREAD_STATUS_LABELS[status] ?? status;
+}
+
+/** Portal-Sichtbarkeit: nur eigene Threads des Akteurs. */
+export function filterThreadsForPortalActor(
+  threads: OfficeMessageThread[],
+  actor: PortalActor,
+): OfficeMessageThread[] {
+  return threads.filter((thread) => threadBelongsToActor(thread, actor));
+}

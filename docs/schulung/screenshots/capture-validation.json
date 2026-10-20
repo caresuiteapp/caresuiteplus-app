@@ -1,0 +1,363 @@
+{
+  "timestamp": "2026-06-27T17:07:38.809Z",
+  "baseUrl": "https://caresuiteplus.app",
+  "total": 44,
+  "pass": 40,
+  "fail": 4,
+  "ok": false,
+  "welcomePopupBlocked": 0,
+  "files": [
+    {
+      "id": "SS-001",
+      "filename": "01-landing-startseite.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "455651",
+      "note": "kept"
+    },
+    {
+      "id": "SS-002",
+      "filename": "01b-landing-startseite-mobile.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "709816",
+      "note": "kept"
+    },
+    {
+      "id": "SS-003",
+      "filename": "02-auth-business-login.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "363153",
+      "note": "kept"
+    },
+    {
+      "id": "SS-004",
+      "filename": "03-auth-employee-login.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "423222",
+      "note": "kept"
+    },
+    {
+      "id": "SS-005",
+      "filename": "04-auth-employee-first-login.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "387489",
+      "note": "kept"
+    },
+    {
+      "id": "SS-006",
+      "filename": "05-auth-portal-code-login.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "508858",
+      "note": "kept"
+    },
+    {
+      "id": "SS-007",
+      "filename": "06-auth-forgot-password.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "268971",
+      "note": "kept"
+    },
+    {
+      "id": "SS-010",
+      "filename": "10-office-dashboard.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "456035",
+      "note": "kept"
+    },
+    {
+      "id": "SS-011",
+      "filename": "11-office-clients-list.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "424613",
+      "note": "kept"
+    },
+    {
+      "id": "SS-012",
+      "filename": "12-office-client-record-tabs.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "572696",
+      "note": "kept"
+    },
+    {
+      "id": "SS-013",
+      "filename": "13-office-client-portal-tab.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "566966",
+      "note": "kept"
+    },
+    {
+      "id": "SS-014",
+      "filename": "14-office-client-new-intake.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "458222",
+      "note": "kept"
+    },
+    {
+      "id": "SS-015",
+      "filename": "15-office-employees-list.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "442936",
+      "note": "kept"
+    },
+    {
+      "id": "SS-016",
+      "filename": "16-office-personnel-file-portal.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "488071",
+      "note": "kept"
+    },
+    {
+      "id": "SS-017",
+      "filename": "17-office-access-dashboard.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "425936",
+      "note": "kept"
+    },
+    {
+      "id": "SS-018",
+      "filename": "18-office-messages.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "400382",
+      "note": "kept"
+    },
+    {
+      "id": "SS-019",
+      "filename": "19-office-calendar.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "426785",
+      "note": "kept"
+    },
+    {
+      "id": "SS-020",
+      "filename": "20-office-invoices.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "458435",
+      "note": "kept"
+    },
+    {
+      "id": "SS-030",
+      "filename": "30-assist-dashboard.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "443225",
+      "note": "kept"
+    },
+    {
+      "id": "SS-031",
+      "filename": "31-assist-assignments-list.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "418529",
+      "note": "kept"
+    },
+    {
+      "id": "SS-032",
+      "filename": "32-assist-assignment-create.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "435215",
+      "note": "kept"
+    },
+    {
+      "id": "SS-033",
+      "filename": "33-assist-assignment-detail.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "381698",
+      "note": "kept"
+    },
+    {
+      "id": "SS-034",
+      "filename": "34-assist-calendar.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "395680",
+      "note": "kept"
+    },
+    {
+      "id": "SS-035",
+      "filename": "35-assist-durchfuehrung.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "358747",
+      "note": "kept"
+    },
+    {
+      "id": "SS-036",
+      "filename": "36-assist-nachweise.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "371791",
+      "note": "kept"
+    },
+    {
+      "id": "SS-037",
+      "filename": "37-assist-fahrten.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "363358",
+      "note": "kept"
+    },
+    {
+      "id": "SS-038",
+      "filename": "38-assist-live-status.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "445591",
+      "note": "kept"
+    },
+    {
+      "id": "SS-039",
+      "filename": "39-assist-zugeordnete-klienten.png",
+      "status": "PASS",
+      "welcomePopup": "n/a",
+      "bytes": "471101",
+      "note": "kept"
+    },
+    {
+      "id": "SS-040",
+      "filename": "40-employee-welcome-modal.png",
+      "status": "PASS",
+      "welcomePopup": "expected",
+      "bytes": "591758",
+      "note": "kept"
+    },
+    {
+      "id": "SS-041",
+      "filename": "41-employee-dashboard.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "586591",
+      "note": "kept"
+    },
+    {
+      "id": "SS-042",
+      "filename": "42-employee-assignments.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "372329",
+      "note": "kept"
+    },
+    {
+      "id": "SS-043",
+      "filename": "43-employee-assignment-detail.png",
+      "status": "FAIL",
+      "welcomePopup": "n/a",
+      "bytes": "—",
+      "note": "assignment_detail_empty:43-employee-assignment-detail.png"
+    },
+    {
+      "id": "SS-044",
+      "filename": "44-employee-execution-consent.png",
+      "status": "FAIL",
+      "welcomePopup": "n/a",
+      "bytes": "—",
+      "note": "assignment_detail_empty:44-employee-execution-consent.png"
+    },
+    {
+      "id": "SS-045",
+      "filename": "45-employee-execution-unterwegs.png",
+      "status": "FAIL",
+      "welcomePopup": "n/a",
+      "bytes": "—",
+      "note": "assignment_detail_empty:45-employee-execution-unterwegs.png"
+    },
+    {
+      "id": "SS-046",
+      "filename": "46-employee-execution-gestartet.png",
+      "status": "FAIL",
+      "welcomePopup": "n/a",
+      "bytes": "—",
+      "note": "assignment_detail_empty:46-employee-execution-gestartet.png"
+    },
+    {
+      "id": "SS-047",
+      "filename": "47-employee-schedule.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "429774",
+      "note": "kept"
+    },
+    {
+      "id": "SS-048",
+      "filename": "48-employee-messages.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "418247",
+      "note": "kept"
+    },
+    {
+      "id": "SS-049",
+      "filename": "49-employee-profile.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "350791",
+      "note": "kept"
+    },
+    {
+      "id": "SS-050",
+      "filename": "50-employee-bottom-nav.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "586425",
+      "note": "kept"
+    },
+    {
+      "id": "SS-051",
+      "filename": "51-client-welcome-modal.png",
+      "status": "PASS",
+      "welcomePopup": "expected",
+      "bytes": "533603",
+      "note": "kept"
+    },
+    {
+      "id": "SS-052",
+      "filename": "52-client-dashboard.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "464326",
+      "note": "kept"
+    },
+    {
+      "id": "SS-053",
+      "filename": "53-client-appointments.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "372990",
+      "note": "kept"
+    },
+    {
+      "id": "SS-054",
+      "filename": "54-client-documents.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "421024",
+      "note": "kept"
+    },
+    {
+      "id": "SS-055",
+      "filename": "55-client-messages-profile.png",
+      "status": "PASS",
+      "welcomePopup": "none",
+      "bytes": "469404",
+      "note": "kept"
+    }
+  ]
+}

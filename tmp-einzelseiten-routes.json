@@ -1,0 +1,872 @@
+[
+  {
+    "id": "0001",
+    "file": "0001_Public_App-Startseite.md",
+    "route": "/"
+  },
+  {
+    "id": "0002",
+    "file": "0002_Auth_Login-Auswahl.md",
+    "route": "/auth"
+  },
+  {
+    "id": "0003",
+    "file": "0003_Auth_Unternehmen_Verwaltung_Login.md",
+    "route": "/auth/business-login"
+  },
+  {
+    "id": "0004",
+    "file": "0004_Auth_Mitarbeiterportal_Login.md",
+    "route": "/auth/employee-login"
+  },
+  {
+    "id": "0005",
+    "file": "0005_Auth_Mitarbeiter_Erstlogin_Passwort_ändern.md",
+    "route": "/auth/employee-first-login"
+  },
+  {
+    "id": "0006",
+    "file": "0006_Auth_Klient_innen-_Angehörigenportal_Code_Login.md",
+    "route": "/auth/portal-code-login"
+  },
+  {
+    "id": "0007",
+    "file": "0007_Auth_Unternehmen_kostenlos_registrieren.md",
+    "route": "/auth/register-business"
+  },
+  {
+    "id": "0008",
+    "file": "0008_Auth_Passwort_Zugang_zurücksetzen.md",
+    "route": "/auth/forgot-password"
+  },
+  {
+    "id": "0009",
+    "file": "0009_Office_Office_Dashboard.md",
+    "route": "/business/office/dashboard"
+  },
+  {
+    "id": "0010",
+    "file": "0010_Office_Office_Clients.md",
+    "route": "/business/office/clients"
+  },
+  {
+    "id": "0011",
+    "file": "0011_Office_Office_Clients_New.md",
+    "route": "/business/office/clients/new"
+  },
+  {
+    "id": "0012",
+    "file": "0012_Office_Office_Clients_Detail.md",
+    "route": "/business/office/clients/[id]"
+  },
+  {
+    "id": "0013",
+    "file": "0013_Office_Office_Clients_Detail_Edit.md",
+    "route": "/business/office/clients/[id]/edit"
+  },
+  {
+    "id": "0014",
+    "file": "0014_Office_Office_Clients_Detail_Documents.md",
+    "route": "/business/office/clients/[id]/documents"
+  },
+  {
+    "id": "0015",
+    "file": "0015_Office_Office_Clients_Detail_Contracts.md",
+    "route": "/business/office/clients/[id]/contracts"
+  },
+  {
+    "id": "0016",
+    "file": "0016_Office_Office_Clients_Detail_Consents.md",
+    "route": "/business/office/clients/[id]/consents"
+  },
+  {
+    "id": "0017",
+    "file": "0017_Office_Office_Clients_Detail_Care.md",
+    "route": "/business/office/clients/[id]/care"
+  },
+  {
+    "id": "0018",
+    "file": "0018_Office_Office_Clients_Detail_Billing.md",
+    "route": "/business/office/clients/[id]/billing"
+  },
+  {
+    "id": "0019",
+    "file": "0019_Office_Office_Clients_Detail_Modules.md",
+    "route": "/business/office/clients/[id]/modules"
+  },
+  {
+    "id": "0020",
+    "file": "0020_Office_Office_Clients_Detail_Portal.md",
+    "route": "/business/office/clients/[id]/portal"
+  },
+  {
+    "id": "0021",
+    "file": "0021_Office_Office_Clients_Detail_Timeline.md",
+    "route": "/business/office/clients/[id]/timeline"
+  },
+  {
+    "id": "0022",
+    "file": "0022_Office_Office_Clients_Detail_Medical.md",
+    "route": "/business/office/clients/[id]/medical"
+  },
+  {
+    "id": "0023",
+    "file": "0023_Office_Office_Clients_Detail_Medication.md",
+    "route": "/business/office/clients/[id]/medication"
+  },
+  {
+    "id": "0024",
+    "file": "0024_Office_Office_Clients_Detail_Vitals.md",
+    "route": "/business/office/clients/[id]/vitals"
+  },
+  {
+    "id": "0025",
+    "file": "0025_Office_Office_Clients_Detail_Service-Records.md",
+    "route": "/business/office/clients/[id]/service-records"
+  },
+  {
+    "id": "0026",
+    "file": "0026_Office_Office_Clients_Detail_Communication.md",
+    "route": "/business/office/clients/[id]/communication"
+  },
+  {
+    "id": "0027",
+    "file": "0027_Office_Office_Employees.md",
+    "route": "/business/office/employees"
+  },
+  {
+    "id": "0028",
+    "file": "0028_Office_Office_Employees_New.md",
+    "route": "/business/office/employees/new"
+  },
+  {
+    "id": "0029",
+    "file": "0029_Office_Office_Employees_Detail.md",
+    "route": "/business/office/employees/[id]"
+  },
+  {
+    "id": "0030",
+    "file": "0030_Office_Office_Employees_Detail_Edit.md",
+    "route": "/business/office/employees/[id]/edit"
+  },
+  {
+    "id": "0031",
+    "file": "0031_Office_Office_Documents.md",
+    "route": "/business/office/documents"
+  },
+  {
+    "id": "0032",
+    "file": "0032_Office_Office_Documents_Detail.md",
+    "route": "/business/office/documents/[id]"
+  },
+  {
+    "id": "0033",
+    "file": "0033_Office_Office_Documents_Upload.md",
+    "route": "/business/office/documents/upload"
+  },
+  {
+    "id": "0034",
+    "file": "0034_Office_Office_Documents_Categories.md",
+    "route": "/business/office/documents/categories"
+  },
+  {
+    "id": "0035",
+    "file": "0035_Office_Office_Invoices.md",
+    "route": "/business/office/invoices"
+  },
+  {
+    "id": "0036",
+    "file": "0036_Office_Office_Invoices_New.md",
+    "route": "/business/office/invoices/new"
+  },
+  {
+    "id": "0037",
+    "file": "0037_Office_Office_Invoices_Detail.md",
+    "route": "/business/office/invoices/[id]"
+  },
+  {
+    "id": "0038",
+    "file": "0038_Office_Office_Invoices_Runs.md",
+    "route": "/business/office/invoices/runs"
+  },
+  {
+    "id": "0039",
+    "file": "0039_Office_Office_Invoices_Payments.md",
+    "route": "/business/office/invoices/payments"
+  },
+  {
+    "id": "0040",
+    "file": "0040_Office_Office_Invoices_Dunning.md",
+    "route": "/business/office/invoices/dunning"
+  },
+  {
+    "id": "0041",
+    "file": "0041_Office_Office_Templates.md",
+    "route": "/business/office/templates"
+  },
+  {
+    "id": "0042",
+    "file": "0042_Office_Office_Templates_New.md",
+    "route": "/business/office/templates/new"
+  },
+  {
+    "id": "0043",
+    "file": "0043_Office_Office_Templates_Detail.md",
+    "route": "/business/office/templates/[id]"
+  },
+  {
+    "id": "0044",
+    "file": "0044_Office_Office_Templates_Categories.md",
+    "route": "/business/office/templates/categories"
+  },
+  {
+    "id": "0045",
+    "file": "0045_Office_Office_Qm.md",
+    "route": "/business/office/qm"
+  },
+  {
+    "id": "0046",
+    "file": "0046_Office_Office_Qm_Manual.md",
+    "route": "/business/office/qm/manual"
+  },
+  {
+    "id": "0047",
+    "file": "0047_Office_Office_Qm_Manual_Detail.md",
+    "route": "/business/office/qm/manual/[id]"
+  },
+  {
+    "id": "0048",
+    "file": "0048_Office_Office_Qm_Policies.md",
+    "route": "/business/office/qm/policies"
+  },
+  {
+    "id": "0049",
+    "file": "0049_Office_Office_Qm_Audit-Packages.md",
+    "route": "/business/office/qm/audit-packages"
+  },
+  {
+    "id": "0050",
+    "file": "0050_Office_Office_Qm_Md-Check.md",
+    "route": "/business/office/qm/md-check"
+  },
+  {
+    "id": "0051",
+    "file": "0051_Office_Office_Modules.md",
+    "route": "/business/office/modules"
+  },
+  {
+    "id": "0052",
+    "file": "0052_Office_Office_Modules_Clients.md",
+    "route": "/business/office/modules/clients"
+  },
+  {
+    "id": "0053",
+    "file": "0053_Office_Office_Modules_Employees.md",
+    "route": "/business/office/modules/employees"
+  },
+  {
+    "id": "0054",
+    "file": "0054_Office_Office_Modules_Services.md",
+    "route": "/business/office/modules/services"
+  },
+  {
+    "id": "0055",
+    "file": "0055_Office_Office_Modules_Documents.md",
+    "route": "/business/office/modules/documents"
+  },
+  {
+    "id": "0056",
+    "file": "0056_Office_Office_Modules_Templates.md",
+    "route": "/business/office/modules/templates"
+  },
+  {
+    "id": "0057",
+    "file": "0057_Office_Office_Modules_Permissions.md",
+    "route": "/business/office/modules/permissions"
+  },
+  {
+    "id": "0058",
+    "file": "0058_Office_Office_Modules_Billing.md",
+    "route": "/business/office/modules/billing"
+  },
+  {
+    "id": "0059",
+    "file": "0059_Office_Office_Portals.md",
+    "route": "/business/office/portals"
+  },
+  {
+    "id": "0060",
+    "file": "0060_Office_Office_Portals_Employees.md",
+    "route": "/business/office/portals/employees"
+  },
+  {
+    "id": "0061",
+    "file": "0061_Office_Office_Portals_Clients.md",
+    "route": "/business/office/portals/clients"
+  },
+  {
+    "id": "0062",
+    "file": "0062_Office_Office_Portals_Relatives.md",
+    "route": "/business/office/portals/relatives"
+  },
+  {
+    "id": "0063",
+    "file": "0063_Office_Office_Portals_Access-Codes.md",
+    "route": "/business/office/portals/access-codes"
+  },
+  {
+    "id": "0064",
+    "file": "0064_Office_Office_Permissions.md",
+    "route": "/business/office/permissions"
+  },
+  {
+    "id": "0065",
+    "file": "0065_Office_Office_Settings.md",
+    "route": "/business/office/settings"
+  },
+  {
+    "id": "0066",
+    "file": "0066_Office_Office_Reporting.md",
+    "route": "/business/office/reporting"
+  },
+  {
+    "id": "0067",
+    "file": "0067_Office_Office_Audit-Log.md",
+    "route": "/business/office/audit-log"
+  },
+  {
+    "id": "0068",
+    "file": "0068_Assist_Assist_Übersicht.md",
+    "route": "/assist"
+  },
+  {
+    "id": "0069",
+    "file": "0069_Assist_Einsätze_Liste.md",
+    "route": "/assist/einsaetze"
+  },
+  {
+    "id": "0070",
+    "file": "0070_Assist_Einsatz_anlegen.md",
+    "route": "/assist/einsaetze/new"
+  },
+  {
+    "id": "0071",
+    "file": "0071_Assist_Einsatzdetail.md",
+    "route": "/assist/einsaetze/[id]"
+  },
+  {
+    "id": "0072",
+    "file": "0072_Assist_Einsatz_bearbeiten.md",
+    "route": "/assist/einsaetze/[id]/edit"
+  },
+  {
+    "id": "0073",
+    "file": "0073_Assist_Einsatz_durchführen.md",
+    "route": "/assist/durchfuehrung/[id]"
+  },
+  {
+    "id": "0074",
+    "file": "0074_Assist_Aufgaben.md",
+    "route": "/assist/aufgaben"
+  },
+  {
+    "id": "0075",
+    "file": "0075_Assist_Leistungsnachweise.md",
+    "route": "/assist/nachweise"
+  },
+  {
+    "id": "0076",
+    "file": "0076_Assist_Nachweis_Detail.md",
+    "route": "/assist/nachweise/[id]"
+  },
+  {
+    "id": "0077",
+    "file": "0077_Assist_Signaturen.md",
+    "route": "/assist/signaturen"
+  },
+  {
+    "id": "0078",
+    "file": "0078_Assist_Fahrten.md",
+    "route": "/assist/fahrten"
+  },
+  {
+    "id": "0079",
+    "file": "0079_Assist_Touren.md",
+    "route": "/assist/touren"
+  },
+  {
+    "id": "0080",
+    "file": "0080_Assist_Kalender.md",
+    "route": "/assist/kalender"
+  },
+  {
+    "id": "0081",
+    "file": "0081_Assist_Live-Status.md",
+    "route": "/assist/live-status"
+  },
+  {
+    "id": "0082",
+    "file": "0082_Assist_Qualitätsprüfung.md",
+    "route": "/assist/qualitaet"
+  },
+  {
+    "id": "0083",
+    "file": "0083_Assist_Abrechnungsquellen.md",
+    "route": "/assist/abrechnungsquellen"
+  },
+  {
+    "id": "0084",
+    "file": "0084_Assist_Assist_Einstellungen.md",
+    "route": "/assist/einstellungen"
+  },
+  {
+    "id": "0085",
+    "file": "0085_Pflege_Pflege_Übersicht.md",
+    "route": "/pflege"
+  },
+  {
+    "id": "0086",
+    "file": "0086_Pflege_Informationssammlung_Liste.md",
+    "route": "/pflege/informationssammlung"
+  },
+  {
+    "id": "0087",
+    "file": "0087_Pflege_Informationssammlung_anlegen.md",
+    "route": "/pflege/informationssammlung/new"
+  },
+  {
+    "id": "0088",
+    "file": "0088_Pflege_Informationssammlung_Detail.md",
+    "route": "/pflege/informationssammlung/[id]"
+  },
+  {
+    "id": "0089",
+    "file": "0089_Pflege_Pflegeplanung_Liste.md",
+    "route": "/pflege/planung"
+  },
+  {
+    "id": "0090",
+    "file": "0090_Pflege_Pflegeplanung_anlegen.md",
+    "route": "/pflege/planung/new"
+  },
+  {
+    "id": "0091",
+    "file": "0091_Pflege_Pflegeplanung_Detail.md",
+    "route": "/pflege/planung/[id]"
+  },
+  {
+    "id": "0092",
+    "file": "0092_Pflege_Pflegeplanung_bearbeiten.md",
+    "route": "/pflege/planung/[id]/edit"
+  },
+  {
+    "id": "0093",
+    "file": "0093_Pflege_Maßnahmen.md",
+    "route": "/pflege/massnahmen"
+  },
+  {
+    "id": "0094",
+    "file": "0094_Pflege_Pflegeberichte.md",
+    "route": "/pflege/berichte"
+  },
+  {
+    "id": "0095",
+    "file": "0095_Pflege_Pflegebericht_erstellen.md",
+    "route": "/pflege/berichte/new"
+  },
+  {
+    "id": "0096",
+    "file": "0096_Pflege_Pflegebericht_Detail.md",
+    "route": "/pflege/berichte/[id]"
+  },
+  {
+    "id": "0097",
+    "file": "0097_Pflege_Vitalwerte.md",
+    "route": "/pflege/vitalwerte"
+  },
+  {
+    "id": "0098",
+    "file": "0098_Pflege_Vitalwert_erfassen.md",
+    "route": "/pflege/vitalwerte/new"
+  },
+  {
+    "id": "0099",
+    "file": "0099_Pflege_Medikation.md",
+    "route": "/pflege/medikation"
+  },
+  {
+    "id": "0100",
+    "file": "0100_Pflege_Medikament_hinzufügen.md",
+    "route": "/pflege/medikation/new"
+  },
+  {
+    "id": "0101",
+    "file": "0101_Pflege_Wunddokumentation.md",
+    "route": "/pflege/wunden"
+  },
+  {
+    "id": "0102",
+    "file": "0102_Pflege_Wunde_anlegen.md",
+    "route": "/pflege/wunden/new"
+  },
+  {
+    "id": "0103",
+    "file": "0103_Pflege_Wunde_Detail.md",
+    "route": "/pflege/wunden/[id]"
+  },
+  {
+    "id": "0104",
+    "file": "0104_Pflege_Interaktive_BodyMap.md",
+    "route": "/pflege/bodymap"
+  },
+  {
+    "id": "0105",
+    "file": "0105_Pflege_Risiken.md",
+    "route": "/pflege/risiken"
+  },
+  {
+    "id": "0106",
+    "file": "0106_Pflege_Assessments.md",
+    "route": "/pflege/assessments"
+  },
+  {
+    "id": "0107",
+    "file": "0107_Pflege_SIS_Liste.md",
+    "route": "/pflege/sis"
+  },
+  {
+    "id": "0108",
+    "file": "0108_Pflege_SIS_anlegen.md",
+    "route": "/pflege/sis/new"
+  },
+  {
+    "id": "0109",
+    "file": "0109_Pflege_SIS_Detail.md",
+    "route": "/pflege/sis/[id]"
+  },
+  {
+    "id": "0110",
+    "file": "0110_Pflege_Rezepte_Verordnungen.md",
+    "route": "/pflege/verordnungen"
+  },
+  {
+    "id": "0111",
+    "file": "0111_Pflege_Evaluation.md",
+    "route": "/pflege/evaluation"
+  },
+  {
+    "id": "0112",
+    "file": "0112_Pflege_Pflegevisiten.md",
+    "route": "/pflege/visiten"
+  },
+  {
+    "id": "0113",
+    "file": "0113_Pflege_Übergaben.md",
+    "route": "/pflege/uebergaben"
+  },
+  {
+    "id": "0114",
+    "file": "0114_Pflege_Dienstpläne.md",
+    "route": "/pflege/dienstplaene"
+  },
+  {
+    "id": "0115",
+    "file": "0115_Pflege_Dienstplan_Schicht_anlegen.md",
+    "route": "/pflege/dienstplaene/new"
+  },
+  {
+    "id": "0116",
+    "file": "0116_Pflege_Pflege_Reports.md",
+    "route": "/pflege/reports"
+  },
+  {
+    "id": "0117",
+    "file": "0117_Pflege_Pflege_Einstellungen.md",
+    "route": "/pflege/einstellungen"
+  },
+  {
+    "id": "0118",
+    "file": "0118_Beratung_Beratung_Übersicht.md",
+    "route": "/beratung"
+  },
+  {
+    "id": "0119",
+    "file": "0119_Beratung_Fälle_Liste.md",
+    "route": "/beratung/faelle"
+  },
+  {
+    "id": "0120",
+    "file": "0120_Beratung_Fall_anlegen.md",
+    "route": "/beratung/faelle/new"
+  },
+  {
+    "id": "0121",
+    "file": "0121_Beratung_Fallakte.md",
+    "route": "/beratung/faelle/[id]"
+  },
+  {
+    "id": "0122",
+    "file": "0122_Beratung_Fall_bearbeiten.md",
+    "route": "/beratung/faelle/[id]/edit"
+  },
+  {
+    "id": "0123",
+    "file": "0123_Beratung_Erstgespräch.md",
+    "route": "/beratung/erstgespraech"
+  },
+  {
+    "id": "0124",
+    "file": "0124_Beratung_Protokolle.md",
+    "route": "/beratung/protokolle"
+  },
+  {
+    "id": "0125",
+    "file": "0125_Beratung_Protokoll_erstellen.md",
+    "route": "/beratung/protokolle/new"
+  },
+  {
+    "id": "0126",
+    "file": "0126_Beratung_Protokoll_Detail.md",
+    "route": "/beratung/protokolle/[id]"
+  },
+  {
+    "id": "0127",
+    "file": "0127_Beratung_Maßnahmen.md",
+    "route": "/beratung/massnahmen"
+  },
+  {
+    "id": "0128",
+    "file": "0128_Beratung_Wiedervorlagen.md",
+    "route": "/beratung/wiedervorlagen"
+  },
+  {
+    "id": "0129",
+    "file": "0129_Beratung_Leistungsberatung.md",
+    "route": "/beratung/leistungsberatung"
+  },
+  {
+    "id": "0130",
+    "file": "0130_Beratung_Angehörigenberatung.md",
+    "route": "/beratung/angehoerige"
+  },
+  {
+    "id": "0131",
+    "file": "0131_Beratung_Kontaktverlauf.md",
+    "route": "/beratung/kontaktverlauf"
+  },
+  {
+    "id": "0132",
+    "file": "0132_Beratung_Berichte.md",
+    "route": "/beratung/berichte"
+  },
+  {
+    "id": "0133",
+    "file": "0133_Beratung_Abrechnungsquellen.md",
+    "route": "/beratung/abrechnungsquellen"
+  },
+  {
+    "id": "0134",
+    "file": "0134_Beratung_Beratung_Einstellungen.md",
+    "route": "/beratung/einstellungen"
+  },
+  {
+    "id": "0135",
+    "file": "0135_Stationär_Stationär_Übersicht.md",
+    "route": "/stationaer"
+  },
+  {
+    "id": "0136",
+    "file": "0136_Stationär_Bewohner_innen_Liste.md",
+    "route": "/stationaer/bewohner"
+  },
+  {
+    "id": "0137",
+    "file": "0137_Stationär_Bewohnerdetail.md",
+    "route": "/stationaer/bewohner/[id]"
+  },
+  {
+    "id": "0138",
+    "file": "0138_Stationär_Wohnbereiche.md",
+    "route": "/stationaer/wohnbereiche"
+  },
+  {
+    "id": "0139",
+    "file": "0139_Stationär_Zimmer.md",
+    "route": "/stationaer/zimmer"
+  },
+  {
+    "id": "0140",
+    "file": "0140_Stationär_Belegung.md",
+    "route": "/stationaer/belegung"
+  },
+  {
+    "id": "0141",
+    "file": "0141_Stationär_Tagesstruktur.md",
+    "route": "/stationaer/tagesstruktur"
+  },
+  {
+    "id": "0142",
+    "file": "0142_Stationär_Mahlzeiten.md",
+    "route": "/stationaer/mahlzeiten"
+  },
+  {
+    "id": "0143",
+    "file": "0143_Stationär_Aktivitäten.md",
+    "route": "/stationaer/aktivitaeten"
+  },
+  {
+    "id": "0144",
+    "file": "0144_Stationär_Übergabe.md",
+    "route": "/stationaer/uebergabe"
+  },
+  {
+    "id": "0145",
+    "file": "0145_Stationär_Risiken.md",
+    "route": "/stationaer/risiken"
+  },
+  {
+    "id": "0146",
+    "file": "0146_Stationär_Bewohnerplanung.md",
+    "route": "/stationaer/bewohnerplanung"
+  },
+  {
+    "id": "0147",
+    "file": "0147_Stationär_Stationär_Reports.md",
+    "route": "/stationaer/reports"
+  },
+  {
+    "id": "0148",
+    "file": "0148_Stationär_Stationär_Einstellungen.md",
+    "route": "/stationaer/einstellungen"
+  },
+  {
+    "id": "0149",
+    "file": "0149_Akademie_Akademie_Übersicht.md",
+    "route": "/akademie"
+  },
+  {
+    "id": "0150",
+    "file": "0150_Akademie_Kurse_Liste.md",
+    "route": "/akademie/kurse"
+  },
+  {
+    "id": "0151",
+    "file": "0151_Akademie_Kurs_erstellen.md",
+    "route": "/akademie/kurse/new"
+  },
+  {
+    "id": "0152",
+    "file": "0152_Akademie_Kursdetail.md",
+    "route": "/akademie/kurse/[id]"
+  },
+  {
+    "id": "0153",
+    "file": "0153_Akademie_Lektionen.md",
+    "route": "/akademie/lektionen"
+  },
+  {
+    "id": "0154",
+    "file": "0154_Akademie_Teilnehmende.md",
+    "route": "/akademie/teilnehmende"
+  },
+  {
+    "id": "0155",
+    "file": "0155_Akademie_Prüfungen.md",
+    "route": "/akademie/pruefungen"
+  },
+  {
+    "id": "0156",
+    "file": "0156_Akademie_Zertifikate.md",
+    "route": "/akademie/zertifikate"
+  },
+  {
+    "id": "0157",
+    "file": "0157_Akademie_Pflichtschulungen.md",
+    "route": "/akademie/pflichtschulungen"
+  },
+  {
+    "id": "0158",
+    "file": "0158_Akademie_Schulungsplan.md",
+    "route": "/akademie/schulungsplan"
+  },
+  {
+    "id": "0159",
+    "file": "0159_Akademie_Mediathek.md",
+    "route": "/akademie/mediathek"
+  },
+  {
+    "id": "0160",
+    "file": "0160_Akademie_Dozent_innen.md",
+    "route": "/akademie/dozenten"
+  },
+  {
+    "id": "0161",
+    "file": "0161_Akademie_Fortschritt.md",
+    "route": "/akademie/fortschritt"
+  },
+  {
+    "id": "0162",
+    "file": "0162_Akademie_Akademie_Reports.md",
+    "route": "/akademie/reports"
+  },
+  {
+    "id": "0163",
+    "file": "0163_Akademie_Akademie_Einstellungen.md",
+    "route": "/akademie/einstellungen"
+  },
+  {
+    "id": "0164",
+    "file": "0164_Kommunikation_Nachrichten_Center.md",
+    "route": "/business/messages"
+  },
+  {
+    "id": "0165",
+    "file": "0165_Kommunikation_Nachricht_Detail.md",
+    "route": "/business/messages/[threadId]"
+  },
+  {
+    "id": "0166",
+    "file": "0166_Kommunikation_Archivierte_Nachrichten.md",
+    "route": "/business/messages/archived"
+  },
+  {
+    "id": "0167",
+    "file": "0167_Dokumente_Dokumente_global.md",
+    "route": "/business/documents"
+  },
+  {
+    "id": "0168",
+    "file": "0168_QM_QM_Center.md",
+    "route": "/business/qm"
+  },
+  {
+    "id": "0169",
+    "file": "0169_Reporting_InsightCenter.md",
+    "route": "/business/insight"
+  },
+  {
+    "id": "0170",
+    "file": "0170_Einstellungen_Einstellungen.md",
+    "route": "/business/settings"
+  },
+  {
+    "id": "0171",
+    "file": "0171_TI_TI_Vorbereitung.md",
+    "route": "/business/ti"
+  },
+  {
+    "id": "0172",
+    "file": "0172_Portal_Mitarbeiterportal_Start.md",
+    "route": "/portal/employee"
+  },
+  {
+    "id": "0173",
+    "file": "0173_Portal_Klient_innenportal_Start.md",
+    "route": "/portal/client"
+  },
+  {
+    "id": "0174",
+    "file": "0174_Portal_Angehörigenportal_Start.md",
+    "route": "/portal/relative"
+  }
+]

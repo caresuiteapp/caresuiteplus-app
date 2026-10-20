@@ -1,0 +1,572 @@
+import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
+import { ClientFundingSourceSelector } from '@/components/office/ClientFundingSourceSelector';
+import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
+import { useEffect, useMemo, useRef } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  CareCatalogSelect,
+  CareAddressSearch,
+  CareCostBearerTypeFields,
+  CareDateInput,
+  CareIntakeDocumentsStepPanel,
+  CareMultiCatalogSelect,
+} from '@/components/inputs';
+import {
+  ErrorState,
+  FilterChipGroup,
+  FormStepper,
+  InfoBanner,
+  LoadingState,
+  PremiumInput,
+  SectionPanel,
+  SuccessState,
+} from '@/components/ui';
+import {
+  ClientWorkspaceButton,
+  ClientWorkspaceLiveBadge,
+  ClientWorkspacePanel,
+} from '@/components/office/ClientWorkspacePrimitives';
+import { useClientIntakeWizard, type ClientIntakeWizardMode } from '@/hooks/useClientIntakeWizard';
+import { getRequiredFieldsForClientContext, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import {
+  COST_BEARER_FIELD_ERRORS,
+  hasGkvCostBearerSelected,
+  isCostBearerTypeKey,
+} from '@/lib/clients/clientIntakeCostBearerConfig';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { spacing } from '@/theme';
+
+function ClientIntakeJourneyHeader({
+  stepIndex,
+  stepLabels,
+  stepStatuses,
+  isEditMode,
+  draftSaving,
+  draftSaveFeedback,
+  draftIsSaved,
+}: {
+  stepIndex: number;
+  stepLabels: string[];
+  stepStatuses: ('pending' | 'active' | 'completed' | 'error')[];
+  isEditMode: boolean;
+  draftSaving: boolean;
+  draftSaveFeedback: { message: string; variant: 'success' | 'warning' } | null;
+  draftIsSaved: boolean;
+}) {
+  const completedSteps = stepStatuses.filter((status) => status === 'completed').length;
+  const progress = Math.max(4, Math.round(((stepIndex + 1) / Math.max(stepLabels.length, 1)) * 100));
+  const hasErrors = stepStatuses.some((status) => status === 'error');
+
+  return (
+    <ClientWorkspacePanel
+      eyebrow={isEditMode ? 'Digitale Aktenpflege' : 'Geführte Neuaufnahme'}
+      title={stepLabels[stepIndex] ?? 'Klient:in aufnehmen'}
+      subtitle={`Schritt ${stepIndex + 1} von ${stepLabels.length} · ${completedSteps} Abschnitte vollständig`}
+      compact
+      accessory={
+        <ClientWorkspaceLiveBadge
+          label={hasErrors ? 'Angaben prüfen' : isEditMode ? 'Aktenpflege' : draftSaving ? 'Entwurf wird gesichert' : draftIsSaved ? 'Entwurf gesichert' : draftSaveFeedback?.variant === 'warning' ? 'Sicherung prüfen' : 'Noch nicht gesichert'}
+          connected={!hasErrors && draftIsSaved}
+        />
+      }
+    >
+      <View style={stylesStatic.progressTrack}>
+        <View style={[stylesStatic.progressFill, { width: `${progress}%` }]} />
+      </View>
+      <View style={stylesStatic.journeyMeta}>
+        <Text style={stylesStatic.journeyHint}>
+          Sie können abgeschlossene Abschnitte direkt auswählen und später weiterbearbeiten.
+        </Text>
+        <Text style={stylesStatic.journeyProgress}>{progress}%</Text>
+      </View>
+    </ClientWorkspacePanel>
+  );
+}
+
+export function ClientIntakeSectionContent({
+  section,
+  wizard,
+  contentStyles,
+  panelViewContext,
+  clientId,
+  showIntakeOnlyFields = true,
+}: {
+  section: IntakeSectionKey;
+  wizard: ReturnType<typeof useClientIntakeWizard>;
+  contentStyles: ReturnType<typeof useAdaptiveContentStyles>;
+  /** Use `form` when rendered inside AppGlassModal section edits. */
+  panelViewContext?: LlganViewContext;
+  clientId?: string;
+  /** Hides intake-only questions that are not part of the persisted client profile. */
+  showIntakeOnlyFields?: boolean;
+}) {
+  const { form, errors, updateField, updateFundingSources, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
+  const resolvedClientId = clientId ?? createdId ?? undefined;
+  const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
+
+  if (section === 'leistungsart') {
+    return (
+      <SectionPanel {...panelCtx} title="Leistungsart / Klient:innenart" subtitle="Mehrfachauswahl">
+        <CareMultiCatalogSelect
+          catalogKey="leistungsart"
+          label="Für welche Art von Unterstützung wird diese Person aufgenommen?"
+          values={form.careContexts}
+          onChange={(vals) => updateField('careContexts', vals as typeof form.careContexts)}
+          error={errors.careContexts}
+        />
+        {contextHint ? <Text style={contentStyles.caption}>{contextHint}</Text> : null}
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'stammdaten') {
+    return (
+      <SectionPanel {...panelCtx} title="Stammdaten">
+        <CareCatalogSelect catalogKey="client_status" label="Status" value={form.status} onChange={(v) => updateField('status', v)} />
+        <CareCatalogSelect catalogKey="salutation" label="Anrede" value={form.salutation} onChange={(v) => updateField('salutation', v)} />
+        <PremiumInput label="Vorname *" value={form.firstName} onChangeText={(v) => updateField('firstName', v)} error={errors.firstName} />
+        <PremiumInput label="Nachname *" value={form.lastName} onChangeText={(v) => updateField('lastName', v)} error={errors.lastName} />
+        <CareDateInput label="Geburtsdatum *" value={form.dateOfBirth} onChange={(v) => updateField('dateOfBirth', v)} error={errors.dateOfBirth} />
+        <CareCatalogSelect catalogKey="gender" label="Geschlecht" value={form.gender} onChange={(v) => updateField('gender', v)} />
+        <CareCatalogSelect catalogKey="housing_form" label="Wohnform" value={form.housingForm} onChange={(v) => updateField('housingForm', v)} />
+        <CareDateInput label="Aufnahmedatum" value={form.admissionDate} onChange={(v) => updateField('admissionDate', v)} error={errors.admissionDate} />
+        <CareDateInput label={getRequiredFieldsForClientContext(form.careContexts).includes('serviceStart') ? 'Leistungsbeginn *' : 'Leistungsbeginn'} value={form.serviceStart} onChange={(v) => updateField('serviceStart', v)} error={errors.serviceStart} />
+        <PremiumInput label="Interne Hinweise" value={form.specialNotes} onChangeText={(v) => updateField('specialNotes', v)} multiline hint="Nur für Office sichtbar" />
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'adresse_kontakt') {
+    return (
+      <SectionPanel {...panelCtx} title="Adresse & Kontakt">
+        <CareAddressSearch
+          values={{ street: form.street, houseNumber: form.houseNumber, zip: form.zip, city: form.city }}
+          onChange={(address) => {
+            updateField('street', address.street);
+            updateField('houseNumber', address.houseNumber);
+            updateField('zip', address.zip);
+            updateField('city', address.city);
+          }}
+          errors={{ street: errors.street, zip: errors.zip, city: errors.city }}
+        />
+        <PremiumInput label="Telefon" value={form.phone} onChangeText={(v) => updateField('phone', v)} error={errors.phone} keyboardType="phone-pad" />
+        <PremiumInput label="Mobil" value={form.mobile} onChangeText={(v) => updateField('mobile', v)} keyboardType="phone-pad" />
+        <PremiumInput label="E-Mail" value={form.email} onChangeText={(v) => updateField('email', v)} error={errors.email} keyboardType="email-address" autoCapitalize="none" />
+        <CareCatalogSelect catalogKey="contact_method" label="Bevorzugter Kontaktweg" value={form.preferredContact} onChange={(v) => updateField('preferredContact', v)} />
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'versorgung') {
+    return (
+      <SectionPanel {...panelCtx} title="Versorgung / Pflege / Betreuung">
+        {!showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
+            <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} error={errors.careLevelValidFrom} />
+          </>
+        ) : null}
+        <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
+        {showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="consulting_types" label="Beratungsart" value={form.consultingType} onChange={(v) => updateField('consultingType', v)} error={errors.consultingType} />
+            <PremiumInput label="Beratungsanlass" value={form.consultingReason} onChangeText={(v) => updateField('consultingReason', v)} error={errors.consultingReason} />
+          </>
+        ) : null}
+        <CareMultiCatalogSelect catalogKey="support_tasks" label="Gewünschte Unterstützung (System)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} error={errors.supportWishes} />
+        <AssistCatalogMultiSelect catalogKey="assist.intake.service_wish" label="Leistungswunsch (Office-Katalog)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} />
+        <PremiumInput label="Bevorzugte Zeiten" value={form.preferredTimes.join('\n')} onChangeText={(v) => updateField('preferredTimes', v.split('\n').map((entry) => entry.trim()).filter(Boolean))} multiline />
+        <PremiumInput label="Ausgeschlossene Zeiten" value={form.excludedTimes.join('\n')} onChangeText={(v) => updateField('excludedTimes', v.split('\n').map((entry) => entry.trim()).filter(Boolean))} multiline />
+        <PremiumInput label="Mobilität" value={form.mobility} onChangeText={(v) => updateField('mobility', v)} multiline />
+        <PremiumInput label="Orientierung" value={form.orientation} onChangeText={(v) => updateField('orientation', v)} multiline />
+        <PremiumInput label="Kommunikation" value={form.communication} onChangeText={(v) => updateField('communication', v)} multiline />
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'kostentraeger') {
+    const selectedCostBearerTypes = form.costBearerTypes.filter(isCostBearerTypeKey);
+
+    return (
+      <SectionPanel {...panelCtx} title="Kostenträger / Abrechnung">
+        {showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="care_level" label="Pflegegrad *" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
+            <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} error={errors.careLevelValidFrom} />
+          </>
+        ) : null}
+        <ClientFundingSourceSelector
+          values={form.fundingSources}
+          onChange={updateFundingSources}
+          error={errors.fundingSources}
+        />
+        <CareMultiCatalogSelect
+          catalogKey="cost_bearer_type"
+          label="Kostenträgertyp"
+          values={form.costBearerTypes}
+          onChange={updateCostBearerTypes}
+          error={errors.costBearerTypes}
+        />
+        {selectedCostBearerTypes.map((type) => (
+          <CareCostBearerTypeFields
+            key={type}
+            type={type}
+            form={form}
+            onChange={replaceForm}
+            tenantId={tenantId ?? undefined}
+            error={errors[COST_BEARER_FIELD_ERRORS[type]]}
+          />
+        ))}
+        {hasGkvCostBearerSelected(form.costBearerTypes) ? (
+          <PremiumInput
+            label="Versichertennummer / KVNR"
+            value={form.insuranceNumber}
+            onChangeText={(value) => updateField('insuranceNumber', value)}
+            error={errors.insuranceNumber}
+          />
+        ) : null}
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'angehoerige') {
+    return (
+      <SectionPanel {...panelCtx} title="Angehörige / Bevollmächtigte">
+        <PremiumInput label="Notfallkontakt Name" value={form.emergencyContactName} onChangeText={(v) => updateField('emergencyContactName', v)} error={errors.emergencyContactName} />
+        <PremiumInput label="Notfallkontakt Telefon" value={form.emergencyContactPhone} onChangeText={(v) => updateField('emergencyContactPhone', v)} error={errors.emergencyContactPhone} />
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'notfall_zugang') {
+    return (
+      <SectionPanel {...panelCtx} title="Notfall / Zugang / Wohnsituation">
+        <CareMultiCatalogSelect
+          catalogKey="home_access"
+          label="Wohnungszugang *"
+          values={form.homeAccess}
+          onChange={(values) => updateField('homeAccess', values)}
+          error={errors.homeAccess}
+        />
+        <CareCatalogSelect catalogKey="key_status" label="Schlüsselstatus" value={form.keyStatus} onChange={(v) => updateField('keyStatus', v)} />
+        <PremiumInput
+          label="Schlüsselnummer"
+          nativeID="client-intake-key-number"
+          value={form.keyNumber}
+          onChangeText={(v) => updateField('keyNumber', v)}
+          sensitiveBusinessValue
+        />
+        <PremiumInput
+          label="Schlüsseltresor-Code"
+          nativeID="client-intake-key-safe-code"
+          value={form.keySafeCode}
+          onChangeText={(v) => updateField('keySafeCode', v)}
+          secureTextEntry={Platform.OS !== 'web'}
+          sensitiveBusinessValue
+        />
+        <PremiumInput label="Türcode" value={form.doorCode} onChangeText={(v) => updateField('doorCode', v)} />
+        <PremiumInput label="Klingelname" value={form.bellName} onChangeText={(v) => updateField('bellName', v)} />
+        <PremiumInput label="Etage" value={form.floor} onChangeText={(v) => updateField('floor', v)} />
+        <FilterChipGroup
+          options={[{ key: 'nein', label: 'Kein Aufzug' }, { key: 'ja', label: 'Aufzug vorhanden' }]}
+          value={form.elevatorAvailable ? 'ja' : 'nein'}
+          onChange={(v) => updateField('elevatorAvailable', v === 'ja')}
+        />
+        <PremiumInput label="Parkhinweise" value={form.parkingNotes} onChangeText={(v) => updateField('parkingNotes', v)} multiline />
+        <PremiumInput label="Zugangshinweise" value={form.accessNotes} onChangeText={(v) => updateField('accessNotes', v)} multiline />
+        <PremiumInput label="Gefahren / Sturzgefahr" value={form.hazardNotes} onChangeText={(v) => updateField('hazardNotes', v)} multiline />
+        <PremiumInput label="Einrichtung" value={form.facilityName} onChangeText={(v) => updateField('facilityName', v)} error={errors.facilityName} />
+        <CareCatalogSelect catalogKey="stationary_areas" label="Wohnbereich" value={form.careArea} onChange={(v) => updateField('careArea', v)} error={errors.careArea} />
+        <PremiumInput label="Zimmernummer" value={form.roomNumber} onChangeText={(v) => updateField('roomNumber', v)} error={errors.roomNumber} />
+        <CareCatalogSelect catalogKey="pets" label="Haustiere" value={form.pets} onChange={(v) => updateField('pets', v)} />
+        <FilterChipGroup
+          options={[{ key: 'nein', label: 'Nichtraucherhaushalt' }, { key: 'ja', label: 'Raucherhaushalt' }]}
+          value={form.smokerHousehold ? 'ja' : 'nein'}
+          onChange={(v) => updateField('smokerHousehold', v === 'ja')}
+        />
+        <PremiumInput label="Hilfsmittel vor Ort" value={form.aidsOnSite} onChangeText={(v) => updateField('aidsOnSite', v)} multiline />
+        <PremiumInput label="Hygienehinweise" value={form.hygieneNotes} onChangeText={(v) => updateField('hygieneNotes', v)} multiline />
+        <PremiumInput label="Infektionshinweise" value={form.infectionNotes} onChangeText={(v) => updateField('infectionNotes', v)} multiline />
+      </SectionPanel>
+    );
+  }
+
+  if (section === 'vertraege_einwilligungen') {
+    return (
+      <CareIntakeDocumentsStepPanel
+        form={form}
+        errors={errors}
+        tenantId={tenantId}
+        onChange={replaceForm}
+        panelViewContext={panelViewContext}
+      />
+    );
+  }
+
+  if (section === 'dokumente') {
+    return (
+      <>
+        <SectionPanel {...panelCtx} title="Dokumente">
+          <InfoBanner variant="warning" message="Externe Dateien können in diesem Aufnahmeformular derzeit nicht gespeichert werden. Die Dokumentvorlagen unten und die unterschriebenen Aufnahmedokumente werden getrennt verarbeitet." />
+          {form.documentCategories.length ? (
+            <Text style={contentStyles.caption}>
+              Dateinamen aus dem Entwurf (keine gespeicherten Dateien): {form.documentCategories.join(', ')}
+            </Text>
+          ) : null}
+        </SectionPanel>
+        <DocumentModuleTemplatesPanel
+          tenantId={tenantId}
+          targetModule="assist"
+          targetArea="intake"
+          clientId={resolvedClientId}
+        />
+      </>
+    );
+  }
+
+  if (section === 'module') {
+    return (
+      <SectionPanel {...panelCtx} title="Module & Zuständigkeiten">
+        <CareMultiCatalogSelect catalogKey="module_assignment" label="Module" values={form.assignedModules} onChange={(v) => updateField('assignedModules', v)} />
+      </SectionPanel>
+    );
+  }
+
+  return (
+    <SectionPanel {...panelCtx} title="Prüfung & Abschluss">
+      <Text style={contentStyles.body}>{form.firstName} {form.lastName}</Text>
+      <Text style={contentStyles.body}>Leistungsarten: {form.careContexts.join(', ')}</Text>
+      <Text style={contentStyles.body}>{form.street}, {form.zip} {form.city}</Text>
+    </SectionPanel>
+  );
+}
+
+export type ClientIntakeWizardFormProps = {
+  mode?: ClientIntakeWizardMode;
+  clientId?: string;
+  onCancel?: () => void;
+  onCreated?: (clientId: string) => void;
+  onUpdated?: (clientId: string) => void;
+  showHero?: boolean;
+};
+
+export function ClientIntakeWizardForm({
+  mode = 'create',
+  clientId,
+  onCancel,
+  onCreated,
+  onUpdated,
+  showHero = true,
+}: ClientIntakeWizardFormProps) {
+  const wizard = useClientIntakeWizard({ mode, clientId });
+  const insets = useSafeAreaInsets();
+  const contentScroll = useRef<ScrollView>(null);
+  useEffect(() => { contentScroll.current?.scrollTo({ y: 0, animated: false }); }, [wizard.currentSection]);
+  const contentStyles = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, minHeight: 0 },
+        scroll: { flex: 1 },
+        scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+        journey: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
+        stepperScroll: { flexGrow: 0 },
+        stepperContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, flexGrow: 1 },
+        footer: {
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(22, 131, 255, 0.24)',
+          padding: spacing.md,
+          paddingBottom: Math.max(spacing.md, insets.bottom),
+          backgroundColor: '#FFFFFF',
+        },
+        footerRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' },
+        actionBtn: { minWidth: 148 },
+        footerSpacer: { flex: 1, minWidth: spacing.lg },
+        successWrap: { padding: spacing.md },
+      }),
+    [insets.bottom],
+  );
+  const {
+    steps,
+    stepLabels,
+    stepIndex,
+    currentSection,
+    submitting,
+    submitError,
+    createdId,
+    loading,
+    loadError,
+    notFound,
+    isEditMode,
+    nextStep,
+    prevStep,
+    goToStep,
+    stepStatuses,
+    submit,
+    saveDraft,
+    discardDraft,
+    draftRestored,
+    draftSaveFeedback,
+    draftSaving,
+    discardingDraft,
+    retryLoad,
+    isFirstStep,
+    isLastStep,
+    isSuccess,
+  } = wizard;
+
+  const handleSubmit = async () => {
+    const id = await submit();
+    if (id) {
+      if (isEditMode) {
+        onUpdated?.(id);
+      } else {
+        onCreated?.(id);
+      }
+    }
+  };
+
+  if (loading) {
+    return <LoadingState message="Klient:in wird geladen…" />;
+  }
+
+  if (notFound || loadError) {
+    return <View><ErrorState title={notFound ? 'Nicht gefunden' : 'Fehler'} message={loadError ?? 'Der Datensatz existiert nicht.'} onRetry={retryLoad} />{onCancel ? <ClientWorkspaceButton label="Schließen" onPress={onCancel} /> : null}</View>;
+  }
+
+  if (isSuccess && createdId) {
+    return (
+      <View style={styles.successWrap}>
+        <SuccessState
+          message={isEditMode ? 'Stammdaten wurden aktualisiert.' : 'Klient:in wurde aufgenommen.'}
+        />
+      </View>
+    );
+  }
+
+  if (submitting) {
+    return <LoadingState message={isEditMode ? 'Änderungen werden gespeichert…' : 'Aufnahme wird gespeichert…'} />;
+  }
+  if (discardingDraft) {
+    return <LoadingState message="Entwurf wird entfernt…" />;
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.root} enabled={Platform.OS !== 'web'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.journey}>
+        <ClientIntakeJourneyHeader
+          stepIndex={stepIndex}
+          stepLabels={stepLabels}
+          stepStatuses={stepStatuses}
+          isEditMode={isEditMode}
+          draftSaving={draftSaving}
+          draftSaveFeedback={draftSaveFeedback}
+          draftIsSaved={wizard.draftIsSaved}
+        />
+      </View>
+      <ScrollView
+        horizontal
+        style={styles.stepperScroll}
+        contentContainerStyle={styles.stepperContent}
+        showsHorizontalScrollIndicator={false}
+      >
+        <View style={{ flex: 1, minWidth: Math.max(320, stepLabels.length * 118) }}>
+          <FormStepper
+            steps={stepLabels}
+            currentStep={stepIndex}
+            onStepPress={goToStep}
+            stepStatuses={stepStatuses}
+          />
+        </View>
+      </ScrollView>
+      <ScrollView
+        ref={contentScroll}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator
+      >
+        {draftRestored ? (
+          <InfoBanner message="Entwurf geladen" />
+        ) : null}
+        {draftSaveFeedback ? (
+          <InfoBanner
+            variant={draftSaveFeedback.variant}
+            message={draftSaveFeedback.variant === 'warning' ? draftSaveFeedback.message : 'Entwurf gespeichert'}
+          />
+        ) : null}
+        {showHero && stepIndex === 0 ? (
+          <Text style={contentStyles.caption}>
+            Schritt {stepIndex + 1} von {steps.length} · {isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in aufnehmen'}
+          </Text>
+        ) : null}
+        <ClientIntakeSectionContent key={wizard.identityKey} section={currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} />
+        {submitError ? <ErrorState message={submitError} /> : null}
+      </ScrollView>
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          {!isEditMode ? <ClientWorkspaceButton label="Als Entwurf speichern" variant="ghost" compact loading={draftSaving} disabled={discardingDraft} onPress={() => void saveDraft()} style={styles.actionBtn} /> : null}
+          {!isEditMode ? <ClientWorkspaceButton label="Neu beginnen" variant="ghost" compact loading={discardingDraft} disabled={draftSaving} onPress={() => void discardDraft()} style={styles.actionBtn} /> : null}
+          <View style={styles.footerSpacer} />
+          {!isFirstStep ? (
+            <ClientWorkspaceButton label="← Zurück" compact onPress={prevStep} style={styles.actionBtn} />
+          ) : onCancel ? (
+            <ClientWorkspaceButton label="Abbrechen" variant="secondary" compact onPress={onCancel} style={styles.actionBtn} />
+          ) : null}
+          {isLastStep ? (
+            <ClientWorkspaceButton
+              label={isEditMode ? 'Änderungen speichern' : 'Klient:in aktivieren'}
+              variant="primary"
+              loading={submitting}
+              onPress={handleSubmit}
+              compact
+              style={styles.actionBtn}
+            />
+          ) : (
+            <ClientWorkspaceButton label="Weiter →" variant="primary" compact onPress={nextStep} style={styles.actionBtn} />
+          )}
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const stylesStatic = StyleSheet.create({
+  progressTrack: {
+    height: 8,
+    overflow: 'hidden',
+    borderRadius: careRadius.full,
+    backgroundColor: '#E6F1FF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(22, 131, 255, 0.24)',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: careRadius.full,
+    backgroundColor: '#1683FF',
+  },
+  journeyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: careSpacing.sm,
+  },
+  journeyHint: {
+    flex: 1,
+    color: '#34445A',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  journeyProgress: {
+    color: '#1683FF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+});

@@ -1,0 +1,110 @@
+import { useMemo } from 'react';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
+import { StyleSheet, Text, View } from 'react-native';
+import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { ROLE_LABELS } from '@/data/constants';
+import { buildOpsHubKpis } from '@/lib/ops/opsHubStats';
+import { OPS_HUB_MODULES } from '@/lib/ops/opsHubModules';
+import { isOpsLiveReady } from '@/lib/ops/opsModuleConfig';
+
+import type { RoleKey } from '@/types';
+import { designTokens, spacing } from '@/theme';
+
+type OpsHubHeroProps = {
+  roleKey: RoleKey;
+};
+
+export function OpsHubHero({ roleKey }: OpsHubHeroProps) {
+  const { colors } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+  topRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  textCol: {
+    flex: 1,
+    gap: 2,
+  },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
+  subtitle: heroText.subtitle,
+  iconBadge: {
+    width: iconSize,
+    height: iconSize,
+    borderRadius: iconSize / 2,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(98,243,255,0.35)',
+  },
+  iconText: {
+    fontSize: 22,
+  },
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  kpiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  kpiItem: {
+    flex: 1,
+    minWidth: 100,
+  },
+}),
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
+  );
+
+
+  const kpis = buildOpsHubKpis();
+
+  return (
+    <PremiumListHeroFrame>
+      <View style={styles.topRow}>
+        <View style={styles.textCol}>
+          <Text style={styles.title}>Operations-Hub</Text>
+          <Text style={styles.meta}>
+            {OPS_HUB_MODULES.length} Module · TI · Release · Security · QA · Roadmap
+          </Text>
+          <Text style={styles.subtitle}>
+            Zentraler Einstieg für Telematik, Release, Compliance, Qualitätssicherung und strategische Planung.
+          </Text>
+        </View>
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconText}>⚙️</Text>
+        </View>
+      </View>
+      <View style={styles.badges}>
+        <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
+        {!isOpsLiveReady() ? (
+          <PremiumBadge label="Live-Orchestrierung in Vorbereitung" variant="orange" dot />
+        ) : null}
+      </View>
+      <View style={styles.kpiRow}>
+        {kpis.map((kpi) => (
+          <PremiumKpiCard
+            key={kpi.id}
+            label={kpi.label}
+            value={kpi.value}
+            subValue={kpi.subValue}
+            icon={kpi.icon}
+            accentColor={kpi.accentColor}
+            style={styles.kpiItem}
+          />
+        ))}
+      </View>
+    </PremiumListHeroFrame>
+  );
+}
+
+const iconSize = designTokens.hero.iconBadgeSize;

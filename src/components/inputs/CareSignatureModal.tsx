@@ -1,0 +1,294 @@
+import { useCallback, useEffect, useMemo } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
+import { OrientationGate } from '@/components/layout/OrientationGate';
+import { GradientModalHeader } from '@/components/layout/platform/gradientmodalheader';
+import { FullscreenOverlay } from '@/components/ui/FullscreenOverlay';
+import { PremiumButton } from '@/components/ui';
+import { careRadius } from '@/design/tokens/radius';
+import { portalPremium } from '@/design/tokens/portalPremium';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useOrientation } from '@/hooks/useOrientation';
+import { blockDocumentTouchScrollOutsideSignatureCapture } from '@/lib/dom/signatureCaptureScrollLock';
+import { spacing, typography } from '@/theme';
+
+const DESKTOP_MIN_WIDTH = 720;
+const DESKTOP_CANVAS_MIN_HEIGHT = 400;
+const MOBILE_WIDTH_RATIO = 0.92;
+
+type Props = {
+  visible: boolean;
+  label: string;
+  onConfirm: (dataUrl: string) => void;
+  onClose: () => void;
+  disabled?: boolean;
+  statusMessage?: string | null;
+  onCheckStatus?: () => void;
+  /** sessionStorage scope for landscape dismiss — typically visitId. */
+  dismissScope?: string;
+  /** Use the entire viewport, including desktop and large tablets. */
+  forceFullscreen?: boolean;
+};
+
+function PlainSignatureHeader({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+}) {
+  return (
+    <View style={plainHeaderStyles.root}>
+      <View style={plainHeaderStyles.leading}>
+        <Text style={plainHeaderStyles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={plainHeaderStyles.subtitle} numberOfLines={3}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      <Pressable
+        onPress={onClose}
+        style={plainHeaderStyles.close}
+        accessibilityRole="button"
+        accessibilityLabel="Schließen"
+      >
+        <Text style={plainHeaderStyles.closeLabel}>×</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const plainHeaderStyles = StyleSheet.create({
+  root: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
+  },
+  leading: { flex: 1, minWidth: 0, gap: 2 },
+  title: { ...typography.h3, color: portalPremium.text.primary },
+  subtitle: { ...typography.caption, color: portalPremium.text.secondary },
+  close: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  closeLabel: { fontSize: 22, lineHeight: 24, color: portalPremium.text.primary },
+});
+
+export function CareSignatureModal({
+  visible,
+  label,
+  onConfirm,
+  onClose,
+  disabled,
+  statusMessage,
+  onCheckStatus,
+  dismissScope = 'signature',
+  forceFullscreen = false,
+}: Props) {
+  const { isPhone, isTablet } = useDeviceClass();
+  const orientation = useOrientation();
+  const fullscreen = forceFullscreen || Platform.OS !== 'web' || isPhone || isTablet;
+  const portraitMobile = fullscreen && !orientation.isLandscape;
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(15, 27, 51, 0.35)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: spacing.lg,
+        },
+        fullscreenHeader: {
+          flexShrink: 0,
+        },
+        fullscreenRoot: {
+          flex: 1,
+          minHeight: 0,
+          flexDirection: 'column',
+          backgroundColor: portalPremium.surfaceRaised,
+          ...Platform.select({
+            web: {
+              height: '100%',
+              overscrollBehavior: 'contain',
+            },
+            default: {},
+          }),
+        },
+        fullscreenBody: {
+          flex: 1,
+          minHeight: 0,
+          paddingHorizontal: portraitMobile ? spacing.xs : spacing.sm,
+          paddingTop: spacing.xs,
+        },
+        sheetHost: {
+          overflow: 'hidden',
+          borderRadius: careRadius.lg,
+          backgroundColor: portalPremium.surfaceRaised,
+          borderWidth: 1,
+          borderColor: portalPremium.borderStrong,
+        },
+        body: {
+          padding: spacing.lg,
+          gap: spacing.sm,
+          backgroundColor: portalPremium.surfaceRaised,
+        },
+        subtitle: {
+          ...typography.caption,
+          color: portalPremium.text.secondary,
+          marginBottom: spacing.xs,
+        },
+        canvasSlot: {
+          width: '100%',
+          alignSelf: 'stretch',
+          flex: 1,
+          minHeight: 0,
+        },
+      }),
+    [portraitMobile],
+  );
+
+  const sheetWidth = useMemo(
+    () =>
+      Math.min(
+        screenWidth - spacing.lg * 2,
+        Math.max(DESKTOP_MIN_WIDTH, screenWidth * MOBILE_WIDTH_RATIO),
+      ),
+    [screenWidth],
+  );
+
+  const desktopCanvasHeight = Math.max(
+    DESKTOP_CANVAS_MIN_HEIGHT,
+    Math.min(520, Math.round(screenHeight * 0.5)),
+  );
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web' || fullscreen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'contain';
+
+    const blockTouchMove = blockDocumentTouchScrollOutsideSignatureCapture;
+    document.addEventListener('touchmove', blockTouchMove, { passive: false });
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.overscrollBehavior = prevOverscroll;
+      document.removeEventListener('touchmove', blockTouchMove);
+    };
+  }, [fullscreen, visible]);
+
+  const handleConfirm = useCallback(
+    (dataUrl: string) => {
+      onConfirm(dataUrl);
+    },
+    [onConfirm],
+  );
+
+  const canvas = (
+    <CareSignatureCanvas
+      size="large"
+      height={fullscreen ? undefined : desktopCanvasHeight}
+      fillAvailable={fullscreen}
+      actionLayout={fullscreen ? 'bar' : 'default'}
+      onConfirm={handleConfirm}
+      onCancel={onClose}
+      disabled={disabled}
+      showLabel={false}
+    />
+  );
+
+  const feedback = statusMessage ? (
+    <View style={{ padding: spacing.sm, gap: spacing.xs }}>
+      <Text accessibilityRole="alert" style={styles.subtitle}>{statusMessage}</Text>
+      {onCheckStatus ? <PremiumButton title="Status erneut prüfen" variant="secondary" onPress={onCheckStatus} /> : null}
+    </View>
+  ) : null;
+
+  if (fullscreen) {
+    if (!visible) return null;
+
+    return (
+      <FullscreenOverlay visible={visible} onRequestClose={onClose} testID="signature-fullscreen-overlay">
+        <OrientationGate
+          screenKey="signature"
+          active={visible}
+          options={{ autoLock: true, dismissScope, tryFullscreenOnRequest: false }}
+        >
+          <View
+            style={[
+              styles.fullscreenRoot,
+              { paddingTop: insets.top, paddingBottom: insets.bottom },
+            ]}
+            pointerEvents="box-none"
+          >
+            <View style={styles.fullscreenHeader}>
+              <PlainSignatureHeader
+                title="Unterschrift"
+                subtitle={`${label} · Bitte groß und waagerecht unterschreiben.`}
+                onClose={onClose}
+              />
+            </View>
+            <View style={styles.fullscreenBody} pointerEvents="box-none">
+              {feedback}
+              <View style={styles.canvasSlot}>{canvas}</View>
+            </View>
+          </View>
+        </OrientationGate>
+      </FullscreenOverlay>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={styles.backdrop} accessibilityViewIsModal>
+        <View style={[styles.sheetHost, { width: sheetWidth, maxHeight: screenHeight * 0.92 }]}>
+          <GradientModalHeader title="Unterschrift" onClose={onClose} />
+          <View style={styles.body}>
+            {feedback}
+            <Text style={styles.subtitle}>
+              {label} · Bitte groß und waagerecht unterschreiben. Die Schreibfläche führt Striche am Rand sicher weiter.
+            </Text>
+            <View style={styles.canvasSlot}>{canvas}</View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}

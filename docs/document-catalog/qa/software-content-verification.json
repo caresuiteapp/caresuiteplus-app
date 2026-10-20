@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-11",
+  "state": "software-content-development-draft-not-deployed",
+  "catalog": {
+    "documents": 450,
+    "categories": 25,
+    "originalIdsPreserved": 430,
+    "originalCoverSheets": 38,
+    "newSoftwareDocuments": 20,
+    "changedExistingDefinitionsVersion2": 59
+  },
+  "tests": {
+    "passed": 65,
+    "files": 8
+  },
+  "typeScript": {
+    "scope": "feature and real dependencies",
+    "introduced": [],
+    "outsideChangedLines": [
+      "src/components/layout/ScreenHeader.web.tsx(18,158): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(628,9): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(635,13): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(641,13): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(676,49): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(677,39): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(682,53): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(683,55): error TS2769: No overload matches this call.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(690,161): error TS2322: Type '{ children: Element[]; accessibilityRole: \"button\"; accessibilityLabel: string; onPress: () => void; style: { borderRadius: number; borderWidth: number; borderStyle: \"dashed\"; borderColor: string; backgroundColor: string; alignItems: \"center\"; justifyContent: \"center\"; }; dataSet: { ...; }; }' is not assignable to type 'IntrinsicAttributes & PressableProps & RefAttributes<View>'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(699,82): error TS2339: Property 'place' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(699,114): error TS2339: Property 'preferenceError' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'.",
+      "src/liquid-command/screens/CommandCenterScreen.web.tsx(700,27): error TS2339: Property 'choosePlace' does not exist on type '{ refresh: () => Promise<void>; status: \"ready\" | \"error\" | \"idle\" | \"loading\"; message: string; data: WeatherData | null; }'."
+    ],
+    "fullRepositoryCheck": "exceeded executor memory"
+  },
+  "sourceFacts": {
+    "provider": "CareSuite HealthOS Software Technologie",
+    "owner": "Kevin Reinhardt",
+    "legalForm": "Einzelunternehmen",
+    "privacySourceBlob": "231165c5e76654f725995a9dc6f7b9a23bc2fb5b",
+    "productionDatabaseRegion": "eu-central-1",
+    "productionWrites": false
+  },
+  "remaining": {
+    "legalApproval": false,
+    "clinicalApproval": false,
+    "DINConformityVerified": false,
+    "externalCertification": false,
+    "newCatalogBackendDeployed": false,
+    "liveBrowserVerification": false
+  }
+}

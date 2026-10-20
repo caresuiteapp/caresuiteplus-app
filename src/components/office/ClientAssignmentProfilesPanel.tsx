@@ -1,0 +1,925 @@
+import { usePageFlag } from '@/hooks/usePageFlag';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
+import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
+import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PremiumBadge,
+  PremiumButton,
+  PremiumCard,
+  PremiumInput,
+  SectionPanel,
+} from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useEmployeeList } from '@/hooks/useEmployeeList';
+import { useAssistAssignmentOptions } from '@/hooks/assistCatalog/useAssistCatalog';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import {
+  archiveClientAssignmentProfile,
+  listClientAssignmentProfiles,
+  saveClientAssignmentProfile,
+  validateClientAssignmentProfileInput,
+} from '@/lib/office/clientAssignmentProfileService';
+import { applyTaskPackageTasksToAssignmentProfile } from '@/lib/office/clientAssignmentProfileDuration';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { loadTaskPackageItems, mergeTaskDrafts } from '@/lib/assistCatalog';
+import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogService';
+import { subscribeToClientRecordChanges } from '@/lib/realtime';
+import type {
+  ClientAssignmentProfile,
+  ClientAssignmentProfileInput,
+} from '@/types/modules/clientAssignmentProfile';
+import type { ClientFullDetail } from '@/types/modules/client';
+import type { AssistAssignmentTaskDraft, CatalogItem } from '@/types/assistCatalog';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { colors, spacing, typography } from '@/theme';
+
+type Props = {
+  clientId: string;
+  fullClient?: ClientFullDetail | null;
+};
+
+function fullClientAddress(client?: ClientFullDetail | null): string {
+  const address = client?.addresses.find((entry) => entry.isPrimary) ?? client?.addresses[0];
+  if (!address) return '';
+  return [address.street, address.zip, address.city].filter(Boolean).join(', ');
+}
+
+function emptyInput(clientId: string, address: string): ClientAssignmentProfileInput {
+  return {
+    clientId,
+    employeeId: null,
+    profileName: '',
+    assignmentTitle: 'Betreuungseinsatz',
+    description: '',
+    durationMinutes: 60,
+    taskTitles: [],
+    taskDrafts: [],
+    serviceKey: '',
+    serviceName: '',
+    subjectKey: '',
+    assignmentTypeKey: '',
+    serviceCategoryKey: '',
+    taskPackageId: null,
+    billingBudgetSourceKey: '',
+    riskFlagKeys: [],
+    documentationTemplateKey: '',
+    proofTemplateKey: '',
+    catalogSnapshotJson: {},
+    locationAddress: address,
+    locationNotes: '',
+    notesForEmployee: '',
+    internalNotes: '',
+    clientVisibleNotes: '',
+    billingRelevant: true,
+    requiresSignature: true,
+    requiresDocumentation: true,
+    requiresRoute: true,
+    clientPortalVisible: true,
+    employeePortalVisible: true,
+  };
+}
+
+function profileToInput(profile: ClientAssignmentProfile): ClientAssignmentProfileInput {
+  return {
+    clientId: profile.clientId,
+    employeeId: profile.employeeId,
+    profileName: profile.profileName,
+    assignmentTitle: profile.assignmentTitle,
+    description: profile.description,
+    durationMinutes: profile.durationMinutes,
+    taskTitles: [...profile.taskTitles],
+    taskDrafts: profile.taskDrafts.map((task) => ({ ...task })),
+    serviceKey: profile.serviceKey,
+    serviceName: profile.serviceName,
+    subjectKey: profile.subjectKey,
+    assignmentTypeKey: profile.assignmentTypeKey,
+    serviceCategoryKey: profile.serviceCategoryKey,
+    taskPackageId: profile.taskPackageId,
+    billingBudgetSourceKey: profile.billingBudgetSourceKey,
+    riskFlagKeys: [...profile.riskFlagKeys],
+    documentationTemplateKey: profile.documentationTemplateKey,
+    proofTemplateKey: profile.proofTemplateKey,
+    catalogSnapshotJson: { ...profile.catalogSnapshotJson },
+    locationAddress: profile.locationAddress,
+    locationNotes: profile.locationNotes,
+    notesForEmployee: profile.notesForEmployee,
+    internalNotes: profile.internalNotes,
+    clientVisibleNotes: profile.clientVisibleNotes,
+    billingRelevant: profile.billingRelevant,
+    requiresSignature: profile.requiresSignature,
+    requiresDocumentation: profile.requiresDocumentation,
+    requiresRoute: profile.requiresRoute,
+    clientPortalVisible: profile.clientPortalVisible,
+    employeePortalVisible: profile.employeePortalVisible,
+  };
+}
+
+function durationLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (!hours) return `${minutes} Min.`;
+  return remainder ? `${hours} Std. ${remainder} Min.` : `${hours} Std.`;
+}
+
+function ToggleRow({
+  disabled,
+  label,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  value: boolean;
+  disabled?: boolean;
+  onValueChange: (value: boolean) => void;
+}) {
+  return (
+    <View style={styles.toggleRow}>
+      <Text style={styles.toggleLabel}>{label}</Text>
+      <Switch value={value} disabled={disabled} onValueChange={onValueChange} accessibilityLabel={label} />
+    </View>
+  );
+}
+
+type Choice = { value: string; label: string };
+
+function ChoiceChips({
+  disabled,
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  disabled?: boolean;
+  options: Choice[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <View style={styles.choiceWrap}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {options.length === 0 ? (
+        <Text style={styles.catalogHint}>Keine aktiven Vorlagen verfügbar.</Text>
+      ) : (
+        <View style={styles.choiceGrid}>
+          {options.map((option) => {
+            const selected = value === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.choice, selected && styles.choiceSelected]}
+                disabled={disabled}
+                onPress={() => onChange(option.value)}
+              >
+                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function optionalTaskDrafts(
+  selectedKeys: string[],
+  currentDrafts: AssistAssignmentTaskDraft[],
+  taskItems: CatalogItem[],
+): AssistAssignmentTaskDraft[] {
+  const catalogKeys = new Set(taskItems.map((item) => item.itemKey));
+  const packageOrManual = currentDrafts.filter((draft) => !catalogKeys.has(draft.itemKey));
+  const additional = selectedKeys.map((key, index) => {
+    const existing = currentDrafts.find((draft) => draft.itemKey === key);
+    if (existing) return existing;
+    const item = taskItems.find((candidate) => candidate.itemKey === key);
+    return {
+      catalogItemId: item?.id ?? null,
+      itemKey: key,
+      title: item?.label ?? key,
+      isRequired: false,
+      isOptional: true,
+      sortOrder: packageOrManual.length + index,
+      defaultDurationMinutes: item?.defaultDurationMinutes ?? null,
+      requiresNoteIfNotDone: Boolean(item?.payloadJson?.requiresNote),
+      notExecutable: Boolean(item?.payloadJson?.notExecutable),
+    };
+  });
+  return mergeTaskDrafts(packageOrManual, additional, new Set());
+}
+
+export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
+  return <ClientAssignmentProfilesPanelBody key={JSON.stringify([tenantId, clientId, profile?.id, profile?.roleKey])} clientId={clientId} fullClient={fullClient} />;
+}
+
+function ClientAssignmentProfilesPanelBody({ clientId, fullClient }: Props) {
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
+  const permissions = usePermissions();
+  const isReadOnly = permissions.isReadOnly || !permissions.can('assist.assignments.manage');
+  const employees = useEmployeeList();
+  const { options, loading: catalogsLoading, error: catalogsError } = useAssistAssignmentOptions();
+  const address = useMemo(() => fullClientAddress(fullClient), [fullClient]);
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return listClientAssignmentProfiles(tenantId, clientId);
+    },
+    [tenantId, clientId],
+    {
+      enabled: Boolean(tenantId && clientId),
+      queryKey: JSON.stringify([tenantId, clientId]),
+      live: {
+        tenantId,
+        subscribe: (liveTenantId, handler) =>
+          subscribeToClientRecordChanges(liveTenantId, clientId, handler),
+      },
+    },
+  );
+  const [editorOpen, setEditorOpen] = usePageFlag('ClientAssignmentProfilesPanel.editorOpen', false);
+  const [editingId, setEditingId] = useState<string | undefined>();
+  const [draft, setDraft] = useState<ClientAssignmentProfileInput>(() => emptyInput(clientId, address));
+  const [tasksText, setTasksText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [services, setServices] = useState<Choice[]>([]);
+  const [packageLoading, setPackageLoading] = useState(false);
+  const mounted = useRef(false);
+  const editorGeneration = useRef(0);
+  const packageRequest = useRef(0);
+  const mutation = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; editorGeneration.current += 1; packageRequest.current += 1; };
+  }, []);
+  const taskDraftsFromText = useMemo<AssistAssignmentTaskDraft[]>(
+    () =>
+      tasksText
+        .split('\n')
+        .map((title) => title.trim())
+        .filter(Boolean)
+        .map((title, sortOrder) => {
+          const existing = draft.taskDrafts.find((task) => task.title === title);
+          return existing ?? {
+            itemKey: `manual-${sortOrder}-${title.toLocaleLowerCase('de-DE').replace(/\s+/g, '-')}`,
+            title,
+            isRequired: true,
+            isOptional: false,
+            sortOrder,
+            requiresNoteIfNotDone: true,
+          };
+        }),
+    [draft.taskDrafts, tasksText],
+  );
+  const normalizedDraft = useMemo(
+    () => ({
+      ...draft,
+      durationMinutes: Number(draft.durationMinutes),
+      taskTitles: taskDraftsFromText.map((task) => task.title),
+      taskDrafts: taskDraftsFromText,
+    }),
+    [draft, taskDraftsFromText],
+  );
+  const validationError = useMemo(
+    () => validateClientAssignmentProfileInput(normalizedDraft),
+    [normalizedDraft],
+  );
+
+  useEffect(() => {
+    if (!editorOpen || editingId) return;
+    setDraft((current) => current.locationAddress ? current : { ...current, locationAddress: address });
+  }, [address, editingId, editorOpen]);
+
+  useEffect(() => {
+    if (!editorOpen || !tenantId) return;
+    let cancelled = false;
+    setServices([]);
+    void fetchTenantServiceCatalog(tenantId, profile?.roleKey).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      setServices(
+        result.data.items
+          .filter((item) => item.isActive && item.moduleKey === 'assist')
+          .map((item) => ({ value: item.serviceKey, label: item.name })),
+      );
+    }).catch(() => { if (!cancelled) setSaveError('Der Leistungskatalog konnte nicht geladen werden. Bitte den Editor erneut öffnen.'); });
+    return () => { cancelled = true; };
+  }, [editorOpen, profile?.roleKey, tenantId]);
+
+  function openCreate() {
+    if (mutation.current || isReadOnly) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
+    setEditingId(undefined);
+    setDraft(emptyInput(clientId, address));
+    setTasksText('');
+    setSaveError(null);
+    setEditorOpen(true);
+  }
+
+  function openEdit(item: ClientAssignmentProfile) {
+    if (mutation.current || isReadOnly || item.tenantId !== tenantId || item.clientId !== clientId) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
+    setEditingId(item.id);
+    setDraft(profileToInput(item));
+    setTasksText(item.taskTitles.join('\n'));
+    setSaveError(null);
+    setEditorOpen(true);
+  }
+
+  async function handleTaskPackageSelect(packageId: string) {
+    if (!tenantId || mutation.current || isReadOnly) return;
+    const generation = editorGeneration.current;
+    const request = ++packageRequest.current;
+    const isCurrent = () => mounted.current && generation === editorGeneration.current && request === packageRequest.current;
+    setPackageLoading(true);
+    setSaveError(null);
+    try {
+      const result = await loadTaskPackageItems(tenantId, packageId, profile?.roleKey);
+      if (!isCurrent()) return;
+      if (!result.ok) { setSaveError(result.error); return; }
+      const merged = mergeTaskDrafts(result.data, [], new Set());
+      setDraft((current) => applyTaskPackageTasksToAssignmentProfile(current, packageId, merged));
+      setTasksText(merged.map((task) => task.title).join('\n'));
+    } catch {
+      if (isCurrent()) setSaveError('Das Aufgabenpaket konnte nicht geladen werden. Bitte erneut auswählen.');
+    } finally {
+      if (isCurrent()) setPackageLoading(false);
+    }
+  }
+
+  function updateDraft(update: (current: ClientAssignmentProfileInput) => ClientAssignmentProfileInput) {
+    if (mutation.current || packageLoading) return;
+    setDraft(update);
+  }
+
+  function changeTasksText(value: string) {
+    if (mutation.current || packageLoading) return;
+    setTasksText(value);
+  }
+
+  function closeEditor() {
+    if (mutation.current) return;
+    editorGeneration.current += 1; packageRequest.current += 1; setPackageLoading(false);
+    setEditorOpen(false);
+  }
+
+  async function handleSave() {
+    if (!tenantId || mutation.current || packageLoading || isReadOnly || normalizedDraft.clientId !== clientId) return;
+    if (validationError) {
+      setSaveError(validationError);
+      return;
+    }
+    mutation.current = true;
+    const generation = editorGeneration.current;
+    const isCurrent = () => mounted.current && generation === editorGeneration.current;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const snapshot = {
+        subjectKey: normalizedDraft.subjectKey,
+        subjectLabel:
+          options?.subjects.find((item) => item.itemKey === normalizedDraft.subjectKey)?.label ?? null,
+        assignmentTypeKey: normalizedDraft.assignmentTypeKey,
+        assignmentTypeLabel:
+          options?.assignmentTypes.find((item) => item.itemKey === normalizedDraft.assignmentTypeKey)?.label ?? null,
+        serviceCategoryKey: normalizedDraft.serviceCategoryKey,
+        serviceCategoryLabel:
+          options?.serviceCategories.find((item) => item.itemKey === normalizedDraft.serviceCategoryKey)?.label ?? null,
+        serviceKey: normalizedDraft.serviceKey,
+        serviceName: normalizedDraft.serviceName,
+        taskPackageId: normalizedDraft.taskPackageId,
+        taskPackageLabel:
+          options?.taskPackages.find((item) => item.id === normalizedDraft.taskPackageId)?.label ?? null,
+        plannedDurationMinutes: normalizedDraft.durationMinutes,
+        durationSource: 'assignment_profile',
+        riskFlagKeys: normalizedDraft.riskFlagKeys,
+        riskFlagLabels: normalizedDraft.riskFlagKeys.map(
+          (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
+        ),
+        documentationTemplateKey: normalizedDraft.documentationTemplateKey || null,
+        proofTemplateKey: normalizedDraft.proofTemplateKey || null,
+      };
+      const result = await saveClientAssignmentProfile(
+        tenantId,
+        { ...normalizedDraft, catalogSnapshotJson: snapshot },
+        editingId,
+        profile?.id,
+      );
+      if (!isCurrent()) return;
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      setEditorOpen(false);
+      if (!await query.refreshWithResult() && isCurrent()) setSaveError('Das Einsatzprofil wurde gespeichert. Die Liste konnte noch nicht aktualisiert werden. Bitte erneut laden.');
+    } catch {
+      if (isCurrent()) setSaveError('Die Speicherung konnte nicht bestätigt werden. Bitte zuerst die Profil-Liste aktualisieren, bevor Sie erneut speichern.');
+    } finally {
+      mutation.current = false;
+      if (isCurrent()) setSaving(false);
+    }
+  }
+
+  async function handleArchive(item: ClientAssignmentProfile) {
+    if (!tenantId || mutation.current || isReadOnly || item.tenantId !== tenantId || item.clientId !== clientId) return;
+    mutation.current = true;
+    setSaving(true); setSaveError(null);
+    try {
+      const confirmed = await confirmAction({
+        title: 'Einsatzprofil entfernen',
+        message: `„${item.profileName}“ aus der Planung entfernen? Bereits erzeugte Einsätze bleiben unverändert.`,
+        confirmLabel: 'Profil entfernen',
+        cancelLabel: 'Abbrechen',
+      });
+      if (!confirmed || !mounted.current) return;
+      const result = await archiveClientAssignmentProfile(tenantId, item.id, profile?.id);
+      if (!mounted.current) return;
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      if (!await query.refreshWithResult() && mounted.current) setSaveError('Das Profil wurde entfernt. Die Liste konnte noch nicht aktualisiert werden. Bitte erneut laden.');
+    } catch {
+      if (mounted.current) setSaveError('Das Entfernen konnte nicht bestätigt werden. Bitte zuerst die Liste aktualisieren.');
+    } finally {
+      mutation.current = false;
+      if (mounted.current) setSaving(false);
+    }
+  }
+
+  if (query.loading && !query.data) return <LoadingState message="Einsatzprofile werden geladen…" />;
+  if (query.error && !query.data) {
+    return <ErrorState message={query.error} onRetry={query.refresh} />;
+  }
+
+  const profiles = query.data ?? [];
+
+  return (
+    <>
+      <SectionPanel
+        title="Einsatzprofile"
+        subtitle="Wiederverwendbare Einsatzvorlagen ohne Tag und Uhrzeit"
+
+      >
+        {query.refreshError ? <ErrorState message={query.refreshError} onRetry={query.refresh} /> : null}
+        {profiles.length === 0 ? (
+          <EmptyState
+            title="Noch keine Einsatzprofile"
+            message="Speichern Sie alle wiederkehrenden Einsatzdaten einmalig. Im Assist-Kalender wird später nur noch das Profil auf einen Tag gezogen und die Uhrzeit bestätigt."
+            actionLabel={!isReadOnly ? 'Erstes Einsatzprofil erstellen' : undefined}
+            onAction={!isReadOnly ? openCreate : undefined}
+          />
+        ) : (
+          <View style={styles.cards}>
+            {profiles.map((item) => (
+              <PremiumCard key={item.id} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardTitleWrap}>
+                    <Text style={styles.cardTitle}>{item.profileName}</Text>
+                    <Text style={styles.cardSubtitle}>{item.assignmentTitle}</Text>
+                  </View>
+                  <PremiumBadge label={durationLabel(item.durationMinutes)} variant="cyan" />
+                </View>
+                <Text style={styles.meta}>{item.employeeName}</Text>
+                <Text style={styles.meta}>
+                  {item.taskTitles.length} Aufgabe{item.taskTitles.length === 1 ? '' : 'n'}
+                  {item.locationAddress ? ` · ${item.locationAddress}` : ''}
+                </Text>
+                <View style={styles.badges}>
+                  {item.requiresDocumentation ? <PremiumBadge label="Dokumentation" variant="muted" /> : null}
+                  {item.requiresSignature ? <PremiumBadge label="Unterschrift" variant="muted" /> : null}
+                  {item.billingRelevant ? <PremiumBadge label="Abrechnung" variant="muted" /> : null}
+                </View>
+                {!isReadOnly ? (
+                  <View style={styles.actions}>
+                    <PremiumButton title="Bearbeiten" size="sm" variant="secondary" disabled={saving} onPress={() => openEdit(item)} />
+                    <PremiumButton title="Entfernen" size="sm" variant="ghost" disabled={saving} onPress={() => handleArchive(item)} />
+                  </View>
+                ) : null}
+              </PremiumCard>
+            ))}
+          </View>
+        )}
+        {!isReadOnly && profiles.length > 0 ? (
+          <PremiumButton title="Weiteres Einsatzprofil" variant="secondary" disabled={saving} onPress={openCreate} />
+        ) : null}
+        {saveError && !editorOpen ? <Text style={styles.error}>{saveError}</Text> : null}
+      </SectionPanel>
+
+      <AppGlassModal
+        visible={editorOpen}
+        title={editingId ? 'Einsatzprofil bearbeiten' : 'Einsatzprofil erstellen'}
+        subtitle="Kein Tag und keine Uhrzeit – diese werden erst im Kalender festgelegt."
+        onClose={closeEditor}
+        maxWidth={980}
+        isDirty={Boolean(editingId || draft.profileName.trim() || tasksText.trim())}
+        footerActions={[
+          { title: 'Abbrechen', variant: 'secondary', disabled: saving, onPress: closeEditor },
+          {
+            title: 'Einsatzprofil speichern',
+            variant: 'primary',
+            loading: saving,
+            disabled: saving || packageLoading || Boolean(validationError),
+            onPress: handleSave,
+          },
+        ]}
+      >
+        <View style={styles.form} pointerEvents={saving || packageLoading ? 'none' : 'auto'}>
+          <View style={styles.requiredNotice}>
+            <Text style={styles.requiredNoticeTitle}>Pflichtangaben</Text>
+            <Text style={styles.requiredNoticeText}>
+              Profilname, Mitarbeitende Person und mindestens eine echte Aufgabe müssen ausgefüllt
+              sein. Graue Beispieltexte sind nur Platzhalter und werden nicht gespeichert.
+            </Text>
+            {validationError ? (
+              <Text style={styles.requiredNoticeError}>{validationError}</Text>
+            ) : (
+              <Text style={styles.requiredNoticeReady}>Alle Pflichtangaben vollständig.</Text>
+            )}
+          </View>
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Profilname"
+            value={draft.profileName}
+            placeholder="z. B. Haushalt Montag"
+            onChangeText={(profileName) => updateDraft((current) => ({ ...current, profileName }))}
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Einsatzbezeichnung"
+            value={draft.assignmentTitle}
+            onChangeText={(assignmentTitle) => updateDraft((current) => ({ ...current, assignmentTitle }))}
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Beschreibung"
+            value={draft.description}
+            onChangeText={(description) => updateDraft((current) => ({ ...current, description }))}
+            multiline
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Dauer in Minuten"
+            value={String(draft.durationMinutes)}
+            keyboardType="number-pad"
+            onChangeText={(value) =>
+              updateDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
+            }
+            hint="Verbindliche Gesamtdauer des Kalenderblocks. Aufgaben-Richtzeiten ändern diesen Wert nicht."
+
+          />
+
+          <Text style={styles.fieldLabel}>Mitarbeitende Person</Text>
+          <View style={styles.employeeGrid}>
+            {employees.allItems
+              .filter((employee) => employee.status === 'aktiv')
+              .map((employee) => (
+                <PremiumButton
+                  key={employee.id}
+                  title={`${employee.firstName} ${employee.lastName}`}
+                  disabled={saving || packageLoading}
+                  size="sm"
+                  variant={draft.employeeId === employee.id ? 'primary' : 'secondary'}
+                  onPress={() => updateDraft((current) => ({ ...current, employeeId: employee.id }))}
+                />
+              ))}
+          </View>
+          {employees.error ? <Text style={styles.error}>{employees.error}</Text> : null}
+
+          <View style={styles.catalogSection}>
+            <Text style={styles.catalogTitle}>Einsatzvorlagen & Leistungskatalog</Text>
+            <Text style={styles.catalogHint}>
+              Diese Auswahl stammt direkt aus den produktiven Assist-Vorlagen und wird beim
+              Kalender-Drop vollständig in den Einsatz übernommen.
+            </Text>
+            {catalogsLoading ? <Text style={styles.catalogHint}>Vorlagen werden geladen…</Text> : null}
+            {catalogsError ? <Text style={styles.error}>{catalogsError}</Text> : null}
+            <ChoiceChips
+              disabled={saving || packageLoading}
+              label="Einsatz-Betreff"
+              options={(options?.subjects ?? []).map((item) => ({
+                value: item.itemKey,
+                label: item.label,
+              }))}
+              value={draft.subjectKey}
+              onChange={(subjectKey) => {
+                const label = options?.subjects.find((item) => item.itemKey === subjectKey)?.label;
+                updateDraft((current) => ({
+                  ...current,
+                  subjectKey,
+                  assignmentTitle: label || current.assignmentTitle,
+                }));
+              }}
+            />
+            <AssistCatalogGroupedChipSelect
+              label="Einsatzart"
+              items={options?.assignmentTypes ?? []}
+              value={draft.assignmentTypeKey}
+              onChange={(assignmentTypeKey) =>
+                updateDraft((current) => ({ ...current, assignmentTypeKey }))
+              }
+            />
+            <ChoiceChips
+              disabled={saving || packageLoading}
+              label="Leistungskategorie"
+              options={(options?.serviceCategories ?? []).map((item) => ({
+                value: item.itemKey,
+                label: item.label,
+              }))}
+              value={draft.serviceCategoryKey}
+              onChange={(serviceCategoryKey) =>
+                updateDraft((current) => ({ ...current, serviceCategoryKey }))
+              }
+            />
+            <ChoiceChips
+              disabled={saving || packageLoading}
+              label="Leistung / Abrechnung"
+              options={services}
+              value={draft.serviceKey}
+              onChange={(serviceKey) =>
+                updateDraft((current) => ({
+                  ...current,
+                  serviceKey,
+                  serviceName: services.find((service) => service.value === serviceKey)?.label ?? serviceKey,
+                }))
+              }
+            />
+          </View>
+
+          <View style={styles.catalogSection}>
+            <Text style={styles.catalogTitle}>Aufgabenpaket & Aufgaben</Text>
+            <Text style={styles.catalogHint}>
+              Ein Aufgabenpaket übernimmt die Aufgaben und deren Richtzeiten. Die Einsatzdauer
+              bleibt unabhängig davon ausschließlich die oben festgelegte Gesamtdauer.
+            </Text>
+            <View style={styles.packageGrid}>
+              {(options?.taskPackages ?? []).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.packageCard,
+                    draft.taskPackageId === item.id && styles.packageCardSelected,
+                  ]}
+                  onPress={() => void handleTaskPackageSelect(item.id)}
+                  disabled={saving || packageLoading}
+                >
+                  <Text style={styles.packageTitle}>{item.label}</Text>
+                  {item.defaultDurationMinutes ? (
+                    <Text style={styles.catalogHint}>
+                      Aufgaben-Richtzeit: {item.defaultDurationMinutes} Min.
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <AssistCatalogMultiSelect
+              items={options?.taskItems ?? []}
+              label="Zusätzliche Einzelaufgaben"
+              values={draft.taskDrafts
+                .filter((task) => options?.taskItems.some((item) => item.itemKey === task.itemKey))
+                .map((task) => task.itemKey)}
+              loading={catalogsLoading}
+              onChange={(keys) => {
+                const next = optionalTaskDrafts(keys, draft.taskDrafts, options?.taskItems ?? []);
+                updateDraft((current) => ({
+                  ...current,
+                  taskDrafts: next,
+                  taskTitles: next.map((task) => task.title),
+                }));
+                changeTasksText(next.map((task) => task.title).join('\n'));
+              }}
+            />
+          </View>
+
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Aufgaben (vollständige Einsatzliste)"
+            value={tasksText}
+            onChangeText={changeTasksText}
+            placeholder={'Eine Aufgabe pro Zeile\nEinkaufen\nWohnung reinigen'}
+            multiline
+            style={styles.multiline}
+
+          />
+          <AssistCatalogMultiSelect
+            items={options?.riskFlags ?? []}
+            label="Risiken aus dem Assist-Katalog"
+            values={draft.riskFlagKeys}
+            loading={catalogsLoading}
+            onChange={(riskFlagKeys) => updateDraft((current) => ({ ...current, riskFlagKeys }))}
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Einsatzort"
+            value={draft.locationAddress}
+            onChangeText={(locationAddress) => updateDraft((current) => ({ ...current, locationAddress }))}
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Hinweis zum Einsatzort / Zugang"
+            value={draft.locationNotes}
+            onChangeText={(locationNotes) => updateDraft((current) => ({ ...current, locationNotes }))}
+            multiline
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Hinweis für Mitarbeitende"
+            value={draft.notesForEmployee}
+            onChangeText={(notesForEmployee) => updateDraft((current) => ({ ...current, notesForEmployee }))}
+            multiline
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Interne Notiz"
+            value={draft.internalNotes}
+            onChangeText={(internalNotes) => updateDraft((current) => ({ ...current, internalNotes }))}
+            multiline
+
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Hinweis für Klientenportal"
+            value={draft.clientVisibleNotes}
+            onChangeText={(clientVisibleNotes) => updateDraft((current) => ({ ...current, clientVisibleNotes }))}
+            multiline
+
+          />
+          <ChoiceChips
+              disabled={saving || packageLoading}
+            label="Budget-/Abrechnungsquelle"
+            options={(options?.budgetSources ?? []).map((item) => ({
+              value: item.itemKey,
+              label: item.label,
+            }))}
+            value={draft.billingBudgetSourceKey}
+            onChange={(billingBudgetSourceKey) =>
+              updateDraft((current) => ({ ...current, billingBudgetSourceKey }))
+            }
+          />
+          <PremiumInput
+            editable={!saving && !packageLoading}
+            label="Dokumentationsvorlage"
+            value={draft.documentationTemplateKey}
+            onChangeText={(documentationTemplateKey) =>
+              updateDraft((current) => ({ ...current, documentationTemplateKey }))
+            }
+            placeholder="Vorlagen-Schlüssel"
+
+          />
+          <ChoiceChips
+              disabled={saving || packageLoading}
+            label="Leistungsnachweis"
+            options={[
+              { value: 'einzel', label: 'Einzel-Einsatznachweis' },
+              { value: 'monat', label: 'Monatsnachweis' },
+            ]}
+            value={draft.proofTemplateKey}
+            onChange={(proofTemplateKey) =>
+              updateDraft((current) => ({ ...current, proofTemplateKey }))
+            }
+          />
+          <View style={styles.toggles}>
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Dokumentation erforderlich"
+              value={draft.requiresDocumentation}
+              onValueChange={(requiresDocumentation) => updateDraft((current) => ({ ...current, requiresDocumentation }))}
+            />
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Unterschrift erforderlich"
+              value={draft.requiresSignature}
+              onValueChange={(requiresSignature) => updateDraft((current) => ({ ...current, requiresSignature }))}
+            />
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Abrechnungsrelevant"
+              value={draft.billingRelevant}
+              onValueChange={(billingRelevant) => updateDraft((current) => ({ ...current, billingRelevant }))}
+            />
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Anfahrt / Route erforderlich"
+              value={draft.requiresRoute}
+              onValueChange={(requiresRoute) => updateDraft((current) => ({ ...current, requiresRoute }))}
+            />
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Im Mitarbeitendenportal anzeigen"
+              value={draft.employeePortalVisible}
+              onValueChange={(employeePortalVisible) => updateDraft((current) => ({ ...current, employeePortalVisible }))}
+            />
+            <ToggleRow
+              disabled={saving || packageLoading}
+              label="Im Klientenportal anzeigen"
+              value={draft.clientPortalVisible}
+              onValueChange={(clientPortalVisible) => updateDraft((current) => ({ ...current, clientPortalVisible }))}
+            />
+          </View>
+          {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+        </View>
+      </AppGlassModal>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  cards: { gap: spacing.sm },
+  card: { gap: spacing.xs },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  cardTitleWrap: { flex: 1 },
+  cardTitle: { ...typography.label },
+  cardSubtitle: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  meta: { ...typography.caption, color: colors.textMuted },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  form: { gap: spacing.md },
+  fieldLabel: { ...typography.label, color: darkGlassSurfaceText.primary },
+  employeeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  multiline: { minHeight: 116, textAlignVertical: 'top' },
+  toggles: { gap: spacing.sm },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  toggleLabel: { ...typography.body, color: darkGlassSurfaceText.primary, flex: 1 },
+  requiredNotice: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(98, 243, 255, 0.35)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(22, 131, 255, 0.08)',
+  },
+  requiredNoticeTitle: { ...typography.label, color: darkGlassSurfaceText.primary },
+  requiredNoticeText: { ...typography.caption, color: darkGlassSurfaceText.secondary, lineHeight: 20 },
+  requiredNoticeError: { ...typography.caption, color: '#FDE68A', fontWeight: '700' },
+  requiredNoticeReady: { ...typography.caption, color: '#6EE7B7', fontWeight: '700' },
+  catalogSection: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+  },
+  catalogTitle: { ...typography.h3, color: darkGlassSurfaceText.primary },
+  catalogHint: { ...typography.caption, color: darkGlassSurfaceText.secondary, lineHeight: 19 },
+  choiceWrap: { gap: spacing.xs },
+  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  choice: {
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  choiceSelected: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(35,136,255,0.2)',
+  },
+  choiceText: { ...typography.caption, color: darkGlassSurfaceText.primary },
+  choiceTextSelected: { color: '#8ED8FF', fontWeight: '700' },
+  packageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  packageCard: {
+    minWidth: 170,
+    flexGrow: 1,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 12,
+  },
+  packageCardSelected: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(35,136,255,0.2)',
+  },
+  packageTitle: { ...typography.label, color: darkGlassSurfaceText.primary },
+  error: { ...typography.caption, color: colors.error },
+});

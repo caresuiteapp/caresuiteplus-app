@@ -1,0 +1,22 @@
+// One web workspace contract for every operator page; portal/native routes are unchanged.
+import { createElement } from 'react';
+import { PlatformConsoleWorkspace } from './PlatformConsoleWorkspace.web';
+import type { ConsoleSection } from '@/lib/platformConsole/consoleWorkspaceService';
+const page=(section:ConsoleSection)=>function ConsolePage(){return createElement(PlatformConsoleWorkspace,{section});};
+export const PlatformDashboardScreen=page('dashboard');
+export const PlatformTenantsScreen=page('tenants');
+export const PlatformPlansScreen=page('plans');
+export const PlatformAddonsOperatorScreen=page('addons');
+export const PlatformModulesCatalogScreen=page('modules');
+export const PlatformDiscountsScreen=page('discounts');
+export const PlatformBillingScreen=page('billing');
+export const PlatformPaymentsScreen=page('payments');
+export const PlatformFeatureFlagsScreen=page('feature-flags');
+export const PlatformUsersScreen=page('users');
+export const PlatformAuditScreen=page('audit');
+export const PlatformSystemScreen=page('system');
+export const PlatformReleasesScreen=page('releases');
+export { PlatformTenantDetailScreen } from './PlatformTenantDetailScreen';
+export { PlatformSupportScreen } from './PlatformSupportWorkspace.web';
+export { PlatformForbiddenScreen, PlatformIndexRedirect } from './PlatformForbiddenScreen';
+export { PlatformLoginScreen } from './PlatformLoginScreen';

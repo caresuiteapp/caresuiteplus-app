@@ -1,0 +1,327 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
+import type { DashboardKpi } from '@/types/dashboard';
+import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navigation/platform';
+import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
+import { OFFICE_SIDEBAR_QUICK_ACTIONS } from '@/lib/office/officeDashboardWorkspace';
+import { PFLEGE_SIDEBAR_QUICK_ACTIONS } from '@/lib/pflege/pflegeDashboardWorkspace';
+import {
+  BERATUNG_SIDEBAR_QUICK_ACTIONS,
+  buildBeratungOpenTasks,
+} from '@/lib/beratung/beratungDashboardWorkspace';
+import {
+  AKADEMIE_SIDEBAR_QUICK_ACTIONS,
+  buildAkademieOpenTasks,
+} from '@/lib/akademie/akademieDashboardWorkspace';
+import { STATIONAER_SIDEBAR_QUICK_ACTIONS, buildStationaerOpenTasks } from '@/lib/stationaer/stationaerDashboardWorkspace';
+import {
+  ASSIST_SIDEBAR_QUICK_ACTIONS,
+  buildAssistOpenTasks,
+} from '@/lib/assist/assistDashboardWorkspace';
+import type { AkademieDashboardStats } from '@/types/modules/akademie';
+import type { AssistDashboardStats } from '@/types/modules/assist';
+import type { AssistLiveSidebarCounters } from '@/lib/assist/assistDashboardWorkspace';
+import type { BeratungDashboardStats } from '@/types/modules/beratung';
+import type { StationaerDashboardStats } from '@/types/modules/stationaer';
+import { getModuleNavConfig } from '@/lib/navigation/moduleNav';
+
+export type ContextQuickAction = {
+  label: string;
+  icon: string;
+  href: string;
+};
+
+export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = OFFICE_SIDEBAR_QUICK_ACTIONS.map((action) => ({
+  label: action.label,
+  icon:
+    action.id === 'office-qa-client'
+      ? 'addClient'
+      : action.id === 'office-qa-employee'
+        ? 'employeeBadge'
+        : action.id === 'office-qa-appointment'
+          ? 'calendar'
+          : action.id === 'office-qa-document'
+            ? 'uploadFolder'
+            : action.id === 'office-qa-message'
+              ? 'messageWave'
+              : action.id === 'office-qa-broadcast'
+                ? 'messageWave'
+                : action.id === 'office-qa-portal'
+                  ? 'portalGlobe'
+                  : 'docsReview',
+  href: action.route ?? '/office',
+}));
+
+export const ASSIST_QUICK_ACTIONS: ContextQuickAction[] = ASSIST_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'assist-qa-plan'
+        ? 'calendar'
+        : action.id === 'assist-qa-live'
+          ? 'livePulse'
+          : action.id === 'assist-qa-proof'
+            ? 'docsReview'
+            : 'taskCheck',
+    href: action.route ?? '/assist',
+  }),
+);
+
+export const PFLEGE_QUICK_ACTIONS: ContextQuickAction[] = PFLEGE_SIDEBAR_QUICK_ACTIONS.map((action) => ({
+  label: action.label,
+  icon:
+    action.id === 'pflege-qa-visit'
+      ? 'calendar'
+      : action.id === 'pflege-qa-doc'
+        ? 'docsReview'
+        : action.id === 'pflege-qa-vital'
+          ? 'livePulse'
+          : action.id === 'pflege-qa-measure'
+            ? 'taskCheck'
+            : action.id === 'pflege-qa-handover'
+              ? 'messageWave'
+              : action.id === 'pflege-qa-plan'
+                ? 'uploadFolder'
+                : action.id === 'pflege-qa-wound'
+                  ? 'serviceRecord'
+                  : 'insightScope',
+  href: action.route ?? '/pflege',
+}));
+
+export const STATIONAER_QUICK_ACTIONS: ContextQuickAction[] = STATIONAER_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'stationaer-qa-resident'
+        ? 'addClient'
+        : action.id === 'stationaer-qa-admission'
+          ? 'calendar'
+          : action.id === 'stationaer-qa-occupancy'
+            ? 'serviceRecord'
+            : action.id === 'stationaer-qa-rooms'
+              ? 'uploadFolder'
+              : action.id === 'stationaer-qa-handover'
+                ? 'messageWave'
+                : action.id === 'stationaer-qa-daily'
+                  ? 'taskCheck'
+                  : action.id === 'stationaer-qa-meals'
+                    ? 'livePulse'
+                    : 'insightScope',
+    href: action.route ?? '/stationaer',
+  }),
+);
+
+export const BERATUNG_QUICK_ACTIONS: ContextQuickAction[] = BERATUNG_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'beratung-qa-case'
+        ? 'addClient'
+        : action.id === 'beratung-qa-first-consultation'
+          ? 'teamRoles'
+          : action.id === 'beratung-qa-protocol'
+            ? 'docsReview'
+            : action.id === 'beratung-qa-follow-up'
+              ? 'calendar'
+              : action.id === 'beratung-qa-contact'
+                ? 'messageWave'
+                : action.id === 'beratung-qa-relatives'
+                  ? 'employeeBadge'
+                  : action.id === 'beratung-qa-calendar'
+                    ? 'calendar'
+                    : 'uploadFolder',
+    href: action.route ?? '/beratung',
+  }),
+);
+
+export const AKADEMIE_QUICK_ACTIONS: ContextQuickAction[] = AKADEMIE_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'akademie-qa-course'
+        ? 'addClient'
+        : action.id === 'akademie-qa-mandatory'
+          ? 'taskCheck'
+          : action.id === 'akademie-qa-participant'
+            ? 'employeeBadge'
+            : action.id === 'akademie-qa-exam'
+              ? 'docsReview'
+              : action.id === 'akademie-qa-certificates'
+                ? 'serviceRecord'
+                : action.id === 'akademie-qa-mediathek'
+                  ? 'uploadFolder'
+                  : action.id === 'akademie-qa-plan'
+                    ? 'calendar'
+                    : 'insightScope',
+    href: action.route ?? '/akademie',
+  }),
+);
+
+/** Expanded hub nav for Office right context panel — min. 5 items per group. */
+export const officeContextPanelNav: ModuleNavConfig = {
+  moduleKey: 'office',
+  label: 'Zentrale',
+  groups: [
+    {
+      title: 'Übersicht',
+      items: [
+        { key: 'dashboard', label: 'Dashboard', icon: 'kpiChart', href: BUSINESS_HOME_ROUTE },
+        { key: 'messages', label: 'Nachrichten', icon: 'messageWave', href: '/business/messages' },
+        { key: 'reporting', label: 'Reporting', icon: 'trendChart', href: '/business/reporting' },
+        { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: 'taskCheck', href: '/business/office/access/tasks' },
+      ],
+    },
+    {
+      title: 'Organisation',
+      items: [
+        { key: 'modules', label: 'Module & Lizenzen', icon: 'pluginCrystal', href: '/business/modules' },
+        { key: 'connect', label: 'Connect & Integrationen', icon: 'connectPlug', href: '/business/connect' },
+        { key: 'subscription', label: 'Abonnement', icon: 'subscriptionCard', href: '/business/subscription' },
+        { key: 'tenant-settings', label: 'Mandant-Einstellungen', icon: 'gear', href: '/business/office/settings' },
+        { key: 'team-roles', label: 'Team & Rollen', icon: 'teamRoles', href: '/business/office/access/roles' },
+      ],
+    },
+    {
+      title: 'Insight & QM',
+      items: [
+        { key: 'insight', label: 'InsightCenter', icon: 'insightScope', href: '/insight' },
+        { key: 'qm', label: 'Qualitätsmanagement', icon: 'qmShield', href: '/business/qm' },
+        { key: 'ops', label: 'Betrieb & Monitoring', icon: 'opsConsole', href: '/business/ops' },
+        { key: 'audit-log', label: 'Audit-Log', icon: 'auditTrail', href: '/business/office/audit-log' },
+        {
+          key: 'live-monitor',
+          label: 'Live-Monitor',
+          icon: 'livePulse',
+          href: '/business/office/admin/operations-monitoring',
+        },
+      ],
+    },
+  ],
+};
+
+/** Nav groups shown below Schnellaktionen in the right context panel (Office → business hub). */
+export function resolveContextPanelNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
+  if (mainModule === 'office' || mainModule === 'zentrale') {
+    return officeContextPanelNav;
+  }
+  return getModuleNavConfig(mainModule);
+}
+
+export function buildContextPanelNavItems(mainModule: MainModuleKey): ModuleNavItem[] {
+  return resolveContextPanelNavConfig(mainModule).groups.flatMap((group) => group.items);
+}
+
+export const DEMO_MODULE_STATUS: Record<MainModuleKey, { label: string; status: string }[]> = {
+  zentrale: [
+    { label: 'Module aktiv', status: '3/6' },
+    { label: 'Nachrichten', status: '2 neu' },
+  ],
+  office: [
+    { label: 'Klient:innen', status: 'Aktiv' },
+    { label: 'Abrechnung', status: 'Prüfen' },
+  ],
+  assist: [
+    { label: 'Einsätze heute', status: '5' },
+    { label: 'Nachweise', status: '2 offen' },
+  ],
+  pflege: [
+    { label: 'Pflegepläne', status: 'Aktuell' },
+    { label: 'Vitalwerte', status: '1 Warnung' },
+  ],
+  stationaer: [
+    { label: 'Belegung', status: '92%' },
+    { label: 'Übergaben', status: '1 offen' },
+  ],
+  beratung: [
+    { label: 'Offene Fälle', status: '4' },
+    { label: 'Wiedervorlagen', status: '2 heute' },
+  ],
+  akademie: [
+    { label: 'Kurse aktiv', status: '6' },
+    { label: 'Pflichtschulungen', status: '3 fällig' },
+  ],
+  admin: [
+    { label: 'Benutzer', status: '12 aktiv' },
+    { label: 'Integrationen', status: '2 verbunden' },
+  ],
+};
+
+const DEMO_OPEN_TASKS = [
+  { title: 'Offene Aufgaben', count: 2 },
+  { title: 'Zu prüfen', count: 1 },
+];
+
+function findKpi(kpis: DashboardKpi[] | undefined, id: string): DashboardKpi | undefined {
+  return kpis?.find((kpi) => kpi.id === id);
+}
+
+export function buildOfficeModuleStatusChips(
+  kpis: DashboardKpi[] | undefined,
+): { label: string; status: string }[] {
+  const clientsKpi = findKpi(kpis, 'office-ws-kpi-clients-active') ?? findKpi(kpis, 'office-kpi-clients-active');
+  const billingKpi = findKpi(kpis, 'office-ws-kpi-billing') ?? findKpi(kpis, 'office-kpi-invoices');
+  const openBilling = Number(billingKpi?.value ?? 0);
+
+  return [
+    {
+      label: 'Klient:innen',
+      status:
+        clientsKpi && Number(clientsKpi.value) > 0
+          ? `${clientsKpi.value} aktiv`
+          : 'Keine Klient:innen',
+    },
+    {
+      label: 'Abrechnung',
+      status: openBilling > 0 ? `${openBilling} offen` : 'Nichts offen',
+    },
+  ];
+}
+
+export function buildLiveModuleStatusChips(mainModule: MainModuleKey): { label: string; status: string }[] {
+  return [{ label: 'Modul', status: mainModule === 'office' ? 'Office Live' : 'Live' }];
+}
+
+export function buildOpenTasks(
+  mainModule: MainModuleKey,
+  officeData: ReturnType<typeof useOfficeDashboard>['data'],
+  isLive: boolean,
+  stationaerStats?: StationaerDashboardStats | null,
+  beratungStats?: BeratungDashboardStats | null,
+  akademieStats?: AkademieDashboardStats | null,
+  assistStats?: AssistDashboardStats | null,
+  assistLiveCounters?: AssistLiveSidebarCounters | null,
+): { title: string; count: number | string }[] {
+  if (mainModule === 'assist') {
+    return buildAssistOpenTasks(assistStats, assistLiveCounters);
+  }
+
+  if (mainModule === 'stationaer') {
+    return buildStationaerOpenTasks(stationaerStats);
+  }
+
+  if (mainModule === 'beratung') {
+    return buildBeratungOpenTasks(beratungStats);
+  }
+
+  if (mainModule === 'akademie') {
+    return buildAkademieOpenTasks(akademieStats);
+  }
+
+  if (mainModule === 'office' && officeData) {
+    const cards = officeData.statusCards.slice(0, 3);
+    if (cards.length > 0) {
+      return cards.map((card) => ({
+        title: card.title,
+        count: card.count ?? 0,
+      }));
+    }
+    if (isLive) {
+      return [{ title: 'Keine offenen Vorgänge', count: 0 }];
+    }
+  }
+
+  if (isLive) {
+    return [{ title: 'Keine offenen Vorgänge', count: 0 }];
+  }
+
+  return DEMO_OPEN_TASKS;
+}

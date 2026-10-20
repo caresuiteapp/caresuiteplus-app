@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-07-07T17:35:00.000Z",
+  "assignmentId": "da96df00-a106-4b1c-9185-123790dea5d6",
+  "tenantId": "56180c22-b894-4fab-b55e-a563c94dd6e7",
+  "client": "Doris Niemeyer",
+  "employee": "Kathrin Pott (ffbac02b-ed53-4a0e-a9b3-b22d82c7f637)",
+  "source": "supabase_mcp_execute_sql",
+  "pr21Merged": false,
+  "mainHead": "045ef33a chore: deploy tablet deferred signature overlay fix [deploy]",
+  "fixBranchHead": "78e5fa08 Fix Assist Durchführung tab sync for deferred-signature completed visits",
+  "checks": {
+    "assignment_status_completed": {
+      "pass": true,
+      "detail": "assignments.status = completed"
+    },
+    "assist_visit_execution_status_completed": {
+      "pass": true,
+      "detail": "assist_visits.execution_status = completed"
+    },
+    "execution_state_abgeschlossen": {
+      "pass": true,
+      "detail": "assist_visit_execution_state.assignment_status = abgeschlossen, finalized_at = 2026-07-07T16:40:56Z"
+    },
+    "on_the_way_at": {
+      "pass": true,
+      "detail": "2026-07-07T07:39:28.254Z"
+    },
+    "actual_start_at": {
+      "pass": true,
+      "detail": "2026-07-07T07:53:48.536Z"
+    },
+    "actual_end_at": {
+      "pass": true,
+      "detail": "2026-07-07T16:40:51.851Z"
+    },
+    "deferred_client_signature": {
+      "pass": true,
+      "detail": "assist_visit_proofs.portal_release_status = pending_client_signature"
+    },
+    "id_split_legacy": {
+      "pass": true,
+      "detail": "visit id = assignment id (da96df00…); legacy_assignment_id self-reference — no split-id bug for this case"
+    },
+    "expected_ui_execution_label": {
+      "pass": true,
+      "detail": "Abgeschlossen (execution_status=completed in assist_visits)"
+    }
+  },
+  "expectedAssistDurchfuehrungTab": {
+    "ausfuehrungsstatus": "Abgeschlossen",
+    "unterwegsAb": "07.07.2026 ca. 09:39 MESZ",
+    "angekommen": "— (arrived_at null; Ankunft nicht separat markiert)",
+    "gestartet": "07.07.2026 ca. 09:53 MESZ",
+    "beendet": "07.07.2026 ca. 11:50 MESZ (service_ended_at — nicht Dokumentations-/Portal-Zeitpunkt 18:40)"
+  },
+  "notes": [
+    "Production DB contains full execution data after deferred finalize (16:40 UTC).",
+    "Screenshot with Ausstehend was likely taken before mirror sync completed or before hard refresh.",
+    "PR #21 (overlay/enrichment hardening) is not merged to main yet — merge recommended for split-id visits.",
+    "Browser UI smoke against caresuiteplus.app was not run (no AUDIT_BUSINESS_* credentials in cloud agent env)."
+  ],
+  "overall": "PASS_DB"
+}

@@ -1,0 +1,16 @@
+export {
+  fetchCalendarEvents,
+  fetchAssistCalendarEvents,
+  filterEventsByVisibleTypes,
+  filterEventsForAssistModule,
+  getCalendarEvents,
+  getOfficeCalendarEvents,
+  getModuleCalendarEvents,
+  getPortalCalendarEvents,
+  buildOfficeCalendarConfig,
+  buildModuleCalendarConfig,
+  archiveCalendarEvent,
+  updateCalendarEvent,
+  detectCalendarConflicts,
+  type FetchCalendarEventsOptions,
+} from '@/lib/calendar/calendarEventService';

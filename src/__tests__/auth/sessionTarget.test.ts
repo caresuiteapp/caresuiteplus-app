@@ -1,0 +1,112 @@
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
+import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
+
+describe('resolveAuthSessionTarget', () => {
+  it('redirects business users away from public start', () => {
+    const target = resolveAuthSessionTarget({
+      profile: { roleKey: 'business_admin' } as never,
+      portalSession: null,
+      user: null,
+    });
+
+    expect(target.homePath).toBe('/business');
+    expect(target.canRedirectHome).toBe(true);
+  });
+
+  it('uses user roleKey when profile roleKey is missing', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: null,
+      user: { roleKey: 'business_admin' } as never,
+    });
+
+    expect(target.hasSessionTarget).toBe(true);
+    expect(target.homePath).toBe('/business');
+    expect(target.canRedirectHome).toBe(true);
+  });
+
+  it('uses portal session roleKey when profile roleKey is missing', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: {
+        sessionToken: 'token',
+        tenantId: 'tenant-1',
+        loginType: 'client_portal',
+        roleKey: 'client_portal',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        accountId: 'cpa-1',
+        clientId: 'client-1',
+      },
+      user: null,
+    });
+
+    expect(target.roleKey).toBe('client_portal');
+    expect(target.homePath).toBe('/portal/client');
+    expect(target.canRedirectHome).toBe(true);
+  });
+
+  it('prefers active portal session role over stale profile role', () => {
+    const target = resolveAuthSessionTarget({
+      profile: { roleKey: 'business_admin' } as never,
+      portalSession: {
+        sessionToken: 'token',
+        tenantId: 'tenant-1',
+        loginType: 'client_portal',
+        roleKey: 'client_portal',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        accountId: 'cpa-1',
+        clientId: 'client-1',
+      },
+      user: { roleKey: 'business_admin' } as never,
+    });
+
+    expect(target.roleKey).toBe('client_portal');
+    expect(target.homePath).toBe('/portal/client');
+  });
+
+  it('redirects employee portal first-login before dashboard when OTP login pending', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: {
+        sessionToken: 'token',
+        tenantId: 'tenant-1',
+        loginType: 'employee_portal',
+        roleKey: 'employee_portal',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        accountId: 'epa-1',
+        employeeId: 'emp-1',
+        mustChangePassword: true,
+      },
+      user: null,
+    });
+
+    expect(target.homePath).toBe('/auth/employee-first-login?accountId=epa-1');
+    expect(target.canRedirectHome).toBe(true);
+  });
+
+  it('does not redirect authenticated users back to public start', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: null,
+      user: null,
+    });
+
+    expect(target.homePath).toBe('/');
+    expect(target.canRedirectHome).toBe(false);
+  });
+
+  it('redirects supabase session to business while roleKey is still loading', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: null,
+      user: { id: 'user-1', email: 'admin@test.de', displayName: 'Admin' } as never,
+      session: { accessToken: 'token', refreshToken: 'refresh', expiresAt: 0 } as never,
+    });
+
+    expect(target.hasSessionTarget).toBe(true);
+    expect(target.homePath).toBe('/business');
+    expect(target.canRedirectHome).toBe(true);
+  });
+});

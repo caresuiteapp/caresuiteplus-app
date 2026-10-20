@@ -1,0 +1,107 @@
+import { useCallback, useEffect, useRef } from 'react';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import {
+  clearVisitWorkflowSnapshotAsync,
+  mergeVisitWorkflowSnapshotWithExisting,
+  readVisitWorkflowSnapshot,
+  readVisitWorkflowSnapshotAsync,
+  writeVisitWorkflowSnapshotAsync,
+  type VisitWorkflowUiState,
+} from '@/lib/portal/visitWorkflowPersistence';
+import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
+
+export type { VisitWorkflowSnapshot, VisitWorkflowUiState } from '@/lib/portal/visitWorkflowPersistence';
+export {
+  clearVisitWorkflowSnapshot,
+  mergeVisitWorkflowSnapshot,
+  readVisitWorkflowSnapshot,
+  writeVisitWorkflowSnapshot,
+} from '@/lib/portal/visitWorkflowPersistence';
+
+type Options = {
+  enabled?: boolean;
+};
+
+/**
+ * Persists visit execution UI state across rotation / soft reload within the same tab session.
+ * Syncs workflow step to URL ?step= for deep-link restore.
+ */
+export function useWorkflowPersistence(visitId: string | undefined, options: Options = {}) {
+  const { enabled = true } = options;
+  const pathname = usePathname();
+  const router = useRouter();
+  const { step: urlStepRaw } = useLocalSearchParams<{ step?: string }>();
+  const urlStep = Array.isArray(urlStepRaw) ? urlStepRaw[0] : urlStepRaw;
+  const hydratedRef = useRef(false);
+  const snapshotRef = useRef<ReturnType<typeof readVisitWorkflowSnapshot>>(null);
+
+  const persist = useCallback(
+    (partial: VisitWorkflowUiState) => {
+      if (!enabled || !visitId) return;
+      const next = mergeVisitWorkflowSnapshotWithExisting(
+        snapshotRef.current ?? readVisitWorkflowSnapshot(visitId),
+        visitId,
+        pathname,
+        partial,
+      );
+      snapshotRef.current = next;
+      void writeVisitWorkflowSnapshotAsync(next);
+    },
+    [enabled, visitId, pathname],
+  );
+
+  const setStep = useCallback(
+    (step: string | null | undefined) => {
+      if (!enabled || !visitId) return;
+      persist({ step: step ?? null });
+      router.setParams({ step: step ?? undefined } as Record<string, string | undefined>);
+    },
+    [enabled, visitId, persist, router],
+  );
+
+  const restore = useCallback((): ReturnType<typeof readVisitWorkflowSnapshot> => {
+    if (!enabled || !visitId) return null;
+    return readVisitWorkflowSnapshot(visitId);
+  }, [enabled, visitId]);
+
+  const restoreAsync = useCallback(async () => {
+    if (!enabled || !visitId) return null;
+    const snapshot = await readVisitWorkflowSnapshotAsync(visitId);
+    snapshotRef.current = snapshot;
+    return snapshot;
+  }, [enabled, visitId]);
+
+  const clear = useCallback(() => {
+    if (!visitId) return;
+    snapshotRef.current = null;
+    void clearVisitWorkflowSnapshotAsync(visitId);
+    router.setParams({ step: undefined } as Record<string, string | undefined>);
+  }, [visitId, router]);
+
+  const markHydrated = useCallback(() => {
+    hydratedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !visitId || hydratedRef.current || !isVisitExecutionRoute(pathname)) return;
+    const snapshot = readVisitWorkflowSnapshot(visitId);
+    if (
+      snapshot?.step &&
+      !urlStep &&
+      visitExecutionRouteMatchesSnapshot(pathname, snapshot.route)
+    ) {
+      router.setParams({ step: snapshot.step } as Record<string, string | undefined>);
+    }
+  }, [enabled, visitId, urlStep, pathname, router]);
+
+  return {
+    urlStep: urlStep ?? null,
+    setStep,
+    persist,
+    restore,
+    restoreAsync,
+    clear,
+    hydratedRef,
+    markHydrated,
+  };
+}

@@ -1,0 +1,3 @@
+# Office-Liste — Ellen Zacharias (24./31.07.2026)
+2026-07-24 | rendered=c8969244-db7e-4f72-9570-3467e2960502::2026-07-24 | UI=bestaetigt | virtual=true | PASS
+2026-07-31 | rendered=c8969244-db7e-4f72-9570-3467e2960502::2026-07-31 | UI=bestaetigt | virtual=true | PASS

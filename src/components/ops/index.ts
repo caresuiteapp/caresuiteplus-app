@@ -1,0 +1,1 @@
+export { OpsHubHero } from './OpsHubHero';

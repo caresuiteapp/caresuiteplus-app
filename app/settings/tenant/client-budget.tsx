@@ -1,0 +1,168 @@
+import { useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import {
+  EmptyState,
+  LoadingState,
+  PremiumButton,
+  PremiumCard,
+  PremiumInput,
+  SectionPanel,
+} from '@/product-workflows/components/ui';
+import {
+  listTenantBudgetDefaults,
+  listTenantBudgetYears,
+  listTenantBudgetTypes,
+  updateTenantBudgetDefault,
+} from '@/lib/client/clientBudgetSettingsService';
+import { formatCurrency } from '@/lib/formatters/numberFormatters';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
+import { ScreenShell } from '@/product-workflows/components/layout';
+import { colors, spacing, typography } from '@/product-workflows/theme';
+
+/** Mandanten-Budget-Vorlagen — Core K.4 years, types, 2026 template. */
+export default function TenantClientBudgetDefaultsScreen() {
+  const router = useRouter();
+  const tenantId = useServiceTenantId();
+  const { isReadOnly } = usePermissions();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editMonthly, setEditMonthly] = useState('');
+  const [editYearly, setEditYearly] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const yearsQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return listTenantBudgetYears(tenantId);
+    },
+    [tenantId],
+    { enabled: !!tenantId },
+  );
+
+  const typesQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return listTenantBudgetTypes(tenantId);
+    },
+    [tenantId],
+    { enabled: !!tenantId },
+  );
+
+  const defaultsQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return listTenantBudgetDefaults(tenantId, 2026);
+    },
+    [tenantId],
+    { enabled: !!tenantId },
+  );
+
+  const loading = yearsQuery.loading || typesQuery.loading || defaultsQuery.loading;
+  const years = yearsQuery.data ?? [];
+  const types = typesQuery.data ?? [];
+  const defaults = defaultsQuery.data ?? [];
+
+  async function handleSave(defaultId: string) {
+    if (!tenantId || isReadOnly) return;
+    setSaving(true);
+    const monthly = editMonthly.trim() ? Math.round(Number(editMonthly.replace(',', '.')) * 100) : null;
+    const yearly = editYearly.trim() ? Math.round(Number(editYearly.replace(',', '.')) * 100) : null;
+    const rate = editRate.trim() ? Number(editRate.replace(',', '.')) : null;
+    const result = await updateTenantBudgetDefault(tenantId, defaultId, {
+      monthlyAmountCents: monthly != null && Number.isFinite(monthly) ? monthly : null,
+      yearlyAmountCents: yearly != null && Number.isFinite(yearly) ? yearly : null,
+      conversionRatePct: rate != null && Number.isFinite(rate) ? rate : null,
+    });
+    setSaving(false);
+    if (result.ok) {
+      setEditingId(null);
+      await defaultsQuery.refresh();
+    }
+  }
+
+  return (
+    <ScreenShell
+      title="Klient:innen-Budget-Vorlagen"
+      subtitle="Budgetjahre und Entlastungsbudget"
+      rightSlot={<PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />}
+    >
+      {loading ? <LoadingState message="Budget-Vorlagen werden geladen…" /> : null}
+
+      <SectionPanel title="Budgetjahre">
+        {years.length === 0 ? (
+          <EmptyState title="Keine Budgetjahre" message="2026-Vorlage wird bei seed_tenant_client_core_templates angelegt." />
+        ) : (
+          years.map((year) => (
+            <PremiumCard key={year.id} style={styles.card}>
+              <Text style={styles.primary}>{year.label ?? year.budgetYear}</Text>
+              <Text style={styles.secondary}>{year.isActive ? 'Aktiv' : 'Inaktiv'}</Text>
+            </PremiumCard>
+          ))
+        )}
+      </SectionPanel>
+
+      <SectionPanel title="Budgettypen">
+        {types.map((type) => (
+          <PremiumCard key={type.id} style={styles.card}>
+            <Text style={styles.primary}>{type.name}</Text>
+            <Text style={styles.secondary}>{type.period} · {type.budgetTypeKey}</Text>
+          </PremiumCard>
+        ))}
+      </SectionPanel>
+
+      <SectionPanel title="Vorlage 2026 (aus DB)">
+        {defaults.length === 0 ? (
+          <EmptyState title="Keine Defaults" message="Werte werden in der Datenbank gepflegt — nicht im Frontend hardcodiert." />
+        ) : (
+          defaults.map((def) => (
+            <PremiumCard key={def.id} style={styles.card}>
+              {editingId === def.id ? (
+                <>
+                  <PremiumInput label="Monat (€)" value={editMonthly} onChangeText={setEditMonthly} />
+                  <PremiumInput label="Jahr (€)" value={editYearly} onChangeText={setEditYearly} />
+                  <PremiumInput label="Umrechnung (%)" value={editRate} onChangeText={setEditRate} />
+                  <PremiumButton title="Speichern" loading={saving} onPress={() => handleSave(def.id)} />
+                  <PremiumButton title="Abbrechen" variant="secondary" onPress={() => setEditingId(null)} />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.secondary}>
+                    Monat: {formatCurrency(def.monthlyAmountCents ?? 0, true)}
+                    {' · '}{def.conversionRatePct ?? 0}% Umrechnung
+                    {' · '}Jahr: {formatCurrency(def.yearlyAmountCents ?? def.amountCents, true)}
+                  </Text>
+                  {!isReadOnly ? (
+                    <PremiumButton
+                      title="Bearbeiten"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => {
+                        setEditingId(def.id);
+                        setEditMonthly(def.monthlyAmountCents != null ? String(def.monthlyAmountCents / 100) : '');
+                        setEditYearly(
+                          def.yearlyAmountCents != null
+                            ? String(def.yearlyAmountCents / 100)
+                            : String(def.amountCents / 100),
+                        );
+                        setEditRate(def.conversionRatePct != null ? String(def.conversionRatePct) : '');
+                      }}
+                    />
+                  ) : null}
+                </>
+              )}
+            </PremiumCard>
+          ))
+        )}
+      </SectionPanel>
+    </ScreenShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { marginBottom: spacing.sm },
+  primary: { ...typography.label },
+  secondary: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+});

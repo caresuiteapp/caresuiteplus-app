@@ -1,0 +1,45 @@
+id,modul,dateiname,url,viewport,beschreibung,slide_nr
+SS-001,Allgemein,01-landing-startseite.png,https://caresuiteplus.app/,Desktop 1440px,CareSuite+ Startseite mit vier Anmelde-Karten,1
+SS-002,Allgemein,01b-landing-startseite-mobile.png,https://caresuiteplus.app/,iPhone 390px,Startseite mobile gestapelt,2
+SS-003,Allgemein,02-auth-business-login.png,https://caresuiteplus.app/auth/business-login,Desktop 1440px,Business-Anmeldung Verwaltung,6
+SS-004,Mitarbeiterportal,03-auth-employee-login.png,https://caresuiteplus.app/auth/employee-login,iPhone 390px,Mitarbeiterportal Login-Maske,32
+SS-005,Mitarbeiterportal,04-auth-employee-first-login.png,https://caresuiteplus.app/auth/employee-first-login,iPhone 390px,Erstlogin Passwort setzen,33
+SS-006,Klientenportal,05-auth-portal-code-login.png,https://caresuiteplus.app/auth/portal-code-login,iPhone 390px,Klientenportal Login mit Portal-Code,50
+SS-007,Allgemein,06-auth-forgot-password.png,https://caresuiteplus.app/auth/forgot-password,Desktop 1440px,Passwort vergessen Business,60
+SS-010,Office,10-office-dashboard.png,https://caresuiteplus.app/office,Desktop 1440px,Office Verwaltungs-Dashboard,7
+SS-011,Office,11-office-clients-list.png,https://caresuiteplus.app/office/clients,Desktop 1440px,Klientinnen und Klienten Liste,8
+SS-012,Office,12-office-client-record-tabs.png,https://caresuiteplus.app/business/office/clients/[id],Desktop 1440px,Klientenakte mit Registerkarten,9
+SS-013,Office,13-office-client-portal-tab.png,https://caresuiteplus.app/business/office/clients/[id]?tab=portal,Desktop 1440px,Portal und Freigaben Klient,11
+SS-014,Office,14-office-client-new-intake.png,https://caresuiteplus.app/business/office/clients/new,Desktop 1440px,Neuaufnahme Assistent,8
+SS-015,Office,15-office-employees-list.png,https://caresuiteplus.app/office/employees,Desktop 1440px,Mitarbeitendenliste,12
+SS-016,Office,16-office-personnel-file-portal.png,Office Mitarbeitende Detail Tab Portal,Desktop 1440px,Mitarbeiterportal-Zugang Personalakte,14
+SS-017,Office,17-office-access-dashboard.png,https://caresuiteplus.app/business/office/access,Desktop 1440px,Zugaenge und Benutzer,16
+SS-018,Office,18-office-messages.png,https://caresuiteplus.app/office/messages,Desktop 1440px,Interne Nachrichten,18
+SS-019,Office,19-office-calendar.png,https://caresuiteplus.app/office/calendar,Desktop 1440px,Office Kalender,17
+SS-020,Office,20-office-invoices.png,https://caresuiteplus.app/office/invoices,Desktop 1440px,Abrechnung Rechnungen,19
+SS-030,Assist,30-assist-dashboard.png,https://caresuiteplus.app/assist,Desktop 1440px,Assist Einsatzplanung Dashboard,21
+SS-031,Assist,31-assist-assignments-list.png,https://caresuiteplus.app/assist/assignments,Desktop 1440px,Einsatzliste Assist,22
+SS-032,Assist,32-assist-assignment-create.png,https://caresuiteplus.app/assist/assignments?create=1,Desktop 1440px,Neuen Einsatz anlegen,23
+SS-033,Assist,33-assist-assignment-detail.png,https://caresuiteplus.app/assist/assignments/[id],Desktop 1440px,Einsatz-Detail mit Status,24
+SS-034,Assist,34-assist-calendar.png,https://caresuiteplus.app/assist/calendar,Desktop 1440px,Assist Kalender,25
+SS-035,Assist,35-assist-durchfuehrung.png,https://caresuiteplus.app/assist/durchfuehrung,Desktop 1440px,Einsatz-Durchfuehrung,26
+SS-036,Assist,36-assist-nachweise.png,https://caresuiteplus.app/assist/nachweise,Desktop 1440px,Leistungsnachweise,27
+SS-037,Assist,37-assist-fahrten.png,https://caresuiteplus.app/assist/fahrten,Desktop 1440px,Fahrtenbuch,28
+SS-038,Assist,38-assist-live-status.png,https://caresuiteplus.app/assist/live-status,Desktop 1440px,Live-Status Karte,29
+SS-039,Assist,39-assist-zugeordnete-klienten.png,https://caresuiteplus.app/assist/zugeordnete-klienten,Desktop 1440px,Zugeordnete Klientinnen,30
+SS-040,Mitarbeiterportal,40-employee-welcome-modal.png,https://caresuiteplus.app/portal/employee,iPhone 390px,Willkommens-Popup Mitarbeiter,34
+SS-041,Mitarbeiterportal,41-employee-dashboard.png,https://caresuiteplus.app/portal/employee,iPhone 390px,Dashboard Uebersicht MA-Portal,35
+SS-042,Mitarbeiterportal,42-employee-assignments.png,https://caresuiteplus.app/portal/employee/assignments,iPhone 390px,Einsatzliste Mitarbeiterportal,37
+SS-043,Mitarbeiterportal,43-employee-assignment-detail.png,https://caresuiteplus.app/portal/employee/assignments/[id],iPhone 390px,Einsatz-Detail mit Aktionen,38
+SS-044,Mitarbeiterportal,44-employee-execution-consent.png,https://caresuiteplus.app/portal/employee/assignments/[id]/execute,iPhone 390px,GPS Einwilligung Banner,43
+SS-045,Mitarbeiterportal,45-employee-execution-unterwegs.png,https://caresuiteplus.app/portal/employee/assignments/[id]/execute,iPhone 390px,Anfahrt Unterwegs Status,44
+SS-046,Mitarbeiterportal,46-employee-execution-gestartet.png,https://caresuiteplus.app/portal/employee/assignments/[id]/execute,iPhone 390px,Laufender Einsatz Gestartet,46
+SS-047,Mitarbeiterportal,47-employee-schedule.png,https://caresuiteplus.app/portal/employee/schedule,iPhone 390px,Dienstplan Wochenansicht,39
+SS-048,Mitarbeiterportal,48-employee-messages.png,https://caresuiteplus.app/portal/employee/messages,iPhone 390px,Nachrichten MA-Portal,40
+SS-049,Mitarbeiterportal,49-employee-profile.png,https://caresuiteplus.app/portal/employee/profile,iPhone 390px,Profil mit Avatar,41
+SS-050,Mitarbeiterportal,50-employee-bottom-nav.png,https://caresuiteplus.app/portal/employee,iPhone 390px,Bottom-Nav 5 Tabs,31
+SS-051,Klientenportal,51-client-welcome-modal.png,https://caresuiteplus.app/portal/client,iPhone 390px,Willkommens-Popup Klient,51
+SS-052,Klientenportal,52-client-dashboard.png,https://caresuiteplus.app/portal/client,iPhone 390px,Klientenportal Startseite,52
+SS-053,Klientenportal,53-client-appointments.png,https://caresuiteplus.app/portal/client/appointments,iPhone 390px,Termine und Einsaetze,53
+SS-054,Klientenportal,54-client-documents.png,https://caresuiteplus.app/portal/client/documents,iPhone 390px,Dokumentenliste,54
+SS-055,Klientenportal,55-client-messages-profile.png,https://caresuiteplus.app/portal/client/messages,iPhone 390px,Nachrichten und Profil,55

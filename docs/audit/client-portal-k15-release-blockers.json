@@ -1,0 +1,288 @@
+{
+  "generatedAt": "2026-07-06T08:09:54.455Z",
+  "baseUrl": "http://localhost:8091",
+  "k14Baseline": {
+    "passed": 44,
+    "failed": 10,
+    "total": 54
+  },
+  "summary": {
+    "passed": 40,
+    "failed": 0,
+    "total": 40
+  },
+  "checks": [
+    {
+      "id": "seed_k15",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "login",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "signature_db_open_count",
+      "pass": true,
+      "detail": "1 offene Anfrage(n)",
+      "count": 1
+    },
+    {
+      "id": "signature_cross_link",
+      "pass": true,
+      "detail": "cross_link"
+    },
+    {
+      "id": "signature_list_visible",
+      "pass": true,
+      "detail": "list"
+    },
+    {
+      "id": "signature_detail_visible",
+      "pass": true,
+      "detail": "detail_c0e5e001"
+    },
+    {
+      "id": "signature_sign_area",
+      "pass": true,
+      "detail": "sign_cta"
+    },
+    {
+      "id": "signature_history_area",
+      "pass": true,
+      "detail": "history_or_status"
+    },
+    {
+      "id": "signature_no_misleading_pdf",
+      "pass": true,
+      "detail": "no_false_pdf_promise"
+    },
+    {
+      "id": "proofs_db_count",
+      "pass": true,
+      "detail": "1 Nachweis(e)",
+      "count": 1
+    },
+    {
+      "id": "proofs_screen_loads",
+      "pass": true,
+      "detail": "proofs_route"
+    },
+    {
+      "id": "proofs_card_visible",
+      "pass": true,
+      "detail": "proof_card"
+    },
+    {
+      "id": "proofs_status_visible",
+      "pass": true,
+      "detail": "status"
+    },
+    {
+      "id": "proofs_action_honest",
+      "pass": true,
+      "detail": "action_shown"
+    },
+    {
+      "id": "iphone_inbox_visible",
+      "pass": true,
+      "detail": "inbox"
+    },
+    {
+      "id": "iphone_thread_row_visible",
+      "pass": true,
+      "detail": "thread_row"
+    },
+    {
+      "id": "iphone_thread_opens",
+      "pass": true,
+      "detail": "deeplink_composer_visible"
+    },
+    {
+      "id": "iphone_thread_container",
+      "pass": true,
+      "detail": "messenger-mobile-thread"
+    },
+    {
+      "id": "iphone_composer_visible",
+      "pass": true,
+      "detail": "messaging-composer"
+    },
+    {
+      "id": "iphone_composer_input",
+      "pass": true,
+      "detail": "input"
+    },
+    {
+      "id": "iphone_composer_send",
+      "pass": true,
+      "detail": "send"
+    },
+    {
+      "id": "iphone_back_visible",
+      "pass": true,
+      "detail": "back_to_list"
+    },
+    {
+      "id": "iphone_bottom_nav_hidden",
+      "pass": true,
+      "detail": "hidden"
+    },
+    {
+      "id": "iphone_back_to_inbox",
+      "pass": true,
+      "detail": "inbox_restored"
+    },
+    {
+      "id": "iphone_deeplink_loads",
+      "pass": true,
+      "detail": "composer_ready"
+    },
+    {
+      "id": "iphone_deeplink_title",
+      "pass": true,
+      "detail": "thread_context"
+    },
+    {
+      "id": "iphone_deeplink_composer",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "iphone_deeplink_no_eternal_loading",
+      "pass": true,
+      "detail": "loading_ended"
+    },
+    {
+      "id": "ipad_split_composer",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "ipad_split_back_na",
+      "pass": true,
+      "detail": "split_view_no_back_required",
+      "skipped": true
+    },
+    {
+      "id": "ipad_deeplink_loads",
+      "pass": true,
+      "detail": "composer_ready"
+    },
+    {
+      "id": "ipad_deeplink_title",
+      "pass": true,
+      "detail": "thread_context"
+    },
+    {
+      "id": "ipad_deeplink_composer",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "ipad_deeplink_no_eternal_loading",
+      "pass": true,
+      "detail": "loading_ended"
+    },
+    {
+      "id": "desktop_split_composer",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "desktop_split_back_na",
+      "pass": true,
+      "detail": "split_view_no_back_required",
+      "skipped": true
+    },
+    {
+      "id": "desktop_deeplink_loads",
+      "pass": true,
+      "detail": "composer_ready"
+    },
+    {
+      "id": "desktop_deeplink_title",
+      "pass": true,
+      "detail": "thread_context"
+    },
+    {
+      "id": "desktop_deeplink_composer",
+      "pass": true,
+      "detail": "composer"
+    },
+    {
+      "id": "desktop_deeplink_no_eternal_loading",
+      "pass": true,
+      "detail": "loading_ended"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "signatures_list_iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/signatures_list_iphone.png"
+    },
+    {
+      "name": "signature_detail_iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/signature_detail_iphone.png"
+    },
+    {
+      "name": "proofs_iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/proofs_iphone.png"
+    },
+    {
+      "name": "iphone_messenger_thread",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/iphone_messenger_thread.png"
+    },
+    {
+      "name": "iphone_messenger_inbox_after_back",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/iphone_messenger_inbox_after_back.png"
+    },
+    {
+      "name": "deeplink_thread__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/deeplink_thread__iphone.png"
+    },
+    {
+      "name": "split_thread__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/split_thread__ipad.png"
+    },
+    {
+      "name": "deeplink_thread__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/deeplink_thread__ipad.png"
+    },
+    {
+      "name": "split_thread__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/split_thread__desktop.png"
+    },
+    {
+      "name": "deeplink_thread__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k15-release-blockers-screenshots/deeplink_thread__desktop.png"
+    }
+  ],
+  "dataAudit": {
+    "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+    "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+    "openSignatureRequests": [
+      {
+        "id": "c0e5e001-e001-4000-8000-000000000001",
+        "status": "sent",
+        "title": "E2E Einwilligung Klient:innenportal"
+      }
+    ],
+    "openSignatureQueryOk": true,
+    "portalProofs": [
+      {
+        "id": "c0e50003-0003-4000-8000-000000000003",
+        "title": "E2E Leistungsnachweis K.1.5",
+        "status": "aktiv",
+        "storage_path": "audit/content-portal/e2e-k15-proof.pdf"
+      }
+    ],
+    "assistVisitProofs": [],
+    "proofsQueryOk": true
+  },
+  "deployApproved": false,
+  "login": {
+    "displayName": "Erika Mustermann"
+  }
+}
