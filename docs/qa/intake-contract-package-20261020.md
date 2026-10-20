@@ -1,6 +1,6 @@
 # Aufnahme: Leistungsauswahl und gemeinsames Vertragspaket
 
-Stand: 20.10.2026. Ursprünglicher Stand: PR #136, Produktionsbuild für `cf2b05b20627fd95221daf3ecc71dd39ab96eb04` erfolgreich. Aktueller Hotfix: `fix/intake-signing-recovery-20261020`.
+Stand: 20.10.2026. PR #136 und PR #138 sind produktiv gebaut. Aktueller Hotfix: `fix/intake-corrections-storage-20261020`.
 
 Die Leistungsauswahl lud den Katalog bei jedem Rendern neu, weil das Standard-Filterobjekt die Ladeabhängigkeit ständig änderte. Der Hook hängt nun von den einzelnen Filterwerten ab. Veraltete Antworten nach einem Mandantenwechsel werden verworfen; Ladefehler enden mit einer Rückmeldung und erneuter Lademöglichkeit. Ausgewählte Leistungen sind in der Webansicht mit Häkchen und blauer Fläche erkennbar.
 
@@ -10,9 +10,9 @@ Der neue Aufnahmedialog speichert das vollständig unterzeichnete Paket sofort �
 
 ## Geprüft
 
-- 315 Tests aus allen 20 Aufnahme-Regressionssuiten bestanden, einschließlich Paketinteraktion, Speicherwiederholung, Mandantenwechsel, Originalschutz und Serververifikation des gemeinsam unterschriebenen Pakets.
+- 322 Tests aus allen 21 Aufnahme-Regressionssuiten bestanden, einschließlich Paketinteraktion, Speicherwiederholung, Mandantenwechsel, Originalschutz und Serververifikation des gemeinsam unterschriebenen Pakets.
 - 22 lokale SQL-Transaktionstests bestanden. Keine produktiven Klientendaten für Testschreibzugriffe verwendet.
-- Gezielte TypeScript-Prüfung von 13 geänderten und unmittelbar abhängigen TypeScript-Dateien ohne Diagnose.
+- Gezielte TypeScript-Prüfung von 14 geänderten und unmittelbar abhängigen TypeScript-Dateien ohne Diagnose.
 - Abgleich des vorhandenen gemeinsamen App-/Edge-Verifizierers bestanden.
 - Die neue Weboberfläche lässt sich mit dem vorhandenen Bundler übersetzen. `git diff --check` ohne Fehler.
 
@@ -22,9 +22,17 @@ Der neue Screenshot zeigt vier fehlende Pflichtangaben für ausgewählte Zusatzd
 
 Außerdem überdeckte die Paketvorschau mit ihrem höheren z-index beide Varianten des vorhandenen Unterschriftsdialogs. Während der Erfassung wird der Paket-Portal einschließlich seines Fokusfangs nun entfernt. Nach Übernehmen oder Abbrechen kehrt die unveränderte Paketansicht zurück. Die Interaktionstests verwenden den echten Desktop-Modal und den echten Web-Vollbild-Portal; nur die Canvas-Ausgabe, Geräte-APIs und Katalogsuche sind Testgrenzen. Die Tests belegen damit Zustandswechsel und Portal-Verhalten, keine Pixel- oder Freihandzeichnungsprüfung.
 
+## Nachtrag: „Angaben ergänzen“ und Speicherlimit
+
+React verwendete dieselbe Schaltfläche zuerst als `type="button"` zum Öffnen und unmittelbar danach als `type="submit"` mit Formularzuordnung zum Übernehmen. Die native Button-Aktivierung nach der Klickverarbeitung konnte dadurch das gerade geöffnete Formular sofort absenden und wieder zur Vorschau wechseln. Die Aktionsgruppe wird beim Phasenwechsel nun neu angelegt. Der Regressionstest bildet diese nachgelagerte Aktivierung ausdrücklich ab: Er scheitert vor der Korrektur und hält danach die vier Eingaben geöffnet. Happy DOMs vereinfachtes `click()` hatte diesen Browserablauf bisher nicht abgebildet.
+
+Der Screenshot zeigt außerdem `QuotaExceededError` beim Schreiben des lokalen Entwurfs. Vollständige Dokumente enthalten eingebettete Schriften; Entwurf, Serververgleich und ausstehende Speicheranfrage enthalten weitere exakte Kopien. Web/ Desktop speichert diese Daten nun verlustfrei in einer eigenen IndexedDB außerhalb der löschbaren App-Caches. Die bestehenden Schlüssel bleiben nach Mandant, Benutzer und Klient getrennt. Alte lokale Entwürfe bleiben lesbar; ihr lokaler Alteintrag wird erst nach bestätigtem Transaktionsabschluss der neuen Kopie entfernt. Fehlgeschlagene Schreibvorgänge erhalten die alte Fassung. Serverrevision, ausstehende Operations-ID, Original-HTML und Unterschriften bleiben unverändert; der vorhandene Server-Speicherweg wird weiter verwendet. Android behält seine bisherige Speicherimplementierung.
+
+Zusätzliche Prüfungen decken ein tatsächlich gerendertes und unterschriebenes Gesamtpaket über 5 MiB mit Historie und exakter Wiederholungsanfrage, Abbruch nach Request-Erfolg vor Transaktionsabschluss, blockierten Datenbankzugriff mit erneutem Versuch, fehlgeschlagene Altbereinigung, gezieltes Löschen und Mandanten-/Benutzertrennung ab. Die IndexedDB-Transaktionen werden wie in den bestehenden Offline-Suiten im Speicher modelliert. Dies ersetzt keinen echten Browsertest.
+
 ## Prüfgrenzen
 
 - Die vollständige projektweite TypeScript-Prüfung wurde zweimal vom Arbeitsspeicherlimit beendet. Die gezielte Prüfung ist kein Ersatz für den kompletten Release-Build.
 - Die breite und schmale Darstellung muss noch im Browser kontrolliert werden. Der verfügbare Cloud-Browser erreicht den lokalen Testserver nicht; lokale Datei-URLs wurden von seiner Sicherheitsrichtlinie gesperrt. Eine optische Freigabe liegt damit nicht vor.
-- Der ursprüngliche Stand wurde nach ausdrücklicher Veröffentlichungs- und Deploy-Freigabe über PR #136 in `main` übernommen; sein Produktionsbuild ist erfolgreich. Der Hotfix muss seinen eigenen vollständigen Produktionsbuild durchlaufen.
+- Der ursprüngliche Stand wurde nach ausdrücklicher Veröffentlichungs- und Deploy-Freigabe über PR #136 in `main` übernommen; sein Produktionsbuild ist erfolgreich. PR #138 hat ebenfalls einen erfolgreichen Produktionsbuild. Der aktuelle Hotfix muss seinen eigenen vollständigen Produktionsbuild durchlaufen.
 - Der Vercel-Connector lieferte beim Abruf der Deployments für das zugehörige Projekt HTTP 403; ein angemeldeter lokaler Vercel-CLI-Zugang ist nicht vorhanden.

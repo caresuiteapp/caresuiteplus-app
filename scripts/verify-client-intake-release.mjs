@@ -12,6 +12,7 @@ const clientSuites = [
   'clientIntakeDocumentPackageInteraction.test.tsx',
   'clientIntakeDraftRepository.test.ts',
   'clientIntakeDraftStorage.test.ts',
+  'clientIntakeDraftStorageWeb.test.ts',
   'clientIntakeExperienceInteraction.test.tsx',
   'clientIntakeSectionsInteraction.test.tsx',
   'clientIntakeWizardLifecycle.test.tsx',
