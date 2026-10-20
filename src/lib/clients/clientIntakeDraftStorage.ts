@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import draftStorage from './clientIntakeDraftStore';
 import { createEmptyIntakeForm } from '@/lib/clients/clientIntakeService';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
 import { isUuid } from '@/lib/validation/uuid';
@@ -102,8 +102,8 @@ export async function loadClientIntakeDraft(
   tenantId: string,
   clientId?: string,
 ): Promise<ClientIntakeDraft | null> {
-  const raw = (isUuid(clientId) ? await AsyncStorage.getItem(storageKey(userId, tenantId, clientId)) : null)
-    ?? await AsyncStorage.getItem(storageKey(userId, tenantId));
+  const raw = (isUuid(clientId) ? await draftStorage.getItem(storageKey(userId, tenantId, clientId)) : null)
+    ?? await draftStorage.getItem(storageKey(userId, tenantId));
   if (!raw) return null;
 
   try {
@@ -170,30 +170,30 @@ export async function saveClientIntakeDraft(
 
   const latestKey = storageKey(userId, tenantId);
   // Keep a different locally edited intake recoverable when opening a known ID.
-  const previousRaw = await AsyncStorage.getItem(latestKey);
+  const previousRaw = await draftStorage.getItem(latestKey);
   if (previousRaw) {
     let previous: Partial<ClientIntakeDraft> | null = null;
     try { previous = JSON.parse(previousRaw) as Partial<ClientIntakeDraft>; }
     catch { /* Keep the valid new draft independently recoverable. */ }
     if (isUuid(previous?.clientId) && previous.clientId !== payload.clientId) {
       const previousKey = storageKey(userId, tenantId, previous.clientId);
-      if (!await AsyncStorage.getItem(previousKey)) await AsyncStorage.setItem(previousKey, previousRaw);
+      if (!await draftStorage.getItem(previousKey)) await draftStorage.setItem(previousKey, previousRaw);
     }
   }
   const serialized = JSON.stringify(payload);
-  if (payload.clientId) await AsyncStorage.setItem(storageKey(userId, tenantId, payload.clientId), serialized);
-  await AsyncStorage.setItem(latestKey, serialized);
+  if (payload.clientId) await draftStorage.setItem(storageKey(userId, tenantId, payload.clientId), serialized);
+  await draftStorage.setItem(latestKey, serialized);
 }
 
 export async function clearClientIntakeDraft(userId: string, tenantId: string, clientId?: string): Promise<void> {
   const latestKey = storageKey(userId, tenantId);
-  if (!isUuid(clientId)) { await AsyncStorage.removeItem(latestKey); return; }
-  const latest = await AsyncStorage.getItem(latestKey);
-  await AsyncStorage.removeItem(storageKey(userId, tenantId, clientId));
+  if (!isUuid(clientId)) { await draftStorage.removeItem(latestKey); return; }
+  const latest = await draftStorage.getItem(latestKey);
+  await draftStorage.removeItem(storageKey(userId, tenantId, clientId));
   if (latest) {
     let latestClientId: unknown;
     try { latestClientId = (JSON.parse(latest) as Partial<ClientIntakeDraft>).clientId; }
     catch { /* Do not remove an unrelated or unrecognized local draft. */ }
-    if (latestClientId === clientId) await AsyncStorage.removeItem(latestKey);
+    if (latestClientId === clientId) await draftStorage.removeItem(latestKey);
   }
 }

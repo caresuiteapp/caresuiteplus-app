@@ -138,6 +138,23 @@ describe('package preview and shared signature interaction', () => {
     expect(h.save).toHaveBeenCalledTimes(1);
     expect(h.save.mock.calls[0][0].intakeDocuments.every((d: any) => d.status === 'finalized')).toBe(true);
   });
+  it('keeps corrections open after the opening click completes its native button activation', async () => {
+    await remount({ insuranceNumber: '', careFundName: '', emergencyContactName: '', emergencyContactPhone: '' });
+    await click('Gesamte Vorschau öffnen');
+    const opener = button('Angaben ergänzen');
+    await act(async () => {
+      opener.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    // Browsers run button activation after the click handlers/React update.
+    // Happy DOM's click() snapshots type before dispatch and misses this case.
+    await act(async () => {
+      if (opener.isConnected && opener.type === 'submit') opener.form?.requestSubmit(opener);
+    });
+    expect(document.querySelector('input[name="insuranceNumber"]')).not.toBeNull();
+    expect(document.querySelector('input[name="emergencyContactPhone"]')).not.toBeNull();
+    expect(document.querySelector('iframe')).toBeNull();
+    expect(h.save).not.toHaveBeenCalled();
+  });
   it('removes only explicitly declined extras and then signs all remaining documents', async () => {
     await remount({ insuranceNumber: '', careFundName: '', emergencyContactName: '', emergencyContactPhone: '' });
     await click('Gesamte Vorschau öffnen'); await click('Angaben ergänzen');
