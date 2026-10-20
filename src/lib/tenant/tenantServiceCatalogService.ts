@@ -17,7 +17,7 @@ import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServic
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import { formatServicePriceUnitShort } from '@/lib/tenant/serviceCatalogLabels';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
-import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
 import {
   DEFAULT_TRAVEL_COMPENSATION_POLICY,
   normalizeTravelCompensationPolicy,
@@ -484,7 +484,7 @@ export async function saveTenantServiceCatalogItem(
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
     if (!input.name.trim()) return { ok: false, error: 'Bitte eine Bezeichnung eingeben.' };
-    if (isUnreleasedModuleKey(input.moduleKey)) return { ok: false, error: 'Dieser Katalog ist noch nicht freigegeben.' };
+    if (isUnreleasedCatalogModuleKey(input.moduleKey)) return { ok: false, error: 'Dieser Katalog ist noch nicht freigegeben.' };
     if (!['assist', 'pflege', 'stationaer', 'beratung'].includes(input.moduleKey) || !['service', 'travel', 'surcharge'].includes(input.category) || !['hour', 'visit', 'day', 'flat', 'km', 'percent'].includes(input.unit)) {
       return { ok: false, error: 'Bitte einen gültigen Katalog, eine Kategorie und eine Abrechnungseinheit auswählen.' };
     }

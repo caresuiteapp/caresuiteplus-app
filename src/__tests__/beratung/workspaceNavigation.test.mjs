@@ -12,6 +12,8 @@ async function navigation(platform, enabled) {
       export * from './src/liquid-command/navigation/desktopAppCatalogModel';
       export * from './src/liquid-command/navigation/appsWidgetsCatalogModel.web';
       export * from './src/lib/navigation/routes';
+      export { buildCatalogWorkspace } from './src/lib/catalog/catalogWorkspaceModel.web';
+      export { filterCompanyCatalog } from './src/lib/tenant/tenantServiceCatalogEditor';
     `, resolveDir: root, loader: 'ts' },
     bundle: true, write: false, platform: 'node', format: 'esm',
     define: { 'process.env.EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED': JSON.stringify(String(enabled)) },
@@ -30,6 +32,14 @@ for (const [platform, enabled] of [['web', false], ['web', true], ['android', tr
     const released = platform === 'web' && enabled;
     assert.equal(n.isUnreleasedModuleKey('beratung'), !released);
     assert.ok(n.SPECIALTY_MODULE_KEYS.includes('beratung'));
+    // Releasing visit documentation must not release the unfinished price catalog.
+    const catalogItems = ['assist', 'pflege', 'stationaer', 'beratung'].map(moduleKey => ({
+      id: moduleKey, moduleKey, serviceKey: `${moduleKey}.test`, name: 'Leistung',
+      description: '', category: 'service', unit: 'hour', isActive: true, sortOrder: 1,
+      defaultPriceNet: null, defaultTaxMode: 'none',
+    }));
+    assert.deepEqual(n.filterCompanyCatalog(catalogItems, 'all', '').map(item => item.moduleKey), ['assist']);
+    assert.deepEqual(n.buildCatalogWorkspace([], [], ['assist', 'pflege', 'stationaer', 'beratung'], true, '2026-10-19').catalogs.map(item => item.moduleKey), ['assist']);
     for (const module of ['pflege', 'stationaer', 'akademie']) {
       assert.equal(n.isUnreleasedModuleKey(module), true);
       assert.equal(n.getUnreleasedModuleKeyFromPath(`/${module}/detail`), module);

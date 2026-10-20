@@ -86,6 +86,7 @@ describe('company catalogue confirms price persistence', () => {
   it('rejects locked modules and invalid validity periods before any write', async () => {
     for (const patch of [
       { moduleKey: 'pflege' as const },
+      { moduleKey: 'beratung' as const },
       { validFrom: '2026-02-30' },
       { validFrom: '2026-10-19', validTo: '2026-10-18' },
       { validFrom: '' },

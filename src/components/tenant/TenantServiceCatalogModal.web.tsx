@@ -2,7 +2,7 @@ import type { PermissionKey } from '@/types';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { usePermissions } from '@/hooks/usePermissions';
-import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
 import { fetchTenantServiceCatalog, fetchTenantServicePriceHistory, saveTenantServiceCatalogItem, type TenantServicePriceVersion } from '@/lib/tenant/tenantServiceCatalogService';
 import { filterCompanyCatalog, formatCatalogPrice, parseCatalogAmount, type CatalogCategoryFilter } from '@/lib/tenant/tenantServiceCatalogEditor';
 import { formatServicePriceUnit, formatServiceTaxMode, SERVICE_TAX_MODE_OPTIONS } from '@/lib/tenant/serviceCatalogLabels';
@@ -52,7 +52,7 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
 
 export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey = 'assist', initialCategory, initialItemId, startCreating = false, startWithTemplates = false, onClose, onSaved, effectivePermissions }: TenantServiceCatalogModalProps) {
   const { roleKey, can } = usePermissions();
-  const moduleLocked = isUnreleasedModuleKey(initialModuleKey);
+  const moduleLocked = isUnreleasedCatalogModuleKey(initialModuleKey);
   const allowed = !moduleLocked && (effectivePermissions ? effectivePermissions.includes('business.tenant.manage') : can('business.tenant.manage'));
   const [items, setItems] = useState<TenantServiceCatalogItem[]>([]);
   const [prices, setPrices] = useState<TenantServicePrice[]>([]);
