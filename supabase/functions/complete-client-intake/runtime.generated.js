@@ -1482,7 +1482,7 @@ function validateIntakeDocumentsStep(form, templates) {
     complete: contractOk
   });
   if (!contractOk) {
-    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung vollst\xE4ndig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
+    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung vollst\xE4ndig und mit den erforderlichen Unterschriften abgeschlossen sein. Bis dahin als Entwurf speichern. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
   }
   if (form.intakeAssignmentEnabled) {
     const assignmentTemplate = templates.find((t) => t.templateKey === ASSIGNMENT_TEMPLATE_KEY);

@@ -87,7 +87,7 @@ export function validateIntakeDocumentsStep(
   });
   if (!contractOk) {
     errors.intakeContract =
-      `Kundenvertrag muss vor der Aktivierung vollständig und mit den erforderlichen Unterschriften abgeschlossen sein. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
+      `Kundenvertrag muss vor der Aktivierung vollständig und mit den erforderlichen Unterschriften abgeschlossen sein. Bis dahin als Entwurf speichern. ${describeIncompleteDocument(contractDoc, contractTemplate)}`;
   }
 
   if (form.intakeAssignmentEnabled) {
