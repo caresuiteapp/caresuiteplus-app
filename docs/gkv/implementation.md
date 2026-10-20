@@ -5,6 +5,12 @@ klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
 
+Der Auftrag umfasst seit 20.10.2026 ausdrücklich **Eigenentwicklung von DTA und
+KIM einschließlich eigenem Fachdienst**. Der neue ausführbare Dienstkern und die
+noch offenen Integrations-/Zulassungsschritte sind in
+[own-services.md](own-services.md) beschrieben. Ein externer DTA- oder KIM-Anbieter
+ist nicht mehr die vorgesehene Implementierungsabhängigkeit.
+
 ## Verbindliche Quellen und Versionsstand
 
 Maßgeblich sind die Originalunterlagen auf der
@@ -85,7 +91,7 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
 | KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Serverseitige Paket-/MIME-Vorbereitung und Prüfverträge vorhanden; XML-Erzeuger, echte XSD-/CMS-Prüfer und TI-Dienst fehlen |
-| Verschlüsselter klassischer Echtversand | Interne Vorbereitung mit Prüfung der tatsächlichen Ciphertext-Bytes und AUF-Länge; konkreter Kryptografie-/Transportdienst und dauerhafte Versandwarteschlange fehlen |
+| Verschlüsselter klassischer Echtversand | Eigener SECON-/TLS-SMTP-Kern und verschlüsselte dauerhafte Outbox lokal integriert und getestet; kanonischer Freigabe-/Reservierungsablauf und Betriebsanschluss fehlen |
 
 Bei TA 1 Version 6.4.0 ist KIM auf die dort genannten Leistungsarten 01, 07
 und 10 beschränkt; bei 10 gilt zusätzlich die Einschränkung auf ambulante
@@ -207,7 +213,8 @@ Die Oberfläche bleibt beim Prüfexport. Die neuen Funktionen leisten:
   Prüfung des vom Kryptografieadapter erzeugten PKCS#7-Containers auf Inhalt,
   Signatur-/Empfängerbindung und Hash; AUF aus der tatsächlichen verschlüsselten
   Dateilänge mit Kennzeichen 02/02. Ein unverändertes Klartext-Ergebnis wird
-  abgewiesen. Der unabhängige Kryptografieadapter selbst ist noch nicht vorhanden.
+  abgewiesen. Der konkrete Adapter `services/gkv/secon.mjs` erzeugt und prüft
+  diesen Container mit OpenSSL; Details und echte Kryptografietests siehe own-services.md.
 - KIM: Begrenzung auf 15.000.000 XML-Bytes, gültiges UTF-8 ohne BOM, Bindung des
   Prüfbelegs an die Datei und des Schema-/Signaturprüfers an Leistungserbringer,
   Kasse, Leistungsart, Monat und logische Version 1.2.0. Der Prüfer muss jede
@@ -226,10 +233,13 @@ Die Oberfläche bleibt beim Prüfexport. Die neuen Funktionen leisten:
   Zweitübermittlung. `sent` bedeutet lediglich Provider-Übernahme, weder Zustellung,
   fachliche Annahme noch Zahlung.
 
-**Noch nicht implementiert/angeschlossen:** dauerhafter transaktionaler Claim und
-Outbox, Reservierung über mehrere Abrechnungspakete, aktuelle serverseitige
+**Lokal implementiert:** dauerhafter transaktionaler Claim, verschlüsselte Outbox
+und paketübergreifende Reservierung im eigenen Versanddienst; TLS-/STARTTLS-SMTP
+mit genau einem Dateipaar und ohne automatische Wiederholung.
+**Noch nicht implementiert/angeschlossen:** atomare Reservierung gegenüber den
+kanonischen Office-Rechnungen in Supabase, aktuelle serverseitige
 Quell-/Routing-/Zertifikatsprüfung im Versandablauf, Virenprüfer, unveränderliche
-Artefaktablage, VZD-Adressbindung, konkreter Versandadapter, sichere Provider-
+Aufbewahrung mit Betriebs-/Backupkonzept, VZD-Adressbindung, sichere Quittungs-
 Quittungsabfrage und Rückmeldeverarbeitung. Ein In-Memory-Journal ist ausschließlich
 Testdouble und darf keinen Echtbetrieb tragen. Ein Client-Hash oder Häkchen ist
 kein serverseitiger Prüfbeleg. Die KIM-Adressen müssen aus dem verifizierten
@@ -237,9 +247,11 @@ serverseitigen Routing stammen; syntaktische Mailprüfung allein reicht nicht.
 
 Am 20.10.2026 ergab die schreibgeschützte Prüfung der verbundenen Supabase-Datenbank:
 `public.ti_providers` enthält keine Einträge. Die vorhandenen Edge-Funktionen
-enthalten keinen DTA-/KIM-Transport. Provider-Zugang, API-Vertrag, Annahmestellen-
-Teilnahme und Zertifikate/SMC-B werden für die konkrete Anschlussimplementierung
-benötigt. Es wurden keine Echtdaten übermittelt und keine Providerdaten ergänzt.
+enthalten keinen DTA-/KIM-Transport. Die neuen eigenen Dienste liegen im Repository,
+sind aber nicht als externer Dienst registriert oder bereitgestellt. Annahmestellen-
+Teilnahme, Trust-Center-Zertifikate und für KIM TI-/SMC-B-Zugang sowie eigene
+Produkt-/Anbieterzulassung bleiben erforderlich. Es wurden keine Echtdaten
+übermittelt und keine Providerdaten ergänzt.
 
 ### Datenbank
 

@@ -8,8 +8,46 @@ Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**87 Fach-/API-/Transportprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**108 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Eigenentwicklung am 20.10.2026
+
+Die 87 bisherigen Fälle plus **21 neue Dienstprüfungen** wurden gemeinsam
+ausgeführt (`npm run verify:gkv:services`). Der neue Dienstkern verwendet echte
+Implementierungen von OpenSSL, TLS/STARTTLS und SQLite. Geprüft sind:
+
+- SECON RSA-PSS/OAEP/SHA-256/AES-256-CBC, DER-Parameter, unabhängige Entschlüsselung
+  mit dem Empfängerschlüssel, Byteidentität, frische Zufallswerte und manipulierte Daten.
+- Tatsächlich signierte CA-/Teilnehmerzertifikate und Sperrlisten; gesperrter Empfänger,
+  falsche IK, falscher Vertrauensanker, abgelaufene Gültigkeit und unsichere Key-Dateirechte.
+- PKCS#10-Antrag, verschlüsseltes RSA-4096-Schlüsselmaterial, mathematischer
+  Besitznachweis, Schutz vor Überschreiben und DN-Injektion.
+- Persistenz nach Wiederöffnen, datensatzgebundene Verschlüsselung, falscher
+  Speicherschlüssel, Mandantentrennung und doppelte Rechnungsreservierung.
+- Gleichzeitiger Claim aus zwei separaten Prozessen und tatsächliches SIGKILL
+  unmittelbar nach einem Claim: kein erneuter Versand nach Wiederöffnen.
+- Echte TLS-/STARTTLS-Verbindung auf Loopback, genau zwei DTA-Anhänge, EHLO nach
+  TLS, Authentisierung erst nach TLS, DSN-Envelope, Dot-Transparenz, falscher Host,
+  Empfängerablehnung, Handshake-Timeout und Verbindungsabbruch nach DATA.
+- KIM-Kontokern: echte scrypt-Passworthashes, atomare Fehlversuchszähler,
+  persistente Sperre, Passwortwechsel, Sitzungsinvalidierung und Deaktivierung.
+- KIM-Mailstore/POP3: Quote, stabile UID, Inhaltskonflikt, Postfachsperre,
+  RETR/DELE/RSET/QUIT, kein Löschen bei Abbruch und keine Löschung durch alte Sitzung.
+- KAS-Speicher: Ressourcenkennung, Empfänger-/Besitzerbindung, HEAD-Metadaten,
+  Quoten und Ablauf einschließlich einstündiger Karenz.
+
+**Nachweisgrenze:** Lokale, fiktive Test-PKI; keine produktiv vertrauten
+Trust-Center-/TI-Zertifikate. Kein TI-Konnektor, keine SMC-B und kein KIM-Netzverkehr.
+Die zusätzlichen KIM-Tests prüfen Speicher- und Protokollkern, keine vollständige
+gematik-Konformität. Quellen-/Vertrags-/Teilnahme-/E2E-Freigaben im DTA-Pakettest
+bleiben Fixtures. Die PostgreSQL-Reservierung und Übergabe an den eigenen Dienst
+sind nicht implementiert. Unabhängige Prüfung und Inbetriebnahme bleiben offen.
+
+Die 13 neuen MJS-Quelldateien werden durch die nativen Prüfläufe eingelesen;
+zusätzlich erfolgt `node --check`. Web-/Android-Oberflächen wurden in diesem
+Inkrement nicht verändert. Vercel-Buildstatus wird getrennt am neuen Commit
+ausgelesen; grüne Builds älterer Commits werden nicht übertragen.
 
 | Bereich | Nachweis |
 | --- | --- |
@@ -29,7 +67,7 @@ Es wurde kein zusätzliches Testframework installiert.
 | Original-PDF | Tatsächliche Byteprüfung, geänderte/fehlende PDF, Größenlimit, fremde Pfade, Traversal und URL-Ablehnung |
 | Fehlerausgabe | Keine Nutzdaten bei Fehlern, keine Details aus internen Ausnahmen, kein alternativer Versandpfad |
 
-## Erweiterung am 20.10.2026
+## Vorherige Erweiterung am 20.10.2026 (943ceaa)
 
 Die 87 Tests wurden nach den Änderungen an Hilfsmitteln, Sondervereinbarungen,
 Quellprüfung und Transportvorbereitung vollständig erneut ausgeführt. Sie enthalten
@@ -49,7 +87,7 @@ Quellprüfung und Transportvorbereitung vollständig erneut ausgeführt. Sie ent
 - Gleichzeitige Versandversuche, Timeout, fehlende Quittung, Speicherfehler nach
   Versand und fehlender Provider: kein blinder zweiter Aufruf.
 
-**Grenze dieser Transporttests:** Kryptografie, XSD-/CMS-Prüfung, Provider und
+**Grenze der damaligen 87 Transporttests:** Kryptografie, XSD-/CMS-Prüfung, Provider und
 atomarer dauerhafter Journalzugriff sind injizierte Testdoubles. Der Prüflauf
 belegt die Aufruf- und Ablehnungslogik, keine echte Verschlüsselung, SMC-B-Signatur,
 dauerhafte Outbox, Annahmestellenvalidierung oder Ende-zu-Ende-Übermittlung.
@@ -130,9 +168,10 @@ Advisor-Warnungen wurden nicht geändert.
   dieser Arbeitsumgebung nicht vollständig vorhanden. Die zusätzliche Babel-
   Prüfung ersetzt weder Metro/Expo-Build noch `tsc`.
 - **Supabase-Integration:** Migrationen sind remote angewendet und katalogseitig geprüft. Der vollständige Weg mit echter Anmeldung, Office-Autorisierung, PostgREST und Storage bleibt erforderlich. Die tatsächlichen Office-Nachweisprüfer sind im isolierten Integrationslauf für den Legacy-Einsatzpfad geprüft. Das vorhandene Stagingprojekt benötigt zuvor die aktuelle Office-Rechnungsstruktur.
-- **Echte Dienstintegration:** Kein DTA-/KIM-Transport, keine SMC-B-Signatur,
-  keine Annahmestellenvalidierung und kein Ende-zu-Ende-Nachweis. Die erzeugte
-  Referenzdatei ist ein Entwicklungstest, keine amtliche Prüffreigabe.
+- **Echte Dienstintegration:** DTA-Kryptografie, lokaler TLS-/STARTTLS-Transport
+  und dauerhafte lokale Outbox sind neu tatsächlich getestet. Kanonischer
+  Supabase-Versandablauf, Annahmestellenverkehr, SMC-B/KIM-TI und fachliche
+  Ende-zu-Ende-Abnahme bleiben offen. Die Test-PKI ist keine amtliche Freigabe.
 
 ## Verbindliche Abnahme vor dem Zusammenführen
 
