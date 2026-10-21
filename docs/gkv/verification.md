@@ -1,6 +1,6 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
 ## Ausgeführt
 
@@ -8,8 +8,37 @@ Stand: 20.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**146 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**162 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## ECC-CMS und durchgehender lokaler Transport am 21.10.2026
+
+Die 146 bisherigen Fälle und **16 neue Prüfungen** bestehen gemeinsam, ohne
+übersprungene Fälle. `kim-ecc.test.mjs` prüft echte Brainpool-Schlüssel,
+TI-ECIES-Kartenformat, CMAC, AES-GCM, ECDSA und signierte Empfängerzuordnung.
+Vier veröffentlichte NIST-Vektoren, das veröffentlichte gematik-Strukturbeispiel
+und eine getrennte OpenSSL-CLI-Zusammensetzung in beiden Richtungen ergänzen die
+eigenen Roundtrips. OpenSSL `cms -verify -cades` prüft die innere Signatur und
+ESS-Zertifikatsbindung gegen die isolierte Test-CA.
+
+Eine zusätzliche Prüfung transportiert eine tatsächlich signierte und ECC-
+verschlüsselte Nachricht durch den eigenen mTLS-SMTP-Listener, das dauerhafte
+Postfach und den mTLS-POP3-Abruf. Entschlüsselung und Signaturprüfung ergeben die
+exakten Originalbytes. Wiederholung nach POP3-Löschung erzeugt keine Dublette.
+
+**Grenzen:** Die neuen Tests enthalten eine echte innere Testsignatur; die ältere
+RSA-Fixture darunter bleibt opak. Software-Schlüssel und Test-CA sind keine
+SMC-B/TI-Identitäten. Der neue Empfänger liefert immer `identityStatus: unverified`.
+TI-PKI/OCSP/VZD, allgemeine MIME-Verarbeitung, äußerer/innerer Headerabgleich,
+Fach-XML und Konnektoranbindung fehlen. Der gesamte äußere ECC-Container wurde
+noch nicht von einem zweiten KIM-Client verarbeitet; die CLI-Gegenprüfung
+verwendet dieselbe OpenSSL-Kryptoprimitivenbibliothek wie Node.
+
+Details und Quellen: [ecc-cms.md](ecc-cms.md). Keine UI-/Android-/Datenbankänderung.
+Alle acht geänderten/neuen MJS-Dateien bestehen `node --check`;
+`git diff --check` ist ohne Befund.
+Der Vorgänger **6667975** hat vier erfolgreiche Vercel-Builds. Der neue Commit
+wird gesondert geprüft; diese Aussage ist keine Freigabe eines Produktivbetriebs.
 
 ## Eigener lokaler KIM-SMTP-Pfad am 20.10.2026
 
@@ -56,8 +85,9 @@ KIM-Signatur oder Pflege-XML. Die echte Verschlüsselung wird unabhängig entsch
 bevor das normgerechte unauthAttrs-Attribut ergänzt wird. Der installierte
 OpenSSL-3.0.13-Decoder hat dort eine von RFC 5083 abweichende Tagdefinition;
 dieser vollständige CMS-Roundtrip bleibt offen (Details in `own-services.md`).
-ECC-CMS, vollständige TI-PKI, FD-zu-FD-Weiterleitung, fdgerr_5, übrige MIME-Varianten,
-AccountManager/VZD und Betrieb sind weiterhin nicht vollständig implementiert.
+Zum damaligen Stand waren ECC-CMS, vollständige TI-PKI, FD-zu-FD-Weiterleitung,
+fdgerr_5, übrige MIME-Varianten, AccountManager/VZD und Betrieb noch nicht vollständig
+implementiert. Den inzwischen ergänzten ECC-Kern beschreibt der Eintrag vom 21.10.2026.
 
 Alle elf geänderten/neuen MJS-Dateien wurden mit `node --check`, der Diff mit
 `git diff --check` geprüft. Keine Oberflächen-/Android-Änderung in diesem Inkrement.

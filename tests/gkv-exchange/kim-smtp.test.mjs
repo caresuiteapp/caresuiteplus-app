@@ -14,6 +14,7 @@ import { der, fields, certificateParts } from '../../services/gkv/der.mjs';
 import { KimMailstore } from '../../services/kim/mailstore.mjs';
 import { PinnedAutVerifier } from '../../services/kim/message-auth.mjs';
 import { inspectKimEnvelope } from '../../services/kim/envelope.mjs';
+import { sealEccKimPayload, openEccKimPayload } from '../../services/kim/ecc-cms.mjs';
 import { verifySubmission, MAX_KIM_MESSAGE } from '../../services/kim/message.mjs';
 import { createSmtpTlsServer } from '../../services/kim/smtp-server.mjs';
 import { createPop3TlsServer } from '../../services/kim/pop3-server.mjs';
@@ -175,6 +176,34 @@ test('SMTP binds AUTH and MAIL FROM, closes relay, resets transactions and suppo
     assert.equal((await w.command('QUIT')).code, 221);
     assert.equal(s.mails(recipient).length, 0);
   } finally { w?.socket.destroy(); await s.close(); }
+});
+test('signed TI-ECIES KIM traverses real local SMTP, durable mailbox and POP3, then verifies exact original bytes', async () => {
+  const signer = await pki.issueKim({ name: 'smtp-osig', role: 'osig' });
+  const encSender = await pki.issueKim({ name: 'smtp-enc-sender' }), encReceiver = await pki.issueKim({ name: 'smtp-enc-receiver' });
+  const signingKey = createPrivateKey({ key: await readFile(signer.privateKeyPath), passphrase: pki.password });
+  const recipientKey = createPrivateKey({ key: await readFile(encReceiver.privateKeyPath), passphrase: pki.password });
+  const id = `<${randomUUID()}@local.test>`;
+  const original = Buffer.from([`From: ${sender}`, `To: ${recipient}`, `Message-ID: ${id}`, 'Date: Tue, 20 Oct 2026 10:00:00 +0000',
+    'Subject: Lokale ECC-Integration', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=utf-8', '', 'Fiktive Nachricht, keine Versichertendaten.', '.Dot-Transparenz', ''].join('\r\n'));
+  const encrypted = sealEccKimPayload({ message: original, sender, recipients: [{ address: sender, certificate: encSender.certificate }, { address: recipient, certificate: encReceiver.certificate }], signingCertificate: signer.certificate, signingKey });
+  const m = message({ id, body: encrypted.toString('base64').match(/.{1,76}/g).join('\r\n') });
+  const s = await setup(); let pop, inbox;
+  try {
+    await sendSmtp(m, s.config);
+    assert.deepEqual(s.mails(recipient)[0].bytes, m.mime);
+    const dsn = parseReceipt(s.mails(sender)[0].bytes); assert.equal(dsn.originalMessageId, id); assert.equal(dsn.recipients[0].action, 'delivered');
+    pop = createPop3TlsServer({ store: s.store, tls: { ...pki.tls, ca: pki.roots }, authorizeClient: p => p.fingerprint256 === new X509Certificate(pki.sender.certificate).fingerprint256 });
+    pop.listen(0, '127.0.0.1'); await once(pop, 'listening');
+    inbox = new ReceiptInbox({ path: join(s.dir, 'ecc-inbox.sqlite'), key: randomBytes(32) });
+    const tenantId = randomUUID(), mailboxId = randomUUID(), ids = [];
+    const polled = await pollMailbox({ inbox, tenantId, mailboxId, config: { ...s.config, port: pop.address().port, username: recipient, password: async () => Buffer.from(password) }, onStored: async value => ids.push(value) });
+    assert.equal(polled.stored, 1); assert.equal(s.mails(recipient).length, 0);
+    const stored = inbox.get(tenantId, ids[0]).bytes; assert.deepEqual(stored, m.mime);
+    const received = Buffer.from(stored.subarray(stored.indexOf('\r\n\r\n') + 4).toString().replace(/\s/g, ''), 'base64');
+    const decoded = openEccKimPayload({ bytes: received, address: recipient, recipientCertificate: encReceiver.certificate, privateKey: recipientKey, expectedSignerCertificate: signer.certificate });
+    assert.deepEqual(decoded.message, original); assert.equal(decoded.identityStatus, 'unverified');
+    await sendSmtp(m, s.config); assert.equal(s.mails(recipient).length, 0); assert.equal(s.mails(sender).length, 1);
+  } finally { if (pop) await new Promise(r => pop.close(r)); inbox?.close(); await s.close(); }
 });
 test('invalid AUT, originator, reply-to and duplicate auth headers reject before any durable delivery', async () => {
   const s = await setup(); let w;

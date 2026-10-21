@@ -1,6 +1,6 @@
 # Pflegekassen-Datenaustausch nach § 105 SGB XI
 
-Stand: 20.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
+Stand: 21.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
 klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
@@ -13,7 +13,10 @@ ist nicht mehr die vorgesehene Implementierungsabhängigkeit.
 Der aktuelle Dienststand verbindet auch einen eigenen lokalen mTLS-SMTP-Eingang,
 mathematische AUT-Tokenprüfung, begrenzte äußere CMS-Prüfung, atomare Postfach-
 zustellung und selbst erzeugte Zustellmeldungen mit dem vorhandenen POP3-Empfang.
-TI-Vertrauensbeschaffung, vollständiges ECC-KIM, externe Fachdienstweiterleitung
+Der [ECC-CMS-Kern](ecc-cms.md) kann nun Nachrichten mit Brainpool/ECDSA signieren,
+mit TI-ECIES/AES-GCM verschlüsseln und nach dem lokalen SMTP-/POP3-Weg wieder
+entschlüsseln und mathematisch prüfen. Die Zertifikatsidentität bleibt ausdrücklich
+unbestätigt. TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
 ## Verbindliche Quellen und Versionsstand

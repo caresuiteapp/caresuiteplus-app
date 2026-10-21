@@ -31,15 +31,21 @@ export async function testPki() {
   await openssl(['req', '-new', '-key', tlsKey, '-passin', 'fd:3', '-subj', '/C=DE/O=CareSuite Test/OU=TLS/CN=localhost.test', '-out', tlsRequest], { password });
   const tlsExt = await file('tls.cnf', '[server]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost.test\n');
   await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', tlsRequest, '-out', tlsCert, '-notext', '-extfile', tlsExt, '-extensions', 'server', ...pss], { password });
-  return {
-    dir, sender, recipient, password, roots, rootFingerprint, crls: await crl(),
-    async issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77' } = {}) {
+  const issueIdentity = async ({ name, curve = 'brainpoolP256r1', policy, usage }) => {
       const pair = generateKeyPairSync(curve === 'rsa' ? 'rsa' : 'ec', { ...(curve === 'rsa' ? { modulusLength: 3072 } : { namedCurve: curve }), privateKeyEncoding: { type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: password } });
       const privateKeyPath = await file(`${name}.key`, pair.privateKey), req = join(dir, `${name}.csr`), cert = join(dir, `${name}.pem`);
-      await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', '-subj', '/C=DE/O=CareSuite Test/OU=Isolated AUT fixture/CN=Not a TI identity', '-out', req], { password });
-      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\ncertificatePolicies=${policy}\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
+      await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', '-subj', '/C=DE/O=CareSuite Test/OU=Isolated KIM fixture/CN=Not a TI identity', '-out', req], { password });
+      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,${usage}\ncertificatePolicies=${policy}\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
       await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', req, '-out', cert, '-notext', '-extfile', ext, '-extensions', 'aut', ...pss], { password });
       return { privateKeyPath, certificate: await readFile(cert, 'utf8'), path: cert };
+  };
+  return {
+    dir, sender, recipient, password, roots, rootFingerprint, crls: await crl(),
+    issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77' } = {}) {
+      return issueIdentity({ name, curve, policy, usage: 'digitalSignature' });
+    },
+    issueKim({ name, role = 'enc', curve = 'brainpoolP256r1', policy, usage } = {}) {
+      return issueIdentity({ name, curve, policy: policy ?? (role === 'osig' ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76'), usage: usage ?? (role === 'osig' ? 'nonRepudiation' : 'keyAgreement') });
     },
     tls: { key: await readFile(tlsKey), passphrase: password.toString(), cert: await readFile(tlsCert) },
     async revokeRecipient() { await openssl(['ca', '-config', config, '-passin', 'fd:3', '-revoke', recipient.path], { password }); return crl(); },

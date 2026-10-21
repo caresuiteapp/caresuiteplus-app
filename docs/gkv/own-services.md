@@ -1,6 +1,6 @@
 # Eigene DTA- und KIM-Dienste
 
-Stand: 20.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
+Stand: 21.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
 Prüfung und erforderliche Zulassungen. Dieser Stand ist ein **ausführbarer,
 lokal geprüfter Dienstkern**, keine vollständige Gesamtimplementierung oder TI-Zulassung.
 Keine Produktionsfreischaltung; kein Kontakt zu echten Empfängern.
@@ -195,12 +195,14 @@ einzelner Prüfungen samt vorgeschriebenem Monitoring aus A_23422-01(4) fehlt;
 es gibt aktuell keinen Abschaltpfad.
 
 `envelope.mjs` prüft ausschließlich die **äußere** CMS-DER-Teilmenge mit
-RSA-OAEP/SHA-256, AES-256-GCM, 12-Byte-Nonce, 16-Byte-Tag, eingebettetem Ciphertext,
+TI-ECIES/Brainpool-P256r1 oder dem bisherigen RSA-OAEP/SHA-256, AES-256-GCM,
+12-Byte-Nonce, 16-Byte-Tag, eingebettetem Ciphertext,
 Issuer/Serial und vollständiger `recipient-emails`-Zuordnung für Sender und
 Empfänger. Dieser Fachdienst besitzt keinen Empfänger-Privatschlüssel: innere
 Signatur, GCM-Authentizität, signierte Attributkopie, VZD-Zuordnung, CAdES und
-Pflege-XML sind damit nicht geprüft. ECC-KARI, BER und weitere CMS-Varianten sind
-noch nicht implementiert; erkannte nicht unterstützte Varianten ergeben einen
+Pflege-XML sind damit nicht geprüft. TI-ECIES verwendet KeyTransRecipientInfo;
+die frühere Bezeichnung der fehlenden KIM-ECC-Variante als „KARI“ war unzutreffend.
+BER und weitere CMS-Varianten sind noch nicht implementiert; erkannte nicht unterstützte Varianten ergeben einen
 temporären SMTP-Fehler, keine Freigabe.
 
 Bei zulässiger lokaler Annahme speichert `commitLocalSubmission` die tatsächlichen
@@ -239,6 +241,17 @@ angeschlossen werden. Es gibt keinen öffentlichen Registrierungs-/KAS-Endpunkt
 und keinen gestarteten oder produktiv zugelassenen KIM-Dienst. Der CareSuite-
 Versandworker gibt seine KIM-Sperre durch diesen neuen Listener nicht auf.
 
+### Eigener ECC-CMS-Kern
+
+`ecc-cms.mjs` implementiert nun den lokalen Weg von den Originalbytes über eine
+Brainpool/ECDSA-Opaksignatur mit geschützter Empfängerzuordnung und ESS-Zertifikatsbindung
+zur TI-ECIES/AES-GCM-Verschlüsselung. Der Empfänger prüft GCM, Signatur und die
+Übereinstimmung der äußeren und signierten Empfängerzuordnung. Der echte lokale
+SMTP-/POP3-Pfad ist damit ebenfalls geprüft. Ergebnisidentitäten bleiben
+`unverified`; Software-KeyObjects ersetzen weder SMC-B noch Konnektor.
+Unterstützte Teilmenge, 16 neue Prüfungen, Quellen und verbleibende Grenzen sind
+in [ecc-cms.md](ecc-cms.md) beschrieben. Der CareSuite-Worker bleibt für KIM gesperrt.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
@@ -247,8 +260,10 @@ Der eigene Strukturprüfer folgt RFC 5083. Der Test prüft die echte OAEP/GCM-
 Verschlüsselung durch Entschlüsselung **vor** Ergänzung des normgerechten
 unauthAttrs-Attributs. Die anschließende ASN.1-Prüfung ist getrennt; ein vollständiger
 unabhängiger CMS-Roundtrip mit diesem Attribut ist hier nicht nachgewiesen.
-Die Abweichung muss für das eigene Clientmodul gelöst werden. Es wurden weder
-Pakete installiert noch Transportbytes an den abweichenden Decoder angepasst.
+Der neue ECC-Kern schreibt und liest die normgerechte äußere Struktur selbst;
+seine innere CMS-Signatur wird zusätzlich von OpenSSL geprüft. Ein vollständiger
+Vergleich des gesamten Containers mit einem zweiten KIM-Client bleibt offen.
+Es wurden weder Pakete installiert noch Transportbytes an den abweichenden Decoder angepasst.
 
 ## Anforderungen und verbleibende Implementierung
 
@@ -264,7 +279,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | Konnektor-/SMC-B-Anbindung, VZD, ECC-S/MIME, CAdES je Nutzkomponente, XML-Erzeugung und echte XSD-/Beziehungsprüfung, Empfang/Fehlerpfade |
+| Eigener KIM-Client | ECC-CMS-Kern lokal vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL/OCSP, vollständige MIME-/Headerprüfung, CAdES je Nutzkomponente, XML-Erzeugung und echte XSD-/Beziehungsprüfung, Empfang/Fehlerpfade fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

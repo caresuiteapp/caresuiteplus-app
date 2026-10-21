@@ -1,13 +1,22 @@
 import { der, fields, oid, rsaAlgorithm } from '../gkv/der.mjs';
 import { kimAddress } from './address.mjs';
+import { inspectEciesKey } from './ecies.mjs';
+import { OID, isOrdered } from './cms-codec.mjs';
 
-/** Bounded OUTER CMS inspection for the RSA-OAEP/AES-256-GCM subset of gemSMIME_KOMLE.
+/** Bounded OUTER CMS inspection for the TI-ECIES and legacy RSA-OAEP KIM subsets.
  * The FD cannot decrypt the recipient's content. This does NOT verify the inner signature,
  * recipient-emails signed copy, VZD identity, CAdES, or medical payload. The receiving CM must.
- * ECC/BER/other supported-by-TI encodings are explicitly unavailable, never relabelled as verified.
+ * KeyAgreeRecipientInfo is NOT TI-ECIES: gemSpec_Krypt A_17220 uses KeyTransRecipientInfo.
+ * BER/other encodings are explicitly unavailable, never relabelled as verified.
  */
 export function inspectKimEnvelope(bytes, addresses) {
+  const { profile, recipients } = readKimEnvelope(bytes, addresses);
+  return { profile, recipients };
+}
+/** Internal structural decoder for the receiving codec. Returned fields are not trusted identities. */
+export function readKimEnvelope(bytes, addresses = []) {
   try {
+    if (!(bytes instanceof Uint8Array) || !Array.isArray(addresses) || addresses.length > 1000) throw new Error('KIM_ENVELOPE_INVALID');
     const info = fields(der(bytes), 48, 2); oid(info[0], '2a864886f70d0109100117');
     const data = fields(fields(info[1], 160, 1)[0], 48);
     if (data.some(n => n.tag === 161)) throw new Error('KIM_ENVELOPE_UNSUPPORTED');
@@ -15,9 +24,8 @@ export function inspectKimEnvelope(bytes, addresses) {
     if (data[0].tag !== 2 || data[0].value.toString('hex') !== '00') throw new Error('KIM_ENVELOPE_INVALID');
     const recipients = fields(data[1], 49);
     if (!recipients.length || recipients.length > 1000) throw new Error('KIM_ENVELOPE_INVALID');
-    const ordered = nodes => nodes.every((n, i) => !i || Buffer.compare(nodes[i - 1].raw, n.raw) <= 0);
-    if (!ordered(recipients)) throw new Error('KIM_ENVELOPE_INVALID');
-    const identities = new Set();
+    if (!isOrdered(recipients)) throw new Error('KIM_ENVELOPE_INVALID');
+    const identities = new Set(), keys = [], profiles = new Set();
     const identity = n => {
       const f = fields(n, 48, 2);
       fields(f[0], 48);
@@ -28,11 +36,19 @@ export function inspectKimEnvelope(bytes, addresses) {
     for (const recipient of recipients) {
       if (recipient.tag === 161) throw new Error('KIM_ENVELOPE_UNSUPPORTED');
       const r = fields(recipient, 48, 4);
-      if (r[0].tag !== 2 || r[0].value.toString('hex') !== '00' || r[3].tag !== 4 || r[3].value.length < 256 || r[3].value.length > 1024) throw new Error('KIM_ENVELOPE_INVALID');
+      if (r[0].tag !== 2 || r[0].value.toString('hex') !== '00' || r[3].tag !== 4) throw new Error('KIM_ENVELOPE_INVALID');
       const algorithm = fields(r[2], 48);
-      if (algorithm[0]?.value.toString('hex') !== '2a864886f70d010107') throw new Error('KIM_ENVELOPE_UNSUPPORTED');
-      rsaAlgorithm(r[2], 'oaep');
+      if (algorithm[0]?.tag !== 6) throw new Error('KIM_ENVELOPE_INVALID');
+      const encryption = algorithm[0].value.toString('hex');
+      if (encryption === OID.ecies) {
+        if (algorithm.length !== 1) throw new Error('KIM_ENVELOPE_INVALID');
+        inspectEciesKey(r[3].value); profiles.add('ti-ecies-brainpoolp256r1');
+      } else if (encryption === '2a864886f70d010107') {
+        if (r[3].value.length < 256 || r[3].value.length > 1024) throw new Error('KIM_ENVELOPE_INVALID');
+        rsaAlgorithm(r[2], 'oaep'); profiles.add('rsa-oaep-sha256');
+      } else throw new Error('KIM_ENVELOPE_UNSUPPORTED');
       const rid = identity(r[1]); if (identities.has(rid)) throw new Error('KIM_ENVELOPE_INVALID'); identities.add(rid);
+      keys.push({ rid, encryption, encryptedKey: r[3].value });
     }
     const content = fields(data[2], 48, 3); oid(content[0], '2a864886f70d010701');
     const algorithm = fields(content[1], 48, 2); oid(algorithm[0], '60864801650304012e');
@@ -43,16 +59,19 @@ export function inspectKimEnvelope(bytes, addresses) {
     if (attributes.length !== 1) throw new Error('KIM_ENVELOPE_UNSUPPORTED');
     const attribute = fields(attributes[0], 48, 2); oid(attribute[0], '2a8214004c04812d');
     const emails = fields(fields(attribute[1], 49, 1)[0], 49), associated = new Set(), found = new Set();
-    if (emails.length !== identities.size || !ordered(emails)) throw new Error('KIM_ENVELOPE_INVALID');
+    if (emails.length !== identities.size || !isOrdered(emails)) throw new Error('KIM_ENVELOPE_INVALID');
+    const mappings = [];
     for (const entry of emails) {
       const e = fields(entry, 48, 2);
       if (e[0].tag !== 22 || e[0].value.some(b => b > 127)) throw new Error('KIM_ENVELOPE_INVALID');
       const address = kimAddress(e[0].value.toString('ascii')), rid = identity(e[1]);
       if (!identities.has(rid) || associated.has(rid)) throw new Error('KIM_ENVELOPE_INVALID');
       associated.add(rid); found.add(address);
+      mappings.push({ address, rid });
     }
     if (addresses.some(address => !found.has(kimAddress(address)))) throw new Error('KIM_ENVELOPE_INVALID');
-    return { profile: 'rsa-oaep-sha256-aes256gcm', recipients: found.size };
+    return { profile: `${profiles.size === 1 ? [...profiles][0] : 'mixed-rsa-ti-ecies'}-aes256gcm`, recipients: found.size,
+      keys, mappings, recipientEmails: attributes[0].raw, nonce: gcm[0].value, ciphertext: content[2].value, tag: data[3].value };
   } catch (e) {
     if (e.message === 'KIM_ENVELOPE_UNSUPPORTED') throw e;
     if (e.message === 'DER_LENGTH') throw new Error('KIM_ENVELOPE_UNSUPPORTED');
