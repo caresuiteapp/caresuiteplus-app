@@ -40,3 +40,9 @@ Die ergänzende Migration `20261021040127_intake_first_appointment_access.sql` i
 ### Nachprüfung der automatischen Codeprüfung
 
 Alle drei Hinweise wurden reproduziert und korrigiert: Akademie-Interesse blendet bei Assist keine Pflichtabschnitte mehr aus (gemeinsame Abschnittsregel in Oberfläche, Service und Edge-Prüfung). Ein automatisch gesicherter Erstkontakt mit offenem Terminwunsch gilt erst nach Kalenderbestätigung als vollständig gesichert und kann nicht unbemerkt geschlossen werden. Ein bereits vorhandener Ersttermin wird lesend bestätigt, sodass das Fortsetzen keine Termin-Schreibberechtigung verlangt. Zusätzliche Ablauf- und Verifikationsprüfungen sind in den oben genannten 356 Tests enthalten.
+
+### Lokale Diagnose des ersten fehlgeschlagenen Web-Builds
+
+Der Produktionsbuild für PR #142 meldete einen Fehler. Direkte Vercel-Protokolle waren wegen fehlender Teamfreigabe der Verbindung nicht verfügbar. Der exakt gleiche Release-Befehl wurde deshalb lokal ausgeführt. Die vollständige TypeScript-Prüfung sowie alle Release-Gruppen bis einschließlich Beratung bestanden. Im danach ausgeführten Subscription-Gate scheiterte die bereits bestehende Desktop-Home-Testdatei beim Bündeln einer SVG-Datei.
+
+Die Testdatei wurde an die schon vorhandenen Web-Hostgrenzen, authentifizierte Testrolle, Bereichsspeicher, aktuellen Katalogbeschriftungen und Widget-Paginierung angepasst. Sie prüft weiter alle 17 bisherigen Szenarien mit den geltenden getrennten Desktop-Bereichen. Katalogeinführungen werden getrennt in den vorhandenen Office-Notes-Tests geprüft; die etablierten Auswahltests markieren diese Einführungen als bereits gesehen. Kein Test wurde entfernt oder übersprungen. Das vollständige Subscription-Gate besteht damit unter `TZ=UTC`: 103 Tests in 7 Dateien.
