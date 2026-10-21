@@ -235,6 +235,10 @@ export function getLiquidRecordRoute(
   areaId: string,
   recordId: string,
 ): string | null {
+  if (Platform.OS === 'web' && moduleKey === 'akademie') {
+    if (areaId === 'courses') return `/akademie/kurse/${encodeURIComponent(recordId)}`;
+    if (areaId === 'certificates') return `/akademie/zertifikate/${encodeURIComponent(recordId)}`;
+  }
   return recordRoutes[moduleKey]?.[areaId]?.(recordId) ?? null;
 }
 
@@ -242,6 +246,14 @@ export function getLiquidPrimaryWorkflowRoute(
   moduleKey: LiquidModuleKey,
   areaId: string,
 ): string | null {
+  if (Platform.OS === 'web' && moduleKey === 'akademie') {
+    if (areaId === 'home') return '/akademie';
+    if (areaId === 'paths') return '/akademie/teilnehmer';
+    if (areaId === 'library') return '/akademie/mediathek';
+    if (areaId === 'planning') return '/akademie/schulungsplan';
+    if (areaId === 'reports') return '/akademie/auswertungen';
+    if (areaId === 'templates') return '/akademie/vorlagen';
+  }
   return primaryWorkflowRoutes[moduleKey]?.[areaId] ?? null;
 }
 
@@ -249,5 +261,15 @@ export function getLiquidPrimaryActionLabel(
   moduleKey: LiquidModuleKey,
   areaId: string,
 ): string | null {
+  if (Platform.OS === 'web' && moduleKey === 'akademie') {
+    if (areaId === 'home') return 'Übersicht öffnen';
+    if (areaId === 'paths') return 'Teilnahmen öffnen';
+    if (areaId === 'certificates') return 'Lernnachweise öffnen';
+    if (areaId === 'library') return 'Lernmaterialien öffnen';
+    if (areaId === 'planning') return 'Schulungsplan öffnen';
+    if (areaId === 'reports') return 'Auswertungen öffnen';
+    if (areaId === 'templates') return 'Vorlagen öffnen';
+    if (areaId === 'mandatory') return 'Pflichtschulungen öffnen';
+  }
   return primaryActionLabels[moduleKey]?.[areaId] ?? null;
 }

@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { tryInsert } from './http.ts';
+import { isAcademyOnlyPortal } from './academyScope.ts';
 
 export type DocumentDeliveryEnvConfig = {
   resendApiKey: string | null;
@@ -58,7 +59,7 @@ export async function verifyCallerTenant(req: Request, tenantId: string): Promis
   });
 
   const { data: authData, error: authError } = await userClient.auth.getUser();
-  if (authError || !authData.user) return false;
+  if (authError || !authData.user || isAcademyOnlyPortal(authData.user)) return false;
 
   const service = createClient(
     supabaseUrl,

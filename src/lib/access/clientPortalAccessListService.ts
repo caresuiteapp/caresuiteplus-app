@@ -55,6 +55,7 @@ async function fetchTenantPortalAccessFromSupabase(
   const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
     .select(PORTAL_ACCESS_LIST_SELECT)
     .eq('tenant_id', tenantId)
+    .neq('account_kind', 'academy_family')
     .order('updated_at', { ascending: false });
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };

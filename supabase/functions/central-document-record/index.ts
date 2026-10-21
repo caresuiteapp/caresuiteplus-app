@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
   const caller = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
   const { data: { user }, error: authError } = await caller.auth.getUser(auth.slice(7));
   if (authError || !user) return response({ ok: false, error: 'Anmeldung ungültig.' }, 401);
+  if (user.app_metadata?.portal_type === 'academy_family') return response({ ok: false, error: 'Dieser Zugang ist auf persönliche Lerninhalte begrenzt.' }, 403);
   let body: Record<string, unknown>;
   try {
     // Bound the stream, including clients that omit Content-Length.

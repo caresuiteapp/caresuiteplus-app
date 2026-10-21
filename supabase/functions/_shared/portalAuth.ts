@@ -1,4 +1,5 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { resolveAcademyFamilyIdentity } from './academyFamilyIdentity.ts';
 
 export type PortalAuthLinkTable =
   | 'client_portal_access'
@@ -7,7 +8,7 @@ export type PortalAuthLinkTable =
   | 'client_portal_codes';
 
 export type EnsurePortalAuthInput = {
-  portalType: 'client' | 'employee' | 'relative';
+  portalType: 'client' | 'employee' | 'relative' | 'academy_family';
   accountId: string;
   tenantId: string;
   roleKey: string;
@@ -16,6 +17,8 @@ export type EnsurePortalAuthInput = {
   linkRowId: string;
   clientFirstName?: string | null;
   clientLastName?: string | null;
+  relativeContactId?: string;
+  accessGeneration?: number;
 };
 
 export type PortalAuthSessionResult =
@@ -35,8 +38,26 @@ type AuthAdminUser = {
   user_metadata?: Record<string, unknown>;
 };
 
-function portalAuthEmail(portalType: string, accountId: string): string {
+function portalAuthEmail(portalType: string, accountId: string, accessGeneration?: number): string {
+  // GoTrue refresh tokens belong to an Auth user, not to our opaque portal
+  // session. Never upgrade the metadata of an older family generation: its
+  // outstanding refresh tokens must retain their old subject and claims.
+  if (portalType === 'academy_family') return `portal.${portalType}.${accountId}.g${accessGeneration}@caresuite-portal.local`;
   return `portal.${portalType}.${accountId}@caresuite-portal.local`;
+}
+
+function scopedMetadata(input: EnsurePortalAuthInput) {
+  return input.portalType === 'academy_family'
+    ? { access_scope: 'academy', relative_contact_id: input.relativeContactId, academy_access_generation: input.accessGeneration }
+    : {};
+}
+
+function matchesFamilyAuthIdentity(user: AuthAdminUser, input: EnsurePortalAuthInput): boolean {
+  const metadata = user.app_metadata;
+  return metadata?.portal_type === 'academy_family' && metadata?.role_key === 'family_portal' &&
+    metadata?.tenant_id === input.tenantId && metadata?.portal_account_id === input.accountId &&
+    metadata?.access_scope === 'academy' && metadata?.relative_contact_id === input.relativeContactId &&
+    metadata?.academy_access_generation === input.accessGeneration;
 }
 
 async function findAuthUserByEmail(
@@ -93,6 +114,9 @@ async function resolveAuthUserId(
     const linkedEmail = linkedUser?.user?.email?.trim().toLowerCase() ?? '';
 
     if (!linkedUserError && linkedEmail === email.toLowerCase()) {
+      if (input.portalType === 'academy_family' && (!linkedUser.user || !matchesFamilyAuthIdentity(linkedUser.user, input))) {
+        return { authUserId: null, error: 'Die gespeicherte Auth-Identität passt nicht zu diesem persönlichen Akademiezugang.' };
+      }
       return { authUserId: linkedAuthUserId, error: null };
     }
 
@@ -102,9 +126,9 @@ async function resolveAuthUserId(
     // den anderen Benutzer. Dadurch waren Lesen aus Cache möglich, alle echten
     // Einsatz- und Nachrichten-Schreibvorgänge jedoch gesperrt. Ein Portal erhält
     // deshalb immer seine eigene, eindeutig zur Portal-E-Mail gehörende Auth-ID.
-    console.warn(
-      `[portalAuth] replacing mismatched auth link for ${input.portalType}/${input.accountId}`,
-    );
+    if (input.portalType !== 'academy_family') {
+      console.warn(`[portalAuth] replacing mismatched auth link for ${input.portalType}/${input.accountId}`);
+    }
   }
 
   const { data: created, error: createError } = await supabase.auth.admin.createUser({
@@ -115,6 +139,7 @@ async function resolveAuthUserId(
       role_key: input.roleKey,
       portal_type: input.portalType,
       portal_account_id: input.accountId,
+      ...scopedMetadata(input),
     },
     user_metadata: {
       display_name: input.displayName,
@@ -138,6 +163,12 @@ async function resolveAuthUserId(
   if (!existing) {
     return { authUserId: null, error: 'Portal-Auth-Benutzer konnte nicht verknüpft werden.' };
   }
+  if (input.portalType === 'academy_family') {
+    if (!matchesFamilyAuthIdentity(existing, input)) {
+      return { authUserId: null, error: 'Der persönliche Akademiezugang ist mit einer abweichenden Auth-Identität belegt.' };
+    }
+    return { authUserId: existing.id, error: null };
+  }
 
   const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
     email_confirm: true,
@@ -147,6 +178,7 @@ async function resolveAuthUserId(
       role_key: input.roleKey,
       portal_type: input.portalType,
       portal_account_id: input.accountId,
+      ...scopedMetadata(input),
     },
     user_metadata: {
       ...existing.user_metadata,
@@ -173,6 +205,9 @@ async function refreshPortalAuthMetadata(
   if (lookupError || !data.user) {
     return lookupError?.message ?? 'Portal-Auth-Benutzer konnte nicht geladen werden.';
   }
+  if (input.portalType === 'academy_family' && !matchesFamilyAuthIdentity(data.user, input)) {
+    return 'Die persönliche Auth-Identität wurde geändert. Bitte erneut anmelden.';
+  }
 
   const { error: updateError } = await supabase.auth.admin.updateUserById(authUserId, {
     app_metadata: {
@@ -181,6 +216,7 @@ async function refreshPortalAuthMetadata(
       role_key: input.roleKey,
       portal_type: input.portalType,
       portal_account_id: input.accountId,
+      ...scopedMetadata(input),
     },
     user_metadata: {
       ...data.user.user_metadata,
@@ -283,7 +319,24 @@ export async function ensurePortalSupabaseAuth(
   supabase: SupabaseClient,
   input: EnsurePortalAuthInput,
 ): Promise<PortalAuthSessionResult> {
-  const email = portalAuthEmail(input.portalType, input.accountId);
+  if (input.linkTable === 'client_portal_access') {
+    const { data: account, error } = await supabase.from('client_portal_access')
+      .select('*').eq('id', input.linkRowId).eq('tenant_id', input.tenantId).maybeSingle();
+    if (error || !account || !account.portal_enabled || account.status !== 'aktiv' ||
+        (account.account_kind === 'academy_family') !== (input.portalType === 'academy_family')) {
+      return { ok: false, error: 'Portalkonto ist nicht aktiv oder passt nicht zur angeforderten Kontoart.' };
+    }
+  }
+  if (input.portalType === 'academy_family') {
+    if (input.roleKey !== 'family_portal' || input.linkTable !== 'client_portal_access' ||
+        input.linkRowId !== input.accountId || !input.relativeContactId) {
+      return { ok: false, error: 'Akademiezugang ist nicht gültig verknüpft.' };
+    }
+    const identity = await resolveAcademyFamilyIdentity(supabase, input.accountId, input.tenantId, input.relativeContactId);
+    if (!identity || identity.accessGeneration !== input.accessGeneration) return { ok: false, error: 'Akademiezugang ist nicht aktiv oder wurde inzwischen geändert.' };
+    input = { ...input, displayName: identity.displayName, clientFirstName: identity.firstName, clientLastName: identity.lastName };
+  }
+  const email = portalAuthEmail(input.portalType, input.accountId, input.accessGeneration);
 
   const resolved = await resolveAuthUserId(supabase, input, email);
   if (!resolved.authUserId) {

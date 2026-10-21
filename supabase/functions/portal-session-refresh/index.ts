@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { hashOpaqueToken } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
 import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
+import { resolveAcademyFamilyIdentity } from '../_shared/academyFamilyIdentity.ts';
 
 type RefreshBody = { sessionToken?: string };
 
@@ -32,7 +33,7 @@ serve(async (req) => {
     const now = new Date().toISOString();
     const { data: sessionRow, error: sessionError } = await supabase
       .from('portal_sessions')
-      .select('id, tenant_id, portal_type, employee_id, client_id, metadata, expires_at')
+      .select('id, tenant_id, portal_type, employee_id, client_id, relative_contact_id, metadata, expires_at')
       .in('session_token', [tokenHash, sessionToken])
       .eq('status', 'active')
       .gt('expires_at', now)
@@ -46,7 +47,24 @@ serve(async (req) => {
     const tenantId = String(sessionRow.tenant_id);
     let authResult;
 
-    if (portalType === 'employee' && sessionRow.employee_id) {
+    if (portalType === 'academy_family') {
+      const accountId = metadataId(sessionRow.metadata, ['portal_access_id', 'portal_account_id']);
+      const contactId = metadataId(sessionRow.metadata, ['contact_id']);
+      if (!accountId || !contactId || sessionRow.relative_contact_id !== contactId) {
+        return jsonResponse({ ok: false, error: 'Der persönliche Akademiezugang ist nicht mehr gültig.' }, 401);
+      }
+      const identity = await resolveAcademyFamilyIdentity(supabase, accountId, tenantId, contactId);
+      if (!identity || identity.clientId !== sessionRow.client_id || sessionRow.metadata?.access_generation !== identity.accessGeneration) {
+        return jsonResponse({ ok: false, error: 'Der persönliche Akademiezugang ist nicht mehr aktiv verknüpft.' }, 401);
+      }
+      authResult = await ensurePortalSupabaseAuth(supabase, {
+        portalType: 'academy_family', accountId, tenantId, roleKey: 'family_portal',
+        displayName: identity.displayName, relativeContactId: contactId,
+        accessGeneration: identity.accessGeneration,
+        clientFirstName: identity.firstName, clientLastName: identity.lastName,
+        linkTable: 'client_portal_access', linkRowId: accountId,
+      });
+    } else if (portalType === 'employee' && sessionRow.employee_id) {
       const accountId = metadataId(sessionRow.metadata, ['account_id', 'portal_account_id']);
       let accountQuery = supabase
         .from('employee_portal_accounts')

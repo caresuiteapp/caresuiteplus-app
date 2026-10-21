@@ -44,6 +44,9 @@ export type Profile = {
 };
 
 export type AuthUser = {
+  /** Signed portal audience retained for UI containment; never a server authorization substitute. */
+  portalType?: string;
+  accessScope?: string;
   id: EntityId;
   email: string;
   displayName: string | null;

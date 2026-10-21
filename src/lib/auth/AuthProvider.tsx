@@ -68,6 +68,8 @@ function buildMinimalAuthState(supabaseSession: Session): {
     email: supabaseSession.user.email ?? '',
     displayName: null,
     roleKey: null,
+    ...(supabaseSession.user.app_metadata?.portal_type === 'academy_family'
+      ? { portalType: 'academy_family', accessScope: 'academy' } : {}),
   };
 
   const session: AuthSession = {
@@ -207,6 +209,23 @@ async function hydrateSupabaseSession(
 ): Promise<HydrateSupabaseSessionResult> {
   if (portalRecord && !isPortalSupabaseIdentityAligned(supabaseSession, portalRecord)) {
     return { ok: false, error: 'Die sichere Sitzung gehört nicht zum aktiven Portal. Bitte erneut anmelden.' };
+  }
+  if (supabaseSession.user.app_metadata?.portal_type === 'academy_family') {
+    const metadata = supabaseSession.user.app_metadata;
+    if (metadata.role_key !== 'family_portal' || metadata.access_scope !== 'academy' ||
+        typeof metadata.relative_contact_id !== 'string' || !metadata.relative_contact_id ||
+        typeof metadata.portal_account_id !== 'string' || !metadata.portal_account_id ||
+        !Number.isSafeInteger(metadata.academy_access_generation) || Number(metadata.academy_access_generation) < 1) {
+      return { ok: false, error: 'Der persönliche Akademiezugang ist nicht vollständig bestätigt. Bitte erneut anmelden.' };
+    }
+    if (!canCommit()) return { ok: true };
+    // Academy-only identities intentionally cannot read general profile/module endpoints.
+    if (portalRecord) applyPortalAuthFallback(supabaseSession, portalRecord, setUser, setProfile, setSession);
+    else if (!applyTrustedSessionFallback(supabaseSession, setUser, setProfile, setSession)) {
+      return { ok: false, error: 'Der persönliche Akademiezugang ist nicht vollständig bestätigt. Bitte erneut anmelden.' };
+    }
+    setProfileBootstrapError(null);
+    return { ok: true };
   }
   try {
     const bootstrap = await withAuthBootstrapTimeout(

@@ -57,7 +57,7 @@ function castRow(row: unknown): Record<string, unknown> {
 const CLIENT_PORTAL_ACCESS_SAFE_SELECT = `
   id, tenant_id, client_id, contact_id, email, portal_username, portal_enabled,
   status, last_login_at, invited_at, code_created_at, code_rotated_at,
-  modules_enabled, two_factor_enabled, created_at, updated_at, auth_user_id
+  modules_enabled, two_factor_enabled, created_at, updated_at, auth_user_id, account_kind, access_scope
 ` as const;
 
 function getClient() {
@@ -127,7 +127,7 @@ async function loadFullDetailParts(
     fromUnknownTable(supabase, 'client_intake_documents').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_notes').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_risks').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
-    fromUnknownTable(supabase, 'client_portal_access').select(CLIENT_PORTAL_ACCESS_SAFE_SELECT).eq('client_id', clientId).eq('tenant_id', tenantId),
+    fromUnknownTable(supabase, 'client_portal_access').select(CLIENT_PORTAL_ACCESS_SAFE_SELECT).eq('client_id', clientId).eq('tenant_id', tenantId).neq('account_kind', 'academy_family'),
     fromUnknownTable(supabase, 'client_tasks').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
 fromUnknownTable(supabase, 'client_timeline_events')
       .select('*')
@@ -797,6 +797,7 @@ export const supabaseClientExtendedRepository = {
     const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
       .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', tenantId)
+      .neq('account_kind', 'academy_family')
       .order('updated_at', { ascending: false });
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
@@ -848,6 +849,7 @@ export const supabaseClientExtendedRepository = {
       .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
+      .neq('account_kind', 'academy_family')
       .order('created_at', { ascending: false });
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
@@ -921,6 +923,8 @@ export const supabaseClientExtendedRepository = {
       .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', input.tenantId)
       .eq('client_id', input.clientId)
+      .is('contact_id', null)
+      .eq('account_kind', 'self')
       .limit(1);
 
     const existing = castRows(existingRows)[0] as Record<string, unknown> | undefined;

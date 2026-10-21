@@ -10,6 +10,7 @@ import type { ClientFullDetail, ClientPortalAccess, ClientPortalCredentialsRevea
 import { PORTAL_ACCESS_STATUS_LABELS } from '@/types/modules/client';
 import { fetchClientPortalAccess, regenerateClientPortalAccessCode, setupClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
 import { copyTextToClipboard } from '@/lib/platform/clipboard';
+import { AcademyFamilyAccessPanel } from './AcademyFamilyAccessPanel.web';
 
 type Props = { client: ClientFullDetail; tenantId: string; isReadOnly?: boolean; onRefresh?: () => void };
 
@@ -38,7 +39,7 @@ function ClientPortalAccessContent({ client, tenantId, isReadOnly = false, onRef
   serverAccess.current = client.portalAccess;
   // A local receipt fills the gap until the parent supplies a fresh server snapshot.
   // Keep one-time credentials separately, so an ordinary refresh does not erase them.
-  const access = accessOverride?.basedOn === client.portalAccess ? accessOverride.record : client.portalAccess[0] ?? null;
+  const access = accessOverride?.basedOn === client.portalAccess ? accessOverride.record : client.portalAccess.find((entry) => entry.contactId == null && (!entry.accountKind || entry.accountKind === 'self')) ?? null;
   const isActive = access?.portalEnabled === true && access.status === 'aktiv';
   const portalStatus = !access ? 'Noch nicht eingerichtet' : !access.portalEnabled ? PORTAL_ACCESS_STATUS_LABELS.nicht_eingerichtet : PORTAL_ACCESS_STATUS_LABELS[access.status] ?? 'Status nicht verfügbar';
 
@@ -111,7 +112,8 @@ function ClientPortalAccessContent({ client, tenantId, isReadOnly = false, onRef
       const readSnapshot = serverAccess.current;
       const refreshed = await fetchClientPortalAccess(tenantId, client.id);
       if (!mounted.current) return;
-      if (refreshed.ok && refreshed.data[0] && serverAccess.current === readSnapshot) setAccessOverride({ record: refreshed.data[0], basedOn: readSnapshot });
+      const refreshedSelf = refreshed.ok ? refreshed.data.find((entry) => entry.contactId == null && (!entry.accountKind || entry.accountKind === 'self')) : null;
+      if (refreshedSelf && serverAccess.current === readSnapshot) setAccessOverride({ record: refreshedSelf, basedOn: readSnapshot });
       onRefresh?.();
     } catch {
       if (mounted.current) setAccessError('Der Vorgang konnte nicht vollständig bestätigt werden. Prüfen Sie den angezeigten Stand, bevor Sie es erneut versuchen.');
@@ -146,6 +148,7 @@ function ClientPortalAccessContent({ client, tenantId, isReadOnly = false, onRef
       <p className="cs-portal-help">Ein neuer Code ersetzt den bisherigen. Die Person meldet sich auf der <a href="/auth/portal-code-login" target="_blank" rel="noopener noreferrer">Anmeldeseite des Klientenportals</a> mit Benutzername und Code an.</p>
     </section>
 
+    <AcademyFamilyAccessPanel tenantId={tenantId} clientId={client.id} contacts={client.contacts ?? []} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     <div>
       <ClientModuleAssignmentPanel selected={portalModules} onChange={(modules) => void handleModulesChange(modules)} loading={modulesLoading} disabled={isReadOnly || modulesLoading || modulesSaving || !!modulesError} />
       {modulesLoading || modulesSaving ? <div className="cs-portal-status" role="status">{modulesLoading ? 'Betreuungsbereiche werden geladen…' : 'Auswahl wird gespeichert…'}</div> : null}

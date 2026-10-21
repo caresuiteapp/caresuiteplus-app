@@ -43,6 +43,7 @@ async function withPortalSessionTimeout<T>(operation: PromiseLike<T>): Promise<T
 }
 
 function expectedPortalType(portalSession: PortalSessionRecord): string {
+  if (portalSession.portalType === 'academy_family') return 'academy_family';
   if (portalSession.loginType === 'employee_portal') return 'employee';
   if (portalSession.loginType === 'client_portal') return 'client';
   return 'relative';
@@ -60,7 +61,13 @@ export function isPortalSupabaseIdentityAligned(
     metadata.tenant_id === portalSession.tenantId &&
     metadata.role_key === expectedRole &&
     metadata.portal_type === expectedPortalType(portalSession) &&
-    metadata.portal_account_id === portalSession.accountId
+    metadata.portal_account_id === portalSession.accountId &&
+    (portalSession.portalType !== 'academy_family' || (
+      metadata.access_scope === 'academy' &&
+      metadata.relative_contact_id === portalSession.relativeContactId &&
+      metadata.academy_access_generation === portalSession.accessGeneration &&
+      portalSession.accessScope === 'academy' && portalSession.clientId == null
+    ))
   );
 }
 

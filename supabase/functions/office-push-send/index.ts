@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import type { User } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
+import { isAcademyOnlyPortal } from '../_shared/academyScope.ts';
 
 type RequestBody = { broadcastId?: string };
 function bearerToken(req: Request): string | null {
@@ -12,7 +13,7 @@ async function authenticatedUser(req: Request): Promise<User | null> {
   const token = bearerToken(req);
   if (!token) return null;
   const { data, error } = await getServiceClient().auth.getUser(token);
-  return error ? null : data.user;
+  return error || isAcademyOnlyPortal(data.user) ? null : data.user;
 }
 
 async function resolveOfficeActor(userId: string): Promise<{ tenantId: string; allowed: boolean } | null> {

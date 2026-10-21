@@ -3,6 +3,7 @@ import { BUSINESS_HOME_ROUTE } from './businessHome';
 import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import type { RoleKey } from '@/types';
+import { Platform } from 'react-native';
 
 const EMPLOYEE_HOME_ROLES: RoleKey[] = ['employee_portal', 'caregiver', 'nurse'];
 const CLIENT_HOME_ROLES: RoleKey[] = ['client_portal', 'family_portal'];
@@ -12,6 +13,7 @@ export function resolveSessionHomeRoute(
   roleKey: RoleKey | null | undefined,
   portalSession?: PortalSessionRecord | null,
 ): string {
+  if (Platform.OS === 'web' && portalSession?.portalType === 'academy_family') return '/portal/client/akademie';
   if (portalSession) {
     return String(resolvePostLoginRoute(portalSession.loginType as AuthLoginType));
   }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { RememberedPortalLoginControls } from '@/components/auth/RememberedPortalLoginControls';
 import { saveRememberedPortalLogin, type RememberedPortalLogin } from '@/lib/auth/rememberedPortalLogin';
 import { Linking, StyleSheet, View } from 'react-native';
@@ -62,6 +62,10 @@ export function PortalCodeLoginScreen() {
       setError('Das gespeicherte Konto stimmt nicht mehr überein. Bitte normal anmelden.');
       return;
     }
+    if (result.data.portalSession.portalType === 'academy_family' && Platform.OS !== 'web') {
+      setError('Ihr persönlicher Akademiezugang steht im Browser bereit. Bitte melden Sie sich unter www.caresuiteplus.app/auth/portal-code-login an.');
+      return;
+    }
 
     const completed = await completePortalLogin(result.data.portalSession, {
       supabaseAccessToken: result.data.supabaseAccessToken,
@@ -81,7 +85,8 @@ export function PortalCodeLoginScreen() {
     try {
       await signInPortalSession(completed.data.portalSession);
       markPortalWelcomePending('client');
-      router.replace(resolvePostLoginRoute('client_portal') as never);
+      router.replace((completed.data.portalSession.portalType === 'academy_family'
+        ? '/portal/client/akademie' : resolvePostLoginRoute('client_portal')) as never);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }
