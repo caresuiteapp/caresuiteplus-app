@@ -1,0 +1,2 @@
+create trigger medication_safety_immutable before update or delete on public.medication_safety_events for each row execute function care_private.block_medication_safety_mutation();
+create trigger medication_safety_receipt_immutable before update or delete on care_private.medication_safety_requests for each row execute function care_private.block_medication_safety_mutation();
