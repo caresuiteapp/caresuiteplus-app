@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-na
 import { usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreadcrumbs } from '@/lib/navigation';
+import { officeModuleAssignmentBreadcrumbs } from '@/lib/navigation/officeModuleAssignmentRoutes.web';
 import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -64,7 +65,9 @@ export function ScreenShell({
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const effectiveRightSlot = hideMobileLogout && isPhone ? undefined : rightSlot;
-  const breadcrumbTrail = showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
+  const breadcrumbTrail = showBreadcrumbs && pathname !== '/'
+    ? officeModuleAssignmentBreadcrumbs(pathname) ?? getBreadcrumbs(pathname)
+    : undefined;
   const isPortalShell = isPortalRoutePath(pathname);
   const isAuthRoute = isAuthRoutePath(pathname);
   const contextualPopup = isHealthOSContextualPopupRoute(`/${segments.join('/')}`);
