@@ -603,4 +603,55 @@ await test('direct inserts cannot pre-create an internal intake event from a por
   await assert.rejects(db.query(query,[id.tenant,id.client]),/policy|security/i);
 });
 
+await test('2027 publication creates separate editions without changing legacy templates and denies client writes', async () => {
+  await seed(); await db.exec('RESET ROLE');
+  const before = (await db.query('SELECT to_jsonb(t) AS row FROM intake_document_system_templates t ORDER BY template_key')).rows;
+  const catalogueSchema = read('../migrations/20261013080703_central_document_catalog.sql').match(/CREATE TABLE IF NOT EXISTS public\.central_document_catalog \([\s\S]*?\n\);/)[0];
+  await db.exec(catalogueSchema);
+  await db.exec(read('../schema/intake_documents_2027.sql'));
+  assert.deepEqual((await db.query('SELECT to_jsonb(t) AS row FROM intake_document_system_templates t ORDER BY template_key')).rows, before);
+  assert.equal((await db.query('SELECT count(*)::int AS count FROM central_document_catalog WHERE version=3')).rows[0].count, 40);
+  await actor();
+  assert.equal((await db.query('SELECT template_key FROM intake_document_templates_2027')).rows.length, 12);
+  await assert.rejects(db.exec("UPDATE intake_document_templates_2027 SET html_content='Changed'"), /permission denied/);
+  await db.exec('RESET ROLE; SET ROLE anon');
+  await assert.rejects(db.exec('SELECT * FROM intake_document_templates_2027'), /permission denied/);
+});
+await test('legacy completion remains valid after the separate 2027 publication', async () => {
+  await seed(); const saved = await save(); await actor('service_role');
+  assert.equal((await complete(saved)).confirmed, true);
+});
+async function edition2027Form(stationary = false) {
+  await db.exec('RESET ROLE');
+  templateSnapshots = new Map((await db.query('SELECT to_jsonb(t) AS snapshot FROM intake_document_templates_2027 t')).rows.map(({ snapshot }) => [snapshot.template_key, snapshot]));
+  const value = form({ intakeWorkflowVersion: 2, intakeStage: 'full_intake', intakeTemplateEdition: '2027', intakeLegalDetails: { 'signer.name': 'Maria Beispiel', 'employee.name': 'Anna Beispiel' },
+    careContexts: [stationary ? 'stationary_care' : 'daily_assistance'], intakeContractType: stationary ? 'stationary_care' : 'assist' });
+  value.intakeDocuments = ['privacy_consent_default', stationary ? 'client_contract_stationary_care' : 'client_contract_assist'].map(key => {
+    const template = templateSnapshots.get(key), entry = document(key, template.document_type);
+    entry.title = template.title; entry.version = 4;
+    entry.signatures = Object.fromEntries(template.signature_slots.map(slot => [slot.role, { role: slot.role, dataUrl: png, signedAt: renderedAt, signerName: slot.role === 'employee' ? 'Anna Beispiel' : 'Maria Beispiel' }]));
+    return entry;
+  });
+  await actor(); return value;
+}
+await test('2027 completion binds new snapshots and both roles atomically, rejecting missing employee consent', async () => {
+  await seed(); const value = await edition2027Form(), saved = await save(value), docs = completionDocuments(value);
+  await actor('service_role');
+  const missing = structuredClone(docs); delete missing[1].signatures.employee;
+  await assert.rejects(complete(saved, missing), /Unterschrift|Original/);
+  assert.equal((await counts()).client_intake_documents, 0);
+  await actor('service_role');
+  assert.equal((await complete(saved, docs)).confirmed, true);
+  await db.exec('RESET ROLE');
+  const originals = (await db.query('SELECT template_snapshot, signatures_json FROM client_intake_private.client_intake_originals')).rows;
+  assert.equal(originals.length, 2);
+  assert.ok(originals.every(row => row.template_snapshot.system.version === 4));
+  assert.equal(originals.reduce((sum, row) => sum + Object.keys(row.signatures_json).length, 0), 3);
+});
+await test('2027 WBVG paper completion is rejected without partial activation', async () => {
+  await seed(); const value = await edition2027Form(true), saved = await save(value);
+  await actor('service_role');
+  await assert.rejects(complete(saved, completionDocuments(value)), /WBVG/);
+  assert.equal((await counts()).client_intake_documents, 0);
+});
 await db.close();

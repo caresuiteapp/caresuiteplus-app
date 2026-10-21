@@ -5,6 +5,9 @@ import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource
 export type ClientIntakeFormData = {
   /** Versioned Web workflow; older/native drafts retain their original contract. */
   intakeWorkflowVersion?: 2;
+  /** Separately published Web edition. Existing/native signed originals keep their edition. */
+  intakeTemplateEdition?: '2027';
+  intakeLegalDetails?: Record<string, string>;
   intakeStage?: 'first_contact' | 'full_intake';
   intakeContactPerson?: string;
   intakeContactNotes?: string;

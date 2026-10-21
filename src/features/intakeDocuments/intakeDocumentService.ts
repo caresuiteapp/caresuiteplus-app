@@ -12,6 +12,7 @@ import {
   renderIntakeDocumentHtml,
 } from './renderIntakeDocumentPreview';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
+import { INTAKE_PAPER_CONTRACT_NOTICE } from './intake2027Context';
 import {
   listTenantIntakeDocumentTemplates,
   persistIntakeDocumentsForClient,
@@ -199,6 +200,7 @@ export function applyDocumentSignature(
   signature: IntakeDocumentSignature,
   tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
+  if (form.intakeTemplateEdition === '2027' && template.templateKey === 'client_contract_stationary_care') return { ...doc, missingPlaceholders: [INTAKE_PAPER_CONTRACT_NOTICE] };
   if (doc.status === 'finalized') return doc;
   const bindingError = getIntakeRenderBindingError(doc);
   if (bindingError) return { ...doc, missingPlaceholders: [bindingError] };
@@ -416,7 +418,7 @@ export async function loadIntakeDocumentTemplates(
   form: ClientIntakeFormData,
 ): Promise<ServiceResult<IntakeDocumentTemplate[]>> {
   if (getServiceMode() === 'supabase') {
-    const remote = await listTenantIntakeDocumentTemplates(tenantId);
+    const remote = await listTenantIntakeDocumentTemplates(tenantId, form.intakeTemplateEdition);
     if (!remote.ok) return remote;
     return { ok: true, data: listApplicableIntakeTemplates(form, remote.data) };
   }

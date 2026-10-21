@@ -43,7 +43,8 @@ describe('new central document catalogue', () => {
     expect(employeePrivacy.version).toBe(2);
     expect(CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_software_005')!.fields.some(f=>f.key==='insuranceNumber')).toBe(false);
     const careContract=CENTRAL_DOCUMENT_CATALOG.find((d)=>d.key==='csdc_vertraege_001')!;
-    expect(careContract.version).toBe(2);
+    expect(careContract.version).toBe(3);
+    expect(careContract.edition).toBe('2027');
     expect(careContract.sections.find(s=>s.key==='cs_contract')!.text).toContain('Leistungen der im Dokument bezeichneten Organisation');
   });
   it('filters multiple search words, category and actual module context', () => {

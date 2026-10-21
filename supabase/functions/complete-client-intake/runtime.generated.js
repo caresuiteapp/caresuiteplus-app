@@ -191,38 +191,38 @@ var CONSULTING_REQUIRED = [
   "consultingType",
   "consentDatenschutz"
 ];
-function isSupportOnly(contexts) {
-  if (contexts.length === 0) return false;
+function isSupportOnly(contexts2) {
+  if (contexts2.length === 0) return false;
   const supportSet = new Set(SUPPORT_ONLY);
-  return contexts.every((c) => supportSet.has(c));
+  return contexts2.every((c) => supportSet.has(c));
 }
-function hasAmbulatoryCare(contexts) {
-  return contexts.includes("ambulatory_care");
+function hasAmbulatoryCare(contexts2) {
+  return contexts2.includes("ambulatory_care");
 }
-function hasStationaryCare(contexts) {
-  return contexts.includes("stationary_care");
+function hasStationaryCare(contexts2) {
+  return contexts2.includes("stationary_care");
 }
-function hasConsulting(contexts) {
-  return contexts.includes("consulting");
+function hasConsulting(contexts2) {
+  return contexts2.includes("consulting");
 }
-function getRequiredFieldsForClientContext(contexts) {
-  if (contexts.length === 0) return ["careContexts"];
+function getRequiredFieldsForClientContext(contexts2) {
+  if (contexts2.length === 0) return ["careContexts"];
   const fields = /* @__PURE__ */ new Set(["careContexts"]);
-  if (hasStationaryCare(contexts) && !hasAmbulatoryCare(contexts)) {
+  if (hasStationaryCare(contexts2) && !hasAmbulatoryCare(contexts2)) {
     STATIONARY_REQUIRED.forEach((f) => fields.add(f));
-  } else if (hasAmbulatoryCare(contexts)) {
+  } else if (hasAmbulatoryCare(contexts2)) {
     AMBULATORY_REQUIRED.forEach((f) => fields.add(f));
-  } else if (isSupportOnly(contexts)) {
+  } else if (isSupportOnly(contexts2)) {
     SUPPORT_REQUIRED.forEach((f) => fields.add(f));
   } else {
     BASE_REQUIRED.forEach((f) => fields.add(f));
   }
-  if (hasConsulting(contexts)) {
+  if (hasConsulting(contexts2)) {
     CONSULTING_REQUIRED.forEach((f) => fields.add(f));
   }
   return [...fields];
 }
-function getVisibleSectionsForClientContext(contexts) {
+function getVisibleSectionsForClientContext(contexts2) {
   const all = [
     "leistungsart",
     "stammdaten",
@@ -236,7 +236,7 @@ function getVisibleSectionsForClientContext(contexts) {
     "module",
     "pruefung"
   ];
-  if (contexts.length === 0) return ["leistungsart"];
+  if (contexts2.length === 0) return ["leistungsart"];
   const visible = /* @__PURE__ */ new Set([
     "leistungsart",
     "stammdaten",
@@ -249,10 +249,10 @@ function getVisibleSectionsForClientContext(contexts) {
     "module",
     "pruefung"
   ]);
-  if (hasAmbulatoryCare(contexts) || hasStationaryCare(contexts) || hasConsulting(contexts)) {
+  if (hasAmbulatoryCare(contexts2) || hasStationaryCare(contexts2) || hasConsulting(contexts2)) {
     visible.add("versorgung");
   }
-  if (isSupportOnly(contexts)) {
+  if (isSupportOnly(contexts2)) {
     visible.add("versorgung");
   }
   return all.filter((s) => visible.has(s));
@@ -275,7 +275,7 @@ function getIntakeSectionsForForm(form) {
 function getRequiredFieldsForIntake(form) {
   if (form.intakeWorkflowVersion !== 2) return getRequiredFieldsForClientContext(form.careContexts);
   const fields = /* @__PURE__ */ new Set(["careContexts", "firstName", "lastName", "dateOfBirth", "street", "zip", "city", "phoneOrContact"]);
-  for (const context of form.careContexts) for (const field of CLIENT_INTAKE_PLANS[context]?.required ?? []) fields.add(field);
+  for (const context of form.careContexts) for (const field2 of CLIENT_INTAKE_PLANS[context]?.required ?? []) fields.add(field2);
   if (form.careContexts.some((context) => context !== "academy_prepared")) fields.add("fundingSources");
   return [...fields];
 }
@@ -1207,6 +1207,315 @@ function getSystemIntakeTemplateByKey(templateKey) {
   return INTAKE_DOCUMENT_SYSTEM_TEMPLATES.find((t) => t.templateKey === templateKey);
 }
 
+// src/features/intakeDocuments/intake2027Fields.ts
+var INTAKE_2027_VERSION = 4;
+var field = (key, label, help, choices) => ({ key, label, help, choices });
+var INTAKE_2027_COMMON_FIELDS = [
+  field("provider.contact", "Kontakt f\xFCr Vertragsfragen und Widerruf", "Erreichbare E-Mail-Adresse oder Telefonnummer des Unternehmens."),
+  field("provider.privacy", "Datenschutzkontakt", "Kontaktdaten der zust\xE4ndigen Stelle; bei bestellter Datenschutzbeauftragtenstelle auch deren Kontakt."),
+  field("provider.basis", "Tats\xE4chliche Zwecke und Rechtsgrundlagen", "Verarbeitung je Leistungsbereich konkret zuordnen: Art. 6 DSGVO und bei Gesundheitsdaten zus\xE4tzlich die tats\xE4chlich einschl\xE4gige Ausnahme nach Art. 9 Abs. 2."),
+  field("provider.authority", "Zust\xE4ndige Datenschutzaufsicht", "Name und Kontakt der f\xFCr das Unternehmen zust\xE4ndigen Aufsichtsbeh\xF6rde."),
+  field("provider.recipients", "Empf\xE4nger und eingesetzte Dienstleister", "Tats\xE4chlich eingesetzte Empf\xE4ngerkategorien, Auftragsverarbeiter und m\xF6gliche \xDCbermittlungen au\xDFerhalb des EWR konkret benennen."),
+  field("provider.retention", "Aufbewahrung und L\xF6schung", "Fristen oder nachvollziehbare Kriterien nach Unterlagenart. Keine pauschale Frist f\xFCr s\xE4mtliche Daten."),
+  field("employee.name", "Unterzeichnende Person des Unternehmens", "Vollst\xE4ndiger Name der zeichnungsberechtigten Person."),
+  field("signer.capacity", "Wer unterschreibt f\xFCr die betreute Person?", void 0, ["Die betreute Person selbst", "Eine bevollm\xE4chtigte oder rechtliche Vertretung"]),
+  field("signer.name", "Name der unterzeichnenden Person", "Vollst\xE4ndiger Name. Bei Vertretung abweichend vom Namen der betreuten Person.")
+];
+var agreements = (prefix) => [
+  field(`${prefix}.services`, "Vereinbarte Leistungen und Umfang", "Konkrete Leistungen, Menge, H\xE4ufigkeit und Grenzen. Eine allgemeine Leistungsbeschreibung reicht nicht aus."),
+  field(`${prefix}.schedule`, "Zeiten und Leistungsort", "Vereinbarte Wochentage, Zeitfenster, Dauer und Ort."),
+  field(`${prefix}.prices`, "Preise und voraussichtliche Gesamtkosten", "Jede Leistung mit Abrechnungseinheit und Endpreis; Steuern beziehungsweise Befreiung, H\xE4ufigkeit und voraussichtliche Kosten pro Zeitraum."),
+  field(`${prefix}.extras`, "Weitere Kosten und Eigenanteile", "Fahrtkosten, Zuschl\xE4ge, Material und private Anteile ausdr\xFCcklich beziffern; andernfalls \u201EKeine weiteren Kosten\u201C.", ["Keine weiteren Kosten"]),
+  field(`${prefix}.annexes`, "Ausgeh\xE4ndigte Anlagen", "Titel, Datum und Fassung der Leistungs-, Preis- und sonstigen einbezogenen Anlagen; ohne Anlagen \u201EKeine zus\xE4tzlichen Anlagen\u201C.", ["Keine zus\xE4tzlichen Anlagen"])
+];
+var INTAKE_2027_FIELDS = {
+  privacy_consent_default: [],
+  client_contract_assist: agreements("assist"),
+  client_contract_ambulatory_care: [...agreements("ambulatory"), field("ambulatory.approval", "Zulassung und Abrechnungsgrundlage", "Leistungserbringer, Zulassung/IK und einschl\xE4gige Vereinbarungen; Behandlungspflege und SGB-XI-Leistungen unterscheiden.")],
+  client_contract_stationary_care: [
+    ...agreements("stationary"),
+    field("stationary.accommodation", "Wohnraum und Ausstattung", "Einrichtung, Anschrift, Zimmer, Fl\xE4che, Ausstattung, Gemeinschaftsfl\xE4chen und mitgebrachte Gegenst\xE4nde."),
+    field("stationary.charges", "Getrennte Entgeltbestandteile", "Pflege/Betreuung, Unterkunft, Verpflegung, Investitionskosten, weitere Leistungen, Gesamtentgelt und Eigenanteil einzeln beziffern."),
+    field("stationary.precontract", "Vorvertragliche Informationen", "Titel, Fassung, Aush\xE4ndigungsdatum und erkennbare Abweichungen nach \xA7 3 WBVG."),
+    field("stationary.disputes", "Verbraucherstreitbeilegung", "Teilnahmebereitschaft oder -pflicht und gegebenenfalls zust\xE4ndige Verbraucherschlichtungsstelle nach \xA7 36 VSBG."),
+    field("stationary.adjustment", "Versorgungsanpassung und Landesrecht", "Konkrete Leistungsgrenzen, Anpassungsverfahren, zust\xE4ndige Aufsicht und einschl\xE4gige landesrechtliche Vorgaben.")
+  ],
+  client_contract_care_consulting: [
+    ...agreements("consulting"),
+    field(
+      "consulting.basis",
+      "Rechtsgrundlage und Auftragsart",
+      void 0,
+      ["Beratungsbesuch nach \xA7 37 Abs. 3 SGB XI", "Pflegeberatung nach \xA7 7a SGB XI", "Individuelle h\xE4usliche Schulung nach \xA7 45 SGB XI", "Privat beauftragte Beratung"]
+    ),
+    field("consulting.authorization", "Berechtigung und Kosten\xFCbernahme", "Beauftragung/Anerkennung und Verg\xFCtungsvereinbarung oder ausdr\xFCcklicher privater Auftrag. Keine automatische Privatabrechnung bei Ablehnung der Kasse.")
+  ],
+  client_contract_day_care: [...agreements("daycare"), field("daycare.transport", "Notwendige Bef\xF6rderung", "Abholung, R\xFCckfahrt, Zust\xE4ndigkeit und vereinbarte Bef\xF6rderungskosten beschreiben.")],
+  client_contract_relief_services: [...agreements("relief"), field("relief.recognition", "Anerkennung und Leistungsgrundlage", "Landesrechtliche Anerkennung oder andere einschl\xE4gige Berechtigung, Bundesland und genehmigter Leistungsumfang.")],
+  assignment_declaration_care_health_insurance: [
+    field("assignment.claim", "Abtretbarer Erstattungsanspruch", "Konkrete Geldforderung und Rechtsgrundlage. Sachleistungsanspr\xFCche werden nicht abgetreten."),
+    field("assignment.period", "Leistungszeitraum und Begrenzung", "Zeitraum sowie H\xF6chstbetrag oder eindeutige Berechnungsgrundlage."),
+    field("assignment.debtor", "Schuldner und Zuordnung", "Genaue Kasse/Stelle, Anschrift und Versicherungs- oder Aktenzeichen."),
+    field("assignment.approval", "Pr\xFCfung der Abtretbarkeit", "Kostentr\xE4gervorgaben und gegebenenfalls Feststellung nach \xA7 53 SGB I; kein pauschaler Verzicht auf Einwendungen.")
+  ],
+  confidentiality_release_default: [
+    field("confidentiality.people", "Entbundene Personen und Empf\xE4nger", "Beide Seiten namentlich mit Praxis/Einrichtung benennen."),
+    field("confidentiality.purpose", "Zweck und ben\xF6tigte Gesundheitsinformationen", "Welche Angaben d\xFCrfen f\xFCr welchen konkreten Versorgungsschritt \xFCbermittelt werden?"),
+    field("confidentiality.duration", "Geltungsdauer und Grenzen", "Konkreter Zeitraum oder Ende des bezeichneten Versorgungszwecks; m\xF6gliche Ausnahmen festhalten.")
+  ],
+  communication_consent_default: [],
+  photo_media_consent_default: [
+    field("media.purpose", "Konkreter Aufnahmezweck", "Beispielsweise dokumentierter Verlauf einer bestimmten Wunde oder Anpassung eines Hilfsmittels."),
+    field("media.scope", "Aufnahmeumfang, Zugriff und Dauer", "Was wird aufgenommen, wer darf darauf zugreifen, wann endet die Nutzung?")
+  ],
+  emergency_contact_consent_default: [field("emergency.scope", "Informationen und Anlass der Kontaktaufnahme", "Erforderliche Informationen und etwaige Einschr\xE4nkungen; die Kontaktperson wird dadurch nicht zur rechtlichen Vertretung.")]
+};
+var COMMUNICATION_CHOICES = [
+  { key: "communication.phone", label: "Telefonische organisatorische Mitteilungen" },
+  { key: "communication.email", label: "E-Mail ohne Gesundheitsdaten", help: "Unverschl\xFCsselte E-Mail kann von Dritten mitgelesen oder fehlgeleitet werden. Eine sichere Alternative bleibt verf\xFCgbar." },
+  { key: "communication.sms", label: "SMS ohne Gesundheitsdaten", help: "Nur kurze organisatorische Hinweise. Nachrichten k\xF6nnen auf dem Endger\xE4t sichtbar sein." },
+  { key: "communication.portal", label: "Nachrichten im gesch\xFCtzten Klientenportal" }
+];
+var MEDIA_CHOICES = [
+  { key: "media.photo", label: "Fotos zum beschriebenen Dokumentationszweck" },
+  { key: "media.video", label: "Videoaufnahmen zum beschriebenen Dokumentationszweck" }
+];
+function getIntake2027Fields(keys, form) {
+  const all = [...INTAKE_2027_COMMON_FIELDS];
+  if (form.intakeLegalDetails?.["signer.capacity"] === "Eine bevollm\xE4chtigte oder rechtliche Vertretung") all.push(field("signer.authority", "Nachgewiesene Vertretungsbefugnis", "Art, Datum, Umfang und Ablageort der Vollmacht oder des Betreuernachweises."));
+  if (keys.some((key) => key.startsWith("client_contract_"))) all.push(field(
+    "contract.conclusion",
+    "Art des Vertragsschlusses",
+    void 0,
+    ["In den Gesch\xE4ftsr\xE4umen", "Au\xDFerhalb der Gesch\xE4ftsr\xE4ume", "Im Fernabsatz"]
+  ));
+  for (const key of keys) all.push(...INTAKE_2027_FIELDS[key] ?? []);
+  return [...new Map(all.map((item) => [item.key, item])).values()];
+}
+function validIntakeLegalDetails(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length <= 100 && Object.entries(value).every(([key, content]) => /^[a-z]+\.[a-z]+$/.test(key) && typeof content === "string" && content.length <= 1e4 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(content));
+}
+
+// src/features/intakeDocuments/intakeDocumentTemplates2027.ts
+var section = (number, title, ...paragraphs) => `<section class="document-section"><h2><span>${number}</span>${title}</h2>${paragraphs.map((text) => `<p class="document-paragraph">${text}</p>`).join("")}</section>`;
+var note = (title, text) => `<aside class="document-callout"><strong>${title}</strong><p>${text}</p></aside>`;
+var detail = (label, value) => `<div class="document-detail"><dt>${label}</dt><dd>${value}</dd></div>`;
+var parties = `<div class="document-parties-grid"><section><span class="document-eyebrow">Leistungserbringer</span><strong>{{tenant.name}}</strong><p>{{tenant.street}}<br>{{tenant.zip}} {{tenant.city}}</p><p>{{legal.provider.contact}}</p></section><section><span class="document-eyebrow">Betreute Person</span><strong>{{client.full_name}}</strong><p>Geboren am {{client.date_of_birth}}<br>{{client.street}}<br>{{client.zip}} {{client.city}}</p></section></div>`;
+var identity = `<dl class="document-facts">${detail("Dokumentdatum", "{{document.date}}")}${detail("Ort", "{{document.location}}")}${detail("Leistungsbereiche", "{{legal.service_labels}}")}${detail("Kostentr\xE4ger", "{{cost_carrier.primary_name}}<br><small>Versichertennummer: {{client.insurance_number}}</small>")}</dl>`;
+var signature = (client = true, employee = true) => `<section class="document-signature-block"><h2>Erkl\xE4rung und Unterschriften</h2><p class="document-paragraph">Die konkret ausgef\xFCllten Angaben und bezeichneten Anlagen geh\xF6ren zu dieser Fassung. Jede beteiligte Person erh\xE4lt eine vollst\xE4ndige Kopie.</p><p class="document-paragraph">{{legal.signer.capacity}}: {{legal.signer.name}}. {{legal.signer.authority_text}}</p><p class="document-paragraph">Ort und Datum: {{document.location}}, {{document.date}}</p><div class="sig-row">${client ? '<div class="sig-field"><div class="sig-line">{{signature.client}}</div><strong>{{legal.signer.name}}</strong><div class="sig-label">Betreute Person / nachgewiesene Vertretung</div></div>' : ""}${employee ? '<div class="sig-field"><div class="sig-line">{{signature.employee}}</div><strong>{{legal.employee.name}}</strong><div class="sig-label">F\xFCr {{tenant.name}}</div></div>' : ""}</div></section>`;
+var agreement = (prefix) => `<section class="document-agreement"><h2>Das ist konkret vereinbart</h2><dl>${detail("Leistungsbeginn", "{{contract.service_start}}")}${detail("Leistungen und Umfang", `{{legal.${prefix}.services}}`)}${detail("Zeiten und Ort", `{{legal.${prefix}.schedule}}`)}${detail("Preise und voraussichtliche Kosten", `{{legal.${prefix}.prices}}`)}${detail("Weitere Kosten und Eigenanteile", `{{legal.${prefix}.extras}}`)}${detail("Ausgeh\xE4ndigte Anlagen", `{{legal.${prefix}.annexes}}`)}</dl></section>`;
+var commonContract = () => section(
+  "05",
+  "Termine, \xC4nderungen und Leistungsnachweise",
+  "Termine und \xC4nderungen werden miteinander abgestimmt. Verhinderungen sollen so fr\xFCh wie m\xF6glich mitgeteilt werden. Eine Absage allein l\xF6st keine pauschale Geb\xFChr aus. Eine gesondert vereinbarte Ausfallregelung muss transparent sein, ersparte Aufwendungen und eine anderweitige Verwendung der Arbeitszeit ber\xFCcksichtigen sowie den Nachweis eines geringeren oder fehlenden Schadens zulassen. Tats\xE4chlich nicht erbrachte Leistungen werden nicht gegen\xFCber einem Kostentr\xE4ger als erbracht abgerechnet.",
+  "Leistungsnachweise nennen Datum, Art, Umfang und tats\xE4chliche Durchf\xFChrung. Eine Best\xE4tigung erfolgt nach der Leistung, nicht vorsorglich f\xFCr k\xFCnftige Eins\xE4tze. Unstimmigkeiten werden aufgekl\xE4rt; die betreute Person erh\xE4lt Zugang zu ihren Nachweisen."
+) + section(
+  "06",
+  "Datenschutz, Selbstbestimmung und Haftung",
+  "Erforderliche Daten werden auf der jeweils einschl\xE4gigen Rechtsgrundlage verarbeitet. Die beigef\xFCgten Datenschutzinformationen erl\xE4utern dies. Freiwillige Einwilligungen werden getrennt erkl\xE4rt und k\xF6nnen abgelehnt werden. Der Vertrag erlaubt weder freiheitsbeschr\xE4nkende Ma\xDFnahmen noch eine pauschale Weitergabe von Gesundheitsdaten.",
+  "Die Haftung richtet sich nach den gesetzlichen Vorschriften. Diese Vereinbarung enth\xE4lt keinen pauschalen Haftungsausschluss. Bei einem medizinischen Notfall werden die erforderlichen Hilfsma\xDFnahmen eingeleitet und gegebenenfalls der Rettungsdienst unter 112 verst\xE4ndigt. Eine benannte Kontaktperson erh\xE4lt nur zul\xE4ssige und erforderliche Informationen."
+) + section(
+  "08",
+  "Ausfertigung, Beschwerden und individuelle Vereinbarungen",
+  "Fragen, Beschwerden und Erkl\xE4rungen k\xF6nnen an {{legal.provider.contact}} gerichtet werden. Individuelle Abreden haben im gesetzlichen Umfang Vorrang. Vertrags\xE4nderungen und ihre Kostenfolgen werden verst\xE4ndlich dokumentiert; zwingende Formvorschriften bleiben bestehen. Eine unwirksame Klausel wird nach den gesetzlichen Regeln behandelt, ohne dass dadurch automatisch eine Ersatzklausel vereinbart w\xE4re."
+);
+var withdrawal = () => section(
+  "09",
+  "Widerrufsbelehrung bei Fernabsatz oder Abschluss au\xDFerhalb der Gesch\xE4ftsr\xE4ume",
+  "Art dieses Vertragsschlusses: {{legal.contract.conclusion}}. Wird der Vertrag im Fernabsatz oder au\xDFerhalb von Gesch\xE4ftsr\xE4umen geschlossen und besteht ein gesetzliches Widerrufsrecht, k\xF6nnen Sie ihn binnen 14 Tagen ab Vertragsschluss ohne Angabe von Gr\xFCnden widerrufen. Richten Sie Ihre eindeutige Erkl\xE4rung an {{tenant.name}}, {{tenant.street}}, {{tenant.zip}} {{tenant.city}}, Kontakt: {{legal.provider.contact}}. Eine rechtzeitige Absendung innerhalb der Frist gen\xFCgt. Ein Musterformular ist nicht vorgeschrieben.",
+  "Nach einem wirksamen Widerruf werden bereits erhaltene Zahlungen sp\xE4testens binnen 14 Tagen ab Eingang des Widerrufs mit demselben Zahlungsmittel zur\xFCckgezahlt, sofern nichts anderes ausdr\xFCcklich vereinbart ist; daf\xFCr entstehen keine zus\xE4tzlichen Entgelte. F\xFCr bereits erbrachte Dienstleistungen kann nur unter den gesetzlichen Voraussetzungen ein angemessener anteiliger Wertersatz verlangt werden. Ein vorzeitiger Leistungsbeginn setzt eine gesonderte ausdr\xFCckliche Erkl\xE4rung voraus. Diese Vertragsunterschrift allein erkl\xE4rt weder ein solches Verlangen noch einen Verzicht auf das Widerrufsrecht.",
+  "Muster f\xFCr Ihre Erkl\xE4rung: An das oben genannte Unternehmen. Hiermit widerrufe ich den von mir abgeschlossenen Vertrag \xFCber die folgenden Dienstleistungen: [Leistungen]. Vertrag geschlossen am: [Datum]. Name und Anschrift: [Angaben]. Datum; Unterschrift nur bei Erkl\xE4rung auf Papier."
+);
+var withdrawalConsent = () => section(
+  "04",
+  "Freiwilligkeit, Dauer und Widerruf",
+  "Diese Einwilligung gilt ausschlie\xDFlich f\xFCr den beschriebenen Zweck und endet, sobald er entf\xE4llt oder die Einwilligung widerrufen wird. Konkret angegebene k\xFCrzere Fristen gehen vor.",
+  "Sie entscheiden freiwillig \xFCber jede hier bezeichnete Nutzung. Eine Ablehnung hat keine Nachteile f\xFCr Leistungen, die ohne diese Einwilligung erbracht werden k\xF6nnen. Die Einwilligung kann jederzeit gegen\xFCber {{legal.provider.privacy}} oder {{legal.provider.contact}} widerrufen werden, zum Beispiel m\xFCndlich, telefonisch oder per E-Mail. Der Widerruf muss nicht schriftlich erfolgen.",
+  "Der Widerruf wirkt f\xFCr die Zukunft. Verarbeitungen, die bis dahin rechtm\xE4\xDFig erfolgt sind, werden dadurch nicht r\xFCckwirkend unzul\xE4ssig. Eine weitere Speicherung aufgrund gesetzlicher Pflichten wird von einer weiteren freiwilligen Nutzung getrennt. Die Datenschutzinformationen erl\xE4utern Auskunft, Berichtigung, L\xF6schung, Einschr\xE4nkung und Beschwerdem\xF6glichkeiten."
+);
+var contract = (key, title, service, prefix, body, extra) => ({ key, title, subtitle: "Individuelle Leistungs- und Kostenvereinbarung", type: "client_contract", service, required: true, client: true, employee: true, body: agreement(prefix) + body, extra });
+var definitions = [
+  {
+    key: "privacy_consent_default",
+    title: "Datenschutzinformation",
+    subtitle: "Information nach Art. 13 und gegebenenfalls Art. 14 DSGVO",
+    type: "privacy_consent",
+    required: true,
+    employee: true,
+    body: note("Information, keine pauschale Einwilligung", "Dieses Dokument erkl\xE4rt die erforderlichen Datenverarbeitungen. Freiwillige Nutzungen werden in eigenen Erkl\xE4rungen mit konkreter Auswahl festgehalten. Die Unterschrift des Unternehmens dokumentiert die Bereitstellung dieser Information.") + section("01", "Verantwortliche Stelle und Kontakt", "{{tenant.name}}, {{tenant.street}}, {{tenant.zip}} {{tenant.city}} ist f\xFCr die hier beschriebenen Verarbeitungen verantwortlich. Allgemeiner Kontakt: {{legal.provider.contact}}. Datenschutzkontakt und gegebenenfalls Datenschutzbeauftragte: {{legal.provider.privacy}}.") + section(
+      "02",
+      "Welche Daten werden wof\xFCr ben\xF6tigt?",
+      "Verarbeitet werden die f\xFCr die vereinbarte Leistung erforderlichen Stamm-, Kontakt-, Vertrags-, Leistungs- und Abrechnungsdaten. Gesundheitsdaten werden nur verarbeitet, soweit sie f\xFCr den konkreten Versorgungszweck erforderlich sind und eine tragf\xE4hige Rechtsgrundlage besteht. Eine Alltagsbegleitung ben\xF6tigt nicht automatisch dieselben Gesundheitsinformationen wie ein Pflegedienst.",
+      "Vertragliche und vorvertragliche Verarbeitung st\xFCtzt sich auf Art. 6 Abs. 1 Buchstabe b DSGVO, gesetzlich vorgeschriebene Verarbeitung auf Buchstabe c in Verbindung mit der einschl\xE4gigen Vorschrift. F\xFCr Gesundheitsdaten muss au\xDFerdem eine Ausnahme nach Art. 9 Abs. 2 DSGVO vorliegen: insbesondere Buchstabe h unter den gesetzlichen Voraussetzungen einschlie\xDFlich der Vertraulichkeitspflichten oder eine gesonderte ausdr\xFCckliche Einwilligung nach Buchstabe a. Eine Vertragsunterschrift ersetzt diese Pr\xFCfung nicht.",
+      "{{legal.provider.basis}}"
+    ) + section(
+      "03",
+      "Empf\xE4nger, Quellen und internationale \xDCbermittlungen",
+      "Die Daten stammen grunds\xE4tzlich von Ihnen beziehungsweise Ihrer nachgewiesenen Vertretung. Angaben anderer Stellen werden nur befugt und zweckgebunden \xFCbernommen. Bei einer Erhebung bei Dritten werden die erg\xE4nzenden Informationen nach Art. 14 DSGVO, insbesondere Herkunft und Datenkategorien, bereitgestellt.",
+      "Tats\xE4chliche Empf\xE4nger und Verarbeitungspartner: {{legal.provider.recipients}}. Eine \xDCbermittlung an Kostentr\xE4ger oder Beh\xF6rden erfolgt nur im erforderlichen Umfang und auf zul\xE4ssiger Grundlage. Auftragsverarbeiter werden vertraglich nach Art. 28 DSGVO gebunden. Etwaige Drittland\xFCbermittlungen ben\xF6tigen die Voraussetzungen der Art. 44 ff. DSGVO; eingesetzte Garantien und Bezugsm\xF6glichkeiten werden konkret mitgeteilt."
+    ) + section("04", "Aufbewahrung, Pflichtangaben und Ihre Entscheidung", "{{legal.provider.retention}}", "Ben\xF6tigte Vertrags- und Leistungsdaten sind f\xFCr die Vorbereitung oder Erf\xFCllung der vereinbarten Versorgung erforderlich. Welche Folgen eine fehlende Angabe hat, wird im Einzelfall erl\xE4utert. Freiwillige Angaben sind erkennbar getrennt. Einwilligungen zu optionalen Nutzungen k\xF6nnen ohne Verlust anderer, unabh\xE4ngig erbringbarer Leistungen verweigert oder widerrufen werden. Eine ausschlie\xDFlich automatisierte Entscheidung mit rechtlicher oder vergleichbar erheblicher Wirkung wird durch diese Vorlage nicht vereinbart; ein tats\xE4chlich eingesetztes Verfahren w\xE4re vorab gesondert zu erl\xE4utern.") + section("05", "Ihre Rechte und Beschwerde", "Sie k\xF6nnen nach den gesetzlichen Voraussetzungen Auskunft, Berichtigung, L\xF6schung, Einschr\xE4nkung der Verarbeitung und Daten\xFCbertragbarkeit verlangen. Soweit die Verarbeitung auf Art. 6 Abs. 1 Buchstabe e oder f DSGVO beruht, besteht unter den Voraussetzungen des Art. 21 ein Widerspruchsrecht. Eine Einwilligung k\xF6nnen Sie jederzeit einfach mit Wirkung f\xFCr die Zukunft widerrufen.", "Sie k\xF6nnen sich bei einer Datenschutzaufsichtsbeh\xF6rde beschweren. Zust\xE4ndige Datenschutzaufsichtsbeh\xF6rde: {{legal.provider.authority}}. Andere gesetzlich er\xF6ffnete Beschwerdem\xF6glichkeiten bleiben bestehen.")
+  },
+  contract(
+    "client_contract_assist",
+    "Vertrag \xFCber Alltagsbegleitung, Betreuung und Begleitung",
+    "assist",
+    "assist",
+    section("01", "Auftrag und Leistungsgrenzen", "Vereinbart sind ausschlie\xDFlich die oben beschriebenen Alltagshilfen, Betreuungsangebote und Begleitungen. Selbstbestimmung, pers\xF6nliche W\xFCnsche und vereinbarte Grenzen werden beachtet. Medizinische Behandlung, eigenst\xE4ndige Medikamenten\xE4nderungen und nicht vereinbarte pflegerische Ma\xDFnahmen sind nicht umfasst. Eine zus\xE4tzliche Leistung setzt eine passende Befugnis und eine gesonderte Vereinbarung voraus.") + section("02", "Organisation und Zugang", "Der Leistungserbringer organisiert geeignete Mitarbeitende und stimmt Vertretungen sowie wesentliche Termin\xE4nderungen ab. Die betreute Person erm\xF6glicht den vereinbarten Zugang und teilt relevante \xC4nderungen mit. Schl\xFCssel, Bargeld, Eink\xE4ufe und Bef\xF6rderungen ben\xF6tigen konkrete \xDCbergabe- beziehungsweise Leistungsvereinbarungen.") + section("03", "Kosten und Finanzierung", "Es gelten die oben ausgewiesenen Endpreise und Kostenbestandteile. Vereinbarte Eigenanteile werden vor Beginn erl\xE4utert. Eine Kosten\xFCbernahme durch eine Kasse folgt aus den einschl\xE4gigen Voraussetzungen und ihrem Bescheid, nicht aus diesem Vertrag. Zus\xE4tzliche private Leistungen werden nur nach ausdr\xFCcklicher Beauftragung berechnet. Ohne abweichende konkrete Vereinbarung sind Rechnungen 14 Tage nach Zugang f\xE4llig.") + section("07", "Laufzeit und K\xFCndigung", "Die betreute Person kann diese Vereinbarung jederzeit ohne Frist f\xFCr die Zukunft beenden. Der Leistungserbringer kann mit vier Wochen zum Monatsende k\xFCndigen und ber\xFCcksichtigt dabei berechtigte Versorgungsinteressen. Zwingende weitergehende Rechte und die K\xFCndigung aus wichtigem Grund bleiben unber\xFChrt. Erkl\xE4rungen sind in Textform m\xF6glich; gesetzlich erleichterte Erkl\xE4rungswege bleiben offen.") + commonContract() + withdrawal()
+  ),
+  contract(
+    "client_contract_ambulatory_care",
+    "Pflegevertrag \xFCber h\xE4usliche Versorgung",
+    "ambulatory_care",
+    "ambulatory",
+    section("01", "Leistungen nach SGB XI und SGB V", "Zulassungs- und Abrechnungsgrundlage: {{legal.ambulatory.approval}}. Pflegeleistungen nach SGB XI und gegebenenfalls verordnete h\xE4usliche Krankenpflege nach SGB V werden in der Leistungs\xFCbersicht getrennt bezeichnet. Eine \xE4rztliche Verordnung oder die erforderliche Genehmigung wird durch diesen Vertrag nicht ersetzt.") + section("02", "Pflegeplanung und Kosteninformation", "Art, Inhalt und Umfang jeder vereinbarten Leistung sowie die jeweils ma\xDFgebliche Verg\xFCtung ergeben sich aus der ausgef\xFCllten Leistungs- und Kosten\xFCbersicht. Vor Vertragsschluss und bei wesentlichen \xC4nderungen wird \xFCber die voraussichtlichen Kosten informiert. Andere beteiligte Leistungserbringer und Informationen zur Nutzung des Umwandlungsanspruchs werden ber\xFCcksichtigt. Eine \xC4nderung des Pflegebedarfs f\xFChrt zu einer gemeinsamen \xDCberpr\xFCfung der Versorgung.") + section("03", "Abrechnung und private Zusatzleistungen", "Bei Pflegesachleistungen richtet sich der gesetzliche Verg\xFCtungsanspruch des zugelassenen Pflegedienstes unmittelbar gegen die Pflegekasse. Daf\xFCr wird kein Sachleistungsanspruch der betreuten Person abgetreten. Nicht gedeckte Zusatzleistungen werden vor ihrer Beauftragung konkret angeboten. Eine Ablehnung oder K\xFCrzung durch die Kasse begr\xFCndet allein noch keinen pauschalen privaten Zahlungsanspruch.") + section("07", "K\xFCndigung", "Die pflegebed\xFCrftige Person kann den Pflegevertrag jederzeit ohne Einhaltung einer Frist k\xFCndigen (\xA7 120 Abs. 2 SGB XI). F\xFCr den Leistungserbringer gilt eine vertragliche Frist von vier Wochen zum Monatsende unter Beachtung der Versorgungssituation. Zwingende gesetzliche Pflichten, insbesondere bei einer Beendigung zur Unzeit, und das Recht zur K\xFCndigung aus wichtigem Grund bleiben bestehen.") + commonContract() + withdrawal()
+  ),
+  contract(
+    "client_contract_stationary_care",
+    "Wohn- und Betreuungsvertrag",
+    "stationary_care",
+    "stationary",
+    note("Schriftlicher Abschluss erforderlich", "Soweit das WBVG anwendbar ist, muss dieser Vertrag auf Papier von den Vertragsparteien unterschrieben und als Ausfertigung ausgeh\xE4ndigt werden. Die elektronische Form ist nach \xA7 6 Abs. 1 WBVG ausgeschlossen. Die digitale Vorschau und eine Bildschirmunterschrift ersetzen diesen Abschluss nicht.") + section("01", "Wohnraum, Versorgung und Vertragsgrundlagen", "Einrichtung: {{facility.name}}. {{legal.stationary.accommodation}}", "Die konkret beschriebenen Leistungen, die ausgef\xFCllten Anlagen und die vorvertraglichen Informationen bilden die Vertragsgrundlage: {{legal.stationary.precontract}}. Abweichungen von diesen Informationen werden einzeln kenntlich gemacht. Eine Hausordnung darf zwingende Rechte und individuelle Vereinbarungen nicht verdr\xE4ngen.") + section("02", "Entgelte und Leistungsanpassung", "{{legal.stationary.charges}}", "Eine Entgelt\xE4nderung setzt die jeweils einschl\xE4gigen gesetzlichen und vereinbarten Voraussetzungen voraus; insbesondere werden Begr\xFCndung, Berechnung und gesetzliche Ank\xFCndigungsfrist nach \xA7 9 WBVG beachtet. Aus einer Kostensteigerung folgt kein freies einseitiges \xC4nderungsrecht. Abwesenheit, Leistungsminderung und die gesetzlichen Rechte nach \xA7\xA7 7 bis 10 WBVG werden ber\xFCcksichtigt.", "{{legal.stationary.adjustment}}") + section("03", "K\xFCndigung und Vertragsende", "Die Bewohnerin oder der Bewohner kann sp\xE4testens am dritten Werktag eines Monats zum Ende dieses Monats schriftlich k\xFCndigen. Die besonderen K\xFCndigungsrechte bei Entgelterh\xF6hung, innerhalb der gesetzlichen Anfangsfrist und aus wichtigem Grund bleiben bestehen (\xA7 11 WBVG). Der Unternehmer kann nur unter den gesetzlichen Voraussetzungen des \xA7 12 WBVG k\xFCndigen. Folgen des Todes und zul\xE4ssige Regelungen zur \xDCberlassung des Wohnraums richten sich nach \xA7 4 WBVG; diese Vorlage begr\xFCndet keine pauschale Fortzahlung aller Entgelte.") + section("04", "Beschwerden und Streitbeilegung", "{{legal.stationary.disputes}}", "Interne Beschwerden k\xF6nnen an {{legal.provider.contact}} gerichtet werden. Der Zugang zur zust\xE4ndigen Aufsicht, Beratung, Schlichtung und zu den Gerichten bleibt offen.") + commonContract(),
+    { "facility.name": { label: "Einrichtung", required: true } }
+  ),
+  contract(
+    "client_contract_care_consulting",
+    "Vereinbarung \xFCber Beratung und h\xE4usliche Schulung",
+    "care_consulting",
+    "consulting",
+    section("01", "Konkreter Beratungsauftrag", "Auftragsart: {{legal.consulting.basis}}. Anlass: {{consulting.reason}}. Beauftragung, Berechtigung und Verg\xFCtung: {{legal.consulting.authorization}}. Eine Beratung nach \xA7 7a, ein Beratungsbesuch nach \xA7 37 Abs. 3 und eine h\xE4usliche Schulung nach \xA7 45 SGB XI werden fachlich und abrechnungstechnisch unterschieden.") + section("02", "Durchf\xFChrung und Ergebnis", "Inhalt, Teilnehmende, Ort und Dauer ergeben sich aus der Leistungsvereinbarung. Ergebnisse und n\xE4chste Schritte werden verst\xE4ndlich dokumentiert. Ein gesetzlicher Beratungsnachweis wird im vorgeschriebenen Verfahren erstellt. Eine Einwilligung zur \xDCbermittlung weitergehender Erkenntnisse wird gesondert eingeholt, soweit erforderlich. Die Beratung ersetzt keine \xE4rztliche Diagnose oder Behandlung und keine individuelle Rechtsvertretung.") + section("03", "Kosten und besondere Durchf\xFChrungsformen", "Kassenfinanzierte Beratung oder Schulung setzt die jeweilige Berechtigung und Vereinbarung voraus. Eine privat zu verg\xFCtende Zusatzberatung ben\xF6tigt einen ausdr\xFCcklichen Auftrag mit Endpreis. Bei Videoformaten gelten die f\xFCr die jeweilige Beratungsart ma\xDFgeblichen Voraussetzungen und Befristungen. Nach derzeitiger Regelung ist bei \xA7 37 Abs. 3 SGB XI bis 31. M\xE4rz 2027 auf Wunsch jede zweite Beratung per zul\xE4ssiger Videokonferenz m\xF6glich; die erste erfolgt in der H\xE4uslichkeit. Eine Verl\xE4ngerung wird nicht vorausgesetzt.") + section("07", "Beendigung", "Die betreute Person kann den Auftrag jederzeit f\xFCr die Zukunft beenden. Tats\xE4chlich erbrachte, wirksam vereinbarte Leistungen werden nach den gesetzlichen Regeln abgerechnet. K\xFCnftige Beratungstermine l\xF6sen ohne eigenst\xE4ndige zul\xE4ssige Grundlage keine Verg\xFCtung aus. Weitergehende gesetzliche Rechte bleiben bestehen.") + commonContract() + withdrawal(),
+    { "consulting.reason": { label: "Beratungsanlass", required: true } }
+  ),
+  contract(
+    "client_contract_day_care",
+    "Vertrag \xFCber Tagespflege",
+    "day_care",
+    "daycare",
+    section("01", "Teilstation\xE4re Versorgung", "Die konkret vereinbarte Tagespflege umfasst Pflege, Betreuung und die w\xE4hrend des Aufenthalts notwendigen Leistungen nach der einschl\xE4gigen Leistungsgrundlage. Besuchstage, Verpflegung, besondere Bed\xFCrfnisse und \xDCbergaben werden festgelegt. Unterkunft, Verpflegung und sonstige private Kosten werden von kassenfinanzierten Bestandteilen getrennt ausgewiesen.") + section("02", "Bef\xF6rderung und \xDCbergabe", "Die nach \xA7 41 SGB XI notwendige Bef\xF6rderung zwischen Wohnung und Einrichtung geh\xF6rt zum gesetzlichen Umfang der teilstation\xE4ren Pflege und wird nicht pauschal ausgeschlossen. Konkrete Organisation: {{legal.daycare.transport}}. Sicherheitsrelevante Informationen, Hilfsmittel und erforderliche Anordnungen werden in der \xDCbergabe ber\xFCcksichtigt.") + section("03", "Kosten und Leistungsgrenzen", "Ma\xDFgeblich sind der individuelle Anspruch, die Verg\xFCtungsvereinbarung und die oben ausgewiesenen Kosten. Die Anrechnung anderer Leistungen richtet sich nach dem geltenden Recht. Der Vertrag garantiert keine vollst\xE4ndige Kosten\xFCbernahme. Zus\xE4tzliche private Leistungen werden gesondert beauftragt.") + section("07", "Beendigung", "Die betreute Person kann den Vertrag jederzeit f\xFCr die Zukunft beenden. F\xFCr den Leistungserbringer gilt eine Frist von vier Wochen zum Monatsende; zwingende weitergehende Rechte bleiben bestehen. Ob im konkreten Leistungsmodell das WBVG oder erg\xE4nzendes Landesrecht anzuwenden ist, muss vor Abschluss gekl\xE4rt werden. Bestehende Form- und Schutzvorschriften gehen vor.") + commonContract() + withdrawal()
+  ),
+  contract(
+    "client_contract_relief_services",
+    "Vertrag \xFCber Angebote zur Unterst\xFCtzung im Alltag",
+    "relief_services",
+    "relief",
+    section("01", "Angebot und Anerkennung", "{{legal.relief.recognition}}. Die tats\xE4chlich vereinbarten Leistungen m\xFCssen vom jeweiligen Anerkennungs- beziehungsweise Abrechnungsumfang gedeckt sein. Der Entlastungsbetrag finanziert nur die nach \xA7 45b SGB XI erstattungsf\xE4higen Angebote; nicht jede beliebige Haushaltshilfe ist dadurch automatisch erstattungsf\xE4hig.") + section("02", "Budget und \xDCbertrag", "Es gilt der zum Leistungszeitpunkt bestehende gesetzliche Anspruch unter Ber\xFCcksichtigung bereits genutzter Betr\xE4ge und weiterer Anbieter. Nicht ausgesch\xF6pfte Betr\xE4ge k\xF6nnen nach derzeitiger Regelung im Kalenderjahr genutzt und in das folgende Kalenderhalbjahr \xFCbertragen werden. Ein pauschaler Verfall am Monatsende wird nicht vereinbart. Ein Planbudget ersetzt keine Best\xE4tigung des verf\xFCgbaren Anspruchs durch den Kostentr\xE4ger.") + section("03", "Abrechnung", "Erstattet werden belegte, tats\xE4chlich entstandene Aufwendungen im zul\xE4ssigen Umfang. Eine direkte Einreichung oder Abtretung erfordert eine gesonderte passende Erkl\xE4rung und die Beachtung der Kostentr\xE4gervorgaben. Bei erkennbarem Budgetmangel werden Umfang und m\xF6gliche private Kosten vor weiterer Beauftragung besprochen.") + section("07", "Beendigung", "Die betreute Person kann den Vertrag jederzeit ohne Frist f\xFCr die Zukunft beenden. Der Leistungserbringer kann mit vier Wochen zum Monatsende k\xFCndigen. Zwingende gesetzliche Rechte und die K\xFCndigung aus wichtigem Grund bleiben bestehen.") + commonContract() + withdrawal()
+  ),
+  {
+    key: "assignment_declaration_care_health_insurance",
+    title: "Begrenzte Abtretung und Abrechnungsauftrag",
+    subtitle: "Nur konkret bezeichnete, abtretbare Geldforderungen",
+    type: "assignment_declaration",
+    client: true,
+    employee: true,
+    body: section("01", "Genaue Forderung und Parteien", "Ich trete die folgende abtretbare Geldforderung im bezeichneten Umfang an {{tenant.name}} ab. Der Leistungserbringer nimmt diese Abtretung an. Forderung und Rechtsgrundlage: {{legal.assignment.claim}}. Schuldner und Zuordnung: {{legal.assignment.debtor}}. Zeitraum und Begrenzung: {{legal.assignment.period}}.") + section("02", "Abtretbarkeit und Grenzen", "Gepr\xFCfte Voraussetzungen und Kostentr\xE4gervorgaben: {{legal.assignment.approval}}. Dienst- und Sachleistungsanspr\xFCche sind nach \xA7 53 Abs. 1 SGB I nicht \xFCbertragbar und werden nicht abgetreten. Ein unmittelbarer Verg\xFCtungsanspruch eines zugelassenen Leistungserbringers bleibt davon getrennt. Soweit eine Feststellung des Leistungstr\xE4gers oder weitere Voraussetzung erforderlich ist, steht die Verwendung unter deren Vorliegen.", "Die Erkl\xE4rung erfasst keine anderen Budgets oder k\xFCnftigen Forderungen au\xDFerhalb der genannten Begrenzung. Es d\xFCrfen nur tats\xE4chlich erbrachte und ordnungsgem\xE4\xDF nachgewiesene Leistungen eingereicht werden.") + section("03", "Einreichung und Abrechnung", "Der Auftrag umfasst die Einreichung der erforderlichen Nachweise f\xFCr die bezeichnete Forderung. Es wird keine allgemeine Vollmacht \xFCber andere Angelegenheiten erteilt. Die betreute Person erh\xE4lt eine nachvollziehbare Abrechnung und Auskunft \xFCber Zahlungen und K\xFCrzungen. Eine Kassenablehnung allein begr\xFCndet keinen neuen privaten Zahlungsanspruch.") + section("04", "Beendigung und Rechte", "Der Einreichungsauftrag kann f\xFCr die Zukunft widerrufen werden. Eine bereits wirksam erfolgte Abtretung wird dadurch nicht automatisch r\xFCckg\xE4ngig. Der Leistungserbringer verpflichtet sich, noch nicht abgerechnete Forderungen auf Verlangen im zul\xE4ssigen Umfang zur\xFCckzu\xFCbertragen; Schuldner und Beteiligte werden informiert. Gesetzliche Einwendungen, Aufrechnungsm\xF6glichkeiten und Erstattungspflichten bleiben bestehen.")
+  },
+  {
+    key: "confidentiality_release_default",
+    title: "Begrenzte Schweigepflichtentbindung",
+    subtitle: "Benannte Personen, konkreter Zweck, begrenzter Umfang",
+    type: "additional_consent",
+    client: true,
+    body: section("01", "Meine Entscheidung", "Ich entbinde die konkret benannten schweigepflichtigen Personen gegen\xFCber den ausdr\xFCcklich bezeichneten Empf\xE4ngern im nachfolgenden Umfang von ihrer Schweigepflicht. Soweit Gesundheitsdaten \xFCbermittelt werden, willige ich ausdr\xFCcklich in diese konkret beschriebene \xDCbermittlung nach Art. 9 Abs. 2 Buchstabe a DSGVO ein.") + section("02", "Personen, Empf\xE4nger und Informationen", "{{legal.confidentiality.people}}", "Zweck und ben\xF6tigte Informationen: {{legal.confidentiality.purpose}}. Nicht ben\xF6tigte Informationen sind ausgeschlossen. Eine Weitergabe an weitere Personen ist von dieser Erkl\xE4rung nicht gedeckt.") + section("03", "Dauer und Einschr\xE4nkungen", "{{legal.confidentiality.duration}}. Bestehende gesetzliche \xDCbermittlungsbefugnisse werden durch diese Erkl\xE4rung weder erweitert noch ausgeschlossen.") + withdrawalConsent()
+  },
+  {
+    key: "communication_consent_default",
+    title: "Auswahl der Kommunikationswege",
+    subtitle: "Freiwillige Auswahl f\xFCr die vereinbarte Kommunikation",
+    type: "additional_consent",
+    client: true,
+    body: note("Nur angekreuzte Wege sind ausgew\xE4hlt", "Die Auswahl erlaubt keine Werbung und keine pauschale \xDCbermittlung von Gesundheitsdaten. Ein Messenger-Dienst wird mit dieser Erkl\xE4rung nicht freigegeben.") + section("01", "Meine ausgew\xE4hlten Kontaktwege", "{{legal.communication_choices}}", "Telefon / SMS: {{client.phone}}. E-Mail: {{client.email}}. \xC4nderungen der Kontaktdaten teile ich dem Unternehmen mit.") + section("02", "Inhalt und Schutz", "Die Auswahl betrifft organisatorische Mitteilungen wie Termine, \xC4nderungen und R\xFCckfragen. Gesundheitsdaten sowie ausf\xFChrliche Versorgungs- oder Abrechnungsunterlagen werden nicht allein aufgrund dieser Auswahl ungesch\xFCtzt versandt. E-Mail und SMS k\xF6nnen fehlgeleitet, von Dritten mitgelesen oder auf dem Endger\xE4t sichtbar werden. Telefonische oder anderweitig vereinbarte sichere Alternativen bleiben m\xF6glich.") + section("03", "Keine Notfallkommunikation", "E-Mail, SMS und Portal ersetzen keinen Notruf und werden nicht als st\xE4ndig \xFCberwachte Notfallkan\xE4le zugesagt. Bei einem medizinischen Notfall gilt die Rufnummer 112.") + withdrawalConsent()
+  },
+  {
+    key: "photo_media_consent_default",
+    title: "Einwilligung zur Foto- oder Videodokumentation",
+    subtitle: "Ausschlie\xDFlich f\xFCr einen beschriebenen Versorgungszweck",
+    type: "additional_consent",
+    client: true,
+    body: section("01", "Aufnahmearten und ausdr\xFCckliche Einwilligung", "Ich willige in die konkret ausgew\xE4hlten Aufnahmen und ihre beschriebene Verwendung ein. Soweit daraus Gesundheitsdaten hervorgehen, umfasst meine ausdr\xFCckliche Einwilligung deren Verarbeitung nach Art. 9 Abs. 2 Buchstabe a DSGVO. Ausgew\xE4hlt: {{legal.media_choices}}.") + section("02", "Zweck, Zugriff und Dauer", "{{legal.media.purpose}}", "{{legal.media.scope}}. Aufnahmen werden auf das Erforderliche begrenzt und im zugriffsgesch\xFCtzten Dokumentationssystem verwahrt. Eine technisch oder fachlich geeignete alternative Dokumentation wird besprochen, wenn die Aufnahme nicht gew\xFCnscht wird.") + section("03", "Ausgeschlossene Nutzungen", "Diese Erkl\xE4rung erlaubt keine Ver\xF6ffentlichung, Werbung, sozialen Netzwerke, allgemeine Schulung, Modelltraining oder andere unbenannte Zwecke. Solche Nutzungen ben\xF6tigen eine eigenst\xE4ndige konkret informierte Entscheidung. Audioaufnahmen sind hier nicht umfasst.") + withdrawalConsent()
+  },
+  {
+    key: "emergency_contact_consent_default",
+    title: "Einwilligung zur Information eines Notfallkontakts",
+    subtitle: "Eine Kontaktperson benennen, Informationen begrenzen",
+    type: "additional_consent",
+    client: true,
+    body: section("01", "Benannte Person", "Ich erlaube {{tenant.name}}, die folgende Person im beschriebenen Notfall zu kontaktieren: {{emergency.name}}, Telefon {{emergency.phone}}. Ich willige ausdr\xFCcklich ein, dass dabei die konkret erforderlichen Angaben \xFCber meinen Gesundheits- oder Versorgungszustand mitgeteilt werden d\xFCrfen.") + section("02", "Anlass und Informationsumfang", "{{legal.emergency.scope}}. Es werden nur f\xFCr den beschriebenen Anlass erforderliche Angaben \xFCbermittelt. Die Benennung erteilt keine Vollmacht f\xFCr Behandlungsentscheidungen, Vertragsabschl\xFCsse oder Einsicht in die gesamte Akte. Eine Vertretungsbefugnis ist gesondert nachzuweisen.") + section("03", "Notwendige Hilfe bleibt m\xF6glich", "Gesetzlich zul\xE4ssige Ma\xDFnahmen zum Schutz lebenswichtiger Interessen, die Verst\xE4ndigung des Rettungsdienstes und andere gesetzliche Pflichten h\xE4ngen nicht von dieser optionalen Einwilligung ab. Die benannte Person wird \xFCber die Verarbeitung ihrer eigenen Kontaktdaten nach den gesetzlichen Anforderungen informiert.") + withdrawalConsent(),
+    extra: { "emergency.name": { label: "Notfallkontakt", required: true }, "emergency.phone": { label: "Notfall-Telefon", required: true } }
+  }
+];
+var INTAKE_DOCUMENT_TEMPLATES_2027 = definitions.map((definition) => {
+  let sectionNumber = 0;
+  const numberedBody = definition.body.replace(/<h2><span>\d+<\/span>/g, () => `<h2><span>${String(++sectionNumber).padStart(2, "0")}</span>`);
+  const fields = [...INTAKE_2027_COMMON_FIELDS, ...INTAKE_2027_FIELDS[definition.key] ?? []];
+  const schema = {
+    "tenant.name": { label: "Unternehmen", required: true },
+    "tenant.street": { label: "Unternehmensanschrift", required: true },
+    "tenant.zip": { label: "Unternehmens-PLZ", required: true },
+    "tenant.city": { label: "Unternehmensort", required: true },
+    "client.full_name": { label: "Name der betreuten Person", required: true },
+    "client.date_of_birth": { label: "Geburtsdatum", required: true },
+    "client.street": { label: "Anschrift der betreuten Person", required: true },
+    "client.zip": { label: "Klienten-PLZ", required: true },
+    "client.city": { label: "Klientenort", required: true },
+    "document.date": { label: "Datum", required: true },
+    "document.location": { label: "Ort", required: true },
+    ...Object.fromEntries(fields.map((item) => [`legal.${item.key}`, { label: item.label, required: !item.optional }])),
+    ...definition.extra
+  };
+  if (definition.type === "client_contract") {
+    schema["contract.service_start"] = { label: "Leistungsbeginn", required: true };
+    schema["legal.contract.conclusion"] = { label: "Art des Vertragsschlusses", required: true };
+  }
+  if (definition.key === "communication_consent_default") schema["legal.communication_choices"] = { label: "Mindestens ein bewusst ausgew\xE4hlter Kommunikationsweg", required: true };
+  if (definition.key === "photo_media_consent_default") schema["legal.media_choices"] = { label: "Mindestens eine bewusst ausgew\xE4hlte Aufnahmeart", required: true };
+  schema["legal.signer.authority_text"] = { label: "Nachgewiesene Vertretungsbefugnis", required: true };
+  const slots = [];
+  if (definition.client) slots.push({ role: "client", placeholder: "{{signature.client}}", required: true });
+  if (definition.employee) slots.push({ role: "employee", placeholder: "{{signature.employee}}", required: true });
+  const htmlContent = `<header class="document-header"><div class="document-brand"><span class="document-brand-mark" aria-hidden="true">+</span><span>{{tenant.name}}</span><span class="document-edition">Ausgabe 2027 \xB7 vorbereitet</span></div><p class="document-eyebrow">Vertr\xE4ge &amp; Einwilligungen</p><h1>${definition.title}</h1><p class="subtitle">${definition.subtitle}</p></header>${parties}${identity}${numberedBody}${signature(Boolean(definition.client), Boolean(definition.employee))}<footer class="document-footer-note">{{tenant.name}} \xB7 ${definition.title} \xB7 Ausgabe 2027 \xB7 Bearbeitungsstand 21.10.2026<br>Diese Fassung enth\xE4lt den bei der Vorbereitung gepr\xFCften Rechtsstand. F\xFCr den Leistungszeitpunkt geltende \xC4nderungen und die konkreten Unternehmensangaben sind vor Verwendung zu pr\xFCfen.</footer>`;
+  return {
+    id: `2027-${definition.key}`,
+    templateKey: definition.key,
+    title: definition.title,
+    documentType: definition.type,
+    serviceType: definition.service ?? null,
+    version: INTAKE_2027_VERSION,
+    isSystemTemplate: true,
+    isActive: true,
+    isRequired: Boolean(definition.required),
+    requiresClientSignature: Boolean(definition.client),
+    requiresEmployeeSignature: Boolean(definition.employee),
+    requiresRepresentativeSignature: false,
+    allowsCustomTemplate: false,
+    source: "system",
+    htmlContent,
+    plainTextContent: htmlContent.replace(/<(?:br|\/p|\/h[12]|\/section|\/div|\/dd|\/dt)[^>]*>/g, "\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim(),
+    placeholderSchema: schema,
+    signatureSlots: slots
+  };
+});
+
+// src/features/intakeDocuments/intake2027Context.ts
+var contexts = { daily_assistance: "Alltagsbegleitung", support_care: "Betreuung", companionship: "Begleitung", ambulatory_care: "Ambulante Pflege", stationary_care: "Station\xE4re Pflege", consulting: "Beratung", academy_prepared: "Akademie / Schulung (vorbereitet)" };
+function buildIntake2027Context(form) {
+  const values = validIntakeLegalDetails(form.intakeLegalDetails) ? form.intakeLegalDetails : {};
+  const result = Object.fromEntries(Object.entries(values).map(([key, value]) => [`legal.${key}`, value.trim()]));
+  for (const field2 of getIntake2027Fields(["client_contract_assist", "client_contract_care_consulting"], form)) {
+    if (field2.choices && field2.choices.length > 1 && !field2.choices.includes(values[field2.key]?.trim())) result[`legal.${field2.key}`] = "";
+  }
+  for (const key of ["signer.name", "employee.name"]) if (values[key]?.length > 200 || /[\r\n]/.test(values[key] ?? "")) result[`legal.${key}`] = "";
+  const normalizeName = (value) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("de-DE");
+  if (values["signer.capacity"] === "Die betreute Person selbst" && normalizeName(values["signer.name"] ?? "") !== normalizeName(`${form.firstName} ${form.lastName}`)) result["legal.signer.name"] = "";
+  const selected = (choices) => choices.filter((choice) => values[choice.key] === "yes").map((choice) => `\u2713 ${choice.label}`).join("\n");
+  result["legal.communication_choices"] = selected(COMMUNICATION_CHOICES);
+  result["legal.media_choices"] = selected(MEDIA_CHOICES);
+  result["legal.service_labels"] = form.careContexts.map((key) => contexts[key] ?? "").filter(Boolean).join(", ");
+  result["legal.signer.authority_text"] = values["signer.capacity"] === "Die betreute Person selbst" ? "Die betreute Person erkl\xE4rt selbst." : values["signer.capacity"] === "Eine bevollm\xE4chtigte oder rechtliche Vertretung" ? values["signer.authority"]?.trim() || "" : "";
+  if (values["communication.email"] === "yes" && !form.email.trim()) result["legal.communication_choices"] = "";
+  if ((values["communication.phone"] === "yes" || values["communication.sms"] === "yes") && !form.phone.trim() && !form.mobile.trim()) result["legal.communication_choices"] = "";
+  return result;
+}
+var INTAKE_PAPER_CONTRACT_NOTICE = "F\xFCr den Wohn- und Betreuungsvertrag ist der schriftliche Abschluss auf Papier erforderlich (\xA7 6 WBVG). Die vollst\xE4ndige Fassung kann vorbereitet und gedruckt werden; eine Bildschirmunterschrift ersetzt das Original nicht. Diese Ausgabe kann in diesem Ablauf nicht digital abgeschlossen werden.";
+
 // src/features/intakeDocuments/intakeCostCarrierMerge.ts
 function buildAssignmentSubtitle(selected) {
   if (selected.length === 1 && selected[0] === "beihilfe") {
@@ -1393,7 +1702,8 @@ function buildIntakePlaceholderContext(form, tenantDisplay, options) {
     "emergency.phone": form.emergencyContactPhone.trim(),
     "signature.client": "",
     "signature.employee": "",
-    "signature.legal_representative": ""
+    "signature.legal_representative": "",
+    ...form.intakeTemplateEdition === "2027" ? buildIntake2027Context(form) : {}
   };
 }
 function resolveIntakeContractType(form) {
@@ -1441,7 +1751,7 @@ function listApplicableIntakeTemplates(form, tenantTemplates = []) {
   }
   const result = [];
   for (const key of applicableKeys) {
-    const template = lookup.get(key) ?? getSystemIntakeTemplateByKey(key);
+    const template = lookup.get(key) ?? (form.intakeTemplateEdition === "2027" ? INTAKE_DOCUMENT_TEMPLATES_2027.find((item) => item.templateKey === key) : getSystemIntakeTemplateByKey(key));
     if (template?.isActive) {
       result.push(template);
     }
@@ -1493,11 +1803,11 @@ function validateIntakeDocumentsStep(form, templates) {
   const privacyOk = isDocComplete(privacyDoc, privacyTemplate);
   checklist.push({
     key: "privacy",
-    label: "Datenschutz-Einwilligung abgeschlossen",
+    label: form.intakeTemplateEdition === "2027" ? "Datenschutzinformation bereitgestellt und dokumentiert" : "Datenschutz-Einwilligung abgeschlossen",
     complete: privacyOk
   });
   if (!privacyOk) {
-    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
+    errors.intakePrivacy = `${form.intakeTemplateEdition === "2027" ? "Die Bereitstellung der Datenschutzinformation" : "Datenschutz-Einwilligung"} muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
   const contractKeys = resolveContractTemplateKeys(form);
   if (!contractKeys.length) errors.intakeContract = "F\xFCr diese Auswahl ist noch kein Aufnahmevertrag verf\xFCgbar. Bitte als Erstkontakt oder Entwurf speichern.";
@@ -1664,16 +1974,16 @@ function parseGermanOrIsoDateInput(value, options) {
 }
 
 // src/lib/clients/clientIntakeValidation.ts
-function validateIntakeStep(section, form) {
+function validateIntakeStep(section2, form) {
   const errors = {};
   const required = getRequiredFieldsForIntake(form);
-  const checkDate = (field) => {
-    const value = form[field].trim();
+  const checkDate = (field2) => {
+    const value = form[field2].trim();
     if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !parseGermanOrIsoDateInput(value))) {
-      errors[field] = "Bitte ein g\xFCltiges Datum eingeben.";
+      errors[field2] = "Bitte ein g\xFCltiges Datum eingeben.";
     }
   };
-  if (section === "leistungsart") {
+  if (section2 === "leistungsart") {
     if (form.careContexts.length === 0) {
       errors.careContexts = "Mindestens eine Leistungsart ausw\xE4hlen.";
     }
@@ -1681,7 +1991,7 @@ function validateIntakeStep(section, form) {
       errors.careContexts = "Akademie / Schulung ist vorbereitet. Bitte als Erstkontakt oder Entwurf vormerken; eine vollst\xE4ndige Schulungsaufnahme ist noch nicht verf\xFCgbar.";
     }
   }
-  if (section === "stammdaten") {
+  if (section2 === "stammdaten") {
     if (!form.firstName.trim()) errors.firstName = "Vorname ist erforderlich.";
     if (!form.lastName.trim()) errors.lastName = "Nachname ist erforderlich.";
     if (!form.dateOfBirth.trim()) errors.dateOfBirth = "Geburtsdatum ist erforderlich.";
@@ -1693,7 +2003,7 @@ function validateIntakeStep(section, form) {
       errors.dateOfBirth = "Das Geburtsdatum darf nicht in der Zukunft liegen.";
     }
   }
-  if (section === "adresse_kontakt") {
+  if (section2 === "adresse_kontakt") {
     if (!form.street.trim()) errors.street = "Stra\xDFe ist erforderlich.";
     if (!form.zip.trim()) errors.zip = "PLZ ist erforderlich.";
     if (!form.city.trim()) errors.city = "Ort ist erforderlich.";
@@ -1705,7 +2015,7 @@ function validateIntakeStep(section, form) {
       errors.phone = "Telefon, Mobil oder E-Mail erforderlich.";
     }
   }
-  if (section === "kostentraeger") {
+  if (section2 === "kostentraeger") {
     checkDate("careLevelValidFrom");
     if (form.fundingSources.length === 0) {
       errors.fundingSources = "Mindestens eine Finanzierungsart ausw\xE4hlen.";
@@ -1736,7 +2046,7 @@ function validateIntakeStep(section, form) {
       errors.insuranceNumber = "Versichertennummer ist erforderlich.";
     }
   }
-  if (section === "notfall_zugang") {
+  if (section2 === "notfall_zugang") {
     if (required.includes("emergencyContact")) {
       if (!form.emergencyContactName.trim()) errors.emergencyContactName = "Notfallkontakt erforderlich.";
       if (!form.emergencyContactPhone.trim()) errors.emergencyContactPhone = "Notfall-Telefon erforderlich.";
@@ -1754,7 +2064,7 @@ function validateIntakeStep(section, form) {
       errors.careArea = "Wohnbereich ist erforderlich.";
     }
   }
-  if (section === "versorgung") {
+  if (section2 === "versorgung") {
     if (required.includes("consultingReason") && !form.consultingReason.trim()) {
       errors.consultingReason = "Beratungsanlass ist erforderlich.";
     }
@@ -1768,7 +2078,7 @@ function validateIntakeStep(section, form) {
       errors.supportWishes = "Gew\xFCnschte Unterst\xFCtzung ausw\xE4hlen.";
     }
   }
-  if (section === "vertraege_einwilligungen") {
+  if (section2 === "vertraege_einwilligungen") {
     const templates = listApplicableIntakeTemplates(form);
     const docValidation = validateIntakeDocumentsStep(form, templates);
     Object.assign(errors, docValidation.errors);
@@ -2914,6 +3224,32 @@ var CARESUITE_DOCUMENT_FONT_CSS = `
 }
 `;
 
+// src/features/intakeDocuments/intakeDocument2027Css.ts
+var INTAKE_DOCUMENT_2027_CSS = `
+.document-legal.document-2027{color:#19324e;background:#fff;max-width:210mm;min-height:297mm;padding:19mm 18mm 18mm;margin:24px auto;border-radius:4px;box-shadow:0 14px 48px #1535571a;font-size:10.5pt;line-height:1.6}
+.document-2027 .document-header{margin:0 0 22px;border:0;padding:0 0 22px;border-bottom:2px solid #1267cc}
+.document-2027 .document-brand{display:flex;align-items:center;gap:10px;margin-bottom:29px;color:#254b78;font-size:10pt;font-weight:700;flex-wrap:wrap}
+.document-2027 .document-brand-mark{display:inline-flex;align-items:center;justify-content:center;background:#1267cc;color:white;border-radius:10px;width:30px;height:30px;font-size:22px;line-height:1;flex-shrink:0}
+.document-2027 .document-brand>span:nth-child(2){flex:1;min-width:120px;overflow-wrap:anywhere}
+.document-2027 .document-edition{color:#456482;border:1px solid #d3e2f1;background:#f1f6fc;border-radius:20px;padding:4px 9px;font-size:8pt;font-weight:400;white-space:nowrap}
+.document-2027 .document-eyebrow{display:block;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:#416a97;font-size:8pt;margin:0 0 7px}
+.document-2027 .document-header h1{font-size:23pt;line-height:1.18;font-weight:700;letter-spacing:-.6px;max-width:100%;margin:0 0 10px;color:#122e50;overflow-wrap:break-word;hyphens:auto}
+.document-2027 .document-header .subtitle{color:#526a83;font-size:10pt;line-height:1.55}
+.document-2027 .document-parties-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px;break-inside:avoid}
+.document-2027 .document-parties-grid>section{padding:15px 17px;background:#f3f7fc;border:1px solid #dce7f2;border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.document-2027 .document-parties-grid strong{font-size:11pt;color:#153859}.document-2027 .document-parties-grid p{margin:5px 0 0;font-size:9.5pt;line-height:1.5}
+.document-2027 .document-facts{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;margin:0 0 24px;padding-bottom:6px;border-bottom:1px solid #dce5ef}
+.document-2027 .document-detail{padding:9px 0;min-width:0;break-inside:avoid}.document-2027 dt{font-size:8pt;color:#496786;font-weight:700;margin:0 0 3px}.document-2027 dd{font-size:10pt;margin:0;white-space:pre-line;overflow-wrap:anywhere;line-height:1.55}
+.document-2027 .document-agreement{padding:18px 20px;border-radius:14px;border:1px solid #b8d4f3;background:#f4f8ff;margin:25px 0}.document-2027 .document-agreement h2{font-size:13pt;color:#14528f;margin:0 0 9px}.document-2027 .document-agreement dl{margin:0}.document-2027 .document-agreement .document-detail+.document-detail{border-top:1px solid #d7e4f3}
+.document-2027 .document-section{margin:22px 0 0;break-inside:auto}.document-2027 .document-section h2,.document-2027 .document-signature-block h2{font-size:11.5pt;line-height:1.45;border:0;margin:0 0 8px;padding:0;color:#173b62;break-after:avoid;page-break-after:avoid}
+.document-2027 .document-section h2>span{display:inline-block;color:#3975b7;font-size:9pt;margin-right:9px;letter-spacing:.08em}
+.document-2027 .document-paragraph{font-size:10.5pt;line-height:1.6;margin:0 0 9px;text-align:left;white-space:pre-line;hyphens:auto;orphans:3;widows:3;overflow-wrap:break-word}
+.document-2027 .document-callout{border-left:3px solid #1b6dc9;border-radius:0 10px 10px 0;padding:14px 17px;margin:22px 0;background:#ecf4ff;break-inside:avoid}.document-2027 .document-callout strong{color:#174e88;font-size:10pt}.document-2027 .document-callout p{font-size:9.5pt;line-height:1.55;margin:6px 0 0}
+.document-2027 .document-signature-block{border-top:2px solid #c4d8ee;margin-top:30px;padding-top:20px;break-inside:avoid;page-break-inside:avoid}.document-2027 .document-signature-block .sig-row{gap:24px;margin-top:15px}.document-2027 .document-signature-block .sig-field{min-width:180px;flex:1}.document-2027 .document-signature-block .sig-line{min-height:70px;border-bottom:1px solid #6b8caf;padding-bottom:7px;margin-bottom:8px}.document-2027 .sig-img{max-width:100%;max-height:54px;object-fit:contain}.document-2027 .sig-field strong{font-size:9.5pt}.document-2027 .sig-label{font-size:8.5pt;color:#536d86}.document-2027 .document-footer-note{font-size:8pt;line-height:1.5;color:#5b7086;margin-top:25px;padding-top:11px;border-color:#d3dfec}
+@media(max-width:700px){.document-legal.document-2027{width:auto;margin:12px 8px;min-height:0;padding:25px 20px;border-radius:10px}.document-2027 .document-header h1{font-size:23px}.document-2027 .document-brand{margin-bottom:22px}.document-2027 .document-parties-grid,.document-2027 .document-facts{grid-template-columns:1fr}.document-2027 .document-agreement{padding:14px}.document-2027 .document-paragraph{font-size:14px}.document-2027 .document-signature-block .sig-field{min-width:min(100%,210px)}}
+@media print{@page{size:A4;margin:17mm 18mm 19mm}html,body{background:#fff!important}.document-legal.document-2027{max-width:none;min-height:0;padding:0!important;margin:0!important;border-radius:0;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}.document-2027 .document-header{break-inside:avoid}.document-2027 .document-section{margin-top:16px}.document-2027 .document-agreement{box-decoration-break:clone}.document-2027 .document-brand{margin-bottom:20px}.document-2027 .document-header h1{font-size:21pt}.document-2027 .document-paragraph{font-size:10.5pt}.document-2027 .document-parties-grid,.document-2027 .document-facts{grid-template-columns:1fr 1fr}}
+`;
+
 // src/features/intakeDocuments/renderIntakeDocumentPreview.ts
 var PLACEHOLDER_PATTERN = /\{\{([a-z0-9_.]+)\}\}/gi;
 var HTML_PLACEHOLDER_KEYS = /* @__PURE__ */ new Set([
@@ -3002,17 +3338,17 @@ ${CARESUITE_DOCUMENT_FONT_CSS}
     padding-top: 8px;
   }
 `;
-function wrapIntakeDocumentHtml(bodyHtml) {
+function wrapIntakeDocumentHtml(bodyHtml, edition2027 = false) {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Intake-Dokument</title>
-  <style>${INTAKE_DOCUMENT_CSS}</style>
+  <title>${edition2027 ? "Vertr\xE4ge und Einwilligungen \xB7 Ausgabe 2027" : "Intake-Dokument"}</title>
+  <style>${INTAKE_DOCUMENT_CSS}${edition2027 ? INTAKE_DOCUMENT_2027_CSS : ""}</style>
 </head>
 <body>
-  <div class="document-legal">${bodyHtml}</div>
+  <div class="document-legal${edition2027 ? " document-2027" : ""}">${bodyHtml}</div>
 </body>
 </html>`;
 }
@@ -3062,7 +3398,9 @@ function renderIntakeDocumentHtml(template, context, signatures = {}, options) {
     }
     return HTML_PLACEHOLDER_KEYS.has(normalized) ? value : escapeIntakeHtml(value);
   });
-  const html = wrapDocument ? wrapIntakeDocumentHtml(bodyHtml) : bodyHtml;
+  const edition2027 = template.version === INTAKE_2027_VERSION;
+  const content = edition2027 && missingPlaceholders.some((label) => !label.startsWith("Unterschrift ")) ? '<aside class="document-callout"><strong>Entwurf \xB7 Angaben unvollst\xE4ndig</strong><p>Die markierten Pflichtangaben m\xFCssen vor einer Unterzeichnung erg\xE4nzt und gemeinsam gepr\xFCft werden.</p></aside>' + bodyHtml : bodyHtml;
+  const html = wrapDocument ? wrapIntakeDocumentHtml(content, edition2027) : content;
   return { html, missingPlaceholders, unresolvedKeys };
 }
 function finalizeIntakeDocumentHtml(template, context, signatures, finalizedAt) {
@@ -3135,15 +3473,17 @@ async function intakeSha256(bytes) {
 function requireCompleteIntakeForm(value) {
   if (!record(value) || JSON.stringify(value).length > 24 * 1024 * 1024) fail("Der gespeicherte Aufnahmeentwurf ist ung\xFCltig oder zu gro\xDF.");
   for (const [key, initial] of Object.entries(EMPTY_CLIENT_INTAKE_FORM)) {
-    const field = value[key];
-    if (key === "intakeDocumentHistory" && field === void 0) continue;
-    if (typeof initial === "string" && (typeof field !== "string" || field.length > 2e4) || typeof initial === "boolean" && typeof field !== "boolean") fail("Der gespeicherte Aufnahmeentwurf enth\xE4lt ung\xFCltige Angaben.");
+    const field2 = value[key];
+    if (key === "intakeDocumentHistory" && field2 === void 0) continue;
+    if (typeof initial === "string" && (typeof field2 !== "string" || field2.length > 2e4) || typeof initial === "boolean" && typeof field2 !== "boolean") fail("Der gespeicherte Aufnahmeentwurf enth\xE4lt ung\xFCltige Angaben.");
     if (Array.isArray(initial)) {
-      if (!Array.isArray(field) || field.length > (key === "intakeDocumentHistory" ? 64 : 128)) fail("Die gespeicherte Auswahl ist ung\xFCltig.");
-      if (key !== "intakeDocuments" && key !== "intakeDocumentHistory" && field.some((item) => typeof item !== "string" || item.length > 2e3)) fail("Die gespeicherte Auswahl ist ung\xFCltig.");
-    } else if (record(initial) && (!record(field) || Object.keys(field).length > 64 || Object.values(field).some((item) => typeof item !== "string" || item.length > 2e3))) fail("Eine gespeicherte Zuordnung ist ung\xFCltig.");
+      if (!Array.isArray(field2) || field2.length > (key === "intakeDocumentHistory" ? 64 : 128)) fail("Die gespeicherte Auswahl ist ung\xFCltig.");
+      if (key !== "intakeDocuments" && key !== "intakeDocumentHistory" && field2.some((item) => typeof item !== "string" || item.length > 2e3)) fail("Die gespeicherte Auswahl ist ung\xFCltig.");
+    } else if (record(initial) && (!record(field2) || Object.keys(field2).length > 64 || Object.values(field2).some((item) => typeof item !== "string" || item.length > 2e3))) fail("Eine gespeicherte Zuordnung ist ung\xFCltig.");
   }
   const form = value;
+  if (form.intakeTemplateEdition !== void 0 && form.intakeTemplateEdition !== "2027") fail("Diese Dokumentausgabe ist nicht verf\xFCgbar.");
+  if (form.intakeTemplateEdition === "2027" && (form.intakeWorkflowVersion !== 2 || !validIntakeLegalDetails(form.intakeLegalDetails))) fail("Die Angaben zur Dokumentausgabe 2027 sind unvollst\xE4ndig oder ung\xFCltig.");
   if (form.intakeWorkflowVersion !== void 0 && form.intakeWorkflowVersion !== 2) fail("Die Version des Aufnahmeablaufs wird nicht unterst\xFCtzt.");
   if (form.intakeStage === "first_contact") fail("Bitte den Erstkontakt zuerst zur vollst\xE4ndigen Aufnahme erg\xE4nzen.");
   if (!form.careContexts.length || form.careContexts.some((key) => !getSystemCatalog("leistungsart").entries.some((entry) => entry.key === key)) || form.costBearerTypes.some((key) => !isCostBearerTypeKey(key)) || form.fundingSources.some((key) => !CLIENT_FUNDING_SOURCE_KEYS.includes(key)) || form.intakeOptionalConsents.some((key) => !OPTIONAL_CONSENT_TEMPLATE_KEYS.includes(key))) fail("Leistungsart, Kostentr\xE4ger oder Einwilligung ist nicht mehr verf\xFCgbar. Bitte die Auswahl pr\xFCfen.");
@@ -3153,9 +3493,9 @@ function requireCompleteIntakeForm(value) {
   const expectedBilling = selfPay && statutory ? "kombi" : selfPay ? "selbstzahler" : statutory ? "pflegekasse" : "";
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail("Die Finanzierungsarten und Abrechnung stimmen nicht \xFCberein. Bitte die Finanzierung erneut ausw\xE4hlen.");
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(",", ".")) < 0)) fail("Der vereinbarte Stundensatz ist ung\xFCltig.");
-  for (const section of getIntakeSectionsForForm(form)) {
-    if (section === "vertraege_einwilligungen") continue;
-    const errors = Object.values(validateIntakeStep(section, form));
+  for (const section2 of getIntakeSectionsForForm(form)) {
+    if (section2 === "vertraege_einwilligungen") continue;
+    const errors = Object.values(validateIntakeStep(section2, form));
     if (errors.length) fail(errors.filter(Boolean).join(" "));
   }
   return form;
@@ -3255,7 +3595,7 @@ function currentTemplate(system, tenant) {
   if (required.some((key) => typeof system[key] !== "string") || system.is_active !== true || !Number.isInteger(system.version) || !record(system.placeholder_schema) || !Array.isArray(system.signature_slots)) fail("Die aktuelle Aufnahmedokumentvorlage ist unvollst\xE4ndig.");
   const slots = system.signature_slots;
   if (slots.some((slot) => !record(slot) || !roles.includes(slot.role) || typeof slot.required !== "boolean" || typeof slot.placeholder !== "string")) fail("Die Unterschriftsfelder der Vorlage sind ung\xFCltig.");
-  if (Object.values(system.placeholder_schema).some((field) => !record(field) || typeof field.label !== "string" || field.required !== void 0 && typeof field.required !== "boolean")) fail("Die Pflichtangaben der Vorlage sind ung\xFCltig.");
+  if (Object.values(system.placeholder_schema).some((field2) => !record(field2) || typeof field2.label !== "string" || field2.required !== void 0 && typeof field2.required !== "boolean")) fail("Die Pflichtangaben der Vorlage sind ung\xFCltig.");
   if (tenant && (tenant.is_active !== true || tenant.template_key !== system.template_key || typeof tenant.updated_at !== "string" || tenant.html_content != null && typeof tenant.html_content !== "string")) fail("Die eigene Aufnahmedokumentvorlage wurde ge\xE4ndert.");
   const base = mapSystemRow(system);
   return tenant ? mapTenantRow(tenant, base) : base;
@@ -3279,6 +3619,10 @@ async function verifyIntakeCompletionDocuments(input) {
     const tenant = input.tenantTemplates.find((row) => row.template_key === key && row.is_active === true);
     if (doc.source !== "system" && doc.source !== "tenant" || doc.source === "tenant" && !tenant || doc.source === "system" && tenant || tenant && tenant.id !== doc.tenantTemplateId) fail("Die verwendete Dokumentvorlage ist nicht verf\xFCgbar.");
     const template = currentTemplate(system, tenant);
+    if (form.intakeTemplateEdition === "2027") {
+      if (template.version !== INTAKE_2027_VERSION || tenant) fail("Die vorbereitete Ausgabe 2027 ist nicht eindeutig verf\xFCgbar.");
+      if (key === "client_contract_stationary_care") fail(INTAKE_PAPER_CONTRACT_NOTICE);
+    } else if (template.version === INTAKE_2027_VERSION) fail("Die Dokumentausgabe wurde ge\xE4ndert. Bitte erneut pr\xFCfen.");
     if (doc.version !== template.version || doc.documentType !== template.documentType || doc.title !== template.title || doc.tenantTemplateId != null && doc.tenantTemplateId !== template.tenantTemplateId || doc.status !== "finalized") fail("Die Dokumentfassung oder Vorlage hat sich ge\xE4ndert. Bitte erneut pr\xFCfen und unterschreiben.");
     if (typeof doc.previewHtml !== "string" || typeof doc.finalizedHtml !== "string" || doc.finalizedHtml.length > 8 * 1024 * 1024 || doc.previewHtml !== doc.finalizedHtml || doc.renderedPdfPath != null || !Array.isArray(doc.missingPlaceholders) || doc.missingPlaceholders.length || !record(doc.signatures)) fail("Die unver\xE4nderte unterschriebene Originalfassung fehlt. Bitte erneut pr\xFCfen.");
     const renderedAt = timestamp(doc.renderedAt, "Vorschauzeitpunkt", now), finalizedAt = timestamp(doc.finalizedAt, "Abschlusszeitpunkt", now);
@@ -3288,10 +3632,11 @@ async function verifyIntakeCompletionDocuments(input) {
     if (template.requiresEmployeeSignature) requiredRoles.add("employee");
     if (template.requiresRepresentativeSignature) requiredRoles.add("legal_representative");
     for (const role of requiredRoles) if (!doc.signatures[role]) fail("Eine erforderliche Unterschrift fehlt.");
-    for (const [role, signature] of Object.entries(doc.signatures)) {
-      if (!roles.includes(role) || !template.signatureSlots.some((slot) => slot.role === role) || !record(signature) || signature.role !== role || signature.signerName != null && (typeof signature.signerName !== "string" || signature.signerName.length > 200 || /[\u0000-\u001f]/.test(signature.signerName))) fail("Eine Unterschriftsrolle oder Namensangabe ist ung\xFCltig.");
-      await verifyPngPixels(requireIntakePng(signature.dataUrl));
-      const signedAt = timestamp(signature.signedAt, "Unterschriftszeitpunkt", now);
+    for (const [role, signature2] of Object.entries(doc.signatures)) {
+      if (!roles.includes(role) || !template.signatureSlots.some((slot) => slot.role === role) || !record(signature2) || signature2.role !== role || signature2.signerName != null && (typeof signature2.signerName !== "string" || signature2.signerName.length > 200 || /[\u0000-\u001f]/.test(signature2.signerName))) fail("Eine Unterschriftsrolle oder Namensangabe ist ung\xFCltig.");
+      await verifyPngPixels(requireIntakePng(signature2.dataUrl));
+      if (form.intakeTemplateEdition === "2027" && signature2.signerName !== form.intakeLegalDetails?.[role === "employee" ? "employee.name" : "signer.name"]?.trim()) fail("Der Name der unterschreibenden Person stimmt nicht mit der gepr\xFCften Fassung \xFCberein.");
+      const signedAt = timestamp(signature2.signedAt, "Unterschriftszeitpunkt", now);
       if (signedAt < renderedAt - 6e4 || signedAt > finalizedAt + 1e3) fail("Die Unterschrift geh\xF6rt zeitlich nicht zur gepr\xFCften Dokumentfassung.");
     }
     const context = buildIntakePlaceholderContext(form, input.tenantDisplay, { renderedAt: doc.renderedAt });

@@ -66,11 +66,11 @@ export function validateIntakeDocumentsStep(
   const privacyOk = isDocComplete(privacyDoc, privacyTemplate);
   checklist.push({
     key: 'privacy',
-    label: 'Datenschutz-Einwilligung abgeschlossen',
+    label: form.intakeTemplateEdition === '2027' ? 'Datenschutzinformation bereitgestellt und dokumentiert' : 'Datenschutz-Einwilligung abgeschlossen',
     complete: privacyOk,
   });
   if (!privacyOk) {
-    errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
+    errors.intakePrivacy = `${form.intakeTemplateEdition === '2027' ? 'Die Bereitstellung der Datenschutzinformation' : 'Datenschutz-Einwilligung'} muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
 
   const contractKeys = resolveContractTemplateKeys(form);

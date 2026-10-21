@@ -16,6 +16,10 @@ import { ASSIGNMENT_TEMPLATE_KEY, INTAKE_CONTRACT_TYPE_LABELS, OPTIONAL_CONSENT_
 import { escapeIntakeHtml } from '@/features/intakeDocuments/intakeDocumentRenderBinding';
 import { INTAKE_DOCUMENT_CSS } from '@/features/intakeDocuments/renderIntakeDocumentPreview';
 import { intakeDocumentPackageCss } from './intakeDocumentPackageCss.web';
+import { IntakeLegalDetails2027 } from './IntakeLegalDetails2027.web';
+import { INTAKE_DOCUMENT_2027_CSS } from '@/features/intakeDocuments/intakeDocument2027Css';
+import { INTAKE_2027_VERSION } from '@/features/intakeDocuments/intake2027Fields';
+import { hasCollectedIntakeOriginal } from '@/features/intakeDocuments/restartIntakeDocumentReview';
 
 type Props = {
   form: ClientIntakeFormData; errors: ClientIntakeErrors; tenantId: string | null;
@@ -34,6 +38,7 @@ const OPTIONAL = [
 /** Presentation wrapper only; the individual originals remain byte-for-byte unchanged. */
 export function buildIntakePackagePreview(documents: IntakeDocumentState[]): string {
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ausgewählte Aufnahmeunterlagen</title><style>${INTAKE_DOCUMENT_CSS}
+    ${documents.some(document => document.version === INTAKE_2027_VERSION) ? INTAKE_DOCUMENT_2027_CSS : ''}
     html{scroll-behavior:smooth}body{background:#eaf0f7}.package-label{max-width:210mm;margin:22px auto 0;padding:0 18px;color:#3f5c7c;font:600 13px Arial,sans-serif}.document-legal{margin-top:10px}
     @media(max-width:620px){.document-legal{padding:22px 18px;min-height:0;margin:10px 8px 22px}.document-parties td{overflow-wrap:anywhere}.document-parties .label{width:100px}.document-signature-block .sig-field{min-width:150px}.document-paragraph{text-align:left}.package-label{font-size:12px}}
     @media print{.package-label{display:none}.document-legal{break-after:page;box-shadow:none;margin:0}.document-legal:last-child{break-after:auto}}
@@ -65,7 +70,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const saving = useRef(false);
   const frame = useRef<HTMLIFrameElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
-  const scope = JSON.stringify([tenantId, form.intakeWorkflowVersion, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
+  const scope = JSON.stringify([tenantId, form.intakeWorkflowVersion, form.intakeTemplateEdition, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +115,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       if (role) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); }
       if (event.key !== 'Tab') return;
-      const focusable = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),iframe,summary,[tabindex="0"]') ?? []);
+      const focusable = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),iframe,summary,[tabindex="0"]') ?? []);
       const first = focusable[0], last = focusable.at(-1);
       if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -123,11 +128,20 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     try { onChange(changeIntakeDocumentSelection(form, selection)); setIssues([]); setSaveState('none'); setPendingSave(null); }
     catch (error) { setIssues([{ title: 'Auswahl', message: error instanceof Error ? error.message : 'Die Auswahl konnte nicht geändert werden.' }]); }
   };
+  const newEdition = (edition: '2027' | undefined) => {
+    const originals = form.intakeDocuments.filter(hasCollectedIntakeOriginal);
+    if (originals.length && !window.confirm('Eine neue Dokumentfassung beginnen? Die bisherigen unterschriebenen Originale bleiben in der Historie. Die neue Fassung muss vollständig geprüft und erneut unterschrieben werden.')) return;
+    if ((form.intakeDocumentHistory?.length ?? 0) + originals.length > 64) { setIssues([{ title: 'Dokumentfassungen', message: 'Bitte die Aufnahme zuerst sichern. Die vorhandene Historie bleibt unverändert.' }]); return; }
+    onChange({ ...form, intakeTemplateEdition: edition, ...(edition ? { intakeWorkflowVersion: 2 as const } : {}), intakeLegalDetails: { ...form.intakeLegalDetails }, intakeDocuments: [],
+      intakeDocumentHistory: [...(form.intakeDocumentHistory ?? []), ...originals], consentDatenschutz: false, consentVertrag: false });
+    setReview(null); setIssues([]); setCaptures({}); setSaveState('none');
+  };
   const open = () => {
     const prepared = prepareIntakeDocumentPackage(form, templates, tenant);
     onChange(prepared.form); setReview(prepared); setPhase('preview'); setCaptures({}); setAcknowledged(false); setIssues(prepared.issues);
   };
   const applyCorrections = (next: ClientIntakeFormData) => {
+    if (current.current.intakeTemplateEdition === '2027') next = { ...next, intakeTemplateEdition: '2027', intakeLegalDetails: current.current.intakeLegalDetails };
     const prepared = prepareIntakeDocumentPackage(next, templates, tenant);
     onChange(prepared.form); setReview(prepared); setIssues(prepared.issues);
     setCaptures({}); setAcknowledged(false); setPhase('preview'); setSaveState('none');
@@ -160,10 +174,13 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     {saveState === 'saved' ? <div className="cs-contract-notice is-success" role="status">Das unterzeichnete Paket ist im Unternehmen gespeichert. Die Unterschriften sind fest in den Dokumenten platziert. Die Aufnahme schließen Sie anschließend unter „Prüfen & sichern“ ab.</div> : null}
     {saveState === 'local' ? <div className="cs-contract-notice" role="status">Die unterschriebenen Dokumentfassungen sind vorbereitet. Bitte den Aufnahme- oder Änderungsvorgang abschließen, um sie in der Akte zu speichern.</div> : null}
   </>;
+  const paperOnly = Boolean(review?.issues.length) && review!.issues.every(issue => issue.kind === 'paper_required');
+  const printPackage = () => { frame.current?.contentWindow?.focus(); frame.current?.contentWindow?.print(); };
   const allCaptured = Boolean(review?.roles.length) && review!.roles.every(requiredRole => captures[requiredRole]?.dataUrl);
 
   return <div className="cs-contract-package">
     <style>{intakeDocumentPackageCss}</style>
+    <div className="cs-contract-edition"><div><span className="cs-legal-eyebrow">Verträge & Einwilligungen</span><h3>{form.intakeTemplateEdition === '2027' ? 'Ausgabe 2027 · vorbereitet' : 'Bisherige Dokumentfassung'}</h3><p>{form.intakeTemplateEdition === '2027' ? 'Überarbeitete Vorlagen mit individuellen Leistungen, Kosten und freiwilligen Entscheidungen. Bearbeitungsstand: 21.10.2026.' : 'Die bisherigen Originale bleiben erhalten. Für die überarbeiteten Texte und das neue Layout kann eine neue Fassung vorbereitet werden.'}</p></div><button className="cs-contract-button" type="button" disabled={busy || Boolean(pendingSave)} onClick={() => newEdition('2027')}>{form.intakeTemplateEdition === '2027' ? 'Neue Fassung beginnen' : 'Ausgabe 2027 vorbereiten'}</button></div>
     {form.intakeWorkflowVersion === 2 ? <div className="cs-contract-card"><strong>Verträge passend zur Auswahl</strong><p>Alle ausgewählten Leistungsbereiche sind berücksichtigt. Alltagsbegleitung, Betreuung und Begleitung nutzen gemeinsam den Assist-Vertrag.</p><ul>{resolveContractTemplateKeys(form).map(key => <li key={key}>{selected.find(template => template.templateKey === key)?.title ?? 'Aufnahmevertrag'}</li>)}</ul>{form.careContexts.includes('academy_prepared') ? <p>Akademie / Schulung bleibt vorgemerkt; es wird kein Schulungsvertrag erstellt.</p> : null}</div> : <div className="cs-contract-card cs-contract-type"><strong>Vertragsart</strong>{listAvailableContractTypes(form.careContexts).map(key => <button type="button" className="cs-contract-button" key={key}
       aria-pressed={(form.intakeContractType || listAvailableContractTypes(form.careContexts)[0]) === key} disabled={busy || Boolean(pendingSave)}
       onClick={() => changeSelection({ intakeContractType: key as IntakeContractTypeKey })}>{INTAKE_CONTRACT_TYPE_LABELS[key]}</button>)}</div>}
@@ -174,13 +191,14 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     <div className="cs-contract-columns">
       <section className="cs-contract-card"><h3>Erforderliche Unterlagen</h3><p>Diese Unterlagen gehören zur Aufnahme.</p><div className="cs-contract-list">{required.map(template => <label key={template.templateKey} className="cs-contract-choice is-selected"><input type="checkbox" checked disabled/><span><strong>{template.title}</strong><small>{form.intakeDocuments.some(document => document.templateKey === template.templateKey && document.status === 'finalized') ? 'Unterzeichnet · Fassung gesperrt' : 'Im Paket enthalten'}</small></span></label>)}</div>
         <p>{completed ? `${completed} von ${selected.length} Dokumenten unterzeichnet.` : 'Die Unterschriften erfassen Sie nach der gemeinsamen Vorschau.'}</p></section>
-      <section className="cs-contract-card"><h3>Weitere Vereinbarungen</h3><p>Nur die tatsächlich vereinbarten Unterlagen auswählen.</p><div className="cs-contract-tools"><button type="button" disabled={busy || Boolean(pendingSave)} onClick={() => changeSelection({ intakeAssignmentEnabled: true, intakeOptionalConsents: [...OPTIONAL_CONSENT_TEMPLATE_KEYS] })}>Alle hinzufügen</button><button type="button" disabled={busy || Boolean(pendingSave)} onClick={() => changeSelection({ intakeAssignmentEnabled: false, intakeOptionalConsents: [] })}>Zusatz-Auswahl aufheben</button></div>
+      <section className="cs-contract-card"><h3>Weitere Vereinbarungen</h3><p>Nur die tatsächlich vereinbarten Unterlagen auswählen.</p><div className="cs-contract-tools">{form.intakeTemplateEdition !== '2027' ? <button type="button" disabled={busy || Boolean(pendingSave)} onClick={() => changeSelection({ intakeAssignmentEnabled: true, intakeOptionalConsents: [...OPTIONAL_CONSENT_TEMPLATE_KEYS] })}>Alle hinzufügen</button> : null}<button type="button" disabled={busy || Boolean(pendingSave)} onClick={() => changeSelection({ intakeAssignmentEnabled: false, intakeOptionalConsents: [] })}>Zusatz-Auswahl aufheben</button></div>
         <div className="cs-contract-list">{OPTIONAL.map(option => {
           const isAssignment = option.key === ASSIGNMENT_TEMPLATE_KEY;
           const checked = isAssignment ? form.intakeAssignmentEnabled : form.intakeOptionalConsents.includes(option.key);
           return <label key={option.key} className={`cs-contract-choice${checked ? ' is-selected' : ''}`}><input type="checkbox" checked={checked} disabled={busy || Boolean(pendingSave)} onChange={() => changeSelection(isAssignment ? { intakeAssignmentEnabled: !checked } : { intakeOptionalConsents: checked ? form.intakeOptionalConsents.filter(key => key !== option.key) : [...form.intakeOptionalConsents, option.key] })}/><span><strong>{option.title}</strong></span></label>;
         })}</div></section>
     </div>
+    {form.intakeTemplateEdition === '2027' ? <IntakeLegalDetails2027 form={form} templates={selected} onChange={onChange} disabled={busy || Boolean(pendingSave) || loading}/> : null}
     {!review ? notice : null}
     {!review && pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => { const prepared = prepareIntakeDocumentPackage(pendingSave, templates, tenant); setReview(prepared); }} >Unterzeichnetes Paket erneut sichern</button> : null}
     {Object.entries(errors).filter(([key, value]) => key.startsWith('intake') && value).length && !review ? <div className="cs-contract-notice is-error">Bitte die gemeinsame Vorschau öffnen und die dort angezeigten Angaben und Unterschriften vervollständigen.</div> : null}
@@ -189,8 +207,8 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     {review && !role && typeof document !== 'undefined' ? createPortal(<div className="cs-contract-backdrop"><style>{intakeDocumentPackageCss}</style><div ref={dialog} tabIndex={-1} className="cs-contract-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <header className="cs-contract-dialog-header"><div><h2 id={titleId}>{phase === 'signatures' ? 'Dokumentenpaket gemeinsam unterschreiben' : phase === 'corrections' ? 'Angaben für das Dokumentenpaket ergänzen' : 'Ihr vollständiges Dokumentenpaket'}</h2><p>{review.documents.length} Unterlagen für {[form.firstName, form.lastName].filter(Boolean).join(' ')} · {phase === 'signatures' ? '2. Unterschriften erfassen' : '1. Gemeinsam prüfen'}</p></div><button type="button" className="cs-contract-close" aria-label="Paketvorschau schließen" onClick={close} disabled={busy}>×</button></header>
       <div className="cs-contract-dialog-body">
-        {phase === 'preview' ? <>{issues.length || saveState !== 'none' ? <div style={{ marginBottom: 16 }}>{notice}</div> : null}<div className="cs-contract-review"><nav className="cs-contract-index" aria-label="Unterlagen im Paket"><h3>Im Paket enthalten</h3><ol>{review.documents.map((document, index) => <li key={document.templateKey}><button type="button" onClick={() => frame.current?.contentDocument?.getElementById(`package-document-${index}`)?.scrollIntoView({ block: 'start' })}><span>{String(index + 1).padStart(2, '0')}</span><span>{document.title}</span></button></li>)}</ol></nav><iframe ref={frame} className="cs-contract-preview" title="Gesamte Vertragsvorschau" srcDoc={preview} sandbox="allow-same-origin" /></div></> :
-        phase === 'corrections' ? <IntakePackageCorrections formId={`${titleId}-corrections`} form={form} issues={review.issues} tenantId={tenantId} onApply={applyCorrections} onNavigate={onNavigateSection ? section => { setReview(null); onNavigateSection(section); } : undefined}/> :
+        {phase === 'preview' ? <>{issues.length || saveState !== 'none' ? <div style={{ marginBottom: 16 }}>{notice}</div> : null}<div className="cs-contract-review"><nav className="cs-contract-index" aria-label="Unterlagen im Paket"><h3>Im Paket enthalten</h3><ol>{review.documents.map((document, index) => <li key={document.templateKey}><button type="button" onClick={() => frame.current?.contentDocument?.getElementById(`package-document-${index}`)?.scrollIntoView({ block: 'start' })}><span>{String(index + 1).padStart(2, '0')}</span><span>{document.title}</span></button></li>)}</ol></nav><iframe ref={frame} className="cs-contract-preview" title="Gesamte Vertragsvorschau" srcDoc={preview} sandbox="allow-same-origin allow-modals" /></div></> :
+        phase === 'corrections' ? <>{form.intakeTemplateEdition === '2027' ? <IntakeLegalDetails2027 form={form} templates={selected} onChange={onChange}/> : null}<IntakePackageCorrections formId={`${titleId}-corrections`} form={form} issues={review.issues} tenantId={tenantId} onApply={applyCorrections} onNavigate={onNavigateSection ? section => { setReview(null); onNavigateSection(section); } : undefined}/></> :
         <div className="cs-contract-signing"><p>Die Unterschriften gelten für das soeben geprüfte Paket. Sie werden automatisch in die passenden Felder der jeweiligen Dokumente eingesetzt.</p>{notice}
           <div className="cs-contract-signatures">{review.roles.map(requiredRole => <section key={requiredRole} className={`cs-contract-signature${captures[requiredRole] ? ' is-captured' : ''}`}><h3>{INTAKE_SIGNATURE_ROLE_LABELS[requiredRole]}</h3><p>{captures[requiredRole] ? 'Unterschrift erfasst' : 'Unterschrift erforderlich'}</p><div className="cs-contract-signature-image">{captures[requiredRole] ? <img src={captures[requiredRole]!.dataUrl} alt={`Erfasste Unterschrift ${INTAKE_SIGNATURE_ROLE_LABELS[requiredRole]}`} /> : <span>Noch nicht unterschrieben</span>}</div><button type="button" className="cs-contract-button" onClick={() => setRole(requiredRole)} disabled={busy}>{captures[requiredRole] ? 'Neu zeichnen' : 'Jetzt unterschreiben'}</button></section>)}</div>
           <label className="cs-contract-acknowledgement"><input type="checkbox" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)} disabled={busy}/><span>Die ausgewählten Unterlagen wurden gemeinsam geprüft. Die erfassten Unterschriften sollen in die vorgesehenen Felder übernommen und mit diesen Dokumentfassungen gespeichert werden.</span></label>
@@ -199,11 +217,12 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       </div>
       {/* Remount phase actions: the opening click must not activate the next phase's submit button. */}
       <footer className="cs-contract-dialog-footer"><p>{busy ? 'Unterzeichnetes Paket wird gesichert …' : phase === 'corrections' || (phase === 'preview' && review.issues.length) ? 'Vor dem Unterschreiben müssen die angezeigten Angaben ergänzt werden.' : phase === 'preview' ? 'Alle Unterlagen sind in einer gemeinsamen Vorschau enthalten.' : 'Nach der Übernahme bleiben die unterschriebenen Fassungen gesperrt.'}</p><div key={phase}>
+        {phase === 'preview' && !paperOnly ? <button type="button" className="cs-contract-button" onClick={printPackage}>Paket drucken</button> : null}
         {phase !== 'preview' ? <button type="button" className="cs-contract-button" onClick={() => setPhase('preview')} disabled={busy}>{phase === 'corrections' ? 'Abbrechen' : 'Zur Vorschau'}</button> : null}
-        {pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => void finish()} disabled={busy}>Erneut sichern</button> : phase === 'corrections' ? <button type="submit" form={`${titleId}-corrections`} className="cs-contract-button is-primary" disabled={loading || Boolean(loadError)}>Angaben übernehmen & Vorschau aktualisieren</button> : phase === 'preview' && review.issues.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('corrections')} disabled={loading || Boolean(loadError)}>Angaben ergänzen</button> : phase === 'preview' && review.roles.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('signatures')} disabled={loading || Boolean(loadError)}>Gemeinsam unterschreiben</button> : phase === 'signatures' ? <button type="button" className="cs-contract-button is-primary" disabled={!allCaptured || !acknowledged || busy} onClick={() => void finish()}>Unterzeichnetes Paket sichern</button> : <button type="button" className="cs-contract-button is-primary" onClick={close} disabled={busy}>Fertig</button>}
+        {pendingSave && saveState === 'failed' ? <button type="button" className="cs-contract-button is-primary" onClick={() => void finish()} disabled={busy}>Erneut sichern</button> : phase === 'corrections' ? <button type="submit" form={`${titleId}-corrections`} className="cs-contract-button is-primary" disabled={loading || Boolean(loadError)}>Angaben übernehmen & Vorschau aktualisieren</button> : phase === 'preview' && paperOnly ? <button type="button" className="cs-contract-button is-primary" onClick={printPackage}>Papierfassung drucken</button> : phase === 'preview' && review.issues.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('corrections')} disabled={loading || Boolean(loadError)}>Angaben ergänzen</button> : phase === 'preview' && review.roles.length ? <button type="button" className="cs-contract-button is-primary" onClick={() => setPhase('signatures')} disabled={loading || Boolean(loadError)}>Gemeinsam unterschreiben</button> : phase === 'signatures' ? <button type="button" className="cs-contract-button is-primary" disabled={!allCaptured || !acknowledged || busy} onClick={() => void finish()}>Unterzeichnetes Paket sichern</button> : <button type="button" className="cs-contract-button is-primary" onClick={close} disabled={busy}>Fertig</button>}
       </div></footer>
     </div></div>, document.body) : null}
-    {role ? <CareSignatureModal visible key={role} label={`${INTAKE_SIGNATURE_ROLE_LABELS[role]} · ${review?.documents.length ?? 0} Dokumente`} onConfirm={dataUrl => { setCaptures(previous => ({ ...previous, [role]: { role, dataUrl, signedAt: new Date().toISOString() } })); setRole(null); }} onClose={() => setRole(null)} /> : null}
+    {role ? <CareSignatureModal visible key={role} label={`${INTAKE_SIGNATURE_ROLE_LABELS[role]} · ${review?.documents.length ?? 0} Dokumente`} onConfirm={dataUrl => { setCaptures(previous => ({ ...previous, [role]: { role, dataUrl, signedAt: new Date().toISOString(), ...(form.intakeTemplateEdition === '2027' ? { signerName: form.intakeLegalDetails?.[role === 'employee' ? 'employee.name' : 'signer.name']?.trim() } : {}) } })); setRole(null); }} onClose={() => setRole(null)} /> : null}
   </div>;
 }
 
