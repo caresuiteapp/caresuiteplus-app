@@ -4,7 +4,7 @@ import { ClientWorkspaceButton, ClientWorkspacePanel } from './ClientWorkspacePr
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { INTAKE_DOCUMENT_STATUS_LABELS } from '@/features/intakeDocuments/intakeDocumentTypes';
-import type { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard.web';
+import type { useClientIntakeWizard } from '@/hooks/pflege/useCareClientIntakeWizard.web';
 
 type Wizard = ReturnType<typeof useClientIntakeWizard>;
 const signatureLabels = { client: 'Klient:in', employee: 'Mitarbeitende:r', legal_representative: 'Vertretung' } as const;

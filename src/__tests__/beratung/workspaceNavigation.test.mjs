@@ -32,17 +32,26 @@ for (const [platform, enabled] of [['web', false], ['web', true], ['android', tr
     const released = platform === 'web' && enabled;
     assert.equal(n.isUnreleasedModuleKey('beratung'), !released);
     assert.ok(n.SPECIALTY_MODULE_KEYS.includes('beratung'));
-    // Releasing visit documentation must not release the unfinished price catalog.
-    const catalogItems = ['assist', 'pflege', 'stationaer', 'beratung'].map(moduleKey => ({
+    // Workspace releases must not release unfinished service/price catalogs.
+    const catalogItems = ['assist', 'pflege', 'stationaer', 'beratung', 'akademie'].map(moduleKey => ({
       id: moduleKey, moduleKey, serviceKey: `${moduleKey}.test`, name: 'Leistung',
       description: '', category: 'service', unit: 'hour', isActive: true, sortOrder: 1,
       defaultPriceNet: null, defaultTaxMode: 'none',
     }));
     assert.deepEqual(n.filterCompanyCatalog(catalogItems, 'all', '').map(item => item.moduleKey), ['assist']);
-    assert.deepEqual(n.buildCatalogWorkspace([], [], ['assist', 'pflege', 'stationaer', 'beratung'], true, '2026-10-19').catalogs.map(item => item.moduleKey), ['assist']);
-    for (const module of ['pflege', 'stationaer', 'akademie']) {
+    assert.deepEqual(n.buildCatalogWorkspace([], [], ['assist', 'pflege', 'stationaer', 'beratung', 'akademie'], true, '2026-10-19').catalogs.map(item => item.moduleKey), ['assist']);
+    for (const module of ['pflege', 'stationaer']) {
       assert.equal(n.isUnreleasedModuleKey(module), true);
       assert.equal(n.getUnreleasedModuleKeyFromPath(`/${module}/detail`), module);
+    }
+    // Academy Web access is independent of the consultation release flag.
+    const academyReleased = platform === 'web';
+    assert.equal(n.isUnreleasedModuleKey('akademie'), !academyReleased);
+    for (const path of ['/akademie', '/akademie/vorlagen', '/akademie/kurse/new', '/akademie/kurse/id?tab=content']) {
+      assert.equal(n.getUnreleasedModuleKeyFromPath(path), academyReleased ? null : 'akademie');
+    }
+    for (const path of ['/akademie/detail', '/akademie/kurse/id/unknown']) {
+      assert.equal(n.getUnreleasedModuleKeyFromPath(path), 'akademie');
     }
     for (const path of ['/beratung', '/beratung/', '/beratung/arbeitsplatz', '/beratung/arbeitsplatz/00000000-0000-4000-8000-000000000001?visit=visit']) {
       assert.equal(n.getUnreleasedModuleKeyFromPath(path), released ? null : 'beratung');

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 const cwd = fileURLToPath(new URL('..', import.meta.url));
 const checks = [
   ['scripts/verify-academy-edge-build.mjs'],
+  ['--test', 'scripts/desktop-areas.test.mjs'],
   ['node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=2',
     'src/__tests__/akademie',
     'src/__tests__/auth/academyFamilyAccess.test.ts',
