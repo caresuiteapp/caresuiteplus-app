@@ -10,9 +10,9 @@ Entwürfe lassen sich in der Klientenliste und in der Aufnahme mit Löschberecht
 
 ## Prüfungen vor Veröffentlichung
 
-- Aufnahme-Releaseauswahl: 23 Vitest-Dateien, 347 Tests bestanden; nach der abschließenden Berechtigungskorrektur umfasst sie 348 Tests. Die betroffene Datei wurde mit 24 bestandenen Tests erneut geprüft.
+- Aufnahme-Releaseauswahl: alle 348 Tests in 23 Vitest-Dateien bestanden.
 - Lokale PostgreSQL-Vertragsprüfung mit vorhandener PGlite-Abhängigkeit: 30 Tests bestanden, einschließlich Mandantentrennung, Berechtigungen, Versionskonflikten, Löschung während Speicherung, Termin-Idempotenz, Zeitumstellung und atomarem Abschluss aller ausgewählten Verträge.
-- Kalender-Releaseauswahl: 31 Dateien; nach Korrektur der abwärtskompatiblen Archivierungsargumente besteht auch die betroffene Dialogprüfung (19 Tests). Der vollständige Kalender-Releasecheck wird zusätzlich im bestehenden Produktionsbuild ausgeführt.
+- Kalender-Releaseauswahl: alle 354 Tests in 31 Dateien bestanden. Der vollständige Kalender-Releasecheck wird zusätzlich im bestehenden Produktionsbuild ausgeführt.
 - Gezielte TypeScript-Prüfung aller geänderten Dateien und typisierten Wizard-Verbraucher: 34 Dateien, keine Diagnose. Die vollständige Projektprüfung ist Bestandteil des bestehenden Produktionsbuilds.
 - Generiertes Edge-Laufzeitmodul stimmt mit den gemeinsamen Quellen überein; `git diff --check` ohne Befund.
 - Keine produktiven Testklienten, Termine oder Unterschriften angelegt oder verändert.
@@ -23,6 +23,14 @@ DOM-Tests mit happy-dom belegen Interaktionen, keine visuelle Layoutfreiheit. De
 
 ## Veröffentlichung
 
-Reihenfolge: Migration `20261021060000_client_intake_first_contact.sql`, aktualisierte Funktion `complete-client-intake` mit unverändert aktivierter JWT-Prüfung, danach Web-Deployment. Die Änderungen verwenden eine optionale Workflowversion 2. Bestehende Formulare ohne diese Version behalten ihre bisherige Vertragsauswahl; die Android-Oberfläche wird nicht umgestellt.
+Reihenfolge: Migration `20261021034849_client_intake_first_contact.sql`, aktualisierte Funktion `complete-client-intake` mit unverändert aktivierter JWT-Prüfung, danach Web-Deployment. Die Änderungen verwenden eine optionale Workflowversion 2. Bestehende Formulare ohne diese Version behalten ihre bisherige Vertragsauswahl; die Android-Oberfläche wird nicht umgestellt.
 
 Nach der Migration Funktionsdefinitionen, Rechte und Trigger ausschließlich lesend prüfen und den Sicherheitsadvisor mit dem vorherigen Zustand vergleichen. Nach dem Git-Deployment den Status des Hauptprojekts `caresuiteplus-app` und die tatsächlich ausgelieferten Webdateien prüfen. Ein erfolgreicher Build ersetzt die oben offen benannte angemeldete Sicht- und Ablaufprüfung nicht.
+
+### Backend-Verifikation am 21.10.2026
+
+Die Migration wurde mit Version `20261021034849` angewendet; der Dateiname entspricht dem tatsächlichen Eintrag der Migrationshistorie. Die drei neuen öffentlichen RPCs prüfen internen Akteur, Mandant und jeweilige Berechtigungen. `anon` besitzt kein Ausführungsrecht; Abschlussfunktion und privater Kalendertrigger sind auch für `authenticated` nicht direkt ausführbar. Alle geprüften Funktionen verwenden `search_path=pg_catalog`, der Kalendertrigger ist aktiv.
+
+`complete-client-intake` wurde als aktive Version 2 veröffentlicht. JWT-Prüfung bleibt aktiv. Alle drei zurückgelesenen Dateien entsprechen exakt den lokalen Dateien; Laufzeit-SHA256: `968e1c5e7743e6f933b93c4f7cc0c1e8de30da7660c563a52029a669c89f8d22`.
+
+Der Sicherheitsadvisor meldet gegenüber dem Ausgangsstand ausschließlich die drei beabsichtigt für angemeldete Rollen erreichbaren neuen `SECURITY DEFINER`-RPCs. Ihre internen Prüfungen sind durch die genannten Datenbanktests abgedeckt. Die vorhandenen übrigen Meldungen blieben unverändert. [Beschreibung des Advisor-Hinweises](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).

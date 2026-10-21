@@ -101,7 +101,7 @@ async function createFixture() {
   const calendarTable = read('../migrations/0117_calendar_events.sql').match(/CREATE TABLE IF NOT EXISTS public\.calendar_events \([\s\S]*?\n\);/)[0];
   await db.exec(calendarTable);
   await db.exec('ALTER TABLE public.calendar_events ADD CONSTRAINT calendar_events_source_unique UNIQUE(tenant_id,source_type,source_id)');
-  await db.exec(read('../migrations/20261021060000_client_intake_first_contact.sql'));
+  await db.exec(read('../migrations/20261021034849_client_intake_first_contact.sql'));
   return db;
 }
 
