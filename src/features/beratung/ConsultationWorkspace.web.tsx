@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KIND_LABELS, STATUS_LABELS, nextEncounterAction, consultationPeriod, type ConsultationEncounter, type ConsultationKind, type ConsultationWorkspace as Workspace } from '../../lib/beratung/workspaceModel';
+import { KIND_LABELS, STATUS_LABELS, nextEncounterAction, consultationPeriod, type ConsultationClient, type ConsultationEncounter, type ConsultationKind, type ConsultationWorkspace as Workspace } from '../../lib/beratung/workspaceModel';
 import { Dialog, SelectField, TextField } from './ConsultationControls.web';
 import { ConsultationEditor, type WorkspaceCommand } from './ConsultationEditor.web';
 import { consultationStyles } from './consultationStyles';
@@ -9,6 +9,8 @@ import { berlinDate, consultationTemplateCatalog, type ConsultationTemplate } fr
 import { ConsultationFollowUps } from './ConsultationFollowUps.web';
 import { ConsultationTeamTemplates } from './ConsultationTeamTemplates.web';
 import { filterConsultationVisits, matchesVisitStatus, nextConsultationFollowUp } from '../../lib/beratung/workspaceFilters';
+import { ConsultationFirstContact } from './ConsultationFirstContact.web';
+import { clientIntakeResumeRoute } from '@/lib/navigation/clientRoutes';
 export type ConsultationWorkspaceProps = {
     workspace: Workspace | null;
     loading: boolean;
@@ -21,6 +23,8 @@ export type ConsultationWorkspaceProps = {
     initialKind?: ConsultationKind;
     createInitially?: boolean;
     draftScope?: string;
+    tenantId?: string | null;
+    canCreateClient?: boolean;
     onCommand: WorkspaceCommand;
     onReload: () => void;
     onOpenCase: (id: string | null, encounterId?: string) => void;
@@ -28,7 +32,7 @@ export type ConsultationWorkspaceProps = {
 const dateTime = (value: string | null) => value ? new Date(value).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Termin offen';
 function visitPeriod(e: ConsultationEncounter) { if (e.service_kind !== '37_3' || !e.scheduled_start)
     return null; const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date(e.scheduled_start)); return consultationPeriod(date, Number(e.client_snapshot.care_grade)).label; }
-export function ConsultationWorkspaceView({ workspace: w, loading, busy, error, notice, employeeView, caseId, encounterId, initialKind, createInitially = false, draftScope = '', onCommand, onReload, onOpenCase }: ConsultationWorkspaceProps) {
+export function ConsultationWorkspaceView({ workspace: w, loading, busy, error, notice, employeeView, caseId, encounterId, initialKind, createInitially = false, draftScope = '', tenantId, canCreateClient = false, onCommand, onReload, onOpenCase }: ConsultationWorkspaceProps) {
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('all');
     const [kind, setKind] = useState(initialKind ?? 'all');
@@ -66,20 +70,20 @@ export function ConsultationWorkspaceView({ workspace: w, loading, busy, error, 
     <details className="cw-advanced-filters"><summary>Person, Zeitraum & Sortierung</summary><div className="cw-filter-details">{!employeeView && <SelectField label="Zugewiesene Person" value={employee} onChange={setEmployee}><option value="all">Alle Personen</option><option value="unassigned">Ohne Zuweisung</option>{w.employees.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SelectField>}<TextField label="Termin ab" type="date" value={from} onChange={setFrom}/><TextField label="Termin bis" type="date" value={until} onChange={setUntil}/><SelectField label="Sortierung" value={sort} onChange={setSort}><option value="priority">Handlungsbedarf zuerst</option><option value="date">Nächster Termin zuerst</option><option value="name">Name A–Z</option><option value="followup">Nächste Wiedervorlage</option></SelectField></div>{from && until && from > until && <p role="alert" className="cw-muted">Das Enddatum liegt vor dem Anfangsdatum.</p>}</details>
     <div className="cw-list-meta"><span>{visible.length} {visible.length === 1 ? 'Besuch' : 'Besuche'}</span><button className="cw-link" onClick={() => { setSearch(''); setKind('all'); setFilter('all'); setEmployee('all'); setFrom(''); setUntil(''); setSort('priority'); }}>Filter zurücksetzen</button></div>
     <div className="cw-visits">{visible.map(e => <button className="cw-visit" key={e.id} onClick={() => onOpenCase(e.case_id, e.id)}><span className={`cw-visit-icon ${e.service_kind === '45' ? 'cw-training' : ''}`} aria-hidden>{e.service_kind === '45' ? '45' : '37.3'}</span><span className="cw-visit-person"><strong>{e.client_snapshot.name}</strong><span>{KIND_LABELS[e.service_kind]}</span><small>{e.employee_name ?? 'Beratungsperson noch offen'}</small></span><span className="cw-visit-date"><strong>{dateTime(e.scheduled_start)}</strong><small>{e.client_snapshot.address || 'Adresse offen'}</small>{['followup', 'due'].includes(filter) && <small>Nächster Schritt: {nextConsultationFollowUp(e, w)}</small>}</span><span className="cw-visit-progress"><span className={`cw-status cw-status-${e.status}`}>{STATUS_LABELS[e.status]}</span><small>{nextEncounterAction(e)}</small></span><span className="cw-visit-arrow" aria-hidden>↗</span></button>)}</div>
-    {!visible.length && <div className="cw-empty"><span className="cw-empty-icon" aria-hidden>◎</span><h3>{w.encounters.length ? 'Keine passenden Besuche' : 'Noch keine Besuche vorhanden'}</h3><p>{w.encounters.length ? 'Passen Sie die Suche oder Filter an.' : employeeView ? 'Sobald Ihnen ein Besuch zugewiesen wurde, finden Sie hier Vorbereitung und Durchführung.' : 'Legen Sie einen Fall für einen bestehenden Klienten an und weisen Sie eine qualifizierte Beratungsperson zu.'}</p>{w.canManage && !w.encounters.length && <button className="cw-button cw-primary" onClick={() => setCreate(true)}>Ersten Fall anlegen</button>}</div>}
+    {!visible.length && <div className="cw-empty"><span className="cw-empty-icon" aria-hidden>◎</span><h3>{w.encounters.length ? 'Keine passenden Besuche' : 'Noch keine Besuche vorhanden'}</h3><p>{w.encounters.length ? 'Passen Sie die Suche oder Filter an.' : employeeView ? 'Sobald Ihnen ein Besuch zugewiesen wurde, finden Sie hier Vorbereitung und Durchführung.' : canCreateClient && w.capabilities?.centralContact ? 'Wählen Sie eine vorhandene Person oder erfassen Sie zuerst die Eckdaten für einen neuen Erstkontakt.' : 'Legen Sie einen Fall für einen bestehenden Klienten an und weisen Sie eine qualifizierte Beratungsperson zu.'}</p>{w.canManage && !w.encounters.length && <button className="cw-button cw-primary" onClick={() => setCreate(true)}>Ersten Fall anlegen</button>}</div>}
    </section>
    <div className="cw-bottom-notes"><div><span className="cw-dot"/><span>Ein gemeinsamer Stand für Verwaltung und Mitarbeitende</span></div><p>Fachliche Freigaben, Kassenversand und Abrechnung werden getrennt geführt.</p></div>
   </>}
   {w && caseId && selected && <><div className="cw-case-visits"><span className={`cw-status cw-status-${selected.status}`}>{STATUS_LABELS[selected.status]}</span>{visitPeriod(selected) && <span className="cw-tag">{visitPeriod(selected)}</span>}{w.encounters.filter(e => e.case_id === caseId).length > 1 && <SelectField label="Besuch in dieser Fallakte" value={selected.id} onChange={id => onOpenCase(caseId, id)}>{w.encounters.filter(e => e.case_id === caseId).map(e => <option key={e.id} value={e.id}>{dateTime(e.scheduled_start)} · {KIND_LABELS[e.service_kind]} · {STATUS_LABELS[e.status]}</option>)}</SelectField>}</div><ConsultationEditor key={selected.id} draftScope={draftScope} encounter={selected} workspace={w} busy={busy || !online} error={error} onCommand={onCommand} onBack={() => onOpenCase(null)} onRefresh={onReload}/></>}
   {w && caseId && !selected && <div className="cw-empty"><h2>Besuch nicht verfügbar</h2><p>Der Besuch ist nicht vorhanden oder wurde Ihnen nicht mehr zugewiesen.</p><button className="cw-button" onClick={() => onOpenCase(null)}>Zur Übersicht</button></div>}
-  {create && w?.canManage && <CreateCase template={createTemplate} initialKind={initialKind} busy={busy || !online} error={error} workspace={w} onClose={() => setCreate(false)} onCommand={onCommand} onCreated={(id, e) => { setCreate(false); onOpenCase(id, e); }}/>}
+  {create && w?.canManage && <CreateCase template={createTemplate} initialKind={initialKind} busy={busy || !online} error={error} workspace={w} tenantId={tenantId} draftScope={draftScope} canCreateClient={canCreateClient && !employeeView} onContactSaved={onReload} onClose={() => setCreate(false)} onCommand={onCommand} onCreated={(id, e) => { setCreate(false); onOpenCase(id, e); }}/>}
   {library && <TemplateLibrary catalog={catalog} initialKind={initialKind} onClose={() => setLibrary(false)} onUse={w?.canManage ? t => { setCreateTemplate(t); setLibrary(false); setCreate(true); } : undefined}/>}
   {teamLibrary && w?.capabilities?.teamTemplates && (w.canManage || w.canReview) && <ConsultationTeamTemplates workspace={w} busy={busy || !online} error={error} onCommand={onCommand} onClose={() => setTeamLibrary(false)} onReload={onReload}/>}
   {qualify && w?.canQualify && <QualificationDialog busy={busy || !online} error={error} workspace={w} onClose={() => setQualify(false)} onCommand={onCommand}/>}
   {followUp && w?.canManage && caseId && <AddVisit workspace={w} initialKind={selected?.service_kind} caseId={caseId} busy={busy || !online} error={error} onClose={() => setFollowUp(false)} onCommand={onCommand} onCreated={(id, e) => { setFollowUp(false); onOpenCase(id, e); }}/>}
  </main></div>;
 }
-function CreateCase({ workspace, busy, error, onClose, onCommand, onCreated, template, initialKind }: {
+function CreateCase({ workspace, busy, error, onClose, onCommand, onCreated, template, initialKind, tenantId, draftScope, canCreateClient, onContactSaved }: {
     template?: ConsultationTemplate | null;
     initialKind?: ConsultationKind;
     workspace: Workspace;
@@ -88,13 +92,45 @@ function CreateCase({ workspace, busy, error, onClose, onCommand, onCreated, tem
     onClose: () => void;
     onCommand: WorkspaceCommand;
     onCreated: (id: string, e: string) => void;
+    tenantId?: string | null;
+    draftScope: string;
+    canCreateClient: boolean;
+    onContactSaved: () => void;
 }) {
     const [client, setClient] = useState('');
     const [kind, setKind] = useState<ConsultationKind>(template?.kind ?? initialKind ?? '37_3');
     const [title, setTitle] = useState(template?.title ?? 'Beratung und Begleitung');
     const [preparation, setPreparation] = useState(template?.preparation ?? '');
-    return <Dialog title="Neuen Beratungsfall anlegen" busy={busy} onClose={onClose}><form onSubmit={e => { e.preventDefault(); void onCommand('create', { client_id: client, title, service_kind: kind, preparation }).then(r => { if (r)
-        onCreated(r.case_id, r.encounter_id); }); }}><fieldset className="cw-reset-fieldset" disabled={busy}><SelectField label="Klientin / Klient" value={client} onChange={setClient}><option value="">Aus den Klientenstammdaten auswählen</option>{workspace.clients.map(c => <option value={c.id} key={c.id}>{c.name}{c.address ? ` · ${c.address}` : ''}</option>)}</SelectField><TextField label="Bezeichnung der Fallakte" maxLength={200} value={title} onChange={setTitle} required/><KindSelect value={kind} onChange={setKind}/><PreparationPicker templates={consultationTemplateCatalog(workspace.teamTemplates)} kind={kind} value={preparation} onChange={setPreparation}/><TextField label="Anlass und Hinweise für die Beratungsperson" value={preparation} onChange={setPreparation} multiline/><p className="cw-muted">Im nächsten Schritt legen Sie den Termin und die persönliche Zuweisung fest.</p>{error && <p role="alert" className="cw-alert cw-alert-error">{error}</p>}<div className="cw-actions"><button type="button" className="cw-button" onClick={onClose}>Abbrechen</button><button type="submit" className="cw-button cw-primary" disabled={!client || !title.trim() || busy}>Fallakte anlegen</button></div></fieldset></form></Dialog>;
+    const [contactBusy, setContactBusy] = useState(false);
+    const [savedClients, setSavedClients] = useState<ConsultationClient[]>([]);
+    const contactAvailable = canCreateClient && workspace.capabilities?.centralContact === true;
+    const newContact = client === '__new__' && Boolean(tenantId) && contactAvailable;
+    const clients = [...workspace.clients, ...savedClients.filter(c => !workspace.clients.some(existing => existing.id === c.id))];
+    return <Dialog title="Neuen Beratungsfall anlegen" busy={busy || contactBusy} onClose={onClose} wide={newContact}>
+      <SelectField label="Klientin / Klient" value={client} disabled={busy || contactBusy} onChange={setClient}>
+        <option value="">Aus den Klientenstammdaten auswählen</option>
+        <option value="__new__" disabled={!contactAvailable || !tenantId}>+ Neu anlegen · Eckdaten erfassen</option>
+        {clients.map(c => <option value={c.id} key={c.id}>{c.name}{c.address ? ` · ${c.address}` : ''}</option>)}
+      </SelectField>
+      {!canCreateClient && <p className="cw-muted">Zum Anlegen einer neuen Person benötigen Sie die Berechtigung zur Klientenaufnahme.</p>}
+      {canCreateClient && !contactAvailable && <p className="cw-muted">Die direkte Klientenaufnahme wird für diesen Arbeitsplatz noch bereitgestellt.</p>}
+      {newContact ? <ConsultationFirstContact tenantId={tenantId!} draftScope={draftScope} clients={clients} onBusyChange={setContactBusy}
+        onBack={() => setClient('')} onSelect={c => setClient(c.id)} onSaved={(c, notes) => {
+          setSavedClients(previous => [...previous.filter(existing => existing.id !== c.id), c]); setClient(c.id);
+          if (notes.trim()) setPreparation(previous => [previous.trim(), notes.trim()].filter(Boolean).join('\n\n'));
+          onContactSaved();
+        }} /> : <form onSubmit={e => { e.preventDefault(); if (!client || client === '__new__') return;
+          void onCommand('create', { client_id: client, title, service_kind: kind, preparation }).then(r => { if (r) onCreated(r.case_id, r.encounter_id); });
+        }}><fieldset className="cw-reset-fieldset" disabled={busy}>
+          {savedClients.some(c => c.id === client) && <div className="cw-contact-saved" role="status"><span>✓ Eckdaten unter „Klienten“ gespeichert</span><a href={clientIntakeResumeRoute(client)} target="_blank" rel="noopener noreferrer">Aufnahme öffnen ↗</a></div>}
+          <TextField label="Bezeichnung der Fallakte" maxLength={200} value={title} onChange={setTitle} required/><KindSelect value={kind} onChange={setKind}/>
+          <PreparationPicker templates={consultationTemplateCatalog(workspace.teamTemplates)} kind={kind} value={preparation} onChange={setPreparation}/>
+          <TextField label="Anlass und Hinweise für die Beratungsperson" value={preparation} onChange={setPreparation} multiline/>
+          <p className="cw-muted">Im nächsten Schritt legen Sie den Termin und die persönliche Zuweisung fest.</p>
+          {error && <p role="alert" className="cw-alert cw-alert-error">{error}</p>}
+          <div className="cw-actions"><button type="button" className="cw-button" onClick={onClose}>Abbrechen</button><button type="submit" className="cw-button cw-primary" disabled={!client || client === '__new__' || !title.trim() || busy}>Fallakte anlegen</button></div>
+        </fieldset></form>}
+    </Dialog>;
 }
 function KindSelect({ value, onChange }: {
     value: ConsultationKind;

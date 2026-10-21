@@ -654,4 +654,68 @@ await test('2027 WBVG paper completion is rejected without partial activation', 
   await assert.rejects(complete(saved, completionDocuments(value)), /WBVG/);
   assert.equal((await counts()).client_intake_documents, 0);
 });
+await test('consultation links the saved first contact, tracks central changes and freezes only the performed visit', async () => {
+  await seed(); await db.exec('RESET ROLE');
+  // Existing auth helpers are synthetic here; both domain RPCs below are the
+  // actual released SQL plus the prepared contact integration.
+  await db.exec(`
+    ALTER TABLE public.employees ADD COLUMN tenant_id uuid, ADD COLUMN profile_id uuid, ADD COLUMN first_name text,
+      ADD COLUMN last_name text, ADD COLUMN status text, ADD COLUMN deleted_at timestamptz;
+    CREATE TABLE public.employee_data_scopes(tenant_id uuid,employee_id uuid,module text,scope_type text,scope_value text);
+    CREATE TABLE public.employee_portal_accounts(id uuid PRIMARY KEY,tenant_id uuid,employee_id uuid,auth_user_id uuid,status text);
+    CREATE FUNCTION care_security.company_actor(uuid,text) RETURNS boolean LANGUAGE sql AS
+      'SELECT $1=public.current_tenant_id() AND public.is_internal_tenant_actor($1) AND public.has_permission(''office.clients.view_sensitive'') AND $2 IS DISTINCT FROM current_setting(''fixture.denied'',true)';
+    CREATE FUNCTION care_security.company_permission(uuid,text) RETURNS boolean LANGUAGE sql AS 'SELECT care_security.company_actor($1,$2)';
+    CREATE FUNCTION care_security.company_profile(uuid) RETURNS uuid LANGUAGE sql AS
+      'SELECT CASE WHEN public.is_internal_tenant_actor($1) THEN public.resolve_current_profile_id() END';
+    CREATE FUNCTION public.current_portal_account_id() RETURNS uuid LANGUAGE sql AS
+      'SELECT nullif(current_setting(''fixture.portal_account'',true),'''')::uuid';
+    CREATE FUNCTION public.tenant_has_platform_module(text,uuid) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''consulting'' AND $2=public.current_tenant_id()';
+  `);
+  await db.exec(read('../migrations/20261019202713_consultation_workspace.sql'));
+  await db.exec(read('../migrations/20261021063230_consultation_followups_templates.sql'));
+  await db.exec(read('../migrations/20261021074944_consultation_central_contact.sql'));
+  const employee = '80000000-0000-4000-8000-000000000001', portalAccount = '80000000-0000-4000-8000-000000000002';
+  await db.query("INSERT INTO employees(id,tenant_id,first_name,last_name,status) VALUES($1,$2,'Beratung','Beispiel','active')", [employee,id.tenant]);
+  await db.query("INSERT INTO employee_portal_accounts VALUES($1,$2,$3,$4,'active')", [portalAccount,id.tenant,employee,id.otherAuth]);
+  await actor();
+  const contact = initialContact({ firstName: 'Lina', lastName: 'Muster', phone: '0307654321', mobile: '', street: 'Musterstraße', houseNumber: '9', zip: '12345', city: 'Berlin',
+    careContexts: ['consulting'], intakeContactPerson: 'Tochter Anna', intakeContactNotes: 'Fragen zum ersten Besuch.', accessNotes: 'Bitte klingeln.',
+    intakeAppointmentRequested: false, consentDatenschutz: false, consentVertrag: false, assignedModules: ['office','beratung'] });
+  await save(contact);
+  const mutation = async (action, data, visit = null, request = crypto.randomUUID()) => (await db.query(
+    'SELECT public.consultation_workspace_mutate($1,$2,$3,$4,$5,$6) AS r', [id.tenant,action,request,visit?.encounter_id ?? null,visit?.version ?? null,data])).rows[0].r;
+  const workspace = async (portal = false) => (await db.query('SELECT public.consultation_workspace_load($1,$2,NULL) AS r',[id.tenant,portal])).rows[0].r;
+  await mutation('qualify',{employee_id:employee,service_kind:'37_3',valid_from:'2025-01-01',valid_until:'2035-01-01',evidence:'Synthetischer Nachweis',active:true});
+  let visit = await mutation('create',{client_id:id.client,title:'Erstbesuch',service_kind:'37_3',preparation:'Kontaktperson: Tochter Anna\nFragen zum ersten Besuch.'});
+  assert.equal((await workspace()).cases[0].client_id,id.client);
+  assert.deepEqual((await load()).form,contact);
+  await save({...contact,street:'Aktualisierter Weg',phone:'0301111111'},1,id.nextOperation);
+  assert.equal((await workspace()).encounters[0].client_snapshot.address,'Aktualisierter Weg 9, 12345 Berlin');
+  visit=await mutation('plan',{employee_id:employee,scheduled_start:'2026-11-01T09:00:00Z',scheduled_end:'2026-11-01T10:00:00Z',preparation:'Kontaktperson: Tochter Anna\nFragen zum ersten Besuch.'},visit);
+  await actor('employee_portal',{auth:id.otherAuth,portal_account:portalAccount});
+  const assigned=await workspace(true);
+  assert.equal(assigned.encounters.length,1); assert.equal(assigned.clients.length,0);
+  assert.equal(assigned.encounters[0].client_snapshot.phone,'0301111111');
+  assert.equal(assigned.encounters[0].preparation,'Kontaktperson: Tochter Anna\nFragen zum ersten Besuch.');
+  await assert.rejects(save(contact),/Berechtigung/);
+  visit=await mutation('read',{},visit);
+  const startVersion={...visit}, startRequest=crypto.randomUUID();
+  visit=await mutation('start',{},startVersion,startRequest);
+  await actor(); await save({...contact,street:'Spätere Adresse',phone:'0302222222'},2,crypto.randomUUID());
+  await actor('employee_portal',{auth:id.otherAuth,portal_account:portalAccount});
+  assert.deepEqual(await mutation('start',{},startVersion,startRequest),visit);
+  const performed=await workspace(true);
+  assert.equal(performed.cases[0].client.address,'Spätere Adresse 9, 12345 Berlin');
+  assert.equal(performed.encounters[0].client_snapshot.address,'Aktualisierter Weg 9, 12345 Berlin');
+  assert.equal(performed.encounters[0].client_snapshot.phone,'0301111111');
+  await assert.rejects(db.query('SELECT care_security.consultation_extended_mutate($1,$2,$3,NULL,NULL,$4)',[id.tenant,'create',crypto.randomUUID(),{}]),/permission denied/);
+  await actor('employee_portal',{auth:id.auth,portal_account:portalAccount});
+  await assert.rejects(workspace(true),/Zugriff/);
+  await db.exec('RESET ROLE');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM clients WHERE id=$1',[id.client])).rows[0].n,1);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM client_intake_documents WHERE client_id=$1',[id.client])).rows[0].n,0);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM calendar_events WHERE related_client_id=$1',[id.client])).rows[0].n,0);
+  assert.equal((await db.query('SELECT status FROM clients WHERE id=$1',[id.client])).rows[0].status,'lead');
+});
 await db.close();

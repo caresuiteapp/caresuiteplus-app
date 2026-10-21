@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePermissions } from '@/hooks/usePermissions';
 import { loadConsultationWorkspace, mutateConsultationWorkspace } from '@/lib/beratung/workspaceService';
 import { activateConsultationDraftScope } from '@/lib/beratung/workspaceDrafts';
 import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
@@ -36,6 +37,7 @@ function ConnectedWorkspace({ tenantId, employeeView, caseId, encounterId, creat
     createInitially: boolean;
 }) {
     const router = useRouter();
+    const permissions = usePermissions();
     const [workspace, setWorkspace] = useState<ConsultationWorkspace | null>(null);
     const [loading, setLoading] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -114,5 +116,5 @@ function ConnectedWorkspace({ tenantId, employeeView, caseId, encounterId, creat
         }
     };
     const root = employeeView ? '/portal/employee/beratung' : '/beratung/arbeitsplatz';
-    return <ConsultationWorkspaceView workspace={workspace} loading={loading} busy={busy} error={error} notice={notice} employeeView={employeeView} caseId={caseId} encounterId={encounterId} createInitially={createInitially} draftScope={draftScope} onCommand={command} onReload={() => void reload()} onOpenCase={(id, visit) => router.push((id ? `${root}/${id}${visit ? `?visit=${encodeURIComponent(visit)}` : ''}` : root) as never)}/>;
+    return <ConsultationWorkspaceView workspace={workspace} loading={loading} busy={busy} error={error} notice={notice} employeeView={employeeView} caseId={caseId} encounterId={encounterId} createInitially={createInitially} draftScope={draftScope} tenantId={tenantId} canCreateClient={!employeeView && permissions.canAll(['office.clients.create', 'office.clients.view', 'office.clients.view_sensitive'])} onCommand={command} onReload={() => void reload()} onOpenCase={(id, visit) => router.push((id ? `${root}/${id}${visit ? `?visit=${encodeURIComponent(visit)}` : ''}` : root) as never)}/>;
 }

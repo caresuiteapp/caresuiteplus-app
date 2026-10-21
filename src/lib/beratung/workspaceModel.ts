@@ -148,7 +148,7 @@ export type ConsultationMutationResult = {
     template_id?: string; template_version?: number; followup_id?: string; followup_version?: number;
 };
 export type ConsultationWorkspace = {
-    capabilities?: { teamTemplates: boolean; followUps: boolean };
+    capabilities?: { teamTemplates: boolean; followUps: boolean; centralContact?: boolean };
     teamTemplates?: ConsultationTeamTemplate[];
     followUps?: ConsultationFollowUp[];
     canManage: boolean;

@@ -1,4 +1,5 @@
 import type { ConsultationAnswers } from './workspaceModel';
+import type { ConsultationContactDraft } from './firstContact';
 export type ConsultationDraft = {
     answers: ConsultationAnswers;
     base: ConsultationAnswers;
@@ -7,10 +8,12 @@ export type ConsultationDraft = {
 };
 let activeScope: string | null = null;
 const drafts = new Map<string, ConsultationDraft>();
+let contactDraft: { value: ConsultationContactDraft; updatedAt: number } | null = null;
 const MAX_AGE = 60 * 60 * 1000;
 /** Memory only: no health information is put in browser storage. */
 export function activateConsultationDraftScope(scope: string) { if (activeScope !== scope) {
     drafts.clear();
+    contactDraft = null;
     activeScope = scope;
 } }
 export function readConsultationDraft(scope: string, id: string): ConsultationDraft | null {
@@ -35,4 +38,12 @@ export function keepConsultationDraft(scope: string, id: string, draft: Omit<Con
 }
 export function clearConsultationDraft(scope: string, id: string) { if (scope === activeScope)
     drafts.delete(id); }
-export function clearConsultationDrafts() { drafts.clear(); activeScope = null; }
+export function readConsultationContactDraft(scope: string): ConsultationContactDraft | null {
+    if (scope !== activeScope || !contactDraft || Date.now() - contactDraft.updatedAt > MAX_AGE) return null;
+    return structuredClone(contactDraft.value);
+}
+export function keepConsultationContactDraft(scope: string, value: ConsultationContactDraft) {
+    if (scope === activeScope) contactDraft = { value: structuredClone(value), updatedAt: Date.now() };
+}
+export function clearConsultationContactDraft(scope: string) { if (scope === activeScope) contactDraft = null; }
+export function clearConsultationDrafts() { drafts.clear(); contactDraft = null; activeScope = null; }
