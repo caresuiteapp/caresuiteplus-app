@@ -36,6 +36,10 @@ export class OcspHttpTransport {
     } catch { fail('KIM_OCSP_HTTP_CONFIGURATION'); }
   }
   get routeSha256() { return this.#binding; }
+  matchesEndpoint(url) {
+    try { return typeof url === 'string' && url.length <= 2048 && new URL(url).href === this.#url; }
+    catch { return false; }
+  }
   async obtain(input, signal) {
     if (!(input instanceof Uint8Array) || !input.length || input.length > 4096) fail('KIM_OCSP_REQUEST_SIZE');
     if (signal !== undefined && !(signal instanceof AbortSignal)) fail('KIM_OCSP_HTTP_CONFIGURATION');

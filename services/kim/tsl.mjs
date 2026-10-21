@@ -73,15 +73,39 @@ function detached(input) {
   }
   return { signer, options, signature };
 }
-function inspectXml(xml, python) {
+function checkSignal(signal) {
+  if (signal !== undefined && !(signal instanceof AbortSignal)) fail('KIM_TSL_CONFIGURATION');
+  if (signal?.aborted) fail('KIM_TSL_ABORTED');
+}
+function signerOcspUrls(signer) {
+  const value = signer.ext.get('2b06010505070101');
+  if (!value) return Object.freeze([]);
+  const entries = fields(der(value), 48), urls = [];
+  if (!entries.length || entries.length > 8) fail('KIM_TSL_SIGNER_AIA');
+  for (const entry of entries) {
+    const [method, location] = fields(entry, 48, 2);
+    if (method.tag !== 6) fail('KIM_TSL_SIGNER_AIA');
+    if (method.value.toString('hex') !== '2b06010505073001') continue;
+    if (location.tag !== 134 || !location.value.length || location.value.length > 2048
+      || location.value.some(b => b < 33 || b > 126)) fail('KIM_TSL_SIGNER_AIA');
+    let url; try { url = new URL(location.value.toString('ascii')); } catch { fail('KIM_TSL_SIGNER_AIA'); }
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash || urls.includes(url.href)) fail('KIM_TSL_SIGNER_AIA');
+    urls.push(url.href);
+  }
+  return Object.freeze(urls);
+}
+function inspectXml(xml, python, signal) {
+  checkSignal(signal);
   return new Promise((resolve, reject) => {
     const child = spawn(python, ['-I', fileURLToPath(new URL('./tsl-xml.py', import.meta.url))], {
       stdio: ['pipe', 'pipe', 'pipe'], shell: false, env: { PATH: process.env.PATH, LANG: 'C.UTF-8' },
     });
     let done = false, size = 0; const chunks = [];
     const timer = setTimeout(() => stop('KIM_TSL_XML_TIMEOUT'), 10_000);
+    const aborted = () => stop('KIM_TSL_ABORTED');
+    signal?.addEventListener('abort', aborted, { once: true });
     function stop(code) {
-      if (done) return; done = true; clearTimeout(timer); child.kill('SIGKILL'); reject(new TslError(code));
+      if (done) return; done = true; clearTimeout(timer); signal?.removeEventListener('abort', aborted); child.kill('SIGKILL'); reject(new TslError(code));
     }
     child.on('error', () => stop('KIM_TSL_XML_UNAVAILABLE'));
     child.stdin.on('error', () => {}); child.stderr.resume();
@@ -96,7 +120,7 @@ function inspectXml(xml, python) {
       try {
         const result = JSON.parse(Buffer.concat(chunks));
         if (result.error) return stop(/^KIM_TSL_[A-Z_]{1,40}$/.test(result.error) ? result.error : 'KIM_TSL_XML_REJECTED');
-        done = true; clearTimeout(timer); resolve(result);
+        done = true; clearTimeout(timer); signal?.removeEventListener('abort', aborted); resolve(result);
       } catch { stop('KIM_TSL_XML_REJECTED'); }
     });
     child.stdin.end(xml);
@@ -143,6 +167,8 @@ export class TslVerifier {
     Object.freeze(this);
   }
   get bindingSha256() { return this.#binding; }
+  get environment() { return this.#environment; }
+  get profile() { return this.#profile; }
   #now() {
     const now = this.#clock();
     if (!Number.isSafeInteger(now) || now < this.#from || now >= this.#until) fail('KIM_TSL_ANCHOR_EXPIRED');
@@ -164,11 +190,12 @@ export class TslVerifier {
       const { signer } = this.#authenticate(bytes, bounded(detachedSignature, 16000));
       // This only prepares an OCSP lookup; it never authorizes TSL services.
       return Object.freeze({ certificate: Buffer.from(signer.c.raw), certificateSha256: signer.sha256, xmlSha256: hash(bytes),
-        request: this.#status.createRequest(signer.c.raw), identityStatus: 'unverified' });
+        request: this.#status.createRequest(signer.c.raw), ocspUrls: signerOcspUrls(signer), identityStatus: 'unverified' });
     } catch (error) { if (error instanceof TslError) throw error; fail('KIM_TSL_REJECTED'); }
   }
-  async verify({ xml: input, detachedSignature: suppliedSignature, signerStatus }) {
+  async verify({ xml: input, detachedSignature: suppliedSignature, signerStatus }, { signal } = {}) {
     try {
+      checkSignal(signal);
       const xml = bounded(input, MAX_XML), signature = bounded(suppliedSignature, 16000);
       const proof = { request: bounded(signerStatus?.request, 4096), response: bounded(signerStatus?.response, 262144) };
       const { signer, anchor, before } = this.#authenticate(xml, signature);
@@ -178,7 +205,8 @@ export class TslVerifier {
         return result;
       };
       status(); // Authenticate the exact bytes and signer status before any XML parsing.
-      const parsed = await inspectXml(xml, this.#python);
+      const parsed = await inspectXml(xml, this.#python, signal);
+      checkSignal(signal);
       verifyInner(parsed, signer);
       const now = this.#now(), evidence = status();
       if (now < before || !current(signer, now) || !current(anchor, now)) fail('KIM_TSL_TIME');
@@ -221,10 +249,15 @@ export class TslTrustSnapshot {
     return now;
   }
   exportBundle() { this.#now(); return { xml: Buffer.from(this.#xml), detachedSignature: Buffer.from(this.#signature) }; }
-  ocspVerifierFor(input, { model = 'current' } = {}) {
+  ocspVerifierFor(input, { model = 'current', isCurrent } = {}) {
     try {
       if (!['current', 'nonqes-compromise'].includes(model)) fail('KIM_TSL_VALIDATION_MODEL');
-      const now = this.#now(), inputs = Array.isArray(input) ? input : [input];
+      if (isCurrent !== undefined && typeof isCurrent !== 'function') fail('KIM_TSL_CONFIGURATION');
+      const clock = () => {
+        if (isCurrent && isCurrent() !== true) fail('KIM_TSL_SUPERSEDED');
+        return this.#now();
+      };
+      const now = clock(), inputs = Array.isArray(input) ? input : [input];
       if (!inputs.length || inputs.length > 16) fail('KIM_TSL_SERVICE_LIMIT');
       const active = this.#services.filter(s => s.statusStartingTime <= now);
       const issuers = new Map();
@@ -241,7 +274,7 @@ export class TslTrustSnapshot {
       if (!responders.length || responders.length * issuers.size > 100) fail('KIM_TSL_RESPONDER');
       const pin = c => ({ certificate: c.c.raw, sha256: c.sha256 });
       return new PinnedOcspVerifier({ authorities: [...issuers.values()].flatMap(c => responders.map(r => ({ issuer: pin(c), responder: pin(r) }))),
-        validFrom: this.#metadata.checkedAt, validUntil: this.#metadata.validUntil, clock: this.#clock });
+        validFrom: this.#metadata.checkedAt, validUntil: this.#metadata.validUntil, clock });
     } catch (error) { if (error instanceof TslError) throw error; fail('KIM_TSL_SERVICE_CERTIFICATE'); }
   }
 }

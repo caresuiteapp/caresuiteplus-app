@@ -62,8 +62,10 @@ Komprimierung, Größen und vollständiger Empfang werden geprüft. Weiterleitun
 URL-Zugangsdaten, Cookies, Proxy-Umgebungsvariablen und AIA-Auswertung sind nicht
 Teil dieses Transports. Fehler enthalten ausschließlich feste Codes.
 
-Die Route ist serverseitig fest. Eine spätere TSL-/AIA-Routenauflösung muss
-Umgebung, Berechtigung und zulässige Ziele unabhängig prüfen. Das Modul ist
+Die Route ist serverseitig fest. Der [TSL-Aktualisierungsdienst](tsl-refresh.md)
+ordnet die authentisierte AIA eines TSL-Signierers genau einer ausdrücklich
+konfigurierten Route zu. Allgemeine TSL-ServiceSupplyPoint-/AIA-Routenauflösung
+für andere Zertifikatstypen bleibt offen. Das Modul ist
 kein öffentlicher Abrufproxy und darf nicht mit Benutzer-URLs konfiguriert werden.
 
 ## Persistenz und Nebenläufigkeit
@@ -131,7 +133,8 @@ verschlüsselten KIM-Empfang nach Wiederöffnen und ergeben weiter Diagnose 07.
 Der Baustein ist im Dienstcode vorhanden; ein laufender KIM-Clientproxy und
 produktive OCSP-Endpunkte sind nicht angeschlossen. Der [TSL-Import](tsl.md)
 ergänzt die Listenprüfung und dauerhafte Versionskontrolle gegen konfigurierte
-Anker. Authentisierte TI-Ankerbereitstellung und automatisierte TSL-Beschaffung,
+Anker. Der [Aktualisierungsdienst](tsl-refresh.md) ergänzt Hashvergleich, Abruf
+und Signierer-AIA. Authentisierte TI-Ankerbereitstellung und produktiver Anschluss,
 vollständige Pfad-/Rollenprüfung, VZD-/Telematik-ID-Bindung, Konnektor/SMC-B,
 Betrieb samt Backup/Rotation und unabhängige Prüfung/Zulassung bleiben offen.
 Der Cache ist kein Langzeitarchiv und keine manipulationssichere Uhr. Die

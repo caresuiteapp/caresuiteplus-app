@@ -75,6 +75,8 @@ export class DurableOcspStatusCache {
     }
   }
   get verifier() { return this.#verifier; }
+  get routeSha256() { return this.#transport.routeSha256; }
+  matchesEndpoint(url) { return this.#transport.matchesEndpoint(url); }
   #now() {
     let now; try { now = this.#clock(); } catch { fail('KIM_OCSP_CLOCK'); }
     if (!Number.isSafeInteger(now) || now < 0) fail('KIM_OCSP_CLOCK');

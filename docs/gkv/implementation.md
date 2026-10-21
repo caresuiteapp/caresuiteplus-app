@@ -28,8 +28,11 @@ prozessübergreifenden Claims und begrenzter Wiederholung bei Protokollfehlern.
 Der [TSL-Import](tsl.md) prüft separate und eingebettete Signatur, fest gebundene
 XML-Schemata und Signiererstatus gegen konfigurierte Anker. Er leitet begrenzte
 OCSP-Vertrauenspfade aus den Dienstlisten ab und schützt gespeicherte
-Listenstände gegen Rücksprünge beim Update und Wiederöffnen.
-TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
+Listenstände gegen Rücksprünge beim Update und Wiederöffnen. Der
+[TSL-Aktualisierungsdienst](tsl-refresh.md) ergänzt feste HTTPS-Quellen,
+verpflichtenden Hashvergleich, Signierer-AIA gegen konfigurierte OCSP-Routen und
+periodische Prüfung mit Invalidierung bereits ausgegebener Prüfer.
+Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
 ## Verbindliche Quellen und Versionsstand

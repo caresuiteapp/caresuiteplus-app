@@ -8,8 +8,46 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**292 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**340 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Automatische TSL-Aktualisierung am 21.10.2026
+
+Die bisherigen 292 Fälle und **48 neue Prüfungen** bestehen gemeinsam.
+`tsl-refresh.test.mjs` verwendet eine echte lokale HTTPS-Gegenstelle, isolierte
+Zertifikate mit AIA, signierte OCSP-Rohbelege, beide TSL-Signaturen, das komplette
+XSD und die verschlüsselte SQLite-Ablage. Der vollständige Lauf ergibt
+**340 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
+
+Geprüft sind Erstabruf, zwingender Hashvergleich ohne XML-Fallback, unveränderte
+Originale mit erneutem Statuscheck, Statuserneuerung nach Ablauf, spätere Sperrung,
+Neustart und Migration des bisherigen verschlüsselten v1-Ablageformats.
+Listen-/Signaturspiegelabweichungen, gebrochene innere Signatur, ungültige Hashes,
+fehlende/mehrdeutige/unzulässige AIA, unbekannter oder gesperrter Signierer sowie
+vier OCSP-Protokollfehler mit anschließendem dauerhaftem Backoff scheitern.
+
+Ein Listenwechsel entfernt bisherige Dienste auch aus bereits ausgegebenen
+OCSP-Prüfern. Eine konkurrierende Store-Aktivierung, manipulierte Metadaten,
+Quellenwechsel, gelöschte Kontroll-/Quellendatensätze und ein Zeitrücksprung geben
+keinen alten Stand frei. Ablauf und Fehler erhalten den dauerhaften höchsten
+Listenstand. Gleichzeitig gestartete Updates teilen einen Lauf. Gesamtabbruch,
+Schließen und Abbruch im XML-Worker verhindern verspätete TSL-Aktivierung; ein
+geteilter Statuscache kann seinen eigenen Abruf trotzdem gültig abschließen.
+
+HTTPS-CA und Hostname bleiben bei fester IP geprüft. Getestet sind Weiterleitungen,
+falsche/mehrfache Header, Medientypen, Komprimierung, Größen, unvollständige und
+hängende Antworten, Abbruch, Konfigurationskopien und explizite HTTP-Freigabe für
+separate Signaturen. Der periodische Ablauf einschließlich Fehlerwiederholung
+und Schließen ist mit echten Netzwerkabrufen und kontrollierten Timern geprüft.
+
+Neun betroffene MJS-Dateien bestehen `node --check`; Anforderungs-JSON und eigene
+Änderungen bestehen Syntax-/Whitespace-Prüfung. Das FD-Inventar bleibt bei
+106 Kennungen: 28 teilweise lokal belegt, 78 offen. Vorhandene Laufzeiten,
+keine Installation oder neue Infrastruktur. Keine UI-/Android-/Supabase- oder
+Produktionsänderung und keine Abfrage echter TSL-/OCSP-Dienste.
+Alle vier Vercel-Projekte haben **62bd8ba** erfolgreich gebaut. Der Buildstatus
+des neuen Commits wird gesondert in PR #129 geprüft; ein Web-Build belegt keine
+Python-/lxml-Laufzeit des Diensthosts. [Ablauf und Betriebsgrenzen](tsl-refresh.md).
 
 ## TSL-Import und Versionskontrolle am 21.10.2026
 
@@ -43,11 +81,11 @@ geprüft. Die eigenen Änderungen bestehen `git diff --cached --check`;
 vorhandene Leerzeichen am Zeilenende in den bytegleich übernommenen und
 hashgebundenen Original-XSDs bleiben absichtlich erhalten.
 Keine UI-/Android-/Supabase- oder Produktionsänderung; keine echte TI-/OCSP-
-Abfrage. Die Anker sind lokal provisioniert. Automatische TSL-Beschaffung und
-Ankerrotation, vollständige TI-Pfad-/Rollenprüfung, VZD und Konnektorintegration
-bleiben offen. [Schnittstellen, Laufzeit und genaue Grenzen](tsl.md).
-Alle vier Vercel-Projekte haben den Vorgänger **1d7c9a0** erfolgreich gebaut;
-die Web-Builds des neuen Commits werden gesondert in PR #129 dokumentiert.
+Abfrage. Die Anker sind lokal provisioniert. Die in diesem Zwischenstand noch fehlende
+automatische TSL-Beschaffung ist oben ergänzt; Ankerrotation, vollständige
+TI-Pfad-/Rollenprüfung, VZD und Konnektorintegration bleiben offen. [Schnittstellen, Laufzeit und genaue Grenzen](tsl.md).
+Alle vier Vercel-Projekte haben inzwischen auch diesen Stand **62bd8ba**
+erfolgreich gebaut.
 Die Python-Diensthost-Laufzeit wird durch einen Web-Build nicht nachgewiesen.
 
 ## OCSP-Abruf und dauerhafte Belege am 21.10.2026

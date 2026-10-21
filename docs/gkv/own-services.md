@@ -315,9 +315,30 @@ Versionen scheitern auch nach erneutem Öffnen. Jeder Zugriff benötigt erneut
 einen gültigen Signiererstatusbeleg. Die vorhandene Python-/lxml-Laufzeit führt
 XML/XSD/C14N begrenzt aus; ohne diese Laufzeit gibt es keine Freigabe.
 43 neue Fälle bestehen mit den bisherigen Diensten: **292 Prüfungen**.
-Authentisierte Ankerprovisionierung/-rotation, automatische Listenbeschaffung,
-vollständige Pfad-/Rollenprüfung und Konnektorintegration bleiben offen.
+Authentisierte Ankerprovisionierung/-rotation, vollständige Pfad-/Rollenprüfung
+und Konnektorintegration bleiben offen. Die anschließende automatische
+Listenbeschaffung ist im folgenden Abschnitt beschrieben.
 [Schnittstellen, Grenzen und Primärquellen](tsl.md).
+
+### Automatische TSL-Beschaffung und Aktualisierung
+
+`tsl-http.mjs`, `tsl-signer-status.mjs` und `tsl-refresh.mjs` ergänzen feste
+HTTPS-Quellen, verpflichtenden Hashvergleich und periodische Aktualisierung.
+Nur abweichende oder erstmals benötigte Listen werden heruntergeladen;
+unveränderte Originale benötigen trotzdem eine vollständige Prüfung samt
+aktuellem Signiererstatus. Dessen AIA wird erst nach Signaturauthentisierung
+gelesen und ausschließlich einer konfigurierten dauerhaften OCSP-Route zugeordnet.
+Es gibt keine Backup-Ermittlung und keinen XML-Fallback bei Hashfehlern.
+
+Geschützte Handles und ihre bereits ausgegebenen OCSP-Prüfer kontrollieren
+Generation, Frist und authentisierten aktuellen Listenstand bei Verwendung.
+Listenwechsel, fehlgeschlagene Aktualisierung, Schließen und Manipulation sperren
+die bisherigen Handles; der höchste gespeicherte Stand bleibt erhalten.
+Die Testfälle umfassen echte lokale HTTPS-/OCSP-Verbindungen, beide Signaturen,
+XSD, periodischen Betrieb, Neustart und Übernahme älterer verschlüsselter Ablagen.
+48 neue Fälle bestehen zusammen mit den bisherigen Diensten: **340 Prüfungen**.
+Produktiver Hostanschluss und authentisierte TI-Ankerinitialisierung bleiben offen.
+[Schnittstellen, Grenzen und Primärquellen](tsl-refresh.md).
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -346,7 +367,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung und Versionskontrolle gegen konfigurierte Anker vorhanden; Konnektor-/SMC-B-Anbindung, VZD, authentisierte TI-Ankerbereitstellung/TSL-Beschaffung, produktiver Statusabruf, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; Konnektor-/SMC-B-Anbindung, VZD, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

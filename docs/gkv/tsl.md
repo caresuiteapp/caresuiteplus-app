@@ -3,6 +3,8 @@
 Stand: 21.10.2026. `services/kim/tsl.mjs` prüft eine bereitgestellte TSL gegen
 explizit konfigurierte TSL-Signer-CA-Zertifikate. `tsl-store.mjs` speichert die
 geprüften Originale und den höchsten akzeptierten Listenstand dauerhaft.
+Der [Aktualisierungsdienst](tsl-refresh.md) ergänzt feste Downloadquellen,
+Hashvergleich, authentisierte Signierer-AIA und automatische periodische Prüfung.
 Die Herkunft dieser anfänglichen Vertrauensanker muss weiterhin außerhalb des
 Moduls authentisiert werden. Der Stand ist keine vollständige TI-PKI und keine
 Produkt- oder Anbieterzulassung.
@@ -79,9 +81,9 @@ const store = new TslTrustStore({
 try {
   // bundle enthält xml und detachedSignature als Originalbytes.
   // Diese Vorbereitung authentisiert die separaten Bytes, gibt aber noch
-  // keine Dienste frei. Die Signierer-OCSP-Route ist separat fest konfiguriert.
+  // keine Dienste frei. AIA wird nur gegen konfigurierte Routen aufgelöst.
   const prepared = verifier.prepareSignerStatus(bundle);
-  const signerStatus = await signerStatusCache.check({ certificate: prepared.certificate });
+  const signerStatus = await signerStatusSource.obtain(prepared); // TslSignerStatusSource
   const { snapshot, changed } = await store.activate({ ...bundle, signerStatus });
   const ocspVerifier = snapshot.ocspVerifierFor([osigCertificate, autCertificate]);
   // ocspVerifier passt zu OcspStatusCache / DurableOcspStatusCache sowie
@@ -119,9 +121,11 @@ automatisch als Netzwerkziele verwendet.
 Die Zertifikate aller Diensteinträge werden beim Import nicht pauschal auf eine
 selbst definierte Kette geprüft. Die benötigten CA-/OCSP-Zertifikate werden erst
 bei der Pfadauswahl geprüft. Entfernte Dienste stehen in einem neu geladenen
-Snapshot nicht mehr zur Verfügung. Der Host muss bei Aktivierung einer neuen
-Liste seine alten Verifier-/Cache-Instanzen ersetzen; ein bereits ausgegebener
-Snapshot wird nicht rückwirkend durch einen globalen Mechanismus widerrufen.
+Snapshot nicht mehr zur Verfügung. Direkte Snapshots dieses manuellen Importpfads
+werden nicht rückwirkend widerrufen. Der [Aktualisierungsdienst](tsl-refresh.md)
+gibt dagegen geschützte Handles aus: Ihre OCSP-Prüfer kontrollieren auch nach der
+Ausgabe Generation und aktuellen gespeicherten Listenstand. Der Host muss nach
+einem Wechsel aktuelle Prüfer-/Cache-Instanzen beziehen.
 
 ## Dauerhafte Ablage
 
@@ -178,8 +182,9 @@ Signiererprofile, Signiererstatus, XML-/XSD-Grenzen, Dienststatus, Ablauf,
 Wiederöffnen, Verschlüsselung und konkurrierende Aktivierungen. Der konkrete
 Gesamtlauf steht im [Prüfprotokoll](verification.md).
 
-Noch offen sind automatisierte authentisierte TSL-Beschaffung samt Refresh/
-Hashverfahren, initiale TI-Ankerprovisionierung und Rotation, weitere normative
+Automatische TSL-Beschaffung mit Hashverfahren und AIA-Statusprüfung ist im
+[Aktualisierungsdienst](tsl-refresh.md) ergänzt. Offen bleiben initiale
+TI-Ankerprovisionierung und Rotation, produktiver Hostanschluss, weitere normative
 XMLDSig-Profile, vollständige Pfad-/Rollen-/Policyprüfung, VZD-/Telematik-ID-
 Bindung, Konnektor/SMC-B, produktiver Statusanschluss und unabhängige gematik-
 Interoperabilitäts-/Zulassungsnachweise. Normale KIM-Zustellung bleibt gesperrt.
