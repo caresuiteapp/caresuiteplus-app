@@ -183,7 +183,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
   const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => widget.id === 'document-catalog' || DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [moduleWidgets, selectedArea]);
-  const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
+  const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung', 'akademie'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
   const moduleWorkflows = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(WORKFLOWS.map(workflow => ({
     ...workflow, permission: workflow.id === 'assignment' ? 'assist.assignments.manage' as PermissionKey : undefined,
   })), selectedArea, permissions) : [], [areaAllowed, selectedArea, permissions]);

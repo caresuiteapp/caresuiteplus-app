@@ -1,7 +1,8 @@
 export const DESKTOP_AREAS = [
   { key: 'office', label: 'Office' }, { key: 'assist', label: 'Assist' },
   { key: 'pflege', label: 'Pflege' }, { key: 'stationaer', label: 'Stationär' },
-  { key: 'beratung', label: 'Beratung' }, { key: 'robotics', label: 'Roboter' },
+  { key: 'beratung', label: 'Beratung' }, { key: 'akademie', label: 'Akademie' },
+  { key: 'robotics', label: 'Roboter' },
   { key: 'premium', label: 'Premium' }, { key: 'settings', label: 'Einstellungen' },
 ] as const;
 export type DesktopAreaKey = typeof DESKTOP_AREAS[number]['key'];

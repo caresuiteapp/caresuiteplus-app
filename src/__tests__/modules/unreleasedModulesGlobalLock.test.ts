@@ -11,7 +11,7 @@ import {
 } from '@/lib/modules/moduleAccessService';
 
 const TENANT = 'tenant-unreleased-lock';
-const LOCKED: ProductKey[] = ['pflege', 'stationaer', 'beratung', 'akademie'];
+const LOCKED: ProductKey[] = ['pflege', 'stationaer', 'beratung'];
 
 function activeModule(productKey: ProductKey): TenantProduct {
   return {
@@ -32,7 +32,7 @@ function activeModule(productKey: ProductKey): TenantProduct {
 }
 
 describe('global lock for unreleased modules', () => {
-  beforeEach(() => initializeModuleAccessStore(TENANT, LOCKED.map(activeModule)));
+  beforeEach(() => initializeModuleAccessStore(TENANT, [...LOCKED, 'akademie' as const].map(activeModule)));
 
   it('keeps the exact unreleased module list centrally defined', () => {
     expect(UNRELEASED_MODULE_KEYS).toEqual(LOCKED);
@@ -57,5 +57,10 @@ describe('global lock for unreleased modules', () => {
   it.each(LOCKED)('rejects activation of %s for every tenant', (productKey) => {
     const result = activateFreeModule(TENANT, productKey);
     expect(result.ok).toBe(false);
+  });
+
+  it('allows the released Academy web workspace through the existing module gate', () => {
+    expect(hasModuleAccess('akademie', TENANT)).toBe(true);
+    expect(hasEffectiveModuleGateAccess('akademie', TENANT)).toBe(true);
   });
 });
