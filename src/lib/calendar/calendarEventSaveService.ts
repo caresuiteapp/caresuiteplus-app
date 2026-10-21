@@ -84,6 +84,9 @@ export async function createCalendarEventFromForm(
   if (getServiceMode() === 'supabase' && input.existingSourceId && !isUuid(input.existingSourceId)) {
     return { ok: false, error: 'Der gespeicherte Kalendereintrag besitzt keine gültige Quell-ID.' };
   }
+  if (sourceType === 'intake_appointment' && (moduleKey !== 'office' || !input.existingSourceId || input.relatedClientId !== input.existingSourceId || input.isClientPortalVisible || input.isEmployeePortalVisible)) {
+    return { ok: false, error: 'Der Ersttermin bleibt intern mit seiner ursprünglichen Aufnahme verknüpft. Die Personenzuordnung und Portalfreigaben können hier nicht geändert werden.' };
+  }
   let sourcePersisted = false;
   let calendarStatus: import('@/types').WorkflowStatus = 'aktiv';
 

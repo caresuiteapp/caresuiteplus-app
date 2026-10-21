@@ -1,10 +1,10 @@
 import { EMPTY_CLIENT_INTAKE_FORM, type ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFieldRules';
+import { getIntakeSectionsForForm } from '@/lib/clients/clientIntakePlan';
 import { validateIntakeStep } from '@/lib/clients/clientIntakeValidation';
 import { isCostBearerTypeKey } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { CLIENT_FUNDING_SOURCE_KEYS } from '@/types/clients/clientFundingSource';
 import { getSystemCatalog } from '@/lib/catalogs/systemCatalogs';
-import { buildIntakePlaceholderContext, resolveContractTemplateKey, type IntakeTenantDisplay } from './buildIntakeDocumentContext';
+import { buildIntakePlaceholderContext, resolveContractTemplateKeys, type IntakeTenantDisplay } from './buildIntakeDocumentContext';
 import { finalizeIntakeDocumentHtml, renderIntakeDocumentHtml } from './renderIntakeDocumentPreview';
 import { mapSystemRow, mapTenantRow, type SystemTemplateRow, type TenantTemplateRow } from './intakeTemplateMapping';
 import { getIntakeRenderBindingError, isIntakeRenderTimestamp } from './intakeDocumentRenderBinding';
@@ -37,6 +37,8 @@ export function requireCompleteIntakeForm(value: unknown): ClientIntakeFormData 
     } else if (record(initial) && (!record(field) || Object.keys(field).length > 64 || Object.values(field).some((item) => typeof item !== 'string' || item.length > 2000))) fail('Eine gespeicherte Zuordnung ist ungültig.');
   }
   const form = value as unknown as ClientIntakeFormData;
+  if (form.intakeWorkflowVersion !== undefined && form.intakeWorkflowVersion !== 2) fail('Die Version des Aufnahmeablaufs wird nicht unterstützt.');
+  if (form.intakeStage === 'first_contact') fail('Bitte den Erstkontakt zuerst zur vollständigen Aufnahme ergänzen.');
   if (!form.careContexts.length || form.careContexts.some((key) => !getSystemCatalog('leistungsart').entries.some((entry) => entry.key === key))
     || form.costBearerTypes.some((key) => !isCostBearerTypeKey(key))
     || form.fundingSources.some((key) => !(CLIENT_FUNDING_SOURCE_KEYS as readonly string[]).includes(key))
@@ -47,7 +49,7 @@ export function requireCompleteIntakeForm(value: unknown): ClientIntakeFormData 
   const expectedBilling = selfPay && statutory ? 'kombi' : selfPay ? 'selbstzahler' : statutory ? 'pflegekasse' : '';
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail('Die Finanzierungsarten und Abrechnung stimmen nicht überein. Bitte die Finanzierung erneut auswählen.');
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(',', '.')) < 0)) fail('Der vereinbarte Stundensatz ist ungültig.');
-  for (const section of getVisibleSectionsForClientContext(form.careContexts)) {
+  for (const section of getIntakeSectionsForForm(form)) {
     // Document obligations use the actual current database template below.
     if (section === 'vertraege_einwilligungen') continue;
     const errors = Object.values(validateIntakeStep(section, form));
@@ -132,9 +134,9 @@ function currentTemplate(system: IntakeTemplateRow, tenant: IntakeTemplateRow | 
 
 export async function verifyIntakeCompletionDocuments(input: { form: unknown; systemTemplates: IntakeTemplateRow[]; tenantTemplates: IntakeTemplateRow[]; tenantDisplay: IntakeTenantDisplay; now?: number }): Promise<VerifiedIntakeDocument[]> {
   const form = requireCompleteIntakeForm(input.form), now = input.now ?? Date.now();
-  const contract = resolveContractTemplateKey(form);
-  if (!contract) fail('Für die ausgewählte Unterstützung fehlt ein gültiger Aufnahmevertrag.');
-  const expected = [PRIVACY_TEMPLATE_KEY, contract, ...(form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : []), ...form.intakeOptionalConsents];
+  const contracts = resolveContractTemplateKeys(form);
+  if (!contracts.length) fail('Für die ausgewählte Unterstützung fehlt ein gültiger Aufnahmevertrag.');
+  const expected = [PRIVACY_TEMPLATE_KEY, ...contracts, ...(form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : []), ...form.intakeOptionalConsents];
   if (form.intakeDocuments.length !== expected.length || new Set(expected).size !== expected.length) fail('Die Dokumentauswahl wurde geändert. Bitte Verträge und Einwilligungen erneut prüfen.');
   const verified: VerifiedIntakeDocument[] = [];
   for (const key of expected) {

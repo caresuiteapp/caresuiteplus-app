@@ -258,6 +258,28 @@ function getVisibleSectionsForClientContext(contexts) {
   return all.filter((s) => visible.has(s));
 }
 
+// src/lib/clients/clientIntakePlan.ts
+var CLIENT_INTAKE_PLANS = {
+  daily_assistance: { details: "Haushalt, Einkaufen, gew\xFCnschte T\xE4tigkeiten und Zeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht oder Schl\xFCsselvereinbarung bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  support_care: { details: "Besch\xE4ftigung, Tagesstruktur, Orientierung und Kommunikation.", documents: "Assist-Vertrag und Datenschutz; erg\xE4nzende Einwilligungen nach Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  companionship: { details: "Anl\xE4sse, Wege, Mobilit\xE4t und gew\xFCnschte Begleitzeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  ambulatory_care: { details: "Pflegebedarf, Pflegegrad, Versicherung, Hausarzt und Wohnungszugang.", documents: "Pflegevertrag und Datenschutz; Pflegegradbescheid, Medikationsplan und Verordnungen nach Bedarf.", required: ["serviceStart", "billingTypes", "careLevel", "careFund", "healthInsurance", "insuranceNumber", "familyDoctor", "homeAccess"] },
+  stationary_care: { details: "Einrichtung, Wohnbereich, Zimmer, Einzug und Pflegegrad.", documents: "Station\xE4rer Vertrag und Datenschutz; Pflege- und Versorgungsunterlagen nach Bedarf.", required: ["serviceStart", "facility", "careArea", "roomNumber", "careLevel", "careFund"] },
+  consulting: { details: "Beratungsart, Anlass, Beginn und n\xE4chste Schritte.", documents: "Beratungsvertrag und Datenschutz; vorhandene Bescheide oder Vollmachten nach Bedarf.", required: ["consultingReason", "consultingType", "serviceStart"] },
+  academy_prepared: { details: "Interesse, Kontaktdaten und Schulungswunsch vormerken.", documents: "Noch keine Schulungsvertr\xE4ge oder Schulungsfunktionen verf\xFCgbar. Als Erstkontakt oder Entwurf speichern.", required: [] }
+};
+function getIntakeSectionsForForm(form) {
+  const activeContexts = form.intakeWorkflowVersion === 2 ? form.careContexts.filter((context) => context !== "academy_prepared") : form.careContexts;
+  return getVisibleSectionsForClientContext(activeContexts.length ? activeContexts : form.careContexts);
+}
+function getRequiredFieldsForIntake(form) {
+  if (form.intakeWorkflowVersion !== 2) return getRequiredFieldsForClientContext(form.careContexts);
+  const fields = /* @__PURE__ */ new Set(["careContexts", "firstName", "lastName", "dateOfBirth", "street", "zip", "city", "phoneOrContact"]);
+  for (const context of form.careContexts) for (const field of CLIENT_INTAKE_PLANS[context]?.required ?? []) fields.add(field);
+  if (form.careContexts.some((context) => context !== "academy_prepared")) fields.add("fundingSources");
+  return [...fields];
+}
+
 // src/lib/clients/clientIntakeCostBearerConfig.ts
 var COST_BEARER_TYPE_KEYS = [
   "pflegekasse",
@@ -1389,15 +1411,25 @@ function resolveContractTemplateKey(form) {
   if (!contractType) return null;
   return CONTRACT_TEMPLATE_BY_SERVICE_TYPE[contractType] ?? null;
 }
+function resolveContractTemplateKeys(form) {
+  if (form.intakeWorkflowVersion !== 2) {
+    const key = resolveContractTemplateKey(form);
+    return key ? [key] : [];
+  }
+  return [...new Set(form.careContexts.flatMap((context) => {
+    const type = CARE_CONTEXT_TO_SERVICE_TYPE[context];
+    return type ? [CONTRACT_TEMPLATE_BY_SERVICE_TYPE[type]] : [];
+  }))];
+}
 function listApplicableIntakeTemplates(form, tenantTemplates = []) {
   const lookup = /* @__PURE__ */ new Map();
   for (const template of tenantTemplates) {
     lookup.set(template.templateKey, template);
   }
-  const contractKey = resolveContractTemplateKey(form);
+  const contractKeys = resolveContractTemplateKeys(form);
   const applicableKeys = [
     PRIVACY_TEMPLATE_KEY,
-    ...contractKey ? [contractKey] : []
+    ...contractKeys
   ];
   if (form.intakeAssignmentEnabled) {
     applicableKeys.push(ASSIGNMENT_TEMPLATE_KEY);
@@ -1467,17 +1499,20 @@ function validateIntakeDocumentsStep(form, templates) {
   if (!privacyOk) {
     errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
-  const contractKey = resolveContractTemplateKey(form);
-  const contractTemplate = contractKey ? templates.find((t) => t.templateKey === contractKey) : void 0;
-  const contractDoc = contractKey ? docByKey(form.intakeDocuments, contractKey) : void 0;
-  const contractOk = isDocComplete(contractDoc, contractTemplate);
-  checklist.push({
-    key: "contract",
-    label: "Kundenvertrag abgeschlossen (Klient:in + Mitarbeitende:r)",
-    complete: contractOk
-  });
-  if (!contractOk) {
-    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie k\xF6nnen die Aufnahme als Entwurf speichern.`;
+  const contractKeys = resolveContractTemplateKeys(form);
+  if (!contractKeys.length) errors.intakeContract = "F\xFCr diese Auswahl ist noch kein Aufnahmevertrag verf\xFCgbar. Bitte als Erstkontakt oder Entwurf speichern.";
+  for (const contractKey of contractKeys) {
+    const contractTemplate = contractKey ? templates.find((t) => t.templateKey === contractKey) : void 0;
+    const contractDoc = contractKey ? docByKey(form.intakeDocuments, contractKey) : void 0;
+    const contractOk = isDocComplete(contractDoc, contractTemplate);
+    checklist.push({
+      key: `contract-${contractKey}`,
+      label: `${contractTemplate?.title ?? "Kundenvertrag"} abgeschlossen (Klient:in + Mitarbeitende:r)`,
+      complete: contractOk
+    });
+    if (!contractOk) {
+      errors[contractKeys.length === 1 ? "intakeContract" : `intakeContract_${contractKey}`] = `${contractTemplate?.title ?? "Kundenvertrag"} muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie k\xF6nnen die Aufnahme als Entwurf speichern.`;
+    }
   }
   if (form.intakeAssignmentEnabled) {
     const assignmentTemplate = templates.find((t) => t.templateKey === ASSIGNMENT_TEMPLATE_KEY);
@@ -1631,7 +1666,7 @@ function parseGermanOrIsoDateInput(value, options) {
 // src/lib/clients/clientIntakeValidation.ts
 function validateIntakeStep(section, form) {
   const errors = {};
-  const required = getRequiredFieldsForClientContext(form.careContexts);
+  const required = getRequiredFieldsForIntake(form);
   const checkDate = (field) => {
     const value = form[field].trim();
     if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !parseGermanOrIsoDateInput(value))) {
@@ -1641,6 +1676,9 @@ function validateIntakeStep(section, form) {
   if (section === "leistungsart") {
     if (form.careContexts.length === 0) {
       errors.careContexts = "Mindestens eine Leistungsart ausw\xE4hlen.";
+    }
+    if (form.intakeWorkflowVersion === 2 && form.careContexts.length > 0 && form.careContexts.every((context) => context === "academy_prepared")) {
+      errors.careContexts = "Akademie / Schulung ist vorbereitet. Bitte als Erstkontakt oder Entwurf vormerken; eine vollst\xE4ndige Schulungsaufnahme ist noch nicht verf\xFCgbar.";
     }
   }
   if (section === "stammdaten") {
@@ -3106,6 +3144,8 @@ function requireCompleteIntakeForm(value) {
     } else if (record(initial) && (!record(field) || Object.keys(field).length > 64 || Object.values(field).some((item) => typeof item !== "string" || item.length > 2e3))) fail("Eine gespeicherte Zuordnung ist ung\xFCltig.");
   }
   const form = value;
+  if (form.intakeWorkflowVersion !== void 0 && form.intakeWorkflowVersion !== 2) fail("Die Version des Aufnahmeablaufs wird nicht unterst\xFCtzt.");
+  if (form.intakeStage === "first_contact") fail("Bitte den Erstkontakt zuerst zur vollst\xE4ndigen Aufnahme erg\xE4nzen.");
   if (!form.careContexts.length || form.careContexts.some((key) => !getSystemCatalog("leistungsart").entries.some((entry) => entry.key === key)) || form.costBearerTypes.some((key) => !isCostBearerTypeKey(key)) || form.fundingSources.some((key) => !CLIENT_FUNDING_SOURCE_KEYS.includes(key)) || form.intakeOptionalConsents.some((key) => !OPTIONAL_CONSENT_TEMPLATE_KEYS.includes(key))) fail("Leistungsart, Kostentr\xE4ger oder Einwilligung ist nicht mehr verf\xFCgbar. Bitte die Auswahl pr\xFCfen.");
   if (new Set(form.careContexts).size !== form.careContexts.length || new Set(form.costBearerTypes).size !== form.costBearerTypes.length || new Set(form.fundingSources).size !== form.fundingSources.length) fail("Eine Auswahl ist mehrfach enthalten. Bitte den Entwurf erneut pr\xFCfen.");
   const selfPay = form.fundingSources.includes("selbstzahler");
@@ -3113,7 +3153,7 @@ function requireCompleteIntakeForm(value) {
   const expectedBilling = selfPay && statutory ? "kombi" : selfPay ? "selbstzahler" : statutory ? "pflegekasse" : "";
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail("Die Finanzierungsarten und Abrechnung stimmen nicht \xFCberein. Bitte die Finanzierung erneut ausw\xE4hlen.");
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(",", ".")) < 0)) fail("Der vereinbarte Stundensatz ist ung\xFCltig.");
-  for (const section of getVisibleSectionsForClientContext(form.careContexts)) {
+  for (const section of getIntakeSectionsForForm(form)) {
     if (section === "vertraege_einwilligungen") continue;
     const errors = Object.values(validateIntakeStep(section, form));
     if (errors.length) fail(errors.filter(Boolean).join(" "));
@@ -3222,9 +3262,9 @@ function currentTemplate(system, tenant) {
 }
 async function verifyIntakeCompletionDocuments(input) {
   const form = requireCompleteIntakeForm(input.form), now = input.now ?? Date.now();
-  const contract = resolveContractTemplateKey(form);
-  if (!contract) fail("F\xFCr die ausgew\xE4hlte Unterst\xFCtzung fehlt ein g\xFCltiger Aufnahmevertrag.");
-  const expected = [PRIVACY_TEMPLATE_KEY, contract, ...form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : [], ...form.intakeOptionalConsents];
+  const contracts = resolveContractTemplateKeys(form);
+  if (!contracts.length) fail("F\xFCr die ausgew\xE4hlte Unterst\xFCtzung fehlt ein g\xFCltiger Aufnahmevertrag.");
+  const expected = [PRIVACY_TEMPLATE_KEY, ...contracts, ...form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : [], ...form.intakeOptionalConsents];
   if (form.intakeDocuments.length !== expected.length || new Set(expected).size !== expected.length) fail("Die Dokumentauswahl wurde ge\xE4ndert. Bitte Vertr\xE4ge und Einwilligungen erneut pr\xFCfen.");
   const verified = [];
   for (const key of expected) {

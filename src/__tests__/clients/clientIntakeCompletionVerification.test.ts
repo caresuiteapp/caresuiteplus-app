@@ -15,6 +15,10 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCA
 const TENANT: IntakeTenantDisplay = { name: 'Pflegedienst Lindenhof GmbH', street: 'Lindenstraße 14', zip: '10115', city: 'Berlin', defaultHourlyRate: '42,50' };
 const CONTRACT = 'client_contract_assist';
 
+it('rejects missing support wishes when academy interest accompanies an Assist intake', () => {
+  expect(() => requireCompleteIntakeForm(completeForm({ intakeWorkflowVersion: 2, careContexts: ['support_care', 'academy_prepared'], supportWishes: [] }))).toThrow('Gewünschte Unterstützung');
+});
+
 type StoredSystemRow = SystemTemplateRow & IntakeTemplateRow & { updated_at: string };
 type StoredTenantRow = TenantTemplateRow & IntakeTemplateRow & { updated_at: string };
 
@@ -93,6 +97,25 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date(NOW)); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('server intake completion verification', () => {
+  it('verifies all four service contracts with both real signature roles and rejects a missing contract', async () => {
+    const input = fixture({ form: { intakeWorkflowVersion: 2, intakeStage: 'full_intake',
+      careContexts: ['daily_assistance', 'support_care', 'companionship', 'ambulatory_care', 'stationary_care', 'consulting', 'academy_prepared'],
+      familyDoctor: 'Praxis Beispiel', homeAccess: ['klingeln'], facilityName: 'Haus Beispiel', careArea: 'wohnbereich_1', roomNumber: '12',
+      consultingReason: 'Versorgung organisieren', consultingType: 'pflegeberatung',
+    } });
+    const documents = await verifyIntakeCompletionDocuments(input);
+    expect(documents).toHaveLength(5);
+    for (const document of documents.filter(item => item.documentType === 'client_contract')) {
+      expect(document.signatures.client?.dataUrl).toBe(PNG);
+      expect(document.signatures.employee?.dataUrl).toBe(PNG);
+    }
+    input.form.intakeDocuments = input.form.intakeDocuments.filter(document => document.templateKey !== 'client_contract_stationary_care');
+    await expect(verifyIntakeCompletionDocuments(input)).rejects.toThrow(/Dokumentauswahl/);
+  });
+  it('rejects completing a first contact even if all personal fields and signatures are filled', async () => {
+    const input = fixture({ form: { intakeWorkflowVersion: 2, intakeStage: 'first_contact' } });
+    await expect(verifyIntakeCompletionDocuments(input)).rejects.toThrow(/Erstkontakt/);
+  });
   it('accepts the new jointly signed package with both roles through the unchanged server verifier', async () => {
     const form = completeForm({ intakeAssignmentEnabled: true, intakeOptionalConsents: ['communication_consent_default'] });
     const systems = systemRows(), templates = systems.map(mapSystemRow);

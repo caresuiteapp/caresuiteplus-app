@@ -10,6 +10,7 @@ export async function archiveCustomCalendarEvent(
   tenantId: string,
   eventRecordId: string,
   actorRoleKey?: RoleKey | null,
+  sourceType: 'custom_event' | 'intake_appointment' = 'custom_event',
 ): Promise<ServiceResult<void>> {
   const blocked = guardServiceTenant(tenantId);
   if (blocked) return blocked;
@@ -23,7 +24,7 @@ export async function archiveCustomCalendarEvent(
   try {
     const existing = await fromUnknownTable(client, 'calendar_events')
       .select('id, module_key').eq('tenant_id', tenantId).eq('id', eventRecordId)
-      .eq('source_type', 'custom_event').is('archived_at', null).maybeSingle();
+      .eq('source_type', sourceType).is('archived_at', null).maybeSingle();
     if (existing.error) return { ok: false, error: toGermanSupabaseError(existing.error) };
     if (!existing.data) return { ok: false, error: 'Dieser Termin ist nicht mehr verfügbar oder darf hier nicht geändert werden.' };
     const moduleKey = existing.data.module_key;
@@ -37,7 +38,7 @@ export async function archiveCustomCalendarEvent(
       .update({ archived_at: new Date().toISOString(), status: 'archiviert' })
       .eq('tenant_id', tenantId)
       .eq('id', eventRecordId)
-      .eq('source_type', 'custom_event')
+      .eq('source_type', sourceType)
       .eq('module_key', moduleKey)
       .is('archived_at', null)
       .select('id')

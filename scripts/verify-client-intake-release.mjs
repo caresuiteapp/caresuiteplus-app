@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clientSuites = [
+  'clientIntakePlan.test.ts',
+  'clientIntakeDeleteInteraction.test.tsx',
   'clientIntakeCompletionTruth.test.ts',
   'clientIntakeDocuments.test.ts',
   'clientIntakeDocumentPackage.test.ts',
