@@ -129,7 +129,9 @@ Aufräumen geprüft. Gespeicherte OSIG-/AUT-Belege durchlaufen den tatsächliche
 verschlüsselten KIM-Empfang nach Wiederöffnen und ergeben weiter Diagnose 07.
 
 Der Baustein ist im Dienstcode vorhanden; ein laufender KIM-Clientproxy und
-produktive OCSP-Endpunkte sind nicht angeschlossen. Authentisierte TSL,
+produktive OCSP-Endpunkte sind nicht angeschlossen. Der [TSL-Import](tsl.md)
+ergänzt die Listenprüfung und dauerhafte Versionskontrolle gegen konfigurierte
+Anker. Authentisierte TI-Ankerbereitstellung und automatisierte TSL-Beschaffung,
 vollständige Pfad-/Rollenprüfung, VZD-/Telematik-ID-Bindung, Konnektor/SMC-B,
 Betrieb samt Backup/Rotation und unabhängige Prüfung/Zulassung bleiben offen.
 Der Cache ist kein Langzeitarchiv und keine manipulationssichere Uhr. Die

@@ -8,8 +8,47 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**249 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**292 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## TSL-Import und Versionskontrolle am 21.10.2026
+
+Die bisherigen 249 Fälle und **43 neue Prüfungen** bestehen gemeinsam.
+`tsl.test.mjs` prüft echte separate und eingebettete ECC-/RSA-PSS-Signaturen,
+Signierer-EKU/KeyUsage, fremde CA-Schlüssel, tatsächliche OCSP-Rohbelege und
+vier XML-Kanonisierungsvarianten mit Namespaces, Einrückung und Kommentaren.
+OpenSSL bestätigt die separate ECC-Signatur unabhängig vom Node-Verifier.
+Die vollständige XSD-Prüfung verwendet das fest gebundene gematik-Schema-Bündel
+mit der vorhandenen lxml-6.1.1-/libxml2-2.14.6-Laufzeit. Kein vereinfachter
+Testparser und keine Installation.
+
+Manipulierte XML-/Signaturbytes, DTD/XXE, externe Referenzen, doppelte IDs,
+Signatur-Wrapping, fremde kritische Erweiterungen, unzulässige Signierer,
+gesperrte/unbekannte/veraltete Statusbelege und abgelaufene Listen scheitern.
+Die Vorbereitung des Signiererstatus gibt noch keinen TSL-Snapshot frei.
+Eingabekopien und nach der XML-Verarbeitung wiederholte Fristprüfungen schützen
+gegen Änderungen während der asynchronen Prüfung.
+
+Geprüft sind aktuelle und gesperrte CA-Dienste einschließlich expliziter
+Ausstellungszeitgrenze, fehlende/zukünftige Responder und doppelte Identitäten.
+Die verschlüsselte Ablage wird erneut geöffnet und vollständig nachgeprüft.
+Falscher Schlüssel, Umgebungs-/Profilwechsel, veränderte Versionsmetadaten,
+Rücksprünge und widersprüchliche gleiche Versionen werden abgewiesen.
+Konkurrierende Instanzen können keinen höheren Stand überschreiben; Ablauf
+löscht die Versionsgrenze nicht, und Schließen verhindert verspätete Aktivierung.
+
+Gesamtlauf: **292 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
+Vier MJS-Dateien, beide Python-Dateien und das Anforderungs-JSON sind syntaktisch
+geprüft. Die eigenen Änderungen bestehen `git diff --cached --check`;
+vorhandene Leerzeichen am Zeilenende in den bytegleich übernommenen und
+hashgebundenen Original-XSDs bleiben absichtlich erhalten.
+Keine UI-/Android-/Supabase- oder Produktionsänderung; keine echte TI-/OCSP-
+Abfrage. Die Anker sind lokal provisioniert. Automatische TSL-Beschaffung und
+Ankerrotation, vollständige TI-Pfad-/Rollenprüfung, VZD und Konnektorintegration
+bleiben offen. [Schnittstellen, Laufzeit und genaue Grenzen](tsl.md).
+Alle vier Vercel-Projekte haben den Vorgänger **1d7c9a0** erfolgreich gebaut;
+die Web-Builds des neuen Commits werden gesondert in PR #129 dokumentiert.
+Die Python-Diensthost-Laufzeit wird durch einen Web-Build nicht nachgewiesen.
 
 ## OCSP-Abruf und dauerhafte Belege am 21.10.2026
 

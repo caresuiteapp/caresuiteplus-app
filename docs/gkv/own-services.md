@@ -300,6 +300,25 @@ einschließlich HTTPS, echter Prozesskonkurrenz, SIGKILL und KIM-Empfang mit
 wieder geöffneten OSIG-/AUT-Belegen. Noch keine authentisierte TSL, produktive
 Route oder vollständige Konnektor-/Clientintegration. [Details](ocsp-online.md).
 
+### TSL-Import und dauerhafte Versionskontrolle
+
+`tsl.mjs` prüft die vollständigen XML-Bytes zuerst mit der separaten Signatur
+gegen konfigurierte TSL-Signer-CA-Pins. Signiererstatus, das fest gebundene
+gematik-XSD-Bündel, die eingebettete XML-Signatur, Zeitgrenzen und Dienststatus
+werden tatsächlich geprüft. Die Ausgabe kann den vorhandenen OCSP-Prüfer mit
+CA-/Responder-Identitäten aus der geprüften Liste versorgen; ein Status bleibt
+ausdrücklich `unverified` hinsichtlich der vollständigen TI-Identität.
+
+`tsl-store.mjs` hält die Originale verschlüsselt und die höchste akzeptierte
+Listenkennung/Folgenummer dauerhaft. Rücksprünge und widersprüchliche gleiche
+Versionen scheitern auch nach erneutem Öffnen. Jeder Zugriff benötigt erneut
+einen gültigen Signiererstatusbeleg. Die vorhandene Python-/lxml-Laufzeit führt
+XML/XSD/C14N begrenzt aus; ohne diese Laufzeit gibt es keine Freigabe.
+43 neue Fälle bestehen mit den bisherigen Diensten: **292 Prüfungen**.
+Authentisierte Ankerprovisionierung/-rotation, automatische Listenbeschaffung,
+vollständige Pfad-/Rollenprüfung und Konnektorintegration bleiben offen.
+[Schnittstellen, Grenzen und Primärquellen](tsl.md).
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
@@ -327,7 +346,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer und HTTP(S)-Abruf mit verschlüsseltem dauerhaftem Cache gegen Pins vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL, produktiver Statusabruf, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung und Versionskontrolle gegen konfigurierte Anker vorhanden; Konnektor-/SMC-B-Anbindung, VZD, authentisierte TI-Ankerbereitstellung/TSL-Beschaffung, produktiver Statusabruf, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
@@ -336,7 +355,10 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 ## Laufzeit und Prüfungen
 
 Die Dienste verwenden die bereits vorhandenen Node-24-APIs, einschließlich
-`node:sqlite`, und OpenSSL 3. Keine neuen Pakete, Container oder Testwerkzeuge.
+`node:sqlite`, und OpenSSL 3. Der TSL-XML-Worker verwendet die vorhandene
+Python-3-/lxml-Laufzeit mit POSIX-Ressourcenlimits. Keine neuen Pakete, Container
+oder Testwerkzeuge. Die Verfügbarkeit dieser Laufzeit auf dem späteren
+Diensthost ist vor Inbetriebnahme gesondert nachzuweisen.
 Sie gehören in einen eigenen dauerhaften Prozess mit geschütztem lokalem Volume.
 Vercel-Funktionen, Browser, mehrere unkoordinierte Replikate mit getrennten
 Datenbanken oder flüchtiges `/tmp` sind dafür keine Betriebsumgebung.

@@ -50,6 +50,9 @@ export async function testPki() {
     issueOcsp({ name = 'ocsp', curve = 'brainpoolP256r1', extendedUsage = 'OCSPSigning', usage = 'digitalSignature', startDate } = {}) {
       return issueIdentity({ name, curve, extendedUsage, usage, startDate });
     },
+    issueTsl({ name = 'tsl', curve = 'brainpoolP256r1', extendedUsage = '0.4.0.2231.3.0', usage = 'nonRepudiation', startDate } = {}) {
+      return issueIdentity({ name, curve, extendedUsage, usage, startDate });
+    },
     tls: { key: await readFile(tlsKey), passphrase: password.toString(), cert: await readFile(tlsCert) },
     async revokeRecipient() { await openssl(['ca', '-config', config, '-passin', 'fd:3', '-revoke', recipient.path], { password }); return crl(); },
     close: () => rm(dir, { recursive: true, force: true }),

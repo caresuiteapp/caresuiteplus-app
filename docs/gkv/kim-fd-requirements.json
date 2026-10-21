@@ -117,7 +117,7 @@
       "evidence": [
         "tests/gkv-exchange/kim-smtp.test.mjs"
       ],
-      "remaining": "Originator-Teilmenge, Self-Send-Ausnahme und echte AUT-Signaturen gegen gepinnte Test-Aussteller belegt; TSL-Beschaffung/Signatur/Service-Status, volle TI-PKI und konfigurative Regeln/Monitoring fehlen."
+      "remaining": "Originator-Teilmenge, Self-Send-Ausnahme und echte AUT-Signaturen gegen gepinnte Test-Aussteller belegt. Separater TSL-Kern mit Signatur/XSD/Service-Status gegen konfigurierte Anker vorhanden; FD-Anschluss, authentisierte TI-Ankerbereitstellung und TSL-Beschaffung, volle TI-PKI und konfigurative Regeln/Monitoring fehlen."
     },
     {
       "id": "KOM-LE-A_2133",

@@ -1,8 +1,10 @@
 # Eigene OCSP-Prüfung und KIM-Statusbelege
 
 Stand: 21.10.2026. `services/kim/ocsp.mjs` erzeugt echte OCSP-Anfragen und prüft
-signierte Antworten gegen konfigurierte Zertifikat-Pins. Authentisierte TI-TSL,
-vollständige Pfadprüfung und Konnektoroperation `VerifyCertificate` fehlen noch.
+signierte Antworten gegen konfigurierte Zertifikat-Pins. Der [TSL-Import](tsl.md)
+kann diese Pins aus einer gegen konfigurierte Anker geprüften Liste ableiten.
+Authentisierte TI-Ankerbereitstellung, vollständige Pfadprüfung und
+Konnektoroperation `VerifyCertificate` fehlen noch.
 Der [Online-Baustein](ocsp-online.md) ergänzt feste HTTP(S)-Routen und einen
 verschlüsselten dauerhaften Cache; die Prüferklasse selbst öffnet keine Verbindung.
 
@@ -29,7 +31,8 @@ CA und OCSP-Signierer müssen zu ihren Pins passen und aktuell gültig sein.
 Die CA benötigt keyCertSign, der Signierer digitalSignature und ausschließlich
 OCSPSigning als ExtendedKeyUsage. Das Blatt wird gegen die CA geprüft. Ein
 separat autorisierter Signierer darf eine andere ausstellende CA haben. Diese
-Zuordnung muss später aus geprüften TSL-Diensteinträgen stammen. Eingebettete
+Zuordnung kann nun aus geprüften TSL-Diensteinträgen stammen; Ankerprovisionierung
+und Rotation bleiben gesonderte Aufgaben. Eingebettete
 Zertifikate, Betriebssystemwurzeln und AIA-URLs begründen hier kein Vertrauen.
 ResponderID wird gegen Namen oder Schlüsselhash geprüft; Mehrdeutigkeit scheitert.
 

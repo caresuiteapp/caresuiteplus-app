@@ -25,6 +25,10 @@ signierte Sperrstatusbelege gegen konfigurierte Pins und die Bindung der Ergebni
 an die OSIG-/AUT-Zertifikate im Empfangsbericht. Der [OCSP-Abruf](ocsp-online.md)
 ergänzt feste HTTP(S)-Routen und einen verschlüsselten dauerhaften Cache mit
 prozessübergreifenden Claims und begrenzter Wiederholung bei Protokollfehlern.
+Der [TSL-Import](tsl.md) prüft separate und eingebettete Signatur, fest gebundene
+XML-Schemata und Signiererstatus gegen konfigurierte Anker. Er leitet begrenzte
+OCSP-Vertrauenspfade aus den Dienstlisten ab und schützt gespeicherte
+Listenstände gegen Rücksprünge beim Update und Wiederöffnen.
 TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
