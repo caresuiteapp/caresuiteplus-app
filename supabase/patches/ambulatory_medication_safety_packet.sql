@@ -122,6 +122,55 @@ returns boolean language plpgsql immutable set search_path='' as $$begin
  if jsonb_typeof(v) is distinct from 'array' then return false;end if;
  return jsonb_array_length(v)<=2000 and not exists(select 1 from jsonb_array_elements(v) x where not care_private.med_packet_uuid(x)) and jsonb_array_length(v)=(select count(distinct x) from jsonb_array_elements(v) x);
 end $$;
+-- Staging foundation only: nullable structured facts, no legacy conversion or application grants.
+alter table public.medications
+ add column if not exists prescribed_dose text,
+ add column if not exists dose_unit text,
+ add column if not exists minimum_interval_minutes text,
+ add column if not exists maximum_dose text,
+ add column if not exists maximum_dose_unit text,
+ add column if not exists maximum_period_hours text;
+
+-- Existing table-level UPDATE grants must not expose the new structured facts to direct clients.
+create or replace function care_private.guard_medication_order_facts()
+returns trigger language plpgsql security invoker set search_path='' as $$
+declare next_facts jsonb;previous_facts jsonb:='[null,null,null,null,null,null]'::jsonb;
+begin
+ next_facts:=jsonb_build_array(new.prescribed_dose,new.dose_unit,new.minimum_interval_minutes,new.maximum_dose,new.maximum_dose_unit,new.maximum_period_hours);
+ if tg_op='UPDATE' then previous_facts:=jsonb_build_array(old.prescribed_dose,old.dose_unit,old.minimum_interval_minutes,old.maximum_dose,old.maximum_dose_unit,old.maximum_period_hours);end if;
+ if next_facts is distinct from previous_facts and current_user not in('postgres','service_role') then
+  raise exception 'Strukturierte Verordnungsangaben benötigen einen freigegebenen serverseitigen Originalbeleg.' using errcode='42501';
+ end if;
+ return new;
+end $$;
+revoke all on function care_private.guard_medication_order_facts() from public,anon,authenticated;
+create trigger medication_structured_order_guard before insert or update on public.medications for each row execute function care_private.guard_medication_order_facts();
+
+create or replace function care_private.medication_native_order(p_native jsonb)
+returns jsonb language plpgsql immutable set search_path='' as $$
+declare key text;result jsonb;
+begin
+ perform care_private.med_packet_require(jsonb_typeof(p_native)='object','Strukturierte native Verordnung fehlt.');
+ foreach key in array array['name','active_ingredient','strength','form','dose_unit','route','prescribed_by','indication'] loop
+  perform care_private.med_packet_require(care_private.med_packet_text(p_native->key,1),'Native Verordnungsangabe fehlt: '||key);
+ end loop;
+ perform care_private.med_packet_require(care_private.med_packet_decimal(p_native->'prescribed_dose') and (p_native->>'prescribed_dose')::numeric>0 and jsonb_typeof(p_native->'is_prn')='boolean','Native strukturierte Dosis oder Bedarfskennzeichnung fehlt.');
+ perform care_private.med_packet_date(p_native->'start_date');
+ perform care_private.med_packet_require(p_native ? 'end_date','Native Gültigkeitsgrenze fehlt.');
+ if p_native->'end_date'<>'null'::jsonb then perform care_private.med_packet_require(care_private.med_packet_date(p_native->'end_date')>=care_private.med_packet_date(p_native->'start_date'),'Native Gültigkeit widersprüchlich.');end if;
+ if p_native->'is_prn'='true'::jsonb then
+  foreach key in array array['minimum_interval_minutes','maximum_dose','maximum_period_hours'] loop
+   perform care_private.med_packet_require(care_private.med_packet_decimal(p_native->key) and (p_native->>key)::numeric>0,'Native strukturierte Bedarfsgrenze fehlt: '||key);
+  end loop;
+  perform care_private.med_packet_require(care_private.med_packet_text(p_native->'maximum_dose_unit',1) and p_native->'maximum_dose_unit'=p_native->'dose_unit','Native Höchstmengeneinheit widersprüchlich.');
+ else
+  perform care_private.med_packet_require(p_native->'minimum_interval_minutes'='null'::jsonb and p_native->'maximum_dose'='null'::jsonb and p_native->'maximum_period_hours'='null'::jsonb and (p_native->'maximum_dose_unit'='null'::jsonb or p_native->>'maximum_dose_unit'=''),'Native Regelmedikation enthält Bedarfsgrenzen.');
+ end if;
+ result:=jsonb_build_object('medicationName',p_native->'name','activeIngredient',p_native->'active_ingredient','strength',p_native->'strength','form',p_native->'form','dose',p_native->'prescribed_dose','unit',p_native->'dose_unit','route',p_native->'route','prescriber',p_native->'prescribed_by','validFrom',p_native->'start_date','validUntil',p_native->'end_date','indication',p_native->'indication','isPrn',p_native->'is_prn','minimumIntervalMinutes',p_native->'minimum_interval_minutes','maximumDose',p_native->'maximum_dose','maximumDoseUnit',case when p_native->'is_prn'='true'::jsonb then p_native->'maximum_dose_unit' else '""'::jsonb end,'maximumPeriodHours',p_native->'maximum_period_hours');
+ return result;
+end $$;
+revoke all on function care_private.medication_native_order(jsonb) from public,anon,authenticated;
+
 create or replace function care_private.validate_medication_packet(p jsonb,p_actor uuid,p_sources jsonb)
 returns void language plpgsql security definer set search_path='' as $$
 declare e jsonb:=p->'entry';o jsonb:=e->'order';a jsonb:=e->'administration';sr jsonb:=e->'sourceReview';s jsonb:=e->'stock';k text:=e->>'kind';key text;item jsonb;ref jsonb;source_row jsonb;actual boolean;reference_at timestamptz;prior_balance numeric;last_stock jsonb;
@@ -143,6 +192,10 @@ begin
  foreach key in array array['medicationName','activeIngredient','strength','form','unit','route','prescriber','indication'] loop perform care_private.med_packet_require(care_private.med_packet_text(o->key,1),'Pflichtangabe der Verordnung fehlt.');end loop;
  perform care_private.med_packet_require(care_private.med_packet_decimal(o->'dose') and jsonb_typeof(o->'isPrn')='boolean','Dosis oder Bedarfskennzeichnung fehlt.');
  perform care_private.med_packet_date(o->'validFrom');if o->'validUntil'<>'null'::jsonb then perform care_private.med_packet_require(care_private.med_packet_date(o->'validUntil')>=care_private.med_packet_date(o->'validFrom'),'Verordnungsgültigkeit widersprüchlich.');end if;
+ -- A candidate may stay unresolved in an open capture; confirmed facts must match the native row exactly.
+ if not(k in('reconciliation','order_capture') and sr->>'decision' in('unresolved','rejected') and e->>'lifecycle'='open') then
+  perform care_private.med_packet_require(o is not distinct from care_private.medication_native_order(p_sources#>'{order,payload}'),'Verordnungsangaben weichen vom strukturierten Datenbankoriginal ab.');
+ end if;
  if o->'isPrn'='true'::jsonb then
   raise exception 'Native bestätigte Bedarfsgrenzen fehlen im aktuellen Quellenvertrag.' using errcode='42501';
   foreach key in array array['minimumIntervalMinutes','maximumDose','maximumPeriodHours'] loop perform care_private.med_packet_require(care_private.med_packet_decimal(o->key) and (o->>key)::numeric>0,'Bedarfsgrenzen fehlen.');end loop;
