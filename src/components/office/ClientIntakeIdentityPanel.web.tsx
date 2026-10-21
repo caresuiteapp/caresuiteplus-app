@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ErrorState, InfoBanner, PremiumInput } from '@/components/ui';
 import { ClientWorkspaceButton, ClientWorkspacePanel } from './ClientWorkspacePrimitives';
-import type { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard.web';
+import type { useClientIntakeWizard } from '@/hooks/pflege/useCareClientIntakeWizard.web';
 import { spacing } from '@/theme';
 
 type Wizard = ReturnType<typeof useClientIntakeWizard>;
