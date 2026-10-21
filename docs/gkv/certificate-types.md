@@ -87,6 +87,9 @@ serverseitig vorgegeben sein. `ocspPlanFor()` benötigt nun ebenfalls
 Manager-Handle scheitert nach Listenwechsel. Der niedrigere Baustein
 `ocspVerifierFor()` bleibt ein Statussignaturprüfer; sein Ergebnis allein
 belegt keine Typprüfung eines beliebigen weiteren Zertifikats.
+Die folgende [Admission-Erweiterung](certificate-admission.md) prüft nun auch
+Rollenfamilie und Telematik-ID im Statusplan. `certificateTypeFor()` allein
+bleibt ausdrücklich eine Typprüfung.
 
 ## Cache, Umstellung und Grenzen
 

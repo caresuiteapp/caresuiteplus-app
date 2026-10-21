@@ -64,7 +64,10 @@ aktuellen TI-Betrieb. Der neue Erzeuger schreibt ausschließlich ECC-Container.
   C.HCI.ENC oder C.HP.ENC mit keyAgreement, C.HCI.OSIG mit nonRepudiation.
   Signieren mit AUT/digitalSignature wird abgelehnt. Zeitliche Gültigkeit wird
   bei Erzeugung und Signaturprüfung geprüft. Historische Empfängerschlüssel
-  bleiben zur Entschlüsselung verwendbar. Diese Rollenprüfung ersetzt keine
+  bleiben zur Entschlüsselung verwendbar. Die [Admission-Prüfung](certificate-admission.md)
+  verlangt zusätzlich passende Berufs-/Institutionenrollen und eine eindeutige
+  Telematik-ID. Mehrere ENC-Zertifikate derselben Adresse müssen dieselbe ID
+  tragen; ein Schlüsselwechsel mit identischer ID bleibt möglich. Dies ersetzt keine
   vollständige Zertifikatspfad-, TSL-, OCSP-, Rollen- oder VZD-Prüfung.
 - Software-KeyObjects ermöglichen die lokalen Prüfungen. Der Konnektor-/SMC-B-
   Anschluss für nicht exportierbare Schlüssel fehlt. Die Tests verwenden eine

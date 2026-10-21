@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openssl } from '../../services/gkv/openssl.mjs';
+import { defaultAdmission } from './admission-fixture.mjs';
 
 export async function testPki() {
   const dir = await mkdtemp(join(tmpdir(), 'cs-gkv-test-')), password = Buffer.from('fictional-local-test-only-2026');
@@ -31,21 +32,21 @@ export async function testPki() {
   await openssl(['req', '-new', '-key', tlsKey, '-passin', 'fd:3', '-subj', '/C=DE/O=CareSuite Test/OU=TLS/CN=localhost.test', '-out', tlsRequest], { password });
   const tlsExt = await file('tls.cnf', '[server]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost.test\n');
   await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', tlsRequest, '-out', tlsCert, '-notext', '-extfile', tlsExt, '-extensions', 'server', ...pss], { password });
-  const issueIdentity = async ({ name, curve = 'brainpoolP256r1', policy, usage, extendedUsage, startDate, aia }) => {
+  const issueIdentity = async ({ name, curve = 'brainpoolP256r1', policy, usage, extendedUsage, startDate, aia, admission }) => {
       const pair = generateKeyPairSync(curve === 'rsa' ? 'rsa' : 'ec', { ...(curve === 'rsa' ? { modulusLength: 3072 } : { namedCurve: curve }), privateKeyEncoding: { type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: password } });
       const privateKeyPath = await file(`${name}.key`, pair.privateKey), req = join(dir, `${name}.csr`), cert = join(dir, `${name}.pem`);
       await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', '-subj', '/C=DE/O=CareSuite Test/OU=Isolated KIM fixture/CN=Not a TI identity', '-out', req], { password });
-      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,${usage}\n${policy ? `certificatePolicies=${policy}\n` : ''}${extendedUsage ? `extendedKeyUsage=${extendedUsage}\n` : ''}${aia ? `authorityInfoAccess=${aia}\n` : ''}subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
+      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,${usage}\n${policy ? `certificatePolicies=${policy}\n` : ''}${extendedUsage ? `extendedKeyUsage=${extendedUsage}\n` : ''}${aia ? `authorityInfoAccess=${aia}\n` : ''}${admission ? `1.3.36.8.3.3=DER:${admission.toString('hex')}\n` : ''}subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
       await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', req, '-out', cert, '-notext', '-extfile', ext, '-extensions', 'aut', ...(startDate ? ['-startdate', startDate] : []), ...pss], { password });
       return { privateKeyPath, certificate: await readFile(cert, 'utf8'), path: cert };
   };
   return {
     dir, sender, recipient, password, roots, rootFingerprint, crls: await crl(),
-    issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77', startDate, aia } = {}) {
-      return issueIdentity({ name, curve, policy, usage: 'digitalSignature', startDate, aia });
+    issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77', startDate, aia, admission = defaultAdmission(policy) } = {}) {
+      return issueIdentity({ name, curve, policy, usage: 'digitalSignature', startDate, aia, admission });
     },
-    issueKim({ name, role = 'enc', curve = 'brainpoolP256r1', policy, usage, startDate, aia } = {}) {
-      return issueIdentity({ name, curve, policy: policy ?? (role === 'osig' ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76'), usage: usage ?? (role === 'osig' ? 'nonRepudiation' : 'keyAgreement'), startDate, aia });
+    issueKim({ name, role = 'enc', curve = 'brainpoolP256r1', policy, usage, startDate, aia, admission = defaultAdmission(policy) } = {}) {
+      return issueIdentity({ name, curve, policy: policy ?? (role === 'osig' ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76'), usage: usage ?? (role === 'osig' ? 'nonRepudiation' : 'keyAgreement'), startDate, aia, admission });
     },
     issueOcsp({ name = 'ocsp', curve = 'brainpoolP256r1', extendedUsage = 'OCSPSigning', usage = 'digitalSignature', startDate } = {}) {
       return issueIdentity({ name, curve, extendedUsage, usage, startDate });

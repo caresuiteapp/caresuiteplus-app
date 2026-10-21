@@ -115,6 +115,10 @@ des OCSP-Kerns gelten weiterhin, insbesondere aktuelle Zertifikatsgültigkeit.
 ExtensionOIDs seiner ausstellenden CA. `ocspPlanFor()` setzt diesen Abgleich
 vor der Routenwahl voraus. Der niedrigere Statusprüfer `ocspVerifierFor()` allein
 belegt keine Typprüfung. [Schnittstellen, Grenzen und Quellen](certificate-types.md).
+`certificateAdmissionFor()` prüft anschließend die Rollenfamilie und liest eine
+konsistente Telematik-ID aus der signierten Admission. `ocspPlanFor()` verlangt
+auch diesen Schritt, bevor eine Route freigegeben wird. Die Managerzugriffe
+unterliegen derselben Versions-/Ablaufprüfung. [Admission und Grenzen](certificate-admission.md).
 
 Der Standard `model: 'current'` verwendet nur `inaccord`-CAs. Bei ausdrücklich
 gewähltem `nonqes-compromise` ist eine als revoked gelistete CA nur für Blätter

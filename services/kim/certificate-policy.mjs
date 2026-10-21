@@ -1,4 +1,6 @@
 import { der, fields } from '../gkv/der.mjs';
+import { canonicalOid, oidText } from './der-oid.mjs';
+export { canonicalOid } from './der-oid.mjs';
 
 // gemSpec_OID Tab_PKI_405. These are certificate types, not Admission roles.
 export const KIM_CERTIFICATE_TYPES = Object.freeze({
@@ -11,27 +13,6 @@ export class CertificatePolicyError extends Error {
   constructor(code) { super(code); this.name = 'CertificatePolicyError'; this.code = code; }
 }
 const fail = code => { throw new CertificatePolicyError(code); };
-
-export function canonicalOid(value) {
-  if (typeof value !== 'string' || value.length > 256 || !/^(?:0|1|2)(?:\.(?:0|[1-9][0-9]*)){1,31}$/.test(value)) return false;
-  const arcs = value.split('.').map(BigInt);
-  return arcs.every(a => a <= 0x7fffffffffffffffn) && (arcs[0] === 2n || arcs[1] <= 39n);
-}
-function oidText(node) {
-  if (node?.tag !== 6 || !node.value.length || node.value.length > 128) fail('KIM_CERT_POLICY_FORMAT');
-  const values = []; let value = 0n, start = true;
-  for (const byte of node.value) {
-    if (start && byte === 128) fail('KIM_CERT_POLICY_FORMAT'); // Non-minimal base-128 arc.
-    value = (value << 7n) | BigInt(byte & 127);
-    if (value > 0x7fffffffffffffffn) fail('KIM_CERT_POLICY_FORMAT');
-    if (!(byte & 128)) { values.push(value); value = 0n; start = true; } else start = false;
-  }
-  if (!start || !values.length) fail('KIM_CERT_POLICY_FORMAT');
-  const first = values.shift(), arc = first < 40n ? 0n : first < 80n ? 1n : 2n;
-  const result = [arc, first - arc * 40n, ...values].join('.');
-  if (!canonicalOid(result)) fail('KIM_CERT_POLICY_FORMAT');
-  return result;
-}
 
 /** Selects a type from a caller's nonempty policy list. No CA authorization,
  * signature, Admission/Telematik-ID, role permission or network lookup here.

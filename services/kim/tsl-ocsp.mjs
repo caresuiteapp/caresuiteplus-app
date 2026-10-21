@@ -104,7 +104,8 @@ export class TslOcspStatusClient {
       verifier: plan.verifier, refreshUntrustedResponder: true }), signal);
     this.#open(); checkSignal(signal);
     const tsl = listVersion(snapshot.metadata), evidence = plan.verifier.verify({ certificate: plan.certificate, request: proof.request, response: proof.response });
-    return Object.freeze({ ...evidence, certificateTypeOid: plan.certificateTypeOid, trustSource: 'configured-tsl-anchors', source: proof.source, tsl,
+    return Object.freeze({ ...evidence, certificateTypeOid: plan.certificateTypeOid, admission: plan.admission,
+      trustSource: 'configured-tsl-anchors', source: proof.source, tsl,
       routeSha256: route.transport.routeSha256, request: Buffer.from(proof.request), response: Buffer.from(proof.response), verifier: plan.verifier });
   }
   async check({ certificate, purpose, signal }) {
@@ -121,7 +122,7 @@ export class TslOcspStatusClient {
     try {
       this.#open(); checkSignal(signal);
       const snapshot = this.#manager.current(), inputs = [signingCertificate, authenticationCertificate];
-      const selected = inputs.map((c, i) => this.#plan(snapshot, c, i === 0 ? 'signing' : 'authentication')); // Both types/routes resolve before I/O.
+      const selected = inputs.map((c, i) => this.#plan(snapshot, c, i === 0 ? 'signing' : 'authentication')); // Both types/Admissions/routes resolve before I/O.
       const verifier = snapshot.ocspVerifierFor(selected.map(s => s.plan.certificate), { model: this.#model });
       const results = await Promise.allSettled(selected.map(s => this.#obtain(snapshot, s, signal)));
       this.#open(); checkSignal(signal); const tsl = listVersion(snapshot.metadata), failures = [];
@@ -131,7 +132,8 @@ export class TslOcspStatusClient {
         return r.value;
       });
       const certificateTypes = Object.freeze({ signing: selected[0].plan.certificateTypeOid, authentication: selected[1].plan.certificateTypeOid });
-      return Object.freeze({ verifier, signing: proofs[0], authentication: proofs[1], certificateTypes, failures: Object.freeze(failures), tsl });
+      const certificateAdmissions = Object.freeze({ signing: selected[0].plan.admission, authentication: selected[1].plan.admission });
+      return Object.freeze({ verifier, signing: proofs[0], authentication: proofs[1], certificateTypes, certificateAdmissions, failures: Object.freeze(failures), tsl });
     } catch (e) { throw normalize(e); }
   }
   close() {

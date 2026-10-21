@@ -8,8 +8,45 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**418 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**473 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Admission-Rollen und Telematik-ID am 21.10.2026
+
+Die bisherigen 418 Fälle und **55 neue Prüfungen** bestehen gemeinsam:
+**473 bestanden, 0 fehlgeschlagen, 0 übersprungen**. Davon prüft
+`certificate-admission.test.mjs` 51 neue Fälle; vier weitere ergänzen die
+bestehenden TSL-/OCSP-Integrationstests. Der Gesamtlauf dauert rund 19,5 Sekunden.
+
+Geprüft sind alle fünf unterstützten KIM-Zertifikatstypen, passende und
+unpassende Berufs-/Institutionenrollen, mehrere Berufe mit gleicher ID,
+fehlende/widersprüchliche IDs, exakter Zeichenvergleich und die Längengrenzen.
+Ungültige DER-/UTF8-Kodierung, doppelte Rollen, unbekannte Typen/Rollen,
+fehlgeformte optionale Felder und verschachtelte Scheinidentitäten werden
+abgelehnt oder als ausdrücklich opake Zusatzdaten behandelt. Die tatsächlichen
+CA-Signaturen werden bei Teständerungen neu erzeugt; eine gültige Signatur
+ersetzt die Admission-Prüfung nicht.
+Der festgeschriebene Rollenbestand wurde zusätzlich direkt mit den amtlichen
+Tabellen aus gemSpec_OID 3.26.0 abgeglichen: 42 Berufsgruppen und 64 Institutionen
+stimmen exakt überein; die Versichertenrolle bleibt ausdrücklich ausgeschlossen.
+
+OpenSSL erzeugt eine Admission aus eigener ASN.1-Konfiguration, die der neue
+Parser auswertet. OpenSSL liest ihre Rollen-OID und Telematik-ID unabhängig
+aus dem neu signierten Zertifikat. Reale lokale HTTPS-/OCSP-Abfragen belegen,
+dass fehlerhafte AUT-Attribute beide Anfragen vor dem ersten Netzaufruf
+blockieren und ein früher gespeicherter positiver Beleg ohne Admission nicht
+mehr verwendet wird. Alte Managerzugriffe scheitern nach Listenwechsel.
+OSIG-/AUT-IDs werden getrennt ausgegeben und nicht pauschal gleichgesetzt.
+
+Zwei Empfängerzertifikate derselben ID können ihre tatsächlich verschlüsselten
+Kopien entschlüsseln. Unterschiedliche IDs für dieselbe Adresse blockieren
+die Erzeugung. Ein mathematisch gültiges AUT-Token mit einer fehlenden Admission
+scheitert beim Empfang. Die bestehende Diagnose gibt weiterhin keine normale
+Zustellung frei; Klartextanhänge bleiben standardmäßig ausgeschaltet.
+
+Vorhandene Laufzeiten, keine Installation, UI-/Android-/Produktionsänderung
+oder Anfrage an echte TI-Gegenstellen. Das FD-Inventar bleibt bei 106 Kennungen:
+28 teilweise lokal belegt, 78 offen. [Schnittstellen und verbleibende Grenzen](certificate-admission.md).
 
 ## Zertifikatstyp und CA-Freigabe am 21.10.2026
 

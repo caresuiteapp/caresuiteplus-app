@@ -91,6 +91,9 @@ und erreichbare TI-Routen müssen separat bereitgestellt werden.
 (`signing`, `authentication` oder `encryption`) und liefert einen tatsächlich geprüften Status mit
 eigenen Anfrage-/Antwortkopien, geschütztem Prüfer, Routenhash und TSL-Version.
 `certificateTypeOid` nennt die mit Blatt und CA-Freigabe abgeglichene Typkennung.
+`admission` enthält die zum Zertifikatstyp geprüften Rollen und die eindeutige
+Telematik-ID aus dem signierten Blatt. Fehlende oder widersprüchliche Angaben
+blockieren auch einen vorhandenen positiven Cachebeleg vor dessen Verwendung.
 `trustSource` lautet hier `configured-tsl-anchors`; auch ein `good` bleibt
 `identityStatus: unverified`.
 
@@ -159,7 +162,9 @@ Vor der Netzabfrage wird der zwischenzeitlich entschlüsselte Nachrichtenpuffer
 Originalnachricht und beide Rohbelege erneut. Vorgegebene Statusflags werden
 nicht übernommen. Das Ergebnis enthält zusätzlich `statusAcquisition` mit
 `checked`, `incomplete` oder `unavailable`, festen Fehlercodes und gegebenenfalls
-der TSL-Version und den geprüften `certificateTypes`. Die eigentlichen Befunde
+der TSL-Version, den geprüften `certificateTypes` und den getrennten
+`certificateAdmissions` für OSIG/AUT. Diese Attribute bestätigen keine
+VZD-Adresszuordnung. Die eigentlichen Befunde
 stehen weiterhin im Empfangsbericht.
 
 Auch zwei positive Belege ergeben weiterhin Diagnose 07. Gesperrte, unbekannte
@@ -184,7 +189,9 @@ einschließlich gleicher Namen, Cachekompatibilität, negative Befunde,
 Manipulation, Neustart, konkurrierende Zugriffe, Listenwechsel während einer
 Abfrage, Quoten, Timeout und Abbruch. Die anschließende Typprüfung ergänzt
 gezielte Fälle zu CA-Freigaben und deren Entzug. Der aktuelle Gesamtlauf ist in
-[verification.md](verification.md) dokumentiert.
+[verification.md](verification.md) dokumentiert. Weitere vier Integrationstests
+belegen die [Admission-Prüfung](certificate-admission.md) vor Statusanfragen,
+auch gegen ältere positive Cachebelege und nach Listenwechsel.
 
 Keine Abfrage echter TI-Dienste und kein Echtversand. Noch offen bleiben
 authentisierte TI-Ankerbereitstellung/-rotation, vollständige Rollen-/Policy-

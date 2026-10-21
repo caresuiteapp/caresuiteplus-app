@@ -370,6 +370,18 @@ Die gemeinsame DER-Auswertung prüft außerdem die Typkennungen in ECC-CMS und A
 40 neue Fälle ergeben **418 Prüfungen**. Admission-Rollen, Telematik-ID und
 vollständige normative Policy-/Identitätsprüfung sind dadurch nicht erledigt.
 
+### Admission-Rollen und Telematik-ID
+
+Die [Admission-Prüfung](certificate-admission.md) liest nun die Rollen-OIDs und
+eine konsistente Telematik-ID aus dem tatsächlich signierten Zertifikat. Die
+Rollenfamilie muss zum HBA-/SMC-B-Typ passen. Der TSL-Statusplan verlangt diese
+Prüfung vor Netz- und Cachezugriffen; der Empfang gibt OSIG-/AUT-Attribute getrennt
+als Diagnose zurück. Die Prüfung gilt auch für lokale ECC-CMS-/AUT-Erzeugung
+und Empfang. Mehrere ENC-Zertifikate für dieselbe Adresse mit unterschiedlichen
+IDs blockieren die Erzeugung. Identische IDs erlauben den Schlüsselwechsel.
+55 neue Fälle ergeben zusammen mit dem bisherigen Stand **473 Prüfungen**.
+VZD-Adresszuordnung und normale Zustellung bleiben offen beziehungsweise gesperrt.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für

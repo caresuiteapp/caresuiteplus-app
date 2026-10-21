@@ -20,13 +20,14 @@ import { OcspHttpTransport } from '../../services/kim/ocsp-http.mjs';
 import { certificateParts, der, fields } from '../../services/gkv/der.mjs';
 import { tlv, sequence as seq } from '../../services/kim/cms-codec.mjs';
 import { tslFixture, CA, OCSP, REVOKED } from './tsl-fixture.mjs';
+import { withAdmission, admissionDer } from './admission-fixture.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
 const code = expected => error => error?.code === expected;
 const statusError = e => /^KIM_(?:TSL|OCSP)_/.test(e?.code);
 const report = { cmVersion: 'TEST_0.1.0', ptVersion: '1.5.5' };
-let f, server, origin, signer, signing, authentication, wire, state, defaults, extraResponder, originalHash;
+let f, server, origin, signer, signing, authentication, wire, state, defaults, extraResponder, originalHash, rootKey;
 const endpoints = () => ({ url: origin + '/leaf-ocsp', ca: f.pki.roots, connectAddress: '127.0.0.1' });
 const route = path => ({ ...endpoints(), url: origin + path });
 const leafCount = () => state.calls.filter(c => c.path.startsWith('/leaf-')).length;
@@ -58,6 +59,7 @@ before(async () => {
   authentication = await f.pki.issueAut({ name: 'route-aut', startDate });
   const a = await f.pki.issueKim({ name: 'route-enc-a', startDate }), b = await f.pki.issueKim({ name: 'route-enc-b', startDate });
   const key = async c => createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: f.pki.password });
+  rootKey = await key({ privateKeyPath: join(f.pki.dir, 'root.key') });
   const sender = 'sender@local.kim.telematik-test', receiver = 'receiver@local.kim.telematik-test';
   const message = createEccKimMessage({ message: Buffer.from(`From: ${sender}\r\nTo: ${receiver}\r\nSubject: Local TSL status test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nPRIVATE LOCAL STATUS TEST\r\n`),
     sender, envelopeRecipients: [receiver], recipients: [{ address: sender, certificate: a.certificate }, { address: receiver, certificate: b.certificate }],
@@ -93,6 +95,8 @@ test('TSL OCSP: CA ServiceSupplyPoint selects the fixed route; leaf AIA and resp
   assert.equal(result.status, 'good'); assert.equal(result.trustSource, 'configured-tsl-anchors'); assert.equal(result.identityStatus, 'unverified');
   assert.equal(result.tsl.sequence, 10001); assert.equal(result.certificateSha256, hash(raw(signing.certificate)));
   assert.equal(result.certificateTypeOid, '1.2.276.0.76.4.78');
+  assert.equal(result.admission.telematikId, '10-LOCAL-TEST');
+  assert.deepEqual(result.admission.professionOids, ['1.2.276.0.76.4.245']);
   assert.equal(leafCount(), 1); assert.equal(state.calls.at(-1).path, '/leaf-ocsp');
   assert.deepEqual(state.calls.at(-1).bytes, f.proof(signing.certificate).request);
   assert.equal(result.verifier.verify({ certificate: signing.certificate, request: result.request, response: result.response }).status, 'good');
@@ -244,6 +248,9 @@ test('KIM TSL receive: both raw status proofs reach the encrypted-message diagno
   assert.equal(result.kind, 'diagnostic'); assert.equal(result.diagnostic.integrityResult, '07');
   assert.equal(result.statusAcquisition.state, 'checked'); assert.equal(result.statusAcquisition.tsl.sequence, 10001);
   assert.deepEqual(result.statusAcquisition.certificateTypes, { signing: '1.2.276.0.76.4.78', authentication: '1.2.276.0.76.4.77' });
+  assert.equal(result.statusAcquisition.certificateAdmissions.signing.telematikId, '10-LOCAL-TEST');
+  assert.equal(result.statusAcquisition.certificateAdmissions.authentication.telematikId, '10-LOCAL-TEST');
+  assert.throws(() => { result.statusAcquisition.certificateAdmissions.authentication.telematikId = '10-FORGED'; }, TypeError);
   assert.equal(result.diagnostic.originalSha256, originalHash); assert.equal(result.diagnostic.decryptedOriginalAttached, false);
   assert.deepEqual(result.diagnostic.certificateStatus.map(s => [s.purpose, s.status]), [['signing', 'good'], ['authentication', 'good']]);
   assert.equal(result.diagnostic.deliveryStatus, 'diagnostic-only'); assert.equal(leafCount(), 2);
@@ -390,4 +397,52 @@ test('TSL OCSP: revoked type permission during an actual HTTP request leaves no 
   release(); await pending;
   assert.equal(inspect(db => db.prepare('SELECT count(*) n FROM ocsp_evidence').get().n), 0);
   await assert.rejects(check(c), code('KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED')); assert.equal(leafCount(), 1);
+}));
+
+test('TSL Admission: missing or wrong-family AUT attributes block both status requests', async () => fixture(async ({ open }) => {
+  const c = open();
+  for (const [encoded, expected] of [[undefined, 'MISSING'], [admissionDer({ telematikId: null }), 'TELEMATIK_ID'],
+    [admissionDer({ professionOid: '1.2.276.0.76.4.234' }), 'ROLE_TYPE_MISMATCH']]) {
+    const cert = withAdmission(authentication.certificate, encoded, rootKey);
+    await assert.rejects(c.messageEvidence({ signingCertificate: signing.certificate, authenticationCertificate: cert }), code('KIM_TSL_ADMISSION_' + expected));
+    assert.equal(leafCount(), 0);
+  }
+}));
+
+test('TSL Admission: an older persisted good proof cannot bypass the new mandatory Admission gate', async () => fixture(async ({ open, options, path, key, clock, manager, inspect }) => {
+  const c = open(), bad = withAdmission(signing.certificate, undefined, rootKey);
+  const verifier = manager.current().ocspVerifierFor(bad);
+  const cache = new DurableOcspStatusCache({ path, key, scopeId: options.routes[0].scopeId, verifier,
+    transport: options.routes[0].transport, clock });
+  state.handler = (req, res) => {
+    if (!req.url.startsWith('/leaf-')) return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(bad).response); return true;
+  };
+  try { assert.equal((await cache.check({ certificate: bad })).status, 'good'); }
+  finally { cache.close(); }
+  assert.equal(leafCount(), 1); state.handler = undefined;
+  assert.equal(inspect(db => db.prepare('SELECT count(*) n FROM ocsp_evidence').get().n), 1);
+  await assert.rejects(c.check({ certificate: bad, purpose: 'signing' }), code('KIM_TSL_ADMISSION_MISSING'));
+  assert.equal(leafCount(), 1);
+}));
+
+test('TSL Admission: refreshed manager invalidates old attribute readers as well as status verifiers', async () => fixture(async ({ manager, update }) => {
+  const old = manager.current(), policyList = ['1.2.276.0.76.4.78'];
+  assert.equal(old.certificateAdmissionFor(signing.certificate, { policyList }).admission.telematikId, '10-LOCAL-TEST');
+  await update({});
+  assert.throws(() => old.certificateAdmissionFor(signing.certificate, { policyList }), statusError);
+  assert.equal(manager.current().certificateAdmissionFor(signing.certificate, { policyList }).identityStatus, 'unverified');
+}));
+
+test('TSL Admission: separate OSIG and AUT identities are exposed separately and never promoted to TI trust', async () => fixture(async ({ open }) => {
+  const cert = withAdmission(authentication.certificate, admissionDer({ telematikId: '10-AUTH-OTHER' }), rootKey);
+  state.handler = (req, res, _bytes, purpose) => {
+    if (!req.url.startsWith('/leaf-') || purpose !== 'authentication') return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(cert).response); return true;
+  };
+  const result = await open().messageEvidence({ signingCertificate: signing.certificate, authenticationCertificate: cert });
+  assert.equal(result.failures.length, 0); assert.equal(leafCount(), 2);
+  assert.equal(result.certificateAdmissions.signing.telematikId, '10-LOCAL-TEST');
+  assert.equal(result.certificateAdmissions.authentication.telematikId, '10-AUTH-OTHER');
+  assert.equal(result.authentication.identityStatus, 'unverified'); assert.equal(result.signing.identityStatus, 'unverified');
 }));

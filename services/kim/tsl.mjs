@@ -5,6 +5,7 @@ import { isAbsolute } from 'node:path';
 import { der, fields, certificateParts, rsaAlgorithm } from '../gkv/der.mjs';
 import { PinnedOcspVerifier } from './ocsp.mjs';
 import { selectCertificateType, CertificatePolicyError } from './certificate-policy.mjs';
+import { readKimAdmission, CertificateAdmissionError, ADMISSION_EXTENSION_HEX } from './certificate-admission.mjs';
 
 export const TSL_SCHEMA_SHA256 = 'ffd4e6ae233c8e648ec009a55a9809fad9fcc4197f7928a48e15b5dbdde7137b';
 const MAX_XML = 8 * 1024 * 1024, DAY = 86400_000, token = Symbol('verified TSL');
@@ -302,11 +303,25 @@ export class TslTrustSnapshot {
       fail('KIM_TSL_CERT_TYPE_FORMAT');
     }
   }
-  /** TI nonQES status routing (TUC_PKI_005), only after type authorization. */
+  /** Extract roles and a consistent TID from the actual CA-signed leaf. This
+   * authenticates attributes against configured anchors, not a VZD mail binding.
+   */
+  certificateAdmissionFor(input, { policyList, model = 'current', isCurrent } = {}) {
+    try {
+      const leaf = cert(input), type = this.certificateTypeFor(leaf.c.raw, { policyList, model, isCurrent });
+      const admission = readKimAdmission(leaf.ext.get(ADMISSION_EXTENSION_HEX), type.certificateTypeOid);
+      return Object.freeze({ ...type, admission });
+    } catch (e) {
+      if (e instanceof TslError) throw e;
+      if (e instanceof CertificateAdmissionError) fail(e.code.replace('KIM_ADMISSION_', 'KIM_TSL_ADMISSION_'));
+      fail('KIM_TSL_ADMISSION_FORMAT');
+    }
+  }
+  /** TI nonQES status routing (TUC_PKI_005), after type and Admission checks. */
   ocspPlanFor(input, { model = 'current', policyList, isCurrent } = {}) {
     try {
-      const type = this.certificateTypeFor(input, { policyList, model, isCurrent });
-      const leaf = cert(input), verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
+      const leaf = cert(input), type = this.certificateAdmissionFor(leaf.c.raw, { policyList, model, isCurrent });
+      const verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
       const { issuer, service } = this.#issuerFor(leaf, model, this.#now());
       const request = verifier.createRequest(leaf.c.raw);
       return Object.freeze({ ...type, certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,

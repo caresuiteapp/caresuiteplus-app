@@ -4,6 +4,7 @@ import { kimAddress } from './address.mjs';
 import { brainpoolPublicKey, encryptEciesKey, decryptEciesKey } from './ecies.mjs';
 import { readKimEnvelope } from './envelope.mjs';
 import { selectCertificateType, KIM_CERTIFICATE_TYPES } from './certificate-policy.mjs';
+import { readKimAdmission, ADMISSION_EXTENSION_HEX } from './certificate-admission.mjs';
 import { decodeKimMimeEntity } from './message.mjs';
 import { OID, tlv, sequence as seq, sortedSet as set, objectId as id, octets, attribute, isOrdered } from './cms-codec.mjs';
 
@@ -21,7 +22,7 @@ function hashAlgorithm(node) {
   const a = fields(node, 48); oid(a[0], OID.sha256);
   if (a.length > 2 || (a[1] && (a[1].tag !== 5 || a[1].value.length))) throw new Error('KIM_CMS_PROFILE');
 }
-/** Certificate ROLE/KEY checks only. No claim of TI trust, OCSP, VZD or SMC-B key custody.
+/** Certificate type/key and Admission checks only. No claim of TI trust, OCSP, VZD or SMC-B key custody.
  * A receiver must supply the expected signer certificate from its own trusted resolution.
  * Neither an embedded leaf nor this module can make that resolution trusted.
  */
@@ -39,22 +40,28 @@ function certificate(input, role, now) {
   for (const e of fields(fields(extensionNodes[0], 163, 1)[0], 48)) {
     const f = fields(e, 48), key = f[0]?.value.toString('hex');
     if (f[0]?.tag !== 6 || ![2, 3].includes(f.length) || f.at(-1).tag !== 4 || extensions.has(key)
-      || (f.length === 3 && (f[1].tag !== 1 || f[1].value.toString('hex') !== 'ff'))) throw new Error('KIM_CMS_CERTIFICATE');
+      || (f.length === 3 && (f[1].tag !== 1 || f[1].value.toString('hex') !== 'ff' || key === ADMISSION_EXTENSION_HEX))) throw new Error('KIM_CMS_CERTIFICATE');
     extensions.set(key, f.at(-1).value);
   }
   const usage = der(extensions.get('551d0f') ?? Buffer.alloc(0));
   // C.HCI.OSIG is nonRepudiation/contentCommitment, NOT the AUT digitalSignature role.
   const expectedUsage = role === 'osig' ? '0640' : '0308';
   if (usage.tag !== 3 || usage.value.toString('hex') !== expectedUsage) throw new Error('KIM_CMS_CERTIFICATE');
-  try { selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES[role === 'osig' ? 'signing' : 'encryption']); }
-  catch { throw new Error('KIM_CMS_CERTIFICATE'); }
-  return { cert, rid: seq(parts.issuer, parts.serial) };
+  try {
+    const type = selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES[role === 'osig' ? 'signing' : 'encryption']);
+    const admission = readKimAdmission(extensions.get(ADMISSION_EXTENSION_HEX), type);
+    return { cert, admission, rid: seq(parts.issuer, parts.serial) };
+  } catch { throw new Error('KIM_CMS_CERTIFICATE'); }
 }
 function recipientsFor(sender, recipients, now) {
   if (!Array.isArray(recipients) || !recipients.length || recipients.length > 1000) throw new Error('KIM_CMS_RECIPIENTS');
-  const identities = new Set(), entries = recipients.map(entry => {
+  const identities = new Set(), addressIds = new Map(), entries = recipients.map(entry => {
     const address = kimAddress(entry.address), c = certificate(entry.certificate, 'enc', now), key = c.rid.toString('hex');
     if (identities.has(key)) throw new Error('KIM_CMS_RECIPIENTS');
+    // KOM-LE-A_2178: key rollover may supply multiple certificates for one
+    // address, but all must identify the same recipient. No first-match choice.
+    if (addressIds.has(address) && addressIds.get(address) !== c.admission.telematikId) throw new Error('KIM_CMS_RECIPIENT_IDENTITY_CONFLICT');
+    addressIds.set(address, c.admission.telematikId);
     identities.add(key); return { ...c, address };
   });
   if (!entries.some(e => e.address === kimAddress(sender))) throw new Error('KIM_CMS_SENDER_RECIPIENT');

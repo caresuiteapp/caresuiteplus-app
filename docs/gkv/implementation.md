@@ -38,6 +38,10 @@ und verbindet den Abruf beider Zertifikatsrollen mit der Empfangsdiagnose.
 Die [Zertifikatstypprüfung](certificate-types.md) gleicht nun Verwendungszweck,
 DER-Typkennung und die Ausstellungsberechtigung der CA in der aktuellen TSL ab,
 bevor eine Statusabfrage oder Cacheverwendung beginnt.
+Die [Admission-Prüfung](certificate-admission.md) ergänzt die Rollenfamilie und
+eine eindeutige Telematik-ID aus dem signierten Zertifikat. Mehrere
+Verschlüsselungszertifikate derselben Adresse dürfen keine widersprüchlichen
+IDs enthalten. Die tatsächliche VZD-Adressbindung bleibt offen.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

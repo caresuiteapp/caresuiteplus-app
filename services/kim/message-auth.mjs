@@ -3,6 +3,7 @@ import { certificateParts, certificateKeyUsage, der, fields } from '../gkv/der.m
 import { kimAddress } from './address.mjs';
 import { brainpoolPublicKey } from './ecies.mjs';
 import { selectCertificateType, KIM_CERTIFICATE_TYPES } from './certificate-policy.mjs';
+import { readKimAdmission, ADMISSION_EXTENSION_HEX } from './certificate-admission.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function base64(value, url = false) {
@@ -56,11 +57,13 @@ function eccAutCertificate(input, now) {
   for (const n of fields(fields(nodes[0], 163, 1)[0], 48)) {
     const f = fields(n, 48), key = f[0]?.value.toString('hex');
     if (![2, 3].includes(f.length) || f[0]?.tag !== 6 || f.at(-1)?.tag !== 4 || extensions.has(key)
-      || (f.length === 3 && (f[1].tag !== 1 || f[1].value.toString('hex') !== 'ff'))) throw new Error();
+      || (f.length === 3 && (f[1].tag !== 1 || f[1].value.toString('hex') !== 'ff' || key === ADMISSION_EXTENSION_HEX))) throw new Error();
     extensions.set(key, f.at(-1).value);
   }
   const usage = der(extensions.get('551d0f') ?? Buffer.alloc(0));
-  if (usage.tag !== 3 || usage.value.toString('hex') !== '0780' || !policy(cert.raw)) throw new Error();
+  if (usage.tag !== 3 || usage.value.toString('hex') !== '0780') throw new Error();
+  const type = selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES.authentication);
+  readKimAdmission(extensions.get(ADMISSION_EXTENSION_HEX), type);
   return cert;
 }
 /** Local software-key implementation of A_28582. A caller must still establish the
