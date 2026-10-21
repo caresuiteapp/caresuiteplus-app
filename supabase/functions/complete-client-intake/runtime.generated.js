@@ -135,7 +135,12 @@ var EMPTY_CLIENT_INTAKE_FORM = {
   contractTypes: [],
   documentCategories: [],
   hourlyRate: "",
-  taskCategories: []
+  taskCategories: [],
+  intakeCareNeedSummary: "",
+  intakeCapacityStatus: "",
+  intakeCapacityReference: "",
+  intakeAdmissionDecision: "",
+  intakeAdmissionDecisionReason: ""
 };
 
 // src/lib/clients/clientIntakeFieldRules.ts
