@@ -21,7 +21,7 @@ serve(async(req)=>{
   // Original reads and permission checks always use the caller's JWT. Admin is archive-only.
   const admin=createClient(url,secret,options);
   const prepare=async(sourceId:string)=>{
-   const r=await bounded(user.rpc('prepare_ambulatory_medication_source_archive',{source_id:sourceId}));
+   const r=await bounded(user.rpc('prepare_ambulatory_medication_source_proof',{source_id:sourceId}));
    if(r.error||!r.data)throw Error('Quelle nicht zugänglich, geändert oder ohne Inhaltsfingerabdruck.');
    return r.data as ArchivePreparation;
   };
