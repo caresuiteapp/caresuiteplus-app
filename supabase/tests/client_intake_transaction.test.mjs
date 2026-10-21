@@ -52,7 +52,7 @@ async function createFixture() {
     CREATE FUNCTION public.is_internal_tenant_actor(uuid) RETURNS boolean LANGUAGE sql AS
       'SELECT public.current_role_key() IN (''business_admin'',''office_staff'') AND $1=public.current_tenant_id()';
     CREATE FUNCTION public.has_permission(text) RETURNS boolean LANGUAGE sql AS
-      'SELECT public.current_role_key() IN (''business_admin'',''office_staff'') AND $1 IN (''office.clients.create'',''office.clients.edit'',''office.clients.view'',''office.clients.view_sensitive'')';
+      'SELECT public.current_role_key() IN (''business_admin'',''office_staff'') AND $1 IS DISTINCT FROM current_setting(''fixture.denied'',true) AND $1 IN (''office.clients.create'',''office.clients.edit'',''office.clients.view'',''office.clients.view_sensitive'',''office.clients.delete'',''office.appointments.view'',''office.appointments.edit'')';
     CREATE FUNCTION public.is_tenant_admin() RETURNS boolean LANGUAGE sql AS
       'SELECT public.current_role_key()=''business_admin''';
     GRANT USAGE ON SCHEMA public,auth TO authenticated,anon,service_role;
@@ -98,6 +98,10 @@ async function createFixture() {
   assert.ok(seedDefinition, 'The original tenant seed function must exist');
   await db.exec(seedDefinition);
   await db.exec(read('../migrations/20261014225620_client_intake_server_completion_v1.sql'));
+  const calendarTable = read('../migrations/0117_calendar_events.sql').match(/CREATE TABLE IF NOT EXISTS public\.calendar_events \([\s\S]*?\n\);/)[0];
+  await db.exec(calendarTable);
+  await db.exec('ALTER TABLE public.calendar_events ADD CONSTRAINT calendar_events_source_unique UNIQUE(tenant_id,source_type,source_id)');
+  await db.exec(read('../migrations/20261021060000_client_intake_first_contact.sql'));
   return db;
 }
 
@@ -146,7 +150,7 @@ function form(overrides = {}) {
   };
 }
 async function seed() {
-  await db.exec('RESET ROLE');
+  await db.exec("RESET ROLE; SELECT set_config('fixture.denied','',false)");
   await db.exec('TRUNCATE ' + sourceTables.map((table) => 'public.' + identifier(table)).join(',')
     + ',auth.users,public.client_intake_drafts,client_intake_private.client_intake_operations,'
     + 'client_intake_private.client_intake_completions,client_intake_private.client_intake_originals,'
@@ -491,6 +495,83 @@ await test('a pending care-grade application creates no invented entitlement or 
   await seed(); await seedSyntheticBudgetCatalog(); const value = form({ careLevel: 'beantragt', careLevelStatus: 'beantragt' });
   const saved = await save(value); await actor('service_role'); await complete(saved, completionDocuments(value));
   const state = await counts(); assert.equal(state.client_care_entitlement, 0); assert.equal(state.client_budget_accounts, 0); assert.equal(state.client_budget_transactions, 0);
+});
+
+
+const initialContact = (patch = {}) => form({ intakeWorkflowVersion: 2, intakeStage: 'first_contact', firstName: '', lastName: 'Interessiert', phone: '03012345', dateOfBirth: '', careContexts: [], intakeDocuments: [], ...patch });
+const schedule = revision => db.query('SELECT public.client_intake_schedule_first_appointment($1,$2,$3) AS receipt', [id.tenant,id.client,revision]).then(r => r.rows[0].receipt);
+const removeDraft = revision => db.query('SELECT public.client_intake_delete_draft($1,$2,$3) AS receipt', [id.tenant,id.client,revision]).then(r => r.rows[0].receipt);
+await test('minimal first contact remains one lead and resumes with its original contact data', async () => {
+  await seed(); const first = initialContact({ intakeContactPerson: 'Tochter', intakeContactNotes: 'Anruf am Nachmittag' });
+  await save(first); assert.deepEqual((await load()).form, first);
+  const updated = await save({ ...first, firstName: 'Maria', intakeStage: 'full_intake', careContexts: ['support_care'] }, 1, id.nextOperation);
+  assert.equal(updated.clientId,id.client); assert.equal(updated.revision,2);
+  await db.exec('RESET ROLE');
+  assert.equal((await db.query('SELECT count(*)::int n FROM clients')).rows[0].n,1);
+  assert.equal((await db.query('SELECT status FROM clients')).rows[0].status,'lead');
+  assert.equal((await db.query('SELECT count(*)::int n FROM calendar_events')).rows[0].n,0);
+});
+await test('first appointment is internal, linked, correctly zoned and idempotent after a lost response', async () => {
+  await seed(); await save(initialContact({ intakeAppointmentRequested:true,intakeAppointmentStart:'2026-11-01T11:00',intakeAppointmentEnd:'2026-11-01T12:00',intakeAppointmentLocation:'Zu Hause' }));
+  const first=await schedule(1), repeated=await schedule(1); assert.deepEqual(repeated,first);
+  assert.equal(new Date(first.startAt).toISOString(),'2026-11-01T10:00:00.000Z');
+  await db.exec('RESET ROLE'); const rows=(await db.query('SELECT * FROM calendar_events')).rows;
+  assert.equal(rows.length,1); assert.equal(rows[0].related_client_id,id.client); assert.equal(rows[0].source_id,id.client);
+  assert.equal(rows[0].source_type,'intake_appointment'); assert.equal(rows[0].is_client_portal_visible,false); assert.equal(rows[0].is_employee_portal_visible,false);
+  await db.query("UPDATE calendar_events SET start_at='2026-11-02T10:00:00Z',end_at='2026-11-02T11:00:00Z',archived_at=now(),status='archiviert' WHERE id=$1",[first.id]);
+  await actor(); const after=await schedule(1); assert.equal(after.status,'archiviert'); assert.equal(new Date(after.startAt).toISOString(),'2026-11-02T10:00:00.000Z');
+});
+await test('calendar planning rejects stale versions, missing permission and ambiguous DST times', async () => {
+  await seed(); await save(initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2026-11-01T11:00',intakeAppointmentEnd:'2026-11-01T12:00'}));
+  await assert.rejects(schedule(2), /inzwischen geändert/);
+  await db.query("SELECT set_config('fixture.denied','office.appointments.edit',false)"); await assert.rejects(schedule(1), /Berechtigung/);
+  await seed(); await save(initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2027-03-28T02:30',intakeAppointmentEnd:'2027-03-28T04:00'}));
+  await assert.rejects(schedule(1), /Zeitumstellung/);
+  await seed(); await save(initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2026-10-25T02:30',intakeAppointmentEnd:'2026-10-25T04:00'}));
+  await assert.rejects(schedule(1), /Zeitumstellung/);
+});
+await test('deletion checks the current revision, removes the linked appointment and prevents resurrection', async () => {
+  await seed(); const first=initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2026-11-01T11:00',intakeAppointmentEnd:'2026-11-01T12:00'});
+  await save(first); await schedule(1); await save({...first,firstName:'Maria'},1,id.nextOperation);
+  await assert.rejects(removeDraft(1),/inzwischen geändert/);
+  assert.equal((await removeDraft(2)).deleted,true); assert.equal((await removeDraft(2)).deleted,true);
+  await assert.rejects(load(),/gelöscht/);
+  await assert.rejects(save(first,2,'70000000-0000-4000-8000-000000000003'),/offenen Aufnahme/);
+  await db.exec('RESET ROLE');
+  assert.equal((await db.query('SELECT status FROM clients')).rows[0].status,'deleted');
+  assert.equal((await db.query('SELECT status FROM calendar_events')).rows[0].status,'archiviert');
+  assert.equal((await db.query('SELECT count(*)::int n FROM client_intake_private.client_intake_operations')).rows[0].n,2);
+});
+await test('deletion cannot cross tenants, run without delete permission, or delete a completed intake', async () => {
+  await seed(); await save();
+  await actor('office_staff',{tenant:id.otherTenant}); await assert.rejects(removeDraft(1),/Berechtigung|Profil/);
+  await actor(); await db.query("SELECT set_config('fixture.denied','office.clients.delete',false)"); await assert.rejects(removeDraft(1),/Berechtigung/);
+  await db.query("SELECT set_config('fixture.denied','',false)"); const saved=await load();
+  await actor('service_role'); await complete(saved); await actor(); await assert.rejects(removeDraft(1),/Abgeschlossene/);
+});
+await test('v2 requires all selected contracts once and commits the combined originals atomically', async () => {
+  await seed(); await db.exec('RESET ROLE');
+  for (const type of ['ambulatory_care','stationary_care','care_consulting']) {
+    await db.query("INSERT INTO intake_document_system_templates(template_key,title,document_type,service_type,version,is_required,is_active,requires_client_signature,html_content,plain_text_content,signature_slots,updated_at) SELECT $1,title,document_type,$2,version,is_required,is_active,requires_client_signature,html_content,plain_text_content,signature_slots,updated_at FROM intake_document_system_templates WHERE template_key='client_contract_assist'",['client_contract_'+type,type]);
+  }
+  templateSnapshots=new Map((await db.query('SELECT to_jsonb(t) AS snapshot FROM intake_document_system_templates t')).rows.map(({snapshot})=>[snapshot.template_key,snapshot]));
+  await actor();
+  const value=form({intakeWorkflowVersion:2,intakeStage:'full_intake',intakeContractType:'day_care',careContexts:['daily_assistance','support_care','companionship','ambulatory_care','stationary_care','consulting','academy_prepared']});
+  value.intakeDocuments.push(...['ambulatory_care','stationary_care','care_consulting'].map(type=>document('client_contract_'+type,'client_contract')));
+  const saved=await save(value); const docs=completionDocuments(value); await actor('service_role');
+  await assert.rejects(complete(saved,docs.slice(0,2)),/vollständig/);
+  const receipt=await complete(saved,docs); assert.equal(receipt.confirmed,true);
+  const state=await counts(); assert.equal(state.client_intake_documents,5); assert.equal(state['client_intake_private.client_intake_originals'],5);
+});
+await test('first-contact stage cannot be activated even when complete signed documents are supplied', async () => {
+  await seed(); const value=form({intakeWorkflowVersion:2,intakeStage:'first_contact'}), saved=await save(value);
+  await actor('service_role'); await assert.rejects(complete(saved,completionDocuments(value)),/Erstkontakt zunächst vervollständigen/);
+});
+await test('calendar edits cannot detach the first appointment or publish it to a portal', async () => {
+  await seed(); await save(initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2026-11-01T11:00',intakeAppointmentEnd:'2026-11-01T12:00'}));
+  await schedule(1); await db.exec('RESET ROLE');
+  await assert.rejects(db.exec("UPDATE calendar_events SET source_type='custom_event'"),/unveränderlich/);
+  await assert.rejects(db.exec('UPDATE calendar_events SET is_client_portal_visible=true'),/intern/);
 });
 
 await db.close();

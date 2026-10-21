@@ -38,8 +38,8 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Prop
   const moduleKey = (event.moduleKey ?? record?.moduleKey ?? 'office') as CalendarModuleKey;
   const permission = resolveCalendarFormWritePermission({ moduleKey, sourceContext: sourceType === 'appointment' ? 'appointment_management' : 'calendar', sourceType: record?.sourceType ?? 'custom_event' });
   const ownRecord = !!tenantId && !!record && record.tenantId === tenantId;
-  const canEdit = ownRecord && !isReadOnly && !!record.sourceId && ['custom_event', 'appointment'].includes(sourceType ?? '') && !!permission && can(permission);
-  const canRemove = canEdit && sourceType === 'custom_event';
+  const canEdit = ownRecord && !isReadOnly && !!record.sourceId && ['custom_event', 'appointment', 'intake_appointment'].includes(sourceType ?? '') && !!permission && can(permission);
+  const canRemove = canEdit && ['custom_event', 'intake_appointment'].includes(sourceType ?? '');
   const linked = !!event.href;
   const remove = async () => {
     if (!canRemove || busy.current || !record || !tenantId) return;
@@ -49,7 +49,9 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Prop
     if (!confirmed) { busy.current = false; return; }
     setRemoving(true); setError('');
     try {
-      const result = await archiveCustomCalendarEvent(tenantId, record.id, profile?.roleKey);
+      const result = sourceType === 'intake_appointment'
+        ? await archiveCustomCalendarEvent(tenantId, record.id, profile?.roleKey, 'intake_appointment')
+        : await archiveCustomCalendarEvent(tenantId, record.id, profile?.roleKey);
       if (!alive.current || scopeRef.current !== submitted) return;
       if (!result.ok) { setError(result.error); return; }
       notifyCalendarWorkspaceChanged(tenantId);
@@ -64,7 +66,7 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Prop
     <PlatformModal visible={!editOpen} title="Termindetails" subtitle={CALENDAR_EVENT_TYPE_LABELS[event.type] ?? 'Kalenderereignis'} onClose={() => { if (!busy.current) onClose(); }} dismissOnBackdrop={!removing} surfaceScope="company" maxWidth={760} glowColor="#2786E7"
       footerActions={[
         ...(canEdit ? [{ title: 'Bearbeiten', disabled: removing, onPress: () => setEditOpen(true) }] : []),
-        ...(linked ? [{ title: ['absence', 'vacation', 'sick_leave'].includes(sourceType ?? '') ? 'Mitarbeiterakte öffnen' : sourceType === 'assist_visit' ? 'Einsatz öffnen' : 'Datensatz öffnen', disabled: removing, onPress: () => { onClose(); router.push(event.href as never); } }] : []),
+        ...(linked ? [{ title: sourceType === 'intake_appointment' ? 'Klientenaufnahme öffnen' : ['absence', 'vacation', 'sick_leave'].includes(sourceType ?? '') ? 'Mitarbeiterakte öffnen' : sourceType === 'assist_visit' ? 'Einsatz öffnen' : 'Datensatz öffnen', disabled: removing, onPress: () => { onClose(); router.push(event.href as never); } }] : []),
         { title: 'Schließen', variant: 'secondary', disabled: removing, onPress: onClose },
       ]}>
       <CalendarDialogContent><div className="cd-stack">

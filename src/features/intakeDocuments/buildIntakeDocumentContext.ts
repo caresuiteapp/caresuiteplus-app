@@ -98,6 +98,18 @@ export function resolveContractTemplateKey(form: ClientIntakeFormData): string |
   return CONTRACT_TEMPLATE_BY_SERVICE_TYPE[contractType] ?? null;
 }
 
+/** Web v2 includes every selected service contract, with the shared Assist contract once. */
+export function resolveContractTemplateKeys(form: ClientIntakeFormData): string[] {
+  if (form.intakeWorkflowVersion !== 2) {
+    const key = resolveContractTemplateKey(form);
+    return key ? [key] : [];
+  }
+  return [...new Set(form.careContexts.flatMap(context => {
+    const type = CARE_CONTEXT_TO_SERVICE_TYPE[context];
+    return type ? [CONTRACT_TEMPLATE_BY_SERVICE_TYPE[type]] : [];
+  }))];
+}
+
 export function listApplicableIntakeTemplates(
   form: ClientIntakeFormData,
   tenantTemplates: IntakeDocumentTemplate[] = [],
@@ -107,10 +119,10 @@ export function listApplicableIntakeTemplates(
     lookup.set(template.templateKey, template);
   }
 
-  const contractKey = resolveContractTemplateKey(form);
+  const contractKeys = resolveContractTemplateKeys(form);
   const applicableKeys: string[] = [
     PRIVACY_TEMPLATE_KEY,
-    ...(contractKey ? [contractKey] : []),
+    ...contractKeys,
   ];
 
   if (form.intakeAssignmentEnabled) {

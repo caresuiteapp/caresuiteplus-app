@@ -12,7 +12,8 @@ import {
   saveClientIntakeDraft,
   type ClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
-import { loadServerClientIntakeDraft, reconcileServerClientIntakeDraft, upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
+import { deleteClientIntakeDraft, loadServerClientIntakeDraft, reconcileServerClientIntakeDraft, scheduleIntakeFirstAppointment, upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
+import { validateFirstContact } from '@/lib/clients/clientIntakePlan';
 import { getServiceMode } from '@/lib/services/mode';
 import {
   clearCostBearerTypeFields,
@@ -166,6 +167,12 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const contextHint = getSupportOnlyHint(form.careContexts);
 
   useEffect(() => {
+    if (completeSectionFlow && !isEditMode && draftLoaded && !loadError && !scope.completed && form.intakeWorkflowVersion !== 2) {
+      setForm(previous => ({ ...previous, intakeWorkflowVersion: 2 }));
+    }
+  }, [completeSectionFlow, isEditMode, draftLoaded, loadError, scope, form.intakeWorkflowVersion]);
+
+  useEffect(() => {
     if (isEditMode) return;
 
     if (!userId || !tenantId) {
@@ -198,6 +205,11 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
         const remote = await loadServerClientIntakeDraft(tenantId, candidateId);
         if (cancelled || !current()) return;
         if (!remote.ok) {
+          if (remote.deleted) {
+            scope.completed = true;
+            await clearClientIntakeDraft(userId, tenantId, candidateId);
+            throw new Error('Dieser Aufnahmeentwurf wurde gelöscht. Bitte eine neue Aufnahme öffnen.');
+          }
           if (!draft) throw new Error(remote.error);
           setDraftSaveFeedback({ message: `Entwurf von diesem Gerät geladen. ${remote.error}`, variant: 'warning' });
         } else if (remote.data) {
@@ -649,22 +661,29 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setDraftSaveFeedback(null);
   }, [scope]);
 
-  const discardDraft = useCallback(async (): Promise<boolean> => {
+  const discardDraft = useCallback(async (deleteOnServer = false): Promise<boolean> => {
     if (!current() || submitLock.current || scope.discarding || scope.reconciling || !userId || !tenantId) return false;
-    scope.epoch++; scope.discarding = true; setDiscardingDraft(true);
+    submitLock.current = true; setDiscardingDraft(true);
     skipNextSave.current = true;
     try {
       await scope.draftTail;
       if (!current()) return false;
+      scope.epoch++; scope.discarding = true;
+      if (deleteOnServer && getServiceMode() === 'supabase' && scope.clientId) {
+        const result = await deleteClientIntakeDraft(tenantId, scope.clientId, scope.serverRevision);
+        if (!result.ok) throw new Error(result.error);
+        // A failed local cleanup must never restart autosave for a deleted server draft.
+        scope.completed = true;
+      }
       await clearClientIntakeDraft(userId, tenantId, scope.clientId ?? undefined);
       if (!current()) return false;
       resetWizard();
       return true;
-    } catch {
-      if (current()) setDraftSaveFeedback({ message: 'Entwurf konnte nicht entfernt werden. Ihre Angaben bleiben erhalten.', variant: 'warning' });
+    } catch (error) {
+      if (current()) setDraftSaveFeedback({ message: error instanceof Error ? error.message : 'Entwurf konnte nicht entfernt werden. Ihre Angaben bleiben erhalten.', variant: 'warning' });
       return false;
     } finally {
-      scope.discarding = false;
+      scope.discarding = false; submitLock.current = false;
       if (current()) setDiscardingDraft(false);
     }
   }, [current, resetWizard, scope, skipNextSave, submitLock, tenantId, userId]);
@@ -672,6 +691,32 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const saveDraft = useCallback(async () => {
     return persistDraft({ showFeedback: true });
   }, [persistDraft]);
+
+  const saveFirstContact = useCallback(async () => {
+    const validation = validateFirstContact(form);
+    if (Object.keys(validation).length) { setErrors(validation); return false; }
+    setErrors({});
+    if (!await persistDraft({ showFeedback: true })) return false;
+    if (!current() || scope.completed || scope.discarding) return false;
+    if (form.intakeAppointmentRequested) {
+      if (getServiceMode() !== 'supabase' || !scope.clientId || !tenantId) {
+        setDraftSaveFeedback({ message: 'Erstkontakt auf diesem Gerät gesichert. Ein Kalendertermin benötigt eine aktive Unternehmensverbindung.', variant: 'warning' });
+        return false;
+      }
+      const appointment = await scheduleIntakeFirstAppointment(tenantId, scope.clientId, scope.serverRevision);
+      if (!current()) return false;
+      if (!appointment.ok) {
+        setDraftSaveFeedback({ message: `Erstkontakt gespeichert; Kalendertermin noch nicht bestätigt. ${appointment.error}`, variant: 'warning' });
+        return false;
+      }
+      if (['archiviert', 'cancelled'].includes(appointment.data.status)) {
+        setDraftSaveFeedback({ message: 'Erstkontakt gespeichert. Der frühere Ersttermin wurde im Kalender entfernt und bleibt entfernt.', variant: 'success' });
+        return true;
+      }
+    }
+    setDraftSaveFeedback({ message: form.intakeAppointmentRequested ? 'Erstkontakt und erster Termin sind im Unternehmen gespeichert.' : getServiceMode() === 'supabase' ? 'Erstkontakt im Unternehmen gespeichert. Die vollständige Aufnahme kann später ergänzt werden.' : 'Erstkontakt auf diesem Gerät gespeichert.', variant: 'success' });
+    return true;
+  }, [current, form, persistDraft, scope, tenantId]);
 
   const saveDocumentPackage = useCallback(async (nextForm: ClientIntakeFormData) => {
     if (!current() || isEditMode || submitLock.current || scope.completed || scope.discarding || scope.reconciling) return false;
@@ -835,6 +880,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     submit,
     discardDraft,
     saveDraft,
+    saveFirstContact,
     saveDocumentPackage,
     resetWizard,
     isFirstStep: stepIndex === 0,

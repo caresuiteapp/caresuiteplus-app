@@ -3,6 +3,7 @@ import type { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import { getCatalogOptions, resolveCatalogLabel } from '@/lib/catalogs/systemCatalogService';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import { CLIENT_INTAKE_PLANS } from '@/lib/clients/clientIntakePlan';
 import { clientIntakeWelcomeCss } from './clientIntakeWelcomeCss.web';
 
 type ServiceChoiceProps = { wizard: ReturnType<typeof useClientIntakeWizard> };
@@ -91,6 +92,7 @@ export function ClientIntakeServiceChoice({ wizard }: ServiceChoiceProps) {
       <div className="ci-welcome-selection-heading"><span className="ci-welcome-selection-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg></span><div><strong>Ihre Auswahl</strong><p role="status">{selectedOptions.length ? `${selectedOptions.length} ${selectedOptions.length === 1 ? 'Leistungsbereich ausgewählt' : 'Leistungsbereiche ausgewählt'}` : 'Wählen Sie mindestens einen Leistungsbereich.'}</p></div></div>
       {selectedOptions.length ? <ul className="ci-welcome-selected-list">{selectedOptions.map(option => <li key={option.value}>{serviceLabel(option.value)}{option.value === 'academy_prepared' ? ' · vorbereitet' : ''}</li>)}</ul> : null}
     </div>
+    {form.intakeWorkflowVersion === 2 && selectedOptions.length > 0 ? <section className="ci-plan" aria-label="Benötigte Angaben und Unterlagen"><h3>Für Ihre Auswahl vorbereiten</h3><p>Grunddaten und Datenschutz werden einmal erfasst. Zusätzliche Unterlagen richten sich nach dem konkreten Bedarf.</p>{selectedOptions.map(option => <div key={option.value}><strong>{serviceLabel(option.value)}</strong><p>{CLIENT_INTAKE_PLANS[option.value as ClientCareContext].details}</p><p>{CLIENT_INTAKE_PLANS[option.value as ClientCareContext].documents}</p></div>)}</section> : null}
   </section>;
 }
 

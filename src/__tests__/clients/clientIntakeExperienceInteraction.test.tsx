@@ -29,6 +29,7 @@ vi.mock('@/components/office/ClientIntakeWelcome.web', () => ({
 }));
 import { ClientIntakeWizardForm } from '@/components/office/clientintakewizardform.web';
 import { ClientIntakeModal } from '@/components/office/clientintakemodal.web';
+import { ClientFirstContact } from '@/components/office/ClientFirstContact.web';
 
 let host: HTMLDivElement;
 let root: Root;
@@ -63,7 +64,7 @@ beforeEach(() => {
     tenantId: 'tenant-a', contextHint: '', submitting: false, submitError: null, createdId: null, loading: false, loadError: null, notFound: false,
     isEditMode: false, draftLoaded: true, draftRestored: false, draftSaveFeedback: null, draftSaving: false, draftConflict: false, draftClientId: null, reloadServerDraft: vi.fn().mockResolvedValue(true), draftIsSaved: false, discardingDraft: false, hasPersistedDraft: false,
     updateField: vi.fn(), updateBillingTypes: vi.fn(), updateFundingSources: vi.fn(), updateCostBearerTypes: vi.fn(), commitCostBearer: vi.fn(), removeCostBearer: vi.fn(), replaceForm: vi.fn(), toggleCareContext: vi.fn(), toggleArrayField: vi.fn(),
-    nextStep: vi.fn().mockReturnValue(true), prevStep: vi.fn(), goToStep: vi.fn(), submit: vi.fn().mockResolvedValue('client-created'), discardDraft: vi.fn().mockResolvedValue(true), saveDraft: vi.fn().mockResolvedValue(true), saveDocumentPackage: vi.fn().mockResolvedValue(true), resetWizard: vi.fn(), retryLoad: vi.fn(),
+    nextStep: vi.fn().mockReturnValue(true), prevStep: vi.fn(), goToStep: vi.fn(), submit: vi.fn().mockResolvedValue('client-created'), discardDraft: vi.fn().mockResolvedValue(true), saveDraft: vi.fn().mockResolvedValue(true), saveFirstContact: vi.fn().mockResolvedValue(true), saveDocumentPackage: vi.fn().mockResolvedValue(true), resetWizard: vi.fn(), retryLoad: vi.fn(),
     isFirstStep: true, isLastStep: false, isSuccess: false,
   };
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -217,18 +218,18 @@ describe('web intake draft and close guards', () => {
   });
 
   it('requires explicit confirmation before discarding the current draft', async () => {
-    selectContext(); await render(); await click('Neu beginnen'); expect(f.wizard.discardDraft).not.toHaveBeenCalled();
+    selectContext(); await render(); await click('Entwurf löschen'); expect(f.wizard.discardDraft).not.toHaveBeenCalled();
     await click('Weiter bearbeiten'); expect(f.wizard.discardDraft).not.toHaveBeenCalled();
-    await click('Neu beginnen'); await click('Neu beginnen bestätigen'); expect(f.wizard.discardDraft).toHaveBeenCalledOnce(); expect(f.cancel).not.toHaveBeenCalled();
+    await click('Entwurf löschen'); await click('Entwurf löschen bestätigen'); expect(f.wizard.discardDraft).toHaveBeenCalledOnce(); expect(f.cancel).not.toHaveBeenCalled();
     expect(host.querySelector('[role="alertdialog"]')).toBeNull();
   });
 
   it('keeps the reset confirmation, entered data and progress when draft removal is not confirmed', async () => {
     selectContext(); setStep(1); f.wizard = { ...f.wizard, form: { ...f.wizard.form, firstName: 'Beibehalten' } };
     vi.mocked(f.wizard.discardDraft).mockResolvedValueOnce(false); await render(); const previousProgress = progress();
-    await click('Neu beginnen'); await click('Neu beginnen bestätigen');
+    await click('Entwurf löschen'); await click('Entwurf löschen bestätigen');
     expect(host.querySelector('[role="alertdialog"]')).not.toBeNull();
-    expect([...host.querySelectorAll('[role="alert"]')].some((element) => element.textContent?.includes('Entwurf konnte nicht entfernt werden'))).toBe(true);
+    expect([...host.querySelectorAll('[role="alert"]')].some((element) => element.textContent?.includes('Die Löschung ist noch nicht bestätigt'))).toBe(true);
     expect(host.querySelector<HTMLInputElement>('[aria-label="Vorname"]')!.value).toBe('Beibehalten'); expect(progress()).toBe(previousProgress);
     expect(f.wizard.resetWizard).not.toHaveBeenCalled(); expect(f.cancel).not.toHaveBeenCalled();
   });
@@ -239,5 +240,38 @@ describe('web intake draft and close guards', () => {
     f.wizard = { ...f.wizard, identityKey: 'tenant-b:actor-b:create', form: structuredClone(EMPTY_CLIENT_INTAKE_FORM), hasPersistedDraft: false }; await render();
     await act(async () => pending.resolve(true)); expect(f.cancel).not.toHaveBeenCalled();
     expect(hasButton('Speichern und schließen')).toBe(false);
+  });
+});
+
+
+describe('first-contact workspace', () => {
+  it('allows removing an unscheduled appointment request after calendar permission is lost', async () => {
+    f.allowed = false;
+    f.wizard = { ...f.wizard, form: { ...f.wizard.form, intakeStage: 'first_contact', intakeAppointmentRequested: true } };
+    await act(async () => root.render(<ClientFirstContact wizard={f.wizard} />));
+    const checkbox = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(checkbox.disabled).toBe(false);
+    await act(async () => checkbox.click());
+    expect(f.wizard.updateField).toHaveBeenCalledWith('intakeAppointmentRequested', false);
+  });
+  it('shows basic contact fields and a save action without requiring the full intake', async () => {
+    f.wizard = { ...f.wizard, form: { ...f.wizard.form, intakeWorkflowVersion:2,intakeStage:'first_contact',lastName:'Beispiel',phone:'03012345' } };
+    await render();
+    expect(host.querySelector('[aria-label="Erstkontakt erfassen"]')).not.toBeNull();
+    expect(host.textContent).toContain('Geburtsdatum, Versorgung, Kostenträger und Unterschriften ergänzen');
+    expect(hasButton('Klient:in aufnehmen')).toBe(false);
+    await click('Erstkontakt speichern');
+    expect(f.wizard.saveFirstContact).toHaveBeenCalledOnce(); expect(f.wizard.submit).not.toHaveBeenCalled();
+    await click('Aufnahme vervollständigen →');
+    expect(f.wizard.updateField).toHaveBeenCalledWith('intakeStage','full_intake');
+  });
+  it('confirms a requested calendar appointment before moving into the complete intake', async () => {
+    f.wizard = { ...f.wizard, form: { ...f.wizard.form,intakeStage:'first_contact',intakeAppointmentRequested:true } };
+    vi.mocked(f.wizard.saveFirstContact).mockResolvedValueOnce(false);
+    await render(); await click('Aufnahme vervollständigen →');
+    expect(f.wizard.updateField).not.toHaveBeenCalledWith('intakeStage','full_intake');
+    expect(host.textContent).toContain('Bitte zuerst die Erstkontaktdaten und den Termin prüfen');
+    await click('Aufnahme vervollständigen →');
+    expect(f.wizard.updateField).toHaveBeenCalledWith('intakeStage','full_intake');
   });
 });

@@ -43,7 +43,7 @@ describe('Client intake wizard UX fixes', () => {
     expect(hook).toContain('clearClientIntakeDraft');
     expect(hook).toContain('discardDraft');
     expect(hook).toContain('saveDraft');
-    expect(hook).toContain('Entwurf gespeichert');
+    expect(hook).toContain('Entwurf auf diesem Gerät gespeichert.');
     expect(form).toContain('Als Entwurf speichern');
     expect(form).toContain('Neu beginnen');
     expect(form).toContain('Entwurf geladen');

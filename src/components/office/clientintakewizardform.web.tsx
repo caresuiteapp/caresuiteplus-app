@@ -1,3 +1,4 @@
+import { ClientFirstContact } from './ClientFirstContact.web';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,6 +33,9 @@ function IntakeSession(props: ClientIntakeWizardFormProps) {
 
 function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onCloseRequestChange }: ClientIntakeWizardFormProps & { wizard: Wizard }) {
   const id = useId();
+  const { can } = usePermissions();
+  const firstContact = !wizard.isEditMode && wizard.form.intakeStage === 'first_contact';
+  const canDeleteDraft = can('office.clients.delete');
   const contentStyles = useAdaptiveContentStyles();
   const [visited, setVisited] = useState<Set<IntakeSectionKey>>(() => new Set([wizard.currentSection]));
   const [confirmation, setConfirmation] = useState<'close' | 'reset' | null>(null);
@@ -96,7 +100,8 @@ function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onC
     if (actionLock.current || wizard.isEditMode) return;
     actionLock.current = true; setAction(closeAfter ? 'close' : 'save'); setActionError(null);
     try {
-      const saved = await wizard.saveDraft();
+      const saved = firstContact ? await wizard.saveFirstContact() : await wizard.saveDraft();
+      if (!saved) setShowErrors(true);
       if (!alive.current) return;
       if (saved && closeAfter) onCancel?.();
       else if (!saved) setActionError('Die Sicherung ist nicht vollständig bestätigt. Bitte prüfen Sie den Hinweis und lassen Sie die Aufnahme geöffnet.');
@@ -108,13 +113,25 @@ function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onC
     if (actionLock.current || wizard.isEditMode) return;
     actionLock.current = true; setAction('reset'); setActionError(null);
     try {
-      const discarded = await wizard.discardDraft();
+      const discarded = await wizard.discardDraft(true);
       if (!alive.current) return;
-      if (!discarded) { setActionError('Der lokale Entwurf konnte nicht entfernt werden. Ihre Angaben bleiben geöffnet.'); return; }
+      if (!discarded) { setActionError('Die Löschung ist noch nicht bestätigt. Bitte den Hinweis zur Entwurfssicherung prüfen.'); return; }
       setConfirmation(null); setVisited(new Set(['leistungsart'])); setShowErrors(false);
+      if (clientId) onCancel?.();
       heading.current?.focus();
     } catch { if (alive.current) setActionError('Der Entwurf konnte nicht zurückgesetzt werden. Bitte erneut versuchen.'); }
     finally { actionLock.current = false; if (alive.current) setAction(null); }
+  }
+  async function continueIntake() {
+    if (actionLock.current || busy) return;
+    if (firstContact && wizard.form.intakeAppointmentRequested) {
+      actionLock.current = true; setAction('save'); setActionError(null);
+      try {
+        if (!await wizard.saveFirstContact()) { setShowErrors(true); setActionError('Bitte zuerst die Erstkontaktdaten und den Termin prüfen.'); return; }
+        if (!alive.current) return;
+      } finally { actionLock.current = false; if (alive.current) setAction(null); }
+    }
+    wizard.updateField('intakeStage', 'full_intake'); wizard.goToStep(0);
   }
   function next() {
     if (busy) return;
@@ -143,7 +160,7 @@ function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onC
 
   if (wizard.loading) return <div className="ci-state" role="status"><style>{clientIntakeExperienceCss}</style><span className="ci-spinner" /><h2>{wizard.isEditMode ? 'Akte wird geladen' : 'Aufnahme wird vorbereitet'}</h2><p>Gespeicherte Angaben werden geprüft.</p></div>;
   if (wizard.notFound || wizard.loadError) return <div className="ci-state" role="alert"><style>{clientIntakeExperienceCss}</style><h2>Aufnahme nicht verfügbar</h2><p>{wizard.loadError || 'Die angeforderte Klientenakte wurde nicht gefunden.'}</p><div className="ci-state-actions"><button type="button" className="ci-button primary" onClick={wizard.retryLoad}>Erneut laden</button>{clientId ? <a className="ci-button" href={clientRecordRoute(clientId)}>Klientenakte öffnen</a> : null}{onCancel ? <button type="button" className="ci-button" onClick={onCancel}>Schließen</button> : null}</div></div>;
-  if (wizard.isSuccess && wizard.createdId) return <div className="ci-state" role="status"><style>{clientIntakeExperienceCss}</style><span className="ci-success-mark" aria-hidden="true">✓</span><h2>{wizard.isEditMode ? 'Änderungen gespeichert' : 'Aufnahme bestätigt'}</h2><p>{[wizard.form.firstName, wizard.form.lastName].filter(Boolean).join(' ')}</p>{onCancel ? <button type="button" className="ci-button" onClick={onCancel}>Schließen</button> : null}</div>;
+  if (wizard.isSuccess && wizard.createdId) return <div className="ci-state" role="status"><style>{clientIntakeExperienceCss}</style><span className="ci-success-mark" aria-hidden="true">✓</span><h2>{wizard.isEditMode ? 'Änderungen gespeichert' : 'Aufnahme bestätigt'}</h2><a className="ci-button primary" href={clientRecordRoute(wizard.createdId)}>Klientenakte öffnen</a><p>{[wizard.form.firstName, wizard.form.lastName].filter(Boolean).join(' ')}</p>{onCancel ? <button type="button" className="ci-button" onClick={onCancel}>Schließen</button> : null}</div>;
 
   return <div className="ci-experience" aria-busy={busy}>
     <style>{clientIntakeExperienceCss}</style>
@@ -151,32 +168,34 @@ function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onC
       <aside className="ci-sidebar" aria-label="Aufnahmeübersicht">
         <ClientIntakeDossierPreview form={wizard.form} isEditMode={wizard.isEditMode} />
         <div className="ci-progress"><div><strong>{wizard.form.careContexts.length ? 'Ihre Aufnahme' : 'Der erste Schritt'}</strong><span>{progress.percentage} %</span></div><div className="ci-progress-track" role="progressbar" aria-label="Bearbeitungsfortschritt" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.percentage} aria-valuetext={`${progress.completed.length} Abschnitte geprüft; Aufnahme noch nicht abgeschlossen`}><span style={{ width: `${progress.percentage}%` }} /></div><p>{wizard.form.careContexts.length ? `${progress.completed.length} von ${wizard.steps.length - 1} Abschnitten geprüft` : 'Wählen Sie die gewünschte Unterstützung.'}</p></div>
-        <nav className="ci-navigation" aria-label="Abschnitte der Aufnahme"><ol>{wizard.steps.map((section, index) => {
+        {!firstContact ? <nav className="ci-navigation" aria-label="Abschnitte der Aufnahme"><ol>{wizard.steps.map((section, index) => {
           const active = section === wizard.currentSection;
           const complete = progress.completed.includes(section);
           return <li key={section}><button ref={active ? activeStep : undefined} type="button" aria-current={active ? 'step' : undefined} disabled={busy || index > lastVisitedIndex + 1} onClick={() => navigate(section)}><span className={`ci-step-number${complete ? ' complete' : ''}`} aria-hidden="true">{complete && !active ? '✓' : String(index + 1).padStart(2, '0')}</span><span>{INTAKE_WEB_SECTIONS[section].label}<small>{active ? 'Aktueller Abschnitt' : complete ? 'Angaben geprüft' : index > lastVisitedIndex + 1 ? 'Im weiteren Verlauf' : 'Noch zu prüfen'}</small></span>{active ? <span className="ci-step-current" aria-hidden="true">›</span> : null}</button></li>;
-        })}</ol></nav>
-        {wizard.steps.length === 1 ? <p className="ci-sidebar-hint">Danach folgen persönliche Angaben, Versorgung und die passenden Unterlagen.</p> : null}
+        })}</ol></nav> : <p className="ci-sidebar-hint">Erstkontakt → bei Bedarf Termin → vollständige Aufnahme in derselben Akte.</p>}
+        {!firstContact && wizard.steps.length === 1 ? <p className="ci-sidebar-hint">Danach folgen persönliche Angaben, Versorgung und die passenden Unterlagen.</p> : null}
       </aside>
       <div className="ci-main" ref={main}>
         <div className="ci-main-inner">
+          {!wizard.isEditMode ? <div className="ci-intake-mode" aria-label="Aufnahmeablauf"><button type="button" aria-pressed={firstContact} disabled={busy} onClick={() => wizard.updateField('intakeStage', 'first_contact')}><strong>Erstkontakt / Termin</strong><span>Nur Eckdaten erfassen</span></button><button type="button" aria-pressed={!firstContact} disabled={busy} onClick={() => void continueIntake()}><strong>Vollständige Aufnahme</strong><span>Angaben prüfen und Verträge abschließen</span></button></div> : null}
           <div className="ci-section-heading" ref={heading} tabIndex={-1}><span>Abschnitt {String(wizard.stepIndex + 1).padStart(2, '0')}</span><strong>{activeMeta.phase}</strong><span className="ci-save-state" data-state={wizard.draftSaveFeedback?.variant === 'warning' ? 'warning' : wizard.draftIsSaved ? 'saved' : 'pending'} role="status">{wizard.isEditMode ? dirty ? 'Änderungen noch nicht gespeichert' : 'Bestehende Klientenakte' : wizard.draftSaving ? 'Entwurf wird gesichert…' : wizard.draftSaveFeedback?.variant === 'warning' ? 'Sicherung prüfen' : wizard.draftIsSaved ? serverMode ? 'Im Unternehmen gesichert' : 'Auf diesem Gerät gesichert' : 'Noch nicht gesichert'}</span></div>
-          {!wizard.isEditMode && serverMode ? <div className="ci-notice compact"><strong>In Ruhe vorbereiten, gemeinsam abschließen</strong><p>Der vollständige Entwurf mit den erfassten Unterschriften wird im Unternehmen gesichert. Erst „Klient:in aufnehmen“ prüft die Unterlagen verbindlich und schließt die Aufnahme ab.</p></div> : null}
+          {!wizard.isEditMode && serverMode && !firstContact ? <div className="ci-notice compact"><strong>In Ruhe vorbereiten, gemeinsam abschließen</strong><p>Der vollständige Entwurf mit den erfassten Unterschriften wird im Unternehmen gesichert. Erst „Klient:in aufnehmen“ prüft die Unterlagen verbindlich und schließt die Aufnahme ab.</p></div> : null}
           {wizard.draftRestored ? <div className="ci-restored" role="status">Ihr gespeicherter Entwurf wurde geladen. Sie können hier weiterarbeiten.</div> : null}
+          {firstContact && wizard.draftSaveFeedback?.variant === 'success' ? <div className="ci-notice" role="status">{wizard.draftSaveFeedback.message}</div> : null}
           {wizard.draftSaveFeedback?.variant === 'warning' ? <div className="ci-notice warning" role="alert"><strong>Entwurfssicherung prüfen</strong><p>{getIntakeWebFeedback(wizard.draftSaveFeedback.message)}</p></div> : null}
           {wizard.draftConflict ? <div className="ci-notice warning" role="alert"><strong>Aktuelle Server- und Aktenangaben prüfen</strong><p>Ihre Änderungen auf diesem Gerät bleiben zunächst erhalten. Die Übernahme lädt den aktuellen Serverentwurf und gleicht seine Grunddaten mit der Klientenakte ab. Die hier noch ungesicherten Änderungen werden dabei verworfen. Vorhandene Unterschriften bleiben erhalten; Unterlagen mit geänderten Angaben müssen erneut geprüft werden.</p><button className="ci-button" type="button" disabled={busy || wizard.draftSaving} onClick={async () => { if (actionLock.current) return; actionLock.current = true; setAction('reload'); setActionError(null); try { await wizard.reloadServerDraft(); } finally { actionLock.current = false; if (alive.current) setAction(null); } }}>Server- und Aktenangaben übernehmen</button>{wizard.draftClientId || clientId ? <a className="ci-button" href={clientRecordRoute(wizard.draftClientId || clientId!)}>Klientenakte öffnen</a> : null}</div> : null}
           {showErrors && errors.length ? <div className="ci-notice error" ref={errorSummary} tabIndex={-1} role="alert"><strong>Bitte ergänzen oder korrigieren</strong><ul>{errors.map(error => <li key={error}>{error}</li>)}</ul></div> : null}
           {actionError || wizard.submitError ? <div className="ci-notice error" role="alert">{getIntakeWebFeedback(actionError || wizard.submitError || '')}</div> : null}
           <fieldset className="ci-fields" disabled={busy} inert={busy} aria-label={activeMeta.label}>
-            {wizard.currentSection === 'leistungsart' ? <ClientIntakeServiceChoice wizard={wizard} /> : <ClientIntakeSectionContent section={wizard.currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} onNavigateSection={navigate} />}
+            {firstContact ? <><ClientFirstContact wizard={wizard} /><ClientIntakeServiceChoice wizard={wizard} /></> : wizard.currentSection === 'leistungsart' ? <ClientIntakeServiceChoice wizard={wizard} /> : <ClientIntakeSectionContent section={wizard.currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} onNavigateSection={navigate} />}
           </fieldset>
           <div className="ci-section-note"><span aria-hidden="true">✦</span><p>{wizard.currentSection === 'leistungsart' ? 'Mehrere Unterstützungsarten sind möglich. Die weiteren Abschnitte richten sich nach Ihrer Auswahl.' : 'Mit * markierte Angaben werden für diesen Abschnitt benötigt. Sie können bereits besuchte Abschnitte links erneut öffnen.'}</p></div>
         </div>
       </div>
     </div>
     <div className="ci-action-area">
-    {confirmation ? <div className="ci-confirmation" role="alertdialog" aria-modal="false" aria-labelledby={`${id}-confirm-title`} aria-describedby={`${id}-confirm-copy`} ref={confirmPanel} tabIndex={-1}><div><strong id={`${id}-confirm-title`}>{confirmation === 'reset' ? 'Eine neue Aufnahme beginnen?' : 'Aufnahme schließen?'}</strong><p id={`${id}-confirm-copy`}>{confirmation === 'reset' ? 'Die Eingaben und der lokale Entwurf werden zurückgesetzt. Ein bereits auf dem Server angelegter Entwurf wird dadurch nicht gelöscht.' : wizard.isEditMode ? 'Ihre Änderungen wurden noch nicht gespeichert. Möchten Sie sie verwerfen?' : 'Die aktuelle Sicherung ist noch nicht bestätigt. Sichern Sie den Entwurf zuerst. Beim Schließen ohne erneute Sicherung können ungesicherte Änderungen verloren gehen.'}</p></div><div className="ci-confirm-actions">{confirmation === 'close' && !wizard.isEditMode ? <button type="button" className="ci-button danger" disabled={busy} onClick={onCancel}>Ohne erneute Sicherung schließen</button> : null}<button type="button" className="ci-button" disabled={busy} onClick={dismissConfirmation}>Weiter bearbeiten</button><button type="button" className={`ci-button ${confirmation === 'reset' || wizard.isEditMode ? 'danger' : 'primary'}`} disabled={busy} onClick={() => { if (confirmation === 'reset') void reset(); else if (wizard.isEditMode) onCancel?.(); else void save(true); }}>{busy ? 'Bitte warten…' : confirmation === 'reset' ? 'Neu beginnen bestätigen' : wizard.isEditMode ? 'Änderungen verwerfen' : 'Speichern und schließen'}</button></div></div> : null}
-    <footer className="ci-footer"><div className="ci-footer-draft">{!wizard.isEditMode ? <><button type="button" className="ci-button subtle" disabled={busy || wizard.draftSaving || !hasContent} onClick={() => void save()}> {action === 'save' ? 'Wird gesichert…' : 'Entwurf sichern'}</button><button type="button" className="ci-button text" disabled={busy || !hasContent} onClick={() => { lastFocus.current = document.activeElement as HTMLElement; setConfirmation('reset'); }}>Neu beginnen</button></> : null}</div><div className="ci-footer-navigation">{onCancel ? <button type="button" className="ci-button text" disabled={busy} onClick={requestClose}>{wizard.isEditMode ? 'Schließen' : 'Später fortsetzen'}</button> : null}{!wizard.isFirstStep ? <button type="button" className="ci-button" disabled={busy} onClick={() => { setShowErrors(false); wizard.prevStep(); }}>← Zurück</button> : null}{isReview ? <button type="button" className="ci-button primary" disabled={busy || wizard.draftConflict} onClick={() => void submit()}>{busy ? 'Wird gespeichert…' : wizard.isEditMode ? 'Änderungen speichern' : 'Klient:in aufnehmen'}</button> : <button type="button" className="ci-button primary" disabled={busy} onClick={next}>{wizard.currentSection === 'leistungsart' ? 'Auswahl übernehmen' : 'Weiter'} <span aria-hidden="true">→</span></button>}</div></footer>
+    {confirmation ? <div className="ci-confirmation" role="alertdialog" aria-modal="false" aria-labelledby={`${id}-confirm-title`} aria-describedby={`${id}-confirm-copy`} ref={confirmPanel} tabIndex={-1}><div><strong id={`${id}-confirm-title`}>{confirmation === 'reset' ? 'Aufnahmeentwurf löschen?' : 'Aufnahme schließen?'}</strong><p id={`${id}-confirm-copy`}>{confirmation === 'reset' ? 'Der offene Entwurf wird im Unternehmen gelöscht und von diesem Gerät entfernt. Ein zugehöriger Ersttermin wird ebenfalls aus dem Kalender entfernt. Abgeschlossene Klientenakten und ihre Originale werden nicht gelöscht.' : wizard.isEditMode ? 'Ihre Änderungen wurden noch nicht gespeichert. Möchten Sie sie verwerfen?' : 'Die aktuelle Sicherung ist noch nicht bestätigt. Sichern Sie den Entwurf zuerst. Beim Schließen ohne erneute Sicherung können ungesicherte Änderungen verloren gehen.'}</p></div><div className="ci-confirm-actions">{confirmation === 'close' && !wizard.isEditMode ? <button type="button" className="ci-button danger" disabled={busy} onClick={onCancel}>Ohne erneute Sicherung schließen</button> : null}<button type="button" className="ci-button" disabled={busy} onClick={dismissConfirmation}>Weiter bearbeiten</button><button type="button" className={`ci-button ${confirmation === 'reset' || wizard.isEditMode ? 'danger' : 'primary'}`} disabled={busy} onClick={() => { if (confirmation === 'reset') void reset(); else if (wizard.isEditMode) onCancel?.(); else void save(true); }}>{busy ? 'Bitte warten…' : confirmation === 'reset' ? 'Entwurf löschen bestätigen' : wizard.isEditMode ? 'Änderungen verwerfen' : 'Speichern und schließen'}</button></div></div> : null}
+    <footer className="ci-footer"><div className="ci-footer-draft">{!wizard.isEditMode ? <><button type="button" className="ci-button subtle" disabled={busy || wizard.draftSaving || !hasContent} onClick={() => void save()}> {action === 'save' ? 'Wird gesichert…' : firstContact ? 'Erstkontakt speichern' : 'Entwurf sichern'}</button><button type="button" className="ci-button text" disabled={busy || !hasContent || !canDeleteDraft} onClick={() => { lastFocus.current = document.activeElement as HTMLElement; setConfirmation('reset'); }}>Entwurf löschen</button></> : null}</div><div className="ci-footer-navigation">{onCancel ? <button type="button" className="ci-button text" disabled={busy} onClick={requestClose}>{wizard.isEditMode ? 'Schließen' : 'Später fortsetzen'}</button> : null}{!firstContact && !wizard.isFirstStep ? <button type="button" className="ci-button" disabled={busy} onClick={() => { setShowErrors(false); wizard.prevStep(); }}>← Zurück</button> : null}{firstContact ? <button type="button" className="ci-button primary" disabled={busy} onClick={() => void continueIntake()}>Aufnahme vervollständigen →</button> : isReview ? <button type="button" className="ci-button primary" disabled={busy || wizard.draftConflict} onClick={() => void submit()}>{busy ? 'Wird gespeichert…' : wizard.isEditMode ? 'Änderungen speichern' : 'Klient:in aufnehmen'}</button> : <button type="button" className="ci-button primary" disabled={busy} onClick={next}>{wizard.currentSection === 'leistungsart' ? 'Auswahl übernehmen' : 'Weiter'} <span aria-hidden="true">→</span></button>}</div></footer>
     </div>
   </div>;
 }

@@ -5,7 +5,7 @@ import {
   type IntakeDocumentState,
   type IntakeDocumentTemplate,
 } from './intakeDocumentTypes';
-import { resolveContractTemplateKey } from './buildIntakeDocumentContext';
+import { resolveContractTemplateKeys } from './buildIntakeDocumentContext';
 
 export type IntakeDocumentsValidation = {
   ok: boolean;
@@ -73,19 +73,22 @@ export function validateIntakeDocumentsStep(
     errors.intakePrivacy = `Datenschutz-Einwilligung muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(privacyDoc, privacyTemplate)}`;
   }
 
-  const contractKey = resolveContractTemplateKey(form);
-  const contractTemplate = contractKey
-    ? templates.find((t) => t.templateKey === contractKey)
-    : undefined;
-  const contractDoc = contractKey ? docByKey(form.intakeDocuments, contractKey) : undefined;
-  const contractOk = isDocComplete(contractDoc, contractTemplate);
-  checklist.push({
-    key: 'contract',
-    label: 'Kundenvertrag abgeschlossen (Klient:in + Mitarbeitende:r)',
-    complete: contractOk,
-  });
-  if (!contractOk) {
-    errors.intakeContract = `Kundenvertrag muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie können die Aufnahme als Entwurf speichern.`;
+  const contractKeys = resolveContractTemplateKeys(form);
+  if (!contractKeys.length) errors.intakeContract = 'Für diese Auswahl ist noch kein Aufnahmevertrag verfügbar. Bitte als Erstkontakt oder Entwurf speichern.';
+  for (const contractKey of contractKeys) {
+    const contractTemplate = contractKey
+      ? templates.find((t) => t.templateKey === contractKey)
+      : undefined;
+    const contractDoc = contractKey ? docByKey(form.intakeDocuments, contractKey) : undefined;
+    const contractOk = isDocComplete(contractDoc, contractTemplate);
+    checklist.push({
+      key: `contract-${contractKey}`,
+      label: `${contractTemplate?.title ?? 'Kundenvertrag'} abgeschlossen (Klient:in + Mitarbeitende:r)`,
+      complete: contractOk,
+    });
+    if (!contractOk) {
+      errors[contractKeys.length === 1 ? 'intakeContract' : `intakeContract_${contractKey}`] = `${contractTemplate?.title ?? 'Kundenvertrag'} muss vor der Aktivierung abgeschlossen werden. ${describeIncompleteDocument(contractDoc, contractTemplate)} Sie können die Aufnahme als Entwurf speichern.`;
+    }
   }
 
   if (form.intakeAssignmentEnabled) {

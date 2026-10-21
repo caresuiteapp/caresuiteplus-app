@@ -7,7 +7,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
-import { listApplicableIntakeTemplates, listAvailableContractTypes } from '@/features/intakeDocuments/buildIntakeDocumentContext';
+import { listApplicableIntakeTemplates, listAvailableContractTypes, resolveContractTemplateKeys } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { loadIntakeDocumentTemplates } from '@/features/intakeDocuments/intakeDocumentService';
 import { changeIntakeDocumentSelection, INTAKE_SIGNATURE_ROLE_LABELS, prepareIntakeDocumentPackage, signIntakeDocumentPackage,
   type IntakeDocumentPackage, type PackageIssue } from '@/features/intakeDocuments/intakeDocumentPackage';
@@ -65,7 +65,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const saving = useRef(false);
   const frame = useRef<HTMLIFrameElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
-  const scope = JSON.stringify([tenantId, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
+  const scope = JSON.stringify([tenantId, form.intakeWorkflowVersion, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,9 +164,9 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
 
   return <div className="cs-contract-package">
     <style>{intakeDocumentPackageCss}</style>
-    <div className="cs-contract-card cs-contract-type"><strong>Vertragsart</strong>{listAvailableContractTypes(form.careContexts).map(key => <button type="button" className="cs-contract-button" key={key}
+    {form.intakeWorkflowVersion === 2 ? <div className="cs-contract-card"><strong>Verträge passend zur Auswahl</strong><p>Alle ausgewählten Leistungsbereiche sind berücksichtigt. Alltagsbegleitung, Betreuung und Begleitung nutzen gemeinsam den Assist-Vertrag.</p><ul>{resolveContractTemplateKeys(form).map(key => <li key={key}>{selected.find(template => template.templateKey === key)?.title ?? 'Aufnahmevertrag'}</li>)}</ul>{form.careContexts.includes('academy_prepared') ? <p>Akademie / Schulung bleibt vorgemerkt; es wird kein Schulungsvertrag erstellt.</p> : null}</div> : <div className="cs-contract-card cs-contract-type"><strong>Vertragsart</strong>{listAvailableContractTypes(form.careContexts).map(key => <button type="button" className="cs-contract-button" key={key}
       aria-pressed={(form.intakeContractType || listAvailableContractTypes(form.careContexts)[0]) === key} disabled={busy || Boolean(pendingSave)}
-      onClick={() => changeSelection({ intakeContractType: key as IntakeContractTypeKey })}>{INTAKE_CONTRACT_TYPE_LABELS[key]}</button>)}</div>
+      onClick={() => changeSelection({ intakeContractType: key as IntakeContractTypeKey })}>{INTAKE_CONTRACT_TYPE_LABELS[key]}</button>)}</div>}
     <div className="cs-contract-summary"><div><h3>{selected.length} Dokumente · ein Paket</h3><p>Alle ausgewählten Unterlagen gemeinsam lesen. Anschließend unterschreiben Klient:in und Mitarbeitende:r jeweils einmal für ihre vorgesehenen Felder.</p></div>
       <button type="button" className="cs-contract-button is-primary" onClick={open} disabled={loading || Boolean(loadError) || busy}>Gesamte Vorschau öffnen <span aria-hidden="true">↗</span></button></div>
     {loading ? <p className="cs-contract-notice" role="status">Dokumentvorlagen werden geladen …</p> : null}
