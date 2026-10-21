@@ -36,6 +36,7 @@ export function resolveAuthSessionTarget(input: SessionTargetInput) {
   );
 
   let homePath = String(resolveSessionHomeRoute(roleKey, input.portalSession));
+  if (Platform.OS === 'web' && input.user?.portalType === 'academy_family') homePath = '/portal/client/akademie';
   if (
     input.portalSession?.loginType === 'employee_portal' &&
     input.portalSession.mustChangePassword &&

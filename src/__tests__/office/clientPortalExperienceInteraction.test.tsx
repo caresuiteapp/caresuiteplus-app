@@ -10,6 +10,7 @@ vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ isReadOnly: 
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
 vi.mock('@/lib/portal/clientModuleAssignmentService', () => ({ fetchClientModuleAssignments: f.modules, saveClientModuleAssignments: f.saveModules }));
 vi.mock('@/lib/clients/clientPortalAccessService', () => ({ fetchClientPortalAccess: f.access, setupClientPortalAccess: f.setup, regenerateClientPortalAccessCode: f.regenerate }));
+vi.mock('@/lib/clients/academyFamilyAccessService', () => ({ listAcademyFamilyAccess: async () => ({ accesses: [], ready: true }), manageAcademyFamilyAccess: vi.fn() }));
 vi.mock('@/lib/platform/clipboard', () => ({ copyTextToClipboard: f.copy }));
 vi.mock('@/components/office/PortalRequestsOfficePanel', () => ({ PortalRequestsOfficePanel: () => null }));
 vi.mock('@/components/office/PortalUploadsOfficePanel', () => ({ PortalUploadsOfficePanel: () => null }));

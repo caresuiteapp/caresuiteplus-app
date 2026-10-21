@@ -259,7 +259,18 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'proofs', label: 'Nachweise', description: 'Dokumentation und Export', pageType: 'work-list', route: '/beratung/protokolle' },
     { id: 'follow-up', label: 'Follow-up', description: 'Wiedervorlagen und Ergebnisse', pageType: 'planning', route: '/beratung/wiedervorlagen' },
   ],
-  akademie: [
+  akademie: Platform.OS === 'web' ? [
+    { id: 'home', label: 'Übersicht', description: 'Lernen, Schulungen und Wissensvermittlung', pageType: 'command-center', route: '/akademie' },
+    { id: 'courses', label: 'Kurse', description: 'Inhalte erstellen und veröffentlichen', pageType: 'work-list', route: '/akademie/kurse' },
+    { id: 'templates', label: 'Vorlagen & Kursbaukasten', description: 'Eigene Inhalte gestalten und wiederverwenden', pageType: 'work-list', route: '/akademie/vorlagen' },
+    { id: 'paths', label: 'Teilnahmen', description: 'Personen, Lernstände und Fristen', pageType: 'planning', route: '/akademie/teilnehmer' },
+    { id: 'planning', label: 'Schulungsplan', description: 'Fristen, Nachweisabläufe und Folgeschulungen', pageType: 'planning', route: '/akademie/schulungsplan' },
+    { id: 'mandatory', label: 'Pflichtschulungen', description: 'Verpflichtende Schulungen im Blick', pageType: 'planning', route: '/akademie/pflichtschulungen' },
+    { id: 'exams', label: 'Prüfung & Freigabe', description: 'Eingereichte Schulungen prüfen', pageType: 'review', route: '/akademie/pruefungen' },
+    { id: 'certificates', label: 'Lernnachweise', description: 'Bestätigte Abschlüsse und Gültigkeit', pageType: 'work-list', route: '/akademie/zertifikate' },
+    { id: 'library', label: 'Lernmaterialien', description: 'Veröffentlichte Inhalte finden', pageType: 'work-list', route: '/akademie/mediathek' },
+    { id: 'reports', label: 'Auswertungen', description: 'Lernstände, Abschlussquoten und Kursauswertung', pageType: 'analytics', route: '/akademie/auswertungen' },
+  ] : [
     { id: 'paths', label: 'Lernpfade', description: 'Rollenbasierte Entwicklung', pageType: 'planning', route: '/akademie/schulungsplan' },
     { id: 'courses', label: 'Kurse', description: 'Inhalte und Termine', pageType: 'work-list', route: '/akademie/kurse' },
     { id: 'exams', label: 'Prüfungen', description: 'Durchführung und Bewertung', pageType: 'review', route: '/akademie/pruefungen' },

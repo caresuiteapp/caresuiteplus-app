@@ -1,4 +1,5 @@
 import { MAX_PDF_BYTES, parsePdfUpload, pdfSha256, pdfUploadJobId, pdfUploadPath } from './pdfUpload.ts';
+import { isAcademyOnlyPortal } from './academyScope.ts';
 
 type RowResult = { data: Record<string, unknown> | null; error: unknown };
 type SelectQuery = {
@@ -8,7 +9,7 @@ type SelectQuery = {
   single: () => PromiseLike<RowResult>;
 };
 export type PdfClient = {
-  auth: { getUser: () => PromiseLike<{ data: { user: { id: string } | null }; error: unknown }> };
+  auth: { getUser: () => PromiseLike<{ data: { user: { id: string; app_metadata?: Record<string, unknown> } | null }; error: unknown }> };
   rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
   from: (table: string) => {
     select: (columns: string) => SelectQuery;
@@ -39,6 +40,7 @@ export function createPdfUploadHandler(dependencies: Dependencies) {
   try {
     const verified = await userClient.auth.getUser();
     if (verified.error || !verified.data.user) return dependencies.respond({ ok: false, error: 'Bitte erneut anmelden.' }, 401);
+    if (isAcademyOnlyPortal(verified.data.user)) return dependencies.respond({ ok: false, error: 'Dieser Zugang ist auf persönliche Lerninhalte begrenzt.' }, 403);
     const security = await userClient.rpc('care_security_pdf_upload_ready', {});
     if (security.error || security.data !== true) return dependencies.respond({
       ok: false, error: 'Die Dokumentrechte sind noch nicht vollständig eingerichtet. Bitte die Verwaltung informieren.',

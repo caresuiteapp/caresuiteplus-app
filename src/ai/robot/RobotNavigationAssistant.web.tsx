@@ -3,6 +3,7 @@ import { Image } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { useAuth } from '@/lib/auth/context';
+import { isAcademyOnlyPortal } from '@/lib/akademie/portalAccess.web';
 import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -29,6 +30,12 @@ function robotAssetUrl(): string {
 }
 
 export function RobotNavigationAssistant() {
+  const { portalSession, session, user } = useAuth();
+  if (isAcademyOnlyPortal(portalSession, session, user)) return null;
+  return <DesktopRobotNavigationAssistant />;
+}
+
+function DesktopRobotNavigationAssistant() {
   const startupReady = useAppStartIntroReady();
   const choosingDestination = useWebStartChoiceVisible();
   const { authReady, isAuthenticated, profile, user } = useAuth();

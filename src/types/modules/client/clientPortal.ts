@@ -21,6 +21,8 @@ export type ClientPortalCredentialsReveal = {
 };
 
 export type ClientPortalAccess = TenantScopedEntity & {
+  accountKind?: 'self' | 'legacy_contact' | 'academy_family';
+  accessScope?: 'client' | 'academy';
   clientId: string;
   contactId: string | null;
   email: string | null;

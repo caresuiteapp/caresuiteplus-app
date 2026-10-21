@@ -11,6 +11,7 @@ import {
   type ConnectProxyResponse,
 } from '../_shared/connectGateway.ts';
 import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
+import { isAcademyOnlyPortal } from '../_shared/academyScope.ts';
 
 async function resolveTenantId(authHeader: string): Promise<{ tenantId: string | null; userId: string | null; role: string | null }> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -23,7 +24,7 @@ async function resolveTenantId(authHeader: string): Promise<{ tenantId: string |
   });
 
   const { data: authData } = await userClient.auth.getUser();
-  if (!authData.user) return { tenantId: null, userId: null, role: null };
+  if (!authData.user || isAcademyOnlyPortal(authData.user)) return { tenantId: null, userId: null, role: null };
 
   const service = getServiceClient();
   const { data: profile } = await service

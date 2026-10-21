@@ -25,6 +25,13 @@ describe('canonical web home', () => {
   it('does not redirect an anonymous user from the access screen', () => {
     expect(resolveAuthSessionTarget({ profile: null, portalSession: null, user: null }).canRedirectHome).toBe(false);
   });
+  it('restores academy-only family sessions to the real Academy route, including a lost opaque session', () => {
+    const portalSession = { loginType: 'relative_portal', roleKey: 'family_portal', portalType: 'academy_family', accessScope: 'academy' } as never;
+    expect(resolveSessionHomeRoute('family_portal', portalSession)).toBe('/portal/client/akademie');
+    expect(resolveAuthSessionTarget({ profile: null, user: null, portalSession }).homePath).toBe('/portal/client/akademie');
+    const target = resolveAuthSessionTarget({ profile: null, portalSession: null, user: { id: 'family-auth', roleKey: 'family_portal', portalType: 'academy_family', accessScope: 'academy' } as never });
+    expect(target.homePath).toBe('/portal/client/akademie'); expect(target.canRedirectHome).toBe(true);
+  });
   it.each(['/business', '/Business/', '/business/dashboard', '/zentrale', '/business?old=1'])('recognizes the old home %s', path => {
     expect(isLegacyBusinessHomePath(path)).toBe(true);
   });
