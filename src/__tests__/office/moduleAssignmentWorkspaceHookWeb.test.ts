@@ -41,7 +41,7 @@ function deferred() {
 function success(tenantId = 'tenant-a', selected: ModuleAssignmentSection | null = null): ModuleAssignmentWorkspaceResult {
   return { ok: true, data: {
     tenantId, tenantName: tenantId, source: 'live', loadedAt: '2026-10-21T10:00:00Z',
-    sections: [], section: selected, items: [], warnings: [],
+    sections: [{ key: 'documents', state: 'ready', count: 0, activeCount: 0, action: null, inventory: { state: 'ready', count: 100, action: { label: 'Aktenunterlagen öffnen', route: '/business/office/documents' } } }], section: selected, items: [], warnings: [],
   } };
 }
 beforeEach(() => {
