@@ -15,7 +15,7 @@ const checks = [
     'src/__tests__/office/academyFamilyAccessPanel.test.tsx',
     'src/__tests__/ai/robotAcademyIsolationWeb.test.tsx',
     'src/__tests__/office/clientPortalExperienceInteraction.test.tsx'],
-  ['--test', 'supabase/tests/academy_workspace.test.mjs', 'supabase/tests/academy_family_integration.test.mjs', 'supabase/tests/academy_family_foundation.test.mjs'],
+  ['--test', 'supabase/tests/academy_workspace.test.mjs', 'supabase/tests/academy_family_integration.test.mjs', 'supabase/tests/academy_family_foundation.test.mjs', 'supabase/tests/academy_legacy_access_repair.test.mjs'],
   ['scripts/generate-web-route-parents.mjs', '--check'],
 ];
 for (const args of checks) {
