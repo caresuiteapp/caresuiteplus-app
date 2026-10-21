@@ -85,6 +85,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'beratung.qualifications.manage': 'Beratungsqualifikationen freigeben',
   'akademie.access': 'Akademie-Modul öffnen',
   'akademie.courses.view': 'Kurse ansehen',
+  'akademie.courses.manage': 'Kurse erstellen und veröffentlichen',
+  'akademie.enrollments.assign': 'Lernteilnahmen zuweisen und beenden',
+  'akademie.enrollments.review': 'Lernabschlüsse prüfen und Nachweise verwalten',
   'stationaer.access': 'Stationär-Modul öffnen',
   'stationaer.residents.view': 'Bewohner:innen ansehen',
   'stationaer.assessments.manage': 'Stationäre SIS und Assessments bearbeiten und freigeben',
@@ -785,6 +788,10 @@ const AKADEMIE_VIEW: PermissionKey[] = [
   'dashboard.view',
 ];
 
+const AKADEMIE_MANAGE: PermissionKey[] = [
+  ...AKADEMIE_VIEW, 'akademie.courses.manage', 'akademie.enrollments.assign', 'akademie.enrollments.review',
+];
+
 const STATIONAER_VIEW: PermissionKey[] = [
   'stationaer.access',
   'stationaer.residents.view',
@@ -831,6 +838,7 @@ const MODULE_VIEW_ALL: PermissionKey[] = [
 
 export const ROLE_PERMISSIONS: RolePermissionMap = {
   business_admin: [
+    ...AKADEMIE_MANAGE,
     'beratung.cases.manage', 'beratung.cases.review', 'beratung.qualifications.manage',
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
@@ -958,7 +966,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'communication.view_client_threads',
     ...TIME_TRACKING_OWN,
   ],
-  akademie_admin: [...AKADEMIE_VIEW, ...COMMUNICATION_OFFICE],
+  akademie_admin: [...AKADEMIE_MANAGE, ...COMMUNICATION_OFFICE],
   employee_portal: [...PORTAL_EMPLOYEE, ...TIME_TRACKING_OWN],
   client_portal: PORTAL_CLIENT,
   family_portal: PORTAL_CLIENT,

@@ -14,6 +14,8 @@ import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatte
 import { formatIntakeDocumentDate as formatDate, isIntakeRenderTimestamp } from './intakeDocumentRenderBinding';
 import type { TenantDisplayMeta } from '@/lib/tenant/tenantDisplayMeta';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
+import { INTAKE_DOCUMENT_TEMPLATES_2027 } from './intakeDocumentTemplates2027';
+import { buildIntake2027Context } from './intake2027Context';
 import {
   buildCostCarrierMergeFields,
   buildFamilyDoctorClause,
@@ -76,6 +78,7 @@ export function buildIntakePlaceholderContext(
     'signature.client': '',
     'signature.employee': '',
     'signature.legal_representative': '',
+    ...(form.intakeTemplateEdition === '2027' ? buildIntake2027Context(form) : {}),
   };
 }
 
@@ -98,6 +101,18 @@ export function resolveContractTemplateKey(form: ClientIntakeFormData): string |
   return CONTRACT_TEMPLATE_BY_SERVICE_TYPE[contractType] ?? null;
 }
 
+/** Web v2 includes every selected service contract, with the shared Assist contract once. */
+export function resolveContractTemplateKeys(form: ClientIntakeFormData): string[] {
+  if (form.intakeWorkflowVersion !== 2) {
+    const key = resolveContractTemplateKey(form);
+    return key ? [key] : [];
+  }
+  return [...new Set(form.careContexts.flatMap(context => {
+    const type = CARE_CONTEXT_TO_SERVICE_TYPE[context];
+    return type ? [CONTRACT_TEMPLATE_BY_SERVICE_TYPE[type]] : [];
+  }))];
+}
+
 export function listApplicableIntakeTemplates(
   form: ClientIntakeFormData,
   tenantTemplates: IntakeDocumentTemplate[] = [],
@@ -107,10 +122,10 @@ export function listApplicableIntakeTemplates(
     lookup.set(template.templateKey, template);
   }
 
-  const contractKey = resolveContractTemplateKey(form);
+  const contractKeys = resolveContractTemplateKeys(form);
   const applicableKeys: string[] = [
     PRIVACY_TEMPLATE_KEY,
-    ...(contractKey ? [contractKey] : []),
+    ...contractKeys,
   ];
 
   if (form.intakeAssignmentEnabled) {
@@ -125,7 +140,8 @@ export function listApplicableIntakeTemplates(
 
   const result: IntakeDocumentTemplate[] = [];
   for (const key of applicableKeys) {
-    const template = lookup.get(key) ?? getSystemIntakeTemplateByKey(key);
+    const template = lookup.get(key) ?? (form.intakeTemplateEdition === '2027'
+      ? INTAKE_DOCUMENT_TEMPLATES_2027.find(item => item.templateKey === key) : getSystemIntakeTemplateByKey(key));
     if (template?.isActive) {
       result.push(template);
     }

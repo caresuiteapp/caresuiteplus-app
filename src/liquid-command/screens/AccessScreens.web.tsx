@@ -369,7 +369,8 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         return;
       }
       await signInPortalSession(completed.data.portalSession);
-      router.replace(resolveTvLoginReturn('/portal/client') as never);
+      router.replace((completed.data.portalSession.portalType === 'academy_family'
+        ? '/portal/client/akademie' : resolveTvLoginReturn('/portal/client')) as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
     } finally {
@@ -379,9 +380,9 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
 
   return (
     <AccessShell
-      eyebrow="KLIENT:INNENPORTAL"
-      title="Ihre Versorgung. Klar im Blick."
-      subtitle="Termine, Live-Anfahrt, Dokumente und Nachrichten in einfacher Sprache."
+      eyebrow="KLIENT:INNEN & ANGEHÖRIGE"
+      title="Ihr persönlicher Zugang."
+      subtitle="Klient:innen öffnen ihre Versorgung. Angehörige lernen mit ihrem persönlichen Akademiezugang."
       backRoute="/auth"
       side={<SecuritySide />}
     >

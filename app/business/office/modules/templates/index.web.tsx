@@ -1,1 +1,5 @@
-export { TemplateModuleAssignmentsScreen as default } from '@/screens/business/office/DocumentModuleAssignmentsScreen.web';
+import { OfficeModuleAssignmentListScreen } from '@/screens/business/office/OfficeModuleAssignmentListScreen.web';
+
+export default function TemplateModuleAssignmentsPage() {
+  return <OfficeModuleAssignmentListScreen section="templates" />;
+}

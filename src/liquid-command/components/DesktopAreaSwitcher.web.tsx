@@ -18,7 +18,7 @@ export type DesktopAreaSwitcherProps = {
 
 const ARTWORK_ROUTES: Record<DesktopAreaKey, string> = {
   office: '/office', assist: '/assist', pflege: '/pflege', stationaer: '/stationaer',
-  beratung: '/beratung', robotics: '/robotics', premium: '/business/subscription', settings: '/settings',
+  beratung: '/beratung', akademie: '/akademie', robotics: '/robotics', premium: '/business/subscription', settings: '/settings',
 };
 
 /** All catalogue areas stay visible; native buttons retain keyboard and permission behavior. */

@@ -6,6 +6,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { INTAKE_DOCUMENT_SYSTEM_TEMPLATES } from './intakeDocumentSystemTemplates';
+import { INTAKE_2027_VERSION } from './intake2027Fields';
 import { resolveOfficeDocumentTitle } from '@/lib/office/officeDocumentDisplay';
 import type {
   IntakeDocumentState,
@@ -153,15 +154,22 @@ export async function loadPersistedIntakeDocumentsForClient(
 
 export async function listTenantIntakeDocumentTemplates(
   tenantId: string,
+  edition?: '2027',
 ): Promise<ServiceResult<IntakeDocumentTemplate[]>> {
   const db = getDb();
   if (!db) return unavailable();
 
-  const systemQuery = db.from('intake_document_system_templates').select('*').eq('is_active', true);
+  const systemQuery = db.from(edition === '2027' ? 'intake_document_templates_2027' : 'intake_document_system_templates').select('*').eq('is_active', true);
   const { data: systemRows, error: systemError } = await systemQuery;
 
   if (systemError) {
     return { ok: false, error: toGermanSupabaseError(systemError) };
+  }
+
+  if (edition === '2027' && (!Array.isArray(systemRows) || systemRows.length !== INTAKE_DOCUMENT_SYSTEM_TEMPLATES.length
+    || systemRows.some(row => row.version !== INTAKE_2027_VERSION)
+    || INTAKE_DOCUMENT_SYSTEM_TEMPLATES.some(template => systemRows.filter(row => row.template_key === template.templateKey).length !== 1))) {
+    return { ok: false, error: 'Die Ausgabe 2027 ist nicht vollständig verfügbar. Bitte erneut laden; es wird keine andere Vertragsfassung eingesetzt.' };
   }
 
   const systemTemplates = (systemRows as SystemTemplateRow[] | null)?.map(mapSystemRow)
@@ -175,6 +183,10 @@ export async function listTenantIntakeDocumentTemplates(
 
   if (tenantError) {
     return { ok: false, error: toGermanSupabaseError(tenantError) };
+  }
+
+  if (edition === '2027' && (tenantRows as TenantTemplateRow[] | null)?.length) {
+    return { ok: false, error: 'Für dieses Unternehmen bestehen eigene Aufnahmevorlagen. Bitte deren Inhalt zuerst in einer eigenen Fassung für 2027 prüfen. Die bisherigen Vorlagen und Originale bleiben verfügbar.' };
   }
 
   const systemByKey = new Map(systemTemplates.map((t) => [t.templateKey, t]));

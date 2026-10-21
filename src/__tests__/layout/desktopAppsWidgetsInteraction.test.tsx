@@ -10,6 +10,7 @@ const api = {
   user: 'user-a', tenant: 'tenant-a', width: 1440, scale: 1,
   denied: new Set<string>(), modules: new Set(['office', 'assist']),
   push: vi.fn(), getItem: vi.fn(), setItem: vi.fn(), multiSet: vi.fn(),
+  centerRequest: undefined as string | undefined, authReady: true, setParams: vi.fn(),
 };
 const Box = forwardRef<HTMLDivElement, any>((props, ref) => <div ref={ref} data-testid={props.testID} id={props.nativeID} aria-label={props.accessibilityLabel}>{props.children}</div>);
 const Pressable = forwardRef<HTMLButtonElement, any>((props, ref) => <button type="button" ref={ref} role={props.accessibilityRole} aria-label={props.accessibilityLabel} aria-selected={props.accessibilityState?.selected} aria-disabled={props.disabled} disabled={props.disabled} onClick={props.disabled ? undefined : props.onPress}>{props.children}</button>);
@@ -30,9 +31,9 @@ const PlatformModal = (props: any) => props.visible ? <div role="dialog" aria-mo
 const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
   '@/lib/platform/reactNativeWebCompat.web': { WebView: Box, WebPressable: Pressable, WebScrollView: Box },
-  'expo-router': { useRouter: () => ({ push: api.push }) },
+  'expo-router': { useRouter: () => ({ push: api.push, setParams: api.setParams }), usePathname: () => '/Desktop', useLocalSearchParams: () => ({ center: api.centerRequest }) },
   '@react-native-async-storage/async-storage': api,
-  '@/lib/auth': { useAuth: () => ({ user: { id: api.user }, profile: { roleKey: 'business_admin' }, signOut: vi.fn() }) },
+  '@/lib/auth': { useAuth: () => ({ authReady: api.authReady, isAuthenticated: true, user: { id: api.user }, profile: { roleKey: 'business_admin' }, signOut: vi.fn() }) },
   '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: api.tenant, roleKey: 'business_admin', can: (permission: string) => !api.denied.has(permission), hasModuleGate: (module: string) => api.modules.has(module) }) },
   '@/hooks/useModuleAccess': { useModuleAccess: () => ({}) },
   '@/hooks/useDesktopWeather.web': { useDesktopWeather: () => ({ data: null, place: null, message: 'Standort wählen' }) },
@@ -65,6 +66,7 @@ let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   memory.clear(); api.user = 'user-a'; api.tenant = 'tenant-a'; api.width = 1440; api.scale = 1;
+  api.centerRequest = undefined; api.authReady = true;
   api.denied.clear(); api.modules = new Set(['office', 'assist']); vi.clearAllMocks();
   api.getItem.mockReset().mockImplementation(async (name: string) => memory.get(name) ?? null);
   api.setItem.mockReset().mockImplementation(async (name: string, value: string) => { memory.set(name, value); });
@@ -110,6 +112,25 @@ const open = async (name = 'Apps') => { await clickLabel('Apps und Widgets öffn
 const savedIds = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as string[];
 
 describe('Apps and Widgets in the actual Web desktop', () => {
+  it('opens the requested Apps catalogue after auth and saved desktop restoration, then consumes the request once', async () => {
+    seed(['assignments'], 'assist'); chooseArea('assist');
+    api.centerRequest = 'apps'; api.authReady = false;
+    await render();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(api.setParams).not.toHaveBeenCalled();
+    api.authReady = true;
+    await render();
+    expectSelectedDesktop('assist');
+    expect(tab('Apps').getAttribute('aria-selected')).toBe('true');
+    expect(api.setParams).toHaveBeenCalledTimes(1);
+    expect(api.setParams).toHaveBeenCalledWith({ center: undefined });
+    await clickLabel('Center schließen');
+    await render();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(api.setParams).toHaveBeenCalledTimes(1);
+    expect(savedIds('assist')).toEqual(['assignments']);
+  });
+
   it('preserves the desktop area tabs, keeps the new chooser inside Apps and Widgets and restores the selection after reload', async () => {
     seed(['clients']); seed(['assignments'], 'assist'); await render();
     const topbar = host.querySelector('[data-testid="desktop-topbar-actions"]')!;
@@ -118,7 +139,9 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(topbar.querySelector('[aria-label="Desktop im Katalog wechseln"]')).toBeNull();
     expect(label('Desktop im Katalog wechseln')).toBeNull();
     expect(label('Office-Desktop auswählen')).toBeNull();
-    expect(workspaceHeader().querySelectorAll('[role="tab"]')).toHaveLength(8);
+    expect([...workspaceHeader().querySelectorAll('[role="tab"]')].map(element => visibleText(element as HTMLElement))).toEqual([
+      'Office', 'Assist', 'Pflege', 'Stationär', 'Beratung', 'Akademie', 'Roboter', 'Premium', 'Einstellungen',
+    ]);
     expect(tab('Office', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
     await click(tab('Assist', workspaceHeader()));
     expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
@@ -129,7 +152,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen öffnen')).toBeTruthy();
     await open();
     expectSelectedDesktop('office');
-    expect(dialog().querySelectorAll('[aria-label$="-Desktop auswählen"]')).toHaveLength(8);
+    expect(dialog().querySelectorAll('[aria-label$="-Desktop auswählen"]')).toHaveLength(9);
     expect(dialog().textContent).toContain('Aktueller Desktop: Office');
     expect(label('Desktop wechseln')).toBeNull();
     await selectDesktop('assist');
@@ -150,6 +173,28 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Desktop im Katalog wechseln')).toBeNull();
     await open();
     expectSelectedDesktop('assist');
+  });
+
+  it('opens the Academy desktop and templates and restores its own pinned widgets without changing Office', async () => {
+    api.modules.add('akademie');
+    seed(['clients']); seed([], 'akademie'); await render();
+    await click(tab('Akademie', workspaceHeader()));
+    expect(host.textContent).toContain('Mein Desktop · Akademie');
+    expect(label('Klient:innen öffnen')).toBeNull();
+    await open('Widgets');
+    expectSelectedDesktop('akademie');
+    await clickLabel('Vorlagen & Kursbaukasten zum Desktop hinzufügen');
+    const academyWidgets = savedIds('akademie');
+    expect(academyWidgets).toHaveLength(1);
+    expect(savedIds()).toEqual(['clients']);
+    await remount();
+    expect(tab('Akademie', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Vorlagen & Kursbaukasten öffnen')).toBeTruthy();
+    await open();
+    await clickLabel('App Vorlagen & Kursbaukasten öffnen');
+    expect(api.push).toHaveBeenCalledWith('/akademie/vorlagen');
+    expect(savedIds('akademie')).toEqual(academyWidgets);
+    expect(savedIds()).toEqual(['clients']);
   });
 
   it('keeps the catalog and Workflows tab open while switching desktops and resets the previous search', async () => {

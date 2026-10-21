@@ -12,6 +12,10 @@ export type PortalSessionRecord = {
   roleKey: RoleKey;
   expiresAt: string;
   accountId: string;
+  /** Server-issued audience; academy-only relatives never represent the client. */
+  portalType?: 'employee' | 'client' | 'relative' | 'academy_family';
+  accessScope?: 'client' | 'academy';
+  accessGeneration?: number;
   /** True until the employee sets a permanent password after OTP login. */
   mustChangePassword?: boolean;
   /** Cached client display label for welcome text (real name, not portal username). */
@@ -50,7 +54,13 @@ function isPortalSessionRecord(value: unknown): value is PortalSessionRecord {
     typeof record.expiresAt === 'string' &&
     Number.isFinite(new Date(record.expiresAt).getTime()) &&
     ['employee_portal', 'client_portal', 'relative_portal'].includes(String(record.loginType)) &&
-    ['employee_portal', 'client_portal', 'family_portal'].includes(String(record.roleKey))
+    ['employee_portal', 'client_portal', 'family_portal'].includes(String(record.roleKey)) &&
+    (record.portalType !== 'academy_family' || (
+      record.loginType === 'relative_portal' && record.roleKey === 'family_portal' &&
+      record.accessScope === 'academy' && typeof record.relativeContactId === 'string' &&
+      record.relativeContactId.length > 0 && record.clientId == null &&
+      typeof record.accessGeneration === 'number' && Number.isSafeInteger(record.accessGeneration) && record.accessGeneration > 0
+    ))
   );
 }
 

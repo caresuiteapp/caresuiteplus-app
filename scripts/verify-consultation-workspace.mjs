@@ -2,7 +2,8 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const cwd=fileURLToPath(new URL('..',import.meta.url));
 const checks=[
- ['--test','supabase/tests/consultation_workspace.test.mjs','supabase/tests/consultation_legacy_access.test.mjs','src/__tests__/beratung/workspaceModel.test.mjs','src/__tests__/beratung/workspaceNavigation.test.mjs'],
+ ['node_modules/vitest/vitest.mjs','run','--maxWorkers=2','src/__tests__/beratung/consultationFirstContact.test.tsx'],
+ ['--test','supabase/tests/consultation_workspace.test.mjs','supabase/tests/consultation_extensions.test.mjs','supabase/tests/consultation_legacy_access.test.mjs','src/__tests__/beratung/workspaceModel.test.mjs','src/__tests__/beratung/workspaceNavigation.test.mjs'],
  ['scripts/verify-consultation-interaction.mjs'],
  ['scripts/generate-web-route-parents.mjs','--check'],
 ];

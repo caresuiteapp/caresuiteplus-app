@@ -9,6 +9,7 @@ import {
 } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
+import { resolveAcademyFamilyIdentity } from '../_shared/academyFamilyIdentity.ts';
 import {
   INVALID_PORTAL_CREDENTIALS_MESSAGE,
   isLoginRateLimited,
@@ -97,6 +98,14 @@ serve(async (req) => {
       }, 401);
     }
 
+    const isAcademyFamily = matched.account_kind === 'academy_family';
+    const familyIdentity = isAcademyFamily && matched.access_scope === 'academy'
+      ? await resolveAcademyFamilyIdentity(supabase, String(matched.id), String(matched.tenant_id), String(matched.contact_id ?? ''))
+      : null;
+    if (isAcademyFamily && (!familyIdentity || familyIdentity.accessGeneration !== matched.access_generation)) {
+      return jsonResponse({ ok: false, error: INVALID_PORTAL_CREDENTIALS_MESSAGE }, 401);
+    }
+    const portalType = isAcademyFamily ? 'academy_family' : 'client';
     const now = new Date().toISOString();
     const sessionToken = createOpaqueToken();
     const sessionTokenHash = await hashOpaqueToken(sessionToken);
@@ -119,9 +128,9 @@ serve(async (req) => {
 
     const { error: sessionError } = await supabase.from('portal_sessions').insert({
       tenant_id: matched.tenant_id,
-      portal_type: 'client',
+      portal_type: portalType,
       client_id: matched.client_id,
-      relative_contact_id: null,
+      relative_contact_id: familyIdentity?.contactId ?? null,
       status: 'active',
       session_token: sessionTokenHash,
       started_at: now,
@@ -129,7 +138,7 @@ serve(async (req) => {
       expires_at: expiresAt,
       ip_address: meta.ipAddress,
       user_agent: meta.userAgent,
-      metadata: { portal_access_id: matched.id, portal_account_id: matched.id, token_format: 'sha256' },
+      metadata: { portal_access_id: matched.id, portal_account_id: matched.id, token_format: 'sha256', ...(familyIdentity ? { access_scope: 'academy', contact_id: familyIdentity.contactId, access_generation: familyIdentity.accessGeneration } : {}) },
     });
 
     if (sessionError) {
@@ -154,7 +163,7 @@ serve(async (req) => {
     let clientFirstName: string | null = null;
     let clientLastName: string | null = null;
 
-    if (clientId) {
+    if (clientId && !familyIdentity) {
       const { data: clientRow } = await supabase
         .from('clients')
         .select('first_name, last_name, gender')
@@ -184,7 +193,7 @@ serve(async (req) => {
       }
     }
 
-    const displayName = clientDisplayName ?? portalUsername;
+    const displayName = familyIdentity?.displayName ?? clientDisplayName ?? portalUsername;
     const { data: tenantRow } = await supabase
       .from('tenants')
       .select('name')
@@ -193,15 +202,16 @@ serve(async (req) => {
     const tenantName = (tenantRow?.name as string | null)?.trim() || null;
 
     const authResult = await ensurePortalSupabaseAuth(supabase, {
-      portalType: 'client',
+      portalType,
       accountId: matched.id as string,
       tenantId: matched.tenant_id as string,
-      roleKey: 'client_portal',
+      roleKey: familyIdentity ? 'family_portal' : 'client_portal',
       displayName,
       linkTable: 'client_portal_access',
       linkRowId: matched.id as string,
       clientFirstName,
       clientLastName,
+      ...(familyIdentity ? { relativeContactId: familyIdentity.contactId, accessGeneration: familyIdentity.accessGeneration } : {}),
     });
 
     if (!authResult.ok) {
@@ -213,8 +223,9 @@ serve(async (req) => {
       ok: true,
       portalAccountId: matched.id,
       tenantId: matched.tenant_id,
-      clientId: matched.client_id,
-      portalType: 'client',
+      clientId: familyIdentity ? null : matched.client_id,
+      portalType,
+      ...(familyIdentity ? { relativeContactId: familyIdentity.contactId, accessScope: 'academy', accessGeneration: familyIdentity.accessGeneration } : {}),
       displayName,
       tenantName,
       sessionToken,

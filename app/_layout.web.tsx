@@ -19,6 +19,7 @@ import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effe
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
 import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { documentsWorkspaceRouteTitle } from '@/lib/navigation/documentsWorkspaceRoutes';
+import { officeModuleAssignmentRouteTitle } from '@/lib/navigation/officeModuleAssignmentRoutes.web';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
@@ -61,9 +62,13 @@ const POPUP_TITLES: Record<string, string> = {
   budgets: 'Budgets', abrechnungsquellen: 'Budgets', 'portal-access': 'Portale',
   hilfe: 'Hilfe & Anleitungen', support: 'Support & Hilfe', 'command-center': 'Command Center', office: 'Office', assist: 'Assist', settings: 'Einstellungen', profile: 'Profil',
   'data-request': 'Datenauskunft & Export', 'data-requests': 'Betroffenenanfragen',
+  subscription: 'Plattform & Module',
 };
 
 function popupTitle(pathname: string): string {
+  const assignmentTitle = officeModuleAssignmentRouteTitle(pathname);
+  if (assignmentTitle) return assignmentTitle;
+  if (/^\/beratung\/arbeitsplatz(?:\/[^/]+)?\/?$/.test(pathname)) return /^\/beratung\/arbeitsplatz\/?$/.test(pathname) ? 'Beratung & Schulungen' : 'Beratungsakte';
   if (/^\/office\/catalogs(?:\/|$)/.test(pathname)) return pathname === '/office/catalogs/create' ? 'Katalogposition anlegen' : 'Kataloge';
   const documentTitle = documentsWorkspaceRouteTitle(pathname);
   if (documentTitle) return documentTitle;

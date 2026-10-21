@@ -1,13 +1,15 @@
 import { EMPTY_CLIENT_INTAKE_FORM, type ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFieldRules';
+import { getIntakeSectionsForForm } from '@/lib/clients/clientIntakePlan';
 import { validateIntakeStep } from '@/lib/clients/clientIntakeValidation';
 import { isCostBearerTypeKey } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { CLIENT_FUNDING_SOURCE_KEYS } from '@/types/clients/clientFundingSource';
 import { getSystemCatalog } from '@/lib/catalogs/systemCatalogs';
-import { buildIntakePlaceholderContext, resolveContractTemplateKey, type IntakeTenantDisplay } from './buildIntakeDocumentContext';
+import { buildIntakePlaceholderContext, resolveContractTemplateKeys, type IntakeTenantDisplay } from './buildIntakeDocumentContext';
 import { finalizeIntakeDocumentHtml, renderIntakeDocumentHtml } from './renderIntakeDocumentPreview';
 import { mapSystemRow, mapTenantRow, type SystemTemplateRow, type TenantTemplateRow } from './intakeTemplateMapping';
 import { getIntakeRenderBindingError, isIntakeRenderTimestamp } from './intakeDocumentRenderBinding';
+import { INTAKE_2027_VERSION, validIntakeLegalDetails } from './intake2027Fields';
+import { INTAKE_PAPER_CONTRACT_NOTICE } from './intake2027Context';
 import { ASSIGNMENT_TEMPLATE_KEY, OPTIONAL_CONSENT_TEMPLATE_KEYS, PRIVACY_TEMPLATE_KEY, type IntakeDocumentState, type IntakeDocumentTemplate, type IntakeSignatureRole } from './intakeDocumentTypes';
 
 export type IntakeTemplateRow = Record<string, unknown>;
@@ -37,6 +39,10 @@ export function requireCompleteIntakeForm(value: unknown): ClientIntakeFormData 
     } else if (record(initial) && (!record(field) || Object.keys(field).length > 64 || Object.values(field).some((item) => typeof item !== 'string' || item.length > 2000))) fail('Eine gespeicherte Zuordnung ist ungültig.');
   }
   const form = value as unknown as ClientIntakeFormData;
+  if (form.intakeTemplateEdition !== undefined && form.intakeTemplateEdition !== '2027') fail('Diese Dokumentausgabe ist nicht verfügbar.');
+  if (form.intakeTemplateEdition === '2027' && (form.intakeWorkflowVersion !== 2 || !validIntakeLegalDetails(form.intakeLegalDetails))) fail('Die Angaben zur Dokumentausgabe 2027 sind unvollständig oder ungültig.');
+  if (form.intakeWorkflowVersion !== undefined && form.intakeWorkflowVersion !== 2) fail('Die Version des Aufnahmeablaufs wird nicht unterstützt.');
+  if (form.intakeStage === 'first_contact') fail('Bitte den Erstkontakt zuerst zur vollständigen Aufnahme ergänzen.');
   if (!form.careContexts.length || form.careContexts.some((key) => !getSystemCatalog('leistungsart').entries.some((entry) => entry.key === key))
     || form.costBearerTypes.some((key) => !isCostBearerTypeKey(key))
     || form.fundingSources.some((key) => !(CLIENT_FUNDING_SOURCE_KEYS as readonly string[]).includes(key))
@@ -47,7 +53,7 @@ export function requireCompleteIntakeForm(value: unknown): ClientIntakeFormData 
   const expectedBilling = selfPay && statutory ? 'kombi' : selfPay ? 'selbstzahler' : statutory ? 'pflegekasse' : '';
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail('Die Finanzierungsarten und Abrechnung stimmen nicht überein. Bitte die Finanzierung erneut auswählen.');
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(',', '.')) < 0)) fail('Der vereinbarte Stundensatz ist ungültig.');
-  for (const section of getVisibleSectionsForClientContext(form.careContexts)) {
+  for (const section of getIntakeSectionsForForm(form)) {
     // Document obligations use the actual current database template below.
     if (section === 'vertraege_einwilligungen') continue;
     const errors = Object.values(validateIntakeStep(section, form));
@@ -132,9 +138,9 @@ function currentTemplate(system: IntakeTemplateRow, tenant: IntakeTemplateRow | 
 
 export async function verifyIntakeCompletionDocuments(input: { form: unknown; systemTemplates: IntakeTemplateRow[]; tenantTemplates: IntakeTemplateRow[]; tenantDisplay: IntakeTenantDisplay; now?: number }): Promise<VerifiedIntakeDocument[]> {
   const form = requireCompleteIntakeForm(input.form), now = input.now ?? Date.now();
-  const contract = resolveContractTemplateKey(form);
-  if (!contract) fail('Für die ausgewählte Unterstützung fehlt ein gültiger Aufnahmevertrag.');
-  const expected = [PRIVACY_TEMPLATE_KEY, contract, ...(form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : []), ...form.intakeOptionalConsents];
+  const contracts = resolveContractTemplateKeys(form);
+  if (!contracts.length) fail('Für die ausgewählte Unterstützung fehlt ein gültiger Aufnahmevertrag.');
+  const expected = [PRIVACY_TEMPLATE_KEY, ...contracts, ...(form.intakeAssignmentEnabled ? [ASSIGNMENT_TEMPLATE_KEY] : []), ...form.intakeOptionalConsents];
   if (form.intakeDocuments.length !== expected.length || new Set(expected).size !== expected.length) fail('Die Dokumentauswahl wurde geändert. Bitte Verträge und Einwilligungen erneut prüfen.');
   const verified: VerifiedIntakeDocument[] = [];
   for (const key of expected) {
@@ -148,6 +154,10 @@ export async function verifyIntakeCompletionDocuments(input: { form: unknown; sy
     const tenant = input.tenantTemplates.find((row) => row.template_key === key && row.is_active === true);
     if (doc.source !== 'system' && doc.source !== 'tenant' || doc.source === 'tenant' && !tenant || doc.source === 'system' && tenant || tenant && tenant.id !== doc.tenantTemplateId) fail('Die verwendete Dokumentvorlage ist nicht verfügbar.');
     const template = currentTemplate(system, tenant);
+    if (form.intakeTemplateEdition === '2027') {
+      if (template.version !== INTAKE_2027_VERSION || tenant) fail('Die vorbereitete Ausgabe 2027 ist nicht eindeutig verfügbar.');
+      if (key === 'client_contract_stationary_care') fail(INTAKE_PAPER_CONTRACT_NOTICE);
+    } else if (template.version === INTAKE_2027_VERSION) fail('Die Dokumentausgabe wurde geändert. Bitte erneut prüfen.');
     if (doc.version !== template.version || doc.documentType !== template.documentType || doc.title !== template.title || doc.tenantTemplateId != null && doc.tenantTemplateId !== template.tenantTemplateId || doc.status !== 'finalized') fail('Die Dokumentfassung oder Vorlage hat sich geändert. Bitte erneut prüfen und unterschreiben.');
     if (typeof doc.previewHtml !== 'string' || typeof doc.finalizedHtml !== 'string' || doc.finalizedHtml.length > 8 * 1024 * 1024 || doc.previewHtml !== doc.finalizedHtml || doc.renderedPdfPath != null || !Array.isArray(doc.missingPlaceholders) || doc.missingPlaceholders.length || !record(doc.signatures)) fail('Die unveränderte unterschriebene Originalfassung fehlt. Bitte erneut prüfen.');
     const renderedAt = timestamp(doc.renderedAt, 'Vorschauzeitpunkt', now), finalizedAt = timestamp(doc.finalizedAt, 'Abschlusszeitpunkt', now);
@@ -158,6 +168,7 @@ export async function verifyIntakeCompletionDocuments(input: { form: unknown; sy
     for (const [role, signature] of Object.entries(doc.signatures)) {
       if (!roles.includes(role as IntakeSignatureRole) || !template.signatureSlots.some((slot) => slot.role === role) || !record(signature) || signature.role !== role || signature.signerName != null && (typeof signature.signerName !== 'string' || signature.signerName.length > 200 || /[\u0000-\u001f]/.test(signature.signerName))) fail('Eine Unterschriftsrolle oder Namensangabe ist ungültig.');
       await verifyPngPixels(requireIntakePng(signature.dataUrl));
+      if (form.intakeTemplateEdition === '2027' && signature.signerName !== form.intakeLegalDetails?.[role === 'employee' ? 'employee.name' : 'signer.name']?.trim()) fail('Der Name der unterschreibenden Person stimmt nicht mit der geprüften Fassung überein.');
       const signedAt = timestamp(signature.signedAt, 'Unterschriftszeitpunkt', now);
       if (signedAt < renderedAt - 60000 || signedAt > finalizedAt + 1000) fail('Die Unterschrift gehört zeitlich nicht zur geprüften Dokumentfassung.');
     }

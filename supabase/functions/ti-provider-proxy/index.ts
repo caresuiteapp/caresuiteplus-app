@@ -1,5 +1,5 @@
 // CareSuite+ — TI Provider Proxy (Edge Function Stub)
-// Server-side only — Secrets aus Vault, niemals an Client zurückgeben
+// Caller-scoped stub: no provider secrets or external TI requests.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -7,6 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 type TIProxyRequest = {
@@ -15,39 +16,95 @@ type TIProxyRequest = {
   mailboxId?: string;
 };
 
+const permissions: Record<TIProxyRequest['action'], string> = {
+  check_connection: 'ti.provider.manage',
+  sync_kim: 'ti.kim.manage',
+  fetch_messages: 'ti.kim.view',
+};
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+  if (req.method !== 'POST') return response({ error: 'Methode nicht erlaubt' }, 405);
+
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const bearer = /^Bearer\s+(\S+)$/i.exec(authHeader);
+  if (!bearer) return response({ error: 'Nicht autorisiert' }, 401);
 
   try {
+    const url = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!url || !anonKey) return response({ error: 'TI-Dienst nicht verfügbar' }, 503);
+    // Keep RLS in effect for every query; never use the service-role key here.
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      url,
+      anonKey,
+      { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false, autoRefreshToken: false } },
     );
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Nicht autorisiert' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const verified = await supabase.auth.getUser(bearer[1]);
+    const user = verified.data.user;
+    if (verified.error || !user) return response({ error: 'Nicht autorisiert' }, 401);
+    if (user.app_metadata?.portal_type === 'academy_family') {
+      return response({ error: 'Keine Berechtigung für TI' }, 403);
     }
 
-    const body = (await req.json()) as TIProxyRequest;
+    let body: TIProxyRequest;
+    try {
+      const value = await req.json();
+      if (!value || typeof value !== 'object' || Array.isArray(value)
+        || !Object.prototype.hasOwnProperty.call(permissions, value.action)
+        || typeof value.providerId !== 'string' || !uuid.test(value.providerId)
+        || (value.mailboxId !== undefined && (typeof value.mailboxId !== 'string' || !uuid.test(value.mailboxId)))) {
+        return response({ error: 'Ungültige TI-Anfrage' }, 400);
+      }
+      body = value;
+    } catch {
+      return response({ error: 'Ungültige TI-Anfrage' }, 400);
+    }
 
-    // Secret-Referenz aus DB laden — niemals Secret-Wert an Client
+    // Tenant and permissions come only from the verified caller's database context.
+    const { data: tenantId, error: tenantError } = await supabase.rpc('current_tenant_id');
+    if (tenantError || typeof tenantId !== 'string' || !uuid.test(tenantId)) {
+      return response({ error: 'Mandant nicht zugeordnet' }, 403);
+    }
+    for (const permission of ['ti.view', permissions[body.action]]) {
+      const { data: allowed, error } = await supabase.rpc('has_permission', { p_permission_key: permission });
+      if (error || allowed !== true) return response({ error: 'Keine Berechtigung für diese TI-Aktion' }, 403);
+    }
+    const { data: profile, error: profileError } = await supabase.from('profiles')
+      .select('id,tenant_id,auth_user_id,status,is_active')
+      .or(`id.eq.${user.id},auth_user_id.eq.${user.id}`)
+      .eq('tenant_id', tenantId).single();
+    if (profileError || !profile || profile.tenant_id !== tenantId
+      || profile.status !== 'active' || profile.is_active !== true
+      || !(profile.auth_user_id === user.id || (profile.auth_user_id === null && profile.id === user.id))) {
+      return response({ error: 'Benutzerprofil nicht eindeutig aktiv zugeordnet' }, 403);
+    }
+
+    // The stub needs no secret reference, endpoint or privileged provider access.
     const { data: provider, error } = await supabase
       .from('ti_providers')
-      .select('id, secret_reference, endpoint_url, kind')
+      .select('id, tenant_id, kind, is_active')
+      .eq('tenant_id', tenantId)
       .eq('id', body.providerId)
-      .single();
+      .maybeSingle();
 
-    if (error || !provider) {
-      return new Response(JSON.stringify({ error: 'Provider nicht gefunden' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (error || !provider || provider.tenant_id !== tenantId || provider.is_active !== true) {
+      return response({ error: 'Provider nicht gefunden' }, 404);
+    }
+    if (body.mailboxId) {
+      const { data: mailbox, error: mailboxError } = await supabase.from('kim_mailboxes')
+        .select('id,tenant_id,provider_id').eq('tenant_id', tenantId)
+        .eq('provider_id', provider.id).eq('id', body.mailboxId).maybeSingle();
+      if (mailboxError || !mailbox || mailbox.tenant_id !== tenantId || mailbox.provider_id !== provider.id) {
+        return response({ error: 'Postfach nicht gefunden' }, 404);
+      }
     }
 
     // Stub — produktiv: Vault-Lookup + gematik-konformer Connector
@@ -59,21 +116,19 @@ serve(async (req) => {
       checkedAt: new Date().toISOString(),
     };
 
-    await supabase.from('ti_audit_events').insert({
+    const { error: auditError } = await supabase.from('ti_audit_events').insert({
+      tenant_id: tenantId,
       action: 'provider_check',
+      actor_id: profile.id,
       actor_name: 'ti-provider-proxy',
       resource_type: 'ti_provider',
-      resource_id: body.providerId,
+      resource_id: provider.id,
       details: result.message,
     });
+    if (auditError) return response({ error: 'TI-Prüfung konnte nicht protokolliert werden' }, 500);
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return response(result);
+  } catch {
+    return response({ error: 'TI-Dienst nicht verfügbar' }, 500);
   }
 });

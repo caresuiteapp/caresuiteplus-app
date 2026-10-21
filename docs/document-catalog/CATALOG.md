@@ -76,7 +76,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_vertraege_014` | Vereinbarung über Fahrtkosten und Auslagen | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
 | `csdc_vertraege_015` | Zusatzleistungsvereinbarung | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
 | `csdc_vertraege_016` | Vertragsänderung beziehungsweise Nachtrag | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
-| `csdc_vertraege_017` | Information zu Ausfällen, Absagen und Kündigungen | Klientenakte | Fensterbrief | Neuer bearbeitbarer Entwurf |
+| `csdc_vertraege_017` | Information zu Ausfällen, Absagen und Kündigungen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_vertraege_018` | Kündigung und Vertragsbeendigungsbestätigung | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
 | `csdc_vertraege_019` | Empfangsbestätigung ausgehändigter Vertragsunterlagen | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
 

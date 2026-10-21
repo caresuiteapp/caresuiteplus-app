@@ -4,6 +4,7 @@ import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess
 import { isUuid } from '@/lib/validation/uuid';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import type { IntakeDocumentState } from '@/features/intakeDocuments/intakeDocumentTypes';
+import { validIntakeLegalDetails } from '@/features/intakeDocuments/intake2027Fields';
 
 const STORAGE_PREFIX = 'caresuite:client-intake-draft';
 const CLIENT_INTAKE_DRAFT_SCHEMA_VERSION = 2;
@@ -30,6 +31,14 @@ function storageKey(userId: string, tenantId: string, clientId?: string | null):
 export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormData>): ClientIntakeFormData {
   const base = createEmptyIntakeForm();
   const merged = { ...base };
+  if (partial.intakeTemplateEdition === '2027') merged.intakeTemplateEdition = '2027';
+  if (validIntakeLegalDetails(partial.intakeLegalDetails)) merged.intakeLegalDetails = { ...partial.intakeLegalDetails };
+  if (partial.intakeWorkflowVersion === 2) merged.intakeWorkflowVersion = 2;
+  if (partial.intakeStage === 'first_contact' || partial.intakeStage === 'full_intake') merged.intakeStage = partial.intakeStage;
+  if (typeof partial.intakeAppointmentRequested === 'boolean') merged.intakeAppointmentRequested = partial.intakeAppointmentRequested;
+  for (const key of ['intakeContactPerson', 'intakeContactNotes', 'intakeAppointmentStart', 'intakeAppointmentEnd', 'intakeAppointmentLocation'] as const) {
+    if (typeof partial[key] === 'string') merged[key] = partial[key];
+  }
   for (const key of Object.keys(base) as (keyof ClientIntakeFormData)[]) {
     const value = partial[key];
     if ((typeof base[key] === 'string' && typeof value === 'string') ||

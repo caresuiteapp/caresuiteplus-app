@@ -3,6 +3,8 @@ import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { IntakeDocumentSignature, IntakeDocumentTemplate } from './intakeDocumentTypes';
 import type { IntakePlaceholderContext } from './buildIntakeDocumentContext';
 import { escapeIntakeHtml, formatIntakeDocumentDateTime, isIntakeRenderTimestamp, isSafeIntakeSignatureDataUrl } from './intakeDocumentRenderBinding';
+import { INTAKE_DOCUMENT_2027_CSS } from './intakeDocument2027Css';
+import { INTAKE_2027_VERSION } from './intake2027Fields';
 
 const PLACEHOLDER_PATTERN = /\{\{([a-z0-9_.]+)\}\}/gi;
 // Only these builders emit markup, and escape their own interpolated data.
@@ -96,17 +98,17 @@ export type IntakePreviewResult = {
   unresolvedKeys: string[];
 };
 
-export function wrapIntakeDocumentHtml(bodyHtml: string): string {
+export function wrapIntakeDocumentHtml(bodyHtml: string, edition2027 = false): string {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Intake-Dokument</title>
-  <style>${INTAKE_DOCUMENT_CSS}</style>
+  <title>${edition2027 ? 'Verträge und Einwilligungen · Ausgabe 2027' : 'Intake-Dokument'}</title>
+  <style>${INTAKE_DOCUMENT_CSS}${edition2027 ? INTAKE_DOCUMENT_2027_CSS : ''}</style>
 </head>
 <body>
-  <div class="document-legal">${bodyHtml}</div>
+  <div class="document-legal${edition2027 ? ' document-2027' : ''}">${bodyHtml}</div>
 </body>
 </html>`;
 }
@@ -173,7 +175,10 @@ export function renderIntakeDocumentHtml(
     return HTML_PLACEHOLDER_KEYS.has(normalized) ? value : escapeIntakeHtml(value);
   });
 
-  const html = wrapDocument ? wrapIntakeDocumentHtml(bodyHtml) : bodyHtml;
+  const edition2027 = template.version === INTAKE_2027_VERSION;
+  const content = edition2027 && missingPlaceholders.some(label => !label.startsWith('Unterschrift '))
+    ? '<aside class="document-callout"><strong>Entwurf · Angaben unvollständig</strong><p>Die markierten Pflichtangaben müssen vor einer Unterzeichnung ergänzt und gemeinsam geprüft werden.</p></aside>' + bodyHtml : bodyHtml;
+  const html = wrapDocument ? wrapIntakeDocumentHtml(content, edition2027) : content;
 
   return { html, missingPlaceholders, unresolvedKeys };
 }

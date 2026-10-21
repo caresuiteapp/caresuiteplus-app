@@ -440,6 +440,8 @@ export function mapClientRisk(row: RiskRow): ClientRisk {
 }
 
 export type PortalAccessRow = {
+  account_kind?: ClientPortalAccess['accountKind'];
+  access_scope?: ClientPortalAccess['accessScope'];
   id: string;
   tenant_id: string;
   client_id: string;
@@ -463,6 +465,8 @@ export function mapClientPortalAccess(row: PortalAccessRow): ClientPortalAccess 
     row.status === 'eingeladen' ? 'nicht_eingerichtet' : row.status;
 
   return {
+    accountKind: row.account_kind,
+    accessScope: row.access_scope,
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,

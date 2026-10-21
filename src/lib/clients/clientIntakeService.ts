@@ -36,6 +36,7 @@ import {
 } from '@/lib/client/clientServiceTypeService';
 import { mergeIntakeSectionsFromDbAndRules } from '@/lib/client/clientRecordMappingService';
 import { validateIntakeStep } from './clientIntakeValidation';
+import { getIntakeSectionsForForm } from './clientIntakePlan';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -75,7 +76,7 @@ export async function submitClientIntake(
 ): Promise<ClientIntakeSubmissionResult> {
   const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.create');
   if (denied) return denied;
-  const validationErrors = getIntakeStepsForContexts(form.careContexts)
+  const validationErrors = getIntakeSectionsForForm(form)
     .flatMap((section) => Object.values(validateIntakeStep(section, form)));
   if (validationErrors.length) return { ok: false, error: validationErrors.join(' '), recoverableClientId: options?.draftClientId ?? undefined };
 

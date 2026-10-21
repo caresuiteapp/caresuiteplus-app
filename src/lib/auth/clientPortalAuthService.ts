@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import { Platform } from 'react-native';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -135,8 +136,11 @@ export async function loginClientPortal(
     const login = await invokeEdgeFunction<{
       portalAccountId: string;
       tenantId: string;
-      clientId: string;
-      portalType: PortalAccessType;
+      clientId: string | null;
+      portalType: PortalAccessType | 'academy_family';
+      relativeContactId?: string;
+      accessScope?: 'academy';
+      accessGeneration?: number;
       displayName?: string;
       tenantName?: string | null;
       sessionToken: string;
@@ -149,16 +153,25 @@ export async function loginClientPortal(
       return { ok: false, error: login.error };
     }
 
+    const family = login.data.portalType === 'academy_family';
+    if (family && Platform.OS !== 'web') {
+      return { ok: false, error: 'Ihr persönlicher Akademiezugang steht im Browser bereit. Bitte melden Sie sich unter www.caresuiteplus.app/auth/portal-code-login an.' };
+    }
+    if (family && (!login.data.relativeContactId || login.data.accessScope !== 'academy' || login.data.clientId != null ||
+        typeof login.data.accessGeneration !== 'number' || !Number.isSafeInteger(login.data.accessGeneration) || login.data.accessGeneration < 1)) {
+      return { ok: false, error: 'Der persönliche Akademiezugang wurde nicht vollständig bestätigt.' };
+    }
     const portalSession: PortalSessionRecord = {
       sessionToken: login.data.sessionToken,
       tenantId: login.data.tenantId,
-      loginType: 'client_portal',
-      roleKey: 'client_portal',
+      loginType: family ? 'relative_portal' : 'client_portal',
+      roleKey: family ? 'family_portal' : 'client_portal',
       expiresAt: login.data.expiresAt,
       accountId: login.data.portalAccountId,
       clientId: login.data.clientId ?? null,
       displayName: login.data.displayName?.trim() || undefined,
       tenantName: login.data.tenantName?.trim() || null,
+      ...(family ? { portalType: 'academy_family' as const, accessScope: 'academy' as const, relativeContactId: login.data.relativeContactId, accessGeneration: login.data.accessGeneration } : {}),
     };
 
     return {

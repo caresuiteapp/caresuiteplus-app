@@ -172,7 +172,7 @@ export async function resolveWorkspaceActor(
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data } = await userClient.auth.getUser();
-  if (!data.user) throw new Error('Nicht autorisiert.');
+  if (!data.user || data.user.app_metadata?.portal_type === 'academy_family') throw new Error('Nicht autorisiert.');
   const { data: profile, error: profileError } = await service
     .from('profiles')
     .select('id, tenant_id, role_id, auth_user_id')

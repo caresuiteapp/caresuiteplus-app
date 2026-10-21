@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient, type User } from 'https://esm.sh/@supabase/supabase-js@2';
+import { isAcademyOnlyPortal } from './academyScope.ts';
 
 export type AiTenantMembership = {
   tenant_id: string;
@@ -29,7 +30,7 @@ export async function verifyAiTenantAccess(
   });
 
   const { data: authData, error: authError } = await userClient.auth.getUser();
-  if (authError || !authData.user) return null;
+  if (authError || !authData.user || isAcademyOnlyPortal(authData.user)) return null;
 
   const user = authData.user;
 

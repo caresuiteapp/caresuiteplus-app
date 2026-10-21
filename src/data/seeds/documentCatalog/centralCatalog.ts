@@ -1,6 +1,7 @@
 import { CENTRAL_CATALOG_GROUPS } from './centralCatalogTitles';
 import { centralDocumentSections } from './centralDocumentSections';
 import { careSuiteRelatedSections, careSuiteSoftwareContent } from './careSuiteSoftwareContent';
+import { clientLegalEdition2027 } from './clientLegalEdition2027';
 import type { CentralDocumentDefinition, CentralDocumentField, CentralDocumentLayout, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 
 const CATEGORY_FIELDS: Record<string, string[]> = {
@@ -61,6 +62,7 @@ function field(label: string, index: number, required = false): CentralDocumentF
   return { key: `f${index}_${slug(label).slice(0, 50)}`, label, type: 'multiline', required };
 }
 function inferLayout(title: string, category: string): CentralDocumentLayout {
+  if (title === 'Information zu Ausfällen, Absagen und Kündigungen') return 'form';
   if (/vertrag|verträge|Verpflichtung|Abtretung|Einwilligung|Vollmacht|Lastschriftmandat|Schweigepflichtentbindung|Vereinbarung/i.test(title)) return 'contract';
   if (/Kündigung|Mitteilung|Mahnung|Änderungsanzeige|Schriftverkehr|Widerruf/i.test(title)) return 'letter';
   if (/checkliste|kontrolle der Akte|Aufnahmecheckliste|Abschlusskontrolle/i.test(title)) return 'checklist';
@@ -110,6 +112,7 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
     const layout = sourceMode === 'original' ? 'form' : content?.layout ?? (group.key === 'software' ? 'form' : inferLayout(title, group.key));
     const target = (content?.target ?? (['Tourenplan', 'Dienst- und Einsatzplan', 'Rufbereitschaftsplan', 'Fahrzeugübergabe- und Fahrzeugkontrollbogen', 'Belegungs- und Zimmerübersicht', 'Hausordnung'].includes(title) ? 'company' : group.target)) as CentralDocumentTarget;
     const clinicalReviewRequired = ['pflegeplanung', 'risiken', 'behandlungspflege', 'medikamente', 'wunden', 'palliativ'].includes(group.key);
+    const legal2027 = target === 'client' && sourceMode === 'create' && (['vertraege', 'vollmachten'].includes(group.key) || layout === 'contract') ? clientLegalEdition2027(title, group.key) : null;
     const fields = content?.fields ?? (layout === 'letter' ? [
       { key: 'letterSubject', label: 'Betreff', type: 'text', required: true, defaultValue: title } as CentralDocumentField,
       { key: 'reference', label: 'Aktenzeichen / Ihr Zeichen', type: 'text', required: false } as CentralDocumentField,
@@ -118,11 +121,13 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
       ? ['Aussteller und Ausstellungsdatum', 'Aktenzeichen und Gültigkeit', 'Erforderliche Folgemaßnahmen', 'Originaldatei und Aufbewahrungsort'].map((label, n) => field(label, n, n === 0))
       : documentFields(title, group.key).map((label, n) => field(label, n, n === 0)));
     const related = content ? [] : careSuiteRelatedSections(title, group.key, layout, sourceMode);
-    const replacesGeneric = /Datenschutzinformation|Kommunikationsvereinbarung|Verpflichtung auf Vertraulichkeit/.test(title);
+    const replacesGeneric = /Datenschutzinformation|Kommunikationsvereinbarung|Verpflichtung auf Vertraulichkeit/.test(title)
+      || Boolean(legal2027 && /selbstständigen Medikamentenverwaltung|Nutzung von Haushaltsgeräten|Besuchs- und Kontaktvereinbarungen|Empfangsbestätigung|Kündigung und Vertragsbeendigungsbestätigung|Widerruf einer/.test(title));
+    const legalFieldsOnly = legal2027 && /Datenschutzinformation|selbstständigen Medikamentenverwaltung|Nutzung von Haushaltsgeräten|Besuchs- und Kontaktvereinbarungen|Empfangsbestätigung|Kündigung und Vertragsbeendigungsbestätigung|Widerruf einer/.test(title);
     const sections = content?.sections ?? [...(replacesGeneric ? [] : centralDocumentSections(title, group.key, layout, sourceMode)), ...related];
     return {
       key,
-      categoryKey: group.key, categoryName: group.name, title, version: group.key !== 'software' && (content || related.length) ? 2 : 1, modules: group.modules,
+      categoryKey: group.key, categoryName: group.name, title, version: legal2027 ? 3 : group.key !== 'software' && (content || related.length) ? 2 : 1, ...(legal2027 ? { edition: '2027' as const } : {}), modules: group.modules,
       target, sourceMode, layout, orientation: layout === 'table' ? 'landscape' : 'portrait',
       fields: [
         { key: 'date', label: 'Dokumentdatum', type: 'date', required: true },
@@ -140,13 +145,14 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
           { key: 'personnelNumber', label: 'Personalnummer', type: 'text', required: false, sourcePath: 'subject.personnelNumber' } as CentralDocumentField,
           { key: 'jobTitle', label: 'Tätigkeit / Berufsbezeichnung', type: 'text', required: false, sourcePath: 'subject.jobTitle' } as CentralDocumentField,
         ] : []),
-        ...fields,
+        ...(legalFieldsOnly ? [] : fields.map(item => legal2027 ? { ...item, required: true } : item)),
+        ...(legal2027?.fields ?? []),
       ],
       columns: layout === 'table' || layout === 'checklist' ? columns(title) : [],
       reviewStatus: 'draft',
       legalReviewRequired: layout === 'contract' || ['vollmachten', 'zulassung', 'datenschutz', 'software'].includes(group.key),
       clinicalReviewRequired,
-      sections,
+      sections: [...sections, ...(legal2027?.sections ?? [])],
       instructions: sourceMode === 'original'
         ? 'Originalunterlage der ausstellenden Stelle hinterlegen. Das CareSuite-Begleitblatt ersetzt dieses Original nicht.'
         : clinicalReviewRequired

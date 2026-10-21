@@ -10,7 +10,7 @@ const tests = ['tenant', 'inventory', 'documents', 'navigation'].flatMap(directo
     .map(name => `src/__tests__/${directory}/${name}`),
 ).sort();
 tests.push(...readdirSync(resolve(root, 'src/__tests__/office'))
-  .filter(name => /^(?:office)?catalogWorkspace.*\.test\.tsx?$/i.test(name))
+  .filter(name => /^(?:(?:office)?catalogWorkspace|moduleAssignmentWorkspace).*\.test\.tsx?$/i.test(name))
   .map(name => `src/__tests__/office/${name}`));
 function run(label, args) {
   console.log(`\n[company-release] ${label}`);
@@ -21,7 +21,7 @@ function run(label, args) {
   }
 }
 run('Company workflows and service boundaries', ['node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=1', ...tests]);
-for (const file of ['company_access', 'company_resources_scope', 'company_documents_settings', 'company_owner_profile_activation']) {
+for (const file of ['company_access', 'company_resources_scope', 'company_documents_settings', 'company_owner_profile_activation', 'module_assignment_legacy_read_access']) {
   run(`PostgreSQL ${file}`, ['--test', `supabase/tests/${file}.test.mjs`]);
 }
 console.log('\n[company-release] All required checks passed. No remote database was changed.');

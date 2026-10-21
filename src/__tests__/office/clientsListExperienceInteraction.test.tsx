@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ user: { id: 'user-test' }, profile: { id: 'profile-test' } }) }));
+vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => 'tenant-test' }));
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

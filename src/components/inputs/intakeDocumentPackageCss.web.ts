@@ -1,4 +1,6 @@
+import { intakeLegalDetails2027Css } from './intakeLegalDetails2027Css.web';
 export const intakeDocumentPackageCss = `
+${intakeLegalDetails2027Css}
 .cs-contract-package,.cs-contract-dialog{font-family:CenturyGothic,Arial,sans-serif;color:#183754;font-size:14px;line-height:1.55;box-sizing:border-box}
 .cs-contract-package *,.cs-contract-dialog *{box-sizing:border-box}.cs-contract-package{display:grid;gap:18px;min-width:0}
 .cs-contract-package h3,.cs-contract-dialog h2,.cs-contract-dialog h3,.cs-contract-package p,.cs-contract-dialog p{margin:0}

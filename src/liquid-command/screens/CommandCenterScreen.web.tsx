@@ -17,7 +17,8 @@ import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
 import { canonicalDesktopCatalogRoute, filterDesktopCatalogEntries } from "../navigation/appsWidgetsCatalogModel.web";
 import { confirmAction } from '@/lib/platform/confirmAction';
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { useDesktopCenterRequest } from '@/hooks/useDesktopCenterRequest.web';
 import { useAuth } from "@/lib/auth";
 import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls.web";
 import { HelpButton } from '@/components/help/HelpButton.web';
@@ -62,6 +63,9 @@ function Text({ style, ...props }: TextProps) {
 
 export function CommandCenterScreen() {
   const auth = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { center: requestedCenter } = useLocalSearchParams<{ center?: string | string[] }>();
   const permissions = usePermissions();
   useModuleAccess(); // Subscribe to changes in the existing tenant module cache.
   const tenant = permissions.tenantId ?? '';
@@ -99,6 +103,12 @@ export function CommandCenterScreen() {
   };
   const availableModules = DESKTOP_MODULES.filter(module => permissions.hasModuleGate(module.key) && permissions.can(`${module.key}.access` as PermissionKey));
   const availableSignature = availableModules.map(module => module.key).join(',');
+  useDesktopCenterRequest({
+    requestedTab: requestedCenter,
+    ready: pathname === '/Desktop' && auth.authReady && auth.isAuthenticated && !!tenant && !!user && !!availableSignature && selection?.identity === identity,
+    onOpen: () => setCenter({ identity, tab: 'apps' }),
+    onConsumed: () => router.setParams({ center: undefined }),
+  });
   if (!tenant || !user || !availableSignature) return <View style={[styles.background, styles.loadingHost]}><View style={[styles.glass, styles.loadingCard]}>
     <Text style={styles.sidebarTitle}>Keine freigegebenen Arbeitsbereiche</Text>
     <Pressable onPress={() => void auth.signOut()} style={styles.editButton}><Text style={styles.editText}>Abmelden</Text></Pressable>
@@ -173,7 +183,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
   const moduleDefaults = useMemo(() => moduleWidgets.filter(widget => widget.id === 'document-catalog' || DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [moduleWidgets, selectedArea]);
-  const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
+  const navigationGroups = (['office', 'assist', 'pflege', 'stationaer', 'beratung', 'akademie'].includes(selectedArea) ? buildDesktopNavigationGroups(moduleApps, [selectedArea as ProductKey], navigationQuery) : [{ title: moduleLabel, items: moduleApps.filter(app => matchesSearch(app, navigationQuery)) }].filter(group => group.items.length));
   const moduleWorkflows = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(WORKFLOWS.map(workflow => ({
     ...workflow, permission: workflow.id === 'assignment' ? 'assist.assignments.manage' as PermissionKey : undefined,
   })), selectedArea, permissions) : [], [areaAllowed, selectedArea, permissions]);
