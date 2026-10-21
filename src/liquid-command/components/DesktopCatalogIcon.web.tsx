@@ -44,6 +44,16 @@ const ICON_PATHS: Record<DesktopCatalogIconName, string> = {
   bed: 'M3 3v18M21 11v10M3 17h18M3 11h18v6H3M5 7h5v4H5zM12 11V7h6a3 3 0 0 1 3 3v1',
   learning: 'm2 8 10-5 10 5-10 5zM6 10v7l6 4 6-4v-7M22 8v8',
   flag: 'M4 22V3h7l2 3h7v11h-7l-2-3H4',
+  'academy-overview': 'm2 8 10-5 10 5-10 5zM6 10v7c3 3 9 3 12 0v-7M22 8v8',
+  'academy-courses': 'M3 4c4-1 7 0 9 2 2-2 5-3 9-2v15c-4-1-7 0-9 2-2-2-5-3-9-2zM12 6v15M6 8l3 1M6 12l3 1M15 8l3 2-3 2z',
+  'academy-templates': 'M3 3h8v8H3zM15 3h6v6h-6zM3 15h6v6H3zM12 21l1-4 6-6 3 3-6 6zM17 13l3 3',
+  'academy-participants': 'M10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0M20 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0M2 19v-2a5 5 0 0 1 10 0v2M14 13a5 5 0 0 1 8 4v2M14 19l2 2 5-5',
+  'academy-schedule': 'M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2M7 3v4M17 3v4M3 10h18M7 15l3 3 7-5',
+  'academy-mandatory': 'M8 4H4v17h16V4h-4M8 2h8v4H8zM7 10l2 2 3-4M7 16l2 2 3-4M15 10h2M15 16h2',
+  'academy-reviews': 'M18 8V3H4v18h7M7 7h7M7 11h3M20 15a5 5 0 1 1-10 0 5 5 0 0 1 10 0M19 19l3 3M12 15l2 2 3-4',
+  'academy-certificates': 'M14 21H4V3h16v10M7 7h10M7 11h5M21 16a4 4 0 1 1-8 0 4 4 0 0 1 8 0M14 19l-1 4 4-2 4 2-1-4M7 16h3',
+  'academy-library': 'M3 3h5v18H3zM8 5h5v16H8zM15 4l4-1 3 17-4 1zM3 7h5M8 9h5M3 17h5M8 17h5M16 8l4-1',
+  'academy-reports': 'M3 3v18h18M7 17v-5M12 17V8M17 17v-3M7 7l5-4 5 5 4-3',
 };
 
 export type DesktopCatalogIconProps = {
