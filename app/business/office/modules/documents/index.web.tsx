@@ -1,1 +1,5 @@
-export { DocumentModuleAssignmentsScreen as default } from '@/screens/business/office/DocumentModuleAssignmentsScreen.web';
+import { OfficeModuleAssignmentListScreen } from '@/screens/business/office/OfficeModuleAssignmentListScreen.web';
+
+export default function DocumentModuleAssignmentsPage() {
+  return <OfficeModuleAssignmentListScreen section="documents" />;
+}

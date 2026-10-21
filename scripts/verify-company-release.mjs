@@ -10,7 +10,7 @@ const tests = ['tenant', 'inventory', 'documents', 'navigation'].flatMap(directo
     .map(name => `src/__tests__/${directory}/${name}`),
 ).sort();
 tests.push(...readdirSync(resolve(root, 'src/__tests__/office'))
-  .filter(name => /^(?:office)?catalogWorkspace.*\.test\.tsx?$/i.test(name))
+  .filter(name => /^(?:(?:office)?catalogWorkspace|moduleAssignmentWorkspace).*\.test\.tsx?$/i.test(name))
   .map(name => `src/__tests__/office/${name}`));
 function run(label, args) {
   console.log(`\n[company-release] ${label}`);
