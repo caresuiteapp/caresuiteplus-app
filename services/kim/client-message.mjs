@@ -5,6 +5,7 @@ import { createEccKimAuth, verifyReceivedEccKimAuth, unfoldAutHeader, validCmVer
 import { sealEccKimPayload, openEccKimPayload, inspectEccKimPayload } from './ecc-cms.mjs';
 import { readKimEnvelope } from './envelope.mjs';
 import { receiveReportContext, buildKimReceiveError } from './receive-error.mjs';
+import { assessKimOcspEvidence } from './ocsp.mjs';
 
 const copied = new Set(['date', 'from', 'sender', 'reply-to', 'to', 'cc', 'bcc', 'message-id', 'expires']);
 const replaced = new Set(['x-kim-auth', 'x-kim-cmversion', 'x-kim-ptversion']);
@@ -176,6 +177,9 @@ export function receiveEccKimMessage(options, reportOptions) {
     }
     opened = processMessage({ ...options, bytes: context.original, now }, (error, state) => buildKimReceiveError(context, error, state));
     if (opened.kind === 'diagnostic') return opened;
-    return buildKimReceiveError(context, new KimMessageError('KIM_MESSAGE_TRUST_UNAVAILABLE', 'trust'), { message: opened.message, decrypted: true });
+    const certificateStatus = options.ocsp === undefined ? undefined : assessKimOcspEvidence(options.ocsp, {
+      signing: options.expectedSignerCertificate, authentication: options.expectedAuthCertificate });
+    const code = certificateStatus?.some(s => s.status !== 'good') ? 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED' : 'KIM_MESSAGE_TRUST_UNAVAILABLE';
+    return buildKimReceiveError(context, new KimMessageError(code, 'trust'), { message: opened.message, decrypted: true, certificateStatus });
   } finally { opened?.message?.fill(0); context.original.fill(0); context.verificationReport?.fill(0); }
 }

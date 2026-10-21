@@ -42,6 +42,7 @@ CareSuite-KIM-Versandworker bleiben gesperrt.
 | Innere Signatur/Attribute/Zertifikatsbindung nicht erfolgreich geprüft | XCS_INTEGRITY | IntegrityCheckResult XCS_SIGNATURE |
 | Header- oder Empfängerbindung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult XCS_HEADER |
 | AUT-Prüfung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult 10 |
+| Optional übergebener OSIG-/AUT-Status gesperrt, unbekannt oder nicht prüfbar | XCS_CERT_STATUS | IntegrityCheckResult XCS_CERT_STATUS |
 | Lokale Prüfungen bestanden, TI-Vertrauen noch nicht bestätigt | XCS_TRUST | IntegrityCheckResult 07 |
 
 Ein falscher Schlüssel oder beschädigter GCM-Tag wird nicht als sicher
@@ -50,6 +51,11 @@ Integritätscodes 08/09 setzen weitere Zertifikatsnachweise voraus; sie werden
 deshalb hier nicht vorgetäuscht. Ergebnis 00 besagt ausschließlich, dass die
 authentisierte Entschlüsselung gelang. Ergebnis 01 für erfolgreiche vollständige
 Integritätsprüfung wird durch diesen Pfad nicht erzeugt.
+
+Die optionale [OCSP-Anbindung](ocsp.md) prüft nun echte Statusantworten gegen
+die tatsächlich verwendeten OSIG-/AUT-Zertifikate und konfigurierte Signierer-Pins.
+Der Bericht enthält die getrennten Befunde und Antworthashes. Zwei positive
+lokale Befunde bleiben Ergebnis 07; sie ersetzen keine TI-TSL/VZD-Prüfung.
 
 ## Aufbau der Diagnose
 
@@ -132,7 +138,8 @@ Base64. Die rohen RFC822-Anhangsbytes werden zusätzlich exakt verglichen.
 Der bestehende echte SMTP-/POP3-Test erzeugt aus dem gespeicherten Original eine
 07-Diagnose und eine 4009-Meldung. Die Inbox bleibt unverändert, es wird keine
 weitere Mail an den Sender erzeugt, der Wiederholschutz bleibt erhalten.
-Gesamtlauf: **198/198 bestanden**, ohne übersprungene Fälle.
+Beim Diagnoseinkrement: **198/198 bestanden**, ohne übersprungene Fälle;
+mit der danach ergänzten OCSP-Prüfung **223/223**.
 Die vier Vercel-Builds des Vorgängers `817a673` sind erfolgreich.
 
 Quelle: [gemSpec_CM_KOMLE 1.23.0](https://gemspec.gematik.de/docs/gemSpec/gemSpec_CM_KOMLE/gemSpec_CM_KOMLE_V1.23.0/),

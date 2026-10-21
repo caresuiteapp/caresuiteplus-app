@@ -8,8 +8,28 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**198 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**223 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## OCSP-Statusprüfung am 21.10.2026
+
+Die bisherigen 198 Fälle und **25 neue Prüfungen** bestehen gemeinsam.
+`kim-ocsp.test.mjs` prüft reale ECDSA-/RSA-PSS-Antworten, CertID-/certHash-
+Bindung, Sperrstatus, strikte Zeitgrenzen, falsche Signierer, Manipulationen,
+DER-/Erweiterungs-/Größenfehler, Snapshotablauf und den KIM-Empfangsbericht.
+Positive Statusbelege allein erzeugen weiterhin keine TI-Identität oder Zustellung.
+
+OpenSSL liest die eigene Anfrage und prüft die eigene Antwort samt Status.
+Eine von OpenSSL erzeugte Antwort wird umgekehrt bis zu ihrer fehlenden
+TI-certHash-Erweiterung verarbeitet und dort abgelehnt. Cacheprüfungen belegen
+Wiederverwendung, gemeinsame laufende Beschaffung, negative Befunde, Ablauf,
+Kapazität, Timeout und Schließen ohne Übernahme verspäteter Antworten.
+
+Gesamtprozess: **223 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
+Vorhandene Laufzeit, keine Installation, UI-/Android-/Datenbank- oder
+Produktionsänderung. Vollständige TI-Vertrauensprüfung, dauerhafte
+Statusbeschaffung und Konnektorintegration bleiben offen. [Details](ocsp.md).
+Alle vier Vercel-Projekte haben den Vorgänger **9746200** erfolgreich gebaut.
 
 ## KIM-Empfangsdiagnosen am 21.10.2026
 

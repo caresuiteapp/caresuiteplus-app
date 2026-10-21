@@ -79,6 +79,10 @@ oder die ursprüngliche Exception. Nach einem Fehler wird kein Klartext
 zurückgegeben. Der separate [Diagnosepfad](kim-receive-errors.md) ergänzt lokale
 Fehler-MIME-Nachrichten, referenzierte Prüfberichte und eine ausdrücklich zu
 aktivierende Originalanhangoption. Dieser Pfad gibt keine normale Zustellung frei.
+Die optionale [OCSP-Anbindung](ocsp.md) prüft nun Statusbelege für genau die
+verwendeten OSIG-/AUT-Zertifikate. Lokale Pins bestätigen noch kein TI-Vertrauen;
+auch zwei positive Befunde bleiben Diagnose 07. Negative oder nicht auswertbare
+übergebene Belege werden gesondert ausgewiesen.
 
 ## Unterstützte Teilmenge
 
@@ -134,7 +138,7 @@ stimmt nach Entschlüsselung überein, der ursprüngliche Body bleibt bytegleich
 Die vorhandene Wiederholung nach POP3-Löschung erzeugt weiterhin keine Dublette.
 
 Beim Nachrichteninkrement: **179/179 bestanden**, keine übersprungenen Fälle;
-mit dem danach ergänzten Fehlerpfad sind es **198/198**. Keine Installation
+mit dem danach ergänzten Fehlerpfad waren es **198/198**, mit OCSP **223/223**. Keine Installation
 zusätzlicher Pakete/Container, keine Produktionsdaten oder echten Empfänger.
 Der Vorgängercommit `280be44` hat vier erfolgreiche Vercel-Builds; der jeweilige
 neue Commit wird unabhängig davon geprüft.

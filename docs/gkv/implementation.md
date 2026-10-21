@@ -20,7 +20,10 @@ unbestätigt. Der [Nachrichtenablauf](kim-client-message.md) ergänzt AUT-Erzeug
 äußere MIME-Nachricht, geschützten Headervergleich und einen eigenen AUT-
 Empfangsprüfer für zeitversetztes Abholen. Der [Fehlerpfad](kim-receive-errors.md)
 erzeugt inzwischen lokale Diagnosemails mit unveränderten Originalbelegen und
-standardmäßig deaktiviertem Klartextanhang. TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
+standardmäßig deaktiviertem Klartextanhang. Die [OCSP-Prüfung](ocsp.md) ergänzt
+signierte Sperrstatusbelege gegen konfigurierte Pins, einen begrenzten lokalen
+Cache und die Bindung der Ergebnisse an die OSIG-/AUT-Zertifikate im Empfangsbericht.
+TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
 ## Verbindliche Quellen und Versionsstand

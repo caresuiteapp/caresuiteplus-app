@@ -273,6 +273,19 @@ und die SMTP-/POP3-Anbindung bestehen im Gesamtlauf mit **198 Prüfungen**.
 Die normale Zustellung bleibt gesperrt; vollständige Fehlertexte und die
 Konnektor-/HSM-/KAS-Matrix sind noch offen. [Details](kim-receive-errors.md).
 
+### Eigene OCSP-Statusprüfung
+
+`ocsp.mjs` erzeugt Anfragen und verifiziert echte ECC-/RSA-PSS-Antworten gegen
+explizite Aussteller-/Signierer-Pins. CertID, vollständiger certHash, Status und
+producedAt werden geprüft. Ein begrenzter Prozesscache vermeidet doppelte
+Beschaffung und verwirft abgelaufene oder verspätete Antworten. Optional
+übergebene OSIG-/AUT-Belege werden im KIM-Empfang erneut geprüft und im
+Bericht zum Original dokumentiert. Auch `good` bestätigt noch keine
+TI-Identität; negative oder nicht prüfbare Befunde erhalten `XCS_CERT_STATUS`.
+25 neue Fälle einschließlich OpenSSL-Gegenprüfung bestehen im Gesamtlauf mit
+**223 Prüfungen**. TSL, dauerhafte Statusbeschaffung und Konnektorintegration
+bleiben offen. [Schnittstellen und Grenzen](ocsp.md).
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
@@ -300,7 +313,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung und lokale Fehler-MIME vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL/OCSP, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME und OCSP-Statusprüfung gegen Pins vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL, dauerhafte Statusbeschaffung, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

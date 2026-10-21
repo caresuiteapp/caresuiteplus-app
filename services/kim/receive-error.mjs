@@ -34,6 +34,8 @@ export function receiveReportContext({ bytes, address, cmVersion, ptVersion, inc
 // Fixed diagnostic vocabulary. Native errors and attacker-controlled token/header values
 // never become error prose or report fields. Uncertain failures use manufacturer codes.
 function diagnosis(error, decrypted) {
+  if (error.code === 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED') return { kind: 'integrity', code: 'XCS_CERT_STATUS', integrity: 'XCS_CERT_STATUS',
+    detail: 'Der Sperrstatus mindestens eines Nachrichtenzertifikats wurde nicht positiv bestätigt. Der Prüfbericht unterscheidet gesperrte, unbekannte und nicht auswertbare Statusangaben. Die Nachricht bleibt ungeprüft.' };
   if (error.code === 'KIM_MESSAGE_TRUST_UNAVAILABLE') return { kind: 'integrity', code: 'XCS_TRUST', integrity: '07',
     detail: 'Die mathematischen Prüfungen waren erfolgreich. TI-Vertrauenskette, Sperrstatus und Verzeichniszuordnung sind noch nicht bestätigt.' };
   if (decrypted || ['headers', 'auth', 'signature'].includes(error.stage)) return { kind: 'integrity', code: 'XCS_INTEGRITY',
@@ -112,7 +114,7 @@ function reportHeaders(context, inner, integrity, id) {
  * mailbox automatically. A_23165's decrypted original is an explicit opt-in, default false.
  * The external XML is kept opaque; no XSD, report authenticity or TI trust is inferred.
  */
-export function buildKimReceiveError(context, error, { message, decrypted = false } = {}) {
+export function buildKimReceiveError(context, error, { message, decrypted = false, certificateStatus } = {}) {
   const d = diagnosis(error, decrypted), id = randomUUID(), integrity = d.kind === 'integrity', inner = message ? parsed(message) : undefined;
   const h = reportHeaders(context, inner, integrity, id), attachments = [];
   const added = [];
@@ -132,6 +134,7 @@ export function buildKimReceiveError(context, error, { message, decrypted = fals
     originalBytes: context.original.length, identityStatus: 'unverified', deliveryStatus: 'diagnostic-only',
     headerSource: h.headerSource, omittedHeaderNames: h.omitted, decryptedOriginalAttached: integrity && context.includeDecryptedOriginal && Boolean(message),
     externalReportSha256: integrity && context.verificationReport ? digest(context.verificationReport) : undefined,
+    ...(integrity && certificateStatus ? { certificateStatus } : {}),
     processedAt: new Date(context.now).toISOString() };
   if (integrity) {
     const name = `IntegrityReport_${id}.json`;
