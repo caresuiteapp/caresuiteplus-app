@@ -6,6 +6,17 @@ create schema if not exists care_private;
 revoke all on schema care_private from public,anon;
 grant usage on schema care_private to authenticated;
 
+create or replace function care_private.medication_client_is_active(p_tenant uuid,p_client uuid)
+returns boolean language plpgsql security definer set search_path='' as $$
+begin
+ perform care_private.require_workspace_session(p_tenant,public.resolve_current_profile_id());
+ return exists(select 1 from public.clients c join public.client_module_assignments a
+ on a.tenant_id=c.tenant_id and a.client_id=c.id and a.module_key='pflege'
+ where c.tenant_id=p_tenant and c.id=p_client and c.status::text in('active','aktiv')
+ and c.lifecycle_status::text in('active','aktiv') and a.is_active and a.status in('active','aktiv'));
+end $$;
+revoke all on function care_private.medication_client_is_active(uuid,uuid) from public,anon,authenticated;
+
 create table if not exists public.medication_safety_events(
  id uuid primary key default gen_random_uuid(),tenant_id uuid not null references public.tenants(id),
  client_id uuid not null references public.clients(id),medication_id uuid not null references public.medications(id),
@@ -20,9 +31,9 @@ alter table public.medication_safety_events enable row level security;
 drop policy if exists medication_safety_read on public.medication_safety_events;
 create policy medication_safety_read on public.medication_safety_events for select to authenticated using(
  tenant_id=public.current_tenant_id() and public.has_permission('pflege.medications.view')
- and public.is_active_pfleger_client(client_id)
+ and care_private.medication_client_is_active(tenant_id,client_id)
 );
-grant select on public.medication_safety_events to authenticated;
+revoke select on public.medication_safety_events from public,anon,authenticated;
 revoke insert,update,delete,truncate on public.medication_safety_events from public,anon,authenticated;
 
 create table if not exists care_private.medication_safety_requests(
@@ -34,11 +45,12 @@ alter table care_private.medication_safety_requests enable row level security;
 revoke all on care_private.medication_safety_requests from public,anon,authenticated;
 
 create or replace function care_private.medication_json_fingerprint(value jsonb)
-returns text language sql immutable strict set search_path='' as $$select 'sha256:'||encode(digest(convert_to(value::text,'UTF8'),'sha256'),'hex')$$;
+returns text language sql immutable strict set search_path='' as $$select 'sha256:'||encode(extensions.digest(convert_to(value::text,'UTF8'),'sha256'),'hex')$$;
 create or replace function care_private.medication_packet_actor(permission_name text,p_tenant uuid,p_client uuid,p_medication uuid,p_actor uuid)
 returns uuid language plpgsql security definer set search_path='' as $$
 declare claims jsonb;session_id uuid;actor uuid;
 begin
+ perform care_private.require_workspace_session(p_tenant,p_actor);
  claims:=coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb;
  if claims->>'session_id' is null or claims->>'session_id' !~* '^[0-9a-f-]{36}$' then raise exception 'Sitzungsbindung fehlt.' using errcode='42501';end if;
  session_id:=(claims->>'session_id')::uuid;actor:=public.resolve_current_profile_id();
@@ -46,7 +58,7 @@ begin
  or not exists(select 1 from auth.sessions s where s.id=session_id and s.user_id=auth.uid() and coalesce(s.not_after,clock_timestamp()+interval '1 second')>clock_timestamp())
  or not exists(select 1 from public.profiles p where p.id=actor and p.tenant_id=p_tenant and p.is_active)
  or public.has_permission('pflege.medications.view') is not true or public.has_permission(permission_name) is not true
- or public.is_active_pfleger_client(p_client) is not true
+ or care_private.medication_client_is_active(p_tenant,p_client) is not true
  or not exists(select 1 from public.medications m where m.id=p_medication and m.tenant_id=p_tenant and m.client_id=p_client)
  then raise exception 'Aktueller Medikationsbezug oder Berechtigung fehlt.' using errcode='42501';end if;
  return actor;
@@ -117,11 +129,12 @@ returns jsonb language sql security invoker set search_path='' as $$select care_
 
 create or replace function care_private.read_medication_safety_page(p_tenant uuid,p_client uuid,p_medication uuid,p_actor uuid,p_cursor timestamptz,p_cursor_id uuid,p_size integer)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare actor uuid;rows jsonb;next_row record;
-begin actor:=care_private.medication_packet_actor('pflege.medications.view',p_tenant,p_client,p_medication,p_actor);if p_size<1 or p_size>100 then raise exception 'Ungültige Seitengröße.' using errcode='23514';end if;
+declare actor uuid;rows jsonb;last_row jsonb;
+begin actor:=care_private.medication_packet_actor('pflege.medications.view',p_tenant,p_client,p_medication,p_actor);if p_size is null or p_size<1 or p_size>100 or (p_cursor is null)<>(p_cursor_id is null) then raise exception 'Ungültige Seitengröße.' using errcode='23514';end if;
  with heads as(select distinct on(e.root_id)e.* from public.medication_safety_events e where e.tenant_id=p_tenant and e.client_id=p_client and e.medication_id=p_medication order by e.root_id,e.revision desc),page as(select * from heads h where p_cursor is null or (h.recorded_at,h.id)<(p_cursor,p_cursor_id) order by h.recorded_at desc,h.id desc limit p_size)
- select coalesce(jsonb_agg(care_private.medication_original(x.id) order by x.recorded_at desc,x.id desc),'[]'::jsonb),min(x.recorded_at),min(x.id) filter(where x.recorded_at=(select min(y.recorded_at) from page y)) into rows,next_row.recorded_at,next_row.id from page x;
- return jsonb_build_object('rows',rows,'nextCursorRecordedAt',case when next_row.recorded_at is null then null else to_char(next_row.recorded_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') end,'nextCursorId',next_row.id);
+ select coalesce(jsonb_agg(care_private.medication_original(x.id) order by x.recorded_at desc,x.id desc),'[]'::jsonb) into rows from page x;
+ last_row:=rows->(jsonb_array_length(rows)-1);
+ return jsonb_build_object('rows',rows,'nextCursorRecordedAt',last_row->>'recordedAt','nextCursorId',last_row->>'headId');
 end $$;
 create or replace function public.web_read_medication_safety_page(p_tenant_id uuid,p_client_id uuid,p_medication_id uuid,p_actor_profile_id uuid,p_cursor_recorded_at timestamptz,p_cursor_id uuid,p_page_size integer)
 returns jsonb language sql security invoker set search_path='' as $$select care_private.read_medication_safety_page(p_tenant_id,p_client_id,p_medication_id,p_actor_profile_id,p_cursor_recorded_at,p_cursor_id,p_page_size)$$;
