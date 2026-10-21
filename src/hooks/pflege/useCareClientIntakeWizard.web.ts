@@ -11,7 +11,7 @@ import {
   loadClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { upsertClientIntakeDraft, confirmClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase.web';
+import { upsertClientIntakeDraft, confirmClientIntakeDraft } from '@/lib/clients/repositories/careClientIntakeDraftRepository.supabase.web';
 import { ClientIntakeWorkflow, withIntakeBrowserLock, type IntakeWorkflowProgress } from '@/lib/clients/clientIntakeWorkflow.web';
 import { ClientIntakeIdentitySession } from '@/lib/clients/clientIntakeIdentitySession.web';
 import { completeWebClientIntake } from '@/lib/clients/clientIntakeCompletion.web';
