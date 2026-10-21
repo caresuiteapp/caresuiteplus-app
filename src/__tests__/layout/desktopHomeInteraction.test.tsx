@@ -193,7 +193,7 @@ describe('area desktops with the permitted navigation', () => {
     await render();
     const header = host.querySelector('[data-testid=desktop-workspace-header]')!;
     expect(header.querySelector('[aria-label="Desktop-Modul auswählen"]')).toBeNull();
-    expect(header.querySelectorAll('[role="tab"]')).toHaveLength(8);
+    expect(header.querySelectorAll('[role="tab"]')).toHaveLength(9);
     expect(label('Seite Rechnungen öffnen')).not.toBeNull();
     expect(label('Seite Einsätze öffnen')).toBeNull();
     await click(areaTab('Assist'));

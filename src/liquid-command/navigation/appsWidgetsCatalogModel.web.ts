@@ -60,10 +60,19 @@ const CATALOG: CatalogRule = { module: 'office', all: ['office.catalogs.view'] }
 const RECORDS: CatalogRule = { module: 'assist', all: ['assist.records.view'] };
 const ASSIGNMENTS: CatalogRule = { module: 'assist', all: ['assist.assignments.view'] };
 const WORKSPACE: CatalogRule = { module: 'office', roles: ['business_admin', 'business_manager'] };
+const ACADEMY: CatalogRule = { module: 'akademie', all: ['akademie.courses.view'] };
+const ACADEMY_AUTHORING: CatalogRule = { module: 'akademie', all: ['akademie.courses.view', 'akademie.courses.manage'] };
 
 // Only actual launcher destinations are listed. A newly added or unknown deep
 // link must be reviewed rather than inherit a broad module-level permission.
 const RULES: Readonly<Record<string, CatalogRule>> = {
+  '/akademie': ACADEMY,
+  '/akademie/kurse': ACADEMY, '/akademie/kurse/new': ACADEMY_AUTHORING,
+  '/akademie/vorlagen': ACADEMY_AUTHORING, '/akademie/mediathek': ACADEMY,
+  '/akademie/schulungsplan': ACADEMY, '/akademie/pflichtschulungen': ACADEMY,
+  '/akademie/teilnehmer': ACADEMY, '/akademie/zertifikate': ACADEMY,
+  '/akademie/auswertungen': ACADEMY,
+  '/akademie/pruefungen': { module: 'akademie', all: ['akademie.courses.view', 'akademie.enrollments.review'] },
   '/beratung': { module: 'beratung', all: ['beratung.cases.view', 'office.clients.view_sensitive'] },
   '/beratung/arbeitsplatz': { module: 'beratung', all: ['beratung.cases.view', 'office.clients.view_sensitive'] },
   '/settings': {}, '/settings/profile': {}, '/settings/appearance': {},

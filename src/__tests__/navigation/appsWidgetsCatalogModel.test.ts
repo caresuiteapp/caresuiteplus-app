@@ -31,6 +31,8 @@ describe('Web apps and widgets catalog', () => {
     ['/business/connect', 'office'],
     ['/business/reporting', 'office'],
     ['/business/qm', 'office'],
+    ['/akademie', 'akademie'],
+    ['/akademie/vorlagen?course=example', 'akademie'],
     ['/settings-extra', null],
   ])('places %s in its actual area', (route, area) => {
     expect(desktopCatalogAreaForRoute(route)).toBe(area);
@@ -126,7 +128,30 @@ describe('Web apps and widgets catalog', () => {
     expect(canShowDesktopCatalogRoute('/business/reporting', { ...admin, roleKey: 'dispatch' })).toBe(true);
   });
 
-  it.each(['/pflege', '/pflege/planung', '/stationaer/bewohner', '/beratung/faelle', '/akademie'])('keeps unreleased %s locked even when all permissions are granted', route => {
+  it('offers the published Academy pages only with the corresponding module and action rights', () => {
+    const apps = buildDesktopApps([], 'business_admin');
+    const full = filterDesktopCatalogEntries(apps, 'akademie', admin);
+    expect(full.map(app => app.route)).toEqual(expect.arrayContaining([
+      '/akademie', '/akademie/kurse', '/akademie/vorlagen', '/akademie/schulungsplan',
+      '/akademie/teilnehmer', '/akademie/pruefungen', '/akademie/zertifikate', '/akademie/auswertungen',
+    ]));
+    const reader = withPermissions('akademie.access', 'akademie.courses.view');
+    expect(canShowDesktopCatalogRoute('/akademie/kurse', reader)).toBe(true);
+    expect(canShowDesktopCatalogRoute('/akademie/vorlagen', reader)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/akademie/kurse/new', reader)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/akademie/pruefungen', reader)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/akademie/vorlagen', withPermissions('akademie.access', 'akademie.courses.view', 'akademie.courses.manage'))).toBe(true);
+    expect(canShowDesktopCatalogRoute('/akademie/pruefungen', withPermissions('akademie.access', 'akademie.courses.view', 'akademie.enrollments.review'))).toBe(true);
+    expect(filterDesktopCatalogEntries(apps, 'akademie', { ...admin, hasModuleGate: module => module !== 'akademie' })).toEqual([]);
+    expect(filterDesktopCatalogEntries(apps, 'akademie', withPermissions('akademie.access'))).toEqual([]);
+    expect(filterDesktopCatalogEntries(apps, 'akademie', withPermissions('akademie.courses.view'))).toEqual([]);
+    expect(canShowDesktopCatalogRoute('/akademie/not-reviewed', admin)).toBe(false);
+    for (const roleKey of ['employee_portal', 'client_portal', 'family_portal']) {
+      expect(filterDesktopCatalogEntries(apps, 'akademie', { ...admin, roleKey })).toEqual([]);
+    }
+  });
+
+  it.each(['/pflege', '/pflege/planung', '/stationaer/bewohner', '/beratung/faelle'])('keeps unreleased %s locked even when all permissions are granted', route => {
     expect(canShowDesktopCatalogRoute(route, admin)).toBe(false);
   });
 

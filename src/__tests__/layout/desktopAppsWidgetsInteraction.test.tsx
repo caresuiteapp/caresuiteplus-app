@@ -139,7 +139,9 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(topbar.querySelector('[aria-label="Desktop im Katalog wechseln"]')).toBeNull();
     expect(label('Desktop im Katalog wechseln')).toBeNull();
     expect(label('Office-Desktop auswählen')).toBeNull();
-    expect(workspaceHeader().querySelectorAll('[role="tab"]')).toHaveLength(8);
+    expect([...workspaceHeader().querySelectorAll('[role="tab"]')].map(element => visibleText(element as HTMLElement))).toEqual([
+      'Office', 'Assist', 'Pflege', 'Stationär', 'Beratung', 'Akademie', 'Roboter', 'Premium', 'Einstellungen',
+    ]);
     expect(tab('Office', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
     await click(tab('Assist', workspaceHeader()));
     expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
@@ -150,7 +152,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen öffnen')).toBeTruthy();
     await open();
     expectSelectedDesktop('office');
-    expect(dialog().querySelectorAll('[aria-label$="-Desktop auswählen"]')).toHaveLength(8);
+    expect(dialog().querySelectorAll('[aria-label$="-Desktop auswählen"]')).toHaveLength(9);
     expect(dialog().textContent).toContain('Aktueller Desktop: Office');
     expect(label('Desktop wechseln')).toBeNull();
     await selectDesktop('assist');
@@ -171,6 +173,28 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Desktop im Katalog wechseln')).toBeNull();
     await open();
     expectSelectedDesktop('assist');
+  });
+
+  it('opens the Academy desktop and templates and restores its own pinned widgets without changing Office', async () => {
+    api.modules.add('akademie');
+    seed(['clients']); seed([], 'akademie'); await render();
+    await click(tab('Akademie', workspaceHeader()));
+    expect(host.textContent).toContain('Mein Desktop · Akademie');
+    expect(label('Klient:innen öffnen')).toBeNull();
+    await open('Widgets');
+    expectSelectedDesktop('akademie');
+    await clickLabel('Vorlagen & Kursbaukasten zum Desktop hinzufügen');
+    const academyWidgets = savedIds('akademie');
+    expect(academyWidgets).toHaveLength(1);
+    expect(savedIds()).toEqual(['clients']);
+    await remount();
+    expect(tab('Akademie', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Vorlagen & Kursbaukasten öffnen')).toBeTruthy();
+    await open();
+    await clickLabel('App Vorlagen & Kursbaukasten öffnen');
+    expect(api.push).toHaveBeenCalledWith('/akademie/vorlagen');
+    expect(savedIds('akademie')).toEqual(academyWidgets);
+    expect(savedIds()).toEqual(['clients']);
   });
 
   it('keeps the catalog and Workflows tab open while switching desktops and resets the previous search', async () => {
