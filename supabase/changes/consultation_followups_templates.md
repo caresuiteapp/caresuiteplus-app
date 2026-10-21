@@ -1,11 +1,15 @@
-# Teamvorlagen und Nachverfolgung – vorbereiteter Rollout
+# Teamvorlagen und Nachverfolgung – Rollout
 
-Stand 20.10.2026. Das SQL in dieser Ablage ist vorbereitet, isoliert geprüft und noch nicht produktiv angewendet. Es ist keine automatisch abzuarbeitende historische Migration.
+Stand 21.10.2026. Nach ausdrücklichem Deploy-Auftrag wurde das unveränderte vorbereitete SQL in `caresuiteplus-production` angewendet. Supabase hat dafür die Version `20261021063230` registriert. Die identische Datei liegt jetzt unter `supabase/migrations/20261021063230_consultation_followups_templates.sql`; die Testfixture verwendet diese Datei. Der ursprüngliche Vorbereitungskommentar bleibt zur bytegleichen Nachvollziehbarkeit erhalten. MD5 der registrierten SQL-Anweisung und der Datei: `ff69a412de8406c8e2dbf39f2a8ebd37`.
+
+Vor Anwendung stimmten die Quelltext-Prüfsummen aller zehn vorhandenen Beratungsfunktionen mit den versionierten Migrationen überein. Danach wurden RLS und fehlende direkte Tabellenrechte für alle drei neuen Tabellen, SECURITY INVOKER der öffentlichen RPCs, feste Suchpfade sowie die entzogenen Aufrufrechte der alten privaten Einstiegspunkte geprüft. Beide RPCs weisen Aufrufe ohne angemeldete Identität ab. Es wurden keine produktiven Testfälle angelegt. Der Sicherheitsberater meldet für die drei neuen Tabellen ausschließlich den erwarteten Hinweis „RLS Enabled No Policy“: Direkter Tabellenzugriff bleibt gesperrt; die bewachten RPCs übernehmen die Zugriffsprüfung.
+
+Die Datenbankfreigabe ist damit belegt. Web-Veröffentlichung und authentifizierte Browserabnahme bleiben getrennte Nachweise; der endgültige Buildstatus wird in PR #137 festgehalten.
 
 ## Voraussetzungen und Reihenfolge
 
 1. Gemeinsamen Beratungsarbeitsplatz und dessen Company-Access-/Portalvoraussetzungen prüfen. Benötigt wird insbesondere `20261019202713_consultation_workspace.sql`. Nicht pauschal ältere vorbereitete Beratungsmigrationen anwenden.
-2. Nach der Freigabe des Rollouts den aktuellen Schema-/Funktionsstand und Supabase-Sicherheitsberater prüfen. `consultation_followups_templates.sql` als eine Transaktion über `apply_migration` registrieren. Die CLI ist in der vorhandenen Umgebung nicht installiert; gemäß Projektvorgabe wird keine zusätzliche Software eingerichtet und kein Zeitstempel erfunden. Die vom Server registrierte Migrationsversion danach mit identischem SQL unter `supabase/migrations/` nachvollziehen und die Testfixture auf diese Datei umstellen.
+2. Vor einer Anwendung in einer weiteren Umgebung deren Schema-/Funktionsstand und Supabase-Sicherheitsberater prüfen. Die registrierte Migration nur anwenden, wenn sie dort noch fehlt und die Voraussetzungen übereinstimmen. Die Produktionsversion stammt aus der serverseitigen Migrationshistorie; keine zusätzliche Software wurde eingerichtet.
 3. Neue Tabellen, RLS, entzogene direkte Tabellenrechte und SECURITY-INVOKER-Eigenschaft der öffentlichen RPCs prüfen. `care_security` bleibt ein nicht exponiertes Implementierungsschema; nur die beiden bewachten Erweiterungsfunktionen sind für `authenticated` ausführbar. Keine produktiven Testfälle anlegen.
 4. Web-Stand veröffentlichen und reale Anmeldung/RPCs sowie breite/schmale Darstellung, Tastatur, Zoom, Touchsignatur und Druck in einer zulässigen Testumgebung abnehmen. Fehlende echte Browsernachweise nicht als erledigt behandeln.
 

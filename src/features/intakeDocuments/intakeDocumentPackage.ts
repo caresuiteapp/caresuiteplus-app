@@ -5,11 +5,12 @@ import type { IntakeDocumentSignature, IntakeDocumentState, IntakeDocumentTempla
 import { hasIntakeRenderBinding, INTAKE_ORIGINAL_CHANGED_ERROR } from './intakeDocumentRenderBinding';
 import { hasCollectedIntakeOriginal } from './restartIntakeDocumentReview';
 import { finalizeIntakeDocumentHtml } from './renderIntakeDocumentPreview';
+import { INTAKE_PAPER_CONTRACT_NOTICE } from './intake2027Context';
 
 export const INTAKE_SIGNATURE_ROLE_LABELS: Record<IntakeSignatureRole, string> = {
   client: 'Klient:in', employee: 'Mitarbeitende:r', legal_representative: 'Vertretung',
 };
-export type PackageIssue = { title: string; message: string; templateKey?: string; missingKeys?: string[] };
+export type PackageIssue = { title: string; message: string; templateKey?: string; missingKeys?: string[]; kind?: 'paper_required' };
 export type IntakeDocumentPackage = {
   form: ClientIntakeFormData;
   documents: IntakeDocumentState[];
@@ -46,6 +47,9 @@ export function prepareIntakeDocumentPackage(
     const document = openDocumentPreview(next, template, tenant);
     next = updateIntakeDocumentInForm(next, document);
     documents.push(document);
+    if (form.intakeTemplateEdition === '2027' && template.templateKey === 'client_contract_stationary_care') {
+      issues.push({ title: 'Schriftlicher Wohn- und Betreuungsvertrag', message: INTAKE_PAPER_CONTRACT_NOTICE, templateKey: template.templateKey, kind: 'paper_required' });
+    }
     const signatureLabels = new Set(Object.entries(template.placeholderSchema)
       .filter(([key]) => key.startsWith('signature.')).map(([, meta]) => meta.label));
     const missing = document.missingPlaceholders.filter(label => !signatureLabels.has(label) && !label.startsWith('Unterschrift '));

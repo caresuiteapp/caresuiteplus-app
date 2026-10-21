@@ -15,19 +15,27 @@ const context = (target: CentralDocumentContext['target']): CentralDocumentConte
 const snapshot = (key: string) => createCentralSnapshot(CENTRAL_DOCUMENT_CATALOG.find((definition) => definition.key === key)!, context('client'), 'Verantwortung A', 'document-a');
 
 describe('quick choices for every catalogue input', () => {
-  it('provides relevant active choices for every field, section, table column and additional text of all 450 templates', () => {
+  it('provides choices throughout the catalogue while requiring explicit facts for the new legal edition', () => {
     let fields = 0, sections = 0, columns = 0, additional = 0;
     const missing: string[] = [];
     for (const definition of CENTRAL_DOCUMENT_CATALOG) {
       const current = createCentralSnapshot(definition, context(definition.target), 'Verantwortung A', 'document-a');
-      for (const field of definition.fields) { fields++; if (!centralFieldQuickChoices(current, field, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:field:${field.label}`); }
+      for (const field of definition.fields) {
+        fields++;
+        if (definition.edition === '2027' && field.key.startsWith('legal_')) {
+          // Concrete prices, named recipients and individual consent decisions
+          // must not be fabricated just to offer a one-click default.
+          expect(field.required).toBe(true); expect(field.defaultValue).toBeUndefined();
+          expect(current.values[field.key]).toBe('');
+        } else if (!centralFieldQuickChoices(current, field, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:field:${field.label}`);
+      }
       for (const section of definition.sections) { sections++; if (!centralSectionQuickChoices(current, section).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:section:${section.heading}`); }
       for (const column of definition.columns) { columns++; if (!centralTableQuickChoices(current, column, 0, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:column:${column}`); }
       additional++; if (!centralAdditionalQuickChoices(current).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:additional`);
     }
     expect(missing).toEqual([]);
     expect(CENTRAL_DOCUMENT_CATALOG).toHaveLength(450);
-    expect({ fields, sections, columns, additional }).toEqual({ fields: 5764, sections: 520, columns: 763, additional: 450 });
+    expect({ fields, sections, columns, additional }).toEqual({ fields: 5946, sections: 611, columns: 763, additional: 450 });
   });
 
   it('offers admission resources and contract terms appropriate to the pictured fields', () => {

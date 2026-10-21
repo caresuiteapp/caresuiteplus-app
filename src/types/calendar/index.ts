@@ -14,6 +14,7 @@ export type CalendarModuleKey =
 export type CalendarScope = 'office' | 'module' | 'portal';
 
 export type CalendarSourceType =
+  | 'intake_appointment'
   | 'appointment'
   | 'assist_visit'
   | 'care_visit'

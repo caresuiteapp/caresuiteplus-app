@@ -66,7 +66,7 @@ export function createIntakeCompletionHandler(deps: Dependencies) {
       if (draft.status !== 'draft') return reply({ ok: false, error: 'Die Aufnahme ist nicht mehr als Entwurf verfügbar.' }, 409);
       if (draft.coreChanged === true) return reply({ ok: false, error: 'Die Stammdaten der Klientenakte wurden seit der Entwurfsicherung geändert. Bitte zuerst die aktuellen Aktenangaben übernehmen und die Dokumente erneut prüfen.' }, 409);
       const [systemResult, tenantResult, companyResult] = await Promise.all([
-        caller.from('intake_document_system_templates').select('*').eq('is_active', true),
+        caller.from(object(draft.form) && draft.form.intakeTemplateEdition === '2027' ? 'intake_document_templates_2027' : 'intake_document_system_templates').select('*').eq('is_active', true),
         caller.from('tenant_document_templates').select('*').eq('tenant_id', tenantId).eq('is_active', true),
         caller.from('tenants').select('name,street,house_number,postal_code,city').eq('id', tenantId).maybeSingle(),
       ]);

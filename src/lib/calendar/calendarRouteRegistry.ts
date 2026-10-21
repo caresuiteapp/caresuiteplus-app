@@ -1,3 +1,4 @@
+import { clientIntakeResumeRoute } from '@/lib/navigation/clientRoutes';
 import type { CalendarEventRecord } from '@/types/calendar';
 import {
   isStationaerCalendarSourceType,
@@ -10,6 +11,8 @@ export function resolveCalendarEventHref(record: CalendarEventRecord): string | 
     return resolveStationaerEventHref(record.sourceType, id);
   }
   switch (record.sourceType) {
+    case 'intake_appointment':
+      return record.relatedClientId ? clientIntakeResumeRoute(record.relatedClientId) : undefined;
     case 'appointment':
       return `/office/appointments/${id}`;
     case 'assist_visit':

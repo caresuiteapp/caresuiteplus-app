@@ -6,4 +6,15 @@ export const clientIntakeExperienceCss = `
 @media(max-width:600px){.ci-modal-overlay{padding:8px}.ci-modal{height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);border-radius:18px}.ci-modal-header{padding:13px 16px}.ci-modal-header h1{font-size:15px}.ci-page{border-radius:14px}}
 @keyframes ci-turn{to{transform:rotate(360deg)}}@keyframes ci-enter{from{opacity:0;transform:translateY(9px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.ci-progress-track>span{transition:none}.ci-spinner,.ci-modal{animation:none}}
+
+.ci-intake-mode {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.ci-intake-mode button {text-align:left;border:1px solid #c4d6e8;border-radius:16px;background:#fff;padding:16px;color:#19364f;cursor:pointer;font:inherit;min-width:0}
+.ci-intake-mode button[aria-pressed="true"] {border-color:#2378d4;background:#eaf4ff;box-shadow:0 0 0 1px #2378d4}
+.ci-intake-mode strong,.ci-intake-mode span {display:block}.ci-intake-mode span {font-size:.88em;margin-top:6px}
+.ci-contact {display:grid;gap:24px;margin-bottom:28px;color:#19364f}.ci-contact h2,.ci-contact h3 {margin:0 0 10px}.ci-contact p,.ci-plan p {line-height:1.55}
+.ci-contact-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.ci-contact-field {display:grid;gap:7px;min-width:0}.ci-contact-field input,.ci-contact-field textarea {box-sizing:border-box;width:100%;min-width:0;font:inherit;line-height:1.4;padding:12px;border:1px solid #acc2d9;border-radius:10px;background:#fff;color:#142d45}.ci-contact-field small {color:#a12323}.ci-contact-field input:focus,.ci-contact-field textarea:focus {outline:2px solid #217bd6;outline-offset:2px}
+.ci-contact-check {display:flex;gap:10px;align-items:center;line-height:1.5}.ci-contact-check input {width:20px;height:20px;flex-shrink:0}
+.ci-contact-calendar,.ci-plan {padding:20px;border:1px solid #c6daed;border-radius:16px;background:#f5f9ff}.ci-contact-calendar .ci-contact-grid {margin-top:18px}.ci-plan {margin-top:20px}.ci-plan>div {padding-top:12px;border-top:1px solid #d9e5f2;margin-top:12px}.ci-plan p {margin:6px 0;color:#3d5970}
+@media(max-width:680px){.ci-intake-mode,.ci-contact-grid {grid-template-columns:1fr}.ci-contact-calendar,.ci-plan{padding:16px}}
 `.replace(/font-size:(\d+)px/g, 'font-size:calc($1px * var(--app-font-scale,1))');

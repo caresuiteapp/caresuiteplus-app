@@ -1,17 +1,18 @@
-import { getRequiredFieldsForClientContext, type IntakeSectionKey } from './clientIntakeFieldRules';
+import { type IntakeSectionKey } from './clientIntakeFieldRules';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { COST_BEARER_FIELD_ERRORS, getCostBearerFieldValues, hasGkvCostBearerSelected, isCostBearerTypeKey } from './clientIntakeCostBearerConfig';
 import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierValidation';
 import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { parseGermanOrIsoDateInput } from '@/lib/formatters/dateTimeFormatters';
+import { getRequiredFieldsForIntake } from './clientIntakePlan';
 
 export function validateIntakeStep(
   section: IntakeSectionKey,
   form: ClientIntakeFormData,
 ): ClientIntakeErrors {
   const errors: ClientIntakeErrors = {};
-  const required = getRequiredFieldsForClientContext(form.careContexts);
+  const required = getRequiredFieldsForIntake(form);
   const checkDate = (field: 'dateOfBirth' | 'serviceStart' | 'admissionDate' | 'careLevelValidFrom') => {
     const value = form[field].trim();
     if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !parseGermanOrIsoDateInput(value))) {
@@ -22,6 +23,9 @@ export function validateIntakeStep(
   if (section === 'leistungsart') {
     if (form.careContexts.length === 0) {
       errors.careContexts = 'Mindestens eine Leistungsart auswählen.';
+    }
+    if (form.intakeWorkflowVersion === 2 && form.careContexts.length > 0 && form.careContexts.every(context => context === 'academy_prepared')) {
+      errors.careContexts = 'Akademie / Schulung ist vorbereitet. Bitte als Erstkontakt oder Entwurf vormerken; eine vollständige Schulungsaufnahme ist noch nicht verfügbar.';
     }
   }
 
