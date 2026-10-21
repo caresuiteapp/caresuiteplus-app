@@ -3,6 +3,7 @@ import { der, fields, oid, certificateParts } from '../gkv/der.mjs';
 import { kimAddress } from './address.mjs';
 import { brainpoolPublicKey, encryptEciesKey, decryptEciesKey } from './ecies.mjs';
 import { readKimEnvelope } from './envelope.mjs';
+import { selectCertificateType, KIM_CERTIFICATE_TYPES } from './certificate-policy.mjs';
 import { decodeKimMimeEntity } from './message.mjs';
 import { OID, tlv, sequence as seq, sortedSet as set, objectId as id, octets, attribute, isOrdered } from './cms-codec.mjs';
 
@@ -45,9 +46,8 @@ function certificate(input, role, now) {
   // C.HCI.OSIG is nonRepudiation/contentCommitment, NOT the AUT digitalSignature role.
   const expectedUsage = role === 'osig' ? '0640' : '0308';
   if (usage.tag !== 3 || usage.value.toString('hex') !== expectedUsage) throw new Error('KIM_CMS_CERTIFICATE');
-  const policies = fields(der(extensions.get('551d20') ?? Buffer.alloc(0)), 48);
-  const permitted = role === 'osig' ? ['2a8214004c044e'] : ['2a8214004c044a', '2a8214004c044c'];
-  if (!policies.some(p => { const f = fields(p, 48); return f[0]?.tag === 6 && permitted.includes(f[0].value.toString('hex')); })) throw new Error('KIM_CMS_CERTIFICATE');
+  try { selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES[role === 'osig' ? 'signing' : 'encryption']); }
+  catch { throw new Error('KIM_CMS_CERTIFICATE'); }
   return { cert, rid: seq(parts.issuer, parts.serial) };
 }
 function recipientsFor(sender, recipients, now) {

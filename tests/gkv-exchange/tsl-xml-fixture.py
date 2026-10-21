@@ -70,6 +70,14 @@ for service in o["services"]:
         points = add(t, "ServiceSupplyPoints")
         for endpoint in endpoints:
             add(points, "ServiceSupplyPoint", endpoint)
+    if "extensionXml" in service:
+        t.append(E.fromstring(service["extensionXml"].encode()))
+    elif service.get("extensionOids"):
+        extensions = add(t, "ServiceInformationExtensions")
+        for oid in service["extensionOids"]:
+            ext = add(extensions, "Extension", Critical="false")
+            add(ext, "ExtensionOID", oid)
+            add(ext, "ExtensionValue", "oid_local_fixture")
 
 if o.get("comment"):
     root.append(E.Comment("C14N fixture comment"))

@@ -17,7 +17,10 @@ TUC_PKI_006. Er unterscheidet sich von der Internet-AIA des TSL-Signierers:
 | Nachrichtenzertifikat im neuen TI-nonQES-Pfad | `ServiceSupplyPoint` des passenden CA/PKC-Dienstes der geprüften TSL |
 | OCSP-Signierer | Autorisierte Dienstidentität aus der geprüften TSL; dessen eigene Service-URL ersetzt die CA-Statusadresse nicht |
 
-`manager.current().ocspPlanFor(certificate, { model })` liefert einen geschützten
+`manager.current().ocspPlanFor(certificate, { model, policyList })` verlangt eine
+nichtleere erlaubte Zertifikatstypliste und prüft sie gegen Blatt und
+CA-ExtensionOIDs. [Typprüfung und Umstellung bisheriger Aufrufe](certificate-types.md).
+Die Methode liefert einen geschützten
 Prüfer, DER-Zertifikatkopie, Zertifikat-/Ausstellerhash, OCSP-Anfrage und die
 kanonisierten CA-Statusadressen. Das Blatt muss aktuell, kein CA-Zertifikat und
 tatsächlich von genau einer passenden aktuellen CA signiert sein. Ausstellername,
@@ -84,8 +87,10 @@ er startet weder einen Listener noch einen TSL-Abruf. Ohne aktuellen Managerstan
 gibt es keinen Statusabruf. Schlüssel, vertrauenswürdige Anker, TLS-Konfiguration
 und erreichbare TI-Routen müssen separat bereitgestellt werden.
 
-`check({ certificate, signal })` liefert einen tatsächlich geprüften Status mit
+`check({ certificate, purpose, signal })` benötigt einen ausdrücklichen Zweck
+(`signing`, `authentication` oder `encryption`) und liefert einen tatsächlich geprüften Status mit
 eigenen Anfrage-/Antwortkopien, geschütztem Prüfer, Routenhash und TSL-Version.
+`certificateTypeOid` nennt die mit Blatt und CA-Freigabe abgeglichene Typkennung.
 `trustSource` lautet hier `configured-tsl-anchors`; auch ein `good` bleibt
 `identityStatus: unverified`.
 
@@ -154,7 +159,8 @@ Vor der Netzabfrage wird der zwischenzeitlich entschlüsselte Nachrichtenpuffer
 Originalnachricht und beide Rohbelege erneut. Vorgegebene Statusflags werden
 nicht übernommen. Das Ergebnis enthält zusätzlich `statusAcquisition` mit
 `checked`, `incomplete` oder `unavailable`, festen Fehlercodes und gegebenenfalls
-der TSL-Version. Die eigentlichen Befunde stehen weiterhin im Empfangsbericht.
+der TSL-Version und den geprüften `certificateTypes`. Die eigentlichen Befunde
+stehen weiterhin im Empfangsbericht.
 
 Auch zwei positive Belege ergeben weiterhin Diagnose 07. Gesperrte, unbekannte
 oder nicht verfügbare Belege erzeugen `XCS_CERT_STATUS`; Klartextanhänge sind
@@ -170,13 +176,14 @@ Cachevorgang. Quoten sind keine Begrenzung der gesamten SQLite-/WAL-Dateigröße
 
 ## Nachweise und verbleibende Integration
 
-38 neue Prüfungen verwenden eine lokale HTTPS-Gegenstelle, echte signierte
+Die ursprünglichen 38 Prüfungen verwenden eine lokale HTTPS-Gegenstelle, echte signierte
 TSL-/OCSP-Bytes, die vollständige XSD-Prüfung, verschlüsselte SQLite-Ablage und
 eine tatsächlich ECC-verschlüsselte KIM-Nachricht. Sie prüfen insbesondere
 Adressherkunft, fehlende/mehrdeutige Routen, Schlüsselkennungen, Responderwechsel
 einschließlich gleicher Namen, Cachekompatibilität, negative Befunde,
 Manipulation, Neustart, konkurrierende Zugriffe, Listenwechsel während einer
-Abfrage, Quoten, Timeout und Abbruch. Der Gesamtlauf ist in
+Abfrage, Quoten, Timeout und Abbruch. Die anschließende Typprüfung ergänzt
+gezielte Fälle zu CA-Freigaben und deren Entzug. Der aktuelle Gesamtlauf ist in
 [verification.md](verification.md) dokumentiert.
 
 Keine Abfrage echter TI-Dienste und kein Echtversand. Noch offen bleiben

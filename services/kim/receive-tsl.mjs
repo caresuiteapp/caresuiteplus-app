@@ -36,7 +36,8 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
     try {
       ocsp = await statusClient.messageEvidence({ signingCertificate: captured.expectedSignerCertificate,
         authenticationCertificate: captured.expectedAuthCertificate, signal });
-      acquisition = Object.freeze({ state: ocsp.failures.length ? 'incomplete' : 'checked', tsl: ocsp.tsl, failures: ocsp.failures });
+      acquisition = Object.freeze({ state: ocsp.failures.length ? 'incomplete' : 'checked', tsl: ocsp.tsl,
+        certificateTypes: ocsp.certificateTypes, failures: ocsp.failures });
     } catch (e) {
       if (signal?.aborted || e?.code === 'KIM_TSL_ABORTED') fail('KIM_TSL_ABORTED');
       ocsp = {}; acquisition = Object.freeze({ state: 'unavailable', code: errorCode(e) });

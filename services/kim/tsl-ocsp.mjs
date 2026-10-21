@@ -4,6 +4,7 @@ import { TslError } from './tsl.mjs';
 import { OcspError } from './ocsp.mjs';
 import { OcspHttpTransport } from './ocsp-http.mjs';
 import { DurableOcspStatusCache } from './ocsp-store.mjs';
+import { KIM_CERTIFICATE_TYPES } from './certificate-policy.mjs';
 
 const fail = code => { throw new TslError(code); };
 const normalize = e => (e instanceof TslError || e instanceof OcspError) && /^KIM_(?:TSL|OCSP)_[A-Z_]{1,48}$/.test(e.code)
@@ -81,8 +82,9 @@ export class TslOcspStatusClient {
       }
     } catch (e) { if (e instanceof TslError) throw e; fail('KIM_TSL_STATUS_BINDING'); }
   }
-  #plan(snapshot, certificate) {
-    const plan = snapshot.ocspPlanFor(certificate, { model: this.#model });
+  #plan(snapshot, certificate, purpose) {
+    if (typeof purpose !== 'string' || !Object.hasOwn(KIM_CERTIFICATE_TYPES, purpose)) fail('KIM_TSL_CERT_TYPE_CONFIGURATION');
+    const plan = snapshot.ocspPlanFor(certificate, { model: this.#model, policyList: KIM_CERTIFICATE_TYPES[purpose] });
     const matches = this.#routes.filter(r => plan.supplyPoints.some(url => r.transport.matchesEndpoint(url)));
     if (matches.length !== 1) fail('KIM_TSL_STATUS_ROUTE');
     return { plan, route: matches[0] };
@@ -102,13 +104,13 @@ export class TslOcspStatusClient {
       verifier: plan.verifier, refreshUntrustedResponder: true }), signal);
     this.#open(); checkSignal(signal);
     const tsl = listVersion(snapshot.metadata), evidence = plan.verifier.verify({ certificate: plan.certificate, request: proof.request, response: proof.response });
-    return Object.freeze({ ...evidence, trustSource: 'configured-tsl-anchors', source: proof.source, tsl,
+    return Object.freeze({ ...evidence, certificateTypeOid: plan.certificateTypeOid, trustSource: 'configured-tsl-anchors', source: proof.source, tsl,
       routeSha256: route.transport.routeSha256, request: Buffer.from(proof.request), response: Buffer.from(proof.response), verifier: plan.verifier });
   }
-  async check({ certificate, signal }) {
+  async check({ certificate, purpose, signal }) {
     try {
       this.#open(); checkSignal(signal);
-      const snapshot = this.#manager.current(), selected = this.#plan(snapshot, certificate);
+      const snapshot = this.#manager.current(), selected = this.#plan(snapshot, certificate, purpose);
       return await this.#obtain(snapshot, selected, signal);
     } catch (e) { throw normalize(e); }
   }
@@ -119,7 +121,7 @@ export class TslOcspStatusClient {
     try {
       this.#open(); checkSignal(signal);
       const snapshot = this.#manager.current(), inputs = [signingCertificate, authenticationCertificate];
-      const selected = inputs.map(c => this.#plan(snapshot, c)); // All routes resolve before any request.
+      const selected = inputs.map((c, i) => this.#plan(snapshot, c, i === 0 ? 'signing' : 'authentication')); // Both types/routes resolve before I/O.
       const verifier = snapshot.ocspVerifierFor(selected.map(s => s.plan.certificate), { model: this.#model });
       const results = await Promise.allSettled(selected.map(s => this.#obtain(snapshot, s, signal)));
       this.#open(); checkSignal(signal); const tsl = listVersion(snapshot.metadata), failures = [];
@@ -128,7 +130,8 @@ export class TslOcspStatusClient {
         verifier.verify({ certificate: selected[i].plan.certificate, request: r.value.request, response: r.value.response });
         return r.value;
       });
-      return Object.freeze({ verifier, signing: proofs[0], authentication: proofs[1], failures: Object.freeze(failures), tsl });
+      const certificateTypes = Object.freeze({ signing: selected[0].plan.certificateTypeOid, authentication: selected[1].plan.certificateTypeOid });
+      return Object.freeze({ verifier, signing: proofs[0], authentication: proofs[1], certificateTypes, failures: Object.freeze(failures), tsl });
     } catch (e) { throw normalize(e); }
   }
   close() {

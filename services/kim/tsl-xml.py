@@ -58,6 +58,35 @@ def date(value):
     return milliseconds
 
 
+def service_extension_oids(info):
+    result = []
+    extensions = info.findall("t:ServiceInformationExtensions/t:Extension", NS)
+    require(len(extensions) <= 128, "KIM_TSL_XML_LIMIT")
+    for extension in extensions:
+        children = [n for n in extension if isinstance(n.tag, str)]
+        names = [n.tag for n in children]
+        oid_tag, value_tag, values_tag = ["{" + TSL + "}" + n for n in ("ExtensionOID", "ExtensionValue", "ExtensionValues")]
+        if not any(n in (oid_tag, value_tag, values_tag) for n in names):
+            continue  # Unknown noncritical extensions cannot authorize types.
+        require(len(children) == 2 and names[0] == oid_tag and names[1] in (value_tag, values_tag), "KIM_TSL_SERVICE_EXTENSION")
+        oid_node = children[0]
+        value = oid_node.text or ""
+        require(not oid_node.attrib and len(oid_node) == 0 and len(value) <= 256
+                and re.fullmatch(r"(?:0|1|2)(?:\.(?:0|[1-9][0-9]*)){1,31}", value) is not None,
+                "KIM_TSL_SERVICE_EXTENSION")
+        arcs = [int(a) for a in value.split(".")]
+        require(all(a <= 2**63-1 for a in arcs) and (arcs[0] == 2 or arcs[1] <= 39)
+                and value not in result, "KIM_TSL_SERVICE_EXTENSION")
+        if names[1] == value_tag:
+            require(len(children[1]) == 0 and len(children[1].text or "") <= 2048, "KIM_TSL_SERVICE_EXTENSION")
+        else:
+            # ExtensionValues is an opaque complexType. Its nested identifiers
+            # never grant additional certificate types (Tab_PKI_716).
+            require(sum(1 for _ in children[1].iter()) <= 256, "KIM_TSL_XML_LIMIT")
+        result.append(value)
+    return result
+
+
 def run(etree):
     directory = Path(__file__).resolve().parent / "tsl-schema"
     manifest = (directory / "manifest.json").read_bytes()
@@ -169,7 +198,8 @@ def run(etree):
         endpoints = [n.text.strip() for n in info_node.findall("t:ServiceSupplyPoints/t:ServiceSupplyPoint", NS)]
         require(len(endpoints) <= 16 and all(len(u) <= 2048 for u in endpoints), "KIM_TSL_XML_LIMIT")
         services.append({"type": kind, "status": status, "statusStartingTime": started,
-                         "certificates": certificates, "supplyPoints": endpoints})
+                         "certificates": certificates, "supplyPoints": endpoints,
+                         "extensionOids": service_extension_oids(info_node)})
         require(len(services) <= 2048, "KIM_TSL_XML_LIMIT")
 
     # Removing an enveloped Signature must retain following character data.

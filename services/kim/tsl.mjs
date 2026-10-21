@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
 import { der, fields, certificateParts, rsaAlgorithm } from '../gkv/der.mjs';
 import { PinnedOcspVerifier } from './ocsp.mjs';
+import { selectCertificateType, CertificatePolicyError } from './certificate-policy.mjs';
 
 export const TSL_SCHEMA_SHA256 = 'ffd4e6ae233c8e648ec009a55a9809fad9fcc4197f7928a48e15b5dbdde7137b';
 const MAX_XML = 8 * 1024 * 1024, DAY = 86400_000, token = Symbol('verified TSL');
@@ -260,7 +261,8 @@ export class TslTrustSnapshot {
     if (key !== token) fail('KIM_TSL_UNVERIFIED');
     this.#xml = xml; this.#signature = signature; this.#clock = clock;
     this.#metadata = Object.freeze(metadata);
-    this.#services = Object.freeze(services.map(s => Object.freeze({ ...s, certificates: Object.freeze([...s.certificates]), supplyPoints: Object.freeze([...s.supplyPoints]) })));
+    this.#services = Object.freeze(services.map(s => Object.freeze({ ...s, certificates: Object.freeze([...s.certificates]),
+      supplyPoints: Object.freeze([...s.supplyPoints]), extensionOids: Object.freeze([...s.extensionOids]) })));
     Object.freeze(this);
   }
   get metadata() { return this.#metadata; }
@@ -282,15 +284,32 @@ export class TslTrustSnapshot {
     if (!matchingKeyIdentifiers(leaf, matches[0].issuer)) fail('KIM_TSL_ISSUER_KEY_ID');
     return matches[0];
   }
-  /** TI nonQES status routing (TUC_PKI_005). A leaf's AIA is not a substitute
-   * for its issuing CA's ServiceSupplyPoints. No network request occurs here.
+  /** TUC_PKI_007 type comparison, including the issuing CA's signed ExtensionOIDs.
+   * This is not full TUC_PKI_018 / Admission / TI identity validation.
    */
-  ocspPlanFor(input, { model = 'current', isCurrent } = {}) {
+  certificateTypeFor(input, { policyList, model = 'current', isCurrent } = {}) {
     try {
+      if (isCurrent !== undefined && typeof isCurrent !== 'function') fail('KIM_TSL_CONFIGURATION');
+      if (isCurrent && isCurrent() !== true) fail('KIM_TSL_SUPERSEDED');
+      const leaf = cert(input), { issuer, service } = this.#issuerFor(leaf, model, this.#now());
+      const certificateTypeOid = selectCertificateType(leaf.ext.get('551d20'), policyList);
+      if (!service.extensionOids.includes(certificateTypeOid)) fail('KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED');
+      return Object.freeze({ certificateSha256: leaf.sha256, issuerSha256: issuer.sha256, certificateTypeOid,
+        trustSource: 'configured-tsl-anchors', identityStatus: 'unverified' });
+    } catch (e) {
+      if (e instanceof TslError) throw e;
+      if (e instanceof CertificatePolicyError) fail(e.code.replace('KIM_CERT_POLICY_', 'KIM_TSL_CERT_TYPE_'));
+      fail('KIM_TSL_CERT_TYPE_FORMAT');
+    }
+  }
+  /** TI nonQES status routing (TUC_PKI_005), only after type authorization. */
+  ocspPlanFor(input, { model = 'current', policyList, isCurrent } = {}) {
+    try {
+      const type = this.certificateTypeFor(input, { policyList, model, isCurrent });
       const leaf = cert(input), verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
       const { issuer, service } = this.#issuerFor(leaf, model, this.#now());
       const request = verifier.createRequest(leaf.c.raw);
-      return Object.freeze({ certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,
+      return Object.freeze({ ...type, certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,
         supplyPoints: statusEndpoints(service.supplyPoints), request, verifier });
     } catch (error) { if (error instanceof TslError) throw error; fail('KIM_TSL_STATUS_PLAN'); }
   }

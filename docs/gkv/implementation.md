@@ -35,6 +35,9 @@ periodische Prüfung mit Invalidierung bereits ausgegebener Prüfer.
 Die [TSL-gebundene Statusprüfung](tsl-ocsp.md) wählt für Nachrichtenzertifikate
 die CA-ServiceSupplyPoints, prüft dauerhafte Belege gegen den aktuellen Stand
 und verbindet den Abruf beider Zertifikatsrollen mit der Empfangsdiagnose.
+Die [Zertifikatstypprüfung](certificate-types.md) gleicht nun Verwendungszweck,
+DER-Typkennung und die Ausstellungsberechtigung der CA in der aktuellen TSL ab,
+bevor eine Statusabfrage oder Cacheverwendung beginnt.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

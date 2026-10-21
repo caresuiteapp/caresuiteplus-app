@@ -33,7 +33,8 @@ export async function tslFixture() {
   const now = Math.floor(Date.now() / 1000) * 1000;
   const authorities = [{ issuer: pin(pki.roots), responder: pin(responder.certificate) }];
   const statusVerifier = (clock = () => now) => new PinnedOcspVerifier({ authorities, validFrom: now - 1000, validUntil: now + 7200_000, clock });
-  const services = [{ type: CA, certificate: raw(pki.roots).toString('base64'), status: ACTIVE, started: now - 1000 },
+  const services = [{ type: CA, certificate: raw(pki.roots).toString('base64'), status: ACTIVE, started: now - 1000,
+    extensionOids: ['1.2.276.0.76.4.74', '1.2.276.0.76.4.75', '1.2.276.0.76.4.76', '1.2.276.0.76.4.77', '1.2.276.0.76.4.78'] },
     { type: OCSP, certificate: raw(responder.certificate).toString('base64'), status: ACTIVE, started: now - 1000 }];
   const proof = (certificate = signer.certificate, { state = 'good', producedAt = now, responder: statusSigner = responder } = {}) => {
     const request = statusVerifier().createRequest(certificate);

@@ -110,6 +110,12 @@ ausstellende CA oder Provider-Zeile des Responders wird nicht vorausgesetzt.
 Es sind höchstens 100 CA-/Responder-Paare zulässig. Die bekannten Begrenzungen
 des OCSP-Kerns gelten weiterhin, insbesondere aktuelle Zertifikatsgültigkeit.
 
+`certificateTypeFor()` ergänzt den Abgleich einer ausdrücklich vorgegebenen
+`policyList` mit der CertificatePolicies-Erweiterung des Blatts und den
+ExtensionOIDs seiner ausstellenden CA. `ocspPlanFor()` setzt diesen Abgleich
+vor der Routenwahl voraus. Der niedrigere Statusprüfer `ocspVerifierFor()` allein
+belegt keine Typprüfung. [Schnittstellen, Grenzen und Quellen](certificate-types.md).
+
 Der Standard `model: 'current'` verwendet nur `inaccord`-CAs. Bei ausdrücklich
 gewähltem `nonqes-compromise` ist eine als revoked gelistete CA nur für Blätter
 zulässig, deren notBefore strikt vor StatusStartingTime liegt. Das ist eine

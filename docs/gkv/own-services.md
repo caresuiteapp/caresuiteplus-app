@@ -360,6 +360,16 @@ Diagnose 07, Klartextanhänge standardmäßig aus und normale Zustellung gesperr
 Cacheformat-Kompatibilität, Grenzen und weiterhin fehlender produktiver
 TI-/Konnektoranschluss sind in [tsl-ocsp.md](tsl-ocsp.md) beschrieben.
 
+### Zertifikatstyp und CA-Ausstellungsberechtigung
+
+Die [Zertifikatstypprüfung](certificate-types.md) ergänzt den TSL-Statuspfad:
+Der Aufruf gibt den Zweck vor, das Zertifikat muss die passende Typ-OID tragen
+und der ausstellende CA/PKC-Dienst muss diesen Typ durch eine ExtensionOID
+erlauben. Entzogene Freigaben sperren auch vorhandene positive Statusbelege.
+Die gemeinsame DER-Auswertung prüft außerdem die Typkennungen in ECC-CMS und AUT.
+40 neue Fälle ergeben **418 Prüfungen**. Admission-Rollen, Telematik-ID und
+vollständige normative Policy-/Identitätsprüfung sind dadurch nicht erledigt.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für

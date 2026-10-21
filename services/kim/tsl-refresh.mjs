@@ -64,8 +64,11 @@ export class TslRefreshManager {
       ocspVerifierFor: (input, { model = 'current' } = {}) => {
         assert(); return snapshot.ocspVerifierFor(input, { model, isCurrent });
       },
-      ocspPlanFor: (input, { model = 'current' } = {}) => {
-        assert(); return snapshot.ocspPlanFor(input, { model, isCurrent });
+      certificateTypeFor: (input, { model = 'current', policyList } = {}) => {
+        assert(); return snapshot.certificateTypeFor(input, { model, policyList, isCurrent });
+      },
+      ocspPlanFor: (input, { model = 'current', policyList } = {}) => {
+        assert(); return snapshot.ocspPlanFor(input, { model, policyList, isCurrent });
       },
     });
   }

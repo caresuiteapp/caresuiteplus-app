@@ -8,8 +8,47 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**378 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**418 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Zertifikatstyp und CA-Freigabe am 21.10.2026
+
+Die bisherigen 378 Fälle und **40 neue Prüfungen** bestehen gemeinsam:
+**418 bestanden, 0 fehlgeschlagen, 0 übersprungen**. Der gemeinsame Policy-Parser
+wird durch `certificate-policy.test.mjs` geprüft. Die bestehende
+`tsl-ocsp.test.mjs` ergänzt vier Fälle mit tatsächlichen HTTPS-Anfragen und
+geänderten signierten Listen.
+
+Geprüft sind die fünf unterstützten OSIG-/AUT-/ENC-Typen, die Unterscheidung zur
+Ausstellungsrichtlinie, Typ-Qualifier, doppelte und mehrdeutige Kennungen,
+nichtminimale/abgeschnittene DER-OIDs, fehlerhafte erlaubte Listen und Größen.
+Zertifikate mit absichtlich geänderten Erweiterungen werden tatsächlich neu
+signiert; ihre gültige CA-Signatur hebt Typfehler nicht auf. OpenSSL liest die
+Typ- und Richtlinienkennungen eines gültigen Testzertifikats unabhängig vom
+eigenen DER-Parser. ECC-CMS und AUT lehnen ungültige Typstrukturen vor dem
+Signieren ab.
+
+Die vollständige TSL-Signatur-/XSD-Prüfung verarbeitet CA-ExtensionOIDs.
+Fehlende Freigaben, OIDs in fremden Namespaces, verschachtelte Kennungen und
+richtige Textetiketten mit falscher numerischer OID autorisieren keinen Typ.
+Doppelte oder fehlerhafte Erweiterungen und kritische Angaben werden abgelehnt.
+Opake komplexe Werte geben keine zusätzlichen OIDs frei. Ein OCSP-Diensteintrag
+kann einer CA keine Typberechtigung erteilen.
+
+Fehlender Zweck, Zweckwechsel und fehlende AUT-CA-Freigabe erzeugen keine
+Statusanfrage. Wird die Typfreigabe entzogen, scheitert auch der vorhandene
+positive Cachebeleg. Erst eine neue ausdrücklich erlaubende Liste ermöglicht
+seine erneute Prüfung. Ein Entzug während der HTTPS-Anfrage verhindert eine
+spätere positive Speicherung. Die Empfangsdiagnose enthält die geprüften Typen;
+TI-Identität und normale Zustellung bleiben unbestätigt.
+
+Zehn betroffene MJS-Dateien und beide geänderten Python-Dateien sind syntaktisch
+geprüft; das Anforderungs-JSON ist gültig und `git diff --check` ohne Befund.
+FD-Inventar unverändert: 106 Kennungen, 28 teilweise lokal belegt und 78 offen.
+Vorhandene Laufzeiten, keine Installation und keine produktive TI-Abfrage.
+Alle vier Vercel-Projekte haben den vorherigen Commit **3d8ba15** erfolgreich
+gebaut. Der neue Commit wird separat in PR #129 geprüft.
+[Schnittstellenänderung, Grenzen und Primärquellen](certificate-types.md).
 
 ## TSL-gebundene Statusprüfung am 21.10.2026
 
@@ -48,8 +87,8 @@ und das Anforderungs-JSON die Syntaxprüfung. Die Änderungen bestehen
 `git diff --check`. Das FD-Inventar bleibt bei 106 Kennungen: 28 teilweise lokal
 belegt, 78 offen. Keine Installation, UI-/Android-/Supabase-/Produktionsänderung
 oder echte TI-/Statusabfrage. Alle vier Vercel-Projekte haben den vorherigen
-Commit **176a9b1** erfolgreich gebaut. Der neue Commit wird separat in PR #129
-geprüft; diese älteren Ergebnisse belegen keinen neuen Build.
+Commit **176a9b1** erfolgreich gebaut. Inzwischen haben alle vier Vercel-Projekte
+auch diesen Stand **3d8ba15** erfolgreich gebaut.
 
 ## Automatische TSL-Aktualisierung am 21.10.2026
 

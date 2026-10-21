@@ -85,13 +85,14 @@ async function fixture(run, { services = defaults, ready = true, clientChanges }
   try { if (ready) await manager.refresh(); await run({ manager, store, open, update, options, path, inspect, key, clock }); }
   finally { for (const c of clients) c.close(); manager.close(); signerCache.close(); store.close(); server.closeAllConnections(); await rm(dir, { recursive: true, force: true }); }
 }
-const check = client => client.check({ certificate: signing.certificate });
+const check = client => client.check({ certificate: signing.certificate, purpose: 'signing' });
 const receive = (client, options = wire, reportOptions = report, signal) => receiveEccKimMessageWithTsl(options, reportOptions, { statusClient: client, signal });
 
 test('TSL OCSP: CA ServiceSupplyPoint selects the fixed route; leaf AIA and responder-service URL do not', async () => fixture(async ({ open }) => {
   const result = await check(open());
   assert.equal(result.status, 'good'); assert.equal(result.trustSource, 'configured-tsl-anchors'); assert.equal(result.identityStatus, 'unverified');
   assert.equal(result.tsl.sequence, 10001); assert.equal(result.certificateSha256, hash(raw(signing.certificate)));
+  assert.equal(result.certificateTypeOid, '1.2.276.0.76.4.78');
   assert.equal(leafCount(), 1); assert.equal(state.calls.at(-1).path, '/leaf-ocsp');
   assert.deepEqual(state.calls.at(-1).bytes, f.proof(signing.certificate).request);
   assert.equal(result.verifier.verify({ certificate: signing.certificate, request: result.request, response: result.response }).status, 'good');
@@ -157,14 +158,14 @@ test('TSL OCSP: two configured matches are ambiguous; one configured match may s
 });
 
 test('TSL OCSP: CA inputs, altered certificates and missing authority key identifiers fail before network', async () => fixture(async ({ open, manager }) => {
-  const c = open(); await assert.rejects(c.check({ certificate: f.pki.roots }), code('KIM_TSL_SERVICE_CERTIFICATE'));
+  const c = open(); await assert.rejects(c.check({ certificate: f.pki.roots, purpose: 'signing' }), code('KIM_TSL_SERVICE_CERTIFICATE'));
   const parts = certificateParts(raw(signing.certificate)), rootKey = createPrivateKey({ key: await readFile(join(f.pki.dir, 'root.key')), passphrase: f.pki.password });
   const tbs = seq(...parts.tbs.map(n => n.tag === 163 ? tlv(163, seq(...fields(fields(n, 163, 1)[0], 48)
     .filter(e => fields(e, 48)[0].value.toString('hex') !== '551d23').map(e => e.raw))) : n.raw));
   const signature = sign('sha256', tbs, { key: rootKey, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 });
   const certificate = seq(tbs, parts.signatureAlgorithm.raw, tlv(3, Buffer.concat([Buffer.from([0]), signature])));
   assert.equal(new X509Certificate(certificate).verify(new X509Certificate(f.pki.roots).publicKey), true);
-  await assert.rejects(c.check({ certificate }), code('KIM_TSL_ISSUER_KEY_ID')); assert.equal(leafCount(), 0);
+  await assert.rejects(c.check({ certificate, purpose: 'signing' }), code('KIM_TSL_ISSUER_KEY_ID')); assert.equal(leafCount(), 0);
   const malformed = Buffer.from(raw(signing.certificate)); malformed[malformed.length - 1] ^= 1;
   assert.throws(() => manager.current().ocspPlanFor(malformed), code('KIM_TSL_ISSUER'));
 }));
@@ -226,7 +227,7 @@ test('TSL OCSP: waiter cancellation does not poison a shared cache; client close
     if (!req.url.startsWith('/leaf-')) return false;
     release = () => { res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(signing.certificate).response); }; arrive(); return true;
   };
-  const c = open(), controller = new AbortController(), pending = c.check({ certificate: signing.certificate, signal: controller.signal }); await arrived;
+  const c = open(), controller = new AbortController(), pending = c.check({ certificate: signing.certificate, purpose: 'signing', signal: controller.signal }); await arrived;
   controller.abort(); await assert.rejects(pending, code('KIM_TSL_ABORTED'));
   const shared = check(c); release(); assert.equal((await shared).status, 'good'); assert.equal(leafCount(), 1);
   c.close(); await assert.rejects(check(c), code('KIM_TSL_STATUS_CLOSED'));
@@ -242,6 +243,7 @@ test('KIM TSL receive: both raw status proofs reach the encrypted-message diagno
   const result = await receive(open());
   assert.equal(result.kind, 'diagnostic'); assert.equal(result.diagnostic.integrityResult, '07');
   assert.equal(result.statusAcquisition.state, 'checked'); assert.equal(result.statusAcquisition.tsl.sequence, 10001);
+  assert.deepEqual(result.statusAcquisition.certificateTypes, { signing: '1.2.276.0.76.4.78', authentication: '1.2.276.0.76.4.77' });
   assert.equal(result.diagnostic.originalSha256, originalHash); assert.equal(result.diagnostic.decryptedOriginalAttached, false);
   assert.deepEqual(result.diagnostic.certificateStatus.map(s => [s.purpose, s.status]), [['signing', 'good'], ['authentication', 'good']]);
   assert.equal(result.diagnostic.deliveryStatus, 'diagnostic-only'); assert.equal(leafCount(), 2);
@@ -348,4 +350,44 @@ test('TSL OCSP: legacy encrypted proof remains readable; same-name key replaceme
   state.responder = extraResponder;
   await assert.rejects(check(c), code('KIM_OCSP_SIGNATURE')); assert.equal(leafCount(), 1);
   assert.equal(inspect(db => db.prepare('SELECT count(*) n FROM ocsp_evidence').get().n), 1);
+}));
+
+test('TSL OCSP: purpose is explicit and a signed certificate cannot be reused for another type', async () => fixture(async ({ open }) => {
+  const c = open();
+  for (const purpose of [undefined, 'toString', 'unknown']) {
+    await assert.rejects(c.check({ certificate: signing.certificate, purpose }), code('KIM_TSL_CERT_TYPE_CONFIGURATION'));
+  }
+  await assert.rejects(c.check({ certificate: signing.certificate, purpose: 'authentication' }), code('KIM_TSL_CERT_TYPE_MISMATCH'));
+  assert.equal(leafCount(), 0);
+}));
+
+test('TSL OCSP: removing CA type permission blocks cached proof; explicit restored permission permits revalidation', async () => fixture(async ({ open, update, manager }) => {
+  const c = open(); await check(c); const handle = manager.current();
+  await update({ services: defaults.map(s => s.type === CA ? { ...s, extensionOids: s.extensionOids.filter(o => o !== '1.2.276.0.76.4.78') } : s) });
+  await assert.rejects(check(c), code('KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED')); assert.equal(leafCount(), 1);
+  assert.throws(() => handle.certificateTypeFor(signing.certificate, { policyList: ['1.2.276.0.76.4.78'] }), statusError);
+  await update({ id: 'TSL_10003', sequence: 10003, services: defaults });
+  assert.equal((await check(c)).source, 'persistent-cache'); assert.equal(leafCount(), 1);
+}));
+
+test('KIM TSL receive: missing AUT CA permission blocks both requests before network I/O', async () => fixture(async ({ open }) => {
+  const result = await receive(open());
+  assert.equal(result.kind, 'diagnostic'); assert.equal(result.statusAcquisition.state, 'unavailable');
+  assert.equal(result.statusAcquisition.code, 'KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED');
+  assert.equal(result.diagnostic.certificateStatus.every(s => s.status === 'unavailable'), true);
+  assert.equal(result.diagnostic.decryptedOriginalAttached, false); assert.equal(leafCount(), 0);
+}, { services: defaults.map(s => s.type === CA ? { ...s, extensionOids: ['1.2.276.0.76.4.78'] } : s) }));
+
+test('TSL OCSP: revoked type permission during an actual HTTP request leaves no cached success', async () => fixture(async ({ open, update, inspect }) => {
+  let release, arrive; const arrived = new Promise(r => { arrive = r; });
+  state.handler = (req, res) => {
+    if (!req.url.startsWith('/leaf-')) return false;
+    release = () => { res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(signing.certificate).response); };
+    arrive(); return true;
+  };
+  const c = open(), pending = assert.rejects(check(c), statusError); await arrived;
+  await update({ services: defaults.map(s => s.type === CA ? { ...s, extensionOids: [] } : s) });
+  release(); await pending;
+  assert.equal(inspect(db => db.prepare('SELECT count(*) n FROM ocsp_evidence').get().n), 0);
+  await assert.rejects(check(c), code('KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED')); assert.equal(leafCount(), 1);
 }));

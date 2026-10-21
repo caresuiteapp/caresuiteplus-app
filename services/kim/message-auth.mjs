@@ -2,6 +2,7 @@ import { X509Certificate, createHash, verify, sign, randomUUID, constants } from
 import { certificateParts, certificateKeyUsage, der, fields } from '../gkv/der.mjs';
 import { kimAddress } from './address.mjs';
 import { brainpoolPublicKey } from './ecies.mjs';
+import { selectCertificateType, KIM_CERTIFICATE_TYPES } from './certificate-policy.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function base64(value, url = false) {
@@ -30,10 +31,8 @@ function policy(raw) {
   if (policies.length !== 1) return false;
   const encoded = fields(policies[0], 48).at(-1);
   if (encoded.tag !== 4) return false;
-  // gemSpec_OID: C.HP.AUT 1.2.276.0.76.4.75, C.HCI.AUT ...77.
-  return fields(der(encoded.value), 48).some(n => {
-    const f = fields(n, 48); return f[0].tag === 6 && ['2a8214004c044b', '2a8214004c044d'].includes(f[0].value.toString('hex'));
-  });
+  try { selectCertificateType(encoded.value, KIM_CERTIFICATE_TYPES.authentication); return true; }
+  catch { return false; }
 }
 const validAt = (certificate, now) => now >= certificate.validFromDate.getTime() && now < certificate.validToDate.getTime();
 
