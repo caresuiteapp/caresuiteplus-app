@@ -1,3 +1,5 @@
+import { academyCatalogMotif, type AcademyCatalogMotif } from './academyCatalogMotif.web';
+
 export type DesktopCatalogIconName =
   | 'apps' | 'home' | 'company' | 'clients' | 'people' | 'profile'
   | 'clock' | 'payroll' | 'invoice' | 'wallet' | 'folder' | 'document'
@@ -5,7 +7,8 @@ export type DesktopCatalogIconName =
   | 'mail' | 'video' | 'table' | 'presentation' | 'tasks' | 'route' | 'car'
   | 'activity' | 'audit' | 'chart' | 'inventory' | 'key' | 'shield'
   | 'settings' | 'palette' | 'plug' | 'help' | 'robot' | 'handover'
-  | 'medical' | 'bed' | 'learning' | 'flag';
+  | 'medical' | 'bed' | 'learning' | 'flag'
+  | `academy-${AcademyCatalogMotif}`;
 
 const workspaceIcons: Readonly<Record<string, DesktopCatalogIconName>> = {
   overview: 'plug', gmail: 'mail', calendar: 'calendar', meet: 'video',
@@ -26,6 +29,8 @@ const areaIcons: Readonly<Record<string, DesktopCatalogIconName>> = {
 
 /** Shared by Apps, widgets and workflow shortcuts, including routes with query tabs. */
 export function desktopCatalogIconName(route: string): DesktopCatalogIconName {
+  const academyMotif = academyCatalogMotif(route);
+  if (academyMotif) return `academy-${academyMotif}`;
   const [pathAndQuery] = route.trim().split('#', 1);
   const queryStart = pathAndQuery.indexOf('?');
   const path = (queryStart < 0 ? pathAndQuery : pathAndQuery.slice(0, queryStart))

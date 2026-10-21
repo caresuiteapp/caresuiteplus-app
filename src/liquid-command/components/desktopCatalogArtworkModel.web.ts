@@ -2,6 +2,7 @@ import type { ImageSourcePropType } from 'react-native';
 import { WIDGETS, type WidgetDefinition } from '../screens/administrationDesktopCatalog';
 import { canonicalDesktopCatalogRoute } from '../navigation/appsWidgetsCatalogModel.web';
 import { desktopCatalogIconName, type DesktopCatalogIconName } from './desktopCatalogIconModel.web';
+import { academyCatalogMotif, type AcademyCatalogMotif } from './academyCatalogMotif.web';
 
 export type DesktopCatalogArtworkImages = NonNullable<WidgetDefinition['images']>;
 
@@ -19,7 +20,67 @@ const FAMILY_ARTWORK_NAMES = {
   palette: 'settings', plug: 'portals', help: 'messages', robot: 'inventory',
   handover: 'messages', medical: 'assist', bed: 'company', learning: 'documents',
   flag: 'command',
+  'academy-overview': 'academy-overview', 'academy-courses': 'academy-courses',
+  'academy-templates': 'academy-templates', 'academy-participants': 'academy-participants',
+  'academy-schedule': 'academy-schedule', 'academy-mandatory': 'academy-mandatory',
+  'academy-reviews': 'academy-reviews', 'academy-certificates': 'academy-certificates',
+  'academy-library': 'academy-library', 'academy-reports': 'academy-reports',
 } satisfies Record<DesktopCatalogIconName, string>;
+
+// Static requires let Expo package every size. The route resolver is shared
+// with outline icons, so a launcher and its navigation entry keep one meaning.
+const ACADEMY_ARTWORK: Record<AcademyCatalogMotif, DesktopCatalogArtworkImages> = {
+  overview: {
+    small: require('../../../assets/healthos/widgets-premium/academy/overview-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/overview-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/overview-large.png'),
+  },
+  courses: {
+    small: require('../../../assets/healthos/widgets-premium/academy/courses-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/courses-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/courses-large.png'),
+  },
+  templates: {
+    small: require('../../../assets/healthos/widgets-premium/academy/templates-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/templates-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/templates-large.png'),
+  },
+  participants: {
+    small: require('../../../assets/healthos/widgets-premium/academy/participants-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/participants-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/participants-large.png'),
+  },
+  schedule: {
+    small: require('../../../assets/healthos/widgets-premium/academy/schedule-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/schedule-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/schedule-large.png'),
+  },
+  mandatory: {
+    small: require('../../../assets/healthos/widgets-premium/academy/mandatory-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/mandatory-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/mandatory-large.png'),
+  },
+  reviews: {
+    small: require('../../../assets/healthos/widgets-premium/academy/reviews-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/reviews-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/reviews-large.png'),
+  },
+  certificates: {
+    small: require('../../../assets/healthos/widgets-premium/academy/certificates-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/certificates-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/certificates-large.png'),
+  },
+  library: {
+    small: require('../../../assets/healthos/widgets-premium/academy/library-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/library-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/library-large.png'),
+  },
+  reports: {
+    small: require('../../../assets/healthos/widgets-premium/academy/reports-compact.png'),
+    medium: require('../../../assets/healthos/widgets-premium/academy/reports-medium.png'),
+    large: require('../../../assets/healthos/widgets-premium/academy/reports-large.png'),
+  },
+};
 
 function isInlineSvg(source: ImageSourcePropType | undefined): boolean {
   return typeof source === 'object' && source !== null && !Array.isArray(source) &&
@@ -62,6 +123,8 @@ const FALLBACK_ARTWORK: DesktopCatalogArtworkImages = {
 
 /** Stable picture identity for aliases, workflow destinations and Workspace tabs. */
 export function desktopCatalogArtworkName(route: string): string {
+  const academyMotif = academyCatalogMotif(route);
+  if (academyMotif) return `academy-${academyMotif}`;
   return artworkNameByRoute.get(artworkRoute(route)) ?? FAMILY_ARTWORK_NAMES[desktopCatalogIconName(route)];
 }
 
@@ -70,6 +133,10 @@ export function desktopCatalogArtwork(
   route: string,
   preferred?: WidgetDefinition['images'],
 ): DesktopCatalogArtworkImages {
+  const academyMotif = academyCatalogMotif(route);
+  // A generic inherited widget image must not override the same Academy
+  // destination's illustration in navigation, Apps, widgets or workflows.
+  if (academyMotif) return ACADEMY_ARTWORK[academyMotif];
   if (preferred && !(desktopCatalogIconName(route) === 'notes' && isInlineSvg(preferred.small))) return preferred;
   return artworkByName.get(desktopCatalogArtworkName(route)) ?? FALLBACK_ARTWORK;
 }
