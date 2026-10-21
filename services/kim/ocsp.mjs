@@ -206,6 +206,12 @@ export class PinnedOcspVerifier {
       return seq(seq(seq(seq(expectedId(leaf, issuer, algorithm)))));
     } catch (e) { if (e instanceof OcspError) throw e; fail('KIM_OCSP_REQUEST'); }
   }
+  authorizesResponder(input, responderSha256) {
+    try {
+      if (typeof responderSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(responderSha256)) fail('KIM_OCSP_CONFIGURATION');
+      return this.#bindings(certificate(input), this.#now()).some(a => a.signer.sha256 === responderSha256);
+    } catch (e) { if (e instanceof OcspError) throw e; fail('KIM_OCSP_FORMAT'); }
+  }
   verify({ certificate: input, request, response }) {
     try {
       const now = this.#now(), leaf = certificate(input), bindings = this.#bindings(leaf, now);
@@ -216,9 +222,21 @@ export class PinnedOcspVerifier {
       const parsed = responseData(response), matches = parsed.singles.filter(s => sameId(requestId, s.identity));
       if (matches.length !== 1) fail('KIM_OCSP_RESPONSE_BINDING');
       const authorized = bindings.filter(a => responderMatches(parsed.responder, a.signer));
-      if (authorized.length !== 1) fail('KIM_OCSP_RESPONDER');
-      const signer = authorized[0].signer;
-      if (!verify('sha256', parsed.data, signatureOptions(parsed.algorithm, signer.cert.publicKey), parsed.signature)) fail('KIM_OCSP_SIGNATURE');
+      if (!authorized.length) fail('KIM_OCSP_RESPONDER');
+      // A rollover may list two keys with the same responder DN. Only an
+      // already authorized key whose actual signature verifies can select it.
+      let supported = false;
+      const verified = authorized.filter(({ signer }) => {
+        let options;
+        try { options = signatureOptions(parsed.algorithm, signer.cert.publicKey); }
+        catch (e) { if (e instanceof OcspError && e.code === 'KIM_OCSP_ALGORITHM') return false; throw e; }
+        supported = true;
+        return verify('sha256', parsed.data, options, parsed.signature);
+      });
+      if (!supported) fail('KIM_OCSP_ALGORITHM');
+      if (!verified.length) fail('KIM_OCSP_SIGNATURE');
+      if (verified.length !== 1) fail('KIM_OCSP_RESPONDER');
+      const signer = verified[0].signer;
       if (parsed.producedAt < now - AGE || parsed.producedAt > now + FUTURE
         || !current(signer, parsed.producedAt)) fail('KIM_OCSP_STALE');
       const single = matches[0]; positiveStatement(single, leaf);

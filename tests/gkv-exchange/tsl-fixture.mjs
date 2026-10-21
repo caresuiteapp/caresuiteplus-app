@@ -29,20 +29,20 @@ function xmlFixture(data) {
 export async function tslFixture() {
   const pki = await testPki(), signer = await pki.issueTsl(), responder = await pki.issueOcsp();
   const readKey = async c => createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: pki.password });
-  const responderKey = await readKey(responder), keys = new Map([[signer.certificate, await readKey(signer)]]);
+  const responderKey = await readKey(responder), keys = new Map([[signer.certificate, await readKey(signer)], [responder.certificate, responderKey]]);
   const now = Math.floor(Date.now() / 1000) * 1000;
   const authorities = [{ issuer: pin(pki.roots), responder: pin(responder.certificate) }];
   const statusVerifier = (clock = () => now) => new PinnedOcspVerifier({ authorities, validFrom: now - 1000, validUntil: now + 7200_000, clock });
   const services = [{ type: CA, certificate: raw(pki.roots).toString('base64'), status: ACTIVE, started: now - 1000 },
     { type: OCSP, certificate: raw(responder.certificate).toString('base64'), status: ACTIVE, started: now - 1000 }];
-  const proof = (certificate = signer.certificate, { state = 'good', producedAt = now } = {}) => {
+  const proof = (certificate = signer.certificate, { state = 'good', producedAt = now, responder: statusSigner = responder } = {}) => {
     const request = statusVerifier().createRequest(certificate);
     const certID = fields(fields(fields(fields(der(request), 48, 1)[0], 48, 1)[0], 48, 1)[0], 48, 1)[0].raw;
     const status = state === 'revoked' ? tlv(161, time(producedAt - 1000)) : tlv(state === 'unknown' ? 130 : 128, Buffer.alloc(0));
     const certHash = seq(id('2b2408030d'), octets(seq(sha(), octets(hash(raw(certificate))))));
     const single = seq(certID, status, time(producedAt), ...(state === 'unknown' ? [] : [tlv(161, seq(certHash))]));
-    const data = seq(tlv(161, certificateParts(raw(responder.certificate)).subject.raw), time(producedAt), seq(single));
-    const basic = seq(data, seq(id('2a8648ce3d040302')), tlv(3, Buffer.concat([Buffer.from([0]), sign('sha256', data, responderKey)])), tlv(160, seq(raw(responder.certificate))));
+    const data = seq(tlv(161, certificateParts(raw(statusSigner.certificate)).subject.raw), time(producedAt), seq(single));
+    const basic = seq(data, seq(id('2a8648ce3d040302')), tlv(3, Buffer.concat([Buffer.from([0]), sign('sha256', data, keys.get(statusSigner.certificate))])), tlv(160, seq(raw(statusSigner.certificate))));
     return { request, response: seq(tlv(10, Buffer.from([0])), tlv(160, seq(id('2b0601050507300101'), octets(basic)))) };
   };
   const keyFor = async s => { if (!keys.has(s.certificate)) keys.set(s.certificate, await readKey(s)); return keys.get(s.certificate); };
@@ -66,5 +66,9 @@ export async function tslFixture() {
       validFrom: now - 1000, validUntil: now + 86400_000, clock, ...changes });
   };
   const issueSigner = options => pki.issueTsl({ ...options, startDate: new Date(now - 86400_000).toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z' });
-  return { pki, signer, responder, now, services, proof, detach, bundle, verifier, statusVerifier, issueSigner, pin, close: () => pki.close() };
+  const issueResponder = async options => {
+    const value = await pki.issueOcsp({ ...options, startDate: new Date(now - 86400_000).toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z' });
+    keys.set(value.certificate, await readKey(value)); return value;
+  };
+  return { pki, signer, responder, now, services, proof, detach, bundle, verifier, statusVerifier, issueSigner, issueResponder, pin, close: () => pki.close() };
 }

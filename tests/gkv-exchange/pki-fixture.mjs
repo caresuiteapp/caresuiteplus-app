@@ -41,11 +41,11 @@ export async function testPki() {
   };
   return {
     dir, sender, recipient, password, roots, rootFingerprint, crls: await crl(),
-    issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77' } = {}) {
-      return issueIdentity({ name, curve, policy, usage: 'digitalSignature' });
+    issueAut({ name = 'aut', curve = 'brainpoolP256r1', policy = '1.2.276.0.76.4.77', startDate, aia } = {}) {
+      return issueIdentity({ name, curve, policy, usage: 'digitalSignature', startDate, aia });
     },
-    issueKim({ name, role = 'enc', curve = 'brainpoolP256r1', policy, usage } = {}) {
-      return issueIdentity({ name, curve, policy: policy ?? (role === 'osig' ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76'), usage: usage ?? (role === 'osig' ? 'nonRepudiation' : 'keyAgreement') });
+    issueKim({ name, role = 'enc', curve = 'brainpoolP256r1', policy, usage, startDate, aia } = {}) {
+      return issueIdentity({ name, curve, policy: policy ?? (role === 'osig' ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76'), usage: usage ?? (role === 'osig' ? 'nonRepudiation' : 'keyAgreement'), startDate, aia });
     },
     issueOcsp({ name = 'ocsp', curve = 'brainpoolP256r1', extendedUsage = 'OCSPSigning', usage = 'digitalSignature', startDate } = {}) {
       return issueIdentity({ name, curve, extendedUsage, usage, startDate });

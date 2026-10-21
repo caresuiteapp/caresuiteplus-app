@@ -32,6 +32,9 @@ Listenstände gegen Rücksprünge beim Update und Wiederöffnen. Der
 [TSL-Aktualisierungsdienst](tsl-refresh.md) ergänzt feste HTTPS-Quellen,
 verpflichtenden Hashvergleich, Signierer-AIA gegen konfigurierte OCSP-Routen und
 periodische Prüfung mit Invalidierung bereits ausgegebener Prüfer.
+Die [TSL-gebundene Statusprüfung](tsl-ocsp.md) wählt für Nachrichtenzertifikate
+die CA-ServiceSupplyPoints, prüft dauerhafte Belege gegen den aktuellen Stand
+und verbindet den Abruf beider Zertifikatsrollen mit der Empfangsdiagnose.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

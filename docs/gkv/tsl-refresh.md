@@ -157,6 +157,12 @@ Kontrollpunkt; AES-GCM allein schützt nicht vor vollständigem Zurücksetzen.
 
 ## Nachweise und offene Integration
 
+Der anschließende [TI-nonQES-Statusclient](tsl-ocsp.md) verwendet diese geschützten
+Handles für Nachrichtenzertifikate. `ocspPlanFor()` wählt deren CA-Statusadressen;
+der Client bezieht pro Vorgang einen aktuellen Prüfer und verifiziert auch
+wiederverwendete dauerhafte Belege erneut. Dieser Weg ist vom hier beschriebenen
+Internet-AIA-Abruf für den TSL-Signierer getrennt.
+
 Die lokalen Tests verwenden echte HTTPS-Verbindungen, eine isolierte Test-PKI,
 signierte OCSP-Antworten, beide TSL-Signaturen, den vollständigen XML-Worker und
 verschlüsselte SQLite-Dateien. Sie prüfen Erstabruf, Hash-Wiederverwendung,

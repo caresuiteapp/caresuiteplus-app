@@ -93,17 +93,22 @@ export class DurableOcspStatusCache {
     try { transaction(this.#db, () => this.#prune(this.#now())); }
     catch (e) { if (e instanceof OcspError) throw e; fail('KIM_OCSP_STORE_FAILURE'); }
   }
-  #read(row, certificate) {
+  #read(row, certificate, verifier) {
     let clear;
     try {
       if (row.content.length > 360_000 || row.octets < 1 || row.octets > 266_240) fail('KIM_OCSP_STORE_INTEGRITY');
       clear = this.#vault.open(row.content, rowIdentity(row));
       const object = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(clear));
-      if (!object || Object.keys(object).sort().join(',') !== 'request,response') fail('KIM_OCSP_STORE_INTEGRITY');
+      if (!object || !['request,response', 'request,responderSha256,response'].includes(Object.keys(object).sort().join(','))) fail('KIM_OCSP_STORE_INTEGRITY');
       const request = decode(object.request, 4096), response = decode(object.response, 262_144);
       if (request.length + response.length !== row.octets || hash(certificate) !== row.certificate_sha) fail('KIM_OCSP_STORE_INTEGRITY');
-      const evidence = this.#verifier.verify({ certificate, request, response });
-      if (evidence.producedAt !== row.produced_at || row.valid_until !== evidence.producedAt + 3_600_001
+      if (object.responderSha256 !== undefined) {
+        if (typeof object.responderSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(object.responderSha256)) fail('KIM_OCSP_STORE_INTEGRITY');
+        if (!verifier.authorizesResponder(certificate, object.responderSha256)) fail('KIM_OCSP_RESPONDER');
+      }
+      const evidence = verifier.verify({ certificate, request, response });
+      if ((object.responderSha256 !== undefined && object.responderSha256 !== evidence.responderSha256)
+        || evidence.producedAt !== row.produced_at || row.valid_until !== evidence.producedAt + 3_600_001
         || evidence.validUntil <= this.#now()) fail('KIM_OCSP_STORE_INTEGRITY');
       // A renewed snapshot may shorten or extend the same evidence's usable lifetime.
       // The persisted expiry is only a cleanup hint; signature and current pins are always rechecked.
@@ -111,11 +116,20 @@ export class DurableOcspStatusCache {
     } catch (e) { if (e instanceof OcspError) throw e; fail('KIM_OCSP_STORE_INTEGRITY'); }
     finally { clear?.fill(0); }
   }
-  #claim(certificate, owner) {
+  #claim(certificate, owner, verifier, refreshUntrustedResponder) {
     return transaction(this.#db, () => {
       const now = this.#now(), sha = hash(certificate); this.#prune(now);
       const row = this.#db.prepare('SELECT * FROM ocsp_evidence WHERE scope=? AND certificate_sha=?').get(this.#scope, sha);
-      if (row) return { proof: this.#read(row, certificate) };
+      if (row) {
+        try { return { proof: this.#read(row, certificate, verifier) }; }
+        catch (error) {
+          // Only a caller using renewed trust may discard an authenticated
+          // response from a no-longer-listed responder. Ciphertext corruption,
+          // bad signatures, revoked/unknown status and other errors never reset it.
+          if (!refreshUntrustedResponder || !(error instanceof OcspError) || error.code !== 'KIM_OCSP_RESPONDER') throw error;
+          this.#db.prepare('DELETE FROM ocsp_evidence WHERE scope=? AND certificate_sha=?').run(this.#scope, sha);
+        }
+      }
       if (this.#db.prepare('SELECT 1 FROM ocsp_backoff WHERE scope=? AND certificate_sha=?').get(this.#scope, sha)) fail('KIM_OCSP_BACKOFF');
       const active = this.#db.prepare('SELECT valid_until FROM ocsp_leases WHERE scope=? AND certificate_sha=?').get(this.#scope, sha);
       if (active) return { wait: true };
@@ -140,18 +154,18 @@ export class DurableOcspStatusCache {
       const used = this.#db.prepare('SELECT coalesce(sum(octets),0) AS n FROM ocsp_evidence WHERE scope=?').get(this.#scope).n;
       if (used + octets > this.#bytes) fail('KIM_OCSP_CACHE_CAPACITY');
       const row = { scope: this.#scope, certificate_sha: sha, produced_at: evidence.producedAt, valid_until: evidence.producedAt + 3_600_001, octets };
-      const clear = Buffer.from(JSON.stringify({ request: request.toString('base64'), response: response.toString('base64') }));
+      const clear = Buffer.from(JSON.stringify({ request: request.toString('base64'), response: response.toString('base64'), responderSha256: evidence.responderSha256 }));
       try {
         this.#db.prepare('INSERT INTO ocsp_evidence VALUES(?,?,?,?,?,?)').run(this.#scope, sha, row.produced_at, row.valid_until, octets, this.#vault.seal(clear, rowIdentity(row)));
         this.#db.prepare('DELETE FROM ocsp_leases WHERE scope=? AND certificate_sha=? AND owner=?').run(this.#scope, sha, owner);
       } finally { clear.fill(0); }
     });
   }
-  async #run(certificate, request, owner, signal) {
+  async #run(certificate, request, owner, signal, verifier, refreshUntrustedResponder) {
     const sha = hash(certificate), stopped = () => { this.#open(); if (signal.aborted) throw signal.reason; };
     try {
       while (true) {
-        stopped(); const state = this.#claim(certificate, owner);
+        stopped(); const state = this.#claim(certificate, owner, verifier, refreshUntrustedResponder);
         if (state.proof) return state.proof;
         if (state.claimed) break;
         await new Promise((resolve, reject) => {
@@ -166,7 +180,7 @@ export class DurableOcspStatusCache {
       for (let attempt = 0; attempt < 4; attempt++) {
         stopped(); const response = await this.#transport.obtain(request, signal); stopped();
         let evidence;
-        try { evidence = this.#verifier.verify({ certificate, request, response }); }
+        try { evidence = verifier.verify({ certificate, request, response }); }
         catch (e) {
           if (!(e instanceof OcspError) || e.code !== 'KIM_OCSP_RESPONDER_ERROR') throw e;
           if (attempt < 3) continue;
@@ -189,17 +203,23 @@ export class DurableOcspStatusCache {
       }
     }
   }
-  async check({ certificate: input }) {
+  async check({ certificate: input, verifier = this.#verifier, refreshUntrustedResponder = false }) {
     this.#open();
+    if (!(verifier instanceof PinnedOcspVerifier) || typeof refreshUntrustedResponder !== 'boolean') fail('KIM_OCSP_STORE_CONFIGURATION');
     const certificate = leafBytes(input), sha = hash(certificate);
-    if (this.#running.has(sha)) return copyProof(await this.#running.get(sha).promise);
+    const request = verifier.createRequest(certificate);
+    const checked = proof => {
+      this.#open();
+      return copyProof({ ...proof, ...verifier.verify({ certificate, request: proof.request, response: proof.response }) });
+    };
+    if (this.#running.has(sha)) return checked(await this.#running.get(sha).promise);
     if (this.#running.size >= this.#limit) fail('KIM_OCSP_CACHE_CAPACITY');
-    const request = this.#verifier.createRequest(certificate), owner = randomUUID(), controller = new AbortController();
+    const owner = randomUUID(), controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new OcspError('KIM_OCSP_TIMEOUT')), this.#timeout);
-    const promise = Promise.resolve().then(() => this.#run(certificate, request, owner, controller.signal))
+    const promise = Promise.resolve().then(() => this.#run(certificate, request, owner, controller.signal, verifier, refreshUntrustedResponder))
       .finally(() => { clearTimeout(timer); this.#running.delete(sha); });
     this.#running.set(sha, { owner, controller, promise });
-    return copyProof(await promise);
+    return checked(await promise);
   }
   close() {
     if (this.#closed) return;

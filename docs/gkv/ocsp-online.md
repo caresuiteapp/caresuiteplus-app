@@ -64,15 +64,17 @@ Teil dieses Transports. Fehler enthalten ausschließlich feste Codes.
 
 Die Route ist serverseitig fest. Der [TSL-Aktualisierungsdienst](tsl-refresh.md)
 ordnet die authentisierte AIA eines TSL-Signierers genau einer ausdrücklich
-konfigurierten Route zu. Allgemeine TSL-ServiceSupplyPoint-/AIA-Routenauflösung
-für andere Zertifikatstypen bleibt offen. Das Modul ist
+konfigurierten Route zu. Der [TI-nonQES-Statusclient](tsl-ocsp.md) wählt für
+Nachrichtenzertifikate dagegen die ServiceSupplyPoints ihrer CA aus der geprüften
+TSL; auch dort sind nur ausdrücklich konfigurierte Routen zulässig. Das Modul ist
 kein öffentlicher Abrufproxy und darf nicht mit Benutzer-URLs konfiguriert werden.
 
 ## Persistenz und Nebenläufigkeit
 
 SQLite verwendet WAL, FULL-Synchronisierung und kurze `BEGIN IMMEDIATE`-
 Transaktionen. Verzeichnis und Datei benötigen geschützte Rechte (0700/0600).
-Anfrage und Antwort werden zusammen mit AES-256-GCM gespeichert. Die Bindung
+Anfrage, Antwort und bei neuen Einträgen der tatsächlich geprüfte Responderhash
+werden zusammen mit AES-256-GCM gespeichert. Die Bindung
 umfasst Namespace, Zertifikathash, producedAt, Ablauf und Bytezahl. Öffentlich
 sichtbare SQL-Metadaten sind Hashes, Zeitpunkte, Größen und Claim-Kennungen;
 Zertifikate und Rohantworten liegen nur verschlüsselt vor. Es werden keine
@@ -90,8 +92,21 @@ sich nach producedAt plus einer Stunde, einschließlich des letzten gültigen
 Millisekundenwerts. Ein abgelaufener Pin-Snapshot verkürzt nicht die gespeicherte
 Rohbelegdauer: Ein neuer gültiger Snapshot kann dieselben Bytes erneut prüfen.
 Zur Nutzung gelten zusätzlich dessen aktuelle Zertifikats- und Zeitgrenzen.
-Manipulierte oder unter den aktuellen Pins unprüfbare Einträge führen zum Fehler;
-sie werden nicht unbemerkt durch eine neue positive Abfrage ersetzt.
+Manipulierte oder unter den aktuellen Pins unprüfbare Einträge führen zum Fehler.
+Der TSL-Client kann ausdrücklich `refreshUntrustedResponder: true` setzen:
+Ein authentisierter Beleg eines nicht mehr autorisierten Responders darf dann
+entfernt und neu beschafft werden. Ein Signatur-/Speicherfehler löst dies nicht
+aus; der neue Rohbeleg benötigt wieder eine vollständige Prüfung. Die
+[Formatkompatibilität und Grenzen beim Schlüsselwechsel](tsl-ocsp.md) gelten
+auch für bisherige Cache-Nutzer.
+
+`check({ certificate, verifier, refreshUntrustedResponder })` erlaubt einen
+aktuellen tatsächlichen `PinnedOcspVerifier` pro Aufruf. Ohne diese Angabe gilt
+der Konstruktorprüfer. Auch Aufrufer, die einer laufenden Beschaffung beitreten,
+prüfen deren Ergebnis erneut mit ihrem eigenen aktuellen Prüfer. Die Getter-
+Eigenschaft `cache.verifier` bleibt der ursprüngliche Konstruktorprüfer;
+für einen TSL-Wechsel muss der Host daher aktuelle Prüfer verwenden oder den
+neuen TSL-Statusclient einsetzen.
 
 Gleichzeitige Aufrufe desselben Prozesses teilen eine laufende Abfrage. Andere
 Prozesse auf demselben lokalen Volume warten auf einen zeitlich begrenzten
@@ -116,8 +131,9 @@ Abfragesperre je Namespace/Zertifikat dauerhaft gespeichert. Danach ist erneut
 ein Abruf möglich. HTTP-, Signatur-, Format- und Speicherfehler erzeugen weder
 Erfolgsbelege noch automatische Wiederholungen. Die Gesamtdauer bleibt begrenzt;
 ein Timeout kann die Wiederholungsfolge früher beenden. Fehlersperren sind keine
-signierten Zertifikatsbelege. Diese Teilregel orientiert sich an A_30046; die
-dort zusätzlich vorgeschriebene Vertrauens-/Routenprüfung ist noch offen.
+signierten Zertifikatsbelege. Diese Teilregel orientiert sich an A_30046.
+Der neue TSL-Statusclient ergänzt die begrenzte TI-nonQES-Vertrauens-/Routenauswahl;
+die vollständige normative Pfad-/Rollen-/Policyprüfung bleibt offen.
 
 ## Nachweise und Grenzen
 

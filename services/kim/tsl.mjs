@@ -56,6 +56,28 @@ function issuedBy(leaf, issuer) {
   signatureOptions(leaf.p.signatureAlgorithm, issuer.c.publicKey);
   return leaf.c.verify(issuer.c.publicKey);
 }
+function matchingKeyIdentifiers(leaf, issuer) {
+  try {
+    const subject = der(issuer.ext.get('551d0e') ?? Buffer.alloc(0));
+    const authority = fields(der(leaf.ext.get('551d23') ?? Buffer.alloc(0)), 48);
+    const keys = authority.filter(n => n.tag === 128);
+    return subject.tag === 4 && subject.value.length > 0 && subject.value.length <= 64
+      && keys.length === 1 && keys[0].value.equals(subject.value)
+      && new Set(authority.map(n => n.tag)).size === authority.length
+      && authority.every(n => [128, 161, 130].includes(n.tag));
+  } catch { return false; }
+}
+function statusEndpoints(values) {
+  if (!values.length || values.length > 16) fail('KIM_TSL_STATUS_ADDRESS');
+  const urls = values.map(value => {
+    if (typeof value !== 'string' || !value.length || value.length > 2048 || /[^\x21-\x7e]|\\/.test(value)) fail('KIM_TSL_STATUS_ADDRESS');
+    let u; try { u = new URL(value); } catch { fail('KIM_TSL_STATUS_ADDRESS'); }
+    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password || u.hash || !u.hostname) fail('KIM_TSL_STATUS_ADDRESS');
+    return u.href;
+  });
+  if (new Set(urls).size !== urls.length) fail('KIM_TSL_STATUS_ADDRESS');
+  return Object.freeze(urls);
+}
 function detached(input) {
   const [algorithm, value, signerNode] = fields(der(input), 48, 3), signer = cert(signerNode.raw);
   const options = signatureOptions(algorithm, signer.c.publicKey);
@@ -249,6 +271,29 @@ export class TslTrustSnapshot {
     return now;
   }
   exportBundle() { this.#now(); return { xml: Buffer.from(this.#xml), detachedSignature: Buffer.from(this.#signature) }; }
+  #issuerFor(leaf, model, now) {
+    if (!['current', 'nonqes-compromise'].includes(model)) fail('KIM_TSL_VALIDATION_MODEL');
+    if (leaf.c.ca || !current(leaf, now)) fail('KIM_TSL_SERVICE_CERTIFICATE');
+    const matches = this.#services.filter(s => s.type === CA && s.statusStartingTime <= now && (s.status === ACTIVE
+      || (model === 'nonqes-compromise' && s.status === REVOKED && leaf.c.validFromDate.getTime() < s.statusStartingTime)))
+      .map(service => ({ service, issuer: cert(Buffer.from(service.certificates[0], 'base64')) }))
+      .filter(({ issuer }) => issuer.c.ca && (issuer.usage & 4) && current(issuer, now) && issuedBy(leaf, issuer));
+    if (matches.length !== 1) fail('KIM_TSL_ISSUER');
+    if (!matchingKeyIdentifiers(leaf, matches[0].issuer)) fail('KIM_TSL_ISSUER_KEY_ID');
+    return matches[0];
+  }
+  /** TI nonQES status routing (TUC_PKI_005). A leaf's AIA is not a substitute
+   * for its issuing CA's ServiceSupplyPoints. No network request occurs here.
+   */
+  ocspPlanFor(input, { model = 'current', isCurrent } = {}) {
+    try {
+      const leaf = cert(input), verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
+      const { issuer, service } = this.#issuerFor(leaf, model, this.#now());
+      const request = verifier.createRequest(leaf.c.raw);
+      return Object.freeze({ certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,
+        supplyPoints: statusEndpoints(service.supplyPoints), request, verifier });
+    } catch (error) { if (error instanceof TslError) throw error; fail('KIM_TSL_STATUS_PLAN'); }
+  }
   ocspVerifierFor(input, { model = 'current', isCurrent } = {}) {
     try {
       if (!['current', 'nonqes-compromise'].includes(model)) fail('KIM_TSL_VALIDATION_MODEL');
@@ -263,11 +308,8 @@ export class TslTrustSnapshot {
       const issuers = new Map();
       for (const inputCertificate of inputs) {
         const leaf = cert(inputCertificate);
-        const matches = active.filter(s => s.type === CA && (s.status === ACTIVE
-          || (model === 'nonqes-compromise' && s.status === REVOKED && leaf.c.validFromDate.getTime() < s.statusStartingTime)))
-          .map(s => cert(Buffer.from(s.certificates[0], 'base64'))).filter(c => current(c, now) && issuedBy(leaf, c));
-        if (matches.length !== 1) fail('KIM_TSL_ISSUER');
-        issuers.set(matches[0].sha256, matches[0]);
+        const { issuer } = this.#issuerFor(leaf, model, now);
+        issuers.set(issuer.sha256, issuer);
       }
       const responders = active.filter(s => s.type === OCSP && s.status === ACTIVE)
         .map(s => cert(Buffer.from(s.certificates[0], 'base64'))).filter(c => current(c, now));

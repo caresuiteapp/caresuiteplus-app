@@ -65,7 +65,11 @@ for service in o["services"]:
     add(add(add(t, "ServiceDigitalIdentity"), "DigitalId"), "X509Certificate", service["certificate"])
     add(t, "ServiceStatus", service["status"])
     add(t, "StatusStartingTime", date(service["started"]))
-    add(add(t, "ServiceSupplyPoints"), "ServiceSupplyPoint", "https://example.invalid/ocsp")
+    endpoints = service.get("supplyPoints", ["https://example.invalid/ocsp"])
+    if endpoints:
+        points = add(t, "ServiceSupplyPoints")
+        for endpoint in endpoints:
+            add(points, "ServiceSupplyPoint", endpoint)
 
 if o.get("comment"):
     root.append(E.Comment("C14N fixture comment"))

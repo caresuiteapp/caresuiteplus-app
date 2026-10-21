@@ -102,7 +102,9 @@ benötigt der Host den aktuellen Signiererbeleg; es gibt keine persistierte
 
 `ocspVerifierFor()` akzeptiert ein Zertifikat oder bis zu 16 Zertifikate und
 liefert den vorhandenen OCSP-Prüfer mit deduplizierten CA-/Responder-Zuordnungen.
-Für jedes Blatt muss genau eine aktuelle CA/PKC aus der Liste passen. Aktuelle
+Für jedes aktuelle Nicht-CA-Blatt muss genau eine CA/PKC aus der Liste passen:
+Ausstellername, tatsächliche Zertifikatssignatur, CA/keyCertSign und
+AuthorityKeyIdentifier/SubjectKeyIdentifier werden geprüft. Aktuelle
 OCSP-Dienstidentitäten werden aus der Liste entnommen; eine identische
 ausstellende CA oder Provider-Zeile des Responders wird nicht vorausgesetzt.
 Es sind höchstens 100 CA-/Responder-Paare zulässig. Die bekannten Begrenzungen
@@ -115,8 +117,10 @@ begrenzte nonQES-Statuspfadauswahl, keine historische/QES-Pfadvalidierung.
 Zukünftige Dienste, fehlende Responder, doppelte Dienstidentitäten und revoked-
 OCSP-Einträge geben keinen Prüfpfad frei. ServiceHistory wird nicht unterstützt.
 QES-, CVC-, DNS- und Wechsel-Dienste sind Metadaten, keine automatisch neuen
-Vertrauensanker. ServiceSupplyPoints werden nur als Daten ausgegeben und niemals
-automatisch als Netzwerkziele verwendet.
+Vertrauensanker. `ocspPlanFor()` bereitet die ServiceSupplyPoints der passenden
+CA für den [TSL-Statusclient](tsl-ocsp.md) vor; nur eine ausdrücklich konfigurierte
+und eindeutig passende Route darf zum Netzwerkziel werden. Eine Leaf-AIA oder
+die Adresse des Responderdienstes ersetzt die CA-Statusadresse nicht.
 
 Die Zertifikate aller Diensteinträge werden beim Import nicht pauschal auf eine
 selbst definierte Kette geprüft. Die benötigten CA-/OCSP-Zertifikate werden erst
@@ -125,7 +129,8 @@ Snapshot nicht mehr zur Verfügung. Direkte Snapshots dieses manuellen Importpfa
 werden nicht rückwirkend widerrufen. Der [Aktualisierungsdienst](tsl-refresh.md)
 gibt dagegen geschützte Handles aus: Ihre OCSP-Prüfer kontrollieren auch nach der
 Ausgabe Generation und aktuellen gespeicherten Listenstand. Der Host muss nach
-einem Wechsel aktuelle Prüfer-/Cache-Instanzen beziehen.
+einem Wechsel aktuelle Prüfer beziehen. Der neue Statusclient erledigt dies pro
+Aufruf und prüft vorhandene Cachebelege erneut gegen diesen Stand.
 
 ## Dauerhafte Ablage
 

@@ -340,6 +340,26 @@ XSD, periodischen Betrieb, Neustart und Übernahme älterer verschlüsselter Abl
 Produktiver Hostanschluss und authentisierte TI-Ankerinitialisierung bleiben offen.
 [Schnittstellen, Grenzen und Primärquellen](tsl-refresh.md).
 
+### TSL-gebundener OCSP-Abruf im KIM-Empfang
+
+`tsl-ocsp.mjs` wählt die Statusadresse eines Nachrichtenzertifikats anhand des
+passenden CA/PKC-Dienstes der geprüften Liste. Ausstellername, tatsächliche
+Signatur und AKI/SKI müssen passen. Nur eine eindeutig passende vorkonfigurierte
+Route wird verwendet; Leaf-AIA und Responder-Service-URL ersetzen sie nicht.
+Dauerhafte Belege werden pro Aufruf gegen den aktuellen geschützten Prüfer
+validiert. Die erneute Prüfung gilt auch nach Listenwechsel und bei gemeinsam
+laufenden Abfragen. Responderwechsel mit gleichem Namen werden anhand der
+autorisierten Schlüssel und tatsächlichen Signatur behandelt.
+
+`receive-tsl.mjs` prüft zunächst Nachricht, AUT und Headerbindung, beschafft dann
+beide Statusbelege und führt sie durch den bestehenden Empfangsprüfer. Fehlerhafte
+Nachrichten lösen keine Statusabfrage aus; ein Transportfehler einer Rolle
+verwirft nicht den gültigen Beleg der anderen. Positive lokale Befunde bleiben
+Diagnose 07, Klartextanhänge standardmäßig aus und normale Zustellung gesperrt.
+38 neue Fälle ergeben zusammen mit dem bisherigen Stand **378 Prüfungen**.
+Cacheformat-Kompatibilität, Grenzen und weiterhin fehlender produktiver
+TI-/Konnektoranschluss sind in [tsl-ocsp.md](tsl-ocsp.md) beschrieben.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
@@ -367,7 +387,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; Konnektor-/SMC-B-Anbindung, VZD, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten und asynchroner Abruf für die Empfangsdiagnose ergänzt. Konnektor-/SMC-B-Anbindung, VZD, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

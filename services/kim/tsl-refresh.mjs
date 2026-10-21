@@ -31,6 +31,9 @@ export class TslRefreshManager {
     store.bindSource(createHash('sha256').update(JSON.stringify(['tsl-refresh-v1', source.bindingSha256, signerStatusSource.bindingSha256])).digest('hex'));
     Object.freeze(this);
   }
+  get environment() { return this.#source.environment; }
+  get profile() { return this.#source.profile; }
+  get trustBindingSha256() { return this.#store.verifier.bindingSha256; }
   #now() {
     let now; try { now = this.#clock(); } catch { fail('KIM_TSL_CLOCK'); }
     if (!Number.isSafeInteger(now) || now < 0 || now < this.#lastNow) fail('KIM_TSL_CLOCK');
@@ -60,6 +63,9 @@ export class TslRefreshManager {
       get services() { assert(); return snapshot.services; },
       ocspVerifierFor: (input, { model = 'current' } = {}) => {
         assert(); return snapshot.ocspVerifierFor(input, { model, isCurrent });
+      },
+      ocspPlanFor: (input, { model = 'current' } = {}) => {
+        assert(); return snapshot.ocspPlanFor(input, { model, isCurrent });
       },
     });
   }

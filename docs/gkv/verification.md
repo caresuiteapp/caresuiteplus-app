@@ -8,8 +8,48 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**340 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**378 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## TSL-gebundene Statusprüfung am 21.10.2026
+
+Die bisherigen 340 Fälle und **38 neue Prüfungen** bestehen gemeinsam.
+`tsl-ocsp.test.mjs` verwendet echte lokale HTTPS-Verbindungen, authentisierte
+TSL-Originale samt XSD, signierte OCSP-Antworten, verschlüsselte SQLite-Ablage
+und eine tatsächlich ECC-verschlüsselte KIM-Nachricht. Gesamtlauf:
+**378 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
+
+Geprüft sind die CA-ServiceSupplyPoint-Auswahl unabhängig von Leaf-AIA und
+Responder-Service-URL, fehlende/unzulässige/mehrdeutige Routen, CA-Eingaben,
+veränderte Zertifikate, fehlende AKI und das ausdrücklich gewählte
+CA-Kompromissmodell mit Ausstellungszeitgrenze. Ein neuer CA-Endpunkt kann
+keinen Beleg aus dem vorherigen Routencache übernehmen.
+
+Die Cacheprüfungen umfassen Neustart, gleiche Listen mit erneuerten Handles,
+negative Befunde, manipulierte Verschlüsselung, Konfigurations-/Namespacewechsel,
+parallele Clients, Quoten, Timeout, Abbruch und dauerhaftes Protokollfehler-Backoff.
+Entfernte Responder sowie Listenwechsel während eines laufenden Abrufs können
+keine alten Belege freigeben. Neue Responder mit gleichem Namen werden über
+ihre tatsächliche Signatur ausgewählt; eine frische Antwort vom entfernten
+Schlüssel bleibt gesperrt. Das vorherige verschlüsselte Cacheformat bleibt
+lesbar, scheitert beim gleichnamigen Schlüsselwechsel aber ohne neue
+Respondermetadaten bis zum Ablauf. Diese Rollback-/Migrationsgrenze ist
+ausdrücklich [dokumentiert](tsl-ocsp.md).
+
+Der tatsächliche Empfang prüft beide Rohbelege erneut und erhält Diagnose 07
+ohne Klartextanhang. Sperrung, unbekannter Status und Fehler einer Einzelrolle
+werden getrennt berichtet. Fehlerhafte Nachrichten, fehlende Schlüssel und
+ungültige Berichtsoptionen lösen keine Statusanfragen aus. Vorgetäuschte
+`good`-Flags und asynchrone Änderungen an Originalbytes/Zertifikaten/Berichtsflags
+geben keinen anderen Inhalt frei. Unverschlüsselte Nachrichten bleiben bytegleich.
+
+Neun betroffene MJS-Dateien bestehen `node --check`, die geänderte Python-Fixture
+und das Anforderungs-JSON die Syntaxprüfung. Die Änderungen bestehen
+`git diff --check`. Das FD-Inventar bleibt bei 106 Kennungen: 28 teilweise lokal
+belegt, 78 offen. Keine Installation, UI-/Android-/Supabase-/Produktionsänderung
+oder echte TI-/Statusabfrage. Alle vier Vercel-Projekte haben den vorherigen
+Commit **176a9b1** erfolgreich gebaut. Der neue Commit wird separat in PR #129
+geprüft; diese älteren Ergebnisse belegen keinen neuen Build.
 
 ## Automatische TSL-Aktualisierung am 21.10.2026
 
@@ -45,9 +85,9 @@ Neun betroffene MJS-Dateien bestehen `node --check`; Anforderungs-JSON und eigen
 106 Kennungen: 28 teilweise lokal belegt, 78 offen. Vorhandene Laufzeiten,
 keine Installation oder neue Infrastruktur. Keine UI-/Android-/Supabase- oder
 Produktionsänderung und keine Abfrage echter TSL-/OCSP-Dienste.
-Alle vier Vercel-Projekte haben **62bd8ba** erfolgreich gebaut. Der Buildstatus
-des neuen Commits wird gesondert in PR #129 geprüft; ein Web-Build belegt keine
-Python-/lxml-Laufzeit des Diensthosts. [Ablauf und Betriebsgrenzen](tsl-refresh.md).
+Alle vier Vercel-Projekte haben diesen Stand **176a9b1** erfolgreich gebaut.
+Ein Web-Build belegt keine Python-/lxml-Laufzeit des Diensthosts.
+[Ablauf und Betriebsgrenzen](tsl-refresh.md).
 
 ## TSL-Import und Versionskontrolle am 21.10.2026
 
