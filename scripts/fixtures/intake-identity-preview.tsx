@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThemeModeProvider } from '../../src/design/ThemeModeProvider';
 import { ClientIntakeIdentityPanel } from '../../src/components/office/ClientIntakeIdentityPanel.web';
-import type { useClientIntakeWizard } from '../../src/hooks/useClientIntakeWizard.web';
+import type { useClientIntakeWizard } from '../../src/hooks/pflege/useCareClientIntakeWizard.web';
 type Scenario = 'similar' | 'empty' | 'exact' | 'denied' | 'error' | 'approved';
 declare global { interface Window { intakeQA: { setScenario(scenario: Scenario): void; events: string[] } } }
 const events: string[] = [];
