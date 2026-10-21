@@ -14,7 +14,7 @@ import { der, fields, certificateParts } from '../../services/gkv/der.mjs';
 import { KimMailstore } from '../../services/kim/mailstore.mjs';
 import { PinnedAutVerifier } from '../../services/kim/message-auth.mjs';
 import { inspectKimEnvelope } from '../../services/kim/envelope.mjs';
-import { createEccKimMessage, openEccKimMessage } from '../../services/kim/client-message.mjs';
+import { createEccKimMessage, openEccKimMessage, receiveEccKimMessage } from '../../services/kim/client-message.mjs';
 import { readMessage, verifySubmission, MAX_KIM_MESSAGE } from '../../services/kim/message.mjs';
 import { createSmtpTlsServer } from '../../services/kim/smtp-server.mjs';
 import { createPop3TlsServer } from '../../services/kim/pop3-server.mjs';
@@ -207,6 +207,15 @@ test('complete ECC message with generated AUT traverses SMTP and POP3, then chec
     assert.deepEqual(readMessage(decoded.message).body, readMessage(original).body);
     assert.equal(decoded.identityStatus, 'unverified'); assert.equal(decoded.deliveryStatus, 'held-for-trust-validation');
     assert.equal(decoded.headerIntegrity, 'matched');
+    const receiveOptions = { bytes: stored, address: recipient, recipientCertificate: encReceiver.certificate, privateKey: recipientKey,
+      expectedSignerCertificate: signer.certificate, expectedAuthCertificate: aut.certificate };
+    const reportOptions = { cmVersion: 'TEST_0.2.0', ptVersion: '1.5.5' };
+    const pendingTrust = receiveEccKimMessage(receiveOptions, reportOptions);
+    assert.equal(pendingTrust.diagnostic.integrityResult, '07'); assert.equal(pendingTrust.deliveryStatus, 'diagnostic-only');
+    const missingKey = receiveEccKimMessage({ ...receiveOptions, privateKey: undefined }, reportOptions);
+    assert.equal(missingKey.diagnostic.errorCode, '4009'); assert.ok(missingKey.bytes.includes(stored));
+    assert.deepEqual(inbox.get(tenantId, ids[0]).bytes, stored); // Error formatting never replaces original evidence.
+    assert.equal(s.mails(sender).length, 1); // Only the original FD delivery DSN, no automatically sent error mail.
     await sendSmtp(m, s.config); assert.equal(s.mails(recipient).length, 0); assert.equal(s.mails(sender).length, 1);
   } finally { if (pop) await new Promise(r => pop.close(r)); inbox?.close(); await s.close(); }
 });

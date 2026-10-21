@@ -8,8 +8,34 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**179 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**198 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## KIM-Empfangsdiagnosen am 21.10.2026
+
+Die bisherigen 179 Fälle und **19 neue Prüfungen** bestehen gemeinsam.
+`kim-receive-error.test.mjs` prüft Versions-/Format-/Schlüsselfehler, GCM- und
+Signaturmanipulationen, eigene Codes bei unklaren Ursachen, Headerbereinigung,
+Ergebnis 07 bei ausstehendem Vertrauen, einmalige UUID-Referenzen, unveränderte
+Originalbytes und den standardmäßig ausgeschalteten Klartextanhang.
+
+Pythons eigenständiger Standardbibliotheksparser liest die tatsächlichen
+MIME-Nachrichten, Unicode-Betreffzeilen, Quoted-Printable-Texte und Base64-Berichte.
+RFC822-Anhänge werden zusätzlich bytegenau geprüft, auch mit Binärbytes und
+fehlenden/abschließenden CRLFs. XML-Berichte sind an den Originalhash gebunden;
+das belegt keine XSD- oder Echtheitsprüfung dieser externen Berichte.
+
+Der bestehende echte SMTP-/POP3-/Inbox-Test erzeugt daraus die 07- und 4009-
+Diagnosen. Das gespeicherte Original bleibt unverändert, es wird keine weitere
+Mail an den Sender erzeugt. Eingabegrenze 21 MiB und Diagnosegrenze 22 MiB sind
+einschließlich eines Originals an der SMTP-Grenze geprüft. Überschreitungen von
+Headergrenzen führen zum Fehler, nicht zum Abschneiden von Belegen.
+
+Die strikten Öffner geben nach Prüfungsfehlern weiterhin keinen Klartext zurück.
+Eine gesonderte Diagnoseoption erlaubt einen ausdrücklich ungeprüften
+Originalanhang erst nach erfolgreicher GCM-Authentisierung.
+Weitere Grenzen: [kim-receive-errors.md](kim-receive-errors.md).
+Alle vier Vercel-Projekte haben den Vorgänger **817a673** erfolgreich gebaut.
 
 ## KIM-Nachrichtenablauf und Headerbindung am 21.10.2026
 
@@ -31,8 +57,9 @@ Wire-Bytes, Hash der geschützten Nachricht und ursprünglicher Body stimmen
 überein. Wiederholung nach POP3-Löschung erzeugt keine Dublette.
 
 Grenzen und Quellen: [kim-client-message.md](kim-client-message.md).
-TSL/OCSP/VZD, SMC-B/Konnektor, weitere Profile/KAS, normative Fehlernachrichten
-und normale Clientzustellung fehlen weiterhin. Der CareSuite-Worker bleibt
+TSL/OCSP/VZD, SMC-B/Konnektor, weitere Profile/KAS, vollständige normative
+Fehlerprofile und normale Clientzustellung fehlen weiterhin. Die später ergänzten
+lokalen Diagnosemails sind oben gesondert belegt. Der CareSuite-Worker bleibt
 für KIM gesperrt. Keine UI-/Android-/Datenbankänderung.
 Alle vier Vercel-Projekte haben den Vorgänger **280be44** erfolgreich gebaut.
 

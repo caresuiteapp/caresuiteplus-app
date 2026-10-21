@@ -110,18 +110,22 @@ function signedContent(content, emails, signingCertificate, signingKey, now) {
   const signerInfo = seq(integer(1), c.rid, sha256(), tlv(160, der(attrs).value), seq(id(OID.ecdsaSha256)), octets(signature));
   return seq(id(OID.signed), tlv(160, seq(integer(1), set(sha256()), seq(id(OID.data), tlv(160, octets(content))), tlv(160, c.cert.raw), set(signerInfo))));
 }
+function signedParts(bytes) {
+  const ci = fields(der(inputBytes(bytes, MAX_CMS)), 48, 2); oid(ci[0], OID.signed);
+  const data = fields(fields(ci[1], 160, 1)[0], 48, 5);
+  const encapsulated = fields(data[2], 48, 2); oid(encapsulated[0], OID.data);
+  const content = fields(encapsulated[1], 160, 1)[0];
+  if (content.tag !== 4) throw new Error('KIM_CMS_PROFILE');
+  return { data, content };
+}
 /** Verify the supported signed attributes and mathematical ECDSA signature against an explicit leaf.
  * This is NOT a certificate trust/OCSP validator or a general CAdES conformance check.
  */
 export function verifyEccKimSignedContent({ bytes, recipientEmails, expectedSignerCertificate, now = Date.now() }) {
   try {
-    const ci = fields(der(inputBytes(bytes, MAX_CMS)), 48, 2); oid(ci[0], OID.signed);
-    const data = fields(fields(ci[1], 160, 1)[0], 48, 5);
+    const { data, content } = signedParts(bytes);
     if (data[0].tag !== 2 || data[0].value.toString('hex') !== '01') throw new Error();
     hashAlgorithm(fields(data[1], 49, 1)[0]);
-    const encapsulated = fields(data[2], 48, 2); oid(encapsulated[0], OID.data);
-    const content = fields(encapsulated[1], 160, 1)[0];
-    if (content.tag !== 4) throw new Error();
     const embedded = fields(data[3], 160, 1)[0].raw, signer = certificate(expectedSignerCertificate, 'osig', now);
     if (!timingSafeEqual(digest(embedded), digest(signer.cert.raw)) || !embedded.equals(signer.cert.raw)) throw new Error();
     const info = fields(fields(data[4], 49, 1)[0], 48, 6);
@@ -169,13 +173,32 @@ export function sealEccKimPayload({ message, sender, recipients, signingCertific
   } finally { content.fill(0); signed?.fill(0); }
 }
 export function openEccKimPayload({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, now = Date.now() }) {
+  const result = inspectEccKimPayload({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
+  if (result.signatureStatus !== 'verified') {
+    result.message?.fill(0); throw new Error('KIM_CMS_SIGNATURE_REJECTED');
+  }
+  const { signatureStatus, ...opened } = result; return opened;
+}
+/** Internal diagnostic path for receive-error MIME. GCM MUST authenticate first.
+ * A rejected signature can yield UNTRUSTED candidate bytes solely for an explicitly
+ * configured diagnostic attachment. The strict open API above never returns them.
+ * This status never asserts certificate trust; consumers must inspect signatureStatus.
+ */
+export function inspectEccKimPayload({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, now = Date.now() }) {
   const result = decrypt(bytes, recipientCertificate, privateKey, address);
-  let signed, decoded;
+  let signed, decoded, candidate;
   try {
     decoded = decodeKimMimeEntity(result.content, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
-    signed = verifyEccKimSignedContent({ bytes: decoded, recipientEmails: result.recipientEmails, expectedSignerCertificate, now });
-    const original = decodeKimMimeEntity(signed.content, { type: 'message/rfc822' });
-    return { message: Buffer.from(original), signerSha256: signed.signerSha256,
-      claimedSigningTime: signed.claimedSigningTime, identityStatus: 'unverified' };
-  } finally { result.content.fill(0); signed?.content.fill(0); decoded?.fill(0); }
+    try {
+      signed = verifyEccKimSignedContent({ bytes: decoded, recipientEmails: result.recipientEmails, expectedSignerCertificate, now });
+    } catch {
+      // Parse only the bounded SignedData eContent shape. No signature/authenticity
+      // claim follows from this extraction, even when the MIME itself is well formed.
+      try { candidate = decodeKimMimeEntity(signedParts(decoded).content.value, { type: 'message/rfc822' }); } catch { /* No recoverable RFC822 candidate. */ }
+      return { ...(candidate ? { message: Buffer.from(candidate) } : {}), signatureStatus: 'rejected', identityStatus: 'unverified' };
+    }
+    candidate = decodeKimMimeEntity(signed.content, { type: 'message/rfc822' });
+    return { message: Buffer.from(candidate), signerSha256: signed.signerSha256,
+      claimedSigningTime: signed.claimedSigningTime, signatureStatus: 'verified', identityStatus: 'unverified' };
+  } finally { result.content.fill(0); signed?.content.fill(0); decoded?.fill(0); candidate?.fill(0); }
 }

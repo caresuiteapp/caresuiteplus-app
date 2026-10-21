@@ -20,6 +20,13 @@ kein freigegebener Echtversand.
   verwendeten Signaturzertifikats. `claimedSigningTime` ist eine signierte
   Behauptung des Absenders, kein vertrauenswürdiger Zeitstempel.
 
+Für lokale Fehlerberichte existiert zusätzlich `inspectEccKimPayload`.
+Diese interne Diagnosefunktion kann nach erfolgreicher GCM-Authentisierung
+auch einen RFC822-Kandidaten mit `signatureStatus: rejected` liefern.
+Solche Bytes dienen ausschließlich der ausdrücklich aktivierten, als ungeprüft
+gekennzeichneten Diagnoseanlage. Der strikte Öffner liefert sie nicht zurück.
+Verhalten und Grenzen: [kim-receive-errors.md](kim-receive-errors.md).
+
 Die Eingabe wird in `message/rfc822` gekapselt. Die innere Opak-Signatur ist
 ECDSA/SHA-256 auf brainpoolP256r1. SignedData enthält genau das Signaturzertifikat,
 einen SignerInfo-Eintrag und die signierten Attribute content-type, message-digest,

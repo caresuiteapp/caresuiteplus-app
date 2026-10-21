@@ -2,6 +2,14 @@ import { kimAddress, messageId } from './address.mjs';
 import { inspectKimEnvelope } from './envelope.mjs';
 
 export const MAX_KIM_MESSAGE = 22_020_096;
+export function kimTimestamp(value) {
+  const m = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4}) (\d{2}):(\d{2}):(\d{2}) (?:[+-](?:[01]\d|2[0-3])[0-5]\d|GMT|UT)$/.exec(value ?? '');
+  if (!m || Number(m[4]) < 1900 || Number(m[5]) > 23 || Number(m[6]) > 59 || Number(m[7]) > 59) throw new Error('KIM_MESSAGE_DATE');
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(m[3]);
+  const day = new Date(Date.UTC(Number(m[4]), month, Number(m[2]))), time = Date.parse(value);
+  if (day.getUTCDate() !== Number(m[2]) || day.getUTCMonth() !== month || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.getUTCDay()] !== m[1] || !Number.isSafeInteger(time)) throw new Error('KIM_MESSAGE_DATE');
+  return time;
+}
 export function readMessage(bytes) {
   if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_KIM_MESSAGE) throw new Error('KIM_MESSAGE_FORMAT');
   const buffer = Buffer.from(bytes), end = buffer.indexOf('\r\n\r\n');

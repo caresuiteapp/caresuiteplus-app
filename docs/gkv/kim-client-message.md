@@ -76,8 +76,9 @@ Zertifikate ersetzen weder TSL/OCSP noch die Telematik-ID-/VZD-Adressbindung.
 Fehler werfen `KimMessageError` mit begrenztem Code und Verarbeitungsphase.
 Diese Fehler enthalten weder Nachrichtentext noch Tokens, Schlüsselparameter
 oder die ursprüngliche Exception. Nach einem Fehler wird kein Klartext
-zurückgegeben. Die normativen Fehler-MIME-Nachrichten, Prüfberichte und die
-konfigurierbare Originalanhangbehandlung sind noch separat umzusetzen.
+zurückgegeben. Der separate [Diagnosepfad](kim-receive-errors.md) ergänzt lokale
+Fehler-MIME-Nachrichten, referenzierte Prüfberichte und eine ausdrücklich zu
+aktivierende Originalanhangoption. Dieser Pfad gibt keine normale Zustellung frei.
 
 ## Unterstützte Teilmenge
 
@@ -132,7 +133,8 @@ Wire-Bytes bleiben im Mailstore/Inbox identisch, der geschützte Nachrichtenhash
 stimmt nach Entschlüsselung überein, der ursprüngliche Body bleibt bytegleich.
 Die vorhandene Wiederholung nach POP3-Löschung erzeugt weiterhin keine Dublette.
 
-Gesamtlauf: **179/179 bestanden**, keine übersprungenen Fälle. Keine Installation
+Beim Nachrichteninkrement: **179/179 bestanden**, keine übersprungenen Fälle;
+mit dem danach ergänzten Fehlerpfad sind es **198/198**. Keine Installation
 zusätzlicher Pakete/Container, keine Produktionsdaten oder echten Empfänger.
 Der Vorgängercommit `280be44` hat vier erfolgreiche Vercel-Builds; der jeweilige
 neue Commit wird unabhängig davon geprüft.

@@ -1,9 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { kimAddress, messageId } from './address.mjs';
-import { readMessage, addressList, parseContentType, decodedBase64, MAX_KIM_MESSAGE } from './message.mjs';
+import { readMessage, addressList, parseContentType, decodedBase64, MAX_KIM_MESSAGE, kimTimestamp } from './message.mjs';
 import { createEccKimAuth, verifyReceivedEccKimAuth, unfoldAutHeader, validCmVersion, validPtVersion } from './message-auth.mjs';
-import { sealEccKimPayload, openEccKimPayload } from './ecc-cms.mjs';
+import { sealEccKimPayload, openEccKimPayload, inspectEccKimPayload } from './ecc-cms.mjs';
 import { readKimEnvelope } from './envelope.mjs';
+import { receiveReportContext, buildKimReceiveError } from './receive-error.mjs';
 
 const copied = new Set(['date', 'from', 'sender', 'reply-to', 'to', 'cc', 'bcc', 'message-id', 'expires']);
 const replaced = new Set(['x-kim-auth', 'x-kim-cmversion', 'x-kim-ptversion']);
@@ -23,11 +24,7 @@ function compose(headers, body) {
   return bytes;
 }
 function timestamp(value) {
-  const m = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4}) (\d{2}):(\d{2}):(\d{2}) (?:[+-](?:[01]\d|2[0-3])[0-5]\d|GMT|UT)$/.exec(value ?? '');
-  if (!m || Number(m[4]) < 1900 || Number(m[5]) > 23 || Number(m[6]) > 59 || Number(m[7]) > 59) fail('KIM_MESSAGE_DATE');
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(m[3]);
-  const day = new Date(Date.UTC(Number(m[4]), month, Number(m[2])));
-  if (day.getUTCDate() !== Number(m[2]) || day.getUTCMonth() !== month || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.getUTCDay()] !== m[1] || !Number.isSafeInteger(Date.parse(value))) fail('KIM_MESSAGE_DATE');
+  try { kimTimestamp(value); } catch { fail('KIM_MESSAGE_DATE'); }
 }
 function origin(message) {
   const from = addressList(message.one('from', true));
@@ -120,6 +117,10 @@ function compareHeaders(inner, outer) {
  */
 export function openEccKimMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate,
   expectedAuthCertificate, now = Date.now() }) {
+  return processMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, expectedAuthCertificate, now });
+}
+function processMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate,
+  expectedAuthCertificate, now }, onFailure) {
   let opened, stage = 'mime', success = false;
   try {
     const outer = readMessage(bytes);
@@ -129,14 +130,21 @@ export function openEccKimMessage({ bytes, address, recipientCertificate, privat
       || type.type !== 'application/pkcs7-mime' || type.params.get('smime-type')?.toLowerCase() !== 'authenticated-enveloped-data'
       || outer.one('content-transfer-encoding', true).toLowerCase() !== 'base64') fail('KIM_MESSAGE_MIME', stage);
     const cms = decodedBase64(outer.body);
+    let envelope;
+    try { envelope = readKimEnvelope(cms); }
+    catch (e) { fail(e?.message === 'KIM_ENVELOPE_UNSUPPORTED' ? 'KIM_MESSAGE_CMS_UNSUPPORTED' : 'KIM_MESSAGE_CMS_FORMAT', stage); }
     stage = 'decrypt';
-    opened = openEccKimPayload({ bytes: cms, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
+    if (!envelope.mappings.some(m => m.address === kimAddress(address))) fail('KIM_MESSAGE_RECIPIENT_UNAVAILABLE', stage);
+    if (privateKey === undefined || recipientCertificate === undefined) fail('KIM_MESSAGE_KEY_UNAVAILABLE', stage);
+    const decode = onFailure ? inspectEccKimPayload : openEccKimPayload;
+    opened = decode({ bytes: cms, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
+    if (opened.signatureStatus === 'rejected') fail('KIM_MESSAGE_SIGNATURE_REJECTED', 'signature');
     stage = 'headers';
     const inner = readMessage(opened.message); validateOriginal(inner); compareHeaders(inner, outer);
-    const sender = origin(inner), visible = visibleRecipients(inner), envelope = readKimEnvelope(cms, [sender, address, ...visible]);
+    const sender = origin(inner), visible = visibleRecipients(inner), boundEnvelope = readKimEnvelope(cms, [sender, address, ...visible]);
     // Inspect again with authenticated header addresses: an encrypted copy for an unlisted
     // mailbox must not be inferred from an unsigned From/To field.
-    if (!envelope.mappings.length) fail('KIM_MESSAGE_RECIPIENTS');
+    if (!boundEnvelope.mappings.length) fail('KIM_MESSAGE_RECIPIENTS');
     stage = 'auth';
     const authentication = verifyReceivedEccKimAuth({ header: inner.one('x-kim-auth', true), sender,
       expectedCertificate: expectedAuthCertificate, cmVersion: inner.one('x-kim-cmversion', true), now });
@@ -144,10 +152,30 @@ export function openEccKimMessage({ bytes, address, recipientCertificate, privat
     return { ...opened, messageId: inner.one('message-id'), sender, authentication,
       headerIntegrity: 'matched', deliveryStatus: 'held-for-trust-validation', identityStatus: 'unverified' };
   } catch (e) {
-    if (e instanceof KimMessageError) throw e;
-    const code = e.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'KIM_MESSAGE_SIGNATURE_REJECTED'
+    const code = e?.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'KIM_MESSAGE_SIGNATURE_REJECTED'
       : stage === 'decrypt' ? 'KIM_MESSAGE_DECRYPT_REJECTED' : stage === 'auth' ? 'KIM_MESSAGE_AUTH_REJECTED'
         : stage === 'headers' ? 'KIM_MESSAGE_HEADERS_REJECTED' : 'KIM_MESSAGE_MIME';
-    fail(code, e.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'signature' : stage);
-  } finally { if (!success) opened?.message.fill(0); }
+    const error = e instanceof KimMessageError ? e : new KimMessageError(code, e?.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'signature' : stage);
+    if (onFailure) return onFailure(error, { message: opened?.message, decrypted: opened !== undefined });
+    throw error;
+  } finally { if (!success) opened?.message?.fill(0); }
+}
+
+/** Receive facade for an already persisted local original. No SMTP send, POP3 deletion,
+ * billing update or positive trust assertion occurs here. Non-KIM messages pass unchanged.
+ * A valid local ECC message still yields an integrity-07 diagnostic until TI trust exists.
+ * Decrypted diagnostic attachments require the explicit, default-false report option.
+ */
+export function receiveEccKimMessage(options, reportOptions) {
+  const now = options.now ?? Date.now(), context = receiveReportContext({ ...reportOptions, bytes: options.bytes, address: options.address, now });
+  let opened;
+  try {
+    if (context.outer && !context.outer.headers.some(h => h.name === 'x-kom-le-version')) {
+      return { kind: 'unprotected', bytes: Buffer.from(context.original), originalSha256: context.originalSha256,
+        identityStatus: 'unverified', deliveryStatus: 'unprotected' };
+    }
+    opened = processMessage({ ...options, bytes: context.original, now }, (error, state) => buildKimReceiveError(context, error, state));
+    if (opened.kind === 'diagnostic') return opened;
+    return buildKimReceiveError(context, new KimMessageError('KIM_MESSAGE_TRUST_UNAVAILABLE', 'trust'), { message: opened.message, decrypted: true });
+  } finally { opened?.message?.fill(0); context.original.fill(0); context.verificationReport?.fill(0); }
 }
