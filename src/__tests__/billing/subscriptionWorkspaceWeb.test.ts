@@ -10,7 +10,7 @@ vi.mock('@/data/demo/tenant', () => ({ demoTenant: { id: 'demo-tenant', name: 'D
 vi.mock('@/data/demo/products', () => ({ demoTenantProducts: [] }));
 vi.mock('@/lib/permissions/staticRolePermissions', () => ({ getPermissionsForRole: mocks.permissions }));
 vi.mock('@/lib/auth/resolveAuthenticatedProfile', () => ({ resolveAuthenticatedProfileId: mocks.profile }));
-vi.mock('@/lib/modules/constants', () => ({ isUnreleasedModuleKey: (key: string) => ['pflege', 'stationaer', 'akademie'].includes(key) }));
+vi.mock('@/lib/modules/constants', () => ({ isUnreleasedModuleKey: (key: string) => ['pflege', 'stationaer'].includes(key) }));
 vi.mock('@/lib/modules/moduleVisibilityConfig', () => ({ getCatalogEntry: mocks.catalog }));
 vi.mock('@/lib/modules/moduleAccessRepository.supabase', () => ({ fetchTenantModulesFromSupabase: mocks.products }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: mocks.client }));
@@ -57,8 +57,8 @@ describe('subscription module availability', () => {
     expect(modules.filter(module => module.status === 'active')).toHaveLength(0);
   });
 
-  it.each(['pflege', 'stationaer', 'akademie'] as const)('keeps unreleased %s prepared despite historical grants', key => {
-    const platformKey = { pflege: 'care', stationaer: 'stationary', akademie: 'academy' }[key];
+  it.each(['pflege', 'stationaer'] as const)('keeps unreleased %s prepared despite historical grants', key => {
+    const platformKey = { pflege: 'care', stationaer: 'stationary' }[key];
     expect(status(key, [product(key, { isActive: true })], [platform(platformKey)], { [key]: true })).toBe('prepared');
   });
 
@@ -98,8 +98,9 @@ describe('subscription module availability', () => {
     expect(status('assist', [], [platform('assist', { startsAt: 'invalid-date' })])).toBe('blocked');
   });
 
-  it('includes Office once for an active released specialty, but preserves Office denial', () => {
-    const products = [product('assist', { isActive: true })];
+  it.each(['assist', 'akademie'] as const)('includes Office for active released %s, but preserves Office denial', key => {
+    const products = [product(key, { isActive: true })];
+    expect(status(key, products)).toBe('active');
     expect(status('office', products)).toBe('active');
     expect(status('office', products, [platform('office', { status: 'disabled' })])).toBe('blocked');
     expect(status('office', [...products, product('office', { billingStatus: 'admin_disabled' })])).toBe('blocked');
@@ -144,7 +145,7 @@ describe('subscription live read boundary', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data).toMatchObject({ tenantId: scope.tenantId, tenantName: 'Live-Pflegedienst', source: 'live', monthlyTotal: 0,
-      totalModuleCount: 6, platformFeatureCount: 6, activeModuleCount: 2, preparedModuleCount: 3, inactiveModuleCount: 1, blockedModuleCount: 0 });
+      totalModuleCount: 6, platformFeatureCount: 6, activeModuleCount: 2, preparedModuleCount: 2, inactiveModuleCount: 2, blockedModuleCount: 0 });
     expect(result.data.modules).toHaveLength(6);
   });
 
