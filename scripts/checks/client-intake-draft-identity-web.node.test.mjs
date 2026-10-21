@@ -7,7 +7,7 @@ import { isUuid } from '../../src/lib/validation/uuid.ts';
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const time = '2026-10-15T05:10:00.123456+00:00';
 const source = stripTypeScriptTypes(readFileSync(new URL(
-  '../../src/lib/clients/repositories/clientIntakeDraftRepository.supabase.web.ts', import.meta.url,
+  '../../src/lib/clients/repositories/careClientIntakeDraftRepository.supabase.web.ts', import.meta.url,
 ), 'utf8').replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport /g, ''));
 const form = patch => ({
   firstName: ' Anna ', lastName: 'Meyer', dateOfBirth: '1940-02-29',
