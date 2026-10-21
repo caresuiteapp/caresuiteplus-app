@@ -82,4 +82,3 @@ describe('Office Notes in the actual Web desktop', () => {
     await render(); expect(memory.get(key())).toBe('["clients"]'); expect(memory.has(`${key()}.notes.v1`)).toBe(false); expect(api.multiSet).not.toHaveBeenCalled();
   });
 });
-

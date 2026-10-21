@@ -129,7 +129,28 @@ export type ConsultationRevision = {
         signatures: ConsultationSignature[];
     };
 };
+export type ConsultationTemplateContent = {
+    kind: ConsultationKind; title: string; category: string; description: string;
+    preparation: string; prompts: string[]; goal: string;
+};
+export type ConsultationTeamTemplate = {
+    id: string; version: number; publishedVersion: number | null; archived: boolean;
+    draft: ConsultationTemplateContent | null; published: ConsultationTemplateContent | null;
+    history: { id: string; version: number; action: string; content: ConsultationTemplateContent; note: string; actor_label: string; created_at: string }[];
+};
+export type ConsultationFollowUp = {
+    id: string; encounter_id: string; source_key: string; source_revision_id: string | null;
+    title: string; owner_label: string; description: string; due_date: string; status: 'open' | 'done' | 'cancelled';
+    outcome: string; version: number; created_at: string; updated_at: string; completed_at: string | null; can_edit: boolean;
+};
+export type ConsultationMutationResult = {
+    case_id: string; encounter_id: string; version: number;
+    template_id?: string; template_version?: number; followup_id?: string; followup_version?: number;
+};
 export type ConsultationWorkspace = {
+    capabilities?: { teamTemplates: boolean; followUps: boolean };
+    teamTemplates?: ConsultationTeamTemplate[];
+    followUps?: ConsultationFollowUp[];
     canManage: boolean;
     canReview: boolean;
     canQualify: boolean;
@@ -141,7 +162,7 @@ export type ConsultationWorkspace = {
     events: ConsultationEvent[];
     revisions: ConsultationRevision[];
 };
-export type ConsultationMutation = 'create' | 'add_visit' | 'plan' | 'read' | 'start' | 'finish' | 'save' | 'submit' | 'return' | 'approve' | 'cancel' | 'no_show' | 'comment' | 'qualify';
+export type ConsultationMutation = 'create' | 'add_visit' | 'plan' | 'read' | 'start' | 'finish' | 'save' | 'submit' | 'return' | 'approve' | 'cancel' | 'no_show' | 'comment' | 'qualify' | 'template_save' | 'template_publish' | 'template_archive' | 'followup_create' | 'followup_update' | 'followup_import';
 export type ConsultationCommand = {
     action: ConsultationMutation;
     requestId: string;
@@ -156,13 +177,16 @@ export const STATUS_LABELS: Record<EncounterStatus, string> = {
     approved: 'Fachlich freigegeben', cancelled: 'Abgesagt', no_show: 'Nicht angetroffen',
 };
 export const EVENT_LABELS: Record<string, string> = {
+    followup_create: 'Aufgabe angelegt', followup_update: 'Nachverfolgung aktualisiert', followup_import: 'Empfehlungen übernommen',
     create: 'Fall aufgenommen', add_visit: 'Folgetermin angelegt', plan: 'Planung aktualisiert', read: 'Übergabe gelesen',
     start: 'Besuch begonnen', finish: 'Besuch beendet', save: 'Dokumentation gespeichert', submit: 'Zur Prüfung eingereicht',
     return: 'Rückfrage gestellt', approve: 'Fachlich freigegeben', cancel: 'Termin abgesagt', no_show: 'Nicht angetroffen', comment: 'Nachricht',
 };
 export const TOPICS = ['Pflege im Alltag', 'Mobilität und Transfers', 'Sturz und Wohnumgebung', 'Haut und Druckbelastung',
     'Essen und Trinken', 'Kontinenz', 'Demenz und Kommunikation', 'Arzneimittelorganisation', 'Hygiene',
-    'Hitzeschutz', 'Belastung der Pflegeperson', 'Leistungen und Hilfsmittel', 'Notfallvorsorge'];
+    'Hitzeschutz', 'Belastung der Pflegeperson', 'Leistungen und Hilfsmittel', 'Notfallvorsorge',
+    'Nächtliche Versorgung', 'Schmerz und Wohlbefinden', 'Sehen und Hören', 'Soziale Teilhabe',
+    'Entlastungsangebote', 'Anpassung der Wohnumgebung', 'Weiterführende Pflegeberatung'];
 export const LEARNING_LABELS: Record<LearningResult, string> = {
     '': 'Bitte einschätzen', understood: 'In eigenen Worten erklärt', supported: 'Mit Unterstützung ausgeführt',
     independent: 'Selbstständig gezeigt', practice_needed: 'Weiterer Übungsbedarf',

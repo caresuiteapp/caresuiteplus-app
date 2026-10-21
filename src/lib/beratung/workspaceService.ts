@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { clearConsultationDrafts } from './workspaceDrafts';
-import type { ConsultationCommand, ConsultationWorkspace } from './workspaceModel';
+import type { ConsultationCommand, ConsultationMutationResult, ConsultationWorkspace } from './workspaceModel';
 type RpcResult = {
     data: unknown;
     error: {
@@ -16,7 +16,7 @@ export class ConsultationWorkspaceError extends Error {
 }
 function explain(code: string | undefined, message: string): string {
     if (code === '40001')
-        return 'Der Besuch wurde zwischenzeitlich geändert. Ihr Entwurf bleibt erhalten. Laden Sie den aktuellen Stand und gleichen Sie die Änderungen ab.';
+        return 'Der Eintrag wurde zwischenzeitlich geändert. Ihr Entwurf bleibt erhalten. Laden Sie den aktuellen Stand und gleichen Sie die Änderungen ab.';
     if (code === '42501')
         return 'Für diesen Vorgang fehlt die Berechtigung oder die Zuweisung ist nicht mehr gültig.';
     if (code === 'PGRST202' || code === '42883' || code === '42P01')
@@ -60,16 +60,8 @@ async function call(name: string, args: Record<string, unknown>): Promise<unknow
 export async function loadConsultationWorkspace(tenantId: string, employeeView: boolean, caseId?: string | null): Promise<ConsultationWorkspace> {
     return await call('consultation_workspace_load', { p_tenant: tenantId, p_employee_view: employeeView, p_case: caseId ?? null }) as ConsultationWorkspace;
 }
-export async function mutateConsultationWorkspace(tenantId: string, command: ConsultationCommand): Promise<{
-    case_id: string;
-    encounter_id: string;
-    version: number;
-}> {
+export async function mutateConsultationWorkspace(tenantId: string, command: ConsultationCommand): Promise<ConsultationMutationResult> {
     return await call('consultation_workspace_mutate', { p_tenant: tenantId, p_action: command.action,
         p_request: command.requestId, p_encounter: command.encounterId ?? null, p_version: command.expectedVersion ?? null,
-        p_data: command.data }) as {
-        case_id: string;
-        encounter_id: string;
-        version: number;
-    };
+        p_data: command.data }) as ConsultationMutationResult;
 }

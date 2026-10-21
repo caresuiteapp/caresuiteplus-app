@@ -1,3 +1,4 @@
+import { consultationEnhancements } from './consultationEnhancements';
 /** Scoped ORBIT / Liquid Glass surfaces; the existing desktop and portal shell stay in control. */
 export const consultationStyles = String.raw `
 .cw-root {
@@ -1345,4 +1346,5 @@ export const consultationStyles = String.raw `
     height:auto
   }
 }
+${consultationEnhancements}
 `.replace(/font-size:(\d+)px/g, 'font-size:calc($1px * var(--app-font-scale, 1))');
