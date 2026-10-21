@@ -1,12 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { EMPTY_CLIENT_INTAKE_FORM as empty, type ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import { CLIENT_INTAKE_PLANS, getRequiredFieldsForIntake, validateFirstContact } from '@/lib/clients/clientIntakePlan';
+import { CLIENT_INTAKE_PLANS, getIntakeSectionsForForm, getRequiredFieldsForIntake, validateFirstContact } from '@/lib/clients/clientIntakePlan';
 import { resolveContractTemplateKeys, listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { mergeIntakeFormWithDefaults } from '@/lib/clients/clientIntakeDraftStorage';
 import { validateIntakeStep } from '@/lib/clients/clientIntakeValidation';
 
 const full = (patch: Partial<ClientIntakeFormData> = {}): ClientIntakeFormData => ({ ...structuredClone(empty), intakeWorkflowVersion: 2, ...patch });
 describe('context-specific intake and first contact', () => {
+  it.each(['daily_assistance', 'support_care', 'companionship'] as const)('keeps support requirements visible when %s is combined with academy interest', context => {
+    const form = full({ careContexts: [context, 'academy_prepared'] });
+    expect(getIntakeSectionsForForm(form)).toContain('versorgung');
+    expect(validateIntakeStep('versorgung', form).supportWishes).toBeTruthy();
+  });
   it.each(Object.keys(CLIENT_INTAKE_PLANS))('has matching requirements and contract for %s', key => {
     const context = key as keyof typeof CLIENT_INTAKE_PLANS;
     const form = full({ careContexts: [context] });

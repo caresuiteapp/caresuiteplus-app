@@ -107,11 +107,13 @@ export type IntakeFirstAppointment = { id: string; startAt: string; endAt: strin
 export async function getIntakeFirstAppointment(tenantId: string, clientId: string): Promise<ServiceResult<IntakeFirstAppointment | null>> {
   const db = getSupabaseClient();
   if (!db || !isUuid(tenantId) || !isUuid(clientId)) return { ok: false, error: 'Der Kalendertermin konnte nicht geladen werden.' };
-  const { data, error } = await (db as SupabaseClient).rpc('client_intake_first_appointment', { p_tenant: tenantId, p_client: clientId });
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  if (data === null) return { ok: true, data: null };
-  if (!record(data) || (typeof data.id !== 'string' || !isUuid(data.id)) || typeof data.startAt !== 'string' || typeof data.endAt !== 'string' || typeof data.location !== 'string' || typeof data.status !== 'string') return { ok: false, error: 'Der Kalendertermin konnte nicht eindeutig geladen werden.' };
-  return { ok: true, data: data as IntakeFirstAppointment };
+  try {
+    const { data, error } = await (db as SupabaseClient).rpc('client_intake_first_appointment', { p_tenant: tenantId, p_client: clientId });
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (data === null) return { ok: true, data: null };
+    if (!record(data) || (typeof data.id !== 'string' || !isUuid(data.id)) || typeof data.startAt !== 'string' || typeof data.endAt !== 'string' || typeof data.location !== 'string' || typeof data.status !== 'string') return { ok: false, error: 'Der Kalendertermin konnte nicht eindeutig geladen werden.' };
+    return { ok: true, data: data as IntakeFirstAppointment };
+  } catch { return { ok: false, error: 'Der Kalendertermin konnte nicht geladen werden. Bitte erneut versuchen.' }; }
 }
 
 export async function scheduleIntakeFirstAppointment(tenantId: string, clientId: string, expectedRevision: number): Promise<ServiceResult<IntakeFirstAppointment>> {

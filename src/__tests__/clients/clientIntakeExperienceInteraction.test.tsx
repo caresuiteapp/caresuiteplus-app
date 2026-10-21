@@ -245,6 +245,13 @@ describe('web intake draft and close guards', () => {
 
 
 describe('first-contact workspace', () => {
+  it('confirms a pending calendar request before closing an autosaved first contact', async () => {
+    f.wizard = { ...f.wizard, hasPersistedDraft: true, draftIsSaved: false, form: { ...f.wizard.form, lastName: 'Beispiel', phone: '03012345', intakeStage: 'first_contact', intakeAppointmentRequested: true } };
+    await render(); await click('Später fortsetzen');
+    expect(f.cancel).not.toHaveBeenCalled();
+    await click('Speichern und schließen');
+    expect(f.wizard.saveFirstContact).toHaveBeenCalledOnce(); expect(f.cancel).toHaveBeenCalledOnce();
+  });
   it('allows removing an unscheduled appointment request after calendar permission is lost', async () => {
     f.allowed = false;
     f.wizard = { ...f.wizard, form: { ...f.wizard.form, intakeStage: 'first_contact', intakeAppointmentRequested: true } };

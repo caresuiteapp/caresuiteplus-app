@@ -15,6 +15,10 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCA
 const TENANT: IntakeTenantDisplay = { name: 'Pflegedienst Lindenhof GmbH', street: 'Lindenstraße 14', zip: '10115', city: 'Berlin', defaultHourlyRate: '42,50' };
 const CONTRACT = 'client_contract_assist';
 
+it('rejects missing support wishes when academy interest accompanies an Assist intake', () => {
+  expect(() => requireCompleteIntakeForm(completeForm({ intakeWorkflowVersion: 2, careContexts: ['support_care', 'academy_prepared'], supportWishes: [] }))).toThrow('Gewünschte Unterstützung');
+});
+
 type StoredSystemRow = SystemTemplateRow & IntakeTemplateRow & { updated_at: string };
 type StoredTenantRow = TenantTemplateRow & IntakeTemplateRow & { updated_at: string };
 

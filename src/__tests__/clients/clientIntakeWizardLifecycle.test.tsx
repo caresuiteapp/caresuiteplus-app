@@ -8,14 +8,14 @@ import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFi
 
 const h = vi.hoisted(() => ({
   tenant: 'tenant-A', auth: {} as any, mode: 'supabase', store: new Map<string, string>(),
-  get: vi.fn(), set: vi.fn(), remove: vi.fn(), remote: vi.fn(), loadRemote: vi.fn(), reconcile: vi.fn(), deleteDraft: vi.fn(), schedule: vi.fn(), docs: vi.fn(), create: vi.fn(), update: vi.fn(), edit: vi.fn(), sections: vi.fn(),
+  get: vi.fn(), set: vi.fn(), remove: vi.fn(), remote: vi.fn(), loadRemote: vi.fn(), reconcile: vi.fn(), deleteDraft: vi.fn(), schedule: vi.fn(), appointment: vi.fn(), docs: vi.fn(), create: vi.fn(), update: vi.fn(), edit: vi.fn(), sections: vi.fn(),
 }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => h.auth }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => h.tenant }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => h.mode }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => '11111111-1111-4111-8111-111111111111' }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: h.get, setItem: h.set, removeItem: h.remove } }));
-vi.mock('@/lib/clients/repositories/clientIntakeDraftRepository.supabase', () => ({ upsertClientIntakeDraft: h.remote, loadServerClientIntakeDraft: h.loadRemote, reconcileServerClientIntakeDraft: h.reconcile, deleteClientIntakeDraft: h.deleteDraft, scheduleIntakeFirstAppointment: h.schedule }));
+vi.mock('@/lib/clients/repositories/clientIntakeDraftRepository.supabase', () => ({ upsertClientIntakeDraft: h.remote, loadServerClientIntakeDraft: h.loadRemote, reconcileServerClientIntakeDraft: h.reconcile, deleteClientIntakeDraft: h.deleteDraft, getIntakeFirstAppointment: h.appointment, scheduleIntakeFirstAppointment: h.schedule }));
 vi.mock('@/features/intakeDocuments/intakeDocumentService', () => ({ persistClientIntakeDocuments: h.docs }));
 vi.mock('@/features/costCarriers/costCarrierService', () => ({ validateCostBearerEntry: () => null }));
 vi.mock('@/lib/clients/clientIntakeEditService', () => ({ fetchClientIntakeEditData: h.edit }));
@@ -50,6 +50,7 @@ beforeEach(() => {
   h.remove.mockImplementation(async (key: string) => { h.store.delete(key); });
   h.remote.mockImplementation(async (_tenant, _form, options) => ({ ok: true, data: { id, revision: options.expectedRevision + 1 } })); h.loadRemote.mockResolvedValue({ ok: true, data: null }); h.docs.mockResolvedValue({ ok: true });
   h.deleteDraft.mockResolvedValue({ ok: true }); h.schedule.mockResolvedValue({ ok: true, data: { id, status: 'aktiv' } });
+  h.appointment.mockResolvedValue({ ok: true, data: null });
   h.create.mockResolvedValue({ ok: true, data: { id } }); h.update.mockResolvedValue({ ok: true, data: { id } });
   h.edit.mockImplementation(async (client: string) => ({ ok: true, data: form(client) }));
   h.sections.mockResolvedValue({ ok: true, data: [] });
@@ -320,6 +321,28 @@ it('persists the just-signed package snapshot immediately, including both signat
 
 
 describe('first-contact continuation and deletion', () => {
+  it('keeps the support step when academy interest is added to an Assist intake', async () => {
+    await render({ completeSectionFlow: true });
+    await act(async () => wizard.updateField('careContexts', ['support_care', 'academy_prepared']));
+    expect(wizard.steps).toContain('versorgung');
+  });
+  it('does not treat autosaved contact data as a confirmed requested appointment', async () => {
+    await render({ completeSectionFlow: true });
+    await act(async () => wizard.replaceForm({ ...form(''), intakeWorkflowVersion: 2, intakeStage: 'first_contact', lastName: 'Beispiel', phone: '03012345', intakeAppointmentRequested: true, intakeAppointmentStart: '2026-11-01T11:00', intakeAppointmentEnd: '2026-11-01T12:00' }));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(h.remote).toHaveBeenCalled(); expect(h.schedule).not.toHaveBeenCalled(); expect(wizard.draftIsSaved).toBe(false);
+    await act(async () => { expect(await wizard.saveFirstContact()).toBe(true); });
+    expect(wizard.draftIsSaved).toBe(true);
+  });
+  it('continues an existing appointment using read permission without requesting a calendar write', async () => {
+    await render({ completeSectionFlow: true });
+    await act(async () => wizard.replaceForm({ ...form(''), intakeWorkflowVersion: 2, intakeStage: 'first_contact', lastName: 'Beispiel', phone: '03012345', intakeAppointmentRequested: true, intakeAppointmentStart: '2026-11-01T11:00', intakeAppointmentEnd: '2026-11-01T12:00' }));
+    h.appointment.mockResolvedValueOnce({ ok: true, data: { id, status: 'aktiv' } });
+    h.schedule.mockResolvedValueOnce({ ok: false, error: 'Keine Schreibberechtigung' });
+    await act(async () => { expect(await wizard.saveFirstContact()).toBe(true); });
+    expect(h.appointment).toHaveBeenCalled(); expect(h.schedule).not.toHaveBeenCalled(); expect(wizard.draftIsSaved).toBe(true);
+    h.schedule.mockReset().mockResolvedValue({ ok: true, data: { id, status: 'aktiv' } });
+  });
   it('saves contact without completing or scheduling and resumes the same client for full intake', async () => {
     await render({ completeSectionFlow: true });
     await act(async () => wizard.replaceForm({ ...form(''), intakeStage: 'first_contact', intakeWorkflowVersion: 2, lastName: 'Beispiel', phone: '03012345' }));

@@ -10,10 +10,10 @@ Entwürfe lassen sich in der Klientenliste und in der Aufnahme mit Löschberecht
 
 ## Prüfungen vor Veröffentlichung
 
-- Aufnahme-Releaseauswahl: alle 348 Tests in 23 Vitest-Dateien bestanden.
-- Lokale PostgreSQL-Vertragsprüfung mit vorhandener PGlite-Abhängigkeit: 30 Tests bestanden, einschließlich Mandantentrennung, Berechtigungen, Versionskonflikten, Löschung während Speicherung, Termin-Idempotenz, Zeitumstellung und atomarem Abschluss aller ausgewählten Verträge.
+- Aufnahme-Releaseauswahl: alle 356 Tests in 23 Vitest-Dateien bestanden.
+- Lokale PostgreSQL-Vertragsprüfung mit vorhandener PGlite-Abhängigkeit: 32 Tests bestanden, einschließlich Mandantentrennung, direkter Kalender-RLS, Berechtigungen, Versionskonflikten, Löschung während Speicherung, Termin-Idempotenz, Zeitumstellung und atomarem Abschluss aller ausgewählten Verträge.
 - Kalender-Releaseauswahl: alle 354 Tests in 31 Dateien bestanden. Der vollständige Kalender-Releasecheck wird zusätzlich im bestehenden Produktionsbuild ausgeführt.
-- Gezielte TypeScript-Prüfung aller geänderten Dateien und typisierten Wizard-Verbraucher: 34 Dateien, keine Diagnose. Die vollständige Projektprüfung ist Bestandteil des bestehenden Produktionsbuilds.
+- Gezielte TypeScript-Prüfung aller geänderten Dateien und typisierten Wizard-Verbraucher: 35 Dateien, keine Diagnose. Die vollständige Projektprüfung ist Bestandteil des bestehenden Produktionsbuilds.
 - Generiertes Edge-Laufzeitmodul stimmt mit den gemeinsamen Quellen überein; `git diff --check` ohne Befund.
 - Keine produktiven Testklienten, Termine oder Unterschriften angelegt oder verändert.
 
@@ -31,6 +31,12 @@ Nach der Migration Funktionsdefinitionen, Rechte und Trigger ausschließlich les
 
 Die Migration wurde mit Version `20261021034849` angewendet; der Dateiname entspricht dem tatsächlichen Eintrag der Migrationshistorie. Die drei neuen öffentlichen RPCs prüfen internen Akteur, Mandant und jeweilige Berechtigungen. `anon` besitzt kein Ausführungsrecht; Abschlussfunktion und privater Kalendertrigger sind auch für `authenticated` nicht direkt ausführbar. Alle geprüften Funktionen verwenden `search_path=pg_catalog`, der Kalendertrigger ist aktiv.
 
-`complete-client-intake` wurde als aktive Version 2 veröffentlicht. JWT-Prüfung bleibt aktiv. Alle drei zurückgelesenen Dateien entsprechen exakt den lokalen Dateien; Laufzeit-SHA256: `968e1c5e7743e6f933b93c4f7cc0c1e8de30da7660c563a52029a669c89f8d22`.
+`complete-client-intake` wurde nach der Codeprüfung als aktive Version 3 veröffentlicht. JWT-Prüfung bleibt aktiv. Laufzeit-SHA256: `e6776af3722f56f95bcdec024dbf5daeaa8165980de21c43bfdebdf7a664bdb1`.
 
 Der Sicherheitsadvisor meldet gegenüber dem Ausgangsstand ausschließlich die drei beabsichtigt für angemeldete Rollen erreichbaren neuen `SECURITY DEFINER`-RPCs. Ihre internen Prüfungen sind durch die genannten Datenbanktests abgedeckt. Die vorhandenen übrigen Meldungen blieben unverändert. [Beschreibung des Advisor-Hinweises](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+
+Die ergänzende Migration `20261021040127_intake_first_appointment_access.sql` ist ebenfalls angewendet. Vier restriktive RLS-Regeln schützen ausschließlich die neue Quelle `intake_appointment`, auch bei direktem Tabellenzugriff. Portalrollen können Ersttermine weder lesen noch anlegen; interne Rollen ohne Terminbearbeitung können sie nicht direkt ändern. Die berechtigte Entwurfslöschung darf ihren Termin weiterhin atomar archivieren. Alle vier Richtlinien wurden auf dem Live-Schema zurückgelesen; der Sicherheitsadvisor blieb unverändert.
+
+### Nachprüfung der automatischen Codeprüfung
+
+Alle drei Hinweise wurden reproduziert und korrigiert: Akademie-Interesse blendet bei Assist keine Pflichtabschnitte mehr aus (gemeinsame Abschnittsregel in Oberfläche, Service und Edge-Prüfung). Ein automatisch gesicherter Erstkontakt mit offenem Terminwunsch gilt erst nach Kalenderbestätigung als vollständig gesichert und kann nicht unbemerkt geschlossen werden. Ein bereits vorhandener Ersttermin wird lesend bestätigt, sodass das Fortsetzen keine Termin-Schreibberechtigung verlangt. Zusätzliche Ablauf- und Verifikationsprüfungen sind in den oben genannten 356 Tests enthalten.

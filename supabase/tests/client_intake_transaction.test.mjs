@@ -101,7 +101,9 @@ async function createFixture() {
   const calendarTable = read('../migrations/0117_calendar_events.sql').match(/CREATE TABLE IF NOT EXISTS public\.calendar_events \([\s\S]*?\n\);/)[0];
   await db.exec(calendarTable);
   await db.exec('ALTER TABLE public.calendar_events ADD CONSTRAINT calendar_events_source_unique UNIQUE(tenant_id,source_type,source_id)');
+  await db.exec(read('../migrations/0117_calendar_events.sql').match(/ALTER TABLE public\.calendar_events ENABLE ROW LEVEL SECURITY;[\s\S]*?GRANT SELECT, INSERT, UPDATE ON public\.calendar_events TO authenticated;/)[0]);
   await db.exec(read('../migrations/20261021034849_client_intake_first_contact.sql'));
+  await db.exec(read('../migrations/20261021040127_intake_first_appointment_access.sql'));
   return db;
 }
 
@@ -572,6 +574,33 @@ await test('calendar edits cannot detach the first appointment or publish it to 
   await schedule(1); await db.exec('RESET ROLE');
   await assert.rejects(db.exec("UPDATE calendar_events SET source_type='custom_event'"),/unveränderlich/);
   await assert.rejects(db.exec('UPDATE calendar_events SET is_client_portal_visible=true'),/intern/);
+});
+
+await test('direct calendar access keeps intake appointments internal and enforces edit permission', async () => {
+  await seed(); await save(initialContact({intakeAppointmentRequested:true,intakeAppointmentStart:'2026-11-01T11:00',intakeAppointmentEnd:'2026-11-01T12:00'}));
+  const appointment=await schedule(1);
+  await actor('client_portal');
+  assert.equal((await db.query('SELECT id FROM calendar_events')).rows.length,0);
+  assert.equal((await db.query("UPDATE calendar_events SET title='Portal edit' RETURNING id")).rows.length,0);
+  await actor('office_staff',{tenant:id.otherTenant});
+  assert.equal((await db.query('SELECT id FROM calendar_events')).rows.length,0);
+  await actor('office_staff',{denied:'office.appointments.edit'});
+  assert.equal((await db.query('SELECT id FROM calendar_events')).rows.length,1);
+  assert.equal((await db.query("UPDATE calendar_events SET title='Read-only edit' RETURNING id")).rows.length,0);
+  await actor('office_staff',{denied:''});
+  assert.equal((await db.query("UPDATE calendar_events SET location_name='Neuer Ort' WHERE id=$1 RETURNING id",[appointment.id])).rows.length,1);
+  // Removing the intake itself is separately authorized by clients.delete;
+  // its security-definer operation may archive the linked event atomically.
+  await actor('office_staff',{denied:'office.appointments.edit'});
+  assert.equal((await removeDraft(1)).deleted,true);
+});
+await test('direct inserts cannot pre-create an internal intake event from a portal session', async () => {
+  await seed(); await save(initialContact());
+  await actor('client_portal');
+  const query="INSERT INTO calendar_events(tenant_id,module_key,source_type,source_id,event_type,title,start_at,end_at,related_client_id,is_client_portal_visible,is_employee_portal_visible) VALUES($1,'office','intake_appointment',$2,'termin','Nicht erlaubt','2026-11-01T10:00:00Z','2026-11-01T11:00:00Z',$2,false,false)";
+  await assert.rejects(db.query(query,[id.tenant,id.client]),/policy|security/i);
+  await actor('office_staff',{denied:'office.appointments.edit'});
+  await assert.rejects(db.query(query,[id.tenant,id.client]),/policy|security/i);
 });
 
 await db.close();

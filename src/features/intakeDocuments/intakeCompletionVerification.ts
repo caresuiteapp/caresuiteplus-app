@@ -1,5 +1,5 @@
 import { EMPTY_CLIENT_INTAKE_FORM, type ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import { getVisibleSectionsForClientContext } from '@/lib/clients/clientIntakeFieldRules';
+import { getIntakeSectionsForForm } from '@/lib/clients/clientIntakePlan';
 import { validateIntakeStep } from '@/lib/clients/clientIntakeValidation';
 import { isCostBearerTypeKey } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { CLIENT_FUNDING_SOURCE_KEYS } from '@/types/clients/clientFundingSource';
@@ -49,7 +49,7 @@ export function requireCompleteIntakeForm(value: unknown): ClientIntakeFormData 
   const expectedBilling = selfPay && statutory ? 'kombi' : selfPay ? 'selbstzahler' : statutory ? 'pflegekasse' : '';
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail('Die Finanzierungsarten und Abrechnung stimmen nicht überein. Bitte die Finanzierung erneut auswählen.');
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(',', '.')) < 0)) fail('Der vereinbarte Stundensatz ist ungültig.');
-  for (const section of getVisibleSectionsForClientContext(form.careContexts)) {
+  for (const section of getIntakeSectionsForForm(form)) {
     // Document obligations use the actual current database template below.
     if (section === 'vertraege_einwilligungen') continue;
     const errors = Object.values(validateIntakeStep(section, form));

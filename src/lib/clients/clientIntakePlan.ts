@@ -1,4 +1,4 @@
-import { getRequiredFieldsForClientContext, type ClientCareContext } from './clientIntakeFieldRules';
+import { getRequiredFieldsForClientContext, getVisibleSectionsForClientContext, type ClientCareContext } from './clientIntakeFieldRules';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
 /** One plan for every selectable area. Combined selections use the union. */
@@ -11,6 +11,11 @@ export const CLIENT_INTAKE_PLANS: Record<ClientCareContext, { details: string; d
   consulting: { details: 'Beratungsart, Anlass, Beginn und nächste Schritte.', documents: 'Beratungsvertrag und Datenschutz; vorhandene Bescheide oder Vollmachten nach Bedarf.', required: ['consultingReason', 'consultingType', 'serviceStart'] },
   academy_prepared: { details: 'Interesse, Kontaktdaten und Schulungswunsch vormerken.', documents: 'Noch keine Schulungsverträge oder Schulungsfunktionen verfügbar. Als Erstkontakt oder Entwurf speichern.', required: [] },
 };
+
+export function getIntakeSectionsForForm(form: Pick<ClientIntakeFormData, 'careContexts' | 'intakeWorkflowVersion'>) {
+  const activeContexts = form.intakeWorkflowVersion === 2 ? form.careContexts.filter(context => context !== 'academy_prepared') : form.careContexts;
+  return getVisibleSectionsForClientContext(activeContexts.length ? activeContexts : form.careContexts);
+}
 
 export function getRequiredFieldsForIntake(form: ClientIntakeFormData): string[] {
   if (form.intakeWorkflowVersion !== 2) return getRequiredFieldsForClientContext(form.careContexts);

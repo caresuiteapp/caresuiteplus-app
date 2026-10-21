@@ -258,6 +258,28 @@ function getVisibleSectionsForClientContext(contexts) {
   return all.filter((s) => visible.has(s));
 }
 
+// src/lib/clients/clientIntakePlan.ts
+var CLIENT_INTAKE_PLANS = {
+  daily_assistance: { details: "Haushalt, Einkaufen, gew\xFCnschte T\xE4tigkeiten und Zeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht oder Schl\xFCsselvereinbarung bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  support_care: { details: "Besch\xE4ftigung, Tagesstruktur, Orientierung und Kommunikation.", documents: "Assist-Vertrag und Datenschutz; erg\xE4nzende Einwilligungen nach Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  companionship: { details: "Anl\xE4sse, Wege, Mobilit\xE4t und gew\xFCnschte Begleitzeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
+  ambulatory_care: { details: "Pflegebedarf, Pflegegrad, Versicherung, Hausarzt und Wohnungszugang.", documents: "Pflegevertrag und Datenschutz; Pflegegradbescheid, Medikationsplan und Verordnungen nach Bedarf.", required: ["serviceStart", "billingTypes", "careLevel", "careFund", "healthInsurance", "insuranceNumber", "familyDoctor", "homeAccess"] },
+  stationary_care: { details: "Einrichtung, Wohnbereich, Zimmer, Einzug und Pflegegrad.", documents: "Station\xE4rer Vertrag und Datenschutz; Pflege- und Versorgungsunterlagen nach Bedarf.", required: ["serviceStart", "facility", "careArea", "roomNumber", "careLevel", "careFund"] },
+  consulting: { details: "Beratungsart, Anlass, Beginn und n\xE4chste Schritte.", documents: "Beratungsvertrag und Datenschutz; vorhandene Bescheide oder Vollmachten nach Bedarf.", required: ["consultingReason", "consultingType", "serviceStart"] },
+  academy_prepared: { details: "Interesse, Kontaktdaten und Schulungswunsch vormerken.", documents: "Noch keine Schulungsvertr\xE4ge oder Schulungsfunktionen verf\xFCgbar. Als Erstkontakt oder Entwurf speichern.", required: [] }
+};
+function getIntakeSectionsForForm(form) {
+  const activeContexts = form.intakeWorkflowVersion === 2 ? form.careContexts.filter((context) => context !== "academy_prepared") : form.careContexts;
+  return getVisibleSectionsForClientContext(activeContexts.length ? activeContexts : form.careContexts);
+}
+function getRequiredFieldsForIntake(form) {
+  if (form.intakeWorkflowVersion !== 2) return getRequiredFieldsForClientContext(form.careContexts);
+  const fields = /* @__PURE__ */ new Set(["careContexts", "firstName", "lastName", "dateOfBirth", "street", "zip", "city", "phoneOrContact"]);
+  for (const context of form.careContexts) for (const field of CLIENT_INTAKE_PLANS[context]?.required ?? []) fields.add(field);
+  if (form.careContexts.some((context) => context !== "academy_prepared")) fields.add("fundingSources");
+  return [...fields];
+}
+
 // src/lib/clients/clientIntakeCostBearerConfig.ts
 var COST_BEARER_TYPE_KEYS = [
   "pflegekasse",
@@ -1639,24 +1661,6 @@ function parseGermanOrIsoDateInput(value, options) {
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return null;
   return applyTimeOfDay(parsed, timeOfDay);
-}
-
-// src/lib/clients/clientIntakePlan.ts
-var CLIENT_INTAKE_PLANS = {
-  daily_assistance: { details: "Haushalt, Einkaufen, gew\xFCnschte T\xE4tigkeiten und Zeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht oder Schl\xFCsselvereinbarung bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
-  support_care: { details: "Besch\xE4ftigung, Tagesstruktur, Orientierung und Kommunikation.", documents: "Assist-Vertrag und Datenschutz; erg\xE4nzende Einwilligungen nach Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
-  companionship: { details: "Anl\xE4sse, Wege, Mobilit\xE4t und gew\xFCnschte Begleitzeiten.", documents: "Assist-Vertrag und Datenschutz; Vollmacht bei Bedarf.", required: ["supportWishes", "serviceStart", "billingTypes"] },
-  ambulatory_care: { details: "Pflegebedarf, Pflegegrad, Versicherung, Hausarzt und Wohnungszugang.", documents: "Pflegevertrag und Datenschutz; Pflegegradbescheid, Medikationsplan und Verordnungen nach Bedarf.", required: ["serviceStart", "billingTypes", "careLevel", "careFund", "healthInsurance", "insuranceNumber", "familyDoctor", "homeAccess"] },
-  stationary_care: { details: "Einrichtung, Wohnbereich, Zimmer, Einzug und Pflegegrad.", documents: "Station\xE4rer Vertrag und Datenschutz; Pflege- und Versorgungsunterlagen nach Bedarf.", required: ["serviceStart", "facility", "careArea", "roomNumber", "careLevel", "careFund"] },
-  consulting: { details: "Beratungsart, Anlass, Beginn und n\xE4chste Schritte.", documents: "Beratungsvertrag und Datenschutz; vorhandene Bescheide oder Vollmachten nach Bedarf.", required: ["consultingReason", "consultingType", "serviceStart"] },
-  academy_prepared: { details: "Interesse, Kontaktdaten und Schulungswunsch vormerken.", documents: "Noch keine Schulungsvertr\xE4ge oder Schulungsfunktionen verf\xFCgbar. Als Erstkontakt oder Entwurf speichern.", required: [] }
-};
-function getRequiredFieldsForIntake(form) {
-  if (form.intakeWorkflowVersion !== 2) return getRequiredFieldsForClientContext(form.careContexts);
-  const fields = /* @__PURE__ */ new Set(["careContexts", "firstName", "lastName", "dateOfBirth", "street", "zip", "city", "phoneOrContact"]);
-  for (const context of form.careContexts) for (const field of CLIENT_INTAKE_PLANS[context]?.required ?? []) fields.add(field);
-  if (form.careContexts.some((context) => context !== "academy_prepared")) fields.add("fundingSources");
-  return [...fields];
 }
 
 // src/lib/clients/clientIntakeValidation.ts
@@ -3149,7 +3153,7 @@ function requireCompleteIntakeForm(value) {
   const expectedBilling = selfPay && statutory ? "kombi" : selfPay ? "selbstzahler" : statutory ? "pflegekasse" : "";
   if (form.selfPay !== selfPay || form.billingType !== expectedBilling || form.billingTypes.length !== (expectedBilling ? 1 : 0) || expectedBilling && form.billingTypes[0] !== expectedBilling) fail("Die Finanzierungsarten und Abrechnung stimmen nicht \xFCberein. Bitte die Finanzierung erneut ausw\xE4hlen.");
   if (form.hourlyRate && (!/^\d{1,5}([.,]\d{1,2})?$/.test(form.hourlyRate.trim()) || Number(form.hourlyRate.replace(",", ".")) < 0)) fail("Der vereinbarte Stundensatz ist ung\xFCltig.");
-  for (const section of getVisibleSectionsForClientContext(form.careContexts)) {
+  for (const section of getIntakeSectionsForForm(form)) {
     if (section === "vertraege_einwilligungen") continue;
     const errors = Object.values(validateIntakeStep(section, form));
     if (errors.length) fail(errors.filter(Boolean).join(" "));
