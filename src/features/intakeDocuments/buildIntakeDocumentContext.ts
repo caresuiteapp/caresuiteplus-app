@@ -14,6 +14,8 @@ import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatte
 import { formatIntakeDocumentDate as formatDate, isIntakeRenderTimestamp } from './intakeDocumentRenderBinding';
 import type { TenantDisplayMeta } from '@/lib/tenant/tenantDisplayMeta';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
+import { INTAKE_DOCUMENT_TEMPLATES_2027 } from './intakeDocumentTemplates2027';
+import { buildIntake2027Context } from './intake2027Context';
 import {
   buildCostCarrierMergeFields,
   buildFamilyDoctorClause,
@@ -76,6 +78,7 @@ export function buildIntakePlaceholderContext(
     'signature.client': '',
     'signature.employee': '',
     'signature.legal_representative': '',
+    ...(form.intakeTemplateEdition === '2027' ? buildIntake2027Context(form) : {}),
   };
 }
 
@@ -137,7 +140,8 @@ export function listApplicableIntakeTemplates(
 
   const result: IntakeDocumentTemplate[] = [];
   for (const key of applicableKeys) {
-    const template = lookup.get(key) ?? getSystemIntakeTemplateByKey(key);
+    const template = lookup.get(key) ?? (form.intakeTemplateEdition === '2027'
+      ? INTAKE_DOCUMENT_TEMPLATES_2027.find(item => item.templateKey === key) : getSystemIntakeTemplateByKey(key));
     if (template?.isActive) {
       result.push(template);
     }

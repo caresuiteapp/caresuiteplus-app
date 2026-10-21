@@ -60,6 +60,34 @@ beforeEach(async () => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('package preview and shared signature interaction', () => {
+  it('starts 2027 without preselected communication or media permissions and keeps correction edits', async () => {
+    await click('Ausgabe 2027 vorbereiten');
+    expect(latest.intakeTemplateEdition).toBe('2027'); expect(latest.intakeWorkflowVersion).toBe(2);
+    const options = Array.from(document.querySelectorAll<HTMLInputElement>('.cs-legal-choices input'));
+    expect(options).toHaveLength(6); expect(options.every(input => !input.checked)).toBe(true);
+    await act(async () => options[3].click());
+    expect(latest.intakeLegalDetails?.['communication.portal']).toBe('yes');
+    expect(latest.intakeLegalDetails?.['communication.email']).toBeUndefined();
+    await click('Gesamte Vorschau öffnen'); await click('Angaben ergänzen');
+    const contact = document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea[id$="provider.contact"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(contact, 'kontakt@example.invalid');
+      contact.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await click('Angaben übernehmen & Vorschau aktualisieren');
+    expect(latest.intakeLegalDetails?.['provider.contact']).toBe('kontakt@example.invalid');
+    expect(document.querySelector('iframe')!.srcdoc).toContain('kontakt@example.invalid');
+  });
+  it('archives signed legacy originals unchanged before starting the 2027 edition', async () => {
+    await click('Gesamte Vorschau öffnen'); await captureBoth(); await click('Unterzeichnetes Paket sichern'); await click('Fertig');
+    const originals = structuredClone(latest.intakeDocuments);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    try {
+      await click('Ausgabe 2027 vorbereiten');
+      expect(latest.intakeDocumentHistory).toEqual(originals); expect(latest.intakeDocuments).toEqual([]);
+      expect(latest.consentVertrag).toBe(false); expect(latest.consentDatenschutz).toBe(false);
+    } finally { confirm.mockRestore(); }
+  });
   it('opens every selection together in exactly one preview and cannot finish with one signature', async () => {
     await click('Gesamte Vorschau öffnen');
     const frame = document.querySelector('iframe')!;

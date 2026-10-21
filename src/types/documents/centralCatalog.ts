@@ -15,6 +15,7 @@ export type CentralDocumentDefinition = {
   categoryName: string;
   title: string;
   version: number;
+  edition?: '2027';
   modules: readonly string[];
   target: CentralDocumentTarget;
   sourceMode: 'create' | 'original';

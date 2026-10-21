@@ -28,6 +28,7 @@ export function renderCentralDocumentPdf(snapshot: CentralDocumentSnapshot, opti
 function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, options: { logoDataUrl?: string }, compactClosing: boolean): CentralPdfResult {
   if (JSON.stringify(snapshot).length > 1000000 || snapshot.tableRows.length > 1500) throw new Error('Der Dokumentinhalt ist zu groß. Bitte den Zeitraum oder die Anzahl der Tabellenzeilen reduzieren.');
   const { definition: d, values: v, context: c } = snapshot;
+  const edition2027 = d.edition === '2027';
   const pdf = new jsPDF({ orientation: d.orientation, unit: 'mm', format: 'a4', compress: true });
   registerCareSuitePdfFont(pdf);
   const text = createCareSuitePdfText(pdf);
@@ -49,7 +50,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     const companyLines = wrap(v.companyName || 'Unternehmen ergänzen', nameWidth - 8, 13);
     if (companyLines.length > 2) throw new Error('Der Unternehmensname ist für den Briefkopf zu lang. Bitte eine passende Kurzbezeichnung verwenden.');
     font(13, true, NAVY); text(companyLines, margin + 5, 18, { lineHeightFactor: 1.25 });
-    font(8, false, MUTED); text(continued ? 'Dokumentenkatalog · Fortsetzung' : 'Dokumentenkatalog · CareSuite HealthOS', margin + 5, 30);
+    font(8, false, MUTED); text(edition2027 ? `Verträge & Einwilligungen · Ausgabe 2027${continued ? ' · Fortsetzung' : ''}` : continued ? 'Dokumentenkatalog · Fortsetzung' : 'Dokumentenkatalog · CareSuite HealthOS', margin + 5, 30);
     if (options.logoDataUrl) {
       const props = pdf.getImageProperties(options.logoDataUrl);
       const logoWidth = Math.min(34, 14 * props.width / props.height);
@@ -64,7 +65,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   const longText = d.layout === 'contract' || d.categoryKey === 'software' || d.categoryKey === 'datenschutz';
   const bodySize = longText && d.orientation === 'portrait' ? 11 : 10;
   const bodyLeading = longText ? (d.orientation === 'landscape' ? 4.5 : compactClosing ? 4.7 : 5) : 5.2;
-  const paragraph = (value: string, size = bodySize, leading = bodyLeading) => {
+  const paragraph = (value: string, size = bodySize, leading = bodyLeading, keepWithNext = 0) => {
     const lines = wrap(value || '[Noch auszufüllen]', contentWidth, size);
     let index = 0;
     while (index < lines.length) {
@@ -72,6 +73,11 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
       let slots = Math.floor((bottom - y) / leading);
       if (slots < 1 || (remaining > 1 && slots < 2)) { next(); slots = Math.floor((bottom - y) / leading); }
       let take = Math.min(slots, remaining);
+      if (keepWithNext && remaining <= slots && remaining * leading + keepWithNext > bottom - y) {
+        // Keep the last part of the agreement beside its signature block.
+        if (remaining <= 8) { next(); continue; }
+        take = remaining - 8;
+      }
       if (remaining - take === 1 && take > 1) take--;
       if (take === 1 && remaining > 1) { next(); continue; }
       for (let i = 0; i < take; i++) { font(size); text(lines[index++], margin, y); y += leading; lastPageLines++; }
@@ -81,8 +87,9 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   };
   const heading = (value: string, size = 11) => {
     const lines = wrap(value, contentWidth, size);
-    room(lines.length * 5 + (compactClosing ? 13 : 18));
-    font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * 5 + (compactClosing ? 2 : 3);
+    const lineHeight = edition2027 ? Math.max(5, size * 0.352778 * 1.3) : 5;
+    room(lines.length * lineHeight + (compactClosing ? 13 : 18));
+    font(size, true, NAVY); text(lines, margin, y, { lineHeightFactor: 1.3 }); y += lines.length * lineHeight + (compactClosing ? 2 : 3);
     lastPageLines += lines.length;
   };
   const field = (label: string, value: string) => {
@@ -120,9 +127,9 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     y = 101; heading(v.letterSubject || d.title, 13);
   } else {
     font(8, false, BLUE); text(d.categoryName.toLocaleUpperCase('de-DE'), margin, y); y += 8;
-    heading(d.title, 17);
+    heading(d.title, edition2027 ? 21 : 17);
     const details = [v.birthDate && `Geb.: ${displayDate(v.birthDate)}`,v.careLevel && `Pflegegrad: ${v.careLevel}`,v.personnelNumber && `Personalnr.: ${v.personnelNumber}`,v.jobTitle].filter(Boolean).join(' · ');
-    const payor = [v.payorName,v.insuranceNumber && `Versichertennr.: ${v.insuranceNumber}`].filter(Boolean).join(' · ');
+    const payor = [v.payorName,v.insuranceNumber && `Versichertennr.: ${v.insuranceNumber}`].filter(Boolean).join(edition2027 ? '\n' : ' · ');
     const identity = [`${d.target === 'employee' ? 'Mitarbeiter:in' : d.target === 'company' ? 'Organisation' : 'Klient:in / Patient:in'}: ${v.subjectName || '[ergänzen]'}`,v.subjectAddress,details,payor].filter(Boolean).join('\n');
     if (d.layout === 'contract') {
       heading('Vertragsparteien / Beteiligte',9);
@@ -145,11 +152,14 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   if (d.sourceMode === 'original') { heading('Begleitblatt zur Originalunterlage'); paragraph(d.instructions, 9, 4.8); }
   else if (d.legalReviewRequired) { paragraph('Vorlagenentwurf · Die rechtliche Freigabe für den konkreten Anwendungsbereich steht aus.', 8, 4.5); }
   else if (d.clinicalReviewRequired) { paragraph('Fachlicher Entwurf · Angaben und Maßnahmen durch die zuständige qualifizierte Person prüfen.', 8, 4.5); }
-  if (d.layout !== 'letter') for (const f of d.fields.filter((item) => !CENTRAL_COMMON_FIELDS.has(item.key))) {
+  if (d.layout !== 'letter' || edition2027) for (const f of d.fields.filter((item) => !CENTRAL_COMMON_FIELDS.has(item.key) && (d.layout !== 'letter' || item.key.startsWith('legal_')))) {
     if (d.layout === 'table') paragraph(`${f.label}: ${v[f.key] || '[Noch auszufüllen]'}`,8.5,4.3);
     else field(f.label, v[f.key]);
   }
-  for (const section of d.sections) { if (d.layout !== 'letter') heading(section.heading); paragraph(snapshot.sectionTexts[section.key] ?? section.text); }
+  for (const [index, section] of d.sections.entries()) {
+    if (d.layout !== 'letter' || edition2027 && index > 0) heading(edition2027 ? `${String(index + 1).padStart(2, '0')}  ${section.heading.replace(/^(?:§\s*)?\d+[.\s]+/, '')}` : section.heading);
+    paragraph(snapshot.sectionTexts[section.key] ?? section.text, bodySize, bodyLeading, edition2027 && d.layout === 'contract' && index === d.sections.length - 1 && !snapshot.additionalText.trim() ? 50 : 0);
+  }
   if (d.layout === 'letter' && v.enclosures?.trim()) { heading('Anlagen', 9); paragraph(v.enclosures, 9, 4.5); }
 
   if (d.columns.length) {
@@ -190,8 +200,13 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     y += 10;
   }
   const pageBeforeClosing = pdf.getNumberOfPages();
-  if (snapshot.additionalText.trim()) { heading('Individuelle Ergänzungen / Vereinbarungen'); paragraph(snapshot.additionalText); }
+  if (snapshot.additionalText.trim()) { heading('Individuelle Ergänzungen / Vereinbarungen'); paragraph(snapshot.additionalText, bodySize, bodyLeading, edition2027 && d.layout === 'contract' ? 50 : 0); }
   if (d.layout === 'contract') {
+    if (edition2027) {
+      room(50);
+      heading('Erklärungen und Unterschriften');
+      paragraph('Die konkret bezeichneten Angaben und Anlagen wurden gemeinsam geprüft. Jede beteiligte Person erhält eine vollständige Kopie dieser Fassung.', 9, 4.5);
+    }
     room(22); y += 10; pdf.setDrawColor(RULE); pdf.line(margin, y, margin + contentWidth * 0.43, y); pdf.line(margin + contentWidth * 0.55, y, width - margin, y);
     font(8, false, MUTED); text('Ort, Datum · Unternehmen', margin, y + 5); text('Ort, Datum · berechtigte Person', margin + contentWidth * 0.55, y + 5);
     lastPageLines += 2;
@@ -212,7 +227,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     if (footerLines.length > 4) throw new Error('Die Unternehmensangaben sind für die Fußzeile zu lang. Bitte die Dokumenteinstellungen prüfen.');
     font(8, false, MUTED); if (footerLines.length) text(footerLines, margin, height - 21, { lineHeightFactor: 1.25 });
     font(8, true, BLUE); text(`ENTWURF · ${page} / ${pages}`, width - margin, height - 21, { align: 'right' });
-    font(8, false, MUTED); text(`CareSuite HealthOS · ${snapshot.documentId} · v${snapshot.revision}`, margin, height - 5);
+    font(8, false, MUTED); text(edition2027 ? `Ausgabe 2027 · Stand 21.10.2026 · ${snapshot.documentId} · v${snapshot.revision}` : `CareSuite HealthOS · ${snapshot.documentId} · v${snapshot.revision}`, margin, height - 5);
   }
   pdf.setProperties({ title: d.title, author: v.author, creator: 'CareSuite HealthOS Dokumentenkatalog', subject: `Entwurf · ${snapshot.documentId}` });
   const bytes = new Uint8Array(pdf.output('arraybuffer'));
