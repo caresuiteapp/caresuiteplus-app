@@ -674,7 +674,7 @@ await test('consultation links the saved first contact, tracks central changes a
   `);
   await db.exec(read('../migrations/20261019202713_consultation_workspace.sql'));
   await db.exec(read('../migrations/20261021063230_consultation_followups_templates.sql'));
-  await db.exec(read('../changes/consultation_central_contact.sql'));
+  await db.exec(read('../migrations/20261021074944_consultation_central_contact.sql'));
   const employee = '80000000-0000-4000-8000-000000000001', portalAccount = '80000000-0000-4000-8000-000000000002';
   await db.query("INSERT INTO employees(id,tenant_id,first_name,last_name,status) VALUES($1,$2,'Beratung','Beispiel','active')", [employee,id.tenant]);
   await db.query("INSERT INTO employee_portal_accounts VALUES($1,$2,$3,$4,'active')", [portalAccount,id.tenant,employee,id.otherAuth]);

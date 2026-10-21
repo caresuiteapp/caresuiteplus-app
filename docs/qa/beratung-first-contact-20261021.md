@@ -14,7 +14,7 @@ Die zentrale Klientenaufnahme bleibt der Einstieg für alle Leistungsbereiche. I
 
 ## Gemeinsame Eckdaten und Dokumentation
 
-Der vorbereitete SQL-Schritt `supabase/changes/consultation_central_contact.sql` erweitert die bestehenden öffentlichen Beratungs-RPCs über private Funktionen. Es werden keine neuen Tabellen oder weiteren direkten Tabellenrechte eingeführt.
+Der SQL-Schritt `supabase/migrations/20261021074944_consultation_central_contact.sql` erweitert die bestehenden öffentlichen Beratungs-RPCs über private Funktionen. Es werden keine neuen Tabellen oder weiteren direkten Tabellenrechte eingeführt.
 
 Noch nicht begonnene Besuche zeigen die aktuellen zentralen Eckdaten. Bei Planung und tatsächlichem Start übernimmt der Server den aktuellen Stand in den Besuch. Bereits begonnene und unterschriebene Dokumentationen behalten ihren zugehörigen Stand. Wiederholungen bereits bestätigter Startanfragen aktualisieren diesen Stand ausdrücklich nicht erneut. Die qualifizierte, persönlich zugewiesene Person sieht die vorbereiteten Daten im bestehenden Mitarbeiterportal.
 
@@ -31,6 +31,8 @@ Der allgemeine interne Ersttermin aus der Klientenaufnahme und die Beratungsterm
 
 ## Bereitstellung
 
-Noch keine Produktionsänderung für diese Erweiterung. Zuerst den vorbereiteten SQL-Schritt über den freigegebenen Deploymentablauf anwenden und mit der tatsächlich vergebenen Versionskennung in der Migrationshistorie übernehmen; anschließend Web veröffentlichen. Der neue Einstieg bleibt ohne die Serverfähigkeit `centralContact` deaktiviert. Bestehende Klienten können weiter ausgewählt werden.
+Nach ausdrücklicher Deploymentfreigabe am 21.10.2026 wurde der SQL-Schritt in `caresuiteplus-production` als `20261021074944_consultation_central_contact` eingespielt. Die SQL-Datei stimmt einschließlich der ursprünglichen Vorbereitungskommentare bytegenau mit der Serverhistorie überein (MD5 `097cd7681d659e23c0c96d2934c43da9`). Öffentliche RPCs sind weiterhin SECURITY INVOKER, die privaten Implementierungen haben einen festen Suchpfad. Anonyme Aufrufe sind gesperrt; Aufrufe ohne gültige Anmeldung werden abgewiesen. Die Sicherheitsmeldungen sind gegenüber der Bestandsaufnahme unverändert. Es wurden keine produktiven Testdatensätze angelegt.
+
+Die Web-Veröffentlichung erfolgt über PR #145 und den bestehenden Vercel-Produktionsablauf. Der neue Einstieg bleibt ohne die Serverfähigkeit `centralContact` deaktiviert. Bestehende Klienten können weiter ausgewählt werden.
 
 Bei Rücknahme des SQL-Schritts die beiden öffentlichen Wrapper wieder auf `care_security.consultation_extended_load` beziehungsweise `consultation_extended_mutate` richten, deren bisherigen EXECUTE-Grant an `authenticated` wiederherstellen und den Grant der neuen Kontaktfunktionen zurücknehmen. Zentrale Klientenakten und bereits festgehaltene Besuchsstände bleiben erhalten. Vorhandene Freigaben für die alten Basisfunktionen werden nicht erweitert.

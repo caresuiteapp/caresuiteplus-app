@@ -15,7 +15,7 @@ export async function consultationFixture({ extensions = true } = {}){
  await db.exec(readFileSync(new URL('../migrations/20261019202713_consultation_workspace.sql',import.meta.url),'utf8'));
  if(extensions) {
   await db.exec(readFileSync(new URL('../migrations/20261021063230_consultation_followups_templates.sql',import.meta.url),'utf8'));
-  await db.exec(readFileSync(new URL('../changes/consultation_central_contact.sql',import.meta.url),'utf8'));
+  await db.exec(readFileSync(new URL('../migrations/20261021074944_consultation_central_contact.sql',import.meta.url),'utf8'));
  }
  const portal=()=>actor(22,10,{app_metadata:{role_key:'employee_portal',portal_account_id:id(60)}});
  const load=async(employee=false,caseId=null,tenant=id(10))=>(await db.query('SELECT public.consultation_workspace_load($1,$2,$3) AS r',[tenant,employee,caseId])).rows[0].r;
