@@ -16,7 +16,9 @@ zustellung und selbst erzeugte Zustellmeldungen mit dem vorhandenen POP3-Empfang
 Der [ECC-CMS-Kern](ecc-cms.md) kann nun Nachrichten mit Brainpool/ECDSA signieren,
 mit TI-ECIES/AES-GCM verschlüsseln und nach dem lokalen SMTP-/POP3-Weg wieder
 entschlüsseln und mathematisch prüfen. Die Zertifikatsidentität bleibt ausdrücklich
-unbestätigt. TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
+unbestätigt. Der [Nachrichtenablauf](kim-client-message.md) ergänzt AUT-Erzeugung,
+äußere MIME-Nachricht, geschützten Headervergleich und einen eigenen AUT-
+Empfangsprüfer für zeitversetztes Abholen. TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
 ## Verbindliche Quellen und Versionsstand

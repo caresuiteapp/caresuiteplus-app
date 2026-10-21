@@ -162,7 +162,17 @@ test('OpenSSL verifies the actual inner ECDSA CMS and ESS certificate binding ag
   assert.equal(fields(data[3], 160).length, 1); assert.equal(fields(data[4], 49).length, 1);
   const independentlyVerified = await openssl(['cms', '-verify', '-binary', '-inform', 'DER', '-cades', '-nointern', '-certfile', osig.path,
     '-CAfile', join(pki.dir, 'root.pem'), '-no-CApath', '-no-CAstore', '-purpose', 'any'], { input: signed });
-  assert.deepEqual(independentlyVerified, Buffer.concat([Buffer.from('Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\n\r\n'), message]));
+  assert.deepEqual(independentlyVerified, Buffer.concat([Buffer.from('Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\n'), message]));
+});
+
+test('ECC receive decodes folded, reordered, case-varied signed MIME with strict base64', () => {
+  const { clear, transport } = decryptForInspection(cms), signed = signedBytes(clear);
+  const wrapper = Buffer.from('MIME-Version: 1.0\r\ncOnTeNt-TrAnSfEr-EnCoDiNg: BASE64\r\nContent-Type: APPLICATION/PKCS7-MIME;\r\n smime-type="SIGNED-DATA"; name="smime.p7m"\r\n\r\n');
+  const encoded = signed.toString('base64').match(/.{1,76}/g).join('\r\n');
+  assert.deepEqual(open(repackInner(cms, Buffer.concat([wrapper, Buffer.from(encoded)]), transport)).message, message);
+  for (const invalid of [encoded + '!', encoded.slice(0, -3), encoded + '====']) {
+    assert.throws(() => open(repackInner(cms, Buffer.concat([wrapper, Buffer.from(invalid)]), transport)));
+  }
 });
 
 test('ECC CMS binds certificate roles, keys, validity and sender recovery before encrypting', () => {

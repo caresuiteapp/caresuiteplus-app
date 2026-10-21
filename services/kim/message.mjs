@@ -8,25 +8,27 @@ export function readMessage(bytes) {
   if (end < 0 || end > 65_536) throw new Error('KIM_MESSAGE_FORMAT');
   const head = buffer.subarray(0, end).toString('latin1');
   if (/[^\x09\x0a\x0d\x20-\x7e]|(?<!\r)\n|\r(?!\n)/.test(head)) throw new Error('KIM_MESSAGE_FORMAT');
-  const headers = new Map(); let name, count = 0;
+  const entries = []; let current, count = 0;
   for (const line of head.split('\r\n')) {
     if (line.length > 998 || ++count > 500) throw new Error('KIM_MESSAGE_FORMAT');
     if (/^[ \t]/.test(line)) {
-      if (!name) throw new Error('KIM_MESSAGE_FORMAT');
-      const values = headers.get(name); values[values.length - 1] += ' ' + line.trim();
+      if (!current) throw new Error('KIM_MESSAGE_FORMAT');
+      // RFC 5322 unfolding removes CRLF, not the following whitespace or spaces in quotes.
+      current.value += line; current.raw += '\r\n' + line;
     } else {
       const m = /^([A-Za-z0-9-]+):[ \t]*(.*)$/.exec(line); if (!m) throw new Error('KIM_MESSAGE_FORMAT');
-      name = m[1].toLowerCase(); headers.set(name, [...(headers.get(name) ?? []), m[2].trim()]);
+      current = { name: m[1].toLowerCase(), value: m[2], raw: line }; entries.push(current);
     }
   }
+  const headers = Object.freeze(entries.map(e => Object.freeze({ ...e, value: e.value.trim() })));
   const one = (name, required = false) => {
-    const values = headers.get(name) ?? [];
+    const values = headers.filter(h => h.name === name.toLowerCase()).map(h => h.value);
     if (values.length > 1 || (required && values.length !== 1)) throw new Error('KIM_MESSAGE_FORMAT');
     return values[0];
   };
-  return { one, body: buffer.subarray(end + 4) };
+  return { one, headers, body: buffer.subarray(end + 4) };
 }
-function addressList(value) {
+export function addressList(value) {
   if (typeof value !== 'string' || !value) throw new Error('KIM_ORIGINATOR');
   const list = []; let start = 0, quoted = false, escaped = false;
   for (let i = 0; i <= value.length; i++) {
@@ -51,12 +53,26 @@ export function parseContentType(value) {
   }
   return { type: m[1].toLowerCase(), params };
 }
-function decodedBase64(body) {
+export function decodedBase64(body) {
   const text = body.toString('latin1');
   if (/[^A-Za-z0-9+/=\r\n\t ]/.test(text)) throw new Error('KIM_ENVELOPE_INVALID');
   const clean = text.replace(/[\r\n\t ]/g, ''), bytes = Buffer.from(clean, 'base64');
   if (!clean || bytes.toString('base64') !== clean) throw new Error('KIM_ENVELOPE_INVALID');
   return bytes;
+}
+/** Bounded single-part MIME decoding for the two nested KIM entities. */
+export function decodeKimMimeEntity(bytes, { type, smimeType }) {
+  const entity = readMessage(bytes), content = parseContentType(entity.one('content-type', true));
+  if (content.type !== type || (smimeType && content.params.get('smime-type')?.toLowerCase() !== smimeType)
+    || (entity.one('mime-version') !== undefined && entity.one('mime-version') !== '1.0')) throw new Error('KIM_CMS_MIME_UNSUPPORTED');
+  const transfer = entity.one('content-transfer-encoding')?.toLowerCase() ?? '7bit';
+  if (transfer === 'base64' && type !== 'message/rfc822') return decodedBase64(entity.body);
+  if (transfer === 'binary') return entity.body;
+  if (!['7bit', '8bit'].includes(transfer)) throw new Error('KIM_CMS_MIME_UNSUPPORTED');
+  const text = entity.body.toString('latin1');
+  if (/\0|(?<!\r)\n|\r(?!\n)/.test(text) || (transfer === '7bit' && /[^\x00-\x7f]/.test(text))
+    || text.split('\r\n').some(line => line.length > 998)) throw new Error('KIM_CMS_MIME_UNSUPPORTED');
+  return entity.body;
 }
 /** Read only the outer transport profile. No decrypted payload or billing status is inferred. */
 export function verifySubmission(bytes, { sender, recipients, authVerifier, now }) {

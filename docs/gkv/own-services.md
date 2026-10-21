@@ -252,6 +252,19 @@ SMTP-/POP3-Pfad ist damit ebenfalls geprüft. Ergebnisidentitäten bleiben
 Unterstützte Teilmenge, 16 neue Prüfungen, Quellen und verbleibende Grenzen sind
 in [ecc-cms.md](ecc-cms.md) beschrieben. Der CareSuite-Worker bleibt für KIM gesperrt.
 
+### Eigener KIM-Nachrichtenablauf
+
+`client-message.mjs` erzeugt die vollständigen Wire-Bytes der unterstützten
+Inline-Teilmenge: AUT-Token vor der inneren Signatur, kopierte geschützte Header,
+ECC-CMS und äußere Base64-MIME-Hülle mit tatsächlicher Größenprüfung. Der
+Empfänger verbindet Entschlüsselung mit Headerabgleich und einer gesonderten
+AUT-Prüfung ohne die FD-Annahmefrist. Das interne Ergebnis bleibt
+`held-for-trust-validation`; es gibt keine normale Clientzustellung oder
+Freigabe allein aufgrund mathematisch korrekter Signaturen.
+17 weitere Prüfungen und der erweiterte echte SMTP-/POP3-Test bestehen im
+Gesamtlauf mit **179 Fällen**. Details, Anforderungsbezug und ausdrücklich offene
+Vertrauens-/Fehlerpfade: [kim-client-message.md](kim-client-message.md).
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
@@ -279,7 +292,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS-Kern lokal vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL/OCSP, vollständige MIME-/Headerprüfung, CAdES je Nutzkomponente, XML-Erzeugung und echte XSD-/Beziehungsprüfung, Empfang/Fehlerpfade fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung und Inline-Nachrichten-/Headerprüfung lokal vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL/OCSP, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung und normative Clientzustellung/Fehlernachrichten fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

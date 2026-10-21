@@ -8,8 +8,33 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**162 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**179 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## KIM-Nachrichtenablauf und Headerbindung am 21.10.2026
+
+Die bisherigen 162 Fälle und **17 neue Prüfungen** bestehen gemeinsam.
+16 Fälle in `kim-client-message.test.mjs` prüfen tatsächliche AUT-Signaturen,
+Rollen-/Schlüssel-/Versionsfehler, erneutes Tokenisieren, doppelte Header,
+Absender-/Empfänger-/Zertifikatszuordnung, geschützte Metadaten, Folding und
+Manipulationen, binäre Nutzdaten, Größen- und MIME-Grenzen. Ein zusätzlicher
+ECC-Test prüft Base64-SignedData mit gefalteten und anders angeordneten MIME-Headern.
+
+Nachrichten werden auch zwei Tage nach Erstellung mathematisch geprüft, ohne
+fälschlich die FD-AUT-Annahmefrist anzuwenden. Zukunftstokens werden weiterhin
+abgelehnt. Die Ergebnisse behalten ausdrücklich unbestätigte Identität und
+`held-for-trust-validation`; Fehler liefern keine Klartextnachricht.
+
+Der vorhandene echte mTLS-SMTP-/Mailstore-/mTLS-POP3-/Inbox-Test verwendet jetzt
+den vollständigen neuen Inline-Erzeuger mit AUT-Token und den neuen Empfangspfad.
+Wire-Bytes, Hash der geschützten Nachricht und ursprünglicher Body stimmen
+überein. Wiederholung nach POP3-Löschung erzeugt keine Dublette.
+
+Grenzen und Quellen: [kim-client-message.md](kim-client-message.md).
+TSL/OCSP/VZD, SMC-B/Konnektor, weitere Profile/KAS, normative Fehlernachrichten
+und normale Clientzustellung fehlen weiterhin. Der CareSuite-Worker bleibt
+für KIM gesperrt. Keine UI-/Android-/Datenbankänderung.
+Alle vier Vercel-Projekte haben den Vorgänger **280be44** erfolgreich gebaut.
 
 ## ECC-CMS und durchgehender lokaler Transport am 21.10.2026
 
@@ -29,8 +54,8 @@ exakten Originalbytes. Wiederholung nach POP3-Löschung erzeugt keine Dublette.
 **Grenzen:** Die neuen Tests enthalten eine echte innere Testsignatur; die ältere
 RSA-Fixture darunter bleibt opak. Software-Schlüssel und Test-CA sind keine
 SMC-B/TI-Identitäten. Der neue Empfänger liefert immer `identityStatus: unverified`.
-TI-PKI/OCSP/VZD, allgemeine MIME-Verarbeitung, äußerer/innerer Headerabgleich,
-Fach-XML und Konnektoranbindung fehlen. Der gesamte äußere ECC-Container wurde
+TI-PKI/OCSP/VZD, allgemeine MIME-Verarbeitung, Fach-XML und Konnektoranbindung fehlen.
+Der danach ergänzte Headerabgleich ist oben gesondert belegt. Der gesamte äußere ECC-Container wurde
 noch nicht von einem zweiten KIM-Client verarbeitet; die CLI-Gegenprüfung
 verwendet dieselbe OpenSSL-Kryptoprimitivenbibliothek wie Node.
 

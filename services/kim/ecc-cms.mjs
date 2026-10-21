@@ -3,6 +3,7 @@ import { der, fields, oid, certificateParts } from '../gkv/der.mjs';
 import { kimAddress } from './address.mjs';
 import { brainpoolPublicKey, encryptEciesKey, decryptEciesKey } from './ecies.mjs';
 import { readKimEnvelope } from './envelope.mjs';
+import { decodeKimMimeEntity } from './message.mjs';
 import { OID, tlv, sequence as seq, sortedSet as set, objectId as id, octets, attribute, isOrdered } from './cms-codec.mjs';
 
 const MAX_CONTENT = 15_000_000, MAX_CMS = 22_020_096;
@@ -10,7 +11,7 @@ const digest = bytes => createHash('sha256').update(bytes).digest();
 const integer = n => tlv(2, Buffer.from([n]));
 const sha256 = () => seq(id(OID.sha256));
 const signedMime = Buffer.from('Content-Type: application/pkcs7-mime; smime-type=signed-data\r\nContent-Transfer-Encoding: binary\r\n\r\n');
-const messageMime = Buffer.from('Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\n\r\n');
+const messageMime = Buffer.from('Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\n');
 function inputBytes(bytes, limit) {
   if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > limit) throw new Error('KIM_CMS_SIZE');
   return Buffer.from(bytes);
@@ -169,13 +170,12 @@ export function sealEccKimPayload({ message, sender, recipients, signingCertific
 }
 export function openEccKimPayload({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, now = Date.now() }) {
   const result = decrypt(bytes, recipientCertificate, privateKey, address);
-  let signed;
+  let signed, decoded;
   try {
-    // Accept the canonical MIME wrappers emitted by this codec only. General MIME decoding is separate.
-    if (!result.content.subarray(0, signedMime.length).equals(signedMime)) throw new Error('KIM_CMS_MIME_UNSUPPORTED');
-    signed = verifyEccKimSignedContent({ bytes: result.content.subarray(signedMime.length), recipientEmails: result.recipientEmails, expectedSignerCertificate, now });
-    if (!signed.content.subarray(0, messageMime.length).equals(messageMime)) throw new Error('KIM_CMS_MIME_UNSUPPORTED');
-    return { message: Buffer.from(signed.content.subarray(messageMime.length)), signerSha256: signed.signerSha256,
+    decoded = decodeKimMimeEntity(result.content, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
+    signed = verifyEccKimSignedContent({ bytes: decoded, recipientEmails: result.recipientEmails, expectedSignerCertificate, now });
+    const original = decodeKimMimeEntity(signed.content, { type: 'message/rfc822' });
+    return { message: Buffer.from(original), signerSha256: signed.signerSha256,
       claimedSigningTime: signed.claimedSigningTime, identityStatus: 'unverified' };
-  } finally { result.content.fill(0); signed?.content.fill(0); }
+  } finally { result.content.fill(0); signed?.content.fill(0); decoded?.fill(0); }
 }

@@ -1,6 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID, createPrivateKey, X509Certificate, sign, constants } from 'node:crypto';
+import { randomBytes, randomUUID, createPrivateKey, createHash, X509Certificate, sign, constants } from 'node:crypto';
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,8 +14,8 @@ import { der, fields, certificateParts } from '../../services/gkv/der.mjs';
 import { KimMailstore } from '../../services/kim/mailstore.mjs';
 import { PinnedAutVerifier } from '../../services/kim/message-auth.mjs';
 import { inspectKimEnvelope } from '../../services/kim/envelope.mjs';
-import { sealEccKimPayload, openEccKimPayload } from '../../services/kim/ecc-cms.mjs';
-import { verifySubmission, MAX_KIM_MESSAGE } from '../../services/kim/message.mjs';
+import { createEccKimMessage, openEccKimMessage } from '../../services/kim/client-message.mjs';
+import { readMessage, verifySubmission, MAX_KIM_MESSAGE } from '../../services/kim/message.mjs';
 import { createSmtpTlsServer } from '../../services/kim/smtp-server.mjs';
 import { createPop3TlsServer } from '../../services/kim/pop3-server.mjs';
 import { Pop3Session } from '../../services/kim/pop3.mjs';
@@ -177,7 +177,7 @@ test('SMTP binds AUTH and MAIL FROM, closes relay, resets transactions and suppo
     assert.equal(s.mails(recipient).length, 0);
   } finally { w?.socket.destroy(); await s.close(); }
 });
-test('signed TI-ECIES KIM traverses real local SMTP, durable mailbox and POP3, then verifies exact original bytes', async () => {
+test('complete ECC message with generated AUT traverses SMTP and POP3, then checks protected bytes and headers', async () => {
   const signer = await pki.issueKim({ name: 'smtp-osig', role: 'osig' });
   const encSender = await pki.issueKim({ name: 'smtp-enc-sender' }), encReceiver = await pki.issueKim({ name: 'smtp-enc-receiver' });
   const signingKey = createPrivateKey({ key: await readFile(signer.privateKeyPath), passphrase: pki.password });
@@ -185,8 +185,10 @@ test('signed TI-ECIES KIM traverses real local SMTP, durable mailbox and POP3, t
   const id = `<${randomUUID()}@local.test>`;
   const original = Buffer.from([`From: ${sender}`, `To: ${recipient}`, `Message-ID: ${id}`, 'Date: Tue, 20 Oct 2026 10:00:00 +0000',
     'Subject: Lokale ECC-Integration', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=utf-8', '', 'Fiktive Nachricht, keine Versichertendaten.', '.Dot-Transparenz', ''].join('\r\n'));
-  const encrypted = sealEccKimPayload({ message: original, sender, recipients: [{ address: sender, certificate: encSender.certificate }, { address: recipient, certificate: encReceiver.certificate }], signingCertificate: signer.certificate, signingKey });
-  const m = message({ id, body: encrypted.toString('base64').match(/.{1,76}/g).join('\r\n') });
+  const built = createEccKimMessage({ message: original, sender, envelopeRecipients: [recipient],
+    recipients: [{ address: sender, certificate: encSender.certificate }, { address: recipient, certificate: encReceiver.certificate }],
+    signingCertificate: signer.certificate, signingKey, authCertificate: aut.certificate, authKey: autKey, cmVersion: 'TEST_0.1.0', ptVersion: '1.5.5' });
+  const m = { messageId: built.messageId, from: sender, to: recipient, mime: built.bytes, dsn: { envelopeId: randomUUID() } };
   const s = await setup(); let pop, inbox;
   try {
     await sendSmtp(m, s.config);
@@ -199,9 +201,12 @@ test('signed TI-ECIES KIM traverses real local SMTP, durable mailbox and POP3, t
     const polled = await pollMailbox({ inbox, tenantId, mailboxId, config: { ...s.config, port: pop.address().port, username: recipient, password: async () => Buffer.from(password) }, onStored: async value => ids.push(value) });
     assert.equal(polled.stored, 1); assert.equal(s.mails(recipient).length, 0);
     const stored = inbox.get(tenantId, ids[0]).bytes; assert.deepEqual(stored, m.mime);
-    const received = Buffer.from(stored.subarray(stored.indexOf('\r\n\r\n') + 4).toString().replace(/\s/g, ''), 'base64');
-    const decoded = openEccKimPayload({ bytes: received, address: recipient, recipientCertificate: encReceiver.certificate, privateKey: recipientKey, expectedSignerCertificate: signer.certificate });
-    assert.deepEqual(decoded.message, original); assert.equal(decoded.identityStatus, 'unverified');
+    const decoded = openEccKimMessage({ bytes: stored, address: recipient, recipientCertificate: encReceiver.certificate, privateKey: recipientKey,
+      expectedSignerCertificate: signer.certificate, expectedAuthCertificate: aut.certificate });
+    assert.equal(createHash('sha256').update(decoded.message).digest('hex'), built.protectedMessageSha256);
+    assert.deepEqual(readMessage(decoded.message).body, readMessage(original).body);
+    assert.equal(decoded.identityStatus, 'unverified'); assert.equal(decoded.deliveryStatus, 'held-for-trust-validation');
+    assert.equal(decoded.headerIntegrity, 'matched');
     await sendSmtp(m, s.config); assert.equal(s.mails(recipient).length, 0); assert.equal(s.mails(sender).length, 1);
   } finally { if (pop) await new Promise(r => pop.close(r)); inbox?.close(); await s.close(); }
 });

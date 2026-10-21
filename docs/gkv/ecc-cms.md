@@ -64,13 +64,17 @@ aktuellen TI-Betrieb. Der neue Erzeuger schreibt ausschließlich ECC-Container.
   kurzlebige eigene CA, keine TI-Zertifikate. Die Herkunft des erwarteten
   Signaturzertifikats und die Zuordnung von Telematik-ID und Postfach bleiben
   vom späteren vertrauenswürdigen Empfängerablauf zu belegen.
-- Unterstützt werden die hier erzeugten kanonischen binären MIME-Hüllen und die
-  beschriebene DER-/Attributteilmenge. BER, andere zulässige MIME-Kodierungen,
+- Unterstützt werden binäre oder Base64-kodierte SignedData-MIME-Hüllen und
+  message/rfc822 mit 7bit/8bit/binary sowie die beschriebene DER-/Attributteilmenge.
+  Reihenfolge, Groß-/Kleinschreibung und Folding der MIME-Header sind variabel.
+  BER, weitere zulässige MIME-Kodierungen,
   weitere CAdES-Profile/Attribute und allgemeine MIME-Interoperabilität fehlen.
   Ein erfolgreicher OpenSSL-`-cades`-Test ist keine vollständige ETSI-/KIM-Zulassung.
-- Die RFC822-/MIME-Semantik der Eingabe, äußere/innere Headergleichheit, AUT-Erzeugung,
-  KAS-Auslagerung und fachliche PDF/XML/XSD-/CAdES-Prüfungen der Nutzkomponenten
-  sind nicht Teil dieses Codecs. Aus einer korrekten Nachrichtensignatur folgt
+- Der darauf aufbauende [Nachrichtenablauf](kim-client-message.md) ergänzt
+  äußere/innere Headergleichheit, AUT-Erzeugung und die tatsächliche Wire-Größe.
+  Vollständige MIME-Semantik, KAS-Auslagerung und fachliche PDF/XML/XSD-/CAdES-
+  Prüfungen der Nutzkomponenten sind nicht Teil dieses Codecs.
+  Aus einer korrekten Nachrichtensignatur folgt
   keine korrekte Pflegeabrechnung.
 - Maximal 15.000.000 Originalbytes und 1.000 Empfängerzertifikate; der fertige
   Container ist auf 21 MiB begrenzt. Die spätere äußere Base64-Mail muss weiterhin
@@ -88,7 +92,8 @@ einem echten Fachdienst.
 
 ## Prüfbelege
 
-`kim-ecc.test.mjs` enthält 15 neue Prüfungen. Vier veröffentlichte NIST-AES256-CMAC-
+`kim-ecc.test.mjs` enthält 16 Prüfungen, einschließlich des später ergänzten
+MIME-Variantenfalls. Vier veröffentlichte NIST-AES256-CMAC-
 Vektoren prüfen leere, vollständige und angebrochene letzte Blöcke. Das
 veröffentlichte gemSpec_Krypt-DOA6-Beispiel prüft die Kartenstruktur; es ist kein
 Entschlüsselungsvektor, weil darin kein privater Schlüssel vorliegt.
