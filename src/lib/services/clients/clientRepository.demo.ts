@@ -205,6 +205,9 @@ export const demoClientRepository: ClientRepository = {
       contracts: form.contractStart ? [{
         id: `contract-${id}`, tenantId, clientId: id,
         contractNumber: `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
+        contractPartner: form.careFundName.trim() || null,
+        serviceBasis: form.serviceType || null,
+        contractVersion: 1,
         contractStart: form.contractStart, contractEnd: null,
         serviceType: form.serviceType || 'betreuung', hourlyRateCents, weeklyHours: null,
         status: 'entwurf', signedAt: form.consentVertrag ? now : null, documentId: null,

@@ -66,7 +66,7 @@ function ContactCategorySection({
 
 export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData }: Props) {
   const tenantId = useServiceTenantId();
-  const { can } = usePermissions();
+  const { can, roleKey } = usePermissions();
   const canEdit = can('office.clients.edit');
   const canManageContacts = can('office.clients.manage_contacts') || canEdit;
 
@@ -123,7 +123,7 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
         canViewBilling: false,
       },
       notes: notes.trim() || null,
-    });
+    }, roleKey);
     setSaving(false);
     if (!result.ok) {
       setSaveError(result.error);
@@ -136,7 +136,7 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
 
   const handleDeleteOther = async (contactId: string) => {
     if (!tenantId) return;
-    const result = await deleteClientContact(tenantId, client.id, contactId);
+    const result = await deleteClientContact(tenantId, client.id, contactId, roleKey);
     if (result.ok) onRefresh?.();
   };
 

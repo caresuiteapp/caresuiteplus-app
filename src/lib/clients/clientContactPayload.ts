@@ -57,6 +57,7 @@ export function resolveClientContactType(row: {
   relationship?: string | null;
 }): ClientContactType {
   const raw = row.contact_type?.trim();
+  const relationship = row.relationship?.trim().toLocaleLowerCase('de-DE') ?? '';
   if (raw === 'emergency_contact') return 'emergency_contact';
   if (raw === 'relative') return 'relative';
   if (raw === 'doctor') return 'doctor';
@@ -64,8 +65,10 @@ export function resolveClientContactType(row: {
   if (raw === 'other') return 'other';
 
   if (resolveClientContactIsEmergency(row)) return 'emergency_contact';
-  if (row.relationship === 'arzt') return 'doctor';
-  if (row.relationship === 'angehoerige' || row.relationship === 'ehepartner' || row.relationship === 'kind') {
+  if (['arzt', 'hausarzt', 'hausärztin', 'hausarzt / hausärztin', 'facharzt', 'fachärztin', 'facharzt / fachärztin'].includes(relationship)) {
+    return 'doctor';
+  }
+  if (relationship === 'angehoerige' || relationship === 'ehepartner' || relationship === 'kind') {
     return 'relative';
   }
   return 'other';

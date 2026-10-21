@@ -384,6 +384,92 @@ export async function persistIntakeDocumentsForClient(
   return { ok: true, data: undefined };
 }
 
+/**
+ * Read-only recovery for a dispatched intake-document write. Every supplied
+ * document and signature must still match the captured original byte-for-byte;
+ * a merely existing document or a consent summary never proves persistence.
+ */
+export async function confirmPersistedIntakeDocumentsForClient(
+  tenantId: string,
+  clientId: string,
+  form: ClientIntakeFormData,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<void>> {
+  const db = getDb();
+  if (!db) return unavailable();
+  const expected = JSON.parse(JSON.stringify(form.intakeDocuments)) as IntakeDocumentState[];
+  const { data: documentData, error: documentError } = await db.from('client_intake_documents')
+    .select('id,tenant_id,client_id,template_key,document_type,title,status,is_required,version,source,tenant_template_id,preview_html,finalized_html,rendered_pdf_path,missing_placeholders,preview_opened_at,finalized_at,updated_by')
+    .eq('tenant_id', tenantId).eq('client_id', clientId);
+  if (documentError || !Array.isArray(documentData)) return { ok: false, error: 'Die gespeicherten Aufnahmeunterlagen konnten nicht vollständig bestätigt werden.' };
+  const rows = documentData as Record<string, unknown>[];
+  const byKey = new Map(rows.map((entry) => [entry.template_key, entry]));
+  if (byKey.size !== rows.length || expected.some((doc) => !byKey.has(doc.templateKey))) return { ok: false, error: 'Mindestens eine versandte Aufnahmeunterlage ist nicht eindeutig bestätigt.' };
+  const documentIds = expected.map((doc) => byKey.get(doc.templateKey)?.id).filter((id): id is string => typeof id === 'string');
+  const { data: signatureData, error: signatureError } = documentIds.length
+    ? await db.from('client_document_signatures').select('document_id,tenant_id,client_id,signer_role,signature_data,signed_at,signer_name').eq('tenant_id', tenantId).eq('client_id', clientId).in('document_id', documentIds)
+    : { data: [], error: null };
+  if (signatureError || !Array.isArray(signatureData)) return { ok: false, error: 'Die serverseitigen Unterschriften konnten nicht bestätigt werden.' };
+  const signatures = signatureData as Record<string, unknown>[];
+  for (const doc of expected) {
+    const actual = byKey.get(doc.templateKey)!;
+    const scalarPairs: [string, unknown][] = [
+      ['tenant_id', tenantId], ['client_id', clientId], ['template_key', doc.templateKey],
+      ['document_type', doc.documentType], ['title', doc.title], ['status', doc.status],
+      ['is_required', doc.isRequired], ['version', doc.version], ['source', doc.source],
+      ['tenant_template_id', doc.tenantTemplateId ?? null], ['preview_html', doc.previewHtml],
+      ['finalized_html', doc.finalizedHtml], ['rendered_pdf_path', doc.renderedPdfPath],
+      ['preview_opened_at', doc.previewOpenedAt], ['finalized_at', doc.finalizedAt],
+      ['updated_by', actorProfileId ?? null],
+    ];
+    if (scalarPairs.some(([key, value]) => actual[key] !== value)
+      || JSON.stringify(actual.missing_placeholders) !== JSON.stringify(doc.missingPlaceholders)) {
+      return { ok: false, error: 'Eine Aufnahmeunterlage weicht vom versandten Original ab.' };
+    }
+    const actualSignatures = signatures.filter((entry) => entry.document_id === actual.id);
+    const expectedSignatures = Object.entries(doc.signatures).filter((entry) => Boolean(entry[1]?.dataUrl));
+    if (actualSignatures.length !== expectedSignatures.length) return { ok: false, error: 'Die Anzahl der serverseitigen Unterschriften weicht ab.' };
+    for (const [role, signature] of expectedSignatures) {
+      const found = actualSignatures.find((entry) => entry.signer_role === role);
+      if (!signature || !found || found.tenant_id !== tenantId || found.client_id !== clientId
+        || found.signature_data !== signature.dataUrl || found.signed_at !== signature.signedAt
+        || found.signer_name !== (signature.signerName ?? null)) {
+        return { ok: false, error: 'Eine serverseitige Unterschrift weicht vom unveränderten Original ab.' };
+      }
+    }
+  }
+  const privacyDoc = expected.find((doc) => doc.templateKey === 'privacy_consent_default');
+  const contractDoc = expected.find((doc) => doc.documentType === 'client_contract');
+  const { data: consentData, error: consentError } = await db.from('client_consent_status')
+    .select('tenant_id,client_id,privacy_status,contract_status,assignment_status,privacy_finalized_at,contract_finalized_at,updated_by')
+    .eq('tenant_id', tenantId).eq('client_id', clientId).maybeSingle();
+  const consent = consentData as Record<string, unknown> | null;
+  if (consentError || !consent || consent.tenant_id !== tenantId || consent.client_id !== clientId
+    || consent.privacy_status !== (privacyDoc?.status ?? 'not_started')
+    || consent.contract_status !== (contractDoc?.status ?? 'not_started')
+    || consent.assignment_status !== (form.intakeAssignmentEnabled
+      ? expected.find((doc) => doc.templateKey === 'assignment_declaration_care_health_insurance')?.status ?? 'not_started'
+      : 'skipped_optional')
+    || consent.privacy_finalized_at !== (privacyDoc?.finalizedAt ?? null)
+    || consent.contract_finalized_at !== (contractDoc?.finalizedAt ?? null)
+    || consent.updated_by !== (actorProfileId ?? null)) {
+    return { ok: false, error: 'Der serverseitige Vertrags- und Einwilligungsstand ist nicht vollständig bestätigt.' };
+  }
+  if (form.intakeContractType) {
+    const { data: selection, error: selectionError } = await db.from('client_contract_selection')
+      .select('tenant_id,client_id,contract_type,selected_template_key,updated_by')
+      .eq('tenant_id', tenantId).eq('client_id', clientId).maybeSingle();
+    const selected = selection as Record<string, unknown> | null;
+    if (selectionError || !selected || selected.tenant_id !== tenantId || selected.client_id !== clientId
+      || selected.contract_type !== form.intakeContractType
+      || selected.selected_template_key !== (contractDoc?.templateKey ?? null)
+      || selected.updated_by !== (actorProfileId ?? null)) {
+      return { ok: false, error: 'Die serverseitige Vertragsgrundlage ist nicht vollständig bestätigt.' };
+    }
+  }
+  return { ok: true, data: undefined };
+}
+
 function mapIntakeDocCategory(documentType: string): string {
   if (documentType === 'privacy_consent' || documentType === 'additional_consent') return 'einwilligung';
   if (documentType === 'client_contract' || documentType === 'assignment_declaration') return 'vertrag';

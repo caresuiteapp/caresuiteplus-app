@@ -1,0 +1,14 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {filterPlanReviews,emptyPlanReviewFilter} from '../../src/lib/careAssessment/planReviewFilter.ts';
+import {plan,record,tenant,assessment,client,now,time,id} from './fixtures/plan-amendment.mjs';
+const run=(f={},p=plan(),r=[record()])=>filterPlanReviews(p,r,tenant,assessment,client,{...emptyPlanReviewFilter(),...f},now);
+test('query selects only current measure and its own individual evidence',()=>{assert.equal(run({query:'Einzelbefund 50'}).matching,1);assert.equal(run({query:'Einzelbefund 50'}).visible[0].measure.id,id(50));});
+test('hidden neighbour does not alter full denominator',()=>{const v=run({measureId:id(50)});assert.equal(v.total,2);assert.equal(v.matching,1);});
+test('query matches current clinical content with whitespace/case normalization',()=>assert.equal(run({query:'  URSPRÜNGLICH INTERVENTION 50  '}).matching,1));
+test('reached filter never includes missing dates or paused measures',()=>{const p=plan();p.measures[0].nextEvaluationAt=time(10);assert.equal(run({due:'reached'},p,[]).matching,1);p.measures[0].status='paused';assert.equal(run({due:'reached'},p,[]).matching,0);});
+test('unscheduled means active/planned without individual plan deadline',()=>{const p=plan();p.measures[0].status='completed';assert.equal(run({due:'unscheduled'},p,[]).matching,1);assert.equal(run({due:'inactive'},p,[]).matching,1);});
+test('needs comparison includes historical findings and no invented current result',()=>{const p=plan();p.measures[0].personalGoal='Changed goal';const v=run({evidence:'needs_comparison'},p);assert.equal(v.matching,1);assert.equal(v.visible[0].evidenceState,'historical');});
+test('matched filter does not include a changed clinical version',()=>{const p=plan();p.version++;assert.equal(run({evidence:'matched'},p).matching,0);});
+test('malformed hidden source is rejected even when no query matches',()=>{const r=record();r.headId=id(99);assert.throws(()=>run({query:'No match'},plan(),[r]));});
+for(const f of [{due:'done'},{evidence:'effective'},{measureId:id(99)},{extra:true},{query:null},{query:'a'.repeat(4001)}])test(`invalid filter ${JSON.stringify(f).slice(0,60)}`,()=>assert.throws(()=>run(f)));
+test('filtered rows never mutate full plan or records',()=>{const p=plan(),r=record(),before=structuredClone({p,r});run({measureId:id(50)},p,[r]);assert.deepEqual({p,r},before);});

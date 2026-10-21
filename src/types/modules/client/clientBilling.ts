@@ -36,6 +36,9 @@ export type ClientBillingProfile = TenantScopedEntity & {
 export type ClientContract = TenantScopedEntity & {
   clientId: string;
   contractNumber: string;
+  contractPartner?: string | null;
+  serviceBasis?: string | null;
+  contractVersion?: number | null;
   contractStart: string;
   contractEnd: string | null;
   serviceType: ServiceType;

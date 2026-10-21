@@ -24,18 +24,8 @@ export interface PushTransport {
   send(messages: Record<string, unknown>[]): Promise<ExpoResult[]>;
   receipts(ids: string[]): Promise<Record<string, ExpoResult>>;
 }
-const TITLES: Record<string, string> = {
-  visit: 'Ihr Einsatzplan wurde aktualisiert',
-  visit_reminder: 'Ihr nächster Einsatz beginnt bald',
-  visit_overdue: 'Bitte den geplanten Einsatzstart prüfen',
-  message: 'Neue CareSuite-Nachricht',
-  proof: 'Ein Leistungsnachweis ist verfügbar',
-  proof_signature: 'Ihre Unterschrift wird benötigt',
-  proof_signed: 'Eine Unterschrift ist eingegangen',
-  document: 'Ein Dokument wartet auf Sie',
-  notice: 'Neue CareSuite-Mitteilung',
-  update: 'CareSuite-Update verfügbar',
-};
+const PUBLIC_TITLE = 'Neue CareSuite-Mitteilung';
+const PUBLIC_BODY = 'Öffnen Sie CareSuite, um die Informationen in Ihrem Portal anzusehen.';
 export function notificationFor(
   work: PushWork,
   target: PushTarget,
@@ -43,8 +33,11 @@ export function notificationFor(
 ): Record<string, unknown> {
   return {
     to: target.expo_push_token,
-    title: TITLES[work.event_kind] ?? 'Neue CareSuite-Mitteilung',
-    body: 'Öffnen Sie CareSuite, um die Informationen in Ihrem Portal anzusehen.',
+    // The provider and lock screen receive no care-event classification. The
+    // authenticated portal resolves the already-authorized destination after
+    // the user opens the app.
+    title: PUBLIC_TITLE,
+    body: PUBLIC_BODY,
     sound: 'default',
     channelId: 'caresuite-important',
     priority: 'high',

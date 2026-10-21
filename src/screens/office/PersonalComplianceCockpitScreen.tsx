@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PersonalComplianceCockpitHero } from '@/components/office/PersonalComplianceCockpitHero';
+import { OccupationalSafetyPortalBoundaryPanel } from '@/components/office/OccupationalSafetyPortalBoundaryPanel';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -125,6 +126,7 @@ export function PersonalComplianceCockpitScreen() {
   return (
     <ScreenShell title="Personal-Compliance" subtitle="Mehr → Personal → Personal-Compliance" scroll>
       <PersonalComplianceCockpitHero snapshot={snapshot} />
+      <OccupationalSafetyPortalBoundaryPanel />
 
       <SectionPanel title="KPIs" subtitle="14 Kennzahlen — jede mit Datenquelle">
         <View style={styles.kpiGrid}>

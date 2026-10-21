@@ -8,6 +8,7 @@ import {
   isRoleAllowedForPortalAudience,
   type OperationalPortalAudience,
 } from '@/lib/portal/portalAudience';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalDocuments(audience: OperationalPortalAudience) {
   const {
@@ -19,6 +20,7 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
     isLinkedReady,
     isResolvingClientLink,
     isResolvingEmployeeLink,
+    familyAccess,
   } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
@@ -29,6 +31,8 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
   const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
   const scopeKey = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]);
   useEffect(() => setShowSuccess(false), [scopeKey]);
+  const familyDocumentsAllowed =
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
 
   const query = useAsyncQuery(
     () =>
@@ -43,6 +47,7 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
       enabled:
         isLinkedReady &&
         roleMatchesAudience &&
+        familyDocumentsAllowed &&
         (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId)),
     },
   );
@@ -63,6 +68,8 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
       ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : audience === 'employee' && !resolvingLink && !scopedEmployeeId
       ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+            : roleKey === 'family_portal' && !familyDocumentsAllowed
+      ? 'Dokumente sind für diesen Angehörigenzugang nicht freigegeben.'
       : (query.error ?? query.refreshError)
       ? toPortalUserFacingError(
           (query.error ?? query.refreshError)!,

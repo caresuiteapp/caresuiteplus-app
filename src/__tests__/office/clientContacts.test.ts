@@ -9,7 +9,7 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('ClientContacts', () => {
   it('lädt Kontakte für Demo-Klient:in', async () => {
-    const result = await fetchClientContacts(DEMO_TENANT_ID, 'client-001');
+    const result = await fetchClientContacts(DEMO_TENANT_ID, 'client-001', 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.length).toBeGreaterThanOrEqual(1);
@@ -35,18 +35,18 @@ describe('ClientContacts', () => {
         canViewBilling: false,
       },
       notes: null,
-    });
+    }, 'business_admin');
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
     const updated = await updateClientContact(DEMO_TENANT_ID, 'client-001', created.data.id, {
       isEmergency: true,
-    });
+    }, 'business_admin');
     expect(updated.ok).toBe(true);
     if (!updated.ok) return;
     expect(updated.data.isEmergency).toBe(true);
 
-    const deleted = await deleteClientContact(DEMO_TENANT_ID, 'client-001', created.data.id);
+    const deleted = await deleteClientContact(DEMO_TENANT_ID, 'client-001', created.data.id, 'business_admin');
     expect(deleted.ok).toBe(true);
   });
 });

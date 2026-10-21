@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+
+const path='docs/audit/ambulant-az-katalog-2026-10-08.json';
+const catalog=JSON.parse(fs.readFileSync(path,'utf8'));
+if(catalog.version!==293)throw Error(`Unerwartete Katalogversion ${catalog.version}`);
+const task=catalog.tasks.find((entry)=>entry.id==='B-03');
+const packet=catalog.packets.find((entry)=>entry[0]==='B-P01');
+if(!task||!packet||task.implementation!=='Bestand zu prüfen'||task.function!=='Offen'||[task.care,task.design,task.legal].some((status)=>status!=='Offen')||packet[5]!=='Teilweise umgesetzt')throw Error('Unerwarteter B-03- oder B-P01-Ausgangsstatus');
+
+catalog.version=294;
+task.implementation='Teilweise umgesetzt';
+task.function='Teilprüfung';
+task.evidence='CP294: Eine neue fail-closed Web/Desktop-Evidenzprojektion bindet eine Adressänderung an native Mandanten-, Standort-, Profil-, Pflegefall- und Adressidentität sowie eine lückenlose Revisionsfortschreibung. Straße, Hausnummer, Postleitzahl, Ort, Etage, Zugang, Erreichbarkeit und Haushaltskontext bleiben ausdrücklich getrennte Originalfelder. Ein Vorher-/Nachher-Snapshot historischer abgeschlossener Besuche muss bytewertgleich bleiben; Besuchskennung, ursprüngliche Adressrevision, Adresssnapshot-Prüfsumme, Plantermin und tatsächliche Ereigniszeit dürfen durch die neue Adresse nicht umgeschrieben werden. Zukünftige offene Besuche müssen dagegen exakt die neue Adresskennung und Revision tragen und in einer berechtigten Planungsquittung vollständig genannt sein. Die Projektion liest und schreibt selbst nichts und leitet weder Persistenz noch Funktions-, Pflege-, Design- oder Rechtsabnahme ab. Acht neue Risikofälle bestanden; Android unverändert. Gesamt-Typecheck nicht ausführbar (tsc fehlt). Keine aktive Produkt-, Live-SDK-, SQL-/RLS- oder Browserintegration und keine reale qualifizierte Funktions-, Pflege-, Design-, Datenschutz- oder Rechtsabnahme.';
+task.next='Die Evidenzprojektion in den tatsächlichen Web/Desktop-Stammdaten- und Tourenplanungsablauf integrieren. Native Adresshistorie, Etage, Zugang, Erreichbarkeit und Haushaltskontext über Live-SDK und SQL/RLS mit Mandanten-, Standort-, Pflegefall- und Feldrechten laden. Änderung atomar/idempotent an erwartete Revision, Originalsnapshot, Änderungsgrund und Read-back binden; nur zukünftige offene Besuche neu planen und abgeschlossene bzw. bereits ausgeführte Besuche unverändert lassen. Paralleländerung, Rechteentzug, Transportunsicherheit, Offlinezustand, Wiederholung und Rücknahme prüfen. Breite und schmale Browserbedienung, Tastatur/Screenreader sowie qualifizierte Funktions-, Pflege-, Design-, Datenschutz- und Rechtsprüfung bleiben offen. Nächster unabhängiger Katalogpunkt: B-04 Angehörige und Bezugspersonen.';
+packet[6]='CP292–CP294: B-01 bindet die Erstkontaktentscheidung, B-02 den vollständigen Kandidatensnapshot und die ausdrückliche Identitätsentscheidung. B-03 bindet Adressrevision und Planungsquittung; historische Besuche bleiben bytewertgleich, nur zukünftige offene Besuche übernehmen die neue Adresse. Je acht neue Fälle, 10223/10223 gesamt. Aktive Aufnahme-/Stammdaten-/Planungsintegration, Live-SDK, SQL/RLS, Browser und alle vier Abnahmen offen.';
+catalog.checkpointSummary='CP294: B-03 bindet eine Adressänderung mit getrennten Wohn- und Zugangsdaten an native Revision und Planungsquittung. Historische abgeschlossene Besuche bleiben unverändert; zukünftige offene Besuche übernehmen exakt die neue Adresse. Android unverändert. Acht neue Fälle, 10223/10223 gesamt; 198 begonnen, weiterhin nur eine vollständig abgenommen, 50%-Ziel offen.';
+catalog.checkpointNodeLog='docs/audit/checks/ambulant-node-checkpoint294-2026-10-15.log';
+fs.writeFileSync(path,`${JSON.stringify(catalog,null,2)}\n`);

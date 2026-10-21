@@ -8,6 +8,7 @@ import { CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeePortalAccessPanel } from '@/components/office/EmployeePortalAccessPanel';
+import { EmployeeQualificationBoundaryPanel } from '@/components/office/EmployeeQualificationBoundaryPanel';
 import { EmployeeMobilityOfficePanel } from '@/components/office/EmployeeMobilityOfficePanel';
 import { EmployeeLogbookOfficePanel } from '@/components/office/EmployeeLogbookOfficePanel';
 import { EmployeePayrollPersonnelPanel } from '@/components/office/EmployeePayrollPersonnelPanel';
@@ -829,6 +830,7 @@ export function EmployeePersonnelFilePanel({
 
       {activeTab === 'qualifications' ? (
         <SectionPanel {...panelCtx} title="Qualifikationen & Führungszeugnis">
+          <EmployeeQualificationBoundaryPanel />
           {file.qualifications.length > 0 ? (
             file.qualifications.map((q) => (
               <DetailInfoRow key={q.id} label={q.title} value={labelQualificationStatus(q.status)} />

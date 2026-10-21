@@ -137,7 +137,6 @@ export function PflegeVisitsListScreen() {
 }
 
 export function PflegeHandoversListScreen() {
-  const router = useRouter();
   return (
     <DedicatedListScreen
       title="Übergaben"
@@ -147,11 +146,11 @@ export function PflegeHandoversListScreen() {
       queryFn={fetchPflegeHandoversList}
       searchKeys={['title', 'clientName', 'employeeName']}
       getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/dokumentation/${item.id}` as never)}
+      onOpen={() => undefined}
       renderMeta={(item) => ({
         primary: item.title,
-        secondary: `${item.clientName} · ${formatDate(item.recordedAt)}`,
-        badge: item.hasSignature ? 'Signiert' : item.status,
+        secondary: `${item.clientName} · ${formatDate(item.recordedAt)} · ${item.contentPreview}`,
+        badge: item.hasSignature ? 'Empfang vollständig' : item.status,
       })}
     />
   );

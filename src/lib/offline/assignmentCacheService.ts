@@ -444,8 +444,15 @@ export async function loadPortalAppointmentsWithCache(
   await openOfflineDb();
   const cacheActorId = employeeId ?? clientId;
   const scoped = hasScopedEmployeeCache(tenantId, cacheActorId);
+  const requiresLiveFamilyGrant = roleKey === 'family_portal';
 
   if (scoped && isBrowserOffline(options?.preferCache)) {
+    if (requiresLiveFamilyGrant) {
+      return withCacheMeta(
+        { ok: false, error: 'Angehörigenfreigabe kann offline nicht bestätigt werden.' },
+        emptyCacheMeta(),
+      );
+    }
     const cached = await readSortedAssignmentListCache(tenantId!, cacheActorId!);
     if (cached) {
       return withCacheMeta(
@@ -467,6 +474,13 @@ export async function loadPortalAppointmentsWithCache(
       );
     }
     return withCacheMeta({ ok: true, data: merged }, liveCacheMeta());
+  }
+
+  if (requiresLiveFamilyGrant) {
+    return withCacheMeta(
+      online.ok ? { ok: true, data: online.data } : { ok: false, error: online.error },
+      emptyCacheMeta(),
+    );
   }
 
   if (scoped) {
@@ -497,8 +511,15 @@ export async function loadPortalAppointmentDetailWithCache(
   await openOfflineDb();
   const scoped = hasScopedEmployeeCache(tenantId, employeeId);
   const assignmentKey = appointmentId?.trim() ?? '';
+  const requiresLiveFamilyGrant = roleKey === 'family_portal';
 
   if (scoped && assignmentKey && isBrowserOffline(options?.preferCache)) {
+    if (requiresLiveFamilyGrant) {
+      return withCacheMeta(
+        { ok: false, error: 'Angehörigenfreigabe kann offline nicht bestätigt werden.' },
+        emptyCacheMeta(),
+      );
+    }
     const cached = await readPortalAppointmentDetailCache(tenantId!, employeeId!, assignmentKey);
     if (cached) {
       return withCacheMeta(
@@ -541,6 +562,13 @@ export async function loadPortalAppointmentDetailWithCache(
       });
     }
     return withCacheMeta(online, liveCacheMeta());
+  }
+
+  if (requiresLiveFamilyGrant) {
+    return withCacheMeta(
+      online.ok ? online : { ok: false, error: online.error },
+      emptyCacheMeta(),
+    );
   }
 
   if (scoped && assignmentKey) {

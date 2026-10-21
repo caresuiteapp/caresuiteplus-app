@@ -1,6 +1,8 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { DoubleStaffingBoundaryPanel } from '@/components/assist/DoubleStaffingBoundaryPanel';
+import { ReplacementReadinessAuthorityBoundaryPanel } from '@/components/assist/ReplacementReadinessAuthorityBoundaryPanel';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
@@ -92,6 +94,8 @@ export function ToursReplacementScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
+            <DoubleStaffingBoundaryPanel />
+            <ReplacementReadinessAuthorityBoundaryPanel />
             <Text style={styles.hint}>
               Fahrzeiten sind Plausibilitätswerte. Änderungen erfordern Bestätigung.
             </Text>

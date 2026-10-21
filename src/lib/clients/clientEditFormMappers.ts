@@ -74,7 +74,7 @@ export function mapClientEditRawFields(raw: Record<string, unknown> | null | und
 }
 
 export function mapClientToEditForm(
-  detail: ClientDetail,
+  detail: Pick<ClientDetail, 'careLevel' | 'city' | 'costCarrier' | 'dateOfBirth' | 'email' | 'firstName' | 'insuranceNumber' | 'lastName' | 'notes' | 'phone' | 'primaryContactPhone' | 'status' | 'street' | 'zip'>,
   fullClient: ClientFullDetail,
   careContexts: ClientCareContext[],
   rawFields: ClientEditRawFields = EMPTY_CLIENT_EDIT_RAW,

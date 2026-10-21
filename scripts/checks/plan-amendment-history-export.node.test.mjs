@@ -1,0 +1,13 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {buildPlanAmendmentArchive} from '../../src/lib/careAssessment/planAmendmentHistoryExport.ts';
+import {historyRecord,historySequence} from './fixtures/plan-amendment-history.mjs';
+import {tenant,assessment,client,now,time,id} from './fixtures/plan-amendment.mjs';
+const build=(r,at='2026-10-10T05:00:00Z',n=now)=>buildPlanAmendmentArchive(r,tenant,assessment,client,at,n);
+test('JSON preserves complete request, receipt and original evaluation',()=>{const r=historyRecord(),v=build([r]);assert.deepEqual(JSON.parse(v.json).records,[r]);assert.equal(v.archive.originalCount,1);assert(v.html.includes(r.payload.source.headId));assert(v.html.includes(r.payload.proposed.intervention));assert(v.html.includes(r.payload.target.measures[0].intervention));assert(v.html.includes(r.payload.personDecision));});
+test('all 25 original changes exported beyond display page size',()=>{const rows=historySequence(25);const v=build(rows);assert.equal(v.archive.records.length,25);assert.equal((v.html.match(/class="amendment"/g)||[]).length,25);});
+test('HTML escapes clinical text and author without script injection',()=>{const r=historyRecord();r.payload.reason='<script>alert("x")</script>';r.actorName='<img src=x onerror=alert(1)>';const v=build([r]);assert(!v.html.includes('<script>'));assert(!v.html.includes('<img'));assert(v.html.includes('&lt;script&gt;'));assert(v.html.includes('Content-Security-Policy'));});
+test('explicit empty complete history',()=>{const v=build([]);assert.equal(v.archive.originalCount,0);assert(v.html.includes('Keine bestätigten'));});
+for(const at of ['',time(10),'2027-01-01T00:00:00Z'])test(`invalid export time ${at}`,()=>assert.throws(()=>build([historyRecord()],at)));
+test('wrong native receipt cannot be exported',()=>{const r=historyRecord();r.result.measureId=id(99);assert.throws(()=>build([r]));});
+test('history with expired proposed review remains exportable',()=>assert.equal(build([historyRecord()],'2027-01-01T00:00:00Z',Date.parse('2027-01-01T01:00:00Z')).archive.originalCount,1));
+test('export does not mutate original source or receipt',()=>{const r=historyRecord(),original=structuredClone(r);build([r]);assert.deepEqual(r,original);});

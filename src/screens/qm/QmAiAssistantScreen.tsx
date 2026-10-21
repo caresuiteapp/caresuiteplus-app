@@ -2,6 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useCallback, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
 import { QmAiAssistantHero, QmAiDraftPanel } from '@/components/qm';
+import { InnovationEvidenceWorkspace } from '@/components/qm/InnovationEvidenceWorkspace';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useQmAiAssistant } from '@/hooks/qm';
@@ -129,6 +130,7 @@ export function QmAiAssistantScreen() {
             />
           ))
         )}
+        <InnovationEvidenceWorkspace />
       </ScrollView>
     </ScreenShell>
   );

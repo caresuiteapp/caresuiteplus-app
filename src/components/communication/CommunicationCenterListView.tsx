@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { CommunicationCenterListHero } from './CommunicationCenterListHero';
 import { NewConversationModal } from './NewConversationModal';
 import { CommunicationThreadListCard } from './CommunicationThreadListCard';
+import { CommunicationEvidenceWorkspace } from './CommunicationEvidenceWorkspace';
 import { ConversationFilterBar, MessageSearchBar } from '@/components/communication';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -85,6 +86,8 @@ export function CommunicationCenterListView({
         <PremiumButton title="Neue Nachricht" onPress={() => setComposeOpen(true)} />
       ) : null}
 
+      <CommunicationEvidenceWorkspace />
+
       <MessageSearchBar value={search} onChangeText={setSearch} placeholder="Name, Betreff, Text…" />
       <ConversationFilterBar filter={filter} onChange={setFilter} filters={filters} />
 
@@ -114,7 +117,7 @@ export function CommunicationCenterListView({
   if (loading && threads.length === 0) {
     return (
       <View style={styles.container}>
-        {!embedded ? toolbar : null}
+        {toolbar}
         <LoadingState message="Threads werden geladen…" />
       </View>
     );
@@ -123,6 +126,7 @@ export function CommunicationCenterListView({
   if (error && threads.length === 0) {
     return (
       <View style={styles.container}>
+        {toolbar}
         <ErrorState message={error} onRetry={refresh} />
       </View>
     );

@@ -13,7 +13,7 @@ import {
   fetchInformationCollectionDetail,
   fetchInformationCollections,
 } from '@/lib/pflege/informationCollectionService';
-import { fetchClinicalHandovers } from '@/lib/pflege/clinicalWorkflowService';
+import { fetchAmbulatoryHandovers } from '@/lib/pflege/ambulatoryHandoverService';
 import {
   fetchCarePlanEvaluations,
   fetchCareQualityVisits,
@@ -65,5 +65,5 @@ export async function fetchPflegeHandoversList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<CareDocumentationListItem[]>> {
-  return fetchClinicalHandovers(tenantId, actorRoleKey);
+  return fetchAmbulatoryHandovers(tenantId, actorRoleKey);
 }

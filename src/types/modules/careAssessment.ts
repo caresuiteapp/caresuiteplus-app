@@ -118,6 +118,8 @@ export type CareAssessmentMeasure = {
 };
 
 export type CareAssessment = {
+  /** Technical optimistic revision for the ambulatory Web writer; not a clinical plan version. */
+  draftRevision?: number;
   id: string;
   tenantId: string;
   subjectType: CareAssessmentSubjectType;

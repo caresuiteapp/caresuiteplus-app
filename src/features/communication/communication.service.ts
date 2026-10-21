@@ -408,7 +408,9 @@ export async function sendMessage(
       isVisibleToClient: !input.isInternalNote && threadResult.data.allowClientReplies,
       isVisibleToRelative: !input.isInternalNote && threadResult.data.allowRelativeReplies,
       sentAt: now,
-      deliveredAt: now,
+      // Persisting the message proves only acceptance by this service. A
+      // separate transport acknowledgement must establish delivery.
+      deliveredAt: null,
       readAt: null,
       editedAt: null,
       editedBy: null,

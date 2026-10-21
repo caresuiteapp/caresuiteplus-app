@@ -18,6 +18,12 @@ export {
 export { getConnectProviderPlaceholders } from './connectProviderService';
 export { canActivateConnectIntegration } from './connectPresentation';
 export {
+  projectPartnerExchangeEvidence,
+  type PartnerExchangeEvidence,
+  type PartnerExchangeEvidenceInput,
+  type PartnerExchangeState,
+} from './partnerExchangeEvidence';
+export {
   CONNECT_CATEGORY_ROADMAP,
   CONNECT_INTEGRATION_ROADMAP,
   CONNECT_PLATFORM_ROADMAP,

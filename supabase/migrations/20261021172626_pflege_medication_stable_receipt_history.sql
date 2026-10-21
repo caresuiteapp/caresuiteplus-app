@@ -1,0 +1,26 @@
+create or replace function care_private.medication_original(p_event uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare head public.medication_safety_events%rowtype;history jsonb;
+begin
+ select * into head from public.medication_safety_events where id=p_event;
+ if head.id is null then return null;end if;
+ select jsonb_agg(jsonb_build_object('id',e.id,'revision',e.revision,'previousId',e.previous_id,'recordedAt',to_char(e.recorded_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),'recordedBy',e.recorded_by,'recordedByName',e.recorded_by_name,'reason',e.reason,'payload',e.payload,'contentFingerprint',e.content_fingerprint) order by e.revision) into history from public.medication_safety_events e where e.tenant_id=head.tenant_id and e.client_id=head.client_id and e.medication_id=head.medication_id and e.root_id=head.root_id and e.revision<=head.revision;
+ return jsonb_build_object('id',head.id,'tenantId',head.tenant_id,'clientId',head.client_id,'medicationId',head.medication_id,'rootId',head.root_id,'headId',head.id,'revision',head.revision,'kind',head.kind,'recordedAt',to_char(head.recorded_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),'recordedBy',head.recorded_by,'recordedByName',head.recorded_by_name,'payload',head.payload,'contentFingerprint',head.content_fingerprint,'history',coalesce(history,'[]'::jsonb),'voided',head.voided);
+end $$;
+
+create or replace function care_private.commit_medication_safety_packet(p_packet jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare tenant uuid:=(p_packet->>'tenantId')::uuid;client uuid:=(p_packet->>'clientId')::uuid;medication uuid:=(p_packet->>'medicationId')::uuid;actor_id uuid:=(p_packet->>'actorId')::uuid;v_request_id uuid:=(p_packet->>'requestId')::uuid;actor uuid;sources jsonb;prior care_private.medication_safety_requests%rowtype;head public.medication_safety_events%rowtype;new_id uuid:=gen_random_uuid();root uuid;revision integer;actor_name text;fingerprint text;
+begin
+ actor:=care_private.medication_packet_actor(case when p_packet->'entry'->>'kind' in('administration','late_administration','non_administration','prn_administration','effect_review','controlled_witness') then 'pflege.medications.administer' else 'pflege.medications.manage' end,tenant,client,medication,actor_id);
+ perform pg_advisory_xact_lock(hashtextextended(tenant::text||':'||client::text||':'||medication::text,0));perform 1 from public.medications m where m.id=medication and m.tenant_id=tenant and m.client_id=client for update;sources:=care_private.medication_source_snapshot(tenant,client,medication);
+ select * into prior from care_private.medication_safety_requests r where r.tenant_id=tenant and r.request_id=v_request_id;
+ if prior.request_id is not null then if prior.actor_id<>actor or prior.client_id<>client or prior.medication_id<>medication or prior.packet<>p_packet then raise exception 'Anfrage wurde mit anderen Daten verwendet.' using errcode='23514';end if;return jsonb_build_object('requestId',v_request_id,'packet',prior.packet,'original',care_private.medication_original(prior.event_id));end if;
+ perform care_private.validate_medication_packet(p_packet,actor,sources);
+ if p_packet->>'action'='revise' then select * into head from public.medication_safety_events e where e.id=(p_packet->>'expectedHeadId')::uuid and e.tenant_id=tenant and e.client_id=client and e.medication_id=medication for update;if head.id is null or head.revision is distinct from (p_packet->>'expectedRevision')::integer or head.voided or head.kind is distinct from p_packet#>>'{entry,kind}' or exists(select 1 from public.medication_safety_events n where n.previous_id=head.id) or care_private.medication_original(head.id) is distinct from p_packet->'original' then raise exception 'Vollständiges Medikationsoriginal oder CAS stimmt nicht.' using errcode='40001';end if;root:=head.root_id;revision:=head.revision+1;else if (p_packet->>'expectedRevision')::integer<>0 or p_packet->'original'<>'null'::jsonb or p_packet->'expectedHeadId'<>'null'::jsonb then raise exception 'Neuanlage enthält ein erfundenes Original.' using errcode='23514';end if;root:=new_id;revision:=1;end if;
+ select coalesce(nullif(to_jsonb(p)->>'full_name',''),nullif(p.display_name,''),p.email,'Pflegekraft') into actor_name from public.profiles p where p.id=actor;fingerprint:=care_private.medication_json_fingerprint(p_packet->'entry');
+ insert into public.medication_safety_events(id,tenant_id,client_id,medication_id,root_id,previous_id,revision,kind,payload,source_snapshot,reason,content_fingerprint,recorded_by,recorded_by_name,recorded_at) values(new_id,tenant,client,medication,root,head.id,revision,p_packet->'entry'->>'kind',p_packet->'entry',sources,case when revision=1 then '' else btrim(p_packet->>'reason') end,fingerprint,actor,actor_name,clock_timestamp());
+ insert into care_private.medication_safety_requests(tenant_id,client_id,medication_id,actor_id,request_id,packet,event_id) values(tenant,client,medication,actor,v_request_id,p_packet,new_id);
+ return jsonb_build_object('requestId',v_request_id,'packet',p_packet,'original',care_private.medication_original(new_id));
+end $$;
+revoke all on function care_private.medication_original(uuid),care_private.commit_medication_safety_packet(jsonb) from public,anon,authenticated;

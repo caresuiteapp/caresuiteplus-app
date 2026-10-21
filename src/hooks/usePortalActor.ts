@@ -18,6 +18,12 @@ import { getSession } from '@/lib/supabase';
 import { getServiceMode } from '@/lib/services/mode';
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { createVerifiedPortalEmployeeLink, readVerifiedPortalEmployeeLink, portalEmployeeSessionSignature } from '@/lib/auth/verifiedPortalEmployeeLink';
+import {
+  buildClientPortalActorScope,
+  isClientPortalScopeId,
+} from '@/lib/portal/clientPortalActorScope';
+import { fetchCurrentFamilyPortalAccessScope } from '@/lib/portal/resolveFamilyPortalAccess';
+import type { FamilyPortalAccessScope } from '@/lib/portal/familyPortalAccessScope';
 import type { RoleKey } from '@/types';
 
 function normalizePortalActorLabel(value: string | null | undefined): string {
@@ -30,6 +36,7 @@ export type PortalActor = {
   actorId: string | null;
   clientId: string | null;
   employeeId: string | null;
+  familyAccess: FamilyPortalAccessScope | null;
   displayName: string;
   isReady: boolean;
   isResolvingClientLink: boolean;
@@ -63,6 +70,7 @@ export function usePortalActor(): PortalActor {
   const [employeeDisplayName, setEmployeeDisplayName] = useState<string | null>(null);
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
+  const [familyAccess, setFamilyAccess] = useState<FamilyPortalAccessScope | null>(null);
   const [isResolvingClientLink, setIsResolvingClientLink] = useState(false);
   const [isResolvingEmployeeLink, setIsResolvingEmployeeLink] = useState(false);
   const [isResolvingDisplayName, setIsResolvingDisplayName] = useState(false);
@@ -82,15 +90,21 @@ export function usePortalActor(): PortalActor {
     : (profile?.id ?? portalSession?.accountId ?? null);
   const identity = `${tenantId}:${actorId}:${roleKey}:${user?.id ?? ''}:${portalSession?.sessionToken ?? ''}:${portalEmployeeSessionSignature(session) ?? ''}`;
   const priorIdentity = useRef(identity);
-  if (priorIdentity.current !== identity) {
+  const identityChanged = priorIdentity.current !== identity;
+  if (identityChanged) {
     priorIdentity.current = identity;
     setResolvedClientId(null);
     setResolvedEmployeeId(null);
+    setFamilyAccess(null);
     setClientDisplayName(null);
     setEmployeeDisplayName(null);
   }
   const sessionClientId = portalSession?.clientId ?? null;
-  const clientId = sessionClientId ?? resolvedClientId ?? null;
+  const activeResolvedClientId = identityChanged ? null : resolvedClientId;
+  const isLivePortal = getServiceMode() === 'supabase';
+  const clientId = isLivePortal
+    ? activeResolvedClientId ?? null
+    : sessionClientId ?? activeResolvedClientId ?? null;
   const sessionEmployeeId = portalSession?.employeeId ?? null;
   const profileEmployeeId = profile?.employeeId?.trim() || null;
   const isEmployeePortalActor = roleKey === 'employee_portal' || roleKey === 'caregiver' || roleKey === 'nurse';
@@ -118,8 +132,9 @@ export function usePortalActor(): PortalActor {
   }, [offlineLinkExpiresAt, identityClock]);
 
   useEffect(() => {
-    if (!isClientPortalActor || sessionClientId || !tenantId) {
+    if (!isClientPortalActor || !isClientPortalScopeId(tenantId) || !isLivePortal) {
       setIsResolvingClientLink(false);
+      setFamilyAccess(null);
       return;
     }
 
@@ -129,7 +144,7 @@ export function usePortalActor(): PortalActor {
     void (async () => {
       let portalAccountId = portalSession?.accountId ?? null;
 
-      if (!portalAccountId) {
+      if (!isClientPortalScopeId(portalAccountId)) {
         const sessionResult = await getSession();
         const metaAccountId = sessionResult.ok
           ? sessionResult.data?.user.app_metadata?.portal_account_id
@@ -140,34 +155,61 @@ export function usePortalActor(): PortalActor {
       }
 
       if (!portalAccountId) {
-        const linkedByAuth = await fetchPortalClientIdForAuthUser(tenantId);
-        if (cancelled) return;
-        if (linkedByAuth) {
-          setResolvedClientId(linkedByAuth);
-          if (portalSession) {
-            void updatePortalSession({ clientId: linkedByAuth });
-          }
-        }
-        if (!cancelled) setIsResolvingClientLink(false);
+        setResolvedClientId(null);
+        setFamilyAccess(null);
+        setIsResolvingClientLink(false);
         return;
       }
 
-      const linkedClientId = await fetchPortalClientIdByAccessAccount(tenantId, portalAccountId);
+      if (roleKey === 'family_portal') {
+        const familyScope = await fetchCurrentFamilyPortalAccessScope(tenantId, portalAccountId);
+        if (cancelled) return;
+        if (!familyScope) {
+          setResolvedClientId(null);
+          setFamilyAccess(null);
+          setIsResolvingClientLink(false);
+          return;
+        }
+        setResolvedClientId(familyScope.clientId);
+        setFamilyAccess(familyScope);
+        if (
+          portalSession &&
+          (sessionClientId !== familyScope.clientId ||
+            portalSession.relativeContactId !== familyScope.relativeContactId)
+        ) {
+          void updatePortalSession({
+            clientId: familyScope.clientId,
+            relativeContactId: familyScope.relativeContactId,
+          });
+        }
+        setIsResolvingClientLink(false);
+        return;
+      }
+
+      setFamilyAccess(null);
+
+      const linkedByAccount = await fetchPortalClientIdByAccessAccount(tenantId, portalAccountId);
       if (cancelled) return;
 
-      if (linkedClientId) {
-        setResolvedClientId(linkedClientId);
-        if (portalSession) {
-          void updatePortalSession({ clientId: linkedClientId });
+      const linkedClientId =
+        linkedByAccount ?? (await fetchPortalClientIdForAuthUser(tenantId));
+      if (cancelled) return;
+
+      try {
+        const scope = buildClientPortalActorScope({
+          tenantId,
+          accountId: portalAccountId,
+          roleKey,
+          cachedClientId: sessionClientId,
+          linkedClientId: linkedClientId ?? '',
+        });
+        setResolvedClientId(scope.clientId);
+        if (portalSession && !scope.cachedLinkMatches) {
+          void updatePortalSession({ clientId: scope.clientId });
         }
-      } else {
-        const linkedByAuth = await fetchPortalClientIdForAuthUser(tenantId);
-        if (!cancelled && linkedByAuth) {
-          setResolvedClientId(linkedByAuth);
-          if (portalSession) {
-            void updatePortalSession({ clientId: linkedByAuth });
-          }
-        }
+      } catch {
+        setResolvedClientId(null);
+        setFamilyAccess(null);
       }
 
       setIsResolvingClientLink(false);
@@ -177,7 +219,16 @@ export function usePortalActor(): PortalActor {
       cancelled = true;
       setIsResolvingClientLink(false);
     };
-  }, [isClientPortalActor, sessionClientId, tenantId, portalSession, updatePortalSession]);
+  }, [
+    isClientPortalActor,
+    isLivePortal,
+    roleKey,
+    sessionClientId,
+    tenantId,
+    portalSession?.accountId,
+    portalSession?.relativeContactId,
+    updatePortalSession,
+  ]);
 
   const employeeIdentityInput = useRef({ portalSession, user, session, sessionEmployeeId, profileEmployeeId });
   employeeIdentityInput.current = { portalSession, user, session, sessionEmployeeId, profileEmployeeId };
@@ -320,6 +371,7 @@ export function usePortalActor(): PortalActor {
       actorId,
       clientId,
       employeeId,
+      familyAccess,
       displayName,
       isReady,
       isResolvingClientLink,
@@ -335,6 +387,7 @@ export function usePortalActor(): PortalActor {
     actorId,
     clientId,
     employeeId,
+    familyAccess,
     displayName,
     isResolvingClientLink,
     isResolvingEmployeeLink,

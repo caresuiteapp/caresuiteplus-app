@@ -248,7 +248,7 @@ export async function persistClientEditData(
     form.familyDoctorId,
     form.familyDoctorName,
     form.familyDoctorPhone,
-    'arzt',
+    'Hausarzt / Hausärztin',
     'doctor',
     form.familyDoctorEmail,
   );

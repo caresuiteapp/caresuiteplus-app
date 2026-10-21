@@ -57,3 +57,67 @@ export {
 } from './dataSubjectRequestSla';
 
 export type { DataSubjectRequest, DataRequestType } from './dataSubjectRequest.types';
+
+export {
+  projectProcessingLegalBasisEvidence,
+} from './processingLegalBasisEvidence';
+
+export type {
+  ProcessingLegalBasisEvidence,
+} from './processingLegalBasisEvidence';
+
+export {
+  projectConsentWithdrawalEvidence,
+} from './consentWithdrawalEvidence';
+
+export type {
+  ConsentWithdrawalEvidence,
+} from './consentWithdrawalEvidence';
+
+export {
+  projectProviderGovernanceEvidence,
+} from './providerGovernanceEvidence';
+
+export type {
+  ProviderGovernanceEvidence,
+} from './providerGovernanceEvidence';
+
+export {
+  projectRetentionDispositionEvidence,
+} from './retentionDispositionEvidence';
+
+export type {
+  RetentionDispositionEvidence,
+} from './retentionDispositionEvidence';
+
+export {
+  projectDataSubjectAccessExportEvidence,
+} from './dataSubjectAccessExportEvidence';
+
+export type {
+  DataSubjectAccessExportEvidence,
+} from './dataSubjectAccessExportEvidence';
+
+export {
+  projectAccessAuditEvidence,
+} from './accessAuditEvidence';
+
+export type {
+  AccessAuditEvidence,
+} from './accessAuditEvidence';
+
+export {
+  projectSecurityIncidentHandlingEvidence,
+} from './securityIncidentHandlingEvidence';
+
+export type {
+  SecurityIncidentHandlingEvidence,
+} from './securityIncidentHandlingEvidence';
+
+export {
+  projectLegalProfessionalReviewEvidence,
+} from './legalProfessionalReviewEvidence';
+
+export type {
+  LegalProfessionalReviewEvidence,
+} from './legalProfessionalReviewEvidence';

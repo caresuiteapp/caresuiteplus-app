@@ -48,3 +48,19 @@ export {
   requestKIMAttachmentImport,
   fetchKIMAttachmentsForMessage,
 } from './kimAttachmentService';
+export {
+  assertKIMMessageEvidenceContext,
+  mapKIMMessageEvidenceRow,
+  projectKIMMessageVerification,
+} from './kimMessageEvidence';
+export type {
+  KIMMessageEvidenceContext,
+  KIMMessageVerificationProjection,
+} from './kimMessageEvidence';
+export { projectEPAAccessReview } from './epaAccessEvidence';
+export type {
+  EPAAccessReviewInput,
+  EPAAccessReviewProjection,
+  EPADataScope,
+  EPAReviewState,
+} from './epaAccessEvidence';

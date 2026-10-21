@@ -5,6 +5,7 @@ import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DetailInfoRow } from '@/components/detail';
 import { EmployeeDetailHero } from '@/components/office/EmployeeDetailHero';
 import { EmployeePortalImpactPanel } from '@/components/office/EmployeePortalImpactPanel';
+import { EmployeeMasterDataBoundaryPanel } from '@/components/office/EmployeeMasterDataBoundaryPanel';
 import { EmployeeSectionEditModal } from '@/components/office/EmployeeSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { LockedActionBanner } from '@/components/permissions';
@@ -269,13 +270,16 @@ export function EmployeeDetailScreen({
       ) : null}
 
       {activeTab === 'anstellung' ? (
-        <SectionPanel title="Anstellung">
-          <DetailInfoRow label="Eintrittsdatum" value={employee.startDate ? new Date(employee.startDate).toLocaleDateString('de-DE') : null} />
-          <DetailInfoRow label="Angelegt am" value={new Date(employee.createdAt).toLocaleDateString('de-DE')} />
-          {canEdit ? (
-            <PremiumButton title="Anstellung bearbeiten" variant="secondary" onPress={() => handleEditSection('anstellung')} />
-          ) : null}
-        </SectionPanel>
+        <>
+          <SectionPanel title="Anstellung">
+            <DetailInfoRow label="Eintrittsdatum" value={employee.startDate ? new Date(employee.startDate).toLocaleDateString('de-DE') : null} />
+            <DetailInfoRow label="Angelegt am" value={new Date(employee.createdAt).toLocaleDateString('de-DE')} />
+            {canEdit ? (
+              <PremiumButton title="Anstellung bearbeiten" variant="secondary" onPress={() => handleEditSection('anstellung')} />
+            ) : null}
+          </SectionPanel>
+          <EmployeeMasterDataBoundaryPanel />
+        </>
       ) : null}
 
       {activeTab === 'portal' ? <EmployeePortalImpactPanel /> : null}

@@ -3,6 +3,7 @@ import type {
   CommunicationSettings,
   CommunicationThread,
 } from '../communication.types';
+import { normalizeMessageDeliveryEvidence } from '../messageDeliveryEvidence';
 
 function toIso(value: string | null | undefined): string | null {
   return value ?? null;
@@ -52,6 +53,12 @@ export function mapCommunicationThreadRow(row: Record<string, unknown>): Communi
 }
 
 export function mapCommunicationMessageRow(row: Record<string, unknown>): CommunicationMessage {
+  const delivery = normalizeMessageDeliveryEvidence({
+    status: row.status as CommunicationMessage['status'],
+    sentAt: toIso(row.sent_at as string | null),
+    deliveredAt: toIso(row.delivered_at as string | null),
+    readAt: toIso(row.read_at as string | null),
+  });
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -65,15 +72,15 @@ export function mapCommunicationMessageRow(row: Record<string, unknown>): Commun
     hasAttachments: Boolean(row.has_attachments),
     hasVoice: Boolean(row.has_voice),
     emojiReactionsCount: Number(row.emoji_reactions_count ?? 0),
-    status: row.status as CommunicationMessage['status'],
+    status: delivery.status,
     isInternalNote: Boolean(row.is_internal_note),
     isVisibleToBusiness: Boolean(row.is_visible_to_business),
     isVisibleToEmployee: Boolean(row.is_visible_to_employee),
     isVisibleToClient: Boolean(row.is_visible_to_client),
     isVisibleToRelative: Boolean(row.is_visible_to_relative),
-    sentAt: toIso(row.sent_at as string | null),
-    deliveredAt: toIso(row.delivered_at as string | null),
-    readAt: toIso(row.read_at as string | null),
+    sentAt: delivery.sentAt,
+    deliveredAt: delivery.deliveredAt,
+    readAt: delivery.readAt,
     editedAt: toIso(row.edited_at as string | null),
     editedBy: (row.edited_by as string | null) ?? null,
     deletedAt: toIso(row.deleted_at as string | null),

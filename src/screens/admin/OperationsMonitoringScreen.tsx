@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OperationsMonitoringHero } from '@/components/admin/OperationsMonitoringHero';
+import { TechnicalEvidenceWorkspace } from '@/components/technical/TechnicalEvidenceWorkspace';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
@@ -84,6 +85,7 @@ export function OperationsMonitoringScreen() {
           ))}
         </View>
       </SectionPanel>
+      <TechnicalEvidenceWorkspace />
     </ScreenShell>
   );
 }
