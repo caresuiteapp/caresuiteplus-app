@@ -21,8 +21,10 @@ unbestätigt. Der [Nachrichtenablauf](kim-client-message.md) ergänzt AUT-Erzeug
 Empfangsprüfer für zeitversetztes Abholen. Der [Fehlerpfad](kim-receive-errors.md)
 erzeugt inzwischen lokale Diagnosemails mit unveränderten Originalbelegen und
 standardmäßig deaktiviertem Klartextanhang. Die [OCSP-Prüfung](ocsp.md) ergänzt
-signierte Sperrstatusbelege gegen konfigurierte Pins, einen begrenzten lokalen
-Cache und die Bindung der Ergebnisse an die OSIG-/AUT-Zertifikate im Empfangsbericht.
+signierte Sperrstatusbelege gegen konfigurierte Pins und die Bindung der Ergebnisse
+an die OSIG-/AUT-Zertifikate im Empfangsbericht. Der [OCSP-Abruf](ocsp-online.md)
+ergänzt feste HTTP(S)-Routen und einen verschlüsselten dauerhaften Cache mit
+prozessübergreifenden Claims und begrenzter Wiederholung bei Protokollfehlern.
 TI-Vertrauensbeschaffung, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

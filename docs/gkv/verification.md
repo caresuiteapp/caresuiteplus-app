@@ -8,10 +8,40 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**223 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**249 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
 
-## OCSP-Statusprüfung am 21.10.2026
+## OCSP-Abruf und dauerhafte Belege am 21.10.2026
+
+Die bisherigen 223 Fälle und **26 neue Prüfungen** bestehen gemeinsam.
+`kim-ocsp-online.test.mjs` verwendet echte HTTP-/HTTPS-Verbindungen auf Loopback
+mit eigener Test-PKI. Geprüft sind CA-/Hostnamenprüfung trotz fester Verbindungs-IP,
+exakte POST-Bytes, Weiterleitungsablehnung, Header-/Format-/Größengrenzen,
+unvollständige Antworten, absolute Frist bei tröpfelndem Body und Abbruch.
+
+Die verschlüsselte SQLite-Ablage überlebt Wiederöffnen und Prozesswechsel.
+Falsche Schlüssel, Konfigurationswechsel, verschobene Datensätze und veränderte
+Ablaufdaten scheitern. Aktuelle Rohbelege werden mit erneuerten Pins erneut
+geprüft, auch negative Befunde; Zeitablauf und Rücksprünge werden kontrolliert.
+Vier Protokollfehler erzeugen einen über Neustart wirksamen fünfminütigen Backoff.
+Quoten, Timeout und Schließen geben keine verspäteten Belege frei.
+
+Getrennte Instanzen und Prozesse teilen eine Beschaffung. Tatsächliches SIGKILL
+während einer HTTP-Anfrage hinterlässt einen befristeten Claim; nach Ablauf
+kann ein anderer Prozess sicher übernehmen. Ein alter Eigentümer kann weder
+den neuen Claim löschen noch dessen Ergebnis mit seiner späten Antwort ersetzen.
+Wieder geöffnete OSIG-/AUT-Belege durchlaufen den echten verschlüsselten
+KIM-Empfang: Originalhashbindung, Diagnose 07 und kein Klartextanhang bleiben erhalten.
+
+Gesamtprozess: **249 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
+Vier neue MJS-Dateien bestehen `node --check`; `git diff --check` ist ohne Befund.
+Keine Installation, UI-/Android-/Supabase- oder Produktionsänderung; keine Abfrage
+echter OCSP-Dienste. Authentisierte TSL, produktiver Dienstanschluss und
+Konnektorintegration bleiben offen. [Details](ocsp-online.md).
+Alle vier Vercel-Projekte haben den Vorgänger **2cb559a** erfolgreich gebaut;
+der Buildstatus des neuen Commits wird gesondert in PR #129 dokumentiert.
+
+## Vorherige OCSP-Statusprüfung am 21.10.2026
 
 Die bisherigen 198 Fälle und **25 neue Prüfungen** bestehen gemeinsam.
 `kim-ocsp.test.mjs` prüft reale ECDSA-/RSA-PSS-Antworten, CertID-/certHash-
@@ -27,8 +57,9 @@ Kapazität, Timeout und Schließen ohne Übernahme verspäteter Antworten.
 
 Gesamtprozess: **223 bestanden, 0 fehlgeschlagen, 0 übersprungen**.
 Vorhandene Laufzeit, keine Installation, UI-/Android-/Datenbank- oder
-Produktionsänderung. Vollständige TI-Vertrauensprüfung, dauerhafte
-Statusbeschaffung und Konnektorintegration bleiben offen. [Details](ocsp.md).
+Produktionsänderung. Der damalige Stand enthielt noch keinen dauerhaften Abruf;
+dieser ist oben gesondert belegt. Vollständige TI-Vertrauensprüfung und
+Konnektorintegration bleiben offen. [Details](ocsp.md).
 Alle vier Vercel-Projekte haben den Vorgänger **9746200** erfolgreich gebaut.
 
 ## KIM-Empfangsdiagnosen am 21.10.2026

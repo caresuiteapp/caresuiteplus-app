@@ -3,6 +3,8 @@
 Stand: 21.10.2026. `services/kim/ocsp.mjs` erzeugt echte OCSP-Anfragen und prüft
 signierte Antworten gegen konfigurierte Zertifikat-Pins. Authentisierte TI-TSL,
 vollständige Pfadprüfung und Konnektoroperation `VerifyCertificate` fehlen noch.
+Der [Online-Baustein](ocsp-online.md) ergänzt feste HTTP(S)-Routen und einen
+verschlüsselten dauerhaften Cache; die Prüferklasse selbst öffnet keine Verbindung.
 
 ## Schnittstellen
 
@@ -75,7 +77,8 @@ entsteht ein ausdrücklicher Fehler.
 Der Callback erhält eine Anfragekopie und ein AbortSignal. Timeout und `close()`
 beenden wartende Prüfungen; verspätete Antworten werden nicht übernommen.
 Transportfehler werden nicht positiv gecacht. Der Cache ist nicht dauerhaft;
-nach Neustart wird neu geprüft. Vollständiger Betrieb nach A_23225 bleibt offen.
+nach Neustart wird neu geprüft. Für dauerhafte Wiederverwendung gibt es nun
+`DurableOcspStatusCache`; [Schnittstelle und Grenzen](ocsp-online.md).
 
 ## Anschluss an den KIM-Empfang
 
@@ -109,11 +112,13 @@ und den tatsächlich verschlüsselten KIM-Empfang. OpenSSL liest die eigene
 Anfrage und prüft die Antwort samt Status. Umgekehrt wird eine OpenSSL-Antwort
 bis zum fehlenden TI-certHash verarbeitet und dort abgelehnt. Das ist ein
 separater Parser-/Protokollweg, aber dieselbe Kryptoprimitivenbibliothek wie Node.
-Gesamtlauf **223/223 bestanden**. Vier Vercel-Builds des Vorgängers `9746200`
-sind erfolgreich. Keine Installation, echten OCSP-Endpunkte oder Produktionsdaten.
+Der damalige Gesamtlauf bestand mit **223/223 Prüfungen**; alle vier Vercel-Builds
+von `2cb559a` sind inzwischen erfolgreich. Mit den 26 zusätzlichen Online-/
+Persistenzfällen besteht der aktuelle Gesamtlauf mit **249/249**.
+Keine Installation, echten OCSP-Endpunkte oder Produktionsdaten.
 
 Offen: authentisierte TSL-Beschaffung/Rotation, vollständige Pfad-/Rollenprüfung,
-VZD-/Telematik-ID-Zuordnung, dauerhafte Statusbeschaffung, SMC-B/Konnektor sowie
+VZD-/Telematik-ID-Zuordnung, produktiver Anschluss der Statusbeschaffung, SMC-B/Konnektor sowie
 unabhängige Prüfung/Zulassung. Der Prüfer ersetzt die vorgeschriebene
 Konnektorintegration nicht. Das FD-Anforderungsinventar bleibt unverändert.
 

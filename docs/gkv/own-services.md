@@ -283,8 +283,22 @@ Beschaffung und verwirft abgelaufene oder verspätete Antworten. Optional
 Bericht zum Original dokumentiert. Auch `good` bestätigt noch keine
 TI-Identität; negative oder nicht prüfbare Befunde erhalten `XCS_CERT_STATUS`.
 25 neue Fälle einschließlich OpenSSL-Gegenprüfung bestehen im Gesamtlauf mit
-**223 Prüfungen**. TSL, dauerhafte Statusbeschaffung und Konnektorintegration
+**223 Prüfungen**. TSL, produktiver Statusabruf und Konnektorintegration
 bleiben offen. [Schnittstellen und Grenzen](ocsp.md).
+
+### HTTP(S)-Abruf und dauerhafte OCSP-Belege
+
+`ocsp-http.mjs` implementiert POST an einen festen konfigurierten Endpunkt mit
+TLS-Prüfung, Größen-/Zeitgrenzen und Abbruch ohne Weiterleitungen. `ocsp-store.mjs`
+speichert ausschließlich kryptografisch geprüfte Antwortbytes verschlüsselt auf
+dem geschützten lokalen Volume und prüft sie bei jedem Zugriff erneut. Auch
+negative Befunde überleben Neustarts. Prozessübergreifende Claims verhindern
+konkurrierende Beschaffungen; abgelaufene Eigentümer können neuere Belege nicht
+überschreiben. Vier OCSP-Protokollfehler führen zu fünf Minuten dauerhafter
+Abfragesperre. Der Gesamtlauf mit 26 neuen Fällen besteht mit **249 Prüfungen**,
+einschließlich HTTPS, echter Prozesskonkurrenz, SIGKILL und KIM-Empfang mit
+wieder geöffneten OSIG-/AUT-Belegen. Noch keine authentisierte TSL, produktive
+Route oder vollständige Konnektor-/Clientintegration. [Details](ocsp-online.md).
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -313,7 +327,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME und OCSP-Statusprüfung gegen Pins vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL, dauerhafte Statusbeschaffung, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer und HTTP(S)-Abruf mit verschlüsseltem dauerhaftem Cache gegen Pins vorhanden; Konnektor-/SMC-B-Anbindung, VZD/TSL, produktiver Statusabruf, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
