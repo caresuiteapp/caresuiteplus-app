@@ -10,7 +10,7 @@ const empty=new Function(`${body('src/types/forms/clientIntakeForm.ts')};return 
 const createEmptyIntakeForm=()=>structuredClone(empty);
 const hasIntakeDraftContent=({form,stepIndex})=>!!form.firstName||stepIndex>0;
 const {ClientIntakeWorkflow}=new Function('isUuid','hasIntakeDraftContent','mergeIntakeFormWithDefaults',`${body('src/lib/clients/clientIntakeWorkflow.web.ts')};return {ClientIntakeWorkflow};`)(isUuid,hasIntakeDraftContent,form=>({...createEmptyIntakeForm(),...form}));
-const hookSource=body('src/hooks/useClientIntakeWizard.web.ts');
+const hookSource=body('src/hooks/pflege/useCareClientIntakeWizard.web.ts');
 const identitySource=body('src/lib/clients/clientIntakeIdentitySession.web.ts');
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
