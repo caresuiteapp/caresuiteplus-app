@@ -114,10 +114,10 @@ describe('module assignment workspace request lifecycle', () => {
     await refresh(); expect(latest.data).toBeNull(); expect(latest.error).toBe('Nicht mehr verfügbar.'); expect(latest.loading).toBe(false);
   });
 
-  it('marks a thrown refresh failure without claiming that the old snapshot is fresh', async () => {
-    await render(); const previous = latest.data;
+  it('clears old data when an unexpected rejection cannot confirm current access', async () => {
+    await render(); expect(latest.data).not.toBeNull();
     runtime.fetch.mockRejectedValueOnce(new Error('Connection lost'));
-    await refresh(); expect(latest.data).toBe(previous); expect(latest.error).toContain('nicht aktualisiert'); expect(latest.loading).toBe(false);
+    await refresh(); expect(latest.data).toBeNull(); expect(latest.error).toContain('nicht aktualisiert'); expect(latest.loading).toBe(false);
   });
 });
 

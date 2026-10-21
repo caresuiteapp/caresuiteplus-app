@@ -49,7 +49,8 @@ export function useModuleAssignmentWorkspace(section?: ModuleAssignmentSection) 
       }));
     }).catch(() => {
       if (!alive || request !== sequence.current) return;
-      setState(previous => ({ identityKey, loading: false, data: previous.identityKey === identityKey ? previous.data : null, error: 'Die Zuordnungen konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.' }));
+      // An unexpected rejection carries no proof that the last access check ran.
+      setState({ identityKey, loading: false, data: null, error: 'Die Zuordnungen konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.' });
     });
     return () => { alive = false; };
   }, [authReady, isAuthenticated, authUserId, profileId, tenantId, roleKey, hasPortalSession, profileBootstrapError, identityKey, section, revision]);

@@ -227,6 +227,7 @@ async function loadWorkspace(scope: ModuleAssignmentWorkspaceScope, section?: Mo
     }
   }));
   const warnings: string[] = [];
+  let nameReadFailed = false;
   let clients = new Map<string, string>(), employees = new Map<string, string>();
   if (section === 'clients' || section === 'employees') {
     if (demo) {
@@ -240,7 +241,7 @@ async function loadWorkspace(scope: ModuleAssignmentWorkspaceScope, section?: Mo
         if (section === 'clients') clients = await readNames(client!, scope.tenantId, 'clients', selectedRows.map(row => text(row.client_id)));
         if (section === 'employees' || before.permissions.has('office.employees.view')) employees = await readNames(client!, scope.tenantId, 'employees', selectedRows.map(row => text(row[section === 'clients' ? 'primary_employee_id' : 'employee_id'])));
         if (section === 'clients' && selectedRows.some(row => !clients.has(text(row.client_id))) || section === 'employees' && selectedRows.some(row => !employees.has(text(row.employee_id)))) warnings.push('Einzelne verknüpfte Akten sind nicht verfügbar oder für Ihren Zugang nicht freigegeben.');
-      } catch { return fail('connection', 'Die zugeordneten Namen konnten nicht vollständig geladen werden. Bitte erneut versuchen.'); }
+      } catch { nameReadFailed = true; }
     }
   }
   const after: Access | Failure = demo ? before : await confirmScope(client!, scope);
@@ -248,6 +249,7 @@ async function loadWorkspace(scope: ModuleAssignmentWorkspaceScope, section?: Mo
   if (section && !after.permissions.has(VIEW[section])) return fail('permission', PERMISSION_ERROR);
   // Never return data read under a grant that was revoked during the request.
   if ([...before.permissions].some(permission => !after.permissions.has(permission))) return fail('permission', 'Ihre Berechtigungen haben sich geändert. Bitte laden Sie die Zuordnungen erneut.');
+  if (nameReadFailed) return fail('connection', 'Die zugeordneten Namen konnten nicht vollständig geladen werden. Bitte erneut versuchen.');
   if (section && sections.find(item => item.key === section)?.state === 'error') return fail('connection', READ_ERROR);
   const items = section ? mapItems(selectedRows, scope.tenantId, section, after.permissions, clients, employees) : [];
   if (section === 'clients' && items.some(item => item.active && ['archiviert', 'abgeschlossen', 'gesperrt', 'fehlerhaft'].includes(item.status))) warnings.push('Einige Zuordnungen sind für das Portal aktiv, obwohl ihr Bearbeitungsstatus davon abweicht. Bitte prüfen Sie diese in der Klientenakte.');
@@ -259,6 +261,6 @@ export async function fetchModuleAssignmentWorkspace(scope: ModuleAssignmentWork
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([loadWorkspace(scope, section), new Promise<ModuleAssignmentWorkspaceResult>(resolve => { timer = setTimeout(() => resolve(fail('unavailable', 'Die Abfrage dauert zu lange. Bitte versuchen Sie es erneut.')), 30_000); })]);
-  } catch { return fail('connection', READ_ERROR); }
+  } catch { return fail('unavailable', READ_ERROR); }
   finally { if (timer !== undefined) clearTimeout(timer); }
 }

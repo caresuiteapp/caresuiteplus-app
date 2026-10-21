@@ -32,12 +32,13 @@ function setupClient() {
   const calls: Call[] = [], denied = new Set<string>();
   const getUser = vi.fn().mockResolvedValue({ data: { user: { id: scope.authUserId } }, error: null });
   const rpc = vi.fn(async (name: string, args?: { p_permission_key: string }): Promise<{ data: unknown; error: unknown }> => ({ data: name === 'current_employee_id_from_profile' ? rows.employees.find(row => row.profile_id === scope.profileId)?.id ?? null : !denied.has(args!.p_permission_key), error: null }));
-  const errors = new Set<string>();
+  const errors = new Set<string>(), throws = new Set<string>();
   let failOffset = -1;
   const from = vi.fn((table: string) => {
     const call: Call = { table, columns: '', filters: [], from: 0, to: Number.MAX_SAFE_INTEGER };
     async function reply(single = false) {
       calls.push({ ...call, filters: [...call.filters] });
+      if (throws.has(table)) throw new Error('Query rejected unexpectedly');
       if (errors.has(table) || call.from === failOffset) return { data: null, count: null, error: { message: 'offline' } };
       let values = (rows[table] ?? []).filter(row => call.filters.every(([key, value]) => row[key] === value));
       if (call.ids) values = values.filter(row => call.ids!.includes(String(row.id)));
@@ -54,7 +55,7 @@ function setupClient() {
   });
   const client = { from, rpc, auth: { getUser } };
   f.client.mockReturnValue(client);
-  return { rows, calls, denied, getUser, rpc, errors, from, failOnOffset: (value: number) => { failOffset = value; } };
+  return { rows, calls, denied, getUser, rpc, errors, throws, from, failOnOffset: (value: number) => { failOffset = value; } };
 }
 
 beforeEach(() => {
@@ -170,6 +171,13 @@ describe('module assignment workspace read boundary', () => {
     expect(await fetchModuleAssignmentWorkspace(scope)).toMatchObject({ ok: false, code: 'unavailable' });
   });
 
+  it('clears stale data when an unexpected query rejection skips the final access check', async () => {
+    const state = setupClient(); state.throws.add('tenants');
+    expect(await fetchModuleAssignmentWorkspace(scope)).toMatchObject({ ok: false, code: 'unavailable' });
+    expect(f.profile).toHaveBeenCalledTimes(1);
+    expect(state.calls.some(call => call.table === 'client_module_assignments')).toBe(false);
+  });
+
   it('fails closed for duplicate or inactive employee links', async () => {
     const state = setupClient();
     state.rows.employees = [{ id: 'employee-self', tenant_id: scope.tenantId, profile_id: scope.profileId, status: 'inactive' }];
@@ -234,6 +242,16 @@ describe('module assignment details and actions', () => {
   it('does not silently turn failed name queries into unknown persons', async () => {
     const state = setupClient(); state.rows.client_module_assignments = [assignment('a')]; state.errors.add('clients');
     expect(await fetchModuleAssignmentWorkspace(scope, 'clients')).toMatchObject({ ok: false, code: 'connection' });
+    expect(f.profile).toHaveBeenCalledTimes(2);
+  });
+
+  it('rechecks revoked access after a name read failure instead of retaining stale personal data', async () => {
+    const state = setupClient(); state.rows.client_module_assignments = [assignment('a')]; state.errors.add('clients');
+    let clientPermissionReads = 0;
+    state.rpc.mockImplementation(async (name, args) => ({ data: name === 'current_employee_id_from_profile' ? null : args!.p_permission_key === 'office.clients.view' ? ++clientPermissionReads === 1 : true, error: null }));
+    expect(await fetchModuleAssignmentWorkspace(scope, 'clients')).toMatchObject({ ok: false, code: 'permission' });
+    expect(clientPermissionReads).toBe(2);
+    expect(f.profile).toHaveBeenCalledTimes(2);
   });
 
   it('does not query primary employee names when employee access is denied', async () => {
