@@ -9,3 +9,5 @@ export function usePortalActor(){location();return{tenantId:uid(10),actorId:uid(
 export function useLocalSearchParams(){const url=new URL(location());return{id:url.pathname.match(/beratung\/(?:arbeitsplatz\/)?([0-9a-f-]{36})/)?.[1],visit:url.searchParams.get('visit')??undefined};}
 export function useRouter(){return{push:(path:string)=>{const url=new URL(path,window.location.origin);url.searchParams.set('actor',actor());window.history.pushState({},'',url);window.dispatchEvent(new PopStateEvent('popstate'));}};}
 export function getSupabaseClient(){return{auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},rpc:async(name:string,args:Record<string,unknown>)=>{try{return await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,args,actor:actor()})})).json();}catch(e){return{data:null,error:{code:'network',message:String(e)}};}}};}
+
+export function usePermissions(){return{canAll:()=>actor()!=='portal'};}

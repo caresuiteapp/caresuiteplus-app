@@ -961,6 +961,43 @@ export const consultationStyles = String.raw `
   justify-content:flex-end;
   margin-top:20px
 }
+.cw-first-contact {
+  container: cw-contact / inline-size;
+  min-width:0
+}
+.cw-contact-intro {
+  margin:20px 0;
+  padding:20px;
+  border:1px solid #c7def9;
+  border-radius:20px;
+  background:linear-gradient(125deg,#eaf4ff,#f7fbff);
+  box-shadow:inset 0 1px 0 #fff
+}
+.cw-contact-intro h3 { margin:8px 0; font-size:21px; letter-spacing:-.4px }
+.cw-contact-intro p { margin:0; color:#405c7b; font-size:14px; line-height:1.6 }
+.cw-contact-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px }
+.cw-contact-address { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,1fr); gap:18px }
+.cw-contact-postal { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,3fr); gap:18px }
+.cw-first-contact h4 { font-size:15px; margin:18px 0 10px }
+.cw-first-contact .cw-field { min-width:0 }
+.cw-first-contact .cw-field input,.cw-first-contact .cw-field select { min-width:0; width:100%; box-sizing:border-box }
+.cw-first-contact [aria-invalid=true] { border-color:#b9384c }
+.cw-first-contact .cw-contact-error { color:#9b2639 }
+.cw-contact-details { border-top:1px solid #d8e5f3; margin-top:8px; padding:16px 0 0 }
+.cw-contact-details summary { cursor:pointer; font-size:14px; font-weight:650; padding:6px 0 15px }
+.cw-contact-matches { margin:10px 0 18px; padding:16px; border:1px solid #d2e0f3; border-radius:16px; background:#f0f6ff }
+.cw-contact-matches p { font-size:13px; line-height:1.5; color:#405c7b }
+.cw-contact-match { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; padding:12px; border:1px solid #cbdcf2; border-radius:12px; background:#fff; color:var(--cw-ink); text-align:left; cursor:pointer; font:inherit; margin-top:8px }
+.cw-contact-match small { display:block; color:#496580; font-size:12px; margin-top:4px }
+.cw-contact-match>span:last-child { color:#0a59be; font-size:13px; white-space:nowrap }
+.cw-contact-saved { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin:12px 0 20px; padding:14px; background:#eef8f4; border:1px solid #c0e0d5; border-radius:14px; color:#205e4b; font-size:13px }
+.cw-contact-saved a,.cw-first-contact .cw-alert a { display:inline-block; color:#145da9; font-weight:600; text-underline-offset:3px }
+.cw-first-contact .cw-alert a { margin-top:8px }
+@container cw-contact (max-width:440px) {
+  .cw-contact-grid,.cw-contact-address,.cw-contact-postal { grid-template-columns:minmax(0,1fr); gap:0 }
+  .cw-contact-intro { padding:16px }
+  .cw-contact-match { align-items:flex-start; flex-direction:column; gap:8px }
+}
 .cw-signature {
   margin:18px 0
 }
