@@ -10,11 +10,17 @@ import { isDemoMode } from '@/lib/supabase/config';
 import { fetchTenantProfile } from '@/lib/supabase/tenantService';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { loadCompanyAccess } from '@/lib/tenant/companyAccessService.web';
+import { CENTRAL_CATALOG_INDEX } from '@/data/seeds/documentCatalog/centralCatalogIndex';
+import { countModuleAssignmentDocumentInventory } from './moduleAssignmentInventory.web';
+import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
+import { isUnreleasedCatalogModuleKey } from '@/lib/modules/constants';
+import { INVOICE_MODULES } from '@/lib/office/invoiceModules';
 
 export type ModuleAssignmentWorkspaceScope = { authUserId: string; profileId: string; tenantId: string; roleKey: RoleKey | null };
 export type ModuleAssignmentWorkspaceAction = { label: string; route: string };
+export type ModuleAssignmentInventorySnapshot = { count: number | null; state: 'ready' | 'restricted' | 'error'; error?: string; action: ModuleAssignmentWorkspaceAction | null };
 export type ModuleAssignmentWorkspaceItem = { id: string; title: string; subtitle: string; meta?: string; moduleKey: ProductKey; status: WorkflowStatus; active: boolean; actions: ModuleAssignmentWorkspaceAction[] };
-export type ModuleAssignmentSectionSnapshot = { key: ModuleAssignmentSection; count: number | null; activeCount: number | null; state: 'ready' | 'restricted' | 'error'; error?: string; action: ModuleAssignmentWorkspaceAction | null };
+export type ModuleAssignmentSectionSnapshot = { key: ModuleAssignmentSection; count: number | null; activeCount: number | null; state: 'ready' | 'restricted' | 'error'; error?: string; action: ModuleAssignmentWorkspaceAction | null; inventory: ModuleAssignmentInventorySnapshot };
 export type ModuleAssignmentWorkspaceSnapshot = { tenantId: string; tenantName: string; source: 'live' | 'demo'; loadedAt: string; sections: ModuleAssignmentSectionSnapshot[]; section: ModuleAssignmentSection | null; items: ModuleAssignmentWorkspaceItem[]; warnings: string[] };
 export type ModuleAssignmentWorkspaceErrorCode = 'identity' | 'permission' | 'connection' | 'unavailable';
 export type ModuleAssignmentWorkspaceResult = { ok: true; data: ModuleAssignmentWorkspaceSnapshot } | { ok: false; error: string; code: ModuleAssignmentWorkspaceErrorCode };
@@ -30,6 +36,7 @@ const PERMISSION_ERROR = 'Für diese Zuordnungen fehlt Ihnen die Berechtigung.';
 const KEYS: ModuleAssignmentSection[] = ['clients', 'employees', 'services', 'documents', 'templates', 'permissions', 'billing'];
 const TABLES: Record<ModuleAssignmentSection, string> = { clients: 'client_module_assignments', employees: 'employee_module_assignments', services: 'module_service_catalog', documents: 'module_document_visibility', templates: 'module_template_assignments', permissions: 'module_permission_profiles', billing: 'module_billing_sources' };
 const VIEW: Record<ModuleAssignmentSection, PermissionKey> = { clients: 'office.clients.view', employees: 'office.employees.view', services: 'office.catalogs.view', documents: 'office.documents.view', templates: 'office.catalogs.view', permissions: 'business.tenant.manage', billing: 'office.invoices.view' };
+const INVENTORY_VIEW: Record<ModuleAssignmentSection, PermissionKey> = { ...VIEW, templates: 'office.documents.view' };
 const REQUIRED: PermissionKey[] = [...new Set<PermissionKey>(['office.access', ...Object.values(VIEW), 'office.clients.edit', 'office.employees.edit'])];
 const COMPANY_PERMISSIONS: readonly PermissionKey[] = ['office.employees.view', 'office.employees.edit', 'office.documents.view', 'business.tenant.manage'];
 const BASE = 'id,tenant_id,module_key,status';
@@ -56,23 +63,60 @@ function rowState(row: Row, tenantId: string, section: ModuleAssignmentSection) 
 }
 
 /** Counted, stable pages: a partial server page must never become an apparently complete total. */
-async function readPages(client: Client, tenantId: string, table: string, columns: string, ids?: readonly string[]): Promise<Row[]> {
+type InventoryFilters = { systemAndTenant?: boolean; excludeDeleted?: boolean; excludeDeletedAt?: boolean; modules?: readonly string[]; archiveOrder?: boolean };
+async function readPages(client: Client, tenantId: string, table: string, columns: string, ids?: readonly string[], filters: InventoryFilters = {}): Promise<Row[]> {
   const rows: Row[] = [], seen = new Set<string>();
   let total: number | null = null;
   for (let offset = 0; offset < 50_000; offset += 250) {
-    let query = fromUnknownTable(client, table).select(columns, { count: 'exact' }).eq('tenant_id', tenantId);
+    let query = fromUnknownTable(client, table).select(columns, { count: 'exact' });
+    query = filters.systemAndTenant ? query.or(`tenant_id.is.null,tenant_id.eq.${tenantId}`) : query.eq('tenant_id', tenantId);
+    if (filters.excludeDeleted) query = query.neq('status', 'deleted');
+    if (filters.excludeDeletedAt) query = query.is('deleted_at', null);
+    if (filters.modules) query = query.in('module_key', [...filters.modules]);
     if (ids) query = query.in('id', [...ids]);
-    const result = await query.order('id', { ascending: true }).range(offset, offset + 249);
+    const ordered = filters.archiveOrder ? query.order('updated_at', { ascending: false, nullsFirst: true }).order('id', { ascending: false }) : query.order('id', { ascending: true });
+    const result = await ordered.range(offset, offset + 249);
     if (result.error || !Array.isArray(result.data) || !Number.isSafeInteger(result.count) || Number(result.count) < 0 || total !== null && total !== result.count) throw new Error(READ_ERROR);
     total = result.count;
     for (const value of result.data) {
-      if (!object(value) || !text(value.id) || value.tenant_id !== tenantId || seen.has(String(value.id))) throw new Error(READ_ERROR);
+      if (!object(value) || !text(value.id) || !(value.tenant_id === tenantId || filters.systemAndTenant && value.tenant_id === null) || seen.has(String(value.id))
+        || filters.modules && !filters.modules.includes(String(value.module_key))) throw new Error(READ_ERROR);
       seen.add(String(value.id)); rows.push(value);
     }
     if (rows.length === total) return rows;
     if (rows.length > Number(total) || result.data.length < 250) throw new Error(READ_ERROR);
   }
   throw new Error('Die Zuordnungen sind für diese Ansicht zu umfangreich. Bitte wenden Sie sich an Ihre Verwaltung.');
+}
+
+/** Only merge identity metadata is needed: no document bodies or separate person-name lookup. */
+async function readDocumentInventoryCount(client: Client, tenantId: string): Promise<number> {
+  const [stored, intake] = await Promise.all([
+    readPages(client, tenantId, 'client_documents', 'id,tenant_id,client_id,title,file_name,source,intake_document_id,updated_at', undefined, { archiveOrder: true }),
+    readPages(client, tenantId, 'client_intake_documents', 'id,tenant_id,client_id,template_key,document_type,title,status,updated_at', undefined, { archiveOrder: true }),
+  ]);
+  return countModuleAssignmentDocumentInventory(stored, intake, tenantId);
+}
+
+/** Source inventory is independent from explicit module assignments and never creates or backfills any rows. */
+const getCatalogModules = (tenantId: string) => INVOICE_MODULES.filter(module => !isUnreleasedCatalogModuleKey(module.key) && hasEffectiveModuleGateAccess(module.key, tenantId)).map(module => module.key);
+async function readInventory(client: Client | null, tenantId: string, section: ModuleAssignmentSection, permissions: Set<PermissionKey>, catalogModules: readonly string[] | null): Promise<ModuleAssignmentInventorySnapshot> {
+  if (!permissions.has(INVENTORY_VIEW[section])) return { count: null, state: 'restricted', error: 'Für diesen Bestand fehlt Ihnen die Berechtigung.', action: null };
+  const action = inventoryAction(section, permissions);
+  try {
+    if (section === 'templates') return { count: CENTRAL_CATALOG_INDEX.length, state: 'ready', action };
+    if (!client) return { count: null, state: 'error', error: 'Dieser Bestand wird in der Demo nicht geladen.', action: null };
+    let count: number;
+    if (section === 'documents') count = await readDocumentInventoryCount(client, tenantId);
+    else {
+      const modules = section === 'services' ? catalogModules ?? [] : undefined;
+      const table = { clients: 'clients', employees: 'employees', services: 'tenant_service_catalog', permissions: 'role_templates', billing: 'invoices' }[section];
+      const rows = modules?.length === 0 ? [] : await readPages(client, tenantId, table, `id,tenant_id${modules ? ',module_key' : ''}`, undefined,
+        { systemAndTenant: section === 'permissions', excludeDeleted: section === 'clients' || section === 'employees', excludeDeletedAt: section === 'employees', modules });
+      count = rows.length;
+    }
+    return { count, state: 'ready', action };
+  } catch { return { count: null, state: 'error', error: 'Der Bestand konnte nicht vollständig geladen werden. Bitte erneut versuchen.', action }; }
 }
 
 async function readNames(client: Client, tenantId: string, table: 'clients' | 'employees', input: string[]) {
@@ -150,6 +194,10 @@ async function confirmScope(client: Client, scope: ModuleAssignmentWorkspaceScop
 
 function sectionAction(section: ModuleAssignmentSection, permissions: Set<PermissionKey>): ModuleAssignmentWorkspaceAction | null {
   if (!permissions.has(VIEW[section])) return null;
+  return inventoryAction(section, permissions);
+}
+function inventoryAction(section: ModuleAssignmentSection, permissions: Set<PermissionKey>): ModuleAssignmentWorkspaceAction | null {
+  if (!permissions.has(INVENTORY_VIEW[section])) return null;
   switch (section) {
     case 'clients': return { label: 'Klientenakten öffnen', route: '/office/clients' };
     case 'employees': return { label: 'Personalakten öffnen', route: '/office/employees' };
@@ -210,20 +258,22 @@ async function loadWorkspace(scope: ModuleAssignmentWorkspaceScope, section?: Mo
   if (!demo && !client) return fail('unavailable', 'Die Datenverbindung ist nicht verfügbar. Bitte erneut versuchen.');
   const before: Access | Failure = demo ? { ok: true, permissions: new Set(getPermissionsForRole(scope.roleKey)) } : await confirmScope(client!, scope);
   if (!before.ok) return before;
-  if (!before.permissions.has('office.access') || section && !before.permissions.has(VIEW[section])) return fail('permission', PERMISSION_ERROR);
+  if (!before.permissions.has('office.access') || section && !before.permissions.has(VIEW[section]) && !before.permissions.has(INVENTORY_VIEW[section])) return fail('permission', PERMISSION_ERROR);
   const tenant = demo ? { data: demoTenant, error: null } : await client!.from('tenants').select('id,name').eq('id', scope.tenantId).maybeSingle();
   if (tenant.error || !tenant.data || tenant.data.id !== scope.tenantId || !text(tenant.data.name)) return fail('unavailable', 'Das Unternehmen konnte nicht eindeutig geladen werden.');
+  const catalogModules = !demo && before.permissions.has(INVENTORY_VIEW.services) ? getCatalogModules(scope.tenantId) : null;
   let selectedRows: Row[] = [];
   const sections = await Promise.all(KEYS.map(async (key: ModuleAssignmentSection): Promise<ModuleAssignmentSectionSnapshot> => {
-    if (!before.permissions.has(VIEW[key])) return { key, count: null, activeCount: null, state: 'restricted', error: PERMISSION_ERROR, action: null };
+    const inventory = await readInventory(client, scope.tenantId, key, before.permissions, catalogModules);
+    if (!before.permissions.has(VIEW[key])) return { key, count: null, activeCount: null, state: 'restricted', error: PERMISSION_ERROR, action: null, inventory };
     try {
       const columns = key === section ? COLUMNS[key] : `${BASE}${key === 'clients' ? ',is_active' : ''}`;
       const rows = demo ? demoRows(key) : await readPages(client!, scope.tenantId, TABLES[key], columns);
       const states = rows.map(row => rowState(row, scope.tenantId, key));
       if (key === section) selectedRows = rows;
-      return { key, count: rows.length, activeCount: states.filter(item => item.active).length, state: 'ready', action: sectionAction(key, before.permissions) };
+      return { key, count: rows.length, activeCount: states.filter(item => item.active).length, state: 'ready', action: sectionAction(key, before.permissions), inventory };
     } catch {
-      return { key, count: null, activeCount: null, state: 'error', error: READ_ERROR, action: sectionAction(key, before.permissions) };
+      return { key, count: null, activeCount: null, state: 'error', error: READ_ERROR, action: sectionAction(key, before.permissions), inventory };
     }
   }));
   const warnings: string[] = [];
@@ -246,9 +296,13 @@ async function loadWorkspace(scope: ModuleAssignmentWorkspaceScope, section?: Mo
   }
   const after: Access | Failure = demo ? before : await confirmScope(client!, scope);
   if (!after.ok) return after;
-  if (section && !after.permissions.has(VIEW[section])) return fail('permission', PERMISSION_ERROR);
+  if (section && !after.permissions.has(VIEW[section]) && !after.permissions.has(INVENTORY_VIEW[section])) return fail('permission', PERMISSION_ERROR);
   // Never return data read under a grant that was revoked during the request.
   if ([...before.permissions].some(permission => !after.permissions.has(permission))) return fail('permission', 'Ihre Berechtigungen haben sich geändert. Bitte laden Sie die Zuordnungen erneut.');
+  if (catalogModules && catalogModules.join(',') !== getCatalogModules(scope.tenantId).join(',')) {
+    const services = sections.find(item => item.key === 'services');
+    if (services) services.inventory = { count: null, state: 'error', error: 'Die Katalogfreigaben haben sich geändert. Bitte laden Sie den Bestand erneut.', action: null };
+  }
   if (nameReadFailed) return fail('connection', 'Die zugeordneten Namen konnten nicht vollständig geladen werden. Bitte erneut versuchen.');
   if (section && sections.find(item => item.key === section)?.state === 'error') return fail('connection', READ_ERROR);
   const items = section ? mapItems(selectedRows, scope.tenantId, section, after.permissions, clients, employees) : [];
