@@ -1,3 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import { DOCUMENT_OPERATIONS } from './connector-document-xml.mjs';
+import { eccCmsCertificate, prepareEccKimRecipients, verifyEccKimSignedContent } from './ecc-cms.mjs';
+import { readKimEnvelope } from './envelope.mjs';
+import { decodeKimMimeEntity } from './message.mjs';
+import { kimAddress } from './address.mjs';
 import { createHash, X509Certificate } from 'node:crypto';
 import { KonnektorHttpsTransport } from './connector-http.mjs';
 import { certificateRequest, inspectConnectorXml, connectorText, CERT_REFS, PIN_OPERATIONS } from './connector-xml.mjs';
@@ -38,12 +44,12 @@ function references(input) {
  * it never changes CareSuite's diagnostic-only or production-release gates.
  */
 export class KonnektorCertificateClient {
-  #transport; #eventTransport; #cardTransport; #authTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
+  #transport; #eventTransport; #cardTransport; #authTransport; #signatureTransport; #encryptionTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
   #pinTimeout; #pinGeneration = 0; #pinBusy = false; #pinUncertain = false;
-  #authBusy = false; #authUncertain = false;
+  #authBusy = false; #authUncertain = false; #cmsBusy = false; #cmsUncertain = false;
   #blockedPuks = new Set();
   #closed = false; #pending = new Set();
-  constructor({ context, environment, eventServiceUrl, cardServiceUrl, authSignatureServiceUrl, pinTimeoutMs = 120000, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
+  constructor({ context, environment, eventServiceUrl, cardServiceUrl, authSignatureServiceUrl, signatureServiceUrl, encryptionServiceUrl, pinTimeoutMs = 120000, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
     try {
       if (!context || !['test', 'production'].includes(environment) || typeof clock !== 'function'
         || typeof python !== 'string' || !python.length || python.length > 2048 || /[\x00-\x1f]/.test(python)
@@ -54,14 +60,16 @@ export class KonnektorCertificateClient {
         workplaceId: connectorText(context.workplaceId), ...(context.userId === undefined ? {} : { userId: connectorText(context.userId) }) });
       this.#contextHash = hash(Buffer.from(JSON.stringify(this.#context))); this.#environment = environment;
       this.#clock = clock; this.#python = python; this.#timeout = timeoutMs; this.#pinTimeout = pinTimeoutMs;
-      for (const url of [eventServiceUrl, cardServiceUrl, authSignatureServiceUrl]) {
+      for (const url of [eventServiceUrl, cardServiceUrl, authSignatureServiceUrl, signatureServiceUrl, encryptionServiceUrl]) {
         if (url !== undefined && (typeof url !== 'string' || new URL(url).origin !== new URL(route.url).origin)) connectorFail('CONFIGURATION');
       }
       this.#now(); this.#transport = new KonnektorHttpsTransport({ ...route, service: 'certificate' });
       if (eventServiceUrl !== undefined) this.#eventTransport = new KonnektorHttpsTransport({ ...route, url: eventServiceUrl, service: 'event' });
       if (cardServiceUrl !== undefined) this.#cardTransport = new KonnektorHttpsTransport({ ...route, url: cardServiceUrl, service: 'card' });
       if (authSignatureServiceUrl !== undefined) this.#authTransport = new KonnektorHttpsTransport({ ...route, url: authSignatureServiceUrl, service: 'authentication' });
-    } catch { this.#transport?.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); connectorFail('CONFIGURATION'); }
+      if (signatureServiceUrl !== undefined) this.#signatureTransport = new KonnektorHttpsTransport({ ...route, url: signatureServiceUrl, service: 'signature' });
+      if (encryptionServiceUrl !== undefined) this.#encryptionTransport = new KonnektorHttpsTransport({ ...route, url: encryptionServiceUrl, service: 'encryption' });
+    } catch { this.#transport?.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); this.#signatureTransport?.close(); this.#encryptionTransport?.close(); connectorFail('CONFIGURATION'); }
     Object.freeze(this);
   }
   get environment() { return this.#environment; }
@@ -71,8 +79,9 @@ export class KonnektorCertificateClient {
     this.#open(); connectorSignal(signal);
     const pin = operation === 'GetPinStatus' || PIN_OPERATIONS.includes(operation);
     const auth = operation === 'ExternalAuthenticate';
-    const transport = operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : auth ? this.#authTransport : this.#transport;
-    if (!transport) connectorFail(pin ? 'CARD_UNCONFIGURED' : auth ? 'AUTH_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
+    const cms = DOCUMENT_OPERATIONS.includes(operation);
+    const transport = cms ? (['GetJobNumber', 'SignDocument'].includes(operation) ? this.#signatureTransport : this.#encryptionTransport) : operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : auth ? this.#authTransport : this.#transport;
+    if (!transport) connectorFail(cms ? 'CMS_UNCONFIGURED' : pin ? 'CARD_UNCONFIGURED' : auth ? 'AUTH_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
     if (this.#pending.size >= 8) connectorFail('BUSY');
     const controller = new AbortController(), deadline = AbortSignal.timeout(timeout);
     const stop = AbortSignal.any([controller.signal, deadline, ...(signal ? [signal] : [])]);
@@ -132,6 +141,8 @@ export class KonnektorCertificateClient {
     if (this.#pinUncertain) connectorFail('PIN_OUTCOME_UNKNOWN');
     if (this.#authBusy) connectorFail('AUTH_BUSY');
     if (this.#authUncertain) connectorFail('AUTH_OUTCOME_UNKNOWN');
+    if (this.#cmsBusy) connectorFail('CMS_BUSY');
+    if (this.#cmsUncertain) connectorFail('CMS_OUTCOME_UNKNOWN');
   }
   async getSmcbPinStatus(input = {}) {
     pinOptions(input, ['selection', 'signal']);
@@ -244,6 +255,75 @@ export class KonnektorCertificateClient {
         deliveryStatus: 'held-for-trust-validation' });
     } finally { this.#authBusy = false; bytes.fill(0); digest.fill(0); signature?.fill(0); jose?.fill(0); }
   }
+  signSmcbDocument(input = {}) { return this.#documentOperation('SignDocument', input); }
+  encryptSmcbDocument(input = {}) { return this.#documentOperation('EncryptDocument', input); }
+  decryptSmcbDocument(input = {}) { return this.#documentOperation('DecryptDocument', input); }
+  /** One held ECC operation. Fresh original PIN/certificate evidence is consumed;
+   * ambiguous replies latch the client until explicit host recovery. No retries. */
+  async #documentOperation(operation, input) {
+    const sign = operation === 'SignDocument', decrypt = operation === 'DecryptDocument';
+    pinOptions(input, ['status', 'certificate', 'verification', 'data', 'signal',
+      ...(decrypt ? ['address', 'expectedSignerCertificate'] : ['sender', 'recipients'])]);
+    const { status, certificate: raw, verification, data, signal } = input;
+    this.#pinOpen(); connectorSignal(signal);
+    if (!(sign ? this.#signatureTransport : this.#encryptionTransport)) connectorFail('CMS_UNCONFIGURED');
+    const stored = pinStatuses.get(status);
+    if (!stored || stored.client !== this) connectorFail('EVIDENCE_BINDING');
+    assertSmcbPinVerified(status, this, stored.selection);
+    if (!(data instanceof Uint8Array) || !data.length || data.length > (sign ? 15000000 : 22020096)) connectorFail('INPUT');
+    let cert, recipientSet, envelope, expectedSigner;
+    try {
+      cert = eccCmsCertificate(raw, sign ? 'osig' : 'enc', this.#now());
+      if (cert.certificateTypeOid !== (sign ? '1.2.276.0.76.4.78' : '1.2.276.0.76.4.76')) throw new Error();
+      if (decrypt) {
+        envelope = readKimEnvelope(Buffer.from(data), [input.address]);
+        if (envelope.profile !== 'ti-ecies-brainpoolp256r1-aes256gcm'
+          || !envelope.mappings.some(e => e.address === kimAddress(input.address) && e.rid === cert.rid.toString('hex'))) throw new Error();
+        expectedSigner = eccCmsCertificate(input.expectedSignerCertificate, 'osig', this.#now()).cert.raw;
+      } else {
+        recipientSet = prepareEccKimRecipients(input.sender, input.recipients, this.#now());
+        if (!recipientSet.entries.some(e => e.address === kimAddress(input.sender) && e.admission.telematikId === cert.admission.telematikId)) throw new Error();
+      }
+    } catch { connectorFail('CMS_INPUT'); }
+    assertConnectorCertificate(verification, this, { certificate: cert.cert.raw });
+    const bytes = Buffer.from(data), generation = ++this.#pinGeneration;
+    this.#cmsBusy = true; this.#cmsUncertain = true;
+    let output, verified, decoded;
+    const bound = () => {
+      assertSelectedSmcb(stored.selection, this); connectorSignal(stored.signal); connectorSignal(signal);
+      if (generation !== this.#pinGeneration) connectorFail('PIN_STATUS_STALE');
+      if (this.#now() < status.checkedAt || this.#now() >= status.validUntil) connectorFail('EVIDENCE_EXPIRED');
+      assertConnectorCertificate(verification, this, { certificate: cert.cert.raw });
+    };
+    const stop = AbortSignal.any([AbortSignal.timeout(30000), ...(stored.signal ? [stored.signal] : []), ...(signal ? [signal] : [])]);
+    try {
+      const requestId = randomUUID();
+      let job;
+      if (sign) job = await this.#exchange('GetJobNumber', {}, stop, this.#timeout, bound);
+      bound();
+      const { parsed, metadata } = await this.#exchange(operation, {
+        data: bytes, cardHandle: stored.selection.card.cardHandle, jobNumber: job?.parsed.jobNumber, requestId,
+        recipientEmails: recipientSet?.emails, certificates: recipientSet?.entries.map(e => e.cert.raw),
+      }, stop, this.#timeout, bound);
+      bound(); output = Buffer.from(parsed.data, 'base64');
+      if (sign) {
+        if (parsed.requestId !== requestId) connectorFail('CMS_BINDING');
+        verified = verifyEccKimSignedContent({ bytes: output, recipientEmails: recipientSet.emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
+        if (!verified.content.equals(bytes)) connectorFail('CMS_BINDING');
+      } else if (decrypt) {
+        decoded = decodeKimMimeEntity(output, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
+        verified = verifyEccKimSignedContent({ bytes: decoded, recipientEmails: envelope.recipientEmails, expectedSignerCertificate: expectedSigner, now: this.#now() });
+      } else {
+        const encrypted = readKimEnvelope(output, recipientSet.entries.map(e => e.address));
+        if (encrypted.profile !== 'ti-ecies-brainpoolp256r1-aes256gcm' || !encrypted.recipientEmails.equals(recipientSet.emails)) connectorFail('CMS_BINDING');
+      }
+      this.#cmsUncertain = false;
+      return Object.freeze({ ...metadata, data: output.toString('base64'), dataSha256: hash(bytes), outputSha256: hash(output),
+        certificateSha256: hash(cert.cert.raw), ...(job ? { job: job.metadata } : {}),
+        deliveryStatus: 'held-for-trust-validation', profile: 'ecc-cms-diagnostic' });
+    } catch (e) { if (e instanceof KonnektorError) throw e; connectorFail('CMS_REJECTED'); }
+    finally { this.#cmsBusy = false; bytes.fill(0); output?.fill(0); decoded?.fill(0); verified?.content.fill(0); }
+  }
   async verifyCertificate({ certificate: input, requiredRoles = [], signal } = {}) {
     this.#open(); connectorSignal(signal);
     const cert = certificate(input), expected = roles(requiredRoles);
@@ -298,7 +378,7 @@ export class KonnektorCertificateClient {
       throw e;
     }
   }
-  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); }
+  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); this.#signatureTransport?.close(); this.#encryptionTransport?.close(); }
 }
 
 /** A bound observation is not an authorization for a key operation. */

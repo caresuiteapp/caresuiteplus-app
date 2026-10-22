@@ -8,10 +8,65 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**975/975 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
-mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 216,2 Sekunden.
-Es wurde kein zusätzliches Testframework installiert.
+**1.028/1.028 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
+0 Fehler, 0 übersprungene oder abgebrochene Fälle, 230,6 Sekunden.
+Es wurde keine zusätzliche Software installiert. Vorhandene Projektabhängigkeiten
+wurden für TypeScript, esbuild, ESLint und die React-DOM-Prüfung wiederverwendet.
+Ältere Abschnitte beschreiben die jeweiligen Zwischenstände.
+
+## CMS, Kartenentschlüsselung, Host und Web am 22.10.2026
+
+**53 neue Dienst-/API-Fälle** ergänzen die bisherigen 975: 25 CMS-SOAP-/
+Kartenfälle, 19 Host-Gateway-/mTLS-/Antwortvertragsfälle und 9 vollständige
+Karten-/Hostabläufe. Der erste gemeinsame Lauf mit 1.019 Fällen bestand in
+257,3 Sekunden. Danach wurden 9 weitere direkte Kartenfälle ergänzt; ihr
+gezielter Lauf mit allen 25 CMS-Fällen bestand in 8,9 Sekunden.
+
+Der vollständige Hosttest führt die tatsächliche Kette API-Berechtigungsprüfung
+(lokale Auth-/RPC-Antwortfixtures), mTLS-Verbindung, dauerhafte SQLite-Reservierung,
+vier vollständige SMC-B-/TSL-/OCSP-/PIN-Vorprüfungen, GetJobNumber, SignDocument,
+EncryptDocument, DecryptDocument und Originalvergleich aus. Wiederholte Start-IDs
+lösen keine zweite Signatur aus. Nach Wiederöffnen des Journals bleibt der Auftrag
+zugeordnet. Fehlgeschlagene Durchläufe bleiben gesperrt, bis eine ausdrückliche
+administrative Überprüfung mit passender Anfrage-ID vermerkt wurde.
+
+Weitere Prüfungen betreffen falsche Abholadresse, OSIG statt ENC, kopierte PIN-/
+Zertifikatsbelege, ungültige Daten, verbotene Software-Schlüsseloptionen,
+Eingabemutation, Abbruch, Kartenentnahme, manipulierte Signatur/Chiffre/Klartext,
+falsche RequestID, zusätzliche SOAP-Antworten/Erweiterungen, Warnungen,
+Namespaces, Base64, externe Referenzen und DTDs. Ein 15-MB-Signaturdokument besteht
+die XML-Prüfung; derselbe Umfang bleibt am CertificateService abgewiesen.
+
+API-Tests kontrollieren Anmeldung, aktuelle Mandantenrechte, fehlenden Host,
+falschen Peerpin, Redirects, Komprimierung, Antwortgrößen und einen fremden
+Mandanten in der Antwort. Der Benutzer-Bearer-Token erreicht den Diensthost nicht.
+Browserbehauptungen über Hardware oder TI werden vom Antwortvertrag abgewiesen.
+Alle 31 festgeschriebenen Schema-/WSDL-/Lizenzdateien und der Manifestpin stimmen.
+
+Zusätzlich bestanden:
+
+- vollständige TypeScript-Prüfung mit 8-GiB-Heap; der erste Versuch mit dem
+  2-GiB-Standardheap endete wegen Speichermangel, nicht wegen eines Typfehlers;
+- ESLint für die neue TSX-Komponente, den Antwortvertrag und die API-Route;
+- esbuild-Bündelprüfung der Web-API und des Host-Einstiegs;
+- vorhandene Vercel-Konfigurations-/Public-Route-Prüfung und 670 Web-Routenmuster;
+- `node tests/gkv-exchange/kim-host-ui-check.mjs`: tatsächliche React-Komponente
+  mit synthetischen API-Zuständen für Rechte, Laden, fehlenden Host, Start-Sperre,
+  Ergebnis, Fehler und Mandantenwechsel. DOM-Verhalten ist kein Layoutnachweis.
+
+Keine visuelle Freigabe: lokal fehlt Chromium. Der Cloudbrowser kann den lokalen
+HTTP-Server nicht erreichen und blockiert lokale Dateiadressen durch seine
+Protokollrichtlinie. Diese Sperre wurde nicht umgangen. Die breite und schmale
+Darstellung bleibt tatsächlich visuell zu prüfen.
+
+Keine Hardware-/TI-Freigabe: Die verbundene Geräteverwaltung meldete nur einen
+offline befindlichen Rechner. Vercel-Projekte konnten gelesen werden, ihre
+Umgebungsmetadaten jedoch nicht (fehlende Teamfreigabe, 403). Weder ein vorhandener
+TI-Anschluss noch dessen Fehlen lässt sich daraus ableiten. Die lokalen Erfolge
+bleiben ausdrücklich ohne Hardwareattestierung, Zulassung und echten Versand.
+Der [technische Vertrag und die verbleibenden Profilgrenzen](konnektor-cms-host.md)
+sind gesondert dokumentiert. Keine Veröffentlichung auf main/Produktion und keine
+Änderung produktiver Datenbankeinträge oder Zugangsdaten.
 
 ## SMC-B-Authentisierung am 22.10.2026
 

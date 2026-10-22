@@ -441,8 +441,9 @@ Prüfung als auch VerifyCertificate bestehen. Der bedingte AUT-Zweig wird dabei
 beibehalten. Ein Konnektorfehler, abgelaufener Beleg oder geschlossener Client
 erlaubt keinen Rückfall auf den lokalen Erfolg. Die Ausgabe bleibt diagnostisch.
 Lokale mTLS-/SOAP- und Empfangsnachweise stehen in [verification.md](verification.md).
-Reale Konnektor-/SMC-B-Anbindung, CMS-/Entschlüsselungsoperationen, Discovery und
-vollständige TI-/Betriebs-/Zulassungsnachweise bleiben offen.
+Die begrenzten CMS-/Entschlüsselungsoperationen sind inzwischen im
+[CMS-/Host-Prüfablauf](konnektor-cms-host.md) ergänzt. Reale Konnektor-/SMC-B-
+Anbindung, Discovery und vollständige TI-/Betriebs-/Zulassungsnachweise bleiben offen.
 
 ### Kartenabfrage und SMC-B-Auswahl
 
@@ -466,9 +467,9 @@ bereits verifizierte PINs lösen keine erneute Eingabe aus. Nach VerifyPin OK
 müssen frisch gelesene Kartenmerkmale, alle drei Zertifikat-Hashes, ihre
 Statusbelege und GetPinStatus VERIFIED bestehen. Kopierte oder veraltete
 Belege können diesen Ablauf nicht ersetzen. Ein unklar unterbrochener Versuch
-sperrt weitere PIN-Aufrufe auf derselben Instanz. Reale Terminals, Hostkoordination,
-CMS-/Entschlüsselungsoperationen und Oberfläche bleiben
-offen. Ein positiver Vorbereitungsbeleg gibt weder Authentisierung noch Versand frei.
+sperrt weitere PIN-Aufrufe auf derselben Instanz. Der neue CMS-Diagnosehost
+koordiniert seine eigenen Prüfaufträge dauerhaft und bietet eine Webansicht.
+Reale Terminals und die vollständige PIN-Verwaltungsoberfläche bleiben offen. Ein positiver Vorbereitungsbeleg gibt weder Authentisierung noch Versand frei.
 
 Die [PIN-Verwaltung](konnektor-pin-maintenance.md) ergänzt ChangePin für
 Initialisierung und Änderung sowie UnblockPin mit ausdrücklich gewähltem
@@ -492,9 +493,30 @@ Kopierte/veraltete Belege, Karten-/Zertifikatswechsel und unklare Ausgänge
 geben kein Token frei. Automatische Wiederholungen und RSA-/Softwareschlüssel-
 Fallbacks fehlen ausdrücklich. Die Implementierung verwendet bestehende lokale
 Prüfmittel; echte SMC-B-/Konnektor-/TI-Interoperabilität bleibt nachzuweisen.
-Ausgehende VZD-Absenderbindung, Account-Manager, SignDocument/CMS,
-Entschlüsselung, vollständige Hostpipeline und Zulassung bleiben offen.
+Ausgehende VZD-Absenderbindung, Account-Manager, vollständige Hostpipeline
+und Zulassung bleiben offen. Die begrenzten CMS-/Entschlüsselungsoperationen
+stehen im nachfolgenden Diagnoseablauf zur Verfügung.
 Die Artefakte behalten den gesperrten Vertrauens-/Versandstatus.
+
+### CMS-Diagnosehost und Oberfläche
+
+Der [CMS-/Host-Prüfablauf](konnektor-cms-host.md) verbindet GetJobNumber,
+SignDocument, EncryptDocument und DecryptDocument mit vier frischen vollständigen
+SMC-B-/TSL-/OCSP-/PIN-Vorprüfungen. Ein zufälliger synthetischer Inhalt wird
+signiert, verschlüsselt, über C.ENC entschlüsselt und bytegenau verglichen.
+Signatur, Empfängerzuordnung, Schlüsselrolle und SOAP-Korrelation werden geprüft.
+Der ausführbare Node-Host reserviert Aufträge dauerhaft in SQLite, verhindert
+Doppelstarts und sperrt ungeklärte Ausgänge auch nach Neustart. Die Web-API prüft
+Supabase-Anmeldung und Mandantenrechte und erreicht ausschließlich den fest
+provisionierten mTLS-Host. Die neue Ansicht „Konnektorprüfung“ zeigt echte
+Hostzustände an und erlaubt den Download des zugehörigen Diagnoseprotokolls.
+
+Das ist eine ECC-Diagnoseintegration, keine vollständige KIM-Versandpipeline.
+VerifyDocument, RSA_ECC/weitere CMS-Profile, normale Nachrichtenverarbeitung und
+unabhängig bestätigte Hardware-/TI-/Zulassungsnachweise bleiben offen. Der
+Protokollstatus lautet ausdrücklich `hardwareEvidence=not-attested` und
+`tiEvidence=not-attested`. Die Oberflächenbedienung ist lokal geprüft; die
+visuelle Freigabe bleibt wegen des fehlenden erreichbaren Browsers offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -523,7 +545,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Reale Konnektor-/SMC-B-Anbindung, CMS-/Entschlüsselungsoperationen, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Begrenzte ECC-Kartenoperationen sowie dauerhafter Diagnosehost, mTLS-Web-API und Webansicht ergänzt. Reale Konnektor-/SMC-B-Anbindung, VerifyDocument/weitere CMS-Profile, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

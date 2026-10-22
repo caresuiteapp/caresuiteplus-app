@@ -16,9 +16,14 @@
     "conn/CertificateService_v6_0_2.xsd": "68bbfb908df3372b53ff568bab132c05e8a3975b9781397456ebad16a1525111",
     "conn/ConnectorCommon.xsd": "1ee19a36a551ba55ba9ac9683cb07933c177e123cfb3014d23f9e91cc78440ac",
     "conn/ConnectorContext.xsd": "7e4ded767f69e6af44833a5a1fd8665acda9c33a31bbc02f99970288eb60e3b0",
+    "conn/EncryptionService_v6_1_1.wsdl": "41ff20cd57d95eb3bc32ad924fa7aa3648f0c742ad568cbde2d546713580dd12",
+    "conn/EncryptionService_v6_1_2.xsd": "c0c259b031cb136edfe7a7bfeffb9fdc29dd53066daf41163a9f8c09fa0dceec",
     "conn/EventService.wsdl": "2abeb9236601f764e64ebb7b276929f9ce1e3450283f6fb1d835cba91e7d4370",
     "conn/EventService.xsd": "5e9c5829fd3585b4b8ea18f312ebfa5815556adf2600024d770c18b4717e4cdc",
     "conn/SignatureService.xsd": "a0416cb5e94bdc275fd4c5d90c91b05c3ec1e38f48f5d2adae3a33b88b50f430",
+    "conn/SignatureService_V7_5_6.xsd": "8f3300db43ced2f4a6a043eb421a4c14468e91740add6f1f0ac12b9aed25a599",
+    "conn/SignatureService_V7_5_7.wsdl": "5b3351847ee8241e5123377c3c6f4812c370c5aed818bef298d168acec39a744",
+    "conn/SignatureService_V7_5_7.xsd": "7e6bae47b619f2407af10b6c3aa8ce393e1a14de13cade792e95694acb3a0004",
     "ext/XAdES.xsd": "4370705c4b933f80ec933e01b606acbb00fbe39431328f04e79e9a991e49f791",
     "ext/oasis-dss-core-schema-v1.0-os.xsd": "479bfd2334d2a05bd44ea34251d51cc6451a1d041722c3a04f0109f6224a1f20",
     "ext/oasis-dssx-1.0-profiles-sigpolicy-schema-cd01.xsd": "276484ff32affc8436a336164a4c6a84a4d44bcf5b2836cccef6f4f7421c4433",
@@ -37,5 +42,10 @@
   "cardWsdlVersion": "8.1.0",
   "cardXsdVersion": "8.1.0",
   "authWsdlVersion": "7.4.1",
-  "authXsdVersion": "7.4.2"
+  "authXsdVersion": "7.4.2",
+  "signatureWsdlVersion": "7.5.7",
+  "signatureXsdVersion": "7.5.7",
+  "signatureWsdlImportVersion": "7.5.6",
+  "encryptionWsdlVersion": "6.1.1",
+  "encryptionXsdVersion": "6.1.2"
 }

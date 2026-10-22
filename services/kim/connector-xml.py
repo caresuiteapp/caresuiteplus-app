@@ -17,11 +17,15 @@ CARD = 'http://ws.gematik.de/conn/CardService/v8.1'
 CARDCMN = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0'
 AUTH = 'http://ws.gematik.de/conn/SignatureService/v7.4'
 DSS = 'urn:oasis:names:tc:dss:1.0:core:schema'
+SIG = 'http://ws.gematik.de/conn/SignatureService/v7.5'
+CRYPT = 'http://ws.gematik.de/conn/EncryptionService/v6.1'
+CMS_PROCESS = sys.argv[1:] == ['--cms']
+CMS_OPS = ('GetJobNumber', 'SignDocument', 'EncryptDocument', 'DecryptDocument')
 ECDSA = 'urn:bsi:tr:03111:ecdsa'
 COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0'
 CONN = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0'
 ERROR = 'http://ws.gematik.de/tel/error/v2.0'
-MANIFEST = 'a275859edffc7e9caea9fc267252503764d2fb43169a00464d7218c3996287ba'
+MANIFEST = '248a189e5c7436fc465ffe1fc58df928271f0e6f24b4b211d034c7c3ef217d8a'
 NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR, 'event': EVENT, 'card': CARD, 'cm': CARDCMN, 'auth': AUTH, 'dss': DSS}
 
 
@@ -79,19 +83,23 @@ def run(etree):
             return self.resolve_string(schemas[url], context, base_url=url)
 
     parser = etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True,
-                             recover=False, huge_tree=False, remove_blank_text=False)
+                             recover=False, huge_tree=CMS_PROCESS, remove_blank_text=False)
     parser.resolvers.add(Resolver())
-    raw_input = sys.stdin.buffer.read(600001)
-    require(0 < len(raw_input) <= 600000, 'XML_LIMIT')
+    input_limit = 46 * 1024 * 1024 if CMS_PROCESS else 600000
+    raw_input = sys.stdin.buffer.read(input_limit + 1)
+    require(0 < len(raw_input) <= input_limit, 'XML_LIMIT')
     args = json.loads(raw_input)
-    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin', 'ExternalAuthenticate'))
+    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin', 'ExternalAuthenticate') + CMS_OPS)
     require(args.get('mode') in ('request', 'response'))
+    is_cms = args['operation'] in CMS_OPS
+    require(is_cms == CMS_PROCESS, 'XML_PROFILE')
+    is_sig = args['operation'] in ('SignDocument', 'GetJobNumber')
     is_cards = args['operation'] == 'GetCards'
     is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin')
     is_auth = args['operation'] == 'ExternalAuthenticate'
-    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'SignatureService.xsd' if is_auth else 'CertificateService_v6_0_2.xsd')
+    url = 'https://schemas.invalid/conn/' + ('SignatureService_V7_5_7.xsd' if is_sig else 'EncryptionService_v6_1_2.xsd' if is_cms else 'EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'SignatureService.xsd' if is_auth else 'CertificateService_v6_0_2.xsd')
     schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
-    raw = binary(args['xml'], 262144)
+    raw = binary(args['xml'], 32 * 1024 * 1024 if is_cms else 262144)
     decoded = raw.decode('utf-8-sig', errors='strict')
     require('<!DOCTYPE' not in decoded and '<!ENTITY' not in decoded, 'XML_DTD')
     declaration = re.match(r'<\?xml\s.*?\?>', decoded, re.DOTALL)
@@ -105,7 +113,7 @@ def run(etree):
     require(len(nodes) <= 2048, 'XML_LIMIT')
     for node in nodes:
         require(isinstance(node.tag, str) and len(list(node.iterancestors())) <= 24, 'XML_LIMIT')
-        require(len(node.attrib) <= 8 and len(node.text or '') <= 32768 and len(node.tail or '') <= 1024, 'XML_LIMIT')
+        require(len(node.attrib) <= 8 and len(node.text or '') <= (30000000 if is_cms and node.tag in ('{' + DSS + '}Base64Data', '{' + DSS + '}Base64Signature') else 524288 if is_cms and node.tag == 'CMSAttribute' else 32768) and len(node.tail or '') <= 1024, 'XML_LIMIT')
         require(all(len(v) <= 1024 for v in node.attrib.values()), 'XML_LIMIT')
         require(not (node.tail or '').strip())
         if len(node):
@@ -135,9 +143,14 @@ def run(etree):
             require(schema.validate(detail[0]), 'XML_SCHEMA')
         return {'kind': 'fault', 'fault': value[1], 'remoteCodes': remote_errors(payload)}
     name = args['operation'] + ('' if args['mode'] == 'request' else 'Response')
-    require(payload.tag == '{' + (EVENT if is_cards else CARD if is_pin else AUTH if is_auth else CERT) + '}' + name)
+    require(payload.tag == '{' + (SIG if is_sig else CRYPT if is_cms else EVENT if is_cards else CARD if is_pin else AUTH if is_auth else CERT) + '}' + name)
     require(not payload.attrib or (is_cards and args['mode'] == 'request' and set(payload.attrib) == {'mandant-wide'}))
     require(schema.validate(payload), 'XML_SCHEMA')
+    if is_cms:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('cms_xml', Path(__file__).with_name('connector-document-xml.py'))
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module.inspect(payload, args['operation'], args['mode'], require, binary)
     if args['mode'] == 'request':
         if is_auth:
             options = one(payload, 'auth:OptionalInputs')
@@ -230,8 +243,8 @@ def run(etree):
 if __name__ == '__main__':
     try:
         import resource
-        resource.setrlimit(resource.RLIMIT_CPU, (3, 3))
-        resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+        resource.setrlimit(resource.RLIMIT_CPU, (10, 10) if CMS_PROCESS else (3, 3))
+        resource.setrlimit(resource.RLIMIT_AS, ((768 if CMS_PROCESS else 256) * 1024 * 1024,) * 2)
         resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
         resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
         from lxml import etree

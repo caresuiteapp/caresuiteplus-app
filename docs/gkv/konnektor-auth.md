@@ -144,10 +144,12 @@ signiert den empfangenen Hash unabhängig mit OpenSSL `pkeyutl`; eine versehentl
 zweite Hash-Bildung wird dadurch erkannt. Der vorhandene Empfangsprüfer prüft
 das erzeugte Token zusätzlich. Dies belegt keine physische Karte oder TI-Zulassung.
 
-Offen bleiben SignDocument/CMS mit OSIG, Entschlüsselung mit C.ENC, Account-
-Manager-Anbindung, aktuelle ausgehende VZD-Absenderbindung, vollständige
-Nachrichtenpipeline, weitere Karten-/Kryptoprofile, Oberfläche, dauerhafte
-Hostkoordination über Instanzen/Neustarts und echte Hardware-/TI-Nachweise.
+Der [CMS-Diagnosehost](konnektor-cms-host.md) ergänzt inzwischen die begrenzten
+ECC-SignDocument-/EncryptDocument-/DecryptDocument-Aufrufe, dauerhafte
+Prüfauftragskoordination und eine Webansicht. Offen bleiben Account-Manager-
+Anbindung, aktuelle ausgehende VZD-Absenderbindung, vollständige Nachrichtenpipeline,
+weitere Karten-/Kryptoprofile, die gesamte PIN-/Kontenverwaltung in der Oberfläche
+und echte Hardware-/TI-Nachweise.
 Snapshots und Signaturprüfung ersetzen keine kontinuierliche Entnahmeüberwachung
 oder nachgewiesene atomare Konnektor-/Kartensitzung. Produktive Sperren sowie
 unabhängige Prüfung/Zulassung bleiben bestehen. Das Fachdienstinventar bleibt

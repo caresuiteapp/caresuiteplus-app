@@ -75,8 +75,11 @@ als unbestätigten Ausgang der bereits angeforderten Änderung.
 Die [SMC-B-Authentisierung](konnektor-auth.md) ergänzt ExternalAuthenticate
 mit SHA-256/ECDSA, mathematischer Signaturprüfung und anschließender vollständiger
 Karten-/Zertifikats-/PIN-Nachprüfung. Daraus kann ein gesperrtes X-KIM-Auth-Token
-entstehen. Aktuelle ausgehende VZD-Absenderbindung, SignDocument/CMS und
-Kartenentschlüsselung sind noch zu verbinden; kein Token wird automatisch versandt.
+entstehen. Der [CMS-/Host-Prüfablauf](konnektor-cms-host.md) ergänzt jetzt
+GetJobNumber, SignDocument, EncryptDocument und DecryptDocument für eine begrenzte
+ECC-Teilmenge, ein dauerhaftes Diagnosejournal, eine mTLS-geschützte Web-API und
+die Ansicht „Konnektorprüfung“. Die ausgehende VZD-Absenderbindung und die
+produktive Nachrichtenpipeline sind weiterhin zu verbinden; kein Token wird automatisch versandt.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

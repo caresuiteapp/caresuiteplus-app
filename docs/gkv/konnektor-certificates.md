@@ -169,7 +169,7 @@ Der [PIN-Ablauf](konnektor-pin.md) ergänzt GetPinStatus und VerifyPin mit
 separater begrenzter Wartezeit für die Terminaleingabe.
 Noch offen sind DVD/ServiceDiscovery, Terminalinventar und Auswahloberfläche, provisionierte
 Konnektor- und Mandantenkontexte, reale mTLS-Interoperabilität, SMC-B-/HBA-
-CMS-/Entschlüsselungsoperationen, reale PIN-Bedienung, historische Prüfungen, QES-Sonderprofile,
+Vollständige CMS-Profile (begrenzte ECC-Diagnose siehe [konnektor-cms-host.md](konnektor-cms-host.md)), reale PIN-Bedienung, historische Prüfungen, QES-Sonderprofile,
 weitere Transport-/SOAP-Profile, vollständige Kryptografie-/Fehlervorgaben und
 unabhängige Abnahme. Das explizite Lesen von RSA oder C.QES ist keine Freigabe
 dieser KIM-Nachrichtenprofile. Der VZD-Server wird weiterhin mit dem vorhandenen

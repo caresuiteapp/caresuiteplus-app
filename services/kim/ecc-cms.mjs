@@ -26,7 +26,7 @@ function hashAlgorithm(node) {
  * A receiver must supply the expected signer certificate from its own trusted resolution.
  * Neither an embedded leaf nor this module can make that resolution trusted.
  */
-function certificate(input, role, now) {
+export function eccCmsCertificate(input, role, now) {
   if (typeof input === 'string') {
     if (input.length > 20_000 || !/^\s*-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\r\n]+-----END CERTIFICATE-----\s*$/.test(input)) throw new Error('KIM_CMS_CERTIFICATE');
   } else if (!(input instanceof Uint8Array) || input.length > 12_000) throw new Error('KIM_CMS_CERTIFICATE');
@@ -50,13 +50,13 @@ function certificate(input, role, now) {
   try {
     const type = selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES[role === 'osig' ? 'signing' : 'encryption']);
     const admission = readKimAdmission(extensions.get(ADMISSION_EXTENSION_HEX), type);
-    return { cert, admission, rid: seq(parts.issuer, parts.serial) };
+    return { cert, admission, certificateTypeOid: type, rid: seq(parts.issuer, parts.serial) };
   } catch { throw new Error('KIM_CMS_CERTIFICATE'); }
 }
-function recipientsFor(sender, recipients, now) {
+export function prepareEccKimRecipients(sender, recipients, now) {
   if (!Array.isArray(recipients) || !recipients.length || recipients.length > 1000) throw new Error('KIM_CMS_RECIPIENTS');
   const identities = new Set(), addressIds = new Map(), entries = recipients.map(entry => {
-    const address = kimAddress(entry.address), c = certificate(entry.certificate, 'enc', now), key = c.rid.toString('hex');
+    const address = kimAddress(entry.address), c = eccCmsCertificate(entry.certificate, 'enc', now), key = c.rid.toString('hex');
     if (identities.has(key)) throw new Error('KIM_CMS_RECIPIENTS');
     // KOM-LE-A_2178: key rollover may supply multiple certificates for one
     // address, but all must identify the same recipient. No first-match choice.
@@ -85,7 +85,7 @@ function decrypt(bytes, recipientCertificate, privateKey, address) {
   let transport, pending;
   try {
     const parsed = readKimEnvelope(inputBytes(bytes, MAX_CMS), [address]);
-    const recipient = certificate(recipientCertificate, 'enc'), rid = recipient.rid.toString('hex');
+    const recipient = eccCmsCertificate(recipientCertificate, 'enc'), rid = recipient.rid.toString('hex');
     if (!privateKey || privateKey.type !== 'private' || !recipient.cert.checkPrivateKey(privateKey)
       || !parsed.mappings.some(e => e.rid === rid && e.address === kimAddress(address))) throw new Error();
     const key = parsed.keys.find(k => k.rid === rid);
@@ -108,7 +108,7 @@ function timeAttribute(now) {
   return tlv(iso.slice(0, 4) < '2050' ? 23 : 24, Buffer.from(iso.slice(0, 4) < '2050' ? value.slice(2) : value));
 }
 function signedContent(content, emails, signingCertificate, signingKey, now) {
-  const c = certificate(signingCertificate, 'osig', now);
+  const c = eccCmsCertificate(signingCertificate, 'osig', now);
   if (!signingKey || signingKey.type !== 'private' || !c.cert.checkPrivateKey(signingKey)) throw new Error('KIM_CMS_SIGNING_KEY');
   brainpoolPublicKey(createPublicKey(signingKey));
   const attrs = set(attribute(OID.contentType, id(OID.data)), attribute(OID.messageDigest, octets(digest(content))),
@@ -133,7 +133,7 @@ export function verifyEccKimSignedContent({ bytes, recipientEmails, expectedSign
     const { data, content } = signedParts(bytes);
     if (data[0].tag !== 2 || data[0].value.toString('hex') !== '01') throw new Error();
     hashAlgorithm(fields(data[1], 49, 1)[0]);
-    const embedded = fields(data[3], 160, 1)[0].raw, signer = certificate(expectedSignerCertificate, 'osig', now);
+    const embedded = fields(data[3], 160, 1)[0].raw, signer = eccCmsCertificate(expectedSignerCertificate, 'osig', now);
     if (!timingSafeEqual(digest(embedded), digest(signer.cert.raw)) || !embedded.equals(signer.cert.raw)) throw new Error();
     const info = fields(fields(data[4], 49, 1)[0], 48, 6);
     if (info[0].tag !== 2 || info[0].value.toString('hex') !== '01' || !info[1].raw.equals(signer.rid)) throw new Error();
@@ -172,7 +172,7 @@ export function sealEccKimPayload({ message, sender, recipients, signingCertific
   const content = Buffer.concat([messageMime, inputBytes(message, MAX_CONTENT)]);
   let signed;
   try {
-    const prepared = recipientsFor(sender, recipients, now);
+    const prepared = prepareEccKimRecipients(sender, recipients, now);
     signed = signedContent(content, prepared.emails, signingCertificate, signingKey, now);
     const inner = Buffer.concat([signedMime, signed]);
     try { return encrypt(inner, prepared.entries, prepared.emails); }

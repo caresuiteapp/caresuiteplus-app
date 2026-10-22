@@ -1,3 +1,4 @@
+import { SIGNATURE_SERVICE, ENCRYPTION_SERVICE, DOCUMENT_OPERATIONS, CMS_XML_LIMIT } from './connector-document-xml.mjs';
 import https from 'node:https';
 import { createSecureContext, checkServerIdentity } from 'node:tls';
 import { isIP } from 'node:net';
@@ -14,7 +15,7 @@ export class KonnektorHttpsTransport {
   constructor({ url, ca, serverSha256, clientCertificate, clientKey, clientPassphrase, connectAddress, service = 'certificate' }) {
     let key;
     try {
-      if (!['certificate', 'event', 'card', 'authentication'].includes(service) || typeof url !== 'string' || url.length > 2048 || /[^\x21-\x7e]/.test(url)
+      if (!['certificate', 'event', 'card', 'authentication', 'signature', 'encryption'].includes(service) || typeof url !== 'string' || url.length > 2048 || /[^\x21-\x7e]/.test(url)
         || typeof ca !== 'string' || !ca.length || ca.length > 262144 || !/^[a-f0-9]{64}$/.test(serverSha256 ?? '')
         || !(typeof clientCertificate === 'string' || clientCertificate instanceof Uint8Array)
         || !(typeof clientKey === 'string' || clientKey instanceof Uint8Array)) connectorFail('CONFIGURATION');
@@ -28,7 +29,7 @@ export class KonnektorHttpsTransport {
       if (client.ca) connectorFail('CONFIGURATION');
       const secureContext = createSecureContext({ ca, cert, key, passphrase: clientPassphrase, minVersion: 'TLSv1.2' });
       this.#url = u.href;
-      this.#namespace = service === 'event' ? EVENT_SERVICE : service === 'card' ? CARD_SERVICE : service === 'authentication' ? AUTH_SERVICE : CERTIFICATE_SERVICE;
+      this.#namespace = service === 'signature' ? SIGNATURE_SERVICE : service === 'encryption' ? ENCRYPTION_SERVICE : service === 'event' ? EVENT_SERVICE : service === 'card' ? CARD_SERVICE : service === 'authentication' ? AUTH_SERVICE : CERTIFICATE_SERVICE;
       this.#options = { method: 'POST', agent: false, maxHeaderSize: 16384, insecureHTTPParser: false,
         rejectUnauthorized: true, minVersion: 'TLSv1.2', secureContext,
         checkServerIdentity: (hostname, peer) => {
@@ -49,8 +50,9 @@ export class KonnektorHttpsTransport {
   async request(operation, input, { signal, timeoutMs = 10000 } = {}) {
     connectorSignal(signal);
     if (this.#closed) connectorFail('CLOSED');
+    const cms = DOCUMENT_OPERATIONS.includes(operation), limit = cms ? CMS_XML_LIMIT : 262144;
     if (connectorService(operation) !== this.#namespace || !(input instanceof Uint8Array)
-      || !input.length || input.length > 65536 || !Number.isInteger(timeoutMs) || timeoutMs < 50
+      || !input.length || input.length > (cms ? limit : 65536) || !Number.isInteger(timeoutMs) || timeoutMs < 50
       || timeoutMs > (PIN_OPERATIONS.includes(operation) ? 180000 : 30000)) connectorFail('INPUT');
     if (this.#pending.size >= 16) connectorFail('BUSY');
     const bytes = Buffer.from(input);
@@ -66,7 +68,7 @@ export class KonnektorHttpsTransport {
       signal?.addEventListener('abort', aborted, { once: true }); this.#pending.add(closed);
       try {
         request = https.request(this.#url, { ...this.#options, headers: {
-          'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `"${this.#namespace}#${operation}"`,
+          'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `"${operation === 'DecryptDocument' ? 'http://ws.gematik.de/conn/crypt/EncryptionService/v6.1' : this.#namespace}#${operation}"`,
           'Content-Length': bytes.length, Accept: 'text/xml', 'Accept-Encoding': 'identity',
         } }, incoming => {
           response = incoming;
@@ -85,9 +87,9 @@ export class KonnektorHttpsTransport {
           if (length !== undefined) {
             if (!/^[1-9][0-9]*$/.test(length)) return finish('KIM_CONNECTOR_HTTP_FORMAT');
             expected = Number(length);
-            if (!Number.isSafeInteger(expected) || expected > 262144) return finish('KIM_CONNECTOR_RESPONSE_SIZE');
+            if (!Number.isSafeInteger(expected) || expected > limit) return finish('KIM_CONNECTOR_RESPONSE_SIZE');
           }
-          incoming.on('data', chunk => { size += chunk.length; if (size > 262144) return finish('KIM_CONNECTOR_RESPONSE_SIZE'); chunks.push(chunk); });
+          incoming.on('data', chunk => { size += chunk.length; if (size > limit) return finish('KIM_CONNECTOR_RESPONSE_SIZE'); chunks.push(chunk); });
           incoming.on('end', () => {
             if (!incoming.complete || !size || (expected !== undefined && expected !== size)) return finish('KIM_CONNECTOR_HTTP_INCOMPLETE');
             finish(undefined, { statusCode: incoming.statusCode, bytes: Buffer.concat(chunks, size) });
