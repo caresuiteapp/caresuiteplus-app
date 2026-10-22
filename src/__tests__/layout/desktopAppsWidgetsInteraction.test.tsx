@@ -111,6 +111,8 @@ const expectSelectedDesktop = (area: DesktopAreaKey) => {
 };
 const open = async (name = 'Apps') => { await clickLabel('Apps und Widgets öffnen'); if (name !== 'Apps') await click(tab(name)); };
 const savedIds = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as string[];
+const catalogRoute = (catalog: 'app' | 'widget', route: string) => dialog().querySelector<HTMLElement>(`[data-testid="center-${catalog}-catalog"] [data-artwork-route="${route}"]`);
+const officeClientAction = (name: string) => catalogRoute('widget', '/business/office/clients')?.closest('article')?.querySelector<HTMLElement>(`[aria-label="${name}"]`);
 
 describe('Apps and Widgets in the actual Web desktop', () => {
   it('opens the requested Apps catalogue after auth and saved desktop restoration, then consumes the request once', async () => {
@@ -385,14 +387,14 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     seed(['clients']); seed([], 'beratung'); seed(['assignments'], 'assist');
     await render(); await open('Widgets');
     await selectDesktop('beratung');
-    expect(label('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
-    await clickLabel('Klient:innen zum Desktop hinzufügen');
+    expect(officeClientAction('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
+    await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual(['clients']);
     await selectDesktop('assist');
-    await clickLabel('Klient:innen zum Desktop hinzufügen');
+    await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
     expect(savedIds('assist')).toEqual(['assignments', 'clients']);
-    await clickLabel('Klient:innen nach vorne verschieben');
+    await click(officeClientAction('Klient:innen nach vorne verschieben'));
     expect(savedIds('assist')).toEqual(['clients', 'assignments']);
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual(['clients']);
@@ -404,7 +406,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(api.push).toHaveBeenCalledWith('/business/office/clients');
     expect(memory.get(selectionKey())).toBe('assist');
     await open('Widgets');
-    await clickLabel('Klient:innen vom Desktop entfernen');
+    await click(officeClientAction('Klient:innen vom Desktop entfernen'));
     expect(savedIds('assist')).toEqual(['assignments']);
     expect(savedIds()).toEqual(['clients']);
     expect(savedIds('beratung')).toEqual(['clients']);
@@ -483,9 +485,12 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(label('Seite Klient:innen öffnen')).toBeNull();
     await open();
-    expect(label('App Klient:innen öffnen')).toBeNull();
+    // Office and Assist both have a card named Klient:innen. Check their destinations.
+    expect(catalogRoute('app', '/business/office/clients')).toBeNull();
+    expect(catalogRoute('app', '/assist/zugeordnete-klienten')).toBeTruthy();
     await click(tab('Widgets'));
-    expect(label('Klient:innen zum Desktop hinzufügen')).toBeNull();
+    expect(catalogRoute('widget', '/business/office/clients')).toBeNull();
+    expect(catalogRoute('widget', '/assist/zugeordnete-klienten')).toBeTruthy();
     await clickLabel('Einsätze vom Desktop entfernen');
     expect(savedIds('assist')).toEqual(['clients']);
     expect(savedIds()).toEqual(['clients']);
