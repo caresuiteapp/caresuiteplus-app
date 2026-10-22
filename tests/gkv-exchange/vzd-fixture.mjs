@@ -21,7 +21,8 @@ export const record = (address, certs, changes = {}) => [
 
 export async function vzdFixture(pki, handler, changes = {}) {
   const sockets = new Set(), requests = [], errors = [];
-  const server = tls.createServer(pki.tls, socket => {
+  const credentials = changes.tls ?? pki.tls;
+  const server = tls.createServer(credentials, socket => {
     sockets.add(socket); let pending = Buffer.alloc(0);
     socket.on('error', () => {}); socket.on('close', () => sockets.delete(socket));
     socket.on('data', chunk => {
@@ -38,17 +39,22 @@ export async function vzdFixture(pki, handler, changes = {}) {
         const bytes = Buffer.from(pending.subarray(0, at + length)); pending = pending.subarray(at + length);
         try {
           const [id, op] = fields(der(bytes), 48, 2); requests.push({ id: id.value[0], op: op.tag, bytes });
-          if (op.tag === 0x60) { socket.write(changes.bind ?? bindReply); continue; }
+          if (op.tag === 0x60) {
+            if (changes.onBind) Promise.resolve(changes.onBind(socket)).catch(e => { errors.push(e); socket.destroy(); });
+            else socket.write(changes.bind ?? bindReply);
+            continue;
+          }
           const s = fields(op, 0x63, 8), alternatives = fields(s[6], 0xa1, 2);
           const equality = fields(alternatives[0], 0xa3, 2), address = equality[1].value.toString('utf8');
           Promise.resolve(handler({ socket, address, request: s, bytes })).catch(e => { errors.push(e); socket.destroy(); });
         } catch (e) { errors.push(e); socket.destroy(); }
       }
     });
+    changes.onSecure?.(socket);
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const options = { url: `ldaps://localhost.test:${server.address().port}`, connectAddress: '127.0.0.1', ca: pki.roots,
-    serverSha256: createHash('sha256').update(new X509Certificate(pki.tls.cert).raw).digest('hex'), environment: 'test' };
+    serverSha256: createHash('sha256').update(new X509Certificate(credentials.cert).raw).digest('hex'), environment: 'test' };
   return { options, requests, directory: new VzdLdapsDirectory({ ...options, ...changes.client }),
     async close() { for (const s of sockets) s.destroy(); await new Promise(r => server.close(r)); if (errors.length) throw errors[0]; } };
 }

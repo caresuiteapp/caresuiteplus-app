@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openssl } from '../../services/gkv/openssl.mjs';
-import { defaultAdmission } from './admission-fixture.mjs';
+import { defaultAdmission, admissionDer } from './admission-fixture.mjs';
 
 export async function testPki() {
   const dir = await mkdtemp(join(tmpdir(), 'cs-gkv-test-')), password = Buffer.from('fictional-local-test-only-2026');
@@ -17,7 +17,7 @@ export async function testPki() {
   const rootKey = await key('root'), rootPath = join(dir, 'root.pem');
   await openssl(['req', '-new', '-x509', '-key', rootKey, '-passin', 'fd:3', '-sha256', ...pss, '-days', '30', '-subj', '/C=DE/O=CareSuite Test CA/CN=Not a trusted production authority', '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign', '-out', rootPath], { password });
   await file('index', ''); await file('serial', '1000\n'); await file('crlnumber', '1000\n');
-  const config = await file('ca.cnf', `[ca]\ndefault_ca=test\n[test]\ndatabase=${dir}/index\nserial=${dir}/serial\ncrlnumber=${dir}/crlnumber\nnew_certs_dir=${dir}\ncertificate=${rootPath}\nprivate_key=${rootKey}\ndefault_md=sha256\ndefault_days=7\ndefault_crl_days=2\npolicy=policy\nx509_extensions=leaf\nunique_subject=no\n[policy]\ncountryName=supplied\norganizationName=supplied\norganizationalUnitName=supplied\ncommonName=supplied\n[leaf]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
+  const config = await file('ca.cnf', `[ca]\ndefault_ca=test\n[test]\ndatabase=${dir}/index\nserial=${dir}/serial\ncrlnumber=${dir}/crlnumber\nnew_certs_dir=${dir}\ncertificate=${rootPath}\nprivate_key=${rootKey}\ndefault_md=sha256\ndefault_days=7\ndefault_crl_days=2\npolicy=policy\nx509_extensions=leaf\nunique_subject=no\n[policy]\ncountryName=supplied\norganizationName=supplied\norganizationalUnitName=optional\ncommonName=supplied\n[leaf]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
   const issue = async (name, ik) => {
     const privateKeyPath = await key(name), req = join(dir, `${name}.csr`), cert = join(dir, `${name}.pem`);
     await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', ...pss, '-subj', `/C=DE/O=ITSG TrustCenter fuer sonstige Leistungserbringer/OU=CareSuite Test/OU=IK${ik}/CN=Fictional test contact`, '-out', req], { password });
@@ -32,11 +32,12 @@ export async function testPki() {
   await openssl(['req', '-new', '-key', tlsKey, '-passin', 'fd:3', '-subj', '/C=DE/O=CareSuite Test/OU=TLS/CN=localhost.test', '-out', tlsRequest], { password });
   const tlsExt = await file('tls.cnf', '[server]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost.test\n');
   await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', tlsRequest, '-out', tlsCert, '-notext', '-extfile', tlsExt, '-extensions', 'server', ...pss], { password });
-  const issueIdentity = async ({ name, curve = 'brainpoolP256r1', policy, usage, extendedUsage, startDate, aia, admission }) => {
+  const issueIdentity = async ({ name, curve = 'brainpoolP256r1', policy, usage, extendedUsage, startDate, aia, admission,
+    subject = '/C=DE/O=CareSuite Test/OU=Isolated KIM fixture/CN=Not a TI identity', san, constraints = 'critical,CA:FALSE' }) => {
       const pair = generateKeyPairSync(curve === 'rsa' ? 'rsa' : 'ec', { ...(curve === 'rsa' ? { modulusLength: 3072 } : { namedCurve: curve }), privateKeyEncoding: { type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: password } });
       const privateKeyPath = await file(`${name}.key`, pair.privateKey), req = join(dir, `${name}.csr`), cert = join(dir, `${name}.pem`);
-      await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', '-subj', '/C=DE/O=CareSuite Test/OU=Isolated KIM fixture/CN=Not a TI identity', '-out', req], { password });
-      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,${usage}\n${policy ? `certificatePolicies=${policy}\n` : ''}${extendedUsage ? `extendedKeyUsage=${extendedUsage}\n` : ''}${aia ? `authorityInfoAccess=${aia}\n` : ''}${admission ? `1.3.36.8.3.3=DER:${admission.toString('hex')}\n` : ''}subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
+      await openssl(['req', '-new', '-key', privateKeyPath, '-passin', 'fd:3', '-sha256', '-subj', subject, '-out', req], { password });
+      const ext = await file(`${name}.cnf`, `[aut]\nbasicConstraints=${constraints}\nkeyUsage=critical,${usage}\n${policy ? `certificatePolicies=${policy}\n` : ''}${extendedUsage ? `extendedKeyUsage=${extendedUsage}\n` : ''}${san ? `subjectAltName=${san}\n` : ''}${aia ? `authorityInfoAccess=${aia}\n` : ''}${admission ? `1.3.36.8.3.3=DER:${admission.toString('hex')}\n` : ''}subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
       await openssl(['ca', '-batch', '-config', config, '-passin', 'fd:3', '-in', req, '-out', cert, '-notext', '-extfile', ext, '-extensions', 'aut', ...(startDate ? ['-startdate', startDate] : []), ...pss], { password });
       return { privateKeyPath, certificate: await readFile(cert, 'utf8'), path: cert };
   };
@@ -50,6 +51,12 @@ export async function testPki() {
     },
     issueOcsp({ name = 'ocsp', curve = 'brainpoolP256r1', extendedUsage = 'OCSPSigning', usage = 'digitalSignature', startDate } = {}) {
       return issueIdentity({ name, curve, extendedUsage, usage, startDate });
+    },
+    issueVzd(options = {}) {
+      return issueIdentity({ name: 'vzd-server', curve: 'prime256v1', policy: '1.2.276.0.76.4.163,1.2.276.0.76.4.157',
+        usage: 'digitalSignature', extendedUsage: 'serverAuth', subject: '/C=DE/O=CareSuite Test/CN=localhost.test',
+        san: 'DNS:localhost.test', aia: 'OCSP;URI:https://unconfigured-aia.invalid/status',
+        admission: admissionDer({ professionOid: '1.2.276.0.76.4.171', professionItem: 'Verzeichnisdienst-TI', telematikId: null }), ...options });
     },
     issueTsl({ name = 'tsl', curve = 'brainpoolP256r1', extendedUsage = '0.4.0.2231.3.0', usage = 'nonRepudiation', startDate, aia } = {}) {
       return issueIdentity({ name, curve, extendedUsage, usage, startDate, aia });

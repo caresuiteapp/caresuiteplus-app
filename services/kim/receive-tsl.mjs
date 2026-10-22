@@ -50,7 +50,11 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
       const statuses = assessKimOcspEvidence(ocsp, { signing: captured.expectedSignerCertificate, authentication: captured.expectedAuthCertificate });
       directoryAcquisition = Object.freeze({ state: 'not-checked', code: 'KIM_VZD_CERTIFICATE_STATUS' });
       if (acquisition.state === 'checked' && statuses.every(s => s.status === 'good')) {
-        try { directoryAcquisition = await matchVzdSender(directory, opened.sender, ocsp, signal); }
+        try {
+          const result = await matchVzdSender(directory, opened.sender, ocsp, signal, statusClient);
+          // Recheck the actual peer's raw proof after the final async boundary.
+          result.revalidate(); directoryAcquisition = result.binding;
+        }
         catch (e) {
           if (signal?.aborted) fail('KIM_TSL_ABORTED');
           directoryAcquisition = Object.freeze({ state: 'unavailable', code: e instanceof VzdError ? e.code : 'KIM_VZD_UNAVAILABLE' });

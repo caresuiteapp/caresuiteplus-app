@@ -84,8 +84,9 @@ export class TslOcspStatusClient {
     } catch (e) { if (e instanceof TslError) throw e; fail('KIM_TSL_STATUS_BINDING'); }
   }
   #plan(snapshot, certificate, purpose) {
-    if (typeof purpose !== 'string' || !Object.hasOwn(KIM_CERTIFICATE_TYPES, purpose)) fail('KIM_TSL_CERT_TYPE_CONFIGURATION');
-    const plan = snapshot.ocspPlanFor(certificate, { model: this.#model, policyList: KIM_CERTIFICATE_TYPES[purpose] });
+    if (typeof purpose !== 'string' || (!Object.hasOwn(KIM_CERTIFICATE_TYPES, purpose) && purpose !== 'directory-server')) fail('KIM_TSL_CERT_TYPE_CONFIGURATION');
+    const plan = purpose === 'directory-server' ? snapshot.directoryServerOcspPlanFor(certificate)
+      : snapshot.ocspPlanFor(certificate, { model: this.#model, policyList: KIM_CERTIFICATE_TYPES[purpose] });
     const matches = this.#routes.filter(r => plan.supplyPoints.some(url => r.transport.matchesEndpoint(url)));
     if (matches.length !== 1) fail('KIM_TSL_STATUS_ROUTE');
     return { plan, route: matches[0] };
@@ -106,6 +107,7 @@ export class TslOcspStatusClient {
     this.#open(); checkSignal(signal);
     const tsl = listVersion(snapshot.metadata), evidence = plan.verifier.verify({ certificate: plan.certificate, request: proof.request, response: proof.response });
     return Object.freeze({ ...evidence, certificateTypeOid: plan.certificateTypeOid, admission: plan.admission,
+      ...(plan.serverProfile ? { serverProfile: plan.serverProfile } : {}),
       trustSource: 'configured-tsl-anchors', source: proof.source, tsl,
       routeSha256: route.transport.routeSha256, request: Buffer.from(proof.request), response: Buffer.from(proof.response), verifier: plan.verifier });
   }

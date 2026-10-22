@@ -1,6 +1,6 @@
 # TSL-gebundene Statusprüfung im KIM-Empfang
 
-Stand: 21.10.2026. `TslOcspStatusClient` verbindet den laufenden
+Stand: 22.10.2026. `TslOcspStatusClient` verbindet den laufenden
 [TSL-Aktualisierungsdienst](tsl-refresh.md) mit dem dauerhaften OCSP-Cache.
 Für ein Nachrichtenzertifikat wählt er die Statusadresse aus dem passenden
 CA-Diensteintrag der geprüften TSL. `receiveEccKimMessageWithTsl` verwendet
@@ -88,7 +88,7 @@ gibt es keinen Statusabruf. Schlüssel, vertrauenswürdige Anker, TLS-Konfigurat
 und erreichbare TI-Routen müssen separat bereitgestellt werden.
 
 `check({ certificate, purpose, signal })` benötigt einen ausdrücklichen Zweck
-(`signing`, `authentication` oder `encryption`) und liefert einen tatsächlich geprüften Status mit
+(`signing`, `authentication`, `encryption` oder `directory-server`) und liefert einen tatsächlich geprüften Status mit
 eigenen Anfrage-/Antwortkopien, geschütztem Prüfer, Routenhash und TSL-Version.
 `certificateTypeOid` nennt die mit Blatt und CA-Freigabe abgeglichene Typkennung.
 `admission` enthält die zum Zertifikatstyp geprüften Rollen und die eindeutige
@@ -96,6 +96,13 @@ Telematik-ID aus dem signierten Blatt. Fehlende oder widersprüchliche Angaben
 blockieren auch einen vorhandenen positiven Cachebeleg vor dessen Verwendung.
 `trustSource` lautet hier `configured-tsl-anchors`; auch ein `good` bleibt
 `identityStatus: unverified`.
+
+Der Zweck `directory-server` verwendet stattdessen
+`directoryServerOcspPlanFor`: C.ZD.TLS-S, technisches VZD-Admission ohne
+Telematik-ID und das begrenzte ECC-Serverprofil werden vor dem Cachezugriff
+verlangt. Der CA-Pfad bleibt hier immer `current`, auch wenn der Client für
+Nachrichtenzertifikate das Kompromissmodell verwendet.
+[Ablauf am tatsächlichen TLS-Peer](vzd-server-certificate.md).
 
 `messageEvidence({ signingCertificate, authenticationCertificate, signal })`
 bereitet beide Pfade gegen denselben geschützten Listenstand vor, bevor eine
@@ -202,7 +209,7 @@ auch gegen ältere positive Cachebelege und nach Listenwechsel.
 
 Keine Abfrage echter TI-Dienste und kein Echtversand. Noch offen bleiben
 authentisierte TI-Ankerbereitstellung/-rotation, vollständige Rollen-/Policy-
-und Identitätsprüfung, TI-VZD-Serverprüfung/-Anbindung, Konnektor/SMC-B, produktiver Diensthost,
+und Identitätsprüfung, vollständige VZD-Serverprofile/TI-Anbindung, Konnektor/SMC-B, produktiver Diensthost,
 vollständiges Clientmodul und Fachdienst sowie unabhängige Prüfung/Zulassung.
 Der Dienst benötigt die bestehenden Laufzeiten und ein geschütztes dauerhaftes
 lokales Volume; Vercel-Funktionen mit flüchtigem Speicher ersetzen diesen Host

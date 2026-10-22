@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
 import { der, fields, certificateParts, rsaAlgorithm } from '../gkv/der.mjs';
 import { PinnedOcspVerifier } from './ocsp.mjs';
-import { selectCertificateType, CertificatePolicyError } from './certificate-policy.mjs';
+import { selectCertificateType, CertificatePolicyError, VZD_SERVER_CERTIFICATE_TYPES } from './certificate-policy.mjs';
 import { readKimAdmission, CertificateAdmissionError, ADMISSION_EXTENSION_HEX } from './certificate-admission.mjs';
+import { readVzdTlsProfile, VzdCertificateError } from './vzd-certificate.mjs';
 
 export const TSL_SCHEMA_SHA256 = 'ffd4e6ae233c8e648ec009a55a9809fad9fcc4197f7928a48e15b5dbdde7137b';
 const MAX_XML = 8 * 1024 * 1024, DAY = 86400_000, token = Symbol('verified TSL');
@@ -321,12 +322,33 @@ export class TslTrustSnapshot {
   ocspPlanFor(input, { model = 'current', policyList, isCurrent } = {}) {
     try {
       const leaf = cert(input), type = this.certificateAdmissionFor(leaf.c.raw, { policyList, model, isCurrent });
-      const verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
-      const { issuer, service } = this.#issuerFor(leaf, model, this.#now());
-      const request = verifier.createRequest(leaf.c.raw);
-      return Object.freeze({ ...type, certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,
-        supplyPoints: statusEndpoints(service.supplyPoints), request, verifier });
+      return this.#statusPlan(leaf, type, model, isCurrent);
     } catch (error) { if (error instanceof TslError) throw error; fail('KIM_TSL_STATUS_PLAN'); }
+  }
+  directoryServerFor(input, { isCurrent } = {}) {
+    try {
+      const leaf = cert(input), type = this.certificateTypeFor(leaf.c.raw, { policyList: VZD_SERVER_CERTIFICATE_TYPES, model: 'current', isCurrent });
+      const serverProfile = readVzdTlsProfile(leaf);
+      return Object.freeze({ ...type, admission: serverProfile.admission, serverProfile });
+    } catch (e) {
+      if (e instanceof TslError) throw e;
+      if (e instanceof VzdCertificateError) fail(e.code);
+      if (e instanceof CertificateAdmissionError) fail(e.code.replace('KIM_ADMISSION_', 'KIM_TSL_SERVER_ADMISSION_'));
+      fail('KIM_TSL_SERVER_FORMAT');
+    }
+  }
+  directoryServerOcspPlanFor(input, { isCurrent } = {}) {
+    try {
+      const leaf = cert(input), type = this.directoryServerFor(leaf.c.raw, { isCurrent });
+      return this.#statusPlan(leaf, type, 'current', isCurrent);
+    } catch (e) { if (e instanceof TslError) throw e; fail('KIM_TSL_STATUS_PLAN'); }
+  }
+  #statusPlan(leaf, type, model, isCurrent) {
+    const verifier = this.ocspVerifierFor(leaf.c.raw, { model, isCurrent });
+    const { issuer, service } = this.#issuerFor(leaf, model, this.#now());
+    const request = verifier.createRequest(leaf.c.raw);
+    return Object.freeze({ ...type, certificate: Buffer.from(leaf.c.raw), certificateSha256: leaf.sha256, issuerSha256: issuer.sha256,
+      supplyPoints: statusEndpoints(service.supplyPoints), request, verifier });
   }
   ocspVerifierFor(input, { model = 'current', isCurrent } = {}) {
     try {

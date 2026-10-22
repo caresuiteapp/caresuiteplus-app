@@ -8,7 +8,8 @@ export const KIM_CERTIFICATE_TYPES = Object.freeze({
   authentication: Object.freeze(['1.2.276.0.76.4.75', '1.2.276.0.76.4.77']),
   encryption: Object.freeze(['1.2.276.0.76.4.74', '1.2.276.0.76.4.76']),
 });
-const knownTypes = new Set(Object.values(KIM_CERTIFICATE_TYPES).flat());
+export const VZD_SERVER_CERTIFICATE_TYPES = Object.freeze(['1.2.276.0.76.4.157']);
+const knownTypes = new Set([...Object.values(KIM_CERTIFICATE_TYPES).flat(), ...VZD_SERVER_CERTIFICATE_TYPES]);
 export class CertificatePolicyError extends Error {
   constructor(code) { super(code); this.name = 'CertificatePolicyError'; this.code = code; }
 }

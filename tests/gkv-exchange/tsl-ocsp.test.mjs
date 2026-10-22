@@ -21,10 +21,10 @@ import { certificateParts, der, fields } from '../../services/gkv/der.mjs';
 import { tlv, sequence as seq } from '../../services/kim/cms-codec.mjs';
 import { tslFixture, CA, OCSP, REVOKED } from './tsl-fixture.mjs';
 import { withAdmission, admissionDer } from './admission-fixture.mjs';
-import { vzdFixture, record, entryReply, searchDone } from './vzd-fixture.mjs';
-import { resolveVzdRecipients } from '../../services/kim/vzd-bindings.mjs';
+import { vzdFixture, record, entryReply, searchDone, bindReply } from './vzd-fixture.mjs';
+import { resolveVzdRecipients, matchVzdSender } from '../../services/kim/vzd-bindings.mjs';
 import { openEccKimMessage } from '../../services/kim/client-message.mjs';
-import { VzdLdapsDirectory } from '../../services/kim/vzd.mjs';
+import { VzdLdapsDirectory, revalidateVzdRecord } from '../../services/kim/vzd.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -33,6 +33,7 @@ const statusError = e => /^KIM_(?:TSL|OCSP)_/.test(e?.code);
 const report = { cmVersion: 'TEST_0.1.0', ptVersion: '1.5.5' };
 let f, server, origin, signer, signing, authentication, wire, state, defaults, extraResponder, originalHash, rootKey;
 let encryption, rollover, signingKey, authKey;
+let vzdServer, vzdTls;
 const senderAddress = 'sender@local.kim.telematik-test', receiverAddress = 'receiver@local.kim.telematik-test';
 const endpoints = () => ({ url: origin + '/leaf-ocsp', ca: f.pki.roots, connectAddress: '127.0.0.1' });
 const route = path => ({ ...endpoints(), url: origin + path });
@@ -42,8 +43,8 @@ before(async () => {
   server = https.createServer(f.pki.tls, (req, res) => {
     const chunks = []; req.on('data', c => chunks.push(c)); req.on('end', () => {
       const bytes = Buffer.concat(chunks), path = req.url;
-      const identity = [...(state.certificates ?? []), signer, signing, authentication, ...(encryption ?? []), rollover].filter(Boolean).find(c => f.proof(c.certificate).request.equals(bytes));
-      const purpose = identity === signing ? 'signing' : identity === authentication ? 'authentication' : identity === signer ? 'signer' : 'encryption';
+      const identity = [...(state.certificates ?? []), signer, signing, authentication, ...(encryption ?? []), rollover, vzdServer].filter(Boolean).find(c => f.proof(c.certificate).request.equals(bytes));
+      const purpose = identity === signing ? 'signing' : identity === authentication ? 'authentication' : identity === signer ? 'signer' : identity === vzdServer ? 'directory' : 'encryption';
       state.calls.push({ path, bytes, purpose });
       if (state.handler?.(req, res, bytes, purpose)) return;
       if (path === '/hash') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(hash(state.bundle.xml)); }
@@ -68,6 +69,8 @@ before(async () => {
   const key = async c => createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: f.pki.password });
   rootKey = await key({ privateKeyPath: join(f.pki.dir, 'root.key') });
   signingKey = await key(signing); authKey = await key(authentication);
+  vzdServer = await f.pki.issueVzd({ startDate });
+  vzdTls = { key: await readFile(vzdServer.privateKeyPath), passphrase: f.pki.password.toString(), cert: vzdServer.certificate };
   const sender = 'sender@local.kim.telematik-test', receiver = 'receiver@local.kim.telematik-test';
   const message = createEccKimMessage({ message: Buffer.from(`From: ${sender}\r\nTo: ${receiver}\r\nSubject: Local TSL status test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nPRIVATE LOCAL STATUS TEST\r\n`),
     sender, envelopeRecipients: [receiver], recipients: [{ address: sender, certificate: a.certificate }, { address: receiver, certificate: b.certificate }],
@@ -76,6 +79,7 @@ before(async () => {
     expectedSignerCertificate: signing.certificate, expectedAuthCertificate: authentication.certificate, now: f.now };
   originalHash = hash(wire.bytes);
   defaults = f.services.map(s => ({ ...s, supplyPoints: [origin + (s.type === CA ? '/leaf-ocsp' : '/not-the-ca-route')] }));
+  defaults = defaults.map(s => s.type === CA ? { ...s, extensionOids: [...s.extensionOids, '1.2.276.0.76.4.157'] } : s);
   extraResponder = await f.issueResponder({ name: 'route-next-responder' });
 });
 after(async () => { server?.closeAllConnections(); if (server) await new Promise(r => server.close(r)); await f?.close(); });
@@ -455,11 +459,11 @@ test('TSL Admission: separate OSIG and AUT identities are exposed separately and
   assert.equal(result.authentication.identityStatus, 'unverified'); assert.equal(result.signing.identityStatus, 'unverified');
 }));
 
-async function withDirectory(run, handler) {
+async function withDirectory(run, handler, changes = {}) {
   const d = await vzdFixture(f.pki, handler ?? (({ socket, address }) => {
     const cert = address === senderAddress ? encryption[0] : encryption[1];
     socket.write(Buffer.concat([entryReply(record(address, [cert.certificate])), searchDone()]));
-  }));
+  }), { tls: vzdTls, ...changes });
   try { await run(d); } finally { await d.close(); }
 }
 const resolveDirectory = (directory, client, changes = {}) => resolveVzdRecipients({ addresses: [senderAddress, receiverAddress], directory, statusClient: client, ...changes });
@@ -474,7 +478,7 @@ function directoryWire({ signingCertificate = signing.certificate, authCertifica
 test('VZD + TSL: actual directory certificates and OCSP proofs feed a decryptable ECC message including key rollover', async () => fixture(async ({ open }) => withDirectory(async ({ directory }) => {
   const selection = await resolveDirectory(directory, open());
   assert.equal(selection.recipients.length, 3); assert.equal(selection.directoryEvidence.length, 2); assert.equal(selection.identityStatus, 'unverified');
-  assert.equal(leafCount(), 3); selection.revalidate();
+  assert.equal(leafCount(), 4); selection.revalidate();
   const built = directoryWire({ recipients: selection.recipients });
   for (const c of [encryption[1], rollover]) {
     const opened = openEccKimMessage({ ...wire, bytes: built.bytes, recipientCertificate: c.certificate,
@@ -503,13 +507,13 @@ for (const status of ['revoked', 'unknown']) test('VZD + TSL: ' + status + ' ENC
 test('VZD + TSL: unsupported certificate type and non-DER directory bytes fail closed', async () => fixture(async ({ open }) => {
   await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_TSL_CERT_TYPE_MISMATCH')),
     ({ socket, address }) => socket.write(Buffer.concat([entryReply(record(address, [signing.certificate])), searchDone()])));
-  assert.equal(leafCount(), 0);
+  assert.equal(leafCount(), 1);
   await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_VZD_CERTIFICATES')),
     ({ socket, address }) => {
       const a = record(address, [encryption[0].certificate]); a.at(-1)[1] = [Buffer.from(encryption[0].certificate)];
       socket.write(Buffer.concat([entryReply(a), searchDone()]));
     });
-  assert.equal(leafCount(), 0);
+  assert.equal(leafCount(), 1); // The same validated server proof is reused across both sockets.
 }));
 
 test('VZD + TSL: a TSL refresh during later directory I/O invalidates earlier good ENC proofs', async () => fixture(async ({ open, manager }) => {
@@ -599,3 +603,181 @@ test('KIM VZD receive: a TSL change during directory lookup defeats previously g
 }, async ({ socket, address }) => {
   await manager.refresh(); socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()]));
 })));
+
+const lookupServer = (directory, client, signal) => directory.lookup(senderAddress, { serverStatusClient: client, signal });
+const serverRole = { professionOid: '1.2.276.0.76.4.171', professionItem: 'Verzeichnisdienst-TI', telematikId: null };
+function holdDirectoryStatus() {
+  const waiting = Promise.withResolvers();
+  state.handler = (req, res, _bytes, purpose) => {
+    if (!req.url.startsWith('/leaf-') || purpose !== 'directory') return false;
+    waiting.resolve(() => { res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(vzdServer.certificate).response); });
+    return true;
+  };
+  return waiting.promise;
+}
+
+test('VZD TLS: actual peer certificate, technical role and reusable OCSP proof are bound before LDAP', async () => fixture(async ({ open, manager }) => {
+  const waiting = holdDirectoryStatus();
+  await withDirectory(async ({ directory, requests }) => {
+    const client = open(), pending = lookupServer(directory, client), release = await waiting;
+    assert.equal(requests.length, 0); release();
+    const first = await pending; revalidateVzdRecord(first);
+    assert.equal(first.serverEvidence.state, 'checked'); assert.equal(first.serverEvidence.source, 'response');
+    assert.equal(first.serverEvidence.certificateSha256, hash(raw(vzdServer.certificate)));
+    assert.equal(first.serverEvidence.certificateTypeOid, '1.2.276.0.76.4.157');
+    assert.equal(first.serverEvidence.admission.professionOid, serverRole.professionOid);
+    assert.equal('telematikId' in first.serverEvidence.admission, false);
+    assert.equal(first.identityStatus, 'unverified'); assert.equal(requests.length, 2);
+    state.handler = undefined;
+    const second = await lookupServer(directory, client);
+    assert.equal(second.serverEvidence.source, 'persistent-cache'); assert.equal(leafCount(), 1); assert.equal(requests.length, 4);
+    assert.throws(() => revalidateVzdRecord({ ...second }), code('KIM_VZD_SERVER_VALIDATION_REQUIRED'));
+    const old = manager.current(); await manager.refresh();
+    assert.throws(() => revalidateVzdRecord(second), statusError);
+    assert.throws(() => old.directoryServerFor(vzdServer.certificate), statusError);
+    assert.throws(() => old.directoryServerOcspPlanFor(vzdServer.certificate), statusError);
+  });
+}));
+
+for (const status of ['revoked', 'unknown']) test('VZD TLS: ' + status + ' server never receives Bind or Search, including cached retry', async () => fixture(async ({ open }) => {
+  state.directory = status;
+  await withDirectory(async ({ directory, requests }) => {
+    const c = open();
+    await assert.rejects(lookupServer(directory, c), code('KIM_VZD_SERVER_STATUS'));
+    await assert.rejects(resolveDirectory(directory, c), code('KIM_VZD_SERVER_STATUS'));
+    assert.equal(requests.length, 0); assert.equal(leafCount(), 1);
+  });
+}));
+
+test('VZD TLS: wrong role is rejected before status I/O even with an older persisted good OCSP proof', async () => fixture(async ({ open, manager, options }) => {
+  const c = withAdmission(vzdServer.certificate, admissionDer({ ...serverRole, professionOid: '1.2.276.0.76.4.172' }), rootKey);
+  state.certificates = [{ certificate: c }];
+  const oldCache = new DurableOcspStatusCache({ path: options.path, key: options.key, scopeId: options.routes[0].scopeId,
+    clock: options.clock, verifier: manager.current().ocspVerifierFor(c), transport: options.routes[0].transport });
+  try { assert.equal((await oldCache.check({ certificate: c })).status, 'good'); } finally { oldCache.close(); }
+  const prior = leafCount();
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(resolveDirectory(directory, open()), code('KIM_TSL_SERVER_ADMISSION_SERVICE_ROLE'));
+    assert.equal(requests.length, 0); assert.equal(leafCount(), prior);
+  }, undefined, { tls: { ...vzdTls, cert: new X509Certificate(c).toString() } });
+}));
+
+test('VZD TLS: a CA-valid pinned general TLS certificate cannot replace C.ZD.TLS-S', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    const c = open();
+    await assert.rejects(resolveDirectory(directory, c), code('KIM_TSL_CERT_TYPE_MISSING'));
+    const diagnostic = await receiveDirectory(directory, c);
+    assert.equal(diagnostic.directoryAcquisition.state, 'unavailable'); assert.equal(diagnostic.diagnostic.integrityResult, 'XCS_DIRECTORY');
+    assert.equal(diagnostic.diagnostic.decryptedOriginalAttached, false); assert.equal(requests.length, 0);
+  }, undefined, { tls: f.pki.tls });
+}));
+
+test('VZD TLS: missing CA permission invalidates a cached server proof before another LDAP request', async () => fixture(async ({ open, update }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    const c = open(); await lookupServer(directory, c); assert.equal(requests.length, 2);
+    await update({ services: defaults.map(s => s.type === CA ? { ...s, extensionOids: s.extensionOids.filter(id => id !== '1.2.276.0.76.4.157') } : s) });
+    await assert.rejects(lookupServer(directory, c), code('KIM_TSL_CERT_TYPE_CA_NOT_AUTHORIZED'));
+    assert.equal(requests.length, 2); assert.equal(leafCount(), 1);
+  });
+}));
+
+test('VZD TLS: compromised-CA compatibility mode never permits a revoked directory CA', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(lookupServer(directory, open({ model: 'nonqes-compromise' })), code('KIM_TSL_ISSUER'));
+    assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+  });
+}, { services: defaults.map(s => s.type === CA ? { ...s, status: REVOKED } : s) }));
+
+test('VZD TLS: HTTP outage and a replayed proof for another certificate cannot trigger LDAP', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    for (const replay of [false, true]) {
+      state.handler = (req, res, _bytes, purpose) => {
+        if (!req.url.startsWith('/leaf-') || purpose !== 'directory') return false;
+        res.writeHead(replay ? 200 : 503, { 'Content-Type': 'application/ocsp-response' });
+        res.end(replay ? f.proof(signing.certificate).response : undefined); return true;
+      };
+      // Separate cache scope prevents the HTTP failure backoff from masking replay verification.
+      const c = open({ scopeId: randomUUID(), routes: [{ transport: new OcspHttpTransport(endpoints()), scopeId: randomUUID() }] });
+      await assert.rejects(lookupServer(directory, c), statusError); assert.equal(requests.length, 0);
+    }
+  });
+}));
+
+test('VZD TLS: TSL change while server OCSP is pending prevents Bind', async () => fixture(async ({ open, manager }) => {
+  const waiting = holdDirectoryStatus();
+  await withDirectory(async ({ directory, requests }) => {
+    const pending = assert.rejects(lookupServer(directory, open()), statusError), release = await waiting;
+    await manager.refresh(); release(); await pending; assert.equal(requests.length, 0);
+  });
+}));
+
+test('VZD TLS: TSL change after Bind prevents Search', async () => fixture(async ({ open, manager }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(lookupServer(directory, open()), statusError);
+    assert.equal(requests.length, 1); assert.equal(requests[0].op, 0x60);
+  }, undefined, { onBind: async socket => { await manager.refresh(); socket.write(bindReply); } });
+}));
+
+test('VZD TLS: expiry during Search prevents a directory record from escaping', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(lookupServer(directory, open()), statusError); assert.equal(requests.length, 2);
+  }, ({ socket, address }) => {
+    state.now += 3601000; // A_23225 producedAt window, not the older ten-minute TUC default.
+    socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()]));
+  });
+}));
+
+for (const mode of ['abort', 'deadline']) test('VZD TLS: ' + mode + ' while OCSP is pending cannot later send LDAP', async () => fixture(async ({ open }) => {
+  const waiting = holdDirectoryStatus(), control = new AbortController();
+  await withDirectory(async ({ directory, requests }) => {
+    const pending = assert.rejects(lookupServer(directory, open(), control.signal), code(mode === 'abort' ? 'KIM_VZD_ABORTED' : 'KIM_VZD_TIMEOUT'));
+    const release = await waiting;
+    if (mode === 'abort') control.abort();
+    await pending; release(); await new Promise(r => setImmediate(r));
+    assert.equal(requests.length, 0);
+  }, undefined, { client: { timeoutMs: 250 } });
+}));
+
+test('VZD TLS: unsolicited LDAP data during server validation is rejected', async () => fixture(async ({ open }) => {
+  holdDirectoryStatus();
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(lookupServer(directory, open()), code('KIM_VZD_LDAP_BEFORE_VALIDATION'));
+    assert.equal(requests.length, 0);
+  }, undefined, { onSecure: socket => socket.write(bindReply) });
+}));
+
+test('VZD TLS: low-level pin-only protocol results cannot masquerade as server validation', async () => fixture(async () => {
+  await withDirectory(async ({ directory }) => {
+    const result = await directory.lookup(senderAddress);
+    assert.equal(result.serverEvidence.state, 'not-checked'); assert.equal(result.identityStatus, 'unverified');
+    assert.throws(() => revalidateVzdRecord(result), code('KIM_VZD_SERVER_VALIDATION_REQUIRED'));
+    assert.throws(() => revalidateVzdRecord({ ...result, serverEvidence: { state: 'checked', status: 'good' } }), code('KIM_VZD_SERVER_VALIDATION_REQUIRED'));
+    assert.equal(leafCount(), 0);
+  });
+}));
+
+test('VZD TLS: sender binding retains a private peer-proof guard for the final receive continuation', async () => fixture(async ({ open, manager }) => {
+  await withDirectory(async ({ directory }) => {
+    const client = open(), evidence = await client.messageEvidence({ signingCertificate: signing.certificate, authenticationCertificate: authentication.certificate });
+    const result = await matchVzdSender(directory, senderAddress, evidence, undefined, client);
+    result.revalidate(); assert.equal(result.binding.state, 'matched');
+    assert.equal(result.binding.serverEvidence.state, 'checked');
+    assert.equal('response' in result.binding.serverEvidence, false);
+    await manager.refresh(); assert.throws(result.revalidate, statusError);
+  });
+}));
+
+for (const version of ['TLSv1.2', 'TLSv1.3']) test('VZD TLS: ' + version + ' negotiates the bounded AES-GCM profile', async () => fixture(async ({ open }) => {
+  let negotiated;
+  await withDirectory(async ({ directory }) => {
+    await lookupServer(directory, open()); assert.equal(negotiated.protocol, version); assert.match(negotiated.cipher, /AES.*GCM/);
+  }, undefined, { tls: { ...vzdTls, minVersion: version, maxVersion: version, ecdhCurve: 'prime256v1' },
+    onSecure: socket => { negotiated = { protocol: socket.getProtocol(), cipher: socket.getCipher().name }; } });
+}));
+
+test('VZD TLS: an unoffered ECDH group cannot reach certificate status or LDAP', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(lookupServer(directory, open()), code('KIM_VZD_CONNECTION'));
+    assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+  }, undefined, { tls: { ...vzdTls, minVersion: 'TLSv1.3', ecdhCurve: 'X25519' } });
+}));

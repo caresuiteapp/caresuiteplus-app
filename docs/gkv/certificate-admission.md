@@ -115,12 +115,17 @@ Verschlüsselungsweg mit mehreren Empfängerzertifikaten.
 Der aktuelle Gesamtlauf steht im [Prüfprotokoll](verification.md).
 
 Offen bleiben vollständige sektorale Profil-/Policyprüfung, verlässliche
-TI-VZD-Serverprüfung und produktive Adressbindung, authentisierte TI-Ankerbereitstellung/-rotation,
+vollständige TI-VZD-Profile und produktive Adressbindung, authentisierte TI-Ankerbereitstellung/-rotation,
 Konnektor/SMC-B, produktiver Dienstbetrieb und unabhängige Prüfung/Zulassung.
 Der SMTP-Fachdienst verwendet weiterhin seinen eigenen begrenzten AUT-Prüfer;
 die neue CM-Prüfung ist keine vollständige Fachdienst-PKI-Integration.
 Das FD-Inventar bleibt bei 106 Kennungen: 28 teilweise lokal belegt, 78 offen.
 Echtversand und normale KIM-Zustellung bleiben gesperrt.
+
+Der [VZD-Serverpfad](vzd-server-certificate.md) besitzt inzwischen eine eigene
+technische Admission-Prüfung. Sie verlangt die Rolle Verzeichnisdienst-TI und
+gerade keine Teilnehmer-Telematik-ID; die HBA-/SMC-B-Regeln werden nicht auf
+Serverzertifikate übertragen.
 
 ## Primärquellen
 

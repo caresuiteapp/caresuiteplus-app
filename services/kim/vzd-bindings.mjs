@@ -1,6 +1,6 @@
 import { X509Certificate, createHash } from 'node:crypto';
 import { kimAddress } from './address.mjs';
-import { VzdLdapsDirectory, lookupVzd } from './vzd.mjs';
+import { VzdLdapsDirectory, lookupVzd, revalidateVzdRecord } from './vzd.mjs';
 import { vzdFail } from './vzd-ldap.mjs';
 import { TslOcspStatusClient } from './tsl-ocsp.mjs';
 
@@ -12,7 +12,7 @@ export function checkVzdConfiguration(directory, statusClient) {
 }
 export const vzdRecordMetadata = record => Object.freeze({ address: record.address, telematikId: record.telematikId,
   version: record.version, appTags: record.appTags, checkedAt: record.checkedAt, environment: record.environment,
-  routeSha256: record.routeSha256, serverSha256: record.serverSha256, trustSource: record.trustSource });
+  routeSha256: record.routeSha256, serverSha256: record.serverSha256, trustSource: record.trustSource, serverEvidence: record.serverEvidence });
 
 /** Obtain actual directory ENC bytes and match their TSL-checked Admission IDs.
  * Results are local inputs for createEccKimMessage, never delivery permissions.
@@ -28,10 +28,11 @@ export async function resolveVzdRecipients({ addresses, directory, statusClient,
   if (targets.some(a => (directory.environment === 'production') === a.endsWith('.telematik-test'))) vzdFail('ENVIRONMENT');
   if (signal?.aborted) vzdFail('ABORTED');
   const deadline = AbortSignal.timeout(30000), stop = signal ? AbortSignal.any([signal, deadline]) : deadline;
-  const records = [], proofs = [], recipients = [];
+  const records = [], proofs = [], recipients = [], serverRecords = [];
   try {
     for (const address of targets) {
-      const record = await lookupVzd(directory, address, stop); records.push(vzdRecordMetadata(record));
+      const record = await lookupVzd(directory, address, stop, statusClient); revalidateVzdRecord(record);
+      serverRecords.push(record); records.push(vzdRecordMetadata(record));
       if (recipients.length + record.certificates.length > 1000) vzdFail('CERTIFICATES');
       for (const bytes of record.certificates) {
         // Exact DER from the binary LDAP attribute, not a base64/PEM fallback.
@@ -47,6 +48,7 @@ export async function resolveVzdRecipients({ addresses, directory, statusClient,
     }
     const revalidate = () => {
       if (stop.aborted) vzdFail(signal?.aborted ? 'ABORTED' : 'TIMEOUT');
+      for (const record of serverRecords) revalidateVzdRecord(record);
       for (let i = 0; i < proofs.length; i++) {
         const { certificate, proof } = proofs[i];
         if (!certificate.equals(recipients[i].certificate)) vzdFail('CERTIFICATES');
@@ -66,12 +68,14 @@ export async function resolveVzdRecipients({ addresses, directory, statusClient,
 /** Compare only the signed/checked certificate Admissions supplied by the receive
  * adapter. This comparison does not replace message signature or OCSP verification.
  */
-export async function matchVzdSender(directory, address, evidence, signal) {
-  const record = await lookupVzd(directory, address, signal);
+export async function matchVzdSender(directory, address, evidence, signal, statusClient) {
+  checkVzdConfiguration(directory, statusClient);
+  const record = await lookupVzd(directory, address, signal, statusClient); revalidateVzdRecord(record);
   const signing = evidence.certificateAdmissions.signing.telematikId === record.telematikId;
   const authentication = evidence.certificateAdmissions.authentication.telematikId === record.telematikId;
-  return Object.freeze({ state: signing || authentication ? 'matched' : 'mismatch',
+  const binding = Object.freeze({ state: signing || authentication ? 'matched' : 'mismatch',
     matchedBy: signing ? 'signing' : authentication ? 'authentication' : undefined,
     signingMatches: signing, authenticationMatches: authentication,
     ...vzdRecordMetadata(record), identityStatus: 'unverified' });
+  return Object.freeze({ binding, revalidate: () => revalidateVzdRecord(record) });
 }

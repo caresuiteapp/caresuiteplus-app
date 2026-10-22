@@ -73,6 +73,12 @@ export class TslRefreshManager {
       ocspPlanFor: (input, { model = 'current', policyList } = {}) => {
         assert(); return snapshot.ocspPlanFor(input, { model, policyList, isCurrent });
       },
+      directoryServerFor: input => {
+        assert(); return snapshot.directoryServerFor(input, { isCurrent });
+      },
+      directoryServerOcspPlanFor: input => {
+        assert(); return snapshot.directoryServerOcspPlanFor(input, { isCurrent });
+      },
     });
   }
   get status() {

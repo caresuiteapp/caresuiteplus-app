@@ -2,9 +2,12 @@
 
 Stand: 22.10.2026. Ausführbarer Entwicklungsbaustein mit echten lokalen LDAPS-,
 TSL- und OCSP-Prüfungen. Er bestätigt Zuordnungen gegenüber einem ausdrücklich
-konfigurierten Verzeichnis. Die TI-Rolle und der vollständige TI-Sperrstatus
-dieses Servers sind noch nicht geprüft. Deshalb bleiben `identityStatus:
-unverified`, der gesperrte Echtversand und die reine Empfangsdiagnose bestehen.
+konfigurierten Verzeichnis. Der Sender-/Empfängerpfad prüft jetzt zusätzlich
+Typ, technische Rolle, ECC-Profil und OCSP-Status des tatsächlichen TLS-Servers
+vor LDAP. [Serverprüfung und Grenzen](vzd-server-certificate.md).
+Authentisierte TI-Provisionierung und unabhängige Interoperabilität fehlen;
+`identityStatus: unverified`, gesperrter Echtversand und reine Empfangsdiagnose
+bleiben bestehen.
 
 ## Abfrage
 
@@ -15,6 +18,9 @@ Verbindungs-IP fest vorgegeben werden; Hostname/SNI bleiben dabei unverändert.
 TLS prüft Kette und Hostnamen sowie anschließend den konfigurierten Leaf-Pin.
 Es gibt keine öffentliche Root-Ausweichliste, automatische Pinübernahme,
 Weiterleitung zu LDAP-Referenzen oder unverschlüsselte Rückfallverbindung.
+Die höheren KIM-Abläufe übergeben zwingend den Statusclient für die Serverprüfung.
+Eine direkte Protokollabfrage ohne diesen Client ist als `not-checked` markiert
+und kann keine intern nachprüfbare Serverevidenz liefern.
 
 Eine Verbindung führt einen anonymen LDAPv3-Bind und genau eine Subtree-Suche
 unter `dc=data,dc=vzd` aus. Die Suche verbindet einen exakten `mail`-Wert mit
@@ -109,7 +115,8 @@ erzeugte Nachricht. Die Tests umfassen widersprüchliche IDs, negative Statuswer
 mehrdeutige Treffer, Parsergrenzen, Abbruch, falschen Peer/Hostnamen und
 TSL-Wechsel während der Abfrage. [Gesamtergebnis](verification.md).
 
-Noch offen: C.ZD.TLS-S-/oid_vzd_ti-Prüfung einschließlich TUC_PKI_018,
+Der folgende Ausbau ergänzt 32 Zertifikats- und 19 Server-Integrationstests.
+Noch offen: vollständige TUC_PKI_018-/Krypt-Varianten,
 authentisierte TI-Anker-/Endpointprovisionierung und Rotation, Konnektor-LDAP-Proxy,
 Prüfung gegen einen unabhängigen VZD/KIM-Client und reale TI-Umgebungen.
 Der Empfang verlangt weiterhin immer AUT und beide positiven Statusbelege;

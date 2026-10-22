@@ -8,8 +8,46 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**523 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**574 unterschiedliche Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## VZD-Serverzertifikat vor LDAP am 22.10.2026
+
+32 neue Zertifikats-/Admission-Fälle und 19 neue Integrationsfälle erweitern
+den Bestand um 51 Fälle. Der Gesamtlauf bestand zunächst mit **573 Fällen**,
+0 Fehlern und 0 übersprungenen Fällen in rund 29,9 Sekunden. Anschließend wurde
+die Nachprüfung des Serverbelegs nach der letzten asynchronen Grenze des
+Empfangs ergänzt. Der dafür erneut ausgeführte vollständige
+`tsl-ocsp.test.mjs`-Lauf bestand mit **80 Fällen**, einschließlich des zusätzlich
+ergänzten Falls, in rund 23,1 Sekunden. Damit sind 574 unterschiedliche Fälle
+erfolgreich geprüft; ein gemeinsamer 574-Fälle-Lauf wird hier nicht behauptet.
+
+OpenSSL stellt echte ECC-Serverzertifikate mit C.ZD.TLS-S, gematik-Policy und
+technischer VZD-Admission aus. Geänderte Erweiterungen werden erneut mit der
+isolierten CA signiert. Fehlende/falsche Rollen, Teilnehmer-IDs im technischen
+Admission, falsche KU/EKU, SAN/CN-Abweichungen, doppelte Erweiterungen, fremde
+Subject-Felder und nicht unterstützte Schlüsselprofile scheitern trotz gültiger
+CA-Signatur. P-256 und Brainpool-P256 sind geprüft. Fehlende CA-Typberechtigung,
+gesperrte CA und veränderte Signatur geben keinen Serverpfad frei.
+
+Die Integration prüft echte LDAPS-Sockets und tatsächliche OCSP-Antworten.
+Vor positivem Serverbefund erhält der Peer weder Bind noch Search. Negative
+Cachebelege, falsche Rollen trotz früherem positivem Cache, gewöhnliche gepinnte
+TLS-Zertifikate, HTTP-Ausfälle und fremde Statusbelege verhindern LDAP.
+Listenwechsel während OCSP verhindern Bind; Wechsel nach Bind verhindern Search.
+Ablauf während Search verhindert die Ausgabe eines Eintrags. Abbruch, absolute
+Frist und unaufgeforderte frühe Serverdaten können keine spätere Anfrage freigeben.
+TLS 1.2 und TLS 1.3 mit AES-GCM funktionieren; eine nicht angebotene Kurve scheitert.
+Kopierte/erfundene Evidenzobjekte und reine Pin-Prüfungen bestehen die interne
+Servernachprüfung nicht. Der Empfang behält den Rohbeleg bis zur letzten
+Nachprüfung und gibt weiterhin ausschließlich Diagnosen aus.
+
+Die Statusfrist entspricht der vorhandenen nonQES-Regel A_23225 mit einer
+Stunde ab `producedAt`; sie ist kein Konnektor-VerifyCertificate-Ergebnis-Cache.
+Keine Installation, echte TI-Abfrage, Produktions- oder UI-/Android-Änderung.
+Für den Vorgänger `6d2ce3b2` waren bei der Prüfung zwei Vercel-Projekte erfolgreich
+und zwei noch ausstehend; dies belegt keinen Build des neuen Commits.
+[Schnittstellen, Quellen und verbleibende Profilgrenzen](vzd-server-certificate.md).
 
 ## Verzeichnisabfrage und Adressbindung am 22.10.2026
 
@@ -46,8 +84,9 @@ Positive lokale Zuordnung bleibt Diagnose 07, ohne normale Zustellung.
 Keine Installation, echte TI-Abfrage, Produktionsänderung oder Änderung an
 Oberflächen/Android. Die vier Vercel-Builds des Vorgängers `c7f5f997` sind
 am 22.10.2026 erfolgreich bestätigt; dies ist kein Buildnachweis für den neuen
-Commit. TI-VZD-Serverrolle/-Sperrprüfung, Konnektor, unabhängige Interoperabilität
-und Produktivbetrieb bleiben offen. [Schnittstellen und Grenzen](vzd.md).
+Commit. Die damals noch offene TI-VZD-Serverrolle/-Sperrprüfung ist im obigen
+Abschnitt als begrenzter eigener Pfad ergänzt. Konnektor, unabhängige
+Interoperabilität und Produktivbetrieb bleiben offen. [Schnittstellen und Grenzen](vzd.md).
 
 ## Admission-Rollen und Telematik-ID am 21.10.2026
 

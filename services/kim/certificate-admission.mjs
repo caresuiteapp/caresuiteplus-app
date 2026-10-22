@@ -105,3 +105,27 @@ export function readKimAdmission(encoded, certificateTypeOid) {
       professions: Object.freeze(professions), roleVersion: ADMISSION_ROLE_VERSION });
   } catch (e) { if (e instanceof CertificateAdmissionError) throw e; fail('FORMAT'); }
 }
+
+/** Technical VZD role, deliberately separate from HBA/SMC-B identity. A central
+ * service has no participant registrationNumber/Telematik-ID (PKI 4.6.1).
+ */
+export function readVzdAdmission(encoded) {
+  try {
+    if (encoded === undefined) fail('MISSING');
+    if (!(encoded instanceof Uint8Array) || !encoded.length || encoded.length > 8192) fail('FORMAT');
+    const root = fields(der(encoded), 48); let i = 0;
+    if (root[i]?.tag === 164) authority(root[i++]);
+    const admission = fields(fields(root[i++], 48, 1)[0], 48); let j = 0;
+    if (i !== root.length) fail('FORMAT');
+    if (admission[j]?.tag === 160) authority(fields(admission[j++], 160, 1)[0]);
+    if (admission[j]?.tag === 161) namingAuthority(admission[j++], 161);
+    const profession = fields(fields(admission[j++], 48, 1)[0], 48); let k = 0;
+    if (j !== admission.length) fail('FORMAT');
+    if (profession[k]?.tag === 160) namingAuthority(profession[k++], 160);
+    const professionItem = text(fields(profession[k++], 48, 1)[0]);
+    const professionOid = oidText(fields(profession[k++], 48, 1)[0]);
+    if (k !== profession.length) fail('SERVICE_IDENTITY');
+    if (professionOid !== '1.2.276.0.76.4.171' || professionItem !== 'Verzeichnisdienst-TI') fail('SERVICE_ROLE');
+    return Object.freeze({ professionOid, professionItem, roleVersion: ADMISSION_ROLE_VERSION, kind: 'technical-service' });
+  } catch (e) { if (e instanceof CertificateAdmissionError) throw e; fail('FORMAT'); }
+}

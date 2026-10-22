@@ -43,8 +43,11 @@ eine eindeutige Telematik-ID aus dem signierten Zertifikat. Mehrere
 Verschlüsselungszertifikate derselben Adresse dürfen keine widersprüchlichen
 IDs enthalten. Die [Verzeichnisabfrage](vzd.md) ergänzt nun echtes LDAPS gegen
 einen konfigurierten Peer sowie die Zuordnung der KIM-Adresse zur geprüften
-Zertifikats-ID. TI-Serverrollenprüfung und produktive VZD-/Konnektoranbindung
-bleiben offen; ein lokaler Treffer gibt keine Zustellung frei.
+Zertifikats-ID. Die [Serverprüfung](vzd-server-certificate.md) verlangt nun
+C.ZD.TLS-S, die technische VZD-Rolle, das unterstützte ECC-Profil und positiven
+OCSP-Status des tatsächlichen TLS-Peers vor LDAP. Vollständige Profilvarianten,
+authentisierte TI-Provisionierung und produktive VZD-/Konnektoranbindung bleiben
+offen; ein lokaler Treffer gibt keine Zustellung frei.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

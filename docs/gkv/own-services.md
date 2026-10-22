@@ -392,8 +392,23 @@ Die Zertifikatsauswahl verlangt positive TSL-/OCSP-Belege und dieselbe ID wie
 im Verzeichniseintrag. Der Empfang gleicht die geschützte From-Adresse mit
 OSIG- und AUT-ID getrennt ab. Fehler liefern `XCS_DIRECTORY`; Treffer bleiben
 Diagnose 07. Zusätzliche Netzwartezeiten umgehen keine TSL-Aktualisierung.
-50 neue Fälle ergeben **523 Prüfungen**. TI-Serverrolle/-Sperrprüfung,
-Konnektoranschluss und unabhängige Interoperabilitätsnachweise bleiben offen.
+50 neue Fälle ergaben zunächst **523 Prüfungen**. Die anschließende
+Serverprüfung ist im folgenden Abschnitt ergänzt. Konnektoranschluss und
+unabhängige Interoperabilitätsnachweise bleiben offen.
+
+### Zertifikat und Sperrstatus des LDAPS-Servers
+
+Der [Serverprüfer](vzd-server-certificate.md) verwendet die tatsächlichen
+Zertifikatbytes der geöffneten TLS-Verbindung. Typ C.ZD.TLS-S, aktive und
+ausstellungsberechtigte TSL-CA, technisches Admission Verzeichnisdienst-TI,
+begrenztes ECC-Serverprofil und positiver OCSP-Status sind vor dem ersten
+LDAP-Bind erforderlich. Die technische Rolle enthält keine Telematik-ID.
+Listenwechsel und ablaufende Belege werden vor Suche, Ergebnisrückgabe und
+abschließender Sender-/Empfängerverwendung erneut geprüft.
+51 zusätzliche Fälle ergeben **574 unterschiedliche erfolgreich geprüfte Fälle**;
+die ausgeführten Gesamt- und Abschlussläufe stehen in [verification.md](verification.md).
+Vollständige Profilvarianten, authentisierte TI-Provisionierung und reale
+Interoperabilität bleiben offen; Echtversand und normale Zustellung bleiben gesperrt.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -422,7 +437,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten und LDAPS-Adressbindung gegen konfigurierte Peers ergänzt. Konnektor-/SMC-B-Anbindung, TI-VZD-Serverprüfung/-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung und begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung gegen konfigurierte Anker ergänzt. Konnektor-/SMC-B-Anbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
