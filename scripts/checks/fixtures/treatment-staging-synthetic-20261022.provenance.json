@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-22",
+  "environment": "isolated Supabase Staging",
+  "source": "Actual final SELECT from the complete privileged synthetic SQL fixture, after nested rollback cleanup and before explicit outer ROLLBACK.",
+  "sqlFixture": "supabase/tests/pflege_treatment_care_quarantined_staging.sql",
+  "sqlFixtureSha256": "625336929d84d6bd54eed0c7b6851ec50d77897d7295134586e1b386a712c3b1",
+  "appliedMigrationVersions": [
+    "20261022054115",
+    "20261022055855",
+    "20261022064007"
+  ],
+  "evidenceFile": "treatment-staging-synthetic-20261022.json",
+  "evidenceSha256": "4cdb22e6dafa8dfd8f56c9be96b94db3300247710349be2d2d3bf6ed4871dbc3",
+  "claims": [
+    "Exact synthetic SQL return values; no handwritten receipt substitution.",
+    "The SQL fixture passed create/revise/replay/confirmation, source drift, own-role/session and cursor denial, immutable history, quarantine and complete rollback cleanup assertions.",
+    "Technical metadata only: order_review/payer_review remain open; clinical execution and review acceptance/return remain server-blocked.",
+    "One historical completed metadata original and its documented qualification are privileged synthetic setup only.",
+    "No Auth HTTP, Storage bytes, browser rendering, concurrent transaction or real clinical/qualification acceptance is claimed."
+  ],
+  "retentionReview": [
+    "Recursive credential/session/JWT/secret field and JWT-value scan found none.",
+    "Names, narrative, source order and retained historical qualification text are explicitly synthetic.",
+    "Full native profile fingerprints are retained; only selected synthetic display fields are exposed in people payloads."
+  ]
+}

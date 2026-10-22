@@ -20,7 +20,30 @@ No TypeScript compiler, Deno, esbuild, React/ReactDOM or Babel compiler was foun
 
 ## Existing remote build evidence
 
-The exact baseline commit has no pull-request GitHub Actions run. The sole repository Actions workflow builds the native Android AAB and was not triggered for this Web task.
+### Current PR 155 / commit d952138c
+
+The [sanitized build manifest](../../audit/pflege-d952-build-evidence-20261022.json) records the exact commit `d952138cb6cb7a5fc54f60bd2785805aa8ef11f3`, source queries, observed project IDs, deployment URLs and access failure. This is a snapshot of the published PR head, not evidence for later uncommitted changes.
+
+The Vercel bot and GitHub statuses reported:
+
+| Project | Observed deployment status | Latest reported completion |
+| --- | --- | --- |
+| [caresuiteplus](https://vercel.com/caresuiteapps-projects/caresuiteplus/C5Xojukh39VW7FDFuyAxt2Q9Hb4Q) | Ready | 2026-10-22 06:43:14 UTC |
+| [caresuiteplus-app](https://vercel.com/caresuiteapps-projects/caresuiteplus-app/4LAtKCEC9yLggv7jZ81HavcRnvST) | Building / pending | No completion reported |
+| [caresuiteplusapp](https://vercel.com/caresuiteapps-projects/caresuiteplusapp/7SzUevDk127VFRGF68WgDwBUtiPv) | Ready | 2026-10-22 05:45:00 UTC |
+| [repository](https://vercel.com/caresuiteapps-projects/repository/CKEUssd8bRTiLLCZQRFTikeaLHKY) | Ready | 2026-10-22 05:45:08 UTC |
+
+The GitHub Netlify success context explicitly describes this commit's preview as canceled. Its three associated check runs are neutral with title `Deploy canceled`. [Exact deploy metadata](https://api.netlify.com/api/v1/deploys/6ad99f6de7890a3cd46779c6) reports `state: error`, build ID `6ad99f6de7890a3cd46779c4`, no error message and no publication timestamp. It establishes no successful application build.
+
+The all-event GitHub Actions query for this exact SHA returned zero runs. The five check runs consist of Vercel feedback status, three canceled Netlify checks and a skipped Supabase preview; none supplies a compiler log. The sole tracked Actions workflow builds the native Android AAB and was not triggered for this Web task.
+
+A direct lookup of the observed `caresuiteplus-app` project in the PR's actual team returned HTTP 403 for `caresuiteapps-projects` / `team_WGwttaoveTwuQPQQLBxozmit`. No team-list retry was made. The API advertises `authorize_team_access` / `authorize_team_sso` as recovery, but neither tool is available in the current registry and no existing Vercel CLI executable was found. Actual build commands, logs and Web type-check completion could not be inspected. Current deployment statuses therefore remain separate from a verified full compiler/build result. No authentication, deployment, promotion, project-setting or CI change was performed.
+
+Fresh PR REST metadata reports `mergeable: true`, `rebaseable: true`, `mergeable_state: unstable` and `draft: true` for head `d952138c` and base `665f0ff5`. The earlier normalized `mergeable: false` was not reproduced: a local `git merge-tree --write-tree` calculation for those exact full SHAs exited 0 with tree `9681f78457546ebe1fd727d7801cc80e9b4a38d2` and no conflicts. No merge or rebase was performed. Pending checks and draft state remain; merge permission was not tested.
+
+### Historical baseline 009347b4
+
+The exact baseline commit has no pull-request GitHub Actions run.
 
 The GitHub Netlify status reported success for deploy `6ad993a16d0829abd550f918`. The [read-only Netlify deploy metadata](https://api.netlify.com/api/v1/deploys/6ad993a16d0829abd550f918) reports `state: error` for the exact baseline commit and preview branch, with build ID `6ad993a16d0829abd550f916`, created at 04:40:01 UTC and updated at 04:40:14 UTC. The metadata provides no error message. The separate build endpoint requires authentication and returned HTTP 401, so its build log was not obtained. The GitHub success context therefore does not prove a successful application build or type check.
 

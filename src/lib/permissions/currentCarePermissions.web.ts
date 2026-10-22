@@ -88,24 +88,48 @@ export async function fetchCurrentCarePermissions(owner: CarePermissionOwner, re
   const close = () => { closed = true; };
   const current = () => {
     const latest = object(owner, ownerKeys);
-    if (closed || !readIsCurrent() || ownerKeys.some(key => latest[key] !== captured[key]) || !carePermissionOwnerIsCurrent(captured)) throw failure();
+    if (closed || getSupabaseClient() !== client || !readIsCurrent() || ownerKeys.some(key => latest[key] !== captured[key]) || !carePermissionOwnerIsCurrent(captured)) throw failure();
   };
+  let authUserId: string | null = null;
   const assertSession = async () => {
+    const readSession = async () => {
+      current();
+      const auth = client.auth, getSession = auth.getSession;
+      current();
+      if (typeof getSession !== 'function') throw failure();
+      const response = object(await getSession.call(auth));
+      current();
+      if (field(response, 'error') !== null) throw failure();
+      const native = object(field(object(field(response, 'data')), 'session')), user = object(field(native, 'user'));
+      const userId = field(user, 'id');
+      if (!uuid(userId) || authUserId !== null && userId !== authUserId || field(native, 'access_token') !== captured.accessToken) throw failure();
+      const expires = field(native, 'expires_at');
+      if (expires === undefined || expires === null) {
+        if (captured.expiresAt !== null) throw failure();
+      } else {
+        const milliseconds = typeof expires === 'number' ? expires * 1000 : NaN;
+        if (!Number.isSafeInteger(expires) || !Number.isSafeInteger(milliseconds) || milliseconds <= Date.now() || milliseconds !== captured.expiresAt) throw failure();
+      }
+      authUserId = userId;
+      current();
+    };
+    await readSession();
     current();
-    const raw = await client.auth.getSession();
+    const auth = client.auth, getUser = auth.getUser;
     current();
-    const response = object(raw);
-    if (field(response, 'error') !== null) throw failure();
-    const data = object(field(response, 'data')), session = object(field(data, 'session')), user = object(field(session, 'user'));
-    if (field(session, 'access_token') !== captured.accessToken || field(user, 'id') !== captured.profileId) throw failure();
-    const expires = field(session, 'expires_at');
-    if (expires === undefined || expires === null) {
-      if (captured.expiresAt !== null) throw failure();
-    } else {
-      // SDK seconds and native AuthOwner milliseconds remain separate until this exact conversion.
-      const milliseconds = typeof expires === 'number' ? expires * 1000 : NaN;
-      if (!Number.isSafeInteger(expires) || !Number.isSafeInteger(milliseconds) || milliseconds <= Date.now() || milliseconds !== captured.expiresAt) throw failure();
+    if (typeof getUser !== 'function') throw failure();
+    const verified = object(await getUser.call(auth, captured.accessToken!));
+    current();
+    if (field(verified, 'error') !== null) throw failure();
+    const user = object(field(object(field(verified, 'data')), 'user'));
+    if (field(user, 'id') !== authUserId || field(user, 'is_anonymous') === true) throw failure();
+    for (const [name, expected] of [['resolve_current_profile_id', captured.profileId], ['current_tenant_id', captured.tenantId]] as const) {
+      current(); const rpc = client.rpc; current();
+      if (typeof rpc !== 'function') throw failure();
+      const response = object(await rpc.call(client, name, {})); current();
+      if (field(response, 'error') !== null || field(response, 'data') !== expected) throw failure();
     }
+    await readSession();
     current();
   };
   try {

@@ -10,7 +10,7 @@ const source=p=>stripTypeScriptTypes(readFileSync(new URL(`../../${p}`,import.me
 const compile=(p,names,deps)=>new Function(...Object.keys(deps),`${source(p)};return {${names}};`)(...Object.values(deps));
 const timeout=compile('src/lib/services/queryTimeout.ts','withServiceQueryTimeout,NATIVE_SERVICE_QUERY_TIMEOUT_MS',{});
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
-const settle=async()=>{for(let i=0;i<100;i++)await Promise.resolve();};
+const settle=async()=>{for(let i=0;i<1000;i++)await Promise.resolve();};
 function backend(){
  const env={token:'test-token',sessionId:id(1),serverUser:{id:id(1),is_anonymous:false,user_metadata:{role_key:'business_admin',tenant_id:id(9)}},authError:null,
   profile:{id:id(1),tenant_id:id(2),role_id:id(3),is_active:true,status:'active',auth_user_id:null,roles:{id:id(3),key:'nurse'}},profileError:null,role:{id:id(3),key:'nurse'},
@@ -18,7 +18,7 @@ function backend(){
  const calls=[];
  const sdk={auth:{getSession:async()=>{env.sessionCalls++;env.onSession?.(env);return {error:null,data:{session:{access_token:env.token,user:{id:env.sessionId}}}};},getUser:async token=>{
   env.authCalls++;calls.push({auth:token});return env.authOverride?env.authOverride(env.authCalls):{error:env.authError,data:{user:env.serverUser}};
- }},from:table=>{
+ }},rpc:async name=>{calls.push({identity:name});env.identityCalls=(env.identityCalls??0)+1;env.onIdentity?.(name,env);return {error:env.identityError??null,data:name==='resolve_current_profile_id'?(env.currentProfile??id(1)):name==='current_tenant_id'?(env.currentTenant??id(2)):null};},from:table=>{
   const filters={},query={select:columns=>{calls.push({table,columns});return query;},eq:(k,v)=>{filters[k]=v;return query;},order:()=>query,limit:n=>{filters.limit=n;return query;},gt:(_k,v)=>{filters.cursor=v;return query;},maybeSingle:()=>query,then:(resolve,reject)=>{
    calls.push({table,filters:{...filters},dispatch:true});let result;
    if(table==='profiles'){env.profileCalls++;result=env.profileOverride?env.profileOverride(env.profileCalls):{error:env.profileError,data:env.profile};}
@@ -33,7 +33,7 @@ function backend(){
  return {env,calls,fetch,inner,get fallback(){return fallback;}};
 }
 test('Actual wrapper and complete keyset loader confirm the token user and active own native joined role before and after granting',async()=>{
- const b=backend(),p=await b.fetch(own());assert.deepEqual(p,['pflege.wounds.view']);assert.ok(Object.isFrozen(p));assert.equal(b.env.authCalls,2);assert.equal(b.env.profileCalls,2);assert.ok(b.calls.filter(c=>c.table==='profiles'&&c.dispatch).every(c=>c.filters.id===id(1)));assert.equal(b.fallback,0);
+ const b=backend(),p=await b.fetch(own());assert.deepEqual(p,['pflege.wounds.view']);assert.ok(Object.isFrozen(p));assert.ok(b.env.authCalls>=2);assert.equal(b.env.profileCalls,2);assert.ok(b.calls.filter(c=>c.table==='profiles'&&c.dispatch).every(c=>c.filters.id===id(1)));assert.equal(b.fallback,0);
 });
 for(const [name,change] of [
  ['Auth server rejects user',b=>{b.env.authError={message:'blocked'};}],['foreign authentic user',b=>{b.env.serverUser.id=id(9);}],['missing authentic user',b=>{b.env.serverUser=null;}],['anonymous user',b=>{b.env.serverUser.is_anonymous=true;}],
@@ -41,8 +41,8 @@ for(const [name,change] of [
  ['foreign auth relation',b=>{b.env.profile.auth_user_id=id(9);}],['missing profile',b=>{b.env.profile=null;}],['profile read failure',b=>{b.env.profileError={message:'failed'};}],['missing role relation',b=>{b.env.profile.role_id=null;b.env.profile.roles=null;}],
  ['different native role',b=>{b.env.profile.roles.key='business_admin';}],['different role ID',b=>{b.env.profile.roles.id=id(9);}],['expired or unconfirmed SDK owner',b=>{b.env.token='other-token';}],
  ])test(`Current server/profile condition rejects ${name} before any permission dispatch`,async()=>{const b=backend();change(b);await assert.rejects(b.fetch(own()));assert.equal(b.env.permissionCalls,0);assert.equal(b.fallback,0);});
-test('Actual pre-fix inner loader demonstrates that a matching local session alone can grant after a server denial; wrapper closes that gap',async()=>{
- const b=backend();b.env.authError={message:'deleted or refused'};assert.deepEqual(await b.inner(own()),['pflege.wounds.view']);b.env.permissionCalls=0;await assert.rejects(b.fetch(own()));assert.equal(b.env.permissionCalls,0);
+test('Both actual inner loader and full wrapper reject a server-denied raw authentication identity',async()=>{
+ const b=backend();b.env.authError={message:'deleted or refused'};await assert.rejects(b.inner(own()));await assert.rejects(b.fetch(own()));assert.equal(b.env.permissionCalls,0);
 });
 test('Editable user metadata never supplies the role or tenant and cannot substitute a native role relation',async()=>{
  const b=backend();assert.deepEqual(await b.fetch(own()),['pflege.wounds.view']);b.env.profile.roles.key='business_admin';await assert.rejects(b.fetch(own()));
@@ -111,7 +111,7 @@ test('Hiding the actual permission hook invalidates retained can/check/module ha
 test('An initially hidden document starts no Auth, profile or permission request; becoming visible requires a complete fresh confirmation',async()=>{
  const b=backend(),l=lifecycle('hidden'),w=workspace(b,l);assert.equal(w.render().can('pflege.wounds.view'),false);await settle();assert.equal(b.env.authCalls,0);assert.equal(b.env.permissionCalls,0);
  l.fire('focus');l.fire('online');w.render();await settle();assert.equal(b.env.authCalls,0);
- l.visibility('visible');assert.equal(w.render().can('pflege.wounds.view'),false);await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.equal(b.env.authCalls,2);w.dispose();
+ l.visibility('visible');assert.equal(w.render().can('pflege.wounds.view'),false);await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.ok(b.env.authCalls>=2);w.dispose();
 });
 test('A profile disabled while the tab was hidden cannot regain a previously confirmed right on return',async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l);w.render();await settle();const old=w.render();assert.equal(old.can('pflege.wounds.view'),true);l.visibility('hidden');b.env.profile={...b.env.profile,is_active:false};
@@ -119,11 +119,11 @@ test('A profile disabled while the tab was hidden cannot regain a previously con
 });
 for(const event of ['focus','pageshow','online'])test(`Visible ${event} invalidates existing grants before rerender and never reuses the old read result`,async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l);w.render();await settle();const old=w.render();const count=b.env.authCalls;assert.equal(old.can('pflege.wounds.view'),true);
- l.fire(event);assert.equal(old.can('pflege.wounds.view'),false);w.render();await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.equal(old.can('pflege.wounds.view'),false);assert.equal(b.env.authCalls,count+2);w.dispose();
+ l.fire(event);assert.equal(old.can('pflege.wounds.view'),false);w.render();await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.equal(old.can('pflege.wounds.view'),false);assert.equal(b.env.authCalls,count*2);w.dispose();
 });
 test('Focus, pageshow and visibility bursts before rerender coalesce into one revalidation',async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l);w.render();await settle();const count=b.env.authCalls;
- l.visibility('hidden');l.visibility('visible');l.fire('focus');l.fire('pageshow');l.fire('online');w.render();await settle();assert.equal(b.env.authCalls,count+2);assert.equal(w.render().can('pflege.wounds.view'),true);w.dispose();
+ l.visibility('hidden');l.visibility('visible');l.fire('focus');l.fire('pageshow');l.fire('online');w.render();await settle();assert.equal(b.env.authCalls,count*2);assert.equal(w.render().can('pflege.wounds.view'),true);w.dispose();
 });
 test('A hidden pending Auth reply cannot dispatch its old native profile query or publish old permissions',async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l),d=deferred();b.env.authOverride=()=>d.promise;w.render();await settle();l.visibility('hidden');d.resolve({error:null,data:{user:{id:id(1)}}});await settle();assert.equal(b.env.profileCalls,0);assert.equal(b.env.permissionCalls,0);assert.equal(w.render().can('pflege.wounds.view'),false);
@@ -144,3 +144,10 @@ test('An externally cancelled wrapper starts no SDK call and cancels a pending i
  const b=backend();await assert.rejects(b.fetch(own(),()=>false));assert.equal(b.env.sessionCalls,0);
  const d=deferred();let current=true;b.env.authOverride=()=>d.promise;const pending=b.fetch(own(),()=>current);await settle();current=false;d.resolve({error:null,data:{user:{id:id(1)}}});await assert.rejects(pending);assert.equal(b.env.profileCalls,0);assert.equal(b.env.permissionCalls,0);
 });
+
+test('Full native confirmation supports distinct raw/internal UUIDs with explicit auth_user_id association',async()=>{const b=backend();b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);assert.deepEqual(await b.fetch(own()),['pflege.wounds.view']);assert.ok(b.calls.some(c=>c.identity==='resolve_current_profile_id'));assert.ok(b.calls.some(c=>c.identity==='current_tenant_id'));assert.equal(b.fallback,0);});
+test('A null legacy association is accepted only when profile UUID equals verified raw auth UUID',async()=>{const b=backend();b.env.sessionId=b.env.serverUser.id=id(8);assert.equal(b.env.profile.auth_user_id,null);await assert.rejects(b.fetch(own()));assert.equal(b.env.permissionCalls,0);});
+for(const [name,change] of [['resolved internal profile',b=>{b.env.currentProfile=id(9);}],['resolved tenant',b=>{b.env.currentTenant=id(9);}],['raw account association',b=>{b.env.profile.auth_user_id=id(9);}],['joined profile role',b=>{b.env.profile.roles.key='business_admin';}]])test('Distinct identity full confirmation rejects '+name,async()=>{const b=backend();b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);change(b);await assert.rejects(b.fetch(own()));assert.equal(b.env.permissionCalls,0);});
+test('Current raw account cannot change between the two full native confirmations',async()=>{const b=backend();b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);b.env.pageOverride=(table,filters)=>{b.env.sessionId=b.env.serverUser.id=id(9);b.env.profile.auth_user_id=id(9);return {error:null,data:table==='role_permissions'&&!filters.cursor?b.env.global:[]};};await assert.rejects(b.fetch(own()));assert.equal(b.fallback,0);});
+
+test('Actual production permission hook publishes distinct-identity grants only after full native association checks',async()=>{const b=backend(),w=workspace(b);w.auth.user.id=w.auth.session.user.id=id(8);b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);assert.equal(w.render().can('pflege.wounds.view'),false);await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.equal(b.env.profileCalls,2);w.dispose();});

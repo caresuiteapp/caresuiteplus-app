@@ -63,7 +63,7 @@ test('Zuweisungssnapshot und Ergebnislisten bleiben unveränderlich', () => {
 });
 
 test('Live-Service filtert serverseitig auf eigene Mitarbeitenden-ID und lädt nur abgeleitete Pflegefälle', async () => {
-  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.ts', import.meta.url), 'utf8');
+  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.web.ts', import.meta.url), 'utf8');
   assert.match(service, /loadEmployeeClientVisits\(tenantId, employeeId\)/);
   assert.match(service, /\.eq\('employee_id', employeeId\)/);
   assert.match(service, /loadClientsByIds\(tenantId, clientIds\)/);
@@ -76,7 +76,7 @@ test('Live-Service filtert serverseitig auf eigene Mitarbeitenden-ID und lädt n
 });
 
 test('Detailpfad bleibt im eigenen Einsatzumfang und gibt nur Primär- oder Notfallkontakte weiter', async () => {
-  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.ts', import.meta.url), 'utf8');
+  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.web.ts', import.meta.url), 'utf8');
   assert.match(service, /const base = list\.data\.find\(\(item\) => item\.clientId === clientId\)/);
   assert.match(service, /if \(!base\) return \{ ok: true, data: null \}/);
   assert.match(service, /row\.is_emergency_contact === true \|\| row\.is_primary_contact === true/);
