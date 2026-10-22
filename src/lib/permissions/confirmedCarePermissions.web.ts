@@ -72,7 +72,7 @@ export async function fetchConfirmedCarePermissions(owner: CarePermissionOwner, 
     const user = object(field(object(field(verified, 'data')), 'user'));
     if (field(user, 'id') !== authUserId || field(user, 'is_anonymous') === true) throw failure();
     for (const [name, expected] of [['resolve_current_profile_id', captured.profileId], ['current_tenant_id', captured.tenantId]] as const) {
-      current(); const rpc = client.rpc; current();
+      current(); const rpc = client.rpc<typeof name>; current();
       if (typeof rpc !== 'function') throw failure();
       const response = object(await rpc.call(client, name)); current();
       if (field(response, 'error') !== null || field(response, 'data') !== expected) throw failure();
