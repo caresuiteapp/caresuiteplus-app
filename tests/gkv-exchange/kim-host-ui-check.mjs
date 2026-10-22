@@ -20,8 +20,8 @@ const bundle = await build({ stdin: { contents: source, resolveDir: process.cwd(
   } }] });
 const tenantId = randomUUID(), base = { version: 1, tenantId, configured: true, environment: 'test', state: 'ready', canStart: true,
   requestId: null, startedAt: null, completedAt: null, report: null, errorCode: null };
-const passed = { ...base, state: 'passed', report: { runId: randomUUID(), completedAt: Date.now(), transcriptSha256: 'a'.repeat(64),
-  transcript: ['GetJobNumber','SignDocument','EncryptDocument','DecryptDocument'].map(operation => ({ operation })) } };
+const passed = { ...base, state: 'passed', requestId: randomUUID(), report: { version: 2, documentVerification: { checkedAt: Date.now(), reportSha256: 'b'.repeat(64) }, runId: randomUUID(), completedAt: Date.now(), transcriptSha256: 'a'.repeat(64),
+  transcript: ['GetJobNumber','SignDocument','EncryptDocument','DecryptDocument','VerifyDocument'].map(operation => ({ operation })) } };
 const window = new Window();
 for (const key of ['window','document','HTMLElement','HTMLInputElement','Event','MouseEvent','Node']) globalThis[key] = key === 'window' ? window : window[key];
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,8 +44,16 @@ try {
   await React.act(async () => button('Kartenprüfung starten').click());
   assert.equal(button('Kartenprüfung starten').disabled, true); assert.equal(calls.at(-1)[2], 'start'); assert.match(calls.at(-1)[3], /^[a-f0-9-]{36}$/);
   await React.act(async () => release(passed)); assert.match(container.textContent, /Kryptografischer Durchlauf erfolgreich/);
-  assert.equal(container.querySelectorAll('.gx-kim-checks li').length, 4); assert.ok(button('Prüfprotokoll herunterladen'));
+  assert.equal(container.querySelectorAll('.gx-kim-checks li').length, 5); assert.ok(button('Prüfprotokoll herunterladen'));
   assert.match(container.textContent, /noch nicht vor/); assert.match(container.textContent, /gesondert nachzuweisen/);
+  state = { ...passed, report: { ...passed.report, version: 1, documentVerification: undefined, transcript: passed.report.transcript.slice(0, 4) } };
+  globalThis.kimHostTest = async () => state;
+  await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.textContent, /Älteres Prüfprotokoll/);
+  assert.doesNotMatch(container.textContent, /als gültig bestätigt/);
+  state = { ...passed, canStart: false, nextStartAt: Date.now() + 29000 };
+  await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.textContent, /Ein neuer Durchlauf ist ab/); assert.equal(button('Kartenprüfung starten').disabled, true);
+  state = { ...base, state: 'failed', requestId: randomUUID(), canStart: false, errorCode: 'KIM_CONNECTOR_CMS_VERIFY_INCONCLUSIVE' };
+  await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.textContent, /nicht vollständig abschließen/); assert.ok(button('Prüfprotokoll herunterladen'));
   globalThis.kimHostTest = async () => { throw new Error('Verbindung unterbrochen'); };
   await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.querySelector('[role=alert]').textContent, /Verbindung unterbrochen/);
   await render(randomUUID(), false); assert.equal(button('Kartenprüfung starten'), undefined); assert.doesNotMatch(container.textContent, /erfolgreich/);

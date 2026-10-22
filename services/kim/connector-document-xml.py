@@ -28,6 +28,12 @@ def inspect(payload, operation, mode, require, binary):
         children(node[0][1], ['CMSAttribute'])
         binary(value(node[0][1][0]), 262144)
 
+    if operation == 'VerifyDocument':
+        import importlib.util
+        from pathlib import Path
+        spec = importlib.util.spec_from_file_location('verify_xml', Path(__file__).with_name('connector-verify-xml.py'))
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module.inspect(payload, mode, require, binary)
     if operation == 'GetJobNumber':
         if mode == 'response':
             children(payload, ['{' + SIG + '}JobNumber'])

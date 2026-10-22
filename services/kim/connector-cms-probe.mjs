@@ -5,12 +5,14 @@ import { prepareSmcbPin, assertPreparedSmcbPin } from './connector-pin.mjs';
 import { cardFingerprint } from './connector-cards.mjs';
 import { connectorFail, connectorSignal } from './connector-error.mjs';
 import { kimAddress } from './address.mjs';
+import { readKimEnvelope } from './envelope.mjs';
+import { decodeKimMimeEntity } from './message.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const pending = new WeakSet();
 const mime = Buffer.from('Content-Type: application/pkcs7-mime; smime-type=signed-data\r\nContent-Transfer-Encoding: binary\r\n\r\n');
 
-/** Synthetic self roundtrip, never a medical message or dispatch. All four SOAP
+/** Synthetic self roundtrip, never a medical message or dispatch. All five SOAP
  * operations must run on the provisioned peer. Caller labels cannot attest TI
  * access, physical hardware, certification or recipient acceptance. */
 export async function probeSmcbCms(input = {}) {
@@ -25,7 +27,7 @@ export async function probeSmcbCms(input = {}) {
     iccsn: input.iccsn, ctId: input.ctId, slotId: input.slotId, mandantWide: false, allowPrompt: false };
   const startedAt = Date.now(), runId = randomUUID(), challenge = randomBytes(32);
   const stop = AbortSignal.any([AbortSignal.timeout(120000), ...(signal ? [signal] : [])]);
-  let fingerprint, certHashes, first, signed, inner, encrypted, decrypted, last;
+  let fingerprint, certHashes, first, signed, inner, encrypted, decrypted, verified, cms, last;
   const content = Buffer.from(`Content-Type: message/rfc822\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nFrom: ${address}\r\nTo: ${address}\r\nSubject: CareSuite Konnektorpruefung\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=us-ascii\r\n\r\nSynthetic challenge ${runId} ${challenge.toString('hex')}\r\n`);
   const prepare = async () => {
     const value = await prepareSmcbPin({ ...settings, signal: stop });
@@ -54,16 +56,27 @@ export async function probeSmcbCms(input = {}) {
       data: Buffer.from(encrypted.data, 'base64'), address, expectedSignerCertificate: cert(p, 'C.SIG').certificate });
     const restored = Buffer.from(decrypted.data, 'base64');
     try { if (!restored.equals(inner)) connectorFail('CMS_BINDING'); } finally { restored.fill(0); }
+    p = await prepare();
+    cms = decodeKimMimeEntity(inner, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
+    const sig = cert(p, 'C.SIG');
+    verified = await KonnektorCertificateClient.prototype.verifySmcbDocument.call(connector, {
+      data: cms, certificate: sig.certificate, verification: sig.verification, signal: stop,
+      recipientEmails: readKimEnvelope(Buffer.from(encrypted.data, 'base64')).recipientEmails,
+    });
+    if (verified.contentSha256 !== hash(content)) connectorFail('CMS_VERIFY_BINDING');
     await prepare(); connectorSignal(stop); assertPreparedSmcbPin(last, connector, statusClient);
-    const transcript = [signed.job, signed, encrypted, decrypted].map(r => Object.freeze({
+    const transcript = [signed.job, signed, encrypted, decrypted, verified].map(r => Object.freeze({
       operation: r.operation, requestSha256: r.requestSha256, responseSha256: r.responseSha256,
       routeSha256: r.routeSha256, contextSha256: r.contextSha256, checkedAt: r.checkedAt,
     }));
-    return Object.freeze({ version: 1, runId, startedAt, completedAt: Date.now(), environment: connector.environment,
+    return Object.freeze({ version: 2, runId, startedAt, completedAt: Date.now(), environment: connector.environment,
       state: 'passed', profile: 'ecc-cms-diagnostic', source: 'configured-konnektor',
       challengeSha256: hash(challenge), contentSha256: hash(content), envelopeSha256: encrypted.outputSha256,
       certificateSha256: Object.freeze(first.bundle.certificates.map(c => Object.freeze({ ref: c.certRef, sha256: c.certificateSha256 }))),
       transcript: Object.freeze(transcript), transcriptSha256: hash(JSON.stringify(transcript)),
+      documentVerification: Object.freeze({ result: verified.verificationResult, checkedAt: verified.verificationTime,
+        timestampType: verified.timestampType, reportSha256: verified.reportSha256, signatureSha256: verified.signatureSha256,
+        signerSha256: verified.certificateSha256, cmsSha256: verified.dataSha256, reportBinding: verified.reportBinding }),
       hardwareEvidence: 'not-attested', tiEvidence: 'not-attested', deliveryStatus: 'held-for-trust-validation' });
-  } finally { pending.delete(connector); challenge.fill(0); content.fill(0); inner?.fill(0); }
+  } finally { pending.delete(connector); challenge.fill(0); content.fill(0); inner?.fill(0); cms?.fill(0); }
 }

@@ -80,7 +80,7 @@ export class KonnektorCertificateClient {
     const pin = operation === 'GetPinStatus' || PIN_OPERATIONS.includes(operation);
     const auth = operation === 'ExternalAuthenticate';
     const cms = DOCUMENT_OPERATIONS.includes(operation);
-    const transport = cms ? (['GetJobNumber', 'SignDocument'].includes(operation) ? this.#signatureTransport : this.#encryptionTransport) : operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : auth ? this.#authTransport : this.#transport;
+    const transport = cms ? (['GetJobNumber', 'SignDocument', 'VerifyDocument'].includes(operation) ? this.#signatureTransport : this.#encryptionTransport) : operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : auth ? this.#authTransport : this.#transport;
     if (!transport) connectorFail(cms ? 'CMS_UNCONFIGURED' : pin ? 'CARD_UNCONFIGURED' : auth ? 'AUTH_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
     if (this.#pending.size >= 8) connectorFail('BUSY');
     const controller = new AbortController(), deadline = AbortSignal.timeout(timeout);
@@ -134,9 +134,9 @@ export class KonnektorCertificateClient {
       validUntil: snapshot.validUntil, identityStatus: 'unverified' });
     cardSelections.set(selection, stored); return selection;
   }
-  #pinOpen() {
+  #pinOpen(requireCard = true) {
     this.#open();
-    if (!this.#cardTransport) connectorFail('CARD_UNCONFIGURED');
+    if (requireCard && !this.#cardTransport) connectorFail('CARD_UNCONFIGURED');
     if (this.#pinBusy) connectorFail('PIN_BUSY');
     if (this.#pinUncertain) connectorFail('PIN_OUTCOME_UNKNOWN');
     if (this.#authBusy) connectorFail('AUTH_BUSY');
@@ -258,6 +258,43 @@ export class KonnektorCertificateClient {
   signSmcbDocument(input = {}) { return this.#documentOperation('SignDocument', input); }
   encryptSmcbDocument(input = {}) { return this.#documentOperation('EncryptDocument', input); }
   decryptSmcbDocument(input = {}) { return this.#documentOperation('DecryptDocument', input); }
+  /** Read-only nonQES verification, bound to the independently checked CMS.
+   * No PIN prompt, private-key operation or automatic retry. */
+  async verifySmcbDocument(input = {}) {
+    pinOptions(input, ['data', 'certificate', 'verification', 'recipientEmails', 'signal']);
+    const { data, certificate: raw, verification, recipientEmails, signal } = input;
+    this.#pinOpen(false); connectorSignal(signal);
+    if (!this.#signatureTransport) connectorFail('CMS_UNCONFIGURED');
+    if (!(data instanceof Uint8Array) || !data.length || data.length > 22020096
+      || !(recipientEmails instanceof Uint8Array) || !recipientEmails.length || recipientEmails.length > 262144) connectorFail('INPUT');
+    const bytes = Buffer.from(data), emails = Buffer.from(recipientEmails);
+    let checked, cert;
+    try {
+      try {
+        cert = eccCmsCertificate(raw, 'osig', this.#now());
+        if (cert.certificateTypeOid !== '1.2.276.0.76.4.78') throw new Error();
+        checked = verifyEccKimSignedContent({ bytes, recipientEmails: emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
+      } catch { connectorFail('CMS_VERIFY_INPUT'); }
+      const bound = () => { this.#open(); connectorSignal(signal); assertConnectorCertificate(verification, this, { certificate: cert.cert.raw }); };
+      bound(); this.#cmsBusy = true;
+      try {
+        const { parsed, metadata } = await this.#exchange('VerifyDocument', { data: bytes }, signal, this.#timeout, bound);
+        bound();
+        if (parsed.verificationResult !== 'VALID') connectorFail(parsed.verificationResult === 'INVALID' ? 'CMS_VERIFY_INVALID' : 'CMS_VERIFY_INCONCLUSIVE');
+        if (!parsed.resultConsistent) connectorFail('CMS_VERIFY_INCONSISTENT');
+        if (parsed.signatureSha256 !== checked.signatureSha256 || parsed.certificateSha256[0] !== checked.signerSha256) connectorFail('CMS_VERIFY_BINDING');
+        // CurrentTime is explicitly requested. Both peer time classifications
+        // must be contemporaneous, including a bounded five-second clock skew.
+        if (!['SYSTEM_TIMESTAMP', 'USER_DEFINED_TIMESTAMP'].includes(parsed.timestampType)
+          || [parsed.timestamp, parsed.verificationTime].some(t => !Number.isSafeInteger(t) || t < metadata.startedAt - 5000 || t > metadata.checkedAt + 5000)) connectorFail('CMS_VERIFY_TIME');
+        return Object.freeze({ ...metadata, dataSha256: hash(bytes), contentSha256: hash(checked.content),
+          certificateSha256: checked.signerSha256, signatureSha256: checked.signatureSha256,
+          verificationResult: 'VALID', verificationTime: parsed.verificationTime, timestampType: parsed.timestampType,
+          reportSha256: parsed.reportSha256, reportBinding: 'signature-and-certificate',
+          deliveryStatus: 'held-for-trust-validation', profile: 'ecc-cms-diagnostic' });
+      } finally { this.#cmsBusy = false; }
+    } finally { bytes.fill(0); emails.fill(0); checked?.content.fill(0); }
+  }
   /** One held ECC operation. Fresh original PIN/certificate evidence is consumed;
    * ambiguous replies latch the client until explicit host recovery. No retries. */
   async #documentOperation(operation, input) {

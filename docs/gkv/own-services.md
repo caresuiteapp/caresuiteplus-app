@@ -501,7 +501,7 @@ Die Artefakte behalten den gesperrten Vertrauens-/Versandstatus.
 ### CMS-Diagnosehost und Oberfläche
 
 Der [CMS-/Host-Prüfablauf](konnektor-cms-host.md) verbindet GetJobNumber,
-SignDocument, EncryptDocument und DecryptDocument mit vier frischen vollständigen
+SignDocument, EncryptDocument, DecryptDocument und VerifyDocument mit fünf frischen vollständigen
 SMC-B-/TSL-/OCSP-/PIN-Vorprüfungen. Ein zufälliger synthetischer Inhalt wird
 signiert, verschlüsselt, über C.ENC entschlüsselt und bytegenau verglichen.
 Signatur, Empfängerzuordnung, Schlüsselrolle und SOAP-Korrelation werden geprüft.
@@ -512,11 +512,13 @@ provisionierten mTLS-Host. Die neue Ansicht „Konnektorprüfung“ zeigt echte
 Hostzustände an und erlaubt den Download des zugehörigen Diagnoseprotokolls.
 
 Das ist eine ECC-Diagnoseintegration, keine vollständige KIM-Versandpipeline.
-VerifyDocument, RSA_ECC/weitere CMS-Profile, normale Nachrichtenverarbeitung und
+RSA_ECC/weitere CMS-Profile, vollständige Berichtsprofile, normale Nachrichtenverarbeitung und
 unabhängig bestätigte Hardware-/TI-/Zulassungsnachweise bleiben offen. Der
 Protokollstatus lautet ausdrücklich `hardwareEvidence=not-attested` und
-`tiEvidence=not-attested`. Die Oberflächenbedienung ist lokal geprüft; die
-visuelle Freigabe bleibt wegen des fehlenden erreichbaren Browsers offen.
+`tiEvidence=not-attested`. Die ursprüngliche Oberflächenbedienung wurde lokal geprüft. Die Erweiterung
+um VerifyDocument und Wiederholsperre benötigt nach dem Verlust der lokalen
+Projektabhängigkeiten noch eine erneute React-/Typprüfung; die visuelle
+Freigabe bleibt ebenfalls offen. Details: [VerifyDocument](konnektor-verify-document.md).
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -545,7 +547,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Begrenzte ECC-Kartenoperationen sowie dauerhafter Diagnosehost, mTLS-Web-API und Webansicht ergänzt. Reale Konnektor-/SMC-B-Anbindung, VerifyDocument/weitere CMS-Profile, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Begrenzte ECC-Kartenoperationen sowie dauerhafter Diagnosehost, mTLS-Web-API und Webansicht ergänzt. Begrenzte VerifyDocument-Prüfung samt Berichtsbindung ergänzt. Reale Konnektor-/SMC-B-Anbindung, weitere CMS-/Berichtsprofile, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

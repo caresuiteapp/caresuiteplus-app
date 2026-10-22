@@ -661,9 +661,9 @@ const authenticate = (connector, statusClient, prepared, changes = {}) => signSm
 
 async function withCms(run, transform, changeReply) {
   const encryptionKey = createPrivateKey({ key: await readFile(encryption[0].privateKeyPath), passphrase: f.pki.password });
-  const reply = makeCmsReply({ signingCertificate: signing.certificate, signingKey, encryptionKey, now: () => state.now, transform });
+  const reply = makeCmsReply({ signingCertificate: signing.certificate, signingKey, encryptionKey, now: Date.now, transform });
   await withConnector(async ({ open, options, requests }) => run({ connector: open({ eventServiceUrl: eventUrl(options),
-    cardServiceUrl: cardUrl(options), ...cmsUrls(options), clock: () => state.now }), requests }), event => {
+    cardServiceUrl: cardUrl(options), ...cmsUrls(options), clock: Date.now }), requests }), event => {
       const result = reply(event.bytes);
       if (changeReply?.(event, result)) return;
       return result ? cardsReply(event.response, result) : authSmcbReply(event);
@@ -672,13 +672,13 @@ async function withCms(run, transform, changeReply) {
 const cmsProbe = (connector, statusClient, changes = {}) => probeSmcbCms({ connector, statusClient,
   expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], address: senderAddress, ...changes });
 
-test('SMC-B CMS workflow: complete mTLS sign/encrypt/card decrypt roundtrip with four fresh preflights', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => {
+test('SMC-B CMS workflow: complete mTLS sign/encrypt/card decrypt roundtrip with five fresh preflights', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => {
   const result = await cmsProbe(connector, open());
   assert.equal(result.state, 'passed'); assert.equal(result.hardwareEvidence, 'not-attested'); assert.equal(result.tiEvidence, 'not-attested');
   assert.equal(result.deliveryStatus, 'held-for-trust-validation');
-  assert.deepEqual(result.transcript.map(t => t.operation), ['GetJobNumber', 'SignDocument', 'EncryptDocument', 'DecryptDocument']);
-  assert.equal(requests.filter(q => isCards(q.bytes)).length, 8);
-  assert.equal(requests.filter(q => isPinStatus(q.bytes)).length, 4);
+  assert.deepEqual(result.transcript.map(t => t.operation), ['GetJobNumber', 'SignDocument', 'EncryptDocument', 'DecryptDocument', 'VerifyDocument']);
+  assert.equal(requests.filter(q => isCards(q.bytes)).length, 10);
+  assert.equal(requests.filter(q => isPinStatus(q.bytes)).length, 5);
   assert.equal(requests.some(q => isVerifyPin(q.bytes)), false);
   const decrypt = requests.find(q => cmsOperation(q.bytes) === 'DecryptDocument');
   assert.equal(decrypt.headers.soapaction, '"http://ws.gematik.de/conn/crypt/EncryptionService/v6.1#DecryptDocument"');
@@ -711,6 +711,21 @@ test('SMC-B CMS workflow: wrong SOAP request correlation cannot release a valid 
   cardsReply(event.response, result.replace(/RequestID="[^"]+"/, 'RequestID="another-request"')); return true;
 })));
 
+test('SMC-B CMS workflow: inconclusive document verification prevents a passed report without automatic retry', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => {
+  await assert.rejects(cmsProbe(connector, open()), /KIM_CONNECTOR_CMS_VERIFY_INCONCLUSIVE/);
+  assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'VerifyDocument').length, 1);
+}, undefined, (event, result) => {
+  if (cmsOperation(event.bytes) !== 'VerifyDocument') return false;
+  cardsReply(event.response, result.replace('<c:HighLevelResult>VALID', '<c:HighLevelResult>INCONCLUSIVE')); return true;
+})));
+test('SMC-B CMS workflow: final card removal invalidates an otherwise valid document report', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => {
+  await assert.rejects(cmsProbe(connector, open()), /KIM_CONNECTOR_CARD_/);
+  assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'VerifyDocument').length, 1);
+}, undefined, event => {
+  if (!isCards(event.bytes) || !event.requests.some(q => cmsOperation(q.bytes) === 'VerifyDocument')) return false;
+  cardsReply(event.response, cardsResponse([])); return true;
+})));
+
 test('KIM host: authenticated gateway, real mTLS, durable reservation and complete synthetic card workflow', async () => fixture(async ({ open, path }) => withCms(async ({ connector, requests }) => {
   const tenantId = randomUUID(), requestId = randomUUID(), storePath = join(dirname(path), 'kim-host.db');
   const probe = { connector, statusClient: open(), expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], address: senderAddress };
@@ -738,6 +753,11 @@ test('KIM host: authenticated gateway, real mTLS, durable reservation and comple
     const response = await call('status'); assert.equal(response.statusCode, 200);
     readKimHostStatus(response.body, tenantId);
     assert.equal(response.body.report.hardwareEvidence, 'not-attested');
+    assert.equal(response.body.report.version, 2); assert.equal(response.body.report.documentVerification.result, 'VALID');
+    assert.equal(response.body.canStart, false); assert.ok(response.body.nextStartAt > Date.now());
+    assert.throws(() => host.start(tenantId, randomUUID()), /KIM_HOST_RATE_LIMIT/);
+    const refused = await call('start', randomUUID());
+    assert.equal(refused.statusCode, 200); assert.equal(refused.body.canStart, false); assert.equal(refused.body.requestId, requestId);
     assert.equal(seen.some(h => h.authorization), false);
     assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'SignDocument').length, 1);
     await host.close();
@@ -756,7 +776,12 @@ test('KIM host: failed card preflight survives restart and requires explicit rev
   assert.equal(host.status(tenantId).state, 'failed');
   assert.throws(() => host.start(tenantId, randomUUID()), /KIM_HOST_RECOVERY_REQUIRED/); await host.close();
   host = new KimDiagnosticHost({ tenantId, storePath, probe, recoveryReviewedRequestId: requestId });
-  try { assert.equal(host.status(tenantId).canStart, true); readKimHostStatus(host.status(tenantId), tenantId); }
+  try {
+    assert.equal(host.status(tenantId).canStart, false); assert.ok(host.status(tenantId).nextStartAt > Date.now());
+    assert.throws(() => host.start(tenantId, randomUUID()), /KIM_HOST_RATE_LIMIT/);
+    const db = new DatabaseSync(storePath); db.prepare('UPDATE kim_diagnostic_jobs SET started=started-30000').run(); db.close();
+    assert.equal(host.status(tenantId).canStart, true); readKimHostStatus(host.status(tenantId), tenantId);
+  }
   finally { await host.close(); }
 })));
 

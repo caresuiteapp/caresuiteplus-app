@@ -33,16 +33,18 @@ export class KimDiagnosticHost {
     this.#assert(tenantId);
     const row = this.#db.prepare('SELECT * FROM kim_diagnostic_jobs WHERE tenant=? ORDER BY started DESC,request_id DESC LIMIT 1').get(tenantId);
     const blocked = Boolean(this.#db.prepare("SELECT 1 FROM kim_diagnostic_jobs WHERE (state='running' OR state='failed') AND reviewed=0 LIMIT 1").get());
+    const nextStartAt = row && !blocked && !this.#pending && row.started + 30000 > Date.now() ? row.started + 30000 : null;
     return { version: 1, tenantId, configured: true, environment: this.#options.connector.environment,
       state: !row ? 'ready' : row.state === 'running' && !this.#pending ? 'interrupted' : row.state,
-      canStart: !blocked && !this.#pending, requestId: row?.request_id ?? null, startedAt: row?.started ?? null,
+      canStart: !blocked && !this.#pending && !nextStartAt, nextStartAt, requestId: row?.request_id ?? null, startedAt: row?.started ?? null,
       completedAt: row?.completed ?? null, report: row?.report ? JSON.parse(row.report) : null, errorCode: row?.error_code ?? null };
   }
   start(tenantId, requestId) {
     this.#assert(tenantId); if (!isUuid(requestId)) fail('KIM_HOST_INPUT');
     const duplicate = transaction(this.#db, () => {
       if (this.#db.prepare('SELECT 1 FROM kim_diagnostic_jobs WHERE tenant=? AND request_id=?').get(tenantId, requestId)) return true;
-      if (!this.status(tenantId).canStart) fail('KIM_HOST_RECOVERY_REQUIRED');
+      const status = this.status(tenantId);
+      if (!status.canStart) fail(status.nextStartAt ? 'KIM_HOST_RATE_LIMIT' : 'KIM_HOST_RECOVERY_REQUIRED');
       const previous = this.#db.prepare('SELECT MAX(started) AS started FROM kim_diagnostic_jobs').get();
       if (previous.started && Date.now() - previous.started < 30000) fail('KIM_HOST_RATE_LIMIT');
       this.#db.prepare("INSERT INTO kim_diagnostic_jobs(tenant,request_id,started,state) VALUES(?,?,?,'running')").run(tenantId, requestId, Date.now());
@@ -79,7 +81,13 @@ export function createKimHostServer({ host, tls, clientSha256 }) {
       const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(k => !['tenantId', 'action', 'requestId'].includes(k))
         || !['status', 'start'].includes(input.action) || (input.action === 'status' && input.requestId !== undefined)) return reply(400, { error: 'KIM_HOST_INPUT' });
-      reply(200, input.action === 'start' ? host.start(input.tenantId, input.requestId) : host.status(input.tenantId));
+      try { reply(200, input.action === 'start' ? host.start(input.tenantId, input.requestId) : host.status(input.tenantId)); }
+      catch (error) {
+        // A stale browser may still offer Start. Return the current scoped
+        // state for an explicit refusal, without reserving or retrying a job.
+        if (['KIM_HOST_RATE_LIMIT', 'KIM_HOST_RECOVERY_REQUIRED'].includes(error?.message)) return reply(200, host.status(input.tenantId));
+        throw error;
+      }
     } catch (error) { reply(error?.message === 'KIM_HOST_SCOPE' ? 403 : 409, { error: /^KIM_HOST_[A-Z_]+$/.test(error?.message) ? error.message : 'KIM_HOST_UNAVAILABLE' }); }
   });
 }

@@ -75,3 +75,38 @@ test('KIM contract: caller cannot turn a status into a hardware certificate', ()
   assert.throws(() => readKimHostStatus({ ...ready(), tenantId: randomUUID() }, tenantId), /KIM_HOST_RESPONSE/);
   assert.throws(() => readKimHostStatus({ ...ready(), state: 'running' }, tenantId), /KIM_HOST_RESPONSE/);
 });
+const completed = version => {
+  const startedAt = Date.now() - 3000, completedAt = startedAt + 2000, h = 'a'.repeat(64);
+  return { ...ready(), state: 'passed', requestId: randomUUID(), startedAt, completedAt, report: {
+    version, runId: randomUUID(), startedAt, completedAt, environment: 'test', state: 'passed', profile: 'ecc-cms-diagnostic', source: 'configured-konnektor',
+    challengeSha256: h, contentSha256: h, envelopeSha256: h, transcriptSha256: h,
+    certificateSha256: ['C.AUT','C.ENC','C.SIG'].map(ref => ({ ref, sha256: h })),
+    transcript: ['GetJobNumber','SignDocument','EncryptDocument','DecryptDocument', ...(version === 2 ? ['VerifyDocument'] : [])].map(operation => ({ operation, requestSha256: h, responseSha256: h, routeSha256: h, contextSha256: h, checkedAt: completedAt })),
+    ...(version === 2 ? { documentVerification: { result: 'VALID', checkedAt: completedAt, timestampType: 'SYSTEM_TIMESTAMP', reportSha256: h, signatureSha256: h, signerSha256: h, cmsSha256: h, reportBinding: 'signature-and-certificate' } } : {}),
+    hardwareEvidence: 'not-attested', tiEvidence: 'not-attested', deliveryStatus: 'held-for-trust-validation',
+  } };
+};
+test('KIM contract: version 1 stays readable without silently adding VerifyDocument', () => {
+  const result = readKimHostStatus(completed(1), tenantId);
+  assert.equal(result.report.version, 1); assert.equal(result.report.documentVerification, undefined); assert.equal(result.report.transcript.length, 4);
+});
+test('KIM contract: version 2 carries the additional verification and supports scoped cooldown', () => {
+  const value = { ...completed(2), canStart: false, nextStartAt: Date.now() + 20000 };
+  const result = readKimHostStatus(value, tenantId);
+  assert.equal(result.report.documentVerification.result, 'VALID'); assert.equal(result.nextStartAt, value.nextStartAt);
+  value.report.documentVerification.result = 'INVALID'; assert.equal(result.report.documentVerification.result, 'VALID');
+});
+for (const [label, change] of [
+  ['missing confirmation', s => { delete s.report.documentVerification; }],
+  ['old report promoted', s => { s.report.version = 1; }],
+  ['string version', s => { s.report.version = '2'; }],
+  ['wrong signer', s => { s.report.documentVerification.signerSha256 = 'b'.repeat(64); }],
+  ['claimed physical hardware', s => { s.report.hardwareEvidence = 'verified'; }],
+  ['invalid signature result', s => { s.report.documentVerification.result = 'INVALID'; }],
+  ['old result timestamp', s => { s.report.documentVerification.checkedAt -= 60000; }],
+  ['missing operation', s => { s.report.transcript.pop(); }],
+  ['foreign report field', s => { s.report.documentVerification.privateData = 'forbidden'; }],
+  ['start during cooldown', s => { s.nextStartAt = Date.now() + 1000; }],
+]) test('KIM contract: rejects ' + label, () => {
+  const status = completed(2); change(status); assert.throws(() => readKimHostStatus(status, tenantId), /KIM_HOST_RESPONSE/);
+});

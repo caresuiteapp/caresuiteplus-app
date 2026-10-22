@@ -8,11 +8,57 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**1.028/1.028 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
-0 Fehler, 0 übersprungene oder abgebrochene Fälle, 230,6 Sekunden.
-Es wurde keine zusätzliche Software installiert. Vorhandene Projektabhängigkeiten
-wurden für TypeScript, esbuild, ESLint und die React-DOM-Prüfung wiederverwendet.
-Ältere Abschnitte beschreiben die jeweiligen Zwischenstände.
+**1.070/1.070 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
+0 Fehler, 0 übersprungene oder abgebrochene Fälle, 241,1 Sekunden.
+Die folgenden älteren Abschnitte belegen jeweils ihren damaligen Zwischenstand.
+
+## VerifyDocument und Hoststatus am 22.10.2026
+
+**42 neue Fälle** ergänzen die bisherigen 1.028: 28 SOAP-/Berichts-/mTLS-/
+Signaturbindungsfälle, 12 Antwortvertragsfälle und 2 vollständige Kartenabläufe.
+Der gezielte VerifyDocument-Lauf bestand mit 28 Fällen in 7,0 Sekunden;
+der Gateway-/Vertragslauf mit 31 Fällen in 3,0 Sekunden. Der vollständige Lauf
+oben enthält sämtliche finalen Dienständerungen und alle neuen Fälle.
+
+Geprüft sind das offizielle Request-Schema für enveloping CMS, der zusätzliche
+Konnektorbericht und seine Signatur-/Leaf-/Zeitbindung, widersprüchliche positive
+Gesamt- und negative Detailergebnisse, INVALID/INCONCLUSIVE, fehlende/mehrfache
+Berichte, fremde Erweiterungen, ungültige Zeitangaben, Größenlimit und DTDs.
+Kopierte Zertifikatsbelege, ungültiges CMS und abgebrochene Anfragen erreichen
+keinen Dokumentenaufruf. Eingabepuffer können nicht nachträglich geändert werden;
+gleichzeitige Dokumentoperationen werden abgewehrt.
+
+Der vollständige Hosttest umfasst jetzt fünf frische Karten-/TSL-/OCSP-/PIN-
+Vor-/Nachprüfungen und zusätzlich VerifyDocument. Eine unvollständige Verifikation
+oder Kartenentnahme nach positivem Bericht verhindert den Erfolgsstatus.
+Version-1-Protokolle bleiben lesbar; Version 2 benötigt die zusätzliche
+Bestätigung. Sperrzeit, persistente Start-ID und ausdrücklich überprüfte
+Wiederherstellung werden geprüft. Ein zu früher Start über API/mTLS liefert den
+bestehenden Status, ohne einen weiteren Auftrag zu reservieren.
+
+Zusätzlich bestanden TS-/JSX-Syntaxprüfung mit dem vorhandenen Babel-Parser,
+670 Web-Elternroutenmuster und `git diff --check`. Das ist keine vollständige
+TypeScript- oder React-Bedienprüfung. Die automatische Arbeitsbereichsbereinigung
+entfernte während dieser Änderung die vorher vorhandenen Projektabhängigkeiten.
+Der Code wurde aus GitHub wiederhergestellt. Der erneute React-Lauf scheitert
+lokal bereits am fehlenden esbuild-Paket, das Vercel-/Public-Route-Audit am
+fehlenden expo-router-Paket. Keine Neuinstallation; aktuelle TypeScript-/React-
+und visuelle Abnahme bleiben offen. Die früheren erfolgreichen Prüfungen unten
+werden nicht als Beleg für diese Erweiterung übernommen.
+
+Das verbundene Gerät war erneut offline. Es entstand kein echter Hardware-/
+TI-Nachweis und keine Produktionsfreischaltung. GitHub meldete für den
+Vorgänger 1c2462ae alle vier Vercel-Builds erfolgreich; Deploymentdetails waren
+wegen fehlender Teamfreigabe (403) nicht abrufbar. Das ist kein Buildbeleg für
+diesen Folgecommit. Der [VerifyDocument-Vertrag](konnektor-verify-document.md)
+beschreibt Prüfumfang, Berichtsbindung und verbleibende Profilgrenzen.
+
+## Historischer Stand vor VerifyDocument
+
+**1.028/1.028 Prüfungen** bestanden damals in 230,6 Sekunden. Vorhandene
+Projektabhängigkeiten wurden für TypeScript, esbuild, ESLint und die
+React-DOM-Prüfung wiederverwendet. Die nachfolgenden Angaben gelten für diesen
+früheren Umfang.
 
 ## CMS, Kartenentschlüsselung, Host und Web am 22.10.2026
 

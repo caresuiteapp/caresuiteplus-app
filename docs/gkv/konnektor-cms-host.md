@@ -1,7 +1,8 @@
 # CMS-Kartenprüfung und Diensthost
 
 Stand: 22.10.2026. Implementiert ist ein ausführbarer ECC-Diagnoseablauf mit
-Hostjournal, serverseitigem API-Zugang und Weboberfläche. Die Prüfung verwendet
+Hostjournal, serverseitigem API-Zugang, Weboberfläche und zusätzlichem
+[VerifyDocument-Prüfbericht](konnektor-verify-document.md). Die Prüfung verwendet
 einen neu erzeugten synthetischen Inhalt. Sie verschickt keine Nachricht und
 schaltet keine Abrechnung frei. Die bisherigen Nachweise stammen von lokalen
 HTTPS-/mTLS-Gegenstellen mit Software-Testschlüsseln.
@@ -18,10 +19,11 @@ Serverpin und Clientzertifikat bleiben verpflichtend.
 | GetJobNumber | Schemafähige Auftragsnummer vom Signaturdienst; keine lokal erfundene Nummer |
 | SignDocument | Ein SignRequest mit eindeutiger RequestID, eingebettetem Inhalt, OSIG-Zertifikat und signiertem recipient-emails-Attribut; mathematische ECDSA-Prüfung und bytegenauer Originalvergleich |
 | EncryptDocument | Empfängerzertifikate und dasselbe recipient-emails-Attribut; AuthEnvelopedData mit TI-ECIES/brainpoolP256r1 und AES-256-GCM; exakte Empfängerzuordnung |
+| VerifyDocument | Eigenständige mathematische CMS-Prüfung und frischer Konnektorbericht mit Bindung an Signaturwert, OSIG-Leaf und Prüfzeit |
 | DecryptDocument | Vor dem Aufruf Zuordnung von Abholadresse und Issuer/Serial zur ausgewählten ENC-Karte; anschließend Prüfung der inneren CMS-Signatur und des recipient-emails-Attributs |
 
-`probeSmcbCms` verbindet alle vier Operationen. Vor Signatur, Verschlüsselung,
-Entschlüsselung und abschließendem Erfolg läuft jeweils die vorhandene vollständige
+`probeSmcbCms` verbindet alle fünf Operationen. Vor Signatur, Verschlüsselung,
+Entschlüsselung, VerifyDocument und abschließendem Erfolg läuft jeweils die vorhandene vollständige
 SMC-B-Vorprüfung: GetCards, tatsächliche AUT-/ENC-/OSIG-Zertifikate, TSL/OCSP,
 VerifyCertificate, erneute Kartenauswahl und GetPinStatus VERIFIED. Kartenmerkmale
 und alle drei Zertifikat-Hashes müssen über den gesamten Durchlauf gleich bleiben.
@@ -66,9 +68,9 @@ Grundlagen: [gemSpec_Kon](https://gemspec.gematik.de/docs/gemSpec/gemSpec_Kon/),
 und [gemSMIME_KOMLE](https://gemspec.gematik.de/docs/gemSMIME/gemSMIME_KOMLE/).
 Die Umsetzung ist eine begrenzte ECC-Teilmenge, kein vollständiger Nachweis aller
 KIM-/CAdES-Vorgaben. RSA_ECC-Doppelsignaturen, BER, zusätzliche Zertifikatsketten,
-weitere Signaturattribute und VerifyDocument sind noch zu ergänzen. Der
-vorhandene unabhängige mathematische Prüfer ersetzt keinen normativen
-VerifyDocument- oder Zulassungsnachweis.
+weitere Signaturattribute und vollständige Hersteller-/Berichtsprofile sind noch
+zu ergänzen. VerifyDocument ist im begrenzten Diagnoseablauf ergänzt; eine
+unabhängige Zulassung oder vollständige CMS-Konformität ist damit nicht belegt.
 
 ## Host und Webanbindung
 
@@ -109,6 +111,8 @@ neu starten. Diese Prüfung wird im Journal vermerkt. Die ursprüngliche Anfrage
 bleibt reserviert. Der Betrieb setzt genau einen Hostprozess pro Journal voraus;
 die Wiederherstellung darf erst nach Beendigung des alten Prozesses erfolgen.
 Zusätzlich gilt ein Mindestabstand von 30 Sekunden zwischen neuen Prüfungen.
+Der Status bildet ihn über canStart und nextStartAt ab; die Oberfläche fragt
+nach Ablauf nur den Status ab und startet keine Prüfung automatisch.
 
 Die Web-API `/api/gkv/kim-host` prüft die Anmeldung beim Supabase-Authserver und
 die bestehenden mandantenbezogenen Abrechnungsrechte über
@@ -128,15 +132,18 @@ eigene mTLS-Zugangsdaten und diese ausschließlich serverseitigen Variablen:
 Redirects, komprimierte Antworten, unpassende Mandanten und übergroße Antworten
 scheitern. Ohne Host-URL wird ein ausdrücklicher Einrichtungszustand angezeigt.
 Die Oberfläche unter „Konnektorprüfung“ bietet Start, Statusaktualisierung,
-laufende Prüfung, Fehlerzustand und JSON-Protokolldownload. Rollen-/Mandantenwechsel
+laufende Prüfung, Fehlerzustand und JSON-Protokolldownload auch für angehaltene Durchläufe.
+Neue Berichte verwenden Version 2 mit VerifyDocument; alte Version-1-Berichte
+bleiben sichtbar und werden ausdrücklich als früherer Prüfumfang gekennzeichnet. Rollen-/Mandantenwechsel
 und Verlassen der Ansicht verwerfen ausstehende UI-Antworten. Ein gestarteter
 Hostauftrag wird dadurch nicht automatisch abgebrochen oder wiederholt.
 
 ## Was die Nachweise aussagen
 
 Das Protokoll enthält Challenge-/Inhalts-/Container-Hashes, Zertifikat-Hashes,
-Zeitpunkte sowie Request-, Response-, Routen- und Kontext-Hashes der vier
-Operationen. Es enthält weder Originalnachricht noch Schlüssel, PIN, Kartenhandle,
+Zeitpunkte sowie Request-, Response-, Routen- und Kontext-Hashes der fünf
+Operationen. Neue Berichte enthalten außerdem den kanonischen VerifyDocument-
+Report-Hash sowie CMS-, Signatur- und OSIG-Hashes. Es enthält weder Originalnachricht noch Schlüssel, PIN, Kartenhandle,
 ICCSN oder Zertifikatssubjekte. Es ist kein unabhängig signierter Auditbeleg und
 nicht gegen Änderungen durch lokale Datenbankadministratoren geschützt.
 
@@ -151,7 +158,10 @@ ließen sich auflisten; die Abfrage ihrer Umgebungsmetadaten scheiterte an fehle
 Teamfreigabe (403). Daraus lässt sich keine Aussage über dort vorhandene
 Konnektorzugänge ableiten. Es wurden keine produktiven Zugangsdaten geändert.
 
-Die lokale React-Prüfung belegt Bedienabläufe. Eine echte visuelle Prüfung bleibt
+Die ursprüngliche lokale React-Prüfung belegt die damaligen Bedienabläufe.
+Nach der automatischen Arbeitsbereichsbereinigung fehlen die dafür verwendeten
+Projektpakete; die neue Erweiterung ist lokal nur syntaktisch geprüft.
+Eine echte visuelle Prüfung bleibt
 offen: kein lokales Chromium vorhanden; der Cloudbrowser erreicht den lokalen
 HTTP-Server nicht und erlaubt keine lokale Datei-Navigation. Es wurde keine
 Browser-Schutzregel umgangen und keine zusätzliche Software installiert.

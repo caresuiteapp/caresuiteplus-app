@@ -11,7 +11,7 @@ export const AUTH_SERVICE = 'http://ws.gematik.de/conn/SignatureService/v7.4';
 export const DSS = 'urn:oasis:names:tc:dss:1.0:core:schema';
 export const ECDSA_TYPE = 'urn:bsi:tr:03111:ecdsa';
 export const PIN_OPERATIONS = Object.freeze(['VerifyPin', 'ChangePin', 'UnblockPin']);
-export const connectorService = operation => ['GetJobNumber', 'SignDocument'].includes(operation) ? SIGNATURE_SERVICE
+export const connectorService = operation => ['GetJobNumber', 'SignDocument', 'VerifyDocument'].includes(operation) ? SIGNATURE_SERVICE
   : ['EncryptDocument', 'DecryptDocument'].includes(operation) ? ENCRYPTION_SERVICE
   : operation === 'GetCards' ? EVENT_SERVICE
   : operation === 'ExternalAuthenticate' ? AUTH_SERVICE

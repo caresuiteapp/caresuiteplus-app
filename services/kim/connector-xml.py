@@ -20,7 +20,7 @@ DSS = 'urn:oasis:names:tc:dss:1.0:core:schema'
 SIG = 'http://ws.gematik.de/conn/SignatureService/v7.5'
 CRYPT = 'http://ws.gematik.de/conn/EncryptionService/v6.1'
 CMS_PROCESS = sys.argv[1:] == ['--cms']
-CMS_OPS = ('GetJobNumber', 'SignDocument', 'EncryptDocument', 'DecryptDocument')
+CMS_OPS = ('GetJobNumber', 'SignDocument', 'EncryptDocument', 'DecryptDocument', 'VerifyDocument')
 ECDSA = 'urn:bsi:tr:03111:ecdsa'
 COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0'
 CONN = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0'
@@ -93,7 +93,7 @@ def run(etree):
     require(args.get('mode') in ('request', 'response'))
     is_cms = args['operation'] in CMS_OPS
     require(is_cms == CMS_PROCESS, 'XML_PROFILE')
-    is_sig = args['operation'] in ('SignDocument', 'GetJobNumber')
+    is_sig = args['operation'] in ('SignDocument', 'GetJobNumber', 'VerifyDocument')
     is_cards = args['operation'] == 'GetCards'
     is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin')
     is_auth = args['operation'] == 'ExternalAuthenticate'

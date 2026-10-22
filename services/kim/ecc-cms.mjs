@@ -161,7 +161,7 @@ export function verifyEccKimSignedContent({ bytes, recipientEmails, expectedSign
     // Native ECDSA verifies the DER signature, including range checks for r and s.
     if (!verify('sha256', tlv(49, info[3].value), signer.cert.publicKey, info[5].value)) throw new Error();
     return { content: Buffer.from(content.value), signerSha256: digest(signer.cert.raw).toString('hex'),
-      claimedSigningTime: timestamp, identityStatus: 'unverified' };
+      signatureSha256: digest(info[5].value).toString('hex'), claimedSigningTime: timestamp, identityStatus: 'unverified' };
   } catch { throw new Error('KIM_CMS_SIGNATURE_REJECTED'); }
 }
 /** Low-level ECC CMS codec. Software KeyObjects permit local verification; this is not an
