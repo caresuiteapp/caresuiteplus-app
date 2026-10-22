@@ -3,7 +3,7 @@ import { createKimHostHandler } from '../../api/_lib/kim-host-handler.mjs';
 import { readKimHostStatus } from '../../src/lib/gkvExchange/kimHostContract.ts';
 import { dirname } from 'node:path';
 import { probeSmcbCms } from '../../services/kim/connector-cms-probe.mjs';
-import { makeCmsReply, cmsUrls, cmsOperation } from './connector-cms-fixture.mjs';
+import { makeCmsReply, cmsUrls, cmsOperation, cmsVerificationReply } from './connector-cms-fixture.mjs';
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import https from 'node:https';
@@ -17,7 +17,7 @@ import { Vault } from '../../services/gkv/storage.mjs';
 import { TslOcspStatusClient } from '../../services/kim/tsl-ocsp.mjs';
 import { receiveEccKimMessageWithTsl } from '../../services/kim/receive-tsl.mjs';
 import { createEccKimMessage, inspectEccKimMessageForDirectory, authenticateInspectedKimMessage } from '../../services/kim/client-message.mjs';
-import { readMessage } from '../../services/kim/message.mjs';
+import { readMessage, parseContentType, decodedBase64 } from '../../services/kim/message.mjs';
 import { createEccKimAuth, verifyReceivedEccKimAuth } from '../../services/kim/message-auth.mjs';
 import { sealEccKimPayload } from '../../services/kim/ecc-cms.mjs';
 import { TslRefreshManager } from '../../services/kim/tsl-refresh.mjs';
@@ -48,7 +48,7 @@ const code = expected => error => error?.code === expected;
 const statusError = e => /^KIM_(?:TSL|OCSP)_/.test(e?.code);
 const report = { cmVersion: 'TEST_0.1.0', ptVersion: '1.5.5' };
 let f, server, origin, signer, signing, authentication, wire, state, defaults, extraResponder, originalHash, rootKey;
-let encryption, rollover, signingKey, authKey;
+let encryption, rollover, signingKey, authKey, remoteSigning, remoteSigningKey;
 let vzdServer, vzdTls;
 const senderAddress = 'sender@local.kim.telematik-test', receiverAddress = 'receiver@local.kim.telematik-test';
 const endpoints = () => ({ url: origin + '/leaf-ocsp', ca: f.pki.roots, connectAddress: '127.0.0.1' });
@@ -79,12 +79,15 @@ before(async () => {
   signer = await f.issueSigner({ name: 'route-tsl', aia: `OCSP;URI:${origin}/signer-ocsp` });
   const startDate = new Date(f.now - 86400000).toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z';
   signing = await f.pki.issueKim({ name: 'route-osig', role: 'osig', startDate, aia: `OCSP;URI:${origin}/leaf-aia` });
+  remoteSigning = await f.pki.issueKim({ name: 'route-remote-osig', role: 'osig', startDate,
+    admission: admissionDer({ telematikId: '10-SEPARATE-SIGNER' }) });
   authentication = await f.pki.issueAut({ name: 'route-aut', startDate });
   const a = await f.pki.issueKim({ name: 'route-enc-a', startDate }), b = await f.pki.issueKim({ name: 'route-enc-b', startDate });
   encryption = [a, b]; rollover = await f.pki.issueKim({ name: 'route-enc-rollover', startDate });
   const key = async c => createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: f.pki.password });
   rootKey = await key({ privateKeyPath: join(f.pki.dir, 'root.key') });
   signingKey = await key(signing); authKey = await key(authentication);
+  remoteSigningKey = await key(remoteSigning);
   vzdServer = await f.pki.issueVzd({ startDate });
   vzdTls = { key: await readFile(vzdServer.privateKeyPath), passphrase: f.pki.password.toString(), cert: vzdServer.certificate };
   const sender = 'sender@local.kim.telematik-test', receiver = 'receiver@local.kim.telematik-test';
@@ -671,6 +674,221 @@ async function withCms(run, transform, changeReply) {
 }
 const cmsProbe = (connector, statusClient, changes = {}) => probeSmcbCms({ connector, statusClient,
   expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], address: senderAddress, ...changes });
+
+const cardReceiveInput = changes => ({ bytes: wire.bytes, address: senderAddress, expectedSignerCertificate: signing.certificate,
+  expectedAuthCertificate: authentication.certificate, now: f.now, ...changes });
+const receiveCard = (connector, statusClient, directory, changes = {}, reportChanges = {}, configChanges = {}) => receiveEccKimMessageWithTsl(cardReceiveInput(changes),
+  { ...report, ...reportChanges }, { connector, statusClient, directory,
+    card: { expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'] }, ...configChanges });
+
+test('KIM card receive: original wire traverses real mTLS decryption, VerifyDocument, directory and fresh card recheck', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  const result = await receiveCard(connector, open(), directory);
+  assert.equal(result.cardAcquisition.state, 'checked', JSON.stringify(result.cardAcquisition));
+  assert.equal(result.diagnostic.integrityResult, '07'); assert.equal(result.diagnostic.decryptionResult, '00');
+  assert.equal(result.directoryAcquisition.state, 'matched'); assert.equal(result.authenticationAssessment.state, 'not-required');
+  assert.equal(result.cardAcquisition.documentVerification.verificationResult, 'VALID');
+  assert.equal(result.originalSha256, originalHash); assert.equal(result.deliveryStatus, 'diagnostic-only');
+  assert.equal(result.cardAcquisition.hardwareEvidence, 'not-attested'); assert.equal(result.cardAcquisition.tiEvidence, 'not-attested');
+  assert.deepEqual(requests.map(q => cmsOperation(q.bytes)).filter(Boolean), ['DecryptDocument', 'VerifyDocument']);
+  assert.equal(requests.filter(q => isCards(q.bytes)).length, 4); assert.equal(requests.filter(q => isPinStatus(q.bytes)).length, 2);
+  assert.equal(requests.some(q => isVerifyPin(q.bytes) || isAuthenticate(q.bytes)), false);
+  assert.equal(result.bytes.includes('PRIVATE LOCAL STATUS TEST'), false);
+  assert.equal(JSON.stringify(result.cardAcquisition).includes('SMCB-1'), false);
+}))));
+
+function cardReportParts(bytes) {
+  const message = readMessage(bytes), boundary = parseContentType(message.one('content-type')).params.get('boundary');
+  return message.body.toString('latin1').split('--' + boundary + '\r\n').slice(1).map(s => {
+    const part = readMessage(Buffer.from(s.slice(0, s.indexOf('\r\n--') < 0 ? -2 : s.indexOf('\r\n--')), 'latin1'));
+    return { type: parseContentType(part.one('content-type')).type, bytes: part.one('content-transfer-encoding') === 'base64' ? decodedBase64(part.body) : part.body };
+  });
+}
+for (const result of ['INVALID', 'INCONCLUSIVE', 'INCONSISTENT']) test('KIM card receive: ' + result + ' attaches the actual bound XML without delivery or directory lookup', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory, requests: ldap }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.diagnostic.integrityResult, 'XCS_DOCUMENT'); assert.equal(r.cardAcquisition.state, 'rejected');
+  assert.equal(r.cardAcquisition.code, 'KIM_CONNECTOR_CMS_VERIFY_' + result); assert.equal(ldap.length, 0);
+  assert.equal(r.diagnostic.externalReportSha256, undefined); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+  const parts = cardReportParts(r.bytes), xml = parts.filter(p => p.type === 'application/xml');
+  assert.equal(xml.length, 1); assert.equal(hash(xml[0].bytes), r.diagnostic.connectorReportSha256);
+  assert.equal(r.diagnostic.connectorVerification.reportSha256, r.diagnostic.connectorReportSha256);
+  assert.equal(r.diagnostic.connectorVerification.operation, 'VerifyDocument');
+  assert.equal(xml[0].bytes.includes('PRIVATE SUBJECT'), true); assert.equal(xml[0].bytes.includes('Envelope'), false);
+  assert.equal(r.bytes.includes('PRIVATE LOCAL STATUS TEST'), false); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'VerifyDocument').length, 1);
+}), undefined, (event, xml) => {
+  if (cmsOperation(event.bytes) !== 'VerifyDocument') return false;
+  cardsReply(event.response, result === 'INCONSISTENT' ? xml.replace('detail:valid', 'detail:invalid')
+    : xml.replace('<c:HighLevelResult>VALID', '<c:HighLevelResult>' + result)); return true;
+})));
+for (const [label, changed] of [
+  ['foreign signature', bytes => cmsVerificationReply(bytes, { high: 'INVALID', signature: Buffer.alloc(70, 1) })],
+  ['foreign certificate', bytes => cmsVerificationReply(bytes, { high: 'INVALID', certificate: raw(encryption[0].certificate) })],
+  ['stale time', bytes => cmsVerificationReply(bytes, { high: 'INVALID', now: Date.now() - 60000 })],
+  ['missing report', bytes => cmsVerificationReply(bytes, { high: 'INVALID' }).replace(/<c:OptionalOutputs>[\s\S]*<\/c:OptionalOutputs>/, '')],
+]) test('KIM card receive: ' + label + ' cannot attach a report or fall back to local signature success', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory, requests }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.diagnostic.integrityResult, 'XCS_DOCUMENT'); assert.equal(r.cardAcquisition.state, 'rejected');
+  assert.equal(r.diagnostic.connectorReportSha256, undefined); assert.equal(requests.length, 0);
+  assert.equal(cardReportParts(r.bytes).some(p => p.type === 'application/xml'), false);
+}), undefined, event => {
+  if (cmsOperation(event.bytes) !== 'VerifyDocument') return false;
+  cardsReply(event.response, changed(event.bytes)); return true;
+})));
+test('KIM card receive: explicit original attachment is byte-exact and only this diagnostic owns it', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const original = openEccKimMessage(wire).message;
+  try {
+    const r = await receiveCard(connector, open(), directory, {}, { includeDecryptedOriginal: true });
+    const attached = cardReportParts(r.bytes).filter(p => p.type === 'message/rfc822');
+    assert.equal(attached.length, 1); assert.deepEqual(attached[0].bytes, original);
+    assert.equal(r.diagnostic.decryptedOriginalAttached, true); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  } finally { original.fill(0); }
+}))));
+for (const address of [receiverAddress, 'other@local.kim.telematik-test']) test('KIM card receive: ' + address + ' cannot use another mailbox card key', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory, requests: ldap }) => {
+  const r = await receiveCard(connector, open(), directory, { address });
+  assert.equal(r.cardAcquisition.state, 'rejected'); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+  assert.equal(requests.some(q => cmsOperation(q.bytes)), false); assert.equal(ldap.length, 0);
+  assert.equal(cardReportParts(r.bytes).find(p => p.type === 'message/rfc822').bytes.equals(wire.bytes), true);
+}))));
+for (const [label, changes, reportChanges, configChanges] of [
+  ['software key', () => ({ privateKey: wire.privateKey }), {}, {}],
+  ['caller card result', () => ({ cardAcquisition: { state: 'checked' } }), {}, {}],
+  ['external XML report', () => ({}), { verificationReport: { bytes: Buffer.from('<report/>'), sourceSha256: '0'.repeat(64) } }, {}],
+  ['implicit PIN prompt', () => ({}), {}, { card: { allowPrompt: true } }],
+  ['missing directory', () => ({}), {}, { directory: undefined }],
+]) test('KIM card receive: rejects ' + label + ' before any connector I/O', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  await assert.rejects(receiveCard(connector, open(), directory, changes(), reportChanges, configChanges), /KIM_(CONNECTOR|TSL)_/);
+  assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+}))));
+test('KIM card receive: non-KIM original passes unchanged without card access', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  const bytes = Buffer.from('From: ordinary@example.test\r\nSubject: Plain original\r\n\r\nunchanged\r\n');
+  const r = await receiveCard(connector, open(), directory, { bytes });
+  assert.equal(r.kind, 'unprotected'); assert.deepEqual(r.bytes, bytes); assert.equal(requests.length, 0);
+}))));
+test('KIM card receive: protected header mismatch stops before document and directory checks', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory, requests: ldap }) => {
+  const bytes = Buffer.from(wire.bytes.toString().replace('From: ' + senderAddress, 'From: ' + receiverAddress));
+  const r = await receiveCard(connector, open(), directory, { bytes }, { includeDecryptedOriginal: true });
+  assert.equal(r.diagnostic.integrityResult, 'XCS_HEADER'); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+  assert.deepEqual(requests.map(q => cmsOperation(q.bytes)).filter(Boolean), ['DecryptDocument']); assert.equal(ldap.length, 0);
+}))));
+for (const high of ['VALID', 'INVALID']) test('KIM card receive: ' + high + ' report overflow fails explicitly instead of dropping requested evidence', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const source = openEccKimMessage(wire).message, parsed = readMessage(replaceDirectoryAuth(source, []));
+  const headers = parsed.headers.map(h => h.raw), count = headers.join('\r\n').split('\r\n').length;
+  const inner = Buffer.concat([Buffer.from([...headers, ...Array.from({ length: 500 - count }, (_, i) => `X-Local-${i}: preserved`)].join('\r\n') + '\r\n\r\n'), parsed.body]);
+  try {
+    readMessage(inner);
+    const cms = sealEccKimPayload({ message: inner, sender: senderAddress,
+      recipients: [{ address: senderAddress, certificate: encryption[0].certificate }, { address: receiverAddress, certificate: encryption[1].certificate }],
+      signingCertificate: signing.certificate, signingKey, now: f.now });
+    const outer = readMessage(replaceDirectoryAuth(wire.bytes, []));
+    const bytes = Buffer.concat([Buffer.from(outer.headers.map(h => h.raw).join('\r\n') + '\r\n\r\n'),
+      Buffer.from(cms.toString('base64').match(/.{1,76}/g).join('\r\n') + '\r\n')]);
+    await assert.rejects(receiveCard(connector, open(), directory, { bytes }, { includeDecryptedOriginal: true }), /KIM_RECEIVE_REPORT_LIMIT/);
+  } finally { inner.fill(0); source.fill(0); parsed.body.fill(0); }
+}), undefined, (event, xml) => {
+  if (cmsOperation(event.bytes) !== 'VerifyDocument' || high === 'VALID') return false;
+  cardsReply(event.response, xml.replace('<c:HighLevelResult>VALID', '<c:HighLevelResult>INVALID')); return true;
+})));
+test('KIM card receive: PIN-required state never silently prompts or decrypts', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.cardAcquisition.code, 'KIM_CONNECTOR_PIN_NOT_VERIFIED');
+  assert.equal(requests.some(q => cmsOperation(q.bytes) || isVerifyPin(q.bytes)), false);
+}), undefined, event => { if (!isPinStatus(event.bytes)) return false;
+  cardsReply(event.response, pinResponse('GetPinStatus', 'VERIFIABLE', 3)); return true;
+})));
+test('KIM card receive: altered decryption is held without a software-key fallback or automatic retry', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory, {}, { includeDecryptedOriginal: true });
+  assert.equal(r.cardAcquisition.state, 'rejected'); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+  const again = await receiveCard(connector, open(), directory);
+  assert.equal(again.cardAcquisition.code, 'KIM_CONNECTOR_CMS_OUTCOME_UNKNOWN');
+  assert.deepEqual(requests.map(q => cmsOperation(q.bytes)).filter(Boolean), ['DecryptDocument']);
+}), (bytes, operation) => { if (operation !== 'DecryptDocument') return bytes; const copy = Buffer.from(bytes); copy[copy.length - 1] ^= 1; return copy; })));
+test('KIM card receive: card removal after VerifyDocument invalidates final status', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.cardAcquisition.state, 'rejected'); assert.equal(r.cardAcquisition.stage, 'card-recheck');
+  assert.equal(r.diagnostic.integrityResult, 'XCS_CARD_STATUS'); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'DecryptDocument').length, 1);
+}), undefined, event => { if (!isCards(event.bytes) || !event.requests.some(q => cmsOperation(q.bytes) === 'VerifyDocument')) return false;
+  cardsReply(event.response, cardsResponse([])); return true;
+})));
+test('KIM card receive: caller mutation cannot change the original or card selector after the first await', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const input = cardReceiveInput({ bytes: Buffer.from(wire.bytes), expectedSignerCertificate: Buffer.from(raw(signing.certificate)) });
+  const card = { expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'] };
+  const work = receiveEccKimMessageWithTsl(input, report, { connector, statusClient: open(), directory, card });
+  input.bytes.fill(0); input.expectedSignerCertificate.fill(0); input.address = receiverAddress; card.requiredRoles[0] = '1.2.3';
+  const r = await work; assert.equal(r.originalSha256, originalHash); assert.equal(r.cardAcquisition.state, 'checked', JSON.stringify(r.cardAcquisition));
+}))));
+test('KIM card receive: concurrent calls and pre-aborted signals cannot duplicate a decryption', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+  await assert.rejects(receiveCard(connector, open(), directory, {}, {}, { signal: AbortSignal.abort() }), /ABORTED/);
+  assert.equal(requests.length, 0);
+  const work = receiveCard(connector, open(), directory);
+  await assert.rejects(receiveCard(connector, open(), directory), /CMS_BUSY/);
+  assert.equal((await work).cardAcquisition.state, 'checked');
+  assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'DecryptDocument').length, 1);
+}))));
+
+test('KIM card receive: the actual AUT leaf can bind a different signing identity', async () => fixture(async ({ open }) => {
+  state.certificates = [remoteSigning];
+  const changed = remoteSigning.certificate, bytes = directoryAutWire({ signingCertificate: changed, key: remoteSigningKey });
+  await withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+    const r = await receiveCard(connector, open(), directory, { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+    assert.equal(r.cardAcquisition.state, 'checked', JSON.stringify(r.cardAcquisition)); assert.equal(r.diagnostic.integrityResult, '07');
+    assert.equal(r.directoryAcquisition.matchedBy, 'authentication'); assert.equal(r.authenticationAssessment.state, 'checked');
+  }));
+}));
+test('KIM card receive: missing required AUT never becomes a successful identity binding', async () => fixture(async ({ open }) => {
+  state.certificates = [remoteSigning];
+  const changed = remoteSigning.certificate, bytes = directoryAutWire({ signingCertificate: changed, key: remoteSigningKey, innerAuth: [] });
+  await withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+    const r = await receiveCard(connector, open(), directory, { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+    assert.equal(r.diagnostic.integrityResult, '10', JSON.stringify(r.cardAcquisition)); assert.equal(r.authenticationAssessment.state, 'rejected');
+    assert.equal(r.directoryAcquisition.state, 'mismatch'); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  }));
+}));
+test('KIM card receive: matching signing identity does not require an AUT token', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory, { bytes: directoryAutWire({ innerAuth: [] }), expectedAuthCertificate: undefined });
+  assert.equal(r.cardAcquisition.state, 'checked'); assert.equal(r.authenticationAssessment.state, 'not-required');
+  assert.equal(r.diagnostic.integrityResult, '07');
+}))));
+test('KIM card receive: revoked remote signer stops document verification and LDAP despite a healthy recipient card', async () => fixture(async ({ open }) => {
+  state.certificates = [remoteSigning];
+  const bytes = directoryAutWire({ signingCertificate: remoteSigning.certificate, key: remoteSigningKey });
+  state.handler = (req, res, request) => {
+    if (!request.equals(f.proof(remoteSigning.certificate).request)) return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(remoteSigning.certificate, { state: 'revoked' }).response); return true;
+  };
+  await withCms(async ({ connector, requests }) => withDirectory(async ({ directory, requests: ldap }) => {
+    const r = await receiveCard(connector, open(), directory, { bytes, expectedSignerCertificate: remoteSigning.certificate });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.cardAcquisition.state, 'rejected');
+    assert.deepEqual(requests.map(q => cmsOperation(q.bytes)).filter(Boolean), ['DecryptDocument']); assert.equal(ldap.length, 0);
+  }));
+}));
+test('KIM card receive: cancellation during decryption exposes no result or XML and never retries', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+    await assert.rejects(receiveCard(connector, open(), directory, {}, {}, { signal: controller.signal }), /ABORTED/);
+    assert.deepEqual(requests.map(q => cmsOperation(q.bytes)).filter(Boolean), ['DecryptDocument']);
+  }), undefined, event => { if (cmsOperation(event.bytes) === 'DecryptDocument') controller.abort(); return false; });
+}));
+test('KIM card receive: cancellation during LDAP prevents a final report or another card operation', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withCms(async ({ connector, requests }) => withDirectory(async ({ directory }) => {
+    await assert.rejects(receiveCard(connector, open(), directory, {}, {}, { signal: controller.signal }), /ABORTED/);
+    assert.equal(requests.filter(q => isCards(q.bytes)).length, 2);
+  }, ({ socket, address }) => { controller.abort(); socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()])); }));
+}));
+test('KIM card receive: TSL change during LDAP invalidates previously acquired status proofs', async () => fixture(async ({ open, manager }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.cardAcquisition.state, 'rejected'); assert.notEqual(r.diagnostic.integrityResult, '07');
+  assert.equal(r.deliveryStatus, 'diagnostic-only');
+}, async ({ socket, address }) => { await manager.refresh(); socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()])); }))));
+test('KIM card receive: changing the card handle after document verification cannot reuse its prior result', async () => fixture(async ({ open }) => withCms(async ({ connector }) => withDirectory(async ({ directory }) => {
+  const r = await receiveCard(connector, open(), directory);
+  assert.equal(r.cardAcquisition.state, 'rejected'); assert.equal(r.cardAcquisition.code, 'KIM_CONNECTOR_CARD_CHANGED');
+  assert.equal(r.diagnostic.integrityResult, 'XCS_CARD_STATUS');
+}), undefined, event => {
+  if (!isCards(event.bytes) || !event.requests.some(q => cmsOperation(q.bytes) === 'VerifyDocument')) return false;
+  cardsReply(event.response, cardsResponse([cardData({ cardHandle: 'SMCB-OTHER' })])); return true;
+})));
 
 test('SMC-B CMS workflow: complete mTLS sign/encrypt/card decrypt roundtrip with five fresh preflights', async () => fixture(async ({ open }) => withCms(async ({ connector, requests }) => {
   const result = await cmsProbe(connector, open());
@@ -1371,12 +1589,12 @@ function replaceDirectoryAuth(message, tokens) {
   for (const token of tokens) headers.push(`X-KIM-Auth: ${token.match(/.{1,76}/g).join('\r\n ')}`);
   return Buffer.concat([Buffer.from(headers.join('\r\n') + '\r\n\r\n'), parsed.body]);
 }
-function directoryAutWire({ innerAuth = [directoryToken()], outerAuth = innerAuth, signingCertificate = signing.certificate } = {}) {
+function directoryAutWire({ innerAuth = [directoryToken()], outerAuth = innerAuth, signingCertificate = signing.certificate, key = signingKey } = {}) {
   const opened = openEccKimMessage(wire), inner = replaceDirectoryAuth(opened.message, innerAuth);
   try {
     const cms = sealEccKimPayload({ message: inner, sender: senderAddress,
       recipients: [{ address: senderAddress, certificate: encryption[0].certificate }, { address: receiverAddress, certificate: encryption[1].certificate }],
-      signingCertificate, signingKey, now: f.now });
+      signingCertificate, signingKey: key, now: f.now });
     const outer = readMessage(replaceDirectoryAuth(wire.bytes, outerAuth));
     return Buffer.concat([Buffer.from(outer.headers.map(h => h.raw).join('\r\n') + '\r\n\r\n'),
       Buffer.from(cms.toString('base64').match(/.{1,76}/g).join('\r\n') + '\r\n')]);

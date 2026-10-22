@@ -23,6 +23,16 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
   let inspected;
   try { inspected = inspectEccKimMessageForDirectory(options); }
   catch { return render(() => ({ error: error('TRUST_UNAVAILABLE') })); }
+  const finish = await assessEccKimDirectoryInspection(options, { directory, statusClient, connector, signal }, inspected);
+  return finish(render);
+}
+
+/** Shared diagnostic assessment after independently checked CMS/header inspection.
+ * The returned synchronous finisher rechecks all acquired proofs. A card caller
+ * can refresh its card after network I/O and before rendering, without decrypting
+ * again. Neither the inspection nor this finisher authorizes normal delivery. */
+export async function assessEccKimDirectoryInspection(options, { directory, statusClient, connector, signal }, inspected) {
+  checkVzdConfiguration(directory, statusClient);
   const deadline = AbortSignal.timeout(30000), stop = signal ? AbortSignal.any([signal, deadline]) : deadline;
   const stopped = () => {
     if (signal?.aborted) throw new TslError('KIM_TSL_ABORTED');
@@ -96,49 +106,51 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
     }
   }
   stopped();
-  let certificateStatus;
-  const result = render(current => {
-    stopped();
-    certificateStatus = freeze([signingStatus(), ...(authCertificate
-      ? [assess(authentication, authCertificate, 'authentication')] : [])]);
-    if (certificateStatus.some(s => s.status !== 'good')) {
-      if (certificateStatus[0].status !== 'good') authenticationAssessment = freeze({ state: 'not-checked', reason: 'signing-status' });
-      else authenticationAssessment = freeze({ state: 'rejected', reason: 'certificate-status',
-        ...(authCertificate ? { certificateSha256: certificateStatus[1]?.certificateSha256 } : {}) });
-      return { error: error('CERTIFICATE_STATUS_REJECTED'), certificateStatus };
-    }
-    if (current.originalSha256 !== inspected.originalSha256 || current.signerSha256 !== inspected.signerSha256
-      || current.sender !== inspected.sender) return { error: error('HEADERS_REJECTED', 'headers'), certificateStatus };
-    if (!record || directoryAcquisition.state === 'unavailable') return { error: error('DIRECTORY_BINDING_REJECTED'), certificateStatus };
-    try { revalidateVzdRecord(record); }
-    catch (e) {
-      directoryAcquisition = freeze({ state: 'unavailable', code: errorCode(e) });
-      if (!required) authenticationAssessment = freeze({ state: 'not-checked', reason: 'directory-unavailable' });
-      return { error: error('DIRECTORY_BINDING_REJECTED'), certificateStatus };
-    }
-    if (required) {
-      try {
-        const fresh = authenticateInspectedKimMessage(current, options.expectedAuthCertificate);
-        if (!authCertificate?.equals(fresh.certificate)) throw new Error();
-      } catch {
-        authenticationAssessment = freeze({ state: 'rejected', reason: 'token' });
-        return { error: error('AUTH_REJECTED', 'auth'), certificateStatus };
+  return render => {
+    let certificateStatus;
+    const result = render(current => {
+      stopped();
+      certificateStatus = freeze([signingStatus(), ...(authCertificate
+        ? [assess(authentication, authCertificate, 'authentication')] : [])]);
+      if (certificateStatus.some(s => s.status !== 'good')) {
+        if (certificateStatus[0].status !== 'good') authenticationAssessment = freeze({ state: 'not-checked', reason: 'signing-status' });
+        else authenticationAssessment = freeze({ state: 'rejected', reason: 'certificate-status',
+          ...(authCertificate ? { certificateSha256: certificateStatus[1]?.certificateSha256 } : {}) });
+        return { error: error('CERTIFICATE_STATUS_REJECTED'), certificateStatus };
       }
-    }
-    const signingMatches = signing.admission.telematikId === record.telematikId;
-    directoryAcquisition = binding(signingMatches, required ? authentication?.admission.telematikId === record.telematikId : undefined);
-    return { error: error(directoryAcquisition.state === 'matched' ? 'TRUST_UNAVAILABLE' : 'DIRECTORY_BINDING_REJECTED'), certificateStatus };
-  });
-  const acquired = { signing, ...(authCertificate ? { authentication } : {}) };
-  const current = certificateStatus?.every(s => s.status === 'good') === true;
-  return { ...result, directoryAcquisition, authenticationAssessment,
-    ...(connector === undefined ? {} : { connectorAcquisition: freeze({
-      source: 'configured-konnektor', identityStatus: 'unverified',
-      certificates: freeze(Object.fromEntries(connectorProofs)),
-    }) }),
-    statusAcquisition: freeze({ state: current ? 'checked' : signing ? 'incomplete' : 'unavailable',
-      ...(signing ? { tsl: signing.tsl } : {}),
-      certificateTypes: freeze(Object.fromEntries(Object.entries(acquired).filter(([, p]) => p).map(([role, p]) => [role, p.certificateTypeOid]))),
-      certificateAdmissions: freeze(Object.fromEntries(Object.entries(acquired).filter(([, p]) => p).map(([role, p]) => [role, p.admission]))),
-      failures: freeze(failures) }) };
+      if (current.originalSha256 !== inspected.originalSha256 || current.signerSha256 !== inspected.signerSha256
+        || current.sender !== inspected.sender) return { error: error('HEADERS_REJECTED', 'headers'), certificateStatus };
+      if (!record || directoryAcquisition.state === 'unavailable') return { error: error('DIRECTORY_BINDING_REJECTED'), certificateStatus };
+      try { revalidateVzdRecord(record); }
+      catch (e) {
+        directoryAcquisition = freeze({ state: 'unavailable', code: errorCode(e) });
+        if (!required) authenticationAssessment = freeze({ state: 'not-checked', reason: 'directory-unavailable' });
+        return { error: error('DIRECTORY_BINDING_REJECTED'), certificateStatus };
+      }
+      if (required) {
+        try {
+          const fresh = authenticateInspectedKimMessage(current, options.expectedAuthCertificate);
+          if (!authCertificate?.equals(fresh.certificate)) throw new Error();
+        } catch {
+          authenticationAssessment = freeze({ state: 'rejected', reason: 'token' });
+          return { error: error('AUTH_REJECTED', 'auth'), certificateStatus };
+        }
+      }
+      const signingMatches = signing.admission.telematikId === record.telematikId;
+      directoryAcquisition = binding(signingMatches, required ? authentication?.admission.telematikId === record.telematikId : undefined);
+      return { error: error(directoryAcquisition.state === 'matched' ? 'TRUST_UNAVAILABLE' : 'DIRECTORY_BINDING_REJECTED'), certificateStatus };
+    });
+    const acquired = { signing, ...(authCertificate ? { authentication } : {}) };
+    const current = certificateStatus?.every(s => s.status === 'good') === true;
+    return { ...result, directoryAcquisition, authenticationAssessment,
+      ...(connector === undefined ? {} : { connectorAcquisition: freeze({
+        source: 'configured-konnektor', identityStatus: 'unverified',
+        certificates: freeze(Object.fromEntries(connectorProofs)),
+      }) }),
+      statusAcquisition: freeze({ state: current ? 'checked' : signing ? 'incomplete' : 'unavailable',
+        ...(signing ? { tsl: signing.tsl } : {}),
+        certificateTypes: freeze(Object.fromEntries(Object.entries(acquired).filter(([, p]) => p).map(([role, p]) => [role, p.certificateTypeOid]))),
+        certificateAdmissions: freeze(Object.fromEntries(Object.entries(acquired).filter(([, p]) => p).map(([role, p]) => [role, p.admission]))),
+        failures: freeze(failures) }) };
+  };
 }

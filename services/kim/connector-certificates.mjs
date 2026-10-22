@@ -18,6 +18,7 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const evidence = new WeakMap();
 const cardSnapshots = new WeakMap(), cardSelections = new WeakMap();
 const pinStatuses = new WeakMap();
+const documentFailures = new WeakMap();
 function pinOptions(input, allowed) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(k => !allowed.includes(k))) connectorFail('INPUT');
 }
@@ -280,13 +281,22 @@ export class KonnektorCertificateClient {
       try {
         const { parsed, metadata } = await this.#exchange('VerifyDocument', { data: bytes }, signal, this.#timeout, bound);
         bound();
-        if (parsed.verificationResult !== 'VALID') connectorFail(parsed.verificationResult === 'INVALID' ? 'CMS_VERIFY_INVALID' : 'CMS_VERIFY_INCONCLUSIVE');
-        if (!parsed.resultConsistent) connectorFail('CMS_VERIFY_INCONSISTENT');
         if (parsed.signatureSha256 !== checked.signatureSha256 || parsed.certificateSha256[0] !== checked.signerSha256) connectorFail('CMS_VERIFY_BINDING');
         // CurrentTime is explicitly requested. Both peer time classifications
         // must be contemporaneous, including a bounded five-second clock skew.
         if (!['SYSTEM_TIMESTAMP', 'USER_DEFINED_TIMESTAMP'].includes(parsed.timestampType)
           || [parsed.timestamp, parsed.verificationTime].some(t => !Number.isSafeInteger(t) || t < metadata.startedAt - 5000 || t > metadata.checkedAt + 5000)) connectorFail('CMS_VERIFY_TIME');
+        if (parsed.verificationResult !== 'VALID' || !parsed.resultConsistent) {
+          const report = Buffer.from(parsed.reportBase64 ?? '', 'base64');
+          if (!report.length || report.length > 262144 || hash(report) !== parsed.reportSha256) { report.fill(0); connectorFail('CMS_VERIFY_BINDING'); }
+          const failure = new KonnektorError('KIM_CONNECTOR_CMS_VERIFY_' + (parsed.verificationResult === 'INVALID' ? 'INVALID'
+            : parsed.verificationResult === 'INCONCLUSIVE' ? 'INCONCLUSIVE' : 'INCONSISTENT'));
+          documentFailures.set(failure, { client: this, report, metadata: Object.freeze({ ...metadata,
+            dataSha256: hash(bytes), contentSha256: hash(checked.content), certificateSha256: checked.signerSha256,
+            signatureSha256: checked.signatureSha256, verificationResult: parsed.verificationResult,
+            resultConsistent: parsed.resultConsistent, reportSha256: parsed.reportSha256, reportBinding: 'signature-and-certificate' }) });
+          throw failure;
+        }
         return Object.freeze({ ...metadata, dataSha256: hash(bytes), contentSha256: hash(checked.content),
           certificateSha256: checked.signerSha256, signatureSha256: checked.signatureSha256,
           verificationResult: 'VALID', verificationTime: parsed.verificationTime, timestampType: parsed.timestampType,
@@ -416,6 +426,16 @@ export class KonnektorCertificateClient {
     }
   }
   close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); this.#signatureTransport?.close(); this.#encryptionTransport?.close(); }
+}
+
+/** One-shot attachment extraction from an actual bound exchange. Copies of an
+ * error, a different client or a different CMS cannot supply an original report.
+ * Remote XML is never placed on Error/client metadata or used to authorize delivery. */
+export function takeConnectorDocumentFailure(error, client, dataSha256) {
+  const stored = documentFailures.get(error);
+  if (!stored || stored.client !== client || stored.metadata.dataSha256 !== dataSha256) return undefined;
+  documentFailures.delete(error);
+  return { bytes: stored.report, metadata: stored.metadata };
 }
 
 /** A bound observation is not an authorization for a key operation. */

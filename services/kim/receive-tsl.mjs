@@ -6,6 +6,7 @@ import { TslError } from './tsl.mjs';
 import { checkVzdConfiguration } from './vzd-bindings.mjs';
 import { receiveEccKimMessageWithDirectory } from './receive-vzd.mjs';
 import { KonnektorCertificateClient } from './connector-certificates.mjs';
+import { receiveEccKimMessageWithCard } from './receive-card.mjs';
 
 const fail = code => { throw new TslError(code); };
 const copy = value => value instanceof Uint8Array ? Buffer.from(value) : value;
@@ -17,12 +18,17 @@ const errorCode = e => e instanceof TslError && /^KIM_(?:TSL|OCSP)_[A-Z_]{1,48}$
  * directory, both explicitly pinned certificates remain mandatory. Still no
  * TI identity, normal delivery, SMTP transmission or billing-state transition.
  */
-export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, connector, signal } = {}) {
+export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, connector, card, signal } = {}) {
   if (!(statusClient instanceof TslOcspStatusClient) || (signal !== undefined && !(signal instanceof AbortSignal))) fail('KIM_TSL_STATUS_CONFIGURATION');
   if (directory !== undefined) checkVzdConfiguration(directory, statusClient);
   if (connector !== undefined && (!(connector instanceof KonnektorCertificateClient) || directory === undefined
     || connector.environment !== statusClient.environment)) fail('KIM_TSL_STATUS_CONFIGURATION');
   if (signal?.aborted) fail('KIM_TSL_ABORTED');
+  if (card !== undefined) {
+    if (!card || typeof card !== 'object' || Array.isArray(card)
+      || Object.keys(card).some(k => !['expectedTelematikId', 'requiredRoles', 'iccsn', 'ctId', 'slotId'].includes(k))) fail('KIM_TSL_STATUS_CONFIGURATION');
+    return receiveEccKimMessageWithCard(options, reportOptions, { ...card, statusClient, directory, connector, signal });
+  }
   if (!(options?.bytes instanceof Uint8Array) || !options.bytes.length || options.bytes.length > MAX_KIM_MESSAGE) fail('KIM_TSL_MESSAGE_SIZE');
   const captured = { ...options, bytes: Buffer.from(options.bytes), now: options.now ?? Date.now(),
     recipientCertificate: copy(options.recipientCertificate), expectedSignerCertificate: copy(options.expectedSignerCertificate),

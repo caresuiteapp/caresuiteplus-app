@@ -517,8 +517,26 @@ unabhängig bestätigte Hardware-/TI-/Zulassungsnachweise bleiben offen. Der
 Protokollstatus lautet ausdrücklich `hardwareEvidence=not-attested` und
 `tiEvidence=not-attested`. Die ursprüngliche Oberflächenbedienung wurde lokal geprüft. Die Erweiterung
 um VerifyDocument und Wiederholsperre benötigt nach dem Verlust der lokalen
-Projektabhängigkeiten noch eine erneute React-/Typprüfung; die visuelle
-Freigabe bleibt ebenfalls offen. Details: [VerifyDocument](konnektor-verify-document.md).
+Projektabhängigkeiten noch eine erneute lokale React-/Typprüfung; die vier
+Vercel-Builds von ca4b6db2 sind inzwischen erfolgreich. Die visuelle
+Freigabe bleibt offen. Details: [VerifyDocument](konnektor-verify-document.md).
+
+### Kartenempfang und negative Dokumentenberichte
+
+Der [interne Kartenempfang](konnektor-card-receive.md) verbindet jetzt ein
+gespeichertes INLINE-ECC-Original mit der tatsächlich ausgewählten C.ENC,
+DecryptDocument, unabhängigem Header-/Signaturvergleich, VerifyDocument,
+VZD/AUT und einer vollständigen Kartennachprüfung. Er verwendet keine
+Software-Schlüssel und fordert keine PIN-Eingabe an. Falsche Empfängerzuordnung,
+Kartenwechsel, negative Statusbelege oder Abbruch geben keine Nachricht frei.
+
+Negative Dokumentenberichte können aus dem tatsächlichen, schema- und
+signaturgebundenen Aufruf einmalig als XML-Anhang in die lokale Fehlerdiagnose
+übernommen werden. Kopierte Fehler, fremde Signaturen und veraltete Berichte
+werden nicht übernommen. Die klare Trennung von Kartenbefund, Nachrichtenbefund
+und nicht attestierten Hardware-/TI-Nachweisen bleibt bestehen. Dieser Pfad ist
+über die vorhandene TSL-Empfangsfassade aufrufbar; produktiver Postfach-/Host-
+anschluss, Empfangsoberfläche und normale Clientzustellung bleiben offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -547,7 +565,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Begrenzte ECC-Kartenoperationen sowie dauerhafter Diagnosehost, mTLS-Web-API und Webansicht ergänzt. Begrenzte VerifyDocument-Prüfung samt Berichtsbindung ergänzt. Reale Konnektor-/SMC-B-Anbindung, weitere CMS-/Berichtsprofile, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Begrenzte ECC-Kartenoperationen sowie dauerhafter Diagnosehost, mTLS-Web-API und Webansicht ergänzt. Begrenzte VerifyDocument-Prüfung samt Berichtsbindung und interner Kartenempfang mit VZD/AUT, Nachprüfung und originalem negativen XML-Berichtsanhang ergänzt. Reale Konnektor-/SMC-B-Anbindung, weitere CMS-/Berichtsprofile, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Postfach-/Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

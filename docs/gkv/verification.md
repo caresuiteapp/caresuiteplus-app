@@ -8,11 +8,51 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**1.070/1.070 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
-0 Fehler, 0 übersprungene oder abgebrochene Fälle, 241,1 Sekunden.
+**1.109/1.109 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
+0 Fehler, 0 übersprungene oder abgebrochene Fälle, 293,1 Sekunden.
 Die folgenden älteren Abschnitte belegen jeweils ihren damaligen Zwischenstand.
 
-## VerifyDocument und Hoststatus am 22.10.2026
+## Kartenempfang und originale negative Berichte am 22.10.2026
+
+39 neue Fälle ergänzen den VerifyDocument-Stand: 33 integrierte Kartenempfangs-
+und 6 zusätzliche Berichtsherkunftsfälle. Der gezielte Lauf der ersten 31
+Empfangsfälle bestand in 50,9 Sekunden. Die anschließend ergänzten beiden
+Grenzfälle für Berichtsüberläufe bestanden in 5,9 Sekunden. Der abschließende
+gemeinsame Lauf oben prüft den endgültigen Code einschließlich aller 33
+Empfangsfälle, 34 VerifyDocument-Fälle und der bestehenden DTA-/KIM-Regressionen.
+
+Die Tests verwenden tatsächliche lokale HTTPS-/mTLS-/LDAPS-Verbindungen,
+synthetische Zertifikate, signierte OCSP-Belege und Software-Schlüssel ausschließlich
+in der Gegenstelle. Geprüft sind Postfach-/C.ENC-Zuordnung, DecryptDocument,
+unabhängige Signatur-/Headerprüfung, VerifyDocument, beide VZD-/AUT-Zweige und
+eine vollständige Nachprüfung von Karte, drei Zertifikaten und PIN.
+Fremde Schlüssel, veränderte Entschlüsselungsantworten, Kartenentnahme/-wechsel,
+negative Senderstatusbelege, TSL-Wechsel während LDAP, Abbruch und konkurrierende
+Anfragen geben keine normale Nachricht frei. Eingabemutation ändert weder das
+gesicherte Original noch die Karte. Es gibt keinen Software-Schlüssel-Fallback.
+
+Negative oder widersprüchliche Dokumentenberichte werden nur nach Signatur-,
+Zertifikats-, Zeit-, Client- und CMS-Bindung als originaler kanonisierter XML-
+Teilbaum angehängt. Ein kopierter Fehler, eine fremde Clientinstanz, ein anderer
+CMS-Hash, ein veralteter oder fehlender Bericht liefert keinen Anhang. Der
+Klartextanhang ist standardmäßig aus; explizite Anhänge bleiben bytegleich.
+Ein übergroßer Diagnoseheader scheitert sowohl nach positivem als auch negativem
+Dokumentenbefund, statt einen angeforderten Originalanhang still wegzulassen.
+
+Zusätzlich bestanden 670 Web-Elternroutenmuster und `git diff --check`. Diese
+Erweiterung ändert keine Oberflächen oder TypeScript-Dateien. Die lokale
+Abhängigkeitslücke für die frühere React-Erweiterung besteht weiter; keine
+Neuinstallation. GitHub bestätigt inzwischen alle vier erfolgreichen
+Vercel-Builds von **ca4b6db2**. Diese Bestätigung gilt für den vorherigen
+VerifyDocument-/Hoststatus-Commit, nicht automatisch für diesen Kartenempfang.
+Eine breite/schmale visuelle Abnahme bleibt offen.
+
+Das erneut abgefragte verbundene Gerät ChristianLaptop war offline. Es entstand
+kein physischer Karten-/Konnektor-/TI-Nachweis, kein Produktivanschluss und keine
+Zulassungsbestätigung. Der [Kartenempfangsvertrag](konnektor-card-receive.md)
+beschreibt die tatsächlich verbundene interne Pipeline und die offenen Grenzen.
+
+## Historischer Stand: VerifyDocument und Hoststatus am 22.10.2026
 
 **42 neue Fälle** ergänzen die bisherigen 1.028: 28 SOAP-/Berichts-/mTLS-/
 Signaturbindungsfälle, 12 Antwortvertragsfälle und 2 vollständige Kartenabläufe.

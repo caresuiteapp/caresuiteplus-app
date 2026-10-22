@@ -34,6 +34,10 @@ export function receiveReportContext({ bytes, address, cmVersion, ptVersion, inc
 // Fixed diagnostic vocabulary. Native errors and attacker-controlled token/header values
 // never become error prose or report fields. Uncertain failures use manufacturer codes.
 function diagnosis(error, decrypted) {
+  if (error.code === 'KIM_MESSAGE_DOCUMENT_VERIFICATION_REJECTED') return { kind: 'integrity', code: 'XCS_DOCUMENT', integrity: 'XCS_DOCUMENT',
+    detail: 'Die Dokumentenprüfung des Konnektors hat die Signatur nicht bestätigt. Ein zu dieser Signatur und ihrem Zertifikat gehörender Prüfbericht ist beigefügt, sofern er vollständig und auswertbar vorliegt.' };
+  if (error.code === 'KIM_MESSAGE_CARD_RECHECK_REJECTED') return { kind: 'integrity', code: 'XCS_CARD_STATUS', integrity: 'XCS_CARD_STATUS',
+    detail: 'Die Empfängerkarte, ihr PIN-Status oder ihre Zertifikate konnten nach der Verarbeitung nicht erneut bestätigt werden. Die Nachricht bleibt zurückgehalten.' };
   if (error.code === 'KIM_MESSAGE_DIRECTORY_BINDING_REJECTED') return { kind: 'integrity', code: 'XCS_DIRECTORY', integrity: 'XCS_DIRECTORY',
     detail: 'Die Absenderadresse konnte im konfigurierten Verzeichnis nicht eindeutig einer geprüften Zertifikatsidentität zugeordnet werden. Die Nachricht bleibt ungeprüft.' };
   if (error.code === 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED') return { kind: 'integrity', code: 'XCS_CERT_STATUS', integrity: 'XCS_CERT_STATUS',
@@ -135,7 +139,10 @@ export function buildKimReceiveError(context, error, { message, decrypted = fals
     ...(d.integrity ? { integrityResult: d.integrity } : {}), originalSha256: context.originalSha256,
     originalBytes: context.original.length, identityStatus: 'unverified', deliveryStatus: 'diagnostic-only',
     headerSource: h.headerSource, omittedHeaderNames: h.omitted, decryptedOriginalAttached: integrity && context.includeDecryptedOriginal && Boolean(message),
-    externalReportSha256: integrity && context.verificationReport ? digest(context.verificationReport) : undefined,
+    externalReportSha256: integrity && context.verificationReport && !context.connectorVerification ? digest(context.verificationReport) : undefined,
+    ...(integrity && context.verificationReport && context.connectorVerification ? {
+      connectorReportSha256: digest(context.verificationReport), connectorVerification: context.connectorVerification,
+    } : {}),
     ...(integrity && certificateStatus ? { certificateStatus } : {}),
     processedAt: new Date(context.now).toISOString() };
   if (integrity) {

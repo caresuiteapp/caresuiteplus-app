@@ -11,6 +11,11 @@ abholende Postfach, dessen ENC-Zertifikat/Schlüssel und die erwarteten
 OSIG-/AUT-Zertifikate. `reportOptions` enthält die eigene CM-/Produkttypversion
 und die optionale Einstellung `includeDecryptedOriginal`, standardmäßig `false`.
 
+Die asynchrone TSL-Fassade bietet zusätzlich den ausdrücklich gewählten
+[Kartenempfang](konnektor-card-receive.md) ohne Software-Schlüssel. Er verbindet
+die echte SOAP-Aufrufkette mit derselben lokalen Diagnoseausgabe und kann einen
+zum Aufruf gebundenen negativen VerificationReport anhängen.
+
 Der Aufrufer muss zunächst das unveränderte Transportoriginal dauerhaft in der
 Inbox sichern. Die Funktion ersetzt diese Ablage nicht und nimmt selbst keine
 Netzwerk-, Lösch- oder Rechnungsstatusänderungen vor. Im Integrationstest stammen
@@ -44,6 +49,8 @@ CareSuite-KIM-Versandworker bleiben gesperrt.
 | Erforderliche AUT-Tokenprüfung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult 10 |
 | Optional übergebener OSIG-/AUT-Status gesperrt, unbekannt oder nicht prüfbar | XCS_CERT_STATUS | IntegrityCheckResult XCS_CERT_STATUS |
 | Erforderliche VZD-Absenderzuordnung fehlt oder ist widersprüchlich | XCS_DIRECTORY | IntegrityCheckResult XCS_DIRECTORY |
+| Konnektor-Dokumentenprüfung negativ, widersprüchlich oder nicht auswertbar | XCS_DOCUMENT | IntegrityCheckResult XCS_DOCUMENT |
+| Abschließende Karten-/Zertifikats-/PIN-Nachprüfung fehlgeschlagen | XCS_CARD_STATUS | IntegrityCheckResult XCS_CARD_STATUS |
 | Lokale Prüfungen bestanden, TI-Vertrauen noch nicht bestätigt | XCS_TRUST | IntegrityCheckResult 07 |
 
 Ein falscher Schlüssel oder beschädigter GCM-Tag wird nicht als sicher
@@ -104,6 +111,12 @@ unter `VerificationReport_<Referenz>.xml` angefügt. Das ist keine XML-/XSD-,
 Konnektor-, Signatur- oder Herkunftsprüfung des Berichts. Der Bericht kann
 keinen negativen oder ausstehenden Prüfbefund in einen positiven ändern.
 
+Der Kartenpfad nimmt diese externe Option nicht an. Sein XML-Anhang stammt aus
+dem tatsächlichen VerifyDocument-Aufruf, nach XSD-, Signaturwert-, Zertifikats-
+und Zeitbindung. Er enthält den kanonisierten originalen Berichtsteilbaum.
+`connectorReportSha256` und Aufrufmetadaten kennzeichnen ihn gesondert. Ein
+unlesbarer, fehlender oder unpassend gebundener Bericht wird nicht ersetzt.
+
 Received wird in der äußeren Reihenfolge übernommen; Return-Path darf höchstens
 einmal aus dem Transportoriginal stammen. Innere Return-Path-/Received-Behauptungen
 werden entfernt. Doppelte äußere Return-Path-Felder werden ausgelassen und im
@@ -125,9 +138,9 @@ nicht nochmals den Entschlüsselungsweg startet.
   A_20650-07, A_23165-02 und KOM-LE-A_2046/2047. Die Texte sind derzeit eigene
   Diagnoseformulierungen. Wortgleiche Pflichttexte und die vollständige
   Konnektor-/HSM-/KAS-Fehlermatrix sind vor einer Konformitätsfreigabe noch umzusetzen.
-- Es gibt keinen laufenden Clientproxy, keine automatisch versendeten
-  Senderfehler nach A_28601 und keinen bereits angeschlossenen Konnektor-
-  VerificationReport. Erfolgreiche normale Clientzustellung mit vollständiger
+- Es gibt keinen laufenden Clientproxy und keine automatisch versendeten
+  Senderfehler nach A_28601. Der interne Kartenempfang kann inzwischen gebundene
+  Konnektor-VerificationReports anhängen. Erfolgreiche normale Clientzustellung mit vollständiger
   TI-TSL-/OCSP-/VZD-Prüfung bleibt offen.
 - Standardeinstellung und Diagnoseergebnisse sind hier interne Dienstparameter.
   Eine mandanten- und rollenbezogene Bedienoberfläche, betriebliche Freigaben
@@ -138,8 +151,9 @@ nicht nochmals den Entschlüsselungsweg startet.
 ## Nachweise
 
 Der ergänzte [Konnektor-Zertifikatsclient](konnektor-certificates.md) bindet
-VerifyCertificate-Befunde an tatsächliche SOAP-/mTLS-Anfragen. Er stellt keinen
-Signatur-VerificationReport bereit. Negative/fehlende Zertifikatsbefunde werden
+VerifyCertificate-Befunde an tatsächliche SOAP-/mTLS-Anfragen. Die zusätzliche
+VerifyDocument-Operation stellt nun gebundene Signaturberichte bereit.
+Negative/fehlende Zertifikatsbefunde werden
 im konfigurierten Empfang als lokale `XCS_CERT_STATUS`-Diagnose behandelt;
 fremde SOAP-Fehlertexte werden nicht übernommen. Die vollständige normative
 Konnektorfehlermatrix und normale Clientzustellung bleiben offen.

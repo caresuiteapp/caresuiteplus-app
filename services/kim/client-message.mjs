@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { kimAddress, messageId } from './address.mjs';
-import { readMessage, addressList, parseContentType, decodedBase64, MAX_KIM_MESSAGE, kimTimestamp } from './message.mjs';
+import { readMessage, addressList, parseContentType, decodedBase64, decodeKimMimeEntity, MAX_KIM_MESSAGE, kimTimestamp } from './message.mjs';
 import { createEccKimAuth, verifyReceivedEccKimAuth, inspectReceivedEccKimAuth, unfoldAutHeader, validCmVersion, validPtVersion } from './message-auth.mjs';
-import { sealEccKimPayload, openEccKimPayload, inspectEccKimPayload } from './ecc-cms.mjs';
+import { sealEccKimPayload, openEccKimPayload, inspectEccKimPayload, verifyEccKimSignedContent } from './ecc-cms.mjs';
 import { readKimEnvelope } from './envelope.mjs';
 import { receiveReportContext, buildKimReceiveError } from './receive-error.mjs';
 import { assessKimOcspEvidence } from './ocsp.mjs';
@@ -114,6 +114,69 @@ function compareHeaders(inner, outer, deferAuthentication = false) {
   }
 }
 
+/** Shared transport gate for software-key and card diagnostics. No key access. */
+export function readEccKimTransport(bytes, address) {
+  try {
+    const outer = readMessage(bytes);
+    if (outer.one('x-kom-le-version', true) !== '1.0') fail('KIM_MESSAGE_VERSION_UNSUPPORTED', 'mime');
+    const type = parseContentType(outer.one('content-type', true));
+    if (outer.one('subject', true) !== 'KOM-LE-Nachricht' || outer.one('mime-version', true) !== '1.0'
+      || type.type !== 'application/pkcs7-mime' || type.params.get('smime-type')?.toLowerCase() !== 'authenticated-enveloped-data'
+      || outer.one('content-transfer-encoding', true).toLowerCase() !== 'base64') fail('KIM_MESSAGE_MIME', 'mime');
+    const cms = decodedBase64(outer.body);
+    let envelope;
+    try { envelope = readKimEnvelope(cms); }
+    catch (e) { fail(e?.message === 'KIM_ENVELOPE_UNSUPPORTED' ? 'KIM_MESSAGE_CMS_UNSUPPORTED' : 'KIM_MESSAGE_CMS_FORMAT', 'mime'); }
+    if (!envelope.mappings.some(m => m.address === kimAddress(address))) fail('KIM_MESSAGE_RECIPIENT_UNAVAILABLE', 'decrypt');
+    return { outer, cms, envelope };
+  } catch (e) {
+    if (e instanceof KimMessageError) throw e;
+    fail('KIM_MESSAGE_MIME', 'mime');
+  }
+}
+
+function checkedOpenedMessage(opened, transport, { address, now, expectedAuthCertificate }, deferAuthentication) {
+  let inner, stage = 'headers';
+  try {
+    inner = readMessage(opened.message); validateOriginal(inner, deferAuthentication); compareHeaders(inner, transport.outer, deferAuthentication);
+    const sender = origin(inner), visible = visibleRecipients(inner);
+    const boundEnvelope = readKimEnvelope(transport.cms, [sender, address, ...visible]);
+    if (!boundEnvelope.mappings.length) fail('KIM_MESSAGE_RECIPIENTS');
+    stage = 'auth';
+    const authentication = deferAuthentication ? Object.freeze({
+      inner: Object.freeze(inner.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
+      outer: Object.freeze(transport.outer.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
+      cmVersion: inner.one('x-kim-cmversion'), now,
+    }) : verifyReceivedEccKimAuth({ header: inner.one('x-kim-auth', true), sender,
+      expectedCertificate: expectedAuthCertificate, cmVersion: inner.one('x-kim-cmversion', true), now });
+    return { ...opened, messageId: inner.one('message-id'), sender, authentication,
+      headerIntegrity: 'matched', deliveryStatus: 'held-for-trust-validation', identityStatus: 'unverified' };
+  } catch (e) {
+    if (e instanceof KimMessageError) throw e;
+    fail(stage === 'auth' ? 'KIM_MESSAGE_AUTH_REJECTED' : 'KIM_MESSAGE_HEADERS_REJECTED', stage);
+  } finally { inner?.body.fill(0); }
+}
+
+/** Internal card handoff: independently verifies signed MIME and the same wire
+ * headers/recipient binding. Caller must own an actual DecryptDocument exchange;
+ * this helper yields no card, certificate-trust or delivery attestation. */
+export function inspectDecryptedEccKimMessage(options, signedMime) {
+  let cms, checked, message, success = false;
+  try {
+    const transport = readEccKimTransport(options.bytes, options.address);
+    try {
+      cms = decodeKimMimeEntity(signedMime, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
+      checked = verifyEccKimSignedContent({ bytes: cms, recipientEmails: transport.envelope.recipientEmails,
+        expectedSignerCertificate: options.expectedSignerCertificate, now: options.now });
+      message = decodeKimMimeEntity(checked.content, { type: 'message/rfc822' });
+    } catch { fail('KIM_MESSAGE_SIGNATURE_REJECTED', 'signature'); }
+    const opened = checkedOpenedMessage({ message, signerSha256: checked.signerSha256 }, transport, options, true);
+    const result = { message, cms, contentSha256: sha256(checked.content), signatureSha256: checked.signatureSha256,
+      inspection: directoryInspection(opened, options.bytes) };
+    success = true; return result;
+  } finally { checked?.content.fill(0); if (!success) { cms?.fill(0); message?.fill(0); } }
+}
+
 /** Opens a bounded inline message for internal analysis. NEVER yields a delivery approval:
  * identityStatus remains unverified and deliveryStatus held-for-trust-validation.
  * Receiving AUT checks do not reuse the FD submission TTL. Errors contain no plaintext.
@@ -124,40 +187,17 @@ export function openEccKimMessage({ bytes, address, recipientCertificate, privat
 }
 function processMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate,
   expectedAuthCertificate, now }, onFailure, deferAuthentication = false) {
-  let opened, inner, stage = 'mime', success = false;
+  let opened, stage = 'mime', success = false;
   try {
-    const outer = readMessage(bytes);
-    if (outer.one('x-kom-le-version', true) !== '1.0') fail('KIM_MESSAGE_VERSION_UNSUPPORTED', stage);
-    const type = parseContentType(outer.one('content-type', true));
-    if (outer.one('subject', true) !== 'KOM-LE-Nachricht' || outer.one('mime-version', true) !== '1.0'
-      || type.type !== 'application/pkcs7-mime' || type.params.get('smime-type')?.toLowerCase() !== 'authenticated-enveloped-data'
-      || outer.one('content-transfer-encoding', true).toLowerCase() !== 'base64') fail('KIM_MESSAGE_MIME', stage);
-    const cms = decodedBase64(outer.body);
-    let envelope;
-    try { envelope = readKimEnvelope(cms); }
-    catch (e) { fail(e?.message === 'KIM_ENVELOPE_UNSUPPORTED' ? 'KIM_MESSAGE_CMS_UNSUPPORTED' : 'KIM_MESSAGE_CMS_FORMAT', stage); }
+    const transport = readEccKimTransport(bytes, address);
     stage = 'decrypt';
-    if (!envelope.mappings.some(m => m.address === kimAddress(address))) fail('KIM_MESSAGE_RECIPIENT_UNAVAILABLE', stage);
     if (privateKey === undefined || recipientCertificate === undefined) fail('KIM_MESSAGE_KEY_UNAVAILABLE', stage);
     const decode = onFailure ? inspectEccKimPayload : openEccKimPayload;
-    opened = decode({ bytes: cms, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
+    opened = decode({ bytes: transport.cms, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
     if (opened.signatureStatus === 'rejected') fail('KIM_MESSAGE_SIGNATURE_REJECTED', 'signature');
-    stage = 'headers';
-    inner = readMessage(opened.message); validateOriginal(inner, deferAuthentication); compareHeaders(inner, outer, deferAuthentication);
-    const sender = origin(inner), visible = visibleRecipients(inner), boundEnvelope = readKimEnvelope(cms, [sender, address, ...visible]);
-    // Inspect again with authenticated header addresses: an encrypted copy for an unlisted
-    // mailbox must not be inferred from an unsigned From/To field.
-    if (!boundEnvelope.mappings.length) fail('KIM_MESSAGE_RECIPIENTS');
-    stage = 'auth';
-    const authentication = deferAuthentication ? Object.freeze({
-      inner: Object.freeze(inner.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
-      outer: Object.freeze(outer.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
-      cmVersion: inner.one('x-kim-cmversion'), now,
-    }) : verifyReceivedEccKimAuth({ header: inner.one('x-kim-auth', true), sender,
-      expectedCertificate: expectedAuthCertificate, cmVersion: inner.one('x-kim-cmversion', true), now });
+    const result = checkedOpenedMessage(opened, transport, { address, now, expectedAuthCertificate }, deferAuthentication);
     success = true;
-    return { ...opened, messageId: inner.one('message-id'), sender, authentication,
-      headerIntegrity: 'matched', deliveryStatus: 'held-for-trust-validation', identityStatus: 'unverified' };
+    return result;
   } catch (e) {
     const code = e?.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'KIM_MESSAGE_SIGNATURE_REJECTED'
       : stage === 'decrypt' ? 'KIM_MESSAGE_DECRYPT_REJECTED' : stage === 'auth' ? 'KIM_MESSAGE_AUTH_REJECTED'
@@ -166,9 +206,6 @@ function processMessage({ bytes, address, recipientCertificate, privateKey, expe
     if (onFailure) return onFailure(error, { message: opened?.message, decrypted: opened !== undefined });
     throw error;
   } finally {
-    // readMessage owns a separate buffer. Erase its plaintext body as well as
-    // the decrypted original before the directory orchestrator awaits I/O.
-    inner?.body?.fill(0);
     if (!success) opened?.message?.fill(0);
   }
 }

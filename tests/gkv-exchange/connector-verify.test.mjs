@@ -8,6 +8,7 @@ import { prepareEccKimRecipients } from '../../services/kim/ecc-cms.mjs';
 import { makeCmsReply, cmsVerificationReply, cmsUrls, cmsOperation } from './connector-cms-fixture.mjs';
 import { connectorFixture, verificationResponse, raw, hash } from './connector-fixture.mjs';
 import { cardsReply } from './connector-card-fixture.mjs';
+import { takeConnectorDocumentFailure } from '../../services/kim/connector-certificates.mjs';
 const context = { mandantId: 'm', clientSystemId: 'CareSuite', workplaceId: 'w' };
 let pki, signer, enc, signed, emails;
 before(async () => {
@@ -90,3 +91,30 @@ test('VerifyDocument: snapshots mutable input and serializes concurrent document
   await assert.rejects(c.verifySmcbDocument(input), /CMS_BUSY/);
   assert.equal((await promise).dataSha256, hash(signed));
 }));
+
+for (const result of ['INVALID', 'INCONCLUSIVE']) test('VerifyDocument: ' + result + ' original report is a one-shot client/CMS-bound attachment', async () => client(async (c, input) => {
+  let failure;
+  try { await c.verifySmcbDocument(input); } catch (e) { failure = e; }
+  assert.match(failure?.code, new RegExp(result + '$'));
+  assert.equal(takeConnectorDocumentFailure({ ...failure }, c, hash(signed)), undefined);
+  assert.equal(takeConnectorDocumentFailure(failure, {}, hash(signed)), undefined);
+  assert.equal(takeConnectorDocumentFailure(failure, c, '0'.repeat(64)), undefined);
+  assert.equal(JSON.stringify(failure).includes('PRIVATE'), false);
+  assert.equal(Object.keys(failure).includes('report'), false);
+  const report = takeConnectorDocumentFailure(failure, c, hash(signed));
+  assert.equal(hash(report.bytes), report.metadata.reportSha256);
+  assert.equal(report.metadata.dataSha256, hash(signed)); assert.equal(report.metadata.verificationResult, result);
+  assert.match(report.bytes.toString(), /VerificationReport/);
+  assert.equal(report.bytes.includes('Envelope'), false);
+  assert.equal(takeConnectorDocumentFailure(failure, c, hash(signed)), undefined);
+  report.bytes.fill(0);
+}, xml => xml.replace('<c:HighLevelResult>VALID', '<c:HighLevelResult>' + result)));
+for (const [label, change] of [
+  ['wrong signature', (xml, bytes) => cmsVerificationReply(bytes, { signature: Buffer.alloc(70, 1) })],
+  ['wrong leaf', (xml, bytes) => cmsVerificationReply(bytes, { certificate: raw(enc.certificate) })],
+  ['stale time', (xml, bytes) => cmsVerificationReply(bytes, { now: Date.now() - 60000 })],
+  ['foreign XML', xml => xml.replace('</vr:Details>', '<bad:Data xmlns:bad="urn:foreign"/></vr:Details>')],
+]) test('VerifyDocument: negative ' + label + ' never exposes an original-report attachment', async () => client(async (c, input) => {
+  let failure; try { await c.verifySmcbDocument(input); } catch (e) { failure = e; }
+  assert.ok(failure); assert.equal(takeConnectorDocumentFailure(failure, c, hash(signed)), undefined);
+}, (xml, bytes) => change(xml, bytes).replace('<c:HighLevelResult>VALID', '<c:HighLevelResult>INVALID')));

@@ -79,7 +79,11 @@ entstehen. Der [CMS-/Host-Prüfablauf](konnektor-cms-host.md) ergänzt jetzt
 GetJobNumber, SignDocument, EncryptDocument, DecryptDocument und
 [VerifyDocument](konnektor-verify-document.md) für eine begrenzte
 ECC-Teilmenge, ein dauerhaftes Diagnosejournal, eine mTLS-geschützte Web-API und
-die Ansicht „Konnektorprüfung“. Die ausgehende VZD-Absenderbindung und die
+die Ansicht „Konnektorprüfung“. Der [Kartenempfang](konnektor-card-receive.md)
+verbindet nun auch gespeicherte KIM-Originale mit DecryptDocument, VerifyDocument,
+VZD/AUT, frischer Kartennachprüfung und originalen negativen XML-Berichtsanhängen.
+Dieser interne Diagnosepfad ist noch kein produktiver Postfach-/Clientproxy.
+Die ausgehende VZD-Absenderbindung und die
 produktive Nachrichtenpipeline sind weiterhin zu verbinden; kein Token wird automatisch versandt.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.

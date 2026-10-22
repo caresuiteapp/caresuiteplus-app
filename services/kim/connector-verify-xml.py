@@ -1,6 +1,7 @@
-"""Bounded, single-signer nonQES report. No raw identity or remote prose escapes.
+"""Bounded, single-signer nonQES report. Negative reports are attachment data only.
 The enclosing worker validates the pinned SignatureService/VerificationReport XSDs.
 """
+import base64
 import hashlib
 import re
 from datetime import datetime
@@ -100,8 +101,11 @@ def inspect(payload, mode, require, binary):
     all_valid = all(value(n) == 'urn:oasis:names:tc:dss-x:1.0:profiles:verificationreport:trustanchor:certDataBase'
                     if n.getparent().tag == '{' + VR + '}TrustAnchor' else value(n) in (SUCCESS, VALID) for n in checks)
     canonical = etree.tostring(report, method='c14n', exclusive=True, with_comments=False)
+    require(len(canonical) <= 262144, 'CMS_VERIFY_LIMIT')
+    consistent = high == 'VALID' and major == SUCCESS and minor == MINOR and all_valid
     return {'kind': 'cms-verification', 'verificationResult': high, 'timestampType': timestamp_type,
             'timestamp': timestamp, 'verificationTime': checked_at,
-            'resultConsistent': high == 'VALID' and major == SUCCESS and minor == MINOR and all_valid,
+            'resultConsistent': consistent,
             'signatureSha256': hashlib.sha256(signature).hexdigest(), 'certificateSha256': fingerprints,
-            'reportSha256': hashlib.sha256(canonical).hexdigest()}
+            'reportSha256': hashlib.sha256(canonical).hexdigest(),
+            **({} if consistent else {'reportBase64': base64.b64encode(canonical).decode('ascii')})}

@@ -58,7 +58,10 @@ Ein Erfolg benötigt zugleich:
 
 INVALID, INCONCLUSIVE, widersprüchliche Detailergebnisse, fremde Signatur/
 Zertifikat und unpassende Zeiten haben eigene feste Fehlercodes. Remote-
-ResultMessage, Subject und rohe Zertifikate gelangen nicht in das JSON-Ergebnis.
+ResultMessage, Subject und rohe Zertifikate gelangen nicht in das Diagnose-JSON.
+Ein gebundener negativer Bericht ist jetzt einmalig als XML-Anhang des
+[Kartenempfangs](konnektor-card-receive.md) verfügbar; kopierte Fehlerobjekte,
+andere Clientinstanzen oder andere CMS-Hashes können ihn nicht übernehmen.
 Der Report-Hash bezieht sich auf exklusive XML-C14N ohne Kommentare; der
 Response-Hash im Transkript bindet zusätzlich die tatsächlich empfangenen Bytes.
 
@@ -92,14 +95,15 @@ Die Unterstützung bleibt auf das vorhandene einzelne ECC-/DER-CMS-Profil begren
 RSA_ECC-Mehrfachsignaturen, BER, weitere Attribute, Gegensignaturen und alle
 Herstellervarianten ausführlicher Berichte sind nicht vollständig implementiert.
 Ein Bericht allein ersetzt weder die unabhängige TSL-/OCSP-Prüfung noch die
-normative Prüfung sämtlicher CMS-/CAdES-Varianten. Die gesamte normale
-KIM-Empfangs-/Fehlermailpipeline ist noch mit diesem Konnektorpfad zu verbinden;
-rohe VerificationReports werden dort noch nicht als Fehleranhang ausgegeben.
+normative Prüfung sämtlicher CMS-/CAdES-Varianten. Der interne Kartenempfang
+verbindet inzwischen Nachrichtendiagnose und gebundene negative Berichtsanhänge.
+Produktiver Postfach-/Hostanschluss und normale Clientzustellung bleiben offen.
 
 Am 22.10.2026 war das verbundene Gerät erneut offline; kein Hardwarelauf wurde
 ausgeführt. Der Vercel-Zugriff auf Deploymentdetails scheiterte an fehlender
-Teamfreigabe. GitHub meldete für den Vorgänger 1c2462ae alle vier Vercel-Builds
-erfolgreich. Das ist kein Buildbeleg für diese Folgeänderung.
+Teamfreigabe. GitHub meldete inzwischen auch für ca4b6db2 (VerifyDocument/Hoststatus)
+alle vier Vercel-Builds erfolgreich. Dies belegt weder die visuelle Abnahme
+noch den nachfolgenden Kartenempfangs-Commit.
 
 Die automatische Bereinigung der Arbeitsumgebung entfernte während dieser
 Änderung auch die vorher vorhandenen Projektabhängigkeiten. Der Branch wurde
