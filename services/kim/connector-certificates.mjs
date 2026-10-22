@@ -3,10 +3,12 @@ import { KonnektorHttpsTransport } from './connector-http.mjs';
 import { certificateRequest, inspectConnectorXml, connectorText, CERT_REFS } from './connector-xml.mjs';
 import { canonicalOid } from './der-oid.mjs';
 import { KonnektorError, connectorFail, connectorSignal } from './connector-error.mjs';
+import { cardFilters, cardSelector, checkedCards, selectSmcbCard } from './connector-cards.mjs';
 
 export { KonnektorError } from './connector-error.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const evidence = new WeakMap();
+const cardSnapshots = new WeakMap(), cardSelections = new WeakMap();
 function certificate(input) {
   try {
     if (!(input instanceof Uint8Array) || !input.length || input.length > 12000) connectorFail('CERTIFICATE');
@@ -17,7 +19,7 @@ function certificate(input) {
 }
 function roles(input) {
   if (!Array.isArray(input) || input.length > 32 || new Set(input).size !== input.length) connectorFail('INPUT');
-  if (input.some(value => !canonicalOid(value) || value.length > 100)) connectorFail('INPUT');
+  if (Array.from(input).some(value => !canonicalOid(value) || value.length > 100)) connectorFail('INPUT');
   return [...input];
 }
 function references(input) {
@@ -30,9 +32,9 @@ function references(input) {
  * it never changes CareSuite's diagnostic-only or production-release gates.
  */
 export class KonnektorCertificateClient {
-  #transport; #context; #contextHash; #environment; #python; #clock; #timeout;
+  #transport; #eventTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
   #closed = false; #pending = new Set();
-  constructor({ context, environment, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
+  constructor({ context, environment, eventServiceUrl, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
     try {
       if (!context || !['test', 'production'].includes(environment) || typeof clock !== 'function'
         || typeof python !== 'string' || !python.length || python.length > 2048 || /[\x00-\x1f]/.test(python)
@@ -42,8 +44,10 @@ export class KonnektorCertificateClient {
         workplaceId: connectorText(context.workplaceId), ...(context.userId === undefined ? {} : { userId: connectorText(context.userId) }) });
       this.#contextHash = hash(Buffer.from(JSON.stringify(this.#context))); this.#environment = environment;
       this.#clock = clock; this.#python = python; this.#timeout = timeoutMs;
-      this.#now(); this.#transport = new KonnektorHttpsTransport(route);
-    } catch { connectorFail('CONFIGURATION'); }
+      if (eventServiceUrl !== undefined && (typeof eventServiceUrl !== 'string' || new URL(eventServiceUrl).origin !== new URL(route.url).origin)) connectorFail('CONFIGURATION');
+      this.#now(); this.#transport = new KonnektorHttpsTransport({ ...route, service: 'certificate' });
+      if (eventServiceUrl !== undefined) this.#eventTransport = new KonnektorHttpsTransport({ ...route, url: eventServiceUrl, service: 'event' });
+    } catch { this.#transport?.close(); this.#eventTransport?.close(); connectorFail('CONFIGURATION'); }
     Object.freeze(this);
   }
   get environment() { return this.#environment; }
@@ -51,6 +55,8 @@ export class KonnektorCertificateClient {
   #open() { if (this.#closed) connectorFail('CLOSED'); }
   async #exchange(operation, input, signal) {
     this.#open(); connectorSignal(signal);
+    const transport = operation === 'GetCards' ? this.#eventTransport : this.#transport;
+    if (!transport) connectorFail('EVENT_UNCONFIGURED');
     if (this.#pending.size >= 8) connectorFail('BUSY');
     const controller = new AbortController(), deadline = AbortSignal.timeout(this.#timeout);
     const stop = AbortSignal.any([controller.signal, deadline, ...(signal ? [signal] : [])]);
@@ -59,7 +65,7 @@ export class KonnektorCertificateClient {
     try {
       request = certificateRequest(operation, this.#context, input);
       await inspectConnectorXml(request, { operation, mode: 'request', python: this.#python, signal: stop });
-      response = await KonnektorHttpsTransport.prototype.request.call(this.#transport, operation, request, { signal: stop, timeoutMs: this.#timeout });
+      response = await KonnektorHttpsTransport.prototype.request.call(transport, operation, request, { signal: stop, timeoutMs: this.#timeout });
       const parsed = await inspectConnectorXml(response.bytes, { operation, mode: 'response', python: this.#python, signal: stop });
       this.#open(); connectorSignal(stop);
       if (parsed.kind === 'fault') throw new KonnektorError('KIM_CONNECTOR_SOAP_FAULT', parsed.remoteCodes);
@@ -67,7 +73,7 @@ export class KonnektorCertificateClient {
       const checkedAt = this.#now();
       if (checkedAt < startedAt || checkedAt - startedAt > this.#timeout) connectorFail('CLOCK');
       return { parsed, metadata: Object.freeze({ operation, requestSha256: hash(request), responseSha256: hash(response.bytes),
-        routeSha256: this.#transport.routeSha256, contextSha256: this.#contextHash, environment: this.#environment,
+        routeSha256: transport.routeSha256, contextSha256: this.#contextHash, environment: this.#environment,
         startedAt, checkedAt, identityStatus: 'unverified', source: 'configured-konnektor' }) };
     } catch (e) {
       this.#open();
@@ -76,6 +82,31 @@ export class KonnektorCertificateClient {
       if (e instanceof KonnektorError) throw e;
       connectorFail('UNAVAILABLE');
     } finally { this.#pending.delete(controller); request?.fill(0); response?.bytes?.fill(0); }
+  }
+  async getCards({ ctId, slotId, cardType, mandantWide = false, signal } = {}) {
+    this.#open(); connectorSignal(signal);
+    const filters = cardFilters({ ctId, slotId, cardType, mandantWide }), generation = ++this.#cardGeneration;
+    const { parsed, metadata } = await this.#exchange('GetCards', filters, signal);
+    if (generation !== this.#cardGeneration) connectorFail('CARD_SNAPSHOT_STALE');
+    const snapshot = Object.freeze({ ...metadata, filters, cards: checkedCards(parsed.cards, filters), validUntil: metadata.checkedAt + 30000 });
+    const assert = () => {
+      this.#open(); connectorSignal(signal);
+      if (generation !== this.#cardGeneration) connectorFail('CARD_SNAPSHOT_STALE');
+      const now = this.#now();
+      if (now < metadata.checkedAt || now >= snapshot.validUntil) connectorFail('EVIDENCE_EXPIRED');
+    };
+    cardSnapshots.set(snapshot, { client: this, assert });
+    return snapshot;
+  }
+  selectSmcb(snapshot, selector = {}) {
+    this.#open(); const stored = cardSnapshots.get(snapshot);
+    if (!stored || stored.client !== this) connectorFail('EVIDENCE_BINDING');
+    stored.assert();
+    const card = selectSmcbCard(snapshot.cards, cardSelector(selector));
+    const selection = Object.freeze({ card, snapshotSha256: snapshot.responseSha256, routeSha256: snapshot.routeSha256,
+      contextSha256: snapshot.contextSha256, environment: this.#environment, checkedAt: snapshot.checkedAt,
+      validUntil: snapshot.validUntil, identityStatus: 'unverified' });
+    cardSelections.set(selection, stored); return selection;
   }
   async verifyCertificate({ certificate: input, requiredRoles = [], signal } = {}) {
     this.#open(); connectorSignal(signal);
@@ -131,7 +162,14 @@ export class KonnektorCertificateClient {
       throw e;
     }
   }
-  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); }
+  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); }
+}
+
+/** Selection is an observed card session, not an authenticated TI identity. */
+export function assertSelectedSmcb(selection, client) {
+  const stored = cardSelections.get(selection);
+  if (!stored || stored.client !== client) connectorFail('EVIDENCE_BINDING');
+  stored.assert(); return selection;
 }
 
 /** Only the original HTTPS-backed result, bound to this client and exact DER,

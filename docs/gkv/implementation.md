@@ -57,6 +57,12 @@ eine zusätzliche verpflichtende Prüfung im entsprechend konfigurierten Empfang
 Er ist gegen lokale Gegenstellen geprüft; reale Karten-/Konnektoranbindung und
 Karten-Schlüsseloperationen bleiben offen. Ein negativer Konnektorbefund erlaubt
 keinen Rückfall auf einen ausschließlich lokalen positiven Status.
+Die [Kartenabfrage und SMC-B-Auswahl](konnektor-smcb.md) ersetzt nun im
+gemeinsamen Zertifikatsablauf ein manuell vorgegebenes CardHandle durch eine
+frische eindeutige Auswahl. Alle drei Institutionszertifikate müssen zur
+vorgegebenen Telematik-ID und Rolle passen. Eine erneute Kartenabfrage und
+Statusprüfung sichern die abschließende Ausgabe; die Karten-Schlüsseloperationen
+und eine Bedienoberfläche dafür sind noch nicht implementiert.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

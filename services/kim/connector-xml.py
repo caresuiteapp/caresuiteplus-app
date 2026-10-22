@@ -12,11 +12,14 @@ import sys
 
 SOAP = 'http://schemas.xmlsoap.org/soap/envelope/'
 CERT = 'http://ws.gematik.de/conn/CertificateService/v6.0'
+EVENT = 'http://ws.gematik.de/conn/EventService/v7.2'
+CARD = 'http://ws.gematik.de/conn/CardService/v8.1'
+CARDCMN = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0'
 COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0'
 CONN = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0'
 ERROR = 'http://ws.gematik.de/tel/error/v2.0'
-MANIFEST = '31c5701606f001ece88cd2a5110e05b4293d7f3e054359c367df73d6259cca80'
-NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR}
+MANIFEST = 'ebf459428440da87c7c3282afeba6a077cbe98e055190948068a45b158265e97'
+NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR, 'event': EVENT, 'card': CARD, 'cm': CARDCMN}
 
 
 class Rejected(Exception):
@@ -62,7 +65,7 @@ def run(etree):
     require(hashlib.sha256(manifest).hexdigest() == MANIFEST, 'SCHEMA_INTEGRITY')
     schemas = {}
     for name, fingerprint in json.loads(manifest)['files'].items():
-        require(re.fullmatch(r'(?:conn|ext|tel/error)/[A-Za-z0-9_.-]+\.(?:xsd|wsdl)|LICENSE-gematik\.txt', name) is not None, 'SCHEMA_INTEGRITY')
+        require(re.fullmatch(r'(?:conn|ext|tel/error|tel/version)/[A-Za-z0-9_.-]+\.(?:xsd|wsdl)|LICENSE-gematik\.txt', name) is not None, 'SCHEMA_INTEGRITY')
         data = (folder / name).read_bytes()
         require(hashlib.sha256(data).hexdigest() == fingerprint, 'SCHEMA_INTEGRITY')
         schemas['https://schemas.invalid/' + name] = data
@@ -75,13 +78,14 @@ def run(etree):
     parser = etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True,
                              recover=False, huge_tree=False, remove_blank_text=False)
     parser.resolvers.add(Resolver())
-    url = 'https://schemas.invalid/conn/CertificateService_v6_0_2.xsd'
-    schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
     raw_input = sys.stdin.buffer.read(600001)
     require(0 < len(raw_input) <= 600000, 'XML_LIMIT')
     args = json.loads(raw_input)
-    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate'))
+    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards'))
     require(args.get('mode') in ('request', 'response'))
+    is_cards = args['operation'] == 'GetCards'
+    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CertificateService_v6_0_2.xsd')
+    schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
     raw = binary(args['xml'], 262144)
     decoded = raw.decode('utf-8-sig', errors='strict')
     require('<!DOCTYPE' not in decoded and '<!ENTITY' not in decoded, 'XML_DTD')
@@ -126,12 +130,30 @@ def run(etree):
             require(schema.validate(detail[0]), 'XML_SCHEMA')
         return {'kind': 'fault', 'fault': value[1], 'remoteCodes': remote_errors(payload)}
     name = args['operation'] + ('' if args['mode'] == 'request' else 'Response')
-    require(payload.tag == '{' + CERT + '}' + name and not payload.attrib)
+    require(payload.tag == '{' + (EVENT if is_cards else CERT) + '}' + name)
+    require(not payload.attrib or (is_cards and args['mode'] == 'request' and set(payload.attrib) == {'mandant-wide'}))
     require(schema.validate(payload), 'XML_SCHEMA')
     if args['mode'] == 'request':
         return {'kind': 'request', 'operation': args['operation']}
     execution = text(payload, 'n:Status/n:Result').strip()
     errors = remote_errors(payload)
+    if is_cards:
+        require(execution == 'OK' and not errors, 'RESULT')
+        entries = list(one(payload, 'card:Cards'))
+        require(len(entries) <= 64, 'XML_LIMIT')
+        cards = []
+        for entry in entries:
+            inserted = text(entry, 'card:InsertTime')
+            require(len(inserted) <= 64 and re.search(r'(?:Z|[+-][0-9]{2}:[0-9]{2})$', inserted), 'CARD_FORMAT')
+            card = {'cardHandle': text(entry, 'n:CardHandle'), 'cardType': text(entry, 'cm:CardType'),
+                    'ctId': text(entry, 'cm:CtId'), 'slotId': int(text(entry, 'cm:SlotId')), 'insertTime': inserted}
+            if entry.find('cm:Iccsn', NS) is not None:
+                card['iccsn'] = text(entry, 'cm:Iccsn')
+            version = entry.find('card:CardVersion', NS)
+            card['cardVersion'] = {} if version is None else {
+                etree.QName(v).localname: [int(text(v, 'card:' + field)) for field in ('Major', 'Minor', 'Revision')] for v in version}
+            cards.append(card)  # No CardHolderName, KVNR or claimed expiration in the result.
+        return {'kind': 'cards', 'cards': cards, 'execution': execution, 'remoteCodes': []}
     if args['operation'] == 'VerifyCertificate':
         result = text(payload, 'c:VerificationStatus/c:VerificationResult').strip()
         roles = [n.text or '' for n in one(payload, 'c:RoleList')]

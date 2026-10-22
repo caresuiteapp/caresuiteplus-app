@@ -148,7 +148,7 @@ for (const mismatch of ['pin', 'hostname', 'CA', 'client key']) test('Konnektor 
 
 test('Konnektor: invalid requests and absent XML runtime fail before any HTTPS request', async () => fixture(async ({ open, requests }) => {
   const client = open();
-  for (const changes of [{ certificate: Buffer.from('bad') }, { certificate: Buffer.concat([raw(aut.certificate), Buffer.from([0])]) }, { requiredRoles: ['bad'] }, { requiredRoles: [role, role] }]) {
+  for (const changes of [{ certificate: Buffer.from('bad') }, { certificate: Buffer.concat([raw(aut.certificate), Buffer.from([0])]) }, { requiredRoles: ['bad'] }, { requiredRoles: [role, role] }, { requiredRoles: Array(1) }]) {
     await assert.rejects(verify(client, changes), e => ['KIM_CONNECTOR_CERTIFICATE', 'KIM_CONNECTOR_INPUT'].includes(e.code));
   }
   for (const changes of [{ certRefs: [] }, { certRefs: ['C.AUT', 'C.AUT'] }, { cardHandle: 'x\n' }, { crypt: 'AUTO' }]) {

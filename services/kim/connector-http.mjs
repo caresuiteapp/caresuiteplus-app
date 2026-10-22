@@ -2,7 +2,7 @@ import https from 'node:https';
 import { createSecureContext, checkServerIdentity } from 'node:tls';
 import { isIP } from 'node:net';
 import { createHash, X509Certificate } from 'node:crypto';
-import { CERTIFICATE_SERVICE } from './connector-xml.mjs';
+import { CERTIFICATE_SERVICE, EVENT_SERVICE, connectorService } from './connector-xml.mjs';
 import { KonnektorError, connectorFail, connectorSignal } from './connector-error.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -10,11 +10,11 @@ const hash = b => createHash('sha256').update(b).digest('hex');
  * No discovery, redirect, proxy environment, system-root fallback or Basic auth.
  */
 export class KonnektorHttpsTransport {
-  #url; #options; #binding; #closed = false; #pending = new Set();
-  constructor({ url, ca, serverSha256, clientCertificate, clientKey, clientPassphrase, connectAddress }) {
+  #url; #options; #binding; #namespace; #closed = false; #pending = new Set();
+  constructor({ url, ca, serverSha256, clientCertificate, clientKey, clientPassphrase, connectAddress, service = 'certificate' }) {
     let key;
     try {
-      if (typeof url !== 'string' || url.length > 2048 || /[^\x21-\x7e]/.test(url)
+      if (!['certificate', 'event'].includes(service) || typeof url !== 'string' || url.length > 2048 || /[^\x21-\x7e]/.test(url)
         || typeof ca !== 'string' || !ca.length || ca.length > 262144 || !/^[a-f0-9]{64}$/.test(serverSha256 ?? '')
         || !(typeof clientCertificate === 'string' || clientCertificate instanceof Uint8Array)
         || !(typeof clientKey === 'string' || clientKey instanceof Uint8Array)) connectorFail('CONFIGURATION');
@@ -28,6 +28,7 @@ export class KonnektorHttpsTransport {
       if (client.ca) connectorFail('CONFIGURATION');
       const secureContext = createSecureContext({ ca, cert, key, passphrase: clientPassphrase, minVersion: 'TLSv1.2' });
       this.#url = u.href;
+      this.#namespace = service === 'event' ? EVENT_SERVICE : CERTIFICATE_SERVICE;
       this.#options = { method: 'POST', agent: false, maxHeaderSize: 16384, insecureHTTPParser: false,
         rejectUnauthorized: true, minVersion: 'TLSv1.2', secureContext,
         checkServerIdentity: (hostname, peer) => {
@@ -39,7 +40,7 @@ export class KonnektorHttpsTransport {
         callback(null, options.all ? [entry] : entry.address, ...(options.all ? [] : [entry.family]));
       };
       this.#binding = hash(Buffer.from(JSON.stringify({ url: u.href, ca: hash(Buffer.from(ca)), serverSha256,
-        clientSha256: hash(client.raw), connectAddress: connectAddress ?? null, profile: 'https-mtls-min-1.2' })));
+        clientSha256: hash(client.raw), connectAddress: connectAddress ?? null, service, profile: 'https-mtls-min-1.2' })));
     } catch { connectorFail('CONFIGURATION'); }
     finally { key?.fill(0); }
     Object.freeze(this);
@@ -48,7 +49,7 @@ export class KonnektorHttpsTransport {
   async request(operation, input, { signal, timeoutMs = 10000 } = {}) {
     connectorSignal(signal);
     if (this.#closed) connectorFail('CLOSED');
-    if (!['ReadCardCertificate', 'VerifyCertificate'].includes(operation) || !(input instanceof Uint8Array)
+    if (connectorService(operation) !== this.#namespace || !(input instanceof Uint8Array)
       || !input.length || input.length > 65536 || !Number.isInteger(timeoutMs) || timeoutMs < 50 || timeoutMs > 30000) connectorFail('INPUT');
     if (this.#pending.size >= 16) connectorFail('BUSY');
     const bytes = Buffer.from(input);
@@ -64,7 +65,7 @@ export class KonnektorHttpsTransport {
       signal?.addEventListener('abort', aborted, { once: true }); this.#pending.add(closed);
       try {
         request = https.request(this.#url, { ...this.#options, headers: {
-          'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `"${CERTIFICATE_SERVICE}#${operation}"`,
+          'Content-Type': 'text/xml; charset=utf-8', SOAPAction: `"${this.#namespace}#${operation}"`,
           'Content-Length': bytes.length, Accept: 'text/xml', 'Accept-Encoding': 'identity',
         } }, incoming => {
           response = incoming;

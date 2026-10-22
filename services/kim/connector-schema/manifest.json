@@ -6,15 +6,23 @@
   "changes": "Line endings normalized to LF; final LF retained. Schemas otherwise unchanged.",
   "files": {
     "LICENSE-gematik.txt": "4d10fe5f3aa176b05b229a248866bad70b834c173f1252a814ff4748d8a13837",
+    "conn/CardService.xsd": "a15f71c4a6efb74e6b3ec35014202ddb1585f27ba446a2aa7fa19246425f240b",
+    "conn/CardServiceCommon.xsd": "4b555b5c628f901e39945af1c1e19deed648edea3d1fff6ee9656fb12d934015",
+    "conn/CardTerminalInfo.xsd": "a07305bd47ab13edec9f7c477e880a810c911baf76c13f33ae32f5116b0fc135",
     "conn/CertificateServiceCommon.xsd": "d3efffaafe7ac3b25944f3ca794b063923f2ad91196f8e869508ffadd99220a3",
     "conn/CertificateService_v6_0_1.wsdl": "380fbabfc30a94aa371167d3556c25edab008c75de9d3d1e3ef06ce0a061dd07",
     "conn/CertificateService_v6_0_2.xsd": "68bbfb908df3372b53ff568bab132c05e8a3975b9781397456ebad16a1525111",
     "conn/ConnectorCommon.xsd": "1ee19a36a551ba55ba9ac9683cb07933c177e123cfb3014d23f9e91cc78440ac",
     "conn/ConnectorContext.xsd": "7e4ded767f69e6af44833a5a1fd8665acda9c33a31bbc02f99970288eb60e3b0",
+    "conn/EventService.wsdl": "2abeb9236601f764e64ebb7b276929f9ce1e3450283f6fb1d835cba91e7d4370",
+    "conn/EventService.xsd": "5e9c5829fd3585b4b8ea18f312ebfa5815556adf2600024d770c18b4717e4cdc",
     "ext/oasis-dss-core-schema-v1.0-os.xsd": "479bfd2334d2a05bd44ea34251d51cc6451a1d041722c3a04f0109f6224a1f20",
     "ext/oasis-sstc-saml-schema-assertion-1.1.xsd": "3ee76403e3d28e727213b78910d2db2924befb6bfceea946b5b193bb7ceec535",
     "ext/xml.xsd": "e4cf10548742c4e0f6611afd1327b0734890ee4cf94f08dfa0b48bc76f36b0c3",
     "ext/xmldsig-core-schema.xsd": "9469b3d1f535b1b0b75b3688b0e3734677c5ed4c4ab028bc08d06bc67976d08b",
-    "tel/error/TelematikError.xsd": "34a8cd89e60d6ee84b627ec40eb46e6c66cf3974fd2943aaa290051f33e2d487"
-  }
+    "tel/error/TelematikError.xsd": "34a8cd89e60d6ee84b627ec40eb46e6c66cf3974fd2943aaa290051f33e2d487",
+    "tel/version/ProductInformation.xsd": "8f8532b85fe6dd70a9434a678b4ca1447a5254299cbda1d0032b782c6dd723b4"
+  },
+  "eventWsdlVersion": "7.2.0",
+  "eventXsdVersion": "7.2.1"
 }

@@ -7,6 +7,10 @@ Die Nachweise stammen aus lokalen mTLS-Gegenstellen. Ein physischer Konnektor,
 eine SMC-B und echte TI-Dienste wurden damit noch nicht geprüft. Alle Ergebnisse
 bleiben ohne produktive Versand- oder Zustellfreigabe.
 
+Die ergänzte [Kartenabfrage und SMC-B-Auswahl](konnektor-smcb.md) verwendet
+GetCards und verbindet frische Kartensitzungen mit den drei tatsächlichen
+Institutionszertifikaten, lokalen TSL-/OCSP-Belegen und VerifyCertificate.
+
 ## Vertrag und Schemaherkunft
 
 `services/kim/connector-certificates.mjs` verwendet CertificateService WSDL 6.0.1
@@ -22,7 +26,7 @@ Antwort gegen diese Schemata. SOAP-Version, Operation und Namensräume müssen
 passen. Nur ein Body mit genau einer Nutzlast ist erlaubt; ein leerer Header
 ist zulässig. Nichtleere SOAP-Header, SOAP-Encoding, DTDs, Entitäten,
 Verarbeitungsanweisungen und externe Ressourcen werden abgelehnt. Eine
-WSDL-Operation außerhalb der beiden implementierten Operationen ist dadurch
+WSDL-Operation außerhalb der ausdrücklich implementierten Operationen ist dadurch
 nicht automatisch verfügbar.
 
 ## Verwendung im Diensthost
@@ -37,6 +41,7 @@ import { receiveEccKimMessageWithTsl } from '../../services/kim/receive-tsl.mjs'
 // Vom Host provisionierte Konfiguration und Schlüssel, keine Browserparameter.
 const connector = new KonnektorCertificateClient({
   url: configuration.certificateServiceHttpsUrl,
+  eventServiceUrl: configuration.eventServiceHttpsUrl, // optional für GetCards
   ca: configuration.connectorCaPem,
   serverSha256: configuration.connectorServerLeafSha256,
   clientCertificate: credentials.clientCertificatePem,
@@ -158,7 +163,8 @@ Es gibt keine Paketinstallation oder Ersatzinterpretation bei fehlender Laufzeit
 Abbruch und `close()` beenden laufende Arbeit; spätere Antworten erzeugen keinen
 verwendbaren Beleg. SOAP-Nachrichten werden nicht wiederholt.
 
-Noch offen sind DVD/ServiceDiscovery, GetCards und Kartenwahl, provisionierte
+GetCards und eindeutige SMC-B-Auswahl sind als Dienstschnittstelle ergänzt.
+Noch offen sind DVD/ServiceDiscovery, Terminalinventar und Auswahloberfläche, provisionierte
 Konnektor- und Mandantenkontexte, reale mTLS-Interoperabilität, SMC-B-/HBA-
 Schlüsseloperationen, PIN-Verwaltung, historische Prüfungen, QES-Sonderprofile,
 weitere Transport-/SOAP-Profile, vollständige Kryptografie-/Fehlervorgaben und

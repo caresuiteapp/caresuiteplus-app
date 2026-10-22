@@ -3,6 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { KonnektorError, connectorFail, connectorSignal } from './connector-error.mjs';
 
 export const CERTIFICATE_SERVICE = 'http://ws.gematik.de/conn/CertificateService/v6.0';
+export const EVENT_SERVICE = 'http://ws.gematik.de/conn/EventService/v7.2';
+export const CARD_COMMON = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0';
+export const connectorService = operation => operation === 'GetCards' ? EVENT_SERVICE
+  : ['ReadCardCertificate', 'VerifyCertificate'].includes(operation) ? CERTIFICATE_SERVICE : undefined;
 export const CERTIFICATE_COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0';
 export const CONNECTOR_COMMON = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0';
 export const CONNECTOR_CONTEXT = 'http://ws.gematik.de/conn/ConnectorContext/v2.0';
@@ -15,16 +19,21 @@ export function connectorText(value, limit = 64) {
 }
 const escape = value => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]);
 export function certificateRequest(operation, context, input) {
+  const namespace = connectorService(operation);
+  if (!namespace) connectorFail('INPUT');
   const ctx = `<ctx:Context>${[['mandantId', 'MandantId'], ['clientSystemId', 'ClientSystemId'], ['workplaceId', 'WorkplaceId'],
     ...(context.userId === undefined ? [] : [['userId', 'UserId']])].map(([key, name]) => `<n:${name}>${escape(connectorText(context[key]))}</n:${name}>`).join('')}</ctx:Context>`;
-  const body = operation === 'VerifyCertificate' ? `${ctx}<cc:X509Certificate>${input.certificate.toString('base64')}</cc:X509Certificate>`
+  const body = operation === 'GetCards' ? `${ctx}${[['ctId', 'CtId'], ['slotId', 'SlotId'], ['cardType', 'CardType']]
+    .filter(([key]) => input[key] !== undefined).map(([key, name]) => `<card:${name}>${escape(String(input[key]))}</card:${name}>`).join('')}`
+    : operation === 'VerifyCertificate' ? `${ctx}<cc:X509Certificate>${input.certificate.toString('base64')}</cc:X509Certificate>`
     : `<n:CardHandle>${escape(connectorText(input.cardHandle, 128))}</n:CardHandle>${ctx}<c:CertRefList>${input.certRefs.map(ref => `<c:CertRef>${ref}</c:CertRef>`).join('')}</c:CertRefList><c:Crypt>${input.crypt}</c:Crypt>`;
-  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?><s:Envelope xmlns:s="${SOAP}" xmlns:c="${CERTIFICATE_SERVICE}" xmlns:cc="${CERTIFICATE_COMMON}" xmlns:n="${CONNECTOR_COMMON}" xmlns:ctx="${CONNECTOR_CONTEXT}"><s:Body><c:${operation}>${body}</c:${operation}></s:Body></s:Envelope>`);
+  const attribute = operation === 'GetCards' ? ` mandant-wide="${input.mandantWide}"` : '';
+  return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?><s:Envelope xmlns:s="${SOAP}" xmlns:c="${namespace}" xmlns:cc="${CERTIFICATE_COMMON}" xmlns:n="${CONNECTOR_COMMON}" xmlns:ctx="${CONNECTOR_CONTEXT}" xmlns:card="${CARD_COMMON}"><s:Body><c:${operation}${attribute}>${body}</c:${operation}></s:Body></s:Envelope>`);
 }
 export function inspectConnectorXml(bytes, { operation, mode, python = 'python3', signal } = {}) {
   connectorSignal(signal);
   if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 262144
-    || !['ReadCardCertificate', 'VerifyCertificate'].includes(operation) || !['request', 'response'].includes(mode)) connectorFail('INPUT');
+    || !connectorService(operation) || !['request', 'response'].includes(mode)) connectorFail('INPUT');
   const input = Buffer.from(JSON.stringify({ operation, mode, xml: Buffer.from(bytes).toString('base64') }));
   return new Promise((resolve, reject) => {
     let child, done = false, size = 0; const chunks = [];

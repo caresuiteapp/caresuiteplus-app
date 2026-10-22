@@ -14,6 +14,13 @@ auch nach LDAP werden seine Belege erneut bewertet. `connectorAcquisition`
 führt die tatsächlich erhaltenen Befunde auf. Die eigene TSL-/OCSP-Prüfung und
 der weiterhin ausschließlich diagnostische Lieferstatus bleiben erforderlich.
 
+Der [SMC-B-Zertifikatsablauf](konnektor-smcb.md) verwendet denselben Statusclient
+für die tatsächlich von einer frisch ausgewählten Karte gelesenen AUT-, ENC-
+und OSIG-Zertifikate. Neben dem positiven Status sind die jeweiligen
+Institutionszertifikatstypen, die erwartete Telematik-ID und die geforderten
+Rollen verpflichtend. Auch nach der abschließenden Kartenabfrage werden die
+rohen Belege erneut gegen den aktuellen TSL-Stand geprüft.
+
 ## Vertrauens- und Routenauswahl
 
 Der unterstützte Weg ist die **TI-nonQES-Statusprüfung** gemäß TUC_PKI_003 bis

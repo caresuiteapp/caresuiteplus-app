@@ -8,17 +8,71 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**684/684 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+**745/745 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
 mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 62,1 Sekunden.
+rund 63,1 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
+
+## GetCards und SMC-B-Zertifikatsablauf am 22.10.2026
+
+**61 neue Fälle** erweitern die bisherigen 684 Prüfungen: 36 Kartenabfrage-/
+Auswahl-/XML-Fälle sowie 25 Integrationen im vorhandenen TSL-/OCSP-Testverbund.
+Der gezielte Karten-/Zertifikatslauf bestand mit 91 Fällen in rund 10,0 Sekunden;
+der abschließende Gesamtlauf prüft alle 745 Fälle gemeinsam. Es wurde keine neue
+Laufzeit oder Testinfrastruktur eingerichtet.
+
+GetCards sendet echte mTLS-Anfragen an den eigenen EventService-Endpunkt mit
+offizieller SOAPAction, Kontext, Terminal-/Steckplatz-/Typfiltern und ausdrücklich
+gewähltem Arbeitsplatz- oder Mandantenbereich. Die Antworten werden gegen die
+festgeschriebenen offiziellen Schemata geprüft. Alle sechs ergänzten Dateien
+wurden nach LF-Normalisierung zusätzlich mit den abgerufenen Originalen
+bytegenau verglichen. Namen und KVNR aus den Antwortbytes fehlen in der Ausgabe.
+Leere Listen bleiben leer; mehrere Karten erfordern eine passende Auswahl.
+Doppelte Handles, Terminal-/Steckplatzpaare oder ICCSN, fehlende
+Identifikationsdaten, ignorierte Filter und fremde Kartentypen scheitern.
+
+Kopierte Listen/Auswahlen und fremde Clients erhalten keinen privaten
+Kartensitzungsbeleg. Ablauf, Uhr-Rücksprung, Abbruch und Schließen entwerten ihn.
+Eine fehlgeschlagene Aktualisierung lässt die vorherige Auswahl nicht weiter
+gelten. Eine ältere Antwort, die zuletzt eintrifft, kann einen neueren Snapshot
+nicht ersetzen. Ungültige Eingaben und fehlende/fremde Endpunkte senden keine
+Anfrage. Falsche Operationen, Namespaces, doppelte Listen, ungültige Werte,
+Zeitangaben ohne Zeitzone, übergroße Listen und Warnbefunde werden abgewiesen.
+
+Der gemeinsame Ablauf liest tatsächliche AUT-/ENC-/OSIG-Zertifikate, fragt
+signierte lokale OCSP-Belege ab und führt für jedes Zertifikat VerifyCertificate
+aus. Eine zweite GetCards-Abfrage bestätigt dieselbe Kartensitzung, bevor die
+Rohbelege erneut ausgewertet werden. Die explizite Auswahl unter zwei Karten
+übergibt das richtige CardHandle. Gesperrte/unbekannte Statuswerte, fremde
+erwartete oder enthaltene Telematik-IDs, falsche Rollen, vertauschte Referenzen,
+fehlende Zertifikate und negative Konnektorbefunde verhindern ein Ergebnis.
+Ein unabhängig positiv geprüftes HBA-AUT wird trotz passenden Rollen nicht
+als SMC-B-AUT akzeptiert.
+
+Entfernen, neues Handle, geänderte Einsteckzeit, Seriennummer, Terminal oder
+Kartenversion während der Prüfung verhindern die alte Zuordnung. Auch
+Zeitänderungen unterhalb einer Millisekunde bleiben im Vergleich erhalten.
+TSL-Wechsel und Abbruch während der abschließenden Kartenabfrage lassen keinen
+früheren Erfolg bestehen. Spätere Kartenaktualisierung oder mutierte
+Zertifikatsausgabe entwerten das Gesamtpaket. Veränderung der übergebenen
+Rollenliste beeinflusst keinen bereits gestarteten Ablauf. Fehlende
+Einrichtungs-ID, leere/ungültige Rollen, erfundene Instanzen und ein Wechsel
+zwischen Test-/Produktionsumgebung scheitern vor dem ersten Netzaufruf.
+
+Die Ausgabe bleibt `held-for-trust-validation` mit `identityStatus: unverified`.
+Die Kartensitzungsprüfung besteht aus zwei Momentaufnahmen; sie ersetzt keine
+physische Entnahmeüberwachung oder atomare Bindung an eine spätere
+Schlüsseloperation. Reale Hardware-/TI-Interoperabilität, Kartenschlüssel und
+PIN-Betrieb, Auswahloberfläche und unabhängige Prüfung/Zulassung bleiben offen.
+Keine Änderung produktiver Daten, UI oder Android und keine echten Empfänger.
+[Schnittstellen, Quellen und Grenzen](konnektor-smcb.md).
 
 ## Konnektor-CertificateService am 22.10.2026
 
 **65 neue Fälle** erweitern die bisherigen 619 Prüfungen: 55 SOAP-/XML-/mTLS-
 und Clientfälle sowie zehn Empfangsintegrationen. Der gezielte gemeinsame
-65-Fälle-Lauf bestand in rund 19,2 Sekunden; der oben genannte Abschlusslauf
-prüft alle 684 Fälle gemeinsam.
+65-Fälle-Lauf bestand in rund 19,2 Sekunden; der damalige Abschlusslauf
+prüfte alle 684 Fälle gemeinsam in rund 62,1 Sekunden.
 
 Die lokale Gegenstelle verlangt ein tatsächliches Clientzertifikat und prüft
 die empfangenen SOAPAction-, Kontext- und DER-Bytes. Offizielle festgeschriebene

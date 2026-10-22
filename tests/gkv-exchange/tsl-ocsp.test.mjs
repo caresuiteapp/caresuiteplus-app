@@ -28,7 +28,9 @@ import { vzdFixture, record, entryReply, searchDone, bindReply } from './vzd-fix
 import { resolveVzdRecipients, matchVzdSender } from '../../services/kim/vzd-bindings.mjs';
 import { openEccKimMessage } from '../../services/kim/client-message.mjs';
 import { VzdLdapsDirectory, revalidateVzdRecord } from '../../services/kim/vzd.mjs';
-import { connectorFixture, verificationResponse, faultResponse } from './connector-fixture.mjs';
+import { connectorFixture, verificationResponse, faultResponse, certificatesResponse } from './connector-fixture.mjs';
+import { cardData, cardsResponse, cardsReply, eventUrl } from './connector-card-fixture.mjs';
+import { readAndVerifySmcb } from '../../services/kim/connector-smcb.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -613,6 +615,130 @@ test('KIM VZD receive: a TSL change during directory lookup defeats previously g
 })));
 
 const lookupServer = (directory, client, signal) => directory.lookup(senderAddress, { serverStatusClient: client, signal });
+
+const isCards = bytes => bytes.includes('<c:GetCards');
+const isReadCards = bytes => bytes.includes('<c:ReadCardCertificate');
+const smcbCertificates = () => [['C.AUT', authentication.certificate], ['C.ENC', encryption[0].certificate], ['C.SIG', signing.certificate]];
+const smcbReply = ({ response, bytes }) => cardsReply(response, isCards(bytes) ? cardsResponse()
+  : isReadCards(bytes) ? certificatesResponse(smcbCertificates()) : verificationResponse());
+async function withSmcb(run, handler = smcbReply, changes = {}) {
+  await withConnector(async ({ open, options, requests }) => run({ connector: open({ eventServiceUrl: eventUrl(options), ...changes }), requests }), handler);
+}
+const readSmcb = (connector, statusClient, changes = {}) => readAndVerifySmcb({ connector, statusClient,
+  expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], ...changes });
+
+test('SMC-B: fresh GetCards, actual DER, local status, VerifyCertificate and final GetCards compose a held result', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  const r = await readSmcb(connector, open()); r.revalidate();
+  assert.equal(requests.length, 6); assert.equal(isCards(requests[0].bytes), true); assert.equal(isReadCards(requests[1].bytes), true);
+  assert.equal(isCards(requests.at(-1).bytes), true); assert.ok(requests[1].bytes.includes('<n:CardHandle>SMCB-1</n:CardHandle>'));
+  assert.deepEqual(r.certificates.map(c => c.certificate), smcbCertificates().map(([, c]) => raw(c)));
+  assert.deepEqual(leafPurposes(), ['authentication', 'encryption', 'signing']);
+  assert.deepEqual(r.certificates.map(c => c.certificateTypeOid), ['1.2.276.0.76.4.77', '1.2.276.0.76.4.76', '1.2.276.0.76.4.78']);
+  assert.equal(r.identityStatus, 'unverified'); assert.equal(r.deliveryStatus, 'held-for-trust-validation');
+  assert.doesNotMatch(JSON.stringify(r), /PRIVATE CARDHOLDER|K123456789|PRIVATE SECRET/);
+  r.certificates[0].certificate.fill(0); assert.throws(r.revalidate, code('KIM_CONNECTOR_SMCB_STATUS'));
+})));
+
+for (const count of [0, 2]) test('SMC-B: ' + count + ' possible cards cannot trigger certificate or status calls', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  await assert.rejects(readSmcb(connector, open()), code(count === 0 ? 'KIM_CONNECTOR_CARD_NOT_FOUND' : 'KIM_CONNECTOR_CARD_AMBIGUOUS'));
+  assert.equal(requests.length, 1); assert.equal(leafCount(), 0);
+}, ({ response }) => cardsReply(response, cardsResponse(count === 0 ? [] : [cardData(), cardData({ cardHandle: 'SMCB-2', slotId: 2, iccsn: '80276000000000000002' })])))));
+
+test('SMC-B: explicit serial chooses the requested card among two without trusting the display name', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  const r = await readSmcb(connector, open(), { iccsn: '80276000000000000002' });
+  assert.equal(r.selection.card.cardHandle, 'SMCB-2'); assert.equal(requests[1].bytes.includes('<n:CardHandle>SMCB-2</n:CardHandle>'), true); r.revalidate();
+}, event => isCards(event.bytes) ? cardsReply(event.response, cardsResponse([cardData(), cardData({ cardHandle: 'SMCB-2', slotId: 2, iccsn: '80276000000000000002' })])) : smcbReply(event))));
+
+for (const outcome of ['revoked', 'unknown']) test('SMC-B: locally ' + outcome + ' AUT cannot reach VerifyCertificate or later roles', async () => fixture(async ({ open }) => {
+  state.authentication = outcome;
+  await withSmcb(async ({ connector, requests }) => {
+    await assert.rejects(readSmcb(connector, open()), code('KIM_CONNECTOR_SMCB_STATUS'));
+    assert.equal(requests.length, 2); assert.deepEqual(leafPurposes(), ['authentication']);
+  });
+}));
+
+for (const condition of ['foreign configured identity', 'foreign AUT identity', 'foreign AUT role', 'wrong reference', 'missing certificate']) test('SMC-B: ' + condition + ' cannot become a matching institution', async () => fixture(async ({ open }) => {
+  let cert = authentication.certificate;
+  if (condition === 'foreign AUT identity' || condition === 'foreign AUT role') {
+    cert = withAdmission(cert, admissionDer(condition === 'foreign AUT identity' ? { telematikId: '10-OTHER' } : { professionOid: '1.2.276.0.76.4.242' }), rootKey);
+    state.certificates = [{ certificate: cert }];
+  }
+  const expected = condition === 'missing certificate' ? 'CERTIFICATE_MISSING' : condition === 'wrong reference' ? 'SMCB_STATUS' : 'SMCB_IDENTITY';
+  await withSmcb(async ({ connector, requests }) => {
+    await assert.rejects(readSmcb(connector, open(), condition === 'foreign configured identity' ? { expectedTelematikId: '10-NOT-THIS-INSTITUTION' } : {}), code('KIM_CONNECTOR_' + expected));
+    assert.equal(requests.length, 2);
+  }, event => isReadCards(event.bytes) ? cardsReply(event.response, certificatesResponse([
+    ['C.AUT', condition === 'missing certificate' ? null : condition === 'wrong reference' ? signing.certificate : cert], ...smcbCertificates().slice(1),
+  ])) : smcbReply(event));
+}));
+
+test('SMC-B: an otherwise valid professional HBA AUT is not an institutional AUT', async () => fixture(async ({ open }) => {
+  const startDate = new Date(f.now - 86400000).toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z';
+  const leaf = await f.pki.issueAut({ name: 'smcb-hba', policy: '1.2.276.0.76.4.75', startDate }); state.certificates = [leaf];
+  const statusClient = open(), valid = await statusClient.check({ certificate: leaf.certificate, purpose: 'authentication' });
+  assert.equal(valid.status, 'good'); assert.equal(valid.certificateTypeOid, '1.2.276.0.76.4.75');
+  await withSmcb(async ({ connector }) => {
+    await assert.rejects(readSmcb(connector, statusClient, { requiredRoles: valid.admission.professionOids }), code('KIM_CONNECTOR_SMCB_IDENTITY'));
+  }, event => isReadCards(event.bytes) ? cardsReply(event.response, certificatesResponse([['C.AUT', leaf.certificate], ...smcbCertificates().slice(1)])) : smcbReply(event));
+}));
+
+for (const status of ['INVALID', 'INCONCLUSIVE']) test('SMC-B: Konnektor ' + status + ' cannot reuse good local status', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  await assert.rejects(readSmcb(connector, open()), code('KIM_CONNECTOR_CERTIFICATE_REJECTED'));
+  assert.equal(requests.length, 3); assert.deepEqual(leafPurposes(), ['authentication']);
+}, event => isCards(event.bytes) || isReadCards(event.bytes) ? smcbReply(event) : cardsReply(event.response, verificationResponse(status)))));
+
+const cardChanges = [
+  ['removed', () => [], 'CARD_NOT_FOUND'],
+  ['reinserted handle', () => [cardData({ cardHandle: 'SMCB-NEW' })], 'CARD_CHANGED'],
+  ['insertion time', () => [cardData({ insertTime: '2026-10-22T00:00:01Z' })], 'CARD_CHANGED'],
+  ['submillisecond insertion time', () => [cardData({ insertTime: '2026-10-22T00:00:00.000001Z' })], 'CARD_CHANGED'],
+  ['card serial', () => [cardData({ iccsn: '80276000000000000002' })], 'CARD_NOT_FOUND'],
+  ['terminal', () => [cardData({ ctId: 'OTHER' })], 'CARD_NOT_FOUND'],
+  ['card version', () => [cardData({ cardVersion: { COSVersion: [4, 5, 1], ObjectSystemVersion: [4, 5, 0] } })], 'CARD_CHANGED'],
+];
+for (const [name, change, expected] of cardChanges) test('SMC-B: ' + name + ' during verification cannot preserve the old card binding', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  await assert.rejects(readSmcb(connector, open()), code('KIM_CONNECTOR_' + expected)); assert.equal(requests.length, 6);
+}, event => isCards(event.bytes) && event.requests.filter(q => isCards(q.bytes)).length === 2
+  ? cardsReply(event.response, cardsResponse(change())) : smcbReply(event))));
+
+test('SMC-B: a TSL refresh during final GetCards invalidates all earlier local status proofs', async () => fixture(async ({ open, manager }) => withSmcb(async ({ connector }) => {
+  await assert.rejects(readSmcb(connector, open()), code('KIM_CONNECTOR_SMCB_STATUS'));
+}, async event => {
+  if (isCards(event.bytes) && event.requests.filter(q => isCards(q.bytes)).length === 2) await manager.refresh();
+  smcbReply(event);
+})));
+
+test('SMC-B: abort during final GetCards cannot return a previous positive result', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withSmcb(async ({ connector }) => {
+    await assert.rejects(readSmcb(connector, open(), { signal: controller.signal }), code('KIM_CONNECTOR_ABORTED'));
+  }, event => {
+    if (isCards(event.bytes) && event.requests.filter(q => isCards(q.bytes)).length === 2) controller.abort();
+    smcbReply(event);
+  });
+}));
+
+test('SMC-B: later card refresh invalidates the complete returned bundle and caller role mutation changes no request', async () => fixture(async ({ open }) => {
+  const requiredRoles = ['1.2.276.0.76.4.245'];
+  await withSmcb(async ({ connector }) => {
+    const r = await readSmcb(connector, open(), { requiredRoles });
+    assert.deepEqual(r.professionOids, ['1.2.276.0.76.4.245']); r.revalidate();
+    await connector.getCards(); assert.throws(r.revalidate, code('KIM_CONNECTOR_CARD_SNAPSHOT_STALE'));
+  }, event => { requiredRoles[0] = '1.2.3'; smcbReply(event); });
+}));
+
+test('SMC-B: missing identity, roles, real clients or matching environment fail before network', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
+  const statusClient = open();
+  for (const change of [{ expectedTelematikId: undefined }, { expectedTelematikId: 'bad' }, { requiredRoles: [] },
+    { requiredRoles: ['bad'] }, { requiredRoles: Array(1) }, { connector: {} }, { statusClient: {} },
+    { connector: Object.create(Object.getPrototypeOf(connector)) }, { statusClient: Object.create(Object.getPrototypeOf(statusClient)) }]) {
+    await assert.rejects(readSmcb(connector, statusClient, change), code('KIM_CONNECTOR_CONFIGURATION'));
+  }
+  assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+  await withSmcb(async ({ connector: foreign, requests: otherRequests }) => {
+    await assert.rejects(readSmcb(foreign, statusClient), code('KIM_CONNECTOR_CONFIGURATION')); assert.equal(otherRequests.length, 0);
+  }, undefined, { environment: 'production' });
+})));
 
 async function withConnector(run, handler, changes) {
   const connector = await connectorFixture(f.pki, handler, changes);

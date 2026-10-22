@@ -444,6 +444,19 @@ Lokale mTLS-/SOAP- und Empfangsnachweise stehen in [verification.md](verificatio
 Reale Konnektor-/SMC-B-Anbindung, Karten-Schlüsseloperationen, Discovery und
 vollständige TI-/Betriebs-/Zulassungsnachweise bleiben offen.
 
+### Kartenabfrage und SMC-B-Auswahl
+
+Der [EventService-/SMC-B-Ablauf](konnektor-smcb.md) fragt verfügbare Karten
+über schemafähiges GetCards am separat konfigurierten Endpunkt ab. Er verlangt
+eine eindeutige Auswahl und prüft tatsächliche AUT-, ENC- und OSIG-Zertifikate
+gegen erwartete Institutions-ID und Rollen, lokale TSL-/OCSP-Belege sowie
+VerifyCertificate. Vor der Ausgabe müssen eine zweite Kartenabfrage und die
+erneute Belegprüfung bestehen. Ein Kartenwechsel, eine fehlgeschlagene
+Aktualisierung oder ein veralteter Snapshot behält kein früheres Ergebnis.
+Die Dienstschnittstelle bleibt ohne Karten-Schlüsseloperation, automatische
+Ereignisüberwachung und produktive Versandfreigabe. Es gibt dafür noch keine
+Auswahloberfläche. Reale Hardware-/TI- und unabhängige Nachweise bleiben offen.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für
