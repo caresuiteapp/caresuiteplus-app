@@ -3,6 +3,7 @@ import type { CalendarEvent, CalendarEventType } from '@/types/modules/calendarE
 import { resolveCalendarEventColor } from '@/lib/calendar/calendarColors';
 import { parseLegacyAssignmentTitle } from '@/lib/calendar/calendarEventDisplay';
 import { resolveCalendarEventHref } from '@/lib/calendar/calendarRouteRegistry';
+import { calendarEmployeeIds } from './calendarParticipants';
 
 type CalendarEventRow = {
   id: string;
@@ -29,6 +30,7 @@ type CalendarEventRow = {
   phone_number: string | null;
   related_client_id: string | null;
   related_employee_id: string | null;
+  participant_employee_ids?: string[];
   related_team_id: string | null;
   related_ward_id: string | null;
   related_case_id: string | null;
@@ -74,6 +76,7 @@ export const CALENDAR_EVENT_SELECT_COLUMNS = [
   'phone_number',
   'related_client_id',
   'related_employee_id',
+  'participant_employee_ids',
   'related_team_id',
   'related_ward_id',
   'related_case_id',
@@ -150,6 +153,7 @@ export function mapCalendarEventRow(row: CalendarEventRow): CalendarEventRecord 
     phoneNumber: row.phone_number,
     relatedClientId: row.related_client_id,
     relatedEmployeeId: row.related_employee_id,
+    participantEmployeeIds: calendarEmployeeIds({ relatedEmployeeId: row.related_employee_id, participantEmployeeIds: row.participant_employee_ids }),
     relatedTeamId: row.related_team_id,
     relatedWardId: row.related_ward_id,
     relatedCaseId: row.related_case_id,

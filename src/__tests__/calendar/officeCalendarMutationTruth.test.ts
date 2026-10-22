@@ -2,7 +2,7 @@ import {beforeEach,describe,expect,it,vi} from 'vitest';
 import type {CalendarEventFormInput} from '@/types/calendar/calendarEventForm';
 const f=vi.hoisted(()=>({create:vi.fn(),update:vi.fn(),sync:vi.fn(),permission:vi.fn(),rows:{} as Record<string,any>,queries:[] as any[]}));
 vi.mock('@/lib/supabase/client',()=>({getSupabaseClient:()=>({})}));
-vi.mock('@/lib/supabase/untypedTable',()=>({fromUnknownTable:(_client:unknown,table:string)=>{const filters:any[]=[];f.queries.push({table,filters});const chain:any={select:()=>chain,eq:(...args:any[])=>{filters.push(args);return chain;},maybeSingle:()=>Promise.resolve({data:f.rows[table],error:null})};return chain;}}));
+vi.mock('@/lib/supabase/untypedTable',()=>({fromUnknownTable:(_client:unknown,table:string)=>{const filters:any[]=[];f.queries.push({table,filters});const result=()=>({data:typeof f.rows[table]==='function'?f.rows[table](filters):f.rows[table],error:null});const chain:any={select:()=>chain,eq:(...args:any[])=>{filters.push(args);return chain;},in:(...args:any[])=>{filters.push(['in',...args]);return chain;},maybeSingle:()=>Promise.resolve(result()),then:(resolve:any)=>Promise.resolve(result()).then(resolve)};return chain;}}));
 vi.mock('@/lib/services/repositories/appointmentRepository.supabase',()=>({appointmentSupabaseRepository:{create:f.create,update:f.update}}));
 vi.mock('@/lib/calendar/calendarSyncService',()=>({syncCalendarEvent:f.sync}));
 vi.mock('@/lib/permissions',()=>({enforcePermission:f.permission}));
@@ -11,9 +11,37 @@ vi.mock('@/lib/tenant/tenantResolver',()=>({assertTenantForMode:()=>null}));
 vi.mock('expo-crypto',()=>({randomUUID:()=> 'b41eb718-a818-479b-bfd8-95f9ba8fa249'}));
 import {createCalendarEventFromForm,updateCalendarEventFromForm} from '@/lib/calendar/calendarEventSaveService';
 const id='27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',client='a264ad19-8c79-4350-a11b-6d71c7605515',employee='8d684b96-ea6a-4517-9770-bac4f457ac39';
+const secondEmployee='b6d37c52-cb49-4365-bfd1-3a31d99c3b9e';
 const input:CalendarEventFormInput={tenantId:'tenant',moduleKey:'office',calendarScope:'office',sourceContext:'appointment_management',sourceType:'appointment',eventType:'termin',title:'Besprechung',startAt:'2026-10-12T07:00:00Z',endAt:'2026-10-12T08:30:00Z',relatedClientId:client,relatedEmployeeId:employee};
 beforeEach(()=>{vi.clearAllMocks();f.queries=[];f.permission.mockReturnValue(null);f.rows={clients:{first_name:'Anna',last_name:'Klient'},employees:{first_name:'Tom',last_name:'Team'}};f.create.mockResolvedValue({ok:true,data:{id}});f.update.mockResolvedValue({ok:true,data:{id,status:'entwurf'}});f.sync.mockResolvedValue({ok:true,data:{id:'calendar-id'}});});
 describe('Office calendar persists genuine appointment data and matching mirrors',()=>{
+ it.each(['custom_event','appointment'] as const)('saves all meeting employees on one %s and deduplicates stable IDs',async(sourceType)=>{
+  f.rows.employees=[{id:secondEmployee,first_name:'Mara',last_name:'Team'},{id:employee,first_name:'Tom',last_name:'Team'}];
+  const multi={...input,sourceContext:'calendar' as const,sourceType,participantEmployeeIds:[employee,secondEmployee,` ${employee} `]};
+  expect((await createCalendarEventFromForm(multi,'business_admin')).ok).toBe(true);
+  expect(f.sync).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({relatedEmployeeId:employee,participantEmployeeIds:[employee,secondEmployee]}));
+  expect(f.queries.filter(q=>q.table==='employees')).toHaveLength(1);
+  expect(f.queries.every(q=>q.filters.some(([key,value]:any[])=>key==='tenant_id'&&value==='tenant'))).toBe(true);
+  if(sourceType==='appointment')expect(f.create).toHaveBeenCalledWith('tenant',expect.objectContaining({employeeName:'Tom Team, Mara Team'}));
+  else expect(f.create).not.toHaveBeenCalled();
+ });
+ it('rejects a missing or other-tenant second employee before saving any part of a meeting',async()=>{
+  f.rows.employees=[{id:employee,first_name:'Tom',last_name:'Team'}];
+  expect((await createCalendarEventFromForm({...input,participantEmployeeIds:[employee,secondEmployee]},'business_admin')).ok).toBe(false);
+  expect(f.create).not.toHaveBeenCalled();expect(f.sync).not.toHaveBeenCalled();
+ });
+ it('validates a whole large team in bounded batches without dropping later employees',async()=>{
+  const selected=Array.from({length:205},(_,index)=>`00000000-0000-4000-8000-${String(index+1).padStart(12,'0')}`);
+  f.rows.employees=(filters:any[])=>filters.find(([method])=>method==='in')[2].map((id:string)=>({id,first_name:'Team',last_name:id.slice(-3)}));
+  expect((await createCalendarEventFromForm({...input,sourceContext:'calendar',sourceType:'custom_event',relatedEmployeeId:selected[0],participantEmployeeIds:selected},'business_admin')).ok).toBe(true);
+  expect(f.queries.filter(q=>q.table==='employees')).toHaveLength(3);
+  expect(f.sync).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({participantEmployeeIds:selected}));
+ });
+ it('rejects invalid participant IDs and portal visibility with no selected employees',async()=>{
+  expect((await createCalendarEventFromForm({...input,participantEmployeeIds:['Tom Team']},'business_admin')).ok).toBe(false);
+  expect((await createCalendarEventFromForm({...input,relatedEmployeeId:null,participantEmployeeIds:[],isEmployeePortalVisible:true},'business_admin')).ok).toBe(false);
+  expect(f.create).not.toHaveBeenCalled();expect(f.sync).not.toHaveBeenCalled();
+ });
  it('persists actual scoped names and both timestamps while calendar retains stable IDs',async()=>{expect(await createCalendarEventFromForm(input,'business_admin')).toEqual({ok:true,data:{sourceId:id,calendarEventId:'calendar-id'}});expect(f.create).toHaveBeenCalledWith('tenant',expect.objectContaining({clientName:'Anna Klient',employeeName:'Tom Team',startsAt:input.startAt,endsAt:input.endAt,status:'aktiv'}));expect(f.sync).toHaveBeenCalledWith(expect.objectContaining({sourceId:id,sourceType:'appointment',relatedClientId:client,relatedEmployeeId:employee}));expect(f.queries.every(q=>q.filters.some((v:any)=>v[0]==='tenant_id'&&v[1]==='tenant'))).toBe(true);});
  it('updates the existing source row before calendar mirror and preserves its workflow status',async()=>{expect((await updateCalendarEventFromForm({...input,existingSourceId:id,title:'Neu'},'business_admin')).ok).toBe(true);expect(f.update).toHaveBeenCalledWith('tenant',id,expect.objectContaining({title:'Neu',endsAt:input.endAt}));expect(f.create).not.toHaveBeenCalled();expect(f.sync).toHaveBeenCalledWith(expect.objectContaining({status:'entwurf',sourceId:id}));expect(f.update.mock.invocationCallOrder[0]).toBeLessThan(f.sync.mock.invocationCallOrder[0]);});
  it.each(['rejected','thrown'])('retains source identity after %s mirror failure and retry updates that same source',async(kind)=>{if(kind==='rejected') f.sync.mockResolvedValueOnce({ok:false,error:'Kalender gesperrt'}); else f.sync.mockRejectedValueOnce(new Error('Transport'));const saved=await createCalendarEventFromForm(input,'business_admin');expect(saved).toMatchObject({ok:false,persistedSourceId:id,error:expect.stringContaining('gespeichert')});expect((await updateCalendarEventFromForm({...input,existingSourceId:id},'business_admin')).ok).toBe(true);expect(f.create).toHaveBeenCalledOnce();expect(f.update).toHaveBeenCalledWith('tenant',id,expect.any(Object));});

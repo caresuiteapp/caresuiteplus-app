@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
+import { calendarEventEmployeeIds } from './calendarParticipants';
 
 export type PlanningKind = 'available' | 'blocked';
 export type PlanningSlot = {
@@ -122,7 +123,7 @@ export function eventEmployeeId(event: CalendarEvent): string | null {
   return event.employeeId ?? event.record?.relatedEmployeeId ?? (event.sourceType === 'employee_birthday' ? event.sourceId : null) ?? null;
 }
 export function filterEmployeeEvents(events: CalendarEvent[], employeeId: string): CalendarEvent[] {
-  return employeeId ? events.filter((event) => eventEmployeeId(event) === employeeId) : events;
+  return employeeId ? events.filter((event) => eventEmployeeId(event) === employeeId || calendarEventEmployeeIds(event).includes(employeeId)) : events;
 }
 export function eventIntervalForDate(event: CalendarEvent, date: string): PlanningInterval | null {
   if (['cancelled', 'canceled', 'abgesagt', 'storniert', 'rejected', 'archiviert'].includes(event.status?.trim().toLowerCase() ?? '')) return null;

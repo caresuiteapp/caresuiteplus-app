@@ -3,6 +3,7 @@ import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { MODULE_EVENT_TYPES } from '@/lib/calendar/calendarColors';
 import { mapCalendarEventRecordToUi } from '@/lib/calendar/calendarEventMapper';
 import { toTimezoneDateKey } from '@/lib/office/calendarDateUtils';
+import { calendarEmployeeIds } from './calendarParticipants';
 
 export type CalendarFilterState = {
   moduleKey?: string | null;
@@ -48,7 +49,7 @@ export function filterCalendarRecords(
     result = result.filter((record) => record.relatedClientId === config.entityContext!.clientId);
   }
   if (config.entityContext?.employeeId) {
-    result = result.filter((record) => record.relatedEmployeeId === config.entityContext!.employeeId);
+    result = result.filter((record) => calendarEmployeeIds(record).includes(config.entityContext!.employeeId!));
   }
 
   if (filters?.moduleKey) {
@@ -64,7 +65,7 @@ export function filterCalendarRecords(
     result = result.filter((record) => record.relatedClientId === filters.clientId);
   }
   if (filters?.employeeId) {
-    result = result.filter((record) => record.relatedEmployeeId === filters.employeeId);
+    result = result.filter((record) => calendarEmployeeIds(record).includes(filters.employeeId!));
   }
   if (filters?.onlyOpen) {
     result = result.filter(
