@@ -27,6 +27,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
       transition: opacity 160ms ease, transform 240ms cubic-bezier(.2,.8,.2,1);
     }
     [data-cs-desktop-widget-grid] {
+      --cs-desktop-card-height: ${labelHeight + 152}px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, ${minimum}px), 1fr));
       gap: ${gap}px;
@@ -46,6 +47,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
         --cs-desktop-artwork-height: clamp(72px,
           calc((100cqh - 24px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows) - ${labelHeight + 12}px),
           min(180px, calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns) * .55)));
+        --cs-desktop-card-height: calc(${labelHeight + 12}px + var(--cs-desktop-artwork-height));
         grid-template-columns: repeat(var(--cs-desktop-columns), minmax(0, 1fr));
       }
       [data-cs-desktop-widget-artwork] { height: var(--cs-desktop-artwork-height) !important; }
@@ -64,6 +66,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
       }
     }
     ${mobile ? `
+    [data-cs-desktop-widget-grid] { --cs-desktop-card-height: ${labelHeight + 98}px; }
     [data-cs-desktop-widget-label] { padding: 6px 10px; gap: 6px; }
     [data-cs-desktop-widget-label] [role="heading"] {
       font-size: ${16 * fontScale}px !important;

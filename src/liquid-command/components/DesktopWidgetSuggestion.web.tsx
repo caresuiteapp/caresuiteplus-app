@@ -32,10 +32,13 @@ export function DesktopWidgetSuggestion({
     aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`}
     data-testid="desktop-widget-suggestion" data-widget-id={widget.id}
     data-widget-route={widget.route} data-widget-suggestion-route={widget.route}>
-    <span className="cs-desktop-suggestion-badge">Für {areaLabel} empfohlen</span>
-    <h3 id={`${id}-title`} className="cs-desktop-suggestion-title">{widget.label}</h3>
+    <div className="cs-desktop-suggestion-heading">
+      <span className="cs-desktop-suggestion-badge">Für {areaLabel} empfohlen</span>
+      <h3 id={`${id}-title`} className="cs-desktop-suggestion-title">{widget.label}</h3>
+    </div>
     <div className="cs-desktop-suggestion-body">
-      <p id={`${id}-description`} className="cs-desktop-suggestion-description">
+      <p id={`${id}-description`} className="cs-desktop-suggestion-description"
+        title={SHORT_DESCRIPTIONS[widget.route] ?? widget.description}>
         {SHORT_DESCRIPTIONS[widget.route] ?? widget.description}
       </p>
       <div className="cs-desktop-suggestion-artwork">
