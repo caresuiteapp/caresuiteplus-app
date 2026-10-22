@@ -102,6 +102,12 @@ describe('Arbeitszeit review web interactions', () => {
     await change('Prüffilter', 'rot_blau'); expect(h.setParams).not.toHaveBeenCalled();
     h.focused = false; await render(); await change('Prüffilter', 'pending'); expect(h.setParams).not.toHaveBeenCalled();
   });
+  it('loads pending reviews for the exact cross-month range of an account link', async () => {
+    h.params = { preset: 'custom', month: '2026-09', from: '2026-09-28', to: '2026-10-04', employeeId: 'employee-one', filter: 'pending' };
+    await render({ reviewQueueMode: true, initialFilterAmpel: 'pending' });
+    expect(h.read).toHaveBeenCalledWith('tenant-a', 'business_admin', expect.objectContaining({ preset: 'custom', fromDate: '2026-09-28', toDate: '2026-10-04', filters: { employeeIds: ['employee-one'], onlyPendingReview: true } }));
+    expect(field('Prüffilter').value).toBe('pending');
+  });
   it('disables exported entries independently of misleading editable flags', async () => {
     rows = [entry('exported', { exportStatus: 'exported', canEdit: true, canApprove: true })]; await render(); await click(button('Details: Person exported, 17.10.2026'));
     expect(button('Genehmigen').disabled).toBe(true); expect(button('Korrektur speichern').disabled).toBe(true); expect(host.textContent).toContain('exportiert oder gesperrt');

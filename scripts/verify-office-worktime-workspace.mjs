@@ -16,6 +16,7 @@ const groups = {
     'wfm/wfmOfficeZeitkontenWebService.test.ts',
     'wfm/wfmOfficePlannedVisitsWeb.test.ts',
     'wfm/wfmTimeAccountsWorkspaceWeb.test.ts',
+    'wfm/wfmTimeAccountReviewNavigationWeb.test.tsx',
   ],
   'Web editing, approvals, presence and stored settings': [
     'wfm/wfmOfficeReviewDraftWeb.test.ts',
