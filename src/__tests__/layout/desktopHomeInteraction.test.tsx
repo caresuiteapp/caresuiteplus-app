@@ -198,7 +198,7 @@ describe('area desktops with the permitted navigation', () => {
     expect(label('Seite Einsätze öffnen')).toBeNull();
     await click(areaTab('Assist'));
     expect(label('Seite Einsätze öffnen')).not.toBeNull();
-    expect(label('Seite Rechnungen öffnen')).toBeNull();
+    expect(label('Seite Rechnungen öffnen')).not.toBeNull();
   });
   it('keeps an explicitly empty legacy desktop empty during migration', async () => {
     memory.set(`caresuite.healthos.desktop-widgets.v3.${api.owner}`, '[]'); await render();

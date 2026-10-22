@@ -5,9 +5,11 @@ import {
   canonicalDesktopCatalogRoute,
   desktopCatalogAreaForRoute,
   filterDesktopCatalogEntries,
+  isDesktopCatalogRouteAvailableInArea,
   type DesktopCatalogAccess,
 } from '@/liquid-command/navigation/appsWidgetsCatalogModel.web';
 import { buildDesktopApps } from '@/liquid-command/navigation/desktopAppCatalog.web';
+import { DESKTOP_AREAS } from '@/liquid-command/navigation/desktopAreas';
 
 const admin: DesktopCatalogAccess = {
   roleKey: 'business_admin', can: () => true, hasModuleGate: () => true,
@@ -46,8 +48,38 @@ describe('Web apps and widgets catalog', () => {
       '/business/office/permissions', '/business/integrations',
       '/business/templates/documents-hub', '/support',
     ]));
-    expect(settings.some(app => app.route === '/business/office/document-catalog')).toBe(false);
+    expect(settings.some(app => app.route === '/business/office/document-catalog')).toBe(true);
     expect(filterDesktopCatalogEntries(apps, 'office', admin).some(app => app.route === '/business/integrations')).toBe(false);
+  });
+
+  it.each(DESKTOP_AREAS)('offers the same authorized Office shortcuts on the $label desktop', ({ key }) => {
+    const entries = [
+      { id: 'clients', route: '/business/office/clients' },
+      { id: 'new-client', route: '/business/office/clients/new' },
+      { id: 'documents', route: '/business/templates' },
+      { id: 'calendar', route: '/assist/calendar' },
+    ];
+    const reader = withPermissions('office.clients.view', 'office.documents.view');
+    expect(filterDesktopCatalogEntries(entries, key, reader).map(entry => entry.id)).toEqual(['clients', 'documents']);
+    expect(desktopCatalogAreaForRoute(entries[0].route)).toBe('office');
+    expect(isDesktopCatalogRouteAvailableInArea(entries[0].route, key)).toBe(true);
+    expect(filterDesktopCatalogEntries(entries, key, { ...reader, hasModuleGate: module => module !== 'office' })).toEqual([]);
+    expect(filterDesktopCatalogEntries(entries, key, { ...reader, can: permission => permission !== 'office.access' && reader.can(permission) })).toEqual([]);
+    expect(filterDesktopCatalogEntries(entries, key, { ...reader, roleKey: 'employee_portal' })).toEqual([]);
+  });
+
+  it('keeps Settings and other specialist destinations in their own area', () => {
+    expect(isDesktopCatalogRouteAvailableInArea('/business/integrations', 'beratung')).toBe(false);
+    expect(isDesktopCatalogRouteAvailableInArea('/settings/profile', 'office')).toBe(false);
+    expect(isDesktopCatalogRouteAvailableInArea('/assist/calendar', 'beratung')).toBe(false);
+    expect(isDesktopCatalogRouteAvailableInArea('/akademie/kurse', 'assist')).toBe(false);
+    expect(isDesktopCatalogRouteAvailableInArea('/unknown', 'office')).toBe(false);
+  });
+
+  it('retains individual action permissions for shared Office workflows', () => {
+    const entries = [{ id: 'new-client', route: '/business/office/clients/new', permission: 'office.clients.create' as const }];
+    expect(filterDesktopCatalogEntries(entries, 'beratung', withPermissions('office.clients.view'))).toEqual([]);
+    expect(filterDesktopCatalogEntries(entries, 'beratung', withPermissions('office.clients.create'))).toEqual(entries);
   });
 
   it('keeps personal settings usable while enforcing individual company permissions', () => {
@@ -142,9 +174,14 @@ describe('Web apps and widgets catalog', () => {
     expect(canShowDesktopCatalogRoute('/akademie/pruefungen', reader)).toBe(false);
     expect(canShowDesktopCatalogRoute('/akademie/vorlagen', withPermissions('akademie.access', 'akademie.courses.view', 'akademie.courses.manage'))).toBe(true);
     expect(canShowDesktopCatalogRoute('/akademie/pruefungen', withPermissions('akademie.access', 'akademie.courses.view', 'akademie.enrollments.review'))).toBe(true);
-    expect(filterDesktopCatalogEntries(apps, 'akademie', { ...admin, hasModuleGate: module => module !== 'akademie' })).toEqual([]);
-    expect(filterDesktopCatalogEntries(apps, 'akademie', withPermissions('akademie.access'))).toEqual([]);
-    expect(filterDesktopCatalogEntries(apps, 'akademie', withPermissions('akademie.courses.view'))).toEqual([]);
+    for (const access of [
+      { ...admin, hasModuleGate: (module: string) => module !== 'akademie' },
+      withPermissions('akademie.access'), withPermissions('akademie.courses.view'),
+    ]) {
+      const visible = filterDesktopCatalogEntries(apps, 'akademie', access);
+      expect(visible.every(app => desktopCatalogAreaForRoute(app.route) === 'office')).toBe(true);
+      expect(visible.some(app => app.route === '/office/notizen')).toBe(true);
+    }
     expect(canShowDesktopCatalogRoute('/akademie/not-reviewed', admin)).toBe(false);
     for (const roleKey of ['employee_portal', 'client_portal', 'family_portal']) {
       expect(filterDesktopCatalogEntries(apps, 'akademie', { ...admin, roleKey })).toEqual([]);

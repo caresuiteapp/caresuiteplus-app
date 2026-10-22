@@ -116,9 +116,9 @@ export function DesktopAppsWidgetsCenter({
   const style = { '--cs-center-scale': Math.max(1, Number.isFinite(effectiveScale) ? effectiveScale : 1) } as CSSProperties;
   const pages = Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT);
   const descriptions: Record<DesktopCenterTab, string> = {
-    apps: `Öffnen Sie die Arbeitsbereiche für ${areaLabel}.`,
-    widgets: 'Wählen Sie Ihre Schnellzugriffe und Live-Widgets. Die Auswahl gilt für Ihren Desktop in diesem Bereich.',
-    workflows: `Häufige Abläufe für ${areaLabel}. Weitere Abläufe finden Sie auf den anderen Desktops.`,
+    apps: selectedArea === 'office' ? 'Öffnen Sie Ihre Office-Arbeitsbereiche.' : `Arbeitsbereiche für ${areaLabel} und gemeinsame Office-Apps.`,
+    widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Office-Widgets können Sie auf mehreren Desktops verwenden. Auswahl und Reihenfolge speichern Sie für jeden Desktop getrennt.`,
+    workflows: selectedArea === 'office' ? 'Häufige Abläufe für Office.' : `Häufige Abläufe für ${areaLabel} und gemeinsame Office-Abläufe.`,
     backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
   };
 
@@ -161,7 +161,7 @@ export function DesktopAppsWidgetsCenter({
         </div>
         {tab === 'widgets' ? <div className="cs-center-selected-filter" role="group" aria-label="Widget-Auswahl">
           <button type="button" aria-pressed={!selectedOnly} onClick={() => setSelectedOnly(false)}>Alle</button>
-          <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(true)}>Auf Desktop</button>
+          <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(true)}>Auf diesem Desktop</button>
         </div> : null}
       </div> : null}
 
@@ -171,7 +171,7 @@ export function DesktopAppsWidgetsCenter({
           <span className="cs-center-result-count" role="status" aria-live="polite">{resultCount} von {counts[tab]} {tabLabel}</span>
         </div>
 
-        {tab === 'widgets' ? <div className="cs-center-desktop-summary"><strong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf Ihrem Desktop</strong><span>{pages > 1 ? `Auf ${pages} Seiten verteilt.` : 'Neue Widgets werden am Ende ergänzt.'} Die Reihenfolge lässt sich unten ändern.</span></div> : null}
+        {tab === 'widgets' ? <div className="cs-center-desktop-summary"><strong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf „Mein Desktop · {areaLabel}“</strong><span>{pages > 1 ? `Auf ${pages} Seiten verteilt.` : 'Neue Widgets werden am Ende ergänzt.'} Die Reihenfolge lässt sich unten ändern.</span></div> : null}
         {tab === 'widgets' && recoverableCount > 0 ? <div className="cs-center-recovery"><p>{recoverableCount} weitere {recoverableCount === 1 ? 'Widget ist' : 'Widgets sind'} aus Ihrer früheren Auswahl verfügbar.</p><button type="button" className="cs-center-button" onClick={onRecover}>Gespeicherte Widgets wiederherstellen</button></div> : null}
 
         {resultCount === 0 ? <div className="cs-center-empty">
@@ -194,7 +194,7 @@ export function DesktopAppsWidgetsCenter({
             const position = desktopIds.indexOf(widget.id);
             const pinned = position >= 0;
             return <article key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
-              <div className="cs-center-card-heading cs-center-widget-heading"><div><h3>{widget.label}</h3><span className="cs-center-card-kind">{widget.category}</span></div><span className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf Ihrem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</span></div>
+              <div className="cs-center-card-heading cs-center-widget-heading"><div><h3>{widget.label}</h3><span className="cs-center-card-kind">{widget.category}</span></div><span className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</span></div>
               <div className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></div>
               <div className="cs-center-card-body cs-center-widget-body"><p className="cs-center-card-description">{widget.description}</p>
                 <div className="cs-center-widget-actions"><button type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`}

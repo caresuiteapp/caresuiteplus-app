@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '@/liquid-command/navigation/desktopAreas';
+import { desktopStorageKey } from '@/liquid-command/navigation/moduleDesktop.web';
 
 const memory = new Map<string, string>();
 const api = {
@@ -209,10 +210,10 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(tab('Workflows').getAttribute('aria-selected')).toBe('true');
     expect((label('Workflows durchsuchen') as HTMLInputElement).value).toBe('');
     expectSelectedDesktop('assist');
-    expect(dialog().textContent).toContain('2 von 2 Workflows');
+    expect(dialog().textContent).toContain('3 von 3 Workflows');
     expect(label('Einsatz planen: Ablauf öffnen')).toBeTruthy();
     expect(label('Nachweise prüfen: Ablauf öffnen')).toBeTruthy();
-    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeNull();
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
     expect(memory.get(selectionKey())).toBe('assist');
     expect(savedIds()).toEqual(['clients']); expect(savedIds('assist')).toEqual(['assignments']);
     await selectDesktop('office');
@@ -379,6 +380,121 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(memory.get(firstTenantKey)).toBe('["clients"]'); expect(memory.get(secondTenantKey)).toBe('["notes"]');
   });
 
+  it('pins the same Office app independently on Office, Beratung and Assist and restores each selection', async () => {
+    api.modules.add('beratung');
+    seed(['clients']); seed([], 'beratung'); seed(['assignments'], 'assist');
+    await render(); await open('Widgets');
+    await selectDesktop('beratung');
+    expect(label('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
+    await clickLabel('Klient:innen zum Desktop hinzufügen');
+    expect(savedIds('beratung')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+    await selectDesktop('assist');
+    await clickLabel('Klient:innen zum Desktop hinzufügen');
+    expect(savedIds('assist')).toEqual(['assignments', 'clients']);
+    await clickLabel('Klient:innen nach vorne verschieben');
+    expect(savedIds('assist')).toEqual(['clients', 'assignments']);
+    expect(savedIds('beratung')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+
+    await remount();
+    expect(tab('Assist', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    await clickLabel('Seite Klient:innen öffnen');
+    expect(api.push).toHaveBeenCalledWith('/business/office/clients');
+    expect(memory.get(selectionKey())).toBe('assist');
+    await open('Widgets');
+    await clickLabel('Klient:innen vom Desktop entfernen');
+    expect(savedIds('assist')).toEqual(['assignments']);
+    expect(savedIds()).toEqual(['clients']);
+    expect(savedIds('beratung')).toEqual(['clients']);
+
+    await selectDesktop('beratung');
+    await clickLabel('Center schließen');
+    await remount();
+    expect(tab('Beratung', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    expect(label('Seite Klient:innen öffnen')).toBeTruthy();
+    await clickLabel('Klient:innen öffnen');
+    expect(api.push).toHaveBeenLastCalledWith('/business/office/clients');
+    expect(savedIds('beratung')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+    expect(savedIds('assist')).toEqual(['assignments']);
+  });
+
+  it('offers shared Office widgets without automatically adding them to an unused Beratung desktop', async () => {
+    api.modules.add('beratung'); chooseArea('beratung');
+    await render();
+    expect(savedIds('beratung')).not.toContain('clients');
+    expect(savedIds('beratung')).not.toContain('notes');
+    expect(savedIds('beratung')).not.toContain('document-catalog');
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Seite Klient:innen öffnen')).toBeTruthy();
+    await open('Widgets');
+    expect(label('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
+    expect(label('Notizen zum Desktop hinzufügen')).toBeTruthy();
+    expect(label('Dokumentenkatalog zum Desktop hinzufügen')).toBeTruthy();
+    expect(memory.has(key('office'))).toBe(false);
+  });
+
+  it('keeps automatic legacy migration area-specific while allowing explicit recovery of shared Office widgets', async () => {
+    chooseArea('assist');
+    const previousKey = desktopStorageKey(api.tenant, api.user);
+    memory.set(previousKey, '["clients","assignments"]');
+    await render();
+    expect(savedIds('assist')).toEqual(['assignments']);
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    await open('Widgets');
+    await click(button('Gespeicherte Widgets wiederherstellen'));
+    expect(savedIds('assist')).toEqual(['assignments', 'clients']);
+    expect(memory.has(key('office'))).toBe(false);
+    expect(memory.get(previousKey)).toBe('["clients","assignments"]');
+    await remount();
+    expect(savedIds('assist')).toEqual(['assignments', 'clients']);
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    expect(label('Einsätze öffnen')).toBeTruthy();
+  });
+
+  it('retains a shared Office widget on its desktop while its permission is temporarily revoked', async () => {
+    api.modules.add('beratung'); chooseArea('beratung');
+    seed(['clients']); seed(['clients', 'notes'], 'beratung');
+    await render();
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    api.denied.add('office.clients.view'); await render();
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Seite Klient:innen öffnen')).toBeNull();
+    await open('Widgets');
+    expect(label('Klient:innen zum Desktop hinzufügen')).toBeNull();
+    await clickLabel('Notizen vom Desktop entfernen');
+    expect(savedIds('beratung')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+    api.denied.delete('office.clients.view'); await remount();
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    expect(label('Notizen öffnen')).toBeNull();
+    expect(savedIds('beratung')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+  });
+
+  it('checks the Office module grant even when an Office widget is placed on Assist', async () => {
+    seed(['clients']); seed(['assignments', 'clients'], 'assist'); chooseArea('assist');
+    api.modules.delete('office'); await render();
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    expect(label('Klient:innen öffnen')).toBeNull();
+    expect(label('Seite Klient:innen öffnen')).toBeNull();
+    await open();
+    expect(label('App Klient:innen öffnen')).toBeNull();
+    await click(tab('Widgets'));
+    expect(label('Klient:innen zum Desktop hinzufügen')).toBeNull();
+    await clickLabel('Einsätze vom Desktop entfernen');
+    expect(savedIds('assist')).toEqual(['clients']);
+    expect(savedIds()).toEqual(['clients']);
+    api.modules.add('office'); await remount();
+    expect(label('Klient:innen öffnen')).toBeTruthy();
+    expect(label('Einsätze öffnen')).toBeNull();
+    expect(savedIds('assist')).toEqual(['clients']);
+  });
+
   it('preserves an explicitly empty desktop and never overwrites a failed read', async () => {
     memory.set(key(), '[]'); await render();
     expect(savedIds()).toEqual([]); expect(label('Dokumentenkatalog öffnen')).toBeNull();
@@ -466,12 +582,16 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeNull();
   });
 
-  it('shows an empty workflow state in Settings and supports keyboard tab changes', async () => {
+  it('offers the permitted Office workflow in Settings and shows an empty state after creation permission is revoked', async () => {
     chooseArea('settings'); api.width = 390; api.scale = 1.5; await render(); await open();
     const apps = tab('Apps');
     await act(async () => { apps.focus(); apps.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
     expect(tab('Widgets').getAttribute('aria-selected')).toBe('true'); expect(document.activeElement).toBe(tab('Widgets'));
-    await click(tab('Workflows')); expect(dialog().textContent).toMatch(/keine.*(?:Workflows|Abläufe)/i);
+    await click(tab('Workflows'));
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeTruthy();
+    api.denied.add('office.clients.create'); await render();
+    expect(label('Klient:in aufnehmen: Ablauf öffnen')).toBeNull();
+    expect(dialog().textContent).toMatch(/keine.*(?:Workflows|Abläufe)/i);
     const workflows = tab('Workflows');
     await act(async () => { workflows.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })); });
     expect(tab('Hintergründe').getAttribute('aria-selected')).toBe('true');
