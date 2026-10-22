@@ -14,6 +14,7 @@ import { recordsToUiEvents } from '@/lib/calendar/calendarFilters';
 import { enrichCalendarEventWithAssignment } from '@/lib/calendar/calendarEventDisplay';
 import { mapCalendarEventRecordToUi } from '@/lib/calendar/calendarEventMapper';
 import { calendarEventRepository } from '@/lib/calendar/calendarEventRepository';
+import { calendarEventEmployeeIds } from './calendarParticipants';
 import {
   syncCalendarEventFromSource,
   syncLegacySourcesBatch,
@@ -202,8 +203,8 @@ async function enrichRelatedEmployeeNames(
 ): Promise<CalendarEvent[]> {
   const employeeIds = Array.from(new Set(
     events
-      .filter((event) => !event.employeeName?.trim())
-      .map((event) => event.record?.relatedEmployeeId)
+      .filter((event) => !event.employeeName?.trim() || calendarEventEmployeeIds(event).length > 1)
+      .flatMap(calendarEventEmployeeIds)
       .filter((id): id is string => Boolean(id)),
   ));
   if (employeeIds.length === 0) return events;
@@ -212,9 +213,9 @@ async function enrichRelatedEmployeeNames(
   if (employeeNames.size === 0) return events;
 
   return events.map((event) => {
-    const employeeId = event.record?.relatedEmployeeId;
-    if (event.employeeName?.trim() || !employeeId) return event;
-    const employeeName = employeeNames.get(employeeId);
+    const ids = calendarEventEmployeeIds(event);
+    if ((event.employeeName?.trim() && ids.length < 2) || !ids.length) return event;
+    const employeeName = ids.map(id => employeeNames.get(id)).filter(Boolean).join(', ');
     return employeeName ? { ...event, employeeName } : event;
   });
 }

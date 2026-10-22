@@ -10,6 +10,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { isUuid } from '@/lib/validation/uuid';
+import { calendarEmployeeIds } from './calendarParticipants';
 import type {
   CalendarEventFormInput,
   CalendarEventSaveResult,
@@ -34,6 +35,28 @@ async function appointmentPersonName(tenantId: string, table: 'clients' | 'emplo
   if (!data) return { ok: false, error: 'Die ausgewählte Person ist in diesem Mandanten nicht verfügbar.' };
   const row = data as { first_name?: string; last_name?: string };
   return { ok: true, data: [row.first_name, row.last_name].filter(Boolean).join(' ') };
+}
+
+async function selectedEmployeeNames(tenantId: string, ids: string[]): Promise<ServiceResult<string[]>> {
+  if (ids.some(id => !isUuid(id))) return { ok: false, error: 'Bitte vorhandene Mitarbeitende aus der Auswahl wählen.' };
+  if (ids.length <= 1) {
+    const person = await appointmentPersonName(tenantId, 'employees', ids[0]);
+    return person.ok ? { ok: true, data: person.data ? [person.data] : [] } : person;
+  }
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Datenverbindung nicht verfügbar.' };
+  // Keep whole-team selections below URL and row limits without one request per person.
+  const names = new Map<string, string>();
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const { data, error } = await fromUnknownTable(client, 'employees').select('id,first_name,last_name')
+      .eq('tenant_id', tenantId).in('id', ids.slice(offset, offset + 100));
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    for (const row of (data ?? []) as { id: string; first_name?: string; last_name?: string }[]) {
+      names.set(row.id, [row.first_name, row.last_name].filter(Boolean).join(' '));
+    }
+  }
+  if (ids.some(id => !names.has(id))) return { ok: false, error: 'Mindestens eine ausgewählte Person ist in diesem Mandanten nicht verfügbar.' };
+  return { ok: true, data: ids.map(id => names.get(id)!) };
 }
 
 function partialAppointment(id: string, cause: unknown): CalendarFormSaveReceipt {
@@ -89,19 +112,27 @@ export async function createCalendarEventFromForm(
   }
   let sourcePersisted = false;
   let calendarStatus: import('@/types').WorkflowStatus = 'aktiv';
+  const participantEmployeeIds = calendarEmployeeIds(input);
+  const relatedEmployeeId = participantEmployeeIds[0] ?? null;
+  if (input.isEmployeePortalVisible && !participantEmployeeIds.length) {
+    return { ok: false, error: 'Für die Portal-Freigabe bitte zuerst Mitarbeitende auswählen.' };
+  }
+  // Validate every selected employee in the current tenant before either source is written.
+  const employeeNames: string[] = [];
+  if (getServiceMode() === 'supabase') {
+    const people = await selectedEmployeeNames(input.tenantId, participantEmployeeIds);
+    if (!people.ok) return people;
+    employeeNames.push(...people.data);
+  }
 
   if (isOfficeAppointment) {
     if (getServiceMode() === 'supabase') {
-      const [client, employee] = await Promise.all([
-        appointmentPersonName(input.tenantId, 'clients', input.relatedClientId),
-        appointmentPersonName(input.tenantId, 'employees', input.relatedEmployeeId),
-      ]);
+      const client = await appointmentPersonName(input.tenantId, 'clients', input.relatedClientId);
       if (!client.ok) return client;
-      if (!employee.ok) return employee;
       const appointmentInput = {
         title: input.title,
         clientName: client.data,
-        employeeName: employee.data,
+        employeeName: employeeNames.join(', ') || null,
         startsAt: input.startAt,
         endsAt: input.endAt,
         location: input.locationName?.trim() || undefined,
@@ -143,7 +174,8 @@ export async function createCalendarEventFromForm(
       room: input.room?.trim() || null,
       address: input.address?.trim() || null,
       relatedClientId: input.relatedClientId?.trim() || null,
-      relatedEmployeeId: input.relatedEmployeeId?.trim() || null,
+      relatedEmployeeId,
+      ...(input.participantEmployeeIds !== undefined ? { participantEmployeeIds } : {}),
       relatedWardId: input.relatedWardId?.trim() || null,
       relatedCaseId: input.relatedCaseId?.trim() || null,
       isOfficeVisible: input.isOfficeVisible ?? (moduleKey === 'office' || input.moduleKey === 'all'),

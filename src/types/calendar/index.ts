@@ -116,6 +116,8 @@ export type CalendarEventRecord = {
   phoneNumber: string | null;
   relatedClientId: string | null;
   relatedEmployeeId: string | null;
+  /** All selected employees. The singular relation remains for existing sources. */
+  participantEmployeeIds?: string[];
   relatedTeamId: string | null;
   relatedWardId: string | null;
   relatedCaseId: string | null;

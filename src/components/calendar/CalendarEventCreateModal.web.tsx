@@ -27,6 +27,7 @@ import {
   resolveCalendarFormWritePermission,
 } from '@/lib/calendar/calendarEventSaveService';
 import { CalendarEventForm } from './CalendarEventForm.web';
+import { calendarEmployeeIds } from '@/lib/calendar/calendarParticipants';
 
 export type CalendarEventCreateModalProps = {
   visible: boolean;
@@ -63,6 +64,7 @@ function eventToForm(event: CalendarEvent): ReturnType<typeof createDefaultFormS
     address: record?.address ?? '',
     relatedClientId: record?.relatedClientId ?? '',
     relatedEmployeeId: record?.relatedEmployeeId ?? '',
+    participantEmployeeIds: calendarEmployeeIds(record ?? { relatedEmployeeId: event.employeeId }),
     relatedWardId: record?.relatedWardId ?? '',
     relatedCaseId: record?.relatedCaseId ?? '',
     isOfficeVisible: record?.isOfficeVisible ?? true,
@@ -213,7 +215,7 @@ export function CalendarEventCreateModal({
     if (step === 'datetime' && (!Number.isFinite(Date.parse(form.startAt)) || !Number.isFinite(Date.parse(form.endAt)) || Date.parse(form.endAt) <= Date.parse(form.startAt))) {
       setError('Bitte einen gültigen Beginn und ein späteres Ende angeben.'); return;
     }
-    if (step === 'visibility' && ((form.isClientPortalVisible && !form.relatedClientId) || (form.isEmployeePortalVisible && !form.relatedEmployeeId))) {
+    if (step === 'visibility' && ((form.isClientPortalVisible && !form.relatedClientId) || (form.isEmployeePortalVisible && !calendarEmployeeIds(form).length))) {
       setError('Für die Portal-Freigabe bitte zuerst die passende Person zuordnen.'); return;
     }
     setError(null);
@@ -241,7 +243,7 @@ export function CalendarEventCreateModal({
       setError('Bitte Titel ausfüllen.');
       return;
     }
-    if ((form.relatedClientId && !clients.some(person => person.value === form.relatedClientId)) || (form.relatedEmployeeId && !employees.some(person => person.value === form.relatedEmployeeId))) {
+    if ((form.relatedClientId && !clients.some(person => person.value === form.relatedClientId)) || calendarEmployeeIds(form).some(id => !employees.some(person => person.value === id))) {
       setError('Bitte eine verfügbare Person aus der aktuellen Auswahl wählen.'); return;
     }
     const submittedScope = scope; const request = ++saveRequest.current;
@@ -269,6 +271,7 @@ export function CalendarEventCreateModal({
       address: form.address || null,
       relatedClientId: form.relatedClientId || null,
       relatedEmployeeId: form.relatedEmployeeId || null,
+      participantEmployeeIds: calendarEmployeeIds(form),
       relatedWardId: form.relatedWardId || null,
       relatedCaseId: form.relatedCaseId || null,
       isOfficeVisible: form.isOfficeVisible,

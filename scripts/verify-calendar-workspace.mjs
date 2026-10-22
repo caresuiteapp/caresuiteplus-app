@@ -41,6 +41,7 @@ const groups = {
   ],
   'Calendar writes, source receipts and form recovery': [
     'calendar/calendarWebDialogs.test.tsx',
+    'calendar/calendarMeetingParticipants.test.ts',
     'calendar/calendarPlanningTemplatesWeb.test.ts',
     'calendar/calendarTemplatePickerWeb.test.tsx',
     'calendar/officeCalendarMutationTruth.test.ts',
@@ -71,4 +72,11 @@ if (result.error || result.status !== 0) {
   console.error(`[calendar-release] Functional checks failed${result.error ? `: ${result.error.message}` : result.signal ? ` (${result.signal})` : ''}`);
   process.exit(result.status && result.status > 0 ? result.status : 1);
 }
-console.log('\n[calendar-release] Functional checks passed. No remote data was changed. Browser layout and authenticated live workflows require separate verification.');
+const databaseResult = spawnSync(process.execPath, ['--test', 'supabase/tests/calendar_meeting_participants.test.mjs'], {
+  cwd: root, stdio: 'inherit',
+});
+if (databaseResult.error || databaseResult.status !== 0) {
+  console.error('[calendar-release] Meeting participant database checks failed.');
+  process.exit(databaseResult.status && databaseResult.status > 0 ? databaseResult.status : 1);
+}
+console.log('\n[calendar-release] Functional and isolated database checks passed. No remote data was changed. Browser layout and authenticated live workflows require separate verification.');

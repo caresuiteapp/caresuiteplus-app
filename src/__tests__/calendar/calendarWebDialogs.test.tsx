@@ -15,12 +15,13 @@ vi.mock('@/lib/calendar/calendarEventSaveService', () => ({ createCalendarEventF
 vi.mock('@/lib/calendar/calendarWorkspaceRefresh.web', () => ({ notifyCalendarWorkspaceChanged:f.notify }));
 vi.mock('@/lib/calendar/calendarWorkspaceMutations', () => ({ archiveCustomCalendarEvent:f.archive }));
 vi.mock('@/lib/office/clientListService', () => ({ fetchClientList:async () => ({ ok:true, data:[{ id:'client-1', firstName:'Anna', lastName:'Meyer' }] }) }));
-vi.mock('@/lib/assist/assignmentEmployeeListService', () => ({ fetchAssignmentEmployeeList:async () => ({ ok:true, data:[{ id:'employee-1', firstName:'Tom', lastName:'Neumann' }] }) }));
+vi.mock('@/lib/assist/assignmentEmployeeListService', () => ({ fetchAssignmentEmployeeList:async () => ({ ok:true, data:[{ id:'employee-1', firstName:'Tom', lastName:'Neumann' },{ id:'employee-2', firstName:'Mara', lastName:'Becker' },{ id:'employee-3', firstName:'Lea', lastName:'Hoffmann' }] }) }));
 vi.mock('@/components/ui/PremiumButton', () => ({ PremiumButton:({title,onPress,disabled}:any) => <button disabled={disabled} onClick={onPress}>{title}</button> }));
 vi.mock('@/lib/calendar/employeePlanImport', () => ({ importEmployeePlan:vi.fn() }));
 vi.mock('@/lib/calendar/employeeMonthPlanningService', () => ({ saveEmployeeMonth:f.savePlan }));
 vi.mock('@/lib/calendar/calendarPlanningTemplates.web', () => ({ listCalendarPlanningTemplates:f.templates }));
 import { CalendarEventCreateModal } from '@/components/calendar/CalendarEventCreateModal.web';
+import { CalendarEventLabel, calendarEventAccessibleLabel } from '@/components/calendar/CalendarEventLabel.web';
 import { CalendarEventDrawer, formatCalendarEventPeriod } from '@/components/calendar/CalendarEventDrawer.web';
 import { EmployeeMonthPlanningModal } from '@/components/calendar/EmployeeMonthPlanningModal.web';
 import { OfficeCalendarSettingsModal } from '@/components/office/calendar/OfficeCalendarSettingsModal.web';
@@ -39,8 +40,18 @@ const deferred = () => { let resolve!:(value:any)=>void; const promise=new Promi
 const event = (sourceType='custom_event'):CalendarEvent => ({ id:'event-1',title:'Teamgespräch',start:'2026-10-17T08:00:00Z',end:'2026-10-17T09:00:00Z',type:'termin',color:'#0878F9',sourceType,moduleKey:'office',clientName:'Anna Meyer',employeeName:'Tom Neumann', record:{ id:'record-1',tenantId:'tenant-a',sourceId:'source-1',sourceType,moduleKey:'office',internalNote:'Nur intern',address:'Musterstraße 1',isOfficeVisible:true,isModuleVisible:true } as any });
 const meetingTemplate:CalendarEventTemplate = { id:'template-meeting',tenantId:null,moduleKey:'assist',templateKey:'assist_team_meeting',label:'Teamabstimmung',description:'Gemeinsame Planung',sourceType:'custom_event',eventType:'besprechung',defaultDurationMinutes:45,allDay:false,isSystem:true,isActive:true,roleKeys:[],fieldSchema:[],createdAt:'2026-01-01T00:00:00Z',updatedAt:'2026-01-01T00:00:00Z' };
 const chooseCard = async (text:string) => { const card=[...host.querySelectorAll('button')].find(node => node.querySelector('strong')?.textContent===text)!; expect(card, text).toBeTruthy(); await act(async () => card.click()); };
+const employeeCheckbox = (name:string) => [...host.querySelectorAll('.cd-person-option')].find(node => node.textContent===name)?.querySelector('input') as HTMLInputElement;
+const chooseEmployee = async (name:string) => { expect(employeeCheckbox(name),name).toBeTruthy(); await act(async () => employeeCheckbox(name).click()); };
 const templateClock = () => { vi.useFakeTimers({toFake:['Date']}); vi.setSystemTime(new Date('2026-10-17T08:00:00Z')); };
 describe('active web calendar dialogs', () => {
+  it('shows participant counts on meeting cards and all readable names in event details', async () => {
+    const meeting=event(); meeting.type='team_meeting'; meeting.employeeName='Tom Neumann, Mara Becker';
+    meeting.record={...meeting.record!,relatedEmployeeId:'employee-1',participantEmployeeIds:['employee-1','employee-2']};
+    await mount(<CalendarEventLabel event={meeting}/>); expect(host.textContent).toContain('2 Mitarbeitende');
+    expect(calendarEventAccessibleLabel(meeting)).toContain('Tom Neumann, Mara Becker');
+    await mount(<CalendarEventDrawer visible event={meeting} onClose={f.close}/>);
+    expect(host.textContent).toContain('Tom Neumann, Mara Becker');
+  });
   it('applies an Assist calendar template and saves its type and duration as a calendar event', async () => {
     templateClock(); f.templates.mockResolvedValue({ok:true,data:[meetingTemplate]});
     await mount(<CalendarEventCreateModal visible sourceContext="calendar" calendarScope="module" moduleKey="assist" onClose={f.close}/>);
@@ -86,8 +97,43 @@ describe('active web calendar dialogs', () => {
   });
   it('retains focus and typed title while editing, saves stable person IDs and keeps rejected save open', async () => {
     await basics(); title().focus(); await change('#test-title','Teamgespräch morgen'); expect(document.activeElement).toBe(title());
-    const selects=[...host.querySelectorAll('select')]; selects[0].id='client'; selects[1].id='employee'; await change('#client','client-1'); await change('#employee','employee-1'); await preview();
+    host.querySelector('select')!.id='client'; await change('#client','client-1'); await chooseEmployee('Tom Neumann'); await preview();
     expect(host.textContent).toContain('Anna Meyer'); expect(host.textContent).toContain('Tom Neumann'); await click('Termin speichern'); expect(f.create).toHaveBeenCalledWith(expect.objectContaining({ title:'Teamgespräch morgen',relatedClientId:'client-1',relatedEmployeeId:'employee-1',sourceType:'custom_event' }),'business_admin'); expect(host.textContent).toContain('Speichern fehlgeschlagen'); expect(f.close).not.toHaveBeenCalled(); expect(f.notify).not.toHaveBeenCalled();
+  });
+  it('keeps selected employees across search and saves every participant in the preview', async () => {
+    await basics(); await chooseEmployee('Tom Neumann');
+    await change('input[type="search"]','mara'); expect(employeeCheckbox('Tom Neumann')).toBeUndefined();
+    expect(host.querySelector('[aria-label="Ausgewählte Mitarbeitende"]')?.textContent).toContain('Tom Neumann');
+    await chooseEmployee('Mara Becker'); await change('input[type="search"]','');
+    expect(employeeCheckbox('Tom Neumann').checked).toBe(true); expect(employeeCheckbox('Mara Becker').checked).toBe(true);
+    expect(host.textContent).toContain('2 Personen ausgewählt'); await preview();
+    expect(host.textContent).toContain('Tom Neumann'); expect(host.textContent).toContain('Mara Becker');
+    await click('Termin speichern'); expect(f.create).toHaveBeenCalledWith(expect.objectContaining({relatedEmployeeId:'employee-1',participantEmployeeIds:['employee-1','employee-2']}),'business_admin');
+  });
+  it('selects the whole team even during a search and removes an individual participant', async () => {
+    await basics(); await change('input[type="search"]','mara'); await click('Alle auswählen');
+    expect(host.textContent).toContain('3 Personen ausgewählt'); expect(button('Alle auswählen').disabled).toBe(true);
+    await act(async () => (host.querySelector('[aria-label="Tom Neumann aus Auswahl entfernen"]') as HTMLButtonElement).click());
+    await preview(); await click('Termin speichern');
+    expect(f.create).toHaveBeenCalledWith(expect.objectContaining({relatedEmployeeId:'employee-2',participantEmployeeIds:['employee-2','employee-3']}),'business_admin');
+  });
+  it('restores multiple employees while editing and supports clearing the portal release with the selection', async () => {
+    const saved=event(); saved.record={...saved.record!,relatedEmployeeId:'employee-1',participantEmployeeIds:['employee-1','employee-2'],isEmployeePortalVisible:true};
+    await mount(<CalendarEventCreateModal visible sourceContext="calendar" calendarScope="office" moduleKey="office" editEvent={saved} onClose={f.close}/>);
+    expect(employeeCheckbox('Tom Neumann').checked).toBe(true); expect(employeeCheckbox('Mara Becker').checked).toBe(true);
+    await preview(); await click('Änderungen speichern');
+    expect(f.update).toHaveBeenCalledWith(expect.objectContaining({participantEmployeeIds:['employee-1','employee-2'],isEmployeePortalVisible:true}),'business_admin');
+    await click('Zurück'); await click('Zurück'); await click('Zurück'); await click('Auswahl aufheben');
+    expect(host.textContent).toContain('0 Personen ausgewählt'); await preview(); await click('Änderungen speichern');
+    expect(f.update).toHaveBeenLastCalledWith(expect.objectContaining({relatedEmployeeId:null,participantEmployeeIds:[],isEmployeePortalVisible:false}),'business_admin');
+  });
+  it('preserves a legacy single employee and clears the selection when another tenant opens the dialog', async () => {
+    const saved=event(); saved.record={...saved.record!,relatedEmployeeId:'employee-2'};
+    await mount(<CalendarEventCreateModal visible sourceContext="calendar" calendarScope="office" moduleKey="office" editEvent={saved} onClose={f.close}/>);
+    expect(employeeCheckbox('Mara Becker').checked).toBe(true); await preview(); await click('Änderungen speichern');
+    expect(f.update).toHaveBeenCalledWith(expect.objectContaining({participantEmployeeIds:['employee-2']}),'business_admin');
+    f.tenant='tenant-b'; await mount(form()); await chooseCard('Ohne Vorlage fortfahren');
+    expect(host.textContent).toContain('0 Personen ausgewählt'); expect(employeeCheckbox('Mara Becker').checked).toBe(false);
   });
   it('blocks continuation for inverted times before preview', async () => {
     await basics(); await click('Weiter'); await change('[aria-label="Beginn: Datum"]','2026-10-19'); await change('[aria-label="Ende: Datum"]','2026-10-18'); await click('Weiter'); expect(host.textContent).toContain('späteres Ende'); expect(host.querySelector('[aria-label="Beginn: Datum"]')).not.toBeNull(); expect(f.create).not.toHaveBeenCalled();
