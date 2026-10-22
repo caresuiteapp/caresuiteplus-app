@@ -6,6 +6,7 @@
   "changes": "Line endings normalized to LF; final LF retained. Schemas otherwise unchanged.",
   "files": {
     "LICENSE-gematik.txt": "4d10fe5f3aa176b05b229a248866bad70b834c173f1252a814ff4748d8a13837",
+    "conn/CardService.wsdl": "3dd9a918ac6aeaa1d18b23ef7e2b66548e5452e99f5411fb4d3ee920073e98e1",
     "conn/CardService.xsd": "a15f71c4a6efb74e6b3ec35014202ddb1585f27ba446a2aa7fa19246425f240b",
     "conn/CardServiceCommon.xsd": "4b555b5c628f901e39945af1c1e19deed648edea3d1fff6ee9656fb12d934015",
     "conn/CardTerminalInfo.xsd": "a07305bd47ab13edec9f7c477e880a810c911baf76c13f33ae32f5116b0fc135",
@@ -24,5 +25,7 @@
     "tel/version/ProductInformation.xsd": "8f8532b85fe6dd70a9434a678b4ca1447a5254299cbda1d0032b782c6dd723b4"
   },
   "eventWsdlVersion": "7.2.0",
-  "eventXsdVersion": "7.2.1"
+  "eventXsdVersion": "7.2.1",
+  "cardWsdlVersion": "8.1.0",
+  "cardXsdVersion": "8.1.0"
 }

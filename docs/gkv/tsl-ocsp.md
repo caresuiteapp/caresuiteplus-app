@@ -20,6 +20,9 @@ und OSIG-Zertifikate. Neben dem positiven Status sind die jeweiligen
 Institutionszertifikatstypen, die erwartete Telematik-ID und die geforderten
 Rollen verpflichtend. Auch nach der abschließenden Kartenabfrage werden die
 rohen Belege erneut gegen den aktuellen TSL-Stand geprüft.
+Die [PIN-Vorbereitung](konnektor-pin.md) wiederholt diesen Ablauf nach einem
+erfolgreichen Terminalversuch und prüft die neuen Belege auch nach der letzten
+PIN-Statusantwort. Die längere Eingabezeit verlängert keinen alten Prüfbeleg.
 
 ## Vertrauens- und Routenauswahl
 

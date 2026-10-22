@@ -63,6 +63,11 @@ frische eindeutige Auswahl. Alle drei Institutionszertifikate müssen zur
 vorgegebenen Telematik-ID und Rolle passen. Eine erneute Kartenabfrage und
 Statusprüfung sichern die abschließende Ausgabe; die Karten-Schlüsseloperationen
 und eine Bedienoberfläche dafür sind noch nicht implementiert.
+Die [PIN-Vorbereitung](konnektor-pin.md) ergänzt GetPinStatus und einen ausdrücklich
+ausgelösten VerifyPin-Versuch am Terminal. Nach erfolgreicher Eingabe werden
+Karte, alle drei Zertifikate und PIN-Status erneut geprüft. Fehlversuche und
+unklare Unterbrechungen werden nicht automatisch wiederholt. Lokale Nachweise
+ersetzen noch keinen echten Hardwarebetrieb; die produktiven Sperren bleiben bestehen.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

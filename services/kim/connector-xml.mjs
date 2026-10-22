@@ -4,8 +4,10 @@ import { KonnektorError, connectorFail, connectorSignal } from './connector-erro
 
 export const CERTIFICATE_SERVICE = 'http://ws.gematik.de/conn/CertificateService/v6.0';
 export const EVENT_SERVICE = 'http://ws.gematik.de/conn/EventService/v7.2';
+export const CARD_SERVICE = 'http://ws.gematik.de/conn/CardService/v8.1';
 export const CARD_COMMON = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0';
 export const connectorService = operation => operation === 'GetCards' ? EVENT_SERVICE
+  : ['GetPinStatus', 'VerifyPin'].includes(operation) ? CARD_SERVICE
   : ['ReadCardCertificate', 'VerifyCertificate'].includes(operation) ? CERTIFICATE_SERVICE : undefined;
 export const CERTIFICATE_COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0';
 export const CONNECTOR_COMMON = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0';
@@ -26,6 +28,7 @@ export function certificateRequest(operation, context, input) {
   const body = operation === 'GetCards' ? `${ctx}${[['ctId', 'CtId'], ['slotId', 'SlotId'], ['cardType', 'CardType']]
     .filter(([key]) => input[key] !== undefined).map(([key, name]) => `<card:${name}>${escape(String(input[key]))}</card:${name}>`).join('')}`
     : operation === 'VerifyCertificate' ? `${ctx}<cc:X509Certificate>${input.certificate.toString('base64')}</cc:X509Certificate>`
+    : namespace === CARD_SERVICE ? `${ctx}<n:CardHandle>${escape(connectorText(input.cardHandle, 128))}</n:CardHandle><card:PinTyp>PIN.SMC</card:PinTyp>`
     : `<n:CardHandle>${escape(connectorText(input.cardHandle, 128))}</n:CardHandle>${ctx}<c:CertRefList>${input.certRefs.map(ref => `<c:CertRef>${ref}</c:CertRef>`).join('')}</c:CertRefList><c:Crypt>${input.crypt}</c:Crypt>`;
   const attribute = operation === 'GetCards' ? ` mandant-wide="${input.mandantWide}"` : '';
   return Buffer.from(`<?xml version="1.0" encoding="UTF-8"?><s:Envelope xmlns:s="${SOAP}" xmlns:c="${namespace}" xmlns:cc="${CERTIFICATE_COMMON}" xmlns:n="${CONNECTOR_COMMON}" xmlns:ctx="${CONNECTOR_CONTEXT}" xmlns:card="${CARD_COMMON}"><s:Body><c:${operation}${attribute}>${body}</c:${operation}></s:Body></s:Envelope>`);

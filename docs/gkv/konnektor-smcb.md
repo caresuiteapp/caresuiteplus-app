@@ -5,6 +5,9 @@ im eigenen Dienstkern ausführbar. Die Nachweise verwenden lokale mTLS-
 Gegenstellen sowie echte signierte TSL-/OCSP-Belege. Physische Karten,
 Konnektoren und TI-Dienste wurden noch nicht angebunden. Der Ablauf führt keine
 PIN- oder Karten-Schlüsseloperation aus und gibt keinen Echtversand frei.
+Der aufbauende [PIN-Ablauf](konnektor-pin.md) ergänzt Statusprüfung und einen
+ausdrücklich ausgelösten Terminalversuch mit anschließender erneuter
+Karten-/Zertifikatsprüfung.
 
 ## Vertrag und Endpunkte
 

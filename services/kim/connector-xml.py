@@ -18,7 +18,7 @@ CARDCMN = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0'
 COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0'
 CONN = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0'
 ERROR = 'http://ws.gematik.de/tel/error/v2.0'
-MANIFEST = 'ebf459428440da87c7c3282afeba6a077cbe98e055190948068a45b158265e97'
+MANIFEST = '46090117505dbd6eefe2830c0488152e510ca2a0980ad1c79aabc435668c77e5'
 NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR, 'event': EVENT, 'card': CARD, 'cm': CARDCMN}
 
 
@@ -81,10 +81,11 @@ def run(etree):
     raw_input = sys.stdin.buffer.read(600001)
     require(0 < len(raw_input) <= 600000, 'XML_LIMIT')
     args = json.loads(raw_input)
-    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards'))
+    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin'))
     require(args.get('mode') in ('request', 'response'))
     is_cards = args['operation'] == 'GetCards'
-    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CertificateService_v6_0_2.xsd')
+    is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin')
+    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'CertificateService_v6_0_2.xsd')
     schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
     raw = binary(args['xml'], 262144)
     decoded = raw.decode('utf-8-sig', errors='strict')
@@ -130,13 +131,36 @@ def run(etree):
             require(schema.validate(detail[0]), 'XML_SCHEMA')
         return {'kind': 'fault', 'fault': value[1], 'remoteCodes': remote_errors(payload)}
     name = args['operation'] + ('' if args['mode'] == 'request' else 'Response')
-    require(payload.tag == '{' + (EVENT if is_cards else CERT) + '}' + name)
+    require(payload.tag == '{' + (EVENT if is_cards else CARD if is_pin else CERT) + '}' + name)
     require(not payload.attrib or (is_cards and args['mode'] == 'request' and set(payload.attrib) == {'mandant-wide'}))
     require(schema.validate(payload), 'XML_SCHEMA')
     if args['mode'] == 'request':
+        if is_pin:
+            require(text(payload, 'cm:PinTyp') == 'PIN.SMC', 'PIN_PROFILE')
         return {'kind': 'request', 'operation': args['operation']}
     execution = text(payload, 'n:Status/n:Result').strip()
     errors = remote_errors(payload)
+    if is_pin:
+        status = args['operation'] == 'GetPinStatus'
+        prefix = 'card:' if status else 'cm:'
+        result = text(payload, prefix + ('PinStatus' if status else 'PinResult'))
+        tries = payload.find(prefix + 'LeftTries', NS)
+        left = None if tries is None else int(text(payload, prefix + 'LeftTries'))
+        require(left is None or 0 <= left <= 3, 'PIN_RESULT')
+        if not status and result == 'ERROR':
+            require(len(errors) > 0, 'PIN_RESULT')
+        else:
+            require(execution == 'OK' and not errors, 'PIN_RESULT')
+        if result in ('VERIFIABLE', 'REJECTED'):
+            require(left is not None and 1 <= left <= 3, 'PIN_RESULT')
+        elif result == 'BLOCKED':
+            require(left == 0, 'PIN_RESULT')
+        elif result in ('WASBLOCKED', 'NOWBLOCKED'):
+            require(left is None or left == 0, 'PIN_RESULT')
+        elif result in ('VERIFIED', 'OK'):
+            require(left is None, 'PIN_RESULT')
+        return {'kind': 'pin-status' if status else 'pin-result', 'execution': execution,
+                'pinStatus' if status else 'pinResult': result, 'leftTries': left, 'remoteCodes': errors}
     if is_cards:
         require(execution == 'OK' and not errors, 'RESULT')
         entries = list(one(payload, 'card:Cards'))

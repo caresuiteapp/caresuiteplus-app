@@ -42,6 +42,7 @@ import { receiveEccKimMessageWithTsl } from '../../services/kim/receive-tsl.mjs'
 const connector = new KonnektorCertificateClient({
   url: configuration.certificateServiceHttpsUrl,
   eventServiceUrl: configuration.eventServiceHttpsUrl, // optional für GetCards
+  cardServiceUrl: configuration.cardServiceHttpsUrl, // optional für SMC-B-PIN
   ca: configuration.connectorCaPem,
   serverSha256: configuration.connectorServerLeafSha256,
   clientCertificate: credentials.clientCertificatePem,
@@ -164,9 +165,11 @@ Abbruch und `close()` beenden laufende Arbeit; spätere Antworten erzeugen keine
 verwendbaren Beleg. SOAP-Nachrichten werden nicht wiederholt.
 
 GetCards und eindeutige SMC-B-Auswahl sind als Dienstschnittstelle ergänzt.
+Der [PIN-Ablauf](konnektor-pin.md) ergänzt GetPinStatus und VerifyPin mit
+separater begrenzter Wartezeit für die Terminaleingabe.
 Noch offen sind DVD/ServiceDiscovery, Terminalinventar und Auswahloberfläche, provisionierte
 Konnektor- und Mandantenkontexte, reale mTLS-Interoperabilität, SMC-B-/HBA-
-Schlüsseloperationen, PIN-Verwaltung, historische Prüfungen, QES-Sonderprofile,
+Schlüsseloperationen, reale PIN-Bedienung und PIN-Änderung/Entsperrung, historische Prüfungen, QES-Sonderprofile,
 weitere Transport-/SOAP-Profile, vollständige Kryptografie-/Fehlervorgaben und
 unabhängige Abnahme. Das explizite Lesen von RSA oder C.QES ist keine Freigabe
 dieser KIM-Nachrichtenprofile. Der VZD-Server wird weiterhin mit dem vorhandenen

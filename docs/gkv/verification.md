@@ -8,17 +8,72 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**745/745 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+**813/813 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
 mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 63,1 Sekunden.
+rund 109,1 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
+
+## SMC-B-PIN-Status und Terminalversuch am 22.10.2026
+
+**68 neue Fälle** ergänzen die bisherigen 745 Prüfungen: 45 CardService-/PIN-/
+XML-Fälle und 23 Integrationen mit dem bestehenden SMC-B-/TSL-/OCSP-Testverbund.
+Der gezielte Integrationslauf bestand mit 23 Fällen in rund 43,6 Sekunden.
+Der abschließende Gesamtlauf prüft alle 813 Fälle gemeinsam: 0 Fehler,
+0 übersprungene oder abgebrochene Fälle, rund 109,1 Sekunden.
+Die offizielle CardService-WSDL 8.1.0 wurde nach LF-Normalisierung bytegenau
+mit dem abgerufenen Original verglichen; alle 18 Manifestdateien haben passende
+SHA-256-Werte. Die vorhandene Infrastruktur wurde weiterverwendet.
+
+Echte lokale mTLS-Anfragen prüfen Endpunkt, SOAPAction, Kontext, Kartenbezug
+und das feste PIN.SMC-Profil. Die API nimmt keine PIN, PUK oder frei gewählte
+PIN-Referenz an. VERIFIED, gesperrte und noch nicht initialisierte PIN-Objekte
+lösen keine Terminalaktion aus. REJECTED mit einem oder zwei verbleibenden
+Versuchen, WASBLOCKED, NOWBLOCKED und TRANSPORT_PIN werden als getrennte
+Ergebnisse ohne Wiederholung behandelt. Widersprüchliche oder fehlende
+Restzähler, Warn-Erfolge, falsche Namespaces, fehlende/doppelte Zustände und
+fremde Operationen scheitern vor einer positiven Ausgabe.
+
+Kopierte Belege und fremde Clients können keinen Versuch starten. Ablauf,
+Uhr-Rücksprung, Kartenaktualisierung, fehlgeschlagene Statusaktualisierung,
+Abbruch und Schließen entwerten ältere Ergebnisse. Verspätete alte Antworten
+ersetzen keinen neueren Status. Gleichzeitige Eingabeversuche/Statusabfragen
+während VerifyPin sowie parallele Vorbereitungen werden abgewiesen. Eine
+Kartenaktualisierung während der Eingabe macht den alten Kartenbezug ungültig.
+Zeitüberschreitung, Abbruch, SOAP-/XML-Fehler und PinResult ERROR liefern kein
+Ergebnis; weitere Versuche derselben Clientinstanz bleiben gesperrt.
+
+Die integrierte Vorbereitung führt bei bereits VERIFIED sieben SOAP-Aufrufe
+aus. Mit ausdrücklich angeforderter Eingabe sind es 15: vorangehende Karten-/
+Zertifikatsprüfung, PIN-Status, ein VerifyPin, eine vollständige erneute
+Karten-/Zertifikatsprüfung und abschließender PIN-Status. Eine kontrollierte
+Uhrverschiebung um 45 Sekunden während der Terminalantwort belegt die erneute
+Beschaffung statt einer Verlängerung alter Belege; sie simuliert keine echte
+45 Sekunden dauernde Hardwarebedienung.
+
+Entfernung, neues Handle oder Änderung der Einsteckzeit während der Eingabe,
+ein danach abweichendes gültiges ENC-Zertifikat, ein negatives VerifyCertificate
+oder eine echte signierte Sperrauskunft für das danach gelesene AUT verhindern
+ein vorbereitetes Ergebnis. Der Sperrfall bestätigt ausdrücklich, dass zuvor
+genau ein PIN-Versuch und anschließend ein zweites Zertifikatslesen stattfanden.
+VerifyPin OK ohne abschließendes VERIFIED reicht nicht. TSL-Aktualisierung oder
+Abbruch während der letzten Statusabfrage lassen keine frühere Freigabe gelten.
+Kopierte Gesamtbelege, fremde Statusclients und spätere Statusabfragen können
+den privaten Vorbereitungsbeleg nicht weiterverwenden. Änderungen der
+übergebenen Rollenliste verändern den laufenden Ablauf nicht.
+
+Alle Ausgaben bleiben `held-for-trust-validation` und `unverified`. Nachgewiesen
+ist eine Dienstschnittstelle gegen lokale Gegenstellen, keine physische
+PIN-Pad-Bedienung, verteilte Terminalsperre, entfernte Dialogstornierung oder
+Kartenabmeldung. Hardware-/TI-Anschluss, Hostkoordination, Oberfläche,
+PIN-Initialisierung/-Entsperrung, Karten-Schlüsseloperationen und unabhängige
+Prüfung/Zulassung bleiben offen. [Vertrag und Grenzen](konnektor-pin.md).
 
 ## GetCards und SMC-B-Zertifikatsablauf am 22.10.2026
 
 **61 neue Fälle** erweitern die bisherigen 684 Prüfungen: 36 Kartenabfrage-/
 Auswahl-/XML-Fälle sowie 25 Integrationen im vorhandenen TSL-/OCSP-Testverbund.
 Der gezielte Karten-/Zertifikatslauf bestand mit 91 Fällen in rund 10,0 Sekunden;
-der abschließende Gesamtlauf prüft alle 745 Fälle gemeinsam. Es wurde keine neue
+der damalige Gesamtlauf prüfte alle 745 Fälle gemeinsam. Es wurde keine neue
 Laufzeit oder Testinfrastruktur eingerichtet.
 
 GetCards sendet echte mTLS-Anfragen an den eigenen EventService-Endpunkt mit

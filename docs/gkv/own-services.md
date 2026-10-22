@@ -457,6 +457,19 @@ Die Dienstschnittstelle bleibt ohne Karten-Schlüsseloperation, automatische
 Ereignisüberwachung und produktive Versandfreigabe. Es gibt dafür noch keine
 Auswahloberfläche. Reale Hardware-/TI- und unabhängige Nachweise bleiben offen.
 
+### SMC-B-PIN-Status und Terminalfreischaltung
+
+Der [CardService-/PIN-Ablauf](konnektor-pin.md) liest den PIN-Status der gebundenen
+SMC-B und erlaubt auf ausdrücklichen Aufruf einen einzelnen Terminalversuch.
+Er nimmt keine PIN oder PUK entgegen. Gesperrte, noch nicht initialisierte und
+bereits verifizierte PINs lösen keine erneute Eingabe aus. Nach VerifyPin OK
+müssen frisch gelesene Kartenmerkmale, alle drei Zertifikat-Hashes, ihre
+Statusbelege und GetPinStatus VERIFIED bestehen. Kopierte oder veraltete
+Belege können diesen Ablauf nicht ersetzen. Ein unklar unterbrochener Versuch
+sperrt weitere PIN-Aufrufe auf derselben Instanz. Reale Terminals, Hostkoordination,
+Initialisierung/Entsperrung, Karten-Schlüsseloperationen und Oberfläche bleiben
+offen. Ein positiver Vorbereitungsbeleg gibt weder Authentisierung noch Versand frei.
+
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
 Das installierte OpenSSL 3.0.13 verwendet in `crypto/cms/cms_asn1.c` für

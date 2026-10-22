@@ -31,6 +31,8 @@ import { VzdLdapsDirectory, revalidateVzdRecord } from '../../services/kim/vzd.m
 import { connectorFixture, verificationResponse, faultResponse, certificatesResponse } from './connector-fixture.mjs';
 import { cardData, cardsResponse, cardsReply, eventUrl } from './connector-card-fixture.mjs';
 import { readAndVerifySmcb } from '../../services/kim/connector-smcb.mjs';
+import { prepareSmcbPin, assertPreparedSmcbPin } from '../../services/kim/connector-pin.mjs';
+import { cardUrl, pinResponse, isPinStatus, isVerifyPin } from './connector-pin-fixture.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -626,6 +628,140 @@ async function withSmcb(run, handler = smcbReply, changes = {}) {
 }
 const readSmcb = (connector, statusClient, changes = {}) => readAndVerifySmcb({ connector, statusClient,
   expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], ...changes });
+
+const attemptedPin = event => event.requests.some(q => isVerifyPin(q.bytes));
+const pinSmcbReply = event => isPinStatus(event.bytes) ? cardsReply(event.response, attemptedPin(event)
+  ? pinResponse() : pinResponse('GetPinStatus', 'VERIFIABLE', 3))
+  : isVerifyPin(event.bytes) ? cardsReply(event.response, pinResponse('VerifyPin', 'OK')) : smcbReply(event);
+async function withSmcbPin(run, handler = pinSmcbReply, changes = {}) {
+  await withConnector(async ({ open, options, requests }) => run({ connector: open({ eventServiceUrl: eventUrl(options),
+    cardServiceUrl: cardUrl(options), clock: () => state.now, ...changes }), requests }), handler);
+}
+const preparePin = (connector, statusClient, changes = {}) => prepareSmcbPin({ connector, statusClient,
+  expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], ...changes });
+
+test('SMC-B PIN preflight: an already VERIFIED card needs no terminal prompt and remains held', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const statusClient = open(), r = await preparePin(connector, statusClient); r.revalidate();
+  assert.equal(assertPreparedSmcbPin(r, connector, statusClient), r);
+  assert.equal(r.state, 'pin-verified'); assert.equal(r.identityStatus, 'unverified'); assert.equal(r.deliveryStatus, 'held-for-trust-validation');
+  assert.equal(r.attempt, undefined); assert.equal(requests.length, 7); assert.equal(requests.some(q => isVerifyPin(q.bytes)), false);
+  assert.equal(r.bundle.certificates.length, 3); assert.equal(r.status.selection, r.bundle.selection);
+}, event => isPinStatus(event.bytes) ? cardsReply(event.response, pinResponse()) : smcbReply(event))));
+
+test('SMC-B PIN preflight: one explicit prompt is followed by fresh card, three certificate and PIN checks', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const statusClient = open(), r = await preparePin(connector, statusClient, { allowPrompt: true }); r.revalidate();
+  assertPreparedSmcbPin(r, connector, statusClient); assert.equal(r.attempt.pinResult, 'OK'); assert.equal(requests.length, 15);
+  assert.deepEqual(requests.map(q => q.bytes.toString().match(/<c:(GetCards|ReadCardCertificate|VerifyCertificate|GetPinStatus|VerifyPin)[ >]/)[1]),
+    ['GetCards', 'ReadCardCertificate', 'VerifyCertificate', 'VerifyCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin',
+      'GetCards', 'ReadCardCertificate', 'VerifyCertificate', 'VerifyCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus']);
+})));
+
+test('SMC-B PIN preflight: a 45s logical terminal wait reacquires evidence instead of extending expired proofs', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const r = await preparePin(connector, open(), { allowPrompt: true }); r.revalidate();
+  assert.equal(r.attempt.checkedAt - r.attempt.startedAt, 45000); assert.equal(requests.length, 15);
+  assert.ok(r.bundle.certificates.every(c => c.verification.checkedAt >= r.attempt.checkedAt));
+  assert.ok(r.status.checkedAt >= r.attempt.checkedAt);
+}, event => { if (isVerifyPin(event.bytes)) state.now += 45000; pinSmcbReply(event); })));
+
+for (const [value, tries, expected] of [['VERIFIABLE', 1, 'pin-required'], ['BLOCKED', 0, 'pin-blocked'],
+  ['TRANSPORT_PIN', null, 'pin-initialization-required'], ['EMPTY_PIN', null, 'pin-initialization-required']]) {
+  test('SMC-B PIN preflight: ' + value + ' returns a bounded held state without an implicit prompt', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    const r = await preparePin(connector, open(), { allowPrompt: value !== 'VERIFIABLE' });
+    assert.equal(r.state, expected); assert.equal(r.leftTries, tries); assert.equal(r.deliveryStatus, 'held-for-trust-validation');
+    assert.equal(requests.length, 7); assert.equal(requests.some(q => isVerifyPin(q.bytes)), false);
+  }, event => isPinStatus(event.bytes) ? cardsReply(event.response, pinResponse('GetPinStatus', value, tries)) : smcbReply(event))));
+}
+
+for (const [value, tries, expected] of [['REJECTED', 1, 'pin-rejected'], ['WASBLOCKED', null, 'pin-blocked'],
+  ['NOWBLOCKED', 0, 'pin-blocked'], ['TRANSPORT_PIN', null, 'pin-initialization-required']]) {
+  test('SMC-B PIN preflight: ' + value + ' stops after one terminal response', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    const statusClient = open(), r = await preparePin(connector, statusClient, { allowPrompt: true });
+    assert.equal(r.state, expected); assert.equal(r.leftTries, tries); assert.equal(requests.length, 8);
+    assert.throws(() => assertPreparedSmcbPin(r, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  }, event => isVerifyPin(event.bytes) ? cardsReply(event.response, pinResponse('VerifyPin', value, tries)) : pinSmcbReply(event))));
+}
+
+for (const [label, cards, expected] of [['removal', [], 'CARD_NOT_FOUND'],
+  ['new handle', [cardData({ cardHandle: 'SMCB-NEW' })], 'CARD_CHANGED'],
+  ['new insertion', [cardData({ insertTime: '2026-10-22T00:00:00.000001Z' })], 'CARD_CHANGED']]) {
+  test('SMC-B PIN preflight: ' + label + ' during terminal entry cannot retain its old identity', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+    await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_' + expected));
+  }, event => isCards(event.bytes) && attemptedPin(event) ? cardsReply(event.response, cardsResponse(cards)) : pinSmcbReply(event))));
+}
+
+test('SMC-B PIN preflight: changing an otherwise valid ENC certificate after the prompt fails its exact binding', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_CERTIFICATE_BINDING'));
+}, event => isReadCards(event.bytes) && attemptedPin(event) ? cardsReply(event.response, certificatesResponse([
+  ['C.AUT', authentication.certificate], ['C.ENC', encryption[1].certificate], ['C.SIG', signing.certificate],
+])) : pinSmcbReply(event))));
+
+test('SMC-B PIN preflight: an INVALID certificate after terminal success cannot borrow pre-prompt evidence', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_CERTIFICATE_REJECTED'));
+}, event => event.bytes.includes('<c:VerifyCertificate') && attemptedPin(event)
+  ? cardsReply(event.response, verificationResponse('INVALID')) : pinSmcbReply(event))));
+
+test('SMC-B PIN preflight: revoked post-prompt AUT is checked against signed OCSP before accepting the card', async () => fixture(async ({ open }) => {
+  const startDate = new Date(f.now - 86400000).toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z';
+  const issued = await f.pki.issueAut({ name: 'pin-post-aut', startDate }), changed = issued.certificate;
+  state.certificates = [{ certificate: changed }];
+  state.handler = (req, res, bytes) => {
+    if (!req.url.startsWith('/leaf-') || !bytes.equals(f.proof(changed).request)) return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(changed, { state: 'revoked', producedAt: state.now }).response); return true;
+  };
+  await withSmcbPin(async ({ connector, requests }) => {
+    await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_SMCB_STATUS'));
+    assert.equal(requests.filter(q => isVerifyPin(q.bytes)).length, 1);
+    assert.equal(requests.filter(q => isReadCards(q.bytes)).length, 2);
+  }, event => isReadCards(event.bytes) && attemptedPin(event)
+    ? cardsReply(event.response, certificatesResponse([['C.AUT', changed], ...smcbCertificates().slice(1)])) : pinSmcbReply(event));
+}));
+
+test('SMC-B PIN preflight: terminal OK without a fresh VERIFIED status yields no prepared result', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_PIN_NOT_VERIFIED'));
+}, event => isPinStatus(event.bytes) ? cardsReply(event.response, pinResponse('GetPinStatus', 'VERIFIABLE', 3)) : pinSmcbReply(event))));
+
+test('SMC-B PIN preflight: a TSL refresh during final PIN status invalidates freshly collected certificate evidence', async () => fixture(async ({ open, manager }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(preparePin(connector, open(), { allowPrompt: true }), code('KIM_CONNECTOR_SMCB_STATUS'));
+}, async event => {
+  if (isPinStatus(event.bytes) && attemptedPin(event)) await manager.refresh();
+  pinSmcbReply(event);
+})));
+
+test('SMC-B PIN preflight: abort after terminal success cannot return a prepared result', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withSmcbPin(async ({ connector }) => {
+    await assert.rejects(preparePin(connector, open(), { allowPrompt: true, signal: controller.signal }), code('KIM_CONNECTOR_ABORTED'));
+  }, event => { if (isPinStatus(event.bytes) && attemptedPin(event)) controller.abort(); pinSmcbReply(event); });
+}));
+
+test('SMC-B PIN preflight: copied results, foreign clients and later PIN acquisition cannot reuse prepared evidence', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  const statusClient = open(), r = await preparePin(connector, statusClient, { allowPrompt: true });
+  assert.throws(() => assertPreparedSmcbPin({ ...r }, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertPreparedSmcbPin(r, connector, open()), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertPreparedSmcbPin(r, {}, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  await connector.getSmcbPinStatus({ selection: r.bundle.selection });
+  assert.throws(() => assertPreparedSmcbPin(r, connector, statusClient), code('KIM_CONNECTOR_PIN_STATUS_STALE'));
+})));
+
+test('SMC-B PIN preflight: simultaneous preparations cannot duplicate the terminal workflow', async () => fixture(async ({ open }) => {
+  const entered = Promise.withResolvers();
+  await withSmcbPin(async ({ connector, requests }) => {
+    const statusClient = open(), first = preparePin(connector, statusClient, { allowPrompt: true });
+    const release = await entered.promise;
+    await assert.rejects(preparePin(connector, statusClient, { allowPrompt: true }), code('KIM_CONNECTOR_PIN_BUSY'));
+    release(); (await first).revalidate(); assert.equal(requests.filter(q => isVerifyPin(q.bytes)).length, 1);
+  }, event => isVerifyPin(event.bytes) ? entered.resolve(() => pinSmcbReply(event)) : pinSmcbReply(event));
+}));
+
+test('SMC-B PIN preflight: configured roles are snapshotted and PIN input/implicit prompt flags are rejected', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const requiredRoles = ['1.2.276.0.76.4.245'], statusClient = open();
+  for (const changes of [{ pin: '123456' }, { puk: '12345678' }, { allowPrompt: 'true' }]) {
+    await assert.rejects(preparePin(connector, statusClient, changes), code('KIM_CONNECTOR_INPUT'));
+  }
+  assert.equal(requests.length, 0);
+  const promise = preparePin(connector, statusClient, { requiredRoles, allowPrompt: true }); requiredRoles[0] = '1.2.3';
+  const r = await promise; assert.deepEqual(r.bundle.professionOids, ['1.2.276.0.76.4.245']); r.revalidate();
+})));
 
 test('SMC-B: fresh GetCards, actual DER, local status, VerifyCertificate and final GetCards compose a held result', async () => fixture(async ({ open }) => withSmcb(async ({ connector, requests }) => {
   const r = await readSmcb(connector, open()); r.revalidate();
