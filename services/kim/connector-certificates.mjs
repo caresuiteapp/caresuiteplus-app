@@ -1,8 +1,8 @@
 import { createHash, X509Certificate } from 'node:crypto';
 import { KonnektorHttpsTransport } from './connector-http.mjs';
-import { certificateRequest, inspectConnectorXml, connectorText, CERT_REFS } from './connector-xml.mjs';
+import { certificateRequest, inspectConnectorXml, connectorText, CERT_REFS, PIN_OPERATIONS } from './connector-xml.mjs';
 import { canonicalOid } from './der-oid.mjs';
-import { KonnektorError, connectorFail, connectorSignal } from './connector-error.mjs';
+import { KonnektorError, KonnektorPinMaintenanceError, connectorFail, connectorSignal } from './connector-error.mjs';
 import { cardFilters, cardSelector, checkedCards, selectSmcbCard } from './connector-cards.mjs';
 
 export { KonnektorError } from './connector-error.mjs';
@@ -38,6 +38,7 @@ function references(input) {
 export class KonnektorCertificateClient {
   #transport; #eventTransport; #cardTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
   #pinTimeout; #pinGeneration = 0; #pinBusy = false; #pinUncertain = false;
+  #blockedPuks = new Set();
   #closed = false; #pending = new Set();
   constructor({ context, environment, eventServiceUrl, cardServiceUrl, pinTimeoutMs = 120000, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
     try {
@@ -64,7 +65,7 @@ export class KonnektorCertificateClient {
   #open() { if (this.#closed) connectorFail('CLOSED'); }
   async #exchange(operation, input, signal, timeout = this.#timeout) {
     this.#open(); connectorSignal(signal);
-    const pin = ['GetPinStatus', 'VerifyPin'].includes(operation);
+    const pin = operation === 'GetPinStatus' || PIN_OPERATIONS.includes(operation);
     const transport = operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : this.#transport;
     if (!transport) connectorFail(pin ? 'CARD_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
     if (this.#pending.size >= 8) connectorFail('BUSY');
@@ -133,7 +134,8 @@ export class KonnektorCertificateClient {
     assertSelectedSmcb(selection, this);
     if (generation !== this.#pinGeneration) connectorFail('PIN_STATUS_STALE');
     const result = Object.freeze({ ...metadata, selection, pinTyp: 'PIN.SMC', pinStatus: parsed.pinStatus,
-      leftTries: parsed.leftTries, execution: parsed.execution, validUntil: Math.min(selection.validUntil, metadata.checkedAt + 30000) });
+      leftTries: parsed.leftTries, pukState: this.#blockedPuks.has(selection.card.iccsn) ? 'blocked' : 'unknown',
+      execution: parsed.execution, validUntil: Math.min(selection.validUntil, metadata.checkedAt + 30000) });
     const assert = () => {
       this.#pinOpen(); connectorSignal(signal); assertSelectedSmcb(selection, this);
       if (generation !== this.#pinGeneration) connectorFail('PIN_STATUS_STALE');
@@ -148,21 +150,47 @@ export class KonnektorCertificateClient {
   async verifySmcbPin(input = {}) {
     pinOptions(input, ['status', 'signal']);
     const { status, signal } = input;
+    return this.#pinAttempt('VerifyPin', status, signal, ['VERIFIABLE'], 'PIN_NOT_VERIFIABLE');
+  }
+  async changeSmcbPin(input = {}) {
+    pinOptions(input, ['status', 'mode', 'signal']);
+    const { status, mode, signal } = input;
+    if (!['initialize', 'change'].includes(mode)) connectorFail('INPUT');
+    return this.#pinAttempt('ChangePin', status, signal,
+      mode === 'initialize' ? ['TRANSPORT_PIN', 'EMPTY_PIN'] : ['VERIFIABLE', 'VERIFIED'], 'PIN_MAINTENANCE_STATE', { mode });
+  }
+  async unblockSmcbPin(input = {}) {
+    pinOptions(input, ['status', 'setNewPin', 'signal']);
+    const { status, setNewPin, signal } = input;
+    if (typeof setNewPin !== 'boolean') connectorFail('INPUT');
+    return this.#pinAttempt('UnblockPin', status, signal, ['BLOCKED'], 'PIN_MAINTENANCE_STATE', { setNewPin });
+  }
+  async #pinAttempt(operation, status, signal, allowedStatuses, stateError, options = {}) {
     this.#pinOpen(); connectorSignal(signal);
     const stored = pinStatuses.get(status);
     if (!stored || stored.client !== this) connectorFail('EVIDENCE_BINDING');
     stored.assert();
-    if (status.pinStatus !== 'VERIFIABLE') connectorFail('PIN_NOT_VERIFIABLE');
+    if (!allowedStatuses.includes(status.pinStatus)) connectorFail(stateError);
+    const iccsn = stored.selection.card.iccsn;
+    if (operation === 'UnblockPin' && this.#blockedPuks.has(iccsn)) connectorFail('PIN_PUK_BLOCKED');
     const cardGeneration = this.#cardGeneration;
     ++this.#pinGeneration; this.#pinBusy = true; this.#pinUncertain = true;
     try {
-      const { parsed, metadata } = await this.#exchange('VerifyPin', { cardHandle: stored.selection.card.cardHandle }, signal, this.#pinTimeout);
+      const { parsed, metadata } = await this.#exchange(operation, { cardHandle: stored.selection.card.cardHandle,
+        ...(operation === 'UnblockPin' ? { setNewPin: options.setNewPin } : {}) }, signal, this.#pinTimeout);
       if (parsed.pinResult === 'ERROR') throw new KonnektorError('KIM_CONNECTOR_PIN_ERROR', parsed.remoteCodes);
       this.#pinUncertain = false;
+      if (operation === 'UnblockPin' && ['WASBLOCKED', 'NOWBLOCKED'].includes(parsed.pinResult)) this.#blockedPuks.add(iccsn);
       // A human PIN entry may outlive the old 30s snapshot. Only an observation
-      // is returned; prepareSmcbPin must reacquire the card/certificates/status.
-      if (cardGeneration !== this.#cardGeneration) connectorFail('CARD_SNAPSHOT_STALE');
+      // is returned; the workflow must reacquire card/certificates/status.
+      if (cardGeneration !== this.#cardGeneration) {
+        if (operation !== 'VerifyPin' && parsed.pinResult === 'OK') {
+          throw new KonnektorPinMaintenanceError(operation, 'KIM_CONNECTOR_CARD_SNAPSHOT_STALE');
+        }
+        connectorFail('CARD_SNAPSHOT_STALE');
+      }
       return Object.freeze({ ...metadata, pinTyp: 'PIN.SMC', pinResult: parsed.pinResult, leftTries: parsed.leftTries,
+        retryCounter: operation === 'UnblockPin' ? 'puk' : 'pin', ...options,
         execution: parsed.execution, deliveryStatus: 'held-for-trust-validation' });
     } finally { this.#pinBusy = false; }
   }
@@ -223,11 +251,17 @@ export class KonnektorCertificateClient {
   close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); }
 }
 
-/** Only a fresh GetPinStatus result can attest the observed PIN state. */
-export function assertSmcbPinVerified(status, client, selection) {
+/** A bound observation is not an authorization for a key operation. */
+export function assertSmcbPinStatus(status, client, selection) {
   const stored = pinStatuses.get(status);
   if (!stored || stored.client !== client || stored.selection !== selection) connectorFail('EVIDENCE_BINDING');
   stored.assert();
+  return status;
+}
+
+/** Only a fresh GetPinStatus result can attest the observed PIN state. */
+export function assertSmcbPinVerified(status, client, selection) {
+  assertSmcbPinStatus(status, client, selection);
   if (status.pinStatus !== 'VERIFIED') connectorFail('PIN_NOT_VERIFIED');
   return status;
 }

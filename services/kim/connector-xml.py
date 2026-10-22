@@ -81,10 +81,10 @@ def run(etree):
     raw_input = sys.stdin.buffer.read(600001)
     require(0 < len(raw_input) <= 600000, 'XML_LIMIT')
     args = json.loads(raw_input)
-    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin'))
+    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin'))
     require(args.get('mode') in ('request', 'response'))
     is_cards = args['operation'] == 'GetCards'
-    is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin')
+    is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin')
     url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'CertificateService_v6_0_2.xsd')
     schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
     raw = binary(args['xml'], 262144)
@@ -137,6 +137,8 @@ def run(etree):
     if args['mode'] == 'request':
         if is_pin:
             require(text(payload, 'cm:PinTyp') == 'PIN.SMC', 'PIN_PROFILE')
+        if args['operation'] == 'UnblockPin':
+            require(text(payload, 'card:SetNewPin') in ('true', 'false'), 'PIN_PROFILE')
         return {'kind': 'request', 'operation': args['operation']}
     execution = text(payload, 'n:Status/n:Result').strip()
     errors = remote_errors(payload)
@@ -146,19 +148,24 @@ def run(etree):
         result = text(payload, prefix + ('PinStatus' if status else 'PinResult'))
         tries = payload.find(prefix + 'LeftTries', NS)
         left = None if tries is None else int(text(payload, prefix + 'LeftTries'))
-        require(left is None or 0 <= left <= 3, 'PIN_RESULT')
+        maximum = 10 if args['operation'] == 'UnblockPin' else 3
+        require(left is None or 0 <= left <= maximum, 'PIN_RESULT')
+        if args['operation'] in ('ChangePin', 'UnblockPin'):
+            require(result != 'TRANSPORT_PIN', 'PIN_RESULT')
         if not status and result == 'ERROR':
             require(len(errors) > 0, 'PIN_RESULT')
         else:
             require(execution == 'OK' and not errors, 'PIN_RESULT')
         if result in ('VERIFIABLE', 'REJECTED'):
-            require(left is not None and 1 <= left <= 3, 'PIN_RESULT')
+            require(left is not None and 1 <= left <= maximum, 'PIN_RESULT')
         elif result == 'BLOCKED':
             require(left == 0, 'PIN_RESULT')
         elif result in ('WASBLOCKED', 'NOWBLOCKED'):
             require(left is None or left == 0, 'PIN_RESULT')
         elif result in ('VERIFIED', 'OK'):
             require(left is None, 'PIN_RESULT')
+        elif status and result in ('TRANSPORT_PIN', 'EMPTY_PIN'):
+            require(left is None or left > 0, 'PIN_RESULT')
         return {'kind': 'pin-status' if status else 'pin-result', 'execution': execution,
                 'pinStatus' if status else 'pinResult': result, 'leftTries': left, 'remoteCodes': errors}
     if is_cards:

@@ -5,6 +5,8 @@ Stand: 22.10.2026. Der eigene Client implementiert `GetPinStatus` und `VerifyPin
 Karten-, Zertifikats-, TSL- und OCSP-Prüfung. Geprüft wurde gegen lokale
 Gegenstellen mit synthetischen Zertifikaten. Eine echte SMC-B, ein PIN-Pad und
 ein zugelassener Konnektor wurden damit noch nicht bedient.
+Die aufbauende [PIN-Verwaltung](konnektor-pin-maintenance.md) ergänzt
+Initialisierung/Änderung durch ChangePin und Entsperrung durch UnblockPin.
 
 Die Dienstschnittstelle führt keine Karten-Signatur, Entschlüsselung oder
 Authentisierung aus. Auch ein Ergebnis `pin-verified` bleibt
@@ -57,7 +59,7 @@ als ausdrückliche Benutzeraktion auslösen. Ein fehlgeschlagener Versuch darf
 keine Wiederholungsschleife auslösen. Der Restversuchszähler muss vor einer
 weiteren ausdrücklich gewünschten Eingabe sichtbar sein.
 
-`timeoutMs` bleibt auf 50–30000 ms beschränkt. Ausschließlich VerifyPin darf
+`timeoutMs` bleibt auf 50–30000 ms beschränkt. VerifyPin, ChangePin und UnblockPin dürfen
 mit `pinTimeoutMs` 50–180000 ms laufen; Standard sind 120000 ms. Diese Grenzen
 sind lokale Laufzeitentscheidungen, keine zugesagten Terminalfristen. Der
 gesamte Vorbereitungsablauf endet spätestens nach 240000 ms. Ein XML-Worker
@@ -87,7 +89,7 @@ Kartenauswahl und Statusbelegen wird durch die längere Eingabezeit nicht verlä
 | `pin-required` | Echt-PIN noch nicht verifiziert, kein Eingabeversuch erlaubt | `leftTries` anzeigen; weitere Aktion ausdrücklich auslösen |
 | `pin-rejected` | Der einzelne Versuch wurde als falsche PIN zurückgewiesen | Restversuche anzeigen; keine automatische Wiederholung |
 | `pin-blocked` | GetPinStatus BLOCKED oder VerifyPin WASBLOCKED/NOWBLOCKED | Kein weiterer VerifyPin-Versuch |
-| `pin-initialization-required` | Transport- oder Leer-PIN | Initialisierung ist hier noch nicht implementiert |
+| `pin-initialization-required` | Transport- oder Leer-PIN | Separaten Verwaltungsablauf für die Initialisierung ausdrücklich starten |
 
 Bei `VERIFIABLE` und `REJECTED` müssen 1–3 Restversuche vorliegen. BLOCKED
 verlangt 0; WASBLOCKED/NOWBLOCKED dürfen keinen positiven Restzähler enthalten.
@@ -152,7 +154,7 @@ Kontext und Kartenbezug prüfen.
 ## Offene Nachweise
 
 Echte Hardware-/TI-Interoperabilität, PIN-Pad-Bedienung, Remote-PIN-Routing,
-Transport-PIN-Initialisierung, ChangePin/UnblockPin, HSM-B-/weitere Profile,
+HSM-B-/weitere Profile,
 Karten-Schlüsseloperationen, Ereignisüberwachung, Oberfläche und Hostintegration
 bleiben offen. Keine produktiven Daten, Empfänger oder Terminalversuche wurden
 verwendet. Die unabhängige Prüfung und Zulassung sind damit nicht ersetzt.

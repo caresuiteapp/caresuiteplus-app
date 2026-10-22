@@ -8,12 +8,81 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**813/813 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+**905/905 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
 mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 109,1 Sekunden.
+rund 162,7 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
 
-## SMC-B-PIN-Status und Terminalversuch am 22.10.2026
+## SMC-B-PIN-Verwaltung am 22.10.2026
+
+**92 neue Fälle** ergänzen die bisherigen 813 Prüfungen: 60 Schnittstellen-/
+Status-/XML-Fälle und 32 integrierte Verwaltungsabläufe. Der gezielte erste
+Schnittstellenlauf bestand mit 103 Fällen, darunter 45 bestehende PIN-Fälle,
+in rund 21,3 Sekunden. Danach wurden zwei Fälle für Initialisierung bei
+widersprüchlichem Null-Restzähler ergänzt. Der gezielte Integrationslauf bestand
+mit 32 Fällen in rund 55,7 Sekunden. Es wurden keine neuen Schemata, Pakete oder
+Testdienste installiert; ChangePin/UnblockPin verwenden den vorhandenen
+festgeschriebenen CardService-Vertrag.
+Der abschließende Gesamtlauf prüft alle 905 Fälle gemeinsam: 0 Fehler,
+0 übersprungene oder abgebrochene Fälle, rund 162,7 Sekunden.
+
+Echte lokale mTLS-Anfragen belegen ChangePin für Transport-/Leer-PIN sowie
+für eine reguläre verifizierbare oder bereits verifizierte PIN. UnblockPin
+sendet SetNewPin ausdrücklich mit false und true. PIN-/PUK-Werte fehlen in
+den SOAP-Anfragen. Fehlende oder implizite Aktionsparameter, falsche Typen,
+frei gewählte PIN-Typen und Geheimzahloptionen scheitern vor dem Netzaufruf.
+Nicht zur Aktion passende PIN-Zustände lösen keine Ersatzoperation aus.
+
+PIN-Fehlversuche und PUK-Fehlversuche bleiben getrennt. Eine zurückgewiesene PUK
+mit neun Restversuchen wird korrekt ausgewertet; sie unterliegt nicht dem
+PIN-Limit von drei. Widersprüchliche Zähler, nicht vorgesehene Ergebniswerte,
+fehlende strukturierte Fehler, doppelte/fremde Reset-Flags und zusätzliche
+PUK-Elemente werden abgewiesen. Eine Transport-/Leer-PIN mit ausdrücklich
+null Restversuchen kann keine Initialisierung starten. Eine gemeldete
+PUK-Sperre bleibt trotz neuer Karten-/Statusabfragen an die ICCSN gebunden;
+für eine andere Kartenseriennummer wird sie nicht übernommen.
+
+Kopierte, fremde und veraltete Statusbelege können keine Verwaltung auslösen.
+ChangePin/UnblockPin sperren während der Eingabe auch VerifyPin und neue
+Statusabfragen. Abbruch, Zeitüberschreitung, Schließen, SOAP-Fehler und
+PinResult ERROR geben keinen verwendbaren Ausgang zurück und sperren weitere
+Versuche der Instanz. Fremde Fehlertexte fehlen in den Fehlerobjekten.
+Eine Kartenaktualisierung während einer anschließend mit OK beantworteten
+Verwaltungsoperation meldet den bereits erhaltenen Konnektorbefund ausdrücklich
+als unbestätigte Änderung.
+
+Der integrierte Ablauf prüft Initialisierung aus Transport-/Leer-PIN, reguläre
+Änderung und Entsperrung mit alter oder neuer PIN. Ein erfolgreicher Durchlauf
+umfasst 15 SOAP-Aufrufe mit genau einer Verwaltungsoperation. Ein Nur-Lese-
+Aufruf umfasst sieben und startet keinen Terminaldialog. Der Dienst löst
+kein automatisches VerifyPin aus. Auch nach beobachtetem VERIFIED akzeptiert
+der vorhandene Vorbereitungsprüfer den Verwaltungsbeleg nicht als Freigabebeleg.
+
+Falsche PIN/PUK und neu oder vorher gesperrte PIN/PUK ergeben getrennte
+Zustände mit dem jeweiligen Restzähler. Eine bereits bekannte PUK-Sperre
+verhindert einen erneuten Entsperrversuch auch im vollständigen Workflow.
+Abweichender PIN-Zustand nach OK, entfernte/gewechselte Karte, ein abweichendes
+gültiges ENC-Zertifikat, ein negativer erneuter Konnektorbefund, TSL-Wechsel
+oder Abbruch während der Nachprüfung liefern
+`KIM_CONNECTOR_PIN_MAINTENANCE_UNCONFIRMED` samt bereits erhaltenem OK und
+begrenztem Fehlergrund. Es wird nicht behauptet, die alte PIN sei unverändert.
+
+Kopierte Gesamtbelege, vertauschte Konnektor-/Statusclients und neue
+Statusabfragen entwerten die Bestätigung. Verwaltung und Vorbereitung können
+nicht parallel auf derselben Instanz laufen. Mutationen der übergebenen
+Rollenliste, Aktion oder SetNewPin-Option ändern keine laufende Operation.
+Eine logische Uhrverschiebung um 45 Sekunden für ChangePin und UnblockPin
+belegt jeweils frisch beschaffte Nachprüfungen statt verlängerter alter Belege;
+es ist kein echter 45-Sekunden-Hardwareversuch. Eine fremde konfigurierte
+Einrichtungsidentität verhindert die Verwaltungsoperation schon davor.
+
+Die Nachweise betreffen Dienstlogik und lokale Gegenstellen. Oberfläche,
+dauerhafte Hostkoordination über Instanzen/Neustarts, tatsächliche PIN-Pad-/TI-
+Interoperabilität, weitere Kartenprofile, Schlüsseloperationen und unabhängige
+Prüfung/Zulassung bleiben offen. Status bleibt `held-for-trust-validation` und
+`unverified`. [Vertrag und Fehlersemantik](konnektor-pin-maintenance.md).
+
+## Vorheriger Stand: SMC-B-PIN-Status und Terminalversuch am 22.10.2026
 
 **68 neue Fälle** ergänzen die bisherigen 745 Prüfungen: 45 CardService-/PIN-/
 XML-Fälle und 23 Integrationen mit dem bestehenden SMC-B-/TSL-/OCSP-Testverbund.

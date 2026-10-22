@@ -31,8 +31,8 @@ import { VzdLdapsDirectory, revalidateVzdRecord } from '../../services/kim/vzd.m
 import { connectorFixture, verificationResponse, faultResponse, certificatesResponse } from './connector-fixture.mjs';
 import { cardData, cardsResponse, cardsReply, eventUrl } from './connector-card-fixture.mjs';
 import { readAndVerifySmcb } from '../../services/kim/connector-smcb.mjs';
-import { prepareSmcbPin, assertPreparedSmcbPin } from '../../services/kim/connector-pin.mjs';
-import { cardUrl, pinResponse, isPinStatus, isVerifyPin } from './connector-pin-fixture.mjs';
+import { prepareSmcbPin, assertPreparedSmcbPin, maintainSmcbPin, assertMaintainedSmcbPin } from '../../services/kim/connector-pin.mjs';
+import { cardUrl, pinResponse, isPinStatus, isVerifyPin, isChangePin, isUnblockPin } from './connector-pin-fixture.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -639,6 +639,146 @@ async function withSmcbPin(run, handler = pinSmcbReply, changes = {}) {
 }
 const preparePin = (connector, statusClient, changes = {}) => prepareSmcbPin({ connector, statusClient,
   expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], ...changes });
+
+const isMaintenance = bytes => isChangePin(bytes) || isUnblockPin(bytes);
+const maintenanceStarted = event => event.requests.some(q => isMaintenance(q.bytes));
+const maintenanceReply = (before = 'VERIFIABLE', after = 'VERIFIABLE') => event => {
+  if (isPinStatus(event.bytes)) {
+    const value = maintenanceStarted(event) ? after : before;
+    return cardsReply(event.response, pinResponse('GetPinStatus', value, value === 'VERIFIABLE' ? 3 : value === 'BLOCKED' ? 0 : null));
+  }
+  if (isMaintenance(event.bytes)) return cardsReply(event.response, pinResponse(isChangePin(event.bytes) ? 'ChangePin' : 'UnblockPin', 'OK'));
+  smcbReply(event);
+};
+const maintainPin = (connector, statusClient, changes = {}) => maintainSmcbPin({ connector, statusClient,
+  expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], action: 'change', allowPrompt: true, ...changes });
+const unconfirmed = (cause, operation = 'ChangePin') => e => code('KIM_CONNECTOR_PIN_MAINTENANCE_UNCONFIRMED')(e)
+  && e.reportedPinResult === 'OK' && e.operation === operation && e.causeCode === 'KIM_CONNECTOR_' + cause;
+
+for (const [action, before, setNewPin, after] of [['initialize', 'TRANSPORT_PIN', undefined, 'VERIFIABLE'],
+  ['initialize', 'EMPTY_PIN', undefined, 'VERIFIABLE'], ['change', 'VERIFIED', undefined, 'VERIFIABLE'],
+  ['unblock', 'BLOCKED', false, 'VERIFIABLE'], ['unblock', 'BLOCKED', true, 'VERIFIED']]) {
+  test('SMC-B PIN maintenance: ' + action + '/' + before + '/' + setNewPin + ' verifies the postcondition without automatic VerifyPin', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    const statusClient = open(), r = await maintainPin(connector, statusClient, { action, ...(action === 'unblock' ? { setNewPin } : {}) });
+    assert.equal(assertMaintainedSmcbPin(r, connector, statusClient), r); r.revalidate();
+    assert.equal(r.state, 'pin-maintained'); assert.equal(r.status.pinStatus, after); assert.equal(r.requiresVerification, after !== 'VERIFIED');
+    assert.equal(r.action, action); assert.equal(r.setNewPin, setNewPin); assert.equal(requests.length, 15);
+    assert.equal(requests.filter(q => isMaintenance(q.bytes)).length, 1); assert.equal(requests.some(q => isVerifyPin(q.bytes)), false);
+    assert.equal(r.deliveryStatus, 'held-for-trust-validation'); assert.equal(r.identityStatus, 'unverified');
+    assert.throws(() => assertPreparedSmcbPin(r, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  }, maintenanceReply(before, after))));
+}
+
+for (const [action, before] of [['initialize', 'TRANSPORT_PIN'], ['change', 'VERIFIABLE'], ['unblock', 'BLOCKED']]) {
+  test('SMC-B PIN maintenance: ' + action + ' can be inspected without starting a terminal prompt', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    const statusClient = open(), r = await maintainPin(connector, statusClient, { action, allowPrompt: undefined, ...(action === 'unblock' ? { setNewPin: true } : {}) });
+    assert.equal(r.state, 'pin-maintenance-required'); assert.equal(r.pinStatus, before);
+    assert.equal(r.pinLeftTries, before === 'BLOCKED' ? 0 : before === 'VERIFIABLE' ? 3 : null);
+    assert.equal(r.card.iccsn, '80276000000000000001'); assert.equal(requests.length, 7); assert.equal(requests.some(q => isMaintenance(q.bytes)), false);
+    assert.throws(() => assertMaintainedSmcbPin(r, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  }, maintenanceReply(before))));
+}
+
+for (const [action, before] of [['initialize', 'VERIFIED'], ['change', 'BLOCKED'], ['unblock', 'VERIFIABLE']]) {
+  test('SMC-B PIN maintenance: ' + action + ' cannot switch to another action when its fresh state is ' + before, async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    await assert.rejects(maintainPin(connector, open(), { action, ...(action === 'unblock' ? { setNewPin: false } : {}) }), code('KIM_CONNECTOR_PIN_MAINTENANCE_STATE'));
+    assert.equal(requests.length, 7); assert.equal(requests.some(q => isMaintenance(q.bytes) || isVerifyPin(q.bytes)), false);
+  }, maintenanceReply(before))));
+}
+
+for (const [action, result, tries, expected] of [['change', 'REJECTED', 1, 'pin-rejected'], ['change', 'NOWBLOCKED', 0, 'pin-blocked'],
+  ['unblock', 'REJECTED', 9, 'puk-rejected'], ['unblock', 'WASBLOCKED', null, 'puk-blocked'], ['unblock', 'NOWBLOCKED', 0, 'puk-blocked']]) {
+  test('SMC-B PIN maintenance: ' + action + '/' + result + ' preserves PIN versus PUK retry semantics', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+    const r = await maintainPin(connector, open(), { action, ...(action === 'unblock' ? { setNewPin: true } : {}) });
+    assert.equal(r.state, expected); assert.equal(r.leftTries, tries); assert.equal(r.retryCounter, action === 'unblock' ? 'puk' : 'pin');
+    assert.equal(requests.length, 8); assert.equal(requests.some(q => isVerifyPin(q.bytes)), false);
+  }, event => isMaintenance(event.bytes) ? cardsReply(event.response, pinResponse(action === 'unblock' ? 'UnblockPin' : 'ChangePin', result, tries))
+    : maintenanceReply(action === 'unblock' ? 'BLOCKED' : 'VERIFIABLE')(event))));
+}
+
+test('SMC-B PIN maintenance: a known blocked PUK is retained across fresh workflows without another prompt', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const statusClient = open(), config = { action: 'unblock', setNewPin: false };
+  assert.equal((await maintainPin(connector, statusClient, config)).state, 'puk-blocked');
+  const again = await maintainPin(connector, statusClient, config); assert.equal(again.state, 'puk-blocked'); assert.equal(again.leftTries, null);
+  assert.equal(requests.filter(q => isUnblockPin(q.bytes)).length, 1);
+}, event => isUnblockPin(event.bytes) ? cardsReply(event.response, pinResponse('UnblockPin', 'WASBLOCKED')) : maintenanceReply('BLOCKED', 'BLOCKED')(event))));
+
+for (const after of ['BLOCKED', 'TRANSPORT_PIN', 'EMPTY_PIN']) test('SMC-B PIN maintenance: peer OK with post-state ' + after + ' is unconfirmed, not an unchanged PIN', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  await assert.rejects(maintainPin(connector, open()), unconfirmed('PIN_POSTCONDITION'));
+  assert.equal(requests.filter(q => isChangePin(q.bytes)).length, 1); assert.equal(requests.length, 15);
+}, maintenanceReply('VERIFIABLE', after))));
+
+for (const [label, cards, cause] of [['removed', [], 'CARD_NOT_FOUND'], ['new handle', [cardData({ cardHandle: 'SMCB-CHANGED' })], 'CARD_CHANGED']]) {
+  test('SMC-B PIN maintenance: card ' + label + ' after terminal OK reports an unconfirmed mutation', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+    await assert.rejects(maintainPin(connector, open()), unconfirmed(cause));
+  }, event => isCards(event.bytes) && maintenanceStarted(event) ? cardsReply(event.response, cardsResponse(cards)) : maintenanceReply()(event))));
+}
+
+test('SMC-B PIN maintenance: changed valid ENC after UnblockPin OK cannot confirm the former identity', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(maintainPin(connector, open(), { action: 'unblock', setNewPin: true }), unconfirmed('CERTIFICATE_BINDING', 'UnblockPin'));
+}, event => isReadCards(event.bytes) && maintenanceStarted(event) ? cardsReply(event.response, certificatesResponse([
+  ['C.AUT', authentication.certificate], ['C.ENC', encryption[1].certificate], ['C.SIG', signing.certificate],
+])) : maintenanceReply('BLOCKED')(event))));
+
+test('SMC-B PIN maintenance: TSL refresh in final status response prevents confirmation after terminal success', async () => fixture(async ({ open, manager }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(maintainPin(connector, open()), unconfirmed('SMCB_STATUS'));
+}, async event => { if (isPinStatus(event.bytes) && maintenanceStarted(event)) await manager.refresh(); maintenanceReply()(event); })));
+
+test('SMC-B PIN maintenance: abort during postchecks retains the peer-reported completed operation', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withSmcbPin(async ({ connector }) => {
+    await assert.rejects(maintainPin(connector, open(), { signal: controller.signal }), unconfirmed('ABORTED'));
+  }, event => { if (isPinStatus(event.bytes) && maintenanceStarted(event)) controller.abort(); maintenanceReply()(event); });
+}));
+
+test('SMC-B PIN maintenance: only original management evidence can be consumed and later status updates invalidate it', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  const statusClient = open(), r = await maintainPin(connector, statusClient);
+  assert.throws(() => assertMaintainedSmcbPin({ ...r }, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertMaintainedSmcbPin(r, {}, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertMaintainedSmcbPin(r, connector, open()), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  await connector.getSmcbPinStatus({ selection: r.bundle.selection });
+  assert.throws(() => assertMaintainedSmcbPin(r, connector, statusClient), code('KIM_CONNECTOR_PIN_STATUS_STALE'));
+}, maintenanceReply())));
+
+test('SMC-B PIN maintenance: PIN verification and management share one workflow exclusion', async () => fixture(async ({ open }) => {
+  const entered = Promise.withResolvers();
+  await withSmcbPin(async ({ connector, requests }) => {
+    const statusClient = open(), ongoing = maintainPin(connector, statusClient), release = await entered.promise;
+    await assert.rejects(preparePin(connector, statusClient, { allowPrompt: true }), code('KIM_CONNECTOR_PIN_BUSY'));
+    await assert.rejects(maintainPin(connector, statusClient), code('KIM_CONNECTOR_PIN_BUSY'));
+    release(); (await ongoing).revalidate(); assert.equal(requests.filter(q => isMaintenance(q.bytes)).length, 1);
+  }, event => isMaintenance(event.bytes) ? entered.resolve(() => maintenanceReply()(event)) : maintenanceReply()(event));
+}));
+
+test('SMC-B PIN maintenance: input guards and captured action/options prevent secrets or caller mutation from changing the operation', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  const statusClient = open();
+  for (const changes of [{ action: undefined }, { action: ['change'] }, { action: '__proto__' }, { action: 'unblock' },
+    { setNewPin: false }, { action: 'unblock', setNewPin: 'true' }, { pin: '123456' }, { puk: '12345678' }, { allowPrompt: 'true' }]) {
+    await assert.rejects(maintainPin(connector, statusClient, changes), code('KIM_CONNECTOR_INPUT'));
+  }
+  assert.equal(requests.length, 0);
+  const config = { connector, statusClient, expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'],
+    action: 'unblock', setNewPin: false, allowPrompt: true };
+  const ongoing = maintainSmcbPin(config); config.requiredRoles[0] = '1.2.3'; config.setNewPin = true; config.action = 'change';
+  const r = await ongoing; r.revalidate(); assert.equal(r.action, 'unblock'); assert.equal(r.setNewPin, false);
+  assert.equal(requests.find(q => isUnblockPin(q.bytes)).bytes.includes('<c:SetNewPin>false</c:SetNewPin>'), true);
+}, maintenanceReply('BLOCKED'))));
+
+for (const action of ['change', 'unblock']) test('SMC-B PIN maintenance: longer ' + action + ' obtains fresh evidence after a 45s logical wait', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  const r = await maintainPin(connector, open(), { action, ...(action === 'unblock' ? { setNewPin: false } : {}) }); r.revalidate();
+  assert.equal(r.attempt.checkedAt - r.attempt.startedAt, 45000);
+  assert.ok(r.bundle.certificates.every(c => c.verification.checkedAt >= r.attempt.checkedAt));
+}, event => { if (isMaintenance(event.bytes)) state.now += 45000; maintenanceReply(action === 'unblock' ? 'BLOCKED' : 'VERIFIABLE')(event); })));
+
+test('SMC-B PIN maintenance: a negative fresh certificate status after the mutation remains unconfirmed', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector }) => {
+  await assert.rejects(maintainPin(connector, open()), unconfirmed('CERTIFICATE_REJECTED'));
+}, event => event.bytes.includes('<c:VerifyCertificate') && maintenanceStarted(event)
+  ? cardsReply(event.response, verificationResponse('INVALID')) : maintenanceReply()(event))));
+
+test('SMC-B PIN maintenance: a foreign configured institution cannot start PIN management', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
+  await assert.rejects(maintainPin(connector, open(), { expectedTelematikId: '10-OTHER' }), code('KIM_CONNECTOR_SMCB_IDENTITY'));
+  assert.equal(requests.length, 2); assert.equal(requests.some(q => isMaintenance(q.bytes)), false);
+}, maintenanceReply())));
 
 test('SMC-B PIN preflight: an already VERIFIED card needs no terminal prompt and remains held', async () => fixture(async ({ open }) => withSmcbPin(async ({ connector, requests }) => {
   const statusClient = open(), r = await preparePin(connector, statusClient); r.revalidate();

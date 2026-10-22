@@ -467,8 +467,17 @@ müssen frisch gelesene Kartenmerkmale, alle drei Zertifikat-Hashes, ihre
 Statusbelege und GetPinStatus VERIFIED bestehen. Kopierte oder veraltete
 Belege können diesen Ablauf nicht ersetzen. Ein unklar unterbrochener Versuch
 sperrt weitere PIN-Aufrufe auf derselben Instanz. Reale Terminals, Hostkoordination,
-Initialisierung/Entsperrung, Karten-Schlüsseloperationen und Oberfläche bleiben
+Karten-Schlüsseloperationen und Oberfläche bleiben
 offen. Ein positiver Vorbereitungsbeleg gibt weder Authentisierung noch Versand frei.
+
+Die [PIN-Verwaltung](konnektor-pin-maintenance.md) ergänzt ChangePin für
+Initialisierung und Änderung sowie UnblockPin mit ausdrücklich gewähltem
+SetNewPin. Nur ein passender frischer PIN-Zustand erlaubt den einzelnen
+Terminalversuch. PUK- und PIN-Restversuche werden getrennt behandelt; eine
+gemeldete PUK-Sperre bleibt in der Instanz an die Kartenseriennummer gebunden.
+Nach OK müssen Karte, Zertifikate und regulärer PIN-Status erneut bestehen.
+Eine nachträglich gescheiterte Prüfung darf nicht als unveränderte PIN erscheinen.
+Der Verwaltungsbeleg ersetzt keine anschließende Schlüsseloperation.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 

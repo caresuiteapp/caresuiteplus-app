@@ -4,6 +4,8 @@ import { CARD_SERVICE, CARD_COMMON } from '../../services/kim/connector-xml.mjs'
 export const cardUrl = options => options.url.replace('/CertificateService', '/CardService');
 export const isPinStatus = bytes => bytes.includes('<c:GetPinStatus');
 export const isVerifyPin = bytes => bytes.includes('<c:VerifyPin');
+export const isChangePin = bytes => bytes.includes('<c:ChangePin');
+export const isUnblockPin = bytes => bytes.includes('<c:UnblockPin');
 export function pinResponse(operation = 'GetPinStatus', result = 'VERIFIED', leftTries = null, execution = 'OK') {
   const status = operation === 'GetPinStatus', prefix = status ? 'c' : 'cc';
   return envelope(`<c:${operation}Response><n:Status><n:Result>${execution}</n:Result>${result === 'ERROR' ? remoteError(4064) : ''}</n:Status>`

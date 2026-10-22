@@ -2,7 +2,7 @@ import https from 'node:https';
 import { createSecureContext, checkServerIdentity } from 'node:tls';
 import { isIP } from 'node:net';
 import { createHash, X509Certificate } from 'node:crypto';
-import { CERTIFICATE_SERVICE, EVENT_SERVICE, CARD_SERVICE, connectorService } from './connector-xml.mjs';
+import { CERTIFICATE_SERVICE, EVENT_SERVICE, CARD_SERVICE, PIN_OPERATIONS, connectorService } from './connector-xml.mjs';
 import { KonnektorError, connectorFail, connectorSignal } from './connector-error.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -51,7 +51,7 @@ export class KonnektorHttpsTransport {
     if (this.#closed) connectorFail('CLOSED');
     if (connectorService(operation) !== this.#namespace || !(input instanceof Uint8Array)
       || !input.length || input.length > 65536 || !Number.isInteger(timeoutMs) || timeoutMs < 50
-      || timeoutMs > (operation === 'VerifyPin' ? 180000 : 30000)) connectorFail('INPUT');
+      || timeoutMs > (PIN_OPERATIONS.includes(operation) ? 180000 : 30000)) connectorFail('INPUT');
     if (this.#pending.size >= 16) connectorFail('BUSY');
     const bytes = Buffer.from(input);
     return new Promise((resolve, reject) => {
