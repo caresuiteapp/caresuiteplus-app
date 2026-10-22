@@ -53,7 +53,6 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
   const review = accountReviewFilter(queryValue(params.review));
   const sort = accountSort(queryValue(params.sort));
   const selectedId = queryValue(params.account);
-  const [initialTab, setInitialTab] = useState<'overview' | 'bookings'>('overview');
   const [editor, setEditor] = useState<WfmEditorState>(cleanEditor);
   const editorRef = useRef(editor);
   const reportEditor = useCallback((next: WfmEditorState) => { editorRef.current = next; setEditor(next); }, []);
@@ -94,9 +93,8 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
     if (!focused || !allowLeave()) return;
     router.setParams({ ...next, ...('employee' in next ? { employeeId: undefined } : {}), account: undefined });
   }
-  function selectAccount(account: WfmOfficeEmployeeTimeAccount, tab: 'overview' | 'bookings' = 'overview') {
+  function selectAccount(account: WfmOfficeEmployeeTimeAccount) {
     if (!focused || !allowLeave()) return;
-    setInitialTab(tab);
     router.setParams({ account: account.employeeId });
   }
   function closeAccount() {
@@ -104,11 +102,11 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
     reportEditor(cleanEditor);
     router.setParams({ account: undefined });
   }
-  function navigate(pathname: string) {
+  function navigate(pathname: string, selectedEmployeeId = employeeId) {
     if (!focused || !allowLeave()) return;
     const reviewRange = pathname.endsWith('/pruefqueue') || pathname.endsWith('/historie')
       ? { preset: 'custom', from: period.fromDate, to: period.toDate } : {};
-    router.push({ pathname, params: { month: period.fromDate.slice(0, 7), ...reviewRange, ...(employeeId ? { employeeId } : {}) } } as never);
+    router.push({ pathname, params: { month: period.fromDate.slice(0, 7), ...reviewRange, ...(pathname.endsWith('/pruefqueue') ? { filter: 'pending' } : {}), ...(selectedEmployeeId ? { employeeId: selectedEmployeeId } : {}) } } as never);
   }
   return <section className="wta wta-stack" data-testid="wfm-zeitkonten-screen" data-worktime-accounts="20261018">
     <div className="wta-heading">
@@ -140,7 +138,7 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
         <div className="wta-kpi"><span>Istzeit</span><strong>{accountDuration(totals.actualMinutes)}</strong><small>Erfasste Arbeitszeit</small></div>
         <div className="wta-kpi"><span>Genehmigt</span><strong>{accountDuration(totals.approvedMinutes)}</strong><small>Freigegebene Arbeitszeit</small></div>
         <div className="wta-kpi" data-tone={totals.saldoMinutes < 0 ? 'warning' : 'good'}><span>Saldo im Zeitraum</span><strong>{accountDuration(totals.saldoMinutes, true)}</strong><small>Mit {accountDuration(totals.absenceMinutes)} Abwesenheit</small></div>
-        <div className="wta-kpi" data-tone={totals.openReviews > 0 ? 'warning' : undefined}><span>Offene Prüfungen</span><strong>{totals.openReviews.toLocaleString('de-DE')}</strong><button type="button" className="wta-link" onClick={() => navigate('/business/office/time-tracking/pruefqueue')}>Prüfbereich öffnen →</button></div>
+        <button type="button" className="wta-kpi wta-kpi-action" data-tone={totals.openReviews > 0 ? 'warning' : undefined} onClick={() => navigate('/business/office/time-tracking/pruefqueue')}><span>Offene Prüfungen</span><strong>{totals.openReviews.toLocaleString('de-DE')}</strong><small>Prüfbereich öffnen →</small></button>
       </div>
       <div className="wta-filterline"><span>{accounts.length} von {all.length} Zeitkonten · Summen beziehen sich auf die angezeigten Personen.</span>{activeFilters ? <button type="button" className="wta-link" onClick={() => updateParams({ search: undefined, employee: undefined, review: undefined })}>Filter zurücksetzen</button> : null}</div>
     </> : null}
@@ -154,7 +152,7 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
               <tbody>{accounts.map(account => <tr key={account.employeeId} data-selected={selectedId === account.employeeId}>
                 <td><div className="wta-person"><span className="wta-avatar" aria-hidden="true">{accountInitials(account.employeeName)}</span><div className="wta-person-copy"><button type="button" className="wta-link" onClick={() => selectAccount(account)}>{account.employeeName}</button><small>{account.targetSource === 'contract' ? 'Soll aus Vertrag' : account.targetSource === 'saved_account' ? 'Gespeicherte Sollzeit' : account.targetSource === 'planned' ? 'Soll aus Planung' : `${account.entries.length} Zeitbuchungen`}</small></div></div></td>
                 <td>{accountDuration(account.targetMinutes)}</td><td>{accountDuration(account.actualMinutes)}</td><td>{accountDuration(account.approvedMinutes)}</td><td>{accountDuration(account.absenceMinutes)}</td><td><span className="wta-saldo" data-negative={account.saldoMinutes < 0}>{accountDuration(account.saldoMinutes, true)}</span></td>
-                <td>{account.openReviewCount > 0 ? <button type="button" className="wta-link" aria-label={`${account.openReviewCount} offene Prüfungen für ${account.employeeName}`} onClick={() => selectAccount(account, 'bookings')}><span className="wta-badge" data-tone="warning">{account.openReviewCount} offen</span></button> : <span className="wta-badge">Keine offenen</span>}</td>
+                <td>{account.openReviewCount > 0 ? <button type="button" className="wta-link" aria-label={`${account.openReviewCount} ${account.openReviewCount === 1 ? 'offene Prüfung' : 'offene Prüfungen'} für ${account.employeeName}`} onClick={() => navigate('/business/office/time-tracking/pruefqueue', account.employeeId)}><span className="wta-badge" data-tone="warning">{account.openReviewCount} offen →</span></button> : <span className="wta-badge">Keine offenen</span>}</td>
                 <td><button type="button" className="wta-button" aria-label={`Zeitkonto von ${account.employeeName} öffnen`} onClick={() => selectAccount(account)}>Öffnen</button></td>
               </tr>)}</tbody>
             </table></div>}
@@ -164,7 +162,7 @@ function Accounts({ tenantId, reviewerId, roleKey, scopeKey, canCorrect, canMana
     <div className="wta-workflow"><p>Vor dem Monatsabschluss offene Zeiten prüfen und Abwesenheiten freigeben. Anschließend die Gehaltsstatistik für den gewählten Monat öffnen.</p><button type="button" className="wta-button" onClick={() => navigate('/business/office/payroll')}>Zur Gehaltsstatistik →</button></div>
     <PlatformModal visible={Boolean(selectedId)} title={selected ? `Zeitkonto · ${selected.employeeName}` : 'Zeitkonto'} subtitle={`${periodLabel} · ${officePeriodLabel(period)}`} maxWidth={1320} minWidth={280} maxHeightRatio={0.94} surfaceScope="company" dismissOnBackdrop={false} isDirty={editor.dirty && !editor.childOpen} onClose={closeAccount} bodyStyle={{ padding: 14, backgroundColor: '#f3f7fc' }}>
       {error && hasData ? <div className="wta"><div className="wta-message" data-tone="warning" role="alert">Die Aktualisierung ist fehlgeschlagen. Angezeigt wird der letzte erfolgreiche Stand. {error}</div></div> : null}
-      {selected ? <WfmEmployeeTimeAccountWorkspace key={`${selected.employeeId}:${period.fromDate}:${period.toDate}`} account={selected} tenantId={tenantId} reviewerId={reviewerId} roleKey={roleKey} canCorrect={canCorrect} canManage={canManage} periodLabel={periodLabel} period={period} initialTab={initialTab} onChanged={query.refresh} onEditorStateChange={reportEditor} onClose={closeAccount} />
+      {selected ? <WfmEmployeeTimeAccountWorkspace key={`${selected.employeeId}:${period.fromDate}:${period.toDate}`} account={selected} tenantId={tenantId} reviewerId={reviewerId} roleKey={roleKey} canCorrect={canCorrect} canManage={canManage} periodLabel={periodLabel} period={period} onChanged={query.refresh} onEditorStateChange={reportEditor} onClose={closeAccount} />
         : <div className="wta wta-state"><h3>{busy ? 'Zeitkonto wird geladen …' : 'Zeitkonto nicht verfügbar'}</h3><p>{busy ? 'Die Daten werden für den gewählten Zeitraum abgerufen.' : 'Die ausgewählte Person ist in diesem Zeitraum nicht verfügbar. Bitte schließen Sie die Ansicht und prüfen Sie den Zeitraum.'}</p></div>}
     </PlatformModal>
   </section>;
