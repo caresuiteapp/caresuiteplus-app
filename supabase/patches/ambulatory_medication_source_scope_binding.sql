@@ -13,7 +13,6 @@ begin
  select * into m from public.medications where id=s.medication_id and tenant_id=tenant and client_id=s.client_id for share;
  select * into d from public.client_documents where id=s.document_id and tenant_id=tenant and client_id=s.client_id for share;
  perform care_private.med_packet_require(m.id is not null and d.id is not null and d.status='aktiv','Aktives Originaldokument oder native Verordnung fehlt.');
- perform care_private.medication_native_order(to_jsonb(m));
  if exists(select 1 from care_private.medication_source_capture_receipts r where r.source_id=s.id) then
   perform care_private.med_packet_require((s.document_snapshot-'content_sha256'-'content_size'-'content_fingerprint_origin') is not distinct from to_jsonb(d) and exists(select 1 from care_private.medication_source_capture_receipts r where r.source_id=s.id and r.tenant_id=tenant and r.source_fingerprint=care_private.medication_json_fingerprint(to_jsonb(s))),'Gespeichertes Quellenoriginal oder vollständiger Dokumentstand wurde geändert.');
  end if;

@@ -1,5 +1,7 @@
 # Medication source capture, archive and recovery — 2026-10-22
 
+Subsequent scope update: medication-order-revisions-20261022.md supersedes this note's final native-completeness restriction. Technical capture/archive now preserve incomplete native facts; the strict clinical validator remains unchanged. The original evidence below describes this earlier implementation stage.
+
 ## Integrated result
 
 The prepared Web flow now connects document selection, byte fingerprint capture, an independently confirmed source write, archive completion, existing-request recovery and historical download. A returned UUID alone does not mark source capture successful. The Web service reads the exact retained source through a separate own-request confirmation RPC and verifies tenant, client, medication, actor, request, complete original payload, document facts and native microsecond versions.

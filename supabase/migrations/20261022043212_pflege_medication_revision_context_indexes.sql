@@ -1,0 +1,2 @@
+create index medication_source_revision_context on public.medication_order_sources(tenant_id,medication_id,client_id,created_at desc,id desc);
+create index medication_archive_proof_source on care_private.medication_archive_proof_receipts(tenant_id,source_id,archive_id,recorded_at desc,request_id desc);

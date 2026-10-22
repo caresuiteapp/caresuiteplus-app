@@ -12,7 +12,6 @@ begin
  select * into m from public.medications where id=s.medication_id and tenant_id=tenant and client_id=s.client_id for share;
  select * into d from public.client_documents where id=s.document_id and tenant_id=tenant and client_id=s.client_id for share;
  perform care_private.med_packet_require(m.id is not null and d.id is not null and d.status='aktiv','Aktives Originaldokument oder native Verordnung fehlt.');
- perform care_private.medication_native_order(to_jsonb(m));
  perform care_private.med_packet_require((s.order_snapshot-'created_by'-'updated_by') is not distinct from (to_jsonb(m)-'created_by'-'updated_by'),'Verordnungsoriginal wurde geändert oder ist nicht vollständig gebunden.');
  perform care_private.med_packet_require(jsonb_typeof(s.document_snapshot)='object' and s.document_snapshot->>'id'=d.id::text and s.document_snapshot->>'title'=d.title and s.document_snapshot->>'file_name'=d.file_name and s.document_snapshot->>'mime_type'=d.mime_type and s.document_snapshot->>'status'=d.status and s.document_snapshot->>'storage_path'=d.storage_path and s.document_snapshot->>'content_fingerprint_origin'='client_observed','Dokumentoriginal ist nicht vollständig gebunden.');
  document_time:=care_private.med_packet_time(s.document_snapshot->'updated_at');

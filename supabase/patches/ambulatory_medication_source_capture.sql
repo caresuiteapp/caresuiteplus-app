@@ -54,7 +54,6 @@ begin
   perform care_private.med_packet_require(r.actor_id=actor and r.payload is not distinct from p_payload and s.tenant_id=tenant and s.medication_id=m.id and s.client_id=m.client_id and s.request_id=p_request and s.recorded_by=actor and r.source_fingerprint=care_private.medication_json_fingerprint(to_jsonb(s)),'Anfrage-ID oder gespeichertes Quellenoriginal widersprüchlich.');
   return s.id;
  end if;
- perform care_private.medication_native_order(to_jsonb(m));
  perform care_private.med_packet_require(care_private.med_packet_time(to_jsonb(replace(p_payload->>'expectedUpdatedAt',' ','T')))=m.updated_at,'Verordnungsstand wurde geändert.');
  select * into d from public.client_documents where id=(p_payload->>'documentId')::uuid and tenant_id=tenant and client_id=m.client_id for share;
  perform care_private.med_packet_require(d.id is not null and d.status='aktiv' and nullif(btrim(d.title),'') is not null and nullif(btrim(d.file_name),'') is not null and nullif(btrim(d.mime_type),'') is not null and care_private.med_packet_time(to_jsonb(replace(p_payload->>'documentUpdatedAt',' ','T')))=d.updated_at,'Aktives Dokument oder ursprüngliche Dokumentfassung fehlt.');
