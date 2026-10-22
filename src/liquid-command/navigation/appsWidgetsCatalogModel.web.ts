@@ -47,6 +47,12 @@ export function desktopCatalogAreaForRoute(route: string): DesktopAreaKey | null
   return desktopAreaForRoute(path);
 }
 
+/** Office launchers can be placed on each Web desktop; their source stays Office. */
+export function isDesktopCatalogRouteAvailableInArea(route: string, area: DesktopAreaKey): boolean {
+  const source = desktopCatalogAreaForRoute(route);
+  return source === area || source === 'office';
+}
+
 type CatalogRule = {
   all?: readonly PermissionKey[];
   any?: readonly PermissionKey[];
@@ -151,6 +157,6 @@ export function canShowDesktopCatalogRoute(route: string, access: DesktopCatalog
 export function filterDesktopCatalogEntries<T extends { route: string; permission?: PermissionKey }>(
   entries: readonly T[], area: DesktopAreaKey, access: DesktopCatalogAccess,
 ): T[] {
-  return entries.filter(entry => desktopCatalogAreaForRoute(entry.route) === area &&
+  return entries.filter(entry => isDesktopCatalogRouteAvailableInArea(entry.route, area) &&
     canShowDesktopCatalogRoute(entry.route, access) && (!entry.permission || access.can(entry.permission)));
 }

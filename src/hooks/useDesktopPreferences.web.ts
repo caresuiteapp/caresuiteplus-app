@@ -15,6 +15,7 @@ type Options = {
   selectedArea: DesktopAreaKey;
   availableWidgetIds: readonly string[];
   defaultWidgetIds: readonly string[];
+  migrationWidgetIds: readonly string[];
 };
 type PreferenceState = {
   scope: string;
@@ -42,9 +43,9 @@ function resolveUpdate<T>(action: SetStateAction<T>, current: T): T {
   return typeof action === 'function' ? (action as (current: T) => T)(current) : action;
 }
 
-export function useDesktopPreferences({ tenantId, owner, selectedArea, availableWidgetIds, defaultWidgetIds }: Options) {
+export function useDesktopPreferences({ tenantId, owner, selectedArea, availableWidgetIds, defaultWidgetIds, migrationWidgetIds }: Options) {
   // Include the allowed catalogue so a changed permission set cannot save stale widgets.
-  const scope = JSON.stringify([tenantId, owner, selectedArea, availableWidgetIds, defaultWidgetIds]);
+  const scope = JSON.stringify([tenantId, owner, selectedArea, availableWidgetIds, defaultWidgetIds, migrationWidgetIds]);
   const [state, setState] = useState<PreferenceState | null>(null);
   const [loadFailure, setLoadFailure] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -59,7 +60,7 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
   useEffect(() => {
     let active = true;
     setLoadFailure(null);
-    const [scopeTenant, scopeOwner, area, allowedIds, defaults] = JSON.parse(scope) as [string, string, DesktopAreaKey, string[], string[]];
+    const [scopeTenant, scopeOwner, area, allowedIds, defaults, migrationIds] = JSON.parse(scope) as [string, string, DesktopAreaKey, string[], string[], string[]];
     if (!scopeTenant || !scopeOwner) return;
     const previousModuleKeys = [desktopStorageKey(scopeTenant, scopeOwner), ...(['office', 'assist', 'pflege', 'stationaer', 'beratung'].includes(area) ? [moduleDesktopStorageKey(scopeTenant, scopeOwner, area as ProductKey)] : [])];
     const keys = [desktopKey, `${DESKTOP_WIDGETS_STORAGE_KEY}.${scopeOwner}`, `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${scopeOwner}`, `${LEGACY_FAVORITES_STORAGE_KEY}.${scopeOwner}`, sidebarKey, backgroundKey, catalogIntroductionKey, notesIntroductionKey, ...previousModuleKeys];
@@ -68,7 +69,10 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
       const oldValue = oldDesktop ?? previousDesktop ?? legacy;
       const previous = desktop !== null || !['office', 'assist'].includes(area) ? [] : previousModules.some(value => value !== null) ? previousModules
         : oldValue !== null ? [migratePreviousDesktop(oldValue, !oldDesktop && Boolean(previousDesktop))] : [];
-      const restored = restoreDesktopWidgetIds(desktop, previous, allowedIds, defaults);
+      // Shared Office apps are opt-in on other areas. Keep the legacy automatic
+      // migration area-specific; current placements and explicit recovery use the full catalogue.
+      const restoreIds = desktop === null && previous.length > 0 ? migrationIds : allowedIds;
+      const restored = restoreDesktopWidgetIds(desktop, previous, restoreIds, defaults);
       const savedDesktopIds = readSavedDesktopWidgetIds(desktop) ?? [];
       // An explicitly empty current or migrated list is a choice, not a missing setup.
       const explicitlyEmpty = restored.length === 0 && (desktop !== null || previous.length > 0);
