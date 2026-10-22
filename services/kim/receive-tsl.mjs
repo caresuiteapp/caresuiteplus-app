@@ -3,16 +3,17 @@ import { MAX_KIM_MESSAGE } from './message.mjs';
 import { receiveReportContext } from './receive-error.mjs';
 import { TslOcspStatusClient } from './tsl-ocsp.mjs';
 import { TslError } from './tsl.mjs';
-import { checkVzdConfiguration, matchVzdSender } from './vzd-bindings.mjs';
-import { VzdError } from './vzd-ldap.mjs';
-import { assessKimOcspEvidence } from './ocsp.mjs';
+import { checkVzdConfiguration } from './vzd-bindings.mjs';
+import { receiveEccKimMessageWithDirectory } from './receive-vzd.mjs';
 
 const fail = code => { throw new TslError(code); };
 const copy = value => value instanceof Uint8Array ? Buffer.from(value) : value;
 const errorCode = e => e instanceof TslError && /^KIM_(?:TSL|OCSP)_[A-Z_]{1,48}$/.test(e.code) ? e.code : 'KIM_TSL_STATUS_FAILED';
 
 /** Local diagnostic facade for a persisted original. Message cryptography and
- * OSIG/AUT/header bindings must pass before a status request is made. Still no
+ * CMS/header bindings must pass before a status request is made. With a checked
+ * directory, OSIG/From binding selects whether AUT must be checked; without a
+ * directory, both explicitly pinned certificates remain mandatory. Still no
  * TI identity, normal delivery, SMTP transmission or billing-state transition.
  */
 export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, signal } = {}) {
@@ -33,12 +34,13 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
     const isKim = context.outer?.headers.some(h => h.name === 'x-kom-le-version');
     context.original.fill(0); context.verificationReport?.fill(0);
     if (!isKim) return receiveEccKimMessage(captured, report);
+    if (directory !== undefined) return await receiveEccKimMessageWithDirectory(captured, report, { statusClient, directory, signal });
     try { opened = openEccKimMessage(captured); }
     catch { return receiveEccKimMessage(captured, report); }
     finally { opened?.message?.fill(0); } // No decrypted message stays live across network waits.
-    let ocsp, acquisition, directoryAcquisition;
+    let ocsp, acquisition;
     try {
-      ocsp = await statusClient.messageEvidence({ signingCertificate: captured.expectedSignerCertificate,
+      ocsp = await TslOcspStatusClient.prototype.messageEvidence.call(statusClient, { signingCertificate: captured.expectedSignerCertificate,
         authenticationCertificate: captured.expectedAuthCertificate, signal });
       acquisition = Object.freeze({ state: ocsp.failures.length ? 'incomplete' : 'checked', tsl: ocsp.tsl,
         certificateTypes: ocsp.certificateTypes, certificateAdmissions: ocsp.certificateAdmissions, failures: ocsp.failures });
@@ -46,26 +48,9 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
       if (signal?.aborted || e?.code === 'KIM_TSL_ABORTED') fail('KIM_TSL_ABORTED');
       ocsp = {}; acquisition = Object.freeze({ state: 'unavailable', code: errorCode(e) });
     }
-    if (directory !== undefined) {
-      const statuses = assessKimOcspEvidence(ocsp, { signing: captured.expectedSignerCertificate, authentication: captured.expectedAuthCertificate });
-      directoryAcquisition = Object.freeze({ state: 'not-checked', code: 'KIM_VZD_CERTIFICATE_STATUS' });
-      if (acquisition.state === 'checked' && statuses.every(s => s.status === 'good')) {
-        try {
-          const result = await matchVzdSender(directory, opened.sender, ocsp, signal, statusClient);
-          // Recheck the actual peer's raw proof after the final async boundary.
-          result.revalidate(); directoryAcquisition = result.binding;
-        }
-        catch (e) {
-          if (signal?.aborted) fail('KIM_TSL_ABORTED');
-          directoryAcquisition = Object.freeze({ state: 'unavailable', code: e instanceof VzdError ? e.code : 'KIM_VZD_UNAVAILABLE' });
-        }
-      }
-      captured.directoryRejected = directoryAcquisition.state !== 'matched';
-    }
     if (signal?.aborted) fail('KIM_TSL_ABORTED');
     // The synchronous receiver verifies each raw proof against the same guarded
     // verifier again; a good flag or a TSL change cannot authorize old evidence.
-    return { ...receiveEccKimMessage({ ...captured, ocsp }, report), statusAcquisition: acquisition,
-      ...(directoryAcquisition ? { directoryAcquisition } : {}) };
+    return { ...receiveEccKimMessage({ ...captured, ocsp }, report), statusAcquisition: acquisition };
   } finally { captured.bytes.fill(0); report.verificationReport?.bytes?.fill?.(0); }
 }

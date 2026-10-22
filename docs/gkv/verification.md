@@ -8,8 +8,50 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**574 unterschiedliche Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**619/619 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
+rund 39,0 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Bedingte AUT-Prüfung beim Empfang am 22.10.2026
+
+**45 neue Fälle** erweitern die bisherigen 574 Prüfungen. Der abschließende
+`npm run verify:gkv:services`-Lauf prüft den gesamten Bestand gemeinsam.
+Die Nachrichten enthalten echte CMS-Signaturen und Ciphertextbytes. Geänderte
+AUT-Werte werden erneut in die signierte innere Nachricht eingebaut; die
+Verzweigung wird durch tatsächliche LDAPS-Einträge und signierte OCSP-Belege
+ausgelöst.
+
+Bei passender OSIG-/VZD-ID entfallen AUT-Prüfung und Statusanfrage auch bei
+fehlendem, einseitigem, doppeltem, ungleichem oder manipuliertem AUT. Audience,
+Absender, nbf, Produktkennung, Algorithmus und doppelte Claims sind als
+Fehlvarianten in beiden Empfangszweigen geprüft. Bei abweichender OSIG-ID
+scheitern dieselben Tokens mit Diagnose 10 vor der AUT-Statusabfrage.
+Ein übersprungener AUT-Befund wird nicht als positiv dargestellt.
+
+Das tatsächliche x5c-Leaf funktioniert im erforderlichen AUT-Zweig ohne
+vorgegebenes Leaf und ohne erneute FD-Annahmefrist. Ein zusätzlich übergebener
+Pin muss exakt passen. Manipulierte Ausstellersignatur, falsche Zertifikatsrolle,
+fehlende Admission, gesperrter/unbekannter Status und HTTP-Ausfall werden
+abgelehnt. OSIG-/VZD-Fehler erlauben keinen AUT-Ausweichpfad. Aufruferflags,
+überschriebene Statusmethoden und kopierte Inspektionsobjekte erzeugen keine
+Prüfbelege. Andere geschützte Header bleiben vor jeder Netzabfrage verpflichtend.
+
+Ein TSL-Wechsel während AUT-OCSP entwertet vorherige Belege. Der getrennte
+Ablauffall verwendet einen noch gültigen, älteren Serverbeleg und eine passend
+rückdatierte Test-Responderurkunde: Läuft nur der Serverbeleg während AUT-OCSP
+ab, bleibt das Ergebnis trotz positiver OSIG-/AUT-Belege `XCS_DIRECTORY`.
+Abbruch während AUT-OCSP sowie nach LDAP-Bind verhindert die Fortsetzung.
+Nachträgliche Eingabe-/Zertifikats-/Berichtsänderungen verändern die kopierte
+Prüfgrundlage nicht. Der ausdrücklich angeforderte Diagnoseanhang enthält die
+unveränderten geschützten Originalbytes; standardmäßig bleibt er aus.
+
+Alle positiven lokalen Zweige bleiben Diagnose 07 mit `identityStatus:
+unverified` und `deliveryStatus: diagnostic-only`. Keine Installation,
+UI-/Android-/Supabase-/Produktionsänderung oder echte TI-Abfrage. Die vier
+Vercel-Builds des Vorgängers `fe4c3fbb` sind erfolgreich bestätigt; dies ist
+kein Buildnachweis für den neuen Commit. [Schnittstelle, Normbezug und offene
+Profil-/Integrationsgrenzen](conditional-aut-receive.md).
 
 ## VZD-Serverzertifikat vor LDAP am 22.10.2026
 
@@ -20,7 +62,8 @@ die Nachprüfung des Serverbelegs nach der letzten asynchronen Grenze des
 Empfangs ergänzt. Der dafür erneut ausgeführte vollständige
 `tsl-ocsp.test.mjs`-Lauf bestand mit **80 Fällen**, einschließlich des zusätzlich
 ergänzten Falls, in rund 23,1 Sekunden. Damit sind 574 unterschiedliche Fälle
-erfolgreich geprüft; ein gemeinsamer 574-Fälle-Lauf wird hier nicht behauptet.
+erfolgreich geprüft; für dieses frühere Inkrement gab es keinen gemeinsamen
+574-Fälle-Lauf. Der aktuelle gemeinsame Gesamtlauf ist oben dokumentiert.
 
 OpenSSL stellt echte ECC-Serverzertifikate mit C.ZD.TLS-S, gematik-Policy und
 technischer VZD-Admission aus. Geänderte Erweiterungen werden erneut mit der

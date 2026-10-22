@@ -87,15 +87,21 @@ Versandfreigabe oder ein dauerhafter Identitätsnachweis.
 ## Absender beim Empfang
 
 `receiveEccKimMessageWithTsl` akzeptiert zusätzlich die Option `directory`.
-Erst nach erfolgreicher Nachrichtenkryptografie, Header-/AUT-Prüfung und zwei
-positiven Statusprüfungen wird die **geschützte innere From-Adresse** abgefragt.
-Der entschlüsselte Nachrichtenpuffer bleibt während der Netzabfragen gelöscht.
+Nach erfolgreicher Nachrichtenkryptografie, Headerprüfung und positivem
+OSIG-Status wird die **geschützte innere From-Adresse** abgefragt. Passt die
+Verzeichnis-ID zur geprüften OSIG-ID, entfällt AUT einschließlich Statusabfrage.
+Bei abweichender ID wird der tatsächliche AUT-Token samt eingebettetem Leaf
+geprüft und seine TSL-/OCSP-bestätigte ID mit demselben Eintrag verglichen.
+Der entschlüsselte Nachrichtenpuffer wird vor den Netzabfragen überschrieben.
+[Entscheidung, Fehlerzustände und Profilgrenzen](conditional-aut-receive.md).
 
 `directoryAcquisition` unterscheidet:
 
 - `matched`: Verzeichnis-ID passt zum OSIG-Zertifikat (`matchedBy: signing`)
   oder, bei abweichendem OSIG, zum geprüften AUT-Zertifikat (`authentication`).
-  Die beiden Übereinstimmungen werden getrennt ausgegeben.
+  Die Übereinstimmungen werden getrennt ausgegeben. `authenticationMatches`
+  fehlt, wenn die AUT-Identität nicht geprüft wurde; dies bedeutet weder
+  Übereinstimmung noch Widerspruch.
 - `mismatch`: Der eindeutige Eintrag passt zu keiner der beiden Identitäten.
 - `unavailable`: Abfrage, Format oder Eindeutigkeit konnten nicht bestätigt werden.
 - `not-checked`: Die vorgeschaltete Zertifikatsprüfung war nicht positiv.
@@ -119,9 +125,9 @@ Der folgende Ausbau ergänzt 32 Zertifikats- und 19 Server-Integrationstests.
 Noch offen: vollständige TUC_PKI_018-/Krypt-Varianten,
 authentisierte TI-Anker-/Endpointprovisionierung und Rotation, Konnektor-LDAP-Proxy,
 Prüfung gegen einen unabhängigen VZD/KIM-Client und reale TI-Umgebungen.
-Der Empfang verlangt weiterhin immer AUT und beide positiven Statusbelege;
-der normative Empfangszweig ohne erforderlichen AUT-Check ist noch nicht
-implementiert. Ebenso fehlen vollständige Versions-/Anwendungsverhandlung,
+Der bedingte AUT-Zweig ist für dieses lokale ECC-Profil ergänzt. Ohne passende
+OSIG-ID und ohne beidseitiges AUT wird weiterhin abgelehnt; vollständige
+Altprofil-Kompatibilität ist nicht implementiert. Ebenso fehlen vollständige Versions-/Anwendungsverhandlung,
 allgemeine LDAP-Funktionen, RSA-/Altadressprofile, normative Teilversandfehler,
 AccountManager-Registrierung, KAS, SMC-B und die produktive CareSuite-Anbindung.
 Das FD-Inventar bleibt bei 106 Kennungen: 28 teilweise lokal belegt, 78 offen.

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { kimAddress, messageId } from './address.mjs';
 import { readMessage, addressList, parseContentType, decodedBase64, MAX_KIM_MESSAGE, kimTimestamp } from './message.mjs';
-import { createEccKimAuth, verifyReceivedEccKimAuth, unfoldAutHeader, validCmVersion, validPtVersion } from './message-auth.mjs';
+import { createEccKimAuth, verifyReceivedEccKimAuth, inspectReceivedEccKimAuth, unfoldAutHeader, validCmVersion, validPtVersion } from './message-auth.mjs';
 import { sealEccKimPayload, openEccKimPayload, inspectEccKimPayload } from './ecc-cms.mjs';
 import { readKimEnvelope } from './envelope.mjs';
 import { receiveReportContext, buildKimReceiveError } from './receive-error.mjs';
@@ -12,6 +12,7 @@ const replaced = new Set(['x-kim-auth', 'x-kim-cmversion', 'x-kim-ptversion']);
 const reserved = new Set(['x-kim-decryptionresult', 'x-kim-integritycheckresult', 'x-kim-integritycheckrefid', 'x-kim-fehlermeldung']);
 const protectedName = name => copied.has(name) || name.startsWith('x-kim-');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const directoryInspections = new WeakMap();
 
 /** Internal diagnostic errors only: no original headers, tokens, body or private-key errors. */
 export class KimMessageError extends Error {
@@ -44,7 +45,7 @@ function visibleRecipients(message) {
     return value === undefined || (name === 'bcc' && value === '') ? [] : addressList(value);
   });
 }
-function validateOriginal(message) {
+function validateOriginal(message, deferAuthentication = false) {
   timestamp(message.one('date', true));
   if (!messageId(message.one('message-id', true))) fail('KIM_MESSAGE_ID');
   message.one('subject');
@@ -54,7 +55,7 @@ function validateOriginal(message) {
   if (message.one('x-kom-le-version') !== undefined) fail('KIM_MESSAGE_ALREADY_PROTECTED');
   for (const h of message.headers) {
     if (reserved.has(h.name)) fail('KIM_MESSAGE_RESERVED_HEADER');
-    if (h.name.startsWith('x-kim-')) message.one(h.name, true);
+    if (h.name.startsWith('x-kim-') && !(deferAuthentication && h.name === 'x-kim-auth')) message.one(h.name, true);
   }
   const expires = message.one('expires'); if (expires !== undefined) timestamp(expires);
 }
@@ -103,9 +104,10 @@ export function createEccKimMessage({ message, sender, envelopeRecipients, recip
   } finally { prepared?.fill(0); }
 }
 
-function compareHeaders(inner, outer) {
+function compareHeaders(inner, outer, deferAuthentication = false) {
   const names = new Set([...inner.headers, ...outer.headers].filter(h => protectedName(h.name)).map(h => h.name));
   for (const name of names) {
+    if (deferAuthentication && name === 'x-kim-auth') continue;
     const a = inner.one(name), b = outer.one(name);
     if (a === undefined || b === undefined) fail('KIM_MESSAGE_HEADER_MISMATCH');
     if (name === 'x-kim-auth' ? unfoldAutHeader(a) !== unfoldAutHeader(b) : a !== b) fail('KIM_MESSAGE_HEADER_MISMATCH');
@@ -121,8 +123,8 @@ export function openEccKimMessage({ bytes, address, recipientCertificate, privat
   return processMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate, expectedAuthCertificate, now });
 }
 function processMessage({ bytes, address, recipientCertificate, privateKey, expectedSignerCertificate,
-  expectedAuthCertificate, now }, onFailure) {
-  let opened, stage = 'mime', success = false;
+  expectedAuthCertificate, now }, onFailure, deferAuthentication = false) {
+  let opened, inner, stage = 'mime', success = false;
   try {
     const outer = readMessage(bytes);
     if (outer.one('x-kom-le-version', true) !== '1.0') fail('KIM_MESSAGE_VERSION_UNSUPPORTED', stage);
@@ -141,13 +143,17 @@ function processMessage({ bytes, address, recipientCertificate, privateKey, expe
     opened = decode({ bytes: cms, address, recipientCertificate, privateKey, expectedSignerCertificate, now });
     if (opened.signatureStatus === 'rejected') fail('KIM_MESSAGE_SIGNATURE_REJECTED', 'signature');
     stage = 'headers';
-    const inner = readMessage(opened.message); validateOriginal(inner); compareHeaders(inner, outer);
+    inner = readMessage(opened.message); validateOriginal(inner, deferAuthentication); compareHeaders(inner, outer, deferAuthentication);
     const sender = origin(inner), visible = visibleRecipients(inner), boundEnvelope = readKimEnvelope(cms, [sender, address, ...visible]);
     // Inspect again with authenticated header addresses: an encrypted copy for an unlisted
     // mailbox must not be inferred from an unsigned From/To field.
     if (!boundEnvelope.mappings.length) fail('KIM_MESSAGE_RECIPIENTS');
     stage = 'auth';
-    const authentication = verifyReceivedEccKimAuth({ header: inner.one('x-kim-auth', true), sender,
+    const authentication = deferAuthentication ? Object.freeze({
+      inner: Object.freeze(inner.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
+      outer: Object.freeze(outer.headers.filter(h => h.name === 'x-kim-auth').map(h => h.value)),
+      cmVersion: inner.one('x-kim-cmversion'), now,
+    }) : verifyReceivedEccKimAuth({ header: inner.one('x-kim-auth', true), sender,
       expectedCertificate: expectedAuthCertificate, cmVersion: inner.one('x-kim-cmversion', true), now });
     success = true;
     return { ...opened, messageId: inner.one('message-id'), sender, authentication,
@@ -159,7 +165,53 @@ function processMessage({ bytes, address, recipientCertificate, privateKey, expe
     const error = e instanceof KimMessageError ? e : new KimMessageError(code, e?.message === 'KIM_CMS_SIGNATURE_REJECTED' ? 'signature' : stage);
     if (onFailure) return onFailure(error, { message: opened?.message, decrypted: opened !== undefined });
     throw error;
-  } finally { if (!success) opened?.message?.fill(0); }
+  } finally {
+    // readMessage owns a separate buffer. Erase its plaintext body as well as
+    // the decrypted original before the directory orchestrator awaits I/O.
+    inner?.body?.fill(0);
+    if (!success) opened?.message?.fill(0);
+  }
+}
+
+function directoryInspection(opened, bytes) {
+  const inspection = Object.freeze({ originalSha256: sha256(bytes), sender: opened.sender,
+    messageId: opened.messageId, signerSha256: opened.signerSha256, identityStatus: 'unverified' });
+  directoryInspections.set(inspection, opened.authentication);
+  return inspection;
+}
+/** First receiving-directory phase: verify CMS and protected headers, then erase
+ * plaintext. AUT is deliberately pending until a checked VZD record selects the
+ * branch. The opaque result exposes neither a token nor a delivery permission.
+ */
+export function inspectEccKimMessageForDirectory(options) {
+  let opened;
+  try {
+    opened = processMessage({ ...options, now: options.now ?? Date.now() }, undefined, true);
+    return directoryInspection(opened, options.bytes);
+  } finally { opened?.message?.fill(0); }
+}
+export function authenticateInspectedKimMessage(inspection, expectedCertificate) {
+  try {
+    const a = directoryInspections.get(inspection);
+    if (!a || a.inner.length !== 1 || a.outer.length !== 1 || unfoldAutHeader(a.inner[0]) !== unfoldAutHeader(a.outer[0])) throw new Error();
+    return inspectReceivedEccKimAuth({ header: a.inner[0], sender: inspection.sender, expectedCertificate, cmVersion: a.cmVersion, now: a.now });
+  } catch { fail('KIM_MESSAGE_AUTH_REJECTED', 'auth'); }
+}
+/** Internal diagnostic renderer for the directory orchestrator. Repeats actual
+ * cryptography; the synchronous assessor must recheck raw status/directory proofs
+ * and any required AUT. This API can only produce a diagnostic, never delivery.
+ * No caller option on the strict open/receive APIs can switch AUT checking off.
+ */
+export function receiveEccKimDirectoryDiagnostic(options, reportOptions, assess) {
+  if (typeof assess !== 'function') fail('KIM_MESSAGE_CONFIGURATION', 'prepare');
+  const now = options.now ?? Date.now(), context = receiveReportContext({ ...reportOptions, bytes: options.bytes, address: options.address, now });
+  let opened;
+  try {
+    opened = processMessage({ ...options, bytes: context.original, now }, (error, state) => buildKimReceiveError(context, error, state), true);
+    if (opened.kind === 'diagnostic') return opened;
+    const result = assess(directoryInspection(opened, context.original));
+    return buildKimReceiveError(context, result.error, { message: opened.message, decrypted: true, certificateStatus: result.certificateStatus });
+  } finally { opened?.message?.fill(0); context.original.fill(0); context.verificationReport?.fill(0); }
 }
 
 /** Receive facade for an already persisted local original. No SMTP send, POP3 deletion,

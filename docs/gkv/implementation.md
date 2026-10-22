@@ -34,7 +34,7 @@ verpflichtenden Hashvergleich, Signierer-AIA gegen konfigurierte OCSP-Routen und
 periodische Prüfung mit Invalidierung bereits ausgegebener Prüfer.
 Die [TSL-gebundene Statusprüfung](tsl-ocsp.md) wählt für Nachrichtenzertifikate
 die CA-ServiceSupplyPoints, prüft dauerhafte Belege gegen den aktuellen Stand
-und verbindet den Abruf beider Zertifikatsrollen mit der Empfangsdiagnose.
+und verbindet den Abruf der erforderlichen Zertifikatsrollen mit der Empfangsdiagnose.
 Die [Zertifikatstypprüfung](certificate-types.md) gleicht nun Verwendungszweck,
 DER-Typkennung und die Ausstellungsberechtigung der CA in der aktuellen TSL ab,
 bevor eine Statusabfrage oder Cacheverwendung beginnt.
@@ -47,7 +47,10 @@ Zertifikats-ID. Die [Serverprüfung](vzd-server-certificate.md) verlangt nun
 C.ZD.TLS-S, die technische VZD-Rolle, das unterstützte ECC-Profil und positiven
 OCSP-Status des tatsächlichen TLS-Peers vor LDAP. Vollständige Profilvarianten,
 authentisierte TI-Provisionierung und produktive VZD-/Konnektoranbindung bleiben
-offen; ein lokaler Treffer gibt keine Zustellung frei.
+offen; ein lokaler Treffer gibt keine Zustellung frei. Der
+[bedingte AUT-Empfang](conditional-aut-receive.md) prüft jetzt zuerst OSIG und
+die From-Zuordnung. Nur bei abweichender ID werden AUT, sein tatsächliches
+x5c-Leaf und dessen Bindung an denselben VZD-Eintrag geprüft.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

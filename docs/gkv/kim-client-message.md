@@ -1,6 +1,6 @@
 # KIM-Nachrichtenaufbau und Empfang
 
-Stand: 21.10.2026. Interner, lokal geprüfter Entwicklungsbaustein für Nachrichten
+Stand: 22.10.2026. Interner, lokal geprüfter Entwicklungsbaustein für Nachrichten
 mit eingebettetem Inhalt und `X-KOM-LE-Version: 1.0`. Kein zugelassenes Clientmodul
 und keine Freigabe für den CareSuite-Echtversand.
 
@@ -84,6 +84,15 @@ verwendeten OSIG-/AUT-Zertifikate. Lokale Pins bestätigen noch kein TI-Vertraue
 auch zwei positive Befunde bleiben Diagnose 07. Negative oder nicht auswertbare
 übergebene Belege werden gesondert ausgewiesen.
 
+Die asynchrone Fassade `receiveEccKimMessageWithTsl` ergänzt mit konfiguriertem
+`directory` einen [bedingten AUT-Empfangszweig](conditional-aut-receive.md).
+Nach CMS-/Headerprüfung und positivem OSIG-Status entscheidet der geprüfte
+VZD-Eintrag der inneren From-Adresse: Stimmt seine ID mit OSIG überein, entfällt
+AUT. Andernfalls werden Token, tatsächliches x5c-Leaf, TSL/OCSP/Admission und
+dessen Zuordnung zu demselben Eintrag geprüft. Ein optionales erwartetes
+AUT-Zertifikat ist dabei ein zusätzlicher Pin. Der strikte synchrone Prüfer und
+der Aufruf ohne Verzeichnis behalten ihre bisherigen Voraussetzungen.
+
 ## Unterstützte Teilmenge
 
 - Maximal 100 SMTP-Empfänger, 1.000 ENC-Zertifikate, 15.000.000 vorbereitete
@@ -96,7 +105,8 @@ auch zwei positive Befunde bleiben Diagnose 07. Negative oder nicht auswertbare
 - From enthält genau eine Adresse. Reply-To darf mehrere KIM-Adressen enthalten.
   Die strenge Headergleichheit umfasst auch Date/Message-ID/Bcc/X-KIM-Felder;
   dies ist enger als der minimale Empfangsvergleich von From/Sender/Reply-To/To/Cc.
-  Zusätzliche äußere X-KIM-Felder ohne innere Kopie werden nicht akzeptiert.
+  Zusätzliche äußere X-KIM-Felder ohne innere Kopie werden nicht akzeptiert;
+  die bedingte AUT-Prüfung betrifft ausschließlich X-KIM-Auth im Verzeichniszweig.
 - Dienstkennung, Konnektorversion und fachliche Nutzkomponenten werden nicht
   erfunden. Dienst-/Fachprofilprüfung, Produktregistrierung und die tatsächliche
   Konnektoranbindung fehlen. Ein fehlendes Dienstkennungsfeld wird hier nicht
@@ -109,12 +119,11 @@ auch zwei positive Befunde bleiben Diagnose 07. Negative oder nicht auswertbare
 - Der ursprüngliche Body bleibt opak. Es gibt noch keine allgemeine
   Multipart-/Anhangsvalidierung, KAS-Verarbeitung, Fach-XML-/PDF-/XSD-Prüfung,
   Virenprüfung oder Zulassungsbewertung für Nutzkomponenten.
-- Der neue Empfangspfad benötigt immer ein passendes ECC-AUT-Token und das
-  explizit erwartete Leaf. Die vollständig VZD-abhängige Entscheidung, wann
-  ein AUT-Check beim Empfang notwendig ist, bleibt offen. Der zusätzliche
-  [LDAPS-Abgleich](vzd.md) kann inzwischen die From-Adresse gegen die getrennten
-  OSIG-/AUT-IDs prüfen; er hebt diese strengere AUT-Voraussetzung noch nicht auf. Die bisherige
-  RSA-PSS-Unterstützung des FD-Prüfers bedeutet keine RSA-Freigabe dieses Pfads.
+- Bei passender OSIG-/VZD-ID benötigt der Verzeichniszweig kein AUT. Bei
+  abweichender ID verlangt er weiterhin ein eindeutiges, beidseitig vorhandenes
+  und passendes ECC-AUT. Vollständige Alt-/Fremdclient-Kompatibilität bei fehlendem
+  AUT ist nicht belegt. Ohne Verzeichnis bleiben AUT und erwartetes Leaf Pflicht.
+  Die RSA-PSS-Unterstützung des FD-Prüfers bedeutet keine RSA-Freigabe dieses Pfads.
 - Received/Return-Path der äußeren Nachricht werden nicht als signierte
   Identitätsnachweise gewertet. Ihre normative Übernahme in eine später an den
   Mailclient ausgelieferte Nachricht ist noch nicht Teil dieses Diagnosepfads.
@@ -130,7 +139,7 @@ unabhängige Prüfung/Zulassung bleiben erforderlich.
 | CM A_28582, A_21388-04 | Echter ECC-AUT-Token, frische UUID, Versionsformate, einmaliger Header vor CMS-Signatur | SMC-B/HBA/HSM-Anbindung, zugelassene Produktdaten und TID-/Adressbindung |
 | CM A_23174-03, KOM-LE-A_2022-02 | Abgleich von SMTP-Empfängern, sichtbaren Adressen und ENC-Zertifikatsadressen | Vertrauenswürdige VZD-Suche, Mehrfach-TID- und Zertifikatspaarbehandlung |
 | S/MIME KOM-LE-A_2097 bis _2104, CM KOM-LE-A_2193 | Innere/äußere Nachricht, Headerkopien, Message-ID, Betreff, MIME-Typen | Vollständige MIME-/Profilinteroperabilität, KAS |
-| CM KOM-LE-A_2048-02 | Signaturmathematik, recipient-emails, Headervergleich, eigener AUT-Empfangsprüfer ohne FD-TTL | Vollständige Pfad-/Sperrprüfung, VZD, Konnektor und normative Fehlerausgabe |
+| CM KOM-LE-A_2048-02 | Signaturmathematik, recipient-emails, Headervergleich, bedingte AUT-Prüfung anhand aktueller OSIG-/VZD-Belege; tatsächliches AUT-Leaf ohne FD-TTL | Vollständige TI-Pfad-/Sperrprüfung, Konnektor, Altprofile, unabhängige Interoperabilität und normative Fehlerausgabe |
 
 16 neue Tests in `kim-client-message.test.mjs` und ein zusätzlicher MIME-Test
 im ECC-Test prüfen tatsächliche Schlüssel und Nachrichten. Der SMTP-/POP3-Test

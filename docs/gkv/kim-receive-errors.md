@@ -1,6 +1,6 @@
 # KIM-Empfang: Fehlernachrichten und Originalbelege
 
-Stand: 21.10.2026. Ausführbarer interner Empfangsbaustein, noch kein freigegebener
+Stand: 22.10.2026. Ausführbarer interner Empfangsbaustein, noch kein freigegebener
 KIM-Client und keine vollständige Umsetzung aller Clientmodul-Fehlerprofile.
 
 ## Schnittstelle und Verhalten
@@ -41,8 +41,9 @@ CareSuite-KIM-Versandworker bleiben gesperrt.
 | Authentisierte Entschlüsselung gescheitert, Ursache nicht eindeutig | XCS_DECRYPT | DecryptionResult XCS_DECRYPT |
 | Innere Signatur/Attribute/Zertifikatsbindung nicht erfolgreich geprüft | XCS_INTEGRITY | IntegrityCheckResult XCS_SIGNATURE |
 | Header- oder Empfängerbindung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult XCS_HEADER |
-| AUT-Prüfung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult 10 |
+| Erforderliche AUT-Tokenprüfung fehlgeschlagen | XCS_INTEGRITY | IntegrityCheckResult 10 |
 | Optional übergebener OSIG-/AUT-Status gesperrt, unbekannt oder nicht prüfbar | XCS_CERT_STATUS | IntegrityCheckResult XCS_CERT_STATUS |
+| Erforderliche VZD-Absenderzuordnung fehlt oder ist widersprüchlich | XCS_DIRECTORY | IntegrityCheckResult XCS_DIRECTORY |
 | Lokale Prüfungen bestanden, TI-Vertrauen noch nicht bestätigt | XCS_TRUST | IntegrityCheckResult 07 |
 
 Ein falscher Schlüssel oder beschädigter GCM-Tag wird nicht als sicher
@@ -56,6 +57,14 @@ Die optionale [OCSP-Anbindung](ocsp.md) prüft nun echte Statusantworten gegen
 die tatsächlich verwendeten OSIG-/AUT-Zertifikate und konfigurierte Signierer-Pins.
 Der Bericht enthält die getrennten Befunde und Antworthashes. Zwei positive
 lokale Befunde bleiben Ergebnis 07; sie ersetzen keine TI-TSL/VZD-Prüfung.
+
+Mit konfiguriertem Verzeichnis entscheidet die asynchrone Fassade anhand von
+OSIG-Status und VZD-ID, ob AUT erforderlich ist. Bei passender OSIG-ID enthält
+`certificateStatus` nur den OSIG-Befund. Ein übersprungenes AUT wird nicht als
+positiv ausgewiesen. Bei abweichender ID bleiben fehlende/doppelte/ungleiche
+oder kryptografisch ungültige Tokens Ergebnis 10; negativer AUT-Zertifikatsstatus
+wird als `XCS_CERT_STATUS`, eine fremde AUT-ID als `XCS_DIRECTORY` ausgewiesen.
+[Ablauf und verbleibende normative Grenzen](conditional-aut-receive.md).
 
 ## Aufbau der Diagnose
 

@@ -87,6 +87,15 @@ export function createEccKimAuth({ sender, certificate, privateKey, cmVersion, n
  * This limited ECC path always reports identityStatus=unverified, without TSL/OCSP/VZD.
  */
 export function verifyReceivedEccKimAuth({ header, sender, expectedCertificate, cmVersion, now = Date.now() }) {
+  if (expectedCertificate === undefined) throw new Error('KIM_AUTH_REJECTED');
+  const { certificate, ...evidence } = inspectReceivedEccKimAuth({ header, sender, expectedCertificate, cmVersion, now });
+  return evidence;
+}
+/** Inspect the actual x5c leaf and its signature, without trusting that leaf.
+ * The receiving directory path must still check its current TSL/OCSP/Admission
+ * and address binding. An optional expected leaf is an additional exact pin.
+ */
+export function inspectReceivedEccKimAuth({ header, sender, expectedCertificate, cmVersion, now = Date.now() }) {
   try {
     const parts = unfoldAutHeader(header).split('.'); if (parts.length !== 3) throw new Error();
     const h = json(parts[0], ['alg', 'typ', 'x5c'], 'x5c'), p = json(parts[1], ['nbf', 'jti', 'iss', 'sub', 'aud']);
@@ -94,9 +103,10 @@ export function verifyReceivedEccKimAuth({ header, sender, expectedCertificate, 
       || p.aud !== 'I_Message_Service' || kimAddress(p.sub) !== kimAddress(sender) || !validCmVersion(cmVersion) || p.iss !== cmVersion
       || !Number.isSafeInteger(p.nbf) || p.nbf < 0 || p.nbf > Math.floor(now / 1000)
       || typeof p.jti !== 'string' || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-)[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(p.jti)) throw new Error();
-    const cert = eccAutCertificate(expectedCertificate, now), raw = base64(h.x5c[0]), signature = base64(parts[2], true);
-    if (!raw.equals(cert.raw) || signature.length !== 64 || !verify('sha256', Buffer.from(`${parts[0]}.${parts[1]}`), { key: cert.publicKey, dsaEncoding: 'ieee-p1363' }, signature)) throw new Error();
-    return { certificateSha256: digest(raw), tokenId: p.jti, sender: kimAddress(p.sub), identityStatus: 'unverified' };
+    const raw = base64(h.x5c[0]), cert = eccAutCertificate(raw, now), signature = base64(parts[2], true);
+    if ((expectedCertificate !== undefined && !eccAutCertificate(expectedCertificate, now).raw.equals(raw))
+      || signature.length !== 64 || !verify('sha256', Buffer.from(`${parts[0]}.${parts[1]}`), { key: cert.publicKey, dsaEncoding: 'ieee-p1363' }, signature)) throw new Error();
+    return { certificate: Buffer.from(raw), certificateSha256: digest(raw), tokenId: p.jti, sender: kimAddress(p.sub), identityStatus: 'unverified' };
   } catch { throw new Error('KIM_AUTH_REJECTED'); }
 }
 

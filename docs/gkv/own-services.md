@@ -351,7 +351,7 @@ validiert. Die erneute Prüfung gilt auch nach Listenwechsel und bei gemeinsam
 laufenden Abfragen. Responderwechsel mit gleichem Namen werden anhand der
 autorisierten Schlüssel und tatsächlichen Signatur behandelt.
 
-`receive-tsl.mjs` prüft zunächst Nachricht, AUT und Headerbindung, beschafft dann
+Ohne Verzeichnis prüft `receive-tsl.mjs` zunächst Nachricht, AUT und Headerbindung, beschafft dann
 beide Statusbelege und führt sie durch den bestehenden Empfangsprüfer. Fehlerhafte
 Nachrichten lösen keine Statusabfrage aus; ein Transportfehler einer Rolle
 verwirft nicht den gültigen Beleg der anderen. Positive lokale Befunde bleiben
@@ -409,6 +409,20 @@ abschließender Sender-/Empfängerverwendung erneut geprüft.
 die ausgeführten Gesamt- und Abschlussläufe stehen in [verification.md](verification.md).
 Vollständige Profilvarianten, authentisierte TI-Provisionierung und reale
 Interoperabilität bleiben offen; Echtversand und normale Zustellung bleiben gesperrt.
+
+### AUT nur bei abweichender OSIG-/VZD-Identität
+
+Der [bedingte Empfangszweig](conditional-aut-receive.md) entscheidet erst nach
+CMS-/Headerprüfung, positivem OSIG-Status und geprüftem VZD-Eintrag. Passt die
+OSIG-ID zur From-Adresse, entfallen AUT-Prüfung und AUT-Statusabfrage. Andernfalls
+werden der tatsächliche Token, das eingebettete Leaf und dessen
+TSL-/OCSP-/Admission-Nachweis gegen denselben Verzeichniseintrag geprüft.
+Fehlende oder fehlerhafte erforderliche Nachweise bleiben gesperrt.
+Alle Rohbelege werden nach dem letzten Warten erneut ausgewertet. Ein fremder
+Statusflag oder eine überschriebene Clientmethode ersetzt diese Prüfung nicht.
+Die gezielten Fälle und der gemeinsame Gesamtlauf stehen in
+[verification.md](verification.md). Konnektor-VerifyCertificate, TI-Anschluss,
+vollständige Altprofile und unabhängige Interoperabilitätsprüfung bleiben offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 

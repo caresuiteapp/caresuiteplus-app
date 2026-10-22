@@ -10,7 +10,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { Vault } from '../../services/gkv/storage.mjs';
 import { TslOcspStatusClient } from '../../services/kim/tsl-ocsp.mjs';
 import { receiveEccKimMessageWithTsl } from '../../services/kim/receive-tsl.mjs';
-import { createEccKimMessage } from '../../services/kim/client-message.mjs';
+import { createEccKimMessage, inspectEccKimMessageForDirectory, authenticateInspectedKimMessage } from '../../services/kim/client-message.mjs';
+import { readMessage } from '../../services/kim/message.mjs';
+import { createEccKimAuth } from '../../services/kim/message-auth.mjs';
+import { sealEccKimPayload } from '../../services/kim/ecc-cms.mjs';
 import { TslRefreshManager } from '../../services/kim/tsl-refresh.mjs';
 import { TslHttpSource } from '../../services/kim/tsl-http.mjs';
 import { TslSignerStatusSource } from '../../services/kim/tsl-signer-status.mjs';
@@ -542,7 +545,9 @@ test('VZD + TSL: mismatched environment or invalid address set cannot trigger ne
 test('KIM VZD receive: a matching signer/From binding remains diagnostic-only', async () => fixture(async ({ open }) => withDirectory(async ({ directory, requests }) => {
   const result = await receiveDirectory(directory, open());
   assert.equal(result.directoryAcquisition.state, 'matched'); assert.equal(result.directoryAcquisition.matchedBy, 'signing');
-  assert.equal(result.directoryAcquisition.signingMatches, true); assert.equal(result.directoryAcquisition.authenticationMatches, true);
+  assert.equal(result.directoryAcquisition.signingMatches, true); assert.equal(result.directoryAcquisition.authenticationMatches, undefined);
+  assert.equal(result.authenticationAssessment.state, 'not-required');
+  assert.deepEqual(state.calls.filter(c => c.path.startsWith('/leaf-')).map(c => c.purpose), ['signing', 'directory']);
   assert.equal(result.diagnostic.integrityResult, '07'); assert.equal(result.identityStatus, 'unverified'); assert.equal(result.deliveryStatus, 'diagnostic-only');
   assert.equal(result.diagnostic.decryptedOriginalAttached, false); assert.equal(requests.length, 2);
 })));
@@ -570,7 +575,9 @@ test('KIM VZD receive: OSIG binding does not require identical AUT and OSIG Tele
   const message = directoryWire({ authCertificate: changed });
   await withDirectory(async ({ directory }) => {
     const result = await receiveDirectory(directory, open(), { bytes: message.bytes, expectedAuthCertificate: changed });
-    assert.equal(result.directoryAcquisition.matchedBy, 'signing'); assert.equal(result.directoryAcquisition.authenticationMatches, false);
+    assert.equal(result.directoryAcquisition.matchedBy, 'signing'); assert.equal(result.directoryAcquisition.authenticationMatches, undefined);
+    assert.equal(result.authenticationAssessment.state, 'not-required');
+    assert.equal(state.calls.some(c => c.purpose === 'authentication'), false);
     assert.equal(result.diagnostic.integrityResult, '07');
   });
 }));
@@ -605,6 +612,236 @@ test('KIM VZD receive: a TSL change during directory lookup defeats previously g
 })));
 
 const lookupServer = (directory, client, signal) => directory.lookup(senderAddress, { serverStatusClient: client, signal });
+
+// Real signed/encrypted messages with controlled AUT inputs. Changing a token
+// here always re-signs the inner message, so failures cannot be hidden by a
+// broken CMS signature or merely simulated status flags.
+function directoryToken({ claims = {}, headers = {}, rawClaims, key = authKey } = {}) {
+  const token = createEccKimAuth({ sender: senderAddress, certificate: authentication.certificate,
+    privateKey: authKey, ...report, now: f.now }).slice(7).split('.');
+  const h = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(token[0], 'base64url')), ...headers })).toString('base64url');
+  const p = Buffer.from(rawClaims ?? JSON.stringify({ ...JSON.parse(Buffer.from(token[1], 'base64url')), ...claims })).toString('base64url');
+  return `Bearer ${h}.${p}.${sign('sha256', Buffer.from(`${h}.${p}`), { key, dsaEncoding: 'ieee-p1363' }).toString('base64url')}`;
+}
+function replaceDirectoryAuth(message, tokens) {
+  const parsed = readMessage(message), headers = parsed.headers.filter(h => h.name !== 'x-kim-auth').map(h => h.raw);
+  for (const token of tokens) headers.push(`X-KIM-Auth: ${token.match(/.{1,76}/g).join('\r\n ')}`);
+  return Buffer.concat([Buffer.from(headers.join('\r\n') + '\r\n\r\n'), parsed.body]);
+}
+function directoryAutWire({ innerAuth = [directoryToken()], outerAuth = innerAuth, signingCertificate = signing.certificate } = {}) {
+  const opened = openEccKimMessage(wire), inner = replaceDirectoryAuth(opened.message, innerAuth);
+  try {
+    const cms = sealEccKimPayload({ message: inner, sender: senderAddress,
+      recipients: [{ address: senderAddress, certificate: encryption[0].certificate }, { address: receiverAddress, certificate: encryption[1].certificate }],
+      signingCertificate, signingKey, now: f.now });
+    const outer = readMessage(replaceDirectoryAuth(wire.bytes, outerAuth));
+    return Buffer.concat([Buffer.from(outer.headers.map(h => h.raw).join('\r\n') + '\r\n\r\n'),
+      Buffer.from(cms.toString('base64').match(/.{1,76}/g).join('\r\n') + '\r\n')]);
+  } finally { inner.fill(0); opened.message.fill(0); }
+}
+function separateSigningIdentity() {
+  const changed = withAdmission(signing.certificate, admissionDer({ telematikId: '10-SEPARATE-SIGNER' }), rootKey);
+  state.handler = (req, res, _bytes, purpose) => {
+    if (!req.url.startsWith('/leaf-') || purpose !== 'signing') return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(changed).response); return true;
+  };
+  return changed;
+}
+const leafPurposes = () => state.calls.filter(c => c.path.startsWith('/leaf-')).map(c => c.purpose);
+const autVariants = [
+  ['absent', () => ({ innerAuth: [] })],
+  ['inner only', () => ({ outerAuth: [] })],
+  ['outer only', () => ({ innerAuth: [], outerAuth: [directoryToken()] })],
+  ['duplicate inner', () => { const t = directoryToken(); return { innerAuth: [t, t], outerAuth: [t] }; }],
+  ['duplicate outer', () => { const t = directoryToken(); return { innerAuth: [t], outerAuth: [t, t] }; }],
+  ['unequal tokens', () => ({ innerAuth: [directoryToken()], outerAuth: [directoryToken()] })],
+  ['malformed', () => ({ innerAuth: ['Bearer INVALID.PRIVATE.TOKEN'] })],
+  ['bad signature', () => ({ innerAuth: [directoryToken({ key: signingKey })] })],
+  ['wrong audience', () => ({ innerAuth: [directoryToken({ claims: { aud: 'other' } })] })],
+  ['wrong sender', () => ({ innerAuth: [directoryToken({ claims: { sub: receiverAddress } })] })],
+  ['future nbf', () => ({ innerAuth: [directoryToken({ claims: { nbf: Math.floor(f.now / 1000) + 1 } })] })],
+  ['wrong issuer', () => ({ innerAuth: [directoryToken({ claims: { iss: 'TEST_9.0.0' } })] })],
+  ['wrong algorithm', () => ({ innerAuth: [directoryToken({ headers: { alg: 'ES256' } })] })],
+  ['duplicate claims', () => ({ innerAuth: [directoryToken({ rawClaims: '{"sub":"ignored","s\\u0075b":"other"}' })] })],
+];
+for (const [label, input] of autVariants) {
+  test('Conditional AUT: matching OSIG skips ' + label + ' AUT without asserting it good', async () => fixture(async ({ open }) => {
+    const bytes = directoryAutWire(input()); state.authentication = 'revoked';
+    await withDirectory(async ({ directory }) => {
+      const r = await receiveDirectory(directory, open(), { bytes, expectedAuthCertificate: Buffer.from('invalid unused pin') });
+      assert.equal(r.diagnostic.integrityResult, '07'); assert.equal(r.directoryAcquisition.matchedBy, 'signing');
+      assert.deepEqual(r.authenticationAssessment, { state: 'not-required', reason: 'signing-address-match' });
+      assert.equal(r.directoryAcquisition.authenticationMatches, undefined);
+      assert.deepEqual(r.diagnostic.certificateStatus.map(s => [s.purpose, s.status]), [['signing', 'good']]);
+      assert.equal(r.statusAcquisition.certificateAdmissions.authentication, undefined);
+      assert.deepEqual(leafPurposes(), ['signing', 'directory']);
+      assert.equal(r.deliveryStatus, 'diagnostic-only'); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+    });
+  }));
+  test('Conditional AUT: different OSIG rejects ' + label + ' AUT before its OCSP request', async () => fixture(async ({ open }) => {
+    const changed = separateSigningIdentity(), bytes = directoryAutWire({ ...input(), signingCertificate: changed });
+    await withDirectory(async ({ directory, requests }) => {
+      const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+      assert.equal(r.diagnostic.integrityResult, '10'); assert.equal(r.authenticationAssessment.state, 'rejected');
+      assert.equal(r.authenticationAssessment.reason, 'token'); assert.equal(r.directoryAcquisition.state, 'mismatch');
+      assert.deepEqual(leafPurposes(), ['signing', 'directory']); assert.equal(requests.length, 2);
+      assert.equal(r.diagnostic.decryptedOriginalAttached, false); assert.equal(r.bytes.includes('PRIVATE LOCAL STATUS TEST'), false);
+      assert.doesNotMatch(JSON.stringify(r.diagnostic), /Bearer|INVALID.PRIVATE.TOKEN|PRIVATE LOCAL STATUS TEST/);
+    });
+  }));
+}
+
+test('Conditional AUT: the actual embedded leaf binds From without an AUT pin or FD submission TTL', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bytes = directoryAutWire({ signingCertificate: changed,
+    innerAuth: [directoryToken({ claims: { nbf: Math.floor(f.now / 1000) - 3 * 86400 } })] });
+  await withDirectory(async ({ directory, requests }) => {
+    const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+    assert.equal(r.directoryAcquisition.matchedBy, 'authentication'); assert.equal(r.directoryAcquisition.authenticationMatches, true);
+    assert.equal(r.authenticationAssessment.state, 'checked'); assert.equal(r.authenticationAssessment.certificateSha256, hash(raw(authentication.certificate)));
+    assert.deepEqual(leafPurposes(), ['signing', 'directory', 'authentication']); assert.equal(requests.length, 2);
+    assert.equal(r.statusAcquisition.certificateAdmissions.authentication.telematikId, '10-LOCAL-TEST');
+    assert.deepEqual(r.diagnostic.certificateStatus.map(s => [s.purpose, s.status]), [['signing', 'good'], ['authentication', 'good']]);
+    assert.equal(r.diagnostic.integrityResult, '07'); assert.equal(r.identityStatus, 'unverified'); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  });
+}));
+
+test('Conditional AUT: an optional AUT pin still has to match the embedded leaf', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bytes = directoryAutWire({ signingCertificate: changed });
+  await withDirectory(async ({ directory }) => {
+    const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: signing.certificate });
+    assert.equal(r.diagnostic.integrityResult, '10'); assert.deepEqual(leafPurposes(), ['signing', 'directory']);
+  });
+}));
+
+for (const negative of ['revoked', 'unknown', 'unavailable']) test('Conditional AUT: ' + negative + ' required AUT status cannot bind the sender', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bytes = directoryAutWire({ signingCertificate: changed }), handler = state.handler;
+  state.authentication = negative;
+  if (negative === 'unavailable') state.handler = (req, res, body, purpose) => {
+    if (purpose === 'authentication') { res.writeHead(503); res.end(); return true; }
+    return handler(req, res, body, purpose);
+  };
+  await withDirectory(async ({ directory }) => {
+    const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.authenticationAssessment.reason, 'certificate-status');
+    assert.equal(r.diagnostic.certificateStatus[1].status, negative); assert.equal(r.directoryAcquisition.state, 'mismatch');
+    assert.equal(r.directoryAcquisition.authenticationMatches, undefined); assert.equal(r.statusAcquisition.state, 'incomplete');
+  });
+}));
+
+test('Conditional AUT: a mathematical AUT with an untrusted issuer signature does not establish trust', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bad = Buffer.from(raw(authentication.certificate)); bad[bad.length - 1] ^= 1;
+  const bytes = directoryAutWire({ signingCertificate: changed, innerAuth: [directoryToken({ headers: { x5c: [bad.toString('base64')] } })] });
+  await withDirectory(async ({ directory }) => {
+    const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.diagnostic.certificateStatus[1].status, 'unavailable');
+    assert.deepEqual(leafPurposes(), ['signing', 'directory']);
+  });
+}));
+
+test('Conditional AUT: unsupported certificate role or missing Admission is rejected before AUT status I/O', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity();
+  for (const certificate of [raw(signing.certificate), withAdmission(authentication.certificate, undefined, rootKey)]) {
+    const bytes = directoryAutWire({ signingCertificate: changed, innerAuth: [directoryToken({ headers: { x5c: [certificate.toString('base64')] } })] });
+    await withDirectory(async ({ directory }) => {
+      const r = await receiveDirectory(directory, open(), { bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined });
+      assert.equal(r.diagnostic.integrityResult, '10'); assert.equal(state.calls.some(c => c.purpose === 'authentication'), false);
+    });
+  }
+}));
+
+test('Conditional AUT: caller flags and overridden status methods cannot bypass a negative OSIG status', async () => fixture(async ({ options }) => withDirectory(async ({ directory, requests }) => {
+  class UntrustedOverrides extends TslOcspStatusClient {
+    async check() { throw new Error('override must not be used'); }
+    async messageEvidence() { throw new Error('override must not be used'); }
+  }
+  state.signing = 'unknown'; const client = new UntrustedOverrides(options);
+  try {
+    const r = await receiveDirectory(directory, client, { skipAuth: true, directoryRejected: false,
+      authenticationAssessment: { state: 'not-required' }, ocsp: { status: 'good' }, bytes: directoryAutWire({ innerAuth: [] }) });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.diagnostic.certificateStatus[0].status, 'unknown');
+    assert.equal(r.authenticationAssessment.state, 'not-checked'); assert.equal(requests.length, 0); assert.deepEqual(leafPurposes(), ['signing']);
+  } finally { client.close(); }
+})));
+
+test('Conditional AUT: an ambiguous directory cannot select the AUT branch', async () => fixture(async ({ open }) => withDirectory(async ({ directory }) => {
+  const r = await receiveDirectory(directory, open());
+  assert.equal(r.diagnostic.integrityResult, 'XCS_DIRECTORY'); assert.equal(r.authenticationAssessment.state, 'not-checked');
+  assert.deepEqual(leafPurposes(), ['signing', 'directory']);
+}, ({ socket, address }) => { const e = entryReply(record(address, [encryption[0].certificate])); socket.write(Buffer.concat([e, e, searchDone()])); })));
+
+test('Conditional AUT: other protected headers remain mandatory before any network work', async () => fixture(async ({ open }) => withDirectory(async ({ directory, requests }) => {
+  const bytes = Buffer.from(directoryAutWire({ innerAuth: [] }).toString().replace(`From: ${senderAddress}`, `From: ${receiverAddress}`));
+  const r = await receiveDirectory(directory, open(), { bytes });
+  assert.equal(r.diagnostic.integrityResult, 'XCS_HEADER'); assert.equal(r.authenticationAssessment, undefined);
+  assert.equal(leafCount(), 0); assert.equal(requests.length, 0);
+})));
+
+test('Conditional AUT: inspection exposes no plaintext or token and cannot be cloned into authentication evidence', () => {
+  const inspection = inspectEccKimMessageForDirectory(wire);
+  assert.deepEqual(Object.keys(inspection).sort(), ['identityStatus', 'messageId', 'originalSha256', 'sender', 'signerSha256']);
+  assert.doesNotMatch(JSON.stringify(inspection), /Bearer|PRIVATE LOCAL STATUS TEST/);
+  assert.equal(authenticateInspectedKimMessage(inspection).certificateSha256, hash(raw(authentication.certificate)));
+  assert.throws(() => authenticateInspectedKimMessage({ ...inspection }), code('KIM_MESSAGE_AUTH_REJECTED'));
+  const bytes = directoryAutWire({ innerAuth: [] });
+  assert.throws(() => openEccKimMessage({ ...wire, bytes, skipAuth: true, deferAuthentication: true }), /KIM_MESSAGE_AUTH_REJECTED/);
+});
+
+for (const action of ['refresh', 'abort', 'mutate', 'peer-expiry']) test('Conditional AUT: ' + action + ' while AUT status is pending is handled against captured evidence', async () => fixture(async ({ open, manager, update }) => {
+  if (action === 'peer-expiry') await update({ services: [...defaults,
+    { ...defaults.find(s => s.type === OCSP), certificate: raw(extraResponder.certificate).toString('base64') }] });
+  const changed = separateSigningIdentity(), handler = state.handler, waiting = Promise.withResolvers();
+  state.handler = (req, res, body, purpose) => {
+    if (action === 'peer-expiry' && purpose === 'directory') {
+      res.writeHead(200, { 'Content-Type': 'application/ocsp-response' });
+      res.end(f.proof(vzdServer.certificate, { producedAt: f.now - 3599000, responder: extraResponder }).response); return true;
+    }
+    if (purpose !== 'authentication') return handler(req, res, body, purpose);
+    waiting.resolve(() => { res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(authentication.certificate).response); });
+    return true;
+  };
+  await withDirectory(async ({ directory, requests }) => {
+    const input = { ...wire, bytes: directoryAutWire({ signingCertificate: changed }), expectedSignerCertificate: Buffer.from(changed), expectedAuthCertificate: undefined };
+    const original = hash(input.bytes), controller = new AbortController(), reportInput = { ...report };
+    const pending = receiveEccKimMessageWithTsl(input, reportInput, { directory, statusClient: open(), signal: controller.signal });
+    const outcome = pending.then(value => ({ value }), error => ({ error }));
+    const release = await Promise.race([waiting.promise, outcome.then(r => { throw new Error('Receive ended before AUT status: ' + (r.error?.code ?? r.value?.diagnostic?.integrityResult)); })]);
+    if (action === 'refresh') await manager.refresh();
+    else if (action === 'abort') controller.abort();
+    else if (action === 'peer-expiry') state.now += 2000;
+    else { input.bytes.fill(0); input.expectedSignerCertificate.fill(0); input.expectedAuthCertificate = signing.certificate; reportInput.includeDecryptedOriginal = true; }
+    release(); const { value: r, error } = await outcome;
+    if (action === 'abort') assert.equal(error?.code, 'KIM_TSL_ABORTED');
+    else {
+      assert.equal(error, undefined); assert.equal(r.diagnostic.originalSha256, original);
+      assert.equal(r.diagnostic.integrityResult, action === 'refresh' ? 'XCS_CERT_STATUS' : action === 'peer-expiry' ? 'XCS_DIRECTORY' : '07');
+      assert.equal(r.deliveryStatus, 'diagnostic-only'); assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+      if (action === 'refresh') assert.ok(r.diagnostic.certificateStatus.every(s => s.status === 'unavailable'));
+      if (action === 'peer-expiry') {
+        assert.equal(r.directoryAcquisition.state, 'unavailable'); assert.ok(r.diagnostic.certificateStatus.every(s => s.status === 'good'));
+      }
+    }
+    assert.equal(requests.length, 2); assert.deepEqual(leafPurposes(), ['signing', 'directory', 'authentication']);
+  });
+}));
+
+test('Conditional AUT: abort after LDAP Bind prevents Search and AUT status work', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withDirectory(async ({ directory, requests }) => {
+    await assert.rejects(receiveEccKimMessageWithTsl(wire, report, { directory, statusClient: open(), signal: controller.signal }), code('KIM_TSL_ABORTED'));
+    assert.deepEqual(requests.map(r => r.op), [0x60]); assert.deepEqual(leafPurposes(), ['signing', 'directory']);
+  }, undefined, { onBind: () => controller.abort() });
+}));
+
+test('Conditional AUT: explicit diagnostic attachment contains the original protected bytes even without AUT', async () => fixture(async ({ open }) => withDirectory(async ({ directory }) => {
+  const bytes = directoryAutWire({ innerAuth: [] }), opened = openEccKimMessage(wire), expected = replaceDirectoryAuth(opened.message, []);
+  opened.message.fill(0);
+  try {
+    const r = await receiveEccKimMessageWithTsl({ ...wire, bytes, expectedAuthCertificate: undefined }, { ...report, includeDecryptedOriginal: true }, { directory, statusClient: open() });
+    assert.equal(r.diagnostic.integrityResult, '07'); assert.equal(r.diagnostic.decryptedOriginalAttached, true);
+    assert.equal(r.bytes.includes(expected), true); assert.equal(r.deliveryStatus, 'diagnostic-only');
+    assert.equal(r.authenticationAssessment.state, 'not-required');
+  } finally { expected.fill(0); }
+})));
 const serverRole = { professionOid: '1.2.276.0.76.4.171', professionItem: 'Verzeichnisdienst-TI', telematikId: null };
 function holdDirectoryStatus() {
   const waiting = Promise.withResolvers();

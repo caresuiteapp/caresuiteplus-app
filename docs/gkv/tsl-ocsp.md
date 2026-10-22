@@ -159,14 +159,15 @@ nonQES-Pfad. Details und die Grenzen dieser Teilregel stehen in
 ## Empfang, Abbruch und Lebensdauer
 
 Die asynchrone Empfangsfunktion kopiert Originalbytes, Zertifikatbytes und
-Berichtsoptionen vor dem ersten Warten. Sie prüft zuerst Format, ECC-CMS,
-AUT-Token und Headerbindung. Eine fehlerhafte Nachricht oder ungültige
-Berichtsoptionen lösen keine Statusanfrage aus. Unverschlüsselte Nachrichten
-bleiben im vorhandenen unveränderten Durchreichpfad.
+Berichtsoptionen vor dem ersten Warten. Sie prüft zuerst Format, ECC-CMS und
+Headerbindung. Ungültige Berichtsoptionen oder Fehler in diesen Prüfungen
+lösen keine Statusanfrage aus. Ohne Verzeichnis wird auch AUT vor beiden
+Statusanfragen geprüft. Unverschlüsselte Nachrichten bleiben im vorhandenen
+unveränderten Durchreichpfad.
 
 Vor der Netzabfrage wird der zwischenzeitlich entschlüsselte Nachrichtenpuffer
 überschrieben. Nach dem Abruf prüft der bestehende synchrone Empfänger die
-Originalnachricht und beide Rohbelege erneut. Vorgegebene Statusflags werden
+Originalnachricht und die jeweils erforderlichen Rohbelege erneut. Vorgegebene Statusflags werden
 nicht übernommen. Das Ergebnis enthält zusätzlich `statusAcquisition` mit
 `checked`, `incomplete` oder `unavailable`, festen Fehlercodes und gegebenenfalls
 der TSL-Version, den geprüften `certificateTypes` und den getrennten
@@ -175,13 +176,19 @@ VZD-Adresszuordnung. Die eigentlichen Befunde
 stehen weiterhin im Empfangsbericht.
 
 Seit 22.10.2026 ergänzt die optionale `directory`-Konfiguration den
-[LDAPS-/Adressabgleich](vzd.md) nach positiver Nachrichtenzertifikatsprüfung.
-`directoryAcquisition` weist Treffer, Widerspruch und fehlenden Nachweis aus.
-Vor der abschließenden Diagnose werden die Rohbelege nochmals geprüft, auch
-nach dem zusätzlichen Warten auf LDAP. Ein zwischenzeitlicher TSL-Wechsel
-kann daher keinen früheren positiven Befund erhalten.
+[LDAPS-/Adressabgleich](vzd.md) nach positivem OSIG-Status. Der
+[bedingte AUT-Zweig](conditional-aut-receive.md) fragt AUT nur bei abweichender
+OSIG-/VZD-ID ab. Dazu wird das tatsächliche x5c-Leaf aus dem signierten Token
+verwendet; ein erwartetes AUT-Leaf ist ein zusätzlicher optionaler Pin.
+`authenticationAssessment` unterscheidet nicht erforderlich, geprüft, abgelehnt
+und nicht geprüft. Statusbericht und Zertifikatsattribute enthalten nur
+tatsächlich geprüfte Rollen. `directoryAcquisition` weist Treffer, Widerspruch
+und fehlenden Nachweis aus. Vor der abschließenden Diagnose werden OSIG,
+gegebenenfalls AUT sowie der private VZD-Serverbeleg erneut geprüft. Ein
+TSL-Wechsel oder Ablauf während LDAP/AUT-OCSP erhält keinen alten Erfolg.
+Der gesamte Verzeichnis-Empfangszweig hat zusätzlich eine Frist von 30 Sekunden.
 
-Auch zwei positive Belege ergeben weiterhin Diagnose 07. Gesperrte, unbekannte
+Auch alle erforderlichen positiven Belege ergeben weiterhin Diagnose 07. Gesperrte, unbekannte
 oder nicht verfügbare Belege erzeugen `XCS_CERT_STATUS`; Klartextanhänge sind
 standardmäßig aus. Es wird weder eine normale Zustellung noch ein SMTP-Versand
 oder Rechnungsstatuswechsel ausgelöst.

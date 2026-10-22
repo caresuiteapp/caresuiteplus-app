@@ -321,16 +321,23 @@ export class OcspStatusCache {
  */
 export function assessKimOcspEvidence(proofs, certificates) {
   const { verifier, signing, authentication } = proofs ?? {};
-  return Object.freeze(['signing', 'authentication'].map(purpose => {
-    const input = certificates[purpose], certificateSha256 = hex(new X509Certificate(input).raw);
-    try {
-      if (!(verifier instanceof PinnedOcspVerifier)) fail('KIM_OCSP_CONFIGURATION');
-      const proof = purpose === 'signing' ? signing : authentication;
-      if (!proof) fail('KIM_OCSP_UNAVAILABLE');
-      return Object.freeze({ purpose, ...verifier.verify({ certificate: input, request: proof.request, response: proof.response }) });
-    } catch (e) {
-      return Object.freeze({ purpose, certificateSha256, status: 'unavailable', code: e instanceof OcspError ? e.code : 'KIM_OCSP_FORMAT',
-        identityStatus: 'unverified', trustSource: 'configured-pins' });
-    }
-  }));
+  return Object.freeze(['signing', 'authentication'].map(purpose => assessKimOcspProof(
+    { ...(purpose === 'signing' ? signing : authentication), verifier }, certificates[purpose], purpose)));
+}
+
+/** One required role. A caller cannot substitute a status flag for raw proof.
+ * The branch orchestrator decides which roles are required, never message input.
+ */
+export function assessKimOcspProof(proof, certificate, purpose) {
+  if (!['signing', 'authentication'].includes(purpose)) fail('KIM_OCSP_CONFIGURATION');
+  let certificateSha256;
+  try {
+    certificateSha256 = hex(new X509Certificate(certificate).raw);
+    if (!(proof?.verifier instanceof PinnedOcspVerifier)) fail('KIM_OCSP_CONFIGURATION');
+    if (!proof.request || !proof.response) fail('KIM_OCSP_UNAVAILABLE');
+    return Object.freeze({ purpose, ...proof.verifier.verify({ certificate, request: proof.request, response: proof.response }) });
+  } catch (e) {
+    return Object.freeze({ purpose, ...(certificateSha256 ? { certificateSha256 } : {}), status: 'unavailable',
+      code: e instanceof OcspError ? e.code : 'KIM_OCSP_FORMAT', identityStatus: 'unverified', trustSource: 'configured-pins' });
+  }
 }
