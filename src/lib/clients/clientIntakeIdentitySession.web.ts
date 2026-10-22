@@ -1,3 +1,4 @@
+import {assertCareSdkOwnerWeb} from '../permissions/careSdkOwner.web.ts';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import type { CarePermissionOwner } from '@/lib/permissions/carePermissionOwner.web';
 import type { IntakeBinding, IntakeIdentityDecision, IntakeIdentityGate, IntakeReservationReview } from './clientIntakeWorkflow.web';
@@ -52,7 +53,7 @@ function candidate(value: unknown, tenantId: string): IntakeIdentityCandidate {
   if (!isUuid(clean.id) || clean.tenant_id !== tenantId || typeof clean.first_name !== 'string' || typeof clean.last_name !== 'string'
     || !(clean.date_of_birth === null || typeof clean.date_of_birth === 'string' && calendar(clean.date_of_birth))
     || !(clean.insurance_number === null || typeof clean.insurance_number === 'string')
-    || typeof clean.status !== 'string' || !['lead','active','paused','inactive','archived','deceased','blocked','deleted'].includes(clean.status)
+    || typeof clean.status !== 'string' || !['lead','active','paused','inactive','archived','deceased','blocked','deleted','interessent','aktiv','pausiert','archiviert','verstorben'].includes(clean.status)
     || typeof clean.updated_at !== 'string' || !/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})$/.test(clean.updated_at)
     || !Number.isFinite(Date.parse(clean.updated_at))) throw Error(unavailable);
   return Object.freeze({ id: clean.id, tenant_id: tenantId, first_name: clean.first_name, last_name: clean.last_name,
@@ -103,16 +104,14 @@ export class ClientIntakeIdentitySession implements IntakeIdentityGate {
     const db = getSupabaseClient(), owner = this.deps.owner;
     if (!db || owner.demo || !owner.accessToken) throw Error(unavailable);
     const guard = () => { this.guard(); if (!stillCurrent() || getSupabaseClient() !== db) throw Error(stale); };
+    let authUserId: string | null = null;
     const session = async () => {
       guard();
-      const result = await db.auth.getSession(); guard();
-      const live = result.data.session;
-      if (result.error || !live || live.user.id !== owner.profileId || live.access_token !== owner.accessToken
-        || live.expires_at !== undefined && (!Number.isFinite(live.expires_at) || live.expires_at * 1000 <= Date.now())) throw Error(denied);
+      try { authUserId = await assertCareSdkOwnerWeb({client: db, owner, current: guard, pinnedAuthId: authUserId}); }
+      catch (error) { if (error instanceof Error && [denied, stale].includes(error.message)) throw error; throw Error(denied); }
+      guard();
     };
     await session();
-    const authenticated = await db.auth.getUser(owner.accessToken); guard();
-    if (authenticated.error || authenticated.data.user?.id !== owner.profileId) throw Error(denied);
     const all = new Map<string, IntakeIdentityCandidate>();
     const searches = [{ field: 'last_name', pattern: `%${escapeLike(input.last)}%` },
       ...(input.insurance ? [{ field: 'insurance_number', pattern: escapeLike(input.insurance) }] : [])];

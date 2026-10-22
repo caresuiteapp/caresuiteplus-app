@@ -1,3 +1,4 @@
+import {assertCareSdkOwnerWeb} from '../../src/lib/permissions/careSdkOwner.web.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +21,7 @@ const settle=async()=>{for(let n=0;n<150;n++)await Promise.resolve();};
 function workspace(patch={}){
  const slots=[],effects=[],queue=[],timers=new Map(),store=patch.store??new Map(),calls=[],listeners=new Map();let index=0,clock=0;
  const env={tenant:id(1),allowed:true,permissionLoading:false,options:undefined,candidates:[],realIdentity:false,
-  auth:{authReady:true,isAuthenticated:true,isLoading:false,profileBootstrapError:null,profile:{id:id(2),tenantId:id(1),roleKey:'business_admin'},user:{id:id(2),roleKey:'business_admin'},session:{user:{id:id(2),roleKey:'business_admin'},accessToken:'test-only',expiresAt:null},portalSession:null},...patch};
+  auth:{authReady:true,isAuthenticated:true,isLoading:false,profileBootstrapError:null,profile:{id:id(2),tenantId:id(1),roleKey:'business_admin'},user:{id:id(2),roleKey:'business_admin'},session:{user:{id:id(2),roleKey:'business_admin'},accessToken:'test-only',expiresAt:(Math.floor(Date.now()/1000)+3600)*1000},portalSession:null},...patch};
  const useRef=initial=>{const i=index++;return slots[i]??={current:initial};};
  const useState=initial=>{const i=index++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];};
  const memo=(run,deps)=>{const i=index++;if(!slots[i]||deps.some((v,j)=>v!==slots[i].deps[j]))slots[i]={deps,value:run()};return slots[i].value;};
@@ -35,10 +36,11 @@ function workspace(patch={}){
   async review(){return true;} approveNew(){return true;} async selectExisting(){throw Error('Not part of isolated queue regressions');}
  }
  const identityDb={async rpc(name,args){
+  if(['resolve_current_profile_id','current_tenant_id'].includes(name))return{data:name==='resolve_current_profile_id'?env.auth.profile?.id:env.tenant,error:null};
   assert.equal(name,'web_prepare_client_intake_identity_review');calls.push(['reviewPreparation',structuredClone(args)]);await env.prepareGate?.promise;
   const prepared=Date.now();return env.prepareFailure?{data:null,error:{message:'rejected'}}:{data:{review_id:id(500),request_id:args.p_request_id,tenant_id:args.p_tenant_id,actor_profile_id:args.p_actor_profile_id,
    resolution:'create_distinct',candidate_count:args.p_candidates.length,prepared_at:new Date(prepared).toISOString(),expires_at:new Date(prepared+300000).toISOString()},error:null};
- },auth:{getSession:async()=>({data:{session:{user:{id:env.auth.profile?.id},access_token:env.auth.session?.accessToken}},error:null}),getUser:async()=>({data:{user:{id:env.auth.profile?.id}},error:null})},from:table=>{
+ },auth:{getSession:async()=>({data:{session:{user:{id:env.auth.user?.id},access_token:env.auth.session?.accessToken,expires_at:env.auth.session?.expiresAt/1000}},error:null}),getUser:async()=>({data:{user:{id:env.auth.user?.id}},error:null})},from:table=>{
   assert.equal(table,'clients');const filters=[];let pattern=null,patternKey=null;
   const q={select:()=>q,eq:(key,value)=>{filters.push(['eq',key,value]);return q;},neq:(key,value)=>{filters.push(['neq',key,value]);return q;},gt:(key,value)=>{filters.push(['gt',key,value]);return q;},
    ilike:(key,value)=>{patternKey=key;pattern=value;return q;},order:()=>q,limit:()=>q,then:(resolve,reject)=>(async()=>{
@@ -47,7 +49,7 @@ function workspace(patch={}){
       .filter(row=>patternKey==='last_name'?String(row.last_name).toLowerCase().includes(pattern.slice(1,-1).toLowerCase()):String(row.insurance_number??'').toLowerCase()===pattern.toLowerCase()).map(row=>structuredClone(row)),error:null};
    })().then(resolve,reject)};return q;
  }};
- const ActualIdentitySession=new Function('getSupabaseClient','isUuid',`${identitySource};return ClientIntakeIdentitySession;`)(()=>identityDb,isUuid);
+ const ActualIdentitySession=new Function('getSupabaseClient','isUuid','assertCareSdkOwnerWeb',`${identitySource};return ClientIntakeIdentitySession;`)(()=>identityDb,isUuid,assertCareSdkOwnerWeb);
  const deps={window:{addEventListener:(name,run)=>listeners.set(name,run),removeEventListener:(name,run)=>{if(listeners.get(name)===run)listeners.delete(name);}},useRef,useState,useEffect,useMemo:memo,useCallback:(fn,deps)=>memo(()=>fn,deps),
   createEmptyIntakeForm,hasIntakeDraftContent,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,ClientIntakeWorkflow,ClientIntakeIdentitySession:env.realIdentity?ActualIdentitySession:ApprovedIdentityPort,
   withIntakeBrowserLock:async(_key,operation)=>operation(),AsyncStorage:storage,
