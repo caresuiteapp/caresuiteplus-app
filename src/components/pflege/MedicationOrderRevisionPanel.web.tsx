@@ -13,7 +13,7 @@ import {spacing,typography} from '@/theme';
 type Row=Record<string,unknown>;
 type Draft=ReturnType<typeof nativeMedicationOrderRevisionDraft>;
 type Workspace={order:Row;sources:Array<{source:Row;archive:Row}>;items:MedicationOrderRevision[]};
-type RevisionPanelContext={tenantId:string;clientId:string;medicationId:string;actorId:string;role:RoleKey|null;profileRole:RoleKey|null;canView:boolean;canSources:boolean;canManage:boolean;blocked:boolean;currentOrderVersion:string;onSaved?():void;registerLeave?(fn:(()=>Promise<boolean>)|null):void;onEditingChange?(editing:boolean):boolean|void};
+type RevisionPanelContext={tenantId:string;clientId:string;medicationId:string;actorId:string;role:RoleKey|null;profileRole:RoleKey|null;canView:boolean;canSources:boolean;canManage:boolean;blocked:boolean;currentOrderVersion:string;onSaved?():void;isLeaving?():boolean;registerLeave?(fn:(()=>Promise<boolean>)|null):void;onEditingChange?(editing:boolean):boolean|void};
 const orderFields:Array<{key:keyof MedicationOrderRevisionOrder;label:string;native:string}>=[
  {key:'medicationName',label:'Präparat',native:'name'},{key:'activeIngredient',label:'Wirkstoff',native:'active_ingredient'},
  {key:'strength',label:'Stärke',native:'strength'},{key:'form',label:'Darreichungsform',native:'form'},
@@ -36,11 +36,11 @@ function useMedicationOrderRevisionController(context:RevisionPanelContext){
  const [owner]=useState(()=>({tenantId:context.tenantId,clientId:context.clientId,medicationId:context.medicationId,actorId:context.actorId,role:context.profileRole}));
  const alive=useRef(true),current=useRef(context);current.current=context;
  const [workspace,setWorkspace]=useState<Workspace|null>(null),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[success,setSuccess]=useState<string|null>(null),[draft,setDraft]=useState<Draft|null>(null),[sourceId,setSourceId]=useState(''),[reason,setReason]=useState(''),[uncertain,setUncertain]=useState(false),[confirmed,setConfirmed]=useState(false);
- const flight=useRef(false),saved=useRef(false),editing=useRef(false),editorEpoch=useRef(0),loadFlight=useRef(false),generation=useRef(0),pending=useRef<MedicationOrderRevisionPacket|null>(null),baseline=useRef<Row|null>(null),draftRef=useRef(draft),sourceRef=useRef(sourceId),reasonRef=useRef(reason);draftRef.current=draft;sourceRef.current=sourceId;reasonRef.current=reason;
+ const flight=useRef(false),saved=useRef(false),editing=useRef(false),session=useRef(0),editorEpoch=useRef(0),loadFlight=useRef(false),generation=useRef(0),pending=useRef<MedicationOrderRevisionPacket|null>(null),baseline=useRef<Row|null>(null),draftRef=useRef(draft),sourceRef=useRef(sourceId),reasonRef=useRef(reason);draftRef.current=draft;sourceRef.current=sourceId;reasonRef.current=reason;const renderedSession=session.current;
  const ownRead=useCallback(()=>{const c=current.current;return alive.current&&[owner.tenantId,owner.clientId,owner.medicationId,owner.actorId].every(woundUuid)&&!!owner.role&&c.tenantId===owner.tenantId&&c.clientId===owner.clientId&&c.medicationId===owner.medicationId&&c.actorId===owner.actorId&&c.role===owner.role&&c.profileRole===owner.role&&c.canView&&c.canSources&&c.canManage;},[]);
  const liveRead=()=>ownRead()&&!current.current.blocked;
- const canOperate=()=>liveRead()&&current.current.canManage&&!flight.current&&!pending.current&&!saved.current&&!loadFlight.current;
- const canEdit=()=>editing.current&&canOperate();
+ const canOperate=()=>!current.current.isLeaving?.()&&liveRead()&&current.current.canManage&&!flight.current&&!pending.current&&!saved.current&&!loadFlight.current;
+ const canEdit=()=>editing.current&&canOperate()&&baseline.current?.updated_at===current.current.currentOrderVersion;
  const load=useCallback(async()=>{
   if(!ownRead()||current.current.blocked||loadFlight.current||flight.current)return;loadFlight.current=true;const request=++generation.current;setLoading(true);setError(null);
   try{const result=await readMedicationOrderRevisionWorkspace(revisionScope(current.current),current.current.role,()=>ownRead()&&!current.current.blocked&&generation.current===request);if(!ownRead()||generation.current!==request)return;if(!result.ok){setError(result.error);return;}setWorkspace(result.data);}
@@ -51,8 +51,8 @@ function useMedicationOrderRevisionController(context:RevisionPanelContext){
  useEffect(()=>{if(liveRead())void load();},[context.canView,context.canSources,context.canManage,context.blocked,context.role,context.profileRole,context.currentOrderVersion]);
  const orderChanged=!!baseline.current&&baseline.current.updated_at!==context.currentOrderVersion;
  const dirty=!!draft&&!confirmed;
- const confirmLeave=useUnsavedWebChanges(dirty||uncertain,busy||uncertain),leavePrompt=useRef(confirmLeave);leavePrompt.current=confirmLeave;
- const leaveSnapshot=()=>{const c=current.current;return structuredClone({tenantId:c.tenantId,clientId:c.clientId,medicationId:c.medicationId,actorId:c.actorId,role:c.role,profileRole:c.profileRole,canView:c.canView,canSources:c.canSources,canManage:c.canManage,blocked:c.blocked,currentOrderVersion:c.currentOrderVersion,epoch:editorEpoch.current,generation:generation.current,draft:draftRef.current,sourceId:sourceRef.current,reason:reasonRef.current,saved:saved.current});};
+ const confirmLeave=useUnsavedWebChanges(dirty||uncertain,busy||uncertain,undefined,()=>{if(!localOwner()||flight.current||pending.current)return null;const captured=leaveSnapshot();return()=>localOwner()&&!flight.current&&!pending.current&&sameWoundJson(captured,leaveSnapshot());}),leavePrompt=useRef(confirmLeave);leavePrompt.current=confirmLeave;
+ const leaveSnapshot=()=>{const c=current.current;return structuredClone({tenantId:c.tenantId,clientId:c.clientId,medicationId:c.medicationId,actorId:c.actorId,role:c.role,profileRole:c.profileRole,canView:c.canView,canSources:c.canSources,canManage:c.canManage,blocked:c.blocked,currentOrderVersion:c.currentOrderVersion,session:session.current,epoch:editorEpoch.current,generation:generation.current,draft:draftRef.current,sourceId:sourceRef.current,reason:reasonRef.current,saved:saved.current});};
  const localOwner=()=>{const c=current.current;return alive.current&&c.tenantId===owner.tenantId&&c.clientId===owner.clientId&&c.medicationId===owner.medicationId&&c.actorId===owner.actorId&&c.role===owner.role&&c.profileRole===owner.role;};
  const guardedLeave=useCallback(async()=>{
   if(!localOwner()||flight.current||pending.current)return false;
@@ -62,13 +62,13 @@ function useMedicationOrderRevisionController(context:RevisionPanelContext){
  useEffect(()=>{context.registerLeave?.(guardedLeave);return()=>context.registerLeave?.(null);},[context.registerLeave,guardedLeave]);
  function start(){
   if(!canOperate()||editing.current||!workspace||workspace.order.updated_at!==current.current.currentOrderVersion)return;
-  if(current.current.onEditingChange?.(true)===false)return;editing.current=true;editorEpoch.current++;baseline.current=structuredClone(workspace.order);setDraft(nativeMedicationOrderRevisionDraft(workspace.order));setSourceId('');setReason('');setConfirmed(false);setError(null);setSuccess(null);
+  if(current.current.onEditingChange?.(true)===false)return;editing.current=true;session.current++;editorEpoch.current++;baseline.current=structuredClone(workspace.order);draftRef.current=nativeMedicationOrderRevisionDraft(workspace.order);sourceRef.current='';reasonRef.current='';setDraft(draftRef.current);setSourceId('');setReason('');setConfirmed(false);setError(null);setSuccess(null);
  }
- function change<K extends keyof Draft>(key:K,value:Draft[K]){if(!canEdit())return;editorEpoch.current++;setDraft(previous=>previous?{...previous,[key]:value}:previous);}
+ function change<K extends keyof Draft>(key:K,value:Draft[K]){if(renderedSession!==session.current||!canEdit()||!draftRef.current)return;editorEpoch.current++;draftRef.current={...draftRef.current,[key]:value};setDraft(draftRef.current);}
  async function submit(){
-  if(!editing.current||flight.current||saved.current||!ownRead())return;const replay=pending.current!==null;
+  if(renderedSession!==session.current||current.current.isLeaving?.()||!editing.current||flight.current||saved.current||!ownRead())return;const replay=pending.current!==null;
   if(!pending.current){
-   if(!canEdit()||!draftRef.current||!baseline.current||orderChanged)return;
+   if(!canEdit()||!draftRef.current||!baseline.current||baseline.current.updated_at!==current.current.currentOrderVersion)return;
    try{pending.current=makeMedicationOrderRevisionPacket({requestId:globalThis.crypto.randomUUID(),...revisionScope(current.current),actorId:owner.actorId,expectedUpdatedAt:String(baseline.current.updated_at),sourceId:sourceRef.current,reason:reasonRef.current,order:revisionOrderFromDraft(draftRef.current)});}
    catch(cause){setError(cause instanceof Error?cause.message:'Vollständige Übertragung und Quellenbezug prüfen.');return;}
   }
@@ -82,10 +82,10 @@ function useMedicationOrderRevisionController(context:RevisionPanelContext){
   }catch{if(alive.current){setUncertain(true);setError('Die Speicherbestätigung fehlt. Dieselbe unveränderte Anfrage erneut prüfen.');}}
   finally{flight.current=false;if(alive.current)setBusy(false);}
  }
- async function close(){if(!await guardedLeave())return;if(!localOwner())return;editing.current=false;current.current.onEditingChange?.(false);editorEpoch.current++;baseline.current=null;saved.current=false;setDraft(null);setSourceId('');setReason('');setConfirmed(false);setError(null);setSuccess(null);}
+ async function close(){if(renderedSession!==session.current||!await guardedLeave())return;if(!localOwner()||renderedSession!==session.current)return;editing.current=false;session.current++;draftRef.current=null;sourceRef.current='';reasonRef.current='';current.current.onEditingChange?.(false);editorEpoch.current++;baseline.current=null;saved.current=false;setDraft(null);setSourceId('');setReason('');setConfirmed(false);setError(null);setSuccess(null);}
  const order=draft?revisionOrderFromDraft(draft):null;
  const issue=order?medicationOrderRevisionOrderIssue(order):null;
- return {workspace,loading,busy,error,success,draft,sourceId,reason,uncertain,confirmed,orderChanged,issue,baseline:baseline.current,canRead:ownRead(),locked:!canOperate(),load,start,change,submit,close,confirmLeave:guardedLeave,setSource:(id:string)=>{if(canEdit()&&workspace?.sources.some(item=>item.source.id===id)){editorEpoch.current++;setSourceId(id);}},setReason:(value:string)=>{if(canEdit()){editorEpoch.current++;setReason(value);}}};
+ return {workspace,loading,busy,error,success,draft,sourceId,reason,uncertain,confirmed,orderChanged,issue,baseline:baseline.current,canRead:ownRead(),locked:!canOperate(),load,start,change,submit,close,confirmLeave:guardedLeave,setSource:(id:string)=>{if(renderedSession===session.current&&canEdit()&&workspace?.sources.some(item=>item.source.id===id)){editorEpoch.current++;sourceRef.current=id;setSourceId(id);}},setReason:(value:string)=>{if(renderedSession===session.current&&canEdit()){editorEpoch.current++;reasonRef.current=value;setReason(value);}}};
 }
 
 export function MedicationOrderRevisionPanel(context:RevisionPanelContext){

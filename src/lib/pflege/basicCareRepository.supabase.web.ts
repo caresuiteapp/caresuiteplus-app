@@ -1,3 +1,4 @@
+import {requireCareWorkspaceAuthorityWeb} from './careWorkspaceAuthority.web';
 import {getSupabaseClient} from '@/lib/supabase/client';
 import {toGermanSupabaseError} from '@/lib/supabase/errors';
 import {withServiceQueryTimeout} from '@/lib/services/queryTimeout';
@@ -16,12 +17,7 @@ const object=(value:unknown):value is Row=>!!value&&typeof value==='object'&&!Ar
 const client=()=>getSupabaseClient() as unknown as {auth:{getSession():Promise<{data:{session:null|{user:{id:string};access_token:string;expires_at?:number}};error:unknown}>;getUser(token?:string):Promise<{data:{user:null|{id:string}};error:unknown}>};rpc(name:string,args:Row):Promise<{data:unknown;error:unknown;status?:number}>}|null;
 const stable=(value:unknown):string=>JSON.stringify(value,(_key,item:unknown)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
 
-async function authority(context:Context){
- const db=client();if(!db||!context.isCurrent())throw Error(unavailable);
- const session=await db.auth.getSession();if(!context.isCurrent()||session.error||!session.data.session||session.data.session.user.id!==context.actorId||session.data.session.expires_at!==undefined&&session.data.session.expires_at*1000<=Date.now())throw Error(unavailable);
- const user=await db.auth.getUser(session.data.session.access_token);if(!context.isCurrent()||user.error||user.data.user?.id!==context.actorId||client()!==db)throw Error(unavailable);
- return db;
-}
+async function authority(context:Context){return requireCareWorkspaceAuthorityWeb(context,client,(request,operation)=>withServiceQueryTimeout(Promise.resolve(request),operation,20_000),unavailable);}
 function decode(value:unknown,context:Pick<Context,'tenantId'|'clientId'>):BasicCareOriginal{const issue=basicCareOriginalIssue(value,context);if(issue)throw Error(issue);return structuredClone(value as BasicCareOriginal);}
 function decodeReview(value:unknown,context:Pick<Context,'tenantId'|'clientId'>):BasicCareReviewOriginal{const issue=basicCareReviewOriginalIssue(value,context);if(issue)throw Error(issue);return structuredClone(value as BasicCareReviewOriginal);}
 const uuid=(value:unknown):value is string=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);

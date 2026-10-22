@@ -1,3 +1,4 @@
+import {requireCareWorkspaceAuthorityWeb} from './careWorkspaceAuthority.web';
 import {getSupabaseClient} from '@/lib/supabase/client';
 import {toGermanSupabaseError} from '@/lib/supabase/errors';
 import {withServiceQueryTimeout} from '@/lib/services/queryTimeout';
@@ -11,12 +12,7 @@ const object=(value:unknown):value is Row=>!!value&&typeof value==='object'&&!Ar
 const rpcClient=()=>getSupabaseClient() as unknown as {auth:{getSession():Promise<{data:{session:null|{user:{id:string};access_token:string;expires_at?:number}};error:unknown}>;getUser(token?:string):Promise<{data:{user:null|{id:string}};error:unknown}>};rpc(name:string,args:Row):Promise<{data:unknown;error:unknown;status?:number}>}|null;
 const stable=(value:unknown):string=>JSON.stringify(value,(_key,entry:unknown)=>object(entry)?Object.fromEntries(Object.keys(entry).sort().map(key=>[key,entry[key]])):entry);
 
-async function authority(context:Context){
- const client=rpcClient();if(!client||!context.isCurrent())throw Error(unavailable);
- const session=await client.auth.getSession();if(!context.isCurrent()||session.error||!session.data.session||session.data.session.user.id!==context.actorId||session.data.session.expires_at!==undefined&&session.data.session.expires_at*1000<=Date.now())throw Error(unavailable);
- const user=await client.auth.getUser(session.data.session.access_token);if(!context.isCurrent()||user.error||user.data.user?.id!==context.actorId||rpcClient()!==client)throw Error(unavailable);
- return client;
-}
+async function authority(context:Context){return requireCareWorkspaceAuthorityWeb(context,rpcClient,(request,operation)=>withServiceQueryTimeout(Promise.resolve(request),operation,20_000),unavailable);}
 function decodeOriginal(value:unknown,context:{tenantId:string;clientId:string}):CareDocumentationOriginal{
  const issue=careDocumentationOriginalIssue(value,context);if(issue)throw Error(issue);return structuredClone(value as CareDocumentationOriginal);
 }

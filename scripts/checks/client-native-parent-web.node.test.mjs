@@ -52,7 +52,7 @@ const ownHook=s.slice(s.indexOf('type ParentReadEnvelope<'),s.indexOf('function 
 const handlerStart=s.indexOf('  const canEdit = !!editTicket;',s.indexOf('  if (loading)'));
 assert.ok(handlerStart>=0);
 const handlerBody=s.slice(handlerStart,s.indexOf('  const headerActions =',handlerStart));
-const apiFields='identityAttachment,identityWorkBlocked,currentIdentityEdit,nativeWrites,nativeWritesRef,liveActionCan,captureNativeAction,id,tenantId,profile,user,detail,fullQuery,loading,error,refresh,careContexts,tabs,parentRead,currentParent,masterDataEditOpen,archiveError,handleEditMasterData,actions,editor,currentEditor,closeEditor,savedEditor,actionStatus,editTicket,deleteFollowup';
+const apiFields='identityAttachment,identityWorkBlocked,currentIdentityEdit,nativeWrites,nativeWritesRef,liveActionCan,captureNativeAction,finishNativeAction,id,tenantId,profile,user,detail,fullQuery,loading,error,refresh,careContexts,tabs,parentRead,currentParent,masterDataEditOpen,archiveError,handleEditMasterData,actions,editor,currentEditor,closeEditor,savedEditor,actionStatus,editTicket,deleteFollowup';
 const prefix=s.slice(s.indexOf('function ClientRecordScreenContent('),s.indexOf('  if (loading)'))+'if(!detail)return {'+apiFields+'};\n'+handlerBody+'return {'+apiFields+',handleArchive,handleDelete,handleDeleted,handleRecordRefresh,deleteTicket,archiveTicket};}';
 const checks=[];
 function harness(initial={}){
@@ -117,7 +117,7 @@ function harness(initial={}){
      if(mode!=='select')return{data:{id:id(40)},error:null};
      if(table==='assignments')return{count:0,data:null,error:null};
      if(table==='clients')return{data:{status:'active'},error:null};
-     if(table==='client_intake_documents')return{data:{id:id(40)},error:null};
+     if(table==='client_intake_documents')return{data:singleRow?{id:id(40)}:[],error:null};
      return{data:null,error:null};
     }).then(resolve,reject);
    }};return q;
@@ -159,6 +159,15 @@ function harness(initial={}){
 const rights=(...r)=>new Set(['office.clients.view',...r.map(x=>'office.clients.'+x)]);
 async function ready(h){for(let i=0;i<4;i++)await h.settle();assert.equal(h.api.parentRead.ownRead,true);assert.ok(h.permissionReads.some(x=>x.table==='role_permissions'));assert.ok(h.permissionReads.some(x=>x.table==='role_permission_sets'&&x.filters.tenant_id===id(1)));assert.ok(h.mapperCalls.length>=2);assert.ok(h.selectCalls.some(x=>x.table==='clients'));assert.equal(h.legacyCalls.length,0);assert.equal(h.rpcCalls.length,0);assert.ok(h.selectCalls.every(x=>x.mode==='select'&&(x.table==='cost_carrier_system_templates'||x.filters.some(([k,v])=>k==='tenant_id'&&v===id(1)))));}
 const signedDraft=()=>({clientId:id(4),form:{intakeContractType:'assist',intakeAssignmentEnabled:false,intakeDocuments:[{templateKey:'privacy_consent_default',documentType:'privacy_consent',title:'Original Datenschutz',version:1,status:'finalized',isRequired:true,source:'system',tenantTemplateId:null,previewHtml:'<p>original</p>',finalizedHtml:'<p>original finalized</p>',renderedPdfPath:null,missingPlaceholders:[],unresolvedKeys:[],previewOpenedAt:'2026-10-11 10:00:00.123456+00:00',finalizedAt:'2026-10-25T02:30:00.654321+02:00',unknownOriginal:{optional:undefined,history:['b','a']},signatures:{client:{role:'client',dataUrl:'data:image/png;base64,ORIGINAL',signedAt:'2026-10-25T02:30:00.123456+02:00',signerName:undefined},employee:{role:'employee',dataUrl:'data:image/png;base64,STAFF',signedAt:'2026-10-11 10:00:00.123456+00:00',signerName:'Staff'}}}]}});
+const unsignedDraft=()=>{const draft=signedDraft(),doc=draft.form.intakeDocuments[0];doc.status='preview_open';doc.finalizedHtml=null;doc.finalizedAt=null;for(const signature of Object.values(doc.signatures))signature.dataUrl='';return draft;};
+// The automatic Parent effect deliberately considers signed local drafts only.
+// Unsigned boundary cases use the actual Parent capture/finish functions and
+// current action store; this does not invent an unsigned automatic-recovery path.
+async function parentUnsignedRecovery(h,form=unsignedDraft().form){
+ const parent=h.api,ticket=parent.actions.capture('recovery'),lease=parent.captureNativeAction(ticket);
+ assert.ok(ticket);assert.ok(lease);const attempt=parent.actions.begin(ticket);assert.ok(attempt);
+ const outcome=await parent.nativeWrites.recover(lease,form);parent.finishNativeAction(attempt,lease,outcome);return{attempt,lease,outcome};
+}
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const make=(t,options)=>{const h=harness(options);t.after(()=>h.unmount());return h;};
 async function until(h,predicate){for(let i=0;i<60&&!predicate();i++)await h.tick();assert.ok(predicate(),'actual async source boundary reached');}
@@ -201,21 +210,26 @@ for(const race of ['permission','SDKmissing'])test(`After Parent begin, first na
  assert.equal((await h.api.handleDelete()).ok,false);const f=followup(h);assert.equal(f.outcome.writeStarted,false);assert.equal(h.nativeRequests.length,0);assert.equal(h.api.nativeWrites.isOwnUnstarted(f.lease,f.outcome),true);assert.equal(h.api.actions.error(f.attempt),null);assert.equal(h.api.actions.acknowledged(f.attempt),false);
  h.state.onNativeSdkAccess=undefined;h.state.sdkUnavailable=false;await ready(h);assert.equal((await h.api.handleDelete()).ok,true);assert.equal(h.nativeWrites.length,3);
 });
-for(let boundary=0;boundary<10;boundary++)test(`Recovery native await ${boundary} checks the latest action permission before the next native step`,async t=>{
- const h=make(t,{rights:rights('edit')}),load=deferred();h.draft=()=>load.promise;await ready(h);
- h.state.nativeIntercept=(_table,_mode,_payload,_filters,index)=>{if(index===boundary)h.permissionAPIs[0].refreshPermissions();};load.resolve(signedDraft());await until(h,()=>h.nativeRequests.length===boundary+1);for(let i=0;i<3;i++)await h.tick();
- assert.equal(h.nativeRequests.length,boundary+1);assert.ok(h.nativeWrites.length>=1);assert.equal(h.actionCalls.length,0);assert.equal(h.api.actions.status().warning===null,boundary===9);
+for(let boundary=0;boundary<5;boundary++)test(`Parent-owned unsigned Recovery native await ${boundary} checks the latest action permission before the next native step`,async t=>{
+ const h=make(t,{rights:rights('edit')});await ready(h);
+ h.state.nativeIntercept=(_table,_mode,_payload,_filters,index)=>{if(index===boundary)h.permissionAPIs[0].refreshPermissions();};const result=await parentUnsignedRecovery(h);
+ assert.equal(h.nativeRequests.length,boundary+1);assert.equal(h.nativeReads.length,1);assert.equal(h.nativeWrites.length,boundary);assert.equal(h.actionCalls.length,0);
+ assert.equal(result.outcome.status,boundary===0?'blocked':boundary===4?'acknowledged':'uncertain');assert.equal(result.outcome.writeStarted,boundary>0);assert.equal(h.api.actions.acknowledged(result.attempt),boundary===4);assert.equal(h.api.actions.status().warning===null,boundary===0||boundary===4);
+ if(boundary===0)assert.equal(h.api.actions.status().blocked,false);else if(boundary<4)assert.match(h.api.actions.status().warning,/Schreibausgang/);
  const originalReads=h.reads.length;for(let i=0;i<2;i++)await h.tick();assert.equal(h.reads.length,originalReads);
 });
-test('Recovery keeps its own pending action current through a busy rerender and captures all original payloads before await',async t=>{
- const h=make(t,{rights:rights('edit')}),load=deferred(),write=deferred(),draft=signedDraft();h.draft=()=>load.promise;await ready(h);
- h.state.nativeIntercept=(_table,_mode,_payload,_filters,index)=>index===0?write.promise:undefined;load.resolve(draft);await until(h,()=>h.nativeRequests.length===1);
- const originalSigned=draft.form.intakeDocuments[0].signatures.client.signedAt;draft.form.intakeDocuments[0].signatures.client.signedAt='MUTATED';draft.form.intakeDocuments[0].signatures.client.dataUrl='MUTATED';
+test('Parent-owned unsigned Recovery keeps its pending action through busy rerender and captures original content before preflight await',async t=>{
+ const h=make(t,{rights:rights('edit')}),write=deferred(),draft=unsignedDraft();await ready(h);
+ h.state.nativeIntercept=(_table,_mode,_payload,_filters,index)=>index===0?write.promise:undefined;const recovery=parentUnsignedRecovery(h,draft.form);await until(h,()=>h.nativeRequests.length===1);
+ const original=structuredClone(draft.form.intakeDocuments[0]);draft.form.intakeDocuments[0].title='MUTATED';draft.form.intakeDocuments[0].previewHtml='MUTATED';draft.form.intakeDocuments[0].previewOpenedAt='MUTATED';draft.form.intakeDocuments[0].signatures.client.signedAt='MUTATED';draft.form.intakeDocuments[0].signatures.client.dataUrl='MUTATED';
  h.render();h.flush();assert.equal(h.api.actions.status().busy,true);const ticket=h.api.actions.capture('recovery');assert.equal(h.api.actions.current(ticket),true);assert.equal(h.api.actions.mayLaunch(ticket),false);
- write.resolve(undefined);await until(h,()=>h.nativeRequests.length===10);for(let i=0;i<3;i++)await h.tick();assert.equal(h.nativeWrites.length,7);assert.equal(h.nativeWrites.find(x=>x.table==='client_document_signatures').payload.signed_at,originalSigned);assert.equal(h.nativeWrites.find(x=>x.table==='client_document_signatures').payload.signature_data,'data:image/png;base64,ORIGINAL');assert.equal(h.actionCalls.length,0);assert.equal(h.api.actions.status().warning,null);
+ write.resolve(undefined);const result=await recovery;assert.equal(result.outcome.status,'acknowledged');assert.equal(h.nativeRequests.length,5);assert.equal(h.nativeWrites.length,4);const saved=h.nativeWrites.find(x=>x.table==='client_intake_documents').payload;assert.equal(saved.title,original.title);assert.equal(saved.preview_html,original.previewHtml);assert.equal(saved.preview_opened_at,original.previewOpenedAt);assert.equal(saved.finalized_at,null);assert.equal(h.nativeWrites.some(x=>x.table==='client_document_signatures'),false);assert.equal(h.actionCalls.length,0);assert.equal(h.api.actions.status().warning,null);
 });
-for(const table of ['client_document_events','client_document_signatures','client_consent_status'])test(`Recovery checks actual ${table} error and never continues or falls back after the failed native mutation`,async t=>{
- const h=make(t,{rights:rights('edit')}),load=deferred();h.draft=()=>load.promise;await ready(h);h.state.nativeIntercept=(t)=>t===table?{data:null,error:{code:'42501',message:'Actual required write denied'}}:undefined;load.resolve(signedDraft());await until(h,()=>h.nativeWrites.some(x=>x.table===table));for(let i=0;i<3;i++)await h.tick();assert.equal(h.nativeWrites.at(-1).table,table);assert.equal(h.api.actions.status().blocked,true);assert.match(h.api.actions.status().warning,/Schreibausgang/);assert.equal(h.actionCalls.length,0);const count=h.nativeRequests.length;h.draft=null;await h.api.parentRead.refresh();await ready(h);assert.equal(h.nativeRequests.length,count);
+for(const table of ['client_contract_selection','client_intake_documents','client_document_events','client_consent_status'])test(`Parent-owned unsigned Recovery checks actual ${table} error and never continues or falls back after the failed native mutation`,async t=>{
+ const h=make(t,{rights:rights('edit')});await ready(h);h.state.nativeIntercept=(t,mode)=>t===table&&mode!=='select'?{data:null,error:{code:'42501',message:'Actual required write denied'}}:undefined;const result=await parentUnsignedRecovery(h);assert.equal(result.outcome.status,'uncertain');assert.equal(h.nativeWrites.at(-1).table,table);assert.equal(h.api.actions.status().blocked,true);assert.match(h.api.actions.status().warning,/Schreibausgang/);assert.equal(h.actionCalls.length,0);const count=h.nativeRequests.length;await h.api.parentRead.refresh();await ready(h);assert.equal(h.nativeRequests.length,count);
+});
+test('Actual automatic signed Recovery rejects fresh captures after scoped preflight with no native mutation',async t=>{
+ const h=make(t,{rights:rights('edit')}),load=deferred();h.draft=()=>load.promise;await ready(h);load.resolve(signedDraft());await until(h,()=>h.nativeRequests.length===1);for(let i=0;i<3;i++)await h.tick();assert.equal(h.nativeRequests[0].table,'client_intake_documents');assert.equal(h.nativeRequests[0].mode,'select');assert.equal(h.nativeWrites.length,0);assert.equal(h.api.actions.status().busy,false);assert.equal(h.api.actions.status().blocked,false);assert.equal(h.api.actions.status().warning,null);assert.equal(h.actionCalls.length,0);await h.api.parentRead.refresh();await ready(h);assert.equal(h.nativeRequests.length,1);
 });
 for(const table of ['client_history_entries','client_audit_entries'])test(`Delete checks actual ${table} failure, retains unknown journal and prevents fresh-read replay`,async t=>{
  const h=make(t,{rights:rights('delete')});await ready(h);h.state.nativeIntercept=t=>t===table?{data:null,error:{code:'42501',message:'Actual native history/audit denied'}}:undefined;
@@ -251,11 +265,11 @@ for(const change of ['permission','owner'])test(`Actual Shared Delete confirmati
  const h=make(t,{rights:rights('delete')});await ready(h);const confirm=deferred(),button=actualDeleteButton(h,confirm),pending=button.press();if(change==='permission')h.permissionAPIs[0].refreshPermissions();else{h.state.user={id:id(3)};h.state.profile={...h.state.profile,id:id(3)};h.state.token='token-B';h.render();h.flush();}confirm.resolve(true);await pending;assert.equal(h.nativeRequests.length,0);assert.equal(h.routes.length,0);assert.equal(button.state.success.length,0);assert.equal(button.state.errors.filter(Boolean).length,1);
 });
 test('Recovery unknown survives native owner A→B→A without a new draft replay',async t=>{
- const h=make(t,{rights:rights('edit')}),load=deferred();h.draft=()=>load.promise;await ready(h);const controller=h.api.nativeWrites;h.state.nativeIntercept=(_t,_m,_p,_f,index)=>index===0?{data:null,error:{code:'08006',message:'Unknown recovery transport'}}:undefined;load.resolve(signedDraft());await until(h,()=>h.nativeRequests.length===1);for(let i=0;i<3;i++)await h.tick();assert.match(h.api.actions.status().warning,/Schreibausgang/);h.draft=null;
- h.state.user={id:id(3)};h.state.profile={...h.state.profile,id:id(3)};h.state.token='token-B';await ready(h);h.state.user={id:id(2)};h.state.profile={...h.state.profile,id:id(2)};h.state.token='token-A';await ready(h);assert.equal(h.api.nativeWrites,controller);assert.equal(h.nativeRequests.length,1);assert.equal(h.api.actions.begin(h.api.actions.capture('recovery')),null);assert.equal(h.api.actions.status().blocked,true);
+ const h=make(t,{rights:rights('edit')});await ready(h);const controller=h.api.nativeWrites;h.state.nativeIntercept=(_t,_m,_p,_f,index)=>index===1?{data:null,error:{code:'08006',message:'Unknown recovery transport'}}:undefined;const result=await parentUnsignedRecovery(h);assert.equal(result.outcome.status,'uncertain');assert.equal(h.nativeRequests.length,2);assert.equal(h.nativeWrites.length,1);assert.match(h.api.actions.status().warning,/Schreibausgang/);
+ h.state.user={id:id(3)};h.state.profile={...h.state.profile,id:id(3)};h.state.token='token-B';await ready(h);h.state.user={id:id(2)};h.state.profile={...h.state.profile,id:id(2)};h.state.token='token-A';await ready(h);assert.equal(h.api.nativeWrites,controller);assert.equal(h.nativeRequests.length,2);assert.equal(h.api.actions.begin(h.api.actions.capture('recovery')),null);assert.equal(h.api.actions.status().blocked,true);
 });
 test('Recovery lifetime cleanup after a native mutation neither starts another draft nor continues the old native chain',async t=>{
- const h=make(t,{rights:rights('edit')}),load=deferred();h.draft=()=>load.promise;await ready(h);h.state.nativeIntercept=(_t,_m,_p,_f,index)=>{if(index===0)h.unmount();};load.resolve(signedDraft());await until(h,()=>h.nativeRequests.length===1);for(let i=0;i<3;i++)await h.tick();assert.equal(h.nativeWrites.length,1);assert.equal(h.nativeRequests.length,1);assert.equal(h.actionCalls.length,0);
+ const h=make(t,{rights:rights('edit')});await ready(h);h.state.nativeIntercept=(_t,_m,_p,_f,index)=>{if(index===1)h.unmount();};const result=await parentUnsignedRecovery(h);assert.equal(result.outcome.status,'uncertain');assert.equal(h.nativeWrites.length,1);assert.equal(h.nativeRequests.length,2);assert.equal(h.actionCalls.length,0);
 });
 test('Malformed native transport after the first Delete mutation remains unknown and cannot use recognized no-write release',async t=>{
  const h=make(t,{rights:rights('delete')});await ready(h);h.state.nativeIntercept=(_t,_m,_p,_f,index)=>index===3?null:undefined;assert.equal((await h.api.handleDelete()).ok,false);const f=followup(h);assert.equal(h.nativeRequests.length,4);assert.equal(h.nativeWrites.length,1);assert.equal(h.api.nativeWrites.isOwnUnstarted(f.lease,f.outcome),false);assert.equal(h.api.actions.status().blocked,true);assert.match(h.api.actions.status().warning,/Schreibausgang/);

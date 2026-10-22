@@ -32,14 +32,15 @@ test('alle Ereignisarten verwenden denselben inhaltsneutralen sichtbaren Umschla
   assert.equal(visible.size, 1);
 });
 
-test('Empfänger- und Routendaten stehen nur in den nicht sichtbaren Navigationsdaten', () => {
-  const payload = notificationFor(work('document'), target, now);
+test('Push-Daten enthalten nur die Mitteilungs-ID und keine Route, Konto- oder Mandantenkennung', () => {
+  const payload = notificationFor(work('document'), { ...target, private_note: 'PRIVATE CLIENT DETAIL' }, now);
   assert.deepEqual(payload.data, {
     notificationId: work('document').id,
-    route: target.route,
-    accountId: target.account_id,
-    tenantId: target.tenant_id,
   });
+  const serialized = JSON.stringify(payload);
+  for (const excluded of [target.route, target.account_id, target.tenant_id, 'PRIVATE CLIENT DETAIL']) {
+    assert.equal(serialized.includes(excluded), false);
+  }
   assert.doesNotMatch(String(payload.title), /00000000|client|document/i);
   assert.doesNotMatch(String(payload.body), /00000000|client|document/i);
 });

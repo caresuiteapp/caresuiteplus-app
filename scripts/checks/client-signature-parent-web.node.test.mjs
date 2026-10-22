@@ -12,6 +12,8 @@ const root=resolve(new URL('../../',import.meta.url).pathname), read=p=>readFile
 let fixture=read('scripts/checks/client-native-parent-web.node.test.mjs');
 fixture=fixture.slice(0,fixture.indexOf("test('Actual Parent"));
 fixture=fixture.replace(/^const root=.*$/m,`const root=${JSON.stringify(root)},read=p=>readFileSync(resolve(root,p),'utf8');`);
+// The imported fixture is evaluated from a data URL; retain the real helper URL.
+fixture=fixture.replace("new URL('./helpers/current-intake-validation.mjs',import.meta.url).href",JSON.stringify(new URL('./helpers/current-intake-validation.mjs',import.meta.url).href));
 fixture=fixture.replace("const apiFields='","const apiFields='capturePanelTimelineRead,timelineAccess,");
 fixture=fixture.replace('render();return {get api()','render();return {get nativeSdk(){return nativeDb;},get api()');
 fixture+='\nexport {harness,ready,id,deferred};';
