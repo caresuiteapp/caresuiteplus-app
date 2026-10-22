@@ -52,6 +52,10 @@ export async function registerBasicCarePostgresEvidenceTests(source){
    assert.equal(r.plan.kind,n.measure.category);assert.equal(r.plan.title,n.measure.title);assert.equal(r.plan.secondPersonRequired,p.secondPersonRequired);assert.equal(r.plan.pressureOriginals,null);assert.equal(r.plan.fallOriginals,null);
   });
  }
+ if(e.supplementaryRuntimeUnit)test('Supplementary actual native-binding unit confirms the exact own planned original without an actual care claim',()=>{
+  assert.equal(e.supplementaryRuntimeUnit,true);assert.deepEqual(e.confirmedReceipt,e.receipt);assert.equal(domain.basicCareReceiptIssue(e.confirmedReceipt,e.packet),null);assert.equal(e.packet.requestId,e.expected.createRequestId);assert.equal(e.issuePacket.requestId,e.expected.issueRequestId);
+  assert.equal(e.receipt.original.payload.execution.outcome,'planned');assert.equal(e.receipt.original.payload.occurredAt,null);assert.deepEqual(e.receipt.original.payload.execution.performedBy,[]);assert.equal(e.receipt.original.payload.consent.state,'not_asked');assert.equal(e.receipt.original.payload.lifecycle,'open');assert.equal(e.receipt.original.history.length,1);
+ });
  if(e.denialCases)test('Actual native author cases reach real completed care and technically qualified reviewer before exact42501 denials',()=>{
   assert.deepEqual(e.denialCases.map(c=>c.case),[1,2,3,4,5,6,7,8,9,10]);
   for(const c of e.denialCases){assert.equal(c.careReceipt.original.payload.lifecycle,'completed');assert.equal(c.careReceipt.original.payload.execution.outcome,'performed');assert.equal(c.reviewReceipt.original.status,'requested');assert.equal(c.acceptSqlState,'42501');assert.equal(c.returnSqlState,'42501');assert.equal(c.qualifiedReviewer.profileId,c.expected.reviewerId);assert.equal(c.qualifiedReviewer.scopeKind,'basic_care_review');assert.equal(domain.basicCareReviewPacketIssue(c.acceptPacket),null);assert.equal(domain.basicCareReviewPacketIssue(c.returnPacket),null);
