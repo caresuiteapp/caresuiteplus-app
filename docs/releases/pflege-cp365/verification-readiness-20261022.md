@@ -1,5 +1,13 @@
 # Medication verification readiness — 2026-10-22
 
+## Current build repair: edac077f
+
+The supplied Vercel logs for `9cec6f7`, `384f71e` and `5b1be35` all reached the project TypeScript check and reported the same three errors. Commit `edac077f80663679e6eae77457f24ba3376f55a4` adds the missing generated `resolve_current_profile_id` signature, calls the two argumentless identity RPCs without an explicit argument object, and explicitly types the generic Vital history page. The resolver's zero-argument UUID signature was independently checked against Staging; no resolver or clinical authorization semantics changed.
+
+The targeted permission selection passed 190 checks, the Vital selection passed 494, and the care-documentation/authority selection passed 322. These selections are not added together. A separate fixed checkout containing this code and the corrected SDK-default test wrapper passed the complete existing Node glob: **13,958 passed, zero failed or skipped**. The wrapper models the SDK's empty default arguments while retaining its exact-empty-argument assertions and separation from clinical writes. This result does not cover subsequent reconstructed BasicCare or Nutrition candidates.
+
+Vercel started new builds for `edac077f`. Their observed statuses are mixed; no successful complete production verification chain, Web type-check result, Expo export or deployed acceptance is claimed. The actual team build-log connection remains unavailable with HTTP 403. Historical successful status labels below are dated snapshots and do not supersede these current limits. Pflege remains locked, the PR remains a draft, and no production migration, promotion or activation was performed.
+
 ## Available verification
 
 The strict verifier runs existing medication Node checks, the shared clinical workspace-authority checks when present, and the locked-deployment checks. The latter were previously outside the medication filename filter. It also inventories the five existing project-level medication and unreleased-module Vitest suites and checks every archive Edge TypeScript file for syntax.
