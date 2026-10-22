@@ -34,8 +34,8 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
     return () => { mounted.current = false; active.current?.abort(); active.current = null; };
   }, [load]);
   useEffect(() => {
-    if (!status || (status.state !== 'running' && !status.nextStartAt) || error) return;
-    const delay = status.state === 'running' ? 2500 : Math.min(30000, Math.max(1000, (status.nextStartAt ?? 0) - Date.now() + 100));
+    if (!status || (status.state !== 'running' && status.receiveBlock !== 'active' && !status.nextStartAt) || error) return;
+    const delay = status.state === 'running' || status.receiveBlock === 'active' ? 2500 : Math.min(30000, Math.max(1000, (status.nextStartAt ?? 0) - Date.now() + 100));
     const timer = setTimeout(() => void load('status'), delay); return () => clearTimeout(timer);
   }, [status, error, load]);
   const download = () => {
@@ -49,13 +49,16 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
     {!canCheck ? <p className="gx-subtle">Für die Anschlussprüfung werden Lese- und Erstellungsrechte für Abrechnungen benötigt.</p> : <>
       {error && <div className="gx-notice" data-tone="error" role="alert">{error}</div>}
       <div className="gx-kim-status" role="status" aria-live="polite">
-        <strong>{status ? labels[status.state] : busy ? 'Prüfstatus wird geladen …' : 'Prüfstatus noch nicht verfügbar'}</strong>
+        <strong>{status?.receiveBlock === 'active' ? 'Kartenempfang läuft am Host' : status?.receiveBlock === 'review' ? 'Kartenempfang benötigt Überprüfung'
+          : status?.receiveBlock === 'cooldown' ? 'Wartezeit nach Kartenempfang' : status ? labels[status.state] : busy ? 'Prüfstatus wird geladen …' : 'Prüfstatus noch nicht verfügbar'}</strong>
         {status?.environment && <span className="gx-badge">{status.environment === 'test' ? 'Testumgebung' : 'Produktionsumgebung · Diagnose'}</span>}
       </div>
       {status?.state === 'unconfigured' && <p>Für diesen Zugang ist noch kein Konnektorhost eingerichtet. Nach der serverseitigen Anbindung lässt sich der Anschluss hier prüfen.</p>}
-      {status?.state === 'ready' && <p>Die SMC-B muss am Kartenterminal bereits freigeschaltet sein. Der Durchlauf verwendet ausschließlich einen synthetischen Testinhalt.</p>}
+      {status?.state === 'ready' && !status.receiveBlock && <p>Die SMC-B muss am Kartenterminal bereits freigeschaltet sein. Der Durchlauf verwendet ausschließlich einen synthetischen Testinhalt.</p>}
+      {status?.receiveBlock === 'active' && <p>Der Host prüft gerade eine gespeicherte KIM-Nachricht mit derselben Karte. Die Anschlussprüfung ist währenddessen gesperrt. Der Status wird automatisch aktualisiert.</p>}
+      {status?.receiveBlock === 'review' && <p>Ein Kartenempfang benötigt eine administrative Überprüfung am Host. Bis zur Klärung können keine weiteren Kartenprüfungen gestartet werden.</p>}
       {status?.state === 'running' && <p>Der Host führt die Prüfung aus. Der Status wird automatisch aktualisiert. Beim Verlassen dieser Ansicht läuft die Prüfung am Host weiter.</p>}
-      {status && ['failed','interrupted'].includes(status.state) && <div className="gx-subtle">
+      {status && !status.receiveBlock && ['failed','interrupted'].includes(status.state) && <div className="gx-subtle">
         {status.errorCode && verificationErrors[status.errorCode] && <p>{verificationErrors[status.errorCode]}</p>}
         <p>{status.canStart || status.nextStartAt ? 'Die administrative Überprüfung wurde am Host bestätigt. Ein neuer Durchlauf ist nach einer gegebenenfalls noch laufenden Wartezeit möglich.' : status.errorCode === 'KIM_CONNECTOR_PIN_NOT_VERIFIED' ? 'Die Karte ist nicht freigeschaltet. Bitte den PIN-Status am Kartenterminal prüfen.' : 'Der Durchlauf wurde nicht vollständig bestätigt. Die Administration muss den Host und den Kartenstatus prüfen, bevor ein neuer Durchlauf freigegeben wird.'}</p>
         {status.errorCode && <small>Prüfcode: {status.errorCode}</small>}

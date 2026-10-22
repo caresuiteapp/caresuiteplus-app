@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createKimHostHandler } from '../../api/_lib/kim-host-handler.mjs';
 import { callKimHost } from '../../api/_lib/kim-host-transport.mjs';
 import { readKimHostStatus } from '../../src/lib/gkvExchange/kimHostContract.ts';
+import { readKimHostCommand, readKimReceiveStatus } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
 import { testPki } from './pki-fixture.mjs';
 import { connectorFixture, hash, raw } from './connector-fixture.mjs';
 const tenantId = randomUUID(), userId = randomUUID();
@@ -109,4 +110,78 @@ for (const [label, change] of [
   ['start during cooldown', s => { s.nextStartAt = Date.now() + 1000; }],
 ]) test('KIM contract: rejects ' + label, () => {
   const status = completed(2); change(status); assert.throws(() => readKimHostStatus(status, tenantId), /KIM_HOST_RESPONSE/);
+});
+
+const receiveRequest = randomUUID();
+const preparedReceive = () => ({ version: 1, kind: 'card-receive', tenantId, requestId: receiveRequest, mailboxId: randomUUID(), messageId: randomUUID(),
+  originalSha256: 'a'.repeat(64), environment: 'test', state: 'prepared', createdAt: Date.now() - 3000, startedAt: null, completedAt: null,
+  reviewRequired: false, canStart: true, nextStartAt: null, errorCode: null, result: null });
+const completeReceive = () => ({ ...preparedReceive(), state: 'completed', canStart: false, startedAt: Date.now() - 2000, completedAt: Date.now(),
+  result: { kind: 'diagnostic', sha256: 'b'.repeat(64), octets: 2500, diagnosisCode: 'XCS_TRUST', cardState: 'checked', cardStage: 'complete',
+    documentResult: 'VALID', verificationReportSha256: 'c'.repeat(64), identityStatus: 'unverified', deliveryStatus: 'diagnostic-only', hardwareEvidence: 'not-attested', tiEvidence: 'not-attested' } });
+test('KIM receive contract: metadata snapshots remain bound to the exact request and caller mutation is isolated', () => {
+  const source = completeReceive(), parsed = readKimReceiveStatus(source, tenantId, receiveRequest);
+  source.result.sha256 = 'd'.repeat(64); assert.equal(parsed.result.sha256, 'b'.repeat(64));
+  assert.equal(readKimReceiveStatus(preparedReceive(), tenantId, receiveRequest).canStart, true);
+});
+for (const [label, change] of [
+  ['foreign tenant', s => { s.tenantId = randomUUID(); }],
+  ['foreign request', s => { s.requestId = randomUUID(); }],
+  ['coerced environment', s => { s.environment = ['test']; }],
+  ['coerced diagnosis code', s => { s.result.diagnosisCode = 4009; }],
+  ['coerced document result', s => { s.result.cardState = 'rejected'; s.result.cardStage = 'document'; s.result.documentResult = ['INVALID']; }],
+  ['missing original hash', s => { delete s.originalSha256; }],
+  ['exposed message', s => { s.bytes = 'PRIVATE ORIGINAL'; }],
+  ['exposed certificate', s => { s.result.certificate = 'PRIVATE SUBJECT'; }],
+  ['hardware claim', s => { s.result.hardwareEvidence = 'verified'; }],
+  ['delivery claim', s => { s.result.deliveryStatus = 'delivered'; }],
+  ['trust claim', s => { s.result.identityStatus = 'verified'; }],
+  ['rerunnable completed job', s => { s.canStart = true; }],
+  ['missing completion', s => { s.completedAt = null; }],
+  ['negative time order', s => { s.startedAt = s.createdAt - 1000; }],
+  ['claim without document report', s => { s.result.documentResult = null; s.result.verificationReportSha256 = null; }],
+  ['missing report digest', s => { s.result.verificationReportSha256 = null; }],
+  ['invalid checked document', s => { s.result.documentResult = 'INVALID'; }],
+  ['unbounded error', s => { s.result.diagnosisCode = 'PRIVATE ' + 'x'.repeat(9000); }],
+  ['unprotected output promoted', s => { s.result.kind = 'unprotected'; }],
+  ['arbitrary stage', s => { s.result.cardStage = 'delivered'; }],
+  ['oversized artifact', s => { s.result.octets = 23_068_673; }],
+]) test('KIM receive contract: rejects ' + label, () => {
+  const status = completeReceive(); change(status); assert.throws(() => readKimReceiveStatus(status, tenantId, receiveRequest), /KIM_HOST_RESPONSE/);
+});
+for (const action of ['status','start','receive-status','receive-start']) test('KIM host command: accepts only identifiers for ' + action, () => {
+  const input = { tenantId, action, ...(action === 'status' ? {} : { requestId: receiveRequest }) };
+  assert.deepEqual(readKimHostCommand(input), input);
+  assert.throws(() => readKimHostCommand({ ...input, bytes: 'original' }), /KIM_HOST_INPUT/);
+});
+for (const extra of [
+  { action: 'receive-prepare' }, { action: 'receive-artifact' }, { action: 'receive-start', requestId: undefined },
+  { action: 'receive-start', expectedSignerCertificate: 'leaf' }, { action: 'receive-start', mailboxId: randomUUID() },
+  { action: 'receive-status', includeDecryptedOriginal: true }, { action: 'receive-status', recoveryReviewedRequestId: receiveRequest },
+  { action: ['receive-start'] }, { action: ['status'] },
+]) test('KIM receive gateway: rejects ' + JSON.stringify(extra) + ' before any network access', async () => {
+  const handler = createKimHostHandler({ env, fetch: async () => { throw new Error('Must not fetch'); } }), response = res();
+  await handler(req({ tenantId, requestId: receiveRequest, ...extra }), response); assert.equal(response.statusCode, 400);
+});
+test('KIM receive gateway: existing authorization is required and a missing host stays unavailable', async () => {
+  for (const allowed of [true, false]) {
+    const handler = createKimHostHandler({ env, fetch: async url => url.endsWith('/user') ? user() : new Response(JSON.stringify(allowed)) }), response = res();
+    await handler(req({ tenantId, action: 'receive-start', requestId: receiveRequest }), response);
+    assert.equal(response.statusCode, allowed ? 503 : 403);
+    if (allowed) assert.equal(response.body.error, 'KIM_HOST_RECEIVE_UNCONFIGURED');
+  }
+});
+test('KIM receive gateway: actual pinned mTLS cannot substitute another request result', async () => transport(async config => {
+  const handler = createKimHostHandler({ env: { ...env, ...config }, fetch: async url => url.endsWith('/user') ? user() : new Response('true') }), response = res();
+  await handler(req({ tenantId, action: 'receive-status', requestId: randomUUID() }), response); assert.equal(response.statusCode, 503);
+}, event => { event.response.writeHead(200, { 'Content-Type': 'application/json' }); event.response.end(JSON.stringify(completeReceive())); }));
+test('KIM probe contract: receiving work blocks start with a specific reason even before the first synthetic probe', () => {
+  for (const receiveBlock of ['active','review','cooldown']) {
+    const status = { ...ready(), canStart: false, receiveBlock, nextStartAt: receiveBlock === 'cooldown' ? Date.now() + 20000 : null };
+    assert.equal(readKimHostStatus(status, tenantId).receiveBlock, receiveBlock);
+    assert.throws(() => readKimHostStatus({ ...status, canStart: true }, tenantId), /KIM_HOST_RESPONSE/);
+  }
+  assert.throws(() => readKimHostStatus({ ...ready(), canStart: false }, tenantId), /KIM_HOST_RESPONSE/);
+  assert.throws(() => readKimHostStatus({ ...ready(), canStart: false, receiveBlock: 'unknown' }, tenantId), /KIM_HOST_RESPONSE/);
+  assert.throws(() => readKimHostStatus({ ...ready(), canStart: false, receiveBlock: ['active'], nextStartAt: null }, tenantId), /KIM_HOST_RESPONSE/);
 });

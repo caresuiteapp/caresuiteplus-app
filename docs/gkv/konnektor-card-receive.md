@@ -1,6 +1,6 @@
 # Kartenentschlüsselung im KIM-Empfang
 
-Stand: 22.10.2026. Der interne Empfang kann ein gespeichertes INLINE-ECC-Original
+Stand: 23.10.2026. Der interne Empfang kann ein gespeichertes INLINE-ECC-Original
 über den konfigurierten Konnektor entschlüsseln, seine Dokumentensignatur prüfen
 und den bestehenden VZD-/AUT-Diagnoseweg durchlaufen. Die Tests verwenden lokale
 mTLS-/LDAPS-Gegenstellen mit Software-Testschlüsseln. Sie attestieren keine
@@ -100,11 +100,13 @@ Verzeichnisbefunde. Auch vollständig bestandene lokale Prüfungen erzeugen eine
 07-Diagnose mit `identityStatus: unverified` und `deliveryStatus: diagnostic-only`.
 `hardwareEvidence` und `tiEvidence` bleiben `not-attested`.
 
-Offen bleiben der produktive Postfach-/Clientproxy- und Hostanschluss dieses
-Empfangs, seine mandantenbezogene Bedienung, die sichere Auflösung des erwarteten
-OSIG-Zertifikats im Host, normale Clientzustellung sowie weitere CMS-/KAS-/
-Herstellerprofile. Der bestehende Web-Host betreibt weiterhin den synthetischen
-Kartenrundlauf, keinen Empfang echter Nachrichten. Fehlerhaftes CMS erreicht
+Der [Empfangshost](konnektor-receive-host.md) verbindet diesen Pfad jetzt mit
+bereits verschlüsselt gespeicherten Inbox-Originalen, lokal hinterlegten
+Zertifikatserwartungen, dauerhaften Aufträgen und einer Start-/Status-API.
+Ergebnisse bleiben verschlüsselt am Host; die bestehende Webansicht zeigt
+gemeinsame Kartensperren. Eine vollständige Empfangsbedienung, sichere automatische
+OSIG-Auflösung, produktiver Postfach-/Clientproxyanschluss, normale Clientzustellung
+und weitere CMS-/KAS-/Herstellerprofile bleiben offen. Fehlerhaftes CMS erreicht
 wegen der unabhängigen lokalen Vorprüfung noch keinen allgemeinen negativen
 VerifyDocument-Pfad. Die vollständige normative Fehlermatrix ist deshalb
 ausdrücklich offen. Das verbundene Gerät war beim erneuten Abruf offline;

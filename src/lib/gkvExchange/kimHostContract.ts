@@ -11,6 +11,7 @@ export type KimHostStatus = {
   version: 1; tenantId: string; configured: boolean; environment: 'test' | 'production' | null;
   state: 'unconfigured' | 'ready' | 'running' | 'passed' | 'failed' | 'interrupted'; canStart: boolean;
   nextStartAt?: number | null; requestId: string | null; startedAt: number | null; completedAt: number | null; report: KimProbeReport | null; errorCode: string | null;
+  receiveBlock?: 'active' | 'review' | 'cooldown';
 };
 const uuid = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
 const hash = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
@@ -20,17 +21,20 @@ const object = (v: unknown): Record<string, unknown> => v && typeof v === 'objec
 export function readKimHostStatus(value: unknown, tenantId: string): KimHostStatus {
   const s = object(value);
   const reject = (): never => { throw new Error('KIM_HOST_RESPONSE'); };
-  if (Object.keys(s).some(k => !['version','tenantId','configured','environment','state','canStart','nextStartAt','requestId','startedAt','completedAt','report','errorCode'].includes(k))) reject();
+  if (Object.keys(s).some(k => !['version','tenantId','configured','environment','state','canStart','nextStartAt','requestId','startedAt','completedAt','report','errorCode','receiveBlock'].includes(k))) reject();
   if (JSON.stringify(s).length > 32768 || s.version !== 1 || !uuid(tenantId) || s.tenantId !== tenantId
     || !['unconfigured','ready','running','passed','failed','interrupted'].includes(String(s.state))
     || typeof s.configured !== 'boolean' || typeof s.canStart !== 'boolean') reject();
-  if (s.nextStartAt !== undefined && s.nextStartAt !== null && (!time(s.nextStartAt) || s.canStart || !s.configured || ['ready','running','unconfigured'].includes(String(s.state)))) reject();
+  if (s.receiveBlock !== undefined && (typeof s.receiveBlock !== 'string' || !['active','review','cooldown'].includes(s.receiveBlock) || !s.configured || s.canStart || s.state === 'running'
+    || (s.receiveBlock === 'cooldown' ? !time(s.nextStartAt) : s.nextStartAt !== null))) reject();
+  if (s.nextStartAt !== undefined && s.nextStartAt !== null && (!time(s.nextStartAt) || s.canStart || !s.configured || ['running','unconfigured'].includes(String(s.state))
+    || (s.state === 'ready' && s.receiveBlock !== 'cooldown'))) reject();
   if (!s.configured) {
     if (s.state !== 'unconfigured' || s.canStart || ['environment','requestId','startedAt','completedAt','report','errorCode'].some(k => s[k] !== null)) reject();
   } else {
     if (!['test','production'].includes(String(s.environment)) || s.state === 'unconfigured') reject();
     if (s.state === 'ready') {
-      if (!s.canStart || ['requestId','startedAt','completedAt','report','errorCode'].some(k => s[k] !== null)) reject();
+      if ((!s.canStart && !s.receiveBlock) || ['requestId','startedAt','completedAt','report','errorCode'].some(k => s[k] !== null)) reject();
     } else if (!uuid(s.requestId) || !time(s.startedAt)) reject();
     if (['running','interrupted'].includes(String(s.state)) && ((s.state === 'running' && s.canStart) || s.report !== null || s.completedAt !== null)) reject();
     if (s.state === 'failed' && (!time(s.completedAt) || Number(s.completedAt) < Number(s.startedAt)

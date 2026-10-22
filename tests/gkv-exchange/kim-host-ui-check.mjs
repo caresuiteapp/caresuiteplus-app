@@ -52,6 +52,12 @@ try {
   assert.doesNotMatch(container.textContent, /als gültig bestätigt/);
   state = { ...passed, canStart: false, nextStartAt: Date.now() + 29000 };
   await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.textContent, /Ein neuer Durchlauf ist ab/); assert.equal(button('Kartenprüfung starten').disabled, true);
+  for (const [receiveBlock, text] of [['active', 'Kartenempfang läuft am Host'], ['review', 'Kartenempfang benötigt Überprüfung'], ['cooldown', 'Wartezeit nach Kartenempfang']]) {
+    state = { ...base, canStart: false, receiveBlock, nextStartAt: receiveBlock === 'cooldown' ? Date.now() + 29000 : null };
+    await React.act(async () => button('Prüfstatus abfragen').click());
+    assert.ok(container.textContent.includes(text)); assert.equal(button('Kartenprüfung starten').disabled, true);
+    assert.doesNotMatch(container.textContent, /Bereit für die Anschlussprüfung/);
+  }
   state = { ...base, state: 'failed', requestId: randomUUID(), canStart: false, errorCode: 'KIM_CONNECTOR_CMS_VERIFY_INCONCLUSIVE' };
   await React.act(async () => button('Prüfstatus abfragen').click()); assert.match(container.textContent, /nicht vollständig abschließen/); assert.ok(button('Prüfprotokoll herunterladen'));
   globalThis.kimHostTest = async () => { throw new Error('Verbindung unterbrochen'); };
@@ -64,7 +70,10 @@ try {
   if (process.argv[2]) {
     const dir = resolve(process.argv[2]); await mkdir(dir, { recursive: true });
     const states = { ready: base, passed, unconfigured: { ...base, configured: false, environment: null, state: 'unconfigured', canStart: false },
-      running: { ...base, state: 'running', canStart: false }, failed: { ...base, state: 'failed', canStart: false, errorCode: 'KIM_CONNECTOR_PIN_NOT_VERIFIED' } };
+      running: { ...base, state: 'running', canStart: false }, failed: { ...base, state: 'failed', canStart: false, errorCode: 'KIM_CONNECTOR_PIN_NOT_VERIFIED' },
+      receiveActive: { ...base, canStart: false, receiveBlock: 'active', nextStartAt: null },
+      receiveReview: { ...base, canStart: false, receiveBlock: 'review', nextStartAt: null },
+      receiveCooldown: { ...base, canStart: false, receiveBlock: 'cooldown', nextStartAt: Date.now() + 29000 } };
     await writeFile(resolve(dir, 'index.html'), `<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CareSuite · lokale Oberflächenprüfung</title><style>body{margin:0;background:#eef4f7;font-family:Arial,sans-serif}main{max-width:1180px;margin:0 auto;padding:24px;box-sizing:border-box}#fixture{font:13px Arial;padding:12px 24px;background:#e2ebf1}${css}</style><div id="fixture">Lokale Prüfung mit synthetischen Zuständen · <select id="state">${Object.keys(states).map(s => `<option>${s}</option>`).join('')}</select></div><main class="gx"><div id="root"></div></main><script>${bundle.outputFiles[0].text}</script><script>const states=${JSON.stringify(states)};let current=states.ready;globalThis.kimHostTest=async()=>current;const root=kimPanel.createRoot(document.getElementById('root'));let n=0;function render(){root.render(kimPanel.React.createElement(kimPanel.KimHostPanel,{key:++n,tenantId:${JSON.stringify(tenantId)},roleKey:'verwaltung',canCheck:true}))}document.getElementById('state').onchange=e=>{current=states[e.target.value];render()};render();</script></html>`);
   }
 } finally { await React.act(async () => root.unmount()); await window.happyDOM.abort(); for (const c of channels) { c.port1.close(); c.port2.close(); } }

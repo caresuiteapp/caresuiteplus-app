@@ -38,6 +38,17 @@ export class ReceiptInbox {
       } else this.#db.prepare('INSERT INTO receipt_mailboxes VALUES(?,?,?,?)').run(tenantId, mailboxId, digest, this.#vault.seal(content, aad));
     });
   }
+  /** Local provisioning check. Never returned by a browser-facing endpoint. */
+  mailbox(tenantId, mailboxId) {
+    if (![tenantId, mailboxId].every(isUuid)) throw new Error('INBOX_QUERY');
+    const row = this.#db.prepare('SELECT * FROM receipt_mailboxes WHERE tenant=? AND id=?').get(tenantId, mailboxId);
+    if (!row) return null;
+    const content = this.#vault.open(row.content, `${tenantId}:${mailboxId}:account`);
+    try {
+      if (hash(content) !== row.identity_hash) throw new Error('INBOX_MAILBOX_INTEGRITY');
+      return { ...JSON.parse(content.toString('utf8')), sha256: row.identity_hash };
+    } finally { content.fill(0); }
+  }
   record({ tenantId, mailboxId, uid, bytes, receivedAt = new Date().toISOString() }) {
     if (![tenantId, mailboxId].every(isUuid) || !uidValid(uid) || !(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 32_000_000
       || typeof receivedAt !== 'string' || !Number.isFinite(Date.parse(receivedAt))) throw new Error('INBOX_MESSAGE');

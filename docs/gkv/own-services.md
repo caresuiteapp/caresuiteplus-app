@@ -1,6 +1,6 @@
 # Eigene DTA- und KIM-Dienste
 
-Stand: 22.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
+Stand: 23.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
 Prüfung und erforderliche Zulassungen. Dieser Stand ist ein **ausführbarer,
 lokal geprüfter Dienstkern**, keine vollständige Gesamtimplementierung oder TI-Zulassung.
 Keine Produktionsfreischaltung; kein Kontakt zu echten Empfängern.
@@ -535,8 +535,14 @@ signaturgebundenen Aufruf einmalig als XML-Anhang in die lokale Fehlerdiagnose
 übernommen werden. Kopierte Fehler, fremde Signaturen und veraltete Berichte
 werden nicht übernommen. Die klare Trennung von Kartenbefund, Nachrichtenbefund
 und nicht attestierten Hardware-/TI-Nachweisen bleibt bestehen. Dieser Pfad ist
-über die vorhandene TSL-Empfangsfassade aufrufbar; produktiver Postfach-/Host-
-anschluss, Empfangsoberfläche und normale Clientzustellung bleiben offen.
+über die vorhandene TSL-Empfangsfassade und nun auch den
+[Diagnosehost für gespeicherte Originale](konnektor-receive-host.md) aufrufbar.
+Lokal vorbereitete Aufträge binden Inbox-Datensatz, Originalhash und erwartete
+Zertifikate; authentisierte API-Starts verwenden nur die reservierte UUID.
+Ergebnisse und Parameter liegen verschlüsselt im gemeinsamen Hostjournal.
+Kartenempfang und Rundlauf teilen ihre Sperren; die Webansicht meldet den Grund.
+Produktiver Postfach-/Hostanschluss, automatische Senderzertifikatauflösung,
+vollständige Empfangsoberfläche und normale Clientzustellung bleiben offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 

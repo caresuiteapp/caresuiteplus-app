@@ -1,6 +1,6 @@
 # CMS-Kartenprüfung und Diensthost
 
-Stand: 22.10.2026. Implementiert ist ein ausführbarer ECC-Diagnoseablauf mit
+Stand: 23.10.2026. Implementiert ist ein ausführbarer ECC-Diagnoseablauf mit
 Hostjournal, serverseitigem API-Zugang, Weboberfläche und zusätzlichem
 [VerifyDocument-Prüfbericht](konnektor-verify-document.md). Die Prüfung verwendet
 einen neu erzeugten synthetischen Inhalt. Sie verschickt keine Nachricht und
@@ -94,7 +94,10 @@ mit den Python-Dateien und dem vollständigen Schemaordner betrieben werden.
 Keine Schlüssel oder Zertifikate gehören in eine Browserkonfiguration.
 
 Der Listener nimmt ausschließlich POST `/v1/diagnostics` mit `action=status`
-oder `action=start` entgegen. mTLS und ein zusätzlicher Client-Leaf-Pin sind
+oder `action=start` entgegen. Für lokal vorbereitete, bereits gespeicherte
+Nachrichten stehen außerdem `receive-start` und `receive-status` mit einer
+Auftrags-UUID bereit, siehe [Empfangshost](konnektor-receive-host.md).
+mTLS und ein zusätzlicher Client-Leaf-Pin sind
 verpflichtend. Ein Host ist genau einem Mandanten zugeordnet. Start benötigt
 eine UUID als `requestId`; doppelte IDs erzeugen keinen neuen Durchlauf.
 Die Antwort auf Start kommt sofort, der dauerhaft laufende Host erledigt die
@@ -110,7 +113,8 @@ kann die Administration den Host mit frischen Clients und
 neu starten. Diese Prüfung wird im Journal vermerkt. Die ursprüngliche Anfrage
 bleibt reserviert. Der Betrieb setzt genau einen Hostprozess pro Journal voraus;
 die Wiederherstellung darf erst nach Beendigung des alten Prozesses erfolgen.
-Zusätzlich gilt ein Mindestabstand von 30 Sekunden zwischen neuen Prüfungen.
+Empfang und Rundlauf teilen die atomare Reservierung, Wiederherstellungssperre
+und einen Mindestabstand von 30 Sekunden zwischen neuen Prüfungen.
 Der Status bildet ihn über canStart und nextStartAt ab; die Oberfläche fragt
 nach Ablauf nur den Status ab und startet keine Prüfung automatisch.
 
@@ -133,6 +137,9 @@ Redirects, komprimierte Antworten, unpassende Mandanten und übergroße Antworte
 scheitern. Ohne Host-URL wird ein ausdrücklicher Einrichtungszustand angezeigt.
 Die Oberfläche unter „Konnektorprüfung“ bietet Start, Statusaktualisierung,
 laufende Prüfung, Fehlerzustand und JSON-Protokolldownload auch für angehaltene Durchläufe.
+Eine Empfangssperre wird mit eigenem Grund angezeigt; während eines laufenden
+Empfangs wird der Status ebenfalls aktualisiert. Empfangsnachrichten und
+XML-Berichte werden über diese Oberfläche nicht heruntergeladen.
 Neue Berichte verwenden Version 2 mit VerifyDocument; alte Version-1-Berichte
 bleiben sichtbar und werden ausdrücklich als früherer Prüfumfang gekennzeichnet. Rollen-/Mandantenwechsel
 und Verlassen der Ansicht verwerfen ausstehende UI-Antworten. Ein gestarteter

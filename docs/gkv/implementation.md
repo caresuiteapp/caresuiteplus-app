@@ -1,6 +1,6 @@
 # Pflegekassen-Datenaustausch nach § 105 SGB XI
 
-Stand: 22.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
+Stand: 23.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
 klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
@@ -82,6 +82,10 @@ ECC-Teilmenge, ein dauerhaftes Diagnosejournal, eine mTLS-geschützte Web-API un
 die Ansicht „Konnektorprüfung“. Der [Kartenempfang](konnektor-card-receive.md)
 verbindet nun auch gespeicherte KIM-Originale mit DecryptDocument, VerifyDocument,
 VZD/AUT, frischer Kartennachprüfung und originalen negativen XML-Berichtsanhängen.
+Der [Empfangshost](konnektor-receive-host.md) bindet vorhandene Inbox-Originale
+und lokal provisionierte Senderzertifikate an dauerhafte Prüfaufträge, eine
+authentisierte Start-/Status-API und verschlüsselte Ergebnisse. Kartenempfang
+und Rundlauf teilen ihre Sperre; die Webansicht erklärt den Sperrgrund.
 Dieser interne Diagnosepfad ist noch kein produktiver Postfach-/Clientproxy.
 Die ausgehende VZD-Absenderbindung und die
 produktive Nachrichtenpipeline sind weiterhin zu verbinden; kein Token wird automatisch versandt.

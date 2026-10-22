@@ -1,6 +1,6 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
 ## Ausgeführt
 
@@ -8,11 +8,55 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**1.109/1.109 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
-0 Fehler, 0 übersprungene oder abgebrochene Fälle, 293,1 Sekunden.
+**1.163/1.163 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
+0 Fehler, 0 übersprungene oder abgebrochene Fälle, 299,4 Sekunden.
 Die folgenden älteren Abschnitte belegen jeweils ihren damaligen Zwischenstand.
 
-## Kartenempfang und originale negative Berichte am 22.10.2026
+## Dauerhafter Empfangshost am 23.10.2026
+
+54 neue Fälle ergänzen den Kartenempfang: 16 integrierte Hostfälle und 38
+API-/Vertragsfälle. Der gezielte Hostlauf bestand mit 18 Fällen einschließlich
+der beiden bisherigen Rundlauf-/Wiederherstellungsfälle in 24,3 Sekunden.
+Der separate Gateway-/Vertragslauf bestand mit 64 Fällen in 3,0 Sekunden.
+Die anschließend ergänzten fünf Fälle gegen Datentypverwechslungen in Befehlen
+und Antworten sind im abschließenden Gesamtlauf enthalten. Dieser prüft den
+endgültigen Dienst- und Vertragscode.
+
+Geprüft sind verschlüsselt gespeicherte Inbox-Originale, lokale Vorbereitung,
+Supabase-Zugangsgrenze, tatsächliches mTLS zum Host, Kartenentschlüsselung,
+VerifyDocument, LDAP und abschließende Kartennachprüfung. Auftrags-, Original-,
+Mandanten- und Postfachbindung gelten vor Kartenoperationen und bei der
+Ergebnisabfrage. Die gespeicherte Diagnose überlebt einen Neustart bytegleich;
+ein negativer originaler XML-Bericht bleibt verschlüsselt im Ergebnis.
+
+Doppelte Starts, zwei Hostobjekte, gegenseitige Sperre von Empfang und Rundlauf,
+unterbrochene Reservierungen und Abbruch lösen keinen zweiten Schlüsselaufruf
+aus. Falsche Schlüssel, geänderte Konfiguration, beschädigte Original-/Parameter-
+Blöcke, zwischen Aufträgen vertauschte Ergebnisse/Metadaten und fehlgeschlagene
+Ergebnisspeicherung werden abgewiesen. Quoten kürzen keine Belege. Die
+administrative Wiederherstellung ist an den letzten gesperrten Auftrag gebunden
+und lässt dessen ursprüngliche Reservierung bestehen.
+
+Der API-Vertrag weist fremde Auftragsantworten, Inhalte, Zertifikate,
+Klartextoptionen, HTTP-Wiederherstellung und behauptete Hardware-/Zustellerfolge
+ab. Die bestehende Webansicht erhält Sperrtexte und Statusaktualisierung für
+Kartenempfang. Die drei zusätzlichen UI-Zustände sind im vorhandenen
+React-Prüfskript hinterlegt, konnten lokal aber nicht ausgeführt werden:
+`node tests/gkv-exchange/kim-host-ui-check.mjs` scheitert am fehlenden Paket
+`esbuild`. Es wurde nichts installiert. TS-/JSX-Syntaxprüfung mit dem vorhandenen
+Babel-Parser, 670 Web-Elternroutenmuster und `git diff --check` bestanden.
+Das ersetzt weder eine vollständige lokale TypeScript-/React-Prüfung noch die
+breite/schmale visuelle Abnahme.
+
+GitHub bestätigt alle vier erfolgreichen Vercel-Builds von **c6243a1e**, also
+des vorherigen Kartenempfangs-Commits. Der Build dieses nachfolgenden
+Hostinkrements muss getrennt bewertet werden. Der erneut abgefragte
+Desktop-Commander-Zugang meldete nur ChristianLaptop als offline. Kein
+Hardware-/TI-Lauf, keine Produktionsfreischaltung und keine Zulassung wurden
+durchgeführt. Der [Empfangshost-Vertrag](konnektor-receive-host.md) beschreibt
+die lokale Vorbereitung, API, Ablage und verbleibenden Integrationsschritte.
+
+## Historischer Stand: Kartenempfang und originale negative Berichte am 22.10.2026
 
 39 neue Fälle ergänzen den VerifyDocument-Stand: 33 integrierte Kartenempfangs-
 und 6 zusätzliche Berichtsherkunftsfälle. Der gezielte Lauf der ersten 31
