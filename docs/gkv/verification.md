@@ -8,12 +8,69 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**905/905 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+**975/975 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
 mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 162,7 Sekunden.
+rund 216,2 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
 
-## SMC-B-PIN-Verwaltung am 22.10.2026
+## SMC-B-Authentisierung am 22.10.2026
+
+**70 neue Fälle** ergänzen die bisherigen 905 Prüfungen: 47 Transport-/Profil-/
+Signaturfälle und 23 vollständige Abläufe. Der erste gezielte Transportlauf
+bestand mit 45 Fällen in rund 21,1 Sekunden. Danach kamen Profilabweisung für
+HBA/falsche Kurve und Fristablauf während der Anfragevorbereitung hinzu.
+Der gezielte Integrationslauf bestand mit 23 Fällen in rund 45,9 Sekunden.
+Der erste Gesamtlauf bestand mit 974 Fällen in rund 212,3 Sekunden. Nach
+Ergänzung der Prüfung unmittelbar vor dem Netzaufruf bestand der abschließende
+Gesamtlauf mit 975 Fällen in rund 216,2 Sekunden: 0 Fehler, 0 übersprungene
+oder abgebrochene Fälle.
+
+Die lokale mTLS-Gegenstelle prüft SOAPAction, AuthSignatureService-Route,
+Kontext, CardHandle, MIME-Typ, ECDSA-Anforderung und den tatsächlichen 32-Byte-
+SHA-256-Hash. Sie signiert diesen unabhängig mit OpenSSL `pkeyutl`, ohne ihn
+nochmals zu hashen. Der Client prüft die Signatur gegen Originaldaten und
+AUT-Zertifikat und erzeugt daraus ein 64-Byte-JOSE-Ergebnis. Das erzeugte
+X-KIM-Auth-Token besteht anschließend den vorhandenen Empfangsprüfer.
+
+Ein falscher Schlüssel, andere Daten, doppelte Hash-Bildung, RSA-Rückgabetyp,
+Warning, SOAP Fault und ungültige DER-Signatur liefern keinen verwendbaren
+Signaturwert und sperren weitere Versuche derselben Instanz. Malforme/negative/
+Null-Skalare, überflüssige DER-Nullbytes, nichtkanonische Länge, Restbytes,
+zusätzliche Skalare und die Gruppenordnung als Skalar werden abgewiesen.
+XML-Fälle prüfen fehlende/doppelte Signaturen, zusätzliche Attribute, falsche
+Namespaces, fehlenden Typ, Größen-/Base64-Grenzen, DTDs, falschen Digest,
+MIME-Typ, RSA-Scheme und implizite Algorithmusdefaults.
+
+Nur ursprüngliche aktuelle PIN- und Zertifikatsbelege desselben Clients können
+einen Aufruf auslösen. Kopien, andere Clients, Zertifikatswechsel, HBA-/NIST-
+Profile, fehlender Endpunkt, abweichender Ursprung und zusätzliche Secret-/
+Softwareschlüsseloptionen scheitern. VERIFIABLE, BLOCKED, TRANSPORT_PIN und
+EMPTY_PIN starten keine implizite PIN-Eingabe. Ein PIN-Beleg wird nur einmal
+verwendet; Abbruch, Timeout, Schließen, Konkurrenz und Kartenaktualisierung
+geben keine verspätete Signatur frei. Eingabemutationen verändern keine
+laufende Anfrage. Ablauf während der asynchronen XML-Prüfung verhindert
+bereits die tatsächliche Übermittlung der Schlüsselanfrage.
+
+Der vollständige Ablauf prüft vor und nach der einzelnen Schlüsseloperation
+Karte, AUT/ENC/OSIG, lokale TSL-/OCSP-Belege, Konnektorbefunde und PIN.
+Entfernung, neue Kartenreferenz, andere ICCSN, anderes gültiges ENC-Zertifikat,
+negativer Konnektorbefund, veränderter PIN-Status, TSL-Wechsel oder Abbruch
+während der Nachprüfung verhindern die Signatur-/Tokenausgabe. Auch ein
+Abbruch der ursprünglichen Vorbereitung bleibt wirksam. Ergebnisbelege sind
+an Daten und beide Clients gebunden; Kopien, neue Kartenabfragen und spätere
+TSL-Wechsel entwerten sie. Parallele Signaturen erzeugen keinen zweiten
+Schlüsselaufruf. Token- und Signaturergebnisse bleiben gesperrt; die
+VZD-Absenderbindung wird ausdrücklich als ungeprüft ausgewiesen.
+
+Acht neue offizielle Vertragsdateien einschließlich transitiver Importe wurden
+gegen den festgeschriebenen GitHub-Commit verglichen. Insgesamt 26 Schema-/
+Lizenzdateien sind mit SHA-256 gebunden. Es wurden keine Pakete, zusätzliche
+Software oder Testinfrastruktur installiert. Die Prüfungen verwenden die
+bestehende lokale mTLS-/TSL-/OCSP-Umgebung und synthetische Identitäten.
+Keine echte SMC-B, keine produktiven TI-/KIM-Aufrufe und kein unabhängiger
+Zulassungsnachweis. [Implementierung und offene Integration](konnektor-auth.md).
+
+## SMC-B-PIN-Verwaltung am 22.10.2026 (vorheriger Stand)
 
 **92 neue Fälle** ergänzen die bisherigen 813 Prüfungen: 60 Schnittstellen-/
 Status-/XML-Fälle und 32 integrierte Verwaltungsabläufe. Der gezielte erste

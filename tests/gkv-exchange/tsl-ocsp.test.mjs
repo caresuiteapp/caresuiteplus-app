@@ -12,7 +12,7 @@ import { TslOcspStatusClient } from '../../services/kim/tsl-ocsp.mjs';
 import { receiveEccKimMessageWithTsl } from '../../services/kim/receive-tsl.mjs';
 import { createEccKimMessage, inspectEccKimMessageForDirectory, authenticateInspectedKimMessage } from '../../services/kim/client-message.mjs';
 import { readMessage } from '../../services/kim/message.mjs';
-import { createEccKimAuth } from '../../services/kim/message-auth.mjs';
+import { createEccKimAuth, verifyReceivedEccKimAuth } from '../../services/kim/message-auth.mjs';
 import { sealEccKimPayload } from '../../services/kim/ecc-cms.mjs';
 import { TslRefreshManager } from '../../services/kim/tsl-refresh.mjs';
 import { TslHttpSource } from '../../services/kim/tsl-http.mjs';
@@ -33,6 +33,8 @@ import { cardData, cardsResponse, cardsReply, eventUrl } from './connector-card-
 import { readAndVerifySmcb } from '../../services/kim/connector-smcb.mjs';
 import { prepareSmcbPin, assertPreparedSmcbPin, maintainSmcbPin, assertMaintainedSmcbPin } from '../../services/kim/connector-pin.mjs';
 import { cardUrl, pinResponse, isPinStatus, isVerifyPin, isChangePin, isUnblockPin } from './connector-pin-fixture.mjs';
+import { authUrl, isAuthenticate, authResponse, signAuthRequest } from './connector-auth-fixture.mjs';
+import { signSmcbAuthentication, assertSmcbAuthentication, createSmcbKimAuth, assertSmcbKimAuth } from '../../services/kim/connector-auth.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -639,6 +641,143 @@ async function withSmcbPin(run, handler = pinSmcbReply, changes = {}) {
 }
 const preparePin = (connector, statusClient, changes = {}) => prepareSmcbPin({ connector, statusClient,
   expectedTelematikId: '10-LOCAL-TEST', requiredRoles: ['1.2.276.0.76.4.245'], ...changes });
+
+const authInput = Buffer.from('institution authentication challenge, synthetic local test');
+const authenticated = event => event.requests.some(q => isAuthenticate(q.bytes));
+const authSmcbReply = async event => isAuthenticate(event.bytes)
+  ? cardsReply(event.response, authResponse(await signAuthRequest(event.bytes, authentication, f.pki)))
+  : isPinStatus(event.bytes) ? cardsReply(event.response, pinResponse()) : smcbReply(event);
+async function withSmcbAuth(run, handler = authSmcbReply) {
+  await withConnector(async ({ open, options, requests }) => run({ connector: open({ eventServiceUrl: eventUrl(options),
+    cardServiceUrl: cardUrl(options), authSignatureServiceUrl: authUrl(options), clock: () => state.now }), requests }), handler);
+}
+const authenticate = (connector, statusClient, prepared, changes = {}) => signSmcbAuthentication({ connector, statusClient, prepared, data: authInput, ...changes });
+
+test('SMC-B authentication workflow: verified private evidence, one key operation and a full fresh postcheck', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  const result = await authenticate(connector, statusClient, prepared);
+  assert.equal(result.state, 'authentication-signed'); assert.equal(result.identityStatus, 'unverified');
+  assert.equal(result.deliveryStatus, 'held-for-trust-validation');
+  assert.equal(assertSmcbAuthentication(result, connector, statusClient, authInput), result);
+  assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 1);
+  assert.equal(requests.filter(q => isReadCards(q.bytes)).length, 2);
+  assert.equal(requests.filter(q => isPinStatus(q.bytes)).length, 2);
+  assert.equal(requests.filter(q => isVerifyPin(q.bytes)).length, 0);
+  await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_CARD_SNAPSHOT_STALE'));
+})));
+
+test('SMC-B authentication workflow: X-KIM-Auth from the local key-operation peer passes the existing receiving check', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  const result = await createSmcbKimAuth({ connector, statusClient, prepared, sender: senderAddress, cmVersion: report.cmVersion });
+  const verified = verifyReceivedEccKimAuth({ header: result.header, sender: senderAddress,
+    expectedCertificate: authentication.certificate, cmVersion: report.cmVersion, now: state.now });
+  assert.equal(verified.tokenId, result.tokenId); assert.equal(verified.certificateSha256, result.certificateSha256);
+  assert.equal(result.senderBinding, 'unverified'); assert.equal(result.identityStatus, 'unverified');
+  assert.equal(result.deliveryStatus, 'held-for-trust-validation'); assert.equal(assertSmcbKimAuth(result, connector, statusClient), result);
+  assert.throws(() => assertSmcbKimAuth({ ...result }, connector, statusClient), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  const parts = result.header.slice(7).split('.'), jwt = JSON.parse(Buffer.from(parts[0], 'base64url'));
+  assert.deepEqual(Object.keys(jwt), ['alg', 'typ', 'x5c']); assert.equal(jwt.alg, 'BP256R1');
+  const payload = JSON.parse(Buffer.from(parts[1], 'base64url'));
+  assert.equal(payload.aud, 'I_Message_Service'); assert.equal(payload.nbf, Math.floor(prepared.status.checkedAt / 1000));
+  assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 1);
+  await connector.getCards(); assert.throws(result.revalidate, code('KIM_CONNECTOR_CARD_SNAPSHOT_STALE'));
+})));
+
+for (const variant of ['copied', 'foreign-status-client', 'pin-not-ready', 'maintenance']) {
+  test('SMC-B authentication workflow: ' + variant + ' cannot authorize a key operation', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+    const statusClient = open(); let prepared = await preparePin(connector, statusClient);
+    if (variant === 'copied') prepared = { ...prepared };
+    if (variant === 'pin-not-ready') prepared = { state: 'pin-required' };
+    if (variant === 'maintenance') prepared = { state: 'pin-maintained', ...prepared, requiresVerification: false };
+    await assert.rejects(authenticate(connector, variant === 'foreign-status-client' ? open() : statusClient, prepared), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+    assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 0);
+  })));
+}
+
+for (const [label, changes, expected] of [['data', { data: 'wrong' }, 'INPUT'], ['secret', { pin: 'secret' }, 'INPUT']]) {
+  test('SMC-B authentication workflow: rejects ' + label + ' before key use', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+    const statusClient = open(), prepared = await preparePin(connector, statusClient);
+    await assert.rejects(authenticate(connector, statusClient, prepared, changes), code('KIM_CONNECTOR_' + expected));
+    assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 0);
+  })));
+}
+
+test('SMC-B authentication workflow: invalid JWT sender/version and software-key options never reach the card', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  for (const change of [{ sender: 'a\r\nb@x.test' }, { cmVersion: 'invented approved product' }, { privateKey: authKey }, { certificate: authentication.certificate }]) {
+    await assert.rejects(createSmcbKimAuth({ connector, statusClient, prepared, sender: senderAddress, cmVersion: report.cmVersion, ...change }),
+      e => ['KIM_CONNECTOR_AUTH_INPUT', 'KIM_CONNECTOR_INPUT'].includes(e?.code));
+  }
+  assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 0);
+})));
+
+for (const [label, cards, expected] of [['removed', [], 'CARD_NOT_FOUND'], ['new handle', [cardData({ cardHandle: 'REINSERTED' })], 'CARD_CHANGED'],
+  ['different ICCSN', [cardData({ iccsn: '80276000000000000002' })], 'CARD_NOT_FOUND']]) {
+  test('SMC-B authentication workflow: ' + label + ' after signing cannot release a signature', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+    const statusClient = open(), prepared = await preparePin(connector, statusClient);
+    await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_' + expected));
+    assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 1);
+  }, event => authenticated(event) && isCards(event.bytes) ? cardsReply(event.response, cardsResponse(cards)) : authSmcbReply(event))));
+}
+
+test('SMC-B authentication workflow: a different otherwise valid ENC certificate fails the complete card binding', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_CERTIFICATE_BINDING'));
+}, event => authenticated(event) && isReadCards(event.bytes) ? cardsReply(event.response, certificatesResponse([
+  ['C.AUT', authentication.certificate], ['C.ENC', encryption[1].certificate], ['C.SIG', signing.certificate],
+])) : authSmcbReply(event))));
+
+for (const value of ['VERIFIABLE', 'BLOCKED', 'TRANSPORT_PIN']) test('SMC-B authentication workflow: post-signature PIN ' + value + ' is held without VerifyPin', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector, requests }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_AUTH_POSTCONDITION'));
+  assert.equal(requests.filter(q => isVerifyPin(q.bytes)).length, 0);
+}, event => authenticated(event) && isPinStatus(event.bytes)
+  ? cardsReply(event.response, pinResponse('GetPinStatus', value, value === 'VERIFIABLE' ? 3 : value === 'BLOCKED' ? 0 : null)) : authSmcbReply(event))));
+
+test('SMC-B authentication workflow: post-signature certificate rejection cannot reuse the preflight', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_CERTIFICATE_REJECTED'));
+}, event => authenticated(event) && event.bytes.includes('<c:VerifyCertificate>')
+  ? cardsReply(event.response, verificationResponse('INVALID')) : authSmcbReply(event))));
+
+test('SMC-B authentication workflow: TSL refresh during the final PIN response invalidates the result', async () => fixture(async ({ open, manager }) => withSmcbAuth(async ({ connector }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient);
+  await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_SMCB_STATUS'));
+}, async event => { if (authenticated(event) && isPinStatus(event.bytes)) await manager.refresh(); return authSmcbReply(event); })));
+
+for (const source of ['operation', 'preflight']) test('SMC-B authentication workflow: ' + source + ' cancellation during postcheck never yields a signature', async () => fixture(async ({ open }) => {
+  const controller = new AbortController();
+  await withSmcbAuth(async ({ connector }) => {
+    const statusClient = open(), prepared = await preparePin(connector, statusClient, source === 'preflight' ? { signal: controller.signal } : {});
+    await assert.rejects(authenticate(connector, statusClient, prepared, source === 'operation' ? { signal: controller.signal } : {}), code('KIM_CONNECTOR_ABORTED'));
+  }, event => { if (authenticated(event) && isReadCards(event.bytes)) controller.abort(); return authSmcbReply(event); });
+}));
+
+test('SMC-B authentication workflow: authentic result is bound to bytes, clients, TSL and fresh PIN evidence', async () => fixture(async ({ open, manager }) => withSmcbAuth(async ({ connector }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient), result = await authenticate(connector, statusClient, prepared);
+  assert.throws(() => assertSmcbAuthentication({ ...result }, connector, statusClient, authInput), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertSmcbAuthentication(result, connector, open(), authInput), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  assert.throws(() => assertSmcbAuthentication(result, connector, statusClient, Buffer.from('altered')), code('KIM_CONNECTOR_EVIDENCE_BINDING'));
+  await manager.refresh(); assert.throws(result.revalidate, code('KIM_CONNECTOR_SMCB_STATUS'));
+})));
+
+test('SMC-B authentication workflow: input bytes and expected institution cannot be changed during signing', async () => fixture(async ({ open }) => withSmcbAuth(async ({ connector }) => {
+  const statusClient = open(), prepared = await preparePin(connector, statusClient), mutable = Buffer.from(authInput);
+  const args = { connector, statusClient, prepared, data: mutable }, result = signSmcbAuthentication(args);
+  mutable.fill(0); args.prepared = {}; args.statusClient = {};
+  assert.equal((await result).dataSha256, hash(authInput));
+})));
+
+test('SMC-B authentication workflow: a parallel signature cannot borrow an in-flight PIN observation', async () => fixture(async ({ open }) => {
+  const entered = Promise.withResolvers();
+  await withSmcbAuth(async ({ connector, requests }) => {
+    const statusClient = open(), prepared = await preparePin(connector, statusClient), first = authenticate(connector, statusClient, prepared);
+    const release = await entered.promise;
+    await assert.rejects(authenticate(connector, statusClient, prepared), code('KIM_CONNECTOR_AUTH_BUSY'));
+    await release(); await first;
+    assert.equal(requests.filter(q => isAuthenticate(q.bytes)).length, 1);
+  }, event => isAuthenticate(event.bytes) ? entered.resolve(() => authSmcbReply(event)) : authSmcbReply(event));
+}));
 
 const isMaintenance = bytes => isChangePin(bytes) || isUnblockPin(bytes);
 const maintenanceStarted = event => event.requests.some(q => isMaintenance(q.bytes));

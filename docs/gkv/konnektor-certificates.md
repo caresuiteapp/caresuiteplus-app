@@ -169,7 +169,7 @@ Der [PIN-Ablauf](konnektor-pin.md) ergänzt GetPinStatus und VerifyPin mit
 separater begrenzter Wartezeit für die Terminaleingabe.
 Noch offen sind DVD/ServiceDiscovery, Terminalinventar und Auswahloberfläche, provisionierte
 Konnektor- und Mandantenkontexte, reale mTLS-Interoperabilität, SMC-B-/HBA-
-Schlüsseloperationen, reale PIN-Bedienung, historische Prüfungen, QES-Sonderprofile,
+CMS-/Entschlüsselungsoperationen, reale PIN-Bedienung, historische Prüfungen, QES-Sonderprofile,
 weitere Transport-/SOAP-Profile, vollständige Kryptografie-/Fehlervorgaben und
 unabhängige Abnahme. Das explizite Lesen von RSA oder C.QES ist keine Freigabe
 dieser KIM-Nachrichtenprofile. Der VZD-Server wird weiterhin mit dem vorhandenen
@@ -177,6 +177,8 @@ eigenen TSL-/OCSP-Pfad geprüft; auch ENC-Auswahl und Nachrichtenerzeugung sind
 noch nicht mit Konnektor-Schlüsseloperationen verbunden.
 Die Dienstschnittstelle für [PIN-Initialisierung, Änderung und Entsperrung](konnektor-pin-maintenance.md)
 ist mit gebundenen Vor- und Nachkontrollen ergänzt.
+Der [AuthSignatureService](konnektor-auth.md) ergänzt ExternalAuthenticate und
+die Erzeugung gesperrter KIM-Authentisierungstoken mit Signatur- und Nachprüfung.
 
 Ein extern gemeldetes VALID beweist für sich keinen TI-Vertrauenspfad: Der
 Konnektorvertrag kennt auch manuell importierte CAs. Deshalb ersetzt dieser

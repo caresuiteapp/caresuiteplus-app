@@ -173,8 +173,10 @@ Dies ist weiterhin keine instanzübergreifende oder verteilte Terminalsperre.
 
 Offen bleiben die Oberfläche, ein koordinierender Host mit dauerhaftem Umgang
 mit unklaren Aktionen und PUK-Sperren, echte Karten-/PIN-Pad-/TI-Interoperabilität,
-weitere Karten-/HSM-Profile und die Karten-Schlüsseloperationen. Physische
-Entnahmeüberwachung und atomare Bindung an eine spätere Schlüsseloperation sind
+weitere Karten-/HSM-Profile und CMS-/Entschlüsselungsoperationen.
+Die [Authentisierungsoperation](konnektor-auth.md) baut auf einer eigenen
+anschließenden PIN-Vorbereitung auf. Physische Entnahmeüberwachung und atomare
+Bindung an eine Schlüsseloperation sind
 nicht nachgewiesen. Die vorhandenen produktiven Sperren bleiben bestehen;
 unabhängige Prüfung und Zulassung sind noch erforderlich.
 

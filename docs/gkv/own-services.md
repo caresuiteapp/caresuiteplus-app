@@ -1,6 +1,6 @@
 # Eigene DTA- und KIM-Dienste
 
-Stand: 21.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
+Stand: 22.10.2026. Auftrag: vollständige Eigenentwicklung, anschließend unabhängige
 Prüfung und erforderliche Zulassungen. Dieser Stand ist ein **ausführbarer,
 lokal geprüfter Dienstkern**, keine vollständige Gesamtimplementierung oder TI-Zulassung.
 Keine Produktionsfreischaltung; kein Kontakt zu echten Empfängern.
@@ -441,7 +441,7 @@ Prüfung als auch VerifyCertificate bestehen. Der bedingte AUT-Zweig wird dabei
 beibehalten. Ein Konnektorfehler, abgelaufener Beleg oder geschlossener Client
 erlaubt keinen Rückfall auf den lokalen Erfolg. Die Ausgabe bleibt diagnostisch.
 Lokale mTLS-/SOAP- und Empfangsnachweise stehen in [verification.md](verification.md).
-Reale Konnektor-/SMC-B-Anbindung, Karten-Schlüsseloperationen, Discovery und
+Reale Konnektor-/SMC-B-Anbindung, CMS-/Entschlüsselungsoperationen, Discovery und
 vollständige TI-/Betriebs-/Zulassungsnachweise bleiben offen.
 
 ### Kartenabfrage und SMC-B-Auswahl
@@ -467,7 +467,7 @@ müssen frisch gelesene Kartenmerkmale, alle drei Zertifikat-Hashes, ihre
 Statusbelege und GetPinStatus VERIFIED bestehen. Kopierte oder veraltete
 Belege können diesen Ablauf nicht ersetzen. Ein unklar unterbrochener Versuch
 sperrt weitere PIN-Aufrufe auf derselben Instanz. Reale Terminals, Hostkoordination,
-Karten-Schlüsseloperationen und Oberfläche bleiben
+CMS-/Entschlüsselungsoperationen und Oberfläche bleiben
 offen. Ein positiver Vorbereitungsbeleg gibt weder Authentisierung noch Versand frei.
 
 Die [PIN-Verwaltung](konnektor-pin-maintenance.md) ergänzt ChangePin für
@@ -478,6 +478,23 @@ gemeldete PUK-Sperre bleibt in der Instanz an die Kartenseriennummer gebunden.
 Nach OK müssen Karte, Zertifikate und regulärer PIN-Status erneut bestehen.
 Eine nachträglich gescheiterte Prüfung darf nicht als unveränderte PIN erscheinen.
 Der Verwaltungsbeleg ersetzt keine anschließende Schlüsseloperation.
+
+### Authentisierung mit dem SMC-B-Schlüssel
+
+Der [AuthSignatureService-Ablauf](konnektor-auth.md) fordert ExternalAuthenticate
+über einen provisionierten SOAP-/mTLS-Endpunkt an. Nur ein ursprünglicher
+vollständig geprüfter PIN-Vorbereitungsbeleg kann den einmaligen Aufruf auslösen.
+Die Antwort muss eine gültige brainpoolP256r1-Signatur zu den Originaldaten und
+dem tatsächlichen AUT-Zertifikat enthalten. Danach werden Karte, alle drei
+Zertifikate und PIN-Status vollständig neu geprüft. Erst dann kann ein
+X-KIM-Auth-Token mit dem tatsächlichen AUT-x5c-Blatt ausgegeben werden.
+Kopierte/veraltete Belege, Karten-/Zertifikatswechsel und unklare Ausgänge
+geben kein Token frei. Automatische Wiederholungen und RSA-/Softwareschlüssel-
+Fallbacks fehlen ausdrücklich. Die Implementierung verwendet bestehende lokale
+Prüfmittel; echte SMC-B-/Konnektor-/TI-Interoperabilität bleibt nachzuweisen.
+Ausgehende VZD-Absenderbindung, Account-Manager, SignDocument/CMS,
+Entschlüsselung, vollständige Hostpipeline und Zulassung bleiben offen.
+Die Artefakte behalten den gesperrten Vertrauens-/Versandstatus.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -506,7 +523,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. Reale Konnektor-/SMC-B-Anbindung samt Karten-Schlüsseloperationen, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. ExternalAuthenticate samt geprüftem AUT-Token und vollständiger Nachprüfung ergänzt. Reale Konnektor-/SMC-B-Anbindung, CMS-/Entschlüsselungsoperationen, ausgehende VZD-Absenderbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |

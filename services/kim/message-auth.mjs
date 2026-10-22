@@ -44,7 +44,7 @@ export function unfoldAutHeader(value) {
   if (typeof value !== 'string' || value.length > 16_384 || !/^Bearer[ \t]+/i.test(value) || /[\r\n]/.test(value)) throw new Error('KIM_AUTH_REJECTED');
   return value.replace(/^Bearer[ \t]+/i, '').replace(/[ \t]/g, '');
 }
-function eccAutCertificate(input, now) {
+export function eccAutCertificate(input, now, expectedType) {
   if (!Number.isSafeInteger(now) || now < 0) throw new Error();
   if (typeof input === 'string') {
     if (input.length > 20_000 || !/^\s*-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\r\n]+-----END CERTIFICATE-----\s*$/.test(input)) throw new Error();
@@ -63,8 +63,22 @@ function eccAutCertificate(input, now) {
   const usage = der(extensions.get('551d0f') ?? Buffer.alloc(0));
   if (usage.tag !== 3 || usage.value.toString('hex') !== '0780') throw new Error();
   const type = selectCertificateType(extensions.get('551d20'), KIM_CERTIFICATE_TYPES.authentication);
+  if (expectedType !== undefined && type !== expectedType) throw new Error();
   readKimAdmission(extensions.get(ADMISSION_EXTENSION_HEX), type);
   return cert;
+}
+/** Shared exact A_28582 signing input. This object confers no trust or send permission. */
+export function buildEccKimAuthInput({ sender, certificate, cmVersion, now = Date.now() }) {
+  try {
+    const cert = eccAutCertificate(certificate, now);
+    if (!validCmVersion(cmVersion)) throw new Error();
+    const address = kimAddress(sender), tokenId = randomUUID();
+    const h = Buffer.from(JSON.stringify({ alg: 'BP256R1', typ: 'JWT', x5c: [cert.raw.toString('base64')] })).toString('base64url');
+    const p = Buffer.from(JSON.stringify({ nbf: Math.floor(now / 1000), jti: tokenId, iss: cmVersion, sub: address, aud: 'I_Message_Service' })).toString('base64url');
+    const data = `${h}.${p}`;
+    if (data.length + 94 > 16384) throw new Error();
+    return { data, certificate: cert, sender: address, tokenId };
+  } catch { throw new Error('KIM_AUTH_SIGNING_REJECTED'); }
 }
 /** Local software-key implementation of A_28582. A caller must still establish the
  * AUT certificate's TI trust and Telematik-ID/address binding, and supply an SMC-B adapter.
@@ -72,11 +86,9 @@ function eccAutCertificate(input, now) {
  */
 export function createEccKimAuth({ sender, certificate, privateKey, cmVersion, now = Date.now() }) {
   try {
-    const cert = eccAutCertificate(certificate, now);
-    if (!validCmVersion(cmVersion) || privateKey?.type !== 'private' || !cert.checkPrivateKey(privateKey)) throw new Error();
-    const h = Buffer.from(JSON.stringify({ alg: 'BP256R1', typ: 'JWT', x5c: [cert.raw.toString('base64')] })).toString('base64url');
-    const p = Buffer.from(JSON.stringify({ nbf: Math.floor(now / 1000), jti: randomUUID(), iss: cmVersion, sub: kimAddress(sender), aud: 'I_Message_Service' })).toString('base64url');
-    const data = `${h}.${p}`, signature = sign('sha256', Buffer.from(data), { key: privateKey, dsaEncoding: 'ieee-p1363' });
+    const { certificate: cert, data } = buildEccKimAuthInput({ sender, certificate, cmVersion, now });
+    if (privateKey?.type !== 'private' || !cert.checkPrivateKey(privateKey)) throw new Error();
+    const signature = sign('sha256', Buffer.from(data), { key: privateKey, dsaEncoding: 'ieee-p1363' });
     const header = `Bearer ${data}.${signature.toString('base64url')}`;
     if (header.length > 16_384) throw new Error();
     return header;

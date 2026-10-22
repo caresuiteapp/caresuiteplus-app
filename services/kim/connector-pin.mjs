@@ -55,7 +55,7 @@ export async function prepareSmcbPin(input = {}) {
       stopped(); bundle.revalidate(); assertSmcbPinVerified(status, connector, bundle.selection);
     };
     revalidate();
-    const result = Object.freeze({ state: 'pin-verified', bundle, status, ...(attempt ? { attempt } : {}), revalidate,
+    const result = Object.freeze({ state: 'pin-verified', bundle, status, signal: stop, ...(attempt ? { attempt } : {}), revalidate,
       identityStatus: 'unverified', deliveryStatus: 'held-for-trust-validation' });
     prepared.set(result, { connector, statusClient, revalidate }); return result;
   } catch (e) {

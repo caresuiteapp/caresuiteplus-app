@@ -139,7 +139,8 @@ Für den fertigen Vorbereitungsbeleg gilt:
 ```js
 if (result.state === 'pin-verified') {
   assertPreparedSmcbPin(result, connector, statusClient);
-  // Die eigentliche Karten-Schlüsseloperation und ihre atomare Bindung fehlen noch.
+  // Einmalig für den Authentisierungsablauf aus konnektor-auth.mjs verwendbar.
+  // Dieser führt eigene Operations- und vollständige Nachprüfungen aus.
 }
 ```
 
@@ -148,14 +149,16 @@ beiden Clients. Es bewertet den intern gehaltenen Prüfablauf erneut; eine
 kopierte Funktion oder behauptete Zeichenkette ersetzt den Beleg nicht.
 Abbruch, Ablauf, Karten-/PIN-Aktualisierung, Schließen oder TSL-Wechsel verhindern
 eine spätere Verwendung. Eine physische Entnahme ohne neue Abfrage bleibt eine
-Grenze der Momentaufnahme. Die spätere Schlüsseloperation muss selbst ihren
-Kontext und Kartenbezug prüfen.
+Grenze der Momentaufnahme. Die [Authentisierung](konnektor-auth.md) bindet
+die konkrete Signatur an Daten und AUT-Zertifikat und prüft danach die Karte
+erneut. Ihr einzelner Aufruf verbraucht den ursprünglichen PIN-Beleg auch bei
+Fehlern. Das ursprüngliche Abbruchsignal bleibt im vorbereiteten Ergebnis gebunden.
 
 ## Offene Nachweise
 
 Echte Hardware-/TI-Interoperabilität, PIN-Pad-Bedienung, Remote-PIN-Routing,
 HSM-B-/weitere Profile,
-Karten-Schlüsseloperationen, Ereignisüberwachung, Oberfläche und Hostintegration
+CMS-/Entschlüsselungsoperationen, Ereignisüberwachung, Oberfläche und Hostintegration
 bleiben offen. Keine produktiven Daten, Empfänger oder Terminalversuche wurden
 verwendet. Die unabhängige Prüfung und Zulassung sind damit nicht ersetzt.
 Das Fachdienstinventar bleibt bei 106 Kennungen, davon 28 teilweise umgesetzt

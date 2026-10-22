@@ -4,6 +4,8 @@ import { certificateRequest, inspectConnectorXml, connectorText, CERT_REFS, PIN_
 import { canonicalOid } from './der-oid.mjs';
 import { KonnektorError, KonnektorPinMaintenanceError, connectorFail, connectorSignal } from './connector-error.mjs';
 import { cardFilters, cardSelector, checkedCards, selectSmcbCard } from './connector-cards.mjs';
+import { eccAutCertificate } from './message-auth.mjs';
+import { verifySmcbAuthenticationSignature } from './connector-auth-signature.mjs';
 
 export { KonnektorError } from './connector-error.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -36,11 +38,12 @@ function references(input) {
  * it never changes CareSuite's diagnostic-only or production-release gates.
  */
 export class KonnektorCertificateClient {
-  #transport; #eventTransport; #cardTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
+  #transport; #eventTransport; #cardTransport; #authTransport; #context; #contextHash; #environment; #python; #clock; #timeout; #cardGeneration = 0;
   #pinTimeout; #pinGeneration = 0; #pinBusy = false; #pinUncertain = false;
+  #authBusy = false; #authUncertain = false;
   #blockedPuks = new Set();
   #closed = false; #pending = new Set();
-  constructor({ context, environment, eventServiceUrl, cardServiceUrl, pinTimeoutMs = 120000, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
+  constructor({ context, environment, eventServiceUrl, cardServiceUrl, authSignatureServiceUrl, pinTimeoutMs = 120000, python = 'python3', clock = Date.now, timeoutMs = 10000, ...route }) {
     try {
       if (!context || !['test', 'production'].includes(environment) || typeof clock !== 'function'
         || typeof python !== 'string' || !python.length || python.length > 2048 || /[\x00-\x1f]/.test(python)
@@ -51,23 +54,25 @@ export class KonnektorCertificateClient {
         workplaceId: connectorText(context.workplaceId), ...(context.userId === undefined ? {} : { userId: connectorText(context.userId) }) });
       this.#contextHash = hash(Buffer.from(JSON.stringify(this.#context))); this.#environment = environment;
       this.#clock = clock; this.#python = python; this.#timeout = timeoutMs; this.#pinTimeout = pinTimeoutMs;
-      for (const url of [eventServiceUrl, cardServiceUrl]) {
+      for (const url of [eventServiceUrl, cardServiceUrl, authSignatureServiceUrl]) {
         if (url !== undefined && (typeof url !== 'string' || new URL(url).origin !== new URL(route.url).origin)) connectorFail('CONFIGURATION');
       }
       this.#now(); this.#transport = new KonnektorHttpsTransport({ ...route, service: 'certificate' });
       if (eventServiceUrl !== undefined) this.#eventTransport = new KonnektorHttpsTransport({ ...route, url: eventServiceUrl, service: 'event' });
       if (cardServiceUrl !== undefined) this.#cardTransport = new KonnektorHttpsTransport({ ...route, url: cardServiceUrl, service: 'card' });
-    } catch { this.#transport?.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); connectorFail('CONFIGURATION'); }
+      if (authSignatureServiceUrl !== undefined) this.#authTransport = new KonnektorHttpsTransport({ ...route, url: authSignatureServiceUrl, service: 'authentication' });
+    } catch { this.#transport?.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); connectorFail('CONFIGURATION'); }
     Object.freeze(this);
   }
   get environment() { return this.#environment; }
   #now() { const now = this.#clock(); if (!Number.isSafeInteger(now) || now < 0) connectorFail('CLOCK'); return now; }
   #open() { if (this.#closed) connectorFail('CLOSED'); }
-  async #exchange(operation, input, signal, timeout = this.#timeout) {
+  async #exchange(operation, input, signal, timeout = this.#timeout, beforeSend) {
     this.#open(); connectorSignal(signal);
     const pin = operation === 'GetPinStatus' || PIN_OPERATIONS.includes(operation);
-    const transport = operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : this.#transport;
-    if (!transport) connectorFail(pin ? 'CARD_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
+    const auth = operation === 'ExternalAuthenticate';
+    const transport = operation === 'GetCards' ? this.#eventTransport : pin ? this.#cardTransport : auth ? this.#authTransport : this.#transport;
+    if (!transport) connectorFail(pin ? 'CARD_UNCONFIGURED' : auth ? 'AUTH_UNCONFIGURED' : 'EVENT_UNCONFIGURED');
     if (this.#pending.size >= 8) connectorFail('BUSY');
     const controller = new AbortController(), deadline = AbortSignal.timeout(timeout);
     const stop = AbortSignal.any([controller.signal, deadline, ...(signal ? [signal] : [])]);
@@ -76,6 +81,7 @@ export class KonnektorCertificateClient {
     try {
       request = certificateRequest(operation, this.#context, input);
       await inspectConnectorXml(request, { operation, mode: 'request', python: this.#python, signal: stop });
+      beforeSend?.();
       response = await KonnektorHttpsTransport.prototype.request.call(transport, operation, request, { signal: stop, timeoutMs: timeout });
       const parsed = await inspectConnectorXml(response.bytes, { operation, mode: 'response', python: this.#python, signal: stop });
       this.#open(); connectorSignal(stop);
@@ -124,6 +130,8 @@ export class KonnektorCertificateClient {
     if (!this.#cardTransport) connectorFail('CARD_UNCONFIGURED');
     if (this.#pinBusy) connectorFail('PIN_BUSY');
     if (this.#pinUncertain) connectorFail('PIN_OUTCOME_UNKNOWN');
+    if (this.#authBusy) connectorFail('AUTH_BUSY');
+    if (this.#authUncertain) connectorFail('AUTH_OUTCOME_UNKNOWN');
   }
   async getSmcbPinStatus(input = {}) {
     pinOptions(input, ['selection', 'signal']);
@@ -142,7 +150,7 @@ export class KonnektorCertificateClient {
       const now = this.#now();
       if (now < metadata.checkedAt || now >= result.validUntil) connectorFail('EVIDENCE_EXPIRED');
     };
-    pinStatuses.set(result, { client: this, selection, assert }); return result;
+    pinStatuses.set(result, { client: this, selection, signal, assert }); return result;
   }
   /** One explicit terminal attempt. No PIN value, automatic retry or software
    * entry path. The response alone is never a key-operation authorization.
@@ -193,6 +201,48 @@ export class KonnektorCertificateClient {
         retryCounter: operation === 'UnblockPin' ? 'puk' : 'pin', ...options,
         execution: parsed.execution, deliveryStatus: 'held-for-trust-validation' });
     } finally { this.#pinBusy = false; }
+  }
+  /** Low-level authentication only. A prepared workflow supplies the bound
+   * status/certificate; callers still need the post-operation trust checks.
+   * Consume the PIN observation even on failure; never retry or switch keys.
+   */
+  async externalAuthenticateSmcb(input = {}) {
+    pinOptions(input, ['status', 'certificate', 'verification', 'data', 'signal']);
+    const { status, certificate: raw, verification, data, signal } = input;
+    this.#pinOpen(); connectorSignal(signal);
+    if (!this.#authTransport) connectorFail('AUTH_UNCONFIGURED');
+    const stored = pinStatuses.get(status);
+    if (!stored || stored.client !== this) connectorFail('EVIDENCE_BINDING');
+    assertSmcbPinVerified(status, this, stored.selection);
+    if (!(data instanceof Uint8Array) || !data.length || data.length > 16384) connectorFail('INPUT');
+    let cert;
+    try { cert = eccAutCertificate(raw, this.#now(), '1.2.276.0.76.4.77'); } catch { connectorFail('AUTH_CERTIFICATE'); }
+    assertConnectorCertificate(verification, this, { certificate: cert.raw });
+    const bytes = Buffer.from(data), digest = createHash('sha256').update(bytes).digest();
+    const generation = ++this.#pinGeneration;
+    this.#authBusy = true; this.#authUncertain = true;
+    let signature, jose;
+    const bound = () => {
+      assertSelectedSmcb(stored.selection, this);
+      if (generation !== this.#pinGeneration) connectorFail('PIN_STATUS_STALE');
+      connectorSignal(stored.signal);
+      const now = this.#now();
+      if (now < status.checkedAt || now >= status.validUntil) connectorFail('EVIDENCE_EXPIRED');
+      assertConnectorCertificate(verification, this, { certificate: cert.raw });
+    };
+    try {
+      const { parsed, metadata } = await this.#exchange('ExternalAuthenticate', {
+        cardHandle: stored.selection.card.cardHandle, digest,
+      }, stored.signal ? AbortSignal.any([stored.signal, ...(signal ? [signal] : [])]) : signal, this.#timeout, bound);
+      bound();
+      signature = Buffer.from(parsed.signature, 'base64');
+      jose = verifySmcbAuthenticationSignature(signature, bytes, cert);
+      this.#authUncertain = false;
+      return Object.freeze({ ...metadata, execution: parsed.execution, signatureType: parsed.signatureType,
+        dataSha256: digest.toString('hex'), certificateSha256: hash(cert.raw),
+        signatureDer: signature.toString('base64'), signatureJose: jose.toString('base64url'),
+        deliveryStatus: 'held-for-trust-validation' });
+    } finally { this.#authBusy = false; bytes.fill(0); digest.fill(0); signature?.fill(0); jose?.fill(0); }
   }
   async verifyCertificate({ certificate: input, requiredRoles = [], signal } = {}) {
     this.#open(); connectorSignal(signal);
@@ -248,7 +298,7 @@ export class KonnektorCertificateClient {
       throw e;
     }
   }
-  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); }
+  close() { this.#closed = true; for (const c of this.#pending) c.abort(); this.#transport.close(); this.#eventTransport?.close(); this.#cardTransport?.close(); this.#authTransport?.close(); }
 }
 
 /** A bound observation is not an authorization for a key operation. */

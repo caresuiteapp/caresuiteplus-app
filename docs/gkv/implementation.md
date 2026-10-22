@@ -54,15 +54,15 @@ x5c-Leaf und dessen Bindung an denselben VZD-Eintrag geprüft.
 Der [Konnektor-Zertifikatsclient](konnektor-certificates.md) ergänzt
 ReadCardCertificate und VerifyCertificate über schemafähiges SOAP/mTLS sowie
 eine zusätzliche verpflichtende Prüfung im entsprechend konfigurierten Empfang.
-Er ist gegen lokale Gegenstellen geprüft; reale Karten-/Konnektoranbindung und
-Karten-Schlüsseloperationen bleiben offen. Ein negativer Konnektorbefund erlaubt
+Er ist gegen lokale Gegenstellen geprüft; reale Karten-/Konnektoranbindung bleibt
+offen. Ein negativer Konnektorbefund erlaubt
 keinen Rückfall auf einen ausschließlich lokalen positiven Status.
 Die [Kartenabfrage und SMC-B-Auswahl](konnektor-smcb.md) ersetzt nun im
 gemeinsamen Zertifikatsablauf ein manuell vorgegebenes CardHandle durch eine
 frische eindeutige Auswahl. Alle drei Institutionszertifikate müssen zur
 vorgegebenen Telematik-ID und Rolle passen. Eine erneute Kartenabfrage und
-Statusprüfung sichern die abschließende Ausgabe; die Karten-Schlüsseloperationen
-und eine Bedienoberfläche dafür sind noch nicht implementiert.
+Statusprüfung sichern die abschließende Ausgabe. Die aufbauende
+Authentisierungsschnittstelle ist unten beschrieben; eine Bedienoberfläche fehlt.
 Die [PIN-Vorbereitung](konnektor-pin.md) ergänzt GetPinStatus und einen ausdrücklich
 ausgelösten VerifyPin-Versuch am Terminal. Nach erfolgreicher Eingabe werden
 Karte, alle drei Zertifikate und PIN-Status erneut geprüft. Fehlversuche und
@@ -72,6 +72,11 @@ Die [PIN-Verwaltung](konnektor-pin-maintenance.md) bietet nun ausdrücklich
 gewählte Initialisierung, Änderung und Entsperrung. Sie unterscheidet PIN- und
 PUK-Restversuche und meldet gescheiterte Nachkontrollen nach einer OK-Antwort
 als unbestätigten Ausgang der bereits angeforderten Änderung.
+Die [SMC-B-Authentisierung](konnektor-auth.md) ergänzt ExternalAuthenticate
+mit SHA-256/ECDSA, mathematischer Signaturprüfung und anschließender vollständiger
+Karten-/Zertifikats-/PIN-Nachprüfung. Daraus kann ein gesperrtes X-KIM-Auth-Token
+entstehen. Aktuelle ausgehende VZD-Absenderbindung, SignDocument/CMS und
+Kartenentschlüsselung sind noch zu verbinden; kein Token wird automatisch versandt.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

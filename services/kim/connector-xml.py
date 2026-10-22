@@ -15,11 +15,14 @@ CERT = 'http://ws.gematik.de/conn/CertificateService/v6.0'
 EVENT = 'http://ws.gematik.de/conn/EventService/v7.2'
 CARD = 'http://ws.gematik.de/conn/CardService/v8.1'
 CARDCMN = 'http://ws.gematik.de/conn/CardServiceCommon/v2.0'
+AUTH = 'http://ws.gematik.de/conn/SignatureService/v7.4'
+DSS = 'urn:oasis:names:tc:dss:1.0:core:schema'
+ECDSA = 'urn:bsi:tr:03111:ecdsa'
 COMMON = 'http://ws.gematik.de/conn/CertificateServiceCommon/v2.0'
 CONN = 'http://ws.gematik.de/conn/ConnectorCommon/v5.0'
 ERROR = 'http://ws.gematik.de/tel/error/v2.0'
-MANIFEST = '46090117505dbd6eefe2830c0488152e510ca2a0980ad1c79aabc435668c77e5'
-NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR, 'event': EVENT, 'card': CARD, 'cm': CARDCMN}
+MANIFEST = 'a275859edffc7e9caea9fc267252503764d2fb43169a00464d7218c3996287ba'
+NS = {'s': SOAP, 'c': CERT, 'cc': COMMON, 'n': CONN, 'e': ERROR, 'event': EVENT, 'card': CARD, 'cm': CARDCMN, 'auth': AUTH, 'dss': DSS}
 
 
 class Rejected(Exception):
@@ -81,11 +84,12 @@ def run(etree):
     raw_input = sys.stdin.buffer.read(600001)
     require(0 < len(raw_input) <= 600000, 'XML_LIMIT')
     args = json.loads(raw_input)
-    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin'))
+    require(args.get('operation') in ('ReadCardCertificate', 'VerifyCertificate', 'GetCards', 'GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin', 'ExternalAuthenticate'))
     require(args.get('mode') in ('request', 'response'))
     is_cards = args['operation'] == 'GetCards'
     is_pin = args['operation'] in ('GetPinStatus', 'VerifyPin', 'ChangePin', 'UnblockPin')
-    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'CertificateService_v6_0_2.xsd')
+    is_auth = args['operation'] == 'ExternalAuthenticate'
+    url = 'https://schemas.invalid/conn/' + ('EventService.xsd' if is_cards else 'CardService.xsd' if is_pin else 'SignatureService.xsd' if is_auth else 'CertificateService_v6_0_2.xsd')
     schema = etree.XMLSchema(etree.fromstring(schemas[url], parser, base_url=url))
     raw = binary(args['xml'], 262144)
     decoded = raw.decode('utf-8-sig', errors='strict')
@@ -131,10 +135,18 @@ def run(etree):
             require(schema.validate(detail[0]), 'XML_SCHEMA')
         return {'kind': 'fault', 'fault': value[1], 'remoteCodes': remote_errors(payload)}
     name = args['operation'] + ('' if args['mode'] == 'request' else 'Response')
-    require(payload.tag == '{' + (EVENT if is_cards else CARD if is_pin else CERT) + '}' + name)
+    require(payload.tag == '{' + (EVENT if is_cards else CARD if is_pin else AUTH if is_auth else CERT) + '}' + name)
     require(not payload.attrib or (is_cards and args['mode'] == 'request' and set(payload.attrib) == {'mandant-wide'}))
     require(schema.validate(payload), 'XML_SCHEMA')
     if args['mode'] == 'request':
+        if is_auth:
+            options = one(payload, 'auth:OptionalInputs')
+            require(not options.attrib and len(options) == 1 and text(options, 'dss:SignatureType') == ECDSA, 'AUTH_PROFILE')
+            content = one(payload, 'auth:BinaryString')
+            require(not content.attrib and len(content) == 1, 'AUTH_PROFILE')
+            data = one(content, 'dss:Base64Data')
+            require(not len(data) and dict(data.attrib) == {'MimeType': 'application/octet-stream'}, 'AUTH_PROFILE')
+            require(len(binary(data.text, 32)) == 32, 'AUTH_PROFILE')
         if is_pin:
             require(text(payload, 'cm:PinTyp') == 'PIN.SMC', 'PIN_PROFILE')
         if args['operation'] == 'UnblockPin':
@@ -142,6 +154,14 @@ def run(etree):
         return {'kind': 'request', 'operation': args['operation']}
     execution = text(payload, 'n:Status/n:Result').strip()
     errors = remote_errors(payload)
+    if is_auth:
+        require(execution == 'OK' and not errors, 'AUTH_RESULT')
+        signature = one(payload, 'dss:SignatureObject')
+        require(not signature.attrib and len(signature) == 1, 'AUTH_PROFILE')
+        data = one(signature, 'dss:Base64Signature')
+        require(not len(data) and dict(data.attrib) == {'Type': ECDSA}, 'AUTH_PROFILE')
+        return {'kind': 'authentication', 'execution': execution, 'signatureType': ECDSA,
+                'signature': base64.b64encode(binary(data.text, 72)).decode(), 'remoteCodes': []}
     if is_pin:
         status = args['operation'] == 'GetPinStatus'
         prefix = 'card:' if status else 'cm:'
