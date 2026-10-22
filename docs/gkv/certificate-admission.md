@@ -93,8 +93,9 @@ ENC-Zertifikate. Bei mehreren Telematik-IDs bricht die Nachrichtenerzeugung mit
 `KIM_CMS_RECIPIENT_IDENTITY_CONFLICT` ab. Es gibt weder eine Auswahl des ersten
 Zertifikats noch ein Weglassen des Konflikts. Ein Zertifikatswechsel mit zwei
 Schlüsseln derselben ID bleibt möglich; beide können ihre Kopie entschlüsseln.
-Die Zuordnung der Adresse zu dieser ID muss später der vertrauenswürdige VZD-
-Ablauf belegen. Die vollständige ausgehende Fehlernachricht nach
+Der [Verzeichnisablauf](vzd.md) ergänzt seit 22.10.2026 die Zuordnung dieser ID
+zur Adresse gegenüber einem konfigurierten LDAPS-Peer. Dessen vollständige
+TI-Rollen-/Statusprüfung bleibt offen. Die vollständige ausgehende Fehlernachricht nach
 KOM-LE-A_2192-03 ist noch nicht umgesetzt.
 
 OSIG- und AUT-Zertifikate werden getrennt behandelt. Ihre IDs müssen nicht
@@ -114,7 +115,7 @@ Verschlüsselungsweg mit mehreren Empfängerzertifikaten.
 Der aktuelle Gesamtlauf steht im [Prüfprotokoll](verification.md).
 
 Offen bleiben vollständige sektorale Profil-/Policyprüfung, verlässliche
-VZD-Adressbindung, authentisierte TI-Ankerbereitstellung/-rotation,
+TI-VZD-Serverprüfung und produktive Adressbindung, authentisierte TI-Ankerbereitstellung/-rotation,
 Konnektor/SMC-B, produktiver Dienstbetrieb und unabhängige Prüfung/Zulassung.
 Der SMTP-Fachdienst verwendet weiterhin seinen eigenen begrenzten AUT-Prüfer;
 die neue CM-Prüfung ist keine vollständige Fachdienst-PKI-Integration.

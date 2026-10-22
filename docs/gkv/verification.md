@@ -1,6 +1,6 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
 ## Ausgeführt
 
@@ -8,8 +8,46 @@ Stand: 21.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**473 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
+**523 Fach-/API-/Dienstprüfungen bestanden** mit der vorhandenen Node-24-Laufzeit.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Verzeichnisabfrage und Adressbindung am 22.10.2026
+
+Die bisherigen 473 Fälle und **50 neue Prüfungen** bestehen gemeinsam:
+**523 bestanden, 0 fehlgeschlagen, 0 übersprungen**, rund 24,6 Sekunden.
+Der gezielte Lauf von `vzd.test.mjs` und `tsl-ocsp.test.mjs` besteht mit
+96 Fällen. Davon sind 35 LDAP- und 15 Integrationsfälle neu.
+
+Die lokale Gegenstelle prüft echte TLS-Verbindungen und die tatsächlichen
+LDAPv3-Anfragen. Bind-Antworten und Ergebnisabschlüsse verwenden feste
+Protokollbytes. Fragmentierte und zusammengefasste Antworten, nichtminimale
+definite BER-Längen, wörtliche Sterne in Adressen, reine kimData-Einträge und
+Versions-/Anwendungsdaten sind geprüft. Fehlende, doppelte, mehrdeutige und
+widersprüchliche Zuordnungen, fremde Message-IDs, Referenzen, Teilantworten,
+Größen-/Wertgrenzen, ungültiges UTF8, Timeout und Abbruch werden zurückgewiesen.
+Falscher TLS-Pin und Hostname verhindern LDAP-Anwendungsdaten. Nicht konfigurierte
+CA-Daten, Umgebungswechsel und überzählige parallele Abfragen werden blockiert.
+
+Der Zertifikatsresolver erhält echte ENC-Zertifikate über LDAPS, prüft aktuelle
+signierte TSL-/OCSP-Belege und gleicht jede Admission-ID mit dem Verzeichniseintrag
+ab. Die daraus erzeugte ECC-Nachricht lässt sich mit beiden Schlüsseln eines
+Empfänger-Schlüsselwechsels entschlüsseln. Gesperrte/unbekannte Statuswerte,
+abweichende IDs, falscher Zertifikatstyp und PEM statt DER werden abgelehnt.
+Ein TSL-Wechsel während späterer LDAP-Abfragen und veränderte Ausgabepuffer
+machen die ursprüngliche Auswahl ungültig.
+
+Beim Empfang sind der direkte OSIG-Abgleich und der getrennte AUT-Abgleich
+belegt. Die OSIG-/AUT-IDs dürfen verschieden sein; ein positiver Status allein
+genügt nicht. Fehlende Zuordnung ergibt `XCS_DIRECTORY`; negative oder nach
+LDAP ungültige Rohbelege ergeben weiterhin `XCS_CERT_STATUS`. Fehlerhafte
+Nachrichten und negative Zertifikatsbefunde lösen keine Verzeichnisabfrage aus.
+Positive lokale Zuordnung bleibt Diagnose 07, ohne normale Zustellung.
+
+Keine Installation, echte TI-Abfrage, Produktionsänderung oder Änderung an
+Oberflächen/Android. Die vier Vercel-Builds des Vorgängers `c7f5f997` sind
+am 22.10.2026 erfolgreich bestätigt; dies ist kein Buildnachweis für den neuen
+Commit. TI-VZD-Serverrolle/-Sperrprüfung, Konnektor, unabhängige Interoperabilität
+und Produktivbetrieb bleiben offen. [Schnittstellen und Grenzen](vzd.md).
 
 ## Admission-Rollen und Telematik-ID am 21.10.2026
 

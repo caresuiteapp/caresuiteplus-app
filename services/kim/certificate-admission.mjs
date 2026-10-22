@@ -24,6 +24,8 @@ export class CertificateAdmissionError extends Error {
 }
 const fail = code => { throw new CertificateAdmissionError('KIM_ADMISSION_' + code); };
 const printable = /^[A-Za-z0-9 '()+,\-./:=?]+$/;
+export const validTelematikId = value => typeof value === 'string' && value.length <= 128
+  && printable.test(value) && /^(?:[1-5]|[7-9]|10|11)-\S(?:.*\S)?$/.test(value);
 function text(node, tag = 12, limit = 128) {
   if (node?.tag !== tag || !node.value.length || node.value.length > limit * (tag === 12 ? 4 : 1)) fail('FORMAT');
   const value = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(node.value);
@@ -35,7 +37,7 @@ function telematikId(node) {
   const value = text(node, 19);
   // The sector owns suffix syntax. Preserve PrintableString bytes/case; no trim,
   // case folding, guessed sector-to-role mapping or identity from Subject/SAN.
-  if (!/^(?:[1-5]|[7-9]|10|11)-\S(?:.*\S)?$/.test(value)) fail('TELEMATIK_ID');
+  if (!validTelematikId(value)) fail('TELEMATIK_ID');
   return value;
 }
 function authority(node) {

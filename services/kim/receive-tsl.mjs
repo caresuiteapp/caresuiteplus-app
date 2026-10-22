@@ -3,6 +3,9 @@ import { MAX_KIM_MESSAGE } from './message.mjs';
 import { receiveReportContext } from './receive-error.mjs';
 import { TslOcspStatusClient } from './tsl-ocsp.mjs';
 import { TslError } from './tsl.mjs';
+import { checkVzdConfiguration, matchVzdSender } from './vzd-bindings.mjs';
+import { VzdError } from './vzd-ldap.mjs';
+import { assessKimOcspEvidence } from './ocsp.mjs';
 
 const fail = code => { throw new TslError(code); };
 const copy = value => value instanceof Uint8Array ? Buffer.from(value) : value;
@@ -12,13 +15,14 @@ const errorCode = e => e instanceof TslError && /^KIM_(?:TSL|OCSP)_[A-Z_]{1,48}$
  * OSIG/AUT/header bindings must pass before a status request is made. Still no
  * TI identity, normal delivery, SMTP transmission or billing-state transition.
  */
-export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, signal } = {}) {
+export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, signal } = {}) {
   if (!(statusClient instanceof TslOcspStatusClient) || (signal !== undefined && !(signal instanceof AbortSignal))) fail('KIM_TSL_STATUS_CONFIGURATION');
+  if (directory !== undefined) checkVzdConfiguration(directory, statusClient);
   if (signal?.aborted) fail('KIM_TSL_ABORTED');
   if (!(options?.bytes instanceof Uint8Array) || !options.bytes.length || options.bytes.length > MAX_KIM_MESSAGE) fail('KIM_TSL_MESSAGE_SIZE');
   const captured = { ...options, bytes: Buffer.from(options.bytes), now: options.now ?? Date.now(),
     recipientCertificate: copy(options.recipientCertificate), expectedSignerCertificate: copy(options.expectedSignerCertificate),
-    expectedAuthCertificate: copy(options.expectedAuthCertificate), ocsp: undefined };
+    expectedAuthCertificate: copy(options.expectedAuthCertificate), ocsp: undefined, directoryRejected: false };
   const report = { ...reportOptions, verificationReport: reportOptions?.verificationReport ? {
     ...reportOptions.verificationReport, bytes: copy(reportOptions.verificationReport.bytes),
   } : undefined };
@@ -32,7 +36,7 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
     try { opened = openEccKimMessage(captured); }
     catch { return receiveEccKimMessage(captured, report); }
     finally { opened?.message?.fill(0); } // No decrypted message stays live across network waits.
-    let ocsp, acquisition;
+    let ocsp, acquisition, directoryAcquisition;
     try {
       ocsp = await statusClient.messageEvidence({ signingCertificate: captured.expectedSignerCertificate,
         authenticationCertificate: captured.expectedAuthCertificate, signal });
@@ -42,9 +46,22 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
       if (signal?.aborted || e?.code === 'KIM_TSL_ABORTED') fail('KIM_TSL_ABORTED');
       ocsp = {}; acquisition = Object.freeze({ state: 'unavailable', code: errorCode(e) });
     }
+    if (directory !== undefined) {
+      const statuses = assessKimOcspEvidence(ocsp, { signing: captured.expectedSignerCertificate, authentication: captured.expectedAuthCertificate });
+      directoryAcquisition = Object.freeze({ state: 'not-checked', code: 'KIM_VZD_CERTIFICATE_STATUS' });
+      if (acquisition.state === 'checked' && statuses.every(s => s.status === 'good')) {
+        try { directoryAcquisition = await matchVzdSender(directory, opened.sender, ocsp, signal); }
+        catch (e) {
+          if (signal?.aborted) fail('KIM_TSL_ABORTED');
+          directoryAcquisition = Object.freeze({ state: 'unavailable', code: e instanceof VzdError ? e.code : 'KIM_VZD_UNAVAILABLE' });
+        }
+      }
+      captured.directoryRejected = directoryAcquisition.state !== 'matched';
+    }
     if (signal?.aborted) fail('KIM_TSL_ABORTED');
     // The synchronous receiver verifies each raw proof against the same guarded
     // verifier again; a good flag or a TSL change cannot authorize old evidence.
-    return { ...receiveEccKimMessage({ ...captured, ocsp }, report), statusAcquisition: acquisition };
+    return { ...receiveEccKimMessage({ ...captured, ocsp }, report), statusAcquisition: acquisition,
+      ...(directoryAcquisition ? { directoryAcquisition } : {}) };
   } finally { captured.bytes.fill(0); report.verificationReport?.bytes?.fill?.(0); }
 }

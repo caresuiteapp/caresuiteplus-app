@@ -71,6 +71,7 @@ export class TslOcspStatusClient {
     Object.freeze(this);
   }
   #aad() { return `tsl-ocsp-scope-v1:${this.#scope}`; }
+  get environment() { return this.#manager.environment; }
   #open() {
     if (this.#closed) fail('KIM_TSL_STATUS_CLOSED');
     try {

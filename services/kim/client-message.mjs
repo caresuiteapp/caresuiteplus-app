@@ -179,7 +179,8 @@ export function receiveEccKimMessage(options, reportOptions) {
     if (opened.kind === 'diagnostic') return opened;
     const certificateStatus = options.ocsp === undefined ? undefined : assessKimOcspEvidence(options.ocsp, {
       signing: options.expectedSignerCertificate, authentication: options.expectedAuthCertificate });
-    const code = certificateStatus?.some(s => s.status !== 'good') ? 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED' : 'KIM_MESSAGE_TRUST_UNAVAILABLE';
+    const code = certificateStatus?.some(s => s.status !== 'good') ? 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED'
+      : options.directoryRejected === true ? 'KIM_MESSAGE_DIRECTORY_BINDING_REJECTED' : 'KIM_MESSAGE_TRUST_UNAVAILABLE';
     return buildKimReceiveError(context, new KimMessageError(code, 'trust'), { message: opened.message, decrypted: true, certificateStatus });
   } finally { opened?.message?.fill(0); context.original.fill(0); context.verificationReport?.fill(0); }
 }

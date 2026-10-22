@@ -167,6 +167,13 @@ der TSL-Version, den geprüften `certificateTypes` und den getrennten
 VZD-Adresszuordnung. Die eigentlichen Befunde
 stehen weiterhin im Empfangsbericht.
 
+Seit 22.10.2026 ergänzt die optionale `directory`-Konfiguration den
+[LDAPS-/Adressabgleich](vzd.md) nach positiver Nachrichtenzertifikatsprüfung.
+`directoryAcquisition` weist Treffer, Widerspruch und fehlenden Nachweis aus.
+Vor der abschließenden Diagnose werden die Rohbelege nochmals geprüft, auch
+nach dem zusätzlichen Warten auf LDAP. Ein zwischenzeitlicher TSL-Wechsel
+kann daher keinen früheren positiven Befund erhalten.
+
 Auch zwei positive Belege ergeben weiterhin Diagnose 07. Gesperrte, unbekannte
 oder nicht verfügbare Belege erzeugen `XCS_CERT_STATUS`; Klartextanhänge sind
 standardmäßig aus. Es wird weder eine normale Zustellung noch ein SMTP-Versand
@@ -195,7 +202,7 @@ auch gegen ältere positive Cachebelege und nach Listenwechsel.
 
 Keine Abfrage echter TI-Dienste und kein Echtversand. Noch offen bleiben
 authentisierte TI-Ankerbereitstellung/-rotation, vollständige Rollen-/Policy-
-und Identitätsprüfung, VZD/Telematik-ID, Konnektor/SMC-B, produktiver Diensthost,
+und Identitätsprüfung, TI-VZD-Serverprüfung/-Anbindung, Konnektor/SMC-B, produktiver Diensthost,
 vollständiges Clientmodul und Fachdienst sowie unabhängige Prüfung/Zulassung.
 Der Dienst benötigt die bestehenden Laufzeiten und ein geschütztes dauerhaftes
 lokales Volume; Vercel-Funktionen mit flüchtigem Speicher ersetzen diesen Host

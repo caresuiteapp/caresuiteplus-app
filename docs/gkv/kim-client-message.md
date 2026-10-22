@@ -111,7 +111,9 @@ auch zwei positive Befunde bleiben Diagnose 07. Negative oder nicht auswertbare
   Virenprüfung oder Zulassungsbewertung für Nutzkomponenten.
 - Der neue Empfangspfad benötigt immer ein passendes ECC-AUT-Token und das
   explizit erwartete Leaf. Die vollständig VZD-abhängige Entscheidung, wann
-  ein AUT-Check beim Empfang notwendig ist, bleibt offen. Die bisherige
+  ein AUT-Check beim Empfang notwendig ist, bleibt offen. Der zusätzliche
+  [LDAPS-Abgleich](vzd.md) kann inzwischen die From-Adresse gegen die getrennten
+  OSIG-/AUT-IDs prüfen; er hebt diese strengere AUT-Voraussetzung noch nicht auf. Die bisherige
   RSA-PSS-Unterstützung des FD-Prüfers bedeutet keine RSA-Freigabe dieses Pfads.
 - Received/Return-Path der äußeren Nachricht werden nicht als signierte
   Identitätsnachweise gewertet. Ihre normative Übernahme in eine später an den

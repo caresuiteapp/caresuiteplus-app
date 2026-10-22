@@ -21,6 +21,10 @@ import { certificateParts, der, fields } from '../../services/gkv/der.mjs';
 import { tlv, sequence as seq } from '../../services/kim/cms-codec.mjs';
 import { tslFixture, CA, OCSP, REVOKED } from './tsl-fixture.mjs';
 import { withAdmission, admissionDer } from './admission-fixture.mjs';
+import { vzdFixture, record, entryReply, searchDone } from './vzd-fixture.mjs';
+import { resolveVzdRecipients } from '../../services/kim/vzd-bindings.mjs';
+import { openEccKimMessage } from '../../services/kim/client-message.mjs';
+import { VzdLdapsDirectory } from '../../services/kim/vzd.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -28,6 +32,8 @@ const code = expected => error => error?.code === expected;
 const statusError = e => /^KIM_(?:TSL|OCSP)_/.test(e?.code);
 const report = { cmVersion: 'TEST_0.1.0', ptVersion: '1.5.5' };
 let f, server, origin, signer, signing, authentication, wire, state, defaults, extraResponder, originalHash, rootKey;
+let encryption, rollover, signingKey, authKey;
+const senderAddress = 'sender@local.kim.telematik-test', receiverAddress = 'receiver@local.kim.telematik-test';
 const endpoints = () => ({ url: origin + '/leaf-ocsp', ca: f.pki.roots, connectAddress: '127.0.0.1' });
 const route = path => ({ ...endpoints(), url: origin + path });
 const leafCount = () => state.calls.filter(c => c.path.startsWith('/leaf-')).length;
@@ -36,8 +42,8 @@ before(async () => {
   server = https.createServer(f.pki.tls, (req, res) => {
     const chunks = []; req.on('data', c => chunks.push(c)); req.on('end', () => {
       const bytes = Buffer.concat(chunks), path = req.url;
-      const identity = [signer, signing, authentication].find(c => f.proof(c.certificate).request.equals(bytes));
-      const purpose = identity === signing ? 'signing' : identity === authentication ? 'authentication' : 'signer';
+      const identity = [...(state.certificates ?? []), signer, signing, authentication, ...(encryption ?? []), rollover].filter(Boolean).find(c => f.proof(c.certificate).request.equals(bytes));
+      const purpose = identity === signing ? 'signing' : identity === authentication ? 'authentication' : identity === signer ? 'signer' : 'encryption';
       state.calls.push({ path, bytes, purpose });
       if (state.handler?.(req, res, bytes, purpose)) return;
       if (path === '/hash') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(hash(state.bundle.xml)); }
@@ -58,8 +64,10 @@ before(async () => {
   signing = await f.pki.issueKim({ name: 'route-osig', role: 'osig', startDate, aia: `OCSP;URI:${origin}/leaf-aia` });
   authentication = await f.pki.issueAut({ name: 'route-aut', startDate });
   const a = await f.pki.issueKim({ name: 'route-enc-a', startDate }), b = await f.pki.issueKim({ name: 'route-enc-b', startDate });
+  encryption = [a, b]; rollover = await f.pki.issueKim({ name: 'route-enc-rollover', startDate });
   const key = async c => createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: f.pki.password });
   rootKey = await key({ privateKeyPath: join(f.pki.dir, 'root.key') });
+  signingKey = await key(signing); authKey = await key(authentication);
   const sender = 'sender@local.kim.telematik-test', receiver = 'receiver@local.kim.telematik-test';
   const message = createEccKimMessage({ message: Buffer.from(`From: ${sender}\r\nTo: ${receiver}\r\nSubject: Local TSL status test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nPRIVATE LOCAL STATUS TEST\r\n`),
     sender, envelopeRecipients: [receiver], recipients: [{ address: sender, certificate: a.certificate }, { address: receiver, certificate: b.certificate }],
@@ -446,3 +454,148 @@ test('TSL Admission: separate OSIG and AUT identities are exposed separately and
   assert.equal(result.certificateAdmissions.authentication.telematikId, '10-AUTH-OTHER');
   assert.equal(result.authentication.identityStatus, 'unverified'); assert.equal(result.signing.identityStatus, 'unverified');
 }));
+
+async function withDirectory(run, handler) {
+  const d = await vzdFixture(f.pki, handler ?? (({ socket, address }) => {
+    const cert = address === senderAddress ? encryption[0] : encryption[1];
+    socket.write(Buffer.concat([entryReply(record(address, [cert.certificate])), searchDone()]));
+  }));
+  try { await run(d); } finally { await d.close(); }
+}
+const resolveDirectory = (directory, client, changes = {}) => resolveVzdRecipients({ addresses: [senderAddress, receiverAddress], directory, statusClient: client, ...changes });
+const receiveDirectory = (directory, client, changes = {}) => receiveEccKimMessageWithTsl({ ...wire, ...changes }, report, { directory, statusClient: client });
+function directoryWire({ signingCertificate = signing.certificate, authCertificate = authentication.certificate, recipients } = {}) {
+  return createEccKimMessage({ message: Buffer.from(`From: ${senderAddress}\r\nTo: ${receiverAddress}\r\nSubject: Local directory test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nPRIVATE DIRECTORY TEST\r\n`),
+    sender: senderAddress, envelopeRecipients: [receiverAddress],
+    recipients: recipients ?? [{ address: senderAddress, certificate: encryption[0].certificate }, { address: receiverAddress, certificate: encryption[1].certificate }],
+    signingCertificate, signingKey, authCertificate, authKey, ...report, now: f.now });
+}
+
+test('VZD + TSL: actual directory certificates and OCSP proofs feed a decryptable ECC message including key rollover', async () => fixture(async ({ open }) => withDirectory(async ({ directory }) => {
+  const selection = await resolveDirectory(directory, open());
+  assert.equal(selection.recipients.length, 3); assert.equal(selection.directoryEvidence.length, 2); assert.equal(selection.identityStatus, 'unverified');
+  assert.equal(leafCount(), 3); selection.revalidate();
+  const built = directoryWire({ recipients: selection.recipients });
+  for (const c of [encryption[1], rollover]) {
+    const opened = openEccKimMessage({ ...wire, bytes: built.bytes, recipientCertificate: c.certificate,
+      privateKey: createPrivateKey({ key: await readFile(c.privateKeyPath), passphrase: f.pki.password }) });
+    assert.match(opened.message.toString(), /PRIVATE DIRECTORY TEST/); assert.equal(opened.identityStatus, 'unverified'); opened.message.fill(0);
+  }
+}, ({ socket, address }) => socket.write(Buffer.concat([entryReply(record(address,
+  (address === senderAddress ? [encryption[0]] : [encryption[1], rollover]).map(c => c.certificate))), searchDone()])))));
+
+test('VZD + TSL: directory ID must exactly match each checked ENC certificate', async () => fixture(async ({ open }) => withDirectory(async ({ directory }) => {
+  await assert.rejects(resolveDirectory(directory, open()), code('KIM_VZD_CERTIFICATE_IDENTITY'));
+}, ({ socket, address }) => socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate], { telematikId: '10-local-test' })), searchDone()])))));
+
+test('VZD + TSL: a conflicting second ENC identity cannot hide behind a valid first certificate', async () => fixture(async ({ open }) => {
+  const bad = withAdmission(rollover.certificate, admissionDer({ telematikId: '10-OTHER' }), rootKey);
+  state.certificates = [{ certificate: bad }];
+  await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_VZD_CERTIFICATE_IDENTITY')),
+    ({ socket, address }) => socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate, bad])), searchDone()])));
+}));
+
+for (const status of ['revoked', 'unknown']) test('VZD + TSL: ' + status + ' ENC certificate cannot become a message recipient', async () => fixture(async ({ open }) => {
+  state.encryption = status;
+  await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_VZD_CERTIFICATE_STATUS')));
+}));
+
+test('VZD + TSL: unsupported certificate type and non-DER directory bytes fail closed', async () => fixture(async ({ open }) => {
+  await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_TSL_CERT_TYPE_MISMATCH')),
+    ({ socket, address }) => socket.write(Buffer.concat([entryReply(record(address, [signing.certificate])), searchDone()])));
+  assert.equal(leafCount(), 0);
+  await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), code('KIM_VZD_CERTIFICATES')),
+    ({ socket, address }) => {
+      const a = record(address, [encryption[0].certificate]); a.at(-1)[1] = [Buffer.from(encryption[0].certificate)];
+      socket.write(Buffer.concat([entryReply(a), searchDone()]));
+    });
+  assert.equal(leafCount(), 0);
+}));
+
+test('VZD + TSL: a TSL refresh during later directory I/O invalidates earlier good ENC proofs', async () => fixture(async ({ open, manager }) => {
+  await withDirectory(async ({ directory }) => assert.rejects(resolveDirectory(directory, open()), statusError),
+    async ({ socket, address }) => {
+      if (address === receiverAddress) await manager.refresh();
+      socket.write(Buffer.concat([entryReply(record(address, [encryption[address === senderAddress ? 0 : 1].certificate])), searchDone()]));
+    });
+}));
+
+test('VZD + TSL: returned selection cannot survive mutation or a later TSL change', async () => fixture(async ({ open, manager }) => withDirectory(async ({ directory }) => {
+  const c = open(), a = await resolveDirectory(directory, c); a.recipients[0].certificate.fill(0);
+  assert.throws(a.revalidate, code('KIM_VZD_CERTIFICATES'));
+  const b = await resolveDirectory(directory, c); await manager.refresh(); assert.throws(b.revalidate, statusError);
+})));
+
+test('VZD + TSL: mismatched environment or invalid address set cannot trigger network traffic', async () => fixture(async ({ open }) => withDirectory(async ({ directory, options, requests }) => {
+  const client = open();
+  await assert.rejects(resolveDirectory(new VzdLdapsDirectory({ ...options, environment: 'production' }), client), code('KIM_VZD_CONFIGURATION'));
+  for (const addresses of [[senderAddress, senderAddress.toUpperCase()], [senderAddress, receiverAddress.replace('-test', '')]]) {
+    await assert.rejects(resolveDirectory(directory, client, { addresses }), e => ['KIM_VZD_ADDRESS', 'KIM_VZD_ENVIRONMENT'].includes(e?.code));
+  }
+  assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+})));
+
+test('KIM VZD receive: a matching signer/From binding remains diagnostic-only', async () => fixture(async ({ open }) => withDirectory(async ({ directory, requests }) => {
+  const result = await receiveDirectory(directory, open());
+  assert.equal(result.directoryAcquisition.state, 'matched'); assert.equal(result.directoryAcquisition.matchedBy, 'signing');
+  assert.equal(result.directoryAcquisition.signingMatches, true); assert.equal(result.directoryAcquisition.authenticationMatches, true);
+  assert.equal(result.diagnostic.integrityResult, '07'); assert.equal(result.identityStatus, 'unverified'); assert.equal(result.deliveryStatus, 'diagnostic-only');
+  assert.equal(result.diagnostic.decryptedOriginalAttached, false); assert.equal(requests.length, 2);
+})));
+
+test('KIM VZD receive: valid AUT can bind From independently of the OSIG identity', async () => fixture(async ({ open }) => {
+  const changed = withAdmission(signing.certificate, admissionDer({ telematikId: '10-SEPARATE-SIGNER' }), rootKey);
+  state.handler = (req, res, _bytes, purpose) => {
+    if (!req.url.startsWith('/leaf-') || purpose !== 'signing') return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(changed).response); return true;
+  };
+  const message = directoryWire({ signingCertificate: changed });
+  await withDirectory(async ({ directory }) => {
+    const result = await receiveDirectory(directory, open(), { bytes: message.bytes, expectedSignerCertificate: changed });
+    assert.equal(result.directoryAcquisition.state, 'matched'); assert.equal(result.directoryAcquisition.matchedBy, 'authentication');
+    assert.equal(result.directoryAcquisition.signingMatches, false); assert.equal(result.diagnostic.integrityResult, '07');
+  });
+}));
+
+test('KIM VZD receive: OSIG binding does not require identical AUT and OSIG Telematik IDs', async () => fixture(async ({ open }) => {
+  const changed = withAdmission(authentication.certificate, admissionDer({ telematikId: '10-SEPARATE-AUT' }), rootKey);
+  state.handler = (req, res, _bytes, purpose) => {
+    if (!req.url.startsWith('/leaf-') || purpose !== 'authentication') return false;
+    res.writeHead(200, { 'Content-Type': 'application/ocsp-response' }); res.end(f.proof(changed).response); return true;
+  };
+  const message = directoryWire({ authCertificate: changed });
+  await withDirectory(async ({ directory }) => {
+    const result = await receiveDirectory(directory, open(), { bytes: message.bytes, expectedAuthCertificate: changed });
+    assert.equal(result.directoryAcquisition.matchedBy, 'signing'); assert.equal(result.directoryAcquisition.authenticationMatches, false);
+    assert.equal(result.diagnostic.integrityResult, '07');
+  });
+}));
+
+test('KIM VZD receive: foreign or ambiguous directory binding yields a distinct bounded diagnostic', async () => fixture(async ({ open }) => {
+  for (const ambiguous of [false, true]) await withDirectory(async ({ directory }) => {
+    const result = await receiveDirectory(directory, open());
+    assert.equal(result.directoryAcquisition.state, ambiguous ? 'unavailable' : 'mismatch');
+    assert.equal(result.diagnostic.integrityResult, 'XCS_DIRECTORY'); assert.equal(result.identityStatus, 'unverified');
+    assert.equal(result.diagnostic.decryptedOriginalAttached, false); assert.equal(result.bytes.includes('PRIVATE LOCAL STATUS TEST'), false);
+  }, ({ socket, address }) => {
+    const e = entryReply(record(address, [encryption[0].certificate], { telematikId: '10-OTHER' }));
+    socket.write(Buffer.concat([e, ...(ambiguous ? [e] : []), searchDone()]));
+  });
+}));
+
+test('KIM VZD receive: bad message cryptography or negative status prevents directory lookup', async () => fixture(async ({ open }) => withDirectory(async ({ directory, requests }) => {
+  const client = open();
+  const bad = await receiveDirectory(directory, client, { expectedSignerCertificate: authentication.certificate });
+  assert.equal(bad.kind, 'diagnostic'); assert.equal(bad.directoryAcquisition, undefined); assert.equal(leafCount(), 0);
+  state.signing = 'revoked'; const rejected = await receiveDirectory(directory, client);
+  assert.equal(rejected.directoryAcquisition.state, 'not-checked'); assert.equal(rejected.diagnostic.integrityResult, 'XCS_CERT_STATUS');
+  assert.equal(requests.length, 0);
+})));
+
+test('KIM VZD receive: a TSL change during directory lookup defeats previously good sender status', async () => fixture(async ({ open, manager }) => withDirectory(async ({ directory }) => {
+  const result = await receiveDirectory(directory, open());
+  assert.equal(result.diagnostic.integrityResult, 'XCS_CERT_STATUS');
+  assert.ok(result.diagnostic.certificateStatus.every(s => s.status === 'unavailable')); assert.equal(result.deliveryStatus, 'diagnostic-only');
+}, async ({ socket, address }) => {
+  await manager.refresh(); socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()]));
+})));

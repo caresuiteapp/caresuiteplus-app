@@ -34,6 +34,8 @@ export function receiveReportContext({ bytes, address, cmVersion, ptVersion, inc
 // Fixed diagnostic vocabulary. Native errors and attacker-controlled token/header values
 // never become error prose or report fields. Uncertain failures use manufacturer codes.
 function diagnosis(error, decrypted) {
+  if (error.code === 'KIM_MESSAGE_DIRECTORY_BINDING_REJECTED') return { kind: 'integrity', code: 'XCS_DIRECTORY', integrity: 'XCS_DIRECTORY',
+    detail: 'Die Absenderadresse konnte im konfigurierten Verzeichnis nicht eindeutig einer geprüften Zertifikatsidentität zugeordnet werden. Die Nachricht bleibt ungeprüft.' };
   if (error.code === 'KIM_MESSAGE_CERTIFICATE_STATUS_REJECTED') return { kind: 'integrity', code: 'XCS_CERT_STATUS', integrity: 'XCS_CERT_STATUS',
     detail: 'Der Sperrstatus mindestens eines Nachrichtenzertifikats wurde nicht positiv bestätigt. Der Prüfbericht unterscheidet gesperrte, unbekannte und nicht auswertbare Statusangaben. Die Nachricht bleibt ungeprüft.' };
   if (error.code === 'KIM_MESSAGE_TRUST_UNAVAILABLE') return { kind: 'integrity', code: 'XCS_TRUST', integrity: '07',

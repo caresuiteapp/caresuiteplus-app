@@ -1,6 +1,6 @@
 # Pflegekassen-Datenaustausch nach § 105 SGB XI
 
-Stand: 21.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
+Stand: 22.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
 klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
@@ -41,7 +41,10 @@ bevor eine Statusabfrage oder Cacheverwendung beginnt.
 Die [Admission-Prüfung](certificate-admission.md) ergänzt die Rollenfamilie und
 eine eindeutige Telematik-ID aus dem signierten Zertifikat. Mehrere
 Verschlüsselungszertifikate derselben Adresse dürfen keine widersprüchlichen
-IDs enthalten. Die tatsächliche VZD-Adressbindung bleibt offen.
+IDs enthalten. Die [Verzeichnisabfrage](vzd.md) ergänzt nun echtes LDAPS gegen
+einen konfigurierten Peer sowie die Zuordnung der KIM-Adresse zur geprüften
+Zertifikats-ID. TI-Serverrollenprüfung und produktive VZD-/Konnektoranbindung
+bleiben offen; ein lokaler Treffer gibt keine Zustellung frei.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 
