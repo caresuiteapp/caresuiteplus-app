@@ -74,7 +74,7 @@ export async function fetchConfirmedCarePermissions(owner: CarePermissionOwner, 
     for (const [name, expected] of [['resolve_current_profile_id', captured.profileId], ['current_tenant_id', captured.tenantId]] as const) {
       current(); const rpc = client.rpc; current();
       if (typeof rpc !== 'function') throw failure();
-      const response = object(await rpc.call(client, name, {})); current();
+      const response = object(await rpc.call(client, name)); current();
       if (field(response, 'error') !== null || field(response, 'data') !== expected) throw failure();
     }
     await readSession();

@@ -30,7 +30,7 @@ function capturePage<T>(input:unknown,decode:(value:unknown)=>T,rowPosition:(val
 export async function readCompleteVitalHistoryWeb<T>(scope:VitalWorkspaceReadScopeWeb,load:(at:string|null,id:string|null)=>Promise<unknown>,decode:(value:unknown)=>T,rowPosition:(value:T)=>Position,identity:(value:T)=>string=value=>rowPosition(value).id):Promise<T[]>{
  scopeKey(scope);const rows:T[]=[],identities=new Set<string>();let prior:Position|null=null,first:Page<T>|null=null,complete=false;
  for(let page=0;page<100;page++){
-  const next=capturePage(await load(prior?.at??null,prior?.id??null),decode,rowPosition,prior,100);if(first&&next.stateFingerprint!==first.stateFingerprint)throw Error(unavailable);if(!first)first=cloneClientNativeOriginal(next);
+  const next:Page<T>=capturePage<T>(await load(prior?.at??null,prior?.id??null),decode,rowPosition,prior,100);if(first&&next.stateFingerprint!==first.stateFingerprint)throw Error(unavailable);if(!first)first=cloneClientNativeOriginal(next);
   if(next.rows.length===0){complete=true;break;}for(const row of next.rows){const id=identity(row);if(!uuid(id)||identities.has(id.toLowerCase()))throw Error(unavailable);identities.add(id.toLowerCase());rows.push(row);}prior={at:next.nextCursorRecordedAt!,id:next.nextCursorId!};
  }
  if(!complete||!first)throw Error('Der Vitalbestand überschreitet die sicher vollständig lesbare Grenze.');

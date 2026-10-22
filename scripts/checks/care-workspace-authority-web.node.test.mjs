@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
 import {requireCareWorkspaceAuthorityWeb} from '../../src/lib/pflege/careWorkspaceAuthority.web.ts';
-import {cloneClientNativeOriginal} from '../../src/lib/clients/clientRecordNativeOriginal.web.ts';
+import {cloneClientNativeOriginal,sameClientNativeOriginal} from '../../src/lib/clients/clientRecordNativeOriginal.web.ts';
 
 const moduleUrl=source=>'data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(source,{mode:'strip'})).toString('base64');
 const vitalPacketUrl=new URL('../../src/lib/pflege/vitalCarePathPacket.web.ts',import.meta.url).href;
@@ -23,7 +23,7 @@ function harness(hook=()=>{}){
  const db={auth:{
   async getSession(){const stage=++state.sessions===1?'session-before':'session-after';calls.push(stage);await hook(stage,state);return {data:{session:state.sessionMissing?null:session()},error:state.sessionError};},
   async getUser(token){calls.push(['user',token]);await hook('user',state);return {data:{user:state.verifiedUser===null?null:{id:state.verifiedUser}},error:state.userError};},
- },async rpc(name,args){calls.push([name,structuredClone(args)]);await hook(name,state);if(name==='resolve_current_profile_id')return {data:state.serverProfile,error:state.profileError};if(name==='current_tenant_id')return {data:state.serverTenant,error:state.tenantError};return {data:['web_read_treatment_care_page','web_read_wound_path_page','web_read_vital_care_path_page'].includes(name)?{rows:[],nextCursorRecordedAt:null,nextCursorId:null,stateFingerprint:'sha256:'+'e'.repeat(64)}:{rows:[]},error:null};}};
+ },async rpc(name,args){calls.push([name,structuredClone(args)]);await hook(name,state);if(name==='resolve_current_profile_id')return {data:state.serverProfile,error:state.profileError};if(name==='current_tenant_id')return {data:state.serverTenant,error:state.tenantError};return {data:name==='web_read_care_documentation_page'?{rows:[],nextCursorOccurredAt:null,nextCursorId:null,stateFingerprint:'sha256:'+'e'.repeat(64)}:['web_read_treatment_care_page','web_read_wound_path_page','web_read_vital_care_path_page'].includes(name)?{rows:[],nextCursorRecordedAt:null,nextCursorId:null,stateFingerprint:'sha256:'+'e'.repeat(64)}:{rows:[]},error:null};}};
  state.sdk=db;
  const context={tenantId:tenant,actorId:profile,clientId:client,medicationId:record,woundId:record,measurementId:record,isCurrent:()=>state.current};
  return {state,db,context,calls,getSdk:()=>state.sdk,run:()=>requireCareWorkspaceAuthorityWeb(context,()=>state.sdk,direct,'Current own workspace was not confirmed')};
@@ -66,7 +66,7 @@ const repositories=[
 function actualRead(name,method,h){
  const raw=readFileSync(new URL(`../../src/lib/pflege/${name}Repository.supabase.web.ts`,import.meta.url),'utf8');
  const code=stripTypeScriptTypes(raw.replace(/^import .*;\n/gm,'').replace(/^export /gm,''));
- return new Function('getSupabaseClient','withServiceQueryTimeout','requireCareWorkspaceAuthorityWeb','cloneClientNativeOriginal','readCompleteVitalHistoryWeb','readVitalSourcesWithProofWeb',`${code}\nreturn ${method};`)(h.getSdk,request=>Promise.resolve(request),requireCareWorkspaceAuthorityWeb,cloneClientNativeOriginal,readCompleteVitalHistoryWeb,readVitalSourcesWithProofWeb);
+ return new Function('getSupabaseClient','withServiceQueryTimeout','requireCareWorkspaceAuthorityWeb','cloneClientNativeOriginal','sameClientNativeOriginal','readCompleteVitalHistoryWeb','readVitalSourcesWithProofWeb',`${code}\nreturn ${method};`)(h.getSdk,request=>Promise.resolve(request),requireCareWorkspaceAuthorityWeb,cloneClientNativeOriginal,sameClientNativeOriginal,readCompleteVitalHistoryWeb,readVitalSourcesWithProofWeb);
 }
 for(const [name,method,rpc] of repositories){
  test(`${name}: actual repository reads its profile-bound history when auth/user IDs differ`,async()=>{const h=harness(),read=actualRead(name,method,h);assert.deepEqual(await read(h.context),{ok:true,data:[]});const page=h.calls.find(c=>Array.isArray(c)&&c[0]===rpc);assert.equal(page?.[1].p_actor_profile_id,profile);assert.equal(page?.[1].p_tenant_id,tenant);assert.equal(page?.[1].p_client_id,client);});
