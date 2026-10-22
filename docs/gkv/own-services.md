@@ -421,8 +421,28 @@ Fehlende oder fehlerhafte erforderliche Nachweise bleiben gesperrt.
 Alle Rohbelege werden nach dem letzten Warten erneut ausgewertet. Ein fremder
 Statusflag oder eine überschriebene Clientmethode ersetzt diese Prüfung nicht.
 Die gezielten Fälle und der gemeinsame Gesamtlauf stehen in
-[verification.md](verification.md). Konnektor-VerifyCertificate, TI-Anschluss,
-vollständige Altprofile und unabhängige Interoperabilitätsprüfung bleiben offen.
+[verification.md](verification.md). Den optionalen Konnektor-Zertifikatsadapter
+beschreibt der folgende Abschnitt. TI-Anschluss, vollständige Altprofile und
+unabhängige Interoperabilitätsprüfung bleiben offen.
+
+### Konnektor-CertificateService über SOAP und mTLS
+
+Der [eigene Zertifikatsclient](konnektor-certificates.md) liest explizit gewählte
+Karten-Zertifikate und ruft VerifyCertificate mit tatsächlichen DER-Bytes auf.
+Anfragen und Antworten werden gegen festgeschriebene offizielle XSDs geprüft.
+Hostname, provisionierte CA, Serverpin und Clientzertifikat sind verpflichtend.
+HTTP-Erfolg, Ausführungsstatus und Zertifikatsgültigkeit werden getrennt bewertet;
+fremde SOAP-Fehlertexte gelangen nicht in den Bericht. Nur ursprüngliche Belege
+des passenden offenen Clients mit passender Rolle und kurzer Nutzungsfrist
+können erneut verwendet werden.
+
+Im entsprechend konfigurierten Empfang müssen sowohl die bisherige TSL-/OCSP-
+Prüfung als auch VerifyCertificate bestehen. Der bedingte AUT-Zweig wird dabei
+beibehalten. Ein Konnektorfehler, abgelaufener Beleg oder geschlossener Client
+erlaubt keinen Rückfall auf den lokalen Erfolg. Die Ausgabe bleibt diagnostisch.
+Lokale mTLS-/SOAP- und Empfangsnachweise stehen in [verification.md](verification.md).
+Reale Konnektor-/SMC-B-Anbindung, Karten-Schlüsseloperationen, Discovery und
+vollständige TI-/Betriebs-/Zulassungsnachweise bleiben offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 
@@ -451,7 +471,7 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 | CareSuite-Versandfreigabe | Kanonische Supabase-Autorisierung, atomare Office-Rechnungsreservierung samt Revisionen, vertrauenswürdige Übergabe an den Worker, erneute Quellen-/KOTR-/Virenprüfung |
 | Zertifikatsbetrieb | Vertrauenswürdig provisionierte Trust-Center-Wurzeln, Zertifikatimport/Rotation, aktuelle CRL-/Verzeichnisbeschaffung, Backup-/Wiederanlauf und Schlüsselverwaltung im Betrieb |
 | Klassischer Empfang | Abruf, verschlüsselte Ablage und begrenzte technische Korrelation sind implementiert; Herkunftsprüfung, weitere MIME-/Rückmeldeprofile, TA-6-Fachrückmeldungen und kanonische Statusübernahme samt Auflösung unklarer Sendungen fehlen |
-| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung und begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung gegen konfigurierte Anker ergänzt. Konnektor-/SMC-B-Anbindung, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
+| Eigener KIM-Client | ECC-CMS, AUT-Erzeugung, Inline-/Headerprüfung, lokale Fehler-MIME, OCSP-Prüfer/-Abruf mit dauerhaftem Cache sowie TSL-Signatur-/XSD-Prüfung, Versionskontrolle und periodische Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; TSL-CA-Statusrouten, LDAPS-Adressbindung, begrenzte C.ZD.TLS-S-/Rollen-/Sperrprüfung und SOAP-/mTLS-CertificateService mit zusätzlicher Empfangssperre ergänzt. Reale Konnektor-/SMC-B-Anbindung samt Karten-Schlüsseloperationen, vollständige VZD-Serverprofile/TI-Anbindung, authentisierte TI-Ankerbereitstellung, produktiver Host-/TSL-/Statusanschluss, weitere MIME-Profile/KAS, CAdES je Nutzkomponente, Fach-XML-/XSD-/Beziehungsprüfung, normale Clientzustellung und vollständige normative Fehlerprofile fehlen |
 | Eigener KIM-Fachdienst | Lokaler mTLS-SMTP-/POP3-Pfad, gepinnte AUT-Mathematik, begrenzte äußere CMS-Prüfung und lokale DSNs sind implementiert; TI-Netz/TSL/Komponenten-PKI, vollständiger AccountManager/VZD, vollständige CMS-/Fehlerprofile, FD-zu-FD-Relay/Routing/DNS, HTTPS, Abwesenheit und KAS-REST fehlen |
 | Betrieb | Abgesicherte dauerhafte Volumes, Ausfallsicherung, Quoten-/Missbrauchsschutz, Schlüsselrotation, Monitoring, Datenschutzkonzept, nachweisbare Löschung auch in WAL/Backups/Replikaten |
 | Fachprofile | Noch offene Vertrags-/Sonderfälle und Versionswechsel aus implementation.md; unabhängige Testfälle der Annahmestellen |
@@ -461,7 +481,8 @@ Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
 
 Die Dienste verwenden die bereits vorhandenen Node-24-APIs, einschließlich
 `node:sqlite`, und OpenSSL 3. Der TSL-XML-Worker verwendet die vorhandene
-Python-3-/lxml-Laufzeit mit POSIX-Ressourcenlimits. Keine neuen Pakete, Container
+Python-3-/lxml-Laufzeit mit POSIX-Ressourcenlimits; der CertificateService-
+XML-Worker verwendet dieselbe Laufzeit. Keine neuen Pakete, Container
 oder Testwerkzeuge. Die Verfügbarkeit dieser Laufzeit auf dem späteren
 Diensthost ist vor Inbetriebnahme gesondert nachzuweisen.
 Sie gehören in einen eigenen dauerhaften Prozess mit geschütztem lokalem Volume.

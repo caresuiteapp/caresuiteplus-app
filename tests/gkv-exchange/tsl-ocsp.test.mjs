@@ -28,6 +28,7 @@ import { vzdFixture, record, entryReply, searchDone, bindReply } from './vzd-fix
 import { resolveVzdRecipients, matchVzdSender } from '../../services/kim/vzd-bindings.mjs';
 import { openEccKimMessage } from '../../services/kim/client-message.mjs';
 import { VzdLdapsDirectory, revalidateVzdRecord } from '../../services/kim/vzd.mjs';
+import { connectorFixture, verificationResponse, faultResponse } from './connector-fixture.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -612,6 +613,75 @@ test('KIM VZD receive: a TSL change during directory lookup defeats previously g
 })));
 
 const lookupServer = (directory, client, signal) => directory.lookup(senderAddress, { serverStatusClient: client, signal });
+
+async function withConnector(run, handler, changes) {
+  const connector = await connectorFixture(f.pki, handler, changes);
+  try { await run(connector); } finally { await connector.close(); }
+}
+const connectorReply = (response, value) => { response.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8' }); response.end(value); };
+
+test('KIM Konnektor: real VerifyCertificate checks OSIG and preserves the no-AUT branch as diagnosis only', async () => fixture(async ({ open }) => withConnector(async ({ open: openConnector, requests: soapRequests }) => withDirectory(async ({ directory }) => {
+  const r = await receiveEccKimMessageWithTsl(wire, report, { statusClient: open(), directory, connector: openConnector() });
+  assert.equal(r.diagnostic.integrityResult, '07'); assert.equal(r.authenticationAssessment.state, 'not-required');
+  assert.equal(soapRequests.length, 1); assert.equal(soapRequests[0].bytes.includes(raw(signing.certificate).toString('base64')), true);
+  assert.equal(r.connectorAcquisition.certificates.signing.verificationResult, 'VALID');
+  assert.equal(r.connectorAcquisition.certificates.authentication, undefined); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  assert.equal(r.diagnostic.decryptedOriginalAttached, false);
+}))));
+
+for (const condition of ['INVALID', 'INCONCLUSIVE', 'role', 'fault', 'malformed']) test('KIM Konnektor: ' + condition + ' cannot fall back to good local OCSP or start LDAP', async () => fixture(async ({ open }) => withConnector(async ({ open: openConnector, requests: soapRequests }) => withDirectory(async ({ directory, requests }) => {
+  const r = await receiveEccKimMessageWithTsl({ ...wire, connectorAcquisition: { state: 'VALID' } }, report, { statusClient: open(), directory, connector: openConnector() });
+  assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.diagnostic.certificateStatus[0].status, 'unavailable');
+  assert.equal(r.authenticationAssessment.state, 'not-checked'); assert.equal(requests.length, 0); assert.equal(soapRequests.length, 1);
+  assert.equal(r.deliveryStatus, 'diagnostic-only'); assert.deepEqual(leafPurposes(), ['signing']);
+  const expected = { INVALID: 'CERTIFICATE_REJECTED', INCONCLUSIVE: 'CERTIFICATE_REJECTED', role: 'ROLE', fault: 'SOAP_FAULT', malformed: 'XML_PROFILE' };
+  assert.equal(r.diagnostic.certificateStatus[0].code, 'KIM_CONNECTOR_' + expected[condition]);
+  if (condition === 'INVALID' || condition === 'INCONCLUSIVE') assert.equal(r.connectorAcquisition.certificates.signing.verificationResult, condition);
+}, undefined), ({ response }) => connectorReply(response, condition === 'role' ? verificationResponse('VALID', ['1.2.276.0.76.4.171'])
+  : condition === 'fault' ? faultResponse() : condition === 'malformed' ? '<invalid/>' : verificationResponse(condition)))));
+
+test('KIM Konnektor: required AUT uses the actual x5c leaf and INVALID prevents sender binding', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bytes = directoryAutWire({ signingCertificate: changed });
+  await withConnector(async ({ open: openConnector, requests: soapRequests }) => withDirectory(async ({ directory }) => {
+    const r = await receiveEccKimMessageWithTsl({ ...wire, bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined }, report,
+      { statusClient: open(), directory, connector: openConnector() });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.authenticationAssessment.state, 'rejected');
+    assert.equal(soapRequests.length, 2); assert.equal(soapRequests[1].bytes.includes(raw(authentication.certificate).toString('base64')), true);
+    assert.equal(r.connectorAcquisition.certificates.authentication.verificationResult, 'INVALID');
+    assert.equal(r.directoryAcquisition.state, 'mismatch'); assert.equal(r.deliveryStatus, 'diagnostic-only');
+  }), ({ response, bytes }) => connectorReply(response, verificationResponse(bytes.includes(raw(authentication.certificate).toString('base64')) ? 'INVALID' : 'VALID')));
+}));
+
+test('KIM Konnektor: closing the connector during LDAP invalidates its earlier VALID result', async () => fixture(async ({ open }) => withConnector(async ({ open: openConnector }) => {
+  const connector = openConnector();
+  await withDirectory(async ({ directory }) => {
+    const r = await receiveEccKimMessageWithTsl(wire, report, { statusClient: open(), directory, connector });
+    assert.equal(r.diagnostic.integrityResult, 'XCS_CERT_STATUS'); assert.equal(r.diagnostic.certificateStatus[0].code, 'KIM_CONNECTOR_CLOSED');
+    assert.equal(r.authenticationAssessment.state, 'not-checked');
+  }, ({ socket, address }) => { connector.close(); socket.write(Buffer.concat([entryReply(record(address, [encryption[0].certificate])), searchDone()])); });
+})));
+
+test('KIM Konnektor: different OSIG identity requires positive OSIG and AUT operations for the same directory record', async () => fixture(async ({ open }) => {
+  const changed = separateSigningIdentity(), bytes = directoryAutWire({ signingCertificate: changed });
+  await withConnector(async ({ open: openConnector, requests: soapRequests }) => withDirectory(async ({ directory }) => {
+    const r = await receiveEccKimMessageWithTsl({ ...wire, bytes, expectedSignerCertificate: changed, expectedAuthCertificate: undefined }, report,
+      { statusClient: open(), directory, connector: openConnector() });
+    assert.equal(r.diagnostic.integrityResult, '07'); assert.equal(r.authenticationAssessment.state, 'checked');
+    assert.equal(r.directoryAcquisition.matchedBy, 'authentication'); assert.equal(soapRequests.length, 2);
+    assert.equal(soapRequests[0].bytes.includes(raw(changed).toString('base64')), true);
+    assert.equal(soapRequests[1].bytes.includes(raw(authentication.certificate).toString('base64')), true);
+    assert.equal(r.connectorAcquisition.certificates.authentication.verificationResult, 'VALID');
+    assert.equal(r.deliveryStatus, 'diagnostic-only'); assert.equal(r.identityStatus, 'unverified');
+  }));
+}));
+
+test('KIM Konnektor: environment mismatch, missing directory and fabricated client fail before network', async () => fixture(async ({ open }) => withConnector(async ({ open: openConnector, requests: soapRequests }) => withDirectory(async ({ directory, requests }) => {
+  const statusClient = open();
+  for (const config of [{ connector: {} }, { connector: openConnector({ environment: 'production' }) }, { connector: openConnector(), directory: undefined }]) {
+    await assert.rejects(receiveEccKimMessageWithTsl(wire, report, { statusClient, directory, ...config }), code('KIM_TSL_STATUS_CONFIGURATION'));
+  }
+  assert.equal(soapRequests.length, 0); assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
+}))));
 
 // Real signed/encrypted messages with controlled AUT inputs. Changing a token
 // here always re-signs the inner message, so failures cannot be hidden by a

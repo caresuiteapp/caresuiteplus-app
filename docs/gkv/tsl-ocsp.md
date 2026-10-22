@@ -6,6 +6,14 @@ Für ein Nachrichtenzertifikat wählt er die Statusadresse aus dem passenden
 CA-Diensteintrag der geprüften TSL. `receiveEccKimMessageWithTsl` verwendet
 diesen Weg für die OSIG- und AUT-Belege des bestehenden lokalen Empfangsberichts.
 
+Mit `directory` und einem expliziten `connector` kann der
+[Konnektor-Zertifikatsclient](konnektor-certificates.md) zusätzlich verpflichtet
+werden. Nach positivem lokalen Befund prüft er identische DER-Bytes und Rollen
+über VerifyCertificate. Konnektorfehler verhindern den positiven Empfangszweig;
+auch nach LDAP werden seine Belege erneut bewertet. `connectorAcquisition`
+führt die tatsächlich erhaltenen Befunde auf. Die eigene TSL-/OCSP-Prüfung und
+der weiterhin ausschließlich diagnostische Lieferstatus bleiben erforderlich.
+
 ## Vertrauens- und Routenauswahl
 
 Der unterstützte Weg ist die **TI-nonQES-Statusprüfung** gemäß TUC_PKI_003 bis
@@ -216,7 +224,8 @@ auch gegen ältere positive Cachebelege und nach Listenwechsel.
 
 Keine Abfrage echter TI-Dienste und kein Echtversand. Noch offen bleiben
 authentisierte TI-Ankerbereitstellung/-rotation, vollständige Rollen-/Policy-
-und Identitätsprüfung, vollständige VZD-Serverprofile/TI-Anbindung, Konnektor/SMC-B, produktiver Diensthost,
+und Identitätsprüfung, vollständige VZD-Serverprofile/TI-Anbindung, reale
+Konnektor-/SMC-B-Anbindung samt Schlüsseloperationen, produktiver Diensthost,
 vollständiges Clientmodul und Fachdienst sowie unabhängige Prüfung/Zulassung.
 Der Dienst benötigt die bestehenden Laufzeiten und ein geschütztes dauerhaftes
 lokales Volume; Vercel-Funktionen mit flüchtigem Speicher ersetzen diesen Host

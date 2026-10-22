@@ -1,3 +1,4 @@
+import { X509Certificate } from 'node:crypto';
 import { KimMessageError, inspectEccKimMessageForDirectory, authenticateInspectedKimMessage,
   receiveEccKimDirectoryDiagnostic } from './client-message.mjs';
 import { TslOcspStatusClient } from './tsl-ocsp.mjs';
@@ -5,8 +6,9 @@ import { TslError } from './tsl.mjs';
 import { assessKimOcspProof } from './ocsp.mjs';
 import { lookupVzd, revalidateVzdRecord } from './vzd.mjs';
 import { checkVzdConfiguration, vzdRecordMetadata } from './vzd-bindings.mjs';
+import { KonnektorCertificateClient, assertConnectorCertificate } from './connector-certificates.mjs';
 
-const errorCode = e => /^KIM_(?:TSL|OCSP|VZD)_[A-Z_]{1,64}$/.test(e?.code ?? '') ? e.code : 'KIM_VZD_UNAVAILABLE';
+const errorCode = e => /^KIM_(?:TSL|OCSP|VZD|CONNECTOR)_[A-Z_]{1,64}$/.test(e?.code ?? '') ? e.code : 'KIM_VZD_UNAVAILABLE';
 const error = (code, stage = 'trust') => new KimMessageError('KIM_MESSAGE_' + code, stage);
 const freeze = Object.freeze;
 
@@ -15,7 +17,7 @@ const freeze = Object.freeze;
  * a broken CMS signature or negative OSIG status. Inputs are captured by the
  * public TSL facade. Every successful local branch still yields diagnosis 07.
  */
-export async function receiveEccKimMessageWithDirectory(options, report, { directory, statusClient, signal }) {
+export async function receiveEccKimMessageWithDirectory(options, report, { directory, statusClient, connector, signal }) {
   checkVzdConfiguration(directory, statusClient);
   const render = assess => receiveEccKimDirectoryDiagnostic(options, report, assess);
   let inspected;
@@ -30,12 +32,32 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
   let authenticationAssessment = freeze({ state: 'not-checked', reason: 'signing-status' });
   let directoryAcquisition = freeze({ state: 'not-checked', code: 'KIM_VZD_CERTIFICATE_STATUS' });
   const failures = [];
+  const connectorProofs = new Map();
   const status = async (certificate, purpose) => {
     stopped();
-    try { return await TslOcspStatusClient.prototype.check.call(statusClient, { certificate, purpose, signal: stop }); }
-    catch (e) { stopped(); failures.push(freeze({ purpose, code: errorCode(e) })); return undefined; }
+    let proof;
+    try {
+      proof = await TslOcspStatusClient.prototype.check.call(statusClient, { certificate, purpose, signal: stop });
+      if (connector !== undefined && proof.status === 'good') {
+        connectorProofs.set(purpose, await KonnektorCertificateClient.prototype.verifyCertificate.call(connector,
+          { certificate: new X509Certificate(certificate).raw, requiredRoles: proof.admission.professionOids, signal: stop }));
+      }
+      return proof;
+    } catch (e) { stopped(); failures.push(freeze({ purpose, code: errorCode(e) })); return proof; }
   };
-  const signingStatus = () => assessKimOcspProof(signing, options.expectedSignerCertificate, 'signing');
+  const assess = (proof, certificate, purpose) => {
+    const raw = assessKimOcspProof(proof, certificate, purpose);
+    if (raw.status !== 'good' || connector === undefined) return raw;
+    try {
+      assertConnectorCertificate(connectorProofs.get(purpose), connector,
+        { certificate: new X509Certificate(certificate).raw, requiredRoles: proof.admission.professionOids });
+      return raw;
+    } catch (e) {
+      const acquisitionError = connectorProofs.has(purpose) ? undefined : failures.find(f => f.purpose === purpose)?.code;
+      return freeze({ ...raw, status: 'unavailable', code: acquisitionError ?? errorCode(e) });
+    }
+  };
+  const signingStatus = () => assess(signing, options.expectedSignerCertificate, 'signing');
   const binding = (signingMatches, authenticationMatches) => freeze({ ...vzdRecordMetadata(record),
     state: signingMatches || authenticationMatches ? 'matched' : 'mismatch',
     matchedBy: signingMatches ? 'signing' : authenticationMatches ? 'authentication' : undefined,
@@ -59,7 +81,7 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
           if (parsed) {
             authCertificate = Buffer.from(parsed.certificate);
             authentication = await status(authCertificate, 'authentication'); stopped();
-            const checked = assessKimOcspProof(authentication, authCertificate, 'authentication');
+            const checked = assess(authentication, authCertificate, 'authentication');
             authenticationAssessment = freeze({ state: checked.status === 'good' ? 'checked' : 'rejected',
               reason: checked.status === 'good' ? 'different-signing-identity' : 'certificate-status',
               certificateSha256: parsed.certificateSha256 });
@@ -78,7 +100,7 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
   const result = render(current => {
     stopped();
     certificateStatus = freeze([signingStatus(), ...(authCertificate
-      ? [assessKimOcspProof(authentication, authCertificate, 'authentication')] : [])]);
+      ? [assess(authentication, authCertificate, 'authentication')] : [])]);
     if (certificateStatus.some(s => s.status !== 'good')) {
       if (certificateStatus[0].status !== 'good') authenticationAssessment = freeze({ state: 'not-checked', reason: 'signing-status' });
       else authenticationAssessment = freeze({ state: 'rejected', reason: 'certificate-status',
@@ -110,6 +132,10 @@ export async function receiveEccKimMessageWithDirectory(options, report, { direc
   const acquired = { signing, ...(authCertificate ? { authentication } : {}) };
   const current = certificateStatus?.every(s => s.status === 'good') === true;
   return { ...result, directoryAcquisition, authenticationAssessment,
+    ...(connector === undefined ? {} : { connectorAcquisition: freeze({
+      source: 'configured-konnektor', identityStatus: 'unverified',
+      certificates: freeze(Object.fromEntries(connectorProofs)),
+    }) }),
     statusAcquisition: freeze({ state: current ? 'checked' : signing ? 'incomplete' : 'unavailable',
       ...(signing ? { tsl: signing.tsl } : {}),
       certificateTypes: freeze(Object.fromEntries(Object.entries(acquired).filter(([, p]) => p).map(([role, p]) => [role, p.certificateTypeOid]))),

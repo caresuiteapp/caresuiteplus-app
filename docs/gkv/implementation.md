@@ -51,6 +51,12 @@ offen; ein lokaler Treffer gibt keine Zustellung frei. Der
 [bedingte AUT-Empfang](conditional-aut-receive.md) prüft jetzt zuerst OSIG und
 die From-Zuordnung. Nur bei abweichender ID werden AUT, sein tatsächliches
 x5c-Leaf und dessen Bindung an denselben VZD-Eintrag geprüft.
+Der [Konnektor-Zertifikatsclient](konnektor-certificates.md) ergänzt
+ReadCardCertificate und VerifyCertificate über schemafähiges SOAP/mTLS sowie
+eine zusätzliche verpflichtende Prüfung im entsprechend konfigurierten Empfang.
+Er ist gegen lokale Gegenstellen geprüft; reale Karten-/Konnektoranbindung und
+Karten-Schlüsseloperationen bleiben offen. Ein negativer Konnektorbefund erlaubt
+keinen Rückfall auf einen ausschließlich lokalen positiven Status.
 Authentisierte TI-Ankerprovisionierung, produktiver Hostanschluss, vollständiges KIM-Clientmodul, externe Fachdienstweiterleitung
 und die kanonische CareSuite-Versandfreigabe bleiben offen.
 

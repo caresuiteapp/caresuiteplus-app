@@ -132,6 +132,11 @@ Der Versandworker bleibt für KIM gesperrt. TI-/SMC-B-Anbindung, vollständige
 Vertrauensprüfung, externe FD-Weiterleitung, kanonische CareSuite-Freigabe und
 unabhängige Prüfung/Zulassung bleiben erforderlich.
 
+Der konfigurierte Empfang kann inzwischen den
+[Konnektor-CertificateService](konnektor-certificates.md) als zusätzliche
+Pflichtprüfung für OSIG und gegebenenfalls AUT verwenden. Das verbindet noch
+keine Kartenschlüssel mit CMS/AUT-Erzeugung und gibt keine normale Zustellung frei.
+
 ## Anforderungszuordnung und Prüfbelege
 
 | Quelle / Anforderung | Lokaler Nachweis | Verbleibende Voraussetzung |
@@ -139,7 +144,7 @@ unabhängige Prüfung/Zulassung bleiben erforderlich.
 | CM A_28582, A_21388-04 | Echter ECC-AUT-Token, frische UUID, Versionsformate, einmaliger Header vor CMS-Signatur | SMC-B/HBA/HSM-Anbindung, zugelassene Produktdaten und TID-/Adressbindung |
 | CM A_23174-03, KOM-LE-A_2022-02 | Abgleich von SMTP-Empfängern, sichtbaren Adressen und ENC-Zertifikatsadressen | Vertrauenswürdige VZD-Suche, Mehrfach-TID- und Zertifikatspaarbehandlung |
 | S/MIME KOM-LE-A_2097 bis _2104, CM KOM-LE-A_2193 | Innere/äußere Nachricht, Headerkopien, Message-ID, Betreff, MIME-Typen | Vollständige MIME-/Profilinteroperabilität, KAS |
-| CM KOM-LE-A_2048-02 | Signaturmathematik, recipient-emails, Headervergleich, bedingte AUT-Prüfung anhand aktueller OSIG-/VZD-Belege; tatsächliches AUT-Leaf ohne FD-TTL | Vollständige TI-Pfad-/Sperrprüfung, Konnektor, Altprofile, unabhängige Interoperabilität und normative Fehlerausgabe |
+| CM KOM-LE-A_2048-02 | Signaturmathematik, recipient-emails, Headervergleich, bedingte AUT-Prüfung anhand aktueller OSIG-/VZD-Belege; tatsächliches AUT-Leaf ohne FD-TTL; zusätzlicher konfigurierter VerifyCertificate-Aufruf | Vollständige TI-Pfad-/Sperrprüfung, reale Konnektor-/Kartenanbindung, Altprofile, unabhängige Interoperabilität und normative Fehlerausgabe |
 
 16 neue Tests in `kim-client-message.test.mjs` und ein zusätzlicher MIME-Test
 im ECC-Test prüfen tatsächliche Schlüssel und Nachrichten. Der SMTP-/POP3-Test

@@ -6,10 +6,16 @@ Diagnose. Keine Zulassung, TI-Vertrauensbestätigung oder normale Clientzustellu
 ## Entscheidung aus tatsächlichen Belegen
 
 `receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory,
-signal })` verwendet mit `directory` den neuen Ablauf in `receive-vzd.mjs`.
+connector, signal })` verwendet mit `directory` den neuen Ablauf in `receive-vzd.mjs`.
 Ohne Verzeichnis bleibt der bisherige strikte Pfad bestehen, der AUT und ein
 explizit erwartetes AUT-Zertifikat verlangt. Der Erzeuger setzt weiterhin vor
 jeder CMS-Signatur einen frischen AUT-Token ein.
+
+Ein ausdrücklich konfigurierter [Konnektor-Client](konnektor-certificates.md)
+ergänzt für OSIG und gegebenenfalls AUT eine verpflichtende VerifyCertificate-
+Anfrage. Sein negatives oder fehlendes Ergebnis kann nicht durch den lokalen
+OCSP-Erfolg ersetzt werden. Er wird nach dem letzten Warten erneut geprüft.
+Ohne Konnektor bleibt der bisherige lokale Diagnosepfad bestehen.
 
 1. Originalbytes, Zertifikatbytes und Berichtsoptionen werden vor dem ersten
    Warten kopiert. CMS-Signatur, Empfängerzuordnung und geschützte Header werden
@@ -73,8 +79,9 @@ Alt-/Fremdclient-Nachrichten ohne AUT.
 
 Die FD-Annahmefrist TTL_MSG_AUTH wird beim Empfang nicht erneut angewendet.
 Zertifikatsgültigkeit und aktueller Sperrstatus bleiben erforderlich. Historische
-Vertrauensevidenz fehlt. Die normative Konnektoroperation VerifyCertificate ist
-durch den eigenen lokalen TSL-/OCSP-Pfad nicht vollständig ersetzt. Ebenso offen
+Vertrauensevidenz fehlt. Der ergänzte SOAP-/mTLS-Adapter führt VerifyCertificate
+gegen einen provisionierten Endpunkt aus; reale Interoperabilität ist noch nicht
+nachgewiesen. Der eigene TSL-/OCSP-Pfad allein ersetzt diese Operation nicht. Offen
 bleiben authentisierte TI-Ankerbereitstellung, SMC-B, reale VZD-/Konnektor-
 Anbindung, weitere Kryptografie-/MIME-Profile, vollständige normative Fehler-
 und Zustellbehandlung sowie unabhängige Interoperabilitäts- und Zulassungsprüfung.

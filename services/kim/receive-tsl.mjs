@@ -5,6 +5,7 @@ import { TslOcspStatusClient } from './tsl-ocsp.mjs';
 import { TslError } from './tsl.mjs';
 import { checkVzdConfiguration } from './vzd-bindings.mjs';
 import { receiveEccKimMessageWithDirectory } from './receive-vzd.mjs';
+import { KonnektorCertificateClient } from './connector-certificates.mjs';
 
 const fail = code => { throw new TslError(code); };
 const copy = value => value instanceof Uint8Array ? Buffer.from(value) : value;
@@ -16,9 +17,11 @@ const errorCode = e => e instanceof TslError && /^KIM_(?:TSL|OCSP)_[A-Z_]{1,48}$
  * directory, both explicitly pinned certificates remain mandatory. Still no
  * TI identity, normal delivery, SMTP transmission or billing-state transition.
  */
-export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, signal } = {}) {
+export async function receiveEccKimMessageWithTsl(options, reportOptions, { statusClient, directory, connector, signal } = {}) {
   if (!(statusClient instanceof TslOcspStatusClient) || (signal !== undefined && !(signal instanceof AbortSignal))) fail('KIM_TSL_STATUS_CONFIGURATION');
   if (directory !== undefined) checkVzdConfiguration(directory, statusClient);
+  if (connector !== undefined && (!(connector instanceof KonnektorCertificateClient) || directory === undefined
+    || connector.environment !== statusClient.environment)) fail('KIM_TSL_STATUS_CONFIGURATION');
   if (signal?.aborted) fail('KIM_TSL_ABORTED');
   if (!(options?.bytes instanceof Uint8Array) || !options.bytes.length || options.bytes.length > MAX_KIM_MESSAGE) fail('KIM_TSL_MESSAGE_SIZE');
   const captured = { ...options, bytes: Buffer.from(options.bytes), now: options.now ?? Date.now(),
@@ -34,7 +37,7 @@ export async function receiveEccKimMessageWithTsl(options, reportOptions, { stat
     const isKim = context.outer?.headers.some(h => h.name === 'x-kom-le-version');
     context.original.fill(0); context.verificationReport?.fill(0);
     if (!isKim) return receiveEccKimMessage(captured, report);
-    if (directory !== undefined) return await receiveEccKimMessageWithDirectory(captured, report, { statusClient, directory, signal });
+    if (directory !== undefined) return await receiveEccKimMessageWithDirectory(captured, report, { statusClient, directory, connector, signal });
     try { opened = openEccKimMessage(captured); }
     catch { return receiveEccKimMessage(captured, report); }
     finally { opened?.message?.fill(0); } // No decrypted message stays live across network waits.

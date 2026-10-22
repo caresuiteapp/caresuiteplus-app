@@ -8,10 +8,62 @@ Stand: 22.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**619/619 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
+**684/684 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf
 mit der vorhandenen Node-24-Laufzeit: 0 Fehler, 0 übersprungene Fälle,
-rund 39,0 Sekunden.
+rund 62,1 Sekunden.
 Es wurde kein zusätzliches Testframework installiert.
+
+## Konnektor-CertificateService am 22.10.2026
+
+**65 neue Fälle** erweitern die bisherigen 619 Prüfungen: 55 SOAP-/XML-/mTLS-
+und Clientfälle sowie zehn Empfangsintegrationen. Der gezielte gemeinsame
+65-Fälle-Lauf bestand in rund 19,2 Sekunden; der oben genannte Abschlusslauf
+prüft alle 684 Fälle gemeinsam.
+
+Die lokale Gegenstelle verlangt ein tatsächliches Clientzertifikat und prüft
+die empfangenen SOAPAction-, Kontext- und DER-Bytes. Offizielle festgeschriebene
+Schemata prüfen beide Operationen, nicht nur die erzeugenden Hilfsfunktionen.
+ReadCardCertificate wird mit allen drei Standardreferenzen und explizitem ECC
+ausgeführt; fehlende/fremde/doppelte Referenzen, falsche Schlüsselart und
+ungültiges DER scheitern. Ausdrücklich gewähltes RSA-Lesen ist getrennt geprüft.
+Anzeigenamen im Antwort-XML werden nicht als Zertifikatsidentität verwendet.
+
+HTTP 200 mit INVALID/INCONCLUSIVE, fehlende Rollen und widersprüchliche
+Ausführungs-/Zertifikatsstatus bestehen keine Belegprüfung. SOAP Faults bei
+HTTP 200/500 geben ausschließlich begrenzte numerische Codes aus. Fremde
+Operationen/Namensräume, SOAP 1.2, doppelte Bodies/Ergebnisse, verschachtelte
+Nutzlasten, Zusatzfelder, nichtleere Header, Encoding, DTD/Entitäten,
+Verarbeitungsanweisungen, UTF-16 und überschrittene Rollenlimits werden
+abgewiesen. Namespace-Aliase, zulässiger Leerraum und ein leerer Header bestehen.
+Redirects, HTTP-Fehler, falsche Medien-/Kompressionsformate, Übergröße und
+abgebrochene Antworten scheitern. Falsche CA, Hostname, Serverpin oder
+Clientschlüssel erzeugen keine SOAP-Anwendungsdaten am Server.
+
+Die Tests binden Belege an tatsächliche Zertifikatbytes und Clientkontexte,
+verwerfen Kopien und erfundene Ergebnisse und prüfen Uhr-Rücksprung, Ablauf,
+Abbruch, Timeout und Schließen. Die achte parallele Anfrage wird verarbeitet,
+die neunte vor weiterer SOAP-Arbeit abgewiesen; Schließen beendet alle acht
+wartenden Vorgänge. Der gemeinsame Kartenablauf prüft frühere Belege nach der
+letzten asynchronen Antwort erneut. Mutierte Eingabepuffer/Rollen/Kontexte
+verändern keine laufende Anfrage; mutierte Ausgabepuffer bestehen keine
+nachträgliche Belegprüfung.
+
+Der Empfang verwendet reale signierte CMS-/TSL-/OCSP-Bytes und tatsächliche
+LDAPS-/mTLS-Verbindungen. Der passende OSIG-Zweig benötigt nur einen
+VerifyCertificate-Aufruf; der abweichende Zweig prüft OSIG und das tatsächliche
+AUT-x5c-Leaf. Beide PEM- und DER-Eingaben des bisherigen Empfangs sind dabei
+abgedeckt. Negative, unbestimmte, rollenfremde oder fehlerhafte Konnektorantworten
+erlauben trotz guten lokalen OCSP keinen Ausweichpfad und vor positivem OSIG
+keine LDAP-Abfrage. Schließen während LDAP entwertet den früheren Konnektor-
+Erfolg. Falsche Umgebung, fehlendes Verzeichnis und ein erfundener Client
+scheitern vor dem Netzaufruf.
+
+Alle erfolgreichen lokalen Empfangszweige bleiben Diagnose 07 mit
+`identityStatus: unverified` und `deliveryStatus: diagnostic-only`.
+Keine Installation, echte TI-/Konnektor-/Kartenabfrage oder Änderung an
+Produktionsdaten, UI oder Android. Reale TI-/SMC-B-Interoperabilität,
+Karten-Schlüsseloperationen und unabhängige Prüfung/Zulassung bleiben offen.
+[Vertrag, Verwendung, Quellen und genaue Profilgrenzen](konnektor-certificates.md).
 
 ## Bedingte AUT-Prüfung beim Empfang am 22.10.2026
 

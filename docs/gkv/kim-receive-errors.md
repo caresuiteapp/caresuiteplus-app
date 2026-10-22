@@ -137,6 +137,13 @@ nicht nochmals den Entschlüsselungsweg startet.
 
 ## Nachweise
 
+Der ergänzte [Konnektor-Zertifikatsclient](konnektor-certificates.md) bindet
+VerifyCertificate-Befunde an tatsächliche SOAP-/mTLS-Anfragen. Er stellt keinen
+Signatur-VerificationReport bereit. Negative/fehlende Zertifikatsbefunde werden
+im konfigurierten Empfang als lokale `XCS_CERT_STATUS`-Diagnose behandelt;
+fremde SOAP-Fehlertexte werden nicht übernommen. Die vollständige normative
+Konnektorfehlermatrix und normale Clientzustellung bleiben offen.
+
 19 neue Fälle in `kim-receive-error.test.mjs` prüfen tatsächliche ECC-Nachrichten,
 GCM- und Signaturmanipulationen, Standard-/Herstellercodes, Headermehrdeutigkeit,
 fehlende Schlüssel, explizite Anhangsfreigabe, Originalhashbindung, Replay ohne
