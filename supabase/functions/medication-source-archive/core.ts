@@ -32,18 +32,20 @@ export async function archiveMedicationSource(sourceId:string,requestId:string,g
   const path=`tenant/${prepared.tenantId}/clients/${prepared.clientId}/medication-sources/${sourceId}/${prepared.sha256}.bin`;
   if(prepared.archiveId){
     await assertBytes(await gateway.downloadArchive(path),prepared);
-    const latest={...await gateway.prepare(sourceId)};validate(latest,sourceId);assertSamePreparation(prepared,latest);
-    if(latest.archiveId!==prepared.archiveId)throw Error('Archivzuordnung wurde während der Prüfung geändert.');
-    return {id:prepared.archiveId,reused:true};
+  }else{
+    const blob=await gateway.downloadOriginal(prepared.originalPath);await assertBytes(blob,prepared);
+    // Lost upload responses are resolved by byte readback, never overwrite or deletion.
+    try{await gateway.storeArchive(path,blob);}catch{/* Exact readback below is mandatory. */}
+    await assertBytes(await gateway.downloadArchive(path),prepared);
   }
-  const blob=await gateway.downloadOriginal(prepared.originalPath);await assertBytes(blob,prepared);
-  // A lost upload acknowledgment or a concurrent identical copy is resolved by reading back bytes.
-  try{await gateway.storeArchive(path,blob);}catch{/* Never overwrite or delete; readback must prove the exact object. */}
-  const stored=await gateway.downloadArchive(path);await assertBytes(stored,prepared);
   const latest={...await gateway.prepare(sourceId)};validate(latest,sourceId);
   assertSamePreparation(prepared,latest);
-  if(latest.archiveId)return {id:latest.archiveId,reused:true};
+  if(prepared.archiveId&&latest.archiveId!==prepared.archiveId)throw Error('Archivzuordnung wurde während der Prüfung geändert.');
+  // Every verified read, including ready reuse, passes the worker-only atomic receipt commit.
   const id=await gateway.registerArchive({...prepared,requestId,archivePath:path});
-  if(!uuid(id))throw Error('Archivbestätigung fehlt. Dieselbe Anfrage erneut prüfen.');
-  return {id,reused:false};
+  if(!uuid(id)||latest.archiveId&&id!==latest.archiveId)throw Error('Archivbestätigung fehlt oder widerspricht der Zuordnung. Dieselbe Anfrage erneut prüfen.');
+  const confirmed={...await gateway.prepare(sourceId)};validate(confirmed,sourceId);
+  assertSamePreparation(prepared,confirmed);
+  if(confirmed.archiveId!==id)throw Error('Gespeicherter Archivabschluss nicht bestätigt. Dieselbe Anfrage erneut prüfen.');
+  return {id,reused:latest.archiveId!==null};
 }
