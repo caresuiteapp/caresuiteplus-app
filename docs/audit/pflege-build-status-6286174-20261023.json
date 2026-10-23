@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-10-23",
+  "revision": "628617478d32b297260b7606d2e2358f2c020851",
+  "statuses": [
+    {
+      "context": "Vercel – caresuiteplus-app",
+      "state": "pending",
+      "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplus-app/4kvo51bTtA1ZETSCNqJWQvD71xgh"
+    },
+    {
+      "context": "netlify/caresuiteplus-app/deploy-preview",
+      "state": "success",
+      "target_url": "https://app.netlify.com/projects/caresuiteplus-app/deploys/6adab22c4044efc65ed6e182"
+    },
+    {
+      "context": "Vercel – repository",
+      "state": "failure",
+      "target_url": "https://vercel.com/caresuiteapps-projects/repository/3MH1WTy1Xyvi1ASxJoLqanyfgBgL"
+    },
+    {
+      "context": "Vercel – caresuiteplusapp",
+      "state": "failure",
+      "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplusapp/5EYxHtRAGUx4yfNRCeL8BQ8aLvWb"
+    },
+    {
+      "context": "Vercel – caresuiteplus",
+      "state": "failure",
+      "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplus/GGjHBwvg21wi1XqFkQ9RkaBEpRWV"
+    }
+  ],
+  "interpretation": "Vercel build/deployment success is unconfirmed; caresuiteplus-app pending at this observation, three other Vercel projects failed. Netlify success label is a canceled preview. Build-log reads for this team return 403; no team authorization tool is available. No promotion or activation."
+}
