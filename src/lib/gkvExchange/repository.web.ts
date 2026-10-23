@@ -11,6 +11,7 @@ import { readKimHostStatus, type KimHostStatus } from './kimHostContract';
 import { postKimHostCommand } from './kimHostClient';
 import type { KimHostCommand } from './kimReceiveContract';
 export type { RevisionSummary, SavedRevision } from './history';
+import { executeMonthlyProofCommand, readMonthlyProof, type MonthlyProof, type MonthlyProofCommand, type MonthlyProofRpc } from './monthlyProof';
 
 export type Batch = {id:string;tenant_id:string;revision:number;draft:ExchangeDraft;status:BatchStatus;updated_at:string;origin_batch_id?:string|null;origin_revision?:number|null};
 export type Event = {id:string;event_type:string;created_at:string;details:Record<string,unknown>};
@@ -127,4 +128,23 @@ export async function requestTestExport(tenantId:string,role:RoleKey,batch:Batch
 }
 export function downloadBytes(name:string,bytes:Uint8Array) {
   const blob=new Blob([new Uint8Array(bytes).buffer],{type:'application/octet-stream'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/** Server-owned monthly source/version workflow. Requires the reviewed database
+ * extension and explicit PDL delegation; does not activate signing or dispatch. */
+export async function commandMonthlyProof(tenantId: string, role: RoleKey, input: MonthlyProofCommand, requestId: string): Promise<MonthlyProof> {
+  const client = connection(tenantId, role, true);
+  return executeMonthlyProofCommand(client.rpc.bind(client) as unknown as MonthlyProofRpc, tenantId, input, requestId);
+}
+export async function readMonthlyProofHistory(tenantId: string, role: RoleKey, seriesId: string, beforeVersion?: number) {
+  if (!UUID.test(seriesId) || (beforeVersion !== undefined && (!Number.isSafeInteger(beforeVersion) || beforeVersion < 1))) throw new Error('Ungültige Monatsnachweisabfrage.');
+  const client = connection(tenantId, role);
+  let query = fromUnknownTable(client, 'gkv_monthly_proofs').select('*').eq('tenant_id', tenantId).eq('series_id', seriesId)
+    .order('version', {ascending: false}).limit(21);
+  if (beforeVersion !== undefined) query = query.lt('version', beforeVersion);
+  const {data, error} = await query;
+  if (error) failure(error);
+  const rows = (data || []).map(row => readMonthlyProof(row, tenantId));
+  if (rows.some(row => row.series_id !== seriesId || (beforeVersion !== undefined && row.version >= beforeVersion))) throw new Error('Die Monatsnachweishistorie passt nicht zur angefragten Fassung.');
+  return {rows: rows.slice(0, 20), hasMore: rows.length > 20};
 }

@@ -2,6 +2,26 @@
 
 Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Monatsnachweis-Speichervertrag am 23.10.2026
+
+Der [neue Speichervertrag](monthly-proofs.md) wurde mit 19 PostgreSQL-
+Testmeldungen (18 Unterfälle plus Hauptfall) und acht Vertrags-/RPC-Tests
+geprüft. Der SQL-Entwurf läuft im bereits vorhandenen PGlite. Geprüft sind
+Mandantengrenzen, zusätzliche PDL-Beauftragung, RLS, direkte Schreibsperren,
+kanonische Quellbindung, doppelte Quellenzuordnung, Versionskonflikte,
+Auftragswiederholung, Originalbindung und die atomare Korrekturkette.
+Die Web-Vertragsfunktion wurde auch gegen die SQL-Funktionen ausgeführt.
+Die vollständige TypeScript-Prüfung bestand mit den bereits vorhandenen
+Projektabhängigkeiten. 29 Quellen-, Prüfexport- und Katalogregressionen bestanden ebenfalls;
+der gesamte kryptografische Dienstlauf wurde für diesen separaten
+Speicherbaustein nicht erneut ausgeführt.
+
+Office-Quellprüfung und Sitzungsauflösung sind ausdrücklich Vertragsdoubles;
+Originaldatei-Prüfbelege stammen vom Fixture-Administrator. Kein echter
+Unterschrifts-/Storage-Nachweis, keine Mehrverbindungs-Rennen, keine ausgeführten
+ITSG-Fälle und keine Datenbankaktivierung. Der Stand enthält keine neue UI;
+die Monatsansicht samt visueller Abnahme bleibt offen.
+
 ## Prüfmatrix am 23.10.2026
 
 Die [Arbeitsgrundlage für vier Prüfbereiche](approval/README.md) enthält

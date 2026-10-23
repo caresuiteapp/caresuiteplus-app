@@ -87,12 +87,17 @@
       "verification": "open",
       "code": [
         "src/features/assistWorkflow/signatureMatchesVisitContent.ts",
-        "src/features/assistWorkflow/readFinalWorkflowProofConfirmation.ts"
+        "src/features/assistWorkflow/readFinalWorkflowProofConfirmation.ts",
+        "docs/gkv/sql/monthly-proofs-draft.sql",
+        "src/lib/gkvExchange/monthlyProof.ts",
+        "src/lib/gkvExchange/repository.web.ts"
       ],
       "tests": [
-        "tests/gkv-exchange/sources.test.mjs"
+        "tests/gkv-exchange/sources.test.mjs",
+        "tests/gkv-exchange/monthly-proof-contract.test.mjs",
+        "tests/gkv-exchange/monthly-proofs.database.mjs"
       ],
-      "nextStep": "Bestehende Einsatzbindung gegen Monatsnachweise je Leistungsart abgleichen; Beschäftigtennummer und Mehrpersonenleistung bis ins finale XML verfolgen.",
+      "nextStep": "Serverseitige Monatsquellen und eindeutige Quellenzuordnung sind lokal geprüft. Als Nächstes gemischte Leistungsarten je Einsatz aufteilen, Mehrpersonenleistung und Beschäftigtennummer bis ins XML verfolgen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"
@@ -114,12 +119,17 @@
       "verification": "open",
       "code": [
         "src/features/assistWorkflow/finalizeVisitWithDeferredClientSignature.ts",
-        "src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts"
+        "src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts",
+        "docs/gkv/sql/monthly-proofs-draft.sql",
+        "src/lib/gkvExchange/monthlyProof.ts",
+        "src/lib/gkvExchange/repository.web.ts"
       ],
       "tests": [
-        "tests/gkv-exchange/sources.test.mjs"
+        "tests/gkv-exchange/sources.test.mjs",
+        "tests/gkv-exchange/monthly-proof-contract.test.mjs",
+        "tests/gkv-exchange/monthly-proofs.database.mjs"
       ],
-      "nextStep": "Monat, Leistungsart, Originalansicht und genau zugehörige Bestätigung dauerhaft verbinden; vorhandene Einsatzunterschrift nicht pauschal als Monatsbestätigung übernehmen.",
+      "nextStep": "Speichervertrag für gebundene Bestätigung ist lokal geprüft; privater Originalbyte-Verifizierer, Unterschrifts-/Druck-/Scan-Oberfläche und Vertreterprüfung fehlen noch. Vor Aktivierung Zielrechte und Migration prüfen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"
@@ -141,12 +151,17 @@
       "verification": "open",
       "code": [
         "src/features/assistWorkflow/signatureMatchesVisitContent.ts",
-        "src/lib/gkvExchange/sources.ts"
+        "src/lib/gkvExchange/sources.ts",
+        "docs/gkv/sql/monthly-proofs-draft.sql",
+        "src/lib/gkvExchange/monthlyProof.ts",
+        "src/lib/gkvExchange/repository.web.ts"
       ],
       "tests": [
-        "tests/gkv-exchange/sources.test.mjs"
+        "tests/gkv-exchange/sources.test.mjs",
+        "tests/gkv-exchange/monthly-proof-contract.test.mjs",
+        "tests/gkv-exchange/monthly-proofs.database.mjs"
       ],
-      "nextStep": "Fachliche Nachweiskorrektur mit neuer Bestätigung und archivierter Vorgängerversion durchgängig verbinden.",
+      "nextStep": "Atomare Entwertung, neue offene Version und archivierter Vorgänger sind lokal geprüft. Als Nächstes Vergleich/Korrektur in die Oberfläche und aktuelle Fassung in die XML-/Abrechnungsübergabe einbinden.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
       "dependsOn": [
         "proof-confirmation"
