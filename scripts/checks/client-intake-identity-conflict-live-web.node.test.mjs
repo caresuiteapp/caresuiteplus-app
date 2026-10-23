@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes as strip } from 'node:module';
+import { currentIntakeValidation } from './helpers/current-intake-validation.mjs';
+import { isUuid } from '../../src/lib/validation/uuid.ts';
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -129,64 +131,47 @@ function submitClientIntake(deps) {
   return new Function(...Object.keys(deps), `${body}; return submitClientIntake;`)(...Object.values(deps));
 }
 
-function serviceHarness(identityResult) {
-  const calls = [];
-  const ok = (name, data = undefined) => (...args) => { calls.push([name, ...args]); return Promise.resolve({ ok: true, data }); };
-  const submit = submitClientIntake({
-    enforcePermission: () => null,
-    runService: (operation) => operation(),
-    isDemoClientBackend: () => false,
-    findExactClientIdentityConflictFromIntake: ok('identity', identityResult),
-    createClientFromIntake: ok('create', { id: id(40) }),
-    persistClientIntakeDocuments: ok('documents'),
-    persistIntakeCostCarriers: ok('carriers'),
-    syncIntakeClientExtendedData: ok('extended'),
-    mapIntakeModulesToPortal: () => [],
-    saveClientModuleAssignments: ok('modules'),
-    syncClientCoreAfterIntake: ok('core'),
-    activateClientFromIntake: ok('activate', { id: id(40) }),
-    assertDemoTenant: () => null,
-    persistDemoClientIntake: () => { throw new Error('Kein Demo-Pfad'); },
-  });
-  return { calls, submit };
+const moduleBody=path=>strip(read(path).replace(/^import[\s\S]*?;\n/gm,'').replace(/\bexport /g,''));
+const empty=new Function(`${moduleBody('src/types/forms/clientIntakeForm.ts')};return EMPTY_CLIENT_INTAKE_FORM;`)();
+const rules=new Function(`${moduleBody('src/lib/clients/clientIntakeFieldRules.ts')};return {getVisibleSectionsForClientContext};`)();
+const getIntakeSectionsForForm=new Function(...Object.keys(rules),`${moduleBody('src/lib/clients/clientIntakePlan.ts')};return getIntakeSectionsForForm;`)(...Object.values(rules));
+const completeForm=patch=>({...structuredClone(empty),firstName:'Anna',lastName:'Meyer',dateOfBirth:'1940-02-29',
+ careContexts:['daily_assistance'],intakeWorkflowVersion:2,serviceStart:'2026-10-22',street:'Testweg',houseNumber:'1',zip:'12345',city:'Testort',phone:'0123456',
+ fundingSources:['selbstzahler'],billingTypes:['privat'],supportWishes:['Haushalt'],intakeContractType:'assist',intakeAssignmentEnabled:false,
+ intakeDocuments:[['privacy_consent_default','privacy_consent'],['client_contract_assist','client_contract']].map(([templateKey,documentType])=>({templateKey,documentType,title:templateKey,status:'finalized',missingPlaceholders:[],signatures:{client:{dataUrl:'data:image/png;base64,YWJj'},employee:{dataUrl:'data:image/png;base64,YWJj'},legal_representative:{dataUrl:'data:image/png;base64,YWJj'}}})),...patch});
+const completionReceipt=(patch={})=>({ok:true,data:{contract:'client-intake-completion-v1',clientId:id(40),revision:7,status:'active',confirmed:true,replayed:false,...patch}});
+function serviceHarness(options={}) {
+ const calls=[];
+ const db={from(){throw Error('Server completion must not fall back to client-side creation or activation');},functions:{async invoke(name,args){calls.push({name,args:structuredClone(args)});return options.response??{data:completionReceipt(),error:null};}}};
+ const submit=submitClientIntake({enforcePermission:()=>options.denied??null,runService:operation=>operation(),isDemoClientBackend:()=>false,
+  getIntakeSectionsForForm,validateIntakeStep:currentIntakeValidation.validateIntakeStep,isUuid,getSupabaseClient:()=>options.noSdk?null:db});
+ return{calls,submit:(form=completeForm(),patch={})=>submit(id(1),form,{actorProfileId:id(2),actorRoleKey:'business_admin',draftClientId:id(40),expectedRevision:7,...patch})};
 }
 
-test('active intake blocks before every write when an exact conflict exists', async () => {
-  const h = serviceHarness({ clientId: id(20), match: 'name_birth_date' });
-  const result = await h.submit(id(1), form(), { actorProfileId: id(2), actorRoleKey: 'business_admin' });
-  assert.equal(result.ok, false);
-  assert.match(result.error, /zweite Anlage wurde nicht ausgeführt/);
-  assert.deepEqual(h.calls.map(([name]) => name), ['identity']);
+test('actual active intake uses the single server completion endpoint for the exact already-persisted draft revision',async()=>{
+ const h=serviceHarness();assert.deepEqual(await h.submit(),{ok:true,data:{id:id(40)}});
+ assert.deepEqual(h.calls,[{name:'complete-client-intake',args:{body:{tenantId:id(1),clientId:id(40),expectedRevision:7}}}]);
 });
-
-test('active intake writes only after a conflict-free tenant lookup', async () => {
-  const h = serviceHarness(null);
-  const result = await h.submit(id(1), form(), { actorProfileId: id(2), actorRoleKey: 'business_admin' });
-  assert.deepEqual(result, { ok: true, data: { id: id(40) } });
-  assert.deepEqual(h.calls.map(([name]) => name), ['identity', 'create', 'documents', 'carriers', 'extended', 'core', 'activate']);
+test('current actual validation rejects incomplete intake before the completion transport',async()=>{
+ const h=serviceHarness(),result=await h.submit(completeForm({firstName:'',intakeDocuments:[]}));
+ assert.equal(result.ok,false);assert.equal(result.recoverableClientId,id(40));assert.match(result.error,/Vorname/);assert.match(result.error,/Datenschutz/);assert.equal(h.calls.length,0);
 });
-
-test('active intake propagates lookup denial and never reaches a mutation', async () => {
-  const calls = [];
-  const submit = submitClientIntake({
-    enforcePermission: () => null,
-    runService: (operation) => operation(),
-    isDemoClientBackend: () => false,
-    findExactClientIdentityConflictFromIntake: async () => ({ ok: false, error: 'RLS-Prüfung fehlgeschlagen' }),
-    createClientFromIntake: async () => { calls.push('create'); return { ok: true, data: { id: id(40) } }; },
-    persistClientIntakeDocuments: async () => { calls.push('documents'); return { ok: true, data: undefined }; },
-    persistIntakeCostCarriers: async () => ({ ok: true, data: undefined }),
-    syncIntakeClientExtendedData: async () => ({ ok: true, data: undefined }),
-    mapIntakeModulesToPortal: () => [],
-    saveClientModuleAssignments: async () => ({ ok: true, data: undefined }),
-    syncClientCoreAfterIntake: async () => ({ ok: true, data: undefined }),
-    activateClientFromIntake: async () => ({ ok: true, data: { id: id(40) } }),
-    assertDemoTenant: () => null,
-    persistDemoClientIntake: () => {},
-  });
-  assert.deepEqual(await submit(id(1), form(), { actorRoleKey: 'business_admin' }), {
-    ok: false,
-    error: 'RLS-Prüfung fehlgeschlagen',
-  });
-  assert.deepEqual(calls, []);
+for(const patch of [{draftClientId:undefined},{draftClientId:'invalid'},{expectedRevision:undefined},{expectedRevision:0},{expectedRevision:-1},{expectedRevision:1.5},{expectedRevision:'7'}])
+ test(`missing persisted draft/revision ${JSON.stringify(patch)} never falls back to local creation`,async()=>{const h=serviceHarness(),result=await h.submit(completeForm(),patch);assert.equal(result.ok,false);assert.equal(h.calls.length,0);assert.match(result.error,/zuerst auf dem Server/);});
+for(const replayed of [false,true])test(`exact server completion receipt replayed=${replayed} confirms the same persisted identity`,async()=>{
+ const h=serviceHarness({response:{data:completionReceipt({replayed}),error:null}});assert.deepEqual(await h.submit(),{ok:true,data:{id:id(40)}});assert.equal(h.calls.length,1);
+});
+for(const patch of [{contract:'other'},{clientId:id(41)},{revision:8},{revision:'7'},{status:'draft'},{confirmed:false},{replayed:'true'},{replayed:undefined}])
+ test(`foreign/malformed completion receipt ${JSON.stringify(patch)} retains the same recoverable draft`,async()=>{const h=serviceHarness({response:{data:completionReceipt(patch),error:null}}),result=await h.submit();assert.equal(result.ok,false);assert.equal(result.recoverableClientId,id(40));assert.equal(h.calls.length,1);});
+test('server identity conflict is propagated from atomic completion without another client mutation',async()=>{
+ const h=serviceHarness({response:{data:null,error:{context:{status:409,clone:()=>({json:async()=>({error:'Die Identitätsprüfung hat eine vorhandene Person erkannt.'})})}}}});
+ assert.deepEqual(await h.submit(),{ok:false,error:'Die Identitätsprüfung hat eine vorhandene Person erkannt.',recoverableClientId:id(40),conflict:true});assert.equal(h.calls.length,1);
+});
+test('server denial without readable response retains the draft and never reports successful activation',async()=>{
+ const h=serviceHarness({response:{data:null,error:{context:{status:403,clone:()=>({json:async()=>{throw Error('unreadable');}})}}}}),result=await h.submit();
+ assert.equal(result.ok,false);assert.equal(result.recoverableClientId,id(40));assert.equal(result.conflict,false);assert.match(result.error,/nicht bestätigt/);assert.equal(h.calls.length,1);
+});
+test('missing SDK and denied create permission cannot invoke atomic completion',async()=>{
+ const absent=serviceHarness({noSdk:true});assert.equal((await absent.submit()).ok,false);assert.equal(absent.calls.length,0);
+ const denied=serviceHarness({denied:{ok:false,error:'Create denied'}});assert.deepEqual(await denied.submit(),{ok:false,error:'Create denied'});assert.equal(denied.calls.length,0);
 });

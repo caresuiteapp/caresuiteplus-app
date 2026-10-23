@@ -1,0 +1,2508 @@
+{
+  "packet": {
+    "entry": {
+      "kind": "body_care",
+      "title": "Synthetic explicitly planned partial body care",
+      "consent": {
+        "state": "not_asked",
+        "recordedAt": null,
+        "consultation": "",
+        "statedReason": ""
+      },
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "followUp": {
+        "dueAt": null,
+        "state": "not_required",
+        "reason": "",
+        "taskId": null,
+        "required": false,
+        "closureEvidence": "",
+        "responsibleProfileId": null
+      },
+      "execution": {
+        "result": "",
+        "outcome": "planned",
+        "bodyScope": "partial",
+        "deviation": "",
+        "performedBy": [],
+        "interventions": []
+      },
+      "lifecycle": "open",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "assistance": {
+        "aids": [],
+        "level": "prompting",
+        "helpers": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "technique": "Synthetic expressly planned verbal assistance",
+        "secondPersonRequired": false
+      },
+      "occurredAt": null,
+      "prevention": {
+        "risk": "",
+        "reviewAt": null,
+        "incidentId": null,
+        "fallOccurred": false,
+        "reassessmentId": null,
+        "individualMeasure": "",
+        "professionalBasis": ""
+      },
+      "observation": {
+        "oral": "",
+        "skin": "",
+        "baseline": "Synthetic explicit individual planning situation",
+        "mobility": "",
+        "tolerance": "",
+        "skinChange": false,
+        "oralAbnormality": false
+      },
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+    },
+    "action": "create",
+    "reason": "",
+    "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "original": null,
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "requestId": "bf786295-149c-4250-b2d0-c835bfa2e2b3",
+    "fallOriginals": null,
+    "schemaVersion": "1",
+    "expectedHeadId": null,
+    "expectedRevision": 0,
+    "pressureOriginals": null
+  },
+  "receipt": {
+    "packet": {
+      "entry": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "not_asked",
+          "recordedAt": null,
+          "consultation": "",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "",
+          "outcome": "planned",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [],
+          "interventions": []
+        },
+        "lifecycle": "open",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": null,
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "action": "create",
+      "reason": "",
+      "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "original": null,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "requestId": "bf786295-149c-4250-b2d0-c835bfa2e2b3",
+      "fallOriginals": null,
+      "schemaVersion": "1",
+      "expectedHeadId": null,
+      "expectedRevision": 0,
+      "pressureOriginals": null
+    },
+    "original": {
+      "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "kind": "body_care",
+      "headId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "voided": false,
+      "history": [
+        {
+          "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.055729Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "not_asked",
+          "recordedAt": null,
+          "consultation": "",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "",
+          "outcome": "planned",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [],
+          "interventions": []
+        },
+        "lifecycle": "open",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": null,
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 1,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.055729Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+    },
+    "requestId": "bf786295-149c-4250-b2d0-c835bfa2e2b3"
+  },
+  "expected": {
+    "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+    "authorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+    "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+    "issueRequestId": "6a60d315-9a42-4f2e-a11a-a9bdc547121c",
+    "otherRequestId": "0ba7aa7d-ba6a-4b17-8ebe-a4a00cbf31f4",
+    "createRequestId": "bf786295-149c-4250-b2d0-c835bfa2e2b3",
+    "revisionRequestId": "be9e9201-bc96-4531-9be4-811e4b30ef20",
+    "correctionRequestId": "5bc9c2aa-88be-4a65-9c4e-2c1cf123fd05"
+  },
+  "issuePacket": {
+    "reason": "Synthetic explicit planned selection without an actual care claim",
+    "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "sources": {
+      "plan": {
+        "id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+        "title": "Synthetic native individual planning unit",
+        "status": "aktiv",
+        "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+        "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "created_at": "2026-10-22T22:00:59.955638+00:00",
+        "updated_at": "2026-10-22T22:00:59.955638+00:00",
+        "valid_from": "2026-10-21",
+        "valid_until": "2026-10-29"
+      },
+      "tour": {
+        "id": "ee33c351-ab7b-4659-b47c-8a749d0fe9c9",
+        "name": "Synthetic published receipt-unit tour",
+        "notes": "",
+        "status": "published",
+        "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "tour_date": "2026-10-22",
+        "created_at": "2026-10-22T22:00:59.986063+00:00",
+        "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "updated_at": "2026-10-22T22:00:59.986063+00:00",
+        "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "employee_id": null,
+        "employee_name_snapshot": "",
+        "vehicle_label_snapshot": "",
+        "vehicle_inventory_item_id": null
+      },
+      "visit": {
+        "id": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "notes": "",
+        "status": "planned",
+        "tour_id": "ee33c351-ab7b-4659-b47c-8a749d0fe9c9",
+        "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+        "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "created_at": "2026-10-22T22:00:59.986393+00:00",
+        "updated_at": "2026-10-22T22:00:59.986393+00:00",
+        "planned_end": "08:45:30.123456",
+        "sequence_no": 1,
+        "planned_start": "08:15:30.123456",
+        "service_summary": "",
+        "address_snapshot": "",
+        "client_name_snapshot": "Synthetic client"
+      },
+      "measure": {
+        "id": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "goal": null,
+        "notes": null,
+        "title": "Synthetic explicitly planned partial body care",
+        "status": "active",
+        "timing": null,
+        "category": "body_care",
+        "frequency": null,
+        "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "created_at": "2026-10-22T22:00:59.955638+00:00",
+        "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "sort_order": 1,
+        "updated_at": "2026-10-22T22:00:59.955638+00:00",
+        "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "description": null,
+        "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+        "intervention": "Synthetic individual planned assistance",
+        "warning_signs": null,
+        "escalation_path": null,
+        "responsible_role": null,
+        "evaluation_criteria": null,
+        "person_contribution": null,
+        "next_evaluation_date": null,
+        "relatives_contribution": null,
+        "evaluation_interval_days": null
+      },
+      "planVersion": {
+        "id": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "reason": "Synthetic full native snapshot authored explicitly",
+        "version": 1,
+        "actor_id": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "snapshot": {
+          "plan": {
+            "id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+            "title": "Synthetic native individual planning unit",
+            "status": "aktiv",
+            "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+            "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+            "created_at": "2026-10-22T22:00:59.955638+00:00",
+            "updated_at": "2026-10-22T22:00:59.955638+00:00",
+            "valid_from": "2026-10-21",
+            "valid_until": "2026-10-29"
+          },
+          "items": [
+            {
+              "id": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+              "goal": null,
+              "notes": null,
+              "title": "Synthetic explicitly planned partial body care",
+              "status": "active",
+              "timing": null,
+              "category": "body_care",
+              "frequency": null,
+              "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+              "created_at": "2026-10-22T22:00:59.955638+00:00",
+              "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+              "sort_order": 1,
+              "updated_at": "2026-10-22T22:00:59.955638+00:00",
+              "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+              "description": null,
+              "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+              "intervention": "Synthetic individual planned assistance",
+              "warning_signs": null,
+              "escalation_path": null,
+              "responsible_role": null,
+              "evaluation_criteria": null,
+              "person_contribution": null,
+              "next_evaluation_date": null,
+              "relatives_contribution": null,
+              "evaluation_interval_days": null
+            }
+          ]
+        },
+        "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "actor_name": "Synthetic unit author",
+        "created_at": "2026-10-22T22:00:59.955638+00:00",
+        "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9"
+      }
+    },
+    "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "timeZone": "Europe/Berlin",
+    "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+    "plannedAt": "2026-10-22T06:15:30.123456Z",
+    "requestId": "6a60d315-9a42-4f2e-a11a-a9bdc547121c",
+    "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+    "schemaVersion": "1",
+    "secondPersonRequired": false
+  },
+  "otherPacket": {
+    "entry": {
+      "kind": "body_care",
+      "title": "Synthetic explicitly planned partial body care",
+      "consent": {
+        "state": "not_asked",
+        "recordedAt": null,
+        "consultation": "",
+        "statedReason": ""
+      },
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "followUp": {
+        "dueAt": null,
+        "state": "not_required",
+        "reason": "",
+        "taskId": null,
+        "required": false,
+        "closureEvidence": "",
+        "responsibleProfileId": null
+      },
+      "execution": {
+        "result": "",
+        "outcome": "planned",
+        "bodyScope": "partial",
+        "deviation": "",
+        "performedBy": [],
+        "interventions": []
+      },
+      "lifecycle": "open",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "assistance": {
+        "aids": [],
+        "level": "prompting",
+        "helpers": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "technique": "Synthetic expressly planned verbal assistance",
+        "secondPersonRequired": false
+      },
+      "occurredAt": null,
+      "prevention": {
+        "risk": "",
+        "reviewAt": null,
+        "incidentId": null,
+        "fallOccurred": false,
+        "reassessmentId": null,
+        "individualMeasure": "",
+        "professionalBasis": ""
+      },
+      "observation": {
+        "oral": "",
+        "skin": "",
+        "baseline": "Synthetic explicit individual planning situation",
+        "mobility": "",
+        "tolerance": "",
+        "skinChange": false,
+        "oralAbnormality": false
+      },
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+    },
+    "action": "create",
+    "reason": "",
+    "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "original": null,
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "requestId": "0ba7aa7d-ba6a-4b17-8ebe-a4a00cbf31f4",
+    "fallOriginals": null,
+    "schemaVersion": "1",
+    "expectedHeadId": null,
+    "expectedRevision": 0,
+    "pressureOriginals": null
+  },
+  "issueReceipt": {
+    "plan": {
+      "kind": "body_care",
+      "title": "Synthetic explicitly planned partial body care",
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "fallOriginals": null,
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "pressureOriginals": null,
+      "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c",
+      "secondPersonRequired": false
+    },
+    "packet": {
+      "reason": "Synthetic explicit planned selection without an actual care claim",
+      "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "sources": {
+        "plan": {
+          "id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+          "title": "Synthetic native individual planning unit",
+          "status": "aktiv",
+          "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+          "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+          "created_at": "2026-10-22T22:00:59.955638+00:00",
+          "updated_at": "2026-10-22T22:00:59.955638+00:00",
+          "valid_from": "2026-10-21",
+          "valid_until": "2026-10-29"
+        },
+        "tour": {
+          "id": "ee33c351-ab7b-4659-b47c-8a749d0fe9c9",
+          "name": "Synthetic published receipt-unit tour",
+          "notes": "",
+          "status": "published",
+          "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+          "tour_date": "2026-10-22",
+          "created_at": "2026-10-22T22:00:59.986063+00:00",
+          "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "updated_at": "2026-10-22T22:00:59.986063+00:00",
+          "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "employee_id": null,
+          "employee_name_snapshot": "",
+          "vehicle_label_snapshot": "",
+          "vehicle_inventory_item_id": null
+        },
+        "visit": {
+          "id": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+          "notes": "",
+          "status": "planned",
+          "tour_id": "ee33c351-ab7b-4659-b47c-8a749d0fe9c9",
+          "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+          "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+          "created_at": "2026-10-22T22:00:59.986393+00:00",
+          "updated_at": "2026-10-22T22:00:59.986393+00:00",
+          "planned_end": "08:45:30.123456",
+          "sequence_no": 1,
+          "planned_start": "08:15:30.123456",
+          "service_summary": "",
+          "address_snapshot": "",
+          "client_name_snapshot": "Synthetic client"
+        },
+        "measure": {
+          "id": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+          "goal": null,
+          "notes": null,
+          "title": "Synthetic explicitly planned partial body care",
+          "status": "active",
+          "timing": null,
+          "category": "body_care",
+          "frequency": null,
+          "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+          "created_at": "2026-10-22T22:00:59.955638+00:00",
+          "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "sort_order": 1,
+          "updated_at": "2026-10-22T22:00:59.955638+00:00",
+          "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "description": null,
+          "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+          "intervention": "Synthetic individual planned assistance",
+          "warning_signs": null,
+          "escalation_path": null,
+          "responsible_role": null,
+          "evaluation_criteria": null,
+          "person_contribution": null,
+          "next_evaluation_date": null,
+          "relatives_contribution": null,
+          "evaluation_interval_days": null
+        },
+        "planVersion": {
+          "id": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+          "reason": "Synthetic full native snapshot authored explicitly",
+          "version": 1,
+          "actor_id": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "snapshot": {
+            "plan": {
+              "id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+              "title": "Synthetic native individual planning unit",
+              "status": "aktiv",
+              "client_id": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+              "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+              "created_at": "2026-10-22T22:00:59.955638+00:00",
+              "updated_at": "2026-10-22T22:00:59.955638+00:00",
+              "valid_from": "2026-10-21",
+              "valid_until": "2026-10-29"
+            },
+            "items": [
+              {
+                "id": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+                "goal": null,
+                "notes": null,
+                "title": "Synthetic explicitly planned partial body care",
+                "status": "active",
+                "timing": null,
+                "category": "body_care",
+                "frequency": null,
+                "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+                "created_at": "2026-10-22T22:00:59.955638+00:00",
+                "created_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+                "sort_order": 1,
+                "updated_at": "2026-10-22T22:00:59.955638+00:00",
+                "updated_by": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+                "description": null,
+                "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9",
+                "intervention": "Synthetic individual planned assistance",
+                "warning_signs": null,
+                "escalation_path": null,
+                "responsible_role": null,
+                "evaluation_criteria": null,
+                "person_contribution": null,
+                "next_evaluation_date": null,
+                "relatives_contribution": null,
+                "evaluation_interval_days": null
+              }
+            ]
+          },
+          "tenant_id": "41ea6d37-2204-437b-8ed7-f115826774f1",
+          "actor_name": "Synthetic unit author",
+          "created_at": "2026-10-22T22:00:59.955638+00:00",
+          "care_plan_id": "f552ee9e-d1db-45b4-9f84-bfd8e2f62eb9"
+        }
+      },
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "timeZone": "Europe/Berlin",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "requestId": "6a60d315-9a42-4f2e-a11a-a9bdc547121c",
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "schemaVersion": "1",
+      "secondPersonRequired": false
+    },
+    "bindingId": "5c5be452-8d18-48d3-9401-4937d620567d",
+    "requestId": "6a60d315-9a42-4f2e-a11a-a9bdc547121c"
+  },
+  "otherReceipt": {
+    "packet": {
+      "entry": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "not_asked",
+          "recordedAt": null,
+          "consultation": "",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "",
+          "outcome": "planned",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [],
+          "interventions": []
+        },
+        "lifecycle": "open",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": null,
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "action": "create",
+      "reason": "",
+      "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "original": null,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "requestId": "0ba7aa7d-ba6a-4b17-8ebe-a4a00cbf31f4",
+      "fallOriginals": null,
+      "schemaVersion": "1",
+      "expectedHeadId": null,
+      "expectedRevision": 0,
+      "pressureOriginals": null
+    },
+    "original": {
+      "id": "2502779b-b769-4c1a-b8fd-8d44ca39cf8c",
+      "kind": "body_care",
+      "headId": "2502779b-b769-4c1a-b8fd-8d44ca39cf8c",
+      "rootId": "2502779b-b769-4c1a-b8fd-8d44ca39cf8c",
+      "voided": false,
+      "history": [
+        {
+          "id": "2502779b-b769-4c1a-b8fd-8d44ca39cf8c",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.213221Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "not_asked",
+          "recordedAt": null,
+          "consultation": "",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "",
+          "outcome": "planned",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [],
+          "interventions": []
+        },
+        "lifecycle": "open",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": null,
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 1,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.213221Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+    },
+    "requestId": "0ba7aa7d-ba6a-4b17-8ebe-a4a00cbf31f4"
+  },
+  "revisionPacket": {
+    "entry": {
+      "kind": "body_care",
+      "title": "Synthetic explicitly planned partial body care",
+      "consent": {
+        "state": "consented",
+        "recordedAt": "2026-10-22T06:16:29.123456Z",
+        "consultation": "Synthetic explicitly recorded consent",
+        "statedReason": ""
+      },
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "followUp": {
+        "dueAt": null,
+        "state": "not_required",
+        "reason": "",
+        "taskId": null,
+        "required": false,
+        "closureEvidence": "",
+        "responsibleProfileId": null
+      },
+      "execution": {
+        "result": "Synthetic individual actual result",
+        "outcome": "performed",
+        "bodyScope": "partial",
+        "deviation": "",
+        "performedBy": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "interventions": [
+          "Synthetic partial body care"
+        ]
+      },
+      "lifecycle": "completed",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "assistance": {
+        "aids": [],
+        "level": "prompting",
+        "helpers": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "technique": "Synthetic expressly planned verbal assistance",
+        "secondPersonRequired": false
+      },
+      "occurredAt": "2026-10-22T06:16:30.234567Z",
+      "prevention": {
+        "risk": "",
+        "reviewAt": null,
+        "incidentId": null,
+        "fallOccurred": false,
+        "reassessmentId": null,
+        "individualMeasure": "",
+        "professionalBasis": ""
+      },
+      "observation": {
+        "oral": "",
+        "skin": "",
+        "baseline": "Synthetic explicit individual planning situation",
+        "mobility": "",
+        "tolerance": "",
+        "skinChange": false,
+        "oralAbnormality": false
+      },
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+    },
+    "action": "revise",
+    "reason": "Synthetic actual completion after expressly recorded consent",
+    "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "original": {
+      "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "kind": "body_care",
+      "headId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "voided": false,
+      "history": [
+        {
+          "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.055729Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "not_asked",
+          "recordedAt": null,
+          "consultation": "",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "",
+          "outcome": "planned",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [],
+          "interventions": []
+        },
+        "lifecycle": "open",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": null,
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 1,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.055729Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+    },
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "requestId": "be9e9201-bc96-4531-9be4-811e4b30ef20",
+    "fallOriginals": null,
+    "schemaVersion": "1",
+    "expectedHeadId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+    "expectedRevision": 1,
+    "pressureOriginals": null
+  },
+  "revisionReceipt": {
+    "packet": {
+      "entry": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "consented",
+          "recordedAt": "2026-10-22T06:16:29.123456Z",
+          "consultation": "Synthetic explicitly recorded consent",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "Synthetic individual actual result",
+          "outcome": "performed",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "interventions": [
+            "Synthetic partial body care"
+          ]
+        },
+        "lifecycle": "completed",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": "2026-10-22T06:16:30.234567Z",
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "action": "revise",
+      "reason": "Synthetic actual completion after expressly recorded consent",
+      "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "original": {
+        "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+        "kind": "body_care",
+        "headId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+        "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+        "voided": false,
+        "history": [
+          {
+            "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+            "reason": "",
+            "payload": {
+              "kind": "body_care",
+              "title": "Synthetic explicitly planned partial body care",
+              "consent": {
+                "state": "not_asked",
+                "recordedAt": null,
+                "consultation": "",
+                "statedReason": ""
+              },
+              "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+              "followUp": {
+                "dueAt": null,
+                "state": "not_required",
+                "reason": "",
+                "taskId": null,
+                "required": false,
+                "closureEvidence": "",
+                "responsibleProfileId": null
+              },
+              "execution": {
+                "result": "",
+                "outcome": "planned",
+                "bodyScope": "partial",
+                "deviation": "",
+                "performedBy": [],
+                "interventions": []
+              },
+              "lifecycle": "open",
+              "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+              "plannedAt": "2026-10-22T06:15:30.123456Z",
+              "assistance": {
+                "aids": [],
+                "level": "prompting",
+                "helpers": [
+                  "194ffed5-7407-42fe-81b8-b2bf660af74b"
+                ],
+                "technique": "Synthetic expressly planned verbal assistance",
+                "secondPersonRequired": false
+              },
+              "occurredAt": null,
+              "prevention": {
+                "risk": "",
+                "reviewAt": null,
+                "incidentId": null,
+                "fallOccurred": false,
+                "reassessmentId": null,
+                "individualMeasure": "",
+                "professionalBasis": ""
+              },
+              "observation": {
+                "oral": "",
+                "skin": "",
+                "baseline": "Synthetic explicit individual planning situation",
+                "mobility": "",
+                "tolerance": "",
+                "skinChange": false,
+                "oralAbnormality": false
+              },
+              "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+              "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+            },
+            "revision": 1,
+            "previousId": null,
+            "recordedAt": "2026-10-22T22:01:00.055729Z",
+            "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+            "recordedByName": "Synthetic unit author",
+            "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+          }
+        ],
+        "payload": {
+          "kind": "body_care",
+          "title": "Synthetic explicitly planned partial body care",
+          "consent": {
+            "state": "not_asked",
+            "recordedAt": null,
+            "consultation": "",
+            "statedReason": ""
+          },
+          "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+          "followUp": {
+            "dueAt": null,
+            "state": "not_required",
+            "reason": "",
+            "taskId": null,
+            "required": false,
+            "closureEvidence": "",
+            "responsibleProfileId": null
+          },
+          "execution": {
+            "result": "",
+            "outcome": "planned",
+            "bodyScope": "partial",
+            "deviation": "",
+            "performedBy": [],
+            "interventions": []
+          },
+          "lifecycle": "open",
+          "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+          "plannedAt": "2026-10-22T06:15:30.123456Z",
+          "assistance": {
+            "aids": [],
+            "level": "prompting",
+            "helpers": [
+              "194ffed5-7407-42fe-81b8-b2bf660af74b"
+            ],
+            "technique": "Synthetic expressly planned verbal assistance",
+            "secondPersonRequired": false
+          },
+          "occurredAt": null,
+          "prevention": {
+            "risk": "",
+            "reviewAt": null,
+            "incidentId": null,
+            "fallOccurred": false,
+            "reassessmentId": null,
+            "individualMeasure": "",
+            "professionalBasis": ""
+          },
+          "observation": {
+            "oral": "",
+            "skin": "",
+            "baseline": "Synthetic explicit individual planning situation",
+            "mobility": "",
+            "tolerance": "",
+            "skinChange": false,
+            "oralAbnormality": false
+          },
+          "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+          "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+        },
+        "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+        "revision": 1,
+        "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "recordedAt": "2026-10-22T22:01:00.055729Z",
+        "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "recordedByName": "Synthetic unit author",
+        "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+      },
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "requestId": "be9e9201-bc96-4531-9be4-811e4b30ef20",
+      "fallOriginals": null,
+      "schemaVersion": "1",
+      "expectedHeadId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "expectedRevision": 1,
+      "pressureOriginals": null
+    },
+    "original": {
+      "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+      "kind": "body_care",
+      "headId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+      "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "voided": false,
+      "history": [
+        {
+          "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.055729Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        },
+        {
+          "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+          "reason": "Synthetic actual completion after expressly recorded consent",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "consented",
+              "recordedAt": "2026-10-22T06:16:29.123456Z",
+              "consultation": "Synthetic explicitly recorded consent",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "Synthetic individual actual result",
+              "outcome": "performed",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "interventions": [
+                "Synthetic partial body care"
+              ]
+            },
+            "lifecycle": "completed",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": "2026-10-22T06:16:30.234567Z",
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 2,
+          "previousId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "recordedAt": "2026-10-22T22:01:00.119763Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "consented",
+          "recordedAt": "2026-10-22T06:16:29.123456Z",
+          "consultation": "Synthetic explicitly recorded consent",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "Synthetic individual actual result",
+          "outcome": "performed",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "interventions": [
+            "Synthetic partial body care"
+          ]
+        },
+        "lifecycle": "completed",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": "2026-10-22T06:16:30.234567Z",
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 2,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.119763Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+    },
+    "requestId": "be9e9201-bc96-4531-9be4-811e4b30ef20"
+  },
+  "correctionPacket": {
+    "entry": {
+      "kind": "body_care",
+      "title": "Synthetic explicitly planned partial body care",
+      "consent": {
+        "state": "consented",
+        "recordedAt": "2026-10-22T06:16:29.123456Z",
+        "consultation": "Synthetic explicitly recorded consent",
+        "statedReason": ""
+      },
+      "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+      "followUp": {
+        "dueAt": null,
+        "state": "not_required",
+        "reason": "",
+        "taskId": null,
+        "required": false,
+        "closureEvidence": "",
+        "responsibleProfileId": null
+      },
+      "execution": {
+        "result": "Synthetic individual actual result",
+        "outcome": "performed",
+        "bodyScope": "partial",
+        "deviation": "",
+        "performedBy": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "interventions": [
+          "Synthetic partial body care"
+        ]
+      },
+      "lifecycle": "completed",
+      "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+      "plannedAt": "2026-10-22T06:15:30.123456Z",
+      "assistance": {
+        "aids": [],
+        "level": "prompting",
+        "helpers": [
+          "194ffed5-7407-42fe-81b8-b2bf660af74b"
+        ],
+        "technique": "Synthetic expressly planned verbal assistance",
+        "secondPersonRequired": false
+      },
+      "occurredAt": "2026-10-22T06:16:30.234567Z",
+      "prevention": {
+        "risk": "",
+        "reviewAt": null,
+        "incidentId": null,
+        "fallOccurred": false,
+        "reassessmentId": null,
+        "individualMeasure": "",
+        "professionalBasis": ""
+      },
+      "observation": {
+        "oral": "",
+        "skin": "",
+        "baseline": "Synthetic corrected individual baseline",
+        "mobility": "",
+        "tolerance": "",
+        "skinChange": false,
+        "oralAbnormality": false
+      },
+      "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+      "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+    },
+    "action": "revise",
+    "reason": "Synthetic correction retains all prior facts",
+    "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+    "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+    "original": {
+      "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+      "kind": "body_care",
+      "headId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+      "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "voided": false,
+      "history": [
+        {
+          "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.055729Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        },
+        {
+          "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+          "reason": "Synthetic actual completion after expressly recorded consent",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "consented",
+              "recordedAt": "2026-10-22T06:16:29.123456Z",
+              "consultation": "Synthetic explicitly recorded consent",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "Synthetic individual actual result",
+              "outcome": "performed",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "interventions": [
+                "Synthetic partial body care"
+              ]
+            },
+            "lifecycle": "completed",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": "2026-10-22T06:16:30.234567Z",
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 2,
+          "previousId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "recordedAt": "2026-10-22T22:01:00.119763Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "consented",
+          "recordedAt": "2026-10-22T06:16:29.123456Z",
+          "consultation": "Synthetic explicitly recorded consent",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "Synthetic individual actual result",
+          "outcome": "performed",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "interventions": [
+            "Synthetic partial body care"
+          ]
+        },
+        "lifecycle": "completed",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": "2026-10-22T06:16:30.234567Z",
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic explicit individual planning situation",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 2,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.119763Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+    },
+    "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+    "requestId": "5bc9c2aa-88be-4a65-9c4e-2c1cf123fd05",
+    "fallOriginals": null,
+    "schemaVersion": "1",
+    "expectedHeadId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+    "expectedRevision": 2,
+    "pressureOriginals": null
+  },
+  "appendHistoryUnit": true,
+  "correctionReceipt": {
+    "packet": {
+      "entry": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "consented",
+          "recordedAt": "2026-10-22T06:16:29.123456Z",
+          "consultation": "Synthetic explicitly recorded consent",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "Synthetic individual actual result",
+          "outcome": "performed",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "interventions": [
+            "Synthetic partial body care"
+          ]
+        },
+        "lifecycle": "completed",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": "2026-10-22T06:16:30.234567Z",
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic corrected individual baseline",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "action": "revise",
+      "reason": "Synthetic correction retains all prior facts",
+      "actorId": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "original": {
+        "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+        "kind": "body_care",
+        "headId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+        "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+        "voided": false,
+        "history": [
+          {
+            "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+            "reason": "",
+            "payload": {
+              "kind": "body_care",
+              "title": "Synthetic explicitly planned partial body care",
+              "consent": {
+                "state": "not_asked",
+                "recordedAt": null,
+                "consultation": "",
+                "statedReason": ""
+              },
+              "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+              "followUp": {
+                "dueAt": null,
+                "state": "not_required",
+                "reason": "",
+                "taskId": null,
+                "required": false,
+                "closureEvidence": "",
+                "responsibleProfileId": null
+              },
+              "execution": {
+                "result": "",
+                "outcome": "planned",
+                "bodyScope": "partial",
+                "deviation": "",
+                "performedBy": [],
+                "interventions": []
+              },
+              "lifecycle": "open",
+              "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+              "plannedAt": "2026-10-22T06:15:30.123456Z",
+              "assistance": {
+                "aids": [],
+                "level": "prompting",
+                "helpers": [
+                  "194ffed5-7407-42fe-81b8-b2bf660af74b"
+                ],
+                "technique": "Synthetic expressly planned verbal assistance",
+                "secondPersonRequired": false
+              },
+              "occurredAt": null,
+              "prevention": {
+                "risk": "",
+                "reviewAt": null,
+                "incidentId": null,
+                "fallOccurred": false,
+                "reassessmentId": null,
+                "individualMeasure": "",
+                "professionalBasis": ""
+              },
+              "observation": {
+                "oral": "",
+                "skin": "",
+                "baseline": "Synthetic explicit individual planning situation",
+                "mobility": "",
+                "tolerance": "",
+                "skinChange": false,
+                "oralAbnormality": false
+              },
+              "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+              "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+            },
+            "revision": 1,
+            "previousId": null,
+            "recordedAt": "2026-10-22T22:01:00.055729Z",
+            "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+            "recordedByName": "Synthetic unit author",
+            "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+          },
+          {
+            "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+            "reason": "Synthetic actual completion after expressly recorded consent",
+            "payload": {
+              "kind": "body_care",
+              "title": "Synthetic explicitly planned partial body care",
+              "consent": {
+                "state": "consented",
+                "recordedAt": "2026-10-22T06:16:29.123456Z",
+                "consultation": "Synthetic explicitly recorded consent",
+                "statedReason": ""
+              },
+              "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+              "followUp": {
+                "dueAt": null,
+                "state": "not_required",
+                "reason": "",
+                "taskId": null,
+                "required": false,
+                "closureEvidence": "",
+                "responsibleProfileId": null
+              },
+              "execution": {
+                "result": "Synthetic individual actual result",
+                "outcome": "performed",
+                "bodyScope": "partial",
+                "deviation": "",
+                "performedBy": [
+                  "194ffed5-7407-42fe-81b8-b2bf660af74b"
+                ],
+                "interventions": [
+                  "Synthetic partial body care"
+                ]
+              },
+              "lifecycle": "completed",
+              "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+              "plannedAt": "2026-10-22T06:15:30.123456Z",
+              "assistance": {
+                "aids": [],
+                "level": "prompting",
+                "helpers": [
+                  "194ffed5-7407-42fe-81b8-b2bf660af74b"
+                ],
+                "technique": "Synthetic expressly planned verbal assistance",
+                "secondPersonRequired": false
+              },
+              "occurredAt": "2026-10-22T06:16:30.234567Z",
+              "prevention": {
+                "risk": "",
+                "reviewAt": null,
+                "incidentId": null,
+                "fallOccurred": false,
+                "reassessmentId": null,
+                "individualMeasure": "",
+                "professionalBasis": ""
+              },
+              "observation": {
+                "oral": "",
+                "skin": "",
+                "baseline": "Synthetic explicit individual planning situation",
+                "mobility": "",
+                "tolerance": "",
+                "skinChange": false,
+                "oralAbnormality": false
+              },
+              "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+              "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+            },
+            "revision": 2,
+            "previousId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+            "recordedAt": "2026-10-22T22:01:00.119763Z",
+            "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+            "recordedByName": "Synthetic unit author",
+            "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+          }
+        ],
+        "payload": {
+          "kind": "body_care",
+          "title": "Synthetic explicitly planned partial body care",
+          "consent": {
+            "state": "consented",
+            "recordedAt": "2026-10-22T06:16:29.123456Z",
+            "consultation": "Synthetic explicitly recorded consent",
+            "statedReason": ""
+          },
+          "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+          "followUp": {
+            "dueAt": null,
+            "state": "not_required",
+            "reason": "",
+            "taskId": null,
+            "required": false,
+            "closureEvidence": "",
+            "responsibleProfileId": null
+          },
+          "execution": {
+            "result": "Synthetic individual actual result",
+            "outcome": "performed",
+            "bodyScope": "partial",
+            "deviation": "",
+            "performedBy": [
+              "194ffed5-7407-42fe-81b8-b2bf660af74b"
+            ],
+            "interventions": [
+              "Synthetic partial body care"
+            ]
+          },
+          "lifecycle": "completed",
+          "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+          "plannedAt": "2026-10-22T06:15:30.123456Z",
+          "assistance": {
+            "aids": [],
+            "level": "prompting",
+            "helpers": [
+              "194ffed5-7407-42fe-81b8-b2bf660af74b"
+            ],
+            "technique": "Synthetic expressly planned verbal assistance",
+            "secondPersonRequired": false
+          },
+          "occurredAt": "2026-10-22T06:16:30.234567Z",
+          "prevention": {
+            "risk": "",
+            "reviewAt": null,
+            "incidentId": null,
+            "fallOccurred": false,
+            "reassessmentId": null,
+            "individualMeasure": "",
+            "professionalBasis": ""
+          },
+          "observation": {
+            "oral": "",
+            "skin": "",
+            "baseline": "Synthetic explicit individual planning situation",
+            "mobility": "",
+            "tolerance": "",
+            "skinChange": false,
+            "oralAbnormality": false
+          },
+          "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+          "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+        },
+        "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+        "revision": 2,
+        "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+        "recordedAt": "2026-10-22T22:01:00.119763Z",
+        "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+        "recordedByName": "Synthetic unit author",
+        "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+      },
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "requestId": "5bc9c2aa-88be-4a65-9c4e-2c1cf123fd05",
+      "fallOriginals": null,
+      "schemaVersion": "1",
+      "expectedHeadId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+      "expectedRevision": 2,
+      "pressureOriginals": null
+    },
+    "original": {
+      "id": "0e1d2a28-f376-40e5-b065-58b287b6a7c4",
+      "kind": "body_care",
+      "headId": "0e1d2a28-f376-40e5-b065-58b287b6a7c4",
+      "rootId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+      "voided": false,
+      "history": [
+        {
+          "id": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "reason": "",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "not_asked",
+              "recordedAt": null,
+              "consultation": "",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "",
+              "outcome": "planned",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [],
+              "interventions": []
+            },
+            "lifecycle": "open",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": null,
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 1,
+          "previousId": null,
+          "recordedAt": "2026-10-22T22:01:00.055729Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:502c74e210be5d17bfa2792df8d0edbb08fd0075cf7658513bf179b169cfcd93"
+        },
+        {
+          "id": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+          "reason": "Synthetic actual completion after expressly recorded consent",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "consented",
+              "recordedAt": "2026-10-22T06:16:29.123456Z",
+              "consultation": "Synthetic explicitly recorded consent",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "Synthetic individual actual result",
+              "outcome": "performed",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "interventions": [
+                "Synthetic partial body care"
+              ]
+            },
+            "lifecycle": "completed",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": "2026-10-22T06:16:30.234567Z",
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic explicit individual planning situation",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 2,
+          "previousId": "5e3df6b6-7a5a-4bc8-9f3d-91121c66b1cd",
+          "recordedAt": "2026-10-22T22:01:00.119763Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:35b084ef5ade01087d303d207227a9058a9d29162a426f2cd00ad4e9f8ccbb60"
+        },
+        {
+          "id": "0e1d2a28-f376-40e5-b065-58b287b6a7c4",
+          "reason": "Synthetic correction retains all prior facts",
+          "payload": {
+            "kind": "body_care",
+            "title": "Synthetic explicitly planned partial body care",
+            "consent": {
+              "state": "consented",
+              "recordedAt": "2026-10-22T06:16:29.123456Z",
+              "consultation": "Synthetic explicitly recorded consent",
+              "statedReason": ""
+            },
+            "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+            "followUp": {
+              "dueAt": null,
+              "state": "not_required",
+              "reason": "",
+              "taskId": null,
+              "required": false,
+              "closureEvidence": "",
+              "responsibleProfileId": null
+            },
+            "execution": {
+              "result": "Synthetic individual actual result",
+              "outcome": "performed",
+              "bodyScope": "partial",
+              "deviation": "",
+              "performedBy": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "interventions": [
+                "Synthetic partial body care"
+              ]
+            },
+            "lifecycle": "completed",
+            "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+            "plannedAt": "2026-10-22T06:15:30.123456Z",
+            "assistance": {
+              "aids": [],
+              "level": "prompting",
+              "helpers": [
+                "194ffed5-7407-42fe-81b8-b2bf660af74b"
+              ],
+              "technique": "Synthetic expressly planned verbal assistance",
+              "secondPersonRequired": false
+            },
+            "occurredAt": "2026-10-22T06:16:30.234567Z",
+            "prevention": {
+              "risk": "",
+              "reviewAt": null,
+              "incidentId": null,
+              "fallOccurred": false,
+              "reassessmentId": null,
+              "individualMeasure": "",
+              "professionalBasis": ""
+            },
+            "observation": {
+              "oral": "",
+              "skin": "",
+              "baseline": "Synthetic corrected individual baseline",
+              "mobility": "",
+              "tolerance": "",
+              "skinChange": false,
+              "oralAbnormality": false
+            },
+            "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+            "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+          },
+          "revision": 3,
+          "previousId": "eee85c12-809e-4c29-a69a-2f9b38b64f21",
+          "recordedAt": "2026-10-22T22:01:00.145990Z",
+          "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+          "recordedByName": "Synthetic unit author",
+          "contentFingerprint": "sha256:16cd07cab4040ce31c049f2302917934200b5fe80781bc10385dbfcb20a00731"
+        }
+      ],
+      "payload": {
+        "kind": "body_care",
+        "title": "Synthetic explicitly planned partial body care",
+        "consent": {
+          "state": "consented",
+          "recordedAt": "2026-10-22T06:16:29.123456Z",
+          "consultation": "Synthetic explicitly recorded consent",
+          "statedReason": ""
+        },
+        "visitId": "cc5012de-a0f8-478d-a52a-c77f2f303e23",
+        "followUp": {
+          "dueAt": null,
+          "state": "not_required",
+          "reason": "",
+          "taskId": null,
+          "required": false,
+          "closureEvidence": "",
+          "responsibleProfileId": null
+        },
+        "execution": {
+          "result": "Synthetic individual actual result",
+          "outcome": "performed",
+          "bodyScope": "partial",
+          "deviation": "",
+          "performedBy": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "interventions": [
+            "Synthetic partial body care"
+          ]
+        },
+        "lifecycle": "completed",
+        "measureId": "31b4e237-3196-43ae-9cb1-3de5a00aebbf",
+        "plannedAt": "2026-10-22T06:15:30.123456Z",
+        "assistance": {
+          "aids": [],
+          "level": "prompting",
+          "helpers": [
+            "194ffed5-7407-42fe-81b8-b2bf660af74b"
+          ],
+          "technique": "Synthetic expressly planned verbal assistance",
+          "secondPersonRequired": false
+        },
+        "occurredAt": "2026-10-22T06:16:30.234567Z",
+        "prevention": {
+          "risk": "",
+          "reviewAt": null,
+          "incidentId": null,
+          "fallOccurred": false,
+          "reassessmentId": null,
+          "individualMeasure": "",
+          "professionalBasis": ""
+        },
+        "observation": {
+          "oral": "",
+          "skin": "",
+          "baseline": "Synthetic corrected individual baseline",
+          "mobility": "",
+          "tolerance": "",
+          "skinChange": false,
+          "oralAbnormality": false
+        },
+        "planVersionId": "6533a5df-e015-4efc-90d0-c2bb404a0707",
+        "planSnapshotSha256": "sha256:6ed3cf28b2718a2e51e9f7d45f9e6aed0c8ffb255c0a5db9cb8ee069dd5a477c"
+      },
+      "clientId": "db3cbabe-2b64-403a-9452-6d36a2c3c6e4",
+      "revision": 3,
+      "tenantId": "41ea6d37-2204-437b-8ed7-f115826774f1",
+      "recordedAt": "2026-10-22T22:01:00.145990Z",
+      "recordedBy": "194ffed5-7407-42fe-81b8-b2bf660af74b",
+      "recordedByName": "Synthetic unit author",
+      "contentFingerprint": "sha256:16cd07cab4040ce31c049f2302917934200b5fe80781bc10385dbfcb20a00731"
+    },
+    "requestId": "5bc9c2aa-88be-4a65-9c4e-2c1cf123fd05"
+  },
+  "rollbackCleanupPassed": true
+}

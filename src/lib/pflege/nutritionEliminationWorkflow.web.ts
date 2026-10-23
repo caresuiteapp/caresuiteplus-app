@@ -1,62 +1,35 @@
 import {commitNutritionEliminationPacket,confirmNutritionEliminationPacket,commitNutritionReview,confirmNutritionReview} from './nutritionEliminationRepository.supabase.web';
-import type {NutritionEliminationOriginal,NutritionEliminationPacket,NutritionReviewOriginal,NutritionReviewPacket} from './nutritionEliminationPacket.web';
-
+import {nutritionEliminationPacketIssue,nutritionReviewPacketIssue,type NutritionEliminationOriginal,type NutritionEliminationPacket,type NutritionReviewOriginal,type NutritionReviewPacket} from './nutritionEliminationPacket.web';
+import {cloneClientNativeOriginal,freezeClientNativeOriginal,sameClientNativeOriginal} from '../clients/clientRecordNativeOriginal.web.ts';
 type Scope=Readonly<{tenantId:string;clientId:string;actorId:string}>;
 type Journal<P extends Scope>=Readonly<{version:1;phase:'prepared'|'dispatched';packet:P}>;
 type Result<T>={ok:true;data:T}|{ok:false;error:string;uncertain?:boolean;rejected?:boolean};
-const prefix='caresuite:pflege:nutrition-elimination:v1:';
-const reviewPrefix='caresuite:pflege:nutrition-review:v1:';
+type PacketIssue=(value:unknown)=>string|null;
+const prefix='caresuite:pflege:nutrition-elimination:v1:',reviewPrefix='caresuite:pflege:nutrition-review:v1:';
 const key=(prefix:string,c:Scope)=>prefix+c.tenantId+':'+c.clientId+':'+c.actorId;
+const uuid=(v:unknown):v is string=>typeof v==='string'&&v.length===36&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 const storage=()=>{if(typeof localStorage==='undefined')throw Error('Dauerhaftes Versandjournal ist in diesem Browser nicht verfügbar.');return localStorage;};
-function read<P extends Scope>(prefix:string,c:Scope):Journal<P>|null{
- const raw=storage().getItem(key(prefix,c));if(raw===null)return null;
- try{
-  const j=JSON.parse(raw) as Journal<P>;
-  if(!j||j.version!==1||!['prepared','dispatched'].includes(j.phase)||j.packet?.tenantId!==c.tenantId||j.packet.clientId!==c.clientId||j.packet.actorId!==c.actorId||typeof (j.packet as Scope&{requestId?:unknown}).requestId!=='string')throw Error();
-  return j;
- }catch{throw Error('Das gespeicherte Journal ist unvollständig. Es bleibt erhalten; ein neuer Schreibvorgang ist gesperrt.');}
+const changed=()=>Error('Journal, Pflegefall oder Rechtekontext hat gewechselt. Die ursprüngliche Anfrage bleibt ungeklärt.');
+function capture<T>(input:T):T{const value=cloneClientNativeOriginal(input),encoded=JSON.stringify(value);if(encoded===undefined||!sameClientNativeOriginal(value,JSON.parse(encoded)))throw Error('Die ursprüngliche Anfrage ist nicht verlustfrei speicherbar.');return freezeClientNativeOriginal(value);}
+function scope(value:Scope):Scope{if(!value||![value.tenantId,value.clientId,value.actorId].every(uuid))throw changed();return freezeClientNativeOriginal({tenantId:value.tenantId,clientId:value.clientId,actorId:value.actorId});}
+function owner(prefix:string,input:Scope,captured:Scope,current:()=>boolean){
+ const bound=scope(captured),name=key(prefix,bound),target=storage(),get=target.getItem,set=target.setItem,remove=target.removeItem,nav=globalThis.navigator;
+ const locks=(nav as Navigator&{locks?:{request<T>(name:string,options:{mode:'exclusive';ifAvailable:boolean},callback:(lock:unknown)=>Promise<T>):Promise<T>}}|undefined)?.locks,request=locks?.request;
+ if(!locks||typeof request!=='function')throw Error('Browserweite Exklusivsperre fehlt; Speichern bleibt gesperrt.');if(![get,set,remove].every(method=>typeof method==='function')||typeof current!=='function')throw changed();
+ const stable=()=>{if(storage()!==target||target.getItem!==get||target.setItem!==set||target.removeItem!==remove||globalThis.navigator!==nav||nav.locks!==locks||locks.request!==request)throw changed();for(const field of ['tenantId','clientId','actorId'] as const){const d=Object.getOwnPropertyDescriptor(input,field);if(!d||!('value'in d)||d.value!==bound[field])throw changed();}};
+ const check=()=>{stable();if(current()!==true)throw changed();stable();};
+ const raw=()=>{stable();const first=Reflect.apply(get,target,[name]) as string|null;stable();const second=Reflect.apply(get,target,[name]) as string|null;stable();if(first!==second)throw changed();return first;};
+ const replace=(expected:string|null,next:string|null)=>{check();if(raw()!==expected)throw changed();if(next===null)Reflect.apply(remove,target,[name]);else Reflect.apply(set,target,[name,next]);stable();if(raw()!==next)throw Error('Das ursprüngliche Versandjournal konnte nicht unverändert bestätigt werden.');check();if(raw()!==next)throw changed();};
+ return{name,check,raw,replace,locked:<T>(run:()=>Promise<T>)=>Reflect.apply(request,locks,[name,{mode:'exclusive',ifAvailable:true},async(lock:unknown)=>{if(!lock)throw Error('Ein anderer Tab bearbeitet diesen Vorgang.');check();return run();}]) as Promise<T>};
 }
-function persist<P extends Scope>(prefix:string,j:Journal<P>){
- const target=storage(),serialized=JSON.stringify(structuredClone(j));target.setItem(key(prefix,j.packet),serialized);
- if(target.getItem(key(prefix,j.packet))!==serialized)throw Error('Versandjournal konnte nicht bestätigt werden.');
+function read<P extends Scope>(raw:string|null,c:Scope,issue:PacketIssue):Journal<P>|null{if(raw===null)return null;try{const j=capture(JSON.parse(raw)) as Journal<P>;if(!j||typeof j!=='object'||Array.isArray(j)||Object.keys(j).sort().join(',')!=='packet,phase,version'||j.version!==1||!['prepared','dispatched'].includes(j.phase)||j.packet?.tenantId!==c.tenantId||j.packet.clientId!==c.clientId||j.packet.actorId!==c.actorId||issue(j.packet)!==null)throw Error();return j;}catch{throw Error('Das gespeicherte Journal ist unvollständig. Es bleibt erhalten; ein neuer Schreibvorgang ist gesperrt.');}}
+async function save<P extends Scope,T>(prefix:string,p:P,current:()=>boolean,issue:PacketIssue,commit:(p:P,current:()=>boolean)=>Promise<Result<T>>):Promise<Result<T>>{
+ try{const captured=capture(p),problem=issue(captured);if(problem)throw Error(problem);const guard=owner(prefix,p,captured,current);return await guard.locked<Result<T>>(async()=>{guard.check();let expected=guard.raw();const previous=read<P>(expected,captured,issue);if(previous?.phase==='dispatched')return{ok:false,error:'Ein früherer Schreibvorgang ist noch ungeklärt.',uncertain:true};const prepared=JSON.stringify({version:1,phase:'prepared',packet:captured});guard.replace(expected,prepared);expected=prepared;const dispatched=JSON.stringify({version:1,phase:'dispatched',packet:captured});guard.replace(expected,dispatched);expected=dispatched;const pinnedCurrent=()=>{try{guard.check();return guard.raw()===expected;}catch{return false;}};if(!pinnedCurrent())throw changed();const result=await commit(captured,pinnedCurrent);if(!pinnedCurrent())return{ok:false,error:'Kontext oder ursprüngliches Journal nach Versand geändert.',uncertain:true};if(result.ok){guard.replace(expected,null);return result;}if(result.rejected){guard.replace(expected,null);return{ok:false,error:result.error};}return{ok:false,error:result.error,uncertain:true};});}catch(cause){return{ok:false,error:cause instanceof Error?cause.message:'Journal oder Sperre konnte nicht bestätigt werden.',uncertain:true};}
 }
-function clear(prefix:string,c:Scope){
- const target=storage(),name=key(prefix,c);target.removeItem(name);
- if(target.getItem(name)!==null)throw Error('Die Quittung wurde gelesen, aber das Journal konnte noch nicht abgeschlossen werden.');
+async function recover<P extends Scope,T>(prefix:string,c:Scope,current:()=>boolean,issue:PacketIssue,confirm:(p:P,current:()=>boolean)=>Promise<Result<T>>):Promise<Result<T>|null>{
+ try{const captured=scope(capture(c)),guard=owner(prefix,c,captured,current);return await guard.locked<Result<T>|null>(async()=>{guard.check();const expected=guard.raw(),j=read<P>(expected,captured,issue);if(!j)return null;if(j.phase==='prepared'){guard.replace(expected,null);return{ok:false,error:'Nicht versandte lokale Anfrage wurde verworfen.'};}const pinnedCurrent=()=>{try{guard.check();return guard.raw()===expected;}catch{return false;}};if(!pinnedCurrent())throw changed();const result=await confirm(j.packet,pinnedCurrent);if(!pinnedCurrent())return{ok:false,error:'Kontext oder ursprüngliches Journal während der Quittungsprüfung geändert.',uncertain:true};if(result.ok){guard.replace(expected,null);return result;}return{ok:false,error:result.error,uncertain:true};});}catch(cause){return{ok:false,error:cause instanceof Error?cause.message:'Das ursprüngliche Journal bleibt ungeklärt.',uncertain:true};}
 }
-async function locked<T>(name:string,run:()=>Promise<T>):Promise<T>{
- const locks=(globalThis.navigator as Navigator&{locks?:{request<T>(name:string,options:{mode:'exclusive';ifAvailable:boolean},callback:(lock:unknown)=>Promise<T>):Promise<T>}}|undefined)?.locks;
- if(!locks)throw Error('Browserweite Exklusivsperre fehlt; Speichern bleibt gesperrt.');
- return locks.request(name,{mode:'exclusive',ifAvailable:true},async lock=>{if(!lock)throw Error('Ein anderer Tab bearbeitet diesen Vorgang.');return run();});
-}
-async function save<P extends Scope,T>(prefix:string,p:P,current:()=>boolean,commit:(p:P,current:()=>boolean)=>Promise<Result<T>>):Promise<Result<T>>{
- const captured=structuredClone(p);
- try{return await locked(key(prefix,captured),async()=>{
-  if(!current())return {ok:false,error:'Pflegefall oder Rechtekontext hat gewechselt.'};
-  const previous=read<P>(prefix,captured);if(previous?.phase==='dispatched')return {ok:false,error:'Ein früherer Schreibvorgang ist noch ungeklärt.',uncertain:true};
-  if(previous)clear(prefix,captured);
-  persist(prefix,{version:1,phase:'prepared',packet:captured});
-  if(!current())return {ok:false,error:'Pflegefall oder Rechtekontext hat gewechselt.'};
-  persist(prefix,{version:1,phase:'dispatched',packet:captured});
-  const result=await commit(captured,current);
-  if(!current())return {ok:false,error:'Kontextwechsel nach Versand; ursprüngliche Quittung erneut lesen.',uncertain:true};
-  if(result.ok){clear(prefix,captured);return result;}
-  if(result.rejected){clear(prefix,captured);return {ok:false,error:result.error};}
-  return {ok:false,error:result.error,uncertain:true};
- });}catch(cause){return {ok:false,error:cause instanceof Error?cause.message:'Journal oder Sperre konnte nicht bestätigt werden.',uncertain:true};}
-}
-async function recover<P extends Scope,T>(prefix:string,c:Scope,current:()=>boolean,confirm:(p:P,current:()=>boolean)=>Promise<Result<T>>):Promise<Result<T>|null>{
- try{return await locked(key(prefix,c),async()=>{
-  if(!current())return {ok:false,error:'Pflegefall oder Rechtekontext hat gewechselt.',uncertain:true};
-  const j=read<P>(prefix,c);if(!j)return null;
-  if(j.phase==='prepared'){clear(prefix,c);return {ok:false,error:'Nicht versandte lokale Anfrage wurde verworfen.'};}
-  const result=await confirm(structuredClone(j.packet),current);
-  if(!current())return {ok:false,error:'Kontextwechsel während der Quittungsprüfung.',uncertain:true};
-  if(result.ok){clear(prefix,c);return result;}
-  return {ok:false,error:result.error,uncertain:true};
- });}catch(cause){return {ok:false,error:cause instanceof Error?cause.message:'Das ursprüngliche Journal bleibt ungeklärt.',uncertain:true};}
-}
-export const saveNutritionEliminationDurably=(p:NutritionEliminationPacket,current:()=>boolean)=>save<NutritionEliminationPacket,NutritionEliminationOriginal>(prefix,p,current,commitNutritionEliminationPacket);
-export const recoverNutritionElimination=(c:Scope,current:()=>boolean)=>recover<NutritionEliminationPacket,NutritionEliminationOriginal>(prefix,c,current,confirmNutritionEliminationPacket);
-export const saveNutritionReviewDurably=(p:NutritionReviewPacket,current:()=>boolean)=>save<NutritionReviewPacket,NutritionReviewOriginal>(reviewPrefix,p,current,commitNutritionReview);
-export const recoverNutritionReview=(c:Scope,current:()=>boolean)=>recover<NutritionReviewPacket,NutritionReviewOriginal>(reviewPrefix,c,current,confirmNutritionReview);
+export const saveNutritionEliminationDurably=(p:NutritionEliminationPacket,current:()=>boolean)=>save<NutritionEliminationPacket,NutritionEliminationOriginal>(prefix,p,current,nutritionEliminationPacketIssue,commitNutritionEliminationPacket);
+export const recoverNutritionElimination=(c:Scope,current:()=>boolean)=>recover<NutritionEliminationPacket,NutritionEliminationOriginal>(prefix,c,current,nutritionEliminationPacketIssue,confirmNutritionEliminationPacket);
+export const saveNutritionReviewDurably=(p:NutritionReviewPacket,current:()=>boolean)=>save<NutritionReviewPacket,NutritionReviewOriginal>(reviewPrefix,p,current,nutritionReviewPacketIssue,commitNutritionReview);
+export const recoverNutritionReview=(c:Scope,current:()=>boolean)=>recover<NutritionReviewPacket,NutritionReviewOriginal>(reviewPrefix,c,current,nutritionReviewPacketIssue,confirmNutritionReview);

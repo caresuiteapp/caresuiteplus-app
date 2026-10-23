@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "source": "Actual synthetic Staging SQL rollback fixture output, retained without rewriting packet or receipt values. Recursive Auth/credential screening found no fields requiring redaction.",
+  "sourceFixture": "supabase/tests/pflege_vital_workspace_staging.sql",
+  "sourceFixtureSha256": "f391f6f6f2228d84a45cb1ac9fcbdf31446ab7baeb7d7df753e3085c7e5b213c",
+  "capturedOn": "2026-10-22",
+  "appliedMigrationVersions": [
+    "20261022055525",
+    "20261022055705",
+    "20261022055901",
+    "20261022064013"
+  ],
+  "sha256": "99fbd8a4a606959dd8b3c147a871b586976326eb0ab2b09bfba59a0089ae4e73",
+  "sqlRollbackAndCleanupVerified": true,
+  "authHttpVerified": false,
+  "browserVerified": false,
+  "realClinicalQualificationVerified": false,
+  "limits": "Synthetic own scope, native measurements, follow-up, invalidation, complete sources, path packets/revisions/correction and independent review originals/receipts only. No Auth claims, sessions, tokens or real patient data. Privileged synthetic role/session/qualification provisioning is not a real HTTP sign-in, credential or provisioning acceptance test."
+}

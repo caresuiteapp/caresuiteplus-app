@@ -1,0 +1,5 @@
+-- Valid unscoped Treatment source refs retain orderId:null.
+-- STRICT incorrectly suppressed every source with a deliberately absent order.
+-- A missing native object/client still returns SQL NULL and cannot fabricate a ref.
+create or replace function care_private.treatment_care_ref(row_json jsonb,p_client uuid,p_order uuid) returns jsonb language sql immutable called on null input set search_path='' as $$select case when jsonb_typeof(row_json) is distinct from 'object' or p_client is null then null else jsonb_build_object('id',row_json->>'id','revision',case when row_json->>'version' ~ '^[1-9][0-9]*$' then (row_json->>'version')::integer else 1 end,'recordedAt',coalesce(row_json->>'recorded_at',row_json->>'updated_at',row_json->>'created_at'),'fingerprint',care_private.treatment_care_fingerprint(row_json),'clientId',p_client,'orderId',p_order,'payload',row_json) end$$;
+revoke all on function care_private.treatment_care_ref(jsonb,uuid,uuid) from public,anon,authenticated,service_role;

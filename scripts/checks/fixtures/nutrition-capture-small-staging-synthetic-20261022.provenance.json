@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-22",
+  "environment": "isolated Supabase Staging",
+  "source": "Actual final SELECT from the supplementary privileged synthetic Nutrition unit after asserted inner rollback cleanup and before explicit outer ROLLBACK; supplied by the root agent after the successful serial execution.",
+  "sqlFixture": "supabase/tests/pflege_nutrition_capture_small_staging.sql",
+  "sqlFixtureBytes": 14498,
+  "sqlFixtureSha256": "cba9bad197abfe888d1b0487d4586a865b1df6f560d4ae97cda42c1dfa20a460",
+  "appliedMigrationVersions": [
+    "20261022115155"
+  ],
+  "appliedPatchSha256": {
+    "ambulatory_nutrition_workspace_quarantined.sql": "9ad65e8ca65f9311f46980c67bf6135259d7f0d5d0afb8c69d96d9c5e5e3ceac"
+  },
+  "appliedMigrationSha256": {
+    "20261022115155_pflege_nutrition_workspace_quarantined.sql": "9ad65e8ca65f9311f46980c67bf6135259d7f0d5d0afb8c69d96d9c5e5e3ceac"
+  },
+  "evidenceFile": "nutrition-capture-small-staging-synthetic-20261022.json",
+  "evidenceBytes": 76874,
+  "evidenceSha256": "56b9d9b3bc0cb6b646c0513b1c056716f47e75d35cd0683fd8bf4d570c50e2ad",
+  "captureRecordedAt": "2026-10-22T21:46:50.559571Z",
+  "careRecordedAt": "2026-10-22T21:46:50.595205Z",
+  "supplementaryRuntimeUnit": true,
+  "sqlRollbackAndCleanupVerified": true,
+  "claims": [
+    "The actual SQL JSON bytes are retained unchanged; no handwritten receipt or normalized timestamp was substituted.",
+    "A wholly synthetic own Auth session/profile/tenant, native plan/version/measure/tour/stop and draft client assessment were established by the fixture.",
+    "The runtime unit verified independently selected full native context, explicit capture, original-context SHA binding, immutable retries, exact separate own confirmations, unknown-request P0G02 denials, exact prepared row counts and unchanged native context.",
+    "One planned/open drink-support record was saved and independently confirmed. Actual intake, occurredAt, performed people, consent, devices and weight were explicitly absent.",
+    "All synthetic database rows were checked absent after the inner rollback, followed by an explicit outer ROLLBACK."
+  ],
+  "limitations": [
+    "This supplementary runtime unit does not establish a pass for any of the four larger reconstructed Nutrition capture/core/review/authority fixtures.",
+    "Canonical-UUID and planned-inspection followups were not required or applied for this base unit.",
+    "Distinct raw Auth/internal profile mapping, review qualification/clinical decision, actual clinical quantity/execution, concurrent transactions, HTTP Auth/RLS and browser acceptance are not proved by this unit.",
+    "No production mutation, deployment, clinical approval or feature activation is claimed."
+  ],
+  "retentionReview": [
+    "Recursive credential/Auth-claim/session/JWT/secret key and JWT-value scans inspected 1849 object keys and 1105 string values with no findings.",
+    "Retained native names, narratives, source fields and identifiers all originate from the isolated wholly synthetic seed.",
+    "No redaction or reformatting was necessary; the source file was copied byte-for-byte."
+  ]
+}

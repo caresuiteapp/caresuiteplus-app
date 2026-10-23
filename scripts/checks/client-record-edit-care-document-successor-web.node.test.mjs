@@ -16,11 +16,14 @@ const setup=old.slice(0,old.indexOf("test('Actual legacy whole")) .replace(/^imp
 const {loaded}=new Function('native','own','actions','woundInstant','woundUuid','withServiceQueryTimeout','strip','readFileSync','read','assert',setup.replace(/const read=p=>[^\n]*\n/,'')+';return {loaded};')(native,own,actions,woundInstant,woundUuid,withServiceQueryTimeout,strip,readFileSync,read,assert);
 const funding=compose('src/lib/clients/clientIntakeCostBearerConfig.ts',{},['COST_BEARER_TYPE_CONFIG','getCostBearerFieldValues','isCostBearerTypeKey','resolvePrimaryCostBearerName']);
 const units=compose('src/lib/formatters/unitFormatters.ts',{},['formatCareLevel','formatSalutation']);
-const dates=compose('src/lib/formatters/dateTimeFormatters.ts',{APP_LOCALE:'de-DE',APP_TIME_ZONE:'Europe/Berlin'},['formatDate']);
 const types=compose('src/features/intakeDocuments/intakeDocumentTypes.ts',{},['CARE_CONTEXT_TO_SERVICE_TYPE','CONTRACT_TEMPLATE_BY_SERVICE_TYPE','PRIVACY_TEMPLATE_KEY','ASSIGNMENT_TEMPLATE_KEY','OPTIONAL_CONSENT_TEMPLATE_KEYS']);
-const merges=compose('src/features/intakeDocuments/intakeCostCarrierMerge.ts',{...funding,...units,...dates},['buildCostCarrierMergeFields','buildFamilyDoctorClause']);
-const context=compose('src/features/intakeDocuments/buildIntakeDocumentContext.ts',{...funding,...units,...dates,...types,...merges},['buildIntakePlaceholderContext']);
-const renderer=compose('src/features/intakeDocuments/renderIntakeDocumentPreview.ts',{CARESUITE_DOCUMENT_FONT_CSS:'/* font leaf: no layout */',CARESUITE_FONT_STACK:'sans-serif'},['renderIntakeDocumentHtml']);
+const renderBinding=compose('src/features/intakeDocuments/intakeDocumentRenderBinding.ts',{},['isIntakeRenderTimestamp','formatIntakeDocumentDate','formatIntakeDocumentDateTime','escapeIntakeHtml','isSafeIntakeSignatureDataUrl']);
+const merges=compose('src/features/intakeDocuments/intakeCostCarrierMerge.ts',{...funding,...units,escape:renderBinding.escapeIntakeHtml,formatDate:renderBinding.formatIntakeDocumentDate},['buildCostCarrierMergeFields','buildFamilyDoctorClause']);
+const fields2027=compose('src/features/intakeDocuments/intake2027Fields.ts',{},['INTAKE_2027_VERSION','COMMUNICATION_CHOICES','MEDIA_CHOICES','getIntake2027Fields','validIntakeLegalDetails']);
+const context2027=compose('src/features/intakeDocuments/intake2027Context.ts',fields2027,['buildIntake2027Context']);
+const css2027=compose('src/features/intakeDocuments/intakeDocument2027Css.ts',{},['INTAKE_DOCUMENT_2027_CSS']);
+const context=compose('src/features/intakeDocuments/buildIntakeDocumentContext.ts',{...funding,...units,...types,...merges,...context2027,isIntakeRenderTimestamp:renderBinding.isIntakeRenderTimestamp,formatDate:renderBinding.formatIntakeDocumentDate},['buildIntakePlaceholderContext']);
+const renderer=compose('src/features/intakeDocuments/renderIntakeDocumentPreview.ts',{...renderBinding,...fields2027,...css2027,CARESUITE_DOCUMENT_FONT_CSS:'/* font leaf: no layout */',CARESUITE_FONT_STACK:'sans-serif'},['renderIntakeDocumentHtml']);
 const {normalizeIntakeCareLevelForDb}=compose('src/lib/clients/clientIntakeCareLevel.ts',{},['normalizeIntakeCareLevelForDb']);
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,at='2026-10-08 10:00:00.123456+02:00';
 const row=(n,x={})=>({id:id(n),tenant_id:id(1),client_id:id(3),created_at:at,updated_at:at,...x});

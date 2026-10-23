@@ -1,0 +1,3840 @@
+{
+  "schemaVersion": 1,
+  "kind": "dated-source-rpc-inventory",
+  "date": "2026-10-22",
+  "sourceRevision": "557e5438a32a6274bf1928fdc57a8983118242b8",
+  "scope": {
+    "originalRoots": [
+      "src/lib/pflege",
+      "src/hooks/pflege",
+      "src/screens/pflege",
+      "src/components/pflege"
+    ],
+    "supplementalNewFamilyRoots": [
+      "src/lib/careAssessment",
+      "src/hooks/careAssessment",
+      "src/screens/careAssessment",
+      "src/components/careAssessment"
+    ],
+    "sourceFiles": 660,
+    "sourceExtensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx"
+    ]
+  },
+  "counts": {
+    "directRpcCallSites": 202,
+    "reflectRpcDispatchSites": 7,
+    "literalRuntimeNames": 144,
+    "observedFiniteDynamicNameValues": 124,
+    "uniqueObservedNames": 262
+  },
+  "methodology": {
+    "literal": "Quoted direct .rpc first argument, including erased TypeScript assertions.",
+    "finite": "Explicit literal/conditional values in reviewed local/typed dispatchers and resolver whitelists; per-site provenance is retained.",
+    "generic": "Nonliteral .rpc sites remain listed. Finite values observed at callers do not close an exported dispatcher globally."
+  },
+  "limitations": [
+    "Source extraction is a balanced lexical scan, not a TypeScript control-flow proof or a complete dependency graph.",
+    "Literal names are recorded at direct .rpc calls; finite values also include reviewed local helper dispatch branches and explicit typed dispatcher constants. Observed finite values are not all proved reachable runtime RPC targets.",
+    "Dynamic first arguments remain explicitly listed even where known local callers contribute finite values. Exported/generic dispatchers may accept additional values outside these source roots.",
+    "Exact source revision and observation times differ. Uncommitted new Assessment work is deliberately excluded.",
+    "A catalog name match does not establish matching named arguments, compatible payload/return DTOs, authorization, runtime behavior, HTTP Auth/RLS acceptance, browser acceptance, or clinical release.",
+    "Table and column metadata are read without clinical rows, defaults, policy expressions, function bodies, or keys. Advisor summaries describe the whole project; relevant findings are filtered by this catalog scope.",
+    "This broader source scope is not directly comparable to the historical 145-literal / 57-present audit. No progress percentage is calculated."
+  ],
+  "literalRuntimeNames": [
+    "accept_pfleger_billing_period",
+    "advance_care_quality_deviation",
+    "advance_pfleger_service_proof",
+    "apply_ambulatory_assessment_lifecycle",
+    "apply_ambulatory_medication_order_revision",
+    "approve_pfleger_invoice_draft",
+    "assess_ambulatory_medication_execution",
+    "authorize_ambulatory_medication_daily_plan",
+    "bodymap_get_active_medical_approval",
+    "capture_ambulatory_medication_source",
+    "capture_pfleger_proof_client_confirmation",
+    "commit_ambulatory_medication_order_review",
+    "confirm_ambulatory_medication_daily_plan",
+    "confirm_ambulatory_medication_daily_plan_authorization",
+    "confirm_ambulatory_medication_daily_plan_review_request",
+    "confirm_ambulatory_medication_order_review",
+    "confirm_ambulatory_medication_order_revision",
+    "confirm_ambulatory_medication_source_capture",
+    "correct_pfleger_service_proof",
+    "create_ambulatory_care_stop_proof_batch",
+    "create_ambulatory_handover",
+    "create_bound_pfleger_invoice_foundation",
+    "create_care_plan_evaluation",
+    "create_care_quality_deviation",
+    "create_care_quality_visit",
+    "create_clinical_documentation",
+    "create_clinical_handover",
+    "create_clinical_wound_assessment",
+    "create_clinical_wound_case",
+    "create_pfleger_invoice_draft",
+    "create_pfleger_invoice_foundation",
+    "create_pfleger_service_proof",
+    "current_tenant_id",
+    "get_ambulatory_care_stop_proof_batch",
+    "get_ambulatory_care_tour_resources",
+    "get_pfleger_md_readiness",
+    "get_pfleger_quality_stats",
+    "invalidate_ambulatory_vital_measurement",
+    "list_pfleger_clients",
+    "medication_witness_options",
+    "propose_ambulatory_medication_daily_plan",
+    "propose_ambulatory_medication_order_revision",
+    "read_ambulatory_medication_daily_plan_context",
+    "read_ambulatory_medication_daily_plan_review_context",
+    "read_ambulatory_medication_daily_plan_reviews",
+    "read_ambulatory_medication_daily_plans",
+    "read_ambulatory_medication_order_review_context",
+    "read_ambulatory_medication_order_revision_context",
+    "read_ambulatory_medication_order_revisions",
+    "read_infusion_courses",
+    "read_treatment_wound_relation",
+    "reconcile_ambulatory_care_stop_write",
+    "record_ambulatory_vital_follow_up",
+    "record_ambulatory_vital_measurement",
+    "record_body_map_finding_progress",
+    "record_clinical_treatment_execution",
+    "record_pfleger_accounting_posting",
+    "record_pfleger_cost_carrier_export_validation",
+    "record_pfleger_cost_carrier_rejection",
+    "record_pfleger_cost_carrier_resubmission",
+    "record_pfleger_direct_debit_release",
+    "record_pfleger_direct_debit_return",
+    "record_pfleger_dunning_dispatch",
+    "record_pfleger_dunning_notice",
+    "record_pfleger_invoice_adjustment",
+    "record_pfleger_invoice_cost_share_assessment",
+    "record_pfleger_invoice_period_closure",
+    "record_pfleger_invoice_period_correction",
+    "record_pfleger_receivable_payment",
+    "release_pfleger_billing_case",
+    "request_ambulatory_medication_daily_plan_review",
+    "request_ambulatory_medication_daily_plan_withdrawal",
+    "resolve_current_profile_id",
+    "review_care_plan_measure",
+    "review_care_risk",
+    "save_care_assessment",
+    "save_live_care_plan",
+    "sign_clinical_documentation",
+    "submit_ambulatory_assessment_review",
+    "transition_care_assessment",
+    "web_assessment_path_workspace_context",
+    "web_care_plan_path_workspace_context",
+    "web_commit_assessment_path_event",
+    "web_commit_care_plan_path_event",
+    "web_commit_case_handover",
+    "web_commit_counseling_coordination_path_packet",
+    "web_commit_medication_safety_packet",
+    "web_commit_mental_health_care_path_packet",
+    "web_commit_palliative_special_care_path_packet",
+    "web_commit_respiratory_intensive_care_path_packet",
+    "web_commit_supply",
+    "web_commit_tour_planning_event",
+    "web_commit_treatment_care_packet",
+    "web_commit_visit_execution_event",
+    "web_commit_vital_care_path_packet",
+    "web_commit_wound_path_packet",
+    "web_confirm_assessment_path_event",
+    "web_confirm_care_diagnosis_with_history",
+    "web_confirm_care_plan_path_event",
+    "web_confirm_counseling_coordination_path_packet",
+    "web_confirm_medication_safety_packet",
+    "web_confirm_mental_health_care_path_packet",
+    "web_confirm_palliative_special_care_path_packet",
+    "web_confirm_respiratory_intensive_care_path_packet",
+    "web_confirm_treatment_care_packet",
+    "web_confirm_vital_care_path_packet",
+    "web_confirm_wound_path_packet",
+    "web_read_ambulatory_assessment_instrument_packet",
+    "web_read_ambulatory_plan_lifecycle_packet",
+    "web_read_connected_specialist_review_page",
+    "web_read_counseling_coordination_path_context",
+    "web_read_counseling_coordination_path_page",
+    "web_read_counseling_coordination_review_page",
+    "web_read_medication_safety_context",
+    "web_read_medication_safety_page",
+    "web_read_medication_safety_review_page",
+    "web_read_mental_health_care_path_context",
+    "web_read_mental_health_care_path_page",
+    "web_read_mental_health_care_review_page",
+    "web_read_palliative_special_care_path_context",
+    "web_read_palliative_special_care_path_page",
+    "web_read_palliative_special_care_review_page",
+    "web_read_respiratory_care_review_page",
+    "web_read_respiratory_intensive_care_path_context",
+    "web_read_respiratory_intensive_care_path_page",
+    "web_read_supply_review_page",
+    "web_read_tour_planning_review_page",
+    "web_read_treatment_care_context",
+    "web_read_treatment_care_page",
+    "web_read_treatment_care_review_page",
+    "web_read_visit_execution_review_page",
+    "web_read_vital_care_review_page",
+    "web_read_wound_path_context",
+    "web_read_wound_path_page",
+    "web_read_wound_path_review_page",
+    "web_record_care_diagnosis_with_history",
+    "write_ambulatory_assessment_draft",
+    "write_ambulatory_wound_assessment_correction",
+    "write_ambulatory_wound_care",
+    "write_ambulatory_wound_documentation",
+    "write_ambulatory_wound_lifecycle",
+    "write_clinical_treatment_correction",
+    "write_infusion_event",
+    "write_structured_treatment_execution"
+  ],
+  "observedFiniteDynamicNameValues": [
+    "advance_ambulatory_care_admission",
+    "advance_ambulatory_care_shift",
+    "advance_ambulatory_care_stop",
+    "advance_ambulatory_care_tour",
+    "advance_my_ambulatory_care_stop",
+    "advance_my_ambulatory_care_tour",
+    "capture_pfleger_proof_signature",
+    "change_ambulatory_medication_status",
+    "complete_ambulatory_care_stop",
+    "confirm_ambulatory_care_stop_opening",
+    "confirm_ambulatory_vital_follow_up",
+    "confirm_ambulatory_vital_invalidation",
+    "confirm_ambulatory_vital_measurement",
+    "create_ambulatory_care_shift",
+    "create_ambulatory_care_stop_proof",
+    "create_ambulatory_care_tariff",
+    "create_ambulatory_care_tour",
+    "create_catalog_care_stop_proof",
+    "current_tenant_id",
+    "get_ambulatory_care_stop_completion_context",
+    "get_ambulatory_care_stop_emergency_context",
+    "get_ambulatory_care_stop_opening_context",
+    "get_ambulatory_care_stop_task_context",
+    "get_ambulatory_care_stop_time_context",
+    "get_ambulatory_care_stop_unreachable_context",
+    "get_my_ambulatory_care_proof_export",
+    "get_my_ambulatory_care_proofs",
+    "get_my_ambulatory_care_signature",
+    "get_my_ambulatory_care_tours",
+    "invalidate_ambulatory_vital_measurement",
+    "link_ambulatory_medication_source",
+    "open_ambulatory_care_stop_emergency",
+    "prepare_ambulatory_care_stop_tasks",
+    "read_ambulatory_plan_amendments",
+    "read_ambulatory_plan_evaluations",
+    "read_clinical_control_people",
+    "read_clinical_control_sources",
+    "read_clinical_controls",
+    "read_daily_protocol_clients",
+    "read_daily_protocols",
+    "record_ambulatory_care_stop_contact_attempt",
+    "record_ambulatory_care_stop_emergency_event",
+    "record_ambulatory_care_stop_task_execution",
+    "record_ambulatory_care_stop_time_event",
+    "record_ambulatory_medication_event",
+    "record_ambulatory_medication_followup",
+    "record_ambulatory_vital_follow_up",
+    "record_ambulatory_vital_measurement",
+    "resolve_current_profile_id",
+    "review_care_risk",
+    "save_ambulatory_care_admission",
+    "save_ambulatory_care_task",
+    "web_cancel_basic_care_binding_intent",
+    "web_capture_nutrition_elimination_plan_binding",
+    "web_care_documentation_path_workspace_context",
+    "web_case_handover_clients",
+    "web_case_handover_context",
+    "web_case_handover_history",
+    "web_case_handover_list",
+    "web_commit_basic_care_binding_intent",
+    "web_commit_basic_care_packet",
+    "web_commit_basic_care_review",
+    "web_commit_care_documentation_packet",
+    "web_commit_connected_specialist_review",
+    "web_commit_counseling_coordination_review",
+    "web_commit_medication_safety_review",
+    "web_commit_mental_health_care_review",
+    "web_commit_nutrition_elimination_packet",
+    "web_commit_nutrition_review",
+    "web_commit_palliative_special_care_review",
+    "web_commit_respiratory_care_review",
+    "web_commit_supply_review",
+    "web_commit_tour_planning_review",
+    "web_commit_treatment_care_review",
+    "web_commit_visit_execution_review",
+    "web_commit_vital_care_review",
+    "web_commit_wound_path_review",
+    "web_confirm_basic_care_binding_intent",
+    "web_confirm_basic_care_packet",
+    "web_confirm_basic_care_review",
+    "web_confirm_care_documentation_packet",
+    "web_confirm_case_handover",
+    "web_confirm_connected_specialist_review",
+    "web_confirm_counseling_coordination_review",
+    "web_confirm_medication_safety_review",
+    "web_confirm_mental_health_care_review",
+    "web_confirm_nutrition_elimination_packet",
+    "web_confirm_nutrition_elimination_plan_binding",
+    "web_confirm_nutrition_review",
+    "web_confirm_palliative_special_care_review",
+    "web_confirm_respiratory_care_review",
+    "web_confirm_supply",
+    "web_confirm_supply_review",
+    "web_confirm_tour_planning_event",
+    "web_confirm_tour_planning_review",
+    "web_confirm_treatment_care_review",
+    "web_confirm_visit_execution_event",
+    "web_confirm_visit_execution_review",
+    "web_confirm_vital_care_review",
+    "web_confirm_wound_path_review",
+    "web_my_tour_publications",
+    "web_prepare_basic_care_binding_intent",
+    "web_read_basic_care_binding_context",
+    "web_read_basic_care_page",
+    "web_read_basic_care_prerequisites",
+    "web_read_basic_care_review_page",
+    "web_read_care_documentation_page",
+    "web_read_care_documentation_record",
+    "web_read_nutrition_elimination_binding_context",
+    "web_read_nutrition_elimination_page",
+    "web_read_nutrition_elimination_prerequisites",
+    "web_read_nutrition_review_page",
+    "web_read_vital_care_path_context",
+    "web_read_vital_care_path_page",
+    "web_supply_clients",
+    "web_supply_context",
+    "web_tour_planning_context",
+    "web_tour_planning_plans",
+    "web_visit_execution_context",
+    "web_visit_execution_stops",
+    "write_ambulatory_plan_amendment",
+    "write_ambulatory_plan_evaluation",
+    "write_clinical_control_event",
+    "write_daily_protocol_event"
+  ],
+  "uniqueObservedNames": [
+    "accept_pfleger_billing_period",
+    "advance_ambulatory_care_admission",
+    "advance_ambulatory_care_shift",
+    "advance_ambulatory_care_stop",
+    "advance_ambulatory_care_tour",
+    "advance_care_quality_deviation",
+    "advance_my_ambulatory_care_stop",
+    "advance_my_ambulatory_care_tour",
+    "advance_pfleger_service_proof",
+    "apply_ambulatory_assessment_lifecycle",
+    "apply_ambulatory_medication_order_revision",
+    "approve_pfleger_invoice_draft",
+    "assess_ambulatory_medication_execution",
+    "authorize_ambulatory_medication_daily_plan",
+    "bodymap_get_active_medical_approval",
+    "capture_ambulatory_medication_source",
+    "capture_pfleger_proof_client_confirmation",
+    "capture_pfleger_proof_signature",
+    "change_ambulatory_medication_status",
+    "commit_ambulatory_medication_order_review",
+    "complete_ambulatory_care_stop",
+    "confirm_ambulatory_care_stop_opening",
+    "confirm_ambulatory_medication_daily_plan",
+    "confirm_ambulatory_medication_daily_plan_authorization",
+    "confirm_ambulatory_medication_daily_plan_review_request",
+    "confirm_ambulatory_medication_order_review",
+    "confirm_ambulatory_medication_order_revision",
+    "confirm_ambulatory_medication_source_capture",
+    "confirm_ambulatory_vital_follow_up",
+    "confirm_ambulatory_vital_invalidation",
+    "confirm_ambulatory_vital_measurement",
+    "correct_pfleger_service_proof",
+    "create_ambulatory_care_shift",
+    "create_ambulatory_care_stop_proof",
+    "create_ambulatory_care_stop_proof_batch",
+    "create_ambulatory_care_tariff",
+    "create_ambulatory_care_tour",
+    "create_ambulatory_handover",
+    "create_bound_pfleger_invoice_foundation",
+    "create_care_plan_evaluation",
+    "create_care_quality_deviation",
+    "create_care_quality_visit",
+    "create_catalog_care_stop_proof",
+    "create_clinical_documentation",
+    "create_clinical_handover",
+    "create_clinical_wound_assessment",
+    "create_clinical_wound_case",
+    "create_pfleger_invoice_draft",
+    "create_pfleger_invoice_foundation",
+    "create_pfleger_service_proof",
+    "current_tenant_id",
+    "get_ambulatory_care_stop_completion_context",
+    "get_ambulatory_care_stop_emergency_context",
+    "get_ambulatory_care_stop_opening_context",
+    "get_ambulatory_care_stop_proof_batch",
+    "get_ambulatory_care_stop_task_context",
+    "get_ambulatory_care_stop_time_context",
+    "get_ambulatory_care_stop_unreachable_context",
+    "get_ambulatory_care_tour_resources",
+    "get_my_ambulatory_care_proof_export",
+    "get_my_ambulatory_care_proofs",
+    "get_my_ambulatory_care_signature",
+    "get_my_ambulatory_care_tours",
+    "get_pfleger_md_readiness",
+    "get_pfleger_quality_stats",
+    "invalidate_ambulatory_vital_measurement",
+    "link_ambulatory_medication_source",
+    "list_pfleger_clients",
+    "medication_witness_options",
+    "open_ambulatory_care_stop_emergency",
+    "prepare_ambulatory_care_stop_tasks",
+    "propose_ambulatory_medication_daily_plan",
+    "propose_ambulatory_medication_order_revision",
+    "read_ambulatory_medication_daily_plan_context",
+    "read_ambulatory_medication_daily_plan_review_context",
+    "read_ambulatory_medication_daily_plan_reviews",
+    "read_ambulatory_medication_daily_plans",
+    "read_ambulatory_medication_order_review_context",
+    "read_ambulatory_medication_order_revision_context",
+    "read_ambulatory_medication_order_revisions",
+    "read_ambulatory_plan_amendments",
+    "read_ambulatory_plan_evaluations",
+    "read_clinical_control_people",
+    "read_clinical_control_sources",
+    "read_clinical_controls",
+    "read_daily_protocol_clients",
+    "read_daily_protocols",
+    "read_infusion_courses",
+    "read_treatment_wound_relation",
+    "reconcile_ambulatory_care_stop_write",
+    "record_ambulatory_care_stop_contact_attempt",
+    "record_ambulatory_care_stop_emergency_event",
+    "record_ambulatory_care_stop_task_execution",
+    "record_ambulatory_care_stop_time_event",
+    "record_ambulatory_medication_event",
+    "record_ambulatory_medication_followup",
+    "record_ambulatory_vital_follow_up",
+    "record_ambulatory_vital_measurement",
+    "record_body_map_finding_progress",
+    "record_clinical_treatment_execution",
+    "record_pfleger_accounting_posting",
+    "record_pfleger_cost_carrier_export_validation",
+    "record_pfleger_cost_carrier_rejection",
+    "record_pfleger_cost_carrier_resubmission",
+    "record_pfleger_direct_debit_release",
+    "record_pfleger_direct_debit_return",
+    "record_pfleger_dunning_dispatch",
+    "record_pfleger_dunning_notice",
+    "record_pfleger_invoice_adjustment",
+    "record_pfleger_invoice_cost_share_assessment",
+    "record_pfleger_invoice_period_closure",
+    "record_pfleger_invoice_period_correction",
+    "record_pfleger_receivable_payment",
+    "release_pfleger_billing_case",
+    "request_ambulatory_medication_daily_plan_review",
+    "request_ambulatory_medication_daily_plan_withdrawal",
+    "resolve_current_profile_id",
+    "review_care_plan_measure",
+    "review_care_risk",
+    "save_ambulatory_care_admission",
+    "save_ambulatory_care_task",
+    "save_care_assessment",
+    "save_live_care_plan",
+    "sign_clinical_documentation",
+    "submit_ambulatory_assessment_review",
+    "transition_care_assessment",
+    "web_assessment_path_workspace_context",
+    "web_cancel_basic_care_binding_intent",
+    "web_capture_nutrition_elimination_plan_binding",
+    "web_care_documentation_path_workspace_context",
+    "web_care_plan_path_workspace_context",
+    "web_case_handover_clients",
+    "web_case_handover_context",
+    "web_case_handover_history",
+    "web_case_handover_list",
+    "web_commit_assessment_path_event",
+    "web_commit_basic_care_binding_intent",
+    "web_commit_basic_care_packet",
+    "web_commit_basic_care_review",
+    "web_commit_care_documentation_packet",
+    "web_commit_care_plan_path_event",
+    "web_commit_case_handover",
+    "web_commit_connected_specialist_review",
+    "web_commit_counseling_coordination_path_packet",
+    "web_commit_counseling_coordination_review",
+    "web_commit_medication_safety_packet",
+    "web_commit_medication_safety_review",
+    "web_commit_mental_health_care_path_packet",
+    "web_commit_mental_health_care_review",
+    "web_commit_nutrition_elimination_packet",
+    "web_commit_nutrition_review",
+    "web_commit_palliative_special_care_path_packet",
+    "web_commit_palliative_special_care_review",
+    "web_commit_respiratory_care_review",
+    "web_commit_respiratory_intensive_care_path_packet",
+    "web_commit_supply",
+    "web_commit_supply_review",
+    "web_commit_tour_planning_event",
+    "web_commit_tour_planning_review",
+    "web_commit_treatment_care_packet",
+    "web_commit_treatment_care_review",
+    "web_commit_visit_execution_event",
+    "web_commit_visit_execution_review",
+    "web_commit_vital_care_path_packet",
+    "web_commit_vital_care_review",
+    "web_commit_wound_path_packet",
+    "web_commit_wound_path_review",
+    "web_confirm_assessment_path_event",
+    "web_confirm_basic_care_binding_intent",
+    "web_confirm_basic_care_packet",
+    "web_confirm_basic_care_review",
+    "web_confirm_care_diagnosis_with_history",
+    "web_confirm_care_documentation_packet",
+    "web_confirm_care_plan_path_event",
+    "web_confirm_case_handover",
+    "web_confirm_connected_specialist_review",
+    "web_confirm_counseling_coordination_path_packet",
+    "web_confirm_counseling_coordination_review",
+    "web_confirm_medication_safety_packet",
+    "web_confirm_medication_safety_review",
+    "web_confirm_mental_health_care_path_packet",
+    "web_confirm_mental_health_care_review",
+    "web_confirm_nutrition_elimination_packet",
+    "web_confirm_nutrition_elimination_plan_binding",
+    "web_confirm_nutrition_review",
+    "web_confirm_palliative_special_care_path_packet",
+    "web_confirm_palliative_special_care_review",
+    "web_confirm_respiratory_care_review",
+    "web_confirm_respiratory_intensive_care_path_packet",
+    "web_confirm_supply",
+    "web_confirm_supply_review",
+    "web_confirm_tour_planning_event",
+    "web_confirm_tour_planning_review",
+    "web_confirm_treatment_care_packet",
+    "web_confirm_treatment_care_review",
+    "web_confirm_visit_execution_event",
+    "web_confirm_visit_execution_review",
+    "web_confirm_vital_care_path_packet",
+    "web_confirm_vital_care_review",
+    "web_confirm_wound_path_packet",
+    "web_confirm_wound_path_review",
+    "web_my_tour_publications",
+    "web_prepare_basic_care_binding_intent",
+    "web_read_ambulatory_assessment_instrument_packet",
+    "web_read_ambulatory_plan_lifecycle_packet",
+    "web_read_basic_care_binding_context",
+    "web_read_basic_care_page",
+    "web_read_basic_care_prerequisites",
+    "web_read_basic_care_review_page",
+    "web_read_care_documentation_page",
+    "web_read_care_documentation_record",
+    "web_read_connected_specialist_review_page",
+    "web_read_counseling_coordination_path_context",
+    "web_read_counseling_coordination_path_page",
+    "web_read_counseling_coordination_review_page",
+    "web_read_medication_safety_context",
+    "web_read_medication_safety_page",
+    "web_read_medication_safety_review_page",
+    "web_read_mental_health_care_path_context",
+    "web_read_mental_health_care_path_page",
+    "web_read_mental_health_care_review_page",
+    "web_read_nutrition_elimination_binding_context",
+    "web_read_nutrition_elimination_page",
+    "web_read_nutrition_elimination_prerequisites",
+    "web_read_nutrition_review_page",
+    "web_read_palliative_special_care_path_context",
+    "web_read_palliative_special_care_path_page",
+    "web_read_palliative_special_care_review_page",
+    "web_read_respiratory_care_review_page",
+    "web_read_respiratory_intensive_care_path_context",
+    "web_read_respiratory_intensive_care_path_page",
+    "web_read_supply_review_page",
+    "web_read_tour_planning_review_page",
+    "web_read_treatment_care_context",
+    "web_read_treatment_care_page",
+    "web_read_treatment_care_review_page",
+    "web_read_visit_execution_review_page",
+    "web_read_vital_care_path_context",
+    "web_read_vital_care_path_page",
+    "web_read_vital_care_review_page",
+    "web_read_wound_path_context",
+    "web_read_wound_path_page",
+    "web_read_wound_path_review_page",
+    "web_record_care_diagnosis_with_history",
+    "web_supply_clients",
+    "web_supply_context",
+    "web_tour_planning_context",
+    "web_tour_planning_plans",
+    "web_visit_execution_context",
+    "web_visit_execution_stops",
+    "write_ambulatory_assessment_draft",
+    "write_ambulatory_plan_amendment",
+    "write_ambulatory_plan_evaluation",
+    "write_ambulatory_wound_assessment_correction",
+    "write_ambulatory_wound_care",
+    "write_ambulatory_wound_documentation",
+    "write_ambulatory_wound_lifecycle",
+    "write_clinical_control_event",
+    "write_clinical_treatment_correction",
+    "write_daily_protocol_event",
+    "write_infusion_event",
+    "write_structured_treatment_execution"
+  ],
+  "directRpcCallSites": [
+    {
+      "file": "src/lib/pflege/ambulatoryHandoverService.ts",
+      "line": 49,
+      "argument": "'create_ambulatory_handover' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "create_ambulatory_handover"
+      ],
+      "sourceBlobSha256": "07a1ad36c823b8a4e38fff742b84e7263a63a239ef7ccc8c361672f1ec5c64cf"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 32,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 83,
+      "argument": "'get_ambulatory_care_stop_proof_batch'",
+      "kind": "literal",
+      "names": [
+        "get_ambulatory_care_stop_proof_batch"
+      ],
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 94,
+      "argument": "'create_ambulatory_care_stop_proof_batch'",
+      "kind": "literal",
+      "names": [
+        "create_ambulatory_care_stop_proof_batch"
+      ],
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryWoundService.ts",
+      "line": 35,
+      "argument": "'write_ambulatory_wound_documentation'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_documentation"
+      ],
+      "sourceBlobSha256": "8a8d65c54348bad2521b9cd6b15d01456b71d433402adf384847c9998a3f109b"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryWoundService.ts",
+      "line": 44,
+      "argument": "'write_ambulatory_wound_lifecycle'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_lifecycle"
+      ],
+      "sourceBlobSha256": "8a8d65c54348bad2521b9cd6b15d01456b71d433402adf384847c9998a3f109b"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryWoundService.web.ts",
+      "line": 36,
+      "argument": "'write_ambulatory_wound_documentation'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_documentation"
+      ],
+      "sourceBlobSha256": "3ad78bd18c9839ac58cd681c8938e8c800de1161ddf5ddf523fa3db76906c62e"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryWoundService.web.ts",
+      "line": 45,
+      "argument": "'write_ambulatory_wound_lifecycle'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_lifecycle"
+      ],
+      "sourceBlobSha256": "3ad78bd18c9839ac58cd681c8938e8c800de1161ddf5ddf523fa3db76906c62e"
+    },
+    {
+      "file": "src/lib/pflege/bodyMap3d/medicalReviewRuntimeService.ts",
+      "line": 20,
+      "argument": "'bodymap_get_active_medical_approval'",
+      "kind": "literal",
+      "names": [
+        "bodymap_get_active_medical_approval"
+      ],
+      "sourceBlobSha256": "100001990ed613c54fc5a39f947c012a78446dc47ba5957b8909f70c32e6d51e"
+    },
+    {
+      "file": "src/lib/pflege/bodyMapClinicalService.ts",
+      "line": 542,
+      "argument": "'record_body_map_finding_progress' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "record_body_map_finding_progress"
+      ],
+      "sourceBlobSha256": "22713503ca50c55d3cb7adf6be0e60e026f67fc91ffb081fe2f1a4d0390ff9d3"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 71,
+      "argument": "'create_pfleger_service_proof'",
+      "kind": "literal",
+      "names": [
+        "create_pfleger_service_proof"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 80,
+      "argument": "'advance_pfleger_service_proof'",
+      "kind": "literal",
+      "names": [
+        "advance_pfleger_service_proof"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 97,
+      "argument": "'release_pfleger_billing_case'",
+      "kind": "literal",
+      "names": [
+        "release_pfleger_billing_case"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 113,
+      "argument": "'create_pfleger_invoice_foundation'",
+      "kind": "literal",
+      "names": [
+        "create_pfleger_invoice_foundation"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 143,
+      "argument": "'create_bound_pfleger_invoice_foundation'",
+      "kind": "literal",
+      "names": [
+        "create_bound_pfleger_invoice_foundation"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 182,
+      "argument": "'create_pfleger_invoice_draft'",
+      "kind": "literal",
+      "names": [
+        "create_pfleger_invoice_draft"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 220,
+      "argument": "'approve_pfleger_invoice_draft'",
+      "kind": "literal",
+      "names": [
+        "approve_pfleger_invoice_draft"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 268,
+      "argument": "'record_pfleger_cost_carrier_export_validation'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_cost_carrier_export_validation"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 311,
+      "argument": "'record_pfleger_cost_carrier_rejection'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_cost_carrier_rejection"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 323,
+      "argument": "'record_pfleger_cost_carrier_resubmission'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_cost_carrier_resubmission"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 354,
+      "argument": "'record_pfleger_invoice_adjustment'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_invoice_adjustment"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 398,
+      "argument": "'record_pfleger_receivable_payment'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_receivable_payment"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 413,
+      "argument": "'record_pfleger_accounting_posting'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_accounting_posting"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 439,
+      "argument": "'record_pfleger_dunning_notice'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_dunning_notice"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 446,
+      "argument": "'record_pfleger_dunning_dispatch'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_dunning_dispatch"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 471,
+      "argument": "'record_pfleger_direct_debit_release'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_direct_debit_release"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 477,
+      "argument": "'record_pfleger_direct_debit_return'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_direct_debit_return"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 502,
+      "argument": "'record_pfleger_invoice_cost_share_assessment'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_invoice_cost_share_assessment"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 531,
+      "argument": "'record_pfleger_invoice_period_closure'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_invoice_period_closure"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 537,
+      "argument": "'record_pfleger_invoice_period_correction'",
+      "kind": "literal",
+      "names": [
+        "record_pfleger_invoice_period_correction"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careBillingLiveService.ts",
+      "line": 548,
+      "argument": "'accept_pfleger_billing_period'",
+      "kind": "literal",
+      "names": [
+        "accept_pfleger_billing_period"
+      ],
+      "sourceBlobSha256": "9613f9ca409c6c0d200fffad49df01a1eb6dbe8a31dc97de86b5d0b51b63b535"
+    },
+    {
+      "file": "src/lib/pflege/careDiagnosisAtomicRepository.supabase.web.ts",
+      "line": 77,
+      "argument": "'web_record_care_diagnosis_with_history'",
+      "kind": "literal",
+      "names": [
+        "web_record_care_diagnosis_with_history"
+      ],
+      "sourceBlobSha256": "a0d6e655313a554f26cc81baf7a0c1bc488a0916f200d845df0d40710e74c876"
+    },
+    {
+      "file": "src/lib/pflege/careDiagnosisAtomicRepository.supabase.web.ts",
+      "line": 89,
+      "argument": "'web_confirm_care_diagnosis_with_history'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_care_diagnosis_with_history"
+      ],
+      "sourceBlobSha256": "a0d6e655313a554f26cc81baf7a0c1bc488a0916f200d845df0d40710e74c876"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationListService.ts",
+      "line": 38,
+      "argument": "'create_clinical_documentation'",
+      "kind": "literal",
+      "names": [
+        "create_clinical_documentation"
+      ],
+      "sourceBlobSha256": "01edf7dbc5aad6bf4fa469fccdca79b209c0b247b281810d2c39bc568db7d0ae"
+    },
+    {
+      "file": "src/lib/pflege/carePlanRepository.supabase.ts",
+      "line": 247,
+      "argument": "'save_live_care_plan'",
+      "kind": "literal",
+      "names": [
+        "save_live_care_plan"
+      ],
+      "sourceBlobSha256": "ce2a080e1e640fee602f0057d2c89dd4eec8a49b1f71fac500c9c9eb7972d14b"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 12,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/careProofClientConfirmationService.ts",
+      "line": 29,
+      "argument": "'capture_pfleger_proof_client_confirmation'",
+      "kind": "literal",
+      "names": [
+        "capture_pfleger_proof_client_confirmation"
+      ],
+      "sourceBlobSha256": "6af9f52efa74d8fb2493caeb2168d2adeb8c75a2142b302ad4272f20c5b60605"
+    },
+    {
+      "file": "src/lib/pflege/careProofCorrectionService.ts",
+      "line": 20,
+      "argument": "'correct_pfleger_service_proof'",
+      "kind": "literal",
+      "names": [
+        "correct_pfleger_service_proof"
+      ],
+      "sourceBlobSha256": "fa43d8dcc9cbbe2ccae9b49d98776c194d34b3f2f20b54050e395cf242c5409e"
+    },
+    {
+      "file": "src/lib/pflege/careQualityLiveService.ts",
+      "line": 95,
+      "argument": "'create_care_plan_evaluation'",
+      "kind": "literal",
+      "names": [
+        "create_care_plan_evaluation"
+      ],
+      "sourceBlobSha256": "fbc9d6837095e39a477605e17a2f6620f89403a92425bad912bef10ed30ccd2d"
+    },
+    {
+      "file": "src/lib/pflege/careQualityLiveService.ts",
+      "line": 152,
+      "argument": "'create_care_quality_visit'",
+      "kind": "literal",
+      "names": [
+        "create_care_quality_visit"
+      ],
+      "sourceBlobSha256": "fbc9d6837095e39a477605e17a2f6620f89403a92425bad912bef10ed30ccd2d"
+    },
+    {
+      "file": "src/lib/pflege/careQualityLiveService.ts",
+      "line": 170,
+      "argument": "'get_pfleger_quality_stats'",
+      "kind": "literal",
+      "names": [
+        "get_pfleger_quality_stats"
+      ],
+      "sourceBlobSha256": "fbc9d6837095e39a477605e17a2f6620f89403a92425bad912bef10ed30ccd2d"
+    },
+    {
+      "file": "src/lib/pflege/careQualityR2LiveService.ts",
+      "line": 75,
+      "argument": "'review_care_risk'",
+      "kind": "literal",
+      "names": [
+        "review_care_risk"
+      ],
+      "sourceBlobSha256": "915ee36829c3c5a196108ca030931338b7f8c74e31d5eacb8d622849df257e46"
+    },
+    {
+      "file": "src/lib/pflege/careQualityR2LiveService.ts",
+      "line": 109,
+      "argument": "'review_care_plan_measure'",
+      "kind": "literal",
+      "names": [
+        "review_care_plan_measure"
+      ],
+      "sourceBlobSha256": "915ee36829c3c5a196108ca030931338b7f8c74e31d5eacb8d622849df257e46"
+    },
+    {
+      "file": "src/lib/pflege/careQualityR2LiveService.ts",
+      "line": 136,
+      "argument": "'create_care_quality_deviation'",
+      "kind": "literal",
+      "names": [
+        "create_care_quality_deviation"
+      ],
+      "sourceBlobSha256": "915ee36829c3c5a196108ca030931338b7f8c74e31d5eacb8d622849df257e46"
+    },
+    {
+      "file": "src/lib/pflege/careQualityR2LiveService.ts",
+      "line": 144,
+      "argument": "'advance_care_quality_deviation'",
+      "kind": "literal",
+      "names": [
+        "advance_care_quality_deviation"
+      ],
+      "sourceBlobSha256": "915ee36829c3c5a196108ca030931338b7f8c74e31d5eacb8d622849df257e46"
+    },
+    {
+      "file": "src/lib/pflege/careQualityR2LiveService.ts",
+      "line": 152,
+      "argument": "'get_pfleger_md_readiness'",
+      "kind": "literal",
+      "names": [
+        "get_pfleger_md_readiness"
+      ],
+      "sourceBlobSha256": "915ee36829c3c5a196108ca030931338b7f8c74e31d5eacb8d622849df257e46"
+    },
+    {
+      "file": "src/lib/pflege/careStopCompletionService.ts",
+      "line": 20,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "338de19241c5c5d9f71caa0496dd637bbe60426be8f0c952f932ad93eeee0fa2"
+    },
+    {
+      "file": "src/lib/pflege/careStopEmergencyService.ts",
+      "line": 6,
+      "argument": "n",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "600cf7d7466adc24c0e53aa25f270d515e9bdc8b07091d380131776636794871"
+    },
+    {
+      "file": "src/lib/pflege/careStopOpeningService.ts",
+      "line": 35,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "bc39df86b6defe885d268856a4e0e1fbbd064ebbf667741d68319d319f2cb6e3"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 34,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTimeService.ts",
+      "line": 27,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "4eaee8b1e492d9d4a0253b8f4f142e3d4b618d80d8008a94b0f4977cf5333434"
+    },
+    {
+      "file": "src/lib/pflege/careStopUnreachableService.ts",
+      "line": 41,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "0650c2af2435f50e02d2f223ab1cf3eafdee2f59662db6f523ef1b189ef43e36"
+    },
+    {
+      "file": "src/lib/pflege/careStopWriteReconciliationService.ts",
+      "line": 12,
+      "argument": "'reconcile_ambulatory_care_stop_write'",
+      "kind": "literal",
+      "names": [
+        "reconcile_ambulatory_care_stop_write"
+      ],
+      "sourceBlobSha256": "a320f2f29f695f9f552050dcf47faaa3669c09efaa4482e9026f7fa8090f4768"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 150,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 170,
+      "argument": "'get_ambulatory_care_tour_resources'",
+      "kind": "literal",
+      "names": [
+        "get_ambulatory_care_tour_resources"
+      ],
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careWorkspaceAuthority.web.ts",
+      "line": 36,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "7f7044557775e2ee727793ef186726129bbf4e23c1c06d29d320d31eed650400"
+    },
+    {
+      "file": "src/lib/pflege/careWorkspaceAuthority.web.ts",
+      "line": 38,
+      "argument": "'current_tenant_id'",
+      "kind": "literal",
+      "names": [
+        "current_tenant_id"
+      ],
+      "sourceBlobSha256": "7f7044557775e2ee727793ef186726129bbf4e23c1c06d29d320d31eed650400"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 45,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 100,
+      "argument": "'web_commit_case_handover'",
+      "kind": "literal",
+      "names": [
+        "web_commit_case_handover"
+      ],
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/clinicalControlService.ts",
+      "line": 13,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "a17bed360e77387be0ff1eda463a85cd2d0a72c1930d7bbf04967dcbb2014e7c"
+    },
+    {
+      "file": "src/lib/pflege/clinicalWorkflowService.ts",
+      "line": 46,
+      "argument": "'create_clinical_handover' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "create_clinical_handover"
+      ],
+      "sourceBlobSha256": "544282494f90188029d4b8fb3df68fe427869b61e3cbc11c002e5835a246af6f"
+    },
+    {
+      "file": "src/lib/pflege/clinicalWorkflowService.ts",
+      "line": 77,
+      "argument": "'record_clinical_treatment_execution' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "record_clinical_treatment_execution"
+      ],
+      "sourceBlobSha256": "544282494f90188029d4b8fb3df68fe427869b61e3cbc11c002e5835a246af6f"
+    },
+    {
+      "file": "src/lib/pflege/clinicalWorkflowService.ts",
+      "line": 88,
+      "argument": "'sign_clinical_documentation' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "sign_clinical_documentation"
+      ],
+      "sourceBlobSha256": "544282494f90188029d4b8fb3df68fe427869b61e3cbc11c002e5835a246af6f"
+    },
+    {
+      "file": "src/lib/pflege/clinicalWorkflowService.ts",
+      "line": 99,
+      "argument": "'create_clinical_wound_assessment' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "create_clinical_wound_assessment"
+      ],
+      "sourceBlobSha256": "544282494f90188029d4b8fb3df68fe427869b61e3cbc11c002e5835a246af6f"
+    },
+    {
+      "file": "src/lib/pflege/connectedSpecialistReviewRepository.supabase.web.ts",
+      "line": 28,
+      "argument": "'web_read_connected_specialist_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_connected_specialist_review_page"
+      ],
+      "sourceBlobSha256": "d602658dd0bc163877d0bcc0275a31b1ca736dfcca539b3593e0549084ef6d3d"
+    },
+    {
+      "file": "src/lib/pflege/connectedSpecialistReviewRepository.supabase.web.ts",
+      "line": 45,
+      "argument": "confirm?'web_confirm_connected_specialist_review':'web_commit_connected_specialist_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_connected_specialist_review",
+        "web_commit_connected_specialist_review"
+      ],
+      "sourceBlobSha256": "d602658dd0bc163877d0bcc0275a31b1ca736dfcca539b3593e0549084ef6d3d"
+    },
+    {
+      "file": "src/lib/pflege/connectedSpecialistReviewRepository.supabase.web.ts",
+      "line": 61,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "d602658dd0bc163877d0bcc0275a31b1ca736dfcca539b3593e0549084ef6d3d"
+    },
+    {
+      "file": "src/lib/pflege/dailyProtocolService.ts",
+      "line": 13,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "f97a5966b063b50a8948134ab95dcd5e7e4ac4652086263a99098227df022ff7"
+    },
+    {
+      "file": "src/lib/pflege/infusionCourseService.ts",
+      "line": 28,
+      "argument": "'read_infusion_courses'",
+      "kind": "literal",
+      "names": [
+        "read_infusion_courses"
+      ],
+      "sourceBlobSha256": "7d465375f217819ac391b74fa10461192f4b4af4f0128c5ccd3b1c227b558824"
+    },
+    {
+      "file": "src/lib/pflege/infusionCourseService.ts",
+      "line": 34,
+      "argument": "'write_infusion_event'",
+      "kind": "literal",
+      "names": [
+        "write_infusion_event"
+      ],
+      "sourceBlobSha256": "7d465375f217819ac391b74fa10461192f4b4af4f0128c5ccd3b1c227b558824"
+    },
+    {
+      "file": "src/lib/pflege/medicationAdministrationService.ts",
+      "line": 99,
+      "argument": "rpcName",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 31,
+      "argument": "'propose_ambulatory_medication_daily_plan'",
+      "kind": "literal",
+      "names": [
+        "propose_ambulatory_medication_daily_plan"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 34,
+      "argument": "'confirm_ambulatory_medication_daily_plan'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_daily_plan"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 41,
+      "argument": "'read_ambulatory_medication_daily_plans'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plans"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 46,
+      "argument": "'read_ambulatory_medication_daily_plans'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plans"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 51,
+      "argument": "'read_ambulatory_medication_daily_plan_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plan_context"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 52,
+      "argument": "'read_ambulatory_medication_daily_plan_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plan_context"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 59,
+      "argument": "'assess_ambulatory_medication_execution'",
+      "kind": "literal",
+      "names": [
+        "assess_ambulatory_medication_execution"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 71,
+      "argument": "'request_ambulatory_medication_daily_plan_withdrawal'",
+      "kind": "literal",
+      "names": [
+        "request_ambulatory_medication_daily_plan_withdrawal"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 71,
+      "argument": "'request_ambulatory_medication_daily_plan_review'",
+      "kind": "literal",
+      "names": [
+        "request_ambulatory_medication_daily_plan_review"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 75,
+      "argument": "'confirm_ambulatory_medication_daily_plan_review_request'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_daily_plan_review_request"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 82,
+      "argument": "'read_ambulatory_medication_daily_plan_review_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plan_review_context"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 86,
+      "argument": "'read_ambulatory_medication_daily_plan_reviews'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plan_reviews"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 90,
+      "argument": "'read_ambulatory_medication_daily_plan_reviews'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_daily_plan_reviews"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 98,
+      "argument": "'authorize_ambulatory_medication_daily_plan'",
+      "kind": "literal",
+      "names": [
+        "authorize_ambulatory_medication_daily_plan"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "line": 99,
+      "argument": "'confirm_ambulatory_medication_daily_plan_authorization'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_daily_plan_authorization"
+      ],
+      "sourceBlobSha256": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a"
+    },
+    {
+      "file": "src/lib/pflege/medicationLiveService.ts",
+      "line": 166,
+      "argument": "'medication_witness_options'",
+      "kind": "literal",
+      "names": [
+        "medication_witness_options"
+      ],
+      "sourceBlobSha256": "8d53e58a972ac971f1f0478d0c4ecee0fb3de70bdd960848e49df6b29dcfd14a"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 30,
+      "argument": "'commit_ambulatory_medication_order_review'",
+      "kind": "literal",
+      "names": [
+        "commit_ambulatory_medication_order_review"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 33,
+      "argument": "'confirm_ambulatory_medication_order_review'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_order_review"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 43,
+      "argument": "'read_ambulatory_medication_order_review_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_review_context"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 52,
+      "argument": "'read_ambulatory_medication_order_review_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_review_context"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 62,
+      "argument": "'apply_ambulatory_medication_order_revision'",
+      "kind": "literal",
+      "names": [
+        "apply_ambulatory_medication_order_revision"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 65,
+      "argument": "'confirm_ambulatory_medication_order_revision'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_order_revision"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 74,
+      "argument": "'confirm_ambulatory_medication_order_review'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_order_review"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "line": 79,
+      "argument": "'confirm_ambulatory_medication_order_revision'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_order_revision"
+      ],
+      "sourceBlobSha256": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 33,
+      "argument": "'propose_ambulatory_medication_order_revision'",
+      "kind": "literal",
+      "names": [
+        "propose_ambulatory_medication_order_revision"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 37,
+      "argument": "'confirm_ambulatory_medication_order_revision'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_order_revision"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 54,
+      "argument": "'read_ambulatory_medication_order_revisions'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_revisions"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 64,
+      "argument": "'read_ambulatory_medication_order_revisions'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_revisions"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 76,
+      "argument": "'read_ambulatory_medication_order_revision_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_revision_context"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "line": 82,
+      "argument": "'read_ambulatory_medication_order_revision_context'",
+      "kind": "literal",
+      "names": [
+        "read_ambulatory_medication_order_revision_context"
+      ],
+      "sourceBlobSha256": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyRepository.supabase.web.ts",
+      "line": 22,
+      "argument": "'web_read_medication_safety_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_medication_safety_context"
+      ],
+      "sourceBlobSha256": "9cf48a5972d15b5d3faed7de936c5bac41430eb0837cbba71066bda1fa15aeb2"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyRepository.supabase.web.ts",
+      "line": 24,
+      "argument": "'web_read_medication_safety_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_medication_safety_page"
+      ],
+      "sourceBlobSha256": "9cf48a5972d15b5d3faed7de936c5bac41430eb0837cbba71066bda1fa15aeb2"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyRepository.supabase.web.ts",
+      "line": 27,
+      "argument": "'web_commit_medication_safety_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_medication_safety_packet"
+      ],
+      "sourceBlobSha256": "9cf48a5972d15b5d3faed7de936c5bac41430eb0837cbba71066bda1fa15aeb2"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyRepository.supabase.web.ts",
+      "line": 28,
+      "argument": "'web_confirm_medication_safety_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_medication_safety_packet"
+      ],
+      "sourceBlobSha256": "9cf48a5972d15b5d3faed7de936c5bac41430eb0837cbba71066bda1fa15aeb2"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyReviewRepository.supabase.web.ts",
+      "line": 13,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "47984b55bd44f7dec2ff3b9295d3d35a9d864805e81ce87cae96f6a69c44ce85"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyReviewRepository.supabase.web.ts",
+      "line": 16,
+      "argument": "'web_read_medication_safety_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_medication_safety_review_page"
+      ],
+      "sourceBlobSha256": "47984b55bd44f7dec2ff3b9295d3d35a9d864805e81ce87cae96f6a69c44ce85"
+    },
+    {
+      "file": "src/lib/pflege/medicationSafetyReviewRepository.supabase.web.ts",
+      "line": 18,
+      "argument": "confirm?'web_confirm_medication_safety_review':'web_commit_medication_safety_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_medication_safety_review",
+        "web_commit_medication_safety_review"
+      ],
+      "sourceBlobSha256": "47984b55bd44f7dec2ff3b9295d3d35a9d864805e81ce87cae96f6a69c44ce85"
+    },
+    {
+      "file": "src/lib/pflege/medicationSourceCaptureService.web.ts",
+      "line": 25,
+      "argument": "'capture_ambulatory_medication_source'",
+      "kind": "literal",
+      "names": [
+        "capture_ambulatory_medication_source"
+      ],
+      "sourceBlobSha256": "a8487e0964d90daec6b22d708603f2ee8be8c595236b5b867c9f4a7ea004429f"
+    },
+    {
+      "file": "src/lib/pflege/medicationSourceCaptureService.web.ts",
+      "line": 31,
+      "argument": "'confirm_ambulatory_medication_source_capture'",
+      "kind": "literal",
+      "names": [
+        "confirm_ambulatory_medication_source_capture"
+      ],
+      "sourceBlobSha256": "a8487e0964d90daec6b22d708603f2ee8be8c595236b5b867c9f4a7ea004429f"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryCareReviewRepository.supabase.web.ts",
+      "line": 16,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "9f35296cfee393b676ba5ce33843a23f6c3123cf2c669139d79bf9aa65a77a99"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryCareReviewRepository.supabase.web.ts",
+      "line": 22,
+      "argument": "'web_read_respiratory_care_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_respiratory_care_review_page"
+      ],
+      "sourceBlobSha256": "9f35296cfee393b676ba5ce33843a23f6c3123cf2c669139d79bf9aa65a77a99"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryCareReviewRepository.supabase.web.ts",
+      "line": 30,
+      "argument": "confirm?'web_confirm_respiratory_care_review':'web_commit_respiratory_care_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_respiratory_care_review",
+        "web_commit_respiratory_care_review"
+      ],
+      "sourceBlobSha256": "9f35296cfee393b676ba5ce33843a23f6c3123cf2c669139d79bf9aa65a77a99"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_respiratory_intensive_care_path_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_respiratory_intensive_care_path_context"
+      ],
+      "sourceBlobSha256": "2ef0e42d2e0d72bd1124bbeff96b7f14d92773bf9315923c020ecb426d1863bc"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts",
+      "line": 13,
+      "argument": "'web_read_respiratory_intensive_care_path_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_respiratory_intensive_care_path_page"
+      ],
+      "sourceBlobSha256": "2ef0e42d2e0d72bd1124bbeff96b7f14d92773bf9315923c020ecb426d1863bc"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_commit_respiratory_intensive_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_respiratory_intensive_care_path_packet"
+      ],
+      "sourceBlobSha256": "2ef0e42d2e0d72bd1124bbeff96b7f14d92773bf9315923c020ecb426d1863bc"
+    },
+    {
+      "file": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts",
+      "line": 16,
+      "argument": "'web_confirm_respiratory_intensive_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_respiratory_intensive_care_path_packet"
+      ],
+      "sourceBlobSha256": "2ef0e42d2e0d72bd1124bbeff96b7f14d92773bf9315923c020ecb426d1863bc"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceRepository.web.ts",
+      "line": 18,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "e4c414499c376c32fc088503227c4a85e64fdf50b3f078ecf37f6e974b05e5f9"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceRepository.web.ts",
+      "line": 31,
+      "argument": "'web_commit_supply'",
+      "kind": "literal",
+      "names": [
+        "web_commit_supply"
+      ],
+      "sourceBlobSha256": "e4c414499c376c32fc088503227c4a85e64fdf50b3f078ecf37f6e974b05e5f9"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceReviewRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_supply_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_supply_review_page"
+      ],
+      "sourceBlobSha256": "ff8874aa786f4c6a561630bd366662cd7f6f04181b3a551a36cf052578bf808d"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceReviewRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "confirm?'web_confirm_supply_review':'web_commit_supply_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_supply_review",
+        "web_commit_supply_review"
+      ],
+      "sourceBlobSha256": "ff8874aa786f4c6a561630bd366662cd7f6f04181b3a551a36cf052578bf808d"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceReviewRepository.supabase.web.ts",
+      "line": 19,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "ff8874aa786f4c6a561630bd366662cd7f6f04181b3a551a36cf052578bf808d"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 21,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 43,
+      "argument": "'web_commit_tour_planning_event'",
+      "kind": "literal",
+      "names": [
+        "web_commit_tour_planning_event"
+      ],
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceReviewRepository.supabase.web.ts",
+      "line": 4,
+      "argument": "'web_read_tour_planning_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_tour_planning_review_page"
+      ],
+      "sourceBlobSha256": "055332adf5b10e6c420d214b2096a0d9673ccea128f72b5aa49b394a1883141c"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceReviewRepository.supabase.web.ts",
+      "line": 6,
+      "argument": "confirm?'web_confirm_tour_planning_review':'web_commit_tour_planning_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_tour_planning_review",
+        "web_commit_tour_planning_review"
+      ],
+      "sourceBlobSha256": "055332adf5b10e6c420d214b2096a0d9673ccea128f72b5aa49b394a1883141c"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceReviewRepository.supabase.web.ts",
+      "line": 8,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "055332adf5b10e6c420d214b2096a0d9673ccea128f72b5aa49b394a1883141c"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareRepository.supabase.web.ts",
+      "line": 25,
+      "argument": "'web_read_treatment_care_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_treatment_care_context"
+      ],
+      "sourceBlobSha256": "cd98ef5abda91cd6bf6218aa5da352030c1f92a1b3fddecdc646a3cf1887dcfb"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareRepository.supabase.web.ts",
+      "line": 28,
+      "argument": "'web_read_treatment_care_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_treatment_care_page"
+      ],
+      "sourceBlobSha256": "cd98ef5abda91cd6bf6218aa5da352030c1f92a1b3fddecdc646a3cf1887dcfb"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareRepository.supabase.web.ts",
+      "line": 50,
+      "argument": "'web_commit_treatment_care_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_treatment_care_packet"
+      ],
+      "sourceBlobSha256": "cd98ef5abda91cd6bf6218aa5da352030c1f92a1b3fddecdc646a3cf1887dcfb"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareRepository.supabase.web.ts",
+      "line": 51,
+      "argument": "'web_confirm_treatment_care_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_treatment_care_packet"
+      ],
+      "sourceBlobSha256": "cd98ef5abda91cd6bf6218aa5da352030c1f92a1b3fddecdc646a3cf1887dcfb"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareReviewRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "d73be8f8a1dd761419053a678e38e19474a555bf0924678793097989fc320874"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareReviewRepository.supabase.web.ts",
+      "line": 30,
+      "argument": "'web_read_treatment_care_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_treatment_care_review_page"
+      ],
+      "sourceBlobSha256": "d73be8f8a1dd761419053a678e38e19474a555bf0924678793097989fc320874"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCareReviewRepository.supabase.web.ts",
+      "line": 42,
+      "argument": "confirm?'web_confirm_treatment_care_review':'web_commit_treatment_care_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_treatment_care_review",
+        "web_commit_treatment_care_review"
+      ],
+      "sourceBlobSha256": "d73be8f8a1dd761419053a678e38e19474a555bf0924678793097989fc320874"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCorrectionService.ts",
+      "line": 29,
+      "argument": "'read_treatment_wound_relation' as never",
+      "kind": "literal_type_assertion",
+      "names": [
+        "read_treatment_wound_relation"
+      ],
+      "sourceBlobSha256": "f6af99288e60d3ea5c6aebd4a371f5b4f7b515c6b769d975d21366ce18a42ba7"
+    },
+    {
+      "file": "src/lib/pflege/treatmentCorrectionService.ts",
+      "line": 64,
+      "argument": "'write_clinical_treatment_correction'",
+      "kind": "literal",
+      "names": [
+        "write_clinical_treatment_correction"
+      ],
+      "sourceBlobSha256": "f6af99288e60d3ea5c6aebd4a371f5b4f7b515c6b769d975d21366ce18a42ba7"
+    },
+    {
+      "file": "src/lib/pflege/treatmentExecutionService.ts",
+      "line": 26,
+      "argument": "'write_structured_treatment_execution'",
+      "kind": "literal",
+      "names": [
+        "write_structured_treatment_execution"
+      ],
+      "sourceBlobSha256": "d9755eb34692030c21ddb33e497999c9ceb07905ef9f624db512748a66aa8556"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceRepository.web.ts",
+      "line": 14,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "40b6440627c009511e2cd577cfee2d4108395fc752cdd75abe0dc6e014a42a96"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceRepository.web.ts",
+      "line": 18,
+      "argument": "'web_commit_visit_execution_event'",
+      "kind": "literal",
+      "names": [
+        "web_commit_visit_execution_event"
+      ],
+      "sourceBlobSha256": "40b6440627c009511e2cd577cfee2d4108395fc752cdd75abe0dc6e014a42a96"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceReviewRepository.supabase.web.ts",
+      "line": 4,
+      "argument": "'web_read_visit_execution_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_visit_execution_review_page"
+      ],
+      "sourceBlobSha256": "899b96e6cd0a52d66433687937f8e5f4e223d3fd0bf0a2aab2654b96097eb47f"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceReviewRepository.supabase.web.ts",
+      "line": 6,
+      "argument": "confirm?'web_confirm_visit_execution_review':'web_commit_visit_execution_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_visit_execution_review",
+        "web_commit_visit_execution_review"
+      ],
+      "sourceBlobSha256": "899b96e6cd0a52d66433687937f8e5f4e223d3fd0bf0a2aab2654b96097eb47f"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceReviewRepository.supabase.web.ts",
+      "line": 8,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "899b96e6cd0a52d66433687937f8e5f4e223d3fd0bf0a2aab2654b96097eb47f"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 30,
+      "argument": "'web_commit_vital_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_vital_care_path_packet"
+      ],
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 31,
+      "argument": "'web_confirm_vital_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_vital_care_path_packet"
+      ],
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCareReviewRepository.supabase.web.ts",
+      "line": 18,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "0ecb2b9293e512ae0c3d1cec671c2d9411b1684913007607975c750f2b10793c"
+    },
+    {
+      "file": "src/lib/pflege/vitalCareReviewRepository.supabase.web.ts",
+      "line": 25,
+      "argument": "'web_read_vital_care_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_vital_care_review_page"
+      ],
+      "sourceBlobSha256": "0ecb2b9293e512ae0c3d1cec671c2d9411b1684913007607975c750f2b10793c"
+    },
+    {
+      "file": "src/lib/pflege/vitalCareReviewRepository.supabase.web.ts",
+      "line": 35,
+      "argument": "confirm?'web_confirm_vital_care_review':'web_commit_vital_care_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_vital_care_review",
+        "web_commit_vital_care_review"
+      ],
+      "sourceBlobSha256": "0ecb2b9293e512ae0c3d1cec671c2d9411b1684913007607975c750f2b10793c"
+    },
+    {
+      "file": "src/lib/pflege/vitalDocumentationService.ts",
+      "line": 72,
+      "argument": "'record_ambulatory_vital_measurement'",
+      "kind": "literal",
+      "names": [
+        "record_ambulatory_vital_measurement"
+      ],
+      "sourceBlobSha256": "7cf919e8cb30cf1c708560d2c0af1154def1f02f571e630c6e2fe93c0fb49f56"
+    },
+    {
+      "file": "src/lib/pflege/vitalDocumentationService.ts",
+      "line": 94,
+      "argument": "'record_ambulatory_vital_follow_up'",
+      "kind": "literal",
+      "names": [
+        "record_ambulatory_vital_follow_up"
+      ],
+      "sourceBlobSha256": "7cf919e8cb30cf1c708560d2c0af1154def1f02f571e630c6e2fe93c0fb49f56"
+    },
+    {
+      "file": "src/lib/pflege/vitalDocumentationService.ts",
+      "line": 118,
+      "argument": "'invalidate_ambulatory_vital_measurement'",
+      "kind": "literal",
+      "names": [
+        "invalidate_ambulatory_vital_measurement"
+      ],
+      "sourceBlobSha256": "7cf919e8cb30cf1c708560d2c0af1154def1f02f571e630c6e2fe93c0fb49f56"
+    },
+    {
+      "file": "src/lib/pflege/woundAssessmentCorrectionService.ts",
+      "line": 43,
+      "argument": "'write_ambulatory_wound_assessment_correction'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_assessment_correction"
+      ],
+      "sourceBlobSha256": "11b44cd38c64b40314b1429369d8170e659b61b733d3ed59246e37c9847d4e7d"
+    },
+    {
+      "file": "src/lib/pflege/woundCareService.ts",
+      "line": 40,
+      "argument": "'write_ambulatory_wound_care'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_wound_care"
+      ],
+      "sourceBlobSha256": "705f40ea5bf3bfb47d2c0a0529e626a4f6753fbf6c759552b86e92ed2e4362b6"
+    },
+    {
+      "file": "src/lib/pflege/woundDocumentationService.ts",
+      "line": 35,
+      "argument": "'create_clinical_wound_case'",
+      "kind": "literal",
+      "names": [
+        "create_clinical_wound_case"
+      ],
+      "sourceBlobSha256": "ddb8f43e725e421af4ef4fd25112a5cb0f18db547a0aa0c9d4c55512506f287e"
+    },
+    {
+      "file": "src/lib/pflege/woundPathRepository.supabase.web.ts",
+      "line": 13,
+      "argument": "'web_read_wound_path_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_wound_path_context"
+      ],
+      "sourceBlobSha256": "27d0a535825f927edca83752de886ec0de0e23a9b2e062d62170e081cd6cd829"
+    },
+    {
+      "file": "src/lib/pflege/woundPathRepository.supabase.web.ts",
+      "line": 20,
+      "argument": "'web_read_wound_path_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_wound_path_page"
+      ],
+      "sourceBlobSha256": "27d0a535825f927edca83752de886ec0de0e23a9b2e062d62170e081cd6cd829"
+    },
+    {
+      "file": "src/lib/pflege/woundPathRepository.supabase.web.ts",
+      "line": 55,
+      "argument": "'web_commit_wound_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_wound_path_packet"
+      ],
+      "sourceBlobSha256": "27d0a535825f927edca83752de886ec0de0e23a9b2e062d62170e081cd6cd829"
+    },
+    {
+      "file": "src/lib/pflege/woundPathRepository.supabase.web.ts",
+      "line": 56,
+      "argument": "'web_confirm_wound_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_wound_path_packet"
+      ],
+      "sourceBlobSha256": "27d0a535825f927edca83752de886ec0de0e23a9b2e062d62170e081cd6cd829"
+    },
+    {
+      "file": "src/lib/pflege/woundPathReviewRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "5a9633ef53b6366b2c7b47a8ad160e21934aff70be423a6f19125fd67044e448"
+    },
+    {
+      "file": "src/lib/pflege/woundPathReviewRepository.supabase.web.ts",
+      "line": 24,
+      "argument": "'web_read_wound_path_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_wound_path_review_page"
+      ],
+      "sourceBlobSha256": "5a9633ef53b6366b2c7b47a8ad160e21934aff70be423a6f19125fd67044e448"
+    },
+    {
+      "file": "src/lib/pflege/woundPathReviewRepository.supabase.web.ts",
+      "line": 50,
+      "argument": "confirm?'web_confirm_wound_path_review':'web_commit_wound_path_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_wound_path_review",
+        "web_commit_wound_path_review"
+      ],
+      "sourceBlobSha256": "5a9633ef53b6366b2c7b47a8ad160e21934aff70be423a6f19125fd67044e448"
+    },
+    {
+      "file": "src/lib/careAssessment/assessmentInstrumentRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_read_ambulatory_assessment_instrument_packet'",
+      "kind": "literal",
+      "names": [
+        "web_read_ambulatory_assessment_instrument_packet"
+      ],
+      "sourceBlobSha256": "4efb169cd689dd79897b2e35b3b05d4d3167aee326e341075e22827e02e37f7e"
+    },
+    {
+      "file": "src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts",
+      "line": 4,
+      "argument": "'web_assessment_path_workspace_context'",
+      "kind": "literal",
+      "names": [
+        "web_assessment_path_workspace_context"
+      ],
+      "sourceBlobSha256": "159122bd9b19cb616e2a91f67cb0d1ffa6b48aeccd1c9deadef999de7cb2964c"
+    },
+    {
+      "file": "src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts",
+      "line": 5,
+      "argument": "'web_commit_assessment_path_event'",
+      "kind": "literal",
+      "names": [
+        "web_commit_assessment_path_event"
+      ],
+      "sourceBlobSha256": "159122bd9b19cb616e2a91f67cb0d1ffa6b48aeccd1c9deadef999de7cb2964c"
+    },
+    {
+      "file": "src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts",
+      "line": 6,
+      "argument": "'web_confirm_assessment_path_event'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_assessment_path_event"
+      ],
+      "sourceBlobSha256": "159122bd9b19cb616e2a91f67cb0d1ffa6b48aeccd1c9deadef999de7cb2964c"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.ts",
+      "line": 146,
+      "argument": "'list_pfleger_clients'",
+      "kind": "literal",
+      "names": [
+        "list_pfleger_clients"
+      ],
+      "sourceBlobSha256": "b845423ff2d484a70f44463a134752cbc37ea06a8d58fa8116a4b46c7fb247f0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.ts",
+      "line": 251,
+      "argument": "'save_care_assessment'",
+      "kind": "literal",
+      "names": [
+        "save_care_assessment"
+      ],
+      "sourceBlobSha256": "b845423ff2d484a70f44463a134752cbc37ea06a8d58fa8116a4b46c7fb247f0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.ts",
+      "line": 288,
+      "argument": "'transition_care_assessment'",
+      "kind": "literal",
+      "names": [
+        "transition_care_assessment"
+      ],
+      "sourceBlobSha256": "b845423ff2d484a70f44463a134752cbc37ea06a8d58fa8116a4b46c7fb247f0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.web.ts",
+      "line": 149,
+      "argument": "'list_pfleger_clients'",
+      "kind": "literal",
+      "names": [
+        "list_pfleger_clients"
+      ],
+      "sourceBlobSha256": "ae6f80068610741309a103de29982a4196147e4840aba952f8eef515e9a46dd0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.web.ts",
+      "line": 266,
+      "argument": "'save_care_assessment'",
+      "kind": "literal",
+      "names": [
+        "save_care_assessment"
+      ],
+      "sourceBlobSha256": "ae6f80068610741309a103de29982a4196147e4840aba952f8eef515e9a46dd0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentRepository.supabase.web.ts",
+      "line": 303,
+      "argument": "'transition_care_assessment'",
+      "kind": "literal",
+      "names": [
+        "transition_care_assessment"
+      ],
+      "sourceBlobSha256": "ae6f80068610741309a103de29982a4196147e4840aba952f8eef515e9a46dd0"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentService.web.ts",
+      "line": 99,
+      "argument": "'submit_ambulatory_assessment_review'",
+      "kind": "literal",
+      "names": [
+        "submit_ambulatory_assessment_review"
+      ],
+      "sourceBlobSha256": "dbc4e1520a8c75ede7cb8805c27051db3df4d85a5f3745c792047a10cb1476c1"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentService.web.ts",
+      "line": 126,
+      "argument": "'write_ambulatory_assessment_draft'",
+      "kind": "literal",
+      "names": [
+        "write_ambulatory_assessment_draft"
+      ],
+      "sourceBlobSha256": "dbc4e1520a8c75ede7cb8805c27051db3df4d85a5f3745c792047a10cb1476c1"
+    },
+    {
+      "file": "src/lib/careAssessment/careAssessmentService.web.ts",
+      "line": 138,
+      "argument": "'apply_ambulatory_assessment_lifecycle'",
+      "kind": "literal",
+      "names": [
+        "apply_ambulatory_assessment_lifecycle"
+      ],
+      "sourceBlobSha256": "dbc4e1520a8c75ede7cb8805c27051db3df4d85a5f3745c792047a10cb1476c1"
+    },
+    {
+      "file": "src/lib/careAssessment/carePlanPathWorkspaceRepository.web.ts",
+      "line": 4,
+      "argument": "'web_care_plan_path_workspace_context'",
+      "kind": "literal",
+      "names": [
+        "web_care_plan_path_workspace_context"
+      ],
+      "sourceBlobSha256": "5b15b0f0dfb2be34caf71dde1e8e16bced97cf8161fc9727d89bdd7be9aa703a"
+    },
+    {
+      "file": "src/lib/careAssessment/carePlanPathWorkspaceRepository.web.ts",
+      "line": 5,
+      "argument": "'web_commit_care_plan_path_event'",
+      "kind": "literal",
+      "names": [
+        "web_commit_care_plan_path_event"
+      ],
+      "sourceBlobSha256": "5b15b0f0dfb2be34caf71dde1e8e16bced97cf8161fc9727d89bdd7be9aa703a"
+    },
+    {
+      "file": "src/lib/careAssessment/carePlanPathWorkspaceRepository.web.ts",
+      "line": 6,
+      "argument": "'web_confirm_care_plan_path_event'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_care_plan_path_event"
+      ],
+      "sourceBlobSha256": "5b15b0f0dfb2be34caf71dde1e8e16bced97cf8161fc9727d89bdd7be9aa703a"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationRepository.supabase.web.ts",
+      "line": 11,
+      "argument": "'web_read_counseling_coordination_path_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_counseling_coordination_path_context"
+      ],
+      "sourceBlobSha256": "244c46c891e02579fa9ddea9a75a1b46b5819e7254223c2d75555d41050a816f"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_counseling_coordination_path_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_counseling_coordination_path_page"
+      ],
+      "sourceBlobSha256": "244c46c891e02579fa9ddea9a75a1b46b5819e7254223c2d75555d41050a816f"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "'web_commit_counseling_coordination_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_counseling_coordination_path_packet"
+      ],
+      "sourceBlobSha256": "244c46c891e02579fa9ddea9a75a1b46b5819e7254223c2d75555d41050a816f"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_confirm_counseling_coordination_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_counseling_coordination_path_packet"
+      ],
+      "sourceBlobSha256": "244c46c891e02579fa9ddea9a75a1b46b5819e7254223c2d75555d41050a816f"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationReviewRepository.supabase.web.ts",
+      "line": 10,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "5c9ff5fb02e4b924b87b9082c17b6c5a6738046674915b0476000a8f56f25822"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationReviewRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_counseling_coordination_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_counseling_coordination_review_page"
+      ],
+      "sourceBlobSha256": "5c9ff5fb02e4b924b87b9082c17b6c5a6738046674915b0476000a8f56f25822"
+    },
+    {
+      "file": "src/lib/careAssessment/counselingCoordinationReviewRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "confirm?'web_confirm_counseling_coordination_review':'web_commit_counseling_coordination_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_counseling_coordination_review",
+        "web_commit_counseling_coordination_review"
+      ],
+      "sourceBlobSha256": "5c9ff5fb02e4b924b87b9082c17b6c5a6738046674915b0476000a8f56f25822"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareRepository.supabase.web.ts",
+      "line": 11,
+      "argument": "'web_read_mental_health_care_path_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_mental_health_care_path_context"
+      ],
+      "sourceBlobSha256": "99bc409ab74b5ddeeb887bd9455560482daf3f754b40c976144f1e487ade5d0d"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_mental_health_care_path_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_mental_health_care_path_page"
+      ],
+      "sourceBlobSha256": "99bc409ab74b5ddeeb887bd9455560482daf3f754b40c976144f1e487ade5d0d"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "'web_commit_mental_health_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_mental_health_care_path_packet"
+      ],
+      "sourceBlobSha256": "99bc409ab74b5ddeeb887bd9455560482daf3f754b40c976144f1e487ade5d0d"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_confirm_mental_health_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_mental_health_care_path_packet"
+      ],
+      "sourceBlobSha256": "99bc409ab74b5ddeeb887bd9455560482daf3f754b40c976144f1e487ade5d0d"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareReviewRepository.supabase.web.ts",
+      "line": 10,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "993e9a304a0f225b542f736ebecea45ed3adb67768876fd325aebd363f77c8af"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareReviewRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_mental_health_care_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_mental_health_care_review_page"
+      ],
+      "sourceBlobSha256": "993e9a304a0f225b542f736ebecea45ed3adb67768876fd325aebd363f77c8af"
+    },
+    {
+      "file": "src/lib/careAssessment/mentalHealthCareReviewRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "confirm?'web_confirm_mental_health_care_review':'web_commit_mental_health_care_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_mental_health_care_review",
+        "web_commit_mental_health_care_review"
+      ],
+      "sourceBlobSha256": "993e9a304a0f225b542f736ebecea45ed3adb67768876fd325aebd363f77c8af"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareRepository.supabase.web.ts",
+      "line": 11,
+      "argument": "'web_read_palliative_special_care_path_context'",
+      "kind": "literal",
+      "names": [
+        "web_read_palliative_special_care_path_context"
+      ],
+      "sourceBlobSha256": "fd6da47c90b92932d3e13ec6a10597fa1366bb74d5999a42b9aa3552852ba282"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_palliative_special_care_path_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_palliative_special_care_path_page"
+      ],
+      "sourceBlobSha256": "fd6da47c90b92932d3e13ec6a10597fa1366bb74d5999a42b9aa3552852ba282"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "'web_commit_palliative_special_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_commit_palliative_special_care_path_packet"
+      ],
+      "sourceBlobSha256": "fd6da47c90b92932d3e13ec6a10597fa1366bb74d5999a42b9aa3552852ba282"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_confirm_palliative_special_care_path_packet'",
+      "kind": "literal",
+      "names": [
+        "web_confirm_palliative_special_care_path_packet"
+      ],
+      "sourceBlobSha256": "fd6da47c90b92932d3e13ec6a10597fa1366bb74d5999a42b9aa3552852ba282"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareReviewRepository.supabase.web.ts",
+      "line": 10,
+      "argument": "'resolve_current_profile_id'",
+      "kind": "literal",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "sourceBlobSha256": "eccfdba6b1c4372d6050b569eedb20b4430b7e9efe58977b845256049cc152f0"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareReviewRepository.supabase.web.ts",
+      "line": 12,
+      "argument": "'web_read_palliative_special_care_review_page'",
+      "kind": "literal",
+      "names": [
+        "web_read_palliative_special_care_review_page"
+      ],
+      "sourceBlobSha256": "eccfdba6b1c4372d6050b569eedb20b4430b7e9efe58977b845256049cc152f0"
+    },
+    {
+      "file": "src/lib/careAssessment/palliativeSpecialCareReviewRepository.supabase.web.ts",
+      "line": 14,
+      "argument": "confirm?'web_confirm_palliative_special_care_review':'web_commit_palliative_special_care_review'",
+      "kind": "dynamic",
+      "names": [
+        "web_confirm_palliative_special_care_review",
+        "web_commit_palliative_special_care_review"
+      ],
+      "sourceBlobSha256": "eccfdba6b1c4372d6050b569eedb20b4430b7e9efe58977b845256049cc152f0"
+    },
+    {
+      "file": "src/lib/careAssessment/planAmendmentHistoryService.web.ts",
+      "line": 14,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "08a3a80858d5f2571b473a33f8042d8e7f09fd47c2f5ac323c72b681fe3aef4a"
+    },
+    {
+      "file": "src/lib/careAssessment/planAmendmentService.web.ts",
+      "line": 15,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "172e93955260843dfd934c3c5bc83e149e38ef797c7affdf3653fe752215701a"
+    },
+    {
+      "file": "src/lib/careAssessment/planEvaluationService.web.ts",
+      "line": 12,
+      "argument": "name",
+      "kind": "dynamic",
+      "names": [],
+      "sourceBlobSha256": "9d1de51d657c68b88d31bb2356aecb2dfbd8ee323cbc7c6cd5b1eeac9b9367f9"
+    },
+    {
+      "file": "src/lib/careAssessment/planLifecycleRepository.supabase.web.ts",
+      "line": 15,
+      "argument": "'web_read_ambulatory_plan_lifecycle_packet'",
+      "kind": "literal",
+      "names": [
+        "web_read_ambulatory_plan_lifecycle_packet"
+      ],
+      "sourceBlobSha256": "c1051ae9eb75509e7d389fd5282ea54ad7921a7803a505ee709140620c5285b7"
+    }
+  ],
+  "reflectRpcDispatchSites": [
+    {
+      "file": "src/lib/pflege/careRiskReviewWrite.web.ts",
+      "line": 139,
+      "argument": "Reflect.apply(rpc,entry.db,['review_care_risk',{p_risk_id:entry.risk.id,p_payload:entry.payload}])"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 26,
+      "argument": "Reflect.apply(rpc,db,[name,args]) as ReturnType<typeof rpc>)"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 28,
+      "argument": "Reflect.apply(rpc,db,[name,args]) as ReturnType<typeof rpc>,operation)"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 21,
+      "argument": "Reflect.apply(rpc,db,[name,args]) as ReturnType<typeof rpc>)"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 23,
+      "argument": "Reflect.apply(rpc,db,[name,args]) as ReturnType<typeof rpc>,operation)"
+    },
+    {
+      "file": "src/lib/pflege/vitalCreateNativeWrite.web.ts",
+      "line": 25,
+      "argument": "Reflect.apply(rpc,sdk,['record_ambulatory_vital_measurement',args])"
+    },
+    {
+      "file": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
+      "line": 29,
+      "argument": "Reflect.apply(rpc,sdk,[name,args])"
+    }
+  ],
+  "finiteValueProvenance": [
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 55,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'save_ambulatory_care_admission'",
+      "names": [
+        "save_ambulatory_care_admission"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 59,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'advance_ambulatory_care_admission'",
+      "names": [
+        "advance_ambulatory_care_admission"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 63,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'create_ambulatory_care_tariff'",
+      "names": [
+        "create_ambulatory_care_tariff"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 67,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'save_ambulatory_care_task'",
+      "names": [
+        "save_ambulatory_care_task"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/ambulatoryOperationsService.ts",
+      "line": 71,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'create_catalog_care_stop_proof'",
+      "names": [
+        "create_catalog_care_stop_proof"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "5ea0911e0279741ee45bef743d874840544a54e4e3edb2fe53071d6159c9efa2"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 21,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_my_ambulatory_care_proofs'",
+      "names": [
+        "get_my_ambulatory_care_proofs"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 26,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_my_ambulatory_care_signature'",
+      "names": [
+        "get_my_ambulatory_care_signature"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 27,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_my_ambulatory_care_tours'",
+      "names": [
+        "get_my_ambulatory_care_tours"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 30,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'advance_my_ambulatory_care_tour'",
+      "names": [
+        "advance_my_ambulatory_care_tour"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 31,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'advance_my_ambulatory_care_stop'",
+      "names": [
+        "advance_my_ambulatory_care_stop"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/carePortalService.ts",
+      "line": 34,
+      "callee": "portalRpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_my_ambulatory_care_proof_export'",
+      "names": [
+        "get_my_ambulatory_care_proof_export"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "a5502a5cf4d74b6fe9154e64bb68c41c509a928a8491297c6510ae5e31700076"
+    },
+    {
+      "file": "src/lib/pflege/careStopCompletionService.ts",
+      "line": 21,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_completion_context'",
+      "names": [
+        "get_ambulatory_care_stop_completion_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "338de19241c5c5d9f71caa0496dd637bbe60426be8f0c952f932ad93eeee0fa2"
+    },
+    {
+      "file": "src/lib/pflege/careStopCompletionService.ts",
+      "line": 22,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'complete_ambulatory_care_stop'",
+      "names": [
+        "complete_ambulatory_care_stop"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "338de19241c5c5d9f71caa0496dd637bbe60426be8f0c952f932ad93eeee0fa2"
+    },
+    {
+      "file": "src/lib/pflege/careStopEmergencyService.ts",
+      "line": 7,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_emergency_context'",
+      "names": [
+        "get_ambulatory_care_stop_emergency_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "600cf7d7466adc24c0e53aa25f270d515e9bdc8b07091d380131776636794871"
+    },
+    {
+      "file": "src/lib/pflege/careStopEmergencyService.ts",
+      "line": 8,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'open_ambulatory_care_stop_emergency'",
+      "names": [
+        "open_ambulatory_care_stop_emergency"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "600cf7d7466adc24c0e53aa25f270d515e9bdc8b07091d380131776636794871"
+    },
+    {
+      "file": "src/lib/pflege/careStopEmergencyService.ts",
+      "line": 9,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'record_ambulatory_care_stop_emergency_event'",
+      "names": [
+        "record_ambulatory_care_stop_emergency_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "600cf7d7466adc24c0e53aa25f270d515e9bdc8b07091d380131776636794871"
+    },
+    {
+      "file": "src/lib/pflege/careStopOpeningService.ts",
+      "line": 54,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_opening_context'",
+      "names": [
+        "get_ambulatory_care_stop_opening_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bc39df86b6defe885d268856a4e0e1fbbd064ebbf667741d68319d319f2cb6e3"
+    },
+    {
+      "file": "src/lib/pflege/careStopOpeningService.ts",
+      "line": 59,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'confirm_ambulatory_care_stop_opening'",
+      "names": [
+        "confirm_ambulatory_care_stop_opening"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bc39df86b6defe885d268856a4e0e1fbbd064ebbf667741d68319d319f2cb6e3"
+    },
+    {
+      "file": "src/lib/pflege/careStopOpeningService.ts",
+      "line": 72,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_opening_context'",
+      "names": [
+        "get_ambulatory_care_stop_opening_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bc39df86b6defe885d268856a4e0e1fbbd064ebbf667741d68319d319f2cb6e3"
+    },
+    {
+      "file": "src/lib/pflege/careStopOpeningService.ts",
+      "line": 76,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'confirm_ambulatory_care_stop_opening'",
+      "names": [
+        "confirm_ambulatory_care_stop_opening"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bc39df86b6defe885d268856a4e0e1fbbd064ebbf667741d68319d319f2cb6e3"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 43,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_task_context'",
+      "names": [
+        "get_ambulatory_care_stop_task_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 44,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_task_context'",
+      "names": [
+        "get_ambulatory_care_stop_task_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 46,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'prepare_ambulatory_care_stop_tasks'",
+      "names": [
+        "prepare_ambulatory_care_stop_tasks"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 47,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'prepare_ambulatory_care_stop_tasks'",
+      "names": [
+        "prepare_ambulatory_care_stop_tasks"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTaskService.ts",
+      "line": 54,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'record_ambulatory_care_stop_task_execution'",
+      "names": [
+        "record_ambulatory_care_stop_task_execution"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2b30b8307035a07497caa9d91b4c4bdb6dd5bcb8beb3086ddfbe50c7da632512"
+    },
+    {
+      "file": "src/lib/pflege/careStopTimeService.ts",
+      "line": 36,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_time_context'",
+      "names": [
+        "get_ambulatory_care_stop_time_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "4eaee8b1e492d9d4a0253b8f4f142e3d4b618d80d8008a94b0f4977cf5333434"
+    },
+    {
+      "file": "src/lib/pflege/careStopTimeService.ts",
+      "line": 37,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_time_context'",
+      "names": [
+        "get_ambulatory_care_stop_time_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "4eaee8b1e492d9d4a0253b8f4f142e3d4b618d80d8008a94b0f4977cf5333434"
+    },
+    {
+      "file": "src/lib/pflege/careStopTimeService.ts",
+      "line": 45,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'record_ambulatory_care_stop_time_event'",
+      "names": [
+        "record_ambulatory_care_stop_time_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "4eaee8b1e492d9d4a0253b8f4f142e3d4b618d80d8008a94b0f4977cf5333434"
+    },
+    {
+      "file": "src/lib/pflege/careStopUnreachableService.ts",
+      "line": 50,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_unreachable_context'",
+      "names": [
+        "get_ambulatory_care_stop_unreachable_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "0650c2af2435f50e02d2f223ab1cf3eafdee2f59662db6f523ef1b189ef43e36"
+    },
+    {
+      "file": "src/lib/pflege/careStopUnreachableService.ts",
+      "line": 52,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'get_ambulatory_care_stop_unreachable_context'",
+      "names": [
+        "get_ambulatory_care_stop_unreachable_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "0650c2af2435f50e02d2f223ab1cf3eafdee2f59662db6f523ef1b189ef43e36"
+    },
+    {
+      "file": "src/lib/pflege/careStopUnreachableService.ts",
+      "line": 59,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'record_ambulatory_care_stop_contact_attempt'",
+      "names": [
+        "record_ambulatory_care_stop_contact_attempt"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "0650c2af2435f50e02d2f223ab1cf3eafdee2f59662db6f523ef1b189ef43e36"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 119,
+      "callee": "callTourRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'create_ambulatory_care_tour'",
+      "names": [
+        "create_ambulatory_care_tour"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 128,
+      "callee": "callTourRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'advance_ambulatory_care_tour'",
+      "names": [
+        "advance_ambulatory_care_tour"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 140,
+      "callee": "callTourRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'advance_ambulatory_care_stop'",
+      "names": [
+        "advance_ambulatory_care_stop"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 186,
+      "callee": "callTourRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'create_ambulatory_care_stop_proof'",
+      "names": [
+        "create_ambulatory_care_stop_proof"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/careTourPlanningService.ts",
+      "line": 192,
+      "callee": "callTourRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'capture_pfleger_proof_signature'",
+      "names": [
+        "capture_pfleger_proof_signature"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "b90b3e0632e2d2cb7da470c30e8fe3ac1a9efe131805858d88a6c967dc2402a8"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 57,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_case_handover_clients'",
+      "names": [
+        "web_case_handover_clients"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 69,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_case_handover_context'",
+      "names": [
+        "web_case_handover_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 75,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_case_handover_list'",
+      "names": [
+        "web_case_handover_list"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 89,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_case_handover_history'",
+      "names": [
+        "web_case_handover_history"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/caseHandoverRepository.web.ts",
+      "line": 115,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_confirm_case_handover'",
+      "names": [
+        "web_confirm_case_handover"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "96689d60ba53c4ed56944ee19e0939f81ec1298f459e381b4f8bdad1d371bff5"
+    },
+    {
+      "file": "src/lib/pflege/clinicalControlRuntime.ts",
+      "line": 23,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_clinical_control_people'",
+      "names": [
+        "read_clinical_control_people"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f593408fa74e542766942de506bae3dca17ff046e920dfdd0b525230d47ef535"
+    },
+    {
+      "file": "src/lib/pflege/clinicalControlRuntime.ts",
+      "line": 27,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_clinical_controls'",
+      "names": [
+        "read_clinical_controls"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f593408fa74e542766942de506bae3dca17ff046e920dfdd0b525230d47ef535"
+    },
+    {
+      "file": "src/lib/pflege/clinicalControlRuntime.ts",
+      "line": 31,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_clinical_control_sources'",
+      "names": [
+        "read_clinical_control_sources"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f593408fa74e542766942de506bae3dca17ff046e920dfdd0b525230d47ef535"
+    },
+    {
+      "file": "src/lib/pflege/clinicalControlRuntime.ts",
+      "line": 37,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'write_clinical_control_event'",
+      "names": [
+        "write_clinical_control_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f593408fa74e542766942de506bae3dca17ff046e920dfdd0b525230d47ef535"
+    },
+    {
+      "file": "src/lib/pflege/dailyProtocolRuntime.ts",
+      "line": 16,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_daily_protocol_clients'",
+      "names": [
+        "read_daily_protocol_clients"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2df54279e659a5d585e9def1e48b5bf0599d6095f49cf7e3cfbb67ac85efd8c8"
+    },
+    {
+      "file": "src/lib/pflege/dailyProtocolRuntime.ts",
+      "line": 17,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_daily_protocols'",
+      "names": [
+        "read_daily_protocols"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2df54279e659a5d585e9def1e48b5bf0599d6095f49cf7e3cfbb67ac85efd8c8"
+    },
+    {
+      "file": "src/lib/pflege/dailyProtocolRuntime.ts",
+      "line": 21,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'write_daily_protocol_event'",
+      "names": [
+        "write_daily_protocol_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "2df54279e659a5d585e9def1e48b5bf0599d6095f49cf7e3cfbb67ac85efd8c8"
+    },
+    {
+      "file": "src/lib/pflege/medicationAdministrationService.ts",
+      "line": 111,
+      "callee": "write",
+      "nameArgumentIndex": 2,
+      "argument": "'record_ambulatory_medication_event'",
+      "names": [
+        "record_ambulatory_medication_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a"
+    },
+    {
+      "file": "src/lib/pflege/medicationAdministrationService.ts",
+      "line": 117,
+      "callee": "write",
+      "nameArgumentIndex": 2,
+      "argument": "'record_ambulatory_medication_followup'",
+      "names": [
+        "record_ambulatory_medication_followup"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 37,
+      "callee": "request",
+      "nameArgumentIndex": 0,
+      "argument": "review?'web_read_nutrition_review_page':'web_read_nutrition_elimination_page'",
+      "names": [
+        "web_read_nutrition_review_page",
+        "web_read_nutrition_elimination_page"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bb01eeac324b5df1197c273a65696b8e2d0503e80574b8fac608aacc534132cf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 54,
+      "callee": "request",
+      "nameArgumentIndex": 0,
+      "argument": "'web_read_nutrition_elimination_prerequisites'",
+      "names": [
+        "web_read_nutrition_elimination_prerequisites"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bb01eeac324b5df1197c273a65696b8e2d0503e80574b8fac608aacc534132cf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 59,
+      "callee": "request",
+      "nameArgumentIndex": 0,
+      "argument": "review?(confirm?'web_confirm_nutrition_review':'web_commit_nutrition_review'):(confirm?'web_confirm_nutrition_elimination_packet':'web_commit_nutrition_elimination_packet')",
+      "names": [
+        "web_confirm_nutrition_review",
+        "web_commit_nutrition_review",
+        "web_confirm_nutrition_elimination_packet",
+        "web_commit_nutrition_elimination_packet"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "bb01eeac324b5df1197c273a65696b8e2d0503e80574b8fac608aacc534132cf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 30,
+      "callee": "request",
+      "nameArgumentIndex": 0,
+      "argument": "'web_read_nutrition_elimination_binding_context'",
+      "names": [
+        "web_read_nutrition_elimination_binding_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "1488c95264895488668ab6cc41d0092aa59bf85e9327d5fd1538b254d7f7cc0a"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 35,
+      "callee": "request",
+      "nameArgumentIndex": 0,
+      "argument": "confirm?'web_confirm_nutrition_elimination_plan_binding':'web_capture_nutrition_elimination_plan_binding'",
+      "names": [
+        "web_confirm_nutrition_elimination_plan_binding",
+        "web_capture_nutrition_elimination_plan_binding"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "1488c95264895488668ab6cc41d0092aa59bf85e9327d5fd1538b254d7f7cc0a"
+    },
+    {
+      "file": "src/lib/pflege/shiftScheduleService.ts",
+      "line": 97,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'create_ambulatory_care_shift'",
+      "names": [
+        "create_ambulatory_care_shift"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "7fff74e7c13dbbc480a2d938adbcfd43f0be6ffc38e49cf9e52505d5ab292171"
+    },
+    {
+      "file": "src/lib/pflege/shiftScheduleService.ts",
+      "line": 118,
+      "callee": "callCareOperationsRpc",
+      "nameArgumentIndex": 1,
+      "argument": "'advance_ambulatory_care_shift'",
+      "names": [
+        "advance_ambulatory_care_shift"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "7fff74e7c13dbbc480a2d938adbcfd43f0be6ffc38e49cf9e52505d5ab292171"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceRepository.web.ts",
+      "line": 21,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_supply_clients'",
+      "names": [
+        "web_supply_clients"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "e4c414499c376c32fc088503227c4a85e64fdf50b3f078ecf37f6e974b05e5f9"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceRepository.web.ts",
+      "line": 26,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_supply_context'",
+      "names": [
+        "web_supply_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "e4c414499c376c32fc088503227c4a85e64fdf50b3f078ecf37f6e974b05e5f9"
+    },
+    {
+      "file": "src/lib/pflege/supplyWorkspaceRepository.web.ts",
+      "line": 38,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_confirm_supply'",
+      "names": [
+        "web_confirm_supply"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "e4c414499c376c32fc088503227c4a85e64fdf50b3f078ecf37f6e974b05e5f9"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 24,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_my_tour_publications'",
+      "names": [
+        "web_my_tour_publications"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 28,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_tour_planning_plans'",
+      "names": [
+        "web_tour_planning_plans"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 36,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_tour_planning_context'",
+      "names": [
+        "web_tour_planning_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/tourPlanningWorkspaceRepository.web.ts",
+      "line": 55,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_confirm_tour_planning_event'",
+      "names": [
+        "web_confirm_tour_planning_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "ef27ea8547b13927ddcf30c3ebc4a41061c184f03745cfd9b5b24b1d1edb10a4"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceRepository.web.ts",
+      "line": 16,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_visit_execution_stops'",
+      "names": [
+        "web_visit_execution_stops"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "40b6440627c009511e2cd577cfee2d4108395fc752cdd75abe0dc6e014a42a96"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceRepository.web.ts",
+      "line": 17,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_visit_execution_context'",
+      "names": [
+        "web_visit_execution_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "40b6440627c009511e2cd577cfee2d4108395fc752cdd75abe0dc6e014a42a96"
+    },
+    {
+      "file": "src/lib/pflege/visitExecutionWorkspaceRepository.web.ts",
+      "line": 19,
+      "callee": "call",
+      "nameArgumentIndex": 1,
+      "argument": "'web_confirm_visit_execution_event'",
+      "names": [
+        "web_confirm_visit_execution_event"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "40b6440627c009511e2cd577cfee2d4108395fc752cdd75abe0dc6e014a42a96"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 21,
+      "callee": "loadRead",
+      "nameArgumentIndex": 2,
+      "argument": "'web_read_vital_care_path_page'",
+      "names": [
+        "web_read_vital_care_path_page"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 22,
+      "callee": "loadRead",
+      "nameArgumentIndex": 2,
+      "argument": "'web_read_vital_care_path_context'",
+      "names": [
+        "web_read_vital_care_path_context"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
+      "line": 26,
+      "callee": "loadRead",
+      "nameArgumentIndex": 2,
+      "argument": "'web_read_vital_care_path_page'",
+      "names": [
+        "web_read_vital_care_path_page"
+      ],
+      "basis": "explicit literal/conditional values passed through traced local RPC helper",
+      "sourceBlobSha256": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e"
+    },
+    {
+      "file": "src/lib/pflege/vitalCreateNativeWrite.web.ts",
+      "line": 25,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "record_ambulatory_vital_measurement",
+      "names": [
+        "record_ambulatory_vital_measurement"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "f600f78d6b68ea94dc2e47daee4bb3002be922b4709edc6637e54440116173cc"
+    },
+    {
+      "file": "src/lib/pflege/vitalCreateNativeWrite.web.ts",
+      "line": 38,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "confirm_ambulatory_vital_measurement",
+      "names": [
+        "confirm_ambulatory_vital_measurement"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "f600f78d6b68ea94dc2e47daee4bb3002be922b4709edc6637e54440116173cc"
+    },
+    {
+      "file": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
+      "line": 25,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "record_ambulatory_vital_follow_up",
+      "names": [
+        "record_ambulatory_vital_follow_up"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "4cb5dea0565e46b009faa10b63194bd5774eb7421174a513987b340efc9b7607"
+    },
+    {
+      "file": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
+      "line": 25,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "invalidate_ambulatory_vital_measurement",
+      "names": [
+        "invalidate_ambulatory_vital_measurement"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "4cb5dea0565e46b009faa10b63194bd5774eb7421174a513987b340efc9b7607"
+    },
+    {
+      "file": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
+      "line": 40,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "confirm_ambulatory_vital_follow_up",
+      "names": [
+        "confirm_ambulatory_vital_follow_up"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "4cb5dea0565e46b009faa10b63194bd5774eb7421174a513987b340efc9b7607"
+    },
+    {
+      "file": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
+      "line": 40,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "confirm_ambulatory_vital_invalidation",
+      "names": [
+        "confirm_ambulatory_vital_invalidation"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "4cb5dea0565e46b009faa10b63194bd5774eb7421174a513987b340efc9b7607"
+    },
+    {
+      "file": "src/lib/pflege/careRiskReviewWrite.web.ts",
+      "line": 139,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "review_care_risk",
+      "names": [
+        "review_care_risk"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "570761e14c1814982da620aef30116e017d962b08bfa4af5185afc159e2c4faf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 26,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "resolve_current_profile_id",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "bb01eeac324b5df1197c273a65696b8e2d0503e80574b8fac608aacc534132cf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
+      "line": 26,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "current_tenant_id",
+      "names": [
+        "current_tenant_id"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "bb01eeac324b5df1197c273a65696b8e2d0503e80574b8fac608aacc534132cf"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 21,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "resolve_current_profile_id",
+      "names": [
+        "resolve_current_profile_id"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "1488c95264895488668ab6cc41d0092aa59bf85e9327d5fd1538b254d7f7cc0a"
+    },
+    {
+      "file": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "line": 21,
+      "callee": "Reflect.apply RPC dispatcher/explicit resolver whitelist",
+      "argument": "current_tenant_id",
+      "names": [
+        "current_tenant_id"
+      ],
+      "basis": "manually reviewed finite name literal in dispatcher or its closed name selection",
+      "sourceBlobSha256": "1488c95264895488668ab6cc41d0092aa59bf85e9327d5fd1538b254d7f7cc0a"
+    },
+    {
+      "file": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "line": 6,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_basic_care_binding_context",
+      "names": [
+        "web_read_basic_care_binding_context"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175"
+    },
+    {
+      "file": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "line": 7,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_prepare_basic_care_binding_intent",
+      "names": [
+        "web_prepare_basic_care_binding_intent"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175"
+    },
+    {
+      "file": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "line": 9,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_confirm_basic_care_binding_intent",
+      "names": [
+        "web_confirm_basic_care_binding_intent"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175"
+    },
+    {
+      "file": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "line": 10,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_commit_basic_care_binding_intent",
+      "names": [
+        "web_commit_basic_care_binding_intent"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175"
+    },
+    {
+      "file": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "line": 11,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_cancel_basic_care_binding_intent",
+      "names": [
+        "web_cancel_basic_care_binding_intent"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 51,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_basic_care_prerequisites",
+      "names": [
+        "web_read_basic_care_prerequisites"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 60,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_basic_care_review_page",
+      "names": [
+        "web_read_basic_care_review_page"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 60,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_basic_care_page",
+      "names": [
+        "web_read_basic_care_page"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 74,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_confirm_basic_care_review",
+      "names": [
+        "web_confirm_basic_care_review"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 74,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_commit_basic_care_review",
+      "names": [
+        "web_commit_basic_care_review"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 74,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_confirm_basic_care_packet",
+      "names": [
+        "web_confirm_basic_care_packet"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/basicCareRepository.supabase.web.ts",
+      "line": 74,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_commit_basic_care_packet",
+      "names": [
+        "web_commit_basic_care_packet"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationPathWorkspaceRepository.web.ts",
+      "line": 24,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_care_documentation_path_workspace_context",
+      "names": [
+        "web_care_documentation_path_workspace_context"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "9841e81cce19cbc628bfde478b718d85a445c852209ad7e8fdc2b8faeaab6d98"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationRepository.supabase.web.ts",
+      "line": 50,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_care_documentation_page",
+      "names": [
+        "web_read_care_documentation_page"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "52d42fc179f584a95735e5b36554fdb909947b07e63d0803bb1bc3aa1309a8c6"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationRepository.supabase.web.ts",
+      "line": 63,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_read_care_documentation_record",
+      "names": [
+        "web_read_care_documentation_record"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "52d42fc179f584a95735e5b36554fdb909947b07e63d0803bb1bc3aa1309a8c6"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationRepository.supabase.web.ts",
+      "line": 78,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_commit_care_documentation_packet",
+      "names": [
+        "web_commit_care_documentation_packet"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "52d42fc179f584a95735e5b36554fdb909947b07e63d0803bb1bc3aa1309a8c6"
+    },
+    {
+      "file": "src/lib/pflege/careDocumentationRepository.supabase.web.ts",
+      "line": 82,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "web_confirm_care_documentation_packet",
+      "names": [
+        "web_confirm_care_documentation_packet"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "52d42fc179f584a95735e5b36554fdb909947b07e63d0803bb1bc3aa1309a8c6"
+    },
+    {
+      "file": "src/lib/pflege/medicationAdministrationService.ts",
+      "line": 123,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "change_ambulatory_medication_status",
+      "names": [
+        "change_ambulatory_medication_status"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a"
+    },
+    {
+      "file": "src/lib/pflege/medicationAdministrationService.ts",
+      "line": 155,
+      "callee": "typed/local RPC dispatcher (manually checked explicit name)",
+      "argument": "link_ambulatory_medication_source",
+      "names": [
+        "link_ambulatory_medication_source"
+      ],
+      "basis": "explicit finite routine-name literal in traced typed/local dispatcher",
+      "sourceBlobSha256": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a"
+    },
+    {
+      "file": "src/lib/careAssessment/planAmendmentHistoryRuntime.ts",
+      "line": 6,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_ambulatory_plan_amendments'",
+      "names": [
+        "read_ambulatory_plan_amendments"
+      ],
+      "basis": "explicit finite names passed through traced assessment local RPC dispatcher",
+      "sourceBlobSha256": "636036508bc7a7774eb408f3674fbc5fa7c61c4b11a0b15a15cf10a76385066f"
+    },
+    {
+      "file": "src/lib/careAssessment/planAmendmentRuntime.ts",
+      "line": 16,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'write_ambulatory_plan_amendment'",
+      "names": [
+        "write_ambulatory_plan_amendment"
+      ],
+      "basis": "explicit finite names passed through traced assessment local RPC dispatcher",
+      "sourceBlobSha256": "fa663c969237d397bd6529946084499d9b3ad924bc8ce24ecfb2370be0104cd7"
+    },
+    {
+      "file": "src/lib/careAssessment/planEvaluationRuntime.ts",
+      "line": 8,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'read_ambulatory_plan_evaluations'",
+      "names": [
+        "read_ambulatory_plan_evaluations"
+      ],
+      "basis": "explicit finite names passed through traced assessment local RPC dispatcher",
+      "sourceBlobSha256": "6b7dc173b888850f60974e8b20a08e1a37f8235b102168f7be94f08b6bc6030e"
+    },
+    {
+      "file": "src/lib/careAssessment/planEvaluationRuntime.ts",
+      "line": 12,
+      "callee": "rpc",
+      "nameArgumentIndex": 0,
+      "argument": "'write_ambulatory_plan_evaluation'",
+      "names": [
+        "write_ambulatory_plan_evaluation"
+      ],
+      "basis": "explicit finite names passed through traced assessment local RPC dispatcher",
+      "sourceBlobSha256": "6b7dc173b888850f60974e8b20a08e1a37f8235b102168f7be94f08b6bc6030e"
+    }
+  ]
+}

@@ -1,0 +1,606 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-10-23",
+  "project": "shwpweerzsfkqaivmaoc",
+  "preflight": {
+    "server_version": "17.6",
+    "migrations": [
+      {
+        "name": "pflege_nutrition_workspace_quarantined",
+        "version": "20261022115155"
+      }
+    ],
+    "functions": [
+      {
+        "anon": false,
+        "args": "p jsonb",
+        "name": "capture_nutrition_plan_binding",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p jsonb",
+        "name": "commit_nutrition_elimination_packet",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p jsonb",
+        "name": "commit_nutrition_review",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "requested_tenant uuid, requested_client uuid, requested_actor uuid, requested_request uuid, p jsonb",
+        "name": "confirm_nutrition_elimination_packet",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, actor uuid, req uuid, p jsonb",
+        "name": "confirm_nutrition_plan_binding",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, actor uuid, req uuid, p jsonb",
+        "name": "confirm_nutrition_review",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, actor uuid, pv uuid, mi uuid, vi uuid, ai uuid",
+        "name": "nutrition_binding_context",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "requested_tenant uuid, requested_client uuid, requested_actor uuid, write_access boolean",
+        "name": "nutrition_elimination_actor",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "root_ref uuid",
+        "name": "nutrition_elimination_original",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "v jsonb, keys text[]",
+        "name": "nutrition_fields",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "v jsonb",
+        "name": "nutrition_fingerprint",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "",
+        "name": "nutrition_immutable",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "",
+        "name": "nutrition_lock_native_sources",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, pv uuid, mi uuid, vi uuid, ai uuid",
+        "name": "nutrition_native_foundation",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, ai uuid",
+        "name": "nutrition_native_sources",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "required text",
+        "name": "nutrition_own_permission",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "ok boolean, message text",
+        "name": "nutrition_require",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "root_ref uuid",
+        "name": "nutrition_review_original",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid",
+        "name": "nutrition_state_fingerprint",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "v jsonb, minimum integer, maximum integer",
+        "name": "nutrition_text",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "v jsonb",
+        "name": "nutrition_time",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "v jsonb",
+        "name": "nutrition_uuid",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "e jsonb, s jsonb, t uuid, c uuid",
+        "name": "nutrition_validate_planned",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "requested_tenant uuid, requested_client uuid, requested_actor uuid, cursor_recorded_at timestamp with time zone, cursor_id uuid, page_size integer",
+        "name": "read_nutrition_elimination_page",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "requested_tenant uuid, requested_client uuid, requested_actor uuid",
+        "name": "read_nutrition_elimination_prerequisites",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "t uuid, c uuid, actor uuid, at_cursor timestamp with time zone, id_cursor uuid, page_size integer",
+        "name": "read_nutrition_review_page",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "e jsonb, s jsonb",
+        "name": "validate_nutrition_entry",
+        "schema": "care_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_packet jsonb",
+        "name": "web_capture_nutrition_elimination_plan_binding",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_packet jsonb",
+        "name": "web_commit_nutrition_elimination_packet",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_packet jsonb",
+        "name": "web_commit_nutrition_review",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_request_id uuid, p_packet jsonb",
+        "name": "web_confirm_nutrition_elimination_packet",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_request_id uuid, p_packet jsonb",
+        "name": "web_confirm_nutrition_elimination_plan_binding",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_request_id uuid, p_packet jsonb",
+        "name": "web_confirm_nutrition_review",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_plan_version_id uuid, p_measure_id uuid, p_visit_id uuid, p_assessment_id uuid",
+        "name": "web_read_nutrition_elimination_binding_context",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_cursor_recorded_at timestamp with time zone, p_cursor_id uuid, p_page_size integer",
+        "name": "web_read_nutrition_elimination_page",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid",
+        "name": "web_read_nutrition_elimination_prerequisites",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "args": "p_tenant_id uuid, p_client_id uuid, p_actor_profile_id uuid, p_cursor_recorded_at timestamp with time zone, p_cursor_id uuid, p_page_size integer",
+        "name": "web_read_nutrition_review_page",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      }
+    ],
+    "receipt_columns": [
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "tenant_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "client_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "actor_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "auth_user_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "request_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_binding_captures",
+        "column": "binding_id",
+        "schema": "care_private"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_binding_captures",
+        "column": "packet",
+        "schema": "care_private"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_binding_captures",
+        "column": "native_originals",
+        "schema": "care_private"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_binding_captures",
+        "column": "original",
+        "schema": "care_private"
+      },
+      {
+        "type": "timestamp with time zone",
+        "table": "nutrition_binding_captures",
+        "column": "recorded_at",
+        "schema": "care_private"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "request_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "tenant_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "client_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "actor_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "root_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "event_id",
+        "schema": "public"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_elimination_receipts",
+        "column": "packet",
+        "schema": "public"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_elimination_receipts",
+        "column": "original",
+        "schema": "public"
+      },
+      {
+        "type": "timestamp with time zone",
+        "table": "nutrition_elimination_receipts",
+        "column": "recorded_at",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_elimination_receipts",
+        "column": "auth_user_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "request_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "tenant_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "client_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "actor_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "root_id",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "event_id",
+        "schema": "public"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_review_receipts",
+        "column": "packet",
+        "schema": "public"
+      },
+      {
+        "type": "jsonb",
+        "table": "nutrition_review_receipts",
+        "column": "original",
+        "schema": "public"
+      },
+      {
+        "type": "timestamp with time zone",
+        "table": "nutrition_review_receipts",
+        "column": "recorded_at",
+        "schema": "public"
+      },
+      {
+        "type": "uuid",
+        "table": "nutrition_review_receipts",
+        "column": "auth_user_id",
+        "schema": "public"
+      }
+    ]
+  },
+  "postcheck": {
+    "observed_at": "2026-10-23 17:03:39.798909+00",
+    "exposed_nutrition_functions": 0,
+    "new_triggers": [
+      {
+        "name": "nutrition_care_canonical_ids",
+        "enabled": "O"
+      },
+      {
+        "name": "nutrition_review_canonical_ids",
+        "enabled": "O"
+      },
+      {
+        "name": "nutrition_capture_canonical_ids",
+        "enabled": "O"
+      }
+    ],
+    "nutrition_events": 0,
+    "nutrition_review_events": 0,
+    "assessment_v2_events": 0,
+    "synthetic_fixture_tenants": 0,
+    "synthetic_auth_accounts": 3
+  },
+  "scopedAuthCleanup": {
+    "own_retained_fixture_auth_accounts": 0,
+    "uuid_fixture_auth_accounts": 0,
+    "all_example_invalid_accounts": 3
+  },
+  "authCountBoundary": "Three non-UUID example.invalid accounts are outside the generated UUID-fixture scope and were not changed. Own known fixture and all UUID-email fixture accounts are zero.",
+  "installedFollowups": {
+    "migrations": [
+      {
+        "name": "pflege_nutrition_workspace_quarantined",
+        "version": "20261022115155"
+      },
+      {
+        "name": "pflege_nutrition_planned_inspection_quarantined",
+        "version": "20261023164242"
+      },
+      {
+        "name": "pflege_nutrition_canonical_ids_additive_quarantined",
+        "version": "20261023164421"
+      }
+    ],
+    "canonical_triggers": 3,
+    "exposed_functions": 0
+  },
+  "advisors": {
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 373,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 53,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 89,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 373,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 53,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 89,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ],
+    "projectWideClean": false
+  },
+  "scope": "Staging only. No production, grants, activation or clinical decision. The replacement-style canonical installer returned no result and remained absent; only the collision-failing additive candidate was installed.",
+  "unconfirmed": [
+    "Original combined SIS authority fixture",
+    "Isolated SIS same-profile Auth relink fixture",
+    "Authenticated HTTP/RLS, concurrency, browser and real qualification"
+  ],
+  "actualConfirmed": [
+    "Nutrition full native binding \u2192 open planning \u2192 technical inspection request \u2192 own confirmation; three atomic canonical alias rejections; two independent sign-role clinical decision denials; full rollback",
+    "SIS four-case supplementary access unit; full rollback"
+  ]
+}

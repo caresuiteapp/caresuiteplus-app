@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-23",
+  "environment": "isolated Supabase Staging",
+  "source": "Actual final SELECT from the privileged wholly synthetic V2 main planning unit, after asserted inner rollback cleanup and before explicit outer ROLLBACK; supplied by the root agent after the successful serial execution.",
+  "sqlFixture": "supabase/tests/pflege_assessment_planning_v2_unit_staging.sql",
+  "sqlFixtureBytes": 14947,
+  "sqlFixtureSha256": "74f8c92dd52083f8cabf6f8490fbeed05b78f70ec41501dea19cad8ee09e1033",
+  "appliedMigrationVersions": [
+    "20261023010345"
+  ],
+  "appliedPatchSha256": {
+    "ambulatory_assessment_planning_v2_quarantined.sql": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc"
+  },
+  "appliedMigrationSha256": {
+    "20261023010345_pflege_assessment_planning_v2_quarantined.sql": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc"
+  },
+  "evidenceFile": "assessment-planning-v2-main-staging-synthetic-20261023.json",
+  "evidenceBytes": 573833,
+  "evidenceSha256": "b8317669f91f1a93b6968fc1eedcd74ccaf07805e366e277ec262c5fc7737689",
+  "firstAssessmentRecordedAt": "2026-10-23T01:05:04.153475Z",
+  "lastPlanRecordedAt": "2026-10-23T01:05:04.261474Z",
+  "sqlRollbackAndCleanupVerified": true,
+  "technicalPlanningOnly": true,
+  "claims": [
+    "The actual returned synthetic SQL JSON bytes are retained unchanged; no handwritten receipt, normalized timestamp or replacement source was substituted.",
+    "The fixture established its own synthetic tenant, raw Auth account/session, internal profile, client assignment, native draft assessment/topic/risk/measure, and a unique test-only product model plus selection.",
+    "One technical assessment measure-plan revision and a six-event goal/measure/daily-routine/support-boundary/schedule/inspection-request chain were committed, retried and separately confirmed against their exact original commands.",
+    "The actual complete context and native instrument/lifecycle packets pass the Web production decoders. Hidden native source drift changed the state fingerprint and blocked a new command referring through the stale selected source chain, while the original own historical receipt remained unchanged.",
+    "The fixture verified no EXECUTE grants for the eight new public V2 RPCs and their private helpers, exact event counts, untouched native assessment/measure originals, inner synthetic rollback cleanup and explicit outer ROLLBACK."
+  ],
+  "limitations": [
+    "This is privileged direct SQL with synthetic Auth claims, not an authenticated PostgREST/HTTP, browser, compiler or concurrent-transactions test.",
+    "Technical planning and an inspection request establish no actual observation, care execution, consent, outcome, professional qualification, clinical approval or release decision. The fully attempted clinical release kind was denied.",
+    "The packetSha256 field is a formatted technical reference, not an independently recomputed clinical approval or signed-source proof.",
+    "Write CAS binds the expected event head and exact selected source chain; the complete-state fingerprint is read evidence, not an expected whole-dataset commit token.",
+    "The unique synthetic active test model and empty instrument catalog do not prove that a real model/license/catalog is available or activated. Native instrument/lifecycle writer closure and legacy route bridging remain outside this unit.",
+    "Distinct raw Auth/internal profile mapping, other authority cases, production migration, deployment, feature activation and clinical acceptance are not established by this main unit."
+  ],
+  "retentionReview": [
+    "Retained native names, narratives and identifiers originate from the isolated wholly synthetic seed.",
+    "The source file was copied byte-for-byte; no redaction or data normalization was performed.",
+    "Independent recursive privacy review inspected 9,347 object keys and 7,051 string values and found no credentials, Auth claims, session material, JWT values or private identity proofs."
+  ]
+}

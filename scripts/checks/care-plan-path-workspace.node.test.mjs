@@ -1,3 +1,4 @@
+import {assessmentPathDefinitions,assessmentPathVersion} from '../../src/lib/careAssessment/assessmentPathWorkspaceDomain.web.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -24,9 +25,16 @@ const ids = {
 };
 let serial = 100;
 const next = () => `34100000-0000-4000-8000-${String(++serial).padStart(12, '0')}`;
-const source = kind => {
+const source = (kind,eventKind) => {
   const id = next();
-  return { kind, id, snapshot: { id, tenant_id: ids.tenant, assessment_id: ids.assessment, title: kind, status: 'current' } };
+  if(kind.endsWith('_path_event')){
+   const assessment=kind==='assessment_path_event',defs=assessment?assessmentPathDefinitions:carePlanPathDefinitions,version=assessment?assessmentPathVersion:carePlanPathVersion,chosen=eventKind??(assessment?'model_version_review':'goal_plan'),definition=defs[chosen],payload={};
+   for(const rule of definition.sources)payload[rule.key]=source(rule.kinds[0],rule.eventKinds?.[0]);
+   for(const rule of definition.fields)payload[rule.key]=value(rule);
+   const command={version,requestId:next(),eventId:id,tenantId:ids.tenant,assessmentId:ids.assessment,actorId:ids.actor,expectedHeadId:null,kind:chosen,occurredAt:'2026-10-16T16:00:00.654321+02:00',note:'Vollständiger synthetischer historischer Quellenvorgang',payload};
+   return{kind,id,snapshot:{id,sequence:1,previousId:null,tenantId:ids.tenant,assessmentId:ids.assessment,actorId:ids.actor,actorName:'Synthetische Fachkraft',recordedAt:command.occurredAt,command}};
+  }
+  const nativeId=kind==='care_assessment'?ids.assessment:id;return { kind, id:nativeId, snapshot: { id:nativeId, tenant_id: ids.tenant, assessment_id: ids.assessment, title: kind, status: 'current',...(kind==='assessment_risk'?{risk_key:'fall'}:kind==='assessment_topic'?{topic_key:'mobility'}:kind==='assessment_measure'?{related_risk_key:'fall',related_topic_key:'mobility'}:{}) } };
 };
 const value = rule => rule.type === 'uuid' ? next()
   : rule.type === 'instant' ? (['validUntil', 'endsAt'].includes(rule.key) ? '2026-11-16T16:30:00.123456+02:00' : '2026-10-16T16:30:00.123456+02:00')
@@ -35,7 +43,7 @@ const value = rule => rule.type === 'uuid' ? next()
   : 'vollständiger Originalwert';
 const command = (kind, over = {}) => {
   const definition = carePlanPathDefinitions[kind], payload = {};
-  for (const rule of definition.sources) { payload[rule.key] = source(rule.kinds[0]); if(rule.eventKinds)payload[rule.key].snapshot.command={kind:rule.eventKinds[0]}; }
+  for (const rule of definition.sources) { payload[rule.key] = source(rule.kinds[0],rule.eventKinds?.[0]); }
   for (const rule of definition.fields) payload[rule.key] = value(rule);
   return {
     version: carePlanPathVersion, requestId: next(), eventId: next(), tenantId: ids.tenant, assessmentId: ids.assessment,
@@ -61,10 +69,10 @@ test('Assessment, Planung, Durchführung, Wirkung, Freigabe und Abnahme bleiben 
 
 test('Originalart, Fremdfeld, Fremdmandant, Fremdassessment, UUID, SHA und Mikrosekunden sperren', () => {
   const wrong=command('goal_plan');wrong.payload.finding=source('assessment_instrument');assert.throws(()=>validateCarePlanPathCommand(wrong),/falsche Originalart/);
-  const wrongEvent=command('execution_record');wrongEvent.payload.releasedPlan.snapshot.command.kind='goal_plan';assert.throws(()=>validateCarePlanPathCommand(wrongEvent),/falsche fachliche Vorgangsart/);
+  const wrongEvent=command('execution_record');wrongEvent.payload.releasedPlan=source('care_plan_path_event','goal_plan');assert.throws(()=>validateCarePlanPathCommand(wrongEvent),/falsche fachliche Vorgangsart/);
   const extra=command('measure_plan');extra.payload.secret='x';assert.throws(()=>validateCarePlanPathCommand(extra),/Fremdfelder/);
-  const foreignTenant=command('responsibility_assignment');foreignTenant.payload.measure.snapshot.tenant_id=next();assert.throws(()=>validateCarePlanPathCommand(foreignTenant),/aktuellen Mandanten/);
-  const foreignAssessment=command('daily_routine');foreignAssessment.payload.plan.snapshot.assessment_id=next();assert.throws(()=>validateCarePlanPathCommand(foreignAssessment),/aktuellen Assessment/);
+  const foreignTenant=command('responsibility_assignment');const foreignT=next();foreignTenant.payload.measure.snapshot.tenantId=foreignT;foreignTenant.payload.measure.snapshot.command.tenantId=foreignT;assert.throws(()=>validateCarePlanPathCommand(foreignTenant),/aktuellen Mandanten/);
+  const foreignAssessment=command('daily_routine');const foreignA=next();foreignAssessment.payload.plan.snapshot.assessmentId=foreignA;foreignAssessment.payload.plan.snapshot.command.assessmentId=foreignA;assert.throws(()=>validateCarePlanPathCommand(foreignAssessment),/aktuellen Assessment/);
   const time=command('change_order');time.occurredAt='2026-10-16T16:00:00';assert.throws(()=>validateCarePlanPathCommand(time),/ungültig/);
   const hash=command('plan_review_request');hash.payload.packetSha256='nicht';assert.throws(()=>validateCarePlanPathCommand(hash),/ungültig/);
 });
@@ -88,14 +96,14 @@ function historyOf(commands) {
 }
 
 test('vollständiger Verlauf, Fallbindung und aktuelle Originalauswahl werden tief geprüft', () => {
-  const commands = [command('goal_plan'), command('plan_review_request')], history = historyOf(commands);
-  const sources = structuredClone(commands.flatMap(c => carePlanPathDefinitions[c.kind].sources.map(rule => c.payload[rule.key])));
-  const context = { version: carePlanPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: '2026-10-16T16:01:00.123456Z', sources: { count: sources.length, rows: sources }, history };
+  const commands = [command('goal_plan'), command('correction')];commands[1].payload.targetId=commands[0].eventId;const history = historyOf(commands);
+  const sources = structuredClone([...new Map([...commands.flatMap(c => carePlanPathDefinitions[c.kind].sources.map(rule => c.payload[rule.key])),...history.events.map(event=>({kind:'care_plan_path_event',id:event.id,snapshot:event}))].map(row=>[`${row.kind}:${row.id.toLowerCase()}`,row])).values()]);
+  const context = { version: carePlanPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: '2026-10-16T16:01:00.123456Z',stateFingerprint:'sha256:'+'a'.repeat(64),supportedWriteKinds:['goal_plan', 'measure_plan', 'daily_routine', 'support_boundary', 'schedule_commitment', 'plan_review_request', 'correction'], sources: { count: sources.length, rows: sources }, history };
   assert.equal(decodeCarePlanPathHistory(history, context).state.headId, commands[1].eventId);
   assert.equal(decodeCarePlanPathContext(context, context).sources.count, sources.length);
-  assert.doesNotThrow(() => assertCarePlanPathSelectionCurrent(commands[0], context));
+  assert.doesNotThrow(() => assertCarePlanPathSelectionCurrent({...commands[0],expectedHeadId:context.history.headId}, context));
   context.sources.rows[0].snapshot.status = 'changed';
-  assert.throws(() => assertCarePlanPathSelectionCurrent(commands[0], context), /nicht mehr aktuell/);
+  assert.throws(() => assertCarePlanPathSelectionCurrent({...commands[0],expectedHeadId:context.history.headId}, context), /nicht mehr aktuell/);
   assert.throws(() => decodeCarePlanPathContext({ ...context, assessmentId: next() }, context), /originale/i);
 });
 
@@ -110,7 +118,7 @@ const memory = () => { const values = new Map(); return { getItem: key => values
 
 test('Entwurf bleibt konto-, mandanten- und fallgebunden und verwirft veraltete Auswahl', () => {
   const store = memory(), kind = 'responsibility_assignment', definition = carePlanPathDefinitions[kind];
-  const selected = Object.fromEntries(definition.sources.map(rule => { const v = source(rule.kinds[0]); if(rule.eventKinds)v.snapshot.command={kind:rule.eventKinds[0]}; return [rule.key, { id: v.id, value: v }]; }));
+  const selected = Object.fromEntries(definition.sources.map(rule => { const v = source(rule.kinds[0],rule.eventKinds?.[0]); return [rule.key, { id: v.id, value: v }]; }));
   const draft = { version: carePlanPathVersion, scope: { tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor }, headId: null, kind, occurredAt: '2026-10-16T16:00:00Z', note: 'Entwurf', values: {}, selected };
   saveCarePlanPathDraft(store, draft);
   assert.match(carePlanPathDraftKey(draft.scope), new RegExp(ids.assessment));
@@ -119,15 +127,15 @@ test('Entwurf bleibt konto-, mandanten- und fallgebunden und verwirft veraltete 
 });
 
 test('Formular baut nur einen validierten fallbezogenen Befehl', () => {
-  const kind = 'plan_release_decision', definition = carePlanPathDefinitions[kind];
+  const kind = 'goal_plan', definition = carePlanPathDefinitions[kind];
   const draft = { version: carePlanPathVersion, scope: { tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor }, headId: null, kind, occurredAt: '2026-10-16T16:00:00Z', note: 'Gate',
     values: Object.fromEntries(definition.fields.map(rule => [rule.key, value(rule)])),
-    selected: Object.fromEntries(definition.sources.map(rule => { const v = source(rule.kinds[0]); if(rule.eventKinds)v.snapshot.command={kind:rule.eventKinds[0]}; return [rule.key, { id: v.id, value: v }]; })) };
+    selected: Object.fromEntries(definition.sources.map(rule => { const v = source(rule.kinds[0],rule.eventKinds?.[0]); return [rule.key, { id: v.id, value: v }]; })) };
   assert.equal(buildCarePlanPathCommand(draft, emptyCarePlanPathState(), next(), next()).assessmentId, ids.assessment);
 });
 
 test('unklarer Ausgang wird ausschließlich lesend wiederaufgenommen', async () => {
-  const store = memory(), c = command('execution_record'); let commits = 0, confirms = 0;
+  const store = memory(), c = command('goal_plan'); let commits = 0, confirms = 0;
   const workflow = new CarePlanPathWorkflow({ tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor }, {
     storage: store, lock: async (_, action) => action(), isCurrent: () => true,
     commit: async () => { commits++; return { ok: false, uncertain: true, error: 'Antwort verloren' }; },
@@ -143,7 +151,7 @@ function repositoryHarness(reply) {
   const calls = [], sdk = { auth: {
     getSession: async () => ({ error: null, data: { session: { user: { id: ids.actor }, access_token: 'token', expires_at: 4102444800 } } }),
     getUser: async () => ({ error: null, data: { user: { id: ids.actor } } }),
-  }, rpc: (name, args) => { calls.push({ name, args }); return Promise.resolve(reply(name, args)); } };
+  }, rpc: (name, args) => { calls.push({ name, args }); return Promise.resolve(name==='resolve_current_profile_id'?{data:ids.actor,error:null}:name==='current_tenant_id'?{data:ids.tenant,error:null}:reply(name, args)); } };
   let current = true;
   const repository = createCarePlanPathRepository({ getSdk: () => sdk, query: request => Promise.resolve(request) });
   const authority = { tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, accessToken: 'token', expiresAt: 4102444800000, isCurrent: () => current };
@@ -151,22 +159,22 @@ function repositoryHarness(reply) {
 }
 
 test('Repository bindet Kontext, Commit und Quittungslesen an denselben Fall', async () => {
-  const c = command('plan_release_decision'), event = eventOf(c), receipt = { version: carePlanPathVersion, requestId: c.requestId, command: c, event };
-  const context = { version: carePlanPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: c.occurredAt, sources: { count: 0, rows: [] }, history: historyOf([]) };
-  const h = repositoryHarness(name => name === 'web_care_plan_path_workspace_context' ? { error: null, data: context } : { error: null, data: receipt });
+  const c = command('goal_plan'), event = eventOf(c), receipt = { version: carePlanPathVersion, requestId: c.requestId, command: c, event };
+  const context = { version: carePlanPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: c.occurredAt,stateFingerprint:'sha256:'+'a'.repeat(64),supportedWriteKinds:['goal_plan', 'measure_plan', 'daily_routine', 'support_boundary', 'schedule_commitment', 'plan_review_request', 'correction'], sources: { count: 0, rows: [] }, history: historyOf([]) };
+  const h = repositoryHarness(name => name === 'web_care_plan_path_v2_context' ? { error: null, data: context } : { error: null, data: receipt });
   assert.equal((await h.repository.context(h.authority)).ok, true);
   assert.equal((await h.repository.commit(h.authority, c)).ok, true);
   assert.equal((await h.repository.confirm(h.authority, c)).ok, true);
-  assert.deepEqual(h.calls.map(x => x.name), ['web_care_plan_path_workspace_context', 'web_commit_care_plan_path_event', 'web_confirm_care_plan_path_event']);
-  assert.deepEqual(h.calls[0].args, { p_tenant_id: ids.tenant, p_assessment_id: ids.assessment, p_actor_id: ids.actor });
+  assert.deepEqual(h.calls.filter(x=>x.name.startsWith('web_')).map(x => x.name), ['web_care_plan_path_v2_context','web_care_plan_path_v2_context', 'web_commit_care_plan_path_v2_event', 'web_confirm_care_plan_path_v2_event']);
+  assert.deepEqual(h.calls.find(x=>x.name.startsWith('web_')).args, { p_tenant_id: ids.tenant, p_assessment_id: ids.assessment, p_actor_id: ids.actor });
 });
 
 test('Repository trennt bestätigten SQL-Abbruch, unklaren Ausgang und Rechtewechsel', async () => {
-  const c = command('measure_plan'), rejected = repositoryHarness(() => ({ error: { code: '23514' }, data: null })), unknown = repositoryHarness(() => ({ error: { code: '08006' }, data: null }));
+  const c = command('goal_plan'), rejected = repositoryHarness(() => ({ error: { code: '23514' }, data: null })), unknown = repositoryHarness(() => ({ error: { code: '08006' }, data: null }));
   assert.equal((await rejected.repository.commit(rejected.authority, c)).rejected, true);
   assert.equal((await unknown.repository.commit(unknown.authority, c)).uncertain, true);
   rejected.expire();
   assert.equal((await rejected.repository.context(rejected.authority)).ok, false);
-  assert.equal(rejected.calls.length, 1);
+  assert.equal(rejected.calls.filter(x=>x.name.startsWith('web_')).length, 1);
 });
 

@@ -14,8 +14,9 @@ import {assessmentInstrumentPacketIssue,type AssessmentInstrumentPacket} from '@
 import {AssessmentInstrumentPanel} from './AssessmentInstrumentPanel.web';
 import {planLifecyclePacketIssue,type PlanLifecyclePacket} from '@/lib/careAssessment/planLifecyclePacket.web';
 import {PlanLifecyclePanel} from './PlanLifecyclePanel.web';
-import {AssessmentPathWorkspace} from '@/components/careAssessment/AssessmentPathWorkspace.web';
-import {CarePlanPathWorkspace} from '@/components/careAssessment/CarePlanPathWorkspace.web';
+import {AssessmentPlanPaths} from '@/components/careAssessment/AssessmentPlanPaths.web';
+import {useAssessmentPathJournals} from '@/lib/careAssessment/useAssessmentPathJournals.web';
+import type {AssessmentPathPhase} from '@/lib/careAssessment/useAssessmentPathOwnership.web';
 import {MentalHealthCarePathPanel} from '@/components/careAssessment/MentalHealthCarePathPanel.web';
 import {PalliativeSpecialCarePathPanel} from '@/components/careAssessment/PalliativeSpecialCarePathPanel.web';
 import {CounselingCoordinationPathPanel} from '@/components/careAssessment/CounselingCoordinationPathPanel.web';
@@ -211,12 +212,18 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const router = useRouter();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
+  const retainedJournals=useAssessmentPathJournals({tenantId:tenantId??'',assessmentId:id??'',actorId:profile?.id??''},subjectType==='client');
+  const retainedPathJournal=retainedJournals.assessment||retainedJournals.plan;
   const { width } = useWindowDimensions();
   const [value, setValue] = useState<CareAssessment | null>(null);
   const evaluationLeave=useRef<()=>Promise<boolean>>(async()=>true);
   const navigationAlive=useRef(true),readBoundary=useRef<CareAssessmentReadBoundary|null>(null),queryAttempt=useRef<CareAssessmentQueryAttempt|null>(null),lastSavedPlan=useRef<CareAssessment|null>(null);
   useEffect(()=>{navigationAlive.current=true;return()=>{navigationAlive.current=false;readBoundary.current=null;queryAttempt.current=null;};},[]);
   const [section, setSection] = useState<Section>('person');
+  const qualityNavigation=useRef({leaving:false,active:false,instrumentLeave:null as (()=>Promise<boolean>)|null,planLeave:null as (()=>Promise<boolean>)|null,pathLeave:null as (()=>Promise<boolean>)|null,path:{busy:false,dirty:false,uncertain:false} as AssessmentPathPhase,instrument:null as {loading:boolean;dirty:boolean}|null,plan:null as {loading:boolean;dirty:boolean}|null});qualityNavigation.current.active=section==='quality';
+  const [pathPhase,setPathPhase]=useState<AssessmentPathPhase>({busy:false,dirty:false,uncertain:false});
+  const pathStateChange=useCallback((phase:AssessmentPathPhase)=>{qualityNavigation.current.path=phase;retainedJournals.refresh();setPathPhase(phase);},[retainedJournals.refresh]);
+  const registerPathLeave=useCallback((guard:(()=>Promise<boolean>)|null)=>{qualityNavigation.current.pathLeave=guard;},[]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [evaluationOutcome, setEvaluationOutcome] = useState<'' | 'effective' | 'partly_effective' | 'not_effective' | 'deteriorated' | 'not_assessable'>(subjectType==='resident'?'effective':'');
@@ -259,6 +266,10 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const [instrumentGeneration,setInstrumentGeneration]=useState(0);
   const [planState,setPlanState]=useState<{packet:PlanLifecyclePacket|null;issue:string|null;dirty:boolean;loading:boolean}>({packet:null,issue:'Planlebenszyklus vollständig laden.',dirty:false,loading:true});
   const [planGeneration,setPlanGeneration]=useState(0);
+  const instrumentStateChange=useCallback((state:typeof instrumentState)=>{qualityNavigation.current.instrument=state;setInstrumentState(state);},[]);
+  const planStateChange=useCallback((state:typeof planState)=>{qualityNavigation.current.plan=state;setPlanState(state);},[]);
+  const registerInstrumentLeave=useCallback((guard:(()=>Promise<boolean>)|null)=>{qualityNavigation.current.instrumentLeave=guard;},[]),registerPlanLeave=useCallback((guard:(()=>Promise<boolean>)|null)=>{qualityNavigation.current.planLeave=guard;},[]);
+  const nativePanelLeaving=useCallback(()=>qualityNavigation.current.leaving,[]);
   const [needsReload,setNeedsReload]=useState(false),[lifecycleBusy,setLifecycleBusy]=useState(false);
   const lifecyclePending=useRef(false);
   const changeLifecyclePending=useCallback((pending:boolean)=>{lifecyclePending.current=pending;if(navigationAlive.current)setLifecycleBusy(pending);},[]);
@@ -275,10 +286,10 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const pendingDraft=useRef<{request:AssessmentDraftRequest;context:CareAssessmentDraftContext;baseline:CareAssessmentDraftBaseline|null;editable:CareAssessment;requestId:string;provenance:CareAssessmentPendingRead}|null>(null);
   function acceptConfirmed(loaded:CareAssessment,captured:CareAssessmentDraftContext,ticket:CareAssessmentReadTicket,provenance:CareAssessmentPendingRead){const current=workspaceState.current;assertCurrentReadContext(captured);const boundary=readBoundary.current;if(!boundary)throw Error('Aktuellen Pflegeplan-Lesestand erneut bestätigen.');const published=acceptCareAssessmentConfirmedRead(boundary,ticket,provenance,loaded,current.context);const accepted=confirmCareAssessmentDraftWrite(loaded,captured,current.context);readBoundary.current=published.boundary;query.setData(published.envelope);setBaseline(accepted.baseline);setValue(accepted.value);setNeedsReload(false);}
   async function reloadConfirmedDraft(){const pending=pendingDraft.current;if(!pending)throw Error('Ursprüngliche bestätigte Schreibanfrage fehlt. Der Formularstand bleibt erhalten.');assertCurrentReadContext(pending.context);const ticket=currentReadTicket();const loaded=await fetchCareAssessment(pending.context.tenantId,pending.context.assessmentId,pending.context.subjectType,pending.context.roleKey as NonNullable<typeof profile>['roleKey']);assertCurrentReadContext(pending.context);if(!loaded.ok)throw Error(loaded.error);assertAssessmentDraftStoredRead(pending.request,{assessmentId:loaded.data.id,draftRevision:loaded.data.draftRevision,status:loaded.data.status});const current=workspaceState.current;if(!sameDraftContext(pending.context,current.context)||!sameWoundJson(current.value,pending.editable)||!sameWoundJson(current.baseline,pending.baseline))throw Error('Ursprünglicher Schreib- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.');acceptConfirmed(loaded.data,pending.context,ticket,pending.provenance);}
-  const submission=useMedicationSubmission<AssessmentDraftRequest>(dirty||instrumentState.dirty||planState.dirty,async(requestId,payload,replay)=>{
+  const submission=useMedicationSubmission<AssessmentDraftRequest>(dirty||instrumentState.dirty||planState.dirty||pathPhase.dirty||pathPhase.uncertain||retainedPathJournal,async(requestId,payload,replay)=>{
     const current=workspaceState.current;
     if(!current.canReadPlan||!navigationAlive.current||!tenantId||payload.assessmentId!==current.context.assessmentId)return {ok:false,error:'Der Aktenbezug hat sich geändert.',uncertain:replay};
-    if(pendingDraft.current?.requestId!==requestId){if(replay)return {ok:false,error:'Der ursprüngliche Lesestand der ungewissen Schreibanfrage fehlt.',uncertain:true};if(current.writeLocked||!current.value)return {ok:false,error:'Aktuellen gespeicherten Bearbeitungsstand zuerst bestätigen.'};try{const provenance=captureOriginalRead();pendingDraft.current={request:structuredClone(payload),context:structuredClone(current.context),baseline:current.baseline?structuredClone(current.baseline):null,editable:structuredClone(current.value),requestId,provenance};}catch(error){return {ok:false,error:error instanceof Error?error.message:'Ursprünglichen Lesestand prüfen.'};}}
+    if(pendingDraft.current?.requestId!==requestId){if(replay)return {ok:false,error:'Der ursprüngliche Lesestand der ungewissen Schreibanfrage fehlt.',uncertain:true};if(current.writeLocked||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan||!current.value)return {ok:false,error:'Aktuellen gespeicherten Bearbeitungsstand zuerst bestätigen.'};try{const provenance=captureOriginalRead();pendingDraft.current={request:structuredClone(payload),context:structuredClone(current.context),baseline:current.baseline?structuredClone(current.baseline):null,editable:structuredClone(current.value),requestId,provenance};}catch(error){return {ok:false,error:error instanceof Error?error.message:'Ursprünglichen Lesestand prüfen.'};}}
     if(!sameDraftContext(pendingDraft.current.context,current.context))return {ok:false,error:'Der ursprüngliche Benutzer- oder Pflegefallbezug hat sich geändert.',uncertain:replay};
     intentRef.current=payload.intent;
     return writeAmbulatoryAssessmentRequest(current.context.tenantId,requestId,payload,profile?.roleKey);
@@ -287,17 +298,18 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
     setInstrumentState({packet:null,issue:'Instrumenten- und Modellbestand nach dem Speichern erneut vollständig laden.',dirty:false,loading:true});setInstrumentGeneration(current=>current+1);
     setPlanState({packet:null,issue:'Planlebenszyklus nach dem Speichern erneut vollständig laden.',dirty:false,loading:true});setPlanGeneration(current=>current+1);
     setMessage(intentRef.current==='review'?'Gespeichert und zur fachlichen Prüfung übergeben.':'Zwischenstand gespeichert.');
-  });
+  },()=>{const before={context:workspaceState.current.context,value:workspaceState.current.value,instrument:qualityNavigation.current.instrument,plan:qualityNavigation.current.plan,path:qualityNavigation.current.path};return()=>navigationAlive.current&&!retainedJournals.reference.current.assessment&&!retainedJournals.reference.current.plan&&(!qualityNavigation.current.path.dirty||pathPhase.dirty)&&(!qualityNavigation.current.instrument?.dirty||instrumentState.dirty)&&(!qualityNavigation.current.plan?.dirty||planState.dirty)&&!qualityNavigation.current.leaving&&!qualityNavigation.current.path.busy&&!qualityNavigation.current.path.uncertain&&(!qualityNavigation.current.active||!qualityNavigation.current.instrument?.loading&&!qualityNavigation.current.plan?.loading)&&sameWoundJson(before,{context:workspaceState.current.context,value:workspaceState.current.value,instrument:qualityNavigation.current.instrument,plan:qualityNavigation.current.plan,path:qualityNavigation.current.path});});
   const pending=busy||submission.locked||needsReload||lifecycleBusy||lifecyclePending.current;
   const completeness = useMemo(() => value ? calculateCareAssessmentCompleteness(value) : null, [value]);
-  const locked = !canManage || busy || (!resident && (submission.locked || needsReload || lifecycleBusy || readState.data.writeBlocked || !!readState.error || value?.status==='professional_review')) || ['approved', 'superseded', 'archived'].includes(value?.status ?? '');
+  const coreLocked = !canManage || busy || (!resident && (submission.locked || needsReload || lifecycleBusy || readState.data.writeBlocked || !!readState.error || value?.status==='professional_review')) || ['approved', 'superseded', 'archived'].includes(value?.status ?? '');
+  const locked=coreLocked||(!resident&&(pathPhase.busy||pathPhase.dirty||pathPhase.uncertain||retainedPathJournal));
   const evaluationLocked = !canManage || busy || (!resident && (submission.locked || needsReload || lifecycleBusy || readState.data.writeBlocked || !!readState.error || dirty || value?.status==='professional_review')) || ['superseded', 'archived'].includes(value?.status ?? '');
   workspaceState.current={context:draftContext,baseline,value,persisted,envelope:queryEnvelope,readBlocked:readBlocked||!!readState.error,canReadPlan,writeLocked:locked,pending};
   useEffect(()=>{if(resident){if(queryAssessment)setValue(queryAssessment);return;}const current=workspaceState.current;if(current.readBlocked||!readBoundary.current||!isCurrentCareAssessmentReadEnvelope(readBoundary.current,current.envelope))return;try{const adopted=adoptCareAssessmentDraftRead(current.baseline,current.value,current.persisted,current.context,current.pending||lifecyclePending.current);if(adopted&&(!current.value||!current.baseline||!sameWoundJson(current.baseline.assessment,adopted.baseline.assessment))){setBaseline(adopted.baseline);setValue(adopted.value);}}catch(error){setMessage(error instanceof Error?error.message:'Gespeicherten Formularbezug prüfen.');}},[resident,query.data,readBlocked,pending]);
   function sameDraftContext(a:CareAssessmentDraftContext,b:CareAssessmentDraftContext){return a.tenantId===b.tenantId&&a.profileId===b.profileId&&a.roleKey===b.roleKey&&a.assessmentId===b.assessmentId&&a.subjectType===b.subjectType&&a.subjectId===b.subjectId;}
   function assertCurrentReadContext(captured:CareAssessmentDraftContext){assertCareAssessmentRuntimeReadAccess({canRead:workspaceState.current.canReadPlan,canManage:false});if(!navigationAlive.current||!sameDraftContext(captured,workspaceState.current.context))throw Error('Der ursprüngliche Lesekontext hat sich geändert.');}
   function currentReadTicket(){const boundary=readBoundary.current;if(!boundary)throw Error('Aktuellen Pflegeplan-Lesekontext zuerst bestätigen.');return beginCareAssessmentRead(boundary);}
-  function captureOriginalRead(){const current=workspaceState.current;assertCurrentReadContext(current.context);const boundary=readBoundary.current;if(!boundary||!current.persisted||!sameWoundJson(boundary.saved,current.persisted)||!current.baseline||!sameWoundJson(current.baseline.assessment,current.persisted))throw Error('Den vollständig gesicherten ursprünglichen Lesestand vor einer neuen Schreibanfrage bestätigen.');return captureCareAssessmentPendingRead(boundary);}
+  function captureOriginalRead(){if(qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan)throw Error('Den offenen Assessment- oder Pflegeplanpfadvorgang zuerst abschließen.');const current=workspaceState.current;assertCurrentReadContext(current.context);const boundary=readBoundary.current;if(!boundary||!current.persisted||!sameWoundJson(boundary.saved,current.persisted)||!current.baseline||!sameWoundJson(current.baseline.assessment,current.persisted))throw Error('Den vollständig gesicherten ursprünglichen Lesestand vor einer neuen Schreibanfrage bestätigen.');return captureCareAssessmentPendingRead(boundary);}
   function beginAmendmentRead(_requestId:string,target:import('@/lib/careAssessment/planEvaluationDomain').EvaluationPlan){const provenance=captureOriginalRead(),saved=provenance.saved;if(target.tenantId!==saved.tenantId||target.assessmentId!==saved.id||target.clientId!==saved.subjectId||target.version!==saved.version||target.draftRevision!==saved.draftRevision||target.updatedAt!==saved.updatedAt)throw Error('Ursprünglichen gesicherten Änderungsstand erneut bestätigen.');return provenance;}
   async function readPlanReload(){const captured=workspaceState.current.context;assertCurrentReadContext(captured);await query.refresh();assertCurrentReadContext(captured);}
   async function reloadReturnedPlan(payload:AssessmentLifecycleRequest,captured:CareAssessmentDraftContext,capturedBaseline:CareAssessmentDraftBaseline|null,capturedValue:CareAssessment,provenance:CareAssessmentPendingRead){assertCurrentReadContext(captured);const ticket=currentReadTicket();const loaded=await fetchCareAssessment(captured.tenantId,captured.assessmentId,captured.subjectType,captured.roleKey as NonNullable<typeof profile>['roleKey']);assertCurrentReadContext(captured);if(!loaded.ok)throw Error(loaded.error);assertAssessmentLifecycleReceipt(payload,{assessmentId:loaded.data.id,subjectId:loaded.data.subjectId,action:'return',draftRevision:loaded.data.draftRevision,version:loaded.data.version,status:loaded.data.status});const current=workspaceState.current;if(!sameWoundJson(current.baseline,capturedBaseline)||!sameWoundJson(current.value,capturedValue))throw Error('Ursprünglicher Rückgabe- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.');acceptConfirmed(loaded.data,captured,ticket,provenance);}
@@ -305,17 +317,35 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const navigationContext=`${tenantId}:${profile?.id}:${profile?.roleKey}:${subjectType}:${id}:${value?.subjectId}`;
   const navigationState=useRef({context:navigationContext,section,resident,busy,storageLocked:submission.locked,queryBlocked:query.loading||query.refreshing||!!query.error||!!query.refreshError});
   navigationState.current={context:navigationContext,section,resident,busy,storageLocked:submission.locked,queryBlocked:query.loading||query.refreshing||!!query.error||!!query.refreshError};
-  async function changeSection(next:Section){const before=navigationState.current;if(next===before.section)return;if(before.section!=='evaluation'||before.resident){setSection(next);return;}const confirm=evaluationLeave.current;if(before.busy||before.storageLocked||!await confirm())return;const current=navigationState.current;if(!navigationAlive.current||current.context!==before.context||current.section!==before.section||current.resident!==before.resident||evaluationLeave.current!==confirm||current.busy||current.storageLocked||current.queryBlocked!==before.queryBlocked)return;setSection(next);}
-  const patch = (next: Partial<CareAssessment>) => {if(!resident&&workspaceState.current.writeLocked)return;setValue((current) => current ? ({ ...current, ...next }) : current);};
-  const patchTopic = (key: CareAssessmentTopicKey, field: string, next: string) => {if(!resident&&workspaceState.current.writeLocked)return;setValue((current) => current ? ({
+  const nativePanelCurrent=useCallback(()=>navigationAlive.current&&readBoundary.current?.lifetime===queryLifetime&&workspaceState.current.canReadPlan&&workspaceState.current.context.subjectId===draftContext.subjectId,[queryLifetime,draftContext.subjectId]);
+  async function changeSection(next:Section){
+    const before=navigationState.current;if(next===before.section||qualityNavigation.current.leaving)return;
+    if(before.resident){setSection(next);return;}
+    if(before.busy||before.storageLocked||before.section==='history'&&(retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan))return;
+    const instrument=qualityNavigation.current.instrumentLeave,plan=qualityNavigation.current.planLeave,evaluation=evaluationLeave.current,path=qualityNavigation.current.pathLeave;
+    const panelBefore={instrument:qualityNavigation.current.instrument,plan:qualityNavigation.current.plan};qualityNavigation.current.leaving=true;
+    try{
+      const guards=before.section==='quality'?[instrument,plan]:before.section==='evaluation'?[evaluation]:before.section==='history'?[path]:[];
+      for(const guard of guards)if(guard&&!await guard())return;
+      const current=navigationState.current;
+      if(!navigationAlive.current||!nativePanelCurrent()||current.context!==before.context||current.section!==before.section||current.resident!==before.resident||evaluationLeave.current!==evaluation||qualityNavigation.current.instrumentLeave!==instrument||qualityNavigation.current.planLeave!==plan||qualityNavigation.current.pathLeave!==path||current.busy||current.storageLocked||current.queryBlocked!==before.queryBlocked||!sameWoundJson(panelBefore,{instrument:qualityNavigation.current.instrument,plan:qualityNavigation.current.plan}))return;
+      if(before.section==='quality'){
+        instrumentStateChange({packet:null,issue:'Instrumenten- und Modellbestand vor dem nächsten Speichern vollständig laden.',dirty:false,loading:true});
+        planStateChange({packet:null,issue:'Planlebenszyklus vor dem nächsten Speichern vollständig laden.',dirty:false,loading:true});
+      }
+      setSection(next);
+    }finally{qualityNavigation.current.leaving=false;}
+  }
+  const patch = (next: Partial<CareAssessment>) => {if(!resident&&(workspaceState.current.writeLocked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan))return;setValue((current) => current ? ({ ...current, ...next }) : current);};
+  const patchTopic = (key: CareAssessmentTopicKey, field: string, next: string) => {if(!resident&&(workspaceState.current.writeLocked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan))return;setValue((current) => current ? ({
     ...current,
     topics: current.topics.map((item) => item.topicKey === key ? ({ ...item, [field]: next }) : item),
   }) : current);};
-  const patchRisk = (index: number, next: Partial<CareAssessmentRisk>) => {if(!resident&&workspaceState.current.writeLocked)return;setValue((current) => current ? ({
+  const patchRisk = (index: number, next: Partial<CareAssessmentRisk>) => {if(!resident&&(workspaceState.current.writeLocked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan))return;setValue((current) => current ? ({
     ...current,
     risks: current.risks.map((item, i) => i === index ? ({ ...item, ...next }) : item),
   }) : current);};
-  const patchMeasure = (index: number, next: Partial<CareAssessmentMeasure>) => {if(!resident&&workspaceState.current.writeLocked)return;setValue((current) => current ? ({
+  const patchMeasure = (index: number, next: Partial<CareAssessmentMeasure>) => {if(!resident&&(workspaceState.current.writeLocked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan))return;setValue((current) => current ? ({
     ...current,
     measures: current.measures.map((item, i) => i === index ? ({ ...item, ...next }) : item),
   }) : current);};
@@ -341,19 +371,20 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
     }] });
   }
   async function save(nextStatus?: 'professional_review' | 'approved') {
-    if (!value || !tenantId || locked) return;
+    if (!value || !tenantId || locked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan) return;
     const check = calculateCareAssessmentCompleteness(value);
     if (nextStatus && !(nextStatus === 'approved' ? check.canApprove : check.canSubmitForReview)) { setMessage('Fachliche Prüfung erst nach Behebung der angezeigten offenen Angaben möglich.'); return; }
     if (value.subjectType === 'client' && nextStatus === 'approved') { setMessage('Fachliche Freigabe bleibt bis zum Nachweis von Qualifikation und serverseitiger Prüfung gesperrt.'); return; }
     if(!resident){
       const current=workspaceState.current;if(current.writeLocked||!current.value)return;
-      const packetIssue=instrumentState.loading?'Instrumenten- und Modellbestand wird noch geladen.':assessmentInstrumentPacketIssue(instrumentState.packet,current.value.risks.map(item=>item.riskKey),nextStatus==='professional_review')??instrumentState.issue;
+      const latestInstrument=qualityNavigation.current.instrument as typeof instrumentState|null,latestPlan=qualityNavigation.current.plan as typeof planState|null;const instruments=latestInstrument??instrumentState,plan=latestPlan??planState;if(instruments.loading||plan.loading){setMessage('Die nativen Instrumenten- und Planoriginale werden noch bestätigt.');return;}
+      const packetIssue=instruments.loading?'Instrumenten- und Modellbestand wird noch geladen.':assessmentInstrumentPacketIssue(instruments.packet,current.value.risks.map(item=>item.riskKey),nextStatus==='professional_review')??instruments.issue;
       if(packetIssue){setMessage(packetIssue);return;}
-      const planIssue=planState.loading?'Planlebenszyklus wird noch geladen.':planLifecyclePacketIssue(planState.packet,current.value.measures,nextStatus==='professional_review')??planState.issue;
+      const planIssue=plan.loading?'Planlebenszyklus wird noch geladen.':planLifecyclePacketIssue(plan.packet,current.value.measures,nextStatus==='professional_review')??plan.issue;
       if(planIssue){setMessage(planIssue);return;}
       if(nextStatus==='professional_review'&&!calculateCareAssessmentCompleteness(current.value).canSubmitForReview){setMessage('Fachliche Prüfung erst nach Behebung der angezeigten offenen Angaben möglich.');return;}
       setMessage(null);
-      try{await submission.submit(makeAssessmentDraftRequest(current.value,nextStatus==='professional_review'?'review':'save',instrumentState.packet,planState.packet));}
+      try{await submission.submit(makeAssessmentDraftRequest(current.value,nextStatus==='professional_review'?'review':'save',instruments.packet,plan.packet));}
       catch(error){setMessage(error instanceof Error?error.message:'Assessmentangaben prüfen.');}
       return;
     }
@@ -404,11 +435,12 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
       {!resident&&(query.error||query.refreshError)?<InfoBanner variant="warning" message={query.refreshError??query.error!}/>:null}
       {!resident&&readState.data.diverged?<InfoBanner variant="warning" message="Der gespeicherte Planstand wurde geändert. Ihre lokalen Eingaben bleiben mit ihrer ursprünglichen Formularfassung erhalten. Neue Schreibaktionen bleiben bis zum erneuten Öffnen einer bestätigten Bearbeitungsfassung gesperrt; die Evaluation zeigt den getrennten gespeicherten Lesestand."/>:null}
       {!resident&&section==='evaluation'?<InfoBanner variant="info" message="Diese Originalübersicht verwendet ausschließlich den gespeicherten Planstand. Lokale Planeingaben und ungewisse Schreibanfragen werden durch eine Leseaktualisierung nicht übernommen oder verworfen."/>:null}
+      {!resident&&retainedPathJournal&&section!=='history'?<View style={{gap:spacing.sm}}><InfoBanner variant="warning" title="Gesicherten Pfadvorgang abgleichen" message="Ein gesicherter Assessment- oder Pflegeplanvorgang benötigt seine ursprüngliche Quittung. Weitere Änderungen bleiben bis zum Abgleich gesperrt."/><PremiumButton title="Pfadvorgang im Verlauf öffnen" variant="secondary" onPress={()=>void changeSection('history')}/></View>:null}
       {!resident && submission.error ? <InfoBanner variant="warning" title="Speicherprüfung" message={submission.error} /> : null}
       {!resident && submission.uncertain ? <View style={{gap:spacing.md}}><InfoBanner variant="warning" title="Speicherstand unklar" message="Der Server kann bereits gespeichert haben. Änderungen bleiben gesperrt; dieselbe Anfrage wird erneut geprüft." /><PremiumButton title="Dieselbe Anfrage erneut prüfen" loading={submission.busy} disabled={submission.busy} onPress={submission.retry} /></View> : null}
       {!resident && needsReload ? <View style={{gap:spacing.md}}><InfoBanner variant="warning" title="Gespeicherten Stand laden" message="Die Schreibanfrage ist bestätigt. Vor weiteren Änderungen muss der aktuelle Datensatz geladen werden." /><PremiumButton title="Aktuellen Stand laden" disabled={submission.locked} onPress={async()=>{try{await reloadConfirmedDraft();submission.setError(null);}catch(error){setMessage(error instanceof Error?error.message:'Bestätigten ursprünglichen Stand erneut laden.');}}} /></View> : null}
 
-      {!resident&&value.status==='professional_review' ? <ReturnAssessmentForm key={`${value.id}:${value.draftRevision}`} value={value} baseline={baseline} canManage={canManage} canRead={canReadPlan} onWriteBegin={captureOriginalRead} startBlocked={readBlocked||!!readState.error||!baseline||dirty||readState.data.diverged||busy||submission.locked||needsReload} tenantId={tenantId??''} role={profile?.roleKey} context={draftContext} onPendingChange={changeLifecyclePending} onConfirmed={async(payload,captured,capturedBaseline,capturedValue,provenance)=>{await reloadReturnedPlan(payload,captured,capturedBaseline,capturedValue,provenance);setMessage('Zur Bearbeitung zurückgegeben. Bisherige Prüffassung bleibt im Verlauf erhalten.');}} /> : null}
+      {!resident&&value.status==='professional_review' ? <ReturnAssessmentForm key={`${value.id}:${value.draftRevision}`} value={value} baseline={baseline} canManage={canManage} canRead={canReadPlan} onWriteBegin={captureOriginalRead} startBlocked={readBlocked||!!readState.error||!baseline||dirty||readState.data.diverged||busy||submission.locked||needsReload||pathPhase.busy||pathPhase.dirty||pathPhase.uncertain||retainedPathJournal} tenantId={tenantId??''} role={profile?.roleKey} context={draftContext} onPendingChange={changeLifecyclePending} onConfirmed={async(payload,captured,capturedBaseline,capturedValue,provenance)=>{await reloadReturnedPlan(payload,captured,capturedBaseline,capturedValue,provenance);setMessage('Zur Bearbeitung zurückgegeben. Bisherige Prüffassung bleibt im Verlauf erhalten.');}} /> : null}
 
       <View style={styles.focusHero}>
         <View style={styles.focusHeroCopy}>
@@ -553,8 +585,8 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
 
       {section === 'quality' ? (
         <>
-          {!resident?<AssessmentInstrumentPanel key={`${draftContext.tenantId}:${draftContext.assessmentId}:${draftContext.subjectId}:${draftContext.profileId}:${instrumentGeneration}`} tenantId={draftContext.tenantId} assessmentId={draftContext.assessmentId} subjectId={draftContext.subjectId} actorId={draftContext.profileId} role={profile?.roleKey??null} riskKeys={value.risks.map(item=>item.riskKey)} editable={!locked} reviewRequested={false} onState={setInstrumentState}/>:null}
-          {!resident?<PlanLifecyclePanel key={`${draftContext.tenantId}:${draftContext.assessmentId}:${draftContext.subjectId}:${draftContext.profileId}:${planGeneration}`} tenantId={draftContext.tenantId} assessmentId={draftContext.assessmentId} subjectId={draftContext.subjectId} actorId={draftContext.profileId} role={profile?.roleKey??null} measures={value.measures} topicKeys={value.topics.map(item=>item.topicKey)} editable={!locked} reviewRequested={false} onState={setPlanState}/>:null}
+          {!resident?<AssessmentInstrumentPanel key={`${draftContext.tenantId}:${draftContext.assessmentId}:${draftContext.subjectId}:${draftContext.profileId}:${instrumentGeneration}`} tenantId={draftContext.tenantId} assessmentId={draftContext.assessmentId} subjectId={draftContext.subjectId} actorId={draftContext.profileId} role={profile?.roleKey??null} riskKeys={value.risks.map(item=>item.riskKey)} editable={!locked} reviewRequested={false} onState={instrumentStateChange} isCurrent={nativePanelCurrent} isLeaving={nativePanelLeaving} registerLeave={registerInstrumentLeave}/>:null}
+          {!resident?<PlanLifecyclePanel key={`${draftContext.tenantId}:${draftContext.assessmentId}:${draftContext.subjectId}:${draftContext.profileId}:${planGeneration}`} tenantId={draftContext.tenantId} assessmentId={draftContext.assessmentId} subjectId={draftContext.subjectId} actorId={draftContext.profileId} role={profile?.roleKey??null} measures={value.measures} topicKeys={value.topics.map(item=>item.topicKey)} editable={!locked} reviewRequested={false} onState={planStateChange} isCurrent={nativePanelCurrent} isLeaving={nativePanelLeaving} registerLeave={registerPlanLeave}/>:null}
           <SectionPanel title="Pflegefachliche Gesamteinschätzung">
             <PremiumInput label="Gesamtsituation, Ressourcen, Risiken und Prioritäten" value={value.professionalSummary} onChangeText={(next) => patch({ professionalSummary: next })} multiline editable={!locked} />
             <PremiumInput label="Veränderung seit der letzten Version" value={value.changeSummary} onChangeText={(next) => patch({ changeSummary: next })} multiline editable={!locked} />
@@ -609,7 +641,7 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
 
       {section === 'history' ? (
         <>
-          {!resident ? <><AssessmentPathWorkspace assessmentId={draftContext.assessmentId} /><CarePlanPathWorkspace assessmentId={draftContext.assessmentId} /></> : null}
+          {!resident ? <AssessmentPlanPaths pendingAssessment={retainedJournals.assessment} pendingPlan={retainedJournals.plan} assessmentId={draftContext.assessmentId} blocked={coreLocked||dirty||instrumentState.dirty||planState.dirty||needsReload||submission.locked} isCurrent={nativePanelCurrent} isLeaving={nativePanelLeaving} registerLeave={registerPathLeave} onPhase={pathStateChange}/> : null}
           <SectionPanel title="Versionsverlauf" subtitle="Freigaben und Statusübergänge bleiben unveränderbar nachvollziehbar">
             {!value.versionHistory.length ? <EmptyState title="Noch keine freigegebene Version" message="Beim Übergang zur fachlichen Prüfung und bei der Freigabe entsteht ein Snapshot." /> : value.versionHistory.map((entry) => (
               <View key={entry.id} style={styles.historyRow}>

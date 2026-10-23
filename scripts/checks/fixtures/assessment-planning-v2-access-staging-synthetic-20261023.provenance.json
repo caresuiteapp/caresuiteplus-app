@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-23",
+  "project": "shwpweerzsfkqaivmaoc",
+  "sqlFixture": "supabase/tests/pflege_assessment_planning_v2_access_unit_staging.sql",
+  "sqlFixtureSha256": "3a325b45ebbd24d342aaae531c723eb6afe127d282c3c625a7c989392ce57ed7",
+  "sqlFixtureBytes": 10243,
+  "evidenceBytes": 34605,
+  "evidenceSha256": "4404d7ecd9cca4cfd6cade5762f25a9afa80afb7146565827d780d1139d245c3",
+  "parentFixture": "supabase/tests/pflege_assessment_planning_v2_authority_unit_staging.sql",
+  "parentFixtureSha256": "b4ba6c491812e22b8add2d30df88aca10089a6927de46824d4ec6e5834faf4d8",
+  "appliedMigrationVersion": "20261023010345",
+  "patch": "supabase/patches/ambulatory_assessment_planning_v2_quarantined.sql",
+  "migration": "supabase/migrations/20261023010345_pflege_assessment_planning_v2_quarantined.sql",
+  "appliedSourceSha256": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc",
+  "observedAccessCases": [
+    "manage_right_loss_preserves_read_only_own_confirmation",
+    "own_tenant_role_override_blocks_manage",
+    "inactive_pflege_assignment_blocks_confirmation",
+    "ended_actual_session_blocks_read_and_confirmation"
+  ],
+  "sqlRollbackAndCleanupVerified": true,
+  "sameProfileRelinkCovered": false,
+  "scope": "Actual four-case supplementary direct SQL access unit only. Larger full authority unit remains unconfirmed; do not substitute this subset for raw-account relinking, HTTP or concurrency proof."
+}

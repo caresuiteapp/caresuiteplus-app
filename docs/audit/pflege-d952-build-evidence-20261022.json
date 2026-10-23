@@ -1,0 +1,197 @@
+{
+  "observedAt": "2026-10-22T06:45:10.683Z",
+  "repository": "caresuiteapp/caresuiteplus-app",
+  "pr": 155,
+  "commit": "d952138cb6cb7a5fc54f60bd2785805aa8ef11f3",
+  "branch": "feat/pflege-native-order-binding-20261021",
+  "github": {
+    "statuses": [
+      {
+        "context": "Vercel – caresuiteplus-app",
+        "state": "pending",
+        "description": "Vercel is deploying your app",
+        "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplus-app/4LAtKCEC9yLggv7jZ81HavcRnvST",
+        "updated_at": "2026-10-22T05:30:20Z"
+      },
+      {
+        "context": "netlify/caresuiteplus-app/deploy-preview",
+        "state": "success",
+        "description": "Deploy Preview canceled.",
+        "target_url": "https://app.netlify.com/projects/caresuiteplus-app/deploys/6ad99f6de7890a3cd46779c6",
+        "updated_at": "2026-10-22T05:30:36Z"
+      },
+      {
+        "context": "Vercel – caresuiteplusapp",
+        "state": "success",
+        "description": "Deployment has completed",
+        "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplusapp/7SzUevDk127VFRGF68WgDwBUtiPv",
+        "updated_at": "2026-10-22T05:45:00Z"
+      },
+      {
+        "context": "Vercel – repository",
+        "state": "success",
+        "description": "Deployment has completed",
+        "target_url": "https://vercel.com/caresuiteapps-projects/repository/CKEUssd8bRTiLLCZQRFTikeaLHKY",
+        "updated_at": "2026-10-22T05:45:08Z"
+      },
+      {
+        "context": "Vercel – caresuiteplus",
+        "state": "success",
+        "description": "Deployment has completed",
+        "target_url": "https://vercel.com/caresuiteapps-projects/caresuiteplus/C5Xojukh39VW7FDFuyAxt2Q9Hb4Q",
+        "updated_at": "2026-10-22T06:43:14Z"
+      }
+    ],
+    "checkRuns": [
+      {
+        "id": 119680784493,
+        "name": "Vercel Preview Comments",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:43:14Z",
+        "completed_at": "2026-10-22T06:43:14Z",
+        "title": "✅ No unresolved feedback",
+        "summary": "💬 0 unresolved, 0 resolved. [Go to feedback](https://vercel.live/open-feedback/caresuiteplus-git-feat-pflege-nat-1e0c1d-caresuiteapps-projects.vercel.app?via=pr-comment-feedback-link)",
+        "url": "https://github.com/caresuiteapp/caresuiteplus-app/runs/119680784493"
+      },
+      {
+        "id": 119657588283,
+        "name": "Redirect rules - caresuiteplus-app",
+        "status": "completed",
+        "conclusion": "neutral",
+        "started_at": "2026-10-22T05:30:23Z",
+        "completed_at": "2026-10-22T05:30:38Z",
+        "title": "Deploy canceled",
+        "summary": "Please check [the logs](https://app.netlify.com/projects/caresuiteplus-app/deploys/6ad99f6de7890a3cd46779c6).",
+        "url": "https://github.com/caresuiteapp/caresuiteplus-app/runs/119657588283"
+      },
+      {
+        "id": 119657585990,
+        "name": "Header rules - caresuiteplus-app",
+        "status": "completed",
+        "conclusion": "neutral",
+        "started_at": "2026-10-22T05:30:23Z",
+        "completed_at": "2026-10-22T05:30:37Z",
+        "title": "Deploy canceled",
+        "summary": "Please check [the logs](https://app.netlify.com/projects/caresuiteplus-app/deploys/6ad99f6de7890a3cd46779c6).",
+        "url": "https://github.com/caresuiteapp/caresuiteplus-app/runs/119657585990"
+      },
+      {
+        "id": 119657583374,
+        "name": "Pages changed - caresuiteplus-app",
+        "status": "completed",
+        "conclusion": "neutral",
+        "started_at": "2026-10-22T05:30:23Z",
+        "completed_at": "2026-10-22T05:30:37Z",
+        "title": "Deploy canceled",
+        "summary": "Please check [the logs](https://app.netlify.com/projects/caresuiteplus-app/deploys/6ad99f6de7890a3cd46779c6).",
+        "url": "https://github.com/caresuiteapp/caresuiteplus-app/runs/119657583374"
+      },
+      {
+        "id": 119657552187,
+        "name": "Supabase Preview",
+        "status": "completed",
+        "conclusion": "skipped",
+        "started_at": "2026-10-22T05:30:18Z",
+        "completed_at": "2026-10-22T05:30:18Z",
+        "title": "Supabase Preview",
+        "summary": "This git branch is not associated with any Supabase Branch. You can open a PR to create a new branch.",
+        "url": "https://github.com/caresuiteapp/caresuiteplus-app/runs/119657552187"
+      }
+    ],
+    "actionsRuns": {
+      "total_count": 0,
+      "workflow_runs": []
+    }
+  },
+  "vercel": {
+    "teamId": "team_WGwttaoveTwuQPQQLBxozmit",
+    "teamSlug": "caresuiteapps-projects",
+    "projects": [
+      {
+        "id": "prj_5ZuFRq02J6Ib4ge9W9QEE3wuMN5r",
+        "teamId": "team_WGwttaoveTwuQPQQLBxozmit",
+        "name": "caresuiteplus",
+        "projectUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplus",
+        "status": "Ready",
+        "deploymentUrl": "https://vercel.com/static/status/ready.svg",
+        "previewUrl": "https://caresuiteplus-git-feat-pflege-nat-1e0c1d-caresuiteapps-projects.vercel.app"
+      },
+      {
+        "id": "prj_SYwNxpMWgG80kenkOJQIjuBJldp8",
+        "teamId": "team_WGwttaoveTwuQPQQLBxozmit",
+        "name": "caresuiteplus-app",
+        "projectUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplus-app",
+        "status": "Building",
+        "deploymentUrl": "https://vercel.com/static/status/building.svg",
+        "previewUrl": "https://caresuiteplus-app-git-feat-pflege-c0376c-caresuiteapps-projects.vercel.app"
+      },
+      {
+        "id": "prj_iRIT4fuGiXlJfAqXpQwuPhZuANud",
+        "teamId": "team_WGwttaoveTwuQPQQLBxozmit",
+        "name": "caresuiteplusapp",
+        "projectUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplusapp",
+        "status": "Ready",
+        "deploymentUrl": "https://vercel.com/static/status/ready.svg",
+        "previewUrl": "https://caresuiteplusapp-git-feat-pflege-cd6a03-caresuiteapps-projects.vercel.app"
+      },
+      {
+        "id": "prj_KADPHJUEkWpcl2CKRz8KncUY9H8V",
+        "teamId": "team_WGwttaoveTwuQPQQLBxozmit",
+        "name": "repository",
+        "projectUrl": "https://vercel.com/caresuiteapps-projects/repository",
+        "status": "Ready",
+        "deploymentUrl": "https://vercel.com/static/status/ready.svg",
+        "previewUrl": "https://repository-git-feat-pflege-native-7c399d-caresuiteapps-projects.vercel.app"
+      }
+    ],
+    "projectRead": {
+      "operation": "GET /v9/projects/caresuiteplus-app",
+      "status": 403,
+      "scope": "caresuiteapps-projects",
+      "reason": "Connected Vercel account is not authorized for this scope.",
+      "advertisedRecovery": "authorize_team_access or authorize_team_sso",
+      "recoveryToolsAvailable": false,
+      "cliAvailable": false
+    }
+  },
+  "netlify": {
+    "id": "6ad99f6de7890a3cd46779c6",
+    "commit": "d952138cb6cb7a5fc54f60bd2785805aa8ef11f3",
+    "state": "error",
+    "githubDescription": "Deploy Preview canceled.",
+    "buildId": "6ad99f6de7890a3cd46779c4",
+    "publishedAt": null,
+    "metadataUrl": "https://api.netlify.com/api/v1/deploys/6ad99f6de7890a3cd46779c6"
+  },
+  "verification": {
+    "fullCompilerBuild": "not_verified",
+    "reason": "GitHub deployment statuses report completion but actual Vercel build logs/project build configuration are inaccessible. The main caresuiteplus-app build remains pending.",
+    "mutationsPerformed": false
+  },
+  "mergeability": {
+    "observedAt": "2026-10-22T07:17:01.098869+00:00",
+    "head": "d952138cb6cb7a5fc54f60bd2785805aa8ef11f3",
+    "base": "665f0ff5a5eacab66c2d74b8b0acb9fc2014fd9e",
+    "github": {
+      "mergeable": true,
+      "rebaseable": true,
+      "mergeableState": "unstable",
+      "draft": true
+    },
+    "local": {
+      "command": "git merge-tree --write-tree 665f0ff5a5eacab66c2d74b8b0acb9fc2014fd9e d952138cb6cb7a5fc54f60bd2785805aa8ef11f3",
+      "exitCode": 0,
+      "tree": "9681f78457546ebe1fd727d7801cc80e9b4a38d2",
+      "conflicts": []
+    },
+    "conclusion": "No current source conflict. Earlier normalized false was not reproduced by fresh REST or the local exact-head merge calculation. The PR remains draft with unstable checks. No merge or permission-changing operation was attempted."
+  },
+  "sourceQueries": {
+    "commitStatus": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/commits/d952138cb6cb7a5fc54f60bd2785805aa8ef11f3/status",
+    "checkRuns": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/commits/d952138cb6cb7a5fc54f60bd2785805aa8ef11f3/check-runs?per_page=100",
+    "actionsRuns": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/actions/runs?head_sha=d952138cb6cb7a5fc54f60bd2785805aa8ef11f3&per_page=100",
+    "pr": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/pulls/155",
+    "botComments": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/issues/155/comments?per_page=100"
+  }
+}

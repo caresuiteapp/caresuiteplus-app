@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-23",
+  "project": "shwpweerzsfkqaivmaoc",
+  "kind": "actual-synthetic-linked-planned-inspection",
+  "evidenceBytes": 114706,
+  "evidenceSha256": "c357f030c23cd56c0ea59e2e426fbd503eb80ae88b8c03a984a9f146645a62ba",
+  "sqlFixture": "supabase/tests/pflege_nutrition_linked_inspection_unit_staging.sql",
+  "sqlFixtureBytes": 20164,
+  "sqlFixtureSha256": "0e9895c0076a77f5344b6581ed5b88496b825cb54a4c017836a4166714409da9",
+  "appliedMigrationVersions": [
+    "20261022115155",
+    "20261023164242",
+    "20261023164421"
+  ],
+  "appliedPatchSha256": {
+    "ambulatory_nutrition_workspace_quarantined.sql": "9ad65e8ca65f9311f46980c67bf6135259d7f0d5d0afb8c69d96d9c5e5e3ceac",
+    "ambulatory_nutrition_planned_inspection.sql": "dcc0cc32d7f7e65cd02c6e409b66b76ab92c7f00620710e2e81b8aedcf9771f9",
+    "ambulatory_nutrition_canonical_ids_additive.sql": "f3740dca5aa6d9050cef2d2aa0d3737c22dbca08b4bcbb4622d924e220d86fb0"
+  },
+  "appliedMigrationSha256": {
+    "20261022115155_pflege_nutrition_workspace_quarantined.sql": "9ad65e8ca65f9311f46980c67bf6135259d7f0d5d0afb8c69d96d9c5e5e3ceac",
+    "20261023164242_pflege_nutrition_planned_inspection_quarantined.sql": "dcc0cc32d7f7e65cd02c6e409b66b76ab92c7f00620710e2e81b8aedcf9771f9",
+    "20261023164421_pflege_nutrition_canonical_ids_additive_quarantined.sql": "f3740dca5aa6d9050cef2d2aa0d3737c22dbca08b4bcbb4622d924e220d86fb0"
+  },
+  "captureRecordedAt": "2026-10-23T16:50:10.412442Z",
+  "careRecordedAt": "2026-10-23T16:50:10.449915Z",
+  "reviewRecordedAt": "2026-10-23T16:50:10.472889Z",
+  "sqlRollbackAndCleanupVerified": true,
+  "canonicalAliasDenials": 3,
+  "clinicalDecisionDenials": 2,
+  "sourceNormalization": "None; unchanged actual synthetic result including complete original sources and historical own receipts.",
+  "limits": [
+    "Privileged direct SQL with synthetic identities only; no authenticated HTTP/RLS or browser claim.",
+    "Open planning and inspection request only; no actual intake, performed care, consent or professional acceptance.",
+    "Independent sign-role denials are not real qualification evidence.",
+    "Same-profile different-Auth relink SIS fixture remains without a confirmed result.",
+    "Original larger Nutrition fixtures remain independent and unconfirmed."
+  ]
+}

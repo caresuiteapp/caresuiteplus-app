@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-23T18:41:01.714Z",
+  "source": "https://api.github.com/repos/caresuiteapp/caresuiteplus-app/commits/fce2a1a2909c6f9bf5d24cd9db09dbf625909add/status",
+  "commit": "fce2a1a2909c6f9bf5d24cd9db09dbf625909add",
+  "state": "success",
+  "statuses": [
+    {
+      "context": "netlify/caresuiteplus-app/deploy-preview",
+      "state": "success",
+      "description": "Deploy Preview canceled.",
+      "updatedAt": "2026-10-23T17:14:46Z",
+      "targetUrl": "https://app.netlify.com/projects/caresuiteplus-app/deploys/6adb95f7987c23cc9cb7c171"
+    },
+    {
+      "context": "Vercel – caresuiteplusapp",
+      "state": "success",
+      "description": "Deployment has completed",
+      "updatedAt": "2026-10-23T17:25:16Z",
+      "targetUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplusapp/UhUtYV8AJmbepKXGPEVe1CHAd46v"
+    },
+    {
+      "context": "Vercel – repository",
+      "state": "success",
+      "description": "Deployment has completed",
+      "updatedAt": "2026-10-23T17:26:12Z",
+      "targetUrl": "https://vercel.com/caresuiteapps-projects/repository/HnQAtnLPApSYv5VddcDYLguMU2Wx"
+    },
+    {
+      "context": "Vercel – caresuiteplus",
+      "state": "success",
+      "description": "Deployment has completed",
+      "updatedAt": "2026-10-23T17:33:23Z",
+      "targetUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplus/HkfiUwfghr93FVBJugCzJ2nEvoQ3"
+    },
+    {
+      "context": "Vercel – caresuiteplus-app",
+      "state": "success",
+      "description": "Deployment has completed",
+      "updatedAt": "2026-10-23T18:38:38Z",
+      "targetUrl": "https://vercel.com/caresuiteapps-projects/caresuiteplus-app/3PgKdHNVpSaVYw547DggyHBNdacJ"
+    }
+  ],
+  "scope": "GitHub-reported commit statuses only; no build-log, HTTP, browser-layout, production-promotion or clinical acceptance claim. Netlify reports a canceled preview."
+}

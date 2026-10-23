@@ -1,0 +1,48 @@
+{
+  "unit": 7,
+  "name": "basic-care-qualified-review-same-profile-auth-relink",
+  "scope": "Supplementary synthetic Staging baseline; existing full suites and unit4 unchanged",
+  "sql": "supabase/tests/pflege_basic_care_review_auth_relink_unit_staging.sql",
+  "sqlSha256": "1156d9aa2e189ac1d4ee8df4d75b2059668423f90e7a776249102ca38e75c771",
+  "sqlBytes": 14973,
+  "baseFixture": {
+    "path": "supabase/tests/pflege_basic_care_review_acceptance_unit_staging.sql",
+    "sha256": "30200bbce796b2f8271977c43a320e31730f2c8485cadad2aaa9ec46b16a8b3a",
+    "actualRuntimeEvidence": "scripts/checks/fixtures/basic-care-review-acceptance-staging-synthetic-20261022.json"
+  },
+  "baselinePrerequisites": [
+    "Applied BasicCare quarantine base and DTO limits",
+    "Binding-intent and native-authorship followups not applied"
+  ],
+  "sourceVariableMap": {
+    "f_t": "t",
+    "f_c": "c",
+    "f_u": "u",
+    "f_v": "v",
+    "f_apacket": "dp",
+    "f_ar": "dr",
+    "f_q": "qvalue",
+    "alternateActualAuth": "x",
+    "alternateActualSession": "xs"
+  },
+  "evidenceGuc": "cp365.basic_review_auth_relink_unit",
+  "included": [
+    "Actual synthetic native binding, completed care and scoped review request",
+    "Distinct current qualified reviewer accepts and stores actual Auth ownership",
+    "Alternate synthetic account resolves to the same internal reviewer profile",
+    "Alternate account has actual current own session, read/sign roles and exact family qualification before denial",
+    "Exact old decision replay denied40001 and own confirmation deniedP0F02 under alternate account",
+    "Inner rollback restores original profile/account and exact replay/confirmation",
+    "No forged private proof, unchanged native sources and exact event/receipt counts",
+    "Full inner cleanup plus explicit outer rollback"
+  ],
+  "excluded": [
+    "New decision under the relinked account",
+    "Self-author or performer decision denial",
+    "All other full-baseline negatives",
+    "Native authorship provenance followup",
+    "HTTP Auth, browser, concurrency or real clinical qualification"
+  ],
+  "runtimeStatus": "not executed",
+  "productionEvidenceValidator": "scripts/checks/validate-basic-care-review-auth-relink-unit-evidence.mjs"
+}

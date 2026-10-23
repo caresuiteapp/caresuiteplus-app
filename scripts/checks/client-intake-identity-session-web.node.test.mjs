@@ -1,3 +1,4 @@
+import {assertCareSdkOwnerWeb} from '../../src/lib/permissions/careSdkOwner.web.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -14,12 +15,13 @@ const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});retur
 const like=(value,pattern)=>{let expression='',escaped=false;for(const char of pattern){if(escaped){expression+=char.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');escaped=false;}else if(char==='\\')escaped=true;else if(char==='%')expression+='.*';else if(char==='_')expression+='.';else expression+=char.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}return new RegExp(`^${expression}$`,'iu').test(String(value??''));};
 function environment(initial=[],patch={}){
  const rows=structuredClone(initial),calls=[];
- const env={allowed:true,current:true,token:'test-token',userId:id(2),cap:100,...patch};
+ const env={allowed:true,current:true,token:'test-token',userId:id(2),expiresAt:(Math.floor(Date.now()/1000)+3600)*1000,cap:100,...patch};
  const db={async rpc(name,args){
+  if(['resolve_current_profile_id','current_tenant_id'].includes(name)){calls.push({authority:name});await env.authority?.(name);return env.authorityResult?.(name)??{data:name==='resolve_current_profile_id'?id(2):id(1),error:null};}
   assert.equal(name,'web_prepare_client_intake_identity_review');calls.push({rpc:name,args:structuredClone(args)});await env.prepare?.(args);
   const prepared=Date.now();return env.prepareResult??{data:{review_id:id(500),request_id:args.p_request_id,tenant_id:args.p_tenant_id,actor_profile_id:args.p_actor_profile_id,
    resolution:'create_distinct',candidate_count:args.p_candidates.length,prepared_at:new Date(prepared).toISOString(),expires_at:new Date(prepared+300000).toISOString()},error:null};
- },auth:{async getSession(){calls.push({auth:'session'});await env.session?.();return env.sessionResult??{data:{session:{user:{id:env.userId},access_token:env.token}},error:null};},
+ },auth:{async getSession(){calls.push({auth:'session'});await env.session?.();return env.sessionResult??{data:{session:{user:{id:env.userId},access_token:env.token,expires_at:env.expiresAt/1000}},error:null};},
  async getUser(token){calls.push({auth:'user',token});await env.user?.();return env.userResult??{data:{user:{id:env.userId}},error:null};}},from(table){
   assert.equal(table,'clients');const filters=[];let limit=100;const query={
    select(columns){assert.equal(columns,'id,tenant_id,first_name,last_name,date_of_birth,insurance_number,status,updated_at');return query;},
@@ -33,8 +35,8 @@ function environment(initial=[],patch={}){
   };return query;
  }};
  let sdk=db;
- const ClientIntakeIdentitySession=new Function('getSupabaseClient','isUuid',`${source};return ClientIntakeIdentitySession;`)(()=>sdk,isUuid);
- const session=new ClientIntakeIdentitySession({owner:{tenantId:id(1),profileId:id(2),roleKey:'business_admin',accessToken:'test-token',expiresAt:null,demo:false},isCurrent:()=>env.current,canRead:()=>env.allowed,captureRead:()=>{const epoch=env.permissionEpoch??0;return()=>env.current&&env.allowed&&epoch===(env.permissionEpoch??0);}});
+ const ClientIntakeIdentitySession=new Function('getSupabaseClient','isUuid','assertCareSdkOwnerWeb',`${source};return ClientIntakeIdentitySession;`)(()=>sdk,isUuid,assertCareSdkOwnerWeb);
+ const session=new ClientIntakeIdentitySession({owner:{tenantId:id(1),profileId:id(2),roleKey:'business_admin',accessToken:'test-token',expiresAt:env.expiresAt,demo:false},isCurrent:()=>env.current,canRead:()=>env.allowed,captureRead:()=>{const epoch=env.permissionEpoch??0;return()=>env.current&&env.allowed&&epoch===(env.permissionEpoch??0);}});
  return{rows,calls,env,db,session,set sdk(value){sdk=value;}};
 }
 
@@ -90,7 +92,7 @@ for(const value of [null,{},'[]'])test('malformed native candidate pools never a
 for(const patch of [{tenant_id:id(9)},{updated_at:null},{date_of_birth:'1940-02-30'},{status:'unknown-native'},{insurance_number:undefined}])test('foreign or incomplete native originals fail closed before any choice',async()=>{
  const e=environment([],{result:()=>({data:[row(20,patch)],error:null})});assert.equal(await e.session.review(form(),binding()),false);assert.deepEqual(e.session.view().candidates,[]);
 });
-for(const patch of [{token:'other'},{userId:id(9)},{sessionResult:{data:{session:null},error:null}},{userResult:{data:{user:{id:id(9)}},error:null}}])test('SDK/session/server-user mismatch prevents candidate reads',async()=>{
+for(const patch of [{token:'other'},{userId:id(9),authorityResult:name=>({data:name==='resolve_current_profile_id'?id(9):id(1),error:null})},{sessionResult:{data:{session:null},error:null}},{userResult:{data:{user:{id:id(9)}},error:null}}])test('SDK/session/server-user mismatch prevents candidate reads',async()=>{
  const e=environment([row()],patch);assert.equal(await e.session.review(form(),binding()),false);assert.equal(e.calls.filter(call=>call.filters).length,0);
 });
 test('revoked runtime rights hide the whole original and stop retained choices without another hook render',async()=>{
@@ -159,9 +161,9 @@ for(const patch of [
  await assert.rejects(e.session.assertCurrent(form(),binding({clientId:id(80)})));
  assert.equal(e.session.reservationReview(),null);assert.equal(e.session.permits(form(),binding()),false);
 });
-for(const kind of ['permission','input','sdk'])test(`a ${kind} change during server preparation invalidates the whole original decision`,async()=>{
- const gate=deferred(),e=environment([],{prepare:()=>gate.promise});await e.session.review(form(),binding());e.session.approveNew('');
- const pending=e.session.assertCurrent(form(),binding({clientId:id(80)}));for(let n=0;n<80;n++)await Promise.resolve();
+for(const kind of ['permission','input','sdk'])test(`a ${kind} change during server preparation invalidates the whole original decision`,{timeout:2000},async()=>{
+ const gate=deferred(),started=deferred(),e=environment([],{prepare:()=>{started.resolve();return gate.promise;}});await e.session.review(form(),binding());e.session.approveNew('');
+ const pending=e.session.assertCurrent(form(),binding({clientId:id(80)}));await started.promise;
  assert.ok(e.calls.some(c=>c.rpc));if(kind==='permission')e.env.permissionEpoch=1;
  if(kind==='input'){e.session.syncInput(form({firstName:'B'}));e.session.syncInput(form());}if(kind==='sdk')e.sdk={};
  gate.resolve();await assert.rejects(pending);assert.equal(e.session.reservationReview(),null);assert.deepEqual(e.session.view().candidates,[]);
@@ -171,3 +173,8 @@ test('a thrown preparation never exposes transport secrets or revives the approv
  await assert.rejects(e.session.assertCurrent(form(),binding({clientId:id(80)})),error=>!error.message.includes('private-test'));
  assert.equal(e.session.reservationReview(),null);assert.equal(e.session.decision(),null);
 });
+
+for(const status of ['interessent','aktiv','pausiert','archiviert','verstorben'])test(`Native German status ${status} remains an exact candidate under distinct Auth/profile IDs`,async()=>{const e=environment([row(20,{status})],{userId:id(500)});assert.equal(await e.session.review(form(),binding()),true);assert.equal(e.session.view().candidates[0].status,status);assert.equal(e.session.view().candidates[0].id,id(20));assert.ok(e.calls.some(c=>c.authority==='resolve_current_profile_id'));assert.ok(e.calls.some(c=>c.authority==='current_tenant_id'));assert.equal(e.calls.filter(c=>c.rpc).length,0);});
+test('Distinct raw Auth account reserves identity review with the exact internal actor',async()=>{const e=environment([],{userId:id(500)});assert.equal(await e.session.review(form(),binding()),true);assert.equal(e.session.approveNew(''),true);await e.session.assertCurrent(form(),binding({clientId:id(80)}));const call=e.calls.find(c=>c.rpc);assert.equal(call.args.p_actor_profile_id,id(2));assert.equal(call.args.p_tenant_id,id(1));assert.equal(e.session.reservationReview().actorId,id(2));assert.equal(e.env.userId,id(500));});
+for(const attack of ['profile','tenant','resolverError','anonymous','missingExpiry','expired','fractionalExpiry'])test(`Identity candidate read rejects ${attack} before native SELECT or preparation`,async()=>{const e=environment([row()],{userId:id(500)});if(attack==='profile')e.env.authorityResult=name=>({data:name==='resolve_current_profile_id'?id(999):id(1),error:null});if(attack==='tenant')e.env.authorityResult=name=>({data:name==='resolve_current_profile_id'?id(2):id(999),error:null});if(attack==='resolverError')e.env.authorityResult=()=>({data:null,error:{code:'42501'}});if(attack==='anonymous')e.env.userResult={data:{user:{id:id(500),is_anonymous:true}},error:null};if(attack==='missingExpiry')e.env.sessionResult={data:{session:{user:{id:id(500)},access_token:'test-token'}},error:null};if(attack==='expired')e.env.expiresAt=Date.now()-1000;if(attack==='fractionalExpiry')e.env.expiresAt+=0.5;assert.equal(await e.session.review(form(),binding()),false);assert.equal(e.calls.filter(c=>c.filters).length,0);assert.equal(e.calls.filter(c=>c.rpc).length,0);assert.deepEqual(e.session.view().candidates,[]);});
+test('Raw SDK account switch during candidate pages publishes no identity decision',async()=>{const e=environment([row(20),row(21)],{userId:id(500),cap:1,before:()=>{e.env.userId=id(999);}});assert.equal(await e.session.review(form(),binding()),false);assert.equal(e.calls.filter(c=>c.rpc).length,0);assert.deepEqual(e.session.view().candidates,[]);e.env.userId=id(500);assert.equal(e.session.permits(form(),binding()),false);});

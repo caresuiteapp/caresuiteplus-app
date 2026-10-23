@@ -1,3 +1,4 @@
+import {assertVitalSdkOwnerWeb} from './vitalSdkOwner.web.ts';
 import {cloneClientNativeOriginal as clone,freezeClientNativeOriginal as freeze,sameClientNativeOriginal as same} from '../clients/clientRecordNativeOriginal.web.ts';
 import {carePermissionOwnerIsCurrent,type CarePermissionOwner} from '../permissions/carePermissionOwner.web.ts';
 import {getSupabaseClient} from '@/lib/supabase/client';
@@ -7,6 +8,7 @@ import {validateVitalMeasurement,type VitalMeasurementPayload} from './vitalMeas
 import {executeVitalCreateNativeWeb,isOwnVitalCreateWriteResultWeb,isSettledVitalCreateWriteResultWeb} from './vitalCreateNativeWrite.web.ts';
 import {isOwnVitalCreateDeliveryWeb} from './vitalCreateOriginalRead.web.ts';
 import type {VitalClient,VitalChoice} from './vitalDocumentationService';
+import type {VitalNativeReceiptScopeWeb} from './vitalNativeWriteReceipt.web';
 
 type SDK=NonNullable<ReturnType<typeof getSupabaseClient>>;
 type Can=(key:'pflege.vitals.view'|'pflege.vitals.manage')=>unknown;
@@ -26,6 +28,7 @@ const wholePayload=(value:unknown):VitalMeasurementPayload=>{const payload=clone
 const liveField=(value:unknown,key:string):unknown=>{if(!value||typeof value!=='object'||Array.isArray(value)||![Object.prototype,null].includes(Object.getPrototypeOf(value)))throw Error('Aktuelle native Rechte fehlen.');const descriptor=Object.getOwnPropertyDescriptor(value,key);if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))throw Error('Aktuelle native Rechte fehlen.');return descriptor.value;};
 type OriginalStore={journal:{id:string;payload:VitalMeasurementPayload}|null;acknowledged:string|null;flight:{token:object;runtime:VitalCreateRuntimeWeb;version:number}|null;draftEpoch:number;uncertain:boolean;version:number;listeners:Set<()=>void>};
 const originalStores=new Map<string,OriginalStore>();
+const receiptScopes=new WeakMap<object,{owner:CarePermissionOwner;store:OriginalStore;rawAuthId:string|null}>();
 const newDraftTokens=new WeakMap<object,{runtime:VitalCreateRuntimeWeb;store:OriginalStore;ack:string;version:number;can:Can;owner:CarePermissionOwner}>();
 const retryTokens=new WeakMap<object,{runtime:VitalCreateRuntimeWeb;store:OriginalStore;id:string;payload:VitalMeasurementPayload}>();
 const notify=(store:OriginalStore)=>{for(const listener of [...store.listeners])try{listener();}catch{}};
@@ -42,7 +45,7 @@ export class VitalCreateRuntimeWeb {
  private readonly originalStore:OriginalStore;
  private get journal(){return this.originalStore.journal;}private set journal(value:{id:string;payload:VitalMeasurementPayload}|null){this.originalStore.journal=value;}
  private get acknowledged(){return this.originalStore.acknowledged;}private set acknowledged(value:string|null){this.originalStore.acknowledged=value;}
- constructor(owner:CarePermissionOwner,live:()=>unknown){this.owner=ownOwner(owner);if(typeof live!=='function'||Object.getPrototypeOf(live)!==Function.prototype)throw Error('Ursprünglicher eigener Rechteaufruf fehlt.');this.live=live;this.sdk=getSupabaseClient();if(!this.sdk||getServiceMode()!=='supabase')this.closed=true;const key=identity(this.owner);let store=originalStores.get(key);if(!store){store={journal:null,acknowledged:null,flight:null,draftEpoch:0,uncertain:false,version:0,listeners:new Set()};originalStores.set(key,store);}this.originalStore=store;}
+ constructor(owner:CarePermissionOwner,live:()=>unknown){this.owner=ownOwner(owner);if(typeof live!=='function'||Object.getPrototypeOf(live)!==Function.prototype)throw Error('Ursprünglicher eigener Rechteaufruf fehlt.');this.live=live;this.sdk=getSupabaseClient();if(!this.sdk||getServiceMode()!=='supabase')this.closed=true;const key=identity(this.owner);let store=originalStores.get(key);if(!store){store={journal:null,acknowledged:null,flight:null,draftEpoch:0,uncertain:false,version:0,listeners:new Set()};originalStores.set(key,store);}this.originalStore=store;receiptScopes.set(this,{owner:this.owner,store,rawAuthId:null});}
  get originalDraftVersion(){return this.originalStore.draftEpoch;}
  get tenantId(){return this.owner.tenantId;}get role(){return this.owner.roleKey;}
  mount(){if(!this.closed)this.alive=true;}dispose(){this.alive=false;this.invalidateReads();}
@@ -129,4 +132,13 @@ export class VitalCreateRuntimeWeb {
  captureClose(){try{const scope=this.readScope?.token;if(!scope||!this.mayClose())return null;this.assertReadScope(scope);const token=Object.freeze({});this.closeReceipts.set(token,{scope,counter:this.counter,originalVersion:this.originalStore.version});return token;}catch{return null;}}
  mayCloseCaptured(token:unknown){try{const receipt=token&&typeof token==='object'?this.closeReceipts.get(token):null;if(!receipt||receipt.counter!==this.counter||receipt.originalVersion!==this.originalStore.version||!this.mayClose())return false;this.assertReadScope(receipt.scope);return receipt.counter===this.counter&&receipt.originalVersion===this.originalStore.version&&!this.journal&&this.alive&&!this.closed;}catch{return false;}}
 
+}
+/** Constructor-owned profile scope cannot be replaced by UI-supplied receipt metadata. */
+export function captureVitalCreateReceiptScopeWeb(runtime:VitalCreateRuntimeWeb,id:string,payload:VitalMeasurementPayload):VitalNativeReceiptScopeWeb{
+ const own=receiptScopes.get(runtime);if(!own||own.store.journal?.id!==id||!same(own.store.journal.payload,payload))throw Error('Eigener ursprünglicher Messquittungsbezug fehlt.');return freeze({tenantId:own.owner.tenantId,actorId:own.owner.profileId,clientId:payload.clientId});
+}
+export async function assertVitalCreateRequestSessionWeb(runtime:VitalCreateRuntimeWeb,id:string,payload:VitalMeasurementPayload):Promise<void>{
+ const own=receiptScopes.get(runtime);if(!own)throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.');captureVitalCreateReceiptScopeWeb(runtime,id,payload);const sdk=runtime.assertRequest(id,payload);
+ const rawAuthId=await assertVitalSdkOwnerWeb({client:sdk,owner:own.owner,pinnedAuthId:own.rawAuthId,current:()=>{if(runtime.assertRequest(id,payload)!==sdk)throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.');}});
+ if(runtime.assertRequest(id,payload)!==sdk)throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.');own.rawAuthId=rawAuthId;
 }

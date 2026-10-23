@@ -81186,6 +81186,7 @@ export type Database = {
         }[]
       }
       resolve_current_employee_id: { Args: never; Returns: string }
+      resolve_current_profile_id: { Args: never; Returns: string }
       search_catalog_items: {
         Args: {
           input_catalog: string

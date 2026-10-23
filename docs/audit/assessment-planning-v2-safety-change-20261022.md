@@ -1,0 +1,9 @@
+# Assessment planning V2: additive safety boundary
+
+Automatic approval review rejected the unapplied candidate `c13fc4cd40ecdde16bef24aaf4dc6add82d4a145cbfd0e4869e8523c948d8fae`. Its changes to existing path table columns and existing schema/table/function privileges exceeded the approved impact. No rejected SQL executed. The rejected installer has been removed. It must not be retried directly, indirectly or through split statements.
+
+The replacement `supabase/patches/ambulatory_assessment_planning_v2_quarantined.sql` creates only a new `assessment_planning_v2_private` namespace, new technical ledgers and eight explicitly named V2 public RPCs. Native data is read only; existing path/native schemas, tables, functions, privileges and Android writers remain untouched. Revocation and RLS apply only to new objects. Existing path histories are not adopted, rewritten or attributed to current Auth accounts. New contexts expose only the new technical ledger.
+
+Before apply, live Staging metadata on 22 October 2026 confirmed the new namespace absent and no conflicting eight V2 public names. The new candidate requires fresh source review, actual installation and separate rollback/runtime evidence. Prior candidate reviews and tests do not establish V2 runtime success. Real catalog provisioning, clinical qualification, legacy writer closure, HTTP/session, compiler and browser evidence remain separate release gaps. No production activation or clinical approval is asserted.
+
+Read-only Staging metadata also showed authenticated EXECUTE on the six existing path public RPCs. This additive installer deliberately leaves those existing privileges and implementations unchanged. Closing the new V2 API does not establish closure or correctness of the legacy API; legacy endpoint authorization, historical provenance and native writer closure remain separately unresolved before release.
