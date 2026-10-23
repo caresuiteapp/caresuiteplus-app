@@ -96,7 +96,9 @@ Keine Schlüssel oder Zertifikate gehören in eine Browserkonfiguration.
 Der Listener nimmt ausschließlich POST `/v1/diagnostics` mit `action=status`
 oder `action=start` entgegen. Für lokal vorbereitete, bereits gespeicherte
 Nachrichten stehen außerdem `receive-start` und `receive-status` mit einer
-Auftrags-UUID bereit, siehe [Empfangshost](konnektor-receive-host.md).
+Auftrags-UUID sowie `receive-list` mit einem optionalen Seitenanker bereit,
+siehe [Empfangshost](konnektor-receive-host.md). Die Webansicht nutzt diese
+Aktionen für Liste, Detailauswahl und gezielten Empfangsstart.
 mTLS und ein zusätzlicher Client-Leaf-Pin sind
 verpflichtend. Ein Host ist genau einem Mandanten zugeordnet. Start benötigt
 eine UUID als `requestId`; doppelte IDs erzeugen keinen neuen Durchlauf.

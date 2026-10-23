@@ -8,6 +8,8 @@ import { hasDraftShape, hasProfileShape, STATUS_LABELS, type BatchStatus, type E
 import { importInvoiceCase, readSourceSnapshot, UUID } from './sources';
 import type { RevisionSummary, SavedRevision } from './history';
 import { readKimHostStatus, type KimHostStatus } from './kimHostContract';
+import { postKimHostCommand } from './kimHostClient';
+import type { KimHostCommand } from './kimReceiveContract';
 export type { RevisionSummary, SavedRevision } from './history';
 
 export type Batch = {id:string;tenant_id:string;revision:number;draft:ExchangeDraft;status:BatchStatus;updated_at:string;origin_batch_id?:string|null;origin_revision?:number|null};
@@ -16,22 +18,16 @@ export type DirectoryRow = {id:string;filename:string;source_text:string;importe
 type Row=Record<string,unknown>;
 export type SourceInvoice={id:string;invoice_number:string;status:string;total_amount:number;updated_at:string;client_id:string|null};
 export async function requestKimHost(tenantId: string, role: RoleKey, action: 'status' | 'start', requestId?: string, signal?: AbortSignal): Promise<KimHostStatus> {
+  const value = await requestKimHostCommand(tenantId, role, action === 'status' ? { tenantId, action } : { tenantId, action, requestId: requestId ?? '' }, signal);
+  try { return readKimHostStatus(value, tenantId); }
+  catch { throw new Error('Der Prüfstatus passt nicht zum aktuellen Mandanten oder enthält unlesbare Nachweise.'); }
+}
+export async function requestKimHostCommand(tenantId: string, role: RoleKey, input: KimHostCommand, signal?: AbortSignal): Promise<unknown> {
+  if (input.tenantId !== tenantId) throw new Error('Der Prüfauftrag passt nicht zum aktuellen Mandanten.');
   const client = connection(tenantId, role, true);
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) throw new Error('Bitte erneut anmelden.');
-  const response = await fetch('/api/gkv/kim-host', { method: 'POST', signal,
-    headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tenantId, action, ...(requestId ? { requestId } : {}) }) });
-  if (!response.ok) throw new Error(response.status === 401 ? 'Bitte erneut anmelden.' : response.status === 403
-    ? 'Für die Hostprüfung fehlen die Abrechnungsrechte.' : 'Der Prüfstatus ist nicht erreichbar. Ein bereits gestarteter Durchlauf kann am Host weiterlaufen. Bitte den Status erneut abfragen.');
-  const reader = response.body?.getReader(); if (!reader) throw new Error('Der Host hat keinen Prüfstatus geliefert.');
-  let bytes = 0; const chunks: Uint8Array[] = [];
-  try { while (true) { const next = await reader.read(); if (next.done) break; bytes += next.value.length;
-    if (bytes > 32768) { await reader.cancel(); throw new Error('Der Prüfstatus ist unlesbar.'); } chunks.push(next.value); } }
-  finally { reader.releaseLock(); }
-  const content = new Uint8Array(bytes); let offset = 0; for (const chunk of chunks) { content.set(chunk, offset); offset += chunk.length; }
-  try { return readKimHostStatus(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(content)), tenantId); }
-  catch { throw new Error('Der Prüfstatus passt nicht zum aktuellen Mandanten oder enthält unlesbare Nachweise.'); }
+  return postKimHostCommand(input, data.session.access_token, signal);
 }
 function connection(tenantId:string,role:RoleKey,write=false) {
   if(getServiceMode()!=='supabase')throw new Error('Der GKV-Datenaustausch steht nur mit einer verbundenen Live-Datenbank zur Verfügung.');

@@ -1,7 +1,7 @@
 import { KimDiagnosticHost, createKimHostServer } from '../../services/kim/host.mjs';
 import { createKimHostHandler } from '../../api/_lib/kim-host-handler.mjs';
 import { readKimHostStatus } from '../../src/lib/gkvExchange/kimHostContract.ts';
-import { readKimReceiveStatus } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
+import { readKimReceiveStatus, readKimReceiveList } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
 import { ReceiptInbox } from '../../services/gkv/inbox.mjs';
 import { dirname } from 'node:path';
 import { probeSmcbCms } from '../../services/kim/connector-cms-probe.mjs';
@@ -989,10 +989,12 @@ test('KIM receive host: gateway mTLS, persisted original, bound result, encrypte
   const handler = createKimHostHandler({ env, fetch: async url => new Response(JSON.stringify(url.endsWith('/user') ? { id: randomUUID() } : true)) });
   const call = async action => {
     const response = { statusCode: 200, setHeader() {}, status(n) { this.statusCode = n; return this; }, json(body) { this.body = body; } };
-    await handler({ method: 'POST', headers: { authorization: 'Bearer PRIVATE_USER_TOKEN' }, body: { tenantId, action, requestId: input.requestId } }, response);
+    await handler({ method: 'POST', headers: { authorization: 'Bearer PRIVATE_USER_TOKEN' }, body: { tenantId, action, ...(action === 'receive-list' ? {} : { requestId: input.requestId }) } }, response);
     assert.equal(response.statusCode, 200, JSON.stringify(response.body)); return response.body;
   };
   try {
+    const page = readKimReceiveList(await call('receive-list'), tenantId);
+    assert.equal(page.items[0].requestId, input.requestId); assert.equal(page.items[0].canStart, true); assert.equal(page.canStart, true);
     assert.equal((await call('receive-status')).state, 'prepared');
     assert.equal((await call('receive-start')).state, 'running');
     assert.equal((await call('receive-start')).requestId, input.requestId);
@@ -1002,6 +1004,8 @@ test('KIM receive host: gateway mTLS, persisted original, bound result, encrypte
     assert.equal(done.state, 'completed'); assert.equal(done.reviewRequired, false); assert.deepEqual(fromApi, done);
     assert.equal(done.result.cardState, 'checked'); assert.equal(done.result.documentResult, 'VALID'); assert.equal(done.result.diagnosisCode, 'XCS_TRUST');
     assert.equal(done.result.hardwareEvidence, 'not-attested'); assert.equal(done.result.deliveryStatus, 'diagnostic-only');
+    const completedPage = readKimReceiveList(await call('receive-list'), tenantId);
+    assert.deepEqual(completedPage.items[0], done); assert.equal(completedPage.blockReason, 'cooldown');
     const artifact = host.receiveArtifact(tenantId, input.requestId);
     assert.equal(hash(artifact.bytes), done.result.sha256); assert.equal(artifact.metadata.originalSha256, original.sha256);
     assert.equal(artifact.metadata.diagnostic.decryptedOriginalAttached, false); assert.equal(artifact.bytes.includes('PRIVATE LOCAL STATUS TEST'), false);
@@ -1019,6 +1023,63 @@ test('KIM receive host: gateway mTLS, persisted original, bound result, encrypte
     const reopened = restored.receiveArtifact(tenantId, input.requestId); assert.deepEqual(reopened.bytes, captured); reopened.bytes.fill(0); captured.fill(0);
     assert.equal(requests.filter(q => cmsOperation(q.bytes) === 'DecryptDocument').length, 1);
   } finally { peer.closeAllConnections(); await new Promise(r => peer.close(r)); }
+}));
+
+test('KIM receive host: keyset pages preserve equal-time order and do not skip existing jobs after new preparation', async () => withReceiveHost(async ({ host, config, input, inbox, tenantId, mailboxId, requests }) => {
+  const ids = [];
+  for (let i = 0; i < 23; i++) {
+    const message = inbox.record({ tenantId, mailboxId, uid: `page-${i}`, bytes: Buffer.from('unprotected-' + i) });
+    const job = host.prepareReceive(tenantId, { ...input, requestId: randomUUID(), messageId: message.id, originalSha256: message.sha256 }); ids.push(job.requestId);
+  }
+  const db = new DatabaseSync(config.storePath); db.prepare('UPDATE kim_receive_jobs SET created=?').run(Date.now() - 1000); db.close();
+  const first = readKimReceiveList(host.receiveList(tenantId), tenantId); assert.equal(first.items.length, 10);
+  assert.equal(first.canStart, true); assert.equal(first.blockReason, null); assert.ok(first.nextCursor);
+  // A newly prepared job belongs before the existing anchor and is discovered
+  // by an explicit refresh of the first page, without moving the older pages.
+  const fresh = host.prepareReceive(tenantId, input);
+  const second = readKimReceiveList(host.receiveList(tenantId, first.nextCursor), tenantId, first.nextCursor);
+  const third = readKimReceiveList(host.receiveList(tenantId, second.nextCursor), tenantId, second.nextCursor);
+  const seen = [...first.items, ...second.items, ...third.items].map(j => j.requestId);
+  assert.deepEqual(seen, ids.sort().reverse()); assert.equal(third.items.length, 3); assert.equal(third.nextCursor, null);
+  assert.equal(host.receiveList(tenantId).items[0].requestId, fresh.requestId);
+  assert.equal(new Set(seen).size, 23); assert.equal(requests.length, 0);
+  assert.ok(Buffer.byteLength(JSON.stringify(first)) < 32768);
+  assert.equal(JSON.stringify(first).includes('unprotected-'), false); assert.equal(JSON.stringify(first).includes(senderAddress), false);
+  assert.equal(JSON.stringify(first).includes(input.expectedSignerCertificate.toString('base64')), false);
+}));
+
+test('KIM receive host: empty, unconfigured, foreign and malformed list requests never access the card', async () => withReceiveHost(async ({ host, create, tenantId, requests }) => {
+  const empty = readKimReceiveList(host.receiveList(tenantId), tenantId); assert.equal(empty.configured, true); assert.deepEqual(empty.items, []);
+  const unconfigured = create({ receive: undefined });
+  assert.equal(readKimReceiveList(unconfigured.receiveList(tenantId), tenantId).configured, false);
+  assert.throws(() => host.receiveList(randomUUID()), /KIM_HOST_SCOPE/);
+  assert.throws(() => host.receiveList(tenantId, { createdAt: '1', requestId: randomUUID() }), /KIM_HOST_INPUT/);
+  assert.throws(() => host.receiveList(tenantId, { createdAt: 1, requestId: randomUUID(), mailboxId: randomUUID() }), /KIM_HOST_INPUT/);
+  assert.equal(requests.length, 0);
+}));
+
+test('KIM receive host: every prepared row observes the same shared probe reservation', async () => withReceiveHost(async ({ host, input, tenantId }) => {
+  host.prepareReceive(tenantId, input); host.start(tenantId, randomUUID());
+  const page = readKimReceiveList(host.receiveList(tenantId), tenantId);
+  assert.equal(page.blockReason, 'active'); assert.equal(page.canStart, false); assert.equal(page.items[0].canStart, false);
+}));
+
+test('KIM receive host: off-page interrupted work still blocks starts and damaged rows never yield a partial page', async () => withReceiveHost(async ({ host, input, config, tenantId, inbox, mailboxId, requests }) => {
+  const first = host.prepareReceive(tenantId, input);
+  for (let i = 0; i < 10; i++) {
+    const message = inbox.record({ tenantId, mailboxId, uid: `blocked-page-${i}`, bytes: Buffer.from('mail-' + i) });
+    host.prepareReceive(tenantId, { ...input, requestId: randomUUID(), messageId: message.id, originalSha256: message.sha256 });
+  }
+  const db = new DatabaseSync(config.storePath);
+  try {
+    db.prepare("UPDATE kim_receive_jobs SET state='running',created=?,started=?,requires_review=1 WHERE request_id=?").run(Date.now() - 5000, Date.now() - 4000, first.requestId);
+    const page = readKimReceiveList(host.receiveList(tenantId), tenantId); assert.equal(page.blockReason, 'review');
+    assert.equal(page.items.some(j => j.requestId === first.requestId), false); assert.ok(page.items.every(j => !j.canStart));
+    const older = readKimReceiveList(host.receiveList(tenantId, page.nextCursor), tenantId, page.nextCursor);
+    assert.equal(older.items[0].state, 'interrupted'); assert.equal(older.items[0].reviewRequired, true);
+    db.prepare('UPDATE kim_receive_jobs SET parameters=? WHERE request_id=?').run(Buffer.from('corrupted'), page.items[0].requestId);
+    assert.throws(() => host.receiveList(tenantId)); assert.equal(requests.length, 0);
+  } finally { db.close(); }
 }));
 
 test('KIM receive host: negative original XML is encrypted, stays diagnostic and requires explicit bound recovery', async () => withReceiveHost(async ({ host, create, config, input, tenantId, requests }) => {

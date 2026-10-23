@@ -5,7 +5,7 @@ import { probeSmcbCms } from './connector-cms-probe.mjs';
 import { KonnektorCertificateClient } from './connector-certificates.mjs';
 import { TslOcspStatusClient } from './tsl-ocsp.mjs';
 import { KimReceiveJobs, createKimReceiveSchema } from './host-receive.mjs';
-import { readKimHostCommand } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
+import { readKimHostCommand, unconfiguredKimReceiveList } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const fail = code => { throw new Error(code); };
@@ -89,8 +89,22 @@ export class KimDiagnosticHost {
     this.#assert(tenantId); if (!this.#receive) fail('KIM_HOST_RECEIVE_UNCONFIGURED'); return this.#receive;
   }
   prepareReceive(tenantId, input) { this.#receiving(tenantId).prepare(input); return this.receiveStatus(tenantId, input.requestId); }
+  receiveList(tenantId, before = null) {
+    this.#assert(tenantId); readKimHostCommand({ tenantId, action: 'receive-list', before });
+    if (!this.#receive) return unconfiguredKimReceiveList(tenantId, before);
+    return transaction(this.#db, () => {
+      const page = this.#receive.page(before), gate = this.#gate();
+      return { version: 1, kind: 'card-receive-list', tenantId, configured: true, environment: this.#options.connector.environment,
+        mailboxId: page.mailboxId, canStart: gate.canStart, nextStartAt: gate.nextStartAt,
+        blockReason: gate.canStart ? null : gate.nextStartAt ? 'cooldown' : this.#pending ? 'active' : 'review',
+        before, nextCursor: page.nextCursor, items: page.requestIds.map(id => this.#receiveSnapshot(id, gate)) };
+    });
+  }
   receiveStatus(tenantId, requestId) {
-    const status = this.#receiving(tenantId).status(requestId), gate = this.#gate();
+    this.#receiving(tenantId); return this.#receiveSnapshot(requestId, this.#gate());
+  }
+  #receiveSnapshot(requestId, gate) {
+    const status = this.#receive.status(requestId);
     if (status.state === 'running' && (this.#active?.kind !== 'receive' || this.#active.requestId !== requestId)) status.state = 'interrupted';
     return { ...status, canStart: status.state === 'prepared' && gate.canStart, nextStartAt: status.state === 'prepared' ? gate.nextStartAt : null };
   }
@@ -132,7 +146,8 @@ export function createKimHostServer({ host, tls, clientSha256 }) {
       let input; try { input = readKimHostCommand(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
       catch { return reply(400, { error: 'KIM_HOST_INPUT' }); }
       const receiving = input.action.startsWith('receive-');
-      const status = () => receiving ? host.receiveStatus(input.tenantId, input.requestId) : host.status(input.tenantId);
+      const status = () => input.action === 'receive-list' ? host.receiveList(input.tenantId, input.before)
+        : receiving ? host.receiveStatus(input.tenantId, input.requestId) : host.status(input.tenantId);
       try { reply(200, input.action === 'start' ? host.start(input.tenantId, input.requestId)
         : input.action === 'receive-start' ? host.startReceive(input.tenantId, input.requestId) : status()); }
       catch (error) {

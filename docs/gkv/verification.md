@@ -8,11 +8,55 @@ Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs
 ```
 
-**1.163/1.163 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
-0 Fehler, 0 übersprungene oder abgebrochene Fälle, 299,4 Sekunden.
+**1.229/1.229 Fach-/API-/Dienstprüfungen bestanden** in einem gemeinsamen Lauf:
+0 Fehler, 0 übersprungene oder abgebrochene Fälle, 339,3 Sekunden.
 Die folgenden älteren Abschnitte belegen jeweils ihren damaligen Zwischenstand.
 
-## Dauerhafter Empfangshost am 23.10.2026
+## Empfangsaufträge im Web am 23.10.2026
+
+66 neue Fälle ergänzen den Empfangshost: 54 Listen-/Browsertransport-/
+Bedienzustandsfälle, acht Gatewayfälle und vier weitere Hostfälle. Der gezielte
+Hostlauf bestand mit 20 Empfangshostfällen in 24,3 Sekunden. Der gemeinsame
+Gateway-/Vertrags-/Browserlauf bestand mit 131 Fällen in 3,9 Sekunden. Der
+vollständige Lauf oben enthält alle 1.229 bisherigen und neuen Fälle.
+
+Die tatsächliche mTLS-Verbindung trägt `receive-list` bis zum Host. Geprüft
+sind aktuelle Mandantenberechtigung, fehlende Konfiguration, Scope-/Ankerbindung,
+Datentypen, Größenbegrenzung und die Abweisung von Nachrichteninhalten.
+Seiten mit jeweils zehn Einträgen bleiben bei gleicher Vorbereitungszeit und
+neuen Aufträgen korrekt geordnet. Gemeinsame Kartensperren gelten auch bei einem
+synthetischen Rundlauf oder einem ungeklärten Empfang außerhalb der aktuellen
+Seite. Beschädigte Parameter ergeben keine unvollständige scheinbar gültige Liste.
+
+Die Webansicht verwendet den tatsächlich geprüften `KimReceiveWorkspace` und
+`postKimHostCommand`: Lesen startet keine Karte; ein ausdrücklicher Start behält
+die vorbereitete UUID. Doppelstarts, verspätete Antworten nach Auswahl-/
+Seitenwechsel und Antworten nach dem Schließen des alten Mandantenkontexts
+werden abgefangen. Eine unterbrochene Startantwort bleibt gesperrt, bis der
+Einzelstatus des exakt gebundenen Originals erneut gelesen wurde. Fehler bei
+Liste und Einzelstatus werden getrennt behandelt. Der Browsertransport folgt
+keinen Umleitungen, wiederholt keine Anforderung und begrenzt JSON/UTF-8-Antworten.
+
+Sieben geänderte/neue TypeScript-/JSX-Dateien wurden mit dem vorhandenen
+Babel-Parser syntaktisch geprüft; JS-Syntax, 670 Web-Elternroutenmuster und
+`git diff --check` bestanden. Die tatsächlichen React-Komponenten sind im
+bestehenden UI-Prüfskript mit Auswahl, Start, Sperre, negativem Signaturbefund,
+unbestätigtem Start und Rechtewechsel hinterlegt. Der Aufruf
+`node tests/gkv-exchange/kim-host-ui-check.mjs` scheitert jedoch weiterhin am
+lokal fehlenden `esbuild`. Auch TypeScript, React und happy-dom sind in diesem
+Checkout nicht installiert; es wurde keine zusätzliche Software eingerichtet.
+Die ausgeführten Bedienzustandsprüfungen sind keine React-/Layoutabnahme.
+Vollständige lokale Typ-/React-Prüfung und die visuelle Kontrolle bei breitem und
+schmalem Arbeitsbereich bleiben ausdrücklich offen.
+
+GitHub bestätigte alle vier erfolgreichen Vercel-Builds des bisherigen Commits
+**c8ab895c**. Die Builds dieses nachfolgenden Webinkrements sind gesondert zu
+bewerten. Das erneut abgefragte verbundene Gerät ChristianLaptop war offline;
+ein physischer Karten-/TI-Durchlauf wurde nicht ausgeführt. Hardware/TI bleiben
+`not-attested`; normale Zustellung, Echtversand und Zulassung bleiben offen.
+API, Bedienung und Grenzen stehen im [Empfangshost-Vertrag](konnektor-receive-host.md).
+
+## Historischer Stand: Dauerhafter Empfangshost am 23.10.2026
 
 54 neue Fälle ergänzen den Kartenempfang: 16 integrierte Hostfälle und 38
 API-/Vertragsfälle. Der gezielte Hostlauf bestand mit 18 Fällen einschließlich

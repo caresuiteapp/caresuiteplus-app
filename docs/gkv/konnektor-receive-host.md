@@ -87,15 +87,41 @@ Der vorhandene POST-Endpunkt `/api/gkv/kim-host` und der mTLS-Hostpfad
 ```js
 { tenantId, action: 'receive-start', requestId }
 { tenantId, action: 'receive-status', requestId }
+{ tenantId, action: 'receive-list', before: null }
+{ tenantId, action: 'receive-list', before: { createdAt, requestId } }
 ```
 
-Beide benötigen exakt die UUID eines lokal vorbereiteten Auftrags. Die API
+Start und Einzelstatus benötigen exakt die UUID eines lokal vorbereiteten Auftrags. Die API
 prüft weiterhin Supabase-Anmeldung und mandantenbezogene Abrechnungsrechte;
 der Host prüft zusätzlich mTLS, Client-Leaf-Pin und seinen festen Mandanten.
 Benutzer-Token werden nicht zum Host weitergereicht. Der Antwortvertrag bindet
 die Antwort an Mandant **und** Auftrags-ID; unbekannte Datenfelder scheitern.
 Es gibt keine HTTP-Funktion zum Vorbereiten, Hochladen, Herunterladen des
 Nachrichteninhalts, Austausch von Zertifikaten oder Bestätigen einer Wiederherstellung.
+
+Die Liste liefert höchstens zehn Aufträge, nach Vorbereitungszeit und bei gleicher
+Zeit nach UUID absteigend sortiert. `before` ist ausschließlich ein solcher
+Zeit-/UUID-Anker. Die Antwort wiederholt diesen Anker und enthält `nextCursor`,
+falls weitere Aufträge vorhanden sind. Neue Vorbereitungen vor dem Anker werden
+beim erneuten Laden der ersten Seite sichtbar; Statusänderungen verschieben
+die Reihenfolge nicht. Es gibt keinen frei wählbaren Seitenumfang oder
+Postfach-/Mandantenwechsel innerhalb des Ankers. Lokal steht derselbe Zugriff
+als `host.receiveList(tenantId, before)` zur Verfügung.
+
+Eine Seite enthält `configured`, Postfach und Umgebung, die vorhandenen
+Einzelstatus-Metadaten und eine gemeinsame Startfreigabe. `blockReason` ist
+`active`, `review` oder `cooldown`; die Sperre berücksichtigt auch Vorgänge
+außerhalb der angezeigten Seite und synthetische Prüfungen. Aufträge und Sperre
+werden innerhalb einer SQLite-Transaktion mit demselben Freigabestand gelesen.
+Ein beschädigter Eintrag lässt die gesamte Seite scheitern. Der gemeinsame
+Vertrag prüft Scope, Reihenfolge, doppelte Kennungen, Anker und Freigabekonsistenz.
+Gateway und Browser begrenzen Antworten auf 32.768 Bytes; Einzelstatus bleiben
+zusätzlich auf 8.192 Zeichen und ihre fest definierten Felder begrenzt.
+
+Ein fehlender Hostanschluss oder eine fehlende Empfangskonfiguration ergibt
+für die autorisierte Listenabfrage `configured: false` und keine Aufträge.
+Ein nicht erreichbarer oder fehlerhaft antwortender Host bleibt ein Fehler.
+Start und Einzelstatus ohne Empfangskonfiguration werden weiterhin abgewiesen.
 
 Start reserviert den Auftrag atomar im selben SQLite-Journal wie die
 synthetische Anschlussprüfung. Erst danach folgen Originalprüfung und
@@ -119,12 +145,36 @@ Adressen, Betreff, Inhalt, Zertifikatsdaten, Kartenhandle und XML fehlen darin.
 Nachrichtenbefund bleiben getrennt. Alle Ergebnisse bleiben `unverified` und
 `diagnostic-only` beziehungsweise `unprotected`; Hardware/TI sind `not-attested`.
 
-Die bestehende Webansicht zeigt jetzt, wenn Kartenempfang, notwendige
-Überprüfung oder dessen Wartezeit einen neuen synthetischen Rundlauf sperren.
-Während eines aktiven Empfangs fragt sie den Status weiter ab. Eine Liste,
-Auswahl und vollständige Bedienung der Empfangsaufträge in der Weboberfläche
-sind noch nicht angeschlossen; die neuen Start-/Statusaktionen sind über die
-authentisierte API verfügbar.
+## Bedienung im Web
+
+Die Ansicht „Konnektorprüfung“ enthält nun die Liste der Empfangsaufträge mit
+Vor-/Zurück-Navigation, Rückkehr zu den neuesten Aufträgen und Detailauswahl.
+Vor dem Start wird der Einzelstatus geladen und an Auftrag, Originalhash,
+Nachricht, Postfach, Umgebung und Vorbereitungszeit gebunden. Nur ein
+vorbereiteter, aktuell freigegebener Auftrag kann über „Empfang prüfen“ starten.
+Die bestehende Auftrags-UUID wird übernommen; der Browser erzeugt keine neue
+Empfangsreservierung. Lesen, Auswählen, Seitenwechsel und automatische
+Aktualisierung lösen keine Kartenoperation aus.
+
+Laufende Vorgänge und Wartezeiten werden automatisch abgefragt. Nach einem
+unbestätigten Start blockiert die Oberfläche weitere Starts und Seitenwechsel,
+bis der Status genau dieses Auftrags erfolgreich neu gelesen wurde. Eine
+erfolgreiche Listenabfrage allein hebt diese Sperre nicht auf. Veraltete Antworten
+nach Auswahl-/Seiten-/Mandantenwechsel oder Verlassen der Ansicht werden
+verworfen, auch wenn der Transport einen Abbruch nicht rechtzeitig beachtet.
+Das Abbrechen einer Browserabfrage beendet keinen bereits laufenden Hostauftrag.
+
+Die Detailansicht trennt Kartenbefund, Prüfschritt, Dokumentsignatur, Diagnosecode
+und administrative Sperre. Eine laufende Reservierung wird nicht vorzeitig als
+administrativer Fehler angezeigt. Ein negativer Dokumentenbefund bleibt auch
+nach administrativer Klärung sichtbar. Der JSON-Download enthält nur den
+geprüften Status; Inhalte und vollständige XML-Berichte werden nicht geladen.
+Hardware-/TI-Nachweise und normale Zustellung werden damit nicht bestätigt.
+
+Die vorhandenen React-Szenarien wurden um diese Bedienung ergänzt. Ihre lokale
+Ausführung und die breite/schmale visuelle Abnahme sind wegen fehlender
+Projektabhängigkeiten noch offen. Die tatsächlich ausgeführten Vertrags-,
+Transport- und Zustandsprüfungen sind im [Prüfprotokoll](verification.md) aufgeführt.
 
 ## Ergebnisablage und Wiederherstellung
 
@@ -161,7 +211,9 @@ oder den Auftrag erneut auszuführen. Die gemeinsame Wartezeit von mindestens
 Die Ablage ist kein unabhängig signiertes oder gegen lokale
 Datenbankadministratoren geschütztes Archiv. Betriebliches Backup,
 Aufbewahrung, Schlüsselrotation, explizite Wiederverarbeitung, automatische
-OSIG-Auflösung, produktiver Postfach-/Clientproxyanschluss und vollständige
-Webbedienung bleiben zu ergänzen. Der Prüfumfang der Karte selbst ist im
+OSIG-Auflösung und produktiver Postfach-/Clientproxyanschluss bleiben zu ergänzen.
+Die Webansicht bedient lokal vorbereitete Aufträge; Postfacheinrichtung,
+Zertifikatsbereitstellung und administrative Wiederherstellung erfolgen weiterhin
+am Host. Die vollständige reale Oberflächenabnahme steht aus. Der Prüfumfang der Karte selbst ist im
 [Kartenempfangsvertrag](konnektor-card-receive.md) begrenzt; weitere CMS-/KAS-/
 Herstellerprofile, reale Hardware-/TI-Interoperabilität und Zulassung bleiben offen.

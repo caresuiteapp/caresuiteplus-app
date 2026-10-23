@@ -7,6 +7,7 @@ import { validCmVersion, validPtVersion } from './message-auth.mjs';
 import { MAX_KIM_MESSAGE } from './message.mjs';
 import { MAX_KIM_RECEIVE_REPORT } from './receive-error.mjs';
 import { receiveEccKimMessageWithCard } from './receive-card.mjs';
+import { KIM_RECEIVE_PAGE_SIZE } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -126,6 +127,16 @@ export class KimReceiveJobs {
       createdAt: row.created, startedAt: row.started, completedAt: row.completed, reviewRequired: row.requires_review === 1,
       errorCode: row.error_code, result };
   }
+  page(before) {
+    const rows = before ? this.#db.prepare(`SELECT request_id,created FROM kim_receive_jobs WHERE tenant=?
+      AND (created<? OR (created=? AND request_id<?)) ORDER BY created DESC,request_id DESC LIMIT ?`)
+      .all(this.#tenant, before.createdAt, before.createdAt, before.requestId, KIM_RECEIVE_PAGE_SIZE + 1)
+      : this.#db.prepare('SELECT request_id,created FROM kim_receive_jobs WHERE tenant=? ORDER BY created DESC,request_id DESC LIMIT ?')
+        .all(this.#tenant, KIM_RECEIVE_PAGE_SIZE + 1);
+    const last = rows[KIM_RECEIVE_PAGE_SIZE - 1];
+    return { mailboxId: this.#config.mailboxId, requestIds: rows.slice(0, KIM_RECEIVE_PAGE_SIZE).map(row => row.request_id),
+      nextCursor: rows.length > KIM_RECEIVE_PAGE_SIZE ? { createdAt: last.created, requestId: last.request_id } : null };
+  }
   #metadata(row) {
     const clear = this.#vault.open(row.metadata, identity(row) + `:metadata:${row.result_sha256}`);
     try {
@@ -197,5 +208,6 @@ export function createKimReceiveSchema(db) {
     state TEXT NOT NULL CHECK(state IN ('prepared','running','completed','failed','interrupted')),
     requires_review INTEGER NOT NULL DEFAULT 0 CHECK(requires_review IN (0,1)), error_code TEXT,
     result BLOB, metadata BLOB, result_sha256 TEXT, result_octets INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(tenant,mailbox_id,message_id)) STRICT;`);
+    UNIQUE(tenant,mailbox_id,message_id)) STRICT;
+    CREATE INDEX IF NOT EXISTS kim_receive_page ON kim_receive_jobs(tenant,created DESC,request_id DESC);`);
 }

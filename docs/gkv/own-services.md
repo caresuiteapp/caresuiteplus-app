@@ -540,9 +540,12 @@ und nicht attestierten Hardware-/TI-Nachweisen bleibt bestehen. Dieser Pfad ist
 Lokal vorbereitete Aufträge binden Inbox-Datensatz, Originalhash und erwartete
 Zertifikate; authentisierte API-Starts verwenden nur die reservierte UUID.
 Ergebnisse und Parameter liegen verschlüsselt im gemeinsamen Hostjournal.
-Kartenempfang und Rundlauf teilen ihre Sperren; die Webansicht meldet den Grund.
+Kartenempfang und Rundlauf teilen ihre Sperren. Eine begrenzte Listen-API und
+die Webansicht verbinden Seitenwechsel, Auswahl, Start und Statusprotokoll
+für lokal vorbereitete Aufträge. Alte Antworten werden verworfen; unbestätigte
+Starts erfordern die erneute Abfrage des konkreten Auftrags.
 Produktiver Postfach-/Hostanschluss, automatische Senderzertifikatauflösung,
-vollständige Empfangsoberfläche und normale Clientzustellung bleiben offen.
+visuelle Abnahme der Empfangsoberfläche und normale Clientzustellung bleiben offen.
 
 ### Begrenzung der vorhandenen Kryptolaufzeit
 

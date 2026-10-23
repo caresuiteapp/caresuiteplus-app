@@ -84,8 +84,11 @@ verbindet nun auch gespeicherte KIM-Originale mit DecryptDocument, VerifyDocumen
 VZD/AUT, frischer Kartennachprüfung und originalen negativen XML-Berichtsanhängen.
 Der [Empfangshost](konnektor-receive-host.md) bindet vorhandene Inbox-Originale
 und lokal provisionierte Senderzertifikate an dauerhafte Prüfaufträge, eine
-authentisierte Start-/Status-API und verschlüsselte Ergebnisse. Kartenempfang
-und Rundlauf teilen ihre Sperre; die Webansicht erklärt den Sperrgrund.
+authentisierte Listen-/Start-/Status-API und verschlüsselte Ergebnisse. Die
+Webansicht bietet Seitenwechsel, Detailauswahl, gezielten Start und einen
+Metadaten-Download. Kartenempfang und Rundlauf teilen ihre Sperre; unbestätigte
+Starts müssen vor einer weiteren Bedienung durch eine Statusabfrage geklärt
+werden. Reale Oberflächen- und Hardware-/TI-Nachweise stehen weiterhin aus.
 Dieser interne Diagnosepfad ist noch kein produktiver Postfach-/Clientproxy.
 Die ausgehende VZD-Absenderbindung und die
 produktive Nachrichtenpipeline sind weiterhin zu verbinden; kein Token wird automatisch versandt.

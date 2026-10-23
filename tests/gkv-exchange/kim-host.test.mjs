@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createKimHostHandler } from '../../api/_lib/kim-host-handler.mjs';
 import { callKimHost } from '../../api/_lib/kim-host-transport.mjs';
 import { readKimHostStatus } from '../../src/lib/gkvExchange/kimHostContract.ts';
-import { readKimHostCommand, readKimReceiveStatus } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
+import { readKimHostCommand, readKimReceiveStatus, readKimReceiveList, unconfiguredKimReceiveList } from '../../src/lib/gkvExchange/kimReceiveContract.ts';
 import { testPki } from './pki-fixture.mjs';
 import { connectorFixture, hash, raw } from './connector-fixture.mjs';
 const tenantId = randomUUID(), userId = randomUUID();
@@ -184,4 +184,39 @@ test('KIM probe contract: receiving work blocks start with a specific reason eve
   assert.throws(() => readKimHostStatus({ ...ready(), canStart: false }, tenantId), /KIM_HOST_RESPONSE/);
   assert.throws(() => readKimHostStatus({ ...ready(), canStart: false, receiveBlock: 'unknown' }, tenantId), /KIM_HOST_RESPONSE/);
   assert.throws(() => readKimHostStatus({ ...ready(), canStart: false, receiveBlock: ['active'], nextStartAt: null }, tenantId), /KIM_HOST_RESPONSE/);
+});
+
+test('KIM receive list gateway: a missing configuration is visible only after current authorization', async () => {
+  for (const allowed of [true, false]) {
+    const calls = [], handler = createKimHostHandler({ env, fetch: async (url, options) => { calls.push({ url, options }); return url.endsWith('/user') ? user() : new Response(JSON.stringify(allowed)); } }), response = res();
+    const before = { createdAt: Date.now(), requestId: randomUUID() };
+    await handler(req({ tenantId, action: 'receive-list', before }), response);
+    assert.equal(response.statusCode, allowed ? 200 : 403); assert.equal(calls.length, 2);
+    assert.equal(JSON.parse(calls[1].options.body).p_tenant_id, tenantId);
+    if (allowed) assert.deepEqual(readKimReceiveList(response.body, tenantId, before), unconfiguredKimReceiveList(tenantId, before));
+  }
+});
+for (const extra of [{ requestId: randomUUID() }, { limit: 100000 }, { before: { createdAt: 1, requestId: randomUUID(), mailboxId: randomUUID() } },
+  { before: { createdAt: [1], requestId: randomUUID() } }, { before: 'private-cursor' }]) test('KIM receive list gateway: rejects extra or malformed cursor ' + JSON.stringify(extra), async () => {
+  const handler = createKimHostHandler({ env, fetch: async () => { assert.fail('must not fetch'); } }), response = res();
+  await handler(req({ tenantId, action: 'receive-list', ...extra }), response); assert.equal(response.statusCode, 400);
+});
+test('KIM receive list gateway: actual mTLS forwards only the scoped cursor, never the bearer token', async () => {
+  const before = { createdAt: Date.now(), requestId: randomUUID() };
+  await transport(async (config, fixture) => {
+    const handler = createKimHostHandler({ env: { ...env, ...config }, fetch: async url => url.endsWith('/user') ? user() : new Response('true') }), response = res();
+    const input = { tenantId, action: 'receive-list', before }; await handler(req(input), response);
+    assert.equal(response.statusCode, 200); assert.equal(readKimReceiveList(response.body, tenantId, before).configured, false);
+    assert.deepEqual(JSON.parse(fixture.requests[0].bytes), input); assert.equal(fixture.requests[0].headers.authorization, undefined);
+  }, event => { event.response.writeHead(200, { 'Content-Type': 'application/json' }); event.response.end(JSON.stringify(unconfiguredKimReceiveList(tenantId, before))); });
+});
+test('KIM receive list gateway: foreign scope, cursor substitution and message body are rejected across actual mTLS', async () => {
+  const before = { createdAt: Date.now(), requestId: randomUUID() };
+  for (const change of [p => { p.tenantId = randomUUID(); }, p => { p.before = null; }, p => { p.bytes = 'PRIVATE MESSAGE'; }]) {
+    await transport(async config => {
+      const handler = createKimHostHandler({ env: { ...env, ...config }, fetch: async url => url.endsWith('/user') ? user() : new Response('true') }), response = res();
+      await handler(req({ tenantId, action: 'receive-list', before }), response); assert.equal(response.statusCode, 503);
+      assert.deepEqual(response.body, { error: 'KIM_HOST_UNAVAILABLE' });
+    }, event => { const page = unconfiguredKimReceiveList(tenantId, before); change(page); event.response.writeHead(200, { 'Content-Type': 'application/json' }); event.response.end(JSON.stringify(page)); });
+  }
 });

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { requestKimHost } from '@/lib/gkvExchange/repository.web';
 import type { KimHostStatus } from '@/lib/gkvExchange/kimHostContract';
 import type { RoleKey } from '@/types';
+import { KimReceivePanel } from './GkvKimReceive.web';
 
 const labels = { unconfigured: 'Host noch nicht angebunden', ready: 'Bereit für die Anschlussprüfung', running: 'Kartenprüfung läuft',
   passed: 'Kryptografischer Durchlauf erfolgreich', failed: 'Prüfung angehalten', interrupted: 'Ausgang des Durchlaufs ungeklärt' };
@@ -16,6 +17,8 @@ const verificationErrors: Record<string, string> = {
 const dateTime = (n: number) => new Date(n).toLocaleString('de-DE');
 export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string; roleKey: RoleKey; canCheck: boolean }) {
   const [status, setStatus] = useState<KimHostStatus | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [receiveRevision, setReceiveRevision] = useState(0);
+  const [receiveLocked, setReceiveLocked] = useState(false);
   const active = useRef<AbortController | null>(null), mounted = useRef(false), requestId = useRef<string | undefined>(undefined);
   const load = useCallback(async (action: 'status' | 'start') => {
     if (!canCheck || active.current) return;
@@ -28,7 +31,7 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
       if (mounted.current && !controller.signal.aborted) { setStatus(value); if (action === 'start' || value.requestId === requestId.current) requestId.current = undefined; }
     } catch (reason) {
       if (mounted.current && !controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Der Prüfstatus konnte nicht geladen werden.');
-    } finally { if (active.current === controller) { active.current = null; if (mounted.current) setBusy(false); } }
+    } finally { if (active.current === controller) { active.current = null; if (mounted.current) { setBusy(false); if (action === 'start') setReceiveRevision(n => n + 1); } } }
   }, [tenantId, roleKey, canCheck]);
   useEffect(() => { mounted.current = true; setStatus(null); requestId.current = undefined; void load('status');
     return () => { mounted.current = false; active.current?.abort(); active.current = null; };
@@ -44,7 +47,7 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
     const a = document.createElement('a'); a.href = url; a.download = `CareSuite-Konnektorpruefung-${status.report?.runId ?? status.requestId}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  return <section className="gx-card gx-stack" aria-labelledby="gx-kim-host-title">
+  return <div className="gx-stack"><section className="gx-card gx-stack" aria-labelledby="gx-kim-host-title">
     <div><h2 id="gx-kim-host-title">Konnektor und Kartenprüfung</h2><p className="gx-muted">Der angeschlossene Dienst signiert einen neu erzeugten Testinhalt, verschlüsselt ihn und entschlüsselt ihn mit der ausgewählten SMC-B. Das Ergebnis wird mit dem Original verglichen. Anschließend prüft der Konnektor die Signatur und liefert einen zugeordneten Prüfbericht.</p></div>
     {!canCheck ? <p className="gx-subtle">Für die Anschlussprüfung werden Lese- und Erstellungsrechte für Abrechnungen benötigt.</p> : <>
       {error && <div className="gx-notice" data-tone="error" role="alert">{error}</div>}
@@ -66,7 +69,7 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
       {status?.nextStartAt && <p role="status">Ein neuer Durchlauf ist ab {dateTime(status.nextStartAt)} möglich. Der Status wird automatisch aktualisiert.</p>}
       <div className="gx-actions">
         <button type="button" disabled={busy} onClick={() => void load('status')}>Prüfstatus abfragen</button>
-        <button type="button" className="gx-primary" disabled={busy || !status?.canStart} onClick={() => void load('start')}>Kartenprüfung starten</button>
+        <button type="button" className="gx-primary" disabled={busy || receiveLocked || !status?.canStart} onClick={() => void load('start')}>Kartenprüfung starten</button>
         {status?.requestId && <button type="button" onClick={download}>Prüfprotokoll herunterladen</button>}
       </div>
       {status?.report && <div className="gx-stack"><p>Abgeschlossen am {dateTime(status.report.completedAt)}. Der Nachweis gilt für diesen einzelnen Durchlauf.</p>
@@ -77,5 +80,5 @@ export function KimHostPanel({ tenantId, roleKey, canCheck }: { tenantId: string
     </>}
     <div className="gx-ready"><article><h3>Hardware-Nachweis</h3><p>Eine unabhängige Bestätigung des Konnektors, Kartenterminals und der verwendeten Karte liegt hier noch nicht vor.</p></article>
       <article><h3>TI- und Versandnachweis</h3><p>TI-Abnahme, Zulassung und ein bestätigter Echtversand bleiben gesondert nachzuweisen. Diese Prüfung versendet keine Nachricht.</p></article></div>
-  </section>;
+  </section><KimReceivePanel tenantId={tenantId} roleKey={roleKey} canCheck={canCheck} refreshKey={receiveRevision} onStartLockChange={setReceiveLocked} onActivity={() => void load('status')} /></div>;
 }

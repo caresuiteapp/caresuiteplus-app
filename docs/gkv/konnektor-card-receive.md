@@ -102,9 +102,10 @@ Verzeichnisbefunde. Auch vollständig bestandene lokale Prüfungen erzeugen eine
 
 Der [Empfangshost](konnektor-receive-host.md) verbindet diesen Pfad jetzt mit
 bereits verschlüsselt gespeicherten Inbox-Originalen, lokal hinterlegten
-Zertifikatserwartungen, dauerhaften Aufträgen und einer Start-/Status-API.
-Ergebnisse bleiben verschlüsselt am Host; die bestehende Webansicht zeigt
-gemeinsame Kartensperren. Eine vollständige Empfangsbedienung, sichere automatische
+Zertifikatserwartungen, dauerhaften Aufträgen und einer Listen-/Start-/Status-API.
+Ergebnisse bleiben verschlüsselt am Host; die Webansicht verbindet Auswahl,
+Detailprüfung und gezielten Start mit den gemeinsamen Kartensperren.
+Reale Oberflächenabnahme, sichere automatische
 OSIG-Auflösung, produktiver Postfach-/Clientproxyanschluss, normale Clientzustellung
 und weitere CMS-/KAS-/Herstellerprofile bleiben offen. Fehlerhaftes CMS erreicht
 wegen der unabhängigen lokalen Vorprüfung noch keinen allgemeinen negativen
