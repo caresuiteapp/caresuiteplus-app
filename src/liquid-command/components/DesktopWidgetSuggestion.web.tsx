@@ -8,6 +8,7 @@ export type DesktopWidgetSuggestionProps = {
   fontScale: number;
   onAccept: () => void;
   onChooseOther: () => void;
+  onDismiss: () => void;
 };
 
 const SHORT_DESCRIPTIONS: Readonly<Partial<Record<string, string>>> = {
@@ -21,7 +22,7 @@ const SHORT_DESCRIPTIONS: Readonly<Partial<Record<string, string>>> = {
 
 /** Suggestions stay decorative until the user adds one to this desktop. */
 export function DesktopWidgetSuggestion({
-  widget, areaLabel, fontScale, onAccept, onChooseOther,
+  widget, areaLabel, fontScale, onAccept, onChooseOther, onDismiss,
 }: DesktopWidgetSuggestionProps) {
   const id = useId();
   const style = {
@@ -33,6 +34,11 @@ export function DesktopWidgetSuggestion({
     data-testid="desktop-widget-suggestion" data-widget-id={widget.id}
     data-widget-route={widget.route} data-widget-suggestion-route={widget.route}>
     <div className="cs-desktop-suggestion-heading">
+      <button type="button" className="cs-desktop-suggestion-dismiss"
+        aria-label={`${widget.label} als Vorschlag auf ${areaLabel} ausblenden`}
+        title="Vorschlag ausblenden" onClick={onDismiss}>
+        <span aria-hidden="true">×</span>
+      </button>
       <span className="cs-desktop-suggestion-badge">Für {areaLabel} empfohlen</span>
       <h3 id={`${id}-title`} className="cs-desktop-suggestion-title">{widget.label}</h3>
     </div>

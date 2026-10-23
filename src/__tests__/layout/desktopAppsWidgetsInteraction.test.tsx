@@ -116,6 +116,8 @@ const officeClientAction = (name: string) => catalogRoute('widget', '/business/o
 const suggestions = () => [...host.querySelectorAll<HTMLElement>('[data-testid="desktop-widget-suggestion"]')];
 const suggestedRoute = (route: string) => suggestions().find(card => card.dataset.widgetRoute === route);
 const acceptSuggestion = (card: HTMLElement | undefined) => card?.querySelector<HTMLButtonElement>('button[aria-label$=" übernehmen"]');
+const dismissSuggestion = (card: HTMLElement | undefined) => card?.querySelector<HTMLButtonElement>('button[aria-label$=" ausblenden"]');
+const savedDismissals = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(`${key(area)}.dismissed-suggestions.v1`) ?? '[]') as string[];
 
 describe('Apps and Widgets in the actual Web desktop', () => {
   it.each(DESKTOP_AREAS)('offers optional recommendations on the $label desktop and saves a one-click selection', async area => {
@@ -131,6 +133,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
       expect(card.textContent).toContain(`Für ${area.label} empfohlen`);
       expect(card.querySelector('[data-testid="desktop-catalog-artwork"] img')).toBeTruthy();
       expect(acceptSuggestion(card)).toBeTruthy();
+      expect(dismissSuggestion(card)?.getAttribute('title')).toBe('Vorschlag ausblenden');
     }
     const id = cards[0].dataset.widgetId!;
     await click(acceptSuggestion(cards[0]));
@@ -142,6 +145,89 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     await remount();
     expect(savedIds(area.key)).toEqual([id]);
     expect(suggestions().some(card => card.dataset.widgetId === id)).toBe(false);
+  });
+
+  it('dismisses only the chosen recommendation, keeps its slot empty and still allows a manual placement', async () => {
+    seed(['notes']); await render();
+    const route = '/business/office/clients';
+    const card = suggestedRoute(route)!;
+    expect(card).toBeTruthy();
+    const slot = card.parentElement!;
+    const otherSlots = suggestions().filter(item => item !== card).map(item => ({ route: item.dataset.widgetRoute!, slot: item.parentElement }));
+    const count = suggestions().length;
+    const dismiss = dismissSuggestion(card)!;
+    dismiss.focus();
+    await act(async () => { dismiss.click(); dismiss.click(); });
+
+    expect(suggestedRoute(route)).toBeUndefined();
+    expect(suggestions()).toHaveLength(count - 1);
+    const add = slot.querySelector('[aria-label="Widget hinzufügen"]');
+    expect(add).toBeTruthy();
+    expect(document.activeElement).toBe(add);
+    for (const other of otherSlots) expect(suggestedRoute(other.route)?.parentElement).toBe(other.slot);
+    expect(savedIds()).toEqual(['notes']);
+    expect(workspaceHeader().textContent).toContain('1/12 aktiv');
+    expect(savedDismissals()).toEqual([route]);
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('Klient:innen als Vorschlag auf Office ausgeblendet.');
+    expect(api.push).not.toHaveBeenCalled();
+    expect(dialog()).toBeNull();
+
+    await remount();
+    expect(suggestedRoute(route)).toBeUndefined();
+    expect(suggestions()).toHaveLength(count - 1);
+    expect(savedIds()).toEqual(['notes']);
+    await open('Widgets');
+    await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
+    expect(savedIds()).toEqual(['notes', 'clients']);
+    expect(savedDismissals()).toEqual([route]);
+  });
+
+  it('keeps dismissals separate by desktop, tenant and person and retains them through permission changes', async () => {
+    const route = '/business/office/clients';
+    api.modules.add('beratung'); chooseArea('beratung'); seed([], 'beratung'); seed([]);
+    await render();
+    await click(dismissSuggestion(suggestedRoute(route)));
+    const originalKey = `${key('beratung')}.dismissed-suggestions.v1`;
+    expect(savedDismissals('beratung')).toEqual([route]);
+    await click(tab('Office', workspaceHeader()));
+    expect(suggestedRoute(route)).toBeTruthy();
+    expect(savedDismissals()).toEqual([]);
+    await click(tab('Beratung', workspaceHeader()));
+    expect(suggestedRoute(route)).toBeUndefined();
+
+    api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    expect(suggestedRoute(route)).toBeTruthy();
+    expect(savedDismissals('beratung')).toEqual([]);
+    api.tenant = 'tenant-a'; api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    expect(suggestedRoute(route)).toBeTruthy();
+    expect(savedDismissals('beratung')).toEqual([]);
+    expect(JSON.parse(memory.get(originalKey)!)).toEqual([route]);
+
+    api.user = 'user-a'; chooseArea('beratung'); await render();
+    expect(suggestedRoute(route)).toBeUndefined();
+    api.denied.add('office.clients.view'); await render();
+    expect(savedDismissals('beratung')).toEqual([route]);
+    api.denied.delete('office.clients.view'); await render();
+    expect(suggestedRoute(route)).toBeUndefined();
+    expect(savedDismissals('beratung')).toEqual([route]);
+    expect(savedIds('beratung')).toEqual([]);
+  });
+
+  it('keeps a recommendation hidden after a failed save and persists the dismissal on retry', async () => {
+    seed([]); await render();
+    const route = '/business/office/clients';
+    api.multiSet.mockRejectedValueOnce(new Error('Storage unavailable'));
+    await click(dismissSuggestion(suggestedRoute(route)));
+    expect(suggestedRoute(route)).toBeUndefined();
+    expect(savedDismissals()).toEqual([]);
+    expect(savedIds()).toEqual([]);
+    expect(host.textContent).toContain('Ihre letzte Auswahl wurde noch nicht gespeichert.');
+    await click(button('Erneut speichern', host));
+    expect(savedDismissals()).toEqual([route]);
+    expect(host.textContent).not.toContain('Ihre letzte Auswahl wurde noch nicht gespeichert.');
+    await remount();
+    expect(suggestedRoute(route)).toBeUndefined();
+    expect(savedIds()).toEqual([]);
   });
 
   it('adds a recommendation only once on rapid repeated clicks and still opens the full widget chooser', async () => {

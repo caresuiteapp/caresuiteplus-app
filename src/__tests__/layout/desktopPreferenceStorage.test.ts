@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createDesktopPreferenceStorage, mergeDesktopWidgetPreferences, readSavedDesktopWidgetIds } from '@/lib/preferences/desktopPreferenceStorage.web';
+import { createDesktopPreferenceStorage, mergeDesktopWidgetPreferences, readDismissedDesktopSuggestionRoutes, readSavedDesktopWidgetIds } from '@/lib/preferences/desktopPreferenceStorage.web';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -130,5 +130,22 @@ describe('current area widget preferences with temporarily unavailable widgets',
     expect(readSavedDesktopWidgetIds('[]')).toEqual([]);
     expect(readSavedDesktopWidgetIds('["hidden",7,"hidden",null,"clients"]')).toEqual(['hidden', 'clients']);
     for (const value of ['broken', '{}', 'null']) expect(() => readSavedDesktopWidgetIds(value)).toThrow();
+  });
+});
+
+describe('dismissed desktop suggestion preferences', () => {
+  it('treats absent or corrupt optional preferences as an empty dismissal list', () => {
+    for (const value of [null, 'broken', '{}', 'null', '7', '"/office/notizen"']) {
+      expect(readDismissedDesktopSuggestionRoutes(value)).toEqual([]);
+    }
+  });
+
+  it('normalizes and deduplicates local routes while preserving separate services and unavailable pages', () => {
+    const calendar = '/business/connect/google-workspace?service=calendar';
+    const tasks = '/business/connect/google-workspace?service=tasks';
+    expect(readDismissedDesktopSuggestionRoutes(JSON.stringify([
+      ' /office/notizen ', '/office/notizen', calendar, tasks, '/currently-unavailable',
+      7, null, {}, '', 'notes', 'https://example.com/notes', '//example.com/notes',
+    ]))).toEqual(['/office/notizen', calendar, tasks, '/currently-unavailable']);
   });
 });
