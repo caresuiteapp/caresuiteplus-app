@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { officeMonthKey, shiftOfficeMonth } from '@/lib/wfm/wfmOfficeMonth';
@@ -26,13 +27,13 @@ export function WfmOfficeMonthSelector({ value, onChange, currentMonth = officeM
     <View style={styles.actions}>
       <Pressable accessibilityRole="button" accessibilityLabel="Vorheriger Monat"
         onPress={() => onChange(shiftOfficeMonth(value, -1))} style={styles.arrow}>
-        <Text style={styles.glyph}>‹</Text>
+        <SemanticArtwork style={styles.glyph} webSize={20}>‹</SemanticArtwork>
       </Pressable>
       <PremiumButton title="Aktueller Monat" variant="secondary"
         onPress={() => onChange(currentMonth)} />
       <Pressable accessibilityRole="button" accessibilityLabel="Nächster Monat"
         onPress={() => onChange(shiftOfficeMonth(value, 1))} style={styles.arrow}>
-        <Text style={styles.glyph}>›</Text>
+        <SemanticArtwork style={styles.glyph} webSize={20}>›</SemanticArtwork>
       </Pressable>
     </View>
   </View>;

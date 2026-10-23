@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumCard } from '@/components/ui/PremiumCard';
@@ -62,7 +63,7 @@ export function EmployeePortalVisitCompactCard({
   const content = (
     <PremiumCard accentColor={accentColor} style={styles.card} contentStyle={styles.cardContent}>
       <View style={styles.topRow}>
-        <View style={styles.iconWrap}><Text style={styles.icon}>{icon ?? '✓'}</Text></View>
+        <View style={styles.iconWrap}><SemanticArtwork style={styles.icon} webSize={32}>{icon ?? '✓'}</SemanticArtwork></View>
         <Text style={styles.state} testID={testID ? `${testID}-state` : undefined}>
           {pending ? '↻' : warning ? '!' : completed ? '✓' : '○'}
         </Text>

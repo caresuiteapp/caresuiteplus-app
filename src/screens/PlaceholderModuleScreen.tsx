@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { PremiumBadge, PremiumCard, PremiumButton } from '@/components/ui';
 import { ScreenShell } from '@/components/layout';
@@ -23,7 +24,7 @@ export function PlaceholderModuleScreen({
   return (
     <ScreenShell title={title} subtitle={subtitle}>
       <PremiumCard accentColor="#FF9500">
-        <Text style={styles.icon}>{icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={40}>{icon}</SemanticArtwork>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>
           Dieser Bereich ist als Route angelegt und durch Guards geschützt. Die fachlichen

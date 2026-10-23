@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard } from '@/design/components/GlassCard';
@@ -40,7 +41,7 @@ export function PortalNavigation({
                 active && accentColor ? { borderColor: `${accentColor}66` } : null,
               ]}
             >
-              <Text style={styles.icon}>{tab.icon}</Text>
+              <SemanticArtwork webSize={24} webColor={text.primary} style={styles.icon}>{tab.icon}</SemanticArtwork>
               <Text style={[styles.label, { color: text.primary }]}>{tab.label}</Text>
             </GlassCard>
           </Pressable>

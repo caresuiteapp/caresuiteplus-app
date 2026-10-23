@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarViewSwitcher } from './CalendarViewSwitcher';
@@ -37,7 +38,9 @@ function ToolbarButton({
         pressed && styles.controlPressed,
       ]}
     >
-      <Text style={[styles.controlText, primary && styles.controlPrimaryText]}>{label}</Text>
+      {label === '‹' || label === '›'
+        ? <SemanticArtwork webSize={20} style={[styles.controlText, primary && styles.controlPrimaryText]}>{label}</SemanticArtwork>
+        : <Text style={[styles.controlText, primary && styles.controlPrimaryText]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -81,7 +84,7 @@ export function CalendarToolbar({
             accessibilityLabel="Kalendereinstellungen öffnen"
             style={({ pressed }) => [styles.settingsButton, pressed && styles.controlPressed]}
           >
-            <View style={styles.settingsIcon}><Text style={styles.settingsIconText}>⚙</Text></View>
+            <View style={styles.settingsIcon}><SemanticArtwork webSize={24} style={styles.settingsIconText}>⚙</SemanticArtwork></View>
             <View>
               <Text style={styles.settingsLabel}>Einstellungen</Text>
               <Text style={styles.settingsHint}>Ansicht & Filter</Text>

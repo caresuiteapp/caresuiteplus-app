@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, type ReactNode } from 'react';
 
 import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -166,7 +167,7 @@ export function GradientModalHeader({
             accessibilityRole="button"
             accessibilityLabel="Zurück"
           >
-            <Text style={[styles.iconLabel, { color: iconColor }]}>←</Text>
+            <SemanticArtwork webSize={24} style={[styles.iconLabel, { color: iconColor }]}>←</SemanticArtwork>
           </Pressable>
         ) : null}
         <Text style={[styles.title, titleStyle]} numberOfLines={Platform.OS === 'web' ? 1 : undefined}>
@@ -181,7 +182,7 @@ export function GradientModalHeader({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={closeIconStyle}>×</Text>
+          <SemanticArtwork webSize={24} style={closeIconStyle}>×</SemanticArtwork>
         </Pressable>
       </View>
     </>

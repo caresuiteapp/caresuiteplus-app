@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -67,7 +68,7 @@ export function OperationsMonitoringHero({ dashboard }: OperationsMonitoringHero
           <Text style={styles.meta}>{dashboard.availabilityDisclaimer}</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📡</Text>
+          <SemanticArtwork style={styles.iconText}>📡</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

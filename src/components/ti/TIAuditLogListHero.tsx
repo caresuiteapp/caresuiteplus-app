@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   PremiumKpiCard,
@@ -36,7 +37,7 @@ export function TIAuditLogListHero({ items, totalCount, roleKey }: TIAuditLogLis
           <Text style={heroText.meta}>Nachvollziehbarkeit aller TI-Aktionen und Zugriffe</Text>
         </View>
         <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
-          <Text style={styles.iconText}>🔍</Text>
+          <SemanticArtwork style={styles.iconText}>🔍</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +74,7 @@ export function AppTabBar({
         accessibilityState={{ selected: active }}
         accessibilityLabel={tab.label}
       >
-        <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>
+        <SemanticArtwork webSize={24} webColor={active ? accentColor : useLightNav ? text.primary : colors.textMuted} style={[styles.icon, active && styles.iconActive]}>{tab.icon}</SemanticArtwork>
         <Text
           style={[
             styles.label,

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import React, { useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -193,7 +194,7 @@ export function InfoBanner({
           } as object)
         : {})}
     >
-      <Text style={styles.icon}>{displayIcon}</Text>
+      <SemanticArtwork style={styles.icon} webSize={20} webColor={surfaceColors?.title ?? cfg.title}>{displayIcon}</SemanticArtwork>
       <View style={styles.content}>
         {safeTitle ? (
           <Text style={[styles.title, { color: surfaceColors?.title ?? cfg.title }]}>{safeTitle}</Text>
@@ -212,7 +213,7 @@ export function InfoBanner({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={[styles.dismiss, { color: darkSurface ? 'rgba(248,251,255,0.78)' : text.muted }]}>✕</Text>
+          <SemanticArtwork style={[styles.dismiss, { color: darkSurface ? 'rgba(248,251,255,0.78)' : text.muted }]} webSize={20}>✕</SemanticArtwork>
         </Pressable>
       ) : null}
     </View>

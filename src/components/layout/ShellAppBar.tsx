@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Platform,
@@ -72,7 +73,7 @@ export function ShellAppBar({
         accessibilityState={{ expanded: menuOpen }}
         testID="shell-hamburger"
       >
-        <Text style={[styles.menuIcon, { color: text.primary }]}>☰</Text>
+        <SemanticArtwork webSize={24} style={[styles.menuIcon, { color: text.primary }]}>☰</SemanticArtwork>
       </Pressable>
 
       <View style={styles.titleBlock}>

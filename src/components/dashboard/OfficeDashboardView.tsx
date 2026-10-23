@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -144,7 +145,7 @@ export function OfficeDashboardView({
                 key={link.id}
                 title={link.label}
                 subtitle={link.description}
-                leading={link.icon ? <Text style={styles.leadingIcon}>{link.icon}</Text> : undefined}
+                leading={link.icon ? <SemanticArtwork webSize={24} webColor={moduleAccent} style={styles.leadingIcon}>{link.icon}</SemanticArtwork> : undefined}
                 trailing={
                   link.count !== undefined ? (
                     <Text style={[styles.countBadge, { color: moduleAccent }]}>{link.count}</Text>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlatformModal } from '@/components/layout/platform';
@@ -48,7 +49,7 @@ export function PortalMoreMenu({
               accessibilityState={{ selected: active }}
             >
               <GlassCard style={[styles.row, active && { borderColor: `${accentColor}55` }]}>
-                <Text style={styles.icon}>{tab.icon}</Text>
+                <SemanticArtwork webSize={24} webColor={active ? text.primary : text.secondary} style={styles.icon}>{tab.icon}</SemanticArtwork>
                 <View style={styles.copy}>
                   <Text
                     style={[

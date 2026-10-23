@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -74,7 +75,7 @@ export function OfficeDashboardHero({
           <Text style={styles.meta}>{snapshot.heroSubtitle}</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>🏢</Text>
+          <SemanticArtwork style={styles.iconText}>🏢</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

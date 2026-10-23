@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -82,7 +83,7 @@ export function PortalAnnouncementsHero({
           <Text style={styles.meta}>{config.subtitle}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${config.accent}55` }]}>
-          <Text style={styles.iconText}>{config.icon}</Text>
+          <SemanticArtwork style={styles.iconText}>{config.icon}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

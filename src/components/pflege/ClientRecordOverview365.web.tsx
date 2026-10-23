@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuroraBadge, AuroraGlassCard } from '@/components/aurora';
@@ -36,7 +37,7 @@ function FocusCard({ icon, label, value, variant = 'cyan' }: {
   return (
     <AuroraGlassCard style={styles.focusCard}>
       <View style={styles.focusHeader}>
-        <Text style={styles.focusIcon}>{icon}</Text>
+        <SemanticArtwork style={styles.focusIcon} webSize={24}>{icon}</SemanticArtwork>
         <AuroraBadge label={label} variant={variant} />
       </View>
       <Text style={styles.focusValue}>{value}</Text>

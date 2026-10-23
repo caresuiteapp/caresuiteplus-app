@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react';
 import { Slot, useIsFocused, usePathname, useRouter } from 'expo-router';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
@@ -14,7 +15,7 @@ import {
 import { officeTimeTrackingShellCss } from './officeTimeTrackingShellCss.web';
 
 function Clock() {
-  return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></svg>;
+  return <WebActionIcon size={24}><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></WebActionIcon>;
 }
 
 export function OfficeTimeTrackingShell() {

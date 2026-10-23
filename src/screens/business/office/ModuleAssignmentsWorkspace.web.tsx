@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, useMemo, useState } from 'react';
 import type { ProductKey } from '@/types';
 import type { ModuleAssignmentWorkspaceSnapshot } from '@/lib/officeModules/moduleAssignmentWorkspaceService.web';
@@ -22,7 +23,7 @@ function ActionIcon({ kind, spinning = false }: { kind: ActionIconKind; spinning
     check: 'm5 12 4 4L19 6',
     layers: 'm12 3 10 6-10 6L2 9l10-6ZM2 13l10 6 10-6M2 17l10 6 10-6',
   };
-  return <svg className={spinning ? 'ma-spin' : undefined} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[kind]} /></svg>;
+  return <WebActionIcon className={spinning ? 'ma-spin' : undefined}><path d={paths[kind]} /></WebActionIcon>;
 }
 
 function moduleName(key: ProductKey) {

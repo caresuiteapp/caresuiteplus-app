@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -100,7 +101,7 @@ export function ModuleCard({
       <PremiumCard accentColor={module.isEffective ? config.accentColor : colors.textMuted}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Text style={styles.icon}>{config.icon}</Text>
+            <SemanticArtwork style={styles.icon} webSize={32} webColor={module.isEffective ? config.accentColor : colors.textMuted}>{config.icon}</SemanticArtwork>
             <View style={styles.titleCol}>
               <Text style={styles.title}>{PRODUCT_LABELS[module.productKey]}</Text>
               <Text style={styles.subtitle}>{description}</Text>

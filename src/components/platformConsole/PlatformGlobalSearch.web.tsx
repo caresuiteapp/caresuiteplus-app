@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
@@ -50,12 +51,12 @@ export function PlatformGlobalSearch() {
   const go = (path: string) => { setOpen(false); router.push(path as never); };
 
   return <div className="cs-console"><ConsoleStyle />
-    <button className="cs-btn" onClick={show} aria-label="Plattform durchsuchen, Strg oder Command K">⌕ Suchen <small>Strg K</small></button>
+    <button className="cs-btn" onClick={show} aria-label="Plattform durchsuchen, Strg oder Command K"><SemanticArtwork webSize={20}>⌕</SemanticArtwork> Suchen <small>Strg K</small></button>
     {open && <ConsoleDialog title="Plattform durchsuchen" description="Verfügbare Arbeitsbereiche und registrierte Unternehmen finden." onClose={() => setOpen(false)}>
       <label className="cs-field">Suchbegriff<input autoFocus type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Unternehmen, E-Mail oder Arbeitsbereich" /></label>
-      <section><h3>Arbeitsbereiche</h3><div className="cs-actions">{pages.map(item => <button key={item.path} className="cs-btn" onClick={() => go(item.path)}>{item.icon} {item.label}</button>)}</div>{!pages.length && <p>Keine passenden Arbeitsbereiche.</p>}</section>
+      <section><h3>Arbeitsbereiche</h3><div className="cs-actions">{pages.map(item => <button key={item.path} className="cs-btn" onClick={() => go(item.path)}><SemanticArtwork webSize={20}>{item.icon}</SemanticArtwork> {item.label}</button>)}</div>{!pages.length && <p>Keine passenden Arbeitsbereiche.</p>}</section>
       {canReadTenants && <section><h3>Unternehmen</h3>{loading && <p role="status">Unternehmen werden gesucht…</p>}{error && <p className="cs-notice error" role="alert">{error}</p>}
-        {tenants.map(tenant => <div className="cs-task" key={tenant.tenantId}><div><button className="cs-link" onClick={() => go(`/platform/tenants/${encodeURIComponent(tenant.tenantId)}`)}>{tenant.tenantName}</button><p>{tenant.legalName || tenant.slug || 'Unternehmen'} · Kostenlos</p></div><span aria-hidden>↗</span></div>)}
+        {tenants.map(tenant => <div className="cs-task" key={tenant.tenantId}><div><button className="cs-link" onClick={() => go(`/platform/tenants/${encodeURIComponent(tenant.tenantId)}`)}>{tenant.tenantName}</button><p>{tenant.legalName || tenant.slug || 'Unternehmen'} · Kostenlos</p></div><SemanticArtwork webSize={20}>↗</SemanticArtwork></div>)}
         {!loading && !error && !tenants.length && <p>Keine passenden Unternehmen.</p>}
         {tenants.length === 12 && <button className="cs-link" onClick={() => go('/platform/tenants')}>Unternehmensverzeichnis öffnen</button>}
       </section>}

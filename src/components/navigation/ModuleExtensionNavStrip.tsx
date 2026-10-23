@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -53,7 +54,7 @@ export function ModuleExtensionNavStrip({ productKey, currentPath }: ModuleExten
           accessibilityRole="tab"
           accessibilityLabel={link.label}
         >
-          <Text style={styles.chipIcon}>{link.icon}</Text>
+          <SemanticArtwork webSize={20} webColor={text.primary} style={styles.chipIcon}>{link.icon}</SemanticArtwork>
           <Text style={styles.chipLabel}>{link.label}</Text>
         </Pressable>
       ))}

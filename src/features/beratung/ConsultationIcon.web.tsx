@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 const paths = {
   open: ['M7 3v4M17 3v4M4 10h16', 'M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z', 'm9 15 2 2 4-4'],
   review: ['M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z', 'M14 3v6h6M8 13h8M8 17h5'],
@@ -5,5 +6,5 @@ const paths = {
   done: ['m12 3 8 3v5c0 5-4 8-8 10-4-2-8-5-8-10V6Z', 'm8 12 3 3 5-6'],
 } as const;
 export function ConsultationIcon({ name }: { name: keyof typeof paths }) {
-  return <svg aria-hidden="true" focusable="false" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths[name].map((d, i) => <path key={i} d={d}/>)}</svg>;
+  return <WebActionIcon size={24}>{paths[name].map((d, i) => <path key={i} d={d}/>)}</WebActionIcon>;
 }

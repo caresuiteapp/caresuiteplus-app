@@ -1,3 +1,5 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -162,7 +164,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
             const groupLabel = { overview: 'Übersicht', customers: 'Unternehmen', product: 'Funktionen', finance: '', operations: 'Betrieb', mobile: '' }[group];
             const closed = closedGroups.includes(group);
             return <View key={group} style={styles.navGroup}>
-              <Pressable accessibilityRole="button" accessibilityLabel={groupLabel} accessibilityState={{ expanded: !closed }} style={styles.navGroupHeader} onPress={() => setClosedGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])}><Text style={styles.navGroupLabel}>{groupLabel}</Text><Text style={styles.navGroupLabel}>{closed ? '+' : '−'}</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={groupLabel} accessibilityState={{ expanded: !closed }} style={styles.navGroupHeader} onPress={() => setClosedGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])}><Text style={styles.navGroupLabel}>{groupLabel}</Text><SemanticArtwork webSize={16} style={styles.navGroupLabel}>{closed ? '+' : '−'}</SemanticArtwork></Pressable>
               {!closed ? groupItems.map((item) => {
             const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
             return (
@@ -173,7 +175,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
                 style={[styles.navItem, active && styles.navItemActive]}
                 onPress={() => { setMobileMenuOpen(false); router.push(item.path as never); }}
               >
-                <Text style={styles.navIcon}>{item.icon}</Text>
+                <SemanticArtwork webSize={24} style={[styles.navIcon, { width: 24 }]}>{item.icon}</SemanticArtwork>
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
               </Pressable>
             );
@@ -197,7 +199,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         <Modal visible={mobileMenuOpen} transparent animationType="none" onRequestClose={() => setMobileMenuOpen(false)}>
           <Pressable style={styles.menuBackdrop} onPress={() => setMobileMenuOpen(false)}>
             <Pressable style={styles.menuPanel} onPress={event => event.stopPropagation()}>
-              <View style={styles.menuCloseRow}><Pressable accessibilityRole="button" accessibilityLabel="Navigation schließen" style={styles.menuButton} onPress={() => setMobileMenuOpen(false)}><Text style={styles.menuButtonText}>Schließen ✕</Text></Pressable></View>
+              <View style={styles.menuCloseRow}><Pressable accessibilityRole="button" accessibilityLabel="Navigation schließen" style={styles.menuButton} onPress={() => setMobileMenuOpen(false)}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Text style={styles.menuButtonText}>Schließen</Text><SemanticArtwork webSize={20} style={styles.menuButtonText}>✕</SemanticArtwork></View></Pressable></View>
               {navigation}
             </Pressable>
           </Pressable>
@@ -215,7 +217,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
       <View style={styles.main}>
         {title || !isWide ? (
           <View style={styles.header}>
-            {!isWide ? <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: mobileMenuOpen }} style={styles.menuButton} onPress={() => setMobileMenuOpen(true)}><Text style={styles.menuButtonText}>☰ Menü</Text></Pressable> : null}
+            {!isWide ? <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: mobileMenuOpen }} style={styles.menuButton} onPress={() => setMobileMenuOpen(true)}><SemanticIconLabel symbol="☰" label="Menü" webSize={20} style={styles.menuButtonText} /></Pressable> : null}
             <View style={styles.headerCopy}>
               <Text style={styles.breadcrumb}>Plattformverwaltung / {title}</Text>
               <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text>

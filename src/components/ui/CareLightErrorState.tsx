@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -38,7 +39,7 @@ export function CareLightErrorState({ message, onRetry }: CareLightErrorStatePro
 
   return (
     <View style={styles.root}>
-      <Text style={styles.emoji}>⚠️</Text>
+      <SemanticArtwork style={styles.emoji} webSize={40} webColor={colors.danger}>⚠️</SemanticArtwork>
       <Text style={styles.title}>Fehler</Text>
       <Text style={styles.message}>{message}</Text>
       {onRetry ? (

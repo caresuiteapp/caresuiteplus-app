@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -38,7 +39,7 @@ export function PortalQuickActions({ onAction, actions = DEFAULT_ACTIONS }: Port
       style={styles.chip}
       accessibilityRole="button"
     >
-      <Text style={styles.icon}>{action.icon}</Text>
+      <SemanticArtwork webSize={20} webColor={text.primary} style={styles.icon}>{action.icon}</SemanticArtwork>
       <Text style={[type.caption, { color: text.primary }]} numberOfLines={1}>
         {action.label}
       </Text>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -142,7 +143,7 @@ export function Timeline({
           </View>
           <View style={styles.content}>
             <View style={styles.titleRow}>
-              <Text style={styles.icon}>{item.icon}</Text>
+              <SemanticArtwork style={styles.icon} webSize={16}>{item.icon}</SemanticArtwork>
               <Text style={styles.title} numberOfLines={1}>
                 {item.title}
               </Text>

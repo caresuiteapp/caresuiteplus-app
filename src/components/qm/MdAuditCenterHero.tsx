@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -57,7 +58,7 @@ export function MdAuditCenterHero({ packageCount, openCount, roleKey }: MdAuditC
           <Text style={styles.meta}>Prüfungsmappen erstellen, freigeben und per Token teilen</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📦</Text>
+          <SemanticArtwork style={styles.iconText}>📦</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

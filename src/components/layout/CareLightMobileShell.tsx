@@ -1,5 +1,6 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { AppShellArea, ShellTabConfig } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { careLightColors } from '@/design/tokens/lightTheme';
@@ -37,7 +38,7 @@ export function CareLightMobileShell({
           accessibilityRole="button"
           accessibilityLabel="Module wechseln"
         >
-          <Text style={styles.switcherFabText}>🧩 Module</Text>
+          <SemanticIconLabel symbol="🧩" label="Module" style={styles.switcherFabText} />
         </Pressable>
       ) : null}
       <CareLightBottomNav tabs={effectiveTabs} accentColor={accentColor} />

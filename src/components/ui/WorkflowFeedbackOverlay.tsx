@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -174,7 +175,7 @@ export function WorkflowFeedbackOverlay({
           <>
             <View style={styles.heading}>
               <View style={[styles.icon, { backgroundColor: meta.color }]}>
-                <Text style={styles.iconText}>{meta.icon}</Text>
+                <SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork>
               </View>
               <View style={styles.headingText}>
                 <Text style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text>
@@ -186,7 +187,7 @@ export function WorkflowFeedbackOverlay({
                 onPress={dismiss}
                 style={[styles.close, portal.active && styles.portalClose]}
               >
-                <Text style={[styles.closeText, portal.active && styles.portalCloseText]}>×</Text>
+                <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText]} webSize={20}>×</SemanticArtwork>
               </Pressable>
             </View>
             <View style={styles.actions}>

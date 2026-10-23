@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Platform,
@@ -84,7 +85,7 @@ export function PortalTabLeftNav({
                 ]}
               >
                 {active ? <View style={[styles.activeBar, { backgroundColor: accentColor }]} /> : null}
-                <Text style={styles.navIcon}>{tab.icon}</Text>
+                <SemanticArtwork webSize={24} webColor={active ? text.primary : text.secondary} style={styles.navIcon}>{tab.icon}</SemanticArtwork>
                 <Text
                   style={[
                     styles.navLabel,

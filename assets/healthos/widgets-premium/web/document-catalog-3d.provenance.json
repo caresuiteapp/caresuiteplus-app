@@ -1,0 +1,13 @@
+{
+  "asset": "document-catalog-3d.png",
+  "tool": "image_gen.imagegen",
+  "usage": "Web-only document catalogue artwork",
+  "transparent_background": true,
+  "references": [
+    "assets/healthos/widgets-premium/compact/07-dokumente.png",
+    "assets/healthos/widgets-premium/academy/library-large.png",
+    "assets/healthos/widgets-premium/document-catalog.png"
+  ],
+  "prompt": "Create ONE production app icon for CareSuite HealthOS: a Document Catalog, a premium blue/cyan/white polished 3D icon on a truly transparent background. Reference 1 (blue folder) is the main material, lighting and visual-family reference; reference 2 (blue books) guides the premium three-dimensional depth; reference 3 is the semantic motif to preserve, replacing its flat vector look with a matching 3D render. Show an open upright document catalog/binder with a thick rounded cobalt-blue spine and tab, a clean white page containing a few short blue abstract lines and a simple tiny table to mean editable templates, and a small blue circular badge with one white checkmark at the lower right. Rounded friendly geometry, subtle cyan edge lighting, clean controlled glossy highlights, soft dimensional shadows without any backdrop, no glass platform. Slight three-quarter front view, legible at 40–80px. Keep the overall shape compact and centered, filling about 82 percent of the square canvas so the graphic reads strongly. No words, lettering, logos, watermark, scene, app tile background or outer card. Real alpha transparency, high-quality crisp antialiased edges. It must look like another member of the existing blue folder/books icon family, not like a flat SVG and not like a photograph.",
+  "post_processing": "None; original generated PNG copied unchanged. Runtime viewport normalization only."
+}

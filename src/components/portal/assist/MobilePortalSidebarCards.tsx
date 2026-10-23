@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, useState } from 'react';
 import {
   Linking,
@@ -82,7 +83,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
       <GlassCard style={styles.card}>
         <View style={styles.mandantRow}>
           <View style={[styles.mandantIconWrap, { borderColor: chipBorder, backgroundColor: chipSurface }]}>
-            <Text style={styles.mandantIcon}>🏢</Text>
+            <SemanticArtwork webSize={24} style={styles.mandantIcon}>🏢</SemanticArtwork>
           </View>
           <View style={styles.mandantCopy}>
             <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
@@ -135,7 +136,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
               style={[styles.quickPill, { borderColor: chipBorder, backgroundColor: chipSurface }, webCursor]}
               accessibilityRole="button"
             >
-              <Text style={styles.quickIcon}>{action.icon}</Text>
+              <SemanticArtwork webSize={20} webColor={text.primary} style={styles.quickIcon}>{action.icon}</SemanticArtwork>
               <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={1}>
                 {action.label}
               </Text>

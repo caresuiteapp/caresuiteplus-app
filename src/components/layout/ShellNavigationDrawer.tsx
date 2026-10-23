@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Modal,
@@ -151,7 +152,7 @@ export function ShellNavigationDrawer({
               accessibilityRole="button"
               accessibilityLabel="Schließen"
             >
-              <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
+              <SemanticArtwork webSize={20} style={[styles.closeText, { color: text.muted }]}>✕</SemanticArtwork>
             </Pressable>
           </View>
 
@@ -212,7 +213,7 @@ export function ShellNavigationDrawer({
                           accessibilityState={{ selected: active }}
                           accessibilityLabel={badge != null ? `${item.label}, ${badge}` : item.label}
                         >
-                          <Text style={styles.navIcon}>{item.icon}</Text>
+                          <SemanticArtwork webSize={24} webColor={active ? text.primary : text.secondary} style={styles.navIcon}>{item.icon}</SemanticArtwork>
                           <Text style={[styles.navLabel, { color: active ? text.primary : text.secondary }, active && { fontWeight: '700' }]}>
                             {item.label}
                           </Text>

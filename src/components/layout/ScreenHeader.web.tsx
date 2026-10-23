@@ -1,3 +1,4 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
 import { WebView as View } from '@/lib/platform/reactNativeWebCompat.web';
 import { type ReactNode, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
@@ -16,7 +17,7 @@ export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true
   const historyBack = useWebBackNavigation();
   const back = onBack ?? historyBack;
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} {...{ dataSet: { csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' } }}>
-    {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><Text style={styles.backText}>← Zurück</Text></Pressable> : null}
+    {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><SemanticIconLabel symbol="←" label="Zurück" webSize={20} style={styles.backText} /></Pressable> : null}
     <View style={[styles.copy, narrow && styles.phoneCopy]}>
       {breadcrumbTrail && (!narrow || !simplifyOnPhone) ? <BreadcrumbTrail trail={breadcrumbTrail} /> : null}
       <Text accessibilityRole="header" style={[styles.title, compact && styles.compactTitle]}>{title}</Text>

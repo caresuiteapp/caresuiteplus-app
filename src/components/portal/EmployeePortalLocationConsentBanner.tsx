@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EmployeePortalLocationConsent } from '@/types/modules/employeePortalTracking';
 
@@ -26,7 +27,7 @@ export function EmployeePortalLocationConsentBanner({
       <View style={styles.card}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.iconCircle}>
-          <Text style={styles.icon} accessibilityElementsHidden>⌖</Text>
+          <SemanticArtwork style={styles.icon} accessibilityElementsHidden webSize={24}>⌖</SemanticArtwork>
         </View>
         <Text style={styles.kicker}>DIENSTLICHE GPS-AUFZEICHNUNG</Text>
         <Text style={styles.title}>Fahrten und Einsatztag vollständig erfassen</Text>

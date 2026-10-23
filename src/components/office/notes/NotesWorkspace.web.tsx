@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
@@ -20,7 +21,7 @@ type SaveIssue = { message: string; needsCheck: boolean; checked: boolean; serve
 const when = (date: string) => new Date(date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 function NoteIcon({ kind = 'note' }: { kind?: 'note' | 'plus' | 'search' | 'pin' | 'arrow' | 'save' }) {
   const paths = { note: <><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M9 3v18M12 8h4M12 12h4M12 16h2M3 7h4M3 12h4M3 17h4"/></>, plus: <path d="M12 5v14M5 12h14"/>, search: <><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></>, pin: <path d="m9 3 6 0-1 6 4 4v2H6v-2l4-4-1-6Zm3 12v6"/>, arrow: <path d="m14 5-7 7 7 7M7 12h14"/>, save: <><path d="M5 3h12l4 4v14H3V3h2ZM7 3v6h10V3M7 21v-8h10v8"/></> };
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+  return <WebActionIcon>{paths[kind]}</WebActionIcon>;
 }
 
 /** Remount on account, organisation or access changes; never retain another person's draft. */

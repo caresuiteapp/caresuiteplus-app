@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Platform,
@@ -74,7 +75,7 @@ export function OrbitTopNavigation({
             accessibilityRole="button"
           >
             <Text style={styles.moduleButtonText}>Support</Text>
-            <Text style={styles.moduleButtonArrow}>?</Text>
+            <SemanticArtwork webSize={20} style={styles.moduleButtonArrow}>❓</SemanticArtwork>
           </Pressable>
 
           <View style={styles.profileSlot}>
@@ -109,7 +110,7 @@ export function OrbitTopNavigation({
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={styles.tabIcon}>{tab.icon}</Text>
+                <SemanticArtwork webSize={24} webColor={active ? accentColor : styles.tabLabel.color} style={styles.tabIcon}>{tab.icon}</SemanticArtwork>
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
                   {tab.label}
                 </Text>
