@@ -98,6 +98,34 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
   return value as unknown as MonthlyProof;
 }
 
+/** Bind both an immediate write response and a later read-only recovery to the
+ * retained command. Later revisions may change open sources, but never the
+ * document identity, predecessor or an already final confirmation. */
+export function assertMonthlyCommandResult(proof: MonthlyProof, command: MonthlyProofCommand, current = false): void {
+  const newVersion = command.action === 'create' || command.action === 'correct';
+  const expected = newVersion ? command.input.new_id : command.input.id;
+  const revision = newVersion ? 1 : command.input.revision + 1;
+  if (proof.id !== expected || proof.revision < revision) invalid();
+  if (command.action === 'create' && (proof.payload.clientId !== command.input.client_id
+    || proof.payload.month !== command.input.month || proof.payload.serviceType !== command.input.service_type || proof.version !== 1)) invalid();
+  if (command.action === 'correct' && (proof.predecessor_id !== command.input.id || proof.version < 2)) invalid();
+  if (command.action === 'confirm' || command.action === 'finalize_missing') {
+    if (proof.status === 'open' || proof.content_sha256 !== command.input.content_sha256) invalid();
+    if (command.action === 'confirm') {
+      if (proof.confirmation?.kind !== 'signature' || proof.confirmation.receiptId !== command.input.receipt_id) invalid();
+    } else if (proof.confirmation?.kind !== 'missing_signature') invalid();
+  }
+  if (!current) {
+    const expectedStatus = command.action === 'confirm' || command.action === 'finalize_missing' ? 'final' : 'open';
+    if (proof.status !== expectedStatus || proof.revision !== revision) invalid();
+    if (command.action === 'create' || command.action === 'replace_sources') {
+      const requested = new Set(command.input.source_ids);
+      if (requested.size !== command.input.source_ids.length || requested.size !== proof.payload.records.length
+        || proof.payload.records.some(record => !requested.has(record.recordId))) invalid();
+    }
+  }
+}
+
 /** A stable request ID must be retained for retries after an uncertain response.
  * No automatic retry, no signature promotion, no local final-status simulation.
  */
@@ -114,15 +142,6 @@ export async function executeMonthlyProofCommand(rpc: MonthlyProofRpc, tenantId:
     throw new MonthlyProofWriteError('Der Monatsnachweis wurde nicht bestätigt. Bitte gespeicherten Stand und Prüfmeldung kontrollieren.', !/^(22|23|P0001$)/.test(String(code)));
   }
   const proof = readMonthlyProof(data, tenantId);
-  const expected = command.action === 'create' || command.action === 'correct' ? command.input.new_id : command.input.id;
-  if (proof.id !== expected) invalid();
-  if (command.action === 'create' && (proof.payload.clientId !== command.input.client_id
-    || proof.payload.month !== command.input.month || proof.payload.serviceType !== command.input.service_type || proof.version !== 1)) invalid();
-  if (command.action === 'correct' && (proof.predecessor_id !== command.input.id || proof.version < 2)) invalid();
-  if (!proof.replayed) {
-    const newVersion = command.action === 'create' || command.action === 'correct';
-    const expectedStatus = command.action === 'confirm' || command.action === 'finalize_missing' ? 'final' : 'open';
-    if (proof.status !== expectedStatus || proof.revision !== (newVersion ? 1 : (command.input as VersionInput).revision + 1)) invalid();
-  }
+  assertMonthlyCommandResult(proof, command, proof.replayed === true);
   return proof;
 }

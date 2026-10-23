@@ -169,7 +169,7 @@ sind ausdrücklich Vertragsdoubles. PGlite serialisiert Anfragen: konkurrierende
 Kennungen und Versionskonflikte sind geprüft, echte Mehrverbindungs-Rennen im
 Ziel-PostgreSQL noch nicht. Das ersetzt keine Supabase-Auth-/Storage-Abnahme.
 
-Für die neue Webanbindung bestehen lokal 18 Vertrags-/Wiederholungstests und
+Für die neue Webanbindung bestehen lokal 27 Vertrags-/Wiederholungstests und
 29 Quellen-/Prüfexport-/Katalogregressionen. Die SQL-Suite wurde um fünf Fälle
 für Übersicht, Rollen, Quellenauswahl, Auftragsklärung und Seitenanker erweitert.
 Zehn React-Prüfabläufe testen die tatsächliche Komponente und Office-Navigation
@@ -181,10 +181,35 @@ fehlenden Projektabhängigkeiten noch nicht ausgeführt werden. Sie sind über
 `npm run verify:gkv:monthly-web` in den bestehenden Web-Produktionsbuild
 aufgenommen. Ein erfolgreicher Preview-Build muss für den neuen Commit separat
 belegt werden; der erfolgreiche Vorgängerbuild gilt nicht für die neue UI.
-Es wurden keine Abhängigkeiten installiert und keine Testdienste eingerichtet.
+Für den Monatsnachweis-Fachkern besteht zusätzlich ein strenger TypeScript-6.0.3-
+Check. Die tatsächliche Monatskomponente samt Office-Seite lässt sich mit
+esbuild 0.28.2 bündeln; React ist dabei extern, API/Auth sind die vorhandenen
+Testgrenzen. Beide Compiler wurden ausschließlich aus bereits lokal vorhandenen
+Paketarchiven mit identischen Projektversionen und geprüftem Lockfile-SHA-512
+verwendet. Keine Downloads, Versionsänderungen oder neuen Testdienste. Dieser
+begrenzte Check ersetzt weder den vollständigen App-Typcheck noch React-Ausführung.
 DOM-Prüfungen ersetzen weder die echte Supabase-Anmeldung noch eine visuelle
 Abnahme. Breite/schmale Darstellung, vergrößerte Schrift und Tastaturfokus im
 gerenderten Browser sind für diese Ansicht noch nicht belegt.
+
+### Bindung der Speicherantwort und Auftragsklärung
+
+Eine Nachweis-ID allein bestätigt keinen erfolgreich zugeordneten Auftrag.
+Sofortantworten, Wiederholungen und rein lesende Auftragsklärung prüfen gemeinsam
+Klient, Monat und Leistungsart beim Anlegen, Vorgänger bei Korrekturen sowie
+mindestens die durch den Auftrag entstandene Revision. Ein frischer Quellenabgleich
+muss genau die ausgewählten Quellkennungen zurückgeben; deren Reihenfolge darf
+abweichen. Spätere legitime Quellenänderungen bleiben bei der Auftragsklärung
+zulässig. Die endgültige Bestätigungsart und der Inhaltshash bleiben dagegen
+unveränderlich; eine Unterschriftsbestätigung muss außerdem den angeforderten
+privaten Prüfbeleg zurückgeben. Ein Ausnahmeabschluss ersetzt keine Unterschrift.
+
+Bei widersprüchlichen Antworten bleibt der ursprüngliche Auftrag samt Kennung
+offen. Es gibt keinen automatischen Neuversuch und keine vorzeitige Entsperrung.
+Sechs neue Negativprüfungen reproduzierten die bisherige Annahmelücke vor der
+Korrektur; zusammen mit drei weiteren Positiv-/Wiederherstellungsprüfungen bestehen
+jetzt alle 27 Vertragsfälle. Auch nachträglich entwertete Originale und später
+bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 
 ## Nächste Umsetzung
 

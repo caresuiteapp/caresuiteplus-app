@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {MonthlyProofWriteError,executeMonthlyProofCommand} from '../../src/lib/gkvExchange/monthlyProof.ts';
 import {readMonthlyClients,readMonthlyWorkspace,readMonthlySources,readMonthlyRequestStatus,monthlyDifferences} from '../../src/lib/gkvExchange/monthlyWorkspace.ts';
 import {MonthlyProofWriter} from '../../src/lib/gkvExchange/monthlyWriter.ts';
-import {tenant,client,month,fixture,finalProof,workspace,sources,orderedId,deferred} from './monthly-fixtures.mjs';
+import {tenant,client,month,fixture,finalProof,signedProof,workspace,sources,orderedId,deferred} from './monthly-fixtures.mjs';
 
 test('client pagination binds tenant, month, exact search and UUID cursor',()=>{
  const base={contract:'gkv-monthly-clients-v1',tenantId:tenant,month,search:'Test',after:null,nextCursor:orderedId(50),
@@ -91,4 +91,40 @@ test('definite database rejections release editing; unknown server results retai
   await assert.rejects(writer.submit(command),error=>error instanceof MonthlyProofWriteError&&error.uncertain===uncertain);
   assert.equal(!!writer.pending,uncertain);
  }
+});
+
+test('recovery retains the original request when the same ID carries a different patient, month or service type',async()=>{
+ for(const change of [p=>p.payload.clientId=randomUUID(),p=>p.payload.month='2026-09',p=>p.payload.serviceType='02',p=>p.version=2]){
+  const p=fixture(),other=structuredClone(p);change(other);
+  const writer=new MonthlyProofWriter({execute:async()=>{throw Error('timeout');},status:async()=>({state:'applied',proof:other})},randomUUID);
+  await assert.rejects(writer.submit(create(p)));const pending=structuredClone(writer.pending);
+  await assert.rejects(writer.check());assert.deepEqual(writer.pending,pending);assert.equal(writer.checkedNotFound,false);
+ }
+});
+
+test('correction recovery requires the requested predecessor and keeps later revisions valid',async()=>{
+ const p=fixture(),command={action:'correct',input:{id:randomUUID(),revision:4,new_id:p.id,reason:'Korrektur'}};
+ let current={...p,version:2,predecessor_id:randomUUID()};
+ const writer=new MonthlyProofWriter({execute:async()=>{throw Error('timeout');},status:async()=>({state:'applied',proof:current})},randomUUID);
+ await assert.rejects(writer.submit(command));await assert.rejects(writer.check());assert.ok(writer.pending);
+ current={...finalProof(current),predecessor_id:command.input.id,revision:3,status:'invalidated',invalidated_at:p.updated_at};
+ assert.equal((await writer.check()).proof.status,'invalidated');assert.equal(writer.pending,null);
+});
+
+test('confirmation recovery requires the exact receipt and immutable content, even after correction',async()=>{
+ const p=fixture(),receipt=randomUUID(),command={action:'confirm',input:{id:p.id,revision:2,content_sha256:p.content_sha256,receipt_id:receipt}};
+ const valid={...signedProof({...p,revision:2},receipt),status:'invalidated',invalidated_at:p.updated_at};
+ for(const change of [p=>p.content_sha256='b'.repeat(64),p=>p.confirmation.receiptId=randomUUID(),p=>p.confirmation.kind='missing_signature',p=>p.revision=2,p=>p.status='open']){
+  let current=structuredClone(valid);change(current);
+  const writer=new MonthlyProofWriter({execute:async()=>{throw Error('timeout');},status:async()=>({state:'applied',proof:current})},randomUUID);
+  await assert.rejects(writer.submit(command));await assert.rejects(writer.check());assert.ok(writer.pending);
+  current=valid;assert.equal((await writer.check()).proof.id,p.id);assert.equal(writer.pending,null);
+ }
+});
+
+test('an invalid immediate transport result leaves the same request available for read-only recovery',async()=>{
+ const p=fixture(),invalid=structuredClone(p);invalid.payload.clientId=randomUUID();let writes=0;
+ const writer=new MonthlyProofWriter({execute:async()=>{writes++;return invalid;},status:async()=>({state:'applied',proof:p})},randomUUID);
+ await assert.rejects(writer.submit(create(p)));const request=writer.pending.requestId;
+ assert.equal((await writer.check()).proof.id,p.id);assert.equal(writer.pending,null);assert.equal(writes,1);assert.ok(request);
 });

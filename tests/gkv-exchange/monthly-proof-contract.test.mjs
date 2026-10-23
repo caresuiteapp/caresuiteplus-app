@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {readMonthlyProof,executeMonthlyProofCommand} from '../../src/lib/gkvExchange/monthlyProof.ts';
+import {signedProof} from './monthly-fixtures.mjs';
 const tenant=randomUUID(),client=randomUUID(),employee=randomUUID(),user=randomUUID();
 function fixture(){return {id:randomUUID(),tenant_id:tenant,series_id:randomUUID(),version:1,revision:1,status:'open',predecessor_id:null,
  payload:{schema:'gkv-monthly-source-v1',tenantId:tenant,clientId:client,clientName:'Test Patient',month:'2026-10',serviceType:'01',records:[{
@@ -43,7 +44,7 @@ test('signature needs bound immutable original, hash, capture and representative
  }
 });
 test('invalidated originals stay invalidated when an idempotent request is replayed',async()=>{
- const p=fixture();p.status='invalidated';p.finalized_at=p.updated_at;p.invalidated_at=p.updated_at;p.replayed=true;
+ const p=fixture();p.status='invalidated';p.revision=2;p.finalized_at=p.updated_at;p.invalidated_at=p.updated_at;p.replayed=true;
  p.confirmation={kind:'missing_signature',contentSha256:p.content_sha256,recordedBy:user,reason:'Begründeter Ausnahmefall'};
  const command={action:'finalize_missing',input:{id:p.id,revision:1,content_sha256:p.content_sha256,reason:'Begründeter Ausnahmefall'}};
  const request=randomUUID();let calls=0;
@@ -65,4 +66,48 @@ test('create and correction responses must preserve requested patient, period an
  for(const change of [{client_id:randomUUID()},{month:'2026-09'},{service_type:'02'}])await assert.rejects(executeMonthlyProofCommand(async()=>({data:p,error:null}),tenant,{action:'create',input:{...base,...change}},randomUUID()));
  const changed=structuredClone(p);changed.version=2;changed.predecessor_id=randomUUID();
  await assert.rejects(executeMonthlyProofCommand(async()=>({data:changed,error:null}),tenant,{action:'correct',input:{id:randomUUID(),revision:1,new_id:p.id,reason:'Korrektur'}},randomUUID()));
+});
+
+test('a fresh source save must return precisely the requested records',async()=>{
+ const p=fixture(),input={new_id:p.id,client_id:client,month:p.payload.month,service_type:'01',source_ids:[p.payload.records[0].recordId]};
+ const other=structuredClone(p);other.payload.records[0].recordId=randomUUID();
+ await assert.rejects(executeMonthlyProofCommand(async()=>({data:other,error:null}),tenant,{action:'create',input},randomUUID()));
+ const replacement={...other,revision:2};
+ await assert.rejects(executeMonthlyProofCommand(async()=>({data:replacement,error:null}),tenant,
+  {action:'replace_sources',input:{id:p.id,revision:1,source_ids:input.source_ids,reason:'Quellstand abgleichen'}},randomUUID()));
+});
+
+test('finalization cannot acknowledge another content hash or confirmation kind',async()=>{
+ const p=fixture();p.status='final';p.revision=2;p.finalized_at=p.updated_at;
+ p.confirmation={kind:'missing_signature',contentSha256:p.content_sha256,recordedBy:user,reason:'Begründeter Ausnahmefall'};
+ const rpc=async()=>({data:p,error:null});
+ await assert.rejects(executeMonthlyProofCommand(rpc,tenant,{action:'confirm',input:{id:p.id,revision:1,content_sha256:p.content_sha256,receipt_id:randomUUID()}},randomUUID()));
+ await assert.rejects(executeMonthlyProofCommand(rpc,tenant,{action:'finalize_missing',input:{id:p.id,revision:1,content_sha256:'b'.repeat(64),reason:'Begründeter Ausnahmefall'}},randomUUID()));
+});
+
+test('a replay cannot acknowledge a revision older than the recorded mutation',async()=>{
+ const p={...fixture(),replayed:true};
+ await assert.rejects(executeMonthlyProofCommand(async()=>({data:p,error:null}),tenant,
+  {action:'replace_sources',input:{id:p.id,revision:2,source_ids:p.payload.records.map(r=>r.recordId),reason:'Quellstand abgleichen'}},randomUUID()));
+});
+
+test('source ordering and later source edits remain valid without weakening fresh-result binding',async()=>{
+ const p=fixture();p.payload.records.push({...structuredClone(p.payload.records[0]),recordId:randomUUID()});
+ const command={action:'create',input:{new_id:p.id,client_id:client,month:p.payload.month,service_type:'01',source_ids:p.payload.records.map(r=>r.recordId).toReversed()}};
+ assert.equal((await executeMonthlyProofCommand(async()=>({data:p,error:null}),tenant,command,randomUUID())).id,p.id);
+ const later=structuredClone(p);later.replayed=true;later.revision=4;later.payload.records[0].recordId=randomUUID();
+ assert.equal((await executeMonthlyProofCommand(async()=>({data:later,error:null}),tenant,command,randomUUID())).revision,4);
+ const update={action:'replace_sources',input:{id:p.id,revision:1,source_ids:command.input.source_ids,reason:'Quellstand abgleichen'}};
+ assert.equal((await executeMonthlyProofCommand(async()=>({data:{...p,revision:2},error:null}),tenant,update,randomUUID())).revision,2);
+ assert.equal((await executeMonthlyProofCommand(async()=>({data:later,error:null}),tenant,update,randomUUID())).revision,4);
+});
+
+test('signed confirmation checks its receipt for fresh and replayed responses and cannot stand in for a missing signature',async()=>{
+ const p=signedProof(fixture()),command={action:'confirm',input:{id:p.id,revision:1,content_sha256:p.content_sha256,receipt_id:p.confirmation.receiptId}};
+ for(const current of [p,{...p,revision:3,status:'invalidated',invalidated_at:p.updated_at,replayed:true}]){
+  const rpc=async()=>({data:current,error:null});
+  assert.equal((await executeMonthlyProofCommand(rpc,tenant,command,randomUUID())).status,current.status);
+  await assert.rejects(executeMonthlyProofCommand(rpc,tenant,{...command,input:{...command.input,receipt_id:randomUUID()}},randomUUID()));
+  await assert.rejects(executeMonthlyProofCommand(rpc,tenant,{action:'finalize_missing',input:{id:p.id,revision:1,content_sha256:p.content_sha256,reason:'Begründeter Ausnahmefall'}},randomUUID()));
+ }
 });

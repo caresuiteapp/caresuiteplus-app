@@ -11,6 +11,13 @@ export function fixture(){return {id:randomUUID(),tenant_id:tenant,series_id:ran
  created_by:user,created_at:'2026-10-03T12:00:00Z',updated_at:'2026-10-03T12:00:00Z'};}
 export function finalProof(p=fixture()) {return {...p,status:'final',revision:p.revision+1,finalized_at:p.updated_at,
  confirmation:{kind:'missing_signature',contentSha256:p.content_sha256,recordedBy:user,reason:'Dokumentierter Ausnahmefall'}};}
+export function signedProof(p=fixture(),receiptId=randomUUID()) {
+ const captureId=randomUUID(),path=`tenant/${p.tenant_id}/gkv/monthly/${p.id}/captures/${captureId}`;
+ return {...finalProof(p),confirmation:{kind:'signature',contentSha256:p.content_sha256,receiptId,captureId,
+  signerRole:'patient',signerName:'Test Patient',authorityReference:null,
+  originalPath:path+'/original.pdf',originalVersion:'v1',originalSha256:'b'.repeat(64),
+  signaturePath:path+'/signature.png',signatureVersion:'v1',signatureSha256:'c'.repeat(64),capturedAt:p.updated_at,verifiedAt:p.updated_at}};
+}
 export const workspace=p=>({tenantId:tenant,clientId:client,clientName:'Test Patient',month,canWrite:true,proofs:p?[{
  id:p.id,seriesId:p.series_id,serviceType:p.payload.serviceType,version:p.version,revision:p.revision,status:p.status,recordCount:p.payload.records.length,
  updatedAt:p.updated_at,confirmationKind:p.confirmation?.kind||null}]:[]});

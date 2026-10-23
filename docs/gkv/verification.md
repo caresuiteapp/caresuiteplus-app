@@ -2,6 +2,31 @@
 
 Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Bindung von Monatsnachweis-Antworten am 23.10.2026
+
+Der Arbeitsstand nach `3739a2d` schließt eine Annahmelücke bei Speicherantworten
+und rein lesender Auftragsklärung. Nachweis-ID, Klienten-/Monats-/Leistungsartbindung
+beim Anlegen, Korrekturvorgänger und Mindestrevision werden gemeinsam geprüft.
+Frische Quellenantworten müssen exakt die ausgewählten Quellkennungen enthalten.
+Bestätigungsart, Inhaltshash und bei Unterschriften der private Prüfbeleg müssen
+zum ursprünglichen Auftrag passen. Ungültige Antworten lassen den Auftrag offen;
+zulässige spätere Revisionen und entwertete Vorgänger bleiben wiederherstellbar.
+
+**56/56 Tests bestanden:** 27 Vertrags-/Wiederherstellungsfälle und 29
+Quellen-/Prüfexport-/Katalogregressionen. Sechs neue Negativfälle scheiterten
+zuvor mit „Missing expected rejection“ und bestehen nach der Korrektur.
+Zusätzlich besteht der strenge TypeScript-Check des Monatsnachweis-Fachkerns mit
+TypeScript 6.0.3. Monatskomponente und Office-Seite lassen sich mit esbuild 0.28.2
+bündeln, mit externem React und synthetischen API-/Auth-Grenzen. Die identischen
+Compilerversionen stammen aus vorhandenen lokalen Archiven; ihre SHA-512-Werte
+stimmen mit dem Projekt-Lockfile überein. Keine Paketdownloads oder Versionsänderungen.
+
+Das ist kein vollständiger App-Typcheck und kein ausgeführter React-/Layouttest.
+PGlite, happy-dom und die exakte React-Version sind weiterhin lokal nicht verfügbar.
+Die zwei fehlgeschlagenen und zwei ausstehenden Vercel-Statusmeldungen für
+`3739a2d` belegen keine aktuelle Buildfreigabe; die Ursache bleibt ohne Protokolle
+offen. SQL, Produktionskonfiguration und Echtversand wurden nicht verändert.
+
 ## Monatsnachweis-Webanbindung am 23.10.2026
 
 Neu implementiert sind Monats-/Klientenauswahl, Quellenabgleich, Fassungsvergleich,

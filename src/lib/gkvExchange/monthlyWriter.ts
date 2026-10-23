@@ -1,4 +1,4 @@
-import { MonthlyProofWriteError, type MonthlyProof, type MonthlyProofCommand } from './monthlyProof';
+import { assertMonthlyCommandResult, MonthlyProofWriteError, type MonthlyProof, type MonthlyProofCommand } from './monthlyProof';
 import { commandTarget, type MonthlyRequestStatus } from './monthlyWorkspace';
 
 type Pending = {command: MonthlyProofCommand; requestId: string};
@@ -27,6 +27,7 @@ export class MonthlyProofWriter {
     try {
       const proof = await this.transport.execute(pending.command, pending.requestId);
       if (proof.id !== commandTarget(pending.command)) throw new Error('Die Speicherantwort gehört nicht zu diesem Auftrag.');
+      assertMonthlyCommandResult(proof, pending.command, true);
       this.pending = null;
       return proof;
     } catch (error) {
@@ -41,6 +42,7 @@ export class MonthlyProofWriter {
       const status = await this.transport.status(pending.requestId);
       if (status.state === 'applied') {
         if (status.proof.id !== commandTarget(pending.command)) throw new Error('Die Auftragsantwort gehört nicht zu dieser Fassung.');
+        assertMonthlyCommandResult(status.proof, pending.command, true);
         this.pending = null; this.checkedNotFound = false;
       } else this.checkedNotFound = true;
       return status;
