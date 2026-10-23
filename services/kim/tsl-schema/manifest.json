@@ -1,0 +1,9 @@
+{
+  "source": "https://github.com/gematik/api-telematik/tree/31dd17b7dbe76ba6016318a2dfdd028e63598419/ext",
+  "profile": "ETSI TS 102 231 V3.1.2, gematik schema bundle",
+  "files": {
+    "tsl.xsd": "4bd188a5d7f09479e049e76b3e844a5a419359a1cdce3a4f0478813360778557",
+    "xml.xsd": "e4cf10548742c4e0f6611afd1327b0734890ee4cf94f08dfa0b48bc76f36b0c3",
+    "xmldsig-core-schema.xsd": "9469b3d1f535b1b0b75b3688b0e3734677c5ed4c4ab028bc08d06bc67976d08b"
+  }
+}

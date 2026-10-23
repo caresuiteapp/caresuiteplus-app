@@ -1,0 +1,949 @@
+{
+  "schemaVersion": 1,
+  "assessedAt": "2026-10-23",
+  "baselineCommit": "aa695d12407521b24e1c90d6c83819b3d6fdda8b",
+  "productionReady": false,
+  "scopeComplete": false,
+  "scopeGaps": [
+    "DTA-Feld-, Schlüssel- und Vertragsregeln sind noch nicht vollständig in Einzelanforderungen zerlegt.",
+    "Die 744 KIM-Verweise sind vollständig aus den drei fixierten Steckbriefen importiert; Einzelbewertung gegen deren Spezifikationsstände steht aus.",
+    "Antragskonstellation, §302-Leistungsbereiche und Zielversion müssen vor einer Einreichung bestätigt werden.",
+    "Reale Hardware-/TI-, Oberflächen-, Annahmestellen- und externe Zulassungsnachweise fehlen."
+  ],
+  "profiles": {
+    "icm": {
+      "track": "kim-client",
+      "defaultAssessment": "unassessed"
+    },
+    "fd": {
+      "track": "kim-service",
+      "defaultAssessment": "unassessed"
+    },
+    "provider": {
+      "track": "kim-service",
+      "defaultAssessment": "unassessed"
+    }
+  },
+  "specPackages": {
+    "gemKPT_Test": "kim-evt",
+    "gemSMIME_KOMLE": "kim-crypto",
+    "gemSpec_CM_KOMLE": "kim-message",
+    "gemSpec_FD_KOMLE": "fd-services",
+    "gemSpec_Krypt": "kim-crypto",
+    "gemSpec_Net": "kim-network",
+    "gemSpec_OM": "kim-management",
+    "gemSpec_Perf": "performance",
+    "gemSpec_PKI": "kim-trust",
+    "gemSpec_TSL": "kim-trust",
+    "gemRL_TSL_SP_CP": "kim-trust",
+    "gemSpec_VZD": "kim-directory",
+    "gemSpec_VZD_FHIR_Directory": "kim-directory",
+    "gemSpec_DS_Hersteller": "security",
+    "gemSpec_DS_Anbieter": "security",
+    "gemSpec_SST_LD_BD": "provider-ops",
+    "gemKPT_Betr": "provider-ops",
+    "gemRL_Betr_TI": "provider-ops"
+  },
+  "packages": [
+    {
+      "id": "scope",
+      "tracks": [
+        "itsg",
+        "dta",
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 0,
+      "title": "Prüfumfang und Zielversionen festlegen",
+      "owner": "Geschäftsführung / Entwicklung",
+      "sources": [
+        "itsg-process",
+        "kim-product-procedure",
+        "kim-provider-procedure",
+        "pfl-ta1-next",
+        "sgbv-ta1-next"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Produktnamen, Versionen, §302-Leistungsbereiche und KIM-Antragskonstellation schriftlich festlegen.",
+      "acceptance": "Eine genehmigte Umfangsentscheidung trennt Pflege, §302, integrierten Client und Anbieterbetrieb.",
+      "dependsOn": [],
+      "evidence": []
+    },
+    {
+      "id": "proof-capture",
+      "tracks": [
+        "itsg"
+      ],
+      "priority": 1,
+      "title": "Erfassung und personenbezogene Zuordnung",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "itsg-catalog"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/features/assistWorkflow/signatureMatchesVisitContent.ts",
+        "src/features/assistWorkflow/readFinalWorkflowProofConfirmation.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/sources.test.mjs"
+      ],
+      "nextStep": "Bestehende Einsatzbindung gegen Monatsnachweise je Leistungsart abgleichen; Beschäftigtennummer und Mehrpersonenleistung bis ins finale XML verfolgen.",
+      "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "proof-confirmation",
+      "tracks": [
+        "itsg"
+      ],
+      "priority": 1,
+      "title": "Bestätigung und endgültiger Monatsnachweis",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "itsg-catalog"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/features/assistWorkflow/finalizeVisitWithDeferredClientSignature.ts",
+        "src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/sources.test.mjs"
+      ],
+      "nextStep": "Monat, Leistungsart, Originalansicht und genau zugehörige Bestätigung dauerhaft verbinden; vorhandene Einsatzunterschrift nicht pauschal als Monatsbestätigung übernehmen.",
+      "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
+      "dependsOn": [
+        "proof-capture"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "proof-correction",
+      "tracks": [
+        "itsg"
+      ],
+      "priority": 1,
+      "title": "Korrektur und Archivierung",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "itsg-catalog"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/features/assistWorkflow/signatureMatchesVisitContent.ts",
+        "src/lib/gkvExchange/sources.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/sources.test.mjs"
+      ],
+      "nextStep": "Fachliche Nachweiskorrektur mit neuer Bestätigung und archivierter Vorgängerversion durchgängig verbinden.",
+      "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
+      "dependsOn": [
+        "proof-confirmation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "proof-xml",
+      "tracks": [
+        "itsg",
+        "dta"
+      ],
+      "priority": 1,
+      "title": "Pflege-XML und Signaturen je Bestandteil",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "pfl-ta1-current",
+        "pfl-xsd-current",
+        "pfl-ti-next",
+        "pfl-xsd-next",
+        "itsg-process"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "api/_lib/gkv-transport.ts",
+        "src/lib/gkvExchange/lifecycle.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/transport.test.mjs"
+      ],
+      "nextStep": "Echten XML-Generator sowie XSD-, Signatur- und Beziehungsprüfer implementieren; bisherige Adapterverträge ersetzen keinen Prüfer.",
+      "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",
+      "dependsOn": [
+        "proof-confirmation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "proof-usability",
+      "tracks": [
+        "itsg"
+      ],
+      "priority": 2,
+      "title": "Mobile Vorführung und Lesbarkeit",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "itsg-catalog"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/lib/assist/visitProofPreviewService.ts"
+      ],
+      "tests": [],
+      "nextStep": "Lesbarkeit und Signierablauf mit echten schmalen und breiten Darstellungen prüfen und dokumentieren.",
+      "acceptance": "ITSG-Fall 5.1 anhand tatsächlicher Darstellung und Bedienung belegen.",
+      "dependsOn": [
+        "proof-confirmation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "dta105",
+      "tracks": [
+        "dta"
+      ],
+      "priority": 1,
+      "title": "§105-Dateien, Verträge und Versionswechsel",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "pfl-ta1-current",
+        "pfl-ta1-next",
+        "pfl-keys-current",
+        "pfl-keys-next",
+        "pfl-auf"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/lib/gkvExchange/edifact.ts",
+        "src/lib/gkvExchange/pricing.ts",
+        "src/lib/gkvExchange/care.ts",
+        "src/lib/gkvExchange/special.ts",
+        "src/lib/gkvExchange/adjustments.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/core.test.mjs",
+        "tests/gkv-exchange/care.test.mjs",
+        "tests/gkv-exchange/special.test.mjs",
+        "tests/gkv-exchange/adjustments.test.mjs"
+      ],
+      "nextStep": "Feld- und Vertragsmatrix aus TA1/TA3 vollständig zuordnen; offene Zuschlags-, stationäre und Sammelabrechnungsfälle umsetzen.",
+      "acceptance": "Bytegenaue unabhängige Testvektoren und Versionsgrenzen; jede ausgeschlossene Variante bleibt ausdrücklich gesperrt.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "dta302",
+      "tracks": [
+        "dta"
+      ],
+      "priority": 1,
+      "title": "§302-Fachmodell und Abrechnungsformate",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "sgbv-ta1-current",
+        "sgbv-ta1-next",
+        "sgbv-keys-current",
+        "sgbv-keys-next",
+        "sgbv-originals",
+        "hkp-ta",
+        "hkp-xsd",
+        "sgbv-elb"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "§302-Segmente, Schlüssel, Verordnungen, Genehmigungen, Originalnachweise und Korrekturen für die vereinbarten Leistungsbereiche entwickeln.",
+      "acceptance": "Eigenständige §302-Prüfdateien mit positiven und negativen Fremdtestfällen; kein Verweis auf §105 als Ersatz.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "release",
+      "tracks": [
+        "dta"
+      ],
+      "priority": 1,
+      "title": "Verbindliche Übergabe der Rechnungen an den Versand",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "pfl-ta1-current",
+        "pfl-transport-current",
+        "sgbv-transport"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "api/_lib/gkv-transport.ts",
+        "src/lib/gkvExchange/lifecycle.ts",
+        "src/lib/gkvExchange/sources.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/transport.test.mjs",
+        "tests/gkv-exchange/sources.test.mjs"
+      ],
+      "nextStep": "Kanonische Rechnungsreservierung, Revisionen, aktuelle Empfänger und Inhaltsprüfungen bis zum dauerhaften Worker verbinden.",
+      "acceptance": "Parallele Freigabe, nachträgliche Quellenänderung und verlorene Versandantwort führen zu keiner Doppelübermittlung.",
+      "dependsOn": [
+        "dta105"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "dta-transport",
+      "tracks": [
+        "dta"
+      ],
+      "priority": 2,
+      "title": "Klassischer Transport und Rückmeldungen",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "pfl-transport-current",
+        "pfl-transport-next",
+        "pfl-kotr-current",
+        "pfl-kotr-next",
+        "pfl-errors",
+        "sgbv-transport",
+        "sgbv-kotr-current",
+        "sgbv-kotr-next"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/gkv/secon.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/own-service.test.mjs",
+        "tests/gkv-exchange/receipt-service.test.mjs"
+      ],
+      "nextStep": "Zertifikats-/Verzeichnisbetrieb, Herkunftsprüfung und fachliche Rückmeldungsverarbeitung im Host anschließen.",
+      "acceptance": "Wiederanlauf und unbekannte Ausgänge mit Originalquittungen nachweisen; Zustellung, Annahme und Zahlung bleiben unterscheidbar.",
+      "dependsOn": [
+        "release"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-message",
+      "tracks": [
+        "kim-client"
+      ],
+      "priority": 1,
+      "title": "Vollständiger KIM-Nachrichtenablauf",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/cms-codec.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/kim-client-message.test.mjs",
+        "tests/gkv-exchange/kim-receive-error.test.mjs"
+      ],
+      "nextStep": "Alle referenzierten Clientanforderungen einzeln zuordnen; normale Sende- und Empfangszustellung, Header, MIME, Fehler und große Anhänge integrieren.",
+      "acceptance": "Jede referenzierte Anforderung bekommt passende positive und negative Tests der tatsächlichen Nachrichtenbytes.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-crypto",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 1,
+      "title": "Kryptografische Profile und fachliche Signaturen",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/cms-codec.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/kim-ecc.test.mjs",
+        "tests/gkv-exchange/connector-cms.test.mjs"
+      ],
+      "nextStep": "Vorgeschriebene Krypto-/S/MIME-Profile und Übergangsbedingungen der festgelegten Version mit dem begrenzten ECC-Kern abgleichen.",
+      "acceptance": "Unabhängige Parser, Testvektoren und Kartenoperationen bestätigen jede unterstützte Kombination.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-trust",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 1,
+      "title": "Zertifikate, Vertrauensanker und Sperrstatus",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd",
+        "provider"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/receive-vzd.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/tsl.test.mjs",
+        "tests/gkv-exchange/tsl-refresh.test.mjs",
+        "tests/gkv-exchange/certificate-policy.test.mjs"
+      ],
+      "nextStep": "Authentisierte Ankerbereitstellung, vollständige Profile, aktuelle Statusdaten und Rotation auf dem späteren Host belegen.",
+      "acceptance": "Ungültige Identität, Rolle, Sperre, veraltete Liste und abgebrochener Statusabruf bleiben bis zur Klärung gesperrt.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-directory",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 1,
+      "title": "Verzeichnis und Adressbindung",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/vzd-bindings.mjs",
+        "services/kim/receive-vzd.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/vzd.test.mjs",
+        "tests/gkv-exchange/vzd-certificate.test.mjs"
+      ],
+      "nextStep": "Ausgehende Identitätsbindung und vorgesehene LDAP-/FHIR-Varianten verbinden; gleiche Anforderungs-ID in unterschiedlichen Quellen getrennt prüfen.",
+      "acceptance": "Abweichende Adresse, Identität oder Zertifikatssituation wird vor Nachrichtenfreigabe erkannt.",
+      "dependsOn": [
+        "kim-trust"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-hardware",
+      "tracks": [
+        "kim-client"
+      ],
+      "priority": 1,
+      "title": "Karte, Konnektor und Host im echten Durchlauf",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/lib/gkvExchange/kimReceiveWorkspace.ts",
+        "src/lib/gkvExchange/kimHostClient.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/connector-cms.test.mjs",
+        "tests/gkv-exchange/connector-verify.test.mjs",
+        "tests/gkv-exchange/kim-host.test.mjs",
+        "tests/gkv-exchange/kim-receive-workspace.test.mjs"
+      ],
+      "nextStep": "Realen Karten-/TI-Aufbau anbinden, vollständige Bedienung prüfen und Messprotokolle mit Produkt-/Firmwareversionen sichern.",
+      "acceptance": "Signieren, Entschlüsseln, Sperrstatus, Abbruch und Wiederaufnahme mit realen Karten einschließlich unabhängiger Gegenstelle nachweisen.",
+      "dependsOn": [
+        "kim-crypto",
+        "kim-trust"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-management",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 2,
+      "title": "Installation, Konfiguration und Updates",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "src/lib/gkvExchange/kimHostContract.ts"
+      ],
+      "tests": [
+        "tests/gkv-exchange/kim-host.test.mjs"
+      ],
+      "nextStep": "Dauerhafte Hostbereitstellung, sichere Konfiguration, Kontobindung, Update und Rücknahme als unterstützte Betriebsabläufe fertigstellen.",
+      "acceptance": "Neue und aktualisierte Installation sowie Wiederanlauf mit tatsächlich provisionierten Zugängen prüfen.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-network",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 2,
+      "title": "TI-Netz und externe Gegenstellen",
+      "owner": "Betrieb / Entwicklung",
+      "sources": [
+        "icm",
+        "fd",
+        "provider"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Netzanschluss, TLS-Profile, DNS, Komponenten-PKI und externe Erreichbarkeit im vorgesehenen Betriebsmodell nachweisen.",
+      "acceptance": "Verbindung zu unabhängigen Gegenstellen einschließlich Fehler- und Ausfallszenarien dokumentieren.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "fd-services",
+      "tracks": [
+        "kim-service"
+      ],
+      "priority": 1,
+      "title": "Teilnehmerverwaltung, Fachdienstverkehr und KAS",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "fd",
+        "provider"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/smtp-server.mjs",
+        "services/kim/dsn.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/kim-smtp.test.mjs",
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "nextStep": "AccountManager, Verzeichnisverwaltung, Relay zwischen Fachdiensten und verschlüsselte große Anhänge vollständig implementieren.",
+      "acceptance": "Registrierung bis Abmeldung, externe Zustellung und KAS-Übertragung mit unabhängigen Gegenstellen durchlaufen.",
+      "dependsOn": [
+        "scope",
+        "kim-network"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "security",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 2,
+      "title": "Sicherheits- und Datenschutzunterlagen",
+      "owner": "Entwicklung / Informationssicherheit",
+      "sources": [
+        "icm",
+        "fd",
+        "provider",
+        "kim-provider-procedure"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Anforderungen je Produkt und Betrieb zuordnen; Architektur, Bedrohungen, Rollen, Schlüssel, Löschung und Entwicklungsprozesse dokumentieren.",
+      "acceptance": "Erforderliche Hersteller-/Anbietererklärungen und begutachtungsfähige Unterlagen mit festem Versionsbezug vorlegen.",
+      "dependsOn": [
+        "scope"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "performance",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 2,
+      "title": "Last, Grenzen und Wiederherstellung",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd",
+        "provider"
+      ],
+      "implementation": "partial",
+      "verification": "open",
+      "code": [
+        "services/kim/smtp-server.mjs"
+      ],
+      "tests": [
+        "tests/gkv-exchange/kim-service.test.mjs",
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "nextStep": "Geforderte Last- und Betriebswerte auf den vorgesehenen Komponenten messen; lokale Größenprüfungen gesondert behandeln.",
+      "acceptance": "Reproduzierbare Messungen einschließlich Ressourcenknappheit, Ausfall und Wiederherstellung auf Zielumgebung.",
+      "dependsOn": [
+        "fd-services"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "provider-ops",
+      "tracks": [
+        "kim-service"
+      ],
+      "priority": 2,
+      "title": "Betriebshandbuch und Anbieterprozesse",
+      "owner": "Betrieb / Geschäftsführung",
+      "sources": [
+        "provider",
+        "kim-provider-procedure"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Eigenbetrieb mit Kontovergabe als Arbeitsannahme festlegen; Monitoring, Support, Incident-/Change-Prozesse, Backups und Schlüsselrotation nachweisen.",
+      "acceptance": "Betriebshandbuch und Prozessnachweise decken sämtliche anwendbaren Anbieteranforderungen ab.",
+      "dependsOn": [
+        "scope",
+        "security"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-evt",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 3,
+      "title": "Eigenverantwortliche gematik-Tests",
+      "owner": "CareSuite-Entwicklung",
+      "sources": [
+        "icm",
+        "fd",
+        "kim-product-procedure"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Testfälle aus den fixierten Steckbriefen vollständig zuordnen, PKI-Testsuite und Produkt-/Interoperabilitätstests durchführen.",
+      "acceptance": "Unterschriebener EVT-Bericht mit nachvollziehbaren Ergebnissen für jede anwendbare Anforderung.",
+      "dependsOn": [
+        "kim-message",
+        "fd-services",
+        "kim-hardware",
+        "performance"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "itsg-submission",
+      "tracks": [
+        "itsg"
+      ],
+      "priority": 3,
+      "title": "ITSG-Anmeldung und Prüfung",
+      "owner": "Geschäftsführung / ITSG",
+      "sources": [
+        "itsg-process",
+        "itsg-catalog",
+        "itsg-renewal"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Unternehmensdaten, Betriebsnummer, eindeutige Prüfversion und Vorführprotokoll zusammenstellen; Prüfung beauftragen.",
+      "acceptance": "ITSG-Prüfbestätigung mit tatsächlicher PROD-/MOD-ID und Gültigkeit dokumentiert.",
+      "dependsOn": [
+        "proof-capture",
+        "proof-confirmation",
+        "proof-correction",
+        "proof-xml",
+        "proof-usability"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "payer-tests",
+      "tracks": [
+        "dta"
+      ],
+      "priority": 3,
+      "title": "Annahmestellenprüfungen",
+      "owner": "Entwicklung / Annahmestellen",
+      "sources": [
+        "pfl-tests",
+        "sgbv-tests",
+        "pfl-ti-next",
+        "hkp-ta"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Testpartner, IK, Leistungsbereiche, Formatstände, Verbindungstests und Testkennzeichnung abstimmen.",
+      "acceptance": "Originale Testsendungen und zugehörige bestätigte Prüfergebnisse liegen je vereinbartem Verfahren vor.",
+      "dependsOn": [
+        "dta105",
+        "dta302",
+        "dta-transport",
+        "proof-xml"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "kim-approval",
+      "tracks": [
+        "kim-client",
+        "kim-service"
+      ],
+      "priority": 4,
+      "title": "Produktzulassung, Anbieterzulassung und KIB",
+      "owner": "Geschäftsführung / gematik / Gutachter",
+      "sources": [
+        "kim-product-procedure",
+        "kim-provider-procedure"
+      ],
+      "implementation": "open",
+      "verification": "open",
+      "code": [],
+      "tests": [],
+      "nextStep": "Antragsumfang und Produktausgaben abstimmen; erforderliches Sicherheitsgutachten bestätigen lassen, Anträge und KIB-Unterlagen bearbeiten.",
+      "acceptance": "Gültige externe Bescheide und die für den Betriebsumfang erforderlichen KIB-Nachweise dokumentieren.",
+      "dependsOn": [
+        "kim-evt",
+        "security",
+        "provider-ops"
+      ],
+      "evidence": []
+    }
+  ],
+  "itsgCases": [
+    {
+      "id": "ITSG-3.1",
+      "sourceId": "itsg-catalog",
+      "section": "3.1",
+      "title": "Personalisierter Zugriff",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.2",
+      "sourceId": "itsg-catalog",
+      "section": "3.2",
+      "title": "Leistung und Pflegekraft verbinden",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.3",
+      "sourceId": "itsg-catalog",
+      "section": "3.3",
+      "title": "Mehrere Leistungsarten erfassen",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.4",
+      "sourceId": "itsg-catalog",
+      "section": "3.4",
+      "title": "Gemeinsam erbrachte Leistung",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.5",
+      "sourceId": "itsg-catalog",
+      "section": "3.5",
+      "title": "PDL-Änderung nachvollziehen",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.6",
+      "sourceId": "itsg-catalog",
+      "section": "3.6",
+      "title": "Nachweis verbindlich bestätigen",
+      "packageId": "proof-confirmation",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.7",
+      "sourceId": "itsg-catalog",
+      "section": "3.7",
+      "title": "Bestätigung je Leistungsart",
+      "packageId": "proof-confirmation",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.8",
+      "sourceId": "itsg-catalog",
+      "section": "3.8",
+      "title": "Vertretungsbestätigung",
+      "packageId": "proof-confirmation",
+      "status": "not_executed",
+      "applicability": "requires_review",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.9",
+      "sourceId": "itsg-catalog",
+      "section": "3.9",
+      "title": "Papierbestätigung zuordnen",
+      "packageId": "proof-confirmation",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.10",
+      "sourceId": "itsg-catalog",
+      "section": "3.10",
+      "title": "Unterschriftsausnahme begründen",
+      "packageId": "proof-confirmation",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-3.11",
+      "sourceId": "itsg-catalog",
+      "section": "3.11",
+      "title": "Neue Fassung nach Korrektur",
+      "packageId": "proof-correction",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-4.1",
+      "sourceId": "itsg-catalog",
+      "section": "4.1",
+      "title": "Unbefugte Erfassung verweigern",
+      "packageId": "proof-capture",
+      "status": "not_executed",
+      "applicability": "requires_review",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-4.2",
+      "sourceId": "itsg-catalog",
+      "section": "4.2",
+      "title": "Finale Fassung schützen",
+      "packageId": "proof-correction",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    },
+    {
+      "id": "ITSG-5.1",
+      "sourceId": "itsg-catalog",
+      "section": "5.1",
+      "title": "Lesbarkeit am Mobilgerät",
+      "packageId": "proof-usability",
+      "status": "not_executed",
+      "applicability": "required",
+      "evidence": []
+    }
+  ],
+  "requirementAssessments": [],
+  "legacyEvidence": {
+    "path": "docs/gkv/kim-fd-requirements.json",
+    "specVersion": "1.24.0",
+    "use": "candidate_only_requires_version_review",
+    "partialIds": [
+      "A_21383",
+      "A_24022-02",
+      "KOM-LE-A_2131-01",
+      "A_21777",
+      "A_25296",
+      "A_21455-01",
+      "A_21456-01",
+      "A_21816",
+      "A_22415",
+      "A_23421",
+      "A_23422-01",
+      "A_28584",
+      "KOM-LE-A_2147-02",
+      "A_20771-03",
+      "KOM-LE-A_2148-01",
+      "KOM-LE-A_2149",
+      "KOM-LE-A_2150",
+      "A_28585-01",
+      "A_19378-02",
+      "A_19379-01",
+      "A_19380-04",
+      "A_22410-01",
+      "A_24002-01",
+      "A_19385-03",
+      "KOM-LE-A_2164",
+      "KOM-LE-A_2165",
+      "KOM-LE-A_2166",
+      "KOM-LE-A_2167-05"
+    ]
+  },
+  "evidencePolicy": {
+    "codeReferenceIsAcceptance": false,
+    "localTestsAreHardwareProof": false,
+    "localTestsAreApproval": false,
+    "optionalRequiresDecision": true
+  }
+}

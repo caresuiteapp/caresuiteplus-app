@@ -1,0 +1,548 @@
+{
+  "source": "https://gemspec.gematik.de/docs/gemSpec/gemSpec_FD_KOMLE/gemSpec_FD_KOMLE_V1.24.0/",
+  "documentVersion": "1.24.0",
+  "documentDate": "2026-05-04",
+  "reviewedAt": "2026-10-20",
+  "evidenceUpdatedAt": "2026-10-21",
+  "scope": "Nur normative IDs dieser Fachdienst-Spezifikation; kein vollständiger Produktsteckbrief und keine Zulassungsbewertung.",
+  "sourceHtmlSha256": "91b4b98fe80a8f1393fc180d73b34b9a13f1202c49efcd7fb855de9e52df4c3a",
+  "requirements": [
+    {
+      "id": "A_21383",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "LOGIN/PLAIN am lokalen mTLS-Listener belegt; produktive TI-Authentisierung und unabhängige Prüfung fehlen."
+    },
+    {
+      "id": "KOM-LE-A_2185-01",
+      "status": "open"
+    },
+    {
+      "id": "A_24022-02",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Angekündigte und tatsächliche 21-MiB-Grenze lokal belegt; fdgerr_5 und unabhängige Konformität fehlen."
+    },
+    {
+      "id": "KOM-LE-A_2131-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale Nichtzustellung wird per DSN gemeldet; Weiterleitung/DNS und andere Fachdienste fehlen."
+    },
+    {
+      "id": "A_21777",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale DSNs enthalten keine ursprünglichen Nutzdaten; vollständige Fehler-/MIME-Profile und FD-zu-FD-Versand fehlen."
+    },
+    {
+      "id": "KOM-LE-A_2223-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2278-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2224-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2277",
+      "status": "open"
+    },
+    {
+      "id": "A_25296",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "8BITMIME angeboten und begrenzt angenommen; serverübergreifender Versand und unabhängige Konformität fehlen."
+    },
+    {
+      "id": "A_20978-01",
+      "status": "open"
+    },
+    {
+      "id": "A_21455-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Neuprovisionierung und case-insensitive Zuordnung belegt; öffentliche Registrierung/VZD, vollständige Altadresskompatibilität und Zulassung fehlen."
+    },
+    {
+      "id": "A_21456-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Domainalphabet/Länge und case-insensitive Zuordnung belegt; produktive Domainverwaltung/TI-Anbindung fehlen."
+    },
+    {
+      "id": "A_21816",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Fremde Domains werden abgewiesen; eigener lokaler Dienst ist noch kein vollständiger FD-zu-FD-Relay."
+    },
+    {
+      "id": "A_22415",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_23421",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "SMTP-AUTH/MAIL-FROM-Bindung lokal belegt; TI-Betrieb und unabhängige Abnahme fehlen."
+    },
+    {
+      "id": "A_23422-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Originator-Teilmenge, Self-Send-Ausnahme und echte AUT-Signaturen gegen gepinnte Test-Aussteller belegt. Separater TSL-Kern mit Signatur/XSD/Service-Status sowie periodischer Beschaffung mit Hash-/AIA-Prüfung gegen konfigurierte Anker vorhanden; FD-Anschluss, authentisierte TI-Ankerbereitstellung, produktiver TSL-/Statusanschluss, volle TI-PKI und konfigurative Regeln/Monitoring fehlen."
+    },
+    {
+      "id": "KOM-LE-A_2133",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2304",
+      "status": "open"
+    },
+    {
+      "id": "A_19591-02",
+      "status": "open"
+    },
+    {
+      "id": "A_21384",
+      "status": "open"
+    },
+    {
+      "id": "A_21385-01",
+      "status": "open"
+    },
+    {
+      "id": "A_21376-01",
+      "status": "open"
+    },
+    {
+      "id": "A_26506",
+      "status": "open"
+    },
+    {
+      "id": "A_19524-04",
+      "status": "open"
+    },
+    {
+      "id": "A_19533",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2134",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2135-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2136",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2137",
+      "status": "open"
+    },
+    {
+      "id": "A_21389",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2138",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2139-07",
+      "status": "open"
+    },
+    {
+      "id": "A_17240-02",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2140",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2141",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2226-02",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2186",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2143",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2144-03",
+      "status": "open"
+    },
+    {
+      "id": "A_28326",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2145",
+      "status": "open"
+    },
+    {
+      "id": "A_28584",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "ESMTP-Begrüßung, SIZE, AUTH LOGIN/PLAIN, 8BITMIME, ENHANCEDSTATUSCODES und DSN lokal belegt; TI-Interoperabilität fehlt."
+    },
+    {
+      "id": "KOM-LE-A_2147-02",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Lokale DSN mit Arrival-Date/In-Reply-To und Empfängerblöcken belegt; Weiterleitung an andere Fachdienste fehlt."
+    },
+    {
+      "id": "A_20771-03",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs",
+        "tests/gkv-exchange/kim-ecc.test.mjs"
+      ],
+      "remaining": "fdgerr_1/2/3/4, einzelne Plaintext-fdgerr_6 und äußere TI-ECIES-Struktur lokal belegt; fdgerr_5, weitere CMS-/MIME-Profile und unabhängige Interoperabilität fehlen."
+    },
+    {
+      "id": "KOM-LE-A_2148-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "PLAIN mit abgeleiteter Authorization-ID und Abweisung fremder IDs belegt; unabhängige TI-Abnahme fehlt."
+    },
+    {
+      "id": "KOM-LE-A_2149",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Deaktivierter lokaler Empfänger erzeugt Fehlermeldung statt Originalzustellung; FD-zu-FD-Pfad fehlt."
+    },
+    {
+      "id": "KOM-LE-A_2150",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "Deaktivierung verhindert SMTP-Authentisierung und Commit bestehender Sitzungen; vollständige Deregistrierung/VZD fehlt."
+    },
+    {
+      "id": "A_28585-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-smtp.test.mjs"
+      ],
+      "remaining": "CAPA TOP/USER/UIDL und echte TOP-Verarbeitung lokal belegt; unabhängige TI-Interoperabilität fehlt."
+    },
+    {
+      "id": "KOM-LE-A_2152",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2154-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2155-01",
+      "status": "open"
+    },
+    {
+      "id": "A_19375-07",
+      "status": "open"
+    },
+    {
+      "id": "A_19377",
+      "status": "open"
+    },
+    {
+      "id": "A_21386-02",
+      "status": "open"
+    },
+    {
+      "id": "A_19378-02",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_19379-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_19380-04",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_19383",
+      "status": "open"
+    },
+    {
+      "id": "A_22410-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_22411-01",
+      "status": "open"
+    },
+    {
+      "id": "A_22418",
+      "status": "open"
+    },
+    {
+      "id": "A_24002-01",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_19384",
+      "status": "open"
+    },
+    {
+      "id": "A_19385-03",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "A_20063-07",
+      "status": "open"
+    },
+    {
+      "id": "A_20064-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2187-07",
+      "status": "open"
+    },
+    {
+      "id": "A_28147",
+      "status": "open"
+    },
+    {
+      "id": "A_23732",
+      "status": "open"
+    },
+    {
+      "id": "A_23733",
+      "status": "open"
+    },
+    {
+      "id": "A_23175",
+      "status": "open"
+    },
+    {
+      "id": "A_20772",
+      "status": "open"
+    },
+    {
+      "id": "A_20209",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2305",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2158",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2159-01",
+      "status": "open"
+    },
+    {
+      "id": "A_20212",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2160",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2189",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2161",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2162",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2163-01",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2164",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "KOM-LE-A_2165",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "KOM-LE-A_2166",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "KOM-LE-A_2302-03",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2167-05",
+      "status": "partial_local_evidence",
+      "evidence": [
+        "tests/gkv-exchange/kim-service.test.mjs"
+      ],
+      "remaining": "TI-Authentisierung, Protokollintegration und unabhängige Konformitätsprüfung offen."
+    },
+    {
+      "id": "KOM-LE-A_2168-01",
+      "status": "open"
+    },
+    {
+      "id": "A_27579",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2169",
+      "status": "open"
+    },
+    {
+      "id": "A_18784-04",
+      "status": "open"
+    },
+    {
+      "id": "A_19542-02",
+      "status": "open"
+    },
+    {
+      "id": "A_21377",
+      "status": "open"
+    },
+    {
+      "id": "A_21378",
+      "status": "open"
+    },
+    {
+      "id": "A_21379",
+      "status": "open"
+    },
+    {
+      "id": "A_21531",
+      "status": "open"
+    },
+    {
+      "id": "A_24038-01",
+      "status": "open"
+    },
+    {
+      "id": "A_22413-03",
+      "status": "open"
+    },
+    {
+      "id": "A_22420-01",
+      "status": "open"
+    },
+    {
+      "id": "A_22414",
+      "status": "open"
+    },
+    {
+      "id": "A_23753-01",
+      "status": "open"
+    },
+    {
+      "id": "A_23754",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2231-01",
+      "status": "open"
+    },
+    {
+      "id": "A_20189-02",
+      "status": "open"
+    },
+    {
+      "id": "KOM-LE-A_2171",
+      "status": "open"
+    }
+  ]
+}
