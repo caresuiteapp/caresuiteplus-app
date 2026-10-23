@@ -17,10 +17,14 @@ export function QmHandbookScreen() {
   const query = useQmTenantQuery((tenant, role) => fetchQmChapters(tenant, role));
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const chapters = query.data ?? [];
+  const chapters = useMemo(() => query.data ?? [], [query.data]);
+  const chapterPaths = useMemo(() => {
+    const index = new Map(chapters.map(chapter => [chapter.id, chapter]));
+    return new Map(chapters.map(chapter => [chapter.id, qmChapterParentPath(chapter, chapters, index)]));
+  }, [chapters]);
   const visible = useMemo(() => [...chapters].filter(chapter => (!status || chapter.status === status)
-    && qmMatchesSearch(`${chapter.title} ${chapter.content} ${qmChapterParentPath(chapter, chapters)}`, search))
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, 'de-DE')), [chapters, search, status]);
+    && qmMatchesSearch(`${chapter.title} ${chapter.content} ${chapterPaths.get(chapter.id) ?? ''}`, search))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, 'de-DE')), [chapters, chapterPaths, search, status]);
   const busy = query.loading || query.refreshing || handbook.loading || handbook.refreshing;
   const refresh = async () => { await Promise.all([query.refresh(), handbook.refresh()]); };
   const templates = <button className="qm-button" type="button" onClick={() => router.push('/business/office/qm/templates' as never)}>QM-Vorlagen öffnen <CatalogIcon kind="arrow"/></button>;
@@ -34,7 +38,7 @@ export function QmHandbookScreen() {
       <section className="qm-panel" aria-label="Kapitelübersicht">
         <div className="qmd-toolbar"><label className="qmd-field qmd-field--search">Kapitel durchsuchen<input className="qmd-input" type="search" placeholder="Titel, Inhalt oder übergeordnetes Kapitel" value={search} onChange={event => setSearch(event.target.value)}/></label><label className="qmd-field">Status<select className="qmd-input" value={status} onChange={event => setStatus(event.target.value)}><option value="">Alle Status</option>{Object.entries(QM_DOCUMENT_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
         <div className="qmd-result"><span role="status">{visible.length} von {chapters.length} geladenen Kapiteln</span>{search || status ? <button type="button" className="qm-button" onClick={() => { setSearch(''); setStatus(''); }}>Filter zurücksetzen</button> : templates}</div>
-        {visible.length ? <ul className="qmd-list">{visible.map(chapter => <li key={chapter.id}><button type="button" className="qmd-row" onClick={() => router.push(`/business/office/qm/handbook/${encodeURIComponent(chapter.id)}` as never)}><span className="qmd-mark" aria-hidden="true"><CatalogIcon kind="book"/></span><span className="qmd-row-body"><strong>{chapter.title}</strong><small>{qmChapterParentPath(chapter, chapters) || 'Hauptkapitel'} · Version {chapter.version} · Geändert {qmDisplayDate(chapter.updatedAt)}</small></span><QmDocumentBadge status={chapter.status}/><span className="qmd-arrow" aria-hidden="true"><CatalogIcon kind="arrow"/></span></button></li>)}</ul> : <QmDocumentState title={chapters.length ? 'Keine passenden Kapitel' : 'Noch keine Kapitel gespeichert'} message={chapters.length ? 'Ändern Sie die Suchbegriffe oder den Statusfilter.' : 'Im QM-Handbuch sind noch keine Kapitel hinterlegt. Im Vorlagenbereich finden Sie vorhandene Vorlagen für Prozesse und Arbeitsanweisungen.'}>{!chapters.length ? templates : null}</QmDocumentState>}
+        {visible.length ? <ul className="qmd-list">{visible.map(chapter => <li key={chapter.id}><button type="button" className="qmd-row" onClick={() => router.push(`/business/office/qm/handbook/${encodeURIComponent(chapter.id)}` as never)}><span className="qmd-mark" aria-hidden="true"><CatalogIcon kind="book"/></span><span className="qmd-row-body"><strong>{chapter.title}</strong><small>{chapterPaths.get(chapter.id) || 'Hauptkapitel'} · Version {chapter.version} · Geändert {qmDisplayDate(chapter.updatedAt)}</small></span><QmDocumentBadge status={chapter.status}/><span className="qmd-arrow" aria-hidden="true"><CatalogIcon kind="arrow"/></span></button></li>)}</ul> : <QmDocumentState title={chapters.length ? 'Keine passenden Kapitel' : 'Noch keine Kapitel gespeichert'} message={chapters.length ? 'Ändern Sie die Suchbegriffe oder den Statusfilter.' : 'Im QM-Handbuch sind noch keine Kapitel hinterlegt. Im Vorlagenbereich finden Sie vorhandene Vorlagen für Prozesse und Arbeitsanweisungen.'}>{!chapters.length ? templates : null}</QmDocumentState>}
       </section>
     </>}
   </QmSectionShell>;

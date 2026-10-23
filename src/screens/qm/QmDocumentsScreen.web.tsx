@@ -5,7 +5,7 @@ import { QmSectionShell } from '@/components/qm/QmSectionShell.web';
 import { QmDocumentBadge, QmDocumentRefresh, QmDocumentState } from '@/components/qm/QmDocumentUi.web';
 import { qmDocumentWorkspaceCss } from '@/components/qm/qmDocumentWorkspaceCss.web';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useQmDocuments } from '@/hooks/qm';
+import { useQmDocuments } from '@/hooks/qm/useQmDocuments';
 import { filterQmDocuments, qmDisplayDate, QM_DOCUMENT_STATUS_LABELS, QM_DOCUMENT_TYPE_LABELS } from '@/lib/qm/qmDocumentWorkspace.web';
 
 export function QmDocumentsScreen() {

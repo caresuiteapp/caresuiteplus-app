@@ -21,8 +21,8 @@ export function filterQmDocuments(documents: readonly QmDocument[], query: strin
 }
 
 /** Preserve a useful parent path even when a search hides the parent itself; never recurse through malformed cycles. */
-export function qmChapterParentPath(chapter: QmHandbookChapter, chapters: readonly QmHandbookChapter[]): string {
-  const index = new Map(chapters.map(item => [item.id, item]));
+export function qmChapterParentPath(chapter: QmHandbookChapter, chapters: readonly QmHandbookChapter[], chapterIndex?: ReadonlyMap<string, QmHandbookChapter>): string {
+  const index = chapterIndex ?? new Map(chapters.map(item => [item.id, item]));
   const seen = new Set([chapter.id]);
   const path: string[] = [];
   let parentId = chapter.parentId;
