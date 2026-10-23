@@ -12,11 +12,11 @@ export async function registerBasicCarePostgresEvidenceTests(source){
  for(const c of e.denialCases??[])sections.push([`native author case${c.case}`,c,c.expected]);
  test('Actual BasicCare capture has explicit SQL rollback and contains no credentials or private Auth proof rows',()=>{
   assert.equal(e.rollbackCleanupPassed,true);
-  const forbidden=/access.?token|refresh.?token|password|passwd|secret|jwt|session.?id|request\.jwt|raw_user_meta|raw_app_meta|authorization|bearer|authUserIds|auth_user_id|profile_original/i;
+  const forbidden=/access.?token|refresh.?token|password|passwd|secret|jwt|session.?id|request\.jwt|raw_user_meta|raw_app_meta|authorization|bearer|authUserIds|auth_user_id|profile_original|native_original|involved_auth|private.?proof|claims/i;
   const walk=v=>{if(v&&typeof v==='object')for(const[k,c]of Object.entries(v)){assert.ok(!forbidden.test(k),k);walk(c);}else if(typeof v==='string')assert.doesNotMatch(v,/eyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+/);};walk(e);
  });
  const carePairs=[['packet','receipt'],['revisionPacket','revisionReceipt'],['correctionPacket','correctionReceipt'],['otherPacket','otherReceipt'],['carePacket','careReceipt']];
- const reviewPairs=[['reviewPacket','reviewReceipt'],['decisionPacket','decisionReceipt'],['returnRequestPacket','returnRequestReceipt'],['returnPacket','returnReceipt'],['independentDecisionPacket','independentDecisionReceipt']];
+ const reviewPairs=[['reviewPacket','reviewReceipt'],['decisionPacket','decisionReceipt'],['returnRequestPacket','returnRequestReceipt'],['returnPacket','returnReceipt'],['independentDecisionPacket','independentDecisionReceipt'],['newReviewPacket','newReviewReceipt']];
  for(const[label,s,expected]of sections){
   for(const[pk,rk]of carePairs)if(s[pk]&&s[rk])test(`Actual ${label} ${rk} satisfies current production complete care and receipt binding`,()=>{
    const p=s[pk],r=s[rk];assert.equal(domain.basicCarePacketIssue(p),null);assert.equal(domain.basicCareReceiptIssue(r,p),null);
@@ -50,11 +50,44 @@ export async function registerBasicCarePostgresEvidenceTests(source){
    const p=s.issuePacket,r=s.issueReceipt,n=p.sources;assert.deepEqual(r.packet,p);assert.equal(r.requestId,p.requestId);assert.equal(p.tenantId,expected.tenantId);assert.equal(p.clientId,expected.clientId);
    assert.deepEqual(n.planVersion.snapshot.plan,n.plan);assert.deepEqual(n.planVersion.snapshot.items.find(i=>i.id===p.measureId),n.measure);assert.equal(n.planVersion.id,p.planVersionId);assert.equal(n.measure.id,p.measureId);assert.equal(n.visit.id,p.visitId);assert.equal(n.plan.client_id,p.clientId);assert.equal(n.visit.client_id,p.clientId);assert.equal(n.visit.tour_id,n.tour.id);
    assert.equal(r.plan.kind,n.measure.category);assert.equal(r.plan.title,n.measure.title);assert.equal(r.plan.secondPersonRequired,p.secondPersonRequired);assert.equal(r.plan.pressureOriginals,null);assert.equal(r.plan.fallOriginals,null);
+   assert.equal(r.plan.planVersionId,p.planVersionId);assert.equal(r.plan.measureId,p.measureId);assert.equal(r.plan.visitId,p.visitId);assert.equal(r.plan.plannedAt,p.plannedAt);assert.match(r.bindingId,/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);assert.match(r.plan.planSnapshotSha256,/^sha256:[a-f0-9]{64}$/);
   });
  }
  if(e.supplementaryRuntimeUnit)test('Supplementary actual native-binding unit confirms the exact own planned original without an actual care claim',()=>{
   assert.equal(e.supplementaryRuntimeUnit,true);assert.deepEqual(e.confirmedReceipt,e.receipt);assert.equal(domain.basicCareReceiptIssue(e.confirmedReceipt,e.packet),null);assert.equal(e.packet.requestId,e.expected.createRequestId);assert.equal(e.issuePacket.requestId,e.expected.issueRequestId);
   assert.equal(e.receipt.original.payload.execution.outcome,'planned');assert.equal(e.receipt.original.payload.occurredAt,null);assert.deepEqual(e.receipt.original.payload.execution.performedBy,[]);assert.equal(e.receipt.original.payload.consent.state,'not_asked');assert.equal(e.receipt.original.payload.lifecycle,'open');assert.equal(e.receipt.original.history.length,1);
+ });
+ if(e.pagesUnit)test('Actual independent page unit satisfies complete production originals, exact head cursors and a real empty terminator',()=>{
+  const latest=e.correctionReceipt??e.revisionReceipt;assert.deepEqual(e.page1.rows,[e.otherReceipt.original]);assert.deepEqual(e.page2.rows,[latest.original]);assert.deepEqual(e.tail.rows,[]);
+  assert.equal(e.tail.nextCursorId,null);assert.equal(e.tail.nextCursorRecordedAt,null);assert.equal(e.page1.stateFingerprint.length,71);assert.match(e.page1.stateFingerprint,/^sha256:[a-f0-9]{64}$/);assert.equal(e.page2.stateFingerprint,e.page1.stateFingerprint);assert.equal(e.tail.stateFingerprint,e.page1.stateFingerprint);
+  for(const p of[e.page1,e.page2]){assert.deepEqual(Object.keys(p).sort(),['rows','nextCursorId','nextCursorRecordedAt','stateFingerprint'].sort());assert.equal(p.nextCursorId,p.rows[0].headId);assert.equal(p.nextCursorRecordedAt,p.rows[0].recordedAt);assert.equal(domain.basicCareOriginalIssue(p.rows[0],{tenantId:e.expected.tenantId,clientId:e.expected.clientId}),null);}
+ });
+ if(e.qualifiedSelfExclusionUnit)test('Actual qualified author exclusion agrees with production while the independent control remains valid',()=>{
+  assert.equal(e.qualifiedSelfExclusionUnit,true);assert.equal(e.selfDenied,true);assert.equal(e.selfPacket.actorId,e.expected.authorId);assert.equal(e.selfPacket.action,'accept');assert.equal(e.selfQualification.profileId,e.expected.authorId);assert.equal(e.selfQualification.scopeKind,'basic_care_review');
+  assert.deepEqual(e.selfPacket.careOriginal,e.receipt.original);assert.deepEqual(e.selfPacket.reviewOriginal,e.reviewReceipt.original);assert.ok(domain.basicCareReviewPacketIssue(e.selfPacket));
+  const independent=structuredClone(e.selfPacket);independent.actorId=e.expected.reviewerId;assert.equal(domain.basicCareReviewPacketIssue(independent),null);assert.equal(e.decisionPacket.actorId,e.expected.reviewerId);assert.equal(e.decisionReceipt.original.status,'accepted');
+ });
+ if(e.qualificationNegativesUnit||e.dtoNegativesUnit)test('Actual isolated qualification or DTO negatives retain an otherwise qualified successful decision control',()=>{
+  assert.equal(e.qualificationNegativesUnit===true||e.dtoNegativesUnit===true,true);assert.equal(e.decisionPacket.requestId,e.expected.decisionRequestId);assert.equal(e.decisionPacket.actorId,e.expected.reviewerId);assert.notEqual(e.expected.authorId,e.expected.reviewerId);
+  assert.equal(e.reviewReceipt.original.status,'requested');assert.equal(e.decisionReceipt.original.status,'accepted');assert.deepEqual(e.decisionReceipt.original.history.slice(0,-1),e.reviewReceipt.original.history);assert.deepEqual(e.decisionPacket.careOriginal,e.receipt.original);
+ });
+ if(e.returnHistoryUnit||e.acceptanceCorrectionUnit)test('Actual qualified decision stays bound to the immutable historical care after a later correction',()=>{
+  assert.equal(e.returnHistoryUnit===true||e.acceptanceCorrectionUnit===true,true);assert.equal(e.decisionPacket.action,e.returnHistoryUnit?'return':'accept');assert.equal(e.decisionPacket.actorId,e.expected.reviewerId);assert.equal(e.decisionReceipt.original.status,e.returnHistoryUnit?'returned':'accepted');assert.equal(e.revisionPacket.action,'revise');
+  assert.deepEqual(e.decisionReceipt.original.history.slice(0,-1),e.reviewReceipt.original.history);assert.deepEqual(e.decisionPacket.careOriginal,e.receipt.original);assert.deepEqual(e.revisionPacket.original,e.receipt.original);assert.notEqual(e.revisionReceipt.original.headId,e.decisionReceipt.original.careHeadId);assert.equal(e.decisionReceipt.original.careHeadId,e.receipt.original.headId);
+  assert.equal(e.revisionReceipt.original.rootId,e.receipt.original.rootId);assert.deepEqual(e.revisionReceipt.original.history.slice(0,-1),e.receipt.original.history);if(e.returnHistoryUnit){assert.ok(e.decisionPacket.reason.length>=10);assert.ok(e.decisionPacket.requiredChange.length>=10);assert.equal(e.decisionPacket.rationale,'');}else{assert.equal(e.decisionPacket.reason,'');assert.equal(e.decisionPacket.requiredChange,'');assert.ok(e.decisionPacket.rationale.length>=10);}
+ });
+ if(e.correctedReviewUnit)test('Actual later care receives a new unqualified requested review without inheriting prior acceptance',()=>{
+  const n=e.newReviewReceipt.original;assert.equal(e.correctedReviewUnit,true);assert.equal(e.decisionReceipt.original.status,'accepted');assert.equal(e.newReviewPacket.requestId,e.expected.newReviewRequestId);assert.equal(e.newReviewPacket.action,'request');assert.deepEqual(e.newReviewPacket.careOriginal,e.revisionReceipt.original);
+  assert.equal(n.status,'requested');assert.equal(n.revision,1);assert.equal(n.history.length,1);assert.equal(n.history[0].qualificationOriginal,null);assert.notEqual(n.rootId,e.decisionReceipt.original.rootId);assert.equal(n.careRootId,e.revisionReceipt.original.rootId);assert.equal(n.careHeadId,e.revisionReceipt.original.headId);assert.equal(n.careContentFingerprint,e.revisionReceipt.original.contentFingerprint);assert.notEqual(n.careHeadId,e.decisionReceipt.original.careHeadId);
+ });
+ if(e.reviewPagesUnit)test('Actual decided review page cursor retains the original root creation rather than the later decision head',()=>{
+  assert.equal(e.reviewPagesUnit,true);assert.deepEqual(e.page1.rows,[e.decisionReceipt.original]);assert.deepEqual(e.tail.rows,[]);assert.equal(e.tail.nextCursorId,null);assert.equal(e.tail.nextCursorRecordedAt,null);
+  const original=e.decisionReceipt.original;assert.equal(domain.basicCareReviewOriginalIssue(original,{tenantId:e.expected.tenantId,clientId:e.expected.clientId,careRootId:e.receipt.original.rootId,careHeadId:e.receipt.original.headId,careContentFingerprint:e.receipt.original.contentFingerprint}),null);
+  assert.equal(e.page1.nextCursorId,original.rootId);assert.equal(e.page1.nextCursorRecordedAt,e.reviewReceipt.original.history[0].recordedAt);assert.notEqual(e.page1.nextCursorId,original.headId);assert.match(e.page1.stateFingerprint,/^sha256:[a-f0-9]{64}$/);assert.equal(e.tail.stateFingerprint,e.page1.stateFingerprint);
+  for(const page of[e.page1,e.tail])assert.deepEqual(Object.keys(page).sort(),['rows','nextCursorId','nextCursorRecordedAt','stateFingerprint'].sort());
+ });
+ if(e.authorityUnit)test('Actual authority unit retains its original own receipt after all isolated authority and Auth relink denials',()=>{
+  assert.equal(e.authorityUnit,true);assert.equal(e.sameProfileDifferentAuthReplayDenied,true);assert.deepEqual(e.confirmedReceipt,e.receipt);assert.equal(domain.basicCareReceiptIssue(e.confirmedReceipt,e.packet),null);assert.equal(e.packet.actorId,e.expected.authorId);assert.equal(e.packet.requestId,e.expected.createRequestId);
  });
  if(e.denialCases)test('Actual native author cases reach real completed care and technically qualified reviewer before exact42501 denials',()=>{
   assert.deepEqual(e.denialCases.map(c=>c.case),[1,2,3,4,5,6,7,8,9,10]);

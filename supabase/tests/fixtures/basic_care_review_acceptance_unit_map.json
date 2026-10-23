@@ -1,0 +1,88 @@
+{
+  "unit": 4,
+  "name": "basic-care-qualified-review-acceptance",
+  "scope": "Supplementary synthetic Staging baseline; full suites unchanged",
+  "sql": "supabase/tests/pflege_basic_care_review_acceptance_unit_staging.sql",
+  "sqlSha256": "30200bbce796b2f8271977c43a320e31730f2c8485cadad2aaa9ec46b16a8b3a",
+  "sqlBytes": 14933,
+  "baseFixture": {
+    "path": "supabase/tests/pflege_basic_care_review_reconstructed_staging.sql",
+    "sha256": "2195790347f9e4553df7b10763968bd16959ce1515b5ef86de014cfb0ef9f1f2"
+  },
+  "verifiedNativeSeed": "supabase/tests/pflege_basic_care_binding_receipt_unit_staging.sql",
+  "baselinePrerequisites": [
+    "Applied BasicCare quarantine base",
+    "Applied BasicCare DTO limits",
+    "Binding-intent and native-authorship followups not applied"
+  ],
+  "sourceVariableMap": {
+    "f_reviewer": "f_v",
+    "f_review_r": "f_vr",
+    "f_review_s": "f_vs",
+    "f_measure": "f_item",
+    "f_visit": "f_stop",
+    "f_issue_req": "f_bind_request",
+    "f_create_req": "f_care_request",
+    "f_review_req": "f_request",
+    "f_decision_req": "f_accept",
+    "f_review_packet": "f_rpacket",
+    "f_review_receipt": "f_rr",
+    "f_decision_packet": "f_apacket",
+    "f_decision_receipt": "f_ar",
+    "f_qualification": "f_qual"
+  },
+  "evidenceGuc": "cp365.basic_review_acceptance_unit",
+  "productionValidatorPairs": [
+    [
+      "packet",
+      "receipt"
+    ],
+    [
+      "reviewPacket",
+      "reviewReceipt"
+    ],
+    [
+      "decisionPacket",
+      "decisionReceipt"
+    ]
+  ],
+  "extraEvidencePairs": [
+    [
+      "reviewReceipt",
+      "requestConfirmedReceipt"
+    ],
+    [
+      "decisionReceipt",
+      "decisionConfirmedReceipt"
+    ]
+  ],
+  "included": [
+    "Synthetic native binding and completed-care original",
+    "Own exact review request",
+    "Distinct current Auth/profile reviewer",
+    "Unqualified sign role denied 42501",
+    "Explicit synthetic native employment/document/qualification/family scope",
+    "Qualified acceptance with exact request history",
+    "Exact acceptance replay and own confirmation",
+    "Immutable historical request replay and own confirmation after acceptance",
+    "Cross-owner confirmation denied P0F02",
+    "Exact row counts and unchanged native sources",
+    "Inner rollback cleanup and explicit outer rollback"
+  ],
+  "excluded": [
+    "Qualified return",
+    "All negative cases in the full baseline",
+    "Native authorship provenance followup",
+    "HTTP Auth or browser flow",
+    "Concurrent transactions",
+    "Real clinical qualification or approval"
+  ],
+  "runtimeStatusAtCreation": "not executed",
+  "runtimeStatus": "PASS: actual supplementary Staging SQL execution with asserted inner cleanup and outer rollback",
+  "runtimeEvidenceFile": "scripts/checks/fixtures/basic-care-review-acceptance-staging-synthetic-20261022.json",
+  "runtimeEvidenceSha256": "17b8417660fb02dac53aa8178f52739740c0566f7df2ee9809e88ad22d53043d",
+  "productionChecks": {
+    "command": "node scripts/checks/validate-basic-care-review-unit-evidence.mjs scripts/checks/fixtures/basic-care-review-acceptance-staging-synthetic-20261022.json",
+    "resultAtInitialCapture": "8/8 PASS (root execution; retained suite rechecked separately)"
+  }
+}

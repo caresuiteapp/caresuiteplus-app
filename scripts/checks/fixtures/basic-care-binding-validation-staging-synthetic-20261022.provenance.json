@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-22",
+  "environment": "isolated Supabase Staging",
+  "source": "Actual final SELECT of the supplementary privileged synthetic runtime unit after asserted nested rollback cleanup and before explicit outer ROLLBACK.",
+  "sqlFixture": "supabase/tests/pflege_basic_care_binding_validation_unit_staging.sql",
+  "sqlFixtureSha256": "ce234591652e9aac20f9e2b80b986d2ba5e2ffa0b66c09a6e065b8cf6396efa3",
+  "appliedMigrationVersions": [
+    "20261022081906",
+    "20261022082127"
+  ],
+  "appliedPatchSha256": {
+    "ambulatory_basic_care_quarantined.sql": "fb8b0d44ff5205c684f30c45436ec92c4ea64c8e108b007fc62dbcdfa3206b21",
+    "ambulatory_basic_care_dto_limits.sql": "69f710e185696dda4b04b886151bce940870d9219c2771a453fe313316b2c7a0"
+  },
+  "evidenceFile": "basic-care-binding-validation-staging-synthetic-20261022.json",
+  "evidenceBytes": 13154,
+  "evidenceSha256": "4c3e068451e677c603b7f349536a28d25b77278d7ebc5032fc130e8ba2c601ec",
+  "supplementaryRuntimeUnit": true,
+  "unitMarker": "bindingValidationUnit",
+  "sqlRollbackAndCleanupVerified": true,
+  "claims": [
+    "Exact unchanged actual SQL DTO bytes; no handwritten receipt substitution.",
+    "Native plan/version/item/tour/stop originals were seeded under a real synthetic own Auth session and current own tenant/profile permissions.",
+    "Actual native full source tuple validation before any binding exists: explicit second-person/timezone/time precision, changed full stop/plan/item sources, cancelled stop, draft tour, unsupported pressure/fall/unknown kind and short title are rejected by their exact asserted SQLSTATE.",
+    "Actual exact issuer replay, changed packet conflict, duplicate binding conflict, immutable binding/request/bound native version, RLS and application-role ACL denial checks pass.",
+    "Only a native planning binding is issued; no care or review event is created."
+  ],
+  "limitations": [
+    "This supplementary unit does not replace or establish a full-suite pass for the five larger reconstructed baseline/intent/authorship fixtures.",
+    "Binding-intent and native-authorship followups were not applied for this unit.",
+    "No authenticated HTTP, browser, real clinical acceptance, Storage bytes or concurrent transaction evidence is claimed."
+  ],
+  "retentionReview": [
+    "Recursive credential/Auth-claim/session/JWT/secret/private-proof key and JWT-value scan found none.",
+    "Retained native names, narratives, source fields and identifiers originate from wholly synthetic rollback seeds.",
+    "Source JSON was copied byte-for-byte without redaction or normalization because no sensitive fields were present."
+  ]
+}
