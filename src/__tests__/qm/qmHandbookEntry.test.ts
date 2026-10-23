@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildQmHandbookKpis } from '@/data/demo/qmHandbookStats';
@@ -12,6 +12,11 @@ const root = path.join(__dirname, '..', '..', '..');
 function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
+
+beforeEach(() => {
+  vi.stubEnv('EXPO_PUBLIC_APP_EDITION', 'demo');
+  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+});
 
 describe('QM Handbuch entry polish', () => {
   it('enforcePermission schützt QM-Handbuch', () => {
