@@ -21,7 +21,7 @@ import {
 import { syncModuleAccessFromTenantSettings } from '@/lib/tenant/syncTenantModuleAccess';
 import { resetTenantCenterStore } from '@/lib/tenant/tenantCenterService';
 
-// This suite verifies the retained native in-memory mode; Web writes require live server authority.
+// Offline changes are denied; confirmed tenant snapshots drive the native rail.
 vi.mock('react-native', async original => {
   const actual = await original<typeof import('react-native')>();
   return { ...actual, Platform: { ...actual.Platform, OS: 'android' } };
@@ -61,7 +61,7 @@ describe('tenantModuleToggleService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('deaktiviert einen alten Pflege-Schalter ohne das unveröffentlichte Modul einzublenden', async () => {
+  it('ändert einen alten Pflege-Schalter offline nicht und hält das unveröffentlichte Modul verborgen', async () => {
     seedTenantCenterModules({
       assistEnabled: true,
       pflegeEnabled: true,
@@ -73,7 +73,9 @@ describe('tenantModuleToggleService', () => {
     );
 
     const result = await setTenantModuleEnabled(TENANT, 'pflege', false, ADMIN);
-    expect(result.ok).toBe(true);
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
+    expect(getTenantModuleSettingsCache(TENANT).pflegeEnabled).toBe(true);
+    seedTenantCenterModules({ assistEnabled: true, pflegeEnabled: false, stationaerEnabled: false, beratungEnabled: false });
     expect(getTenantModuleSettingsCache(TENANT).pflegeEnabled).toBe(false);
     expect(hasModuleAccess('pflege', TENANT)).toBe(false);
 
@@ -107,18 +109,23 @@ describe('tenantModuleToggleService', () => {
     expect(rows.map((row) => row.moduleKey)).toEqual(['office', 'assist']);
   });
 
-  it('schaltet das veröffentlichte Assist-Modul und die zugehörige Office-Rail tatsächlich um', async () => {
+  it('übernimmt Assist- und Office-Freigaben nur aus bestätigten Mandanteneinstellungen', async () => {
     const visible = () => getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map(m => m.key);
     expect(visible()).toContain('assist');
     expect(visible()).toContain('office');
     const disabled = await setTenantModuleEnabled(TENANT, 'assist', false, ADMIN);
-    expect(disabled.ok).toBe(true);
+    expect(disabled).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(true);
+    expect(visible()).toContain('assist');
+    seedTenantCenterModules({ assistEnabled: false, pflegeEnabled: false, stationaerEnabled: false, beratungEnabled: false });
     expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(false);
     expect(hasModuleAccess('assist', TENANT)).toBe(false);
     expect(visible()).not.toContain('assist');
     expect(visible()).not.toContain('office');
     const enabled = await setTenantModuleEnabled(TENANT, 'assist', true, ADMIN);
-    expect(enabled.ok).toBe(true);
+    expect(enabled).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(false);
+    seedTenantCenterModules({ assistEnabled: true, pflegeEnabled: false, stationaerEnabled: false, beratungEnabled: false });
     expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(true);
     expect(hasModuleAccess('assist', TENANT)).toBe(true);
     expect(visible()).toContain('assist');

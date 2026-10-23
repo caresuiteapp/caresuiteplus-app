@@ -6,7 +6,6 @@ import {
   setCachedTenantBrandingLogoUrl,
 } from '@/lib/tenant/tenantBrandingService';
 import {
-  fetchTenantCenter,
   resetTenantCenterStore,
   seedTenantCenterForTest,
 } from '@/lib/tenant/tenantCenterService';
@@ -27,7 +26,7 @@ describe('saveTenantBrandingProfile', () => {
   });
 
   it('returns error when there are no logo changes', async () => {
-    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(false);
+    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
     const snapshot = seedTenantCenterForTest(DEMO_TENANT_ID);
 
     const result = await saveTenantBrandingProfile(
@@ -43,8 +42,10 @@ describe('saveTenantBrandingProfile', () => {
     }
   });
 
-  it('persists demo logo changes in the tenant center store', async () => {
-    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(false);
+  it('confirms native logo persistence before updating the cached profile', async () => {
+    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
+    vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave').mockResolvedValue({ ok: true, data: 'https://example.com/native-logo.png' });
+    const persist = vi.spyOn(tenantLogoService, 'persistTenantLogoUrl').mockResolvedValue({ ok: true, data: undefined });
     const snapshot = seedTenantCenterForTest(DEMO_TENANT_ID);
     const pending = {
       localUri: 'blob:demo-logo',
@@ -63,14 +64,11 @@ describe('saveTenantBrandingProfile', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.logoUrl).toBe('blob:demo-logo');
+      expect(result.data.logoUrl).toBe('https://example.com/native-logo.png');
     }
 
-    const loaded = await fetchTenantCenter(DEMO_TENANT_ID, 'business_admin');
-    expect(loaded.ok).toBe(true);
-    if (loaded.ok) {
-      expect(loaded.data.branding.logoUrl).toBe('blob:demo-logo');
-    }
+    expect(persist).toHaveBeenCalledWith(DEMO_TENANT_ID, 'https://example.com/native-logo.png');
+    expect(await fetchTenantBrandingLogoUrl(DEMO_TENANT_ID)).toBe('https://example.com/native-logo.png');
   });
 
   it('returns upload errors in live mode instead of false success', async () => {
@@ -106,7 +104,9 @@ describe('saveTenantBrandingProfile', () => {
   });
 
   it('notifies logo subscribers when cache updates after save', async () => {
-    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(false);
+    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
+    vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave').mockResolvedValue({ ok: true, data: 'https://example.com/notify-logo.png' });
+    vi.spyOn(tenantLogoService, 'persistTenantLogoUrl').mockResolvedValue({ ok: true, data: undefined });
     const snapshot = seedTenantCenterForTest(DEMO_TENANT_ID);
     const listener = vi.fn();
     const { subscribeToTenantBrandingLogoChanges } = await import('@/lib/tenant/tenantBrandingService');
@@ -130,8 +130,31 @@ describe('saveTenantBrandingProfile', () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(listener).toHaveBeenCalledWith(DEMO_TENANT_ID, 'blob:notify-logo');
+    expect(listener).toHaveBeenCalledWith(DEMO_TENANT_ID, 'https://example.com/notify-logo.png');
     unsubscribe();
+  });
+  it.each(['web', 'android', 'ios'])('blocks %s logo changes without a live connection before upload', async os => {
+    access.os = os;
+    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(false);
+    const upload = vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave');
+    const persist = vi.spyOn(tenantLogoService, 'persistTenantLogoUrl');
+    expect(await saveTenantBrandingProfile(DEMO_TENANT_ID, seedTenantCenterForTest(DEMO_TENANT_ID).branding, { ...EMPTY_TENANT_LOGO, removed: true }, 'business_admin')).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
+    expect(upload).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+  });
+  it('does not update the cache or notify subscribers when native persistence fails', async () => {
+    vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);
+    vi.spyOn(tenantLogoService, 'resolveTenantLogoUrlForSave').mockResolvedValue({ ok: true, data: 'https://example.com/rejected.png' });
+    vi.spyOn(tenantLogoService, 'persistTenantLogoUrl').mockResolvedValue({ ok: false, error: 'Speichern fehlgeschlagen.' });
+    setCachedTenantBrandingLogoUrl(DEMO_TENANT_ID, 'https://example.com/confirmed.png');
+    const listener = vi.fn();
+    const { subscribeToTenantBrandingLogoChanges } = await import('@/lib/tenant/tenantBrandingService');
+    const unsubscribe = subscribeToTenantBrandingLogoChanges(listener);
+    try {
+      expect((await saveTenantBrandingProfile(DEMO_TENANT_ID, seedTenantCenterForTest(DEMO_TENANT_ID).branding, { ...EMPTY_TENANT_LOGO, removed: true }, 'business_admin')).ok).toBe(false);
+      expect(await fetchTenantBrandingLogoUrl(DEMO_TENANT_ID)).toBe('https://example.com/confirmed.png');
+      expect(listener).not.toHaveBeenCalled();
+    } finally { unsubscribe(); }
   });
   it('honors an authoritative Web grant even when the role alone lacks company management', async () => {
     access.os = 'web'; vi.spyOn(liveServiceGuard, 'isLiveServiceMode').mockReturnValue(true);

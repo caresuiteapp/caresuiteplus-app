@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PermissionKey, RoleKey } from '@/types';
+import { setTenantModuleEnabled } from '@/lib/tenant/tenantModuleToggleService';
+import { getTenantModuleSettingsCache, resetTenantModuleSettingsCache } from '@/lib/tenant/tenantModuleSettingsCache';
 import type {
   TenantBankAccount,
   TenantContactCommunication,
@@ -26,6 +28,7 @@ import {
 } from '@/lib/tenant/tenantCenterService';
 
 const mocked = vi.hoisted(() => ({
+  os: 'web',
   live: true,
   blockedTenant: null as string | null,
   client: null as unknown,
@@ -37,6 +40,10 @@ const mocked = vi.hoisted(() => ({
   customFieldsError: null as string | null,
 }));
 
+vi.mock('react-native', async original => {
+  const actual = await original<typeof import('react-native')>();
+  return { ...actual, Platform: { ...actual.Platform, get OS() { return mocked.os; } } };
+});
 vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => {
   if (mocked.accessThrows) throw new Error('network failure');
   return mocked.accessError ? { ok: false, error: mocked.accessError } : { ok: true, data: { permissions: mocked.permissions, scopeLimited: mocked.limited, canManageScopes: !mocked.limited } };
@@ -214,9 +221,21 @@ beforeEach(() => {
   database = new LocalDatabase();
   mocked.client = database;
   resetTenantCenterStore();
+  resetTenantModuleSettingsCache();
 });
 
-describe('tenant center web persistence', () => {
+describe.each(['web', 'android', 'ios'])('tenant center %s persistence', os => {
+  beforeEach(() => { mocked.os = os; });
+
+  it('confirms module toggle writes and reloads the same tenant before returning success', async () => {
+    expect((await setTenantModuleEnabled(TENANT, 'assist', true, ADMIN)).ok).toBe(true);
+    expect(database.writes('tenant_module_settings')).toHaveLength(1);
+    expect(database.rows('tenant_module_settings')[0]).toMatchObject({ tenant_id: TENANT, assist_enabled: true });
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(true);
+    expect((await setTenantModuleEnabled(TENANT, 'assist', false, ADMIN)).ok).toBe(true);
+    expect(database.rows('tenant_module_settings')[0]).toMatchObject({ tenant_id: TENANT, assist_enabled: false });
+    expect(getTenantModuleSettingsCache(TENANT).assistEnabled).toBe(false);
+  });
   it.each([
     { name: 'tax', save: (role: RoleKey) => saveTenantTaxProfile(TENANT, { ...EMPTY_TENANT_TAX }, role) },
     { name: 'register', save: (role: RoleKey) => saveTenantRegisterProfile(TENANT, { ...EMPTY_TENANT_REGISTER }, role) },
