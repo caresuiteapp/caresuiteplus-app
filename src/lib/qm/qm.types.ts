@@ -203,6 +203,8 @@ export type QmExportJob = TenantScopedEntity & {
   completedAt: ISODateTime | null;
 };
 
+export type QmDashboardSection = 'chapters' | 'documents' | 'compliance' | 'mdPackages' | 'approvals' | 'audits' | 'changes';
+
 export type QmDashboardSnapshot = {
   chapterCount: number;
   documentCount: number;
@@ -211,6 +213,9 @@ export type QmDashboardSnapshot = {
   pendingApprovals: number;
   recentChanges: QmChange[];
   upcomingAudits: QmAudit[];
+  /** A failed section is unknown, never a confirmed zero or empty list. */
+  sectionErrors?: Partial<Record<QmDashboardSection, string>>;
+  loadedAt?: ISODateTime;
 };
 
 export type QmTemplateSeed = {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatBreadcrumbTrail, getBreadcrumbs } from '@/lib/navigation/breadcrumbs';
 import { officeModuleAssignmentBreadcrumbs, officeModuleAssignmentRouteTitle } from '@/lib/navigation/officeModuleAssignmentRoutes.web';
+import { officeQmBreadcrumbs, officeQmRouteTitle } from '@/lib/navigation/officeQmRoutes.web';
 
 describe('getBreadcrumbs', () => {
   it('liefert sinnvolle Labels für Klient:innenakte ohne doppelte Business-Bereich-Einträge', () => {
@@ -89,5 +90,30 @@ describe('Office assignment navigation on web', () => {
   ])('does not relabel an unrelated or unknown destination: %s', path => {
     expect(officeModuleAssignmentRouteTitle(path)).toBeNull();
     expect(officeModuleAssignmentBreadcrumbs(path)).toBeNull();
+  });
+});
+
+describe('Office QM navigation on web', () => {
+  it.each(['/office/qm', '/business/office/qm', '/business/qm'])('names the QM entry consistently: %s', path => {
+    expect(officeQmRouteTitle(`${path}/?status=pending#content`)).toBe('Qualitätsmanagement');
+    expect(officeQmBreadcrumbs(path)?.at(-1)?.label).toBe('Qualitätsmanagement');
+  });
+
+  it.each([
+    ['documents', 'QM-Dokumente'], ['handbook', 'QM-Handbuch'], ['compliance', 'Compliance'],
+    ['md-audit', 'MD-Prüfungsmappen'], ['legal-references', 'Rechtsgrundlagen'],
+    ['documents/123', 'QM-Dokument'], ['handbook/123', 'Handbuchkapitel'],
+  ])('keeps the page title and clickable trail aligned for %s', (section, label) => {
+    const path = `/business/office/qm/${section}`;
+    expect(officeQmRouteTitle(path)).toBe(label);
+    const trail = officeQmBreadcrumbs(path)!;
+    expect(trail.at(-1)).toEqual({ path, label, isCurrent: true });
+    expect(trail.filter(item => item.isCurrent)).toHaveLength(1);
+    expect(trail[2].path).toBe('/business/office/qm');
+  });
+
+  it.each(['/office/qm-old', '/office/qm/toString', '/office/qm/documents/123/unknown', '/office/clients'])('does not relabel other paths: %s', path => {
+    expect(officeQmRouteTitle(path)).toBeNull();
+    expect(officeQmBreadcrumbs(path)).toBeNull();
   });
 });
