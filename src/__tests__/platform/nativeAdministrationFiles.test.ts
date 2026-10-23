@@ -1,0 +1,25 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { blobBytes } from '@/lib/platform/blobBytes';
+import { nativeTransferReader, uploadTransferFile } from '@/lib/dataTransfers/upload.native';
+import type { DataFile } from '@/lib/dataTransfers/service';
+const h=vi.hoisted(()=>({size:14*1024*1024,read:vi.fn(),close:vi.fn(),action:vi.fn(),session:vi.fn(),options:null as any,start:vi.fn(),abort:vi.fn()}));
+vi.mock('expo-file-system',()=>({File:class{size=h.size;constructor(_uri:string){}open(){return{offset:0,readBytes:(n:number)=>{h.read(n);return new Uint8Array(n);},close:h.close};}}}));
+vi.mock('@/lib/supabase/client',()=>({getSupabaseClient:()=>({auth:{getSession:h.session}})}));
+vi.mock('@/lib/supabase/config',()=>({getSupabaseConfig:()=>({url:'https://project.example.invalid',anonKey:'public-key'})}));
+vi.mock('@/lib/dataTransfers/service',()=>({TRANSFER_BUCKET:'transfers',transferAction:h.action}));
+vi.mock('tus-js-client',()=>({Upload:class{url='https://project.example.invalid/storage/v1/upload/resumable/upload';constructor(_file:unknown,options:unknown){h.options=options;}start(){h.start();}async abort(){h.abort();}}}));
+const file={uri:'file:///cache/transfer.csv',name:'transfer.csv',size:14*1024*1024};
+const record={id:'file',tenant_id:'tenant',request_id:'request',created_by:'person',name:file.name,size:file.size,object_path:'tenant/request/file'} as DataFile;
+beforeEach(()=>{vi.clearAllMocks();h.size=file.size;h.options=null;h.action.mockRejectedValueOnce(Object.assign(new Error('incomplete'),{code:'transfer_incomplete'})).mockResolvedValue({});h.session.mockResolvedValue({data:{session:{user:{id:'person'},access_token:'fixture-token'}},error:null});});
+afterEach(()=>vi.unstubAllGlobals());
+const started=async()=>{await vi.waitFor(()=>expect(h.options).toBeTruthy());};
+describe('native administration files',()=>{
+ it('reads a bounded disk slice and closes its handle once',async()=>{const source=await nativeTransferReader.openFile(file,6*1024*1024);const chunk=await source.slice(6*1024*1024,12*1024*1024);expect((chunk.value as Uint8Array).length).toBe(6*1024*1024);expect(h.read).toHaveBeenCalledWith(6*1024*1024);await source.close();await source.close();expect(h.close).toHaveBeenCalledTimes(1);await expect(source.slice(0,10)).rejects.toThrow('geschlossen');});
+ it('rejects a file that changed after selection before opening a handle',async()=>{h.size=12;await expect(nativeTransferReader.openFile(file,6*1024*1024)).rejects.toThrow('geändert');expect(h.read).not.toHaveBeenCalled();});
+ it('requires the original account on every upload request',async()=>{const controller=new AbortController();const pending=uploadTransferFile(file,record,controller.signal,vi.fn());await started();const request={setHeader:vi.fn()};await h.options.onBeforeRequest(request);expect(request.setHeader).toHaveBeenCalledWith('Authorization','Bearer fixture-token');h.session.mockResolvedValue({data:{session:{user:{id:'different'},access_token:'different'}},error:null});await expect(h.options.onBeforeRequest(request)).rejects.toThrow('ursprünglichen Konto');controller.abort();await expect(pending).rejects.toMatchObject({name:'AbortError'});expect(h.abort).toHaveBeenCalledTimes(1);expect(h.action).toHaveBeenCalledTimes(1);});
+ it('checks server completion before sending a previously completed transfer again',async()=>{h.action.mockReset().mockResolvedValue({});const progress=vi.fn();await uploadTransferFile(file,record,new AbortController().signal,progress);expect(progress).toHaveBeenCalledWith(100);expect(h.start).not.toHaveBeenCalled();});
+ it('confirms completion only after the resumable upload succeeds',async()=>{const pending=uploadTransferFile(file,record,new AbortController().signal,vi.fn());await started();expect(h.options.fileReader).toBe(nativeTransferReader);expect(h.options.chunkSize).toBe(6*1024*1024);expect(h.options.storeFingerprintForResuming).toBe(false);h.options.onSuccess();await pending;expect(h.action).toHaveBeenCalledTimes(2);expect(h.action).toHaveBeenLastCalledWith('finish','tenant',{p_request_id:'request',p_file_id:'file'});});
+ it('does not upload a mismatched original file',async()=>{await expect(uploadTransferFile({...file,name:'other.csv'},record,new AbortController().signal,vi.fn())).rejects.toThrow('Originaldatei');expect(h.action).not.toHaveBeenCalled();});
+ it('reads React Native blobs without requiring the browser arrayBuffer method',async()=>{vi.stubGlobal('FileReader',class{result:ArrayBuffer|null=null;onload?:()=>void;readAsArrayBuffer(){this.result=Uint8Array.from([37,80,68,70]).buffer;this.onload?.();}});expect(await blobBytes({} as Blob)).toEqual(Uint8Array.from([37,80,68,70]));});
+ it('propagates failed native file reads',async()=>{vi.stubGlobal('FileReader',class{onerror?:()=>void;readAsArrayBuffer(){this.onerror?.();}});await expect(blobBytes({} as Blob)).rejects.toThrow('nicht gelesen');});
+});

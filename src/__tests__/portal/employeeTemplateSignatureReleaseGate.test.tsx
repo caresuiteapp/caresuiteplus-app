@@ -12,6 +12,10 @@ vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: 'profile
 vi.mock('@/lib/documents/csTemplates', () => ({ EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE: 'Die Unterzeichnung ist vorübergehend gesperrt. Das Original können Sie weiterhin lesen.', fetchCsDocumentRequestDetail: vi.fn(), fetchPortalCsDocumentRequestDetail: vi.fn(), markCsDocumentRequestOpened: vi.fn(), signCsDocumentRequest: h.sign }));
 vi.mock('@/components/portal/ClientSignatureAttentionProvider', () => ({ useClientSignatureAttention: () => ({ refresh: h.refresh }) }));
 vi.mock('@/components/office/DocumentHtmlPreview', () => ({ DocumentHtmlPreview: ({ previewHtml }: any) => <div data-original>{previewHtml}</div> }));
+vi.mock('@/hooks/useFlowRouter', () => ({ useFlowRouter: () => ({ back: vi.fn() }) }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => true, roleKey: 'employee_portal' }) }));
+vi.mock('@/components/documents/DocumentsWorkspaceShell.web', () => ({ DocumentsWorkspaceShell: ({ children }: any) => <main>{children}</main> }));
+vi.mock('@/components/office/documentSignatures/OfficeSignatureReview.web', () => ({ OfficeSignatureReview: () => null }));
 vi.mock('@/components/inputs/CareSignatureModal', () => ({ CareSignatureModal: ({ visible }: any) => visible ? <div>Signaturdialog</div> : null }));
 vi.mock('@/components/signatures/SignatureDisplay', () => ({ SignatureDisplay: () => null }));
 vi.mock('@/components/layout/C14vSubpageShell', () => ({ C14vSubpageShell: ({ children }: any) => <main>{children}</main> }));

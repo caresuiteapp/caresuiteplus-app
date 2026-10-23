@@ -25,6 +25,7 @@ vi.mock('expo-router', () => ({
     <a href={typeof href === 'string' ? href : `${href.pathname}${Object.keys(href.params).length ? `?${new URLSearchParams(href.params)}` : ''}`}>Weiterleitung</a>
   ),
 }));
+vi.mock('@/screens/inventory/CompanyInventoryScreen.native', () => ({ CompanyInventoryScreen: () => <span>native-inventory</span> }));
 vi.mock('@/liquid-command/screens/CompanyWorkspaceScreen.web', () => ({
   CompanyWorkspaceScreen: ({ initialTab }: { initialTab: string }) => <span>{initialTab}</span>,
 }));
@@ -44,9 +45,9 @@ const inventoryApp = (route: string) => ({ id: 'inventory', label: 'Inventar', r
 beforeEach(() => { state.params = {}; });
 
 describe('inventory inside the company workspace', () => {
-  it('opens the company inventory tab and keeps the native workflow unchanged', () => {
+  it('opens the company inventory workspace on web and Android', () => {
     expect(renderToStaticMarkup(<CompanyInventoryRoute />)).toBe('<main><span>inventory</span></main>');
-    expect(renderToStaticMarkup(<NativeCompanyInventoryRoute />)).toContain('href="/business/office/inventory"');
+    expect(renderToStaticMarkup(<NativeCompanyInventoryRoute />)).toContain('native-inventory');
   });
 
   it('covers every existing Office inventory destination in both route trees', () => {
@@ -78,11 +79,11 @@ describe('inventory inside the company workspace', () => {
     expect(buildDesktopNavigationGroups(inventories)).toEqual([{ title: 'Office', items: inventories }]);
   });
 
-  it('does not rewrite native inventory destinations', () => {
+  it('maps native inventory aliases to the current company workspace', () => {
     const original = Object.getOwnPropertyDescriptor(Platform, 'OS')!;
     Object.defineProperty(Platform, 'OS', { ...original, value: 'android' });
     try {
-      expect(normalizeNavigationApp(inventoryApp('/business/office/inventory')).route).toBe('/business/office/inventory');
+      expect(normalizeNavigationApp(inventoryApp('/business/office/inventory')).route).toBe('/unternehmen/inventar');
     } finally {
       Object.defineProperty(Platform, 'OS', original);
     }

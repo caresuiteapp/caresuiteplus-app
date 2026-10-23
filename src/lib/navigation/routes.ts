@@ -553,17 +553,17 @@ export const APP_ROUTES: AppRoute[] = [
       '/business/office/documents/signatures',
       '/office/messages',
       '/office/catalogs',
-      ...(Platform.OS === 'web' ? ['/office/notizen'] : []),
+      '/office/notizen',
     ],
   },
-  ...(Platform.OS === 'web' ? [{
+  {
     path: '/office/notizen',
     label: 'Notizen',
     group: 'module',
     productKey: 'office',
     requiresAuth: true,
     allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
-  } satisfies AppRoute] : []),
+  } satisfies AppRoute,
   {
     path: '/office/clients',
     label: 'Klient:innen',

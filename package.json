@@ -127,7 +127,8 @@
     "verify:consultation:release": "node scripts/verify-consultation-workspace.mjs",
     "verify:data-request:release": "node scripts/verify-data-request-workspace.mjs",
     "verify:subscription:release": "vitest run src/__tests__/billing/subscriptionWorkspaceWeb.test.ts src/__tests__/billing/subscriptionWorkspaceHookWeb.test.ts src/__tests__/layout/desktopCenterRequestWeb.test.ts src/__tests__/business/subscriptionWorkspaceUiWeb.test.ts src/__tests__/layout/desktopAppsWidgetsInteraction.test.tsx src/__tests__/layout/desktopHomeInteraction.test.tsx src/__tests__/layout/officeNotesDesktopInteraction.test.tsx",
-    "verify:academy:release": "node scripts/verify-academy-workspace.mjs"
+    "verify:academy:release": "node scripts/verify-academy-workspace.mjs",
+    "audit:android-administration": "vitest run src/__tests__/platform/nativeAdministrationFiles.test.ts src/__tests__/navigation/companyExpansionRoutes.test.tsx src/__tests__/navigation/companyRouteRedirects.test.tsx src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/tenant/companyAccessService.test.ts src/__tests__/tenant/companyOrganizationService.test.ts src/__tests__/tenant/companyResourcesService.test.ts src/__tests__/tenant/companyClientSettingsService.test.ts src/__tests__/tenant/companyCostCenters.test.ts src/__tests__/tenant/companyCustomValues.test.ts src/__tests__/tenant/companyEditorInteraction.test.tsx src/__tests__/tenant/companyWorkspaceInteraction.test.tsx src/__tests__/inventory/companyInventoryService.test.ts src/__tests__/inventory/companyInventoryInteraction.test.tsx src/__tests__/documents/tenantDocumentSettingsWeb.test.ts src/__tests__/documents/centralCatalogActionSafety.test.tsx src/__tests__/documents/companyDocumentLinks.test.ts src/__tests__/documents/companyDocumentContext.test.ts --maxWorkers=2 --testTimeout=15000"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",

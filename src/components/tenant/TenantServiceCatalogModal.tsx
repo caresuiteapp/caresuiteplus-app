@@ -49,6 +49,7 @@ type Props = {
   visible: boolean;
   tenantId: string;
   initialModuleKey?: TenantModuleKey;
+  initialCategory?: ServiceCatalogCategory;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -78,6 +79,7 @@ export function TenantServiceCatalogModal({
   visible,
   tenantId,
   initialModuleKey = 'assist',
+  initialCategory = 'service',
   onClose,
   onSaved,
 }: Props) {
@@ -109,10 +111,11 @@ export function TenantServiceCatalogModal({
   useEffect(() => {
     if (visible) {
       setModuleKey(initialModuleKey);
+      setTab(initialCategory === 'travel' ? 'travel' : initialCategory === 'surcharge' ? 'surcharges' : 'services');
       setIsNew(false);
       void load();
     }
-  }, [visible, initialModuleKey, load]);
+  }, [visible, initialModuleKey, initialCategory, load]);
 
   const filtered = useMemo(() => {
     const category = TAB_CATEGORY[tab];

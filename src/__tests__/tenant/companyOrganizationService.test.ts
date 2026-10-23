@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => state.client 
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => state.mode }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => state.blocked ? { ok: false, error: 'Mandant gesperrt' } : null }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (_role: unknown, permission: string, context?: { effectivePermissions?: readonly string[] }) => state.denied.has(permission) || (context?.effectivePermissions && !context.effectivePermissions.includes(permission)) ? { ok: false, error: 'Keine Berechtigung' } : null }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { permissions: state.serverPermissions, scopeLimited: state.scopeLimited, canManageScopes: !state.scopeLimited } }) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { permissions: state.serverPermissions, scopeLimited: state.scopeLimited, canManageScopes: !state.scopeLimited } }) }));
 const tenant = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const recordId = '33333333-3333-4333-8333-333333333333';

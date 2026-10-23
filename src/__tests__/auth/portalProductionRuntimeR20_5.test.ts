@@ -44,7 +44,9 @@ describe('portal production runtime R20.5', () => {
 
     expect(chat).toContain("ensurePortalWriteSession(portalSession, 'messages')");
     expect(reply).toContain("ensurePortalWriteSession(portalSession, 'messages')");
-    expect(workflow.match(/ensurePortalWriteSession\(portalSession, 'workflow'\)/g)).toHaveLength(2);
+    // Every canonical mutation passes through the shared session guard.
+    expect(workflow).toContain("await ensurePortalWriteSession(portalSession, 'workflow')");
+    expect(workflow).toContain("errorCode: 'PORTAL_WRITE_SESSION_INVALID'");
     expect(auth).not.toContain("rpc('portal_runtime_write_probe'");
   });
 

@@ -7,6 +7,9 @@ npx --no-install vitest run src/__tests__/auth/authServiceTimeout.test.ts src/__
 node --experimental-vm-modules --test scripts/verify-platform-observation.test.mjs
 npm run audit:portal-update -- --maxWorkers=2
 npm run audit:android-update
+npm run audit:android-administration
+npx --no-install vitest run src/__tests__/auth src/__tests__/portal src/__tests__/healthos src/__tests__/inputs src/__tests__/offline src/__tests__/navigation --maxWorkers=2 --testTimeout=15000
+npx --no-install vitest run src/__tests__/office/officeNotesNativeInteraction.test.tsx src/__tests__/calendar/calendarEmployeeMultiSelectNative.test.tsx src/__tests__/calendar/calendarMeetingParticipants.test.ts src/__tests__/calendar/officeCalendarFormRecovery.test.tsx --maxWorkers=2
 npx --no-install vitest run src/__tests__/platformConsole/tenantDossierModel.test.ts src/__tests__/platformConsole/tenantDossierDatabase.test.ts src/__tests__/platformConsole/tenantDossierInteraction.test.tsx src/__tests__/platformConsole/tenantDossierNativeInteraction.test.tsx --maxWorkers=2
 npm run audit:assignment-workflow-gate -- --maxWorkers=2 --testTimeout=15000
 node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs

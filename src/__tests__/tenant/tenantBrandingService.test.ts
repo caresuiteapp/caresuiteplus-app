@@ -17,7 +17,7 @@ import * as tenantLogoService from '@/lib/tenant/tenantLogoService';
 
 const access = vi.hoisted(() => ({ os: 'android', load: vi.fn() }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return access.os; } } }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => access.load(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: (...args: unknown[]) => access.load(...args) }));
 
 describe('saveTenantBrandingProfile', () => {
   beforeEach(() => {

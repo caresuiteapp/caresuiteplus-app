@@ -21,7 +21,7 @@ vi.mock('@/hooks/core/useAsyncQuery', async () => {
 });
 vi.mock('@/liquid-command/shell/LiquidCommandShell', () => ({ LiquidCommandShell: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 vi.mock('@/components/layout/platform/platformmodal', () => ({ PlatformModal: ({ title, children, footerContent, onClose }: { title: string; children: ReactNode; footerContent: ReactNode; onClose: () => void }) => <section role="dialog" aria-label={title}><button onClick={onClose}>Fenster schließen</button>{children}{footerContent}</section> }));
-vi.mock('@/lib/tenant/companyClientSettings.web', async original => ({ ...await original<typeof import('@/lib/tenant/companyClientSettings.web')>(),
+vi.mock('@/lib/tenant/companyClientSettings', async original => ({ ...await original<typeof import('@/lib/tenant/companyClientSettings.web')>(),
   fetchCompanyServiceSettings: (...args: unknown[]) => h.fetch(...args), fetchCompanyBudgetSettings: (...args: unknown[]) => h.fetch(...args),
   saveCompanyBillingRate: (...args: unknown[]) => h.saveRate(...args), saveCompanyServiceType: (...args: unknown[]) => h.saveType(...args), saveCompanyBudgetDefault: (...args: unknown[]) => h.saveBudget(...args),
 }));
