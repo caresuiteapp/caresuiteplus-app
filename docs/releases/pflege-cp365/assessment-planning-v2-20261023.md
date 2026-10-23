@@ -1,0 +1,22 @@
+# Assessment, SIS und Pflegeplanung V2: gesperrter Integrationsstand
+
+Der zusammenhängende Web-Block verbindet Assessment-/SIS-Quellen, technische Maßnahmenrevisionen und die Pflegeplanung mit ausdrücklich versionierten V2-Schnittstellen. Pflege bleibt global gesperrt. Android und gemeinsame native Laufzeitdateien wurden für diesen Block nicht verändert.
+
+Die Web-Grenzen bestätigen das tatsächliche Auth-Konto, die aktuelle Sitzung, das aufgelöste interne Profil, den eigenen Mandanten und das unveränderte SDK um asynchrone Vorgänge. Ganze Quellpakete, Verläufe und Quittungen werden ohne Ausführen fremder Getter geprüft. Vollständige Kontexte benötigen einen Bestandsfingerabdruck und ein unverändertes erneutes Lesen. Eigene Quittungen bestätigen exakt den ursprünglich versandten Auftrag und dessen erhaltenes Original. Eine spätere Fassung oder ein anderes Konto mit demselben internen Profil übernimmt keinen früheren Auftrag.
+
+Neue technische Aktionen beschränken sich auf serverseitig angebotene Fähigkeiten und exakt passende native beziehungsweise V2-Quellen. Die Schreibprüfung vergleicht den erwarteten Verlaufskopf und die ausdrücklich ausgewählten Quellen. Der vollständige Bestandsfingerabdruck dient der Lesekonsistenz; er wird nicht als erwarteter Gesamtdatenbestand im Schreibauftrag übermittelt. Tatsächliche Ausführung, klinische Freigabe, Annahme und Rückgabe werden daraus nicht abgeleitet.
+
+Die Oberfläche bewahrt Entwürfe und ungeklärte Schreibausgänge bei Aktualisierung, Wechsel der Akte, Rollenverlust und Verlassen. Verdeckte offene Vorgänge des anderen Pfads sperren weitere Schreiber. V2 verwendet eigene lokale Schlüssel. Ein vorhandenes V1-Journal bleibt erhalten und sperrend; es wird weder stillschweigend übernommen noch gelöscht. Eine nicht verfügbare Wiederaufnahme wird ausdrücklich ausgewiesen.
+
+Die additive SQL-Quelle `supabase/patches/ambulatory_assessment_planning_v2_quarantined.sql` hat SHA-256 `075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc`. Sie erstellt ausschließlich einen neuen privaten Namensraum, vier neue Verlaufstabellen und acht neue öffentliche V2-Funktionen mit eigenen Helfern. RLS und Rechteentzug betreffen ausschließlich diese neuen Objekte; es gibt keine Freischaltung. Bestehende native und frühere Pfadobjekte werden weder geändert noch beschrieben. Frühere Pfadverläufe werden nicht in neue Urheberschaft umgedeutet. Zwei eigenständige synthetische Rollback-Fixtures liegen vor. **Installation und tatsächliche V2-SQL-Läufe sind an diesem Quellcheckpoint noch unbestätigt.**
+
+Die frühere, nicht angewandte Migration wurde von der automatischen Freigabeprüfung abgelehnt, weil sie bestehende Pfadobjekte und Rechte verändert hätte. Sie wurde entfernt und darf nicht erneut, aufgeteilt oder indirekt ausgeführt werden. Die neue additive Fassung wurde unabhängig auf ihre deutlich kleinere Wirkung sowie ihre SQL-/Web-Verträge geprüft. Die Einzelheiten und die vorab ausschließlich gelesenen Metadaten liegen unter `docs/audit/assessment-planning-v2-*`.
+
+| Prüfung am zusammengeführten Quellstand | Ergebnis und Grenze |
+| --- | --- |
+| Assessment-/Planungs-Auswahl mit tatsächlichen Domänen-, Transport-, Journal- und Controllerfunktionen | 772/772 bestanden; keine Fehler oder übersprungenen Fälle. Die 62 fokussierten Oberflächen-Controllerprüfungen sind darin enthalten. |
+| Vollständiger vorhandener Node-Aufruf `node --test scripts/checks/*.node.test.mjs` | 14.894/14.894 bestanden; keine Fehler oder übersprungenen Fälle. Die kleineren Auswahlen sind Teilmengen und werden nicht addiert. |
+| Unabhängige Quellprüfung | Acht SQL-/Web-RPCs, Argumente, Versionen, Fähigkeiten und Antwortformen stimmen überein. Keine tatsächliche SQL-, HTTP- oder Compilerabnahme daraus. |
+| Formatprüfung | `git diff --check` bestanden. |
+
+Offen bleiben ein erfolgreicher Projekt-Compiler und Expo-Export, tatsächliche V2-SQL-/HTTP-Läufe, breite und schmale Browserdarstellung sowie der bestätigte Vercel-Build. Die echte Bereitstellung von Assessmentmodellen/Instrumenten, native Schreibketten und reale fachliche Qualifikation sind nicht durch synthetische Kataloge oder Rollen ersetzt. Die älteren Pfad-APIs und deren vorhandene Rechte bleiben unverändert und separat ungeklärt; die neuen geschlossenen APIs schließen diese Lücke nicht. Für die gemeinsame ältere Route `/pflege/planung` fehlt weiterhin eine nachgewiesene Web-Brücke zum nativen Assessmentbezug. Keine Produktionsmigration, klinische Freigabe oder Freischaltung ist erfolgt.

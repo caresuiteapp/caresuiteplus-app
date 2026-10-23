@@ -24,9 +24,16 @@ const ids = {
 };
 let serial = 100;
 const next = () => `34000000-0000-4000-8000-${String(++serial).padStart(12, '0')}`;
-const source = kind => {
+const source = (kind,eventKind) => {
   const id = next();
-  return { kind, id, snapshot: { id, tenant_id: ids.tenant, assessment_id: ids.assessment, title: kind, status: 'current' } };
+  if(kind.endsWith('_path_event')){
+   const assessment=kind==='assessment_path_event',defs=assessmentPathDefinitions,version=assessmentPathVersion,chosen=eventKind??(assessment?'model_version_review':'goal_plan'),definition=defs[chosen],payload={};
+   for(const rule of definition.sources)payload[rule.key]=source(rule.kinds[0],rule.eventKinds?.[0]);
+   for(const rule of definition.fields)payload[rule.key]=value(rule);
+   const command={version,requestId:next(),eventId:id,tenantId:ids.tenant,assessmentId:ids.assessment,actorId:ids.actor,expectedHeadId:null,kind:chosen,occurredAt:'2026-10-16T16:00:00.654321+02:00',note:'Vollständiger synthetischer historischer Quellenvorgang',payload};
+   return{kind,id,snapshot:{id,sequence:1,previousId:null,tenantId:ids.tenant,assessmentId:ids.assessment,actorId:ids.actor,actorName:'Synthetische Fachkraft',recordedAt:command.occurredAt,command}};
+  }
+  const nativeId=kind==='care_assessment'?ids.assessment:id;return { kind, id:nativeId, snapshot: { id:nativeId, tenant_id: ids.tenant, assessment_id: ids.assessment, title: kind, status: 'current',...(kind==='assessment_risk'?{risk_key:'fall'}:kind==='assessment_topic'?{topic_key:'mobility'}:kind==='assessment_measure'?{related_risk_key:'fall',related_topic_key:'mobility'}:{}) } };
 };
 const value = rule => rule.type === 'uuid' ? next()
   : rule.type === 'instant' ? (['validUntil', 'endsAt'].includes(rule.key) ? '2026-11-16T16:30:00.123456+02:00' : '2026-10-16T16:30:00.123456+02:00')
@@ -86,14 +93,14 @@ function historyOf(commands) {
 }
 
 test('vollständiger Verlauf, Fallbindung und aktuelle Originalauswahl werden tief geprüft', () => {
-  const commands = [command('risk_screening'), command('review_request')], history = historyOf(commands);
-  const sources = structuredClone(commands.flatMap(c => assessmentPathDefinitions[c.kind].sources.map(rule => c.payload[rule.key])));
-  const context = { version: assessmentPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: '2026-10-16T16:01:00.123456Z', sources: { count: sources.length, rows: sources }, history };
+  const commands = [command('risk_screening'), command('correction')];commands[1].payload.targetId=commands[0].eventId;const history = historyOf(commands);
+  const sources = structuredClone([...new Map([...commands.flatMap(c => assessmentPathDefinitions[c.kind].sources.map(rule => c.payload[rule.key])),...history.events.map(event=>({kind:'assessment_path_event',id:event.id,snapshot:event}))].map(row=>[`${row.kind}:${row.id.toLowerCase()}`,row])).values()]);
+  const context = { version: assessmentPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: '2026-10-16T16:01:00.123456Z',stateFingerprint:'sha256:'+'a'.repeat(64),supportedWriteKinds:['measure_plan_revision', 'correction'], sources: { count: sources.length, rows: sources }, history };
   assert.equal(decodeAssessmentPathHistory(history, context).state.headId, commands[1].eventId);
   assert.equal(decodeAssessmentPathContext(context, context).sources.count, sources.length);
-  assert.doesNotThrow(() => assertAssessmentPathSelectionCurrent(commands[0], context));
+  assert.doesNotThrow(() => assertAssessmentPathSelectionCurrent({...commands[0],expectedHeadId:context.history.headId}, context));
   context.sources.rows[0].snapshot.status = 'changed';
-  assert.throws(() => assertAssessmentPathSelectionCurrent(commands[0], context), /nicht mehr aktuell/);
+  assert.throws(() => assertAssessmentPathSelectionCurrent({...commands[0],expectedHeadId:context.history.headId}, context), /nicht mehr aktuell/);
   assert.throws(() => decodeAssessmentPathContext({ ...context, assessmentId: next() }, context), /originale/i);
 });
 
@@ -117,7 +124,7 @@ test('Entwurf bleibt konto-, mandanten- und fallgebunden und verwirft veraltete 
 });
 
 test('Formular baut nur einen validierten fallbezogenen Befehl', () => {
-  const kind = 'release_decision', definition = assessmentPathDefinitions[kind];
+  const kind = 'measure_plan_revision', definition = assessmentPathDefinitions[kind];
   const draft = { version: assessmentPathVersion, scope: { tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor }, headId: null, kind, occurredAt: '2026-10-16T16:00:00Z', note: 'Gate',
     values: Object.fromEntries(definition.fields.map(rule => [rule.key, value(rule)])),
     selected: Object.fromEntries(definition.sources.map(rule => { const v = source(rule.kinds[0]); return [rule.key, { id: v.id, value: v }]; })) };
@@ -125,7 +132,7 @@ test('Formular baut nur einen validierten fallbezogenen Befehl', () => {
 });
 
 test('unklarer Ausgang wird ausschließlich lesend wiederaufgenommen', async () => {
-  const store = memory(), c = command('execution_observation'); let commits = 0, confirms = 0;
+  const store = memory(), c = command('measure_plan_revision'); let commits = 0, confirms = 0;
   const workflow = new AssessmentPathWorkflow({ tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor }, {
     storage: store, lock: async (_, action) => action(), isCurrent: () => true,
     commit: async () => { commits++; return { ok: false, uncertain: true, error: 'Antwort verloren' }; },
@@ -141,7 +148,7 @@ function repositoryHarness(reply) {
   const calls = [], sdk = { auth: {
     getSession: async () => ({ error: null, data: { session: { user: { id: ids.actor }, access_token: 'token', expires_at: 4102444800 } } }),
     getUser: async () => ({ error: null, data: { user: { id: ids.actor } } }),
-  }, rpc: (name, args) => { calls.push({ name, args }); return Promise.resolve(reply(name, args)); } };
+  }, rpc: (name, args) => { calls.push({ name, args }); return Promise.resolve(name==='resolve_current_profile_id'?{data:ids.actor,error:null}:name==='current_tenant_id'?{data:ids.tenant,error:null}:reply(name, args)); } };
   let current = true;
   const repository = createAssessmentPathRepository({ getSdk: () => sdk, query: request => Promise.resolve(request) });
   const authority = { tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, accessToken: 'token', expiresAt: 4102444800000, isCurrent: () => current };
@@ -149,14 +156,14 @@ function repositoryHarness(reply) {
 }
 
 test('Repository bindet Kontext, Commit und Quittungslesen an denselben Fall', async () => {
-  const c = command('release_decision'), event = eventOf(c), receipt = { version: assessmentPathVersion, requestId: c.requestId, command: c, event };
-  const context = { version: assessmentPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: c.occurredAt, sources: { count: 0, rows: [] }, history: historyOf([]) };
-  const h = repositoryHarness(name => name === 'web_assessment_path_workspace_context' ? { error: null, data: context } : { error: null, data: receipt });
+  const c = command('measure_plan_revision'), event = eventOf(c), receipt = { version: assessmentPathVersion, requestId: c.requestId, command: c, event };
+  const context = { version: assessmentPathVersion, tenantId: ids.tenant, assessmentId: ids.assessment, actorId: ids.actor, loadedAt: c.occurredAt,stateFingerprint:'sha256:'+'a'.repeat(64),supportedWriteKinds:['measure_plan_revision', 'correction'], sources: { count: 0, rows: [] }, history: historyOf([]) };
+  const h = repositoryHarness(name => name === 'web_assessment_path_v2_context' ? { error: null, data: context } : { error: null, data: receipt });
   assert.equal((await h.repository.context(h.authority)).ok, true);
   assert.equal((await h.repository.commit(h.authority, c)).ok, true);
   assert.equal((await h.repository.confirm(h.authority, c)).ok, true);
-  assert.deepEqual(h.calls.map(x => x.name), ['web_assessment_path_workspace_context', 'web_commit_assessment_path_event', 'web_confirm_assessment_path_event']);
-  assert.deepEqual(h.calls[0].args, { p_tenant_id: ids.tenant, p_assessment_id: ids.assessment, p_actor_id: ids.actor });
+  assert.deepEqual(h.calls.filter(x=>x.name.startsWith('web_')).map(x => x.name), ['web_assessment_path_v2_context','web_assessment_path_v2_context', 'web_commit_assessment_path_v2_event', 'web_confirm_assessment_path_v2_event']);
+  assert.deepEqual(h.calls.find(x=>x.name.startsWith('web_')).args, { p_tenant_id: ids.tenant, p_assessment_id: ids.assessment, p_actor_id: ids.actor });
 });
 
 test('Repository trennt bestätigten SQL-Abbruch, unklaren Ausgang und Rechtewechsel', async () => {
@@ -165,6 +172,6 @@ test('Repository trennt bestätigten SQL-Abbruch, unklaren Ausgang und Rechtewec
   assert.equal((await unknown.repository.commit(unknown.authority, c)).uncertain, true);
   rejected.expire();
   assert.equal((await rejected.repository.context(rejected.authority)).ok, false);
-  assert.equal(rejected.calls.length, 1);
+  assert.equal(rejected.calls.filter(x=>x.name.startsWith('web_')).length, 1);
 });
 
