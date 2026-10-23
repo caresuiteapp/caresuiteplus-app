@@ -8,7 +8,7 @@ import type { RoleKey } from '@/types';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { enforcePermission } from '@/lib/permissions';
-import { loadCompanyDocumentCustomValues, selectCompanyDocumentPrimary } from '@/lib/documents/companyDocumentContext.web';
+import { loadCompanyDocumentCustomValues, selectCompanyDocumentPrimary } from '@/lib/documents/companyDocumentContext';
 
 /** Document/invoice context for templates — extended in later phases. */
 export type TenantDocumentContext = {

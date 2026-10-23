@@ -1,6 +1,6 @@
 import { usePageFlag } from '@/hooks/usePageFlag';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
@@ -58,7 +58,8 @@ export function AssignmentsListScreen({
       showBack={false}
       scroll={false}
       accentColor={assistAccent}
-      actions={[
+      contentOwnsHero={Platform.OS !== 'web'}
+      actions={Platform.OS !== 'web' ? undefined : [
         ...(canManage
           ? [
               {

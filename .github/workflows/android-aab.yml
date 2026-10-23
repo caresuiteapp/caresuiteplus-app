@@ -5,13 +5,15 @@ on:
   push:
     branches:
       - release/android-0.4.0-20261009
+      - release/android-0.5.0-20261016
+      - release/android-0.6.0-20261023
 
 permissions:
   contents: read
 
 concurrency:
   group: caresuite-android-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   android:
@@ -80,6 +82,22 @@ jobs:
             echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006"
             echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
           } >> "$GITHUB_ENV"
+
+      - name: Native Verwaltungsansichten in Handy- und Tabletgrößen prüfen
+        env:
+          CARESUITE_NATIVE_QA_DIR: /tmp/caresuite-native-qa
+        run: node scripts/verify-native-administration-visual.mjs
+
+      - name: Layoutaufnahmen bereitstellen
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Native-Verwaltung-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-qa/*.png
+            /tmp/caresuite-native-qa/verification.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Vollständige native App und frischen Android-Export prüfen
         env:

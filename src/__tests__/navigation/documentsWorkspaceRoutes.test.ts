@@ -38,14 +38,14 @@ describe('document workspace navigation', () => {
     expect(documentsWorkspaceRouteTitle('/business/office/clients/uuid-789')).toBeNull();
   });
 
-  it('preserves Android routes and module membership', () => {
+  it('uses the current document workspace on Android', () => {
     const original = Object.getOwnPropertyDescriptor(Platform, 'OS')!;
     Object.defineProperty(Platform, 'OS', { ...original, value: 'android' });
     try {
-      expect(normalizeNavigationApp(app('/business/templates')).route).toBe('/business/templates');
-      expect(normalizeNavigationApp(app('/office/documents')).route).toBe('/office/documents');
+      expect(normalizeNavigationApp(app('/business/templates')).route).toBe('/business/office/document-catalog');
+      expect(normalizeNavigationApp(app('/office/documents')).route).toBe('/business/office/documents');
       expect(desktopModuleForRoute('/business/templates/documents-hub')).toBeNull();
-      expect(buildDesktopApps([], 'business_admin').some(item => item.id === 'document-settings')).toBe(false);
+      expect(buildDesktopApps([], 'business_admin').some(item => item.id === 'document-settings')).toBe(true);
     } finally { Object.defineProperty(Platform, 'OS', original); }
   });
 });

@@ -12,7 +12,7 @@ export function NativeBusinessPasswordRecoveryScreen() {
   const router = useRouter(); const [email, setEmail] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const lock = useRef(false);
   const submit = async () => { if (lock.current) return; lock.current = true; setBusy(true); setError(''); setSuccess(''); try { const result = await requestBusinessPasswordReset(email); if (!result.ok) setError(result.error); else setSuccess(result.data.message); } catch { setError('Die Anfrage konnte nicht bestätigt werden. Bitte erneut versuchen.'); } finally { lock.current = false; setBusy(false); } };
   return <AccessShell eyebrow="VERWALTUNG · WIEDERHERSTELLUNG" title="Zugang sicher wiederherstellen" subtitle="Ein einmaliger Rücksetz-Link für Ihr aktives Verwaltungskonto. Portalzugänge werden durch die zuständige Verwaltung betreut." backRoute="/auth/business-login" backDisabled={busy}>
-    <LiquidSurface active><View style={{ gap: 18 }}>{error ? <LiquidState kind="error" title="Versand nicht bestätigt" message={error} /> : null}{success ? <LiquidState kind="success" title="E-Mail geprüft" message={success} /> : null}
+    <LiquidSurface active contentStyle={{ padding: 22 }}><View style={{ gap: 18 }}>{error ? <LiquidState kind="error" title="Versand nicht bestätigt" message={error} /> : null}{success ? <LiquidState kind="success" title="E-Mail geprüft" message={success} /> : null}
       <LiquidField label="Verwaltungs-E-Mail" value={email} onChangeText={value => { if (!lock.current) setEmail(value); }} keyboardType="email-address" autoCapitalize="none" autoComplete="email" required />
       <LiquidButton label={busy ? 'Link wird angefordert …' : 'Rücksetz-Link anfordern'} disabled={busy} loading={busy} onPress={() => void submit()} />
       <LiquidButton label="Rücksetz-Link aus E-Mail in der App öffnen" variant="secondary" disabled={busy} onPress={() => router.push('/auth/reset-password')} />
@@ -33,7 +33,7 @@ export function NativeBusinessPasswordResetScreen() {
     finally { lock.current = false; setBusy(false); }
   };
   return <AccessShell eyebrow="VERWALTUNG · NEUES PASSWORT" title="Ihr Zugang bleibt Ihrer" subtitle="Der Rücksetz-Link gilt ausschließlich für Ihr Verwaltungskonto. Ein neues Passwort muss 10 bis 128 Zeichen haben." backRoute="/auth/business-login" backDisabled={busy}>
-    <LiquidSurface active><View style={{ gap: 18 }}>
+    <LiquidSurface active contentStyle={{ padding: 22 }}><View style={{ gap: 18 }}>
       {error ? <LiquidState kind="error" title="Wiederherstellung nicht bestätigt" message={error} /> : null}
       {completed ? <><LiquidState kind="success" title="Passwort geändert" message="Ihr neues Verwaltungspasswort wurde gespeichert. Melden Sie sich damit erneut an." /><LiquidButton label="Zur Verwaltungsanmeldung" onPress={() => router.replace('/auth/business-login')} /></> : token ? <>
         <LiquidField label="Neues Passwort" secureTextEntry value={password} onChangeText={value => { if (!lock.current) setPassword(value); }} maxLength={128} required />

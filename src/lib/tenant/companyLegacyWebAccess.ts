@@ -1,12 +1,12 @@
-import { Platform } from 'react-native';
+import { currentCompanyWorkflows } from './currentCompanyWorkflows';
 import type { ServiceResult } from '@/types';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
-import { loadCompanyAccess } from './companyAccessService.web';
+import { loadCompanyAccess } from './companyAccessService';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
-/** Company-wide legacy records have no structural scope; native callers retain their existing checks. */
+/** Company-wide records require unrestricted, server-confirmed access on every platform. */
 export async function guardLegacyCompanyWebAccess<T>(tenantId: string): Promise<ServiceResult<T> | null> {
-  if (Platform.OS !== 'web') return null;
+  if (!currentCompanyWorkflows) return null;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
   if (!isLiveServiceMode()) return { ok: false, error: 'Unternehmensdaten benötigen eine aktive Datenverbindung. Es werden keine Beispieldaten verwendet.' };

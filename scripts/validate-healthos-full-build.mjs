@@ -23,7 +23,7 @@ if (!build || String(build.platform).toLowerCase() !== 'android' || String(build
   throw new Error('Der Android-Build wurde nicht erfolgreich abgeschlossen.');
 }
 const code = parseCode(build.appBuildVersion, 'Build-Version');
-if (build.appVersion !== '0.4.0' || code <= 40 || code <= baseline) throw new Error('Der AAB hat nicht die erwartete höhere Release-Version.');
+if (build.appVersion !== '0.6.0' || code <= 40 || code <= baseline) throw new Error('Der AAB hat nicht die erwartete höhere Release-Version.');
 if (build.buildProfile !== 'healthos-full-aab' || build.gitCommitHash !== commit) throw new Error('Der Build gehört nicht zum geprüften vollständigen Release-Stand.');
 if (build.project?.id !== '567bda34-8356-4de8-9349-a0de3143567e') throw new Error('Falsches Build-Projekt.');
 if (typeof build.id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(build.id)) throw new Error('Ungültige Build-ID.');
@@ -36,4 +36,4 @@ if (url.protocol !== 'https:' || url.username || url.password || !url.pathname.t
 writeFileSync(join(stateDirectory, 'build-id.txt'), build.id);
 writeFileSync(join(stateDirectory, 'build-code.txt'), String(code));
 writeFileSync(join(stateDirectory, 'download-url.txt'), url.href);
-console.log(`Vollständiger AAB geprüft: 0.4.0 (${code}), Build-ID ${build.id}.`);
+console.log(`Vollständiger AAB geprüft: 0.6.0 (${code}), Build-ID ${build.id}.`);

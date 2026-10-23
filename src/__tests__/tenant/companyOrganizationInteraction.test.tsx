@@ -6,7 +6,7 @@ import { CompanyOrganizationWorkspace, type CompanyOrganizationWorkspaceProps } 
 import type { CompanyLegalEntity, CompanyOrganizationPermissions, CompanyOrganizationResult, CompanyOrganizationSnapshot, CompanySite } from '@/types/tenant/companyOrganization';
 
 const h = vi.hoisted(() => ({ load: vi.fn(), saveSite: vi.fn(), saveDepartment: vi.fn(), saveEntity: vi.fn(), savePlacement: vi.fn(), saveRelationship: vi.fn(), archive: vi.fn(), confirm: vi.fn(), changeView: vi.fn(), permissions: { view: true, manage: true, viewEmployees: true, managePlacements: true } }));
-vi.mock('@/lib/tenant/companyOrganizationService.web', () => ({
+vi.mock('@/lib/tenant/companyOrganizationService', () => ({
   getCompanyOrganizationPermissions: () => h.permissions, loadCompanyOrganization: (...args: unknown[]) => h.load(...args),
   saveCompanySite: (...args: unknown[]) => h.saveSite(...args), saveCompanyDepartment: (...args: unknown[]) => h.saveDepartment(...args),
   saveCompanyLegalEntity: (...args: unknown[]) => h.saveEntity(...args), saveCompanyEmployeePlacement: (...args: unknown[]) => h.savePlacement(...args),
