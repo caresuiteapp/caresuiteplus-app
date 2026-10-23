@@ -2,7 +2,24 @@
 
 Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
-## Ausgeführt
+## Prüfmatrix am 23.10.2026
+
+Die [Arbeitsgrundlage für vier Prüfbereiche](approval/README.md) enthält
+36 Quellen mit SHA-256, 744 Anforderungsverweise aus drei KIM-Steckbriefen,
+14 ITSG-Fälle und 25 Arbeitspakete. Der Import wurde erneut gegen die exakten
+Original-HTML-Bytes ausgeführt. Unterschiedliche Nachweisarten und gleichnamige
+Kennungen aus unterschiedlichen Spezifikationen bleiben getrennt.
+
+Neun gezielte Katalogtests bestanden: Vollständigkeit und Quellenbindung,
+mehrfach referenzierte IDs, fehlende/duplizierte Zeilen, Versions-/Ankerfehler,
+unbelegte Freigabebehauptungen, Dateipfade, Abhängigkeiten und offene
+Anbieterkonstellationsverweise. Der Konsistenzcheck bestätigt keine Zulassung.
+Der ausdrückliche Bereitschaftscheck endet weiterhin mit Exitcode 3.
+App-Code, Datenbank und Versandfreigaben wurden nicht verändert; deshalb wurde
+der Fach-/Dienstgesamtlauf für diese Dokumentations- und Werkzeugänderung nicht
+wiederholt. Der folgende Gesamtlauf gehört zur bisherigen Implementierung.
+
+## Letzter Fach-/Dienstgesamtlauf
 
 ```bash
 node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs

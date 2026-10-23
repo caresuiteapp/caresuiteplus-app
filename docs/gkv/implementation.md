@@ -5,6 +5,11 @@ klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
 
+Die [Prüfvorbereitung mit Quellen, Arbeitspaketen und Nachweisregeln](approval/README.md)
+erfasst jetzt alle vier vereinbarten Prüfbereiche. Die KIM-Verweise stammen aus
+den am 22.10.2026 freigegebenen Steckbriefen; frühere lokale Teilbelege werden
+nicht ohne Versionsabgleich als Erfüllung dieser Anforderungen übernommen.
+
 Der Auftrag umfasst seit 20.10.2026 ausdrücklich **Eigenentwicklung von DTA und
 KIM einschließlich eigenem Fachdienst**. Der neue ausführbare Dienstkern und die
 noch offenen Integrations-/Zulassungsschritte sind in

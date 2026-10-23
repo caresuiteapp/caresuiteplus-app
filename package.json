@@ -8,6 +8,7 @@
   },
   "scripts": {
     "verify:gkv:services": "node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/*.test.mjs",
+    "verify:gkv:approval-catalogue": "node scripts/check-gkv-approval-readiness.mjs --check && node --test tests/gkv-exchange/approval-catalogue.test.mjs",
     "android:healthos:local": "bash scripts/build-healthos-core-local-android.sh",
     "android:portal-only:local": "bash scripts/build-healthos-core-local-android.sh",
     "portal-only:audit": "vitest run src/__tests__/platform/portalOnlyEdition.test.ts",

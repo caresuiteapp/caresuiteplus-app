@@ -562,12 +562,18 @@ Es wurden weder Pakete installiert noch Transportbytes an den abweichenden Decod
 
 ## Anforderungen und verbleibende Implementierung
 
-`kim-fd-requirements.json` inventarisiert die normativen Anforderungskennungen
-der freigegebenen FD-Spezifikation 1.24.0. Die wenigen Komponenten mit lokalen
+`kim-fd-requirements.json` hält das bisherige Inventar der Anforderungskennungen
+der FD-Spezifikation 1.24.0 fest. Die wenigen Komponenten mit lokalen
 Nachweisen sind als **teilweise** belegt markiert. Alle anderen bleiben offen.
 Dies ist noch nicht der vollständige Anforderungskatalog des Produktsteckbriefs:
 Clientmodul, S/MIME, Kryptografie, PKI/TSL, Netz, Betrieb, Datenschutz und
 Zulassungs-/Anbietervorgaben müssen zusätzlich vollständig zugeordnet werden.
+
+Die [aktuelle Prüfmatrix](approval/README.md) ergänzt die vollständigen
+Anforderungsverweise aus den Steckbriefen für integrierten Client, Fachdienst
+und Anbieter vom 22.10.2026. Diese verweisen unter anderem auf FD 1.25.0.
+Die 28 bisherigen Teilbelege bleiben historische Kandidaten; die Einzelbewertung
+gegen die neu festgelegten Quellen und die vollständige DTA-Feldmatrix sind offen.
 
 | Arbeitspaket | Verbleibender Nachweis / Implementierung |
 | --- | --- |
