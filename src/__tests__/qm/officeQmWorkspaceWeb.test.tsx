@@ -5,6 +5,7 @@ import { buildSync } from 'esbuild';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { qmWorkspaceCss } from '@/components/qm/qmWorkspaceCss.web';
 import type { QmDashboardSnapshot } from '@/lib/qm/qm.types';
 
 const snapshot = (): QmDashboardSnapshot => ({
@@ -22,6 +23,9 @@ const dependencies: Record<string, unknown> = {
   'expo-router': { useRouter: () => ({ push: api.push }) },
   '@/components/layout/ScreenShell.web': { ScreenShell: ({ children }: { children: React.ReactNode }) => <main>{children}</main> },
   '@/components/catalog/CatalogWorkspace.web': { CatalogIcon: () => <span aria-hidden="true" /> },
+  // esbuild also externalizes subpaths of the clinical barrel below. Supply
+  // the real shared stylesheet while keeping the clinical readers guarded.
+  '@/components/qm/qmWorkspaceCss.web': { qmWorkspaceCss },
   '@/liquid-command/components/DesktopCatalogArtwork.web': { DesktopCatalogArtwork: ({ label }: { label: string }) => <img alt="" data-artwork-label={label} /> },
   '@/hooks/qm': { useQmDashboard: () => api },
   // These prepared boundaries are deliberately poisonous: the overview and its
