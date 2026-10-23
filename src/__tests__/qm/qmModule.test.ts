@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
@@ -31,6 +31,11 @@ import {
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
+
+beforeEach(() => {
+  vi.stubEnv('EXPO_PUBLIC_APP_EDITION', 'demo');
+  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+});
 
 describe('QM Module Permissions', () => {
   it('blockiert ohne qm.view', () => {

@@ -2,9 +2,9 @@ import {useEffect,useRef} from 'react';
 import {useAuth} from '@/lib/auth/context';
 import {useServiceTenantId} from '@/hooks/useTenantId';
 import {useAsyncQuery} from '@/hooks/core';
-import type {useCareRuntimePermissions} from '@/hooks/pflege/useCareRuntimePermissions.web';
-import {carePermissionOwner,sameCarePermissionOwner} from '@/lib/permissions/carePermissionOwner.web';
-import type {CarePermissionOwner} from '@/lib/permissions/carePermissionOwner.web';
+import type {useQmRuntimePermissions} from '@/hooks/qm/useQmRuntimePermissions.web';
+import {qmReadOwner,sameQmReadOwner} from '@/lib/qm/qmReadOwner.web';
+import type {QmReadScope} from '@/lib/qm/confirmQmReadScope.web';
 import {getServiceMode} from '@/lib/services/mode';
 import {getSupabaseClient} from '@/lib/supabase/client';
 import {fetchQmDocument,fetchQmDocumentVersions,fetchQmReadConfirmations} from '@/lib/qm';
@@ -13,41 +13,22 @@ import {woundUuid} from '@/lib/pflege/woundCareDomain';
 import {projectQmDocumentVersionReferenceWeb} from '@/lib/qm/qmDocumentVersionReference.web';
 import type {QmVersionReferenceWeb} from '@/lib/qm/qmDocumentVersionReference.web';
 
-type Runtime=ReturnType<typeof useCareRuntimePermissions>;
+type Runtime=ReturnType<typeof useQmRuntimePermissions>;
 type Kind='document'|'versions'|'confirmations';
 type SourceResult={ok:true;data:unknown}|{ok:false;error:string};
 type RecordRead={ticket:number;original:unknown|null};
-type Generation={serial:number;alive:boolean;valid:boolean;checking:boolean;authBlocked:boolean;owner:CarePermissionOwner|null;documentId:string|null;origin:Runtime['permissions'];can:Runtime['can'];sdk:unknown;reads:Record<Kind,RecordRead>};
+type Generation={serial:number;alive:boolean;valid:boolean;checking:boolean;authBlocked:boolean;owner:QmReadScope|null;documentId:string|null;origin:Runtime['permissions'];can:Runtime['can'];sdk:unknown;reads:Record<Kind,RecordRead>};
 export type QmReferenceReadStateWeb={state:'unavailable'|'loading'|'refreshing'|'error'|'unverified_cache'|'supplied';error:string|null};
 const denied='Der eigene QM-Lesezugriff ist nicht mehr aktuell.';
 /** Read only own data fields of the current business identity. Never traverse inherited getters or clone credentials into public data. */
-function qmAuthOwner(auth:unknown,tenantId:string|null):CarePermissionOwner|null{
- try{
-  const own=(object:unknown,key:string,optional=false):unknown=>{
-   if(!object||typeof object!=='object'||Array.isArray(object))throw Error('Own auth context missing');
-   const descriptor=Object.getOwnPropertyDescriptor(object,key);
-   if(!descriptor){if(optional)return null;throw Error('Own auth field missing');}
-   if(!Object.hasOwn(descriptor,'value')||descriptor.enumerable!==true)throw Error('Own auth data field missing');
-   return descriptor.value;
-  };
-  const authReady=own(auth,'authReady'),isAuthenticated=own(auth,'isAuthenticated'),isLoading=own(auth,'isLoading'),profileBootstrapError=own(auth,'profileBootstrapError'),portalSession=own(auth,'portalSession');
-  if(authReady!==true||isAuthenticated!==true||isLoading!==false||(profileBootstrapError!==null&&typeof profileBootstrapError!=='string')||portalSession!==null)return null;
-  const profile=own(auth,'profile'),user=own(auth,'user'),session=own(auth,'session'),sessionUser=own(session,'user');
-  const profileId=own(profile,'id'),profileTenant=own(profile,'tenantId'),profileRole=own(profile,'roleKey'),userId=own(user,'id'),sessionUserId=own(sessionUser,'id');
-  const userRole=own(user,'roleKey',true),sessionRole=own(sessionUser,'roleKey',true),accessToken=own(session,'accessToken'),expiresAt=own(session,'expiresAt');
-  if(typeof profileId!=='string'||typeof profileTenant!=='string'||typeof profileRole!=='string'||typeof userId!=='string'||typeof sessionUserId!=='string'||typeof accessToken!=='string'||(expiresAt!==null&&typeof expiresAt!=='number'))return null;
-  if((userRole!==null&&userRole!==undefined&&typeof userRole!=='string')||(sessionRole!==null&&sessionRole!==undefined&&typeof sessionRole!=='string'))return null;
-  // The shared owner predicate still validates UUIDs, known role, matching IDs/tenant, nonempty credential and actual expiry.
-  return carePermissionOwner({authReady,isAuthenticated,isLoading,profileBootstrapError,portalSession,profile:{id:profileId,tenantId:profileTenant,roleKey:profileRole},user:{id:userId,roleKey:userRole as string|null|undefined},session:{user:{id:sessionUserId,roleKey:sessionRole as string|null|undefined},accessToken,expiresAt}},tenantId,false);
- }catch{return null;}
-}
+function qmAuthOwner(auth:unknown,tenantId:string|null):QmReadScope|null{return qmReadOwner(auth,tenantId);}
 /** Existing three SELECT services only. Delivery is a supplied, unverified excerpt, never a database read capability. */
 export function useQmDocumentReferenceRead(documentId:unknown,runtime:Runtime){
  const auth=useAuth(),tenantId=useServiceTenantId(),owner=qmAuthOwner(auth,tenantId);
  const ownId=woundUuid(documentId)?documentId:null;
  const alive=useRef(true),serial=useRef(0),current=useRef<Generation|null>(null),latest=useRef({auth,tenantId,documentId:ownId,runtime});
  latest.current={auth,tenantId,documentId:ownId,runtime};
- if(!current.current||!sameCarePermissionOwner(current.current.owner,owner)||current.current.documentId!==ownId||current.current.origin!==runtime.permissions||(current.current.authBlocked&&owner&&runtime.can('qm.view')===true&&runtime.can('qm.view_versions')===true&&getServiceMode()==='supabase'&&getSupabaseClient())){
+ if(!current.current||!sameQmReadOwner(current.current.owner,owner)||current.current.documentId!==ownId||current.current.origin!==runtime.permissions||(current.current.authBlocked&&owner&&runtime.can('qm.view')===true&&runtime.can('qm.view_versions')===true&&getServiceMode()==='supabase'&&getSupabaseClient())){
   if(current.current){current.current.valid=false;for(const row of Object.values(current.current.reads))row.original=null;}
   current.current={serial:++serial.current,alive:true,valid:true,checking:false,authBlocked:false,owner,documentId:ownId,origin:runtime.permissions,can:runtime.can,sdk:getSupabaseClient(),reads:{document:{ticket:0,original:null},versions:{ticket:0,original:null},confirmations:{ticket:0,original:null}}};
  }
@@ -59,7 +40,7 @@ export function useQmDocumentReferenceRead(documentId:unknown,runtime:Runtime){
   if(!ownOwner){generation.authBlocked=true;return false;}
   return !!generation.owner&&!!generation.documentId&&context.documentId===generation.documentId&&context.tenantId===generation.owner.tenantId
    &&context.runtime.tenantId===generation.owner.tenantId&&context.runtime.roleKey===generation.owner.roleKey&&context.runtime.permissions===generation.origin
-   &&sameCarePermissionOwner(generation.owner,ownOwner)
+   &&sameQmReadOwner(generation.owner,ownOwner)
    &&generation.can('qm.view')===true&&generation.can('qm.view_versions')===true&&context.runtime.can('qm.view')===true&&context.runtime.can('qm.view_versions')===true;
  };
  const isCurrent=()=>{
@@ -76,6 +57,8 @@ export function useQmDocumentReferenceRead(documentId:unknown,runtime:Runtime){
   const read=generation.reads[kind],ticket=++read.ticket;read.original=null;
   if(!isCurrent())return {ok:false as const,error:denied};
   const nativeOwner=generation.owner!,id=generation.documentId!;
+  const confirmed=await latest.current.runtime.confirmRead();
+  if(!confirmed.ok||!isCurrent()||read.ticket!==ticket)return {ok:false as const,error:confirmed.ok?denied:confirmed.error};
   const result=kind==='document'?await fetchQmDocument(nativeOwner.tenantId,id,nativeOwner.roleKey):kind==='versions'?await fetchQmDocumentVersions(nativeOwner.tenantId,id,nativeOwner.roleKey):await fetchQmReadConfirmations(nativeOwner.tenantId,id,nativeOwner.roleKey);
   if(!isCurrent()||read.ticket!==ticket)return {ok:false as const,error:denied};
   try{
