@@ -13,6 +13,21 @@ export function readSavedDesktopWidgetIds(value: string | null): string[] | null
   return [...new Set(parsed.filter((id): id is string => typeof id === 'string'))];
 }
 
+/** Optional recommendation preferences must not block restoration of the desktop. */
+export function readDismissedDesktopSuggestionRoutes(value: string | null): string[] {
+  if (value === null) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed
+      .filter((route): route is string => typeof route === 'string')
+      .map(route => route.trim())
+      .filter(route => route.startsWith('/') && !route.startsWith('//')))];
+  } catch {
+    return [];
+  }
+}
+
 /** Replace visible placements while retaining hidden saved IDs in their existing order. */
 export function mergeDesktopWidgetPreferences(visibleIds: readonly string[], savedIds: readonly string[], availableIds: readonly string[]): string[] {
   const allowed = new Set(availableIds);

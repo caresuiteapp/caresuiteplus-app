@@ -144,6 +144,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const navigationRailRef = useRef<View>(null);
   const navigationCloseRef = useRef<View>(null);
   const widgetButtonRefs = useRef(new Map<string, View>());
+  const emptySlotButtonRefs = useRef(new Map<number, View>());
+  const dismissedSlot = useRef<{ index: number; tenantId: string; owner: string; area: DesktopAreaKey } | null>(null);
   const acceptedWidgetId = useRef<string | null>(null);
   const shortViewport = height < 600 * fontScale;
   const [topbarHeight, setTopbarHeight] = useState(0);
@@ -207,7 +209,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     ...workflow, permission: workflow.id === 'assignment' ? 'assist.assignments.manage' as PermissionKey : undefined,
   })), selectedArea, permissions) : [], [areaAllowed, selectedArea, permissions]);
   const { ready, loadError, saveStatus, desktopIds, setDesktopIds, sidebarOpen, setSidebarOpen,
-    backgroundId, setBackgroundId, recoverableWidgetIds, retry } = useDesktopPreferences({
+    backgroundId, setBackgroundId, recoverableWidgetIds, dismissedSuggestionRoutes, dismissSuggestion, retry } = useDesktopPreferences({
     tenantId, owner, selectedArea, availableWidgetIds: moduleWidgetIds, defaultWidgetIds: moduleDefaults, migrationWidgetIds,
   });
   const navigationOpen = compact ? mobileSidebarOpen : sidebarOpen;
@@ -219,6 +221,17 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     const button = widgetButtonRefs.current.get(id);
     if (button) { button.focus(); acceptedWidgetId.current = null; }
   }, [desktopIds]);
+
+  useEffect(() => {
+    const target = dismissedSlot.current;
+    if (!target) return;
+    if (target.tenantId !== tenantId || target.owner !== owner || target.area !== selectedArea) {
+      dismissedSlot.current = null;
+      return;
+    }
+    const button = emptySlotButtonRefs.current.get(target.index);
+    if (button) { button.focus(); dismissedSlot.current = null; }
+  }, [dismissedSuggestionRoutes, tenantId, owner, selectedArea]);
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
   useEffect(() => setMobileSidebarOpen(false), [compact]);
@@ -257,6 +270,13 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       ? current : [...current, id]);
     setSuggestionAnnouncement(`${widget.label} auf ${moduleLabel} übernommen.`);
   };
+  const dismissWidgetSuggestion = (id: string, index: number) => {
+    const widget = areaWidgetById.get(id);
+    if (!ready || !areaAllowed || !widget) return;
+    dismissedSlot.current = { index, tenantId, owner, area: selectedArea };
+    dismissSuggestion(widget.route);
+    setSuggestionAnnouncement(`${widget.label} als Vorschlag auf ${moduleLabel} ausgeblendet.`);
+  };
   const movePinned = (id: string, direction: -1 | 1) => setDesktopIds(current => {
     const index = current.indexOf(id), target = index + direction;
     if (index < 0 || target < 0 || target >= current.length) return current;
@@ -270,9 +290,14 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const suggestedWidgets = useMemo(() => suggestDesktopWidgets(moduleWidgets, desktopIds, selectedArea, desktopCatalogAreaForRoute),
     [moduleWidgets, desktopIds, selectedArea]);
   const suggestedSlots = new Map<number, WidgetDefinition>();
+  const dismissedRoutes = new Set(dismissedSuggestionRoutes);
+  let suggestionIndex = 0;
   slots.forEach((widget, index) => {
-    const suggestion = suggestedWidgets[suggestedSlots.size];
-    if (!widget && suggestion) suggestedSlots.set(index, suggestion);
+    if (widget) return;
+    // A dismissed recommendation leaves its slot empty; do not immediately fill
+    // it with another one or move the remaining close buttons under the pointer.
+    const suggestion = suggestedWidgets[suggestionIndex++];
+    if (suggestion && !dismissedRoutes.has(suggestion.route)) suggestedSlots.set(index, suggestion);
   });
   const hasSuggestions = suggestedSlots.size > 0;
   const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile, hasSuggestions), [effectiveScale, mobile, hasSuggestions]);
@@ -421,9 +446,10 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
                     </Pressable>
                   ) : suggestedSlots.has(index) ? (
                     <DesktopWidgetSuggestion widget={suggestedSlots.get(index)!} areaLabel={moduleLabel} fontScale={effectiveScale}
-                      onAccept={() => acceptSuggestion(suggestedSlots.get(index)!.id)} onChooseOther={() => openCenter("widgets")} />
+                      onAccept={() => acceptSuggestion(suggestedSlots.get(index)!.id)} onChooseOther={() => openCenter("widgets")}
+                      onDismiss={() => dismissWidgetSuggestion(suggestedSlots.get(index)!.id, index)} />
                   ) : (
-                    <Pressable accessibilityRole="button" accessibilityLabel="Widget hinzufügen" onPress={() => openCenter("widgets")} style={styles.emptyCard} {...{ dataSet: { csDesktopWidgetEmpty: "true" } }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>Desktop-Widget auswählen</Text></Pressable>
+                    <Pressable ref={node => { if (node) emptySlotButtonRefs.current.set(index, node); else emptySlotButtonRefs.current.delete(index); }} accessibilityRole="button" accessibilityLabel="Widget hinzufügen" onPress={() => openCenter("widgets")} style={styles.emptyCard} {...{ dataSet: { csDesktopWidgetEmpty: "true" } }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>Desktop-Widget auswählen</Text></Pressable>
                   )}
                 </View>
               ))}

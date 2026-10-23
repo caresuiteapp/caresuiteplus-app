@@ -4,6 +4,7 @@ export const desktopWidgetSuggestionCss = `
   .cs-desktop-suggestion * { box-sizing: border-box; }
   .cs-desktop-suggestion {
     --cs-suggestion-scale: var(--cs-desktop-suggestion-scale, 1);
+    position: relative;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     flex: 1 0 auto;
@@ -28,6 +29,7 @@ export const desktopWidgetSuggestionCss = `
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    padding-right: 34px;
   }
   .cs-desktop-suggestion-badge {
     align-self: flex-start;
@@ -104,6 +106,23 @@ export const desktopWidgetSuggestionCss = `
     overflow-wrap: anywhere;
     transition: background 180ms ease, box-shadow 180ms ease;
   }
+  .cs-desktop-suggestion-dismiss {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid rgba(113, 224, 255, .48);
+    border-radius: 10px;
+    background: rgba(5, 24, 44, .8);
+    color: #d8f5ff;
+    font-size: 23px;
+    line-height: 1;
+  }
   .cs-desktop-suggestion-accept {
     display: flex;
     align-items: center;
@@ -165,6 +184,7 @@ export const desktopWidgetSuggestionCss = `
     .cs-desktop-suggestion:hover .cs-desktop-suggestion-artwork { transform: scale(1.035); }
     .cs-desktop-suggestion-accept:hover { background: linear-gradient(180deg, #a4f1ff, #65dbf4); }
     .cs-desktop-suggestion-other:hover { background: rgba(118, 223, 255, .12); }
+    .cs-desktop-suggestion-dismiss:hover { background: rgba(35, 111, 140, .8); }
   }
   @media (prefers-reduced-motion: reduce) {
     .cs-desktop-suggestion,
