@@ -10,6 +10,7 @@ Dieses Update führt den aktuellen Web-Stand mit den nativen Verwaltungsansichte
 - Mehrere Mitarbeitende oder das ganze Team für Kalendertermine auswählen.
 - Klienten-, Personal-, Notiz- und Kalenderansichten berücksichtigen die tatsächlich verfügbare Inhaltsbreite und vergrößerte Schrift, auch bei geteilter Tabletansicht.
 - Aktuelle Mitarbeiter-, Klienten- und Angehörigenportale sowie Registrierung, Anmeldung, erstes Passwort und Passwort-Wiederherstellung sind in die Release-Prüfungen einbezogen.
+- Zugangskarten trennen Figuren und Aktionen auch auf kleinen Displays. Passwortformulare erhalten konsistente Innenabstände; das Angehörigenportal verwendet stabile Kartenhöhen, eine passende Kopfzeile und zur Rolle passende Beschriftungen.
 
 ## Nachweise und verbleibende Geräteprüfung
 

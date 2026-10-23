@@ -98,7 +98,8 @@ export function NativeNotes({ actor }: { actor: NotesActor }) {
   const columns = width >= 900 * Math.max(1, fontScale) ? 2 : 1;
   return <View onLayout={onLayout} style={m.page}>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[m.content, { maxWidth: 1280, width: '100%', alignSelf: 'center' }]}>
-      <MobileHeading title="Notizen" subtitle="Ihre persönlichen Gedanken, Aufgaben und Gesprächsnotizen" icon="edit-3" action={<MobileButton label="Neu" icon="plus" primary onPress={() => setTemplates(true)} disabled={busy} />} />
+      <MobileHeading title="Notizen" subtitle="Persönliche Notizen und Aufgaben" icon="edit-3" action={width >= 540 * fontScale ? <MobileButton label="Neu" icon="plus" primary onPress={() => setTemplates(true)} disabled={busy} /> : undefined} />
+      {width < 540 * fontScale ? <MobileButton label="Neue Notiz" icon="plus" primary onPress={() => setTemplates(true)} disabled={busy} /> : null}
       <MobileSearch label="Notizen durchsuchen" placeholder="Titel, Inhalt oder Schlagwort" value={query} onChangeText={setQuery} />
       <View style={[m.wrap, { justifyContent: 'space-between' }]}><MobileChips label="Notizenansicht" items={[{ key: 'active', label: 'Aktuell' }, { key: 'archived', label: 'Archiv' }]} value={tab} onChange={setTab} /><MobileButton label="Aktualisieren" compact icon="refresh-cw" onPress={() => void refresh()} disabled={loading || busy} /></View>
       {announcement ? <Text accessibilityLiveRegion="polite" style={m.muted}>{announcement}</Text> : null}

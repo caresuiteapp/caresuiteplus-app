@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: caresuite-android-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   android:

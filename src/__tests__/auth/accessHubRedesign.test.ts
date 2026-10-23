@@ -55,13 +55,13 @@ describe('CareSuite access hub redesign', () => {
     expect(hub).not.toContain('accessCardFrame: { flex: 1');
   });
 
-  it('centers stacked role labels and keeps every character fully visible in the foreground', () => {
+  it('centers role labels and gives mobile characters their own space beside the actions', () => {
     expect(hub).toContain("accessTitleStacked: {");
     expect(hub).toContain("textAlign: 'center'");
     expect(hub).toContain("position: 'absolute'");
-    expect(hub).toContain('left: 22');
-    expect(hub).toContain('zIndex: 4');
-    expect(hub).toContain('elevation: 12');
+    expect(hub).toContain('width: 84');
+    expect(hub).toContain("width: 'auto'");
+    expect(hub).not.toContain('left: 22');
   });
 
   it('keeps the mobile access flow clear of device safe areas', () => {

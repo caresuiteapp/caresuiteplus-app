@@ -43,12 +43,12 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 describe('native personal Office notes', () => {
   it('creates contact templates with native secure IDs and saves the actual form content', async () => {
     api.save.mockImplementation(async (_actor: NotesActor, operation: any) => ({ ok: true, data: { ...note(), ...operation.draft, id: operation.id, revision: 1 } }));
-    await render(); await click('Neu'); await click('Kontakt erstellen'); await fill('Titel', 'Rückruf'); await fill('Name', 'Marlene Beispiel'); await fill('Notiztext', 'Am Dienstag zurückrufen.'); await click('Notiz speichern');
+    await render(); await click('Neue Notiz'); await click('Kontakt erstellen'); await fill('Titel', 'Rückruf'); await fill('Name', 'Marlene Beispiel'); await fill('Notiztext', 'Am Dienstag zurückrufen.'); await click('Notiz speichern');
     expect(api.save).toHaveBeenCalledWith(actor, expect.objectContaining({ expectedRevision: null, draft: expect.objectContaining({ title: 'Rückruf', content: expect.objectContaining({ text: 'Am Dienstag zurückrufen.', fields: expect.arrayContaining([expect.objectContaining({ label: 'Name', value: 'Marlene Beispiel' })]) }) }) }));
     expect(host.querySelector('[role="dialog"]')).toBeNull(); expect(host.textContent).toContain('Notiz gespeichert.');
   });
   it('retains a failed draft and retries the same UUID and revision', async () => {
-    await render(); await click('Neu'); await click('Leere Notiz erstellen'); await fill('Titel', 'Entwurf'); await fill('Notiztext', 'Diesen Inhalt behalten'); await click('Notiz speichern');
+    await render(); await click('Neue Notiz'); await click('Leere Notiz erstellen'); await fill('Titel', 'Entwurf'); await fill('Notiztext', 'Diesen Inhalt behalten'); await click('Notiz speichern');
     expect(host.textContent).toContain('Der Entwurf bleibt erhalten'); expect(host.querySelector<HTMLInputElement>('[aria-label="Notiztext"]')!.value).toBe('Diesen Inhalt behalten');
     await click('Notiz speichern'); expect(api.save.mock.calls[1][1]).toEqual(api.save.mock.calls[0][1]);
   });
@@ -59,7 +59,7 @@ describe('native personal Office notes', () => {
     expect(host.querySelector<HTMLInputElement>('[aria-label="Titel"]')!.value).toBe('Geänderte Teamrunde');
   });
   it('requires an explicit discard action before closing an unsaved editor', async () => {
-    await render(); await click('Neu'); await click('Leere Notiz erstellen'); await fill('Titel', 'Behalten'); await click('Abbrechen');
+    await render(); await click('Neue Notiz'); await click('Leere Notiz erstellen'); await fill('Titel', 'Behalten'); await click('Abbrechen');
     expect(host.querySelector('[role="dialog"]')).toBeTruthy(); expect(api.alert).toHaveBeenCalled();
     await act(async () => api.alert.mock.calls[0][2][1].onPress()); expect(host.querySelector('[role="dialog"]')).toBeNull(); expect(api.save).not.toHaveBeenCalled();
   });
