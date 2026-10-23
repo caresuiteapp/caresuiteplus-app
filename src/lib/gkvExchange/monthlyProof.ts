@@ -39,6 +39,10 @@ export type MonthlyProofCommand =
   | {action: 'correct'; input: VersionInput & {new_id: string; reason: string}}
   | {action: 'finalize_missing'; input: VersionInput & {content_sha256: string; reason: string}}
   | {action: 'confirm'; input: VersionInput & {content_sha256: string; receipt_id: string}};
+export class MonthlyProofWriteError extends Error {
+  readonly uncertain: boolean;
+  constructor(message: string, uncertain: boolean) { super(message); this.name = 'MonthlyProofWriteError'; this.uncertain = uncertain; }
+}
 export type MonthlyProofRpc = (name: string, args: Row) => Promise<{data: unknown; error: unknown}>;
 const object = (value: unknown): value is Row => !!value && typeof value === 'object' && !Array.isArray(value);
 const text = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
@@ -104,10 +108,10 @@ export async function executeMonthlyProofCommand(rpc: MonthlyProofRpc, tenantId:
   });
   if (error) {
     const code = object(error) ? error.code : undefined;
-    if (['42P01','42883','PGRST202','PGRST205'].includes(String(code))) throw new Error('Der Speicherablauf für Monatsnachweise ist noch nicht aktiviert.');
-    if (code === '42501') throw new Error('Für diese Änderung fehlt die aktive Beauftragung als verantwortliche Pflegefachperson oder Vertretung.');
-    if (code === '40001') throw new Error('Die Fassung oder ihre Quellen wurden geändert. Bitte neu laden und abgleichen.');
-    throw new Error('Der Monatsnachweis wurde nicht bestätigt. Bitte gespeicherten Stand und Prüfmeldung kontrollieren.');
+    if (['42P01','42883','PGRST202','PGRST205'].includes(String(code))) throw new MonthlyProofWriteError('Der Speicherablauf für Monatsnachweise ist noch nicht aktiviert.', false);
+    if (code === '42501') throw new MonthlyProofWriteError('Für diese Änderung fehlt die aktive Beauftragung als verantwortliche Pflegefachperson oder Vertretung.', false);
+    if (code === '40001') throw new MonthlyProofWriteError('Die Fassung oder ihre Quellen wurden geändert. Bitte neu laden und abgleichen.', false);
+    throw new MonthlyProofWriteError('Der Monatsnachweis wurde nicht bestätigt. Bitte gespeicherten Stand und Prüfmeldung kontrollieren.', !/^(22|23|P0001$)/.test(String(code)));
   }
   const proof = readMonthlyProof(data, tenantId);
   const expected = command.action === 'create' || command.action === 'correct' ? command.input.new_id : command.input.id;

@@ -8,6 +8,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {readMonthlyProof, executeMonthlyProofCommand} from '../../src/lib/gkvExchange/monthlyProof.ts';
+import {readMonthlyClients,readMonthlyWorkspace,readMonthlySources,readMonthlyRequestStatus} from '../../src/lib/gkvExchange/monthlyWorkspace.ts';
+import {orderedId} from './monthly-fixtures.mjs';
 const {PGlite}=await import(process.argv[2] || '@electric-sql/pglite');
 const db=new PGlite();
 const tenant=randomUUID(), foreign=randomUUID(), user=randomUUID(), otherUser=randomUUID(), client=randomUUID(), otherClient=randomUUID();
@@ -41,6 +43,7 @@ for(const [id,e,p]of sources){
  await db.query('INSERT INTO assist_visit_proofs VALUES($1,$2,$1,$3,$4)',[p,tenant,receipt.proof_payload_hash,JSON.stringify({documentationNote:'Durchgeführte Unterstützung bei der Körperpflege.',tasks:[{id:randomUUID(),title:'Waschen',status:'done',note:'Durchgeführt'}],signature:{storagePath:'MUST NOT COPY'},gps:{latitude:1}})]);
 }
 await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-proofs-draft.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-workspace-draft.sql',import.meta.url),'utf8'));
 await db.query("INSERT INTO care_security.gkv_monthly_responsibilities VALUES($1,$2,now()+interval '1 day',NULL,$2,'Fiktive PDL-Zuweisung')",[tenant,user]);
 async function actor(o={}){
  await db.exec('RESET ROLE');
@@ -200,5 +203,63 @@ try{await test('monthly proof persistence, isolation and immutable version chain
   assert.ok(funcs.filter(f=>f.nspname==='public').every(f=>!f.prosecdef));
   const tables=(await db.query("SELECT relrowsecurity FROM pg_class WHERE relname IN ('gkv_monthly_proofs','gkv_monthly_proof_series','gkv_monthly_proof_events','gkv_monthly_responsibilities','gkv_monthly_requests','gkv_monthly_confirmation_receipts','gkv_monthly_source_claims')")).rows;
   assert.equal(tables.length,7);assert.ok(tables.every(r=>r.relrowsecurity));
+ });
+ await t.test('workspace reads only the current version and separates view permission from active delegation',async()=>{
+  const read=async()=>(await db.query('SELECT public.gkv_monthly_workspace($1,$2,$3) v',[tenant,client,'2026-10'])).rows[0].v;
+  const ws=readMonthlyWorkspace(await read(),tenant,client,'2026-10');assert.equal(ws.canWrite,true);
+  assert.equal(ws.proofs.find(row=>row.serviceType==='01').status,'final');assert.equal(ws.proofs.find(row=>row.serviceType==='01').version,2);
+  await actor({permissions:'office.invoices.view'});assert.equal(readMonthlyWorkspace(await read(),tenant,client,'2026-10').canWrite,false);
+  await assert.rejects(cmd('create',createInput('09')),e=>e.code==='42501');await actor();
+  await admin('UPDATE care_security.gkv_monthly_responsibilities SET revoked_at=now() WHERE actor_id=$1',[user]);
+  assert.equal((await read()).canWrite,false);await admin('UPDATE care_security.gkv_monthly_responsibilities SET revoked_at=NULL WHERE actor_id=$1',[user]);
+ });
+ await t.test('all read RPCs enforce office tenant and portal boundaries without requiring write access',async()=>{
+  const calls=[['gkv_monthly_clients($1,$2)',[tenant,'2026-10']],['gkv_monthly_workspace($1,$2,$3)',[tenant,client,'2026-10']],
+   ['gkv_monthly_sources($1,$2,$3)',[tenant,client,'2026-10']],['gkv_monthly_request_status($1,$2)',[tenant,randomUUID()]]];
+  for(const denied of [{tenant:foreign},{user:''},{portal:'client'},{portal:'employee'},{permissions:''},{role:'anon'},{role:'service_role'}]){
+   await actor(denied);for(const[call,args]of calls)await assert.rejects(db.query('SELECT public.'+call,args),e=>e.code==='42501');
+  }await actor({permissions:'office.invoices.view'});for(const[call,args]of calls)await db.query('SELECT public.'+call,args);await actor();
+  await assert.rejects(db.query('SELECT public.gkv_monthly_sources($1,$2,$3)',[tenant,otherClient,'2026-10']),e=>e.code==='42501');
+  await assert.rejects(db.query('SELECT public.gkv_monthly_workspace($1,$2,$3)',[tenant,otherClient,'2026-10']),e=>e.code==='42501');
+ });
+ await t.test('source candidates carry claims but omit signature/GPS data and reject changed receipt binding',async()=>{
+  const read=async()=>(await db.query('SELECT public.gkv_monthly_sources($1,$2,$3) v',[tenant,client,'2026-10'])).rows[0].v;
+  const page=readMonthlySources(await read(),tenant,client,'2026-10',null);
+  assert.equal(page.items.length,30);assert.ok(page.items.some(s=>s.assignedSeriesId));assert.ok(page.items.some(s=>s.assignedSeriesId===null));
+  assert.ok(!JSON.stringify(page).includes('MUST NOT COPY'));assert.ok(!JSON.stringify(page).includes('latitude'));
+  await admin('UPDATE service_records SET employee_id=$1 WHERE id=$2',[employee2,record]);
+  assert.ok(!(await read()).sources.some(s=>s.id===record));await admin('UPDATE service_records SET employee_id=$1 WHERE id=$2',[employee,record]);
+ });
+ await t.test('read-only request recovery returns current invalidated state, never replays a mutation or reveals another actor request',async()=>{
+  const request=randomUUID(),input=createInput('09');let q=await cmd('create',input,request);
+  q=await cmd('finalize_missing',finalizeInput(q));await cmd('correct',correction(q));
+  const before=(await db.query('SELECT count(*)::int n FROM gkv_monthly_proof_events')).rows[0].n;
+  const read=async(id=request,t=tenant)=>(await db.query('SELECT public.gkv_monthly_request_status($1,$2) v',[t,id])).rows[0].v;
+  await actor({permissions:'office.invoices.view'});assert.equal(readMonthlyRequestStatus(await read(),tenant,request).proof.status,'invalidated');
+  const missing=randomUUID();assert.deepEqual(readMonthlyRequestStatus(await read(missing),tenant,missing),{state:'not_found',proof:null});
+  await actor({user:otherUser});await assert.rejects(read(),e=>e.code==='42501');
+  await actor({tenant:foreign});assert.equal((await read(request,foreign)).state,'not_found');await actor();
+  assert.equal((await db.query('SELECT count(*)::int n FROM gkv_monthly_proof_events')).rows[0].n,before);
+ });
+ await t.test('client and source keyset pagination is deterministic, scoped, literal-searchable and complete',async()=>{
+  for(let n=1;n<=52;n++){
+   await admin("INSERT INTO clients VALUES($1,$2,'Paging','Patient')",[orderedId(n),tenant]);
+   await admin("INSERT INTO service_records VALUES($1,$2,$3,$4,'2026-10-03T12:00Z','2026-10-03','approved',30,$5,true)",[
+    orderedId(100+n),tenant,orderedId(n),employee,JSON.stringify({tenant_id:tenant,client_id:orderedId(n),employee_id:employee,proof_id:proof,proof_payload_hash:'sha256:'+'a'.repeat(64),visit_id:proof})]);
+  }
+  const clients=async(after=null)=>(await db.query('SELECT public.gkv_monthly_clients($1,$2,$3,$4) v',[tenant,'2026-10','Paging',after])).rows[0].v;
+  const first=readMonthlyClients(await clients(),tenant,'2026-10','Paging',null);assert.equal(first.items.length,50);assert.equal(first.nextCursor,orderedId(50));
+  const last=readMonthlyClients(await clients(first.nextCursor),tenant,'2026-10','Paging',first.nextCursor);assert.equal(last.items.length,2);assert.equal(last.nextCursor,null);
+  assert.equal(new Set([...first.items,...last.items].map(c=>c.id)).size,52);
+  const noWildcard=(await db.query('SELECT public.gkv_monthly_clients($1,$2,$3) v',[tenant,'2026-10','%'])).rows[0].v;assert.equal(noWildcard.clients.length,0);
+  const noMonth=(await db.query('SELECT public.gkv_monthly_clients($1,$2) v',[tenant,'2026-09'])).rows[0].v;assert.equal(noMonth.clients.length,0);
+  await assert.rejects(db.query('SELECT public.gkv_monthly_clients($1,$2)',[tenant,'2026-13']));
+  await assert.rejects(db.query('SELECT public.gkv_monthly_clients($1,$2,$3)',[tenant,'2026-10','x'.repeat(101)]));
+  // Give a single client 52 separate canonical rows to exercise the second source page.
+  await admin("UPDATE service_records SET client_id=$1,source_receipt=jsonb_set(source_receipt,'{client_id}',to_jsonb($1::text)) WHERE id>=$2 AND id<=$3",[orderedId(1),orderedId(101),orderedId(152)]);
+  const read=async(after=null)=>(await db.query('SELECT public.gkv_monthly_sources($1,$2,$3,$4) v',[tenant,orderedId(1),'2026-10',after])).rows[0].v;
+  const a=readMonthlySources(await read(),tenant,orderedId(1),'2026-10',null);
+  const b=readMonthlySources(await read(a.nextCursor),tenant,orderedId(1),'2026-10',a.nextCursor);
+  assert.equal(a.items.length,50);assert.equal(b.items.length,2);assert.equal(b.nextCursor,null);assert.equal(new Set([...a.items,...b.items].map(s=>s.id)).size,52);
  });
 });}finally{await db.close();}

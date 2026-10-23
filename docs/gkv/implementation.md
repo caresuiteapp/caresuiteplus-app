@@ -12,9 +12,11 @@ nicht ohne Versionsabgleich als Erfüllung dieser Anforderungen übernommen.
 
 Der [Monatsnachweis-Speichervertrag](monthly-proofs.md) ergänzt jetzt kanonische
 Quellen, getrennte Fassungen je Leistungsart und eine atomare Korrekturkette.
-SQL-Entwurf und Web-Repository sind lokal geprüft. Datenbankaktivierung,
-Monatsoberfläche und der tatsächliche Originaldatei-/Unterschriftsprüfer fehlen
-noch; eine private Bestätigungsquittung kann nicht durch Browserangaben ersetzt
+Die Webansicht ergänzt Monats-/Klientenauswahl, Leistungsarten, Quellenabgleich,
+Fassungsvergleich, protokollierte Korrektur und Auftragsklärung. Der bisherige
+Speicherentwurf ist lokal geprüft; neue SQL-/React-Tests sind im vorhandenen
+Preview-Build verpflichtend. Datenbankaktivierung, visuelle Abnahme und der
+tatsächliche Originaldatei-/Unterschriftsprüfer fehlen noch; eine private Bestätigungsquittung kann nicht durch Browserangaben ersetzt
 werden. Die ITSG-Fälle bleiben bis zur Vorführung des gesamten Ablaufs offen.
 
 Der Auftrag umfasst seit 20.10.2026 ausdrücklich **Eigenentwicklung von DTA und

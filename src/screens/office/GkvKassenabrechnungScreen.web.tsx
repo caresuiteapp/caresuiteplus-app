@@ -1,4 +1,5 @@
 import { KimHostPanel } from '@/components/office/gkv/GkvKimHost.web';
+import { GkvMonthlyProofs, type MonthlyWorkState } from '@/components/office/gkv/GkvMonthlyProofs.web';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -40,6 +41,7 @@ function WorkspaceContent({ tenantId, roleKey, canCreate }: { tenantId: string; 
   const [tab, setTab] = useState('pakete');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
+  const [monthlyWork, setMonthlyWork] = useState<MonthlyWorkState>({dirty: false, busy: false});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [draft, setDraft] = useState<ExchangeDraft | null>(null);
@@ -68,7 +70,8 @@ function WorkspaceContent({ tenantId, roleKey, canCreate }: { tenantId: string; 
   const retry = useRef<{ fingerprint: string; id: string } | null>(null);
   const dirty = Boolean(draft && JSON.stringify(draft) !== base);
   const profileDirty = Boolean(profileBase && JSON.stringify(profile) !== profileBase);
-  const leave = useGkvUnsavedChanges(dirty || profileDirty, Boolean(busy));
+  const navigationBusy = Boolean(busy) || monthlyWork.busy;
+  const leave = useGkvUnsavedChanges(dirty || profileDirty || monthlyWork.dirty, navigationBusy);
   const canEdit = canCreate && (!selected || editableStates.includes(selected.status));
   const issues = useMemo(() => draft ? validateDraft(draft) : [], [draft]);
   const errors = issues.filter(issue => issue.severity === 'error');
@@ -113,6 +116,11 @@ function WorkspaceContent({ tenantId, roleKey, canCreate }: { tenantId: string; 
     retry.current = null; return result;
   }
   function keepChanges() { return !dirty || window.confirm('Die Änderungen an diesem Paket sind noch nicht gespeichert. Trotzdem wechseln?'); }
+  function chooseTab(next: string) {
+    if (next === tab || navigationBusy) return;
+    if (monthlyWork.dirty && !window.confirm('Ungespeicherte Änderungen am Monatsnachweis verwerfen und den Bereich wechseln?')) return;
+    setTab(next);
+  }
   function openBatch(batch: Batch) {
     if (running.current || !keepChanges()) return;
     setSelected(batch); setDraft(structuredClone(batch.draft)); setBase(JSON.stringify(batch.draft)); setFiles(null); setSources(null); setNotice(''); setError(''); setNote(''); setTab('pakete');
@@ -167,14 +175,14 @@ function WorkspaceContent({ tenantId, roleKey, canCreate }: { tenantId: string; 
   }
   const packets = workspace?.batches.filter(batch => `${batch.draft.month} ${STATUS_LABELS[batch.status]} ${batch.draft.insuranceIk} ${SERVICE_TYPES[batch.draft.serviceType]}`.toLowerCase().includes(packetSearch.toLowerCase())) || [];
   const carriers = directory?.records.filter(item => !item.deleted && `${item.ik} ${item.name}`.toLowerCase().includes(carrierSearch.toLowerCase())) || [];
-  return <section className="gx" data-testid="gkv-exchange-workspace" aria-busy={Boolean(busy) || loading}>
-    <header className="gx-head"><div><p className="gx-eyebrow">Office · Datenaustausch nach § 105 SGB XI</p><h1>Pflegekassen-Abrechnung</h1><p>Abrechnungen vorbereiten, prüfen und als Prüfdatei bereitstellen.</p></div><div className="gx-actions"><button type="button" disabled={Boolean(busy)} onClick={() => { if (leave.confirmLeave()) router.push('/business/office/invoices' as never); }}>Rechnungen</button><button type="button" disabled={Boolean(busy) || loading} onClick={() => void refresh()}>Aktualisieren</button>{canCreate && <button type="button" className="gx-primary" disabled={Boolean(busy) || !workspace} onClick={createDraft}>Neues Paket</button>}</div></header>
+  return <section className="gx" data-testid="gkv-exchange-workspace" aria-busy={navigationBusy || (loading && tab !== 'monatsnachweise')}>
+    <header className="gx-head"><div><p className="gx-eyebrow">Office · Datenaustausch nach § 105 SGB XI</p><h1>Pflegekassen-Abrechnung</h1><p>Monatsnachweise bearbeiten und Abrechnungen als Prüfdatei vorbereiten.</p></div><div className="gx-actions"><button type="button" disabled={navigationBusy} onClick={() => { if (leave.confirmLeave()) router.push('/business/office/invoices' as never); }}>Rechnungen</button>{tab !== 'monatsnachweise' && <><button type="button" disabled={navigationBusy || loading} onClick={() => void refresh()}>Aktualisieren</button>{canCreate && <button type="button" className="gx-primary" disabled={navigationBusy || !workspace} onClick={createDraft}>Neues Paket</button>}</>}</div></header>
     <div className="gx-notice"><strong>Prüfbetrieb · TA {GKV_SPEC.version}</strong> — Dateierstellung für das klassische Verfahren. Echtversand, KIM und automatische Kassenrückmeldungen sind noch nicht angeschlossen.</div>
-    {error && <div className="gx-notice" data-tone="error" role="alert">{error}{!workspace && <div className="gx-actions"><button type="button" disabled={Boolean(busy)} onClick={() => void refresh()}>Erneut laden</button></div>}</div>}
+    {error && tab !== 'monatsnachweise' && <div className="gx-notice" data-tone="error" role="alert">{error}{!workspace && <div className="gx-actions"><button type="button" disabled={navigationBusy} onClick={() => void refresh()}>Erneut laden</button></div>}</div>}
     {notice && <div className="gx-notice" data-tone="success" role="status">{notice}</div>}
     {busy && <p className="gx-subtle" role="status">{busy} …</p>}
-    <nav className="gx-tabs" aria-label="Pflegekassen-Abrechnung">{[['pakete','Abrechnungspakete'],['profil','Abrechnungsprofil'],['kostentraeger','Kostenträger'],['konnektor','Konnektorprüfung'],['freigabe','Versandvoraussetzungen']].map(([key, label]) => <button type="button" key={key} aria-pressed={tab === key} disabled={Boolean(busy)} onClick={() => setTab(key)}>{label}</button>)}</nav>
-    {loading ? <div className="gx-card gx-empty" role="status">Abrechnungspakete werden geladen …</div> : tab === 'pakete' ? <div className="gx-layout">
+    <nav className="gx-tabs" aria-label="Pflegekassen-Abrechnung">{[['pakete','Abrechnungspakete'],['monatsnachweise','Monatsnachweise'],['profil','Abrechnungsprofil'],['kostentraeger','Kostenträger'],['konnektor','Konnektorprüfung'],['freigabe','Versandvoraussetzungen']].map(([key, label]) => <button type="button" key={key} aria-pressed={tab === key} disabled={navigationBusy} onClick={() => chooseTab(key)}>{label}</button>)}</nav>
+    {tab === 'monatsnachweise' ? <GkvMonthlyProofs tenantId={tenantId} roleKey={roleKey} canCreate={canCreate} onWorkState={setMonthlyWork} /> : loading ? <div className="gx-card gx-empty" role="status">Abrechnungspakete werden geladen …</div> : tab === 'pakete' ? <div className="gx-layout">
       <aside className="gx-card"><h2>Pakete <span className="gx-badge">{workspace?.batches.length || 0}</span></h2><label className="gx-field" style={{ marginTop: 15 }}><span>Pakete suchen</span><input value={packetSearch} onChange={e => setPacketSearch(e.target.value)} placeholder="Monat, Kasse oder Status" /></label><div className="gx-packets">{packets.map(batch => <button type="button" key={batch.id} aria-pressed={selected?.id === batch.id} disabled={Boolean(busy)} onClick={() => openBatch(batch)}><strong>{batch.draft.month} · {batch.draft.insuranceIk || 'Kasse offen'}</strong><span>{SERVICE_TYPES[batch.draft.serviceType]}</span><small>{STATUS_LABELS[batch.status]} · {batch.draft.cases.length} Fälle</small><small>{dateTime(batch.updated_at)}</small></button>)}{!packets.length && <p className="gx-empty">{packetSearch ? 'Keine passenden Pakete.' : 'Noch keine Abrechnungspakete vorhanden.'}</p>}</div><p className="gx-limit">Die 100 zuletzt geänderten Pakete.</p></aside>
       {!draft ? <div className="gx-card gx-empty"><h2>Abrechnung vorbereiten</h2><p>Wählen Sie ein vorhandenes Paket oder beginnen Sie mit einem neuen Paket.</p></div> : <div className="gx-stack">
         <div className="gx-card"><div className="gx-card-title"><h2>{selected ? 'Abrechnungspaket' : 'Neues Abrechnungspaket'}</h2><span className="gx-badge">{selected ? STATUS_LABELS[selected.status] : 'Noch nicht gespeichert'}</span></div>

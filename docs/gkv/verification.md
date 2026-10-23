@@ -2,7 +2,25 @@
 
 Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
-## Monatsnachweis-Speichervertrag am 23.10.2026
+## Monatsnachweis-Webanbindung am 23.10.2026
+
+Neu implementiert sind Monats-/Klientenauswahl, Quellenabgleich, Fassungsvergleich,
+Ausnahmeabschluss, begründete Korrektur und Klärung ungewisser Speicherantworten.
+18 Vertrags-/Wiederholungstests und 29 Quellen-/Prüfexport-/Katalogregressionen
+bestehen lokal. Die SQL-Suite ist um fünf Lese-/Wiederherstellungsfälle erweitert;
+zehn Prüfabläufe verwenden die tatsächliche React-Komponente und Office-Navigation
+mit synthetischen API-/Auth-Grenzen. Sie sind jetzt mit
+`npm run verify:gkv:monthly-web` Bestandteil des bestehenden Webbuilds.
+
+Die früher verwendeten lokalen Projektabhängigkeiten sind nicht mehr vorhanden.
+Der neue SQL-/React-Lauf und der aktuelle vollständige Typcheck sind deshalb
+bis zum Ergebnis des Preview-Builds offen. Vier erfolgreiche Vercel-Statusmeldungen
+wurden für den Vorgänger `2c2b4fb` geprüft; sie belegen nicht die neue Änderung.
+Keine zusätzliche Installation, keine Datenbankaktivierung und keine visuellen
+Screenshots. Auch ein erfolgreicher DOM-Lauf ersetzt keine breite/schmale
+Layoutabnahme, echte Auth-/Storage-Abnahme oder ausgeführte ITSG-Prüffälle.
+
+## Monatsnachweis-Speichervertrag am 23.10.2026 (Vorgänger `2c2b4fb`)
 
 Der [neue Speichervertrag](monthly-proofs.md) wurde mit 19 PostgreSQL-
 Testmeldungen (18 Unterfälle plus Hauptfall) und acht Vertrags-/RPC-Tests
@@ -19,8 +37,8 @@ Speicherbaustein nicht erneut ausgeführt.
 Office-Quellprüfung und Sitzungsauflösung sind ausdrücklich Vertragsdoubles;
 Originaldatei-Prüfbelege stammen vom Fixture-Administrator. Kein echter
 Unterschrifts-/Storage-Nachweis, keine Mehrverbindungs-Rennen, keine ausgeführten
-ITSG-Fälle und keine Datenbankaktivierung. Der Stand enthält keine neue UI;
-die Monatsansicht samt visueller Abnahme bleibt offen.
+ITSG-Fälle und keine Datenbankaktivierung. Dieser Vorgänger enthielt keine neue UI. Die oben beschriebene Webanbindung
+ergänzt sie; ihre visuelle Abnahme bleibt offen.
 
 ## Prüfmatrix am 23.10.2026
 

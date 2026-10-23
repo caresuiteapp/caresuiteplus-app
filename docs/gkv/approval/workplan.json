@@ -90,12 +90,18 @@
         "src/features/assistWorkflow/readFinalWorkflowProofConfirmation.ts",
         "docs/gkv/sql/monthly-proofs-draft.sql",
         "src/lib/gkvExchange/monthlyProof.ts",
-        "src/lib/gkvExchange/repository.web.ts"
+        "src/lib/gkvExchange/repository.web.ts",
+        "docs/gkv/sql/monthly-workspace-draft.sql",
+        "src/lib/gkvExchange/monthlyWorkspace.ts",
+        "src/lib/gkvExchange/monthlyWriter.ts",
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
-        "tests/gkv-exchange/monthly-proofs.database.mjs"
+        "tests/gkv-exchange/monthly-proofs.database.mjs",
+        "tests/gkv-exchange/monthly-workspace.test.mjs",
+        "tests/gkv-exchange/monthly-ui-check.mjs"
       ],
       "nextStep": "Serverseitige Monatsquellen und eindeutige Quellenzuordnung sind lokal geprüft. Als Nächstes gemischte Leistungsarten je Einsatz aufteilen, Mehrpersonenleistung und Beschäftigtennummer bis ins XML verfolgen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
@@ -122,12 +128,18 @@
         "src/lib/portal/clientPortalAssistProofSignatureServiceCore.ts",
         "docs/gkv/sql/monthly-proofs-draft.sql",
         "src/lib/gkvExchange/monthlyProof.ts",
-        "src/lib/gkvExchange/repository.web.ts"
+        "src/lib/gkvExchange/repository.web.ts",
+        "docs/gkv/sql/monthly-workspace-draft.sql",
+        "src/lib/gkvExchange/monthlyWorkspace.ts",
+        "src/lib/gkvExchange/monthlyWriter.ts",
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
-        "tests/gkv-exchange/monthly-proofs.database.mjs"
+        "tests/gkv-exchange/monthly-proofs.database.mjs",
+        "tests/gkv-exchange/monthly-workspace.test.mjs",
+        "tests/gkv-exchange/monthly-ui-check.mjs"
       ],
       "nextStep": "Speichervertrag für gebundene Bestätigung ist lokal geprüft; privater Originalbyte-Verifizierer, Unterschrifts-/Druck-/Scan-Oberfläche und Vertreterprüfung fehlen noch. Vor Aktivierung Zielrechte und Migration prüfen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
@@ -154,14 +166,20 @@
         "src/lib/gkvExchange/sources.ts",
         "docs/gkv/sql/monthly-proofs-draft.sql",
         "src/lib/gkvExchange/monthlyProof.ts",
-        "src/lib/gkvExchange/repository.web.ts"
+        "src/lib/gkvExchange/repository.web.ts",
+        "docs/gkv/sql/monthly-workspace-draft.sql",
+        "src/lib/gkvExchange/monthlyWorkspace.ts",
+        "src/lib/gkvExchange/monthlyWriter.ts",
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
-        "tests/gkv-exchange/monthly-proofs.database.mjs"
+        "tests/gkv-exchange/monthly-proofs.database.mjs",
+        "tests/gkv-exchange/monthly-workspace.test.mjs",
+        "tests/gkv-exchange/monthly-ui-check.mjs"
       ],
-      "nextStep": "Atomare Entwertung, neue offene Version und archivierter Vorgänger sind lokal geprüft. Als Nächstes Vergleich/Korrektur in die Oberfläche und aktuelle Fassung in die XML-/Abrechnungsübergabe einbinden.",
+      "nextStep": "Webansicht für Quellen, Fassungsvergleich und begründete Korrektur ist implementiert. Neue SQL-/React-Prüfungen im bestehenden Preview-Build ausführen; Zielrechte, breite/schmale Darstellung und die gebundene XML-/Abrechnungsübergabe bleiben offen.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
       "dependsOn": [
         "proof-confirmation"

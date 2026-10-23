@@ -1,9 +1,11 @@
-# Monatsnachweise: gespeicherte Quellen und Korrekturkette
+# Monatsnachweise: Webansicht, gespeicherte Quellen und Korrekturkette
 
-Stand: 23.10.2026. Dieser Baustein implementiert den serverseitigen Speichervertrag
-und dessen Web-Repository. Er ist lokal gegen PostgreSQL/PGlite geprüft, **noch
-nicht in einer verbundenen Datenbank aktiviert und noch kein bedienbarer
-Monatsnachweis mit Unterschrift oder XML-Ausgabe**. Die ITSG-Fälle bleiben offen.
+Stand: 23.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
+mit der Web-/Desktop-Ansicht „Monatsnachweise“. **Die Datenbankentwürfe sind noch
+nicht aktiviert; eine echte Monatsunterschrift und die XML-Ausgabe fehlen.**
+Der bisherige Speichervertrag ist lokal geprüft. Die neue Oberfläche und ihre
+Leseabfragen benötigen zusätzlich die unten ausgewiesenen Prüfungen. Die
+ITSG-Fälle bleiben offen.
 
 Grundlage sind die Abschnitte 2, 3.2–3.11 und 4.2 des
 [ITSG-Prüfkatalogs, Version 1.0, gültig ab 01.05.2026](https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/technische_anlagen_aktuell_2/TA1_ANH4_ANL1_20250707_oA.pdf).
@@ -54,6 +56,52 @@ unveränderte Auftragskennungen; die Antwort liest den heutigen gespeicherten
 Status, damit eine früher endgültige Antwort nach einer Korrektur nicht wieder
 als gültig erscheint.
 
+## Webansicht und Leseabfragen
+
+Der Bereich „Monatsnachweise“ ist in die Pflegekassen-Abrechnung integriert.
+Monat und Namensfilter laden Klienten mit freigegebenen Leistungen oder bereits
+bestehenden Serien. Die Auswahl einer Leistungsart lädt deren aktuelle Fassung,
+kanonische Quellen, frühere Fassungen und das Bearbeitungsprotokoll.
+
+- Quellen zeigen Datum, zugeordnete Pflegekraft, Dauer und Beschreibung. Eine
+  bereits anderweitig zugeordnete Quelle ist gesperrt. Bereits gespeicherte
+  Quellen außerhalb der geladenen Seite bleiben sichtbar und können aus einer
+  offenen Fassung entfernt werden. Beim Speichern werden alle ausgewählten
+  Quellen erneut auf dem Server gelesen und geprüft.
+- Endgültige Fassungen bieten ausschließlich den begründeten Korrekturweg. Vor
+  der Entwertung ist eine ausdrückliche Bestätigung erforderlich. Eine Ausnahme
+  ohne Unterschrift ist separat beschriftet und bei ungeklärter Quellenauswahl
+  gesperrt. Sie ersetzt keine noch einzuholende Portalunterschrift.
+- Frühere Fassungen bleiben vollständig lesbar. Der Vergleich zeigt hinzugefügte
+  und entfernte Quellen sowie geänderte Beschreibungen, Zeiten, Pflegekräfte,
+  Aufgaben und Originalbelege. Das Protokoll zeigt die neuesten 30 Ereignisse
+  mit Zeitpunkt und Begründung; vollständige Vorher-/Nachherstände einzelner
+  offener Bearbeitungsrevisionen liegen weiterhin im Datenbankjournal.
+- Klienten und Quellen werden mit stabilen UUID-Seitenankern zu je 50 Einträgen
+  gelesen, Fassungen zu je 20. Der Leservertrag prüft Mandant, Klient, Monat,
+  Leistungsart und Antwortreihenfolge. Nur aktuelle Serien erscheinen in der
+  Übersicht; ungültige Vorgänger bleiben über die Historie erreichbar.
+- Eine fehlende fachliche Beauftragung führt zur reinen Ansicht. Rollen-,
+  Benutzer- und Mandantenwechsel setzen den Arbeitsbereich zurück. Verspätete
+  Antworten dürfen nicht in einen neuen Arbeitsbereich gelangen.
+
+Unklare Speicherantworten behalten den unveränderten Auftrag samt Kennung im
+aktuellen Arbeitsbereich. Die Aktion „Speicherung klären“ ist rein lesend und
+wartet auf einen bereits laufenden Auftrag mit dieser Kennung. Erst nach einem
+`not_found` kann genau dieser Auftrag unverändert erneut gesendet werden.
+Ein noch nicht eingetroffener erster Request kann damit keine zweite Mutation
+mit neuer Kennung erzeugen. Ein inzwischen entwerteter Vorgänger bleibt auch
+in der Wiederherstellungsantwort ungültig. Während einer unklaren Speicherung
+sind Auswahl und Navigation gesperrt. Die Kennung wird nicht im Browser
+persistiert; nach einem erzwungenen Neuladen muss der gespeicherte Stand erneut
+abgerufen werden. Das ist kein sitzungsübergreifendes Auftragsjournal im Browser.
+
+[Die Leseerweiterung](sql/monthly-workspace-draft.sql) benötigt zuerst den
+Speicherentwurf. Beide sind Review-SQL und wurden nicht als Zielmigration
+angewendet. Quellenlisten sind Kandidaten, keine erfolgreiche Originalprüfung.
+Die Statusabfrage ist auf den ursprünglichen angemeldeten Akteur beschränkt;
+private Request-, Beauftragungs- und Bestätigungstabellen bleiben unlesbar.
+
 ## Bestätigung und Vertrauensgrenze
 
 Die private Tabelle `care_security.gkv_monthly_confirmation_receipts` nimmt
@@ -99,13 +147,13 @@ Quellprüfer, Rechte und Advisor-Befunde abzugleichen. Erst dann mit der bestehe
 CLI eine Migration erzeugen und über den regulären Freigabeweg einspielen.
 Die neue Web-Repository-Anbindung meldet eine fehlende Erweiterung verständlich.
 
-## Ausgeführte lokale Prüfung
+## Prüfstand
 
 ```bash
 npm run verify:gkv:monthly-proofs
 ```
 
-19 PostgreSQL-Testmeldungen bestanden (18 fachliche Unterfälle und ein
+Für den Speicherstand `2c2b4fb` bestanden 19 PostgreSQL-Testmeldungen (18 fachliche Unterfälle und ein
 zusammenfassender Hauptfall), dazu acht Vertrags-/RPC-Tests. Verwendet wurde
 ausschließlich eine bereits vorhandene PGlite-Installation; keine neue
 Software, kein Docker und keine produktiven Testdaten.
@@ -121,10 +169,27 @@ sind ausdrücklich Vertragsdoubles. PGlite serialisiert Anfragen: konkurrierende
 Kennungen und Versionskonflikte sind geprüft, echte Mehrverbindungs-Rennen im
 Ziel-PostgreSQL noch nicht. Das ersetzt keine Supabase-Auth-/Storage-Abnahme.
 
+Für die neue Webanbindung bestehen lokal 18 Vertrags-/Wiederholungstests und
+29 Quellen-/Prüfexport-/Katalogregressionen. Die SQL-Suite wurde um fünf Fälle
+für Übersicht, Rollen, Quellenauswahl, Auftragsklärung und Seitenanker erweitert.
+Zehn React-Prüfabläufe testen die tatsächliche Komponente und Office-Navigation
+mit synthetischen API-/Auth-Grenzen, einschließlich StrictMode, Doppelaktionen,
+Verbindungsabbruch, Korrektur, Leserechten und Mandantenwechsel.
+
+Diese zusätzlichen SQL-/React-Prüfungen konnten lokal wegen der inzwischen
+fehlenden Projektabhängigkeiten noch nicht ausgeführt werden. Sie sind über
+`npm run verify:gkv:monthly-web` in den bestehenden Web-Produktionsbuild
+aufgenommen. Ein erfolgreicher Preview-Build muss für den neuen Commit separat
+belegt werden; der erfolgreiche Vorgängerbuild gilt nicht für die neue UI.
+Es wurden keine Abhängigkeiten installiert und keine Testdienste eingerichtet.
+DOM-Prüfungen ersetzen weder die echte Supabase-Anmeldung noch eine visuelle
+Abnahme. Breite/schmale Darstellung, vergrößerte Schrift und Tastaturfokus im
+gerenderten Browser sind für diese Ansicht noch nicht belegt.
+
 ## Nächste Umsetzung
 
-1. Den Speichervertrag mit der Web-/Desktop-Ansicht für Monatsauswahl,
-   Leistungsart, Vergleich der Fassungen und protokollierte Korrektur verbinden.
+1. Neue SQL-/React-Prüfungen und vollständigen Typcheck im vorhandenen Build
+   ausführen, dann die Ansicht in breiter/schmaler Darstellung prüfen.
 2. Originalansicht, frische Unterschrift pro Leistungsart, Vertreterberechtigung
    und Druck-/Scan-Pfad bauen. Originaldateien unveränderlich speichern,
    tatsächlich zurücklesen und ihre Bytes prüfen, bevor ein Beleg entsteht.
@@ -136,4 +201,4 @@ Ziel-PostgreSQL noch nicht. Das ersetzt keine Supabase-Auth-/Storage-Abnahme.
    Übergabe der aktuellen finalen Fassung an die Abrechnung ergänzen.
 6. Danach die ITSG-Fälle am tatsächlichen Ablauf mit persönlichen Testkonten
    und breiter/schmaler Darstellung ausführen. Für diesen Speicherbaustein
-   wurde keine neue Oberfläche erstellt oder als visuell geprüft behauptet.
+   ist die neue Oberfläche implementiert, aber noch nicht visuell abgenommen.

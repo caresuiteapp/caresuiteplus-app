@@ -10,6 +10,7 @@ import type { RevisionSummary, SavedRevision } from './history';
 import { readKimHostStatus, type KimHostStatus } from './kimHostContract';
 import { postKimHostCommand } from './kimHostClient';
 import type { KimHostCommand } from './kimReceiveContract';
+import { readMonthlyClients, readMonthlyWorkspace, readMonthlySources, readMonthlyRequestStatus } from './monthlyWorkspace';
 export type { RevisionSummary, SavedRevision } from './history';
 import { executeMonthlyProofCommand, readMonthlyProof, type MonthlyProof, type MonthlyProofCommand, type MonthlyProofRpc } from './monthlyProof';
 
@@ -145,6 +146,55 @@ export async function readMonthlyProofHistory(tenantId: string, role: RoleKey, s
   const {data, error} = await query;
   if (error) failure(error);
   const rows = (data || []).map(row => readMonthlyProof(row, tenantId));
-  if (rows.some(row => row.series_id !== seriesId || (beforeVersion !== undefined && row.version >= beforeVersion))) throw new Error('Die Monatsnachweishistorie passt nicht zur angefragten Fassung.');
+  if (rows.some((row, index) => row.series_id !== seriesId || (beforeVersion !== undefined && row.version >= beforeVersion)
+    || (index > 0 && row.version >= rows[index - 1].version)
+    || rows.some(other => other.id !== row.id && other.version === row.version)
+    || row.payload.clientId !== rows[0].payload.clientId || row.payload.month !== rows[0].payload.month
+    || row.payload.serviceType !== rows[0].payload.serviceType)) throw new Error('Die Monatsnachweishistorie passt nicht zur angefragten Fassung.');
   return {rows: rows.slice(0, 20), hasMore: rows.length > 20};
+}
+
+async function monthlyRead(tenantId: string, role: RoleKey, name: string, input: Row): Promise<unknown> {
+  const client = connection(tenantId, role);
+  const {data, error} = await (client.rpc.bind(client) as unknown as MonthlyProofRpc)(name, {p_tenant_id: tenantId, ...input});
+  if (error) {
+    if (['42P01','42883','PGRST202','PGRST205'].includes(String((error as {code?: string}).code))) throw new Error('Monatsnachweise sind für dieses Unternehmen noch nicht freigeschaltet.');
+    failure(error);
+  }
+  return data;
+}
+export async function listMonthlyClients(tenantId: string, role: RoleKey, month: string, search = '', after: string | null = null) {
+  const data = await monthlyRead(tenantId, role, 'gkv_monthly_clients', {p_month: month, p_search: search, p_after: after});
+  return readMonthlyClients(data, tenantId, month, search, after);
+}
+export async function loadMonthlyWorkspace(tenantId: string, role: RoleKey, clientId: string, month: string) {
+  const data = await monthlyRead(tenantId, role, 'gkv_monthly_workspace', {p_client_id: clientId, p_month: month});
+  return readMonthlyWorkspace(data, tenantId, clientId, month);
+}
+export async function listMonthlySources(tenantId: string, role: RoleKey, clientId: string, month: string, after: string | null = null) {
+  const data = await monthlyRead(tenantId, role, 'gkv_monthly_sources', {p_client_id: clientId, p_month: month, p_after: after});
+  return readMonthlySources(data, tenantId, clientId, month, after);
+}
+export async function checkMonthlyRequest(tenantId: string, role: RoleKey, requestId: string) {
+  return readMonthlyRequestStatus(await monthlyRead(tenantId, role, 'gkv_monthly_request_status', {p_request_id: requestId}), tenantId, requestId);
+}
+export async function loadMonthlyProof(tenantId: string, role: RoleKey, id: string): Promise<MonthlyProof> {
+  if (!UUID.test(id)) throw new Error('Ungültige Nachweiskennung.');
+  const {data, error} = await fromUnknownTable(connection(tenantId, role), 'gkv_monthly_proofs').select('*').eq('tenant_id', tenantId).eq('id', id).single();
+  if (error) failure(error);
+  const proof = readMonthlyProof(data, tenantId);
+  if (proof.id !== id) throw new Error('Die gespeicherte Fassung passt nicht zum ausgewählten Nachweis.');
+  return proof;
+}
+export type MonthlyEvent = {id: string; action: string; reason: string | null; created_at: string};
+export async function listMonthlyEvents(tenantId: string, role: RoleKey, proofId: string): Promise<MonthlyEvent[]> {
+  if (!UUID.test(proofId)) throw new Error('Ungültige Nachweiskennung.');
+  const {data, error} = await fromUnknownTable(connection(tenantId, role), 'gkv_monthly_proof_events').select('id,tenant_id,proof_id,action,reason,created_at')
+    .eq('tenant_id', tenantId).eq('proof_id', proofId).order('created_at', {ascending: false}).order('id', {ascending: false}).limit(30);
+  if (error) failure(error);
+  const rows = (data || []) as unknown as (MonthlyEvent & {tenant_id: string; proof_id: string})[];
+  if (rows.some(row => !UUID.test(row.id) || row.tenant_id !== tenantId || row.proof_id !== proofId
+    || !['create','replace_sources','confirm','finalize_missing','correct','invalidate_for_correction'].includes(row.action)
+    || !(row.reason === null || typeof row.reason === 'string') || !Number.isFinite(Date.parse(row.created_at)))) throw new Error('Das Bearbeitungsprotokoll passt nicht zur ausgewählten Fassung.');
+  return rows;
 }
