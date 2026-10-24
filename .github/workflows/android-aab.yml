@@ -186,12 +186,12 @@ jobs:
         run: node scripts/port-native-workspaces.mjs --check
       - name: Native Datei- und Arbeitsabläufe prüfen
         run: npx vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/office/officeNotesNativeInteraction.test.tsx --maxWorkers=2
+      - name: Native Ansichten im vorhandenen Chrome rendern
+        run: node scripts/verify-native-administration-visual.mjs
       - name: TypeScript prüfen
         run: npm run typecheck
       - name: Gemeinsame Navigation und Seitenziele prüfen
         run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/tenant/nativeCompanyWorkspaceInteraction.test.tsx --maxWorkers=2
-      - name: Native Ansichten im vorhandenen Chrome rendern
-        run: node scripts/verify-native-administration-visual.mjs
       - name: Aufnahmen und offene Abweichungen sichern
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
