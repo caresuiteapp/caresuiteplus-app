@@ -36,7 +36,7 @@ describe('Web action icon frame', () => {
     expect(icon.getAttribute('stroke-linejoin')).toBe('round');
     expect(icon.querySelectorAll('path')).toHaveLength(1);
     expect(icon.querySelector('path')!.getAttribute('d')).toBe('M20 7v5h-5M20 12a8 8 0 1 0-2 5');
-    expect(icon.style.color).toBe('rgb(82, 97, 116)');
+    expect(icon.style.color).toBe('#526174');
   });
 
   it.each([
