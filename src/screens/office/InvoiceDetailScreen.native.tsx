@@ -5,7 +5,7 @@ import {NativeStyle,NativeDiv,NativeSection,NativeH1,NativeP,NativeH2,NativeButt
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter, useIsFocused } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { ScreenShell } from "../../components/layout/ScreenShell.tsx";
 import { InvoicePdfPreview } from "../../components/office/invoices/InvoicePdfPreview.native.tsx";
 import { EInvoiceReadOnlySummary, eInvoiceTaxLabels } from "../../components/office/invoices/EInvoiceSettingsPanel.native.tsx";

@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef} from 'react';
 import {useNavigation} from 'expo-router';
-import {usePreventRemove} from 'expo-router/react-navigation';
+import {usePreventRemove} from '@/hooks/useNativePreventRemove.native';
 import {confirmNativeWorkspaceAction} from '@/lib/platform/nativeWorkspaceActions.native';
 export function useUnsavedWebChanges(dirty:boolean,busy=false,message='Ihre Eingaben sind noch nicht gespeichert. Möchten Sie die Bearbeitung verwerfen und die Seite verlassen?'){
   const navigation=useNavigation(),confirming=useRef(false),alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);

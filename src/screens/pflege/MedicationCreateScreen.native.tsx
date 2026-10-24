@@ -6,7 +6,7 @@ import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { CareMedicationScheduleInput } from '@/components/inputs/CareMedicationScheduleInput';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';

@@ -4,7 +4,7 @@ import {nativeWindow as window} from '@/lib/platform/nativeWorkflowEnvironment.n
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { createContext, useCallback, useContext, useEffect, useRef } from 'react';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 export const PersonnelLeaveGuardContext = createContext<((guard: (() => boolean | Promise<boolean>) | null) => void) | null>(null);
 export function usePersonnelUnsavedChanges(dirty: boolean, busy = false) {
     const window = useNativeWorkflowWindow();

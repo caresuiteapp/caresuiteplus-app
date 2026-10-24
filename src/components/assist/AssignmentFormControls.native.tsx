@@ -6,7 +6,7 @@ import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platf
 import { PlatformModal as NativePlatformModal } from '@/components/layout/platform/platformmodal.tsx';
 import { useCallback, useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import type { CatalogItem } from '@/types/assistCatalog';
 import type { AssignmentStudioStep } from './AssignmentStudioScaffold';
 import { AssignmentsWorkspaceStyles } from "./AssignmentsWorkspaceShell.native.tsx";

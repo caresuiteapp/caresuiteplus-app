@@ -5,7 +5,7 @@ import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { CareCatalogSelect, CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';

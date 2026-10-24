@@ -5,7 +5,7 @@ import {NativeSection,NativeSpan,NativeH2,NativeP,NativeButton,NativeHeader,Nati
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigation, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { calculateOfficeInvoiceLines, fetchOfficeInvoiceEditorOptions, saveOfficeInvoiceDraft, validateOfficeInvoiceDraft } from "../../../lib/office/invoiceWorkspaceService.native.ts";
 import type { InvoiceOfficeDraft, OfficeInvoice, OfficeInvoiceDraftLine, OfficeInvoiceProductKey, OfficeInvoiceRecipient, OfficeInvoiceRecipientType, OfficeInvoiceBillingParty, OfficeInvoiceClient } from "../../../lib/office/invoiceWorkspaceService.native.ts";

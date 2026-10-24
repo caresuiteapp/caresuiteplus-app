@@ -6,7 +6,7 @@ import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platf
 import { openNativePdfUrl } from '@/lib/platform/nativeFileDelivery.native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { ScreenShell } from "../../components/layout/ScreenShell.tsx";
 import { PlatformModal } from '@/components/layout/platform';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';

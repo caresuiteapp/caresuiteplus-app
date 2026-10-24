@@ -5,7 +5,7 @@ import {NativeSection,NativeStyle,NativeDiv,NativeH3,NativeP,NativeForm,NativeFi
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useIsFocused, useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';

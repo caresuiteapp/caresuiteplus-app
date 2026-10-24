@@ -5,7 +5,7 @@ import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { ScreenShell } from '@/components/layout';
 import { DetailInfoRow } from '@/components/detail';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';

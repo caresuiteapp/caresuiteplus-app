@@ -5,7 +5,7 @@ import {NativeSection,NativeStyle,NativeHeader,NativeDiv,NativeH2,NativeP,Native
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused, useNavigation, useLocalSearchParams, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { PlatformModal } from '@/components/layout/platform';
 import { useWorkflowFeedback } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';

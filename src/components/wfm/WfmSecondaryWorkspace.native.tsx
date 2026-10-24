@@ -5,7 +5,7 @@ import {NativeSection,NativeStyle,NativeHeader,NativeDiv,NativeH2,NativeP,Native
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, type ReactNode } from 'react';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 export function useWfmUnsavedChanges(dirty: boolean, busy: boolean) {
     const window = useNativeWorkflowWindow();
     const navigation = useNavigation();

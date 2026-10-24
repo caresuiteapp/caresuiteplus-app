@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef} from 'react';
 import {useIsFocused,useNavigation,usePathname} from 'expo-router';
-import {usePreventRemove} from 'expo-router/react-navigation';
+import {usePreventRemove} from '@/hooks/useNativePreventRemove.native';
 import {confirmNativeWorkspaceAction} from '@/lib/platform/nativeWorkspaceActions.native';
 /** Keep the active native form mounted until saving finishes or discard is confirmed. */
 export function useNativeUnsavedChanges(dirty:boolean,busy:boolean,message:string){

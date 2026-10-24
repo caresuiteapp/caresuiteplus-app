@@ -5,7 +5,7 @@ import {NativeDiv,NativeOl,NativeLi,NativeSpan,NativeSection,NativeH2,NativeP,Na
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, useRef, useState } from 'react';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { PlatformModal } from '@/components/layout/platform';
 import { loadInvoiceRunPreview, executeInvoiceRun } from "../../../lib/office/invoiceRunService.native.ts";
 import type { InvoiceRunGroup, InvoiceRunInput, InvoiceRunPreview } from "../../../lib/office/invoiceRunModel.native.ts";

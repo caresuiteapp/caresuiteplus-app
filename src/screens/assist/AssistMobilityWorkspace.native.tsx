@@ -7,7 +7,7 @@ import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platf
 import { WebActionIcon } from "../../components/icons/WebActionIcon.native.tsx";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useIsFocused, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { usePreventRemove } from "@/hooks/useNativePreventRemove.native";
 import { ScreenShell } from "../../components/layout/ScreenShell.tsx";
 import { MobilityWorkspaceNav } from "../../components/assist/MobilityWorkspaceNav.native.tsx";
 import { GoogleMapsLiveMap } from "../../components/maps/GoogleMapsLiveMap.native.tsx";
