@@ -59,6 +59,22 @@ const executable=process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE??['/usr/bin/googl
 if(!executable)throw new Error('No existing browser available for visual verification.');
 const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[];
 try{
+// Keep enlarged device text usable when the viewport is also short.
+{
+ const page=await browser.newPage({viewport:{width:844,height:390}});
+ await page.goto(`http://127.0.0.1:${server.address().port}/?screen=desktop&scale=1.6`);
+ await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+ const grid=page.getByTestId('native-desktop-widget-viewport');await grid.scrollIntoViewIfNeeded();
+ const bounds=await grid.boundingBox();
+ if(!bounds||bounds.height<160||bounds.y<0||bounds.y+bounds.height>391){
+  const ancestors=await grid.evaluate(element=>{const rows=[];for(let item=element;item&&rows.length<8;item=item.parentElement){const r=item.getBoundingClientRect();rows.push({testId:item.getAttribute('data-testid'),y:r.y,height:r.height,clientHeight:item.clientHeight,scrollHeight:item.scrollHeight,overflowY:getComputedStyle(item).overflowY});}return rows;});
+  writeFileSync(join(output,'verification.json'),JSON.stringify({screen:'desktop-landscape-large-text',bounds,ancestors},null,2));
+  await page.screenshot({path:join(output,'failure-desktop-landscape-large-text.png')});
+  throw Error(JSON.stringify({message:'Desktop widgets are not reachable with enlarged text in landscape.',bounds}));
+ }
+ report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
+ await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await page.close();
+}
 for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:768,height:1024},{width:844,height:390},{width:1280,height:800}]){
  for(const screen of ['desktop','web-desktop','clients','employees','company','web-company','company-editor','inventory','notes','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -79,15 +95,5 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
  }
 }
 for(const screen of ['desktop','clients','employees','company','notes','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){const page=await browser.newPage({viewport:{width:360,height:800}});await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});await page.close();}
-// Keep enlarged device text usable when the viewport is also short.
-{
- const page=await browser.newPage({viewport:{width:844,height:390}});
- await page.goto(`http://127.0.0.1:${server.address().port}/?screen=desktop&scale=1.6`);
- await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
- const grid=page.getByTestId('native-desktop-widget-viewport');await grid.scrollIntoViewIfNeeded();
- const bounds=await grid.boundingBox();
- if(!bounds||bounds.height<160||bounds.y<0||bounds.y+bounds.height>391)throw Error('Desktop widgets are not reachable with enlarged text in landscape.');
- await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await page.close();
-}
 writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
 }finally{await browser.close();await new Promise(done=>server.close(done));}

@@ -179,7 +179,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
           <Pressable accessibilityRole="button" accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{width >= 1240 * fontScale ? <View style={styles.profileCopy}><Text style={styles.profileName}>{auth.profile?.displayName || auth.user?.displayName || 'Profil'}</Text><Text style={styles.profileRole}>{permissions.roleLabel ?? 'Verwaltung'}</Text></View> : null}<TopbarProfileAvatar name={auth.profile?.displayName || auth.user?.displayName || 'Profil'} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={layout.mobile ? 'sm' : 'lg'} /></Pressable>
         </View>
       </View>
-      <View style={[styles.workarea, { gap: layout.workareaGap }, shortViewport && { minHeight: Math.max(360, controlsHeight + 220) }]}>
+      <View style={[styles.workarea, { gap: layout.workareaGap }, shortViewport && { flex: 0, height: Math.max(360, controlsHeight + 220), minHeight: Math.max(360, controlsHeight + 220) }]}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 12, gap: 14 }}>{navigation}</ScrollView> : null}
         <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={[styles.desktopToolbar, layout.mobile && { padding: 8, gap: 6 }]}>
@@ -228,7 +228,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
 }
 
 function NativeDesktopFrame({ compact, padding, children }: { compact: boolean; padding: number; children: import('react').ReactNode }) {
-  return <SafeAreaView style={{ flex: 1 }}>{compact ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding, gap: 12 }}>{children}</ScrollView> : <View style={[styles.safe, { padding }]}>{children}</View>}</SafeAreaView>;
+  return <SafeAreaView style={{ flex: 1, minHeight: 0 }}>{compact ? <ScrollView style={{ flex: 1, minHeight: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding, gap: 12 }}>{children}</ScrollView> : <View style={[styles.safe, { padding }]}>{children}</View>}</SafeAreaView>;
 }
 
 function moduleLabelForArea(area: DesktopAreaKey) { return DESKTOP_AREAS.find(item => item.key === area)!.label; }
