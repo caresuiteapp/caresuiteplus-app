@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
-import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { PortalPremiumProvider, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 const SYSTEM_CYAN = '#69E8FF';
 
@@ -35,25 +36,26 @@ export function HealthOSPageSurface({
   testID = 'healthos-page-surface',
   ...accessibilityProps
 }: HealthOSPageSurfaceProps) {
-  const portal = usePortalPremiumTheme();
+  const theme = usePortalPremiumTheme();
+  const portal = { ...theme, active: theme.active && theme.kind !== 'workspace' };
   return (
-    <View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
+    <SurfaceContrastProvider tone="light"><View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
       <View
-        style={[styles.surface, portal.active && styles.portalSurface, fill && styles.surfaceFill]}
+        style={[styles.surface, !portal.active && styles.desktopSurface, portal.active && styles.portalSurface, fill && styles.surfaceFill]}
         {...(Platform.OS === 'web'
-          ? ({ dataSet: { csHealthosPage: 'surface' } } as object)
+          ? ({ dataSet: { csHealthosPage: 'surface', ...(!portal.active ? { csDesktopSurface: 'light' } : {}) } } as object)
           : {})}
         {...accessibilityProps}
       >
-        {!portal.active ? <View pointerEvents="none" style={styles.ambientTop} /> : null}
-        {!portal.active ? <View pointerEvents="none" style={styles.ambientBottom} /> : null}
+
+
         <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
-        {!portal.active ? <View pointerEvents="none" style={styles.innerBorder} /> : null}
+
         <View style={[styles.content, padded && styles.contentPadded, fill && styles.contentFill, contentStyle]}>
-          {children}
+          {portal.active ? children : <PortalPremiumProvider kind="workspace" localOnly>{children}</PortalPremiumProvider>}
         </View>
       </View>
-    </View>
+    </View></SurfaceContrastProvider>
   );
 }
 
@@ -65,14 +67,13 @@ type HealthOSPageZoneProps = {
 };
 
 /** One stable order for action, filter, tab and content areas. */
-export function HealthOSPageZone({ children, kind, fill = true, style }: HealthOSPageZoneProps) {
+export function HealthOSPageZone({ children, kind, style, fill = true }: HealthOSPageZoneProps) {
   if (children == null) return null;
   return (
     <View
       style={[
         styles.zone,
-        kind === 'content' ? styles.contentZone : styles.controlZone,
-        kind === 'content' && fill && styles.contentZoneFill,
+        kind === 'content' ? [styles.contentZone, fill && styles.contentZoneFill] : styles.controlZone,
         style,
       ]}
       {...(Platform.OS === 'web'
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minWidth: 0,
     alignSelf: 'center',
-    maxWidth: 1720,
+    maxWidth: 2560,
   },
   hostFill: {
     flex: 1,
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
         } as unknown as ViewStyle)
       : null),
   },
+  desktopSurface: { backgroundColor: '#F2F6FC', borderColor: '#CCDBEA' },
   portalSurface: {
     overflow: 'visible',
     borderWidth: 0,
@@ -194,9 +196,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.sm,
   },
-  contentZone: {
-    minHeight: 0,
-    gap: careSpacing.md,
-  },
-  contentZoneFill: { flex: 1 },
+  contentZone: { gap: careSpacing.md },
+  contentZoneFill: { flex: 1, minHeight: 0 },
 });

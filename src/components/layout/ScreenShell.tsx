@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreadcrumbs } from '@/lib/navigation';
+import { officeModuleAssignmentBreadcrumbs } from '@/lib/navigation/officeModuleAssignmentRoutes';
+import { officeQmBreadcrumbs } from '@/lib/navigation/officeQmRoutes';
 import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -36,6 +38,7 @@ type ScreenShellProps = {
   hideMobileLogout?: boolean;
   mobileContentPaddingBottom?: number;
   compactHeader?: boolean;
+  /** A complete workspace can provide its own heading and action bar. */
   contentOwnsHeader?: boolean;
 };
 
@@ -63,7 +66,9 @@ export function ScreenShell({
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const effectiveRightSlot = hideMobileLogout && isPhone ? undefined : rightSlot;
-  const breadcrumbTrail = showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
+  const breadcrumbTrail = showBreadcrumbs && pathname !== '/'
+    ? officeModuleAssignmentBreadcrumbs(pathname) ?? officeQmBreadcrumbs(pathname) ?? getBreadcrumbs(pathname)
+    : undefined;
   const isPortalShell = isPortalRoutePath(pathname);
   const isAuthRoute = isAuthRoutePath(pathname);
   const contextualPopup = isHealthOSContextualPopupRoute(`/${segments.join('/')}`);
@@ -74,7 +79,7 @@ export function ScreenShell({
       ? Platform.OS === 'web'
         ? (webSafeAreaCalc('bottom', MOBILE_AUTH_BOTTOM_RESERVE) as number)
         : MOBILE_AUTH_BOTTOM_RESERVE + Math.max(insets.bottom, spacing.sm)
-      : (mobileContentPaddingBottom ?? (Platform.OS === 'web' ? spacing.xxl : 20));
+      : (mobileContentPaddingBottom ?? spacing.xxl);
 
   const styles = useMemo(
     () =>
@@ -83,6 +88,7 @@ export function ScreenShell({
           flex: 1,
           flexGrow: 1,
           width: '100%',
+          minWidth: 0,
           alignSelf: 'stretch',
           minHeight: 0,
           backgroundColor: 'transparent',
@@ -90,13 +96,15 @@ export function ScreenShell({
         scrollHost: {
           flex: 1,
           flexGrow: 1,
+          minHeight: 0,
           width: '100%',
+          minWidth: 0,
           backgroundColor: 'transparent',
         },
         scrollContent: {
           flexGrow: isPhone && isAuthRoute ? undefined : 1,
-          padding: spacing.md,
-          gap: spacing.md,
+          padding: isPhone && !isPortalShell ? 10 : spacing.md,
+          gap: isPhone && !isPortalShell ? 10 : spacing.md,
           paddingBottom: bottomPad,
           backgroundColor: 'transparent',
         },
@@ -105,12 +113,14 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
-          padding: spacing.md,
-          gap: spacing.md,
+          minWidth: 0,
+          padding: isPhone && !isPortalShell ? 10 : spacing.md,
+          gap: isPhone && !isPortalShell ? 10 : spacing.md,
           backgroundColor: 'transparent',
         },
         popupBody: {
           width: '100%',
+          minWidth: 0,
           gap: spacing.md,
         },
         centralPopupWorkspace: {
@@ -118,57 +128,13 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
-          overflow: 'hidden',
-          backgroundColor: Platform.OS === 'web' ? 'rgba(4,17,37,0.96)' : '#F6FAFF',
-        },
-        centralPopupPageHeader: {
-          flexWrap: isPhone ? 'wrap' : 'nowrap',
-          minHeight: Platform.OS === 'web' ? (isPhone ? 66 : 84) : 54,
-          flexShrink: 0,
-          paddingHorizontal: isPhone ? spacing.md : spacing.lg,
-          paddingVertical: isPhone ? spacing.sm : spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(117,211,255,0.28)',
-          backgroundColor: Platform.OS === 'web' ? 'rgba(8,29,57,0.93)' : '#EAF4FF',
-        },
-        centralPopupTitleGroup: {
-          flex: 1,
           minWidth: 0,
+          overflow: 'hidden',
+          backgroundColor: '#F2F6FC',
         },
-        centralPopupEyebrow: {
-          color: Platform.OS === 'web' ? '#78DCFF' : '#0872D9',
-          fontSize: 10,
-          lineHeight: 14,
-          fontWeight: '900',
-          letterSpacing: 1.4,
-          textTransform: 'uppercase',
-        },
-        centralPopupTitle: {
-          color: Platform.OS === 'web' ? '#F5FAFF' : '#0B213D',
-          fontSize: isPhone ? 19 : 24,
-          lineHeight: isPhone ? 24 : 30,
-          fontWeight: '900',
-          letterSpacing: -0.4,
-          marginTop: 2,
-        },
-        centralPopupSubtitle: {
-          color: Platform.OS === 'web' ? '#AFC9E0' : '#526A84',
-          fontSize: 12,
-          lineHeight: 17,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        centralPopupActions: {
-          width: isPhone ? '100%' : undefined,
-          flexShrink: 0,
-          alignItems: 'flex-end',
-        },
+
       }),
-    [bottomPad, isAuthRoute, isPhone],
+    [bottomPad, isAuthRoute, isPhone, isPortalShell],
   );
 
   const structuredContent = (
@@ -176,7 +142,7 @@ export function ScreenShell({
       <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
       <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
       <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-      <HealthOSPageZone kind="content">{children}</HealthOSPageZone>
+      <HealthOSPageZone kind="content" fill={!shellScroll}>{children}</HealthOSPageZone>
     </>
   );
 
@@ -189,7 +155,7 @@ export function ScreenShell({
       <ScrollView
         style={styles.scrollHost}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
         keyboardShouldPersistTaps="handled"
       >
         {structuredContent}
@@ -200,31 +166,22 @@ export function ScreenShell({
   );
 
   const rootStyle: ViewStyle[] = [styles.root];
-  if (useMobileTouchScroll && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
+  // Nested popup pages inherit their available height. A second 100dvh extends
+  // their scroll viewport below the popup and hides the final form/list rows.
+  if (useMobileTouchScroll && !contextualPopup && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
 
   if (contextualPopup) {
     return (
-      <SurfaceContrastProvider tone={Platform.OS === 'web' ? 'dark' : 'light'}>
+      <SurfaceContrastProvider tone="light">
         <View
           style={[rootStyle, styles.centralPopupWorkspace]}
           testID="screen-shell-contextual-popup"
           {...(Platform.OS === 'web'
-            ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
+            ? ({ dataSet: { csCentralPopupWorkspace: 'true', csDesktopSurface: 'light' } } as object)
             : {})}
         >
-          {!contentOwnsHeader ? <View
-            style={styles.centralPopupPageHeader}
-            {...(Platform.OS === 'web'
-              ? ({ dataSet: { csCentralPopupPageHeader: 'true' } } as object)
-              : {})}
-          >
-            <View style={styles.centralPopupTitleGroup}>
-              {Platform.OS === 'web' ? <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text> : null}
-              <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupTitle}>{title}</Text>
-              {subtitle ? <Text numberOfLines={Platform.OS === 'web' ? 2 : undefined} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
-            </View>
-            {effectiveRightSlot ? <View style={styles.centralPopupActions}>{effectiveRightSlot}</View> : null}
-          </View> : null}
+          {!contentOwnsHeader && <ScreenHeader title={title} subtitle={subtitle} breadcrumbTrail={breadcrumbTrail}
+            showBack={showBack} onBack={onBack} rightSlot={effectiveRightSlot} compact={compactHeader} />}
           <HealthOSPageSurface padded={false}>{body}</HealthOSPageSurface>
         </View>
       </SurfaceContrastProvider>
@@ -237,7 +194,7 @@ export function ScreenShell({
       testID="screen-shell"
       accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
     >
-      <ScreenHeader
+      {!contentOwnsHeader && <ScreenHeader
         title={title}
         subtitle={subtitle}
         breadcrumbTrail={breadcrumbTrail}
@@ -245,7 +202,7 @@ export function ScreenShell({
         onBack={onBack}
         rightSlot={effectiveRightSlot}
         compact={compactHeader}
-      />
+      />}
       <HealthOSPageSurface
         padded={false}
         accessible={!!a11yMeta}
