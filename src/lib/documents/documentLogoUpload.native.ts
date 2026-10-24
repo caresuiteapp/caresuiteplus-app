@@ -1,5 +1,6 @@
+import {nativeURL} from '@/lib/platform/nativeObjectUrl.native';
 import { Image } from 'react-native';
-import { File } from 'expo-file-system';
+import { File as LocalFile } from 'expo-file-system';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import type { RoleKey, ServiceResult } from '@/types';
@@ -12,7 +13,7 @@ export type NativeDocumentLogo = { bytes: Uint8Array; mimeType: string; fileName
 export async function pickDocumentLogo(): Promise<NativeDocumentLogo | null> {
   const result = await DocumentPicker.getDocumentAsync({ type: ['image/png', 'image/jpeg', 'image/webp'], copyToCacheDirectory: true, multiple: false });
   if (result.canceled) return null;
-  const asset = result.assets[0]; const file = new File(asset.uri);
+  const asset = result.assets[0]; const file = new LocalFile(asset.uri);
   if (!file.size || file.size > TENANT_LOGO_MAX_BYTES) throw new Error('Das Logo darf höchstens 5 MB groß sein.');
   const bytes = await file.bytes(); const png = [137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v); const jpg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255; const webp = String.fromCharCode(...bytes.slice(0,4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8,12)) === 'WEBP';
   if ((!png && !jpg && !webp) || bytes.length > TENANT_LOGO_MAX_BYTES) throw new Error('Bitte ein gültiges Logo als PNG, JPG oder WebP wählen.');
@@ -28,3 +29,10 @@ export async function uploadNativeDocumentLogo(tenantId: string, logo: NativeDoc
     const url = storage.getPublicUrl(path).data.publicUrl; if (!url || new URL(url).protocol !== 'https:') throw new Error('Das Logo konnte nicht bereitgestellt werden.'); return { ok: true, data: url };
   } catch (cause) { return { ok: false, error: cause instanceof Error ? cause.message : 'Das Logo konnte nicht gespeichert werden.' }; }
 }
+
+// Match the shared document editor contract while retaining native file reads.
+export const DOCUMENT_LOGO_ACCEPT='image/png,image/jpeg,image/webp';
+export type PreparedDocumentLogo={file:File;previewUrl:string;width:number;height:number;uploadId:string};
+async function checkLogo(file:File){if(!['image/png','image/jpeg','image/webp'].includes(file.type)||!file.size||file.size>TENANT_LOGO_MAX_BYTES)throw Error('Bitte ein Logo als PNG, JPG oder WebP mit höchstens 5 MB auswählen.');const bytes=new Uint8Array(await file.arrayBuffer()),png=[137,80,78,71,13,10,26,10].every((v,i)=>bytes[i]===v),jpg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255,webp=String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP';if(!(file.type==='image/png'?png:file.type==='image/jpeg'?jpg:webp))throw Error('Die Datei enthält kein gültiges Bild im angegebenen Format.');return bytes;}
+export async function prepareDocumentLogo(file:File):Promise<ServiceResult<PreparedDocumentLogo>>{let previewUrl='';try{await checkLogo(file);previewUrl=nativeURL.createObjectURL(file);const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Das Logo konnte nicht innerhalb von 10 Sekunden gelesen werden.')),10000);Image.getSize(previewUrl).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});if(!dimensions.width||!dimensions.height||dimensions.width*dimensions.height>24000000)throw Error('Bitte verwenden Sie ein Logo mit höchstens 24 Megapixeln.');return {ok:true,data:{file,previewUrl,...dimensions,uploadId:randomUUID()}};}catch(cause){if(previewUrl)nativeURL.revokeObjectURL(previewUrl);return {ok:false,error:cause instanceof Error?cause.message:'Das Logo konnte nicht gelesen werden.'};}}
+export async function uploadDocumentLogo(tenantId:string,logo:PreparedDocumentLogo,roleKey?:RoleKey|null):Promise<ServiceResult<string>>{try{const bytes=await checkLogo(logo.file);return uploadNativeDocumentLogo(tenantId,{bytes,mimeType:logo.file.type,fileName:logo.file.name,previewUrl:logo.previewUrl,width:logo.width,height:logo.height,uploadId:logo.uploadId},roleKey??null);}catch(cause){return {ok:false,error:cause instanceof Error?cause.message:'Das Logo konnte nicht hochgeladen werden.'};}}

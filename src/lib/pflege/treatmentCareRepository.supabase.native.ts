@@ -1,0 +1,156 @@
+// Generated native presentation from src/lib/pflege/treatmentCareRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { getSupabaseClient } from "../supabase/client.ts";
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { treatmentCareOriginalIssue, treatmentCarePacketIssue, treatmentCareSourcesIssue, type TreatmentCareOriginal, type TreatmentCarePacket, type TreatmentCareSources } from "./treatmentCarePacket.native.ts";
+type Row = Record<string, unknown>;
+type Context = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    isCurrent(): boolean;
+};
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+const unavailable = 'Der vollständige Verordnungs-, Kostenträger-, Behandlungs-, Mess-, Infusions-, Personen- und Korrekturbezug konnte nicht bestätigt werden.';
+const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const dbClient = () => getSupabaseClient() as unknown as {
+    auth: {
+        getSession(): Promise<{
+            data: {
+                session: null | {
+                    user: {
+                        id: string;
+                    };
+                    access_token: string;
+                    expires_at?: number;
+                };
+            };
+            error: unknown;
+        }>;
+        getUser(token?: string): Promise<{
+            data: {
+                user: null | {
+                    id: string;
+                };
+            };
+            error: unknown;
+        }>;
+    };
+    rpc(name: string, args: Row): Promise<{
+        data: unknown;
+        error: unknown;
+        status?: number;
+    }>;
+} | null;
+const stable = (v: unknown) => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(k => [k, item[k]])) : item);
+async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
+    throw Error(unavailable); const session = await db.auth.getSession(); if (!c.isCurrent() || session.error || !session.data.session || session.data.session.user.id !== c.actorId || session.data.session.expires_at !== undefined && session.data.session.expires_at * 1000 <= Date.now())
+    throw Error(unavailable); const user = await db.auth.getUser(session.data.session.access_token); if (!c.isCurrent() || user.error || user.data.user?.id !== c.actorId || dbClient() !== db)
+    throw Error(unavailable); return db; }
+function decodeOriginal(v: unknown, c: {
+    tenantId: string;
+    clientId: string;
+    orderId: string;
+}) { const issue = treatmentCareOriginalIssue(v, c); if (issue)
+    throw Error(issue); return structuredClone(v as TreatmentCareOriginal); }
+export async function readTreatmentCareSources(c: Context): Promise<Result<TreatmentCareSources>> { try {
+    const db = await authority(c);
+    const response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_read_treatment_care_context', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_actor_profile_id: c.actorId }), 'Behandlungspflegequellen vollständig laden', 20000);
+    if (!c.isCurrent() || dbClient() !== db || response.error || treatmentCareSourcesIssue(response.data))
+        return { ok: false, error: unavailable };
+    return { ok: true, data: structuredClone(response.data as TreatmentCareSources) };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+export async function readTreatmentCarePage(c: Context): Promise<Result<TreatmentCareOriginal[]>> { try {
+    const db = await authority(c), rows: TreatmentCareOriginal[] = [];
+    let recorded: string | null = null, id: string | null = null;
+    for (let page = 0; page < 100; page++) {
+        const response: {
+            data: unknown;
+            error: unknown;
+            status?: number;
+        } = await withServiceQueryTimeout(db.rpc('web_read_treatment_care_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: recorded, p_cursor_id: id, p_page_size: 100 }), 'Behandlungspflegeverlauf vollständig laden', 20000);
+        if (!c.isCurrent() || dbClient() !== db || response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
+            return { ok: false, error: unavailable };
+        if (response.data.rows.length === 0)
+            return { ok: true, data: rows };
+        if (typeof response.data.nextCursorRecordedAt !== 'string' || !uuid(response.data.nextCursorId) || response.data.nextCursorRecordedAt === recorded && response.data.nextCursorId === id)
+            return { ok: false, error: unavailable };
+        for (const raw of response.data.rows) {
+            if (!object(raw) || !uuid(raw.orderId))
+                throw Error(unavailable);
+            const row = decodeOriginal(raw, { tenantId: c.tenantId, clientId: c.clientId, orderId: raw.orderId });
+            if (rows.some(x => x.id === row.id))
+                throw Error(unavailable);
+            rows.push(row);
+        }
+        recorded = response.data.nextCursorRecordedAt;
+        id = response.data.nextCursorId;
+    }
+    return { ok: false, error: 'Der Behandlungspflegeverlauf überschreitet die sicher vollständig lesbare Grenze.' };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+function receipt(v: unknown, p: TreatmentCarePacket): TreatmentCareOriginal | null { if (!object(v) || v.requestId !== p.requestId || stable(v.packet) !== stable(p))
+    return null; try {
+    return decodeOriginal(v.original, p);
+}
+catch {
+    return null;
+} }
+export async function commitTreatmentCarePacket(p: TreatmentCarePacket, isCurrent: () => boolean): Promise<Result<TreatmentCareOriginal>> { const captured = structuredClone(p), issue = treatmentCarePacketIssue(captured); if (issue)
+    return { ok: false, error: issue, rejected: true }; let dispatched = false; try {
+    const c = { tenantId: captured.tenantId, clientId: captured.clientId, actorId: captured.actorId, isCurrent };
+    const db = await authority(c);
+    dispatched = true;
+    const response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_commit_treatment_care_packet', { p_packet: captured }), 'Behandlungspflegepaket transaktional speichern', 20000);
+    if (!isCurrent() || dbClient() !== db)
+        return { ok: false, error: unavailable, uncertain: true };
+    if (response.error) {
+        const code = object(response.error) ? String(response.error.code ?? '') : '';
+        return { ok: false, error: toGermanSupabaseError(response.error as Parameters<typeof toGermanSupabaseError>[0]), ...(response.data === null && ['22007', '22008', '22023', '22P02', '23514', '40001', '42501', 'P0H01', 'P0H02'].includes(code) ? { rejected: true } : { uncertain: true }) };
+    }
+    const saved = receipt(response.data, captured);
+    return saved ? { ok: true, data: saved } : { ok: false, error: unavailable, uncertain: true };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable, uncertain: dispatched };
+} }
+export async function confirmTreatmentCarePacket(p: TreatmentCarePacket, isCurrent: () => boolean): Promise<Result<TreatmentCareOriginal>> { const captured = structuredClone(p), issue = treatmentCarePacketIssue(captured); if (issue)
+    return { ok: false, error: issue, rejected: true }; try {
+    const c = { tenantId: captured.tenantId, clientId: captured.clientId, actorId: captured.actorId, isCurrent };
+    const db = await authority(c);
+    const response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_confirm_treatment_care_packet', { p_tenant_id: captured.tenantId, p_client_id: captured.clientId, p_order_id: captured.orderId, p_actor_profile_id: captured.actorId, p_request_id: captured.requestId, p_packet: captured }), 'Unklaren Behandlungspflegeausgang anhand nativer Quittung prüfen', 20000);
+    if (!c.isCurrent() || dbClient() !== db || response.error)
+        return { ok: false, error: unavailable };
+    const saved = receipt(response.data, captured);
+    return saved ? { ok: true, data: saved } : { ok: false, error: unavailable };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }

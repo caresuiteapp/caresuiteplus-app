@@ -1,0 +1,118 @@
+// Generated native presentation from src/screens/pflege/TourPlanningInbox.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {useNativeWorkflowWindow} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {nativeWindow as window,nativeCrypto as crypto,nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
+import { ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { SourcePicker } from "./TreatmentSourcePicker.native.tsx";
+import { PlanningPacket } from "./TourPlanningPresentation.native.tsx";
+import { tourPlanningRepository as repository } from "../../lib/pflege/tourPlanningWorkspaceRepository.supabase.native.ts";
+import type { TourPlanningAuthority } from "../../lib/pflege/tourPlanningWorkspaceRepository.native.ts";
+import type { PlanningInboxEntry } from "../../lib/pflege/tourPlanningInbox.native.ts";
+import { tourPlanningVersion, validateTourPlanningCommand } from "../../lib/pflege/tourPlanningWorkspaceDomain.native.ts";
+import { browserTourPlanningLock, TourPlanningWorkflow, type TourPlanningJournal } from "../../lib/pflege/tourPlanningWorkspaceWorkflow.native.ts";
+import { discardTourPlanningDraft, restoreTourPlanningDraft, saveTourPlanningDraft } from "../../lib/pflege/tourPlanningWorkspaceDraft.native.ts";
+import { sameWoundJson } from '@/lib/pflege/woundCareDomain';
+import { colors, spacing } from '@/theme';
+/** Own addressed plan content only. The endpoint never returns personnel histories or other employees' acknowledgements. */
+export function PlanningInbox({ authority }: {
+    authority: TourPlanningAuthority;
+}) {
+    const [entries, setEntries] = useState<PlanningInboxEntry[] | null>(null), [selected, setSelected] = useState(''), [error, setError] = useState(''), [revision, setRevision] = useState(0);
+    useEffect(() => {
+        let active = true;
+        setEntries(null);
+        setError('');
+        void repository.inbox(authority).then(result => { if (!active || !authority.isCurrent())
+            return; if (!result.ok) {
+            setError(result.error);
+            return;
+        } setEntries(result.data); setSelected(previous => result.data.some(row => row.publication.id === previous) ? previous : result.data.find(row => row.current && !row.acknowledgement)?.publication.id ?? result.data[0]?.publication.id ?? ''); });
+        return () => { active = false; };
+    }, [authority, revision]);
+    const chosen = entries?.find(row => row.publication.id === selected);
+    return <SectionPanel title="Meine veröffentlichten Planfassungen">{!entries ? error ? <ErrorState message={error} onRetry={() => setRevision(value => value + 1)}/> : <LoadingState message="Persönlich adressierte Planinhalte werden gelesen…"/> : entries.length ? <View style={{ minWidth: 0, gap: spacing.md }}><SourcePicker label="Persönliche Planfassung" rows={entries.map(row => ({ id: row.publication.id, label: `${String(row.publication.versionLabel)} · ${row.current ? 'aktuelle Fassung' : 'frühere oder geänderte Fassung'} · ${row.acknowledgement ? 'Empfang bestätigt' : 'noch ohne Empfangsbeleg'}` }))} value={selected} onChange={setSelected} disabled={!authority.isCurrent()}/>{chosen ? <InboxPublication key={`${chosen.publication.id}:${revision}`} entry={chosen} authority={authority} refresh={() => setRevision(value => value + 1)} openPublication={id => { if (entries.some(row => row.publication.id === id))
+        setSelected(id); }}/> : null}</View> : <Text style={{ color: colors.textPrimary }}>Für dieses Konto liegt keine persönlich adressierte Planfassung vor.</Text>}<PremiumButton title="Persönliche Planfassungen neu laden" variant="secondary" onPress={() => setRevision(value => value + 1)} disabled={!authority.isCurrent()}/></SectionPanel>;
+}
+function InboxPublication({ entry, authority, refresh, openPublication }: {
+    entry: PlanningInboxEntry;
+    authority: TourPlanningAuthority;
+    refresh(): void;
+    openPublication(id: string): void;
+}) {
+    const window = useNativeWorkflowWindow();
+    const p = entry.publication, scope = useMemo(() => ({ tenantId: authority.tenantId, actorId: authority.actorId, planId: p.planId }), [authority, p.planId]);
+    const alive = useRef(true), running = useRef(false);
+    const current = () => alive.current && authority.isCurrent();
+    const workflow = useMemo(() => new TourPlanningWorkflow(scope, { storage: { getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value), removeItem: key => window.localStorage.removeItem(key) }, lock: browserTourPlanningLock, isCurrent: current, commit: command => repository.commit(authority, command), confirm: command => repository.confirm(authority, command) }), [scope, authority]);
+    const [journal, setJournal] = useState<TourPlanningJournal | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), [blocked, setBlocked] = useState(false);
+    const [restored] = useState(() => { try {
+        return restoreTourPlanningDraft(window.sessionStorage, scope, entry.headId, (key, value) => key === 'publishEventId' ? value === p.id : key === 'recipient' && sameWoundJson(value, entry.recipient));
+    }
+    catch {
+        return null;
+    } });
+    const ownDraft = restored?.draft.kind === 'acknowledge' && (restored.draft.selected.publishEventId?.value ?? restored.draft.values.publicationId) === p.id;
+    const [channel, setChannel] = useState(ownDraft ? restored!.draft.values.channel ?? '' : ''), [decision, setDecision] = useState(ownDraft ? restored!.draft.values.decision ?? '' : ''), [note, setNote] = useState(ownDraft ? restored!.draft.note : '');
+    const read = () => { try {
+        setJournal(workflow.read());
+        setBlocked(false);
+    }
+    catch (caught) {
+        setBlocked(true);
+        setError(caught instanceof Error ? caught.message : 'Der gesicherte Vorgang ist nicht lesbar.');
+    } };
+    useEffect(() => { alive.current = true; read(); const storage = (event: StorageEvent) => { if (event.key?.startsWith('caresuite.tour-planning-workspace.v1:'))
+        read(); }; window.addEventListener('storage', storage); return () => { alive.current = false; window.removeEventListener('storage', storage); }; }, [workflow]);
+    async function run(action: () => Promise<void>) {
+        if (running.current || !current())
+            return;
+        running.current = true;
+        setBusy(true);
+        setError('');
+        try {
+            await action();
+        }
+        catch (caught) {
+            if (current())
+                setError(caught instanceof Error ? caught.message : 'Der persönliche Empfang konnte nicht bestätigt werden.');
+        }
+        finally {
+            running.current = false;
+            if (current()) {
+                setBusy(false);
+                read();
+            }
+        }
+    }
+    const ownsJournal = journal?.command.kind === 'acknowledge' && journal.command.payload.publishEventId === p.id;
+    const disabled = busy || blocked || !!journal || !entry.current || !!entry.acknowledgement || !current();
+    function saveDraft() {
+        if (!current())
+            throw Error('Das eigene Konto ist nicht mehr aktuell.');
+        const existing = restoreTourPlanningDraft(window.sessionStorage, scope, entry.headId, () => true);
+        if (existing && (existing.draft.kind !== 'acknowledge' || (existing.draft.selected.publishEventId?.value ?? existing.draft.values.publicationId) !== p.id))
+            throw Error('Für diese Tour ist bereits ein anderer Entwurf gesichert. Zuerst in der zugehörigen Planung prüfen.');
+        saveTourPlanningDraft(window.sessionStorage, { version: tourPlanningVersion, scope, headId: entry.headId, kind: 'acknowledge', occurredAt: new Date().toISOString(), note, values: { channel, decision, publicationId: p.id }, selected: { publishEventId: { id: p.id, value: p.id }, recipient: { id: entry.recipient.id, value: entry.recipient } } });
+    }
+    return <View style={{ minWidth: 0, gap: spacing.md }}><PlanningPacket packet={p.packet}/><Text style={{ color: colors.textPrimary }}>Adressiert an: {entry.recipient.name}</Text>{entry.acknowledgement ? <InfoBanner variant="info" message="Der eigene Empfang dieser Fassung ist mit einem Originalbeleg bestätigt."/> : !entry.current ? <InfoBanner variant="warning" message="Diese Fassung ist überholt oder ihre Grundlagen wurden geändert. Ein neuer Empfang benötigt eine aktuell veröffentlichte Fassung."/> : null}{journal ? ownsJournal ? <SectionPanel title="Gesicherte persönliche Bestätigung"><Text style={{ color: colors.textPrimary }}>{journal.phase === 'dispatched' ? 'Der Speicherausgang ist unklar. Es wird ausschließlich die Originalquittung gelesen.' : journal.phase === 'confirmed' ? 'Quittung vorhanden. Mit dem persönlichen Originalbeleg abgleichen.' : journal.phase === 'rejected' ? journal.rejection : 'Dauerhaft gesichert und noch nicht gesendet.'}</Text>{journal.phase === 'dispatched' ? <PremiumButton title="Originalquittung ausschließlich lesen" disabled={busy} onPress={() => void run(async () => { const result = await workflow.confirm(); if (!result.ok)
+        throw Error(result.error); refresh(); })}/> : journal.phase === 'confirmed' ? <PremiumButton title="Quittung mit persönlichem Original abgleichen" disabled={busy} onPress={() => void run(async () => { const result = await repository.inbox(authority); if (!result.ok)
+        throw Error(result.error); await workflow.releaseConfirmed(result.data.map(row => row.acknowledgement).filter(value => value !== null)); refresh(); })}/> : <PremiumButton title="Ungesendeten oder abgewiesenen Vorgang freigeben" variant="secondary" disabled={busy} onPress={() => void run(async () => { await workflow.discardUnsentOrRejected(); refresh(); })}/>}</SectionPanel> : <View style={{ gap: spacing.sm }}><InfoBanner variant="warning" message="Für diese Tour ist ein anderer Vorgang gesichert. Diesen zuerst im zugehörigen Planungsbereich abgleichen."/>{journal.command.kind === 'acknowledge' ? <PremiumButton title="Gesicherte persönliche Fassung öffnen" variant="secondary" disabled={busy} onPress={() => openPublication(String(journal.command.payload.publishEventId))}/> : null}</View> : null}{error ? <ErrorState message={error}/> : null}{restored && !ownDraft && restored.draft.kind === 'acknowledge' ? <PremiumButton title="Gesicherten Empfangsentwurf für diese Fassung erneut prüfen" variant="secondary" disabled={!!journal || busy || !current()} onPress={() => { try {
+        setChannel(restored.draft.values.channel ?? '');
+        setDecision(restored.draft.values.decision ?? '');
+        setNote(restored.draft.note);
+        discardTourPlanningDraft(window.sessionStorage, scope);
+        setError('Entwurfstexte übernommen. Angezeigte Fassung und Angaben vor dem Speichern erneut prüfen.');
+    }
+    catch (caught) {
+        setError(String(caught));
+    } }}/> : null}<PremiumInput label="Empfangskanal *" value={channel} onChangeText={setChannel} editable={!disabled}/><PremiumInput label="Persönliche Bestätigung zum angezeigten Inhalt *" value={decision} onChangeText={setDecision} multiline maxLength={4000} editable={!disabled}/><PremiumInput label="Anlass / eigene Notiz *" value={note} onChangeText={setNote} multiline maxLength={4000} editable={!disabled}/><PremiumButton title="Persönlichen Entwurf auf diesem Gerät sichern" variant="secondary" disabled={disabled} onPress={() => { try {
+        saveDraft();
+        setError('');
+    }
+    catch (caught) {
+        setError(String(caught));
+    } }}/><PremiumButton title="Eigenen Empfang dieser Fassung bestätigen" disabled={disabled} onPress={() => void run(async () => { saveDraft(); const command = { version: tourPlanningVersion, ...scope, requestId: crypto.randomUUID(), eventId: crypto.randomUUID(), expectedHeadId: entry.headId, kind: 'acknowledge' as const, occurredAt: new Date().toISOString(), note, payload: { publishEventId: p.id, recipient: structuredClone(entry.recipient), channel, decision } }; validateTourPlanningCommand(command); const result = await workflow.dispatch(command); if (!result.ok)
+        throw Error(result.error); discardTourPlanningDraft(window.sessionStorage, scope); refresh(); })}/></View>;
+}

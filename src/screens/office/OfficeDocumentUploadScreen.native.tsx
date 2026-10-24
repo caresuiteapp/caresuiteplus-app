@@ -1,29 +1,112 @@
-import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
-import { File } from 'expo-file-system';
-import { randomUUID } from 'expo-crypto';
-import * as DocumentPicker from 'expo-document-picker';
+// Generated native presentation from src/screens/office/OfficeDocumentUploadScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {NativeStyle,NativeDiv,NativeSection,NativeButton,NativeForm,NativeStrong,NativeP,NativeInput,NativeLabel,NativeSpan,NativeSelect,NativeOption,NativeH2,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import { nativeBlobDataUrl } from '@/lib/platform/nativeInvoiceLogo.native';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout/ScreenShell';
-import { MobileButton, MobileCard, MobileField, MobileHeading, MobileState, m } from '@/components/mobile/MobileWorkspace';
-import { MobileSelect } from '@/components/mobile/MobileSelect';
 import { useAuth } from '@/lib/auth/context';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { loadOfficeUploadClients, uploadOfficeDocument, OFFICE_UPLOAD_MAX_BYTES } from '@/lib/office/officeDocumentsService';
+import { usePermissions } from '@/hooks/usePermissions';
+import { DocumentsWorkspaceShell, DocumentWorkspaceIcon } from "../../components/documents/DocumentsWorkspaceShell.native.tsx";
+import { officeDocumentWorkspaceCss, documentSize } from "../../components/office/officeDocumentWorkspace.native.ts";
+import { loadOfficeUploadClients, uploadOfficeDocument, OFFICE_UPLOAD_MAX_BYTES } from "../../lib/office/officeDocumentsService.ts";
 import { CLIENT_DOCUMENT_CATEGORY_LABELS } from '@/types/modules/client/clientDocuments';
 export function OfficeDocumentUploadScreen() {
-  const tenantId = useServiceTenantId() ?? ''; const { profile } = useAuth(); const { can } = usePermissions();
-  return <ScreenShell title="Datei hochladen" contentOwnsHeader showBack={false}>{!can('office.documents.view') || !can('office.clients.edit') ? <MobileState title="Keine Berechtigung für Uploads in die Klientenakte" /> : <UploadEditor key={`${tenantId}:${profile?.id}`} tenantId={tenantId} />}</ScreenShell>;
-}
-function UploadEditor({ tenantId }: { tenantId: string }) {
-  const router = useRouter(); const { profile } = useAuth(); const [clientId, setClientId] = useState(''); const [title, setTitle] = useState(''); const [category, setCategory] = useState(''); const [file, setFile] = useState<{ name: string; mime: string; size: number; base64: string }>(); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [saved, setSaved] = useState('');
-  const requestId = useRef(randomUUID()); const lock = useRef(false); const alive = useRef(true);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  const clients = useAsyncQuery(() => loadOfficeUploadClients(tenantId, profile?.roleKey, profile), [tenantId, profile?.id, profile?.roleKey], { queryKey: `native-upload-clients:${tenantId}:${profile?.id}`, enabled: !!tenantId });
-  const change = (setter: (v: string) => void, value: string) => { if (lock.current) return; setter(value); requestId.current = randomUUID(); setSaved(''); };
-  const pick = async () => { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }); if (result.canceled || !alive.current) return; const asset = result.assets[0]; const picked = new File(asset.uri); if (!picked.size || picked.size > OFFICE_UPLOAD_MAX_BYTES) throw new Error('Bitte eine Datei mit höchstens 20 MB auswählen.'); const base64 = await picked.base64(); if (!alive.current) return; setFile({ name: asset.name, mime: asset.mimeType ?? 'application/octet-stream', size: picked.size, base64 }); setTitle(asset.name); requestId.current = randomUUID(); setSaved(''); } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : 'Datei konnte nicht gelesen werden.'); } finally { lock.current = false; if (alive.current) setBusy(false); } };
-  const upload = async () => { if (lock.current || !file || saved) return; lock.current = true; setBusy(true); setError(''); try { const result = await uploadOfficeDocument(tenantId, { requestId: requestId.current, clientId, title, category, filename: file.name, mimeType: file.mime, sizeBytes: file.size, contentBase64: file.base64 }, profile?.roleKey, profile); if (!alive.current) return; if (!result.ok) throw new Error(result.error); setSaved(result.data.id); } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : 'Der Upload konnte nicht bestätigt werden. Bitte mit derselben Auswahl erneut versuchen.'); } finally { lock.current = false; if (alive.current) setBusy(false); } };
-  return <View style={m.stack}><MobileHeading title="Datei hochladen" subtitle="Sicher einer Klientenakte zuordnen" icon="upload" /><MobileCard>{clients.error ? <MobileState title="Aktenauswahl nicht verfügbar" message={clients.error} onRetry={() => void clients.refresh()} /> : <MobileSelect label="Klientenakte *" value={clientId} options={Object.fromEntries((clients.data ?? []).map(row => [row.id, row.name]))} disabled={busy || !!saved} onChange={value => change(setClientId, value)} />}<MobileButton label={file ? 'Andere Datei auswählen' : 'Datei auswählen'} icon="paperclip" busy={busy} disabled={!!saved} onPress={() => void pick()} />{file ? <Text style={m.body}>{file.name} · {(file.size / 1024 / 1024).toLocaleString('de', { maximumFractionDigits: 1 })} MB</Text> : null}<MobileField label="Dokumenttitel *" value={title} onChangeText={value => change(setTitle, value)} editable={!busy && !saved} /><MobileSelect label="Kategorie *" value={category} options={CLIENT_DOCUMENT_CATEGORY_LABELS} disabled={busy || !!saved} onChange={value => change(setCategory, value)} /><Text style={m.muted}>Die Datei wird in der gewählten Akte gespeichert. Sie ist zunächst nicht im Klientenportal sichtbar.</Text><MobileButton primary label={saved ? 'Gespeichert' : 'In Akte hochladen'} icon="upload" busy={busy} disabled={!file || !clientId || !title.trim() || !category || !!saved} onPress={() => void upload()} />{error ? <Text accessibilityRole="alert" style={m.error}>{error}</Text> : null}{saved ? <><Text style={m.body}>Dokument erfolgreich gespeichert.</Text><MobileButton label="Dokument öffnen" onPress={() => router.replace(`/business/office/documents/${saved}` as never)} /></> : null}</MobileCard></View>;
+    const router = useRouter();
+    const { profile } = useAuth();
+    const tenantId = useServiceTenantId();
+    const { can } = usePermissions();
+    const [clients, setClients] = useState<{
+        id: string;
+        name: string;
+    }[]>([]);
+    const [clientsLoading, setClientsLoading] = useState(true);
+    const [clientsError, setClientsError] = useState<string | null>(null);
+    const [reload, setReload] = useState(0);
+    const [clientId, setClientId] = useState('');
+    const [title, setTitle] = useState('');
+    const [category, setCategory] = useState('');
+    const [file, setFile] = useState<File | null>(null);
+    const [working, setWorking] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [done, setDone] = useState<string | null>(null);
+    const requestId = useRef<string | null>(null);
+    const active = useRef(true);
+    const uploadLock = useRef<symbol | null>(null);
+    const canUpload = can('office.documents.view') && can('office.clients.edit');
+    const scopeKey = `${tenantId ?? ''}:${profile?.id ?? ''}`;
+    const currentScope = useRef({ key: scopeKey, generation: 0 });
+    if (currentScope.current.key !== scopeKey)
+        currentScope.current = { key: scopeKey, generation: currentScope.current.generation + 1 };
+    useEffect(() => { setFile(null); setTitle(''); setCategory(''); setDone(null); setError(null); setWorking(false); requestId.current = null; uploadLock.current = null; }, [scopeKey]);
+    useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+    useEffect(() => { let current = true; setClients([]); setClientsError(null); setClientId(''); setClientsLoading(true); if (!tenantId || !canUpload) {
+        setClientsLoading(false);
+        return;
+    } void loadOfficeUploadClients(tenantId, profile?.roleKey, profile).then(result => { if (!current)
+        return; if (result.ok)
+        setClients(result.data);
+    else
+        setClientsError(result.error); setClientsLoading(false); }).catch(() => { if (current) {
+        setClientsError('Die Klientenakten konnten nicht geladen werden.');
+        setClientsLoading(false);
+    } }); return () => { current = false; }; }, [tenantId, profile, canUpload, reload]);
+    async function submit(event: FormEvent) {
+        event.preventDefault();
+        if (!tenantId || !file || !canUpload || working || uploadLock.current !== null)
+            return;
+        const operationScope = currentScope.current.generation;
+        const operationToken = Symbol('upload');
+        uploadLock.current = operationToken;
+        setWorking(true);
+        setError(null);
+        try {
+            const base64 = (await nativeBlobDataUrl(file)).split(',')[1];
+            if (!active.current || currentScope.current.generation !== operationScope)
+                return;
+            requestId.current ??= crypto.randomUUID();
+            const result = await uploadOfficeDocument(tenantId, { clientId, title, category, filename: file.name, mimeType: file.type || 'application/octet-stream', sizeBytes: file.size, contentBase64: base64, requestId: requestId.current }, profile?.roleKey, profile);
+            if (!active.current || currentScope.current.generation !== operationScope)
+                return;
+            if (result.ok)
+                setDone(result.data.id);
+            else
+                setError(result.error);
+        }
+        catch {
+            if (active.current && currentScope.current.generation === operationScope)
+                setError('Die Datei konnte nicht verarbeitet werden. Bitte erneut auswählen.');
+        }
+        finally {
+            if (uploadLock.current === operationToken)
+                uploadLock.current = null;
+            if (active.current && currentScope.current.generation === operationScope)
+                setWorking(false);
+        }
+    }
+    const navigate = (href: string) => { if (!working && uploadLock.current === null)
+        router.push(href as never); };
+    const back = () => navigate('/business/office/documents');
+    return <NativeWorkspaceStyleScope css={[officeDocumentWorkspaceCss, officeDocumentWorkspaceCss]}>{<DocumentsWorkspaceShell active="library" title="In Klientenakte hochladen" description="Eine vorhandene Datei mit Titel und Kategorie der richtigen Akte zuordnen." back={{ label: 'Zur Ablage', onClick: back }} beforeNavigate={() => !working && uploadLock.current === null}>
+    <NativeStyle>{officeDocumentWorkspaceCss}</NativeStyle>
+    {!canUpload ? <NativeDiv className="dw-empty">Zum Hochladen benötigen Sie die Berechtigung zum Bearbeiten von Klientenakten.</NativeDiv> : done ? <NativeSection className="dw-panel"><NativeDiv className="dw-alert" data-tone="success" role="status">Das Dokument wurde gespeichert und der gewählten Klientenakte zugeordnet.</NativeDiv><NativeDiv className="dw-library-actions"><NativeButton type="button" className="dw-button dw-button--primary" onClick={() => router.push(`/business/office/documents/${done}` as never)}>Dokument öffnen</NativeButton><NativeButton type="button" className="dw-button" onClick={() => { setDone(null); setFile(null); setTitle(''); setCategory(''); requestId.current = null; }}>Weitere Datei hochladen</NativeButton><NativeButton type="button" className="dw-button dw-button--quiet" onClick={back}>Zur Ablage</NativeButton></NativeDiv></NativeSection> : <NativeSection className="dw-panel">
+      <NativeForm className="dw-doc-form" onSubmit={event => void submit(event)} aria-busy={working}>
+        <NativeDiv className="dw-doc-drop dw-span"><DocumentWorkspaceIcon name="upload" size={36}/><NativeDiv><NativeStrong>{file ? file.name : 'Datei auswählen'}</NativeStrong><NativeP className="dw-muted">{file ? documentSize(file.size) : 'Einzelne Datei bis 20 MB. PDF und Bilder können direkt angezeigt werden.'}</NativeP><NativeInput key={scopeKey} type="file" aria-label="Datei zum Hochladen auswählen" disabled={working} onChange={event => { const next = event.target.files?.[0] ?? null; setError(null); requestId.current = null; if (next && (!next.size || next.size > OFFICE_UPLOAD_MAX_BYTES)) {
+            setError('Bitte eine nicht leere Datei mit höchstens 20 MB auswählen.');
+            setFile(null);
+            event.target.value = '';
+            return;
+        } setFile(next); if (next)
+            setTitle(next.name.replace(/\.[^.]+$/, '')); }}/></NativeDiv></NativeDiv>
+        <NativeLabel className="dw-field dw-span"><NativeSpan className="dw-label">Dokumenttitel</NativeSpan><NativeInput className="dw-input" value={title} onChange={event => { setTitle(event.target.value); requestId.current = null; }} maxLength={180} required disabled={working} placeholder="Zum Beispiel: Ärztliche Verordnung Oktober"/></NativeLabel>
+        <NativeLabel className="dw-field"><NativeSpan className="dw-label">Klientenakte</NativeSpan><NativeSelect className="dw-select" value={clientId} onChange={event => { setClientId(event.target.value); requestId.current = null; }} required disabled={working || clientsLoading}><NativeOption value="">{clientsLoading ? 'Akten werden geladen…' : 'Person auswählen'}</NativeOption>{clients.map(client => <NativeOption key={client.id} value={client.id}>{client.name}</NativeOption>)}</NativeSelect></NativeLabel>
+        <NativeLabel className="dw-field"><NativeSpan className="dw-label">Kategorie</NativeSpan><NativeSelect className="dw-select" value={category} onChange={event => { setCategory(event.target.value); requestId.current = null; }} required disabled={working}><NativeOption value="">Kategorie auswählen</NativeOption>{Object.entries(CLIENT_DOCUMENT_CATEGORY_LABELS).map(([key, label]) => <NativeOption key={key} value={key}>{label}</NativeOption>)}</NativeSelect></NativeLabel>
+        {clientsError ? <NativeDiv className="dw-alert dw-span" data-tone="danger" role="alert">{clientsError}<NativeButton type="button" className="dw-button" onClick={() => setReload(value => value + 1)}>Erneut laden</NativeButton></NativeDiv> : !clientsLoading && clients.length === 0 ? <NativeP className="dw-muted dw-span">Es sind keine zugänglichen Klientenakten vorhanden. Legen Sie zuerst die zugehörige Akte an.</NativeP> : null}
+        <NativeP className="dw-muted dw-span">Die Datei wird zunächst intern gespeichert. Eine Freigabe für das Klientenportal erfolgt über die Klientenakte.</NativeP>
+        {error ? <NativeDiv className="dw-alert dw-span" data-tone="danger" role="alert">{error}</NativeDiv> : null}
+        <NativeDiv className="dw-library-actions dw-span"><NativeButton type="submit" className="dw-button dw-button--primary" disabled={working || !file || !clientId || !category || !title.trim() || !tenantId}>{working ? 'Dokument wird gespeichert…' : 'In Akte speichern'}</NativeButton><NativeButton type="button" className="dw-button" onClick={back} disabled={working}>Abbrechen</NativeButton></NativeDiv>
+      </NativeForm>
+    </NativeSection>}
+    <NativeSection className="dw-panel"><NativeH2>Andere Unterlagen</NativeH2><NativeP className="dw-muted">Unternehmensdokumente erstellen und speichern Sie im zentralen Katalog. Vorhandene Mitarbeiterdateien gehören in die jeweilige Personalakte.</NativeP><NativeDiv className="dw-library-actions"><NativeButton type="button" className="dw-button" disabled={working} onClick={() => navigate('/business/office/document-catalog?tab=records')}>Katalogdokumente</NativeButton>{can('office.employees.view') ? <NativeButton type="button" className="dw-button" disabled={working} onClick={() => navigate('/business/office/employees')}>Personalakten</NativeButton> : null}</NativeDiv></NativeSection>
+  </DocumentsWorkspaceShell>}</NativeWorkspaceStyleScope>;
 }

@@ -1,0 +1,107 @@
+// Generated native presentation from src/components/pflege/CareDocumentationWorkspacePanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
+import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
+import { blankCareDocumentationEntry, careDocumentationEntryIssue, makeCareDocumentationPacket, type CareDocumentationAction, type CareDocumentationEntry, type CareDocumentationKind, type CareDocumentationOriginal } from "../../lib/pflege/careDocumentationPacket.native.ts";
+import { recoverCareDocumentation, saveCareDocumentationDurably } from "../../lib/pflege/careDocumentationWorkflow.native.ts";
+import { colors, spacing, typography } from '@/theme';
+const kindOptions = [
+    { key: 'care_report', label: 'Pflegebericht' }, { key: 'planned_service', label: 'Geplante Leistung' }, { key: 'refusal', label: 'Ablehnung' },
+    { key: 'incident', label: 'Besonderes Ereignis' }, { key: 'structured_protocol', label: 'Strukturiertes Protokoll' },
+    { key: 'control', label: 'Kontrollauftrag' }, { key: 'external', label: 'Fremddokumentation' },
+];
+const patch = <K extends keyof CareDocumentationEntry>(entry: CareDocumentationEntry, key: K, value: CareDocumentationEntry[K]): CareDocumentationEntry => ({ ...entry, [key]: value });
+export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, actorName, canCreate, canConfirm, original, onSaved }: {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    actorName: string;
+    canCreate: boolean;
+    canConfirm: boolean;
+    original?: CareDocumentationOriginal | null;
+    onSaved?: (value: CareDocumentationOriginal) => void;
+}) {
+    const [action, setAction] = useState<CareDocumentationAction>(original ? 'correct' : 'create');
+    const [entry, setEntry] = useState<CareDocumentationEntry>(() => original ? structuredClone(original.payload) : blankCareDocumentationEntry('care_report'));
+    const [correctionReason, setCorrectionReason] = useState(''), [confirmRole, setConfirmRole] = useState('Pflegefachperson'), [confirmScope, setConfirmScope] = useState('Diese unveränderte Dokumentationsfassung'), [confirmBasis, setConfirmBasis] = useState('Eigene fachliche Prüfung der angezeigten vollständigen Fassung');
+    const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [uncertain, setUncertain] = useState(false), [recovering, setRecovering] = useState(true);
+    const alive = useRef(true), identity = `${tenantId}:${clientId}:${actorId}`;
+    const initial = useRef(JSON.stringify(entry));
+    useEffect(() => { alive.current = true; let active = true; setRecovering(true); void recoverCareDocumentation({ tenantId, clientId, actorId }, () => active && alive.current).then(result => { if (!active)
+        return; if (result?.ok) {
+        setSuccess('Der zuvor unklare Schreibvorgang wurde anhand der vollständigen nativen Quittung bestätigt.');
+        onSaved?.(result.data);
+    }
+    else if (result) {
+        setError(result.error);
+        setUncertain(result.uncertain === true);
+    } setRecovering(false); }); return () => { active = false; alive.current = false; }; }, [identity]);
+    const dirty = JSON.stringify(entry) !== initial.current || !!correctionReason.trim();
+    useUnsavedWebChanges(dirty || uncertain, busy || uncertain);
+    const issue = useMemo(() => action === 'confirm' ? null : careDocumentationEntryIssue(entry), [action, entry]);
+    const chooseKind = (next: string) => { const kind = next as CareDocumentationKind; setEntry(blankCareDocumentationEntry(kind, entry.occurredAt)); setSuccess(null); };
+    const change = (key: keyof CareDocumentationEntry, value: unknown) => setEntry(current => patch(current, key, value as never));
+    const save = async () => {
+        if (busy || uncertain || !tenantId || !clientId || !actorId)
+            return;
+        setBusy(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            const confirmation = action === 'confirm' && original ? { personId: actorId, personName: actorName.trim(), role: confirmRole.trim(), scope: confirmScope.trim(), basis: confirmBasis.trim(), confirmedAt: new Date().toISOString(), contentFingerprint: original.contentFingerprint } : null;
+            const packet = makeCareDocumentationPacket({ action, requestId: crypto.randomUUID(), tenantId, clientId, actorId, expectedHeadId: original?.headId ?? null, expectedRevision: original?.revision ?? 0, entry: action === 'confirm' ? null : structuredClone(entry), correctionReason: action === 'correct' ? correctionReason.trim() : '', confirmation, original: original ? structuredClone(original) : null });
+            const result = await saveCareDocumentationDurably(packet, () => alive.current && identity === `${tenantId}:${clientId}:${actorId}`);
+            if (!alive.current)
+                return;
+            if (!result.ok) {
+                setError(result.error);
+                setUncertain(result.uncertain === true);
+                return;
+            }
+            setUncertain(false);
+            setSuccess(action === 'create' ? 'Dokumentation bestätigt gespeichert.' : action === 'correct' ? 'Nachtrag bestätigt gespeichert; das Original bleibt unverändert sichtbar.' : 'Bestätigung ist exakt an diese Inhaltsfassung gebunden.');
+            initial.current = JSON.stringify(entry);
+            setCorrectionReason('');
+            onSaved?.(result.data);
+        }
+        catch (cause) {
+            if (alive.current)
+                setError(cause instanceof Error ? cause.message : 'Dokumentation konnte nicht gespeichert werden.');
+        }
+        finally {
+            if (alive.current)
+                setBusy(false);
+        }
+    };
+    const retry = async () => { setBusy(true); setError(null); const result = await recoverCareDocumentation({ tenantId, clientId, actorId }, () => alive.current); if (alive.current) {
+        setBusy(false);
+        if (result?.ok) {
+            setUncertain(false);
+            setSuccess('Gespeicherte native Quittung vollständig bestätigt.');
+            onSaved?.(result.data);
+        }
+        else
+            setError(result?.error ?? 'Keine passende Quittung gefunden.');
+    } };
+    if (recovering)
+        return <SectionPanel title="Dokumentationsvorgang"><LoadingState message="Lokales Versandjournal und native Quittung werden geprüft…"/></SectionPanel>;
+    return <SectionPanel title={original ? 'Dokumentationsfassung fortführen' : 'Pflegedokumentation erfassen'} subtitle="Ein gemeinsamer, append-only Vorgang">
+  <InfoBanner variant="info" title="Ereignis und Erfassung bleiben getrennt" message="Der tatsächliche Ereigniszeitpunkt, die spätere Erfassung, ursprüngliche Fassung, Nachträge und Bestätigungen bleiben eigenständig nachvollziehbar. Öffnen oder Lesen bestätigt keine Durchführung."/>
+  {original ? <><Text style={{ ...typography.label }}>Aktion</Text><FilterChipGroup wrap options={[{ key: 'correct', label: 'Korrektur / Nachtrag' }, { key: 'confirm', label: 'Fassung bestätigen' }]} value={action} onChange={next => setAction(next as CareDocumentationAction)}/><InfoBanner variant="info" message={`Originalrevision ${original.revision} · erfasst ${original.recordedAt} · Ereignis ${original.occurredAt}`}/></> : <><Text style={{ ...typography.label }}>Dokumentationsart</Text><FilterChipGroup wrap options={kindOptions} value={entry.kind} onChange={chooseKind}/></>}
+  {action !== 'confirm' ? <View style={{ gap: spacing.sm }}>
+   <PremiumInput label="Titel" value={entry.title} onChangeText={value => change('title', value)} editable={!busy && !uncertain}/><PremiumInput label="Tatsächlicher Ereigniszeitpunkt (ISO mit Zeitzone)" value={entry.occurredAt} onChangeText={value => change('occurredAt', value)} editable={!busy && !uncertain}/><PremiumInput label="Beobachtung / Ausgangslage" value={entry.observation} onChangeText={value => change('observation', value)} multiline editable={!busy && !uncertain}/><PremiumInput label="Tatsächliche Maßnahme / Intervention" value={entry.intervention} onChangeText={value => change('intervention', value)} multiline editable={!busy && !uncertain}/><PremiumInput label="Tatsächliches Ergebnis / aktueller Stand" value={entry.result} onChangeText={value => change('result', value)} multiline editable={!busy && !uncertain}/>
+   {entry.plannedService ? <SectionPanel title="Geplante Leistung und Durchführung"><PremiumInput label="Planversions-ID" value={entry.plannedService.planVersionId} onChangeText={value => change('plannedService', { ...entry.plannedService!, planVersionId: value })}/><PremiumInput label="Einsatz-ID" value={entry.plannedService.visitId} onChangeText={value => change('plannedService', { ...entry.plannedService!, visitId: value })}/><FilterChipGroup wrap options={[{ key: 'performed', label: 'Erbracht' }, { key: 'partial', label: 'Teilweise' }, { key: 'not_performed', label: 'Nicht erbracht' }]} value={entry.plannedService.outcome} onChange={value => change('plannedService', { ...entry.plannedService!, outcome: value as 'performed' | 'partial' | 'not_performed' })}/>{entry.plannedService.outcome !== 'performed' ? <><PremiumInput label="Grund" value={entry.plannedService.reason} onChangeText={value => change('plannedService', { ...entry.plannedService!, reason: value })} multiline/><PremiumInput label="Erforderliche Reaktion" value={entry.plannedService.reaction} onChangeText={value => change('plannedService', { ...entry.plannedService!, reaction: value })} multiline/></> : null}</SectionPanel> : null}
+   {entry.refusal ? <SectionPanel title="Ausdrückliche Ablehnung"><PremiumInput label="Angebotene Maßnahme" value={entry.refusal.measure} onChangeText={value => change('refusal', { ...entry.refusal!, measure: value })}/><PremiumInput label="Geäußerter Grund" value={entry.refusal.statedReason} onChangeText={value => change('refusal', { ...entry.refusal!, statedReason: value })} multiline/><PremiumInput label="Tatsächliche Beratung" value={entry.refusal.consultation} onChangeText={value => change('refusal', { ...entry.refusal!, consultation: value })} multiline/><PremiumInput label="Weiteres Vorgehen" value={entry.refusal.followUp} onChangeText={value => change('refusal', { ...entry.refusal!, followUp: value })} multiline/></SectionPanel> : null}
+   {entry.incident ? <SectionPanel title="Besonderes Ereignis"><PremiumInput label="Ereignisart" value={entry.incident.incidentType} onChangeText={value => change('incident', { ...entry.incident!, incidentType: value })}/><PremiumInput label="Beteiligte" value={entry.incident.people} onChangeText={value => change('incident', { ...entry.incident!, people: value })}/><PremiumInput label="Getroffene Maßnahmen" value={entry.incident.measures} onChangeText={value => change('incident', { ...entry.incident!, measures: value })} multiline/><PremiumInput label="Weitergabe an" value={entry.incident.forwardedTo} onChangeText={value => change('incident', { ...entry.incident!, forwardedTo: value })}/><FilterChipGroup wrap options={[{ key: 'open', label: 'Offen' }, { key: 'closed', label: 'Abgeschlossen' }]} value={entry.incident.closureState} onChange={value => change('incident', { ...entry.incident!, closureState: value as 'open' | 'closed' })}/>{entry.incident.closureState === 'closed' ? <PremiumInput label="Abschlussbeleg" value={entry.incident.closureEvidence} onChangeText={value => change('incident', { ...entry.incident!, closureEvidence: value })} multiline/> : null}</SectionPanel> : null}
+   {entry.protocol ? <SectionPanel title="Strukturiertes Protokoll"><PremiumInput label="Protokolltyp" value={entry.protocol.protocolType} onChangeText={value => change('protocol', { ...entry.protocol!, protocolType: value })}/><PremiumInput label="Fachliche Vorlagenfassung" value={entry.protocol.specialistVersion} onChangeText={value => change('protocol', { ...entry.protocol!, specialistVersion: value })}/>{entry.protocol.fields.map((field, index) => <View key={field.key} style={{ gap: spacing.sm, borderWidth: 1, borderColor: colors.borderSoft, padding: spacing.sm }}><PremiumInput label="Feldschlüssel" value={field.key} onChangeText={value => change('protocol', { ...entry.protocol!, fields: entry.protocol!.fields.map((item, i) => i === index ? { ...item, key: value } : item) })}/><PremiumInput label="Bezeichnung" value={field.label} onChangeText={value => change('protocol', { ...entry.protocol!, fields: entry.protocol!.fields.map((item, i) => i === index ? { ...item, label: value } : item) })}/><PremiumInput label="Wert" value={field.value} onChangeText={value => change('protocol', { ...entry.protocol!, fields: entry.protocol!.fields.map((item, i) => i === index ? { ...item, value } : item) })}/><PremiumInput label="Einheit" value={field.unit} onChangeText={value => change('protocol', { ...entry.protocol!, fields: entry.protocol!.fields.map((item, i) => i === index ? { ...item, unit: value } : item) })}/></View>)}</SectionPanel> : null}
+   {entry.control ? <SectionPanel title="Kontrollauftrag"><PremiumInput label="Anlass" value={entry.control.cause} onChangeText={value => change('control', { ...entry.control!, cause: value })}/><PremiumInput label="Frequenz" value={entry.control.frequency} onChangeText={value => change('control', { ...entry.control!, frequency: value })}/><PremiumInput label="Verantwortlich" value={entry.control.responsible} onChangeText={value => change('control', { ...entry.control!, responsible: value })}/><PremiumInput label="Fällig am (ISO)" value={entry.control.dueAt} onChangeText={value => change('control', { ...entry.control!, dueAt: value })}/><FilterChipGroup wrap options={[{ key: 'pending', label: 'Offen' }, { key: 'documented', label: 'Ergebnis dokumentiert' }, { key: 'not_performed', label: 'Nicht durchgeführt' }]} value={entry.control.resultState} onChange={value => change('control', { ...entry.control!, resultState: value as 'pending' | 'documented' | 'not_performed' })}/>{entry.control.resultState === 'documented' ? <PremiumInput label="Kontrollergebnis" value={entry.control.result} onChangeText={value => change('control', { ...entry.control!, result: value })} multiline/> : entry.control.resultState === 'not_performed' ? <PremiumInput label="Grund der Nichterfüllung" value={entry.control.nonPerformanceReason} onChangeText={value => change('control', { ...entry.control!, nonPerformanceReason: value })} multiline/> : null}</SectionPanel> : null}
+   {entry.external ? <SectionPanel title="Externe Dokumentation"><PremiumInput label="Quelle" value={entry.external.source} onChangeText={value => change('external', { ...entry.external!, source: value })}/><PremiumInput label="Externer Autor" value={entry.external.author} onChangeText={value => change('external', { ...entry.external!, author: value })}/><PremiumInput label="Eingegangen am (ISO)" value={entry.external.receivedAt} onChangeText={value => change('external', { ...entry.external!, receivedAt: value })}/><PremiumInput label="Ereignis-/Befunddatum (ISO)" value={entry.external.eventAt} onChangeText={value => change('external', { ...entry.external!, eventAt: value })}/><PremiumInput label="Eigene fachliche Prüfung" value={entry.external.review} onChangeText={value => change('external', { ...entry.external!, review: value })} multiline/></SectionPanel> : null}
+   {action === 'correct' ? <PremiumInput label="Konkreter Korrektur-/Nachtragsgrund" value={correctionReason} onChangeText={setCorrectionReason} multiline/> : null}
+  </View> : <SectionPanel title="Fassung bestätigen"><PremiumInput label="Bestätigende Rolle" value={confirmRole} onChangeText={setConfirmRole}/><PremiumInput label="Bestätigter Umfang" value={confirmScope} onChangeText={setConfirmScope} multiline/><PremiumInput label="Prüf- / Vertretungsgrundlage" value={confirmBasis} onChangeText={setConfirmBasis} multiline/><InfoBanner variant="warning" message="Die Bestätigung bindet nur die angezeigte unveränderte Inhaltsfassung. Sie ersetzt weder Identitätsprüfung noch gesetzliche Vertretungsprüfung oder eine klinische Durchführung."/></SectionPanel>}
+  {issue ? <InfoBanner variant="danger" title="Noch nicht speicherbar" message={issue}/> : null}{error ? <ErrorState message={error}/> : null}{success ? <SuccessState message={success}/> : null}
+  {uncertain ? <><InfoBanner variant="warning" title="Speicherausgang ungeklärt" message="Die ursprüngliche Anfrage bleibt gesperrt. Es wird weder eine neue Kennung noch ein Ersatzwrite erzeugt."/><PremiumButton title="Genau diese native Quittung erneut prüfen" loading={busy} disabled={busy} onPress={retry}/></> : <PremiumButton title={action === 'confirm' ? 'Unveränderte Fassung verbindlich bestätigen' : action === 'correct' ? 'Korrektur / Nachtrag append-only speichern' : 'Dokumentationspaket vollständig speichern'} fullWidth loading={busy} disabled={busy || !!issue || (action === 'confirm' ? !canConfirm : !canCreate)} onPress={save}/>} 
+ </SectionPanel>;
+}

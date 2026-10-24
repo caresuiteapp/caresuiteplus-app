@@ -1,0 +1,25 @@
+// Generated native presentation from src/lib/clients/clientBillingWorkspaceDraft.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { clientBillingWorkspaceVersion, type ClientBillingSource } from "./clientBillingWorkspaceDomain.native.ts";
+import type { ClientBillingDraft } from "./clientBillingWorkspaceForm.native.ts";
+type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+type Scope = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+};
+const id = /^[0-9a-f-]{36}$/;
+export function clientBillingDraftKey(scope: Scope) { if (!Object.values(scope).every(value => id.test(value)))
+    throw Error('Lokaler Abrechnungskontext ist ungültig.'); return `caresuite.client-billing-workspace.v1:${scope.tenantId}:${scope.actorId}:${scope.clientId}`; }
+export function saveClientBillingDraft(store: Store, draft: ClientBillingDraft) { const raw = JSON.stringify(draft); store.setItem(clientBillingDraftKey(draft.scope), raw); if (store.getItem(clientBillingDraftKey(draft.scope)) !== raw)
+    throw Error('Abrechnungsentwurf konnte nicht zuverlässig gesichert werden.'); }
+export function restoreClientBillingDraft(store: Store, scope: Scope, headId: string | null, current: (source: ClientBillingSource) => boolean): {
+    draft: ClientBillingDraft;
+    changed: boolean;
+} | null { const raw = store.getItem(clientBillingDraftKey(scope)); if (raw === null)
+    return null; const value: unknown = JSON.parse(raw); if (typeof value !== 'object' || value === null) {
+    throw Error('Gesicherter Abrechnungsentwurf ist beschädigt.');
+} const draft = value as ClientBillingDraft; if (draft.version !== clientBillingWorkspaceVersion || JSON.stringify(draft.scope) !== JSON.stringify(scope) || typeof draft.note !== 'string' || typeof draft.values !== 'object' || typeof draft.selected !== 'object')
+    throw Error('Gesicherter Abrechnungsentwurf ist beschädigt.'); const changed = draft.headId !== headId || Object.values(draft.selected).some(selection => !current(selection.value)); return { draft: { ...structuredClone(draft), headId, selected: changed ? {} : structuredClone(draft.selected) }, changed }; }
+export function discardClientBillingDraft(store: Store, scope: Scope) { const key = clientBillingDraftKey(scope); store.removeItem(key); if (store.getItem(key) !== null)
+    throw Error('Abrechnungsentwurf konnte nicht entfernt werden.'); }

@@ -1,0 +1,88 @@
+// Generated native presentation from src/components/careAssessment/MentalHealthCareReviewPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
+import { InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
+import { makeMentalHealthCareReviewPacket, mentalHealthCareReviewPacketIssue, type MentalHealthCareReviewOriginal, type MentalHealthCareReviewPacket } from "../../lib/careAssessment/mentalHealthCareReview.native.ts";
+import { readMentalHealthCareReviewPage } from "../../lib/careAssessment/mentalHealthCareReviewRepository.supabase.native.ts";
+import { recoverMentalHealthCareReview, saveMentalHealthCareReviewDurably } from "../../lib/careAssessment/mentalHealthCareReviewWorkflow.native.ts";
+import type { MentalHealthCareOriginal, MentalHealthPathSources } from "../../lib/careAssessment/mentalHealthCarePath.native.ts";
+import { spacing, typography } from '@/theme';
+type Props = {
+    tenantId: string;
+    clientId: string;
+    assessmentId: string;
+    actorId: string;
+    canView: boolean;
+    canRequest: boolean;
+    canReview: boolean;
+    careOriginal: MentalHealthCareOriginal;
+    sources: MentalHealthPathSources;
+};
+export function MentalHealthCareReviewPanel(props: Props) {
+    const { tenantId, clientId, assessmentId, actorId, canView, canRequest, canReview, careOriginal, sources } = props, careFingerprint = careOriginal.history.at(-1)?.fingerprint ?? '';
+    const identity = `${tenantId}:${clientId}:${assessmentId}:${actorId}:${careOriginal.headId}:${careFingerprint}:${canView}:${canRequest}:${canReview}`, live = useRef(identity), alive = useRef(true), generation = useRef(0);
+    live.current = identity;
+    const current = () => alive.current && canView && live.current === identity;
+    const [rows, setRows] = useState<MentalHealthCareReviewOriginal[]>([]), [loaded, setLoaded] = useState(false), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [reason, setReason] = useState(''), [requiredChange, setRequiredChange] = useState(''), [rationale, setRationale] = useState('');
+    useUnsavedWebChanges(!!reason || !!requiredChange || !!rationale || uncertain, busy || uncertain);
+    const remember = (o: MentalHealthCareReviewOriginal) => setRows(v => [o, ...v.filter(x => x.rootId !== o.rootId)]);
+    const load = async () => { const ticket = ++generation.current; setLoaded(false); setError(null); const recovered = await recoverMentalHealthCareReview({ tenantId, clientId, assessmentId, actorId }, current); if (!current() || ticket !== generation.current)
+        return; if (recovered?.ok) {
+        remember(recovered.data);
+        setUncertain(false);
+        setSuccess('Die ursprüngliche Psychiatriefachprüfquittung wurde bestätigt.');
+    }
+    else if (recovered) {
+        setUncertain(recovered.uncertain === true);
+        setError(recovered.error);
+    } const result = await readMentalHealthCareReviewPage({ tenantId, clientId, assessmentId, actorId, isCurrent: current }); if (!current() || ticket !== generation.current)
+        return; if (!result.ok) {
+        setError(result.error);
+        return;
+    } setRows(result.data); setLoaded(true); };
+    useEffect(() => { alive.current = true; void load(); return () => { alive.current = false; generation.current++; }; }, [identity]);
+    const active = rows.find(o => o.careHeadId === careOriginal.headId && o.careFingerprint === careFingerprint) ?? null;
+    const packet = (action: MentalHealthCareReviewPacket['action']) => ({ schemaVersion: '1' as const, action, requestId: '00000000-0000-4000-8000-000000000001', tenantId, clientId, assessmentId, actorId, expectedHeadId: active?.headId ?? null, expectedRevision: active?.revision ?? 0, careOriginal, sources, reviewOriginal: active, reason: action === 'accept' ? '' : reason.trim(), requiredChange: action === 'return' ? requiredChange.trim() : '', rationale: action === 'accept' ? rationale.trim() : '' });
+    const issue = (action: MentalHealthCareReviewPacket['action']) => mentalHealthCareReviewPacketIssue(packet(action));
+    const send = async (action: MentalHealthCareReviewPacket['action']) => { if (busy || uncertain || !loaded || !current() || (action === 'request' ? !canRequest : !canReview))
+        return; setBusy(true); setError(null); setSuccess(null); try {
+        const request = makeMentalHealthCareReviewPacket({ ...packet(action), requestId: crypto.randomUUID() });
+        const result = await saveMentalHealthCareReviewDurably(request, () => current() && (action === 'request' ? canRequest : canReview));
+        if (!current())
+            return;
+        if (!result.ok) {
+            setError(result.error);
+            setUncertain(result.uncertain === true);
+            return;
+        }
+        remember(result.data);
+        setReason('');
+        setRequiredChange('');
+        setRationale('');
+        setSuccess(action === 'request' ? 'Psychiatriefachprüfung bestätigt angefragt.' : action === 'return' ? 'Begründete Rückgabe bestätigt gespeichert.' : 'Qualifizierte Annahme genau dieser unveränderten psychosozialen Fassung bestätigt gespeichert.');
+    }
+    catch (cause) {
+        if (current())
+            setError(cause instanceof Error ? cause.message : 'Psychiatriefachprüfung konnte nicht gespeichert werden.');
+    }
+    finally {
+        if (current())
+            setBusy(false);
+    } };
+    if (!canView)
+        return null;
+    return <SectionPanel title="Getrennte Psychiatrie- und psychosoziale Fachprüfung" subtitle="Anfrage, Rückgabe und Annahme gehören zu genau einer unveränderten M-Gesamtfassung">
+  <InfoBanner variant="info" message={`Prüfgrundlage: ${careOriginal.status}, Revision ${careOriginal.revision}, Kopf ${careOriginal.headId}. ${active?.status === 'accepted' ? 'Diese Fassung wurde qualifiziert angenommen.' : active?.status === 'returned' ? 'Diese Fassung wurde begründet zurückgegeben.' : active?.status === 'requested' ? 'Eine getrennte Entscheidung steht aus.' : 'Für diese Fassung liegt keine Fachprüfung vor.'}`}/>
+  {!loaded && !error ? <LoadingState message="Vollständige Psychiatriefachprüfhistorie und ursprüngliche Quittung werden geladen…"/> : null}
+  {loaded && !uncertain ? <View style={{ gap: spacing.sm }}>
+   {!active && canRequest ? <><PremiumInput label="Konkreter Anlass der Psychiatriefachprüfung" value={reason} onChangeText={setReason} multiline/><PremiumButton title="Fachprüfung dieser Fassung anfragen" loading={busy} disabled={busy || !!issue('request')} onPress={() => send('request')}/></> : null}
+   {active?.status === 'requested' && canReview ? <><PremiumInput label="Grund der Rückgabe" value={reason} onChangeText={setReason} multiline/><PremiumInput label="Erforderliche konkrete Änderung" value={requiredChange} onChangeText={setRequiredChange} multiline/><PremiumButton title="Begründete Rückgabe speichern" variant="secondary" loading={busy} disabled={busy || !!issue('return')} onPress={() => send('return')}/><PremiumInput label="Eigene fachliche Begründung der Annahme" value={rationale} onChangeText={setRationale} multiline/><PremiumButton title="Qualifizierte Annahme speichern" loading={busy} disabled={busy || !!issue('accept')} onPress={() => send('accept')}/><InfoBanner variant="info" message={issue('accept') ?? 'Aktuelle Beschäftigungs-, Qualifikations-, Dokument- und freigegebene Psychiatrieprüfbereichsoriginale werden serverseitig geprüft.'}/></> : null}
+   {active?.status === 'returned' ? <InfoBanner variant="warning" message="Die Rückgabe bleibt erhalten. Eine neue psychosoziale Fassung erbt keine Annahme und benötigt eine neue Prüfanfrage."/> : null}
+  </View> : null}
+  {rows.filter(o => o.careRootId === careOriginal.rootId).map(o => <View key={o.rootId} style={{ gap: spacing.xs }}><Text style={typography.label}>{o.careHeadId === careOriginal.headId ? 'Aktuelle Fassung' : 'Frühere Fassung'} · {o.status === 'accepted' ? 'angenommen' : o.status === 'returned' ? 'zurückgegeben' : 'angefragt'}</Text>{o.history.map(e => <Text key={e.id} style={typography.caption}>{e.recordedAt} · {e.action} · {e.actorName}</Text>)}</View>)}
+  {error ? <InfoBanner variant="warning" title={uncertain ? 'Ausgang ungeklärt' : 'Fachprüfung prüfen'} message={error}/> : null}{success ? <InfoBanner variant="success" message={success}/> : null}
+ </SectionPanel>;
+}

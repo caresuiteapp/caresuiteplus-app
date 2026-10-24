@@ -1,27 +1,152 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Text, View } from 'react-native';
-import { loadCompanyScopeGrants, saveCompanyScopeGrant } from '@/lib/tenant/companyAccessService';
+// Generated native presentation from src/components/company/CompanyScopeAccessPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {NativeSection,NativeStyle,NativeDiv,NativeH2,NativeP,NativeButton,NativeNav,NativeStrong,NativeSmall,NativeH3,NativeLabel,NativeInput,NativeFieldset,NativeLegend,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PermissionKey, RoleKey } from '@/types';
 import type { CompanyAccessProfile, CompanyScopeGrant } from '@/types/tenant/companyAccess';
 import type { CompanyOrganizationSnapshot } from '@/types/tenant/companyOrganization';
-import { MobileButton, MobileCard, MobileRecordRow, MobileSearch, MobileSheet, MobileState, m } from '@/components/mobile/MobileWorkspace';
-
-export function CompanyScopeAccessPanel({ tenantId, snapshot, canManage }: { tenantId: string; snapshot: CompanyOrganizationSnapshot; canManage: boolean }) {
-  const [people, setPeople] = useState<CompanyAccessProfile[]>([]); const [person, setPerson] = useState<CompanyAccessProfile>(); const [limited, setLimited] = useState(false); const [grants, setGrants] = useState<CompanyScopeGrant[]>([]);
-  const [search, setSearch] = useState(''); const [revision, setRevision] = useState(0); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [blocked, setBlocked] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
-  const alive = useRef(true); const lock = useRef(false);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  useEffect(() => { let active = true; if (!canManage) return; setLoading(true); setError(''); void loadCompanyScopeGrants(tenantId).then(result => { if (!active) return; if (result.ok) { setPeople(result.data.profiles); setBlocked(false); } else setError(result.error); }).catch(() => { if (active) setError('Zugriffsbereiche konnten nicht geladen werden.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [tenantId, canManage, revision]);
-  const signature = (flag: boolean, rows: CompanyScopeGrant[]) => `${flag}:${rows.map(row => `${row.kind}:${row.targetId}`).sort().join(',')}`;
-  const dirty = !!person && signature(limited, grants) !== signature(person.scopeLimited, person.grants);
-  const close = () => { if (busy) return; if (!dirty) setPerson(undefined); else Alert.alert('Änderungen verwerfen?', 'Die Zugriffsbereiche wurden noch nicht gespeichert.', [{ text: 'Weiter bearbeiten', style: 'cancel' }, { text: 'Verwerfen', style: 'destructive', onPress: () => setPerson(undefined) }]); };
-  const save = async () => { if (!person || person.isCurrentProfile || lock.current || blocked || !canManage || !dirty) return; lock.current = true; setBusy(true); setError(''); try { const result = await saveCompanyScopeGrant(tenantId, { profileId: person.id, limited, grants: limited ? grants : [], expectedVersion: person.version }); if (!alive.current) return; if (!result.ok) { setError(result.error); setBlocked(true); return; } setPerson(undefined); setNotice('Zugriffsbereiche gespeichert.'); setRevision(value => value + 1); } catch { if (alive.current) { setError('Speicherstand unklar. Bitte neu laden und prüfen.'); setBlocked(true); } } finally { lock.current = false; if (alive.current) setBusy(false); } };
-  if (!canManage) return <MobileState title="Keine Berechtigung zur Zugriffsverwaltung" />;
-  return <View style={m.grow}><MobileSearch value={search} onChangeText={setSearch} />{notice ? <Text style={m.body}>{notice}</Text> : null}{error && !person ? <MobileState title="Zugriffsbereiche prüfen" message={error} onRetry={() => setRevision(n => n + 1)} /> : null}<FlatList data={people.filter(row => row.displayName.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de')))} contentContainerStyle={{ gap: 10, paddingVertical: 14 }} keyExtractor={row => row.id} refreshing={loading} onRefresh={() => setRevision(n => n + 1)} ListEmptyComponent={<MobileState loading={loading} title={loading ? 'Zugänge werden geladen' : 'Keine passenden Zugänge'} />} renderItem={({ item }) => <MobileRecordRow title={item.displayName} subtitle={item.scopeLimited ? `${item.grants.length} Bereiche` : 'Ohne zusätzliche Bereichsbeschränkung'} icon="shield" onPress={() => { setPerson(item); setLimited(item.scopeLimited); setGrants(item.grants); }} />} />
-    {person ? <MobileSheet visible title={person.displayName} onClose={close} footer={<><MobileButton primary label="Zugriffe speichern" busy={busy} disabled={!dirty || person.isCurrentProfile || blocked || grants.length > 100} onPress={() => Alert.alert('Zugriffsbereiche speichern?', limited ? `${person.displayName} erhält Zugriff auf ${grants.length} ausgewählte Unternehmensbereiche im Rahmen der vorhandenen Rollenrechte.` : 'Die zusätzliche Bereichsbeschränkung wird aufgehoben. Die vorhandenen Rollenrechte gelten weiterhin.', [{ text: 'Weiter bearbeiten', style: 'cancel' }, { text: 'Speichern', onPress: () => void save() }])} />{error ? <Text style={m.error}>{error}</Text> : null}{blocked ? <MobileButton label="Neu laden und Entwurf schließen" onPress={() => { setPerson(undefined); setRevision(n => n + 1); }} /> : null}</>}>
-      <Text style={m.body}>Die Auswahl begrenzt vorhandene Rollenrechte. Eine Gesellschaft schließt ihre Standorte und Abteilungen ein.</Text>{person.isCurrentProfile ? <Text style={m.muted}>Eigene Zugriffsbereiche kann nur eine weitere Administration ändern.</Text> : null}{person.hasLegacyLimits ? <Text style={m.muted}>Zusätzlich bestehende ältere Einschränkungen bleiben wirksam.</Text> : null}
-      <MobileButton label="Auf ausgewählte Bereiche begrenzen" selected={limited} disabled={busy || blocked || person.isCurrentProfile} onPress={() => { setLimited(!limited); if (limited) setGrants([]); }} />
-      {limited ? ([{ kind: 'entity' as const, title: 'Gesellschaften', rows: snapshot.entities }, { kind: 'site' as const, title: 'Standorte', rows: snapshot.sites }, { kind: 'department' as const, title: 'Abteilungen', rows: snapshot.departments }]).map(group => <MobileCard key={group.kind}><Text style={m.section}>{group.title}</Text>{group.rows.filter(row => row.status !== 'archived' || grants.some(grant => grant.targetId === row.id && grant.kind === group.kind)).map(row => <MobileButton key={row.id} label={row.name} selected={grants.some(grant => grant.kind === group.kind && grant.targetId === row.id)} disabled={busy || blocked || person.isCurrentProfile} onPress={() => setGrants(old => old.some(grant => grant.kind === group.kind && grant.targetId === row.id) ? old.filter(grant => !(grant.kind === group.kind && grant.targetId === row.id)) : [...old, { kind: group.kind, targetId: row.id }])} />)}</MobileCard>) : null}
-      {limited && !grants.length ? <Text style={m.muted}>Ohne ausgewählten Bereich bleiben die Unternehmensbereiche für diesen Zugang gesperrt.</Text> : null}
-    </MobileSheet> : null}
-  </View>;
+import { loadCompanyScopeGrants, saveCompanyScopeGrant } from "../../lib/tenant/companyAccessService.ts";
+import { loadCompanyOrganization } from "../../lib/tenant/companyOrganizationService.ts";
+import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
+import { confirmAction } from '@/lib/platform/confirmAction';
+type Props = {
+    tenantId: string;
+    roleKey: RoleKey | null;
+    actorProfileId?: string | null;
+    effectivePermissions: readonly PermissionKey[];
+    onNavigationGuardChange?: (guard: (() => Promise<boolean>) | null) => void;
+};
+const grantKey = (grant: CompanyScopeGrant) => `${grant.kind}:${grant.targetId}`;
+const signature = (limited: boolean, grants: readonly CompanyScopeGrant[]) => `${limited}:${grants.map(grantKey).sort().join(',')}`;
+const css = `.co-access{display:grid;gap:22px;container-type:inline-size}.co-access-layout{display:grid;grid-template-columns:minmax(210px,300px) minmax(0,1fr);gap:22px}.co-access-people{display:flex;flex-direction:column;gap:8px}.co-access-person{display:grid;gap:6px;text-align:left;background:#ffffff;border:1px solid #d7e3f1;border-radius:14px;color:#15304e;padding:14px;font:inherit;cursor:pointer}.co-access-person[aria-pressed=true]{background:#e6f0ff;border-color:#8cb4e7}.co-access-person small,.co-access small{color:#59708c;line-height:1.5}.co-access-editor{padding:22px;background:#ffffff;border:1px solid #d7e3f1;border-radius:18px;min-width:0}.co-access-editor h3{margin:0 0 8px}.co-access-editor p{line-height:1.65;color:#59708c}.co-access-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:18px;margin:20px 0}.co-access fieldset{min-width:0;margin:0;border:1px solid #d7e3f1;border-radius:12px;padding:12px}.co-access legend{font-size:13px;font-weight:600;padding:0 6px;color:#15304e}.co-access label{display:flex;align-items:flex-start;gap:10px;padding:9px 0;line-height:1.5;overflow-wrap:anywhere;color:#15304e}.co-access input[type=checkbox]{width:18px;height:18px;margin-top:3px;flex-shrink:0;accent-color:#1764d4}.co-access .co-action{padding:12px 18px;border:1px solid #d7e3f1;border-radius:12px;background:#ffffff;color:#1764d4;font:inherit;font-weight:650;cursor:pointer}.co-access-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.co-access button:focus-visible,.co-access input:focus-visible{outline:3px solid #1764d4;outline-offset:3px}.co-access button:disabled{opacity:.55;cursor:default}.co-access-notice{padding:14px 18px;border:1px solid #d7e3f1;background:#ffffff;color:#15304e;border-radius:12px;line-height:1.6}.co-access-error{border-color:#e7c2c0;background:#fff4f3;color:#a33b35}.co-access-header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}@container(max-width:760px){.co-access-layout{grid-template-columns:1fr}.co-access-editor{padding:16px}.co-access-people{max-height:240px;overflow:auto}}`;
+export function CompanyScopeAccessPanel({ tenantId, roleKey, actorProfileId, effectivePermissions, onNavigationGuardChange }: Props) {
+    const [profiles, setProfiles] = useState<CompanyAccessProfile[]>([]);
+    const [organization, setOrganization] = useState<CompanyOrganizationSnapshot | null>(null);
+    const [selected, setSelected] = useState('');
+    const [limited, setLimited] = useState(false);
+    const [grants, setGrants] = useState<CompanyScopeGrant[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
+    const [reloadRequired, setReloadRequired] = useState(false);
+    const alive = useRef(true);
+    const sequence = useRef(0);
+    const lock = useRef(false);
+    const scope = useMemo(() => ({ tenantId, actorRoleKey: roleKey, actorProfileId, effectivePermissions }), [tenantId, roleKey, actorProfileId, effectivePermissions]);
+    const person = profiles.find(item => item.id === selected);
+    const dirty = Boolean(person && signature(limited, grants) !== signature(person.scopeLimited, person.grants));
+    const guard = useUnsavedWebChanges(dirty, busy);
+    useEffect(() => { onNavigationGuardChange?.(guard); return () => onNavigationGuardChange?.(null); }, [guard, onNavigationGuardChange]);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; sequence.current += 1; }; }, []);
+    const load = useCallback(async () => {
+        const request = ++sequence.current;
+        setLoading(true);
+        setError(null);
+        try {
+            const [people, structure] = await Promise.all([loadCompanyScopeGrants(tenantId), loadCompanyOrganization(scope)]);
+            if (!alive.current || request !== sequence.current)
+                return false;
+            if (!people.ok || !structure.ok) {
+                setError(!people.ok ? people.error : !structure.ok ? structure.error : 'Die Zugriffe konnten nicht geladen werden.');
+                return false;
+            }
+            setProfiles(people.data.profiles);
+            setOrganization(structure.data);
+            setSelected('');
+            setGrants([]);
+            setLimited(false);
+            setReloadRequired(false);
+            return true;
+        }
+        catch {
+            if (alive.current && request === sequence.current)
+                setError('Die Zugriffsbereiche konnten nicht geladen werden.');
+            return false;
+        }
+        finally {
+            if (alive.current && request === sequence.current)
+                setLoading(false);
+        }
+    }, [tenantId, scope]);
+    useEffect(() => { void load(); }, [load]);
+    async function select(profile: CompanyAccessProfile) {
+        if (!(await guard()) || !alive.current)
+            return;
+        setSelected(profile.id);
+        setLimited(profile.scopeLimited);
+        setGrants(profile.grants);
+        setNotice(null);
+    }
+    async function reload() { if (await guard()) {
+        setNotice(null);
+        await load();
+    } }
+    async function save() {
+        if (!person || person.isCurrentProfile || !dirty || lock.current || loading || reloadRequired)
+            return;
+        const accepted = await confirmAction({ title: 'Zugriffsbereiche speichern?', message: limited ? grants.length ? `Der Zugriff von ${person.displayName} wird auf die ausgewählten Unternehmensbereiche begrenzt.` : `${person.displayName} erhält keinen Zugriff auf die neuen Unternehmensbereiche, bis ein Bereich zugeordnet wird.` : `Die zusätzliche Bereichsbeschränkung für ${person.displayName} wird aufgehoben. Die vorhandenen Rollenrechte gelten weiterhin.`, confirmLabel: 'Zugriffe speichern', cancelLabel: 'Weiter bearbeiten' });
+        if (!accepted || !alive.current || lock.current)
+            return;
+        lock.current = true;
+        setBusy(true);
+        setError(null);
+        setNotice(null);
+        try {
+            const result = await saveCompanyScopeGrant(tenantId, { profileId: person.id, limited, grants: limited ? grants : [], expectedVersion: person.version });
+            if (!alive.current)
+                return;
+            if (!result.ok) {
+                setError(result.error);
+                setReloadRequired(true);
+                return;
+            }
+            const refreshed = await load();
+            if (alive.current) {
+                setNotice('Zugriffsbereiche gespeichert.');
+                if (!refreshed)
+                    setReloadRequired(true);
+            }
+        }
+        catch {
+            if (alive.current) {
+                setError('Der Speicherstand ist unklar. Bitte neu laden und die Zugriffe prüfen.');
+                setReloadRequired(true);
+            }
+        }
+        finally {
+            lock.current = false;
+            if (alive.current)
+                setBusy(false);
+        }
+    }
+    const blocked = busy || loading || reloadRequired;
+    function toggle(grant: CompanyScopeGrant) { setGrants(current => current.some(item => grantKey(item) === grantKey(grant)) ? current.filter(item => grantKey(item) !== grantKey(grant)) : [...current, grant]); }
+    const groups = organization ? [
+        { kind: 'entity' as const, title: 'Gesellschaften', records: organization.entities },
+        { kind: 'site' as const, title: 'Standorte', records: organization.sites },
+        { kind: 'department' as const, title: 'Abteilungen', records: organization.departments },
+    ] : [];
+    function recordLabel(record: (typeof groups)[number]['records'][number]) {
+        const context = ['entityId' in record && record.entityId ? organization?.entities.find(entity => entity.id === record.entityId)?.name : null, 'siteId' in record && record.siteId ? organization?.sites.find(site => site.id === record.siteId)?.name : null].filter(Boolean);
+        return [record.name, ...context, record.code ? `Kennung ${record.code}` : null].filter(Boolean).join(' · ');
+    }
+    return <NativeWorkspaceStyleScope css={[css, css]}>{<NativeSection className="co-access" aria-label="Zugriffsbereiche" aria-busy={loading || busy}>
+    <NativeStyle>{css}</NativeStyle><NativeDiv className="co-access-header"><NativeDiv><NativeH2>Zugriffsbereiche</NativeH2><NativeP>Unternehmensdaten gezielt für Standorte, Abteilungen und Gesellschaften freigeben.</NativeP></NativeDiv><NativeButton type="button" className="co-text-action" onClick={() => void reload()} disabled={busy || loading}>Neu laden</NativeButton></NativeDiv>
+    {error ? <NativeDiv role="alert" className="co-access-notice co-access-error">{error}{reloadRequired ? ' Vor weiteren Änderungen bitte neu laden.' : ''}</NativeDiv> : null}
+    {notice ? <NativeDiv role="status" className="co-access-notice">{notice}</NativeDiv> : null}
+    {loading && !organization ? <NativeP role="status">Zugriffsbereiche werden geladen …</NativeP> : organization ? <NativeDiv className="co-access-layout">
+      <NativeNav className="co-access-people" aria-label="Person für Zugriffsbereiche auswählen">{profiles.map(profile => <NativeButton type="button" key={profile.id} className="co-access-person" aria-pressed={selected === profile.id} disabled={blocked} onClick={() => void select(profile)}><NativeStrong>{profile.displayName}</NativeStrong><NativeSmall>{profile.scopeLimited ? `${profile.grants.length} Bereiche` : 'Ohne zusätzliche Bereichsbeschränkung'}{profile.isCurrentProfile ? ' · Sie' : ''}</NativeSmall></NativeButton>)}{!profiles.length ? <NativeP>Keine Unternehmenszugänge verfügbar.</NativeP> : null}</NativeNav>
+      <NativeDiv className="co-access-editor">{person ? <><NativeH3>{person.displayName}</NativeH3><NativeP>Die Auswahl begrenzt vorhandene Rollenrechte. Abteilungen und Standorte geben nur ihre zugeordneten Datensätze frei. Eine Gesellschaft schließt ihre Standorte und Abteilungen ein.</NativeP>
+        {person.isCurrentProfile ? <NativeP role="status">Eigene Zugriffsbereiche können Sie hier nicht ändern. Wenden Sie sich dafür an eine weitere Administration.</NativeP> : null}
+        {person.hasLegacyLimits ? <NativeP role="status">Für diesen Zugang bestehen zusätzlich ältere Einschränkungen. Sie werden durch diese Auswahl nicht aufgehoben.</NativeP> : null}
+        <NativeLabel><NativeInput type="checkbox" checked={limited} disabled={blocked || person.isCurrentProfile} onChange={event => { setLimited(event.target.checked); if (!event.target.checked)
+                setGrants([]); }}/>Auf ausgewählte Unternehmensbereiche begrenzen</NativeLabel>
+        {limited ? <NativeDiv className="co-access-options">{groups.map(group => <NativeFieldset key={group.kind} disabled={blocked || person.isCurrentProfile}><NativeLegend>{group.title}</NativeLegend>{group.records.filter(record => record.status !== 'archived' || grants.some(grant => grant.kind === group.kind && grant.targetId === record.id)).map(record => <NativeLabel key={record.id}><NativeInput type="checkbox" checked={grants.some(grant => grant.kind === group.kind && grant.targetId === record.id)} onChange={() => toggle({ kind: group.kind, targetId: record.id })}/>{recordLabel(record)}{record.status === 'archived' ? ' (archiviert)' : ''}</NativeLabel>)}{!group.records.length ? <NativeSmall>Noch keine Einträge vorhanden.</NativeSmall> : null}</NativeFieldset>)}</NativeDiv> : null}
+        {limited && !grants.length ? <NativeP>Ohne ausgewählten Bereich bleiben die neuen Unternehmensbereiche für diesen Zugang gesperrt.</NativeP> : null}
+        <NativeSmall>Diese Einschränkungen gelten für die neue Unternehmensstruktur, ihre Ressourcen und das zugeordnete Inventar. Andere Fachbereiche behalten ihre eigenen Zugriffsregeln.</NativeSmall>
+        <NativeDiv className="co-access-actions"><NativeButton type="button" className="co-action" disabled={blocked || !dirty || person.isCurrentProfile || grants.length > 100} onClick={() => void save()}>{busy ? 'Wird gespeichert …' : 'Zugriffe speichern'}</NativeButton>{grants.length > 100 ? <NativeSpan role="alert">Maximal 100 Bereiche pro Zugang.</NativeSpan> : null}</NativeDiv>
+      </> : <><NativeH3>Zugang auswählen</NativeH3><NativeP>Wählen Sie eine Person aus, um ihre Unternehmensbereiche festzulegen.</NativeP></>}</NativeDiv>
+    </NativeDiv> : null}
+  </NativeSection>}</NativeWorkspaceStyleScope>;
 }

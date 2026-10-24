@@ -43,3 +43,16 @@ export const checkCompanyInventoryOffboarding=async()=>({ok:true,data:{openAssig
 const deny=async()=>({ok:false,error:'Diese Ansicht verwendet ausschließlich lokale Prüfdaten.'});
 export const acknowledgeCompanyInventoryAssignment=deny,requestCompanyInventoryReturn=deny,saveCompanyInventoryItem=deny,saveCompanyInventoryCategory=deny,saveCompanyInventoryLocation=deny,issueCompanyInventoryItem=deny,returnCompanyInventoryItem=deny,reportCompanyInventoryDamage=deny,resolveCompanyInventoryDamage=deny;
 export const useAsyncQuery=()=>({data:null,loading:false,error:null,refresh:noop});
+
+export const loadNote=async()=>({ok:true,data:note});
+export const useIsFocused=()=>true,useGlobalSearchParams=()=>({}),usePreventRemove=()=>{};
+export const nativeWindow=window,nativeDocument=document,nativeNavigator=navigator,nativeCrypto=crypto,nativeStructuredClone=structuredClone,nativeLocalStorage=localStorage,nativeSessionStorage=sessionStorage,nativeBlob=Blob,nativeURL=URL,nativeFetch=fetch;
+export const useNativeWorkflowWindow=()=>window;
+export const useVideoPlayer=()=>({addListener:()=>({remove:()=>{}})}),VideoView=View;
+export const isAvailableAsync=async()=>false,shareAsync=deny,printAsync=deny,printToFileAsync=deny;
+export const shareNativeFile=deny,deliverNativeArchive=deny,openNativePdfUrl=deny,printNativePdf=deny;
+export const Paths={cache:'layout-fixture://cache'};
+export class File {constructor(uri){this.uri=uri;}get exists(){return false;}}
+export class Directory extends File {}
+export const renderNativePdfPages=deny,extractNativePdfAttachments=deny;
+export const useServiceTenantId=()=>tenantId;

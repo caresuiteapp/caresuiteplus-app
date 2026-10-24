@@ -1,0 +1,96 @@
+// Generated native presentation from src/lib/office/personnelWorkspaceForm.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { personnelLabels, personnelVersion, type PersonnelCommand, type PersonnelContext, type PersonnelKind, type PersonnelPerson, type PersonnelRow, type PersonnelSource, type PersonnelSourceKind, type PersonnelState } from "./personnelWorkspaceDomain.native.ts";
+import type { PersonnelDraft } from "./personnelWorkspaceDraft.native.ts";
+export type PersonnelField = {
+    key: string;
+    label: string;
+    type: 'text' | 'date' | 'time' | 'choice' | 'source' | 'person' | 'event';
+    sourceKinds?: PersonnelSourceKind[];
+    eventKinds?: PersonnelKind[];
+    options?: {
+        key: string;
+        label: string;
+    }[];
+};
+export type PersonnelOption = {
+    id: string;
+    label: string;
+    value: unknown;
+};
+const t = (key: string, label: string, type: PersonnelField['type'] = 'text'): PersonnelField => ({ key, label, type });
+const source = (key: string, label: string, ...sourceKinds: PersonnelSourceKind[]): PersonnelField => ({ key, label, type: 'source', sourceKinds });
+const person = (key: string, label: string): PersonnelField => ({ key, label, type: 'person' });
+const event = (key: string, label: string, ...eventKinds: PersonnelKind[]): PersonnelField => ({ key, label, type: 'event', eventKinds });
+const choice = (key: string, label: string, values: string[]): PersonnelField => ({ key, label, type: 'choice', options: values.map(x => ({ key: x, label: x.replaceAll('_', ' ') })) });
+export function personnelFields(kind: PersonnelKind): PersonnelField[] {
+    switch (kind) {
+        case 'employment': return [source('employee', 'Aktuelle Mitarbeiter:innenfassung', 'employee'), t('employmentType', 'Beschäftigungsart'), t('location', 'Standort'), t('role', 'Rolle / Funktion'), t('validFrom', 'Gültig ab', 'date'), t('validUntil', 'Gültig bis (oder leer)', 'date'), t('decision', 'Begründete Personalentscheidung')];
+        case 'qualification': return [source('qualification', 'Qualifikationsdatensatz', 'qualification'), source('document', 'Originalnachweis', 'document'), t('activity', 'Konkrete Tätigkeit'), t('validFrom', 'Gültig ab', 'date'), t('validUntil', 'Gültig bis', 'date'), choice('result', 'Prüfergebnis', ['verified', 'rejected', 'expired']), person('reviewer', 'Prüfende Person')];
+        case 'delegation': return [source('assignment', 'Originalauftrag', 'assignment'), t('activity', 'Konkrete Tätigkeit'), t('validFrom', 'Beginn', 'time'), t('validUntil', 'Ende', 'time'), person('assignee', 'Beauftragte Person'), event('qualificationEventId', 'Geprüfte Qualifikation', 'qualification'), t('decision', 'Delegationsentscheidung')];
+        case 'instruction': return [source('training', 'Schulung / Einweisung', 'training'), source('document', 'Originalunterlage', 'document'), t('subject', 'Gerät / Thema'), t('version', 'Fassung / Modell'), person('instructor', 'Einweisende Person'), choice('result', 'Ergebnis', ['attended', 'instructed', 'not_passed']), t('validUntil', 'Gültig bis', 'date')];
+        case 'double_staffing': return [source('assignment', 'Originaleinsatz', 'assignment'), person('primary', 'Erste Person'), person('secondary', 'Zweite Person'), choice('phase', 'Phase', ['planned', 'primary_ack', 'secondary_ack', 'cancelled']), t('reason', 'Anlass'), t('validFrom', 'Beginn', 'time'), t('validUntil', 'Ende', 'time')];
+        case 'education_due': return [source('training', 'Fortbildungsanforderung', 'training'), source('document', 'Originalvorgabe / Nachweis', 'document'), t('requirement', 'Anforderung'), t('dueAt', 'Frist', 'time'), choice('status', 'Status', ['assigned', 'reminded', 'completed', 'verified', 'rejected'])];
+        case 'coverage': return [source('absence', 'Ursprüngliche Abwesenheit', 'absence'), person('delegate', 'Vertretende Person'), t('scope', 'Befristeter Aufgabenumfang'), t('validFrom', 'Beginn', 'time'), t('validUntil', 'Ende', 'time'), t('accessUntil', 'Zugriff spätestens bis', 'time'), t('decision', 'Vertretungsentscheidung')];
+        case 'safety': return [source('safety', 'Gefährdungs- / Belastungsbeleg', 'safety'), source('document', 'Originalunterlage', 'document'), t('hazard', 'Gefährdung / Belastung'), t('measure', 'Maßnahme'), choice('status', 'Status', ['open', 'mitigated', 'accepted', 'rejected']), person('responsible', 'Verantwortliche Person')];
+        case 'payroll_time': return [source('timeEntry', 'Ursprünglicher Zeiteintrag', 'time_entry'), choice('classification', 'Zeitart', ['work', 'travel', 'standby', 'break', 'not_payroll']), t('startedAt', 'Tatsächlicher Beginn', 'time'), t('endedAt', 'Tatsächliches Ende', 'time'), t('decision', 'Prüfentscheidung'), person('reviewer', 'Prüfende Person')];
+        case 'absence': return [source('absence', 'Abwesenheitsoriginal', 'absence'), choice('category', 'Kategorie', ['sick', 'vacation', 'training', 'unavailable', 'other']), t('validFrom', 'Beginn', 'time'), t('validUntil', 'Ende', 'time'), t('decision', 'Abwesenheitsentscheidung')];
+        case 'return_decision': return [source('absence', 'Abgeschlossene Abwesenheit', 'absence'), choice('decision', 'Rückkehrentscheidung', ['fit', 'restricted', 'not_fit']), t('validFrom', 'Wirksam ab', 'time'), t('validUntil', 'Prüfgültig bis', 'time'), t('restrictions', 'Befristete Einschränkungen / keine'), person('reviewer', 'Prüfende Person')];
+        case 'offboard': return [source('employee', 'Aktuelle Mitarbeiter:innenfassung', 'employee'), t('exitDate', 'Austrittsdatum', 'date'), t('reason', 'Grund'), source('access1', 'Zugangsoriginal 1', 'access'), source('access2', 'Zugangsoriginal 2', 'access'), t('decision', 'Sperrentscheidung und offene Provider')];
+        case 'correct': return [event('targetId', 'Zu berichtigendes Ereignis', ...Object.keys(personnelLabels).filter(k => k !== 'correct') as PersonnelKind[]), t('reason', 'Berichtigungsgrund')];
+    }
+}
+const val = (d: PersonnelDraft, k: string) => d.values[k] ?? '';
+const selected = (d: PersonnelDraft, k: string) => d.selected[k]?.value;
+export function personnelOptions(field: PersonnelField, state: PersonnelState, context: PersonnelContext): PersonnelOption[] { if (field.type === 'source')
+    return context.sources.rows.filter(r => field.sourceKinds?.includes(r.kind)).map(r => ({ id: r.id, label: `${r.kind} · ${String(r.snapshot.title ?? r.snapshot.name ?? r.snapshot.reference ?? r.id)}`, value: r })); if (field.type === 'person')
+    return context.people.rows.map(p => ({ id: p.id, label: `${p.name} · ${p.roleKey}`, value: p })); if (field.type === 'event')
+    return state.events.filter(e => field.eventKinds?.includes(e.command.kind) && !state.corrected.includes(e.id)).map(e => ({ id: e.id, label: `${personnelLabels[e.command.kind]} · ${e.command.occurredAt}`, value: e.id })); return []; }
+export function buildPersonnelCommand(d: PersonnelDraft, state: PersonnelState, requestId: string, eventId: string): PersonnelCommand {
+    const common = { version: personnelVersion, requestId, eventId, ...d.scope, expectedHeadId: state.headId, kind: d.kind, occurredAt: d.occurredAt, note: d.note };
+    let payload: PersonnelRow;
+    switch (d.kind) {
+        case 'employment':
+            payload = { employee: selected(d, 'employee'), employmentType: val(d, 'employmentType'), location: val(d, 'location'), role: val(d, 'role'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil') || null, decision: val(d, 'decision') };
+            break;
+        case 'qualification':
+            payload = { qualification: selected(d, 'qualification'), document: selected(d, 'document'), activity: val(d, 'activity'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil'), result: val(d, 'result'), reviewer: selected(d, 'reviewer') };
+            break;
+        case 'delegation':
+            payload = { assignment: selected(d, 'assignment'), activity: val(d, 'activity'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil'), assignee: selected(d, 'assignee'), qualificationEventId: selected(d, 'qualificationEventId'), decision: val(d, 'decision') };
+            break;
+        case 'instruction':
+            payload = { training: selected(d, 'training'), document: selected(d, 'document'), subject: val(d, 'subject'), version: val(d, 'version'), instructor: selected(d, 'instructor'), result: val(d, 'result'), validUntil: val(d, 'validUntil') };
+            break;
+        case 'double_staffing':
+            payload = { assignment: selected(d, 'assignment'), primary: selected(d, 'primary'), secondary: selected(d, 'secondary'), phase: val(d, 'phase'), reason: val(d, 'reason'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil') };
+            break;
+        case 'education_due':
+            payload = { training: selected(d, 'training'), document: selected(d, 'document'), requirement: val(d, 'requirement'), dueAt: val(d, 'dueAt'), status: val(d, 'status') };
+            break;
+        case 'coverage':
+            payload = { absence: selected(d, 'absence'), delegate: selected(d, 'delegate'), scope: val(d, 'scope'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil'), accessUntil: val(d, 'accessUntil'), decision: val(d, 'decision') };
+            break;
+        case 'safety':
+            payload = { safety: selected(d, 'safety'), document: selected(d, 'document'), hazard: val(d, 'hazard'), measure: val(d, 'measure'), status: val(d, 'status'), responsible: selected(d, 'responsible') };
+            break;
+        case 'payroll_time':
+            payload = { timeEntry: selected(d, 'timeEntry'), classification: val(d, 'classification'), startedAt: val(d, 'startedAt'), endedAt: val(d, 'endedAt'), decision: val(d, 'decision'), reviewer: selected(d, 'reviewer') };
+            break;
+        case 'absence':
+            payload = { absence: selected(d, 'absence'), category: val(d, 'category'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil'), decision: val(d, 'decision') };
+            break;
+        case 'return_decision':
+            payload = { absence: selected(d, 'absence'), decision: val(d, 'decision'), validFrom: val(d, 'validFrom'), validUntil: val(d, 'validUntil'), restrictions: val(d, 'restrictions'), reviewer: selected(d, 'reviewer') };
+            break;
+        case 'offboard':
+            payload = { employee: selected(d, 'employee'), exitDate: val(d, 'exitDate'), reason: val(d, 'reason'), accesses: [selected(d, 'access1'), selected(d, 'access2')].filter(Boolean), decision: val(d, 'decision') };
+            break;
+        case 'correct':
+            payload = { targetId: selected(d, 'targetId'), reason: val(d, 'reason') };
+            break;
+    }
+    return { ...common, payload } as PersonnelCommand;
+}
+export const personnelLocalTime = (iso: string) => iso.slice(0, 16);
+export function personnelTimeFromInput(value: string) { const d = new Date(value); if (!Number.isFinite(d.getTime()))
+    throw Error('Zeitpunkt vollständig angeben.'); return d.toISOString(); }

@@ -1,22 +1,70 @@
-import { useMemo, useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
+// Generated native presentation from src/screens/office/OfficeDocumentsListScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {NativeButton,NativeDiv,NativeStrong,NativeSpan,NativeStyle,NativeA,NativeSection,NativeH2,NativeP,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeH3,NativeTable,NativeThead,NativeTr,NativeTh,NativeTbody,NativeTd,NativeSmall,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout/ScreenShell';
-import { MobileButton, MobileHeading, MobileRecordRow, MobileSearch, MobileSheet, MobileState, m } from '@/components/mobile/MobileWorkspace';
-import { MobileSelect } from '@/components/mobile/MobileSelect';
-import { PortalUploadsOfficePanel } from '@/components/office/PortalUploadsOfficePanel.native';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { pendingDocument } from '@/lib/office/officeDocumentState';
-import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
-import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
+import { DocumentsWorkspaceShell, DocumentWorkspaceIcon } from "../../components/documents/DocumentsWorkspaceShell.native.tsx";
+import { PortalUploadsOfficePanel } from "../../components/office/PortalUploadsOfficePanel.native.tsx";
+import { officeDocumentWorkspaceCss, documentDate, documentSize, pendingDocument } from "../../components/office/officeDocumentWorkspace.native.ts";
+import { fetchOfficeDocumentList } from "../../lib/office/officeDocumentsService.ts";
+import { PORTAL_DOCUMENT_CATEGORY_LABELS, type PortalDocumentListItem } from '@/types/portal/documents';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 export function OfficeDocumentsListScreen() {
-  const { profile } = useAuth(); const tenantId = useServiceTenantId() ?? ''; const { can } = usePermissions(); const router = useRouter();
-  const query = useAsyncQuery(() => fetchOfficeDocumentList(tenantId, profile?.roleKey, profile), [tenantId, profile?.id, profile?.roleKey], { enabled: !!tenantId && can('office.documents.view'), queryKey: `native-library:${tenantId}:${profile?.id}:${profile?.roleKey}` });
-  const [search, setSearch] = useState(''); const [category, setCategory] = useState('all'); const [status, setStatus] = useState('all'); const [sort, setSort] = useState('newest'); const [limit, setLimit] = useState(30); const [filters, setFilters] = useState(false);
-  const rows = useMemo(() => (query.data ?? []).filter(row => (category === 'all' || row.category === category) && (status === 'all' || (status === 'signature' ? pendingDocument(row) : row.status === status)) && [row.title, row.clientName, row.displayFileName ?? row.fileName].join(' ').toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de'))).sort((a,b) => sort === 'title' ? a.title.localeCompare(b.title,'de') : sort === 'oldest' ? a.updatedAt.localeCompare(b.updatedAt) : b.updatedAt.localeCompare(a.updatedAt)), [query.data, search, category, status, sort]);
-  return <ScreenShell title="Dokumentenablage" scroll={false} showBack={false} contentOwnsHeader>{!can('office.documents.view') ? <MobileState title="Keine Berechtigung für die Dokumentenablage" /> : <><FlatList data={rows.slice(0, limit)} keyExtractor={row => row.id} contentContainerStyle={{ gap: 12, paddingBottom: 24 }} refreshing={query.refreshing} onRefresh={() => void query.refresh()} ListHeaderComponent={<View style={m.stack}><MobileHeading title="Dokumentenablage" subtitle="Unterlagen und Portal-Eingänge" icon="folder" /><View style={m.wrap}><MobileButton label="Dokumentenkatalog" icon="file-plus" onPress={() => router.push('/business/office/document-catalog' as never)} /><MobileButton label="Gespeicherte Fassungen" icon="layers" onPress={() => router.push('/business/office/document-catalog?tab=records' as never)} />{can('office.clients.edit') ? <MobileButton primary label="Datei hochladen" icon="upload" onPress={() => router.push('/business/office/documents/upload' as never)} /> : null}</View><PortalUploadsOfficePanel tenantId={tenantId} onReviewed={() => void query.refresh()} /><MobileSearch value={search} onChangeText={setSearch} placeholder="Titel, Dateiname oder Person" /><MobileButton label="Filter und Sortierung" icon="sliders" onPress={() => setFilters(true)} /><Text style={m.muted}>{rows.length} passende Unterlagen</Text>{query.error || query.refreshError ? <MobileState title="Ablage konnte nicht geladen werden" message={query.error || query.refreshError || undefined} onRetry={() => void query.refresh()} /> : null}</View>} ListEmptyComponent={<MobileState loading={query.loading} title={query.loading ? 'Unterlagen werden geladen' : 'Keine passenden Unterlagen'} />} ListFooterComponent={rows.length > limit ? <MobileButton label="Weitere Unterlagen" onPress={() => setLimit(n => n + 30)} /> : null} renderItem={({ item }) => <MobileRecordRow title={item.title} subtitle={item.clientName || 'Klientenakte'} icon="file-text" onPress={() => router.push(`/business/office/documents/${item.id}` as never)}><Text style={m.muted}>{PORTAL_DOCUMENT_CATEGORY_LABELS[item.category]} · {pendingDocument(item) ? 'Unterschrift offen' : WORKFLOW_STATUS_LABELS[item.status]}</Text></MobileRecordRow>} /><MobileSheet visible={filters} title="Dokumente filtern" onClose={() => setFilters(false)}><MobileSelect label="Kategorie" value={category} options={{ all: 'Alle Kategorien', ...PORTAL_DOCUMENT_CATEGORY_LABELS }} onChange={v => setCategory(v || 'all')} /><MobileSelect label="Status" value={status} options={{ all: 'Alle Status', signature: 'Unterschrift ausstehend', ...WORKFLOW_STATUS_LABELS }} onChange={v => setStatus(v || 'all')} /><MobileSelect label="Sortierung" value={sort} options={{ newest: 'Neueste zuerst', oldest: 'Älteste zuerst', title: 'Titel A–Z' }} onChange={v => setSort(v || 'newest')} /><MobileButton label="Zurücksetzen" onPress={() => { setSearch(''); setCategory('all'); setStatus('all'); setSort('newest'); }} /></MobileSheet></>}</ScreenShell>;
+    const router = useRouter();
+    const { profile } = useAuth();
+    const tenantId = useServiceTenantId();
+    const { can } = usePermissions();
+    const [items, setItems] = useState<PortalDocumentListItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+    const [category, setCategory] = useState('all');
+    const [status, setStatus] = useState('all');
+    const [sort, setSort] = useState('newest');
+    const [count, setCount] = useState(25);
+    const generation = useRef(0);
+    const abort = useRef<AbortController | null>(null);
+    const canView = can('office.documents.view');
+    const canUpload = canView && can('office.clients.edit');
+    const refresh = useCallback(async () => { const run = ++generation.current; abort.current?.abort(); const controller = new AbortController(); abort.current = controller; if (!tenantId || !canView) {
+        setItems([]);
+        setLoading(false);
+        return;
+    } setLoading(true); setError(null); try {
+        const result = await fetchOfficeDocumentList(tenantId, profile?.roleKey, profile, { signal: controller.signal });
+        if (run !== generation.current)
+            return;
+        if (result.ok)
+            setItems(result.data);
+        else
+            setError(result.error);
+    }
+    catch {
+        if (run === generation.current)
+            setError('Die Ablage konnte nicht geladen werden.');
+    }
+    finally {
+        if (run === generation.current)
+            setLoading(false);
+    } }, [tenantId, profile, canView]);
+    useEffect(() => { setItems([]); void refresh(); return () => { generation.current += 1; abort.current?.abort(); }; }, [refresh]);
+    useEffect(() => setCount(25), [search, category, status, sort]);
+    const filtered = useMemo(() => items.filter(item => (category === 'all' || item.category === category) && (status === 'all' || (status === 'signature' ? pendingDocument(item) : item.status === status)) && [item.title, item.displayFileName ?? item.fileName, item.clientName].filter(Boolean).join(' ').toLocaleLowerCase('de-DE').includes(search.trim().toLocaleLowerCase('de-DE'))).sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title, 'de') : sort === 'oldest' ? a.updatedAt.localeCompare(b.updatedAt) : b.updatedAt.localeCompare(a.updatedAt)), [items, category, status, search, sort]);
+    const reset = () => { setSearch(''); setCategory('all'); setStatus('all'); setSort('newest'); };
+    const hasFilters = Boolean(search || category !== 'all' || status !== 'all');
+    return <NativeWorkspaceStyleScope css={[officeDocumentWorkspaceCss, officeDocumentWorkspaceCss]}>{<DocumentsWorkspaceShell active="library" title="Dokumentenablage" description="Unterlagen in Klientenakten finden, Portal-Eingänge prüfen und Dateien sicher ablegen." actions={<>{canUpload ? <NativeButton type="button" className="dw-button dw-button--primary" onClick={() => router.push('/business/office/documents/upload' as never)}><DocumentWorkspaceIcon name="upload"/>In Klientenakte hochladen</NativeButton> : null}<NativeButton type="button" className="dw-button" onClick={() => void refresh()} disabled={loading}><DocumentWorkspaceIcon name="refresh"/>Aktualisieren</NativeButton></>} stats={canView ? <NativeDiv className="dw-library-stats"><NativeDiv className="dw-metric"><NativeStrong>{loading ? '—' : items.length}</NativeStrong><NativeSpan>Aktenunterlagen</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>{loading ? '—' : items.filter(pendingDocument).length}</NativeStrong><NativeSpan>Unterschriften offen</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>{loading ? '—' : new Set(items.map(item => item.clientId).filter(Boolean)).size}</NativeStrong><NativeSpan>Klientenakten</NativeSpan></NativeDiv></NativeDiv> : undefined}>
+    <NativeStyle>{officeDocumentWorkspaceCss}</NativeStyle>
+    {!canView ? <NativeDiv className="dw-empty">Ihre Rolle hat keine Berechtigung für die Dokumentenablage.</NativeDiv> : <>
+      <NativeDiv className="dw-library-sources"><NativeA className="dw-library-source" href="/business/office/document-catalog?tab=records" onClick={event => { event.preventDefault(); router.push('/business/office/document-catalog?tab=records' as never); }}><NativeStrong>Katalogdokumente</NativeStrong><NativeSpan>Gespeicherte Fassungen für Unternehmen, Personal und Klienten</NativeSpan></NativeA><NativeA className="dw-library-source" href="/business/office/document-catalog" onClick={event => { event.preventDefault(); router.push('/business/office/document-catalog' as never); }}><NativeStrong>Dokument erstellen</NativeStrong><NativeSpan>Die 450 Vorlagen im zentralen Katalog verwenden</NativeSpan></NativeA>{can('office.employees.view') ? <NativeA className="dw-library-source" href="/business/office/employees" onClick={event => { event.preventDefault(); router.push('/business/office/employees' as never); }}><NativeStrong>Personalunterlagen</NativeStrong><NativeSpan>Dokumente direkt in der jeweiligen Personalakte</NativeSpan></NativeA> : null}</NativeDiv>
+      {tenantId ? <PortalUploadsOfficePanel tenantId={tenantId} onReviewed={() => void refresh()}/> : null}
+      <NativeSection className="dw-panel"><NativeDiv className="dw-library-heading"><NativeDiv><NativeH2>Unterlagen der Klientenakten</NativeH2><NativeP className="dw-muted">{filtered.length} von {items.length} Dokumenten{loading ? ' · Wird aktualisiert…' : ''}</NativeP></NativeDiv>{hasFilters ? <NativeButton type="button" className="dw-button dw-button--quiet" onClick={reset}>Filter zurücksetzen</NativeButton> : null}</NativeDiv>
+        <NativeDiv className="dw-library-filters"><NativeLabel className="dw-field"><NativeSpan className="dw-label">Suchen</NativeSpan><NativeInput className="dw-input" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Titel, Dateiname oder Person"/></NativeLabel><NativeLabel className="dw-field"><NativeSpan className="dw-label">Kategorie</NativeSpan><NativeSelect className="dw-select" value={category} onChange={event => setCategory(event.target.value)}><NativeOption value="all">Alle Kategorien</NativeOption>{Object.entries(PORTAL_DOCUMENT_CATEGORY_LABELS).map(([value, label]) => <NativeOption value={value} key={value}>{label}</NativeOption>)}</NativeSelect></NativeLabel><NativeLabel className="dw-field"><NativeSpan className="dw-label">Status</NativeSpan><NativeSelect className="dw-select" value={status} onChange={event => setStatus(event.target.value)}><NativeOption value="all">Alle Status</NativeOption><NativeOption value="signature">Unterschrift ausstehend</NativeOption>{Object.entries(WORKFLOW_STATUS_LABELS).map(([value, label]) => <NativeOption key={value} value={value}>{label}</NativeOption>)}</NativeSelect></NativeLabel><NativeLabel className="dw-field"><NativeSpan className="dw-label">Sortierung</NativeSpan><NativeSelect className="dw-select" value={sort} onChange={event => setSort(event.target.value)}><NativeOption value="newest">Neueste zuerst</NativeOption><NativeOption value="oldest">Älteste zuerst</NativeOption><NativeOption value="title">Titel A–Z</NativeOption></NativeSelect></NativeLabel></NativeDiv>
+        {error ? <NativeDiv className="dw-alert" data-tone="danger" role="alert">{error}<NativeButton type="button" className="dw-button" onClick={() => void refresh()}>Erneut versuchen</NativeButton></NativeDiv> : null}
+        {loading && items.length === 0 ? <NativeDiv className="dw-empty" role="status">Dokumente werden geladen…</NativeDiv> : !error && filtered.length === 0 ? <NativeDiv className="dw-empty"><NativeH3>{hasFilters ? 'Keine passenden Dokumente' : 'Noch keine Aktenunterlagen'}</NativeH3><NativeP>{hasFilters ? 'Ändern Sie den Suchbegriff oder setzen Sie die Filter zurück.' : 'Hochgeladene Dateien und erstellte Aufnahmeunterlagen erscheinen hier mit ihrer Aktenzuordnung.'}</NativeP></NativeDiv> : <NativeDiv className="dw-table-wrap" style={{ marginTop: 20 }}><NativeTable className="dw-table dw-library-table"><NativeThead><NativeTr><NativeTh scope="col">Dokument</NativeTh><NativeTh scope="col">Zuordnung</NativeTh><NativeTh scope="col">Status</NativeTh><NativeTh scope="col">Aktualisiert</NativeTh><NativeTh scope="col"><NativeSpan className="dw-sr">Aktion</NativeSpan></NativeTh></NativeTr></NativeThead><NativeTbody>{filtered.slice(0, count).map(item => { const pending = pendingDocument(item); return <NativeWorkspaceStyleScope css={[officeDocumentWorkspaceCss]}>{<NativeTr key={item.id}><NativeTd><NativeDiv className="dw-library-title"><DocumentWorkspaceIcon name={pending ? 'signature' : 'document'} size={24}/><NativeDiv><NativeStrong>{item.title}</NativeStrong><NativeSmall>{PORTAL_DOCUMENT_CATEGORY_LABELS[item.category]} · {pending ? 'Datei nach Unterschrift' : item.sizeLabel || documentSize(item.fileSizeBytes)}</NativeSmall></NativeDiv></NativeDiv></NativeTd><NativeTd>{item.clientName || 'Klientenakte'}</NativeTd><NativeTd><NativeSpan className="dw-status" data-tone={pending ? 'warning' : item.status === 'fehlerhaft' ? 'danger' : item.status === 'abgeschlossen' ? 'success' : 'neutral'}>{pending ? 'Unterschrift offen' : WORKFLOW_STATUS_LABELS[item.status]}</NativeSpan></NativeTd><NativeTd>{documentDate(item.updatedAt)}</NativeTd><NativeTd><NativeButton type="button" className="dw-button" onClick={() => router.push(`/business/office/documents/${item.id}` as never)} aria-label={`${item.title} öffnen`}>Öffnen<DocumentWorkspaceIcon name="arrow" size={16}/></NativeButton></NativeTd></NativeTr>}</NativeWorkspaceStyleScope>; })}</NativeTbody></NativeTable></NativeDiv>}
+        {filtered.length > 0 ? <NativeDiv className="dw-library-footer"><NativeSpan className="dw-muted">{Math.min(count, filtered.length)} von {filtered.length} angezeigt</NativeSpan>{count < filtered.length ? <NativeButton type="button" className="dw-button" onClick={() => setCount(value => value + 25)}>Weitere Dokumente anzeigen</NativeButton> : null}</NativeDiv> : null}
+      </NativeSection>
+    </>}
+  </DocumentsWorkspaceShell>}</NativeWorkspaceStyleScope>;
 }
