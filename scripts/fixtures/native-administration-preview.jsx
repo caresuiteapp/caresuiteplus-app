@@ -4,6 +4,7 @@ export { loginBusinessUser,loginEmployeePortal,registerBusinessTenant,completeFi
 import { createRoot } from 'react-dom/client';
 import { View, Text, ScrollView } from 'react-native';
 import { CommandCenterScreen } from '../../src/liquid-command/screens/CommandCenterScreen.native';
+import { CommandCenterScreen as WebDesktop } from '../../src/liquid-command/screens/CommandCenterScreen.web';
 import { ClientsListView } from '../../src/components/office/ClientsListView.native';
 import { EmployeesListView } from '../../src/components/office/EmployeesListView.native';
 import { TenantCompanyEditorForms } from '../../src/components/tenant/forms/TenantCompanyEditorForms.native';
@@ -29,8 +30,9 @@ export const useModuleAccess=()=>({hasGate:key=>['office','assist'].includes(key
 export const useDesktopWeather=()=>({data:null,place:null,message:'Wetter nicht verfügbar',choosePlace:noop});
 export const DesktopWeatherLocationDialog=()=>null;
 export const GoogleWorkspaceWidget=()=>null;
-export const useRouter=()=>({push:route=>{window.__previewRoute=route;},replace:route=>{window.__previewRoute=route;},back:noop});
-export const usePathname=()=>new URLSearchParams(location.search).get('screen')?.startsWith('employee')?'/portal/employee':'/portal/client';
+export const useRouter=()=>({push:route=>{window.__previewRoute=route;},replace:route=>{window.__previewRoute=route;},back:noop,setParams:noop});
+export const useWebFontScale=()=>({scale:1,effectiveScale:1,increase:noop,decrease:noop,reset:noop,canIncrease:false,canDecrease:false});
+export const usePathname=()=>{const screen=new URLSearchParams(location.search).get('screen');return screen==='desktop'||screen==='web-desktop'?'/Desktop':screen?.startsWith('employee')?'/portal/employee':'/portal/client';};
 export const useLocalSearchParams=()=>({});
 export const Link=({children})=><View>{children}</View>;
 export const ScreenShell=({children})=><View style={{flex:1,minHeight:0}}>{children}</View>;
@@ -50,5 +52,5 @@ export const checkCompanyInventoryOffboarding=async()=>({ok:true,data:{openAssig
 const deny=async()=>({ok:false,error:'Diese Ansicht verwendet ausschließlich lokale Prüfdaten.'});
 export const acknowledgeCompanyInventoryAssignment=deny,requestCompanyInventoryReturn=deny,saveCompanyInventoryItem=deny,saveCompanyInventoryCategory=deny,saveCompanyInventoryLocation=deny,issueCompanyInventoryItem=deny,returnCompanyInventoryItem=deny,reportCompanyInventoryDamage=deny,resolveCompanyInventoryDamage=deny;
 export const useAsyncQuery=()=>({data:null,loading:false,error:null,refresh:noop});
-function Preview(){const params=new URLSearchParams(location.search);const page=params.get('screen')??'desktop';const [form,setForm]=useState(snapshot);return !['desktop','clients','employees','company','inventory','notes'].includes(page)?<PortalPreview screen={page}/>:page==='desktop'?<CommandCenterScreen/>:<View style={[m.page,{padding:16}]}>{page==='notes'?<NativeNotes actor={{tenantId,userId:'visual-person',roleKey:'business_admin',permissions}}/>:page==='clients'?<ClientsListView/>:page==='employees'?<EmployeesListView/>:page==='inventory'?<CompanyInventoryWorkspace tenantId={tenantId} roleKey="business_admin" actorProfileId="visual-person" effectivePermissions={permissions}/>:<><MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase"/><MobileSheet visible title="Unternehmensprofil bearbeiten" onClose={noop} footer={<MobileButton primary label="Änderungen speichern" onPress={noop}/>}><TenantCompanyEditorForms section="company" value={form} onChange={setForm}/></MobileSheet></>}</View>;}
+function Preview(){const params=new URLSearchParams(location.search);const page=params.get('screen')??'desktop';const [form,setForm]=useState(snapshot);return !['desktop','web-desktop','clients','employees','company','inventory','notes'].includes(page)?<PortalPreview screen={page}/>:page==='web-desktop'?<WebDesktop/>:page==='desktop'?<CommandCenterScreen/>:<View style={[m.page,{padding:16}]}>{page==='notes'?<NativeNotes actor={{tenantId,userId:'visual-person',roleKey:'business_admin',permissions}}/>:page==='clients'?<ClientsListView/>:page==='employees'?<EmployeesListView/>:page==='inventory'?<CompanyInventoryWorkspace tenantId={tenantId} roleKey="business_admin" actorProfileId="visual-person" effectivePermissions={permissions}/>:<><MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase"/><MobileSheet visible title="Unternehmensprofil bearbeiten" onClose={noop} footer={<MobileButton primary label="Änderungen speichern" onPress={noop}/>}><TenantCompanyEditorForms section="company" value={form} onChange={setForm}/></MobileSheet></>}</View>;}
 if(document.getElementById('root'))createRoot(document.getElementById('root')).render(<Preview/>);

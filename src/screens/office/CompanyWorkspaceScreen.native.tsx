@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -31,12 +31,21 @@ export function CompanyWorkspaceScreen({ initialTab = 'overview', initialView }:
   return <ScreenShell title="Unternehmen" showBack={false} scroll={false} contentOwnsHeader>{!tenantId ? <MobileState title="Unternehmenszugang fehlt" message="Ihr Zugang ist keinem Unternehmen zugeordnet." /> : access.loading ? <MobileState loading title="Unternehmen wird geladen" /> : !access.data ? <MobileState title="Zugriff konnte nicht geprüft werden" message={access.error ?? undefined} onRetry={access.refresh} /> : <CompanyContent key={`${tenantId}:${profile?.id}:${roleKey}:${JSON.stringify(access.data)}`} tenantId={tenantId} access={access.data} initialTab={initialTab} initialView={initialView} />}</ScreenShell>;
 }
 function CompanyContent({ tenantId, access, initialTab, initialView }: { tenantId: string; access: CompanyAccess; initialTab: CompanyTab; initialView?: string }) {
-  const router = useRouter(); const { roleKey, hasModuleGate } = usePermissions();
+  const router = useRouter(); const params = useLocalSearchParams<{ ansicht?: string; csPage_CompanyWorkspace_view?: string }>(); const { roleKey, hasModuleGate } = usePermissions();
   const canManage = access.permissions.includes('business.tenant.manage') && !access.scopeLimited;
-  const [tab, setTab] = useState<CompanyTab>(initialTab); const [search, setSearch] = useState(''); const [section, setSection] = useState<TenantCenterSectionKey | null>(null);
+  const [rawTab, setTab] = useState<CompanyTab>(() => COMPANY_TABS.find(item => item.id === params.csPage_CompanyWorkspace_view)?.id ?? 'overview');
+  const requestedTab = initialTab !== 'overview' ? initialTab : rawTab;
+  const tab = access.scopeLimited && !['structure', 'resources', 'inventory'].includes(requestedTab) ? (access.permissions.includes('business.tenant.manage') ? 'structure' : 'inventory') : requestedTab; const [search, setSearch] = useState(''); const [section, setSection] = useState<TenantCenterSectionKey | null>(null);
   const [catalog, setCatalog] = useState<ServiceCatalogCategory | null>(null); const [custom, setCustom] = useState<TenantCustomFieldDefinition | 'new' | null>(null); const [notice, setNotice] = useState('');
-  const query = useAsyncQuery(() => fetchTenantCenter(tenantId, roleKey), [tenantId, roleKey], { enabled: canManage, queryKey: `native-company:${tenantId}:${roleKey}` });
-  const navigateTab = (next: CompanyTab) => { setTab(next); setSearch(''); };
+  const query = useAsyncQuery(() => fetchTenantCenter(tenantId, roleKey), [tenantId, roleKey], { enabled: canManage && !['structure', 'resources', 'inventory'].includes(tab), queryKey: `native-company:${tenantId}:${roleKey}` });
+  const navigateTab = (next: CompanyTab) => {
+    if (next === tab) return;
+    if (next === 'inventory') { router.push('/unternehmen/inventar' as never); return; }
+    if (next === 'structure' || next === 'resources') { router.push((next === 'structure' ? '/unternehmen/standorte' : '/unternehmen/ressourcen') as never); return; }
+    if (!canManage) return;
+    if (initialTab !== 'overview') { router.push(`/unternehmen?csPage_CompanyWorkspace_view=${next}` as never); return; }
+    setTab(next); setSearch(''); router.setParams({ csPage_CompanyWorkspace_view: next });
+  };
   const tabs = COMPANY_TABS.filter(item => item.id === 'inventory' ? access.permissions.includes('inventory.view') : item.id === 'structure' || item.id === 'resources' ? access.permissions.includes('business.tenant.manage') : canManage).map(item => ({ key: item.id, label: item.label }));
   const open = (key: TenantCenterSectionKey) => {
     const routes: Partial<Record<TenantCenterSectionKey, string>> = { locations: '/unternehmen/standorte', documentLayout: '/business/templates/ci-layout', dataManagement: '/business/office/settings/csv-import-export', clientServiceTypes: '/settings/tenant/client-service-types', clientBudgetDefaults: '/settings/tenant/client-budget', appearance: '/settings/appearance' };
@@ -49,8 +58,9 @@ function CompanyContent({ tenantId, access, initialTab, initialView }: { tenantI
   const snapshot = query.data; const identity = snapshot ? companyIdentity(snapshot) : null;
   const sections = snapshot ? filterCompanySections(companySections(snapshot, ['Office', ...(snapshot.modules.assistEnabled && hasModuleGate('assist') ? ['Assist'] : [])]), search).filter(item => tab === 'overview' || item.tab === tab) : [];
   if (tab === 'structure' || tab === 'resources' || tab === 'inventory') {
-    const structureView = ORGANIZATION_VIEWS.find(item => item.id === initialView)?.id ?? (initialView === 'access' ? 'access' : 'sites');
-    const resourceView = COMPANY_RESOURCES_VIEWS.find(item => item.id === initialView)?.id ?? 'overview';
+    const requestedView = typeof params.ansicht === 'string' ? params.ansicht : initialView;
+    const structureView = ORGANIZATION_VIEWS.find(item => item.id === requestedView)?.id ?? (requestedView === 'access' ? 'access' : 'sites');
+    const resourceView = COMPANY_RESOURCES_VIEWS.find(item => item.id === requestedView)?.id ?? 'overview';
     return <View style={m.page}>
       <MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase" />
       <MobileChips label="Unternehmensbereiche" items={tabs} value={tab} onChange={navigateTab} />

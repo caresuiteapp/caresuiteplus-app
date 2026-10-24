@@ -89,6 +89,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [recoverableWidgetIds, setRecoverableWidgetIds] = useState<string[]>([]);
   const current = useRef(preferences); const writes = useRef(Promise.resolve());
   const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [attempt, setAttempt] = useState(0);
+  const [workspaceHeight, setWorkspaceHeight] = useState(0); const [controlsHeight, setControlsHeight] = useState(0);
   const [saving, setSaving] = useState(false); const [edit, setEdit] = useState(false); const [navigationOpen, setNavigationOpen] = useState(false);
   const [center, setCenter] = useState<CenterTab | null>(null); const [profileOpen, setProfileOpen] = useState(false);
   const [query, setQuery] = useState(''); const [navQuery, setNavQuery] = useState(''); const [category, setCategory] = useState<string>('Alle');
@@ -138,6 +139,10 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const matches = (app: { label: string; description: string; category?: string }) => (category === 'Alle' || app.category === category) && `${app.label} ${app.description}`.toLocaleLowerCase('de-DE').includes(query.trim().toLocaleLowerCase('de-DE'));
   const groups = buildDesktopAreaNavigation(apps, selectedArea, navQuery);
   const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(4, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
+  const gridRows = Math.max(1, Math.ceil((preferences.ids.length + suggestions.length) / layout.columns));
+  const fitArtworkHeight = !edit && !error && !saving && layout.columns >= 3 && fontScale < 1.4 && workspaceHeight > 0 && controlsHeight > 0
+    ? Math.max(68, Math.min(156, Math.floor((workspaceHeight - controlsHeight - layout.padding - 24 - 14 - layout.gap * (gridRows - 1)) / gridRows) - 78))
+    : undefined;
   const selectedBackground = BACKGROUNDS.find(item => item.id === preferences.background) ?? BACKGROUNDS[0];
   const moduleLabel = DESKTOP_AREAS.find(area => area.key === selectedArea)!.label;
   const navigation = <View style={ui.stack}>
@@ -156,7 +161,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
     <SafeAreaView style={[styles.safe, { padding: layout.framePadding }]}>
       <View style={[styles.header, compactHeight && { paddingVertical: 6 }]} testID="desktop-full-width-header">
         <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: Math.min(width - 64, 234), height: Math.min(width - 64, 234) / 8 }]} resizeMode="contain" />
-        <View style={[styles.headerInfo, width < 780 && { flexBasis: '100%' }]} testID="desktop-clock-weather">
+        <View style={[styles.headerInfo, width < 780 && { flexBasis: '100%' }, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]} testID="desktop-clock-weather">
           <View style={styles.timeBlock}><Text style={styles.clock}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text><Text style={styles.desktopEyebrow}>{now.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={styles.weatherText}>{weather.data ? `${weather.data.glyph} ${weather.data.temperature} °C · ${weather.data.label}` : 'Standortwetter'}</Text><Text style={styles.desktopEyebrow}>{weather.message}</Text><Text style={styles.weatherEdit}>Ort ändern</Text></Pressable>
         </View>
@@ -169,30 +174,26 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       </View>
       <View style={styles.workarea}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 16, gap: 16 }}>{navigation}</ScrollView> : null}
-        <ScrollView style={{ flex: 1, minWidth: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: compactHeight ? 12 : layout.padding, gap: compactHeight ? 8 : 14, paddingBottom: 24 }}>
-          <View style={styles.desktopToolbar}>
+        <ScrollView testID="native-desktop-widget-viewport" onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: compactHeight ? 12 : layout.padding, gap: compactHeight ? 8 : 14, paddingBottom: 24 }}>
+          <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={{ gap: 14 }}><View style={styles.desktopToolbar}>
             <View style={{ flex: 1, minWidth: 0 }}><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text><Text style={styles.desktopEyebrow}>{preferences.ids.length} Widgets</Text></View>
             <MobileIconButton label={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} icon={edit ? 'check' : 'sliders'} dark selected={edit} onPress={() => setEdit(!edit)} />
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator style={styles.moduleBar} contentContainerStyle={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
             {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
-          </ScrollView>
+          </ScrollView></View>
           {error ? <View style={ui.surface}><Text accessibilityRole="alert" style={ui.error}>{error}</Text><NativeAction label="Erneut speichern" onPress={() => persist(current.current)} /></View> : null}
           {saving ? <Text accessibilityLiveRegion="polite" style={styles.desktopEyebrow}>Auswahl wird gespeichert …</Text> : null}
           <View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
             const widget = widgetById.get(id); if (!widget) return null;
             return <View key={id} style={[styles.widget, { width: layout.cardWidth }]}>
-              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
+              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} artworkHeight={fitArtworkHeight} fontScale={fontScale} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
               {edit ? <View style={styles.widgetEdit}><NativeAction label="Entfernen" accessibilityLabel={`${widget.label} vom Desktop entfernen`} onPress={() => toggle(id)} /><View style={ui.row}><NativeAction label="←" accessibilityLabel={`${widget.label} nach vorne verschieben`} disabled={index === 0} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, -1) })} /><NativeAction label="→" accessibilityLabel={`${widget.label} nach hinten verschieben`} disabled={index === preferences.ids.length - 1} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, 1) })} /></View></View> : null}
             </View>;
-          })}</View>
-          {suggestions.length ? <View style={styles.suggestions}>
-            <Text style={styles.sectionLabel}>Vorschläge für {moduleLabel}</Text>
-            <View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{suggestions.map(widget => <View key={widget.id} style={[styles.widget, styles.suggestionCard, { width: layout.cardWidth }]}>
-              <NativeWidget widget={widget} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => toggle(widget.id)} suggestion />
+          })}{suggestions.map(widget => <View key={widget.id} style={[styles.widget, styles.suggestionCard, { width: layout.cardWidth }]}>
+              <NativeWidget widget={widget} artworkHeight={fitArtworkHeight} fontScale={fontScale} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => toggle(widget.id)} suggestion />
               <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} als Vorschlag ausblenden`} onPress={() => persist({ ...current.current, dismissed: [...new Set([...current.current.dismissed, widget.id])] })} style={styles.dismissSuggestion}><MobileIcon name="x" color="#D6E9FF" size={18} /></Pressable>
             </View>)}</View>
-          </View> : null}
           {!areaAllowed ? <View style={ui.surface}><Text style={ui.title}>{moduleLabel}</Text><Text style={ui.body}>Dieser Arbeitsbereich ist für Ihren Zugang derzeit nicht freigegeben.</Text></View> : !preferences.ids.length ? <View style={ui.surface}><Text style={ui.title}>Ihr Desktop ist frei</Text><Text style={ui.body}>Wählen Sie Widgets für diesen Arbeitsbereich. Alle Seiten finden Sie weiterhin in Apps und Navigation.</Text><NativeAction label="Widgets auswählen" primary onPress={() => openCenter('widgets')} /></View> : null}
         </ScrollView>
       </View>
@@ -222,17 +223,17 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
 
 function moduleLabelForArea(area: DesktopAreaKey) { return DESKTOP_AREAS.find(item => item.key === area)!.label; }
 
-function NativeWidget({ widget, narrow, compact, onOpen, suggestion }: { widget: WidgetDefinition; narrow: boolean; compact: boolean; onOpen: () => void; suggestion?: boolean }) {
+function NativeWidget({ widget, narrow, compact, onOpen, suggestion, artworkHeight, fontScale }: { widget: WidgetDefinition; narrow: boolean; compact: boolean; onOpen: () => void; suggestion?: boolean; artworkHeight?: number; fontScale: number }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={suggestion ? `${widget.label} zum Desktop hinzufügen` : `${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, pressed && { opacity: 0.8, transform: [{ scale: 0.988 }] }]}>
-    <View style={styles.widgetLabelBar}><Text style={[styles.widgetTitle, narrow && { fontSize: 14, lineHeight: 21 }, suggestion && { paddingRight: 24 }]}>{widget.label}</Text><MobileIcon name="arrow-up-right" color="#77DFFF" size={16} /></View>
-    <View style={[styles.artworkStage, { height: compact ? 88 : narrow ? 112 : 156 }]}><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} /><View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View></View>
+    <View style={styles.widgetLabelBar}><Text numberOfLines={fontScale < 1.4 ? 1 : undefined} adjustsFontSizeToFit={fontScale < 1.4} minimumFontScale={0.8} style={[styles.widgetTitle, narrow && { fontSize: 14, lineHeight: 21 }, suggestion && { paddingRight: 24 }]}>{widget.label}</Text>{!suggestion ? <MobileIcon name="arrow-up-right" color="#77DFFF" size={16} /> : null}</View>
+    <View style={[styles.artworkStage, { height: artworkHeight ?? (compact ? 88 : narrow ? 112 : 156) }]}><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} /><View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View></View>
     {suggestion ? <View style={styles.suggestionBadge}><MobileIcon name="plus" color="#CDE9FF" size={14} /><Text style={styles.suggestionText}>Übernehmen</Text></View> : null}
   </Pressable>;
 }
 
 const styles = StyleSheet.create({
   headerInfo: { flexGrow: 1, flexShrink: 1, flexBasis: 320, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  timeBlock: { flexShrink: 0 },
+  timeBlock: { flexShrink: 1, minWidth: 0 },
   weatherEdit: { color: '#8FE4FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   navLabel: { color: '#E6F1FA', fontFamily: careSuiteAppFontFamily, fontSize: 16, lineHeight: 23, fontWeight: '700' },
   widgetLabelBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
