@@ -21,6 +21,8 @@ const native = {
   Platform: { OS: 'android' }, StyleSheet: { create: (s: any) => s, flatten }, useWindowDimensions: () => ({ width: api.width, height: 844, fontScale: api.scale }),
 };
 const dependencies: Record<string, unknown> = {
+  '@/components/portal/accessibility/PortalTextSizeControls': { PortalTextSizeControls: () => null },
+  '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
   '../components/DesktopCatalogArtwork': { DesktopCatalogArtwork: () => null },
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native, 'react-native-safe-area-context': { SafeAreaView: Box, useSafeAreaInsets: () => ({ left: 0, right: 0, top: 24, bottom: 16 }) },
   'expo-linear-gradient': { LinearGradient: Box }, '@expo/vector-icons/Feather': { __esModule: true, default: () => null },
@@ -112,8 +114,9 @@ describe('Native administration desktop interactions', () => {
   });
 });
 describe('Native desktop geometry', () => {
-  it.each([320, 360, 390, 412, 480])('uses two widget columns on a %d pixel phone', width => { expect(nativeDesktopLayout(width).columns).toBe(2); });
+  it.each([[320,2],[360,2],[390,2],[412,2],[480,3]])('matches Web card thresholds at %d pixels', (width, columns) => { expect(nativeDesktopLayout(width).columns).toBe(columns); });
+  it('reserves the same readable width for suggestions as Web', () => { expect(nativeDesktopLayout(390, 1, true).columns).toBe(1); expect(nativeDesktopLayout(1280, 1, true).columns).toBe(3); });
   it('provides a single column for enlarged accessibility text', () => { expect(nativeDesktopLayout(360, 2).columns).toBe(1); });
-  it.each([320, 360, 390, 600, 768, 844, 1024, 1280, 1920].flatMap(width => [1, 1.3, 1.6, 2].map(scale => [width, scale])))('fits width %d with font scale %d without clipping the grid', (width, scale) => { const layout = nativeDesktopLayout(width, scale); const occupied = layout.cardWidth * layout.columns + layout.gap * (layout.columns - 1) + 2 * layout.padding + (layout.sidebar ? layout.sidebarWidth + layout.gap : 0); expect(occupied).toBeLessThanOrEqual(width + 0.001); expect(layout.cardWidth).toBeGreaterThan(0); if (width < 980 * scale) expect(layout.sidebar).toBe(false); });
+  it.each([320, 360, 390, 600, 768, 844, 1024, 1280, 1920].flatMap(width => [1, 1.3, 1.6, 2].map(scale => [width, scale])))('fits width %d with font scale %d without clipping the grid', (width, scale) => { const layout = nativeDesktopLayout(width, scale); const occupied = layout.cardWidth * layout.columns + layout.gap * (layout.columns - 1) + 2 * layout.padding + (layout.sidebar ? layout.sidebarWidth + layout.gap : 0); expect(occupied).toBeLessThanOrEqual(width + 0.001); expect(layout.cardWidth).toBeGreaterThan(0); if (width < 900 * scale) expect(layout.sidebar).toBe(false); });
   it('keeps widget ordering intact at both boundaries', () => { expect(moveNativeDesktopWidget(['a', 'b'], 'a', -1)).toEqual(['a', 'b']); expect(moveNativeDesktopWidget(['a', 'b'], 'b', 1)).toEqual(['a', 'b']); });
 });

@@ -2,7 +2,7 @@ import { COMPANY_ICON_PATHS } from './companyIconPaths';
 import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useState, type PointerEvent } from 'react';
 import type { TenantCenterSnapshot } from '@/types/tenant/tenantCenter';
-import { COMPANY_TABS, activeCompanyCatalog, companyDate, companyIdentity, companySections, companySuggestions, companyWebsite, filterCompanySections, type CompanySection } from '@/lib/tenant/companyWorkspaceModel.web';
+import { COMPANY_TABS, activeCompanyCatalog, companyDate, companyIdentity, companySections, companySuggestions, companyWebsite, filterCompanySections, type CompanySection, type CompanyTab } from '@/lib/tenant/companyWorkspaceModel.web';
 import { companyWorkspaceCss } from './companyWorkspaceCss.web';
 
 export function CompanyIcon({ name, size = 20 }: { name: string; size?: number }) {

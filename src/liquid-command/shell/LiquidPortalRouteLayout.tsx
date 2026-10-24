@@ -1,3 +1,4 @@
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Platform, Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
@@ -417,7 +418,7 @@ export function LiquidPortalRouteLayout({
   return portalSurface;
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(withCareSuiteTypography({
   viewport: { flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' },
   portalFooterQuiet: { paddingTop: 0, paddingBottom: 0 },
   shell: {
@@ -800,4 +801,4 @@ const styles = StyleSheet.create({
     fontSize: webScaledFontMetric(22),
     lineHeight: webScaledFontMetric(24),
   },
-});
+}));

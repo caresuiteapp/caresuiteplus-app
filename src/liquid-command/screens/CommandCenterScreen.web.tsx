@@ -1,3 +1,4 @@
+import { defaultDesktopWidgetIds } from '../navigation/desktopLayoutModel';
 import { WebView as View, WebPressable as Pressable, WebScrollView as ScrollView } from '@/lib/platform/reactNativeWebCompat.web';
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -192,9 +193,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const ownAreaWidgets = useMemo(() => moduleWidgets.filter(widget => desktopCatalogAreaForRoute(widget.route) === selectedArea), [moduleWidgets, selectedArea]);
   const migrationWidgetIds = useMemo(() => ownAreaWidgets.map(widget => widget.id), [ownAreaWidgets]);
   // Shared Office widgets are available to pin; they do not replace a new area's own defaults.
-  const moduleDefaults = useMemo(() => ownAreaWidgets
-    .filter(widget => widget.id === 'document-catalog' || DEFAULT_DESKTOP_IDS.some(id => id === widget.id) || !['office', 'assist'].includes(selectedArea))
-    .slice(0, DESKTOP_SLOT_COUNT).map(widget => widget.id), [ownAreaWidgets, selectedArea]);
+  const moduleDefaults = useMemo(() => defaultDesktopWidgetIds(ownAreaWidgets, selectedArea, DEFAULT_DESKTOP_IDS, DESKTOP_SLOT_COUNT), [ownAreaWidgets, selectedArea]);
   const navigationGroups = buildDesktopAreaNavigation(moduleApps, selectedArea, navigationQuery);
   const moduleWorkflows = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(WORKFLOWS.map(workflow => ({
     ...workflow, permission: workflow.id === 'assignment' ? 'assist.assignments.manage' as PermissionKey : undefined,
@@ -496,7 +495,7 @@ const styles = StyleSheet.create({
   dateMobile: { fontSize: 13, lineHeight: 18 },
   timeMobile: { fontSize: 30, lineHeight: 35 },
   desktopHeaderMobile: { minHeight: 62, padding: 8, gap: 6, borderRadius: 16 },
-  desktopHeadingMobile: { flexBasis: 80 },
+  desktopHeadingMobile: { flexBasis: "100%" },
   countTextMobile: { fontSize: 12 },
   countPillMobile: { minHeight: 36, paddingHorizontal: 6, paddingVertical: 6, alignSelf: "center", gap: 4 },
   editButtonMobile: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 6 },

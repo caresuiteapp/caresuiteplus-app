@@ -1,3 +1,4 @@
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { useState, type ReactNode } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -109,7 +110,7 @@ export function CompanyWorkspaceView({ snapshot, tab, onTab, activeAreas, canEdi
   </View>;
 }
 
-const s = StyleSheet.create({
+const s = StyleSheet.create(withCareSuiteTypography({
   workspace: { width: '100%', minWidth: 0, backgroundColor: '#f4f8fd', borderRadius: 24 },
   grow: { flex: 1, minWidth: 0 }, stackedColumn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' }, full: { width: '100%' }, half: { width: '46%', flexGrow: 1 }, muted: { color: muted },
   topline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 }, breadcrumb: { color: muted, fontSize: 12 },
@@ -132,4 +133,4 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 17 }, sectionHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }, details: { gap: 13 }, detailRow: { flexDirection: 'row', gap: 12 }, detailRowNarrow: { flexDirection: 'column', gap: 3 }, detailLabel: { color: muted, width: '32%', fontSize: 11, lineHeight: 18 }, detailLabelNarrow: { width: '100%' }, detailValue: { color: ink, fontSize: 12, lineHeight: 20, flex: 1, minWidth: 0 }, sectionFooter: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, borderTopWidth: 1, borderColor: line, paddingTop: 15, marginTop: 14 },
   overview: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 }, overviewStacked: { flexDirection: 'column', alignItems: 'stretch' }, overviewMain: { flex: 1.65, minWidth: 0, gap: 18 }, overviewSide: { flex: 1, minWidth: 0, gap: 18 }, profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 22 }, fact: { minWidth: 0, gap: 7 }, factLabel: { color: muted, fontSize: 11, lineHeight: 18 }, factValue: { color: ink, fontSize: 13, lineHeight: 22 }, pair: { flexDirection: 'row', gap: 17 }, pairStacked: { flexDirection: 'column' }, inlineFact: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginVertical: 14 }, factNumber: { color: ink, fontSize: 27, lineHeight: 33, fontWeight: '500' }, small: { color: muted, fontSize: 11, lineHeight: 18 },
   documents: { flexDirection: 'row', alignItems: 'center', gap: 13, borderWidth: 1, borderColor: line, backgroundColor: '#fff', borderRadius: 17, padding: 17 }, attention: { backgroundColor: '#fff8ea', borderColor: '#ead4a6' }, suggestion: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, borderBottomWidth: 1, borderColor: line }, activity: { flexDirection: 'row', alignItems: 'flex-start', gap: 13, paddingBottom: 21 }, activityDot: { width: 9, height: 9, borderWidth: 2, borderColor: line, backgroundColor: '#3684ed', borderRadius: 5, marginTop: 6 }, activityTitle: { color: ink, fontSize: 12, lineHeight: 20, fontWeight: '600' }, empty: { paddingVertical: 16, alignItems: 'center', gap: 12 }, emptyTitle: { color: ink, fontSize: 13, lineHeight: 21, fontWeight: '600', textAlign: 'center' }, emptyText: { color: muted, fontSize: 12, lineHeight: 20, textAlign: 'center' }, customRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, borderTopWidth: 1, borderColor: line },
-});
+}));

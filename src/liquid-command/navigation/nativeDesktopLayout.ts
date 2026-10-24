@@ -1,17 +1,18 @@
-/** Geometry follows the available pane rather than the physical device name. */
-export function nativeDesktopLayout(width: number, fontScale = 1) {
-  const scale = Math.max(1, fontScale);
-  const sidebar = width >= 980 * scale;
-  const sidebarWidth = Math.min(360, Math.round(280 * scale));
-  const padding = width < 600 ? 16 : 24;
-  const gap = width < 600 ? 10 : 16;
-  const framePadding = width < 600 ? 12 : 20;
-  const pane = Math.max(1, width - framePadding * 2 - (sidebar ? sidebarWidth + gap : 0));
+import { desktopGridColumns, desktopGridMetrics } from './desktopLayoutModel';
+
+/** Geometry matches the Web pane, including the navigation and suggestion widths. */
+export function nativeDesktopLayout(width: number, fontScale = 1, hasSuggestions = false) {
+  const mobile = width < 900;
+  const { scale, gap, minimum, labelHeight } = desktopGridMetrics(fontScale, mobile, hasSuggestions);
+  const sidebar = width >= 900 * scale;
+  const sidebarWidth = Math.round(260 * scale);
+  const padding = 0;
+  const framePadding = mobile ? 12 : 20;
+  const workareaGap = sidebar ? 18 : 0;
+  const pane = Math.max(1, width - framePadding * 2 - (sidebar ? sidebarWidth + workareaGap : 0));
   const available = Math.max(1, pane - padding * 2);
-  const columns = width < 600
-    ? (available >= 260 && scale < 1.6 ? 2 : 1)
-    : Math.max(1, Math.min(4, Math.floor((available + gap) / (180 * scale + gap))));
-  return { sidebar, sidebarWidth, framePadding, padding, gap, columns, cardWidth: Math.max(1, (available - gap * (columns - 1)) / columns) };
+  const columns = desktopGridColumns(available, minimum, gap, scale);
+  return { mobile, sidebar, sidebarWidth, framePadding, padding, gap, workareaGap, columns, labelHeight, cardWidth: Math.max(1, (available - gap * (columns - 1)) / columns) };
 }
 
 export function moveNativeDesktopWidget(ids: readonly string[], id: string, delta: -1 | 1) {

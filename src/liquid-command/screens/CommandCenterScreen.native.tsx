@@ -1,3 +1,6 @@
+import { defaultDesktopWidgetIds } from '../navigation/desktopLayoutModel';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import type { PermissionKey } from '@/types/permissions';
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
@@ -64,7 +67,6 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const router = useRouter(); const auth = useAuth(); const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compactHeight = height - insets.top - insets.bottom < 500 && width > height && fontScale < 1.4;
-  const layout = nativeDesktopLayout(width - insets.left - insets.right, fontScale);
   const owner = auth.user!.id; const scope = JSON.stringify([tenantId, owner]);
   const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
   const dismissedKey = `${desktopKey}.dismissed-suggestions.v1`;
@@ -84,7 +86,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const allowed = useMemo(() => widgets.map(widget => widget.id), [widgets]);
   const ownWidgets = useMemo(() => widgets.filter(widget => desktopCatalogAreaForRoute(widget.route) === selectedArea), [widgets, selectedArea]);
   const migrationAllowed = useMemo(() => ownWidgets.map(widget => widget.id), [ownWidgets]);
-  const defaults = useMemo(() => ownWidgets.filter(widget => widget.id === 'document-catalog' || widget.id === 'company' || (DEFAULT_DESKTOP_IDS as readonly string[]).includes(widget.id) || !['office', 'assist'].includes(selectedArea)).slice(0, 12).map(widget => widget.id), [ownWidgets, selectedArea]);
+  const defaults = useMemo(() => defaultDesktopWidgetIds(ownWidgets, selectedArea, DEFAULT_DESKTOP_IDS, 12), [ownWidgets, selectedArea]);
   const [preferences, setPreferences] = useState<Preferences>({ ids: [], background: BACKGROUNDS[0].id, dismissed: [] });
   const [recoverableWidgetIds, setRecoverableWidgetIds] = useState<string[]>([]);
   const current = useRef(preferences); const writes = useRef(Promise.resolve());
@@ -95,6 +97,8 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [query, setQuery] = useState(''); const [navQuery, setNavQuery] = useState(''); const [category, setCategory] = useState<string>('Alle');
   const [weatherOpen, setWeatherOpen] = useState(false); const weather = useDesktopWeather(scope);
   const [now, setNow] = useState(new Date());
+  const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(6, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
+  const layout = nativeDesktopLayout(width - insets.left - insets.right, fontScale, suggestions.length > 0);
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
   useEffect(() => { setNavigationOpen(false); }, [layout.sidebar]);
   useEffect(() => {
@@ -138,10 +142,10 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const openCenter = (tab: CenterTab) => { setNavigationOpen(false); setQuery(''); setCategory('Alle'); setCenter(tab); };
   const matches = (app: { label: string; description: string; category?: string }) => (category === 'Alle' || app.category === category) && `${app.label} ${app.description}`.toLocaleLowerCase('de-DE').includes(query.trim().toLocaleLowerCase('de-DE'));
   const groups = buildDesktopAreaNavigation(apps, selectedArea, navQuery);
-  const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(4, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
-  const gridRows = Math.max(1, Math.ceil((preferences.ids.length + suggestions.length) / layout.columns));
+
+  const gridRows = Math.ceil(12 / layout.columns);
   const fitArtworkHeight = !edit && !error && !saving && layout.columns >= 3 && fontScale < 1.4 && workspaceHeight > 0 && controlsHeight > 0
-    ? Math.max(68, Math.min(156, Math.floor((workspaceHeight - controlsHeight - layout.padding - 24 - 14 - layout.gap * (gridRows - 1)) / gridRows) - 78))
+    ? Math.max(72, Math.min(180, layout.cardWidth * .55, Math.floor((workspaceHeight - controlsHeight - layout.padding - 24 - 14 - layout.gap * (gridRows - 1)) / gridRows) - layout.labelHeight - 12))
     : undefined;
   const selectedBackground = BACKGROUNDS.find(item => item.id === preferences.background) ?? BACKGROUNDS[0];
   const moduleLabel = DESKTOP_AREAS.find(area => area.key === selectedArea)!.label;
@@ -158,46 +162,47 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   </View>;
   if (!ready) return <SafeAreaView style={styles.loading}><View style={ui.surface}><Text style={ui.title}>Desktop wird vorbereitet</Text>{error ? <><Text style={ui.error}>{error}</Text><NativeAction label="Erneut laden" onPress={() => setAttempt(value => value + 1)} /></> : <ActivityIndicator color="#8dc8ff" />}</View></SafeAreaView>;
   return <ImageBackground source={selectedBackground.image} resizeMode="cover" style={styles.root} testID="native-administration-desktop">
-    <SafeAreaView style={[styles.safe, { padding: layout.framePadding }]}>
-      <View style={[styles.header, compactHeight && { paddingVertical: 6 }]} testID="desktop-full-width-header">
-        <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: Math.min(width - 64, 234), height: Math.min(width - 64, 234) / 8 }]} resizeMode="contain" />
-        <View style={[styles.headerInfo, width < 780 && { flexBasis: '100%' }, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]} testID="desktop-clock-weather">
-          <View style={styles.timeBlock}><Text style={styles.clock}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text><Text style={styles.desktopEyebrow}>{now.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={styles.weatherText}>{weather.data ? `${weather.data.glyph} ${weather.data.temperature} °C · ${weather.data.label}` : 'Standortwetter'}</Text><Text style={styles.desktopEyebrow}>{weather.message}</Text><Text style={styles.weatherEdit}>Ort ändern</Text></Pressable>
+    <NativeDesktopFrame compact={compactHeight} padding={layout.framePadding}>
+      <View style={[styles.header, layout.mobile && styles.headerMobile]} testID="desktop-full-width-header">
+        <View style={styles.brandGroup}><Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: Math.min(width - 64, 234), height: Math.min(width - 64, 234) / 8 }]} resizeMode="contain" /><View style={styles.assistantDock} /></View>
+        <View style={[styles.headerInfo, layout.mobile && styles.headerInfoMobile, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]} testID="desktop-clock-weather">
+          <View style={[styles.timeBlock, layout.mobile && { flexBasis: '42%', minWidth: 0 }]}><Text style={[styles.clock, layout.mobile && { fontSize: 30, lineHeight: 35 }]}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text><Text style={styles.desktopEyebrow}>{now.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text></View>
+          <View style={styles.weatherGroup}><Text style={{ color: '#8FE4FF', fontSize: 25 }}>{weather.data?.glyph ?? '☁'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={styles.weatherText}>{weather.data ? `${weather.data.temperature} °C · ${weather.data.label}` : layout.mobile ? 'Wetter' : 'Standortwetter'}</Text><Text style={styles.weatherPlace}>{weather.message}</Text><Text style={styles.weatherEdit}>Ort ändern</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Wetter aktualisieren" onPress={weather.refresh} style={styles.weatherRefresh}><MobileIcon name="rotate-cw" color="#8FE4FF" size={16} /></Pressable></View>
         </View>
-        <View style={[styles.headerActions, width < 780 && { flexBasis: '100%', justifyContent: 'center' }]}>
-          <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} />
-          <MobileIconButton label="Apps und Widgets öffnen" icon="grid" dark onPress={() => openCenter('apps')} />
+        <View style={[styles.headerActions, width < 1400 * Math.max(1, fontScale) && styles.headerActionsSecondRow, layout.mobile && styles.headerActionsMobile]}>
+          {!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}
+          <PortalTextSizeControls compact />
+          {!layout.mobile ? <View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.liveText}>Live</Text></View> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter('apps')} style={styles.headerControl}><MobileIcon name="grid" size={20} color="#83E8FF" />{!layout.mobile ? <Text style={styles.headerControlText}>Apps & Widgets</Text> : null}</Pressable>
           <MobileIconButton label="Hilfe & Anleitungen" icon="help-circle" dark onPress={() => open({ route: '/hilfe' })} />
-          <MobileIconButton label="Mein Profil" icon="user" dark onPress={() => setProfileOpen(true)} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{width >= 1240 * fontScale ? <View style={styles.profileCopy}><Text style={styles.profileName}>{auth.profile?.displayName || auth.user?.displayName || 'Profil'}</Text><Text style={styles.profileRole}>{permissions.roleLabel ?? 'Verwaltung'}</Text></View> : null}<TopbarProfileAvatar name={auth.profile?.displayName || auth.user?.displayName || 'Profil'} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={layout.mobile ? 'sm' : 'lg'} /></Pressable>
         </View>
       </View>
-      <View style={styles.workarea}>
+      <View style={[styles.workarea, { gap: layout.workareaGap }, compactHeight && { minHeight: 360 }]}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 16, gap: 16 }}>{navigation}</ScrollView> : null}
-        <ScrollView testID="native-desktop-widget-viewport" onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: compactHeight ? 12 : layout.padding, gap: compactHeight ? 8 : 14, paddingBottom: 24 }}>
-          <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={{ gap: 14 }}><View style={styles.desktopToolbar}>
-            <View style={{ flex: 1, minWidth: 0 }}><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text><Text style={styles.desktopEyebrow}>{preferences.ids.length} Widgets</Text></View>
-            <MobileIconButton label={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} icon={edit ? 'check' : 'sliders'} dark selected={edit} onPress={() => setEdit(!edit)} />
+        <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={[styles.desktopToolbar, layout.mobile && { padding: 8, gap: 6 }]}>
+            <View style={[styles.desktopHeading, layout.mobile && { flexBasis: '100%' }]}><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text><View style={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
+              {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
+            </View></View>
+            <View style={styles.desktopActions}><View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.countText}>{preferences.ids.length}{!layout.mobile ? '/12' : ''} aktiv</Text></View><Pressable accessibilityRole="button" accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} accessibilityState={{ selected: edit }} onPress={() => setEdit(!edit)} style={[styles.headerControl, edit && { backgroundColor: 'rgba(24,107,91,0.68)' }]}><MobileIcon name={edit ? 'check' : 'edit-3'} color="#EAF8FF" size={16}/><Text style={styles.editText}>{edit ? 'Fertig' : 'Bearbeiten'}</Text></Pressable></View>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator style={styles.moduleBar} contentContainerStyle={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
-            {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
-          </ScrollView></View>
           {error ? <View style={ui.surface}><Text accessibilityRole="alert" style={ui.error}>{error}</Text><NativeAction label="Erneut speichern" onPress={() => persist(current.current)} /></View> : null}
           {saving ? <Text accessibilityLiveRegion="polite" style={styles.desktopEyebrow}>Auswahl wird gespeichert …</Text> : null}
-          <View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
+          <ScrollView testID="native-desktop-widget-viewport" style={{ flex: 1, minHeight: 0, minWidth: 0 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator contentContainerStyle={{ paddingTop: 12, paddingBottom: 12 }}><View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
             const widget = widgetById.get(id); if (!widget) return null;
             return <View key={id} style={[styles.widget, { width: layout.cardWidth }]}>
-              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} artworkHeight={fitArtworkHeight} fontScale={fontScale} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
+              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} artworkHeight={layout.mobile ? 90 : fitArtworkHeight} fontScale={fontScale} mobile={layout.mobile} labelHeight={layout.labelHeight} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
               {edit ? <View style={styles.widgetEdit}><NativeAction label="Entfernen" accessibilityLabel={`${widget.label} vom Desktop entfernen`} onPress={() => toggle(id)} /><View style={ui.row}><NativeAction label="←" accessibilityLabel={`${widget.label} nach vorne verschieben`} disabled={index === 0} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, -1) })} /><NativeAction label="→" accessibilityLabel={`${widget.label} nach hinten verschieben`} disabled={index === preferences.ids.length - 1} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, 1) })} /></View></View> : null}
             </View>;
           })}{suggestions.map(widget => <View key={widget.id} style={[styles.widget, styles.suggestionCard, { width: layout.cardWidth }]}>
-              <NativeWidget widget={widget} artworkHeight={fitArtworkHeight} fontScale={fontScale} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => toggle(widget.id)} suggestion />
+              <NativeWidget widget={widget} artworkHeight={layout.mobile ? 90 : fitArtworkHeight} fontScale={fontScale} mobile={layout.mobile} labelHeight={layout.labelHeight} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => toggle(widget.id)} suggestion />
               <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} als Vorschlag ausblenden`} onPress={() => persist({ ...current.current, dismissed: [...new Set([...current.current.dismissed, widget.id])] })} style={styles.dismissSuggestion}><MobileIcon name="x" color="#D6E9FF" size={18} /></Pressable>
             </View>)}</View>
           {!areaAllowed ? <View style={ui.surface}><Text style={ui.title}>{moduleLabel}</Text><Text style={ui.body}>Dieser Arbeitsbereich ist für Ihren Zugang derzeit nicht freigegeben.</Text></View> : !preferences.ids.length ? <View style={ui.surface}><Text style={ui.title}>Ihr Desktop ist frei</Text><Text style={ui.body}>Wählen Sie Widgets für diesen Arbeitsbereich. Alle Seiten finden Sie weiterhin in Apps und Navigation.</Text><NativeAction label="Widgets auswählen" primary onPress={() => openCenter('widgets')} /></View> : null}
-        </ScrollView>
+        </ScrollView></View>
       </View>
-    </SafeAreaView>
+    </NativeDesktopFrame>
     <NativeWorkspaceDialog visible={navigationOpen} title="Navigation" onClose={() => setNavigationOpen(false)}>{navigation}</NativeWorkspaceDialog>
     <NativeWorkspaceDialog visible={center !== null} title={`${moduleLabel} · ${center === 'backgrounds' ? 'Hintergründe' : center === 'widgets' ? 'Widgets' : center === 'workflows' ? 'Abläufe' : 'Apps'}`} wide onClose={() => setCenter(null)}>
       <View style={ui.row}>{(['apps', 'widgets', 'workflows', 'backgrounds'] as const).map(tab => <NativeAction key={tab} label={{ apps: 'Apps', widgets: 'Widgets', workflows: 'Abläufe', backgrounds: 'Hintergründe' }[tab]} selected={center === tab} onPress={() => { setCenter(tab); setQuery(''); setCategory('Alle'); }} />)}</View>
@@ -221,33 +226,46 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   </ImageBackground>;
 }
 
+function NativeDesktopFrame({ compact, padding, children }: { compact: boolean; padding: number; children: import('react').ReactNode }) {
+  return <SafeAreaView style={{ flex: 1 }}>{compact ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding, gap: 12 }}>{children}</ScrollView> : <View style={[styles.safe, { padding }]}>{children}</View>}</SafeAreaView>;
+}
+
 function moduleLabelForArea(area: DesktopAreaKey) { return DESKTOP_AREAS.find(item => item.key === area)!.label; }
 
-function NativeWidget({ widget, narrow, compact, onOpen, suggestion, artworkHeight, fontScale }: { widget: WidgetDefinition; narrow: boolean; compact: boolean; onOpen: () => void; suggestion?: boolean; artworkHeight?: number; fontScale: number }) {
+function NativeWidget({ widget, narrow, compact, onOpen, suggestion, artworkHeight, fontScale, mobile, labelHeight }: { widget: WidgetDefinition; narrow: boolean; compact: boolean; onOpen: () => void; suggestion?: boolean; artworkHeight?: number; fontScale: number; mobile: boolean; labelHeight: number }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={suggestion ? `${widget.label} zum Desktop hinzufügen` : `${widget.label} öffnen`} onPress={onOpen} style={({ pressed }) => [styles.widgetBody, pressed && { opacity: 0.8, transform: [{ scale: 0.988 }] }]}>
-    <View style={styles.widgetLabelBar}><Text numberOfLines={fontScale < 1.4 ? 1 : undefined} adjustsFontSizeToFit={fontScale < 1.4} minimumFontScale={0.8} style={[styles.widgetTitle, narrow && { fontSize: 14, lineHeight: 21 }, suggestion && { paddingRight: 24 }]}>{widget.label}</Text>{!suggestion ? <MobileIcon name="arrow-up-right" color="#77DFFF" size={16} /> : null}</View>
-    <View style={[styles.artworkStage, { height: artworkHeight ?? (compact ? 88 : narrow ? 112 : 156) }]}><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} /><View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View></View>
+    <View style={[styles.widgetLabelBar, { minHeight: labelHeight }, mobile && { paddingVertical: 6, paddingHorizontal: 10, gap: 6 }]}><Text style={[styles.widgetTitle, mobile && { fontSize: 16, lineHeight: 21 }, suggestion && { paddingRight: 24 }]}>{widget.label}</Text>{!suggestion ? <MobileIcon name="arrow-up-right" color="#77DFFF" size={16} /> : null}</View>
+    <View style={[styles.artworkStage, mobile && { margin: 7, marginTop: 0, marginBottom: 7 }, { height: artworkHeight ?? (compact ? 88 : narrow ? 112 : 156) }]}><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} /><View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View></View>
     {suggestion ? <View style={styles.suggestionBadge}><MobileIcon name="plus" color="#CDE9FF" size={14} /><Text style={styles.suggestionText}>Übernehmen</Text></View> : null}
   </Pressable>;
 }
 
 const styles = StyleSheet.create({
-  headerInfo: { flexGrow: 1, flexShrink: 1, flexBasis: 320, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  timeBlock: { flexShrink: 1, minWidth: 0 },
+  emptyWidget: { borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(126,208,244,0.25)', backgroundColor: 'rgba(4,23,44,0.34)', alignItems: 'center', justifyContent: 'center' }, emptyPlus: { color: '#78E4FF', fontSize: 24 }, emptyTitle: { color: '#E9F8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' }, emptyCopy: { color: '#91B5CA', fontFamily: careSuiteAppFontFamily, fontSize: 11, marginTop: 2 },
+  headerInfo: { flexGrow: 1, flexShrink: 1, flexBasis: 320, minWidth: 0, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerInfoMobile: { flexBasis: '100%', minHeight: 70, paddingHorizontal: 10, paddingVertical: 7, gap: 8 },
+  brandGroup: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0, maxWidth: '100%', flexShrink: 1 }, assistantDock: { width: 68, height: 72 },
+  headerMobile: { padding: 10 }, headerActionsSecondRow: { flexBasis: '100%', width: '100%', justifyContent: 'flex-end', borderTopWidth: 1, borderTopColor: 'rgba(139,211,255,0.18)', paddingTop: 10 }, headerActionsMobile: { justifyContent: 'center', gap: 4, paddingHorizontal: 4, minHeight: 52 },
+  headerControl: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(126,214,255,0.28)', backgroundColor: 'rgba(7,36,67,0.7)', paddingHorizontal: 11, paddingVertical: 8 }, headerControlText: { color: '#F3FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' },
+  livePill: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(105,207,242,0.22)' }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#58D8C1' }, liveText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' }, countText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 12, fontWeight: '700' },
+  profileTrigger: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 4 }, profileCopy: { maxWidth: 180, alignItems: 'flex-end' }, profileName: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' }, profileRole: { color: '#BFD8EE', fontFamily: careSuiteAppFontFamily, fontSize: 13 },
+  weatherGroup: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }, weatherRefresh: { minHeight: 44, minWidth: 36, alignItems: 'center', justifyContent: 'center' }, weatherPlace: { color: '#BCD4EC', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  desktopHeading: { flexGrow: 1, flexBasis: 280, maxWidth: '100%', minWidth: 0 }, desktopActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, alignItems: 'center' }, editText: { color: '#EAF8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' },
+  timeBlock: { flexShrink: 0, minWidth: 126 },
   weatherEdit: { color: '#8FE4FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   navLabel: { color: '#E6F1FA', fontFamily: careSuiteAppFontFamily, fontSize: 16, lineHeight: 23, fontWeight: '700' },
   widgetLabelBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
   artworkStage: { margin: 10, marginTop: 0, borderRadius: 13, backgroundColor: 'rgba(4,23,47,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   categoryPill: { position: 'absolute', top: 7, left: 7, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: 'rgba(0,11,27,0.7)' },
-  categoryText: { color: '#C5E7F8', fontFamily: careSuiteAppFontFamily, fontSize: 10, lineHeight: 14 },
-  root: { flex: 1, backgroundColor: '#071629' }, safe: { flex: 1, padding: 12, gap: 12, backgroundColor: 'rgba(0,10,27,0.2)' },
+  categoryText: { color: '#B9DCEB', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase' },
+  root: { flex: 1, backgroundColor: '#071629' }, safe: { flex: 1, padding: 12, gap: 16, backgroundColor: 'rgba(0,10,27,0.2)' },
   loading: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#071629' },
-  header: { padding: 10, gap: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', backgroundColor: 'rgba(2,15,35,0.76)' }, headerActions: { flexDirection: 'row', gap: 8 },
-  brand: { maxWidth: '100%', flexShrink: 1 }, moduleBar: { flexGrow: 0, flexShrink: 0 }, moduleContent: { paddingBottom: 10, paddingTop: 3, gap: 6 },
-  areaTab: { minHeight: 44, paddingVertical: 11, paddingHorizontal: 17, borderRadius: 15, justifyContent: 'center', backgroundColor: 'rgba(90,150,220,0.09)', borderWidth: 1, borderColor: 'rgba(161,210,255,0.16)' }, areaTabActive: { backgroundColor: '#075577', borderColor: '#62DCFF' }, areaText: { color: '#BDD2EC', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  header: { padding: 9, gap: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', backgroundColor: 'rgba(2,15,35,0.76)' }, headerActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, minHeight: 64, padding: 6 },
+  brand: { maxWidth: '100%', flexShrink: 1 }, moduleBar: { flexGrow: 0, flexShrink: 0 }, moduleContent: { flexDirection: 'row', flexWrap: 'wrap', paddingTop: 8, gap: 6 },
+  areaTab: { minHeight: 40, paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, justifyContent: 'center', backgroundColor: '#0B223D', borderWidth: 1, borderColor: '#466887' }, areaTabActive: { backgroundColor: '#075577', borderColor: '#62DCFF' }, areaText: { color: '#F0F7FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, fontWeight: '600' },
   workarea: { flex: 1, minHeight: 0, flexDirection: 'row', gap: 16 }, sidebar: { flexGrow: 0, flexShrink: 0, backgroundColor: 'rgba(2,15,35,0.76)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', borderRadius: 28 }, navItem: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 7, gap: 8, borderRadius: 14 }, group: { color: '#AFC9DC', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  welcome: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(157,205,255,0.3)' }, desktopEyebrow: { color: '#BDD4F0', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 19 }, desktopTitle: { color: '#F5FAFF', fontFamily: careSuiteAppFontFamily, fontSize: 23, lineHeight: 32, fontWeight: '700' }, weather: { flex: 1, alignItems: 'center', minWidth: 0, gap: 3, minHeight: 52, justifyContent: 'center' }, clock: { color: '#fff', fontFamily: careSuiteAppFontFamily, fontSize: 28, lineHeight: 35, fontWeight: '600', fontVariant: ['tabular-nums'] }, weatherText: { color: '#D4E8FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 18, textAlign: 'right' },
-  desktopToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }, sectionLabel: { color: '#E0EEFF', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 22, fontWeight: '600', flexShrink: 1 },
+  welcome: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(157,205,255,0.3)' }, desktopEyebrow: { color: '#BDD4F0', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 19 }, desktopTitle: { color: '#F7FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 22, lineHeight: 28, fontWeight: '700' }, weather: { flex: 1, alignItems: 'center', minWidth: 0, gap: 3, minHeight: 52, justifyContent: 'center' }, clock: { color: '#fff', fontFamily: careSuiteAppFontFamily, fontSize: 34, lineHeight: 39, fontWeight: '600', fontVariant: ['tabular-nums'] }, weatherText: { color: '#D4E8FF', fontFamily: careSuiteAppFontFamily, fontSize: 17, lineHeight: 22, fontWeight: '700', textAlign: 'center' },
+  desktopToolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingVertical: 4, paddingHorizontal: 2 }, sectionLabel: { color: '#E0EEFF', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 22, fontWeight: '600', flexShrink: 1 },
   widget: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(131,203,245,0.22)', backgroundColor: 'rgba(1,12,29,0.78)', overflow: 'hidden', shadowColor: '#00132B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 3 }, widgetBody: { minHeight: 120 }, widgetTitle: { color: '#F1F8FF', fontFamily: careSuiteAppFontFamily, fontSize: 18, lineHeight: 24, fontWeight: '700', flex: 1, minWidth: 0 }, widgetImage: { width: '100%', aspectRatio: 1.6 }, widgetFallback: { alignItems: 'center', justifyContent: 'center', minHeight: 72 },
   suggestions: { gap: 12 }, suggestionCard: { borderStyle: 'dashed', borderColor: 'rgba(177,221,255,0.5)', backgroundColor: 'rgba(16,49,88,0.65)' }, dismissSuggestion: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, suggestionBadge: { position: 'absolute', left: 8, right: 8, bottom: 8, paddingVertical: 5, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: 'rgba(7,28,58,0.88)' }, suggestionText: { color: '#DDEFFF', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 16 },
   widgetEdit: { padding: 8, gap: 8, backgroundColor: '#F3F7FD' }, backgroundChoice: { borderRadius: 18, overflow: 'hidden', borderWidth: 2, borderColor: '#D7E5F5' }, backgroundPreview: { width: '100%', height: 140 }, selected: { borderColor: '#1569E8' },

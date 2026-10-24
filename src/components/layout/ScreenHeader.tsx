@@ -1,3 +1,4 @@
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
 import { type ReactNode, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -25,7 +26,7 @@ export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true
     {rightSlot ? <View style={[styles.actions, narrow && styles.phoneActions]}>{rightSlot}</View> : null}
   </View>;
 }
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(withCareSuiteTypography({
   header: { minWidth: 0, width: '100%', minHeight: 82, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 14, flexShrink: 0, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#CCDBEA' },
   compact: { minHeight: 64, paddingVertical: 10 },
   phoneHeader: { minHeight: 64, paddingHorizontal: 12, paddingVertical: 9, gap: 8 },
@@ -38,5 +39,5 @@ const styles = StyleSheet.create({
   phoneActions: { flexBasis: '100%' },
   back: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#BED2E7', backgroundColor: '#F2F7FD' },
   backText: { color: '#075EB8', fontSize: font(15), lineHeight: font(22), fontWeight: '700' },
-});
+}));
 import { useWorkspaceBackNavigation } from '@/hooks/useWorkspaceBackNavigation';
