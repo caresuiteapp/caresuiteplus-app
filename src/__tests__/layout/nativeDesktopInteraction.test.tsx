@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DESKTOP_MODULES, buildModuleDesktopNavigation, moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktopModel';
+import { DESKTOP_MODULES, buildModuleDesktopNavigation, moduleDesktopStorageKey, buildDesktopAreaNavigation } from '@/liquid-command/navigation/moduleDesktopModel';
 import { DESKTOP_AREAS, desktopAreaForRoute, desktopAreaStorageKey } from '@/liquid-command/navigation/desktopAreas';
 import { nativeAdministrationRoute } from '@/liquid-command/navigation/nativeAdministrationModel';
 import type { DesktopApp } from '@/liquid-command/navigation/desktopAppCatalogModel';
@@ -21,6 +21,7 @@ const native = {
   Platform: { OS: 'android' }, StyleSheet: { create: (s: any) => s, flatten }, useWindowDimensions: () => ({ width: api.width, height: 844, fontScale: api.scale }),
 };
 const dependencies: Record<string, unknown> = {
+  '../components/DesktopCatalogArtwork': { DesktopCatalogArtwork: () => null },
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native, 'react-native-safe-area-context': { SafeAreaView: Box, useSafeAreaInsets: () => ({ left: 0, right: 0, top: 24, bottom: 16 }) },
   'expo-linear-gradient': { LinearGradient: Box }, '@expo/vector-icons/Feather': { __esModule: true, default: () => null },
   'expo-router': { useRouter: () => ({ push: api.push }) }, '@react-native-async-storage/async-storage': api,
@@ -37,7 +38,10 @@ const Desktop = loaded.exports.CommandCenterScreen;
 const catalogBundle = buildSync({ stdin: { contents: "export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel'; export { WIDGETS } from './src/liquid-command/screens/administrationDesktopCatalog';", resolveDir: process.cwd(), loader: 'ts' }, bundle: true, write: false, format: 'cjs', platform: 'node', loader: { '.png': 'empty', '.jpg': 'empty' }, external: ['react-native'] }).outputFiles[0].text;
 const catalog = { exports: {} as any };
 new Function('require', 'module', 'exports', catalogBundle)((id: string) => { if (id === 'react-native') return native; throw new Error(`Unexpected catalog dependency ${id}`); }, catalog, catalog.exports);
-const navigationCases = DESKTOP_AREAS.flatMap(module => [...new Map(filterDesktopCatalogEntries<DesktopApp>(catalog.exports.buildDesktopApps(catalog.exports.WIDGETS, 'business_admin').map((app: any) => ({ ...app, route: nativeAdministrationRoute(app.route) })), module.key, { roleKey: 'business_admin', can: () => true, hasModuleGate: () => true }).map(app => [app.route, app])).values()].map(app => ({ module, app })));
+const navigationCases = DESKTOP_AREAS.flatMap(module => buildDesktopAreaNavigation(
+  [...new Map(filterDesktopCatalogEntries<DesktopApp>(catalog.exports.buildDesktopApps(catalog.exports.WIDGETS, 'business_admin').map((app: any) => ({ ...app, route: nativeAdministrationRoute(app.route) })), module.key, { roleKey: 'business_admin', can: () => true, hasModuleGate: () => true }).map(app => [app.route, app])).values()],
+  module.key,
+).flatMap(group => group.items).map(app => ({ module, app })));
 let root: Root, host: HTMLDivElement;
 const button = (label: string) => [...(host.querySelector('[role="dialog"]') ?? host).querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === label || item.textContent === label);
 const click = async (label: string) => { expect(button(label), label).toBeTruthy(); await act(async () => button(label)!.click()); };
@@ -87,7 +91,7 @@ describe('Native administration desktop interactions', () => {
   it('clears the previous desktop on a tenant or account switch', async () => { memory.set(key(), '["clients"]'); await render(); api.owner = 'b'; api.tenant = 'tenant-b'; memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('Ihr Desktop ist frei'); expect(memory.get(desktopAreaStorageKey('tenant-a', 'a', 'office'))).toBe('["clients"]'); });
   it('pins an Office widget on Assist without changing the Office desktop', async () => {
     memory.set(key(), '["people"]'); memory.set(key('assist'), '[]');
-    await render(); await click('Assist'); await click('Widgets');
+    await render(); await click('Assist'); await click('Apps und Widgets öffnen'); await click('Widgets');
     const dialog = host.querySelector('[role="dialog"]')!;
     const title = [...dialog.querySelectorAll('span')].find(item => item.textContent === 'Klient:innen');
     expect(title).toBeTruthy();

@@ -238,7 +238,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
   { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },
   { id: "google-drive", label: "Google Drive", description: "Zuletzt bearbeitete Dateien und Dokumente", category: "Workspace", route: "/business/connect/google-workspace?service=drive", workspaceService: "drive" },
   { id: "google-tasks", label: "Google Tasks", description: "Offene Aufgaben aus Ihrer Google-Standardliste", category: "Workspace", route: "/business/connect/google-workspace?service=tasks", workspaceService: "tasks" },
-  { id: "company", label: "Unternehmen", description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Steuerung, Kennzahlen und Unternehmensübersicht', category: "Übersicht", route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard', images: {
+  { id: "company", label: "Unternehmen", description: 'Stammdaten, Kontakte und Organisation', category: "Übersicht", route: '/unternehmen', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
     large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png") } },
@@ -278,7 +278,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
     small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
     large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png") } },
-  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory', images: {
+  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: '/unternehmen/inventar', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
     large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png") } },
@@ -329,7 +329,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 export const DEFAULT_DESKTOP_IDS = [
-  ...(Platform.OS === 'web' ? ['notes'] : []),
+  'notes',
   "clients", "messages", "live", "proofs",
   "office", "people", "calendar", "assignments",
   "salary", "logbook", "documents", "billing",

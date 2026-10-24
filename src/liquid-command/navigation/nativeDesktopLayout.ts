@@ -5,12 +5,13 @@ export function nativeDesktopLayout(width: number, fontScale = 1) {
   const sidebarWidth = Math.min(360, Math.round(280 * scale));
   const padding = width < 600 ? 16 : 24;
   const gap = width < 600 ? 10 : 16;
-  const pane = Math.max(1, width - (sidebar ? sidebarWidth + gap : 0));
+  const framePadding = width < 600 ? 12 : 20;
+  const pane = Math.max(1, width - framePadding * 2 - (sidebar ? sidebarWidth + gap : 0));
   const available = Math.max(1, pane - padding * 2);
   const columns = width < 600
     ? (available >= 260 && scale < 1.6 ? 2 : 1)
-    : Math.max(1, Math.min(4, Math.floor((available + gap) / (230 * scale + gap))));
-  return { sidebar, sidebarWidth, padding, gap, columns, cardWidth: Math.max(1, (available - gap * (columns - 1)) / columns) };
+    : Math.max(1, Math.min(4, Math.floor((available + gap) / (180 * scale + gap))));
+  return { sidebar, sidebarWidth, framePadding, padding, gap, columns, cardWidth: Math.max(1, (available - gap * (columns - 1)) / columns) };
 }
 
 export function moveNativeDesktopWidget(ids: readonly string[], id: string, delta: -1 | 1) {

@@ -16,11 +16,35 @@ export function canonicalDesktopCatalogRoute(route: string): string {
   const canonical = canonicalDocumentsWorkspaceHref(route) ?? canonicalCompanyInventoryHref(route) ?? route;
   const rawPath = canonical.split(/[?#]/, 1)[0];
   const path = rawPath.replace(/\/+$/, '');
+  // A saved Office area is a destination, not a request for the company page.
+  // Keep this resolution shared by launchers, navigation and native deep links.
+  if (path === '/office' || path === '/business/office/dashboard') {
+    const hashIndex = canonical.indexOf('#');
+    const hash = hashIndex < 0 ? '' : canonical.slice(hashIndex);
+    const query = canonical.slice(rawPath.length).split('#', 1)[0];
+    const params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query);
+    const area = params.get('area');
+    const targets: Record<string, string> = {
+      company: '/unternehmen', clients: '/business/office/clients',
+      people: '/business/office/employees', timekeeping: '/business/office/time-tracking',
+      payroll: '/business/office/payroll', billing: '/business/office/invoices',
+      documents: '/business/office/documents', communication: '/business/messages',
+      portals: '/business/office/access', inventory: '/unternehmen/inventar',
+      audit: '/business/office/audit-log',
+    };
+    const target = area ? targets[area] : '/unternehmen';
+    if (target) {
+      params.delete('area');
+      const search = params.toString();
+      return `${target}${search ? `?${search}` : ''}${hash}`;
+    }
+  }
   const aliases: Record<string, string> = {
     '/assist/einsaetze': '/assist/assignments', '/assist/kalender': '/assist/calendar',
     '/business/office/portals': '/business/office/access',
     '/business/qm': '/office/qm', '/business/office/qm': '/office/qm',
     '/business/office/reporting': '/office/reporting',
+    '/office/messages': '/business/messages',
   };
   return `${aliases[path] ?? path}${canonical.slice(rawPath.length)}`;
 }

@@ -1,1 +1,5 @@
-export { InventoryDashboardScreen as default } from '@/product-workflows/screens/inventory/InventoryDashboardScreen';
+import { CompanyInventoryRedirect } from '@/lib/navigation/CompanyInventoryRedirect';
+
+export default function LegacyInventoryRoute() {
+  return <CompanyInventoryRedirect />;
+}

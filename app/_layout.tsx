@@ -32,6 +32,7 @@ import { helpHref } from '@/features/help/helpNavigation';
 import { isHealthOSContextualPopupRoute, resolveHealthOSPopupFallbackPath } from '@/lib/navigation/healthosRoutePresentation';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
+import { administrationWorkspaceContext } from '@/lib/navigation/administrationWorkspaceContext';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
@@ -151,9 +152,9 @@ function RootShell() {
                   contentStyle: contextualPopup
                     ? {
                         backgroundColor: 'rgba(0, 7, 20, 0.74)',
-                        paddingTop: Platform.OS === 'web' ? popupContentTop : nativeChromeHeight + nativeTop,
-                        paddingBottom: Platform.OS === 'web' ? (compactPopup ? 8 : 24) : nativeBottom,
-                        paddingHorizontal: Platform.OS === 'web' ? (compactPopup ? 8 : 24) : 0,
+                        paddingTop: Platform.OS === 'web' ? popupContentTop : nativeChromeHeight + nativeTop + 8,
+                        paddingBottom: (compactPopup ? 8 : 24) + nativeBottom,
+                        paddingHorizontal: compactPopup ? 8 : 24,
                       }
                     : { backgroundColor: SURFACE_COLOR },
                   animation: contextualPopup && Platform.OS === 'web' ? 'fade' : 'slide_from_right',
@@ -161,11 +162,11 @@ function RootShell() {
                 };
               }}
             />
-            {currentRouteIsPopup && Platform.OS !== 'web' ? <View style={{ position: 'absolute', left: 0, right: 0, top: nativeTop, height: nativeChromeHeight, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#081F3F' }}>
+            {currentRouteIsPopup && Platform.OS !== 'web' ? <View style={{ position: 'absolute', left: 8, right: 8, top: nativeTop, minHeight: nativeChromeHeight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#081F3F' }}>
               <MobileIconButton label="Zurück zur vorherigen Ansicht" icon="arrow-left" dark onPress={returnToPrevious} />
-              <Text style={{ color: '#EDF6FF', fontSize: 17, lineHeight: 24, fontWeight: '700', flex: 1 }} numberOfLines={1}>HealthOS</Text>
+              <View style={{ flex: 1, minWidth: 0 }}><Text style={{ color: '#80D9FF', fontSize: 11, lineHeight: 16 }}>{administrationWorkspaceContext(pathname).areaLabel}</Text><Text accessibilityRole="header" style={{ color: '#EDF6FF', fontSize: 15, lineHeight: 21, fontWeight: '700' }} numberOfLines={2}>{administrationWorkspaceContext(pathname).title}</Text></View>
               <MobileIconButton label="Hilfe zu dieser Seite" icon="help-circle" dark onPress={() => router.push(helpHref(pathname) as never)} />
-              <MobileIconButton label="Mein Desktop" icon="grid" dark onPress={() => router.dismissTo('/business' as never)} />
+              <MobileIconButton label="Fenster schließen und zum Desktop zurückkehren" icon="x" dark onPress={() => router.dismissTo('/business' as never)} />
             </View> : null}
             {currentRouteIsPopup && Platform.OS === 'web' ? (
               <>

@@ -802,10 +802,10 @@ const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
     ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
-    backgroundColor: Platform.OS === 'web' ? 'rgba(4, 17, 37, 0.96)' : '#F6FAFF',
+    backgroundColor: 'rgba(4, 17, 37, 0.96)',
     overflow: 'hidden',
-    borderRadius: Platform.OS === 'web' ? 28 : 0,
-    borderWidth: Platform.OS === 'web' ? 1 : 0,
+    borderRadius: 28,
+    borderWidth: 1,
     borderColor: 'rgba(132, 213, 255, 0.5)',
     shadowColor: '#071A37',
     shadowOpacity: Platform.OS === 'web' ? 0.46 : 0,

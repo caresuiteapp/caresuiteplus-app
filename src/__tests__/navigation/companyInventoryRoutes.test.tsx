@@ -25,7 +25,7 @@ vi.mock('expo-router', () => ({
     <a href={typeof href === 'string' ? href : `${href.pathname}${Object.keys(href.params).length ? `?${new URLSearchParams(href.params)}` : ''}`}>Weiterleitung</a>
   ),
 }));
-vi.mock('@/screens/inventory/CompanyInventoryScreen.native', () => ({ CompanyInventoryScreen: () => <span>native-inventory</span> }));
+vi.mock('@/screens/office/CompanyWorkspaceScreen.native', () => ({ CompanyWorkspaceScreen: ({ initialTab }: { initialTab: string }) => <span>native-{initialTab}</span> }));
 vi.mock('@/liquid-command/screens/CompanyWorkspaceScreen.web', () => ({
   CompanyWorkspaceScreen: ({ initialTab }: { initialTab: string }) => <span>{initialTab}</span>,
 }));

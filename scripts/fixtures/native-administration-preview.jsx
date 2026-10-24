@@ -24,7 +24,7 @@ const note={...createNoteDraft(),id:'visual-note',tenantId,ownerUserId:'visual-p
 export const listNotes=async()=>({ok:true,data:[note]});
 export const saveNote=async()=>({ok:false,error:'Die Vorschau speichert keine Daten.'}),setNoteArchived=saveNote,deleteNote=saveNote;
 export const useAuth=()=>({authReady:true,isAuthenticated:true,portalSession:{accountId:'visual-person',tenantId,roleKey:'employee_portal',mustChangePassword:true,displayName:'Marlene Beispiel'},signInWithSupabaseSession:noop,signInPortalSession:noop,updatePortalSession:noop,user:{id:'visual-person',email:'vorschau@example.invalid'},profile:{id:'visual-person',displayName:'Marlene Beispiel',roleKey:new URLSearchParams(location.search).get('screen')==='family-home'?'family_portal':'business_admin'},signOut:noop});
-export const usePermissions=()=>({tenantId,roleKey:'business_admin',can:()=>true,permissions,isReadOnly:false,hasModuleGate:key=>['office','assist'].includes(key)});
+export const usePermissions=()=>({tenantId,roleKey:'business_admin',can:()=>true,check:()=>({allowed:true}),roleLabel:'Verwaltung',permissions,isReadOnly:false,hasModuleGate:key=>['office','assist'].includes(key)});
 export const useModuleAccess=()=>({hasGate:key=>['office','assist'].includes(key)});
 export const useDesktopWeather=()=>({data:null,place:null,message:'Wetter nicht verfügbar',choosePlace:noop});
 export const DesktopWeatherLocationDialog=()=>null;

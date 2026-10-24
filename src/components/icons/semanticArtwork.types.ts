@@ -1,8 +1,8 @@
 import type { TextProps, TextStyle } from 'react-native';
 
 export type SemanticArtworkProps = TextProps & {
-  /** Web-only decorative slot size. Native keeps the original Text rendering. */
+  /** Decorative slot size shared by Web and native. */
   webSize?: number;
-  /** Optional web-only tint for vector symbols; native Text styles stay unchanged. */
+  /** Optional tint shared by vector symbols on all platforms. */
   webColor?: TextStyle['color'];
 };

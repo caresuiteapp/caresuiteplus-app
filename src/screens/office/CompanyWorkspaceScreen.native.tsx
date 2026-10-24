@@ -14,28 +14,29 @@ import { CareSuiteImage } from '@/components/images/CareSuiteImage';
 import { TenantCenterSectionModals } from '@/components/tenant/TenantCenterSectionModals.native';
 import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';
 import { TenantCustomFieldWizardModal } from '@/components/tenant/TenantCustomFieldWizardModal.native';
+import { CompanyOrganizationWorkspace } from '@/components/company/CompanyOrganizationWorkspace.native';
+import { CompanyResourcesWorkspace } from '@/components/company/CompanyResourcesWorkspace.native';
+import { CompanyInventoryScreen } from '@/screens/inventory/CompanyInventoryScreen.native';
+import { ORGANIZATION_VIEWS } from '@/components/company/companyOrganizationModel';
+import { COMPANY_RESOURCES_VIEWS } from '@/components/company/companyResourcesModel';
 import { CompanyCostCentersPanel, CompanyCustomValuesPanel } from '@/components/company/CompanySettingsPanels.native';
 import type { TenantCustomFieldDefinition } from '@/types/tenant/tenantCenter';
 import type { CompanyAccess } from '@/types/tenant/companyAccess';
 import type { ServiceCatalogCategory, TenantCenterSectionKey } from '@/types/tenant/tenantCenter';
 
-export function CompanyWorkspaceScreen() {
+type Props = { initialTab?: CompanyTab; initialView?: string };
+export function CompanyWorkspaceScreen({ initialTab = 'overview', initialView }: Props = {}) {
   const tenantId = useServiceTenantId(); const { profile } = useAuth(); const { roleKey } = usePermissions();
   const access = useCompanyAccess(tenantId ?? '', profile?.id, roleKey);
-  return <ScreenShell title="Unternehmen" showBack={false} scroll={false} contentOwnsHeader>{!tenantId ? <MobileState title="Unternehmenszugang fehlt" message="Ihr Zugang ist keinem Unternehmen zugeordnet." /> : access.loading ? <MobileState loading title="Unternehmen wird geladen" /> : !access.data ? <MobileState title="Zugriff konnte nicht geprüft werden" message={access.error ?? undefined} onRetry={access.refresh} /> : <CompanyContent key={`${tenantId}:${profile?.id}:${roleKey}:${JSON.stringify(access.data)}`} tenantId={tenantId} access={access.data} />}</ScreenShell>;
+  return <ScreenShell title="Unternehmen" showBack={false} scroll={false} contentOwnsHeader>{!tenantId ? <MobileState title="Unternehmenszugang fehlt" message="Ihr Zugang ist keinem Unternehmen zugeordnet." /> : access.loading ? <MobileState loading title="Unternehmen wird geladen" /> : !access.data ? <MobileState title="Zugriff konnte nicht geprüft werden" message={access.error ?? undefined} onRetry={access.refresh} /> : <CompanyContent key={`${tenantId}:${profile?.id}:${roleKey}:${JSON.stringify(access.data)}`} tenantId={tenantId} access={access.data} initialTab={initialTab} initialView={initialView} />}</ScreenShell>;
 }
-function CompanyContent({ tenantId, access }: { tenantId: string; access: CompanyAccess }) {
+function CompanyContent({ tenantId, access, initialTab, initialView }: { tenantId: string; access: CompanyAccess; initialTab: CompanyTab; initialView?: string }) {
   const router = useRouter(); const { roleKey, hasModuleGate } = usePermissions();
   const canManage = access.permissions.includes('business.tenant.manage') && !access.scopeLimited;
-  const [tab, setTab] = useState<CompanyTab>('overview'); const [search, setSearch] = useState(''); const [section, setSection] = useState<TenantCenterSectionKey | null>(null);
+  const [tab, setTab] = useState<CompanyTab>(initialTab); const [search, setSearch] = useState(''); const [section, setSection] = useState<TenantCenterSectionKey | null>(null);
   const [catalog, setCatalog] = useState<ServiceCatalogCategory | null>(null); const [custom, setCustom] = useState<TenantCustomFieldDefinition | 'new' | null>(null); const [notice, setNotice] = useState('');
   const query = useAsyncQuery(() => fetchTenantCenter(tenantId, roleKey), [tenantId, roleKey], { enabled: canManage, queryKey: `native-company:${tenantId}:${roleKey}` });
-  const navigateTab = (next: CompanyTab) => {
-    if (next === 'inventory') { router.push('/unternehmen/inventar' as never); return; }
-    if (next === 'structure') { router.push('/unternehmen/standorte' as never); return; }
-    if (next === 'resources') { router.push('/unternehmen/ressourcen' as never); return; }
-    setTab(next); setSearch('');
-  };
+  const navigateTab = (next: CompanyTab) => { setTab(next); setSearch(''); };
   const tabs = COMPANY_TABS.filter(item => item.id === 'inventory' ? access.permissions.includes('inventory.view') : item.id === 'structure' || item.id === 'resources' ? access.permissions.includes('business.tenant.manage') : canManage).map(item => ({ key: item.id, label: item.label }));
   const open = (key: TenantCenterSectionKey) => {
     const routes: Partial<Record<TenantCenterSectionKey, string>> = { locations: '/unternehmen/standorte', documentLayout: '/business/templates/ci-layout', dataManagement: '/business/office/settings/csv-import-export', clientServiceTypes: '/settings/tenant/client-service-types', clientBudgetDefaults: '/settings/tenant/client-budget', appearance: '/settings/appearance' };
@@ -47,6 +48,15 @@ function CompanyContent({ tenantId, access }: { tenantId: string; access: Compan
   };
   const snapshot = query.data; const identity = snapshot ? companyIdentity(snapshot) : null;
   const sections = snapshot ? filterCompanySections(companySections(snapshot, ['Office', ...(snapshot.modules.assistEnabled && hasModuleGate('assist') ? ['Assist'] : [])]), search).filter(item => tab === 'overview' || item.tab === tab) : [];
+  if (tab === 'structure' || tab === 'resources' || tab === 'inventory') {
+    const structureView = ORGANIZATION_VIEWS.find(item => item.id === initialView)?.id ?? (initialView === 'access' ? 'access' : 'sites');
+    const resourceView = COMPANY_RESOURCES_VIEWS.find(item => item.id === initialView)?.id ?? 'overview';
+    return <View style={m.page}>
+      <MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase" />
+      <MobileChips label="Unternehmensbereiche" items={tabs} value={tab} onChange={navigateTab} />
+      <View style={m.grow}>{tab === 'structure' ? <CompanyOrganizationWorkspace initialView={structureView} /> : tab === 'resources' ? <CompanyResourcesWorkspace initialView={resourceView} /> : <CompanyInventoryScreen />}</View>
+    </View>;
+  }
   return <><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[m.stack, { paddingBottom: 24 }]}>
     <MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase" action={canManage ? <MobileIconButton label="Unternehmen aktualisieren" icon="refresh-cw" onPress={() => void query.refresh()} /> : undefined} />
     {identity ? <MobileCard style={{ backgroundColor: '#EAF3FF' }}><View style={m.row}>{snapshot?.branding.logoUrl ? <CareSuiteImage source={{ uri: snapshot.branding.logoUrl }} resizeMode="contain" style={{ width: 88, height: 72, borderRadius: 14 }} /> : null}<View style={m.grow}><Text style={m.title}>{identity.name}</Text>{identity.legalName ? <Text style={m.muted}>{identity.legalName}</Text> : null}</View></View><Text style={m.body}>{identity.address || 'Anschrift noch nicht hinterlegt'}</Text>{identity.representative ? <Text style={m.muted}>{identity.representative}</Text> : null}<MobileButton compact label="Profil bearbeiten" icon="edit-3" onPress={() => setSection('company')} /></MobileCard> : null}
