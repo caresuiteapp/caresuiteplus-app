@@ -235,7 +235,7 @@ async function build() {
   if (keyProof.commit !== tools.commit || keyProof.privateKeyVerified !== true || keyProof.uploadCertificateSha256 !== signingEnv.CARESUITE_LOCAL_EXPECTED_CERT) throw new Error('Der tatsächliche Compiler hat die bestehende Uploadsignierung nicht bestätigt.');
   // Only known generated native files may differ in the isolated worktree.
   if (publicCommand('git', ['diff', '--name-only'], { cwd: source }).trim()) throw new Error('Geprüfte Quelltexte wurden während des lokalen Builds verändert.');
-  const bundle = join(output, 'CareSuiteHealthOS-0.6.0-code' + version.versionCode + '.aab');
+  const bundle = join(output, 'CareSuiteHealthOS-0.7.0-code' + version.versionCode + '.aab');
   copyFileSync(join(android, 'app', 'build', 'outputs', 'bundle', 'release', 'app-release.aab'), bundle);
   const mappingDir = join(android, 'app', 'build', 'outputs', 'mapping', 'release');
   for (const name of ['mapping.txt', 'configuration.txt']) if (!existsSync(join(mappingDir, name))) throw new Error('Tatsächliches R8-Artefakt fehlt: ' + name);

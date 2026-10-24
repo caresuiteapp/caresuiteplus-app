@@ -1,3 +1,4 @@
+import {secureRandomId} from '@/lib/platform/secureRandomId';
 import type { NoteCategory, NoteDraft, NoteFormat, NoteStatus, OfficeNote } from './types.web';
 
 export const NOTE_CATEGORIES: { value: NoteCategory; label: string; description: string }[] = [
@@ -39,14 +40,7 @@ export const NOTE_TEMPLATES: { id: string; label: string; description: string; c
   { id: 'handwriting', label: 'Handschriftliches Blatt', description: 'Eine freie Schreib- und Zeichenfläche öffnen.', category: 'general', format: 'handwriting' },
 ];
 
-export function newNoteId(): string {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  if (!globalThis.crypto?.getRandomValues) throw new Error('Sichere Kennungen sind in diesem Browser nicht verfügbar.');
-  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
-  bytes[6] = bytes[6] & 15 | 64; bytes[8] = bytes[8] & 63 | 128;
-  const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
+export function newNoteId():string{return secureRandomId();}
 
 export function createNoteDraft(templateId = 'blank', makeId: () => string = newNoteId): NoteDraft {
   const template = NOTE_TEMPLATES.find(item => item.id === templateId) ?? NOTE_TEMPLATES[0];

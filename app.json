@@ -2,7 +2,7 @@
   "expo": {
     "name": "CareSuite+",
     "slug": "caresuite-plus",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
@@ -20,7 +20,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "package": "app.caresuitehealthos",
-      "versionCode": 46,
+      "versionCode": 47,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",

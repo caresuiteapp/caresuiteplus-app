@@ -1705,7 +1705,7 @@ const styles = StyleSheet.create({
         minHeight: 0,
         width: '100%',
         backgroundColor: employeePortalExecutionSurface.background,
-        ...(null),
+        ...{},
     },
     focusStageContent: {
         flexGrow: 1,
