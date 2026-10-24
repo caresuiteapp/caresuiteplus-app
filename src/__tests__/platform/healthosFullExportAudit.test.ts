@@ -311,6 +311,37 @@ describe('full HealthOS Android artifact audit', () => {
     expect(result.stderr).toContain('bundled source differs from current project: app/index.tsx');
   });
 
+  it('preserves local Expo module paths when verifying current bundled source', () => {
+    const artifact = fixture();
+    const path = 'modules/caresuite-pdf/src/CareSuitePdfModule.ts';
+    artifact.sources.push({ path: `/project/${path}`, content: readFileSync(resolve(root, path), 'utf8') });
+    artifact.save();
+    const result = artifact.audit(['--verify-current-sources']);
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout).verifiedCurrentSources).toBe(artifact.sources.length);
+  });
+
+  it('rejects stale local Expo module source under its full project path', () => {
+    const artifact = fixture();
+    const path = 'modules/caresuite-pdf/src/CareSuitePdfModule.ts';
+    artifact.sources.push({ path: `/project/${path}`, content: `${readFileSync(resolve(root, path), 'utf8')}\n// stale module` });
+    artifact.save();
+    const result = artifact.audit(['--verify-current-sources']);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`bundled source differs from current project: ${path}`);
+  });
+
+  it('follows native route imports into local Expo modules and rejects browser UI there', () => {
+    const artifact = fixture();
+    artifact.sources.find(source => source.path.endsWith('/app/index.tsx'))!.content += "\nimport '../modules/caresuite-pdf/src/CareSuitePdfModule';";
+    artifact.sources.push({ path: '/project/modules/caresuite-pdf/src/CareSuitePdfModule.ts', content: "import { WebView } from 'react-native-webview';" });
+    artifact.save();
+    const result = artifact.audit();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('WebView/iframe reachable');
+    expect(result.stderr).toContain('modules/caresuite-pdf/src/CareSuitePdfModule.ts');
+  });
+
   it('rejects metadata for the wrong platform', () => {
     const artifact = fixture();
     writeFileSync(join(artifact.output, 'metadata.json'), JSON.stringify({
