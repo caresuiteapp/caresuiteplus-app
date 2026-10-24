@@ -41,6 +41,8 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
   const containerType=presentation.declarations['container-type']??presentation.declarations.container?.split('/')[1]?.trim(),isContainer=!!containerType&&containerType!=='normal';
   if(presentation.declarations.display&&!presentation.declarations['align-items'])box.alignItems='stretch';
   if(presentation.declarations.display&&!presentation.declarations['justify-content'])box.justifyContent='flex-start';
+  if(box.flexWrap==='wrap'&&!presentation.declarations['align-content'])box.alignContent='stretch';
+  if(props.__workspaceCellStyle&&presentation.declarations['justify-self']==='center'){box.marginLeft='auto';box.marginRight='auto';}
   if(presentation.declarations['grid-column']?.replace(/\s/g,'')==='1/-1')Object.assign(box,{width:'100%',flexGrow:0,flexShrink:0});
   const children=childrenOf(props.children),ownSubmit=useRef<()=>void>(()=>{}),form=useMemo(()=>({fields:fields.current,submit:()=>ownSubmit.current()}),[]);
   if(tag==='button'&&!presentation.declarations.display&&children.some(child=>{const childTag=tagOf(child);if(!childTag||!isValidElement<Props>(child))return false;const display=resolveWorkspacePresentation(parent.sheets,{tag:childTag,props:child.props},[...parent.ancestors,node],parent.width,text,presentation.variables).declarations.display;return ['block','flex','grid'].includes(display)||blockText.has(childTag);}))Object.assign(box,{flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:0});

@@ -99,6 +99,10 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
    const copyColor=await copy.evaluate(element=>getComputedStyle(element).color);
    if(titleSize<24||!copyColor.startsWith('rgba(255, 255, 255')&&!copyColor.startsWith('rgb(255, 255, 255')&&!copyColor.startsWith('color(srgb 1 1 1'))throw Error(JSON.stringify({message:'Academy heading scale or header copy contrast differs from the original theme.',screen,viewport,titleSize,copyColor}));
   }
+  if((screen==='company'||screen==='web-company')&&viewport.width===600){
+   const brand=await page.getByText('P&',{exact:true}).boundingBox(),edit=await page.getByRole('button',{name:'Stammdaten bearbeiten',exact:true}).boundingBox();
+   if(!brand||Math.abs(brand.x+brand.width/2-viewport.width/2)>24||!edit||edit.width<viewport.width*.7)throw Error(JSON.stringify({message:'Narrow company header must center the brand and stretch its vertical actions.',screen,viewport,brand,edit}));
+  }
   if((screen==='company'||screen==='web-company')&&viewport.width>=1000){
    const heading=await page.getByRole('heading',{name:'Pflege & Alltag Nord',exact:true}).boundingBox(),brand=await page.getByText('P&',{exact:true}).boundingBox();
    if(!heading||!brand||brand.x<heading.x+heading.width)throw Error(JSON.stringify({message:'Wide company identity and brand must share the two-column header.',screen,viewport,heading,brand}));
