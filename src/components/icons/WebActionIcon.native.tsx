@@ -1,0 +1,6 @@
+import type {CSSProperties,ReactNode} from 'react';
+import Svg from 'react-native-svg';
+import {useNativeWorkspaceTextStyle} from '@/components/layout/NativeWorkspaceElements.native';
+export const WEB_ACTION_ICON_SIZES={compact:16,action:20,navigation:24,state:32} as const;
+export type WebActionIconProps={children:ReactNode;size?:number|keyof typeof WEB_ACTION_ICON_SIZES;className?:string;style?:CSSProperties};
+export function WebActionIcon({children,size='action',style}:WebActionIconProps){const inherited=useNativeWorkspaceTextStyle(),pixels=typeof size==='number'&&size>0&&Number.isFinite(size)?size:WEB_ACTION_ICON_SIZES[typeof size==='string'?size:'action'],color=typeof style?.color==='string'&&!style.color.includes('var(')?style.color:typeof inherited.color==='string'?inherited.color:'#173b57';return <Svg width={pixels} height={pixels} viewBox="0 0 24 24" fill="none" stroke={color} color={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" accessible={false} style={{flexShrink:0}}>{children}</Svg>;}

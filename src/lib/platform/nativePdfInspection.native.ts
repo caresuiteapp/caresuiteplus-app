@@ -1,0 +1,6 @@
+import {Directory,File,Paths} from 'expo-file-system';
+import * as Crypto from 'expo-crypto';
+import Pdf from '../../../modules/caresuite-pdf/src/CareSuitePdfModule';
+async function withPdf<T>(bytes:Uint8Array,action:(file:File)=>Promise<T>):Promise<T>{const folder=new Directory(Paths.cache,'caresuite-pdf-inspection',Crypto.randomUUID());folder.create({intermediates:true,idempotent:true});const file=new File(folder,'original.pdf');try{file.create();file.write(bytes);return await action(file);}finally{if(folder.exists)folder.delete();}}
+export async function extractNativePdfAttachments(bytes:Uint8Array):Promise<Array<{name:string;bytes:Uint8Array}>>{return withPdf(bytes,async file=>(await Pdf.extractAttachments(file.uri)).map(item=>({name:item.name,bytes:Uint8Array.from(atob(item.base64),char=>char.charCodeAt(0))})));}
+export async function renderNativePdfPages(bytes:Uint8Array,title:string,remainingPages:number){return withPdf(bytes,async file=>{const pages=await Pdf.renderPages(file.uri,remainingPages);return Promise.all(pages.map(async page=>({title,sourcePage:page.sourcePage,sourcePages:page.sourcePages,width:page.width,height:page.height,dataUrl:'data:image/png;base64,'+await new File(page.uri).base64()})));});}

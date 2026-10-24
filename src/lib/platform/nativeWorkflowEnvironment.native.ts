@@ -9,6 +9,11 @@ import {synchronousWorkflowStore,nativeWorkflowLocks} from './nativeWorkflowStor
 import {nativeWorkflowLifecycle,type LifecycleListener} from './nativeWorkflowLifecycle.shared';
 import {nativeWorkspaceNodes} from './nativeWorkspaceNodes.shared';
 import {NativeWorkflowPageContext} from '@/components/navigation/NativeWorkflowPage.native';
+import {NativeByteBlob} from './nativeByteBlob.shared';
+export type nativeBlob=Blob;
+export const nativeBlob:typeof Blob=NativeByteBlob;
+export {platformFetch as nativeFetch} from './platformFetch.native';
+export {nativeURL} from './nativeObjectUrl.native';
 
 // Workflow journals are independent from authentication and portal preferences.
 export const nativeLocalStorage=synchronousWorkflowStore(new SQLiteStorage('caresuite-workflow-journals-v1.db'));
