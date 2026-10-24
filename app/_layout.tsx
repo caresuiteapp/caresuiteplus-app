@@ -6,7 +6,7 @@ import { AppStartup } from '@/components/brand/AppStartup';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 import { applyInvisibleScrollIndicators } from '@/product-workflows/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/ThemeModeProvider';
@@ -71,7 +71,11 @@ function RootShell() {
   const { width, fontScale } = useWindowDimensions();
   const compactPopup = width < 780;
   const nativeCompactPopup = Platform.OS !== 'web' && compactPopup;
-  const nativeChromeHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const nativeChromeMinimumHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const chromeLayoutKey = JSON.stringify([pathname, width, fontScale]);
+  const [chromeMeasurement, setChromeMeasurement] = useState<{ key: string; height: number } | null>(null);
+  const nativeChromeHeight = Math.max(nativeChromeMinimumHeight, chromeMeasurement?.key === chromeLayoutKey ? chromeMeasurement.height : 0);
+  const popupContext = administrationWorkspaceContext(pathname);
   const popupContentTop = nativeCompactPopup ? nativeChromeHeight + 14 : compactPopup ? 62 : 86;
   const popupFrameTop = nativeCompactPopup ? nativeChromeHeight + 8 : compactPopup ? 56 : 78;
   const insets = useSafeAreaInsets();
@@ -162,9 +166,12 @@ function RootShell() {
                 };
               }}
             />
-            {currentRouteIsPopup && Platform.OS !== 'web' ? <View style={{ position: 'absolute', left: 8, right: 8, top: nativeTop, minHeight: nativeChromeHeight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#081F3F' }}>
+            {currentRouteIsPopup && Platform.OS !== 'web' ? <View onLayout={event => {
+              const measured = Math.ceil(event.nativeEvent.layout.height);
+              setChromeMeasurement(current => current?.key === chromeLayoutKey && current.height === measured ? current : { key: chromeLayoutKey, height: measured });
+            }} style={{ position: 'absolute', left: 8, right: 8, top: nativeTop, minHeight: nativeChromeMinimumHeight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#081F3F' }}>
               <MobileIconButton label="Zurück zur vorherigen Ansicht" icon="arrow-left" dark onPress={returnToPrevious} />
-              <View style={{ flex: 1, minWidth: 0 }}><Text style={{ color: '#80D9FF', fontSize: 11, lineHeight: 16 }}>{administrationWorkspaceContext(pathname).areaLabel}</Text><Text accessibilityRole="header" style={{ color: '#EDF6FF', fontSize: 15, lineHeight: 21, fontWeight: '700' }} numberOfLines={2}>{administrationWorkspaceContext(pathname).title}</Text></View>
+              <View style={{ flex: 1, minWidth: 0 }}><Text style={{ color: '#80D9FF', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 16 }}>{popupContext.areaLabel}</Text><Text accessibilityRole="header" style={{ color: '#EDF6FF', fontFamily: careSuiteAppFontFamily, fontSize: 15, lineHeight: 21, fontWeight: '700' }} numberOfLines={2}>{popupContext.title}</Text></View>
               <MobileIconButton label="Hilfe zu dieser Seite" icon="help-circle" dark onPress={() => router.push(helpHref(pathname) as never)} />
               <MobileIconButton label="Fenster schließen und zum Desktop zurückkehren" icon="x" dark onPress={() => router.dismissTo('/business' as never)} />
             </View> : null}

@@ -1,11 +1,31 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { canonicalDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
 import { nativeAdministrationRoute } from '@/liquid-command/navigation/nativeAdministrationModel';
 import { administrationWorkspaceContext } from '@/lib/navigation/administrationWorkspaceContext';
 import { COMPANY_INVENTORY_LEGACY_VIEWS } from '@/lib/navigation/companyInventoryRoute';
 import { inferLiquidArea } from '@/liquid-command/navigation/routeContext';
+import OfficeIndexRoute from '../../../app/office/index';
+
+const route = vi.hoisted(() => ({ params: {} as Record<string, string>, replace: vi.fn() }));
+vi.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () => route.params, useRouter: () => ({ replace: route.replace }) }));
+vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({ LiquidState: () => null }));
 
 describe('Shared Web and native destinations', () => {
+  it('renders the canonical receiving route with its original record context', () => {
+    route.params = { area: 'clients', clientId: 'client-17' };
+    expect(OfficeIndexRoute().props.href).toBe('/business/office/clients?clientId=client-17');
+  });
+  it('opens the company record for the plain Office entry', () => {
+    route.params = {};
+    expect(OfficeIndexRoute().props.href).toBe('/unternehmen');
+  });
+  it('shows an unknown-area state rather than loading the company data adapter', () => {
+    route.params = { area: 'unknown' };
+    const result = OfficeIndexRoute();
+    expect(result.props.title).toBe('Office-Arbeitsbereich nicht gefunden');
+    result.props.onAction();
+    expect(route.replace).toHaveBeenCalledWith('/unternehmen');
+  });
   it.each([
     ['clients', '/business/office/clients'], ['people', '/business/office/employees'],
     ['inventory', '/unternehmen/inventar'], ['billing', '/business/office/invoices'],

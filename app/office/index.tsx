@@ -1,9 +1,10 @@
-import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { LiquidState } from '@/liquid-command/components/LiquidPrimitives';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { canonicalDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
 
 export default function OfficeIndexRoute() {
   const params = useLocalSearchParams();
+  const router = useRouter();
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) value.forEach(item => query.append(key, item));
@@ -12,5 +13,7 @@ export default function OfficeIndexRoute() {
   const href = `/office${query.size ? `?${query}` : ''}`;
   const target = canonicalDesktopCatalogRoute(href);
   if (target !== href) return <Redirect href={target as never} />;
-  return <ModuleWorkspaceScreen moduleKey="office" />;
+  return <LiquidState kind="error" title="Office-Arbeitsbereich nicht gefunden"
+    message="Dieser gespeicherte Link nennt einen unbekannten Office-Bereich. Öffnen Sie den gewünschten Bereich über die Office-Navigation."
+    actionLabel="Unternehmensakte öffnen" onAction={() => router.replace('/unternehmen' as never)} />;
 }

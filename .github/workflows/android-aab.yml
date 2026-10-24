@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: caresuite-android-production
+  group: caresuite-android-${{ github.ref_name == 'fix/native-web-design-parity-20261024' && 'native-web-parity' || 'production' }}
   cancel-in-progress: true
 
 jobs:
