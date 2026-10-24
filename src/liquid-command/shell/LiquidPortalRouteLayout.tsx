@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
+import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientPortalSettings } from '@/hooks/useClientPortalSettings';
 import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
@@ -20,11 +21,13 @@ import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   releasedLiquidPortalNavigation,
   liquidPortalLoginRoutes,
+  type LiquidPortalNavigationItem,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
-import { PortalPremiumProvider, portalPremium } from '@/design/tokens/portalPremium';
+import { usePortalVisualViewport } from '@/hooks/usePortalVisualViewport';
+import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { PortalViewportContext } from '@/lib/portal/portalViewportContext';
 import {
@@ -58,14 +61,28 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const layout = useLiquidLayout();
+  const { height: visibleHeight, width: visibleWidth, offsetTop, offsetLeft, keyboardVisible } = usePortalVisualViewport();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
   const { active: messengerFocusActive } = usePortalMessengerFocus();
   const [moreOpen, setMoreOpen] = useState(false);
   const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
-  const navigation = useMemo(() => releasedLiquidPortalNavigation(kind, clientPortalSettings), [kind, clientPortalSettings]);
-  const compactNavigation = navigation.filter((item) => item.compact);
-  const moreNavigation = navigation.filter((item) => !item.compact);
+  const navigation = useMemo(() => {
+    const items = releasedLiquidPortalNavigation(kind, clientPortalSettings);
+    if (kind !== 'employee' || Platform.OS !== 'web') return items;
+    // Native destinations remain gated until their receiving workflows are implemented.
+    const tasks: LiquidPortalNavigationItem = {
+      id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
+      route: '/portal/employee/tasks', group: 'work',
+    };
+    const consultation: LiquidPortalNavigationItem[] = isConsultationWorkspaceEnabled() ? [{
+      id: 'consultation', label: 'Beratung & Schulungen', glyph: '◎',
+      route: '/portal/employee/beratung', group: 'work',
+    }] : [];
+    return [items[0], tasks, ...consultation, ...items.slice(1)];
+  }, [kind, clientPortalSettings]);
+  const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
+  const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
   const profileRoute =
     kind === 'employee'
       ? '/portal/employee/profile'
@@ -79,7 +96,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const visitExecutionFocus =
     kind === 'employee' && isEmployeeVisitExecutionRoute(pathname);
   const compactMessengerFocus = !desktopChrome && messengerFocusActive;
-  const showCompactNavigation = !desktopChrome && !compactMessengerFocus;
+  const showCompactNavigation = !desktopChrome && !keyboardVisible && !compactMessengerFocus;
   const messageInbox = usePortalOfficeMessages(
     'open',
     kind === 'client' || kind === 'employee',
@@ -109,19 +126,22 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   };
 
   return (
-    <LiquidBackdrop>
+    <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
+      position: 'fixed', top: offsetTop, left: offsetLeft,
+      height: visibleHeight, width: visibleWidth ?? '100%',
+    } as unknown as ViewStyle : null]}><LiquidBackdrop>
       <View style={styles.shell}>
         {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
-            <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator>
               {navigation.map((item) => (
                 <Pressable
                   key={item.id}
                   accessibilityRole="tab"
                   accessibilityLabel={navigationLabel(item.id, item.label)}
                   accessibilityState={{ selected: activeId === item.id }}
-                  onPress={() => router.replace(item.route as never)}
+                  onPress={() => router.push(item.route as never)}
                   style={({ pressed }) => [
                     styles.railItem,
                     kind === 'client' && styles.clientRailItem,
@@ -135,7 +155,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     presentation="navigation"
                     size={19}
                   />
-                  <Text numberOfLines={1} style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>{item.label}</Text>
+                  <Text style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>{item.label}</Text>
                   {item.id === 'messages' && messageBadge ? (
                     <View style={styles.unreadBadge}>
                       <Text style={styles.unreadBadgeText}>{messageBadge}</Text>
@@ -189,7 +209,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     label={navigationLabel('messages', 'Nachrichten')}
                     glyph="♧"
                     badge={messageBadge}
-                    onPress={() => router.replace(
+                    onPress={() => router.push(
                       kind === 'employee'
                         ? '/portal/employee/messages'
                         : kind === 'client'
@@ -202,7 +222,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       label={profileRoute ? 'Profil' : 'Abmelden'}
                       glyph="♙"
                       onPress={() => profileRoute
-                        ? router.replace(profileRoute as never)
+                        ? router.push(profileRoute as never)
                         : void signOut()}
                     />
                   ) : null}
@@ -211,12 +231,12 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             </View>
           </View> : null}
           <LiquidSurface
-            solid={desktopChrome && !visitExecutionFocus}
+            solid
             style={[
               styles.contentFrame,
               !desktopChrome && styles.contentFrameCompact,
               (visitExecutionFocus || compactMessengerFocus) && styles.contentFrameFocus,
-              compactMessengerFocus && { paddingTop: insets.top },
+              compactMessengerFocus && Platform.OS !== 'web' && { paddingTop: insets.top },
             ]}
             contentStyle={[
               styles.content,
@@ -229,7 +249,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
         </View>
       </View>
       <View
-        style={[styles.portalFooter, { paddingBottom: desktopChrome ? 8 : Math.max(insets.bottom, 12) }, compactMessengerFocus && styles.portalFooterFocus]}
+        style={[styles.portalFooter, showCompactNavigation ? { paddingBottom: Math.max(insets.bottom, 8) } : styles.portalFooterQuiet]}
         testID="portal-navigation-footer"
       >
       {overlay}
@@ -242,7 +262,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 accessibilityRole="tab"
                 accessibilityLabel={navigationLabel(item.id, item.label)}
                 accessibilityState={{ selected: activeId === item.id }}
-                onPress={() => router.replace(item.route as never)}
+                onPress={() => router.push(item.route as never)}
                 style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
               >
                 <LiquidGlyph
@@ -255,7 +275,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   numberOfLines={2}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.id === 'open-assignments' ? 'Offen' : item.label}
+                  {item.id === 'open-assignments' ? 'Offen' : item.id === 'logbook' ? 'Fahrten' : item.label}
                 </Text>
                 {item.id === 'messages' && messageBadge ? (
                   <View style={styles.bottomUnreadBadge}>
@@ -314,11 +334,11 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </View>
                 <ScrollView
                   contentContainerStyle={styles.moreGrid}
-                  showsVerticalScrollIndicator={false}
+                  showsVerticalScrollIndicator
                 >
                   {kind === 'client' || kind === 'employee' ? (
                     <View style={styles.moreAccessibility}>
-                      <Text style={styles.moreAccessibilityLabel}>LESBARKEIT & ZOOM</Text>
+                      <Text style={styles.moreAccessibilityLabel}>SCHRIFTGRÖSSE</Text>
                       <PortalTextSizeControls />
                     </View>
                   ) : null}
@@ -329,7 +349,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       accessibilityLabel={navigationLabel(item.id, item.label)}
                       onPress={() => {
                         setMoreOpen(false);
-                        router.replace(item.route as never);
+                        router.push(item.route as never);
                       }}
                       style={({ pressed }) => [
                         styles.moreItem,
@@ -362,7 +382,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
         </>
       ) : null}
       </View>
-    </LiquidBackdrop>
+    </LiquidBackdrop></View>
   );
 }
 
@@ -398,6 +418,8 @@ export function LiquidPortalRouteLayout({
 }
 
 const styles = StyleSheet.create({
+  viewport: { flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' },
+  portalFooterQuiet: { paddingTop: 0, paddingBottom: 0 },
   shell: {
     flex: 1,
     minWidth: 0,
@@ -471,15 +493,15 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   railGlyph: {
-    color: liquidColors.blue200,
+    color: '#075DC7',
     fontSize: 19,
     lineHeight: 22,
   },
   railLabel: {
     flex: 1,
-    color: liquidColors.white72,
-    fontSize: webScaledFontMetric(13),
-    lineHeight: webScaledFontMetric(17),
+    color: '#365672',
+    fontSize: webScaledFontMetric(16),
+    lineHeight: webScaledFontMetric(22),
     fontWeight: '700',
     textAlign: 'left',
   },
@@ -494,14 +516,14 @@ const styles = StyleSheet.create({
   },
   unreadBadgeText: {
     color: liquidColors.onAccent,
-    fontSize: webScaledFontMetric(9),
-    lineHeight: webScaledFontMetric(12),
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '900',
   },
   clientRailLabel: {
     flexShrink: 1,
-    fontSize: webScaledFontMetric(13),
-    lineHeight: webScaledFontMetric(18),
+    fontSize: webScaledFontMetric(16),
+    lineHeight: webScaledFontMetric(22),
     textAlign: 'left',
   },
   main: {
@@ -520,7 +542,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 14,
+    flexWrap: 'wrap',
+    gap: 12,
   },
   topbarCompact: {
     paddingHorizontal: 12,
@@ -532,19 +555,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   portalKicker: {
-    color: liquidColors.blue200,
-    fontSize: webScaledFontMetric(10),
-    lineHeight: webScaledFontMetric(13),
+    color: '#075DC7',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '800',
     letterSpacing: 1,
   },
   portalBrand: {
+    minWidth: 0,
+    flexShrink: 1,
     gap: 4,
   },
   portalTitle: {
-    color: liquidColors.white,
-    fontSize: 20,
-    lineHeight: 25,
+    color: '#102D4E',
+    fontSize: webScaledFontMetric(22),
+    lineHeight: webScaledFontMetric(28),
     fontWeight: '800',
     letterSpacing: -0.35,
   },
@@ -555,7 +580,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   identityCompact: {
-    flexShrink: 0,
+    flexShrink: 1,
+    flexWrap: 'wrap',
     gap: 6,
   },
   identityCopy: {
@@ -564,15 +590,15 @@ const styles = StyleSheet.create({
   },
   identityName: {
     maxWidth: 180,
-    color: liquidColors.white,
-    fontSize: webScaledFontMetric(12),
-    lineHeight: webScaledFontMetric(16),
+    color: '#102D4E',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '700',
   },
   identityRole: {
-    color: liquidColors.white56,
-    fontSize: webScaledFontMetric(10),
-    lineHeight: webScaledFontMetric(13),
+    color: '#48627C',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
   },
   contentFrame: {
     flex: 1,
@@ -612,9 +638,6 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: '#F4F8FD',
   },
-  portalFooterFocus: {
-    paddingTop: 0,
-  },
   bottomNav: {
     flexShrink: 0,
     minHeight: 68,
@@ -642,44 +665,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    overflow: 'hidden',
   },
   bottomUnreadBadge: {
     position: 'absolute',
     top: 1,
     right: 4,
     minWidth: 34,
-    minHeight: 18,
+    height: 18,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: portalPremium.accent.blueDark,
+    backgroundColor: liquidColors.blue500,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomUnreadBadgeText: {
     color: liquidColors.onAccent,
-    fontSize: webScaledFontMetric(10),
-    lineHeight: webScaledFontMetric(14),
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '900',
   },
   bottomGlyph: {
-    color: liquidColors.white56,
+    color: '#48627C',
     fontSize: 20,
     lineHeight: 24,
   },
   bottomGlyphActive: {
-    color: liquidColors.blue200,
+    color: '#075DC7',
   },
   bottomLabel: {
     width: '100%',
-    color: portalPremium.text.secondary,
-    fontSize: webScaledFontMetric(11),
-    lineHeight: webScaledFontMetric(15),
+    color: '#48627C',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '600',
     textAlign: 'center',
   },
   bottomLabelActive: {
-    color: liquidColors.white,
+    color: '#102D4E',
   },
   pressed: {
     opacity: 0.76,
@@ -691,7 +713,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.38)',
   },
   morePanel: {
-    maxHeight: '72%',
+    maxHeight: '90%',
     padding: 16,
     paddingBottom: 22,
     borderWidth: 1,
@@ -716,15 +738,15 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   moreKicker: {
-    color: liquidColors.blue200,
-    fontSize: webScaledFontMetric(10),
-    lineHeight: webScaledFontMetric(13),
+    color: '#075DC7',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '800',
     letterSpacing: 1,
   },
   moreTitle: {
     marginTop: 2,
-    color: liquidColors.white,
+    color: '#102D4E',
     fontSize: webScaledFontMetric(20),
     lineHeight: webScaledFontMetric(25),
     fontWeight: '800',
@@ -740,9 +762,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   moreAccessibilityLabel: {
-    color: liquidColors.blue200,
-    fontSize: webScaledFontMetric(10),
-    lineHeight: webScaledFontMetric(13),
+    color: '#075DC7',
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -768,13 +790,13 @@ const styles = StyleSheet.create({
   },
   moreLabel: {
     flex: 1,
-    color: liquidColors.white,
+    color: '#102D4E',
     fontSize: webScaledFontMetric(14),
     lineHeight: webScaledFontMetric(18),
     fontWeight: '700',
   },
   moreArrow: {
-    color: liquidColors.blue200,
+    color: '#075DC7',
     fontSize: webScaledFontMetric(22),
     lineHeight: webScaledFontMetric(24),
   },

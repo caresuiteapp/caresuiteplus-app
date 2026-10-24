@@ -184,7 +184,7 @@ jobs:
       - name: TypeScript prüfen
         run: npm run typecheck
       - name: Gemeinsame Navigation und Seitenziele prüfen
-        run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts --maxWorkers=2
+        run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx --maxWorkers=2
       - name: Native Ansichten im vorhandenen Chrome rendern
         run: node scripts/verify-native-administration-visual.mjs
       - name: Aufnahmen und offene Abweichungen sichern
