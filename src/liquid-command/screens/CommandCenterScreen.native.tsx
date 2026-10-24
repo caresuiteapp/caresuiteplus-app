@@ -67,6 +67,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const router = useRouter(); const auth = useAuth(); const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compactHeight = height - insets.top - insets.bottom < 500 && width > height && fontScale < 1.4;
+  const shortViewport = height - insets.top - insets.bottom < 600 * Math.max(1, fontScale);
   const owner = auth.user!.id; const scope = JSON.stringify([tenantId, owner]);
   const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
   const dismissedKey = `${desktopKey}.dismissed-suggestions.v1`;
@@ -162,7 +163,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   </View>;
   if (!ready) return <SafeAreaView style={styles.loading}><View style={ui.surface}><Text style={ui.title}>Desktop wird vorbereitet</Text>{error ? <><Text style={ui.error}>{error}</Text><NativeAction label="Erneut laden" onPress={() => setAttempt(value => value + 1)} /></> : <ActivityIndicator color="#8dc8ff" />}</View></SafeAreaView>;
   return <ImageBackground source={selectedBackground.image} resizeMode="cover" style={styles.root} testID="native-administration-desktop">
-    <NativeDesktopFrame compact={compactHeight} padding={layout.framePadding}>
+    <NativeDesktopFrame compact={shortViewport} padding={layout.framePadding}>
       <View style={[styles.header, layout.mobile && styles.headerMobile]} testID="desktop-full-width-header">
         <View style={styles.brandGroup}><Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: Math.min(width - 64, 234), height: Math.min(width - 64, 234) / 8 }]} resizeMode="contain" /><View style={[styles.assistantDock, layout.mobile && { width: 76, height: 80 }]} /></View>
         <View style={[styles.headerInfo, layout.mobile && styles.headerInfoMobile, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]} testID="desktop-clock-weather">
@@ -178,7 +179,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
           <Pressable accessibilityRole="button" accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{width >= 1240 * fontScale ? <View style={styles.profileCopy}><Text style={styles.profileName}>{auth.profile?.displayName || auth.user?.displayName || 'Profil'}</Text><Text style={styles.profileRole}>{permissions.roleLabel ?? 'Verwaltung'}</Text></View> : null}<TopbarProfileAvatar name={auth.profile?.displayName || auth.user?.displayName || 'Profil'} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={layout.mobile ? 'sm' : 'lg'} /></Pressable>
         </View>
       </View>
-      <View style={[styles.workarea, { gap: layout.workareaGap }, compactHeight && { minHeight: 360 }]}>
+      <View style={[styles.workarea, { gap: layout.workareaGap }, shortViewport && { minHeight: Math.max(360, controlsHeight + 220) }]}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 12, gap: 14 }}>{navigation}</ScrollView> : null}
         <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={[styles.desktopToolbar, layout.mobile && { padding: 8, gap: 6 }]}>
