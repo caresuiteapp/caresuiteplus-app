@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careModuleTokens, type CareModuleKey } from '@/design/tokens/modules';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -13,7 +14,7 @@ export function CareSuiteModuleHeader({ moduleKey, subtitle, style }: CareSuiteM
   return (
     <View style={[styles.root, style]}>
       <View style={[styles.iconBadge, { backgroundColor: `${mod.color}22` }]}>
-        <Text style={styles.icon}>{mod.icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={40} webColor={mod.color}>{mod.icon}</SemanticArtwork>
       </View>
       <View style={styles.text}>
         <Text style={[styles.title, { color: mod.color }]}>{mod.label}</Text>

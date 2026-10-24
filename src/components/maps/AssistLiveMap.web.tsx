@@ -53,7 +53,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
           <View style={styles.radarRingSmall} />
           <View style={styles.radarSweep} />
           <View style={styles.radarPoint} />
-          <Text style={styles.fallbackIcon}>⌖</Text>
+          <SemanticArtwork style={styles.fallbackIcon} webSize={32}>⌖</SemanticArtwork>
         </View>
         <Text style={styles.fallbackEyebrow}>WARTET AUF STANDORT</Text>
         <Text style={styles.fallbackTitle}>Positionsmonitor ist bereit</Text>
@@ -122,3 +122,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';

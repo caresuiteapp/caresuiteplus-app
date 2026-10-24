@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -70,7 +71,7 @@ export function CareLightBreadcrumbTrail({ trail }: CareLightBreadcrumbTrailProp
             ) : (
               <Text style={[styles.text, isLast && styles.current]}>{item.label}</Text>
             )}
-            {!isLast ? <Text style={styles.sep}> › </Text> : null}
+            {!isLast ? <SemanticArtwork webSize={16} style={styles.sep}> › </SemanticArtwork> : null}
           </View>
         );
       })}

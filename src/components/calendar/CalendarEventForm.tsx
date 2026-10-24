@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -243,7 +244,7 @@ export function CalendarEventForm({
             style={({ pressed }) => [styles.typeCard, styles.typeCardPrimary, pressed && { opacity: 0.82 }]}
             accessibilityRole="button"
           >
-            <View style={styles.typeIcon}><Text style={styles.typeIconText}>+</Text></View>
+            <View style={styles.typeIcon}><SemanticArtwork webSize={24} style={styles.typeIconText}>+</SemanticArtwork></View>
             <View style={{ gap: 5 }}>
               <Text style={styles.typeTitle}>Termin oder Abwesenheit</Text>
               <Text style={styles.typeDesc}>Besprechung, Geburtstag, Urlaub, Erinnerung oder eigener Kalendereintrag.</Text>
@@ -255,7 +256,7 @@ export function CalendarEventForm({
             style={({ pressed }) => [styles.typeCard, pressed && { opacity: 0.82 }]}
             accessibilityRole="button"
           >
-            <View style={styles.typeIcon}><Text style={styles.typeIconText}>↗</Text></View>
+            <View style={styles.typeIcon}><SemanticArtwork webSize={24} style={styles.typeIconText}>↗</SemanticArtwork></View>
             <View style={{ gap: 5 }}>
               <Text style={styles.typeTitle}>Assist-Einsatz</Text>
               <Text style={styles.typeDesc}>Klient:in, Mitarbeitende, Leistung, Zeit und Aufgaben vollständig zuordnen.</Text>

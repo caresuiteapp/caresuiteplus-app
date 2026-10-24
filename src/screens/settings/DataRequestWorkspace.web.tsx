@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, type ReactNode } from 'react';
 import { DATA_REQUEST_WORKSPACE_CSS } from './dataRequestWorkspaceCss.web';
 
@@ -71,7 +72,7 @@ const DATA_REQUEST_ICON_PATHS: Record<DataRequestIconName, ReactNode> = {
 };
 
 function DataRequestIcon({ name, className }: { name: DataRequestIconName; className?: string }) {
-  return <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{DATA_REQUEST_ICON_PATHS[name]}</svg>;
+  return <WebActionIcon className={className}>{DATA_REQUEST_ICON_PATHS[name]}</WebActionIcon>;
 }
 
 function Feedback({ error, message, id }: { error?: string | null; message?: string | null; id?: string }) {

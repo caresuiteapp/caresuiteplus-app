@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
@@ -37,7 +38,7 @@ function ClientDetailFact({
   return (
     <View style={styles.factCard}>
       <View style={styles.factIcon}>
-        <Text style={styles.factIconText}>{icon}</Text>
+        <SemanticArtwork webSize={24} style={styles.factIconText}>{icon}</SemanticArtwork>
       </View>
       <View style={styles.factCopy}>
         <Text style={styles.factLabel}>{label}</Text>

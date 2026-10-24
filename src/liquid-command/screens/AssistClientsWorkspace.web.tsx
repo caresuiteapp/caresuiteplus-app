@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -35,7 +36,7 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
 const readFilter = (value: string): Filter => ['all', 'attention', 'planned', 'unplanned', 'week'].includes(value) ? value as Filter : 'all';
 const readSort = (value: string): Sort => ['name', 'next_visit', 'attention'].includes(value) ? value as Sort : 'name';
 
-function Icon({ name, size = 17 }: { name: 'people' | 'plus' | 'refresh' | 'search' | 'back' | 'arrow' | 'calendar'; size?: number }) {
+function Icon({ name, size = 20 }: { name: 'people' | 'plus' | 'refresh' | 'search' | 'back' | 'arrow' | 'calendar'; size?: number }) {
   const paths: Record<typeof name, ReactNode> = {
     people: <><circle cx="9" cy="7" r="3" /><path d="M3 20v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-2-4" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
@@ -45,7 +46,7 @@ function Icon({ name, size = 17 }: { name: 'people' | 'plus' | 'refresh' | 'sear
     arrow: <path d="m9 5 7 7-7 7" />,
     calendar: <><path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5" /><path d="M8 14h2M14 14h2M8 17h2" /></>,
   };
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+  return <WebActionIcon size={size}>{paths[name]}</WebActionIcon>;
 }
 
 function dateLabel(value: string | null | undefined, year = true) {
@@ -220,7 +221,7 @@ function AssistWorkspaceContent({ scope, tenantId, roleKey, permissions }: {
 
   return <section className="acw" data-assist-clients="workspace-v2" data-detail-open={Boolean(detailOpen && selectedVisible)}>
     <header className="acw-heading">
-      <div className="acw-heading-main"><span className="acw-symbol"><Icon name="people" size={25} /></span><div><span className="acw-eyebrow">ASSIST</span><h1>Assist-Klient:innen</h1><p>Versorgung und nächste Einsätze im Überblick.</p></div></div>
+      <div className="acw-heading-main"><span className="acw-symbol"><Icon name="people" size={24} /></span><div><span className="acw-eyebrow">ASSIST</span><h1>Assist-Klient:innen</h1><p>Versorgung und nächste Einsätze im Überblick.</p></div></div>
       <div className="acw-heading-actions">
         {snapshot ? <span className="acw-sync">Stand {timeLabel(snapshot.loadedAt)} Uhr</span> : null}
         {canPlan ? <button type="button" className="acw-button acw-button-primary" onClick={() => router.push(planningRoute(selectedVisible?.id) as never)} aria-label={selectedVisible ? 'Einsatz für ' + selectedVisible.name + ' planen' : 'Neuen Einsatz planen'}><Icon name="plus" /><span>Einsatz planen</span></button> : null}
@@ -264,7 +265,7 @@ function AssistWorkspaceContent({ scope, tenantId, roleKey, permissions }: {
                 <span className="acw-row-avatar"><ClientAnimalAvatar clientId={client.id} clientName={client.name} size={37} ringColor="#9bc5e2" /></span>
                 <span className="acw-row-copy"><span className="acw-row-heading"><strong className="acw-row-name">{client.name}</strong>{client.needsAttention ? <span className="acw-badge acw-badge-warning">Angaben prüfen</span> : null}</span>
                   <span className="acw-row-meta">{client.careLevelLabel}{client.city ? ' · ' + client.city : ''}{client.costCarrier ? ' · ' + client.costCarrier : client.selfPay ? ' · Selbstzahler' : ' · Kostenträger offen'}</span>
-                  <span className="acw-row-planning"><Icon name="calendar" size={13} />{client.nextVisit ? <><strong>{dateLabel(client.nextVisit.scheduledStart, false)}, {timeLabel(client.nextVisit.scheduledStart)}</strong><span className="acw-dot">·</span><small>{visitEmployeeLabel(client.nextVisit)}</small>{client.nextVisit.status === 'active' ? <span className="acw-badge acw-badge-active">Läuft</span> : null}</> : <span>{client.planningStatus === 'unknown' ? 'Planung nicht verfügbar' : 'Kein Einsatz bis ' + dateLabel(snapshot.coverage.toDate)}</span>}</span>
+                  <span className="acw-row-planning"><Icon name="calendar" size={16} />{client.nextVisit ? <><strong>{dateLabel(client.nextVisit.scheduledStart, false)}, {timeLabel(client.nextVisit.scheduledStart)}</strong><span className="acw-dot">·</span><small>{visitEmployeeLabel(client.nextVisit)}</small>{client.nextVisit.status === 'active' ? <span className="acw-badge acw-badge-active">Läuft</span> : null}</> : <span>{client.planningStatus === 'unknown' ? 'Planung nicht verfügbar' : 'Kein Einsatz bis ' + dateLabel(snapshot.coverage.toDate)}</span>}</span>
                 </span>
               </button>
             </li>)}</ul>}
@@ -314,7 +315,7 @@ function ClientDetails({ client, snapshot, canPlan, canEditClient, onBack, headi
       <div className="acw-section-heading"><h3>Kommende Einsätze</h3><span>{snapshot.visitsAvailable ? client.upcomingVisits.length + ' bis ' + dateLabel(snapshot.coverage.toDate) : 'Nicht verfügbar'}</span></div>
       {!snapshot.visitsAvailable ? <p className="acw-muted">Die Einsatzplanung konnte für diese Übersicht nicht eingesehen werden.</p>
         : client.upcomingVisits.length === 0 ? <p className="acw-muted">Bis {dateLabel(snapshot.coverage.toDate)} ist kein weiterer Einsatz geplant.</p>
-          : <><ul className="acw-visits">{client.upcomingVisits.slice(0, visitLimit).map(visit => <li key={visit.id}><button type="button" className="acw-visit" onClick={() => navigate('/assist/assignments/' + encodeURIComponent(visit.id))} aria-label={'Einsatz am ' + dateLabel(visit.scheduledStart) + ' um ' + timeLabel(visit.scheduledStart) + ' öffnen'}><span className="acw-visit-date">{dateLabel(visit.scheduledStart)}<span>{visitTime(visit)}</span></span><span className="acw-visit-copy"><strong>{visit.serviceName || visit.title || 'Einsatz'}</strong><small>{visitEmployeeLabel(visit)}</small><span className={'acw-badge ' + (visit.status === 'active' ? 'acw-badge-active' : 'acw-badge-neutral')}>{visit.statusLabel}</span></span><Icon name="arrow" size={14} /></button></li>)}</ul>{visitLimit < client.upcomingVisits.length ? <button className="acw-button acw-more" type="button" onClick={() => setVisitLimit(value => value + 10)}>Weitere Einsätze anzeigen ({client.upcomingVisits.length - visitLimit})</button> : null}</>}
+          : <><ul className="acw-visits">{client.upcomingVisits.slice(0, visitLimit).map(visit => <li key={visit.id}><button type="button" className="acw-visit" onClick={() => navigate('/assist/assignments/' + encodeURIComponent(visit.id))} aria-label={'Einsatz am ' + dateLabel(visit.scheduledStart) + ' um ' + timeLabel(visit.scheduledStart) + ' öffnen'}><span className="acw-visit-date">{dateLabel(visit.scheduledStart)}<span>{visitTime(visit)}</span></span><span className="acw-visit-copy"><strong>{visit.serviceName || visit.title || 'Einsatz'}</strong><small>{visitEmployeeLabel(visit)}</small><span className={'acw-badge ' + (visit.status === 'active' ? 'acw-badge-active' : 'acw-badge-neutral')}>{visit.statusLabel}</span></span><Icon name="arrow" size={16} /></button></li>)}</ul>{visitLimit < client.upcomingVisits.length ? <button className="acw-button acw-more" type="button" onClick={() => setVisitLimit(value => value + 10)}>Weitere Einsätze anzeigen ({client.upcomingVisits.length - visitLimit})</button> : null}</>}
     </section>
   </div>;
 }

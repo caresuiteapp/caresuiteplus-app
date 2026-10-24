@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import type { MouseEvent, ReactNode } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -60,7 +61,7 @@ export function MobilityWorkspaceNav({ active, beforeNavigate }: { active: Mobil
   return <nav className="mw-nav" aria-label="Touren und Mobilität">
     <style>{styles}</style>
     {entries.filter(entry => can(entry.permission) && (entry.key !== 'tracking' || can('assist.assignments.view'))).map(entry => <a key={entry.key} href={destination(entry)} aria-current={entry.key === active ? 'page' : undefined} onClick={event => navigate(event, entry)}>
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{icons[entry.key]}</svg>
+      <WebActionIcon size={16}>{icons[entry.key]}</WebActionIcon>
       <span>{entry.label}</span>
     </a>)}
   </nav>;

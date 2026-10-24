@@ -82,6 +82,14 @@ const ACADEMY_ARTWORK: Record<AcademyCatalogMotif, DesktopCatalogArtworkImages> 
   },
 };
 
+// Web uses the blue three-dimensional catalogue motif in every entry point.
+// Native widget definitions and their original asset references stay intact.
+const DOCUMENT_CATALOG_ARTWORK: DesktopCatalogArtworkImages = {
+  small: require('../../../assets/healthos/widgets-premium/web/document-catalog-3d.png'),
+  medium: require('../../../assets/healthos/widgets-premium/web/document-catalog-3d.png'),
+  large: require('../../../assets/healthos/widgets-premium/web/document-catalog-3d.png'),
+};
+
 function isInlineSvg(source: ImageSourcePropType | undefined): boolean {
   return typeof source === 'object' && source !== null && !Array.isArray(source) &&
     'uri' in source && typeof source.uri === 'string' && source.uri.startsWith('data:image/svg+xml');
@@ -137,6 +145,7 @@ export function desktopCatalogArtwork(
   // A generic inherited widget image must not override the same Academy
   // destination's illustration in navigation, Apps, widgets or workflows.
   if (academyMotif) return ACADEMY_ARTWORK[academyMotif];
+  if (desktopCatalogArtworkName(route) === 'document-catalog') return DOCUMENT_CATALOG_ARTWORK;
   if (preferred && !(desktopCatalogIconName(route) === 'notes' && isInlineSvg(preferred.small))) return preferred;
   return artworkByName.get(desktopCatalogArtworkName(route)) ?? FALLBACK_ARTWORK;
 }

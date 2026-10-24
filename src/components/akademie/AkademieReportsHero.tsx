@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -64,7 +65,7 @@ export function AkademieReportsHero({ stats, roleKey }: AkademieReportsHeroProps
           <Text style={styles.meta}>Kurse, Teilnahmen, Abschlüsse und Pflicht-Compliance</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📈</Text>
+          <SemanticArtwork style={styles.iconText}>📈</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

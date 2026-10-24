@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { recordObservedError } from '@/lib/platformConsole/platformObservation.web';
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -27,7 +28,7 @@ export class PlatformErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return this.props.children;
     return (
       <View style={styles.wrap} accessibilityRole="alert">
-        <View style={styles.icon}><Text style={styles.iconText}>!</Text></View>
+        <View style={styles.icon}><SemanticArtwork webSize={32} style={styles.iconText}>!</SemanticArtwork></View>
         <Text style={styles.title}>Diese Plattformseite konnte nicht geladen werden</Text>
         <Text style={styles.message}>
           Die Navigation bleibt verfügbar. Laden Sie nur diesen Bereich neu oder öffnen Sie eine andere Seite.

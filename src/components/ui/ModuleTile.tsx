@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -51,7 +52,7 @@ export function ModuleTile({
       >
         <View style={styles.topSheen} />
         <View style={[styles.accentLine, { backgroundColor: accentColor }]} />
-        <Text style={styles.icon}>{icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={40}>{icon}</SemanticArtwork>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
         <PremiumBadge

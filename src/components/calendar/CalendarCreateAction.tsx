@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -22,7 +23,7 @@ export function CalendarCreateAction({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Text style={styles.fabIcon}>＋</Text>
+        <SemanticArtwork webSize={28} style={styles.fabIcon}>＋</SemanticArtwork>
       </Pressable>
     );
   }
@@ -34,12 +35,12 @@ export function CalendarCreateAction({
       accessibilityRole="button"
       accessibilityLabel="Neuen Termin oder Einsatz planen"
     >
-      <View style={styles.iconWrap}><Text style={styles.icon}>＋</Text></View>
+      <View style={styles.iconWrap}><SemanticArtwork webSize={24} style={styles.icon}>＋</SemanticArtwork></View>
       <View style={styles.copy}>
         <Text style={styles.title}>{label}</Text>
         <Text style={styles.subtitle}>Termin, Abwesenheit oder Einsatz planen</Text>
       </View>
-      <Text style={styles.arrow}>›</Text>
+      <SemanticArtwork webSize={20} style={styles.arrow}>›</SemanticArtwork>
     </Pressable>
   );
 }

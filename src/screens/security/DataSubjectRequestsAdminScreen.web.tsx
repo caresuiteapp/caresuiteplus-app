@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenShell } from '@/components/layout/ScreenShell';
 import { useAuth } from '@/lib/auth/context';
@@ -166,7 +167,7 @@ function AdminWorkspace({ scope }: { scope: DataRequestAdminScope }) {
   const open = items.filter(item => item.status === 'queued' || item.status === 'running' || item.status === 'failed').length;
   const busy = operation !== null;
   return <>
-    <header><div className="cs-dsr-admin-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></div>
+    <header><div className="cs-dsr-admin-icon" aria-hidden="true"><WebActionIcon size={32}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></WebActionIcon></div>
       <div><h2>Anfragen im Blick behalten</h2><p>Auskunft, Berichtigung und weitere Betroffenenanfragen Ihres Unternehmens prüfen und den Bearbeitungsstand dokumentieren.</p></div>
       <button type="button" disabled={busy} onClick={() => void load()}> {operation === 'load' ? 'Wird geladen…' : 'Aktualisieren'}</button>
     </header>

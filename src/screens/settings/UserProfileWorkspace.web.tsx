@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { USER_PROFILE_WORKSPACE_CSS } from './userProfileWorkspaceCss.web';
 
@@ -65,7 +66,7 @@ const PROFILE_ICON_PATHS: Record<IconName, ReactNode> = {
 };
 
 function ProfileIcon({ name, className }: { name: IconName; className?: string }) {
-  return <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{PROFILE_ICON_PATHS[name]}</svg>;
+  return <WebActionIcon className={className}>{PROFILE_ICON_PATHS[name]}</WebActionIcon>;
 }
 
 function Feedback({ message, error, id }: { message?: string | null; error?: string | null; id?: string }) {

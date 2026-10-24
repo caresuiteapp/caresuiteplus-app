@@ -43,7 +43,7 @@ export const USER_PROFILE_WORKSPACE_CSS = `
   .cs-profile-eyebrow { color: #386797; font-size: calc(11px * var(--app-font-scale, 1)); font-weight: 750; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px !important; }
   .cs-profile-intro h2 { font-size: clamp(23px, 2.1vw, 29px); font-size: calc(clamp(23px, 2.1vw, 29px) * var(--app-font-scale, 1)); line-height: 1.2; letter-spacing: -.03em; font-weight: 750; overflow-wrap: anywhere; }
   .cs-profile-role { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: #165791; background: #e8f2ff; border: 1px solid #ccdef5; border-radius: 999px; padding: 3px 10px; font-size: calc(12px * var(--app-font-scale, 1)); font-weight: 600; max-width: 100%; overflow-wrap: anywhere; }
-  .cs-profile-role svg { width: 14px; height: 14px; }
+  .cs-profile-role svg {--cs-action-icon-size:16px; width: 16px; height: 16px; }
   .cs-profile-description { margin-top: 9px !important; color: var(--cs-profile-muted); font-size: calc(13px * var(--app-font-scale, 1)); }
   .cs-profile-photo-actions { display: flex; align-items: flex-start; flex-direction: column; gap: 7px; }
   .cs-profile-file-input { position: absolute; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; margin: -1px; overflow: hidden; clip-path: inset(50%); border: 0 !important; white-space: nowrap; }
@@ -75,7 +75,7 @@ export const USER_PROFILE_WORKSPACE_CSS = `
   .cs-profile-dirty { display: inline-flex; align-items: center; gap: 7px; color: #8a5b13; font-size: calc(12px * var(--app-font-scale, 1)); }
   .cs-profile-dirty > span { width: 6px; height: 6px; background: #b5791e; border-radius: 50%; flex-shrink: 0; }
   .cs-profile-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 15px; border: 1px solid transparent; border-radius: 12px; cursor: pointer; font-size: calc(12px * var(--app-font-scale, 1)) !important; font-weight: 650 !important; line-height: 1.4; text-align: center; max-width: 100%; overflow-wrap: anywhere; transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
-  .cs-profile-button svg { width: 17px; height: 17px; }
+  .cs-profile-button svg {--cs-action-icon-size:16px; width: 16px; height: 16px; }
   .cs-profile-button--primary { color: #fff; background: linear-gradient(125deg, #0876ee, #065bc7); border-color: #0866d5; box-shadow: 0 4px 10px rgba(8, 95, 196, .17), inset 0 1px 0 rgba(255, 255, 255, .17); }
   .cs-profile-button--secondary { color: #155fae; background: #f3f8ff; border-color: #c6d9f0; }
   .cs-profile-button--quiet { color: #49617a; background: transparent; border-color: #dce5ef; }
@@ -84,13 +84,13 @@ export const USER_PROFILE_WORKSPACE_CSS = `
   .cs-profile-workspace :is(button, input):focus-visible { outline: 3px solid #1477d6; outline-offset: 3px; }
   .cs-profile-text-button { border: 0; padding: 4px 0; color: #4e6986; background: transparent; font-size: calc(11px * var(--app-font-scale, 1)) !important; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }
   .cs-profile-feedback { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; border: 1px solid; border-radius: 12px; padding: 10px 12px; font-size: calc(12px * var(--app-font-scale, 1)); overflow-wrap: anywhere; }
-  .cs-profile-feedback svg { width: 17px; height: 17px; margin-top: 1px; }
+  .cs-profile-feedback svg {--cs-action-icon-size:16px; width: 16px; height: 16px; margin-top: 1px; }
   .cs-profile-feedback--error { background: #fff2f1; color: #9b3034; border-color: #f1c8c6; }
   .cs-profile-feedback--success { background: #edf9f3; color: #266647; border-color: #cbe9d9; }
   .cs-profile-photo-actions .cs-profile-feedback { margin-top: 2px; }
   .cs-profile-account-info { padding: 14px 16px; background: #f5f8fc; border: 1px solid #e3ebf5; border-radius: 14px; }
   .cs-profile-account-info dt { display: flex; align-items: center; gap: 7px; color: #55708c; font-size: calc(11px * var(--app-font-scale, 1)); }
-  .cs-profile-account-info dt svg { width: 15px; height: 15px; }
+  .cs-profile-account-info dt svg {--cs-action-icon-size:16px; width: 16px; height: 16px; }
   .cs-profile-account-info dd { margin-top: 5px; font-size: calc(13px * var(--app-font-scale, 1)); font-weight: 650; overflow-wrap: anywhere; }
   .cs-profile-password { margin-top: 20px; }
   .cs-profile-password h4 { font-size: calc(13px * var(--app-font-scale, 1)); font-weight: 650; }
@@ -101,7 +101,7 @@ export const USER_PROFILE_WORKSPACE_CSS = `
   .cs-profile-link-row > span { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
   .cs-profile-link-row strong { font-size: calc(13px * var(--app-font-scale, 1)); font-weight: 650; }
   .cs-profile-link-row > span > span { color: var(--cs-profile-muted); font-size: calc(11px * var(--app-font-scale, 1)); }
-  .cs-profile-link-row > svg { width: 17px; height: 17px; color: #48749f; transition: transform .16s ease; }
+  .cs-profile-link-row > svg {--cs-action-icon-size:16px; width: 16px; height: 16px; color: #48749f; transition: transform .16s ease; }
   .cs-profile-link-row + .cs-profile-link-row { border-top: 1px solid #e9eef5; border-radius: 0; }
   .cs-profile-link-row--danger strong { color: #a24648; }
   .cs-profile-card--appearance .cs-profile-card-heading { margin-bottom: 8px; }

@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 
 const paths = {
@@ -22,7 +23,7 @@ const paths = {
 } as const;
 export type PersonnelIconName = keyof typeof paths;
 export function PersonnelIcon({ name }: { name: PersonnelIconName }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
+  return <WebActionIcon><path d={paths[name]} /></WebActionIcon>;
 }
 
 export function PersonnelFolder({ firstName, lastName, large = false }: { firstName: string; lastName: string; large?: boolean }) {

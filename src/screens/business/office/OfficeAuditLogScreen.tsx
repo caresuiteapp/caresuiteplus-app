@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
@@ -56,7 +57,7 @@ export function OfficeAuditLogScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.row}>
-            <Text style={styles.icon}>{item.icon}</Text>
+            <SemanticArtwork style={styles.icon} webSize={24}>{item.icon}</SemanticArtwork>
             <View style={styles.main}>
               <Text style={styles.title}>{item.action}</Text>
               <Text style={styles.sub}>{item.detail}</Text>

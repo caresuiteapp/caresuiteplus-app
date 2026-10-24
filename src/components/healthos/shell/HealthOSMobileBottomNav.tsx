@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
@@ -83,7 +84,7 @@ export function HealthOSMobileBottomNav({
             style={styles.tab}
             testID={`healthos-bottom-tab-${tab.key}`}
           >
-            <Text style={styles.icon}>{tab.icon}</Text>
+            <SemanticArtwork webSize={24} webColor={active ? accentColor : styles.label.color} style={styles.icon}>{tab.icon}</SemanticArtwork>
             <Text style={[styles.label, active ? styles.labelActive : styles.labelInactive]}>
               {tab.label}
             </Text>

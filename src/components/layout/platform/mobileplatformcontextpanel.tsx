@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Linking,
@@ -164,7 +165,7 @@ export function MobilePlatformContextPanel({
             style={[styles.actionBtn, webCursor]}
             accessibilityRole="button"
           >
-            <Text style={styles.actionIcon}>{action.icon}</Text>
+            <SemanticArtwork webSize={20} webColor={text.primary} style={styles.actionIcon}>{action.icon}</SemanticArtwork>
             <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
               {action.label}
             </Text>
@@ -205,7 +206,7 @@ export function MobilePlatformContextPanel({
                     {active ? (
                       <View style={[styles.navActiveBar, { backgroundColor: accentColor }]} />
                     ) : null}
-                    <Text style={styles.navIcon}>{item.icon}</Text>
+                    <SemanticArtwork webSize={24} webColor={active ? (isLight ? resolveLightColoredTextColor(accentColor, accentColor) : accentColor) : text.secondary} style={styles.navIcon}>{item.icon}</SemanticArtwork>
                     <Text
                       style={[
                         type.caption,

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
@@ -50,7 +51,7 @@ export function TabletShell({
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={tab.label}
               >
-                <Text style={styles.railIcon}>{tab.icon}</Text>
+                <SemanticArtwork webSize={24} webColor={active ? accentColor : colors.textMuted} style={styles.railIcon}>{tab.icon}</SemanticArtwork>
                 <Text style={[styles.railLabel, active && { color: accentColor }]} numberOfLines={2}>
                   {tab.label}
                 </Text>
@@ -59,8 +60,8 @@ export function TabletShell({
           })}
           <View style={styles.railSpacer} />
           {showModuleSwitcher ? (
-            <Pressable onPress={openSwitcher} style={styles.railItem} accessibilityRole="button">
-              <Text style={styles.railIcon}>🧩</Text>
+            <Pressable onPress={openSwitcher} style={styles.railItem} accessibilityRole="button" accessibilityLabel="Module wechseln">
+              <SemanticArtwork webSize={24} webColor={colors.textMuted} style={styles.railIcon}>🧩</SemanticArtwork>
             </Pressable>
           ) : null}
           <Pressable
@@ -69,7 +70,7 @@ export function TabletShell({
             accessibilityRole="link"
             accessibilityLabel="Hilfe"
           >
-            <Text style={styles.railIcon}>❓</Text>
+            <SemanticArtwork webSize={24} webColor={colors.textMuted} style={styles.railIcon}>❓</SemanticArtwork>
           </Pressable>
           <Pressable
             onPress={() => router.push('/settings/data-request' as never)}
@@ -77,7 +78,7 @@ export function TabletShell({
             accessibilityRole="button"
             accessibilityLabel="Betroffenenrechte"
           >
-            <Text style={styles.railIcon}>🛡️</Text>
+            <SemanticArtwork webSize={24} webColor={colors.textMuted} style={styles.railIcon}>🛡️</SemanticArtwork>
           </Pressable>
         </View>
         <View style={styles.content}>{children}</View>

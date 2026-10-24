@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
@@ -54,7 +55,7 @@ export function TripsListHero({
         </View>
         {!compact ? (
           <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
-            <Text style={styles.iconText}>🚗</Text>
+            <SemanticArtwork style={styles.iconText}>🚗</SemanticArtwork>
           </View>
         ) : null}
       </View>

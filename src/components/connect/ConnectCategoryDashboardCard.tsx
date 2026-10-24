@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import type { ConnectCategoryDashboardStats } from '@/lib/connect/connectPresentation';
@@ -19,7 +20,7 @@ export function ConnectCategoryDashboardCard({
   return (
     <PremiumCard accentColor={colors.cyan}>
       <View style={styles.header}>
-        <Text style={styles.icon}>{category.icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={32} webColor={colors.cyan}>{category.icon}</SemanticArtwork>
         <View style={styles.headerText}>
           <Text style={styles.title}>{category.label}</Text>
           <PremiumBadge

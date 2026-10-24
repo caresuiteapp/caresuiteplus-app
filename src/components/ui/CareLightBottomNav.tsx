@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,7 +39,7 @@ export function CareLightBottomNav({ tabs, accentColor = careLightColors.green }
         accessibilityLabel={tab.label}
       >
         <View style={[styles.pill, active && { backgroundColor: `${accentColor}18` }]}>
-          <Text style={styles.icon}>{tab.icon}</Text>
+          <SemanticArtwork style={styles.icon} webSize={24} webColor={active ? accentColor : careLightColors.navy}>{tab.icon}</SemanticArtwork>
           <Text style={[styles.label, active && { color: accentColor, fontWeight: '700' }]} numberOfLines={1}>
             {tab.label}
           </Text>

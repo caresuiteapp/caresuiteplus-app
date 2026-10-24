@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
@@ -47,7 +48,7 @@ export function AuthRegisterHero() {
           </Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>🏢</Text>
+          <SemanticArtwork style={styles.iconText}>🏢</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

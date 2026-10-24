@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -199,7 +200,7 @@ export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDeta
           ) : null}
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📄</Text>
+          <SemanticArtwork style={styles.iconText}>📄</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>
