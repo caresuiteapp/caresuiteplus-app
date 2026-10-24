@@ -1,7 +1,7 @@
 // Generated native presentation from src/hooks/pflege/useWoundSubmission.web.ts. Update through scripts/port-native-workspaces.mjs.
 import { useEffect, useRef } from 'react';
 import { useMedicationSubmission } from "../useMedicationSubmission.native.ts";
-import type { MedicationWriteResult } from '@/lib/pflege/medicationAdministrationService';
+import type { MedicationWriteResult } from "../../lib/pflege/medicationAdministrationService.native.ts";
 /** A read outage pauses a mounted form without discarding its original request identity. */
 export function useWoundSubmission<P extends object>(dirty: boolean, canSubmit: boolean, execute: (id: string, payload: P, replay: boolean) => Promise<MedicationWriteResult>, confirmed: () => void | Promise<void>) {
     const allowed = useRef(canSubmit === true);

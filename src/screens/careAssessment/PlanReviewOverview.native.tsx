@@ -14,7 +14,7 @@ import { sameWoundJson, woundUuid } from '@/lib/pflege/woundCareDomain';
 import { planReviewControlSources, selectPlanReviewControlSources, type PlanReviewControlSourceFilter } from '@/lib/careAssessment/planReviewControlSources';
 import { PlanReviewControlSources } from "./PlanReviewControlSources.native.tsx";
 import { PlanReviewControlList } from "./PlanReviewControlList.native.tsx";
-import { planReviewDueLabels, planReviewEvidenceLabels } from '@/lib/careAssessment/planReviewOverview';
+import { planReviewDueLabels, planReviewEvidenceLabels } from "../../lib/careAssessment/planReviewOverview.native.ts";
 import { planReviewControls } from '@/lib/careAssessment/planReviewControls';
 import { exportPlanReviewControls } from "../../lib/careAssessment/planReviewControlsExport.native.ts";
 import { evaluationNames } from '@/lib/careAssessment/planEvaluationLabels';

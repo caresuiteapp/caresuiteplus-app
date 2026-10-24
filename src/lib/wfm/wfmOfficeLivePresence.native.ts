@@ -8,7 +8,7 @@ import { isPortalOnlyRole } from '@/lib/permissions/workspaceRoles';
 import { assistBerlinDate, assistText } from "../assist/assistClientsWorkspaceModel.native.ts";
 import { formatWfmStatusLabel } from './wfmClockService';
 import { getWfmLiveEmployeeOverview } from './wfmLiveStatusService';
-import { readOfficeEmployees, readOfficeSessions } from './wfmOfficeTimekeepingReads';
+import { readOfficeEmployees, readOfficeSessions } from "./wfmOfficeTimekeepingReads.native.ts";
 export type OfficeLivePresence = {
     rows: WfmLiveEmployeeRow[];
     onlineCount: number;

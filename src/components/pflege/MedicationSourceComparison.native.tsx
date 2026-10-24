@@ -7,7 +7,7 @@ import { ErrorState, FilterChip, InfoBanner, LoadingState, PremiumButton, Sectio
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 import type { RoleKey } from '@/types';
-import type { MedicationDocumentation } from '@/lib/pflege/medicationAdministrationService';
+import type { MedicationDocumentation } from "../../lib/pflege/medicationAdministrationService.native.ts";
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
 import { sameMedicationListOriginal } from "../../lib/pflege/medicationListOriginal.native.ts";
 import { compareMedicationSourceOriginal, type MedicationComparisonOriginals } from "../../lib/pflege/medicationSourceComparison.native.ts";

@@ -3,7 +3,7 @@ import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freez
 import { isDefiniteMedicationRejection } from './medicationRequestState.ts';
 import { withServiceQueryTimeout } from '../services/queryTimeout';
 import { vitalDetailNativeWriteAuthorityWeb, type VitalDetailWriteRuntimeWeb, type VitalDetailPayloadWeb, type VitalDetailOperationWeb } from "./vitalDetailWriteRuntime.native.ts";
-import type { MedicationWriteResult } from './medicationAdministrationService';
+import type { MedicationWriteResult } from "./medicationAdministrationService.native.ts";
 type Row = Record<string, unknown>;
 const outcomes = new WeakMap<object, {
     runtime: VitalDetailWriteRuntimeWeb;

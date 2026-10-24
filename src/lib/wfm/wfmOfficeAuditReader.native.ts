@@ -10,7 +10,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { listWfmOfficeAuditForEntry as demoAudit } from './wfmOfficeAuditService';
 import { officeReviewIdentity } from './wfmOfficeReviewIntegrity';
 import { readAllOfficeAccountRows } from './wfmOfficeAccountTotals';
-import { readOfficeReviews, readOfficeReviewActions } from './wfmOfficeTimekeepingReads';
+import { readOfficeReviews, readOfficeReviewActions } from "./wfmOfficeTimekeepingReads.native.ts";
 const string = (value: unknown): string | null => typeof value === 'string' ? value : null;
 /** Reload saved audit records; local cached actions must not conceal a failed remote read. */
 export async function listOfficeWebAudit(tenantId: string, roleKey: RoleKey | null, entryId: string, entry: WfmOfficeTimeEntry): Promise<ServiceResult<WfmOfficeAuditEntry[]>> {

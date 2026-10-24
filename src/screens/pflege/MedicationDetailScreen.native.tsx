@@ -26,7 +26,7 @@ import { fetchMedicationWitnessOptions } from '@/lib/pflege/medicationLiveServic
 import { assertMedicationWitnessSelection, decodeMedicationWitnessPool, sameMedicationWitnessPool, type MedicationWitnessPoolOption } from "../../lib/pflege/medicationWitnessPool.native.ts";
 import { medicationTimeDisplay, validMedicationActualTime } from "../../lib/pflege/medicationTimeDisplay.native.ts";
 import { isMedicationGiven, validateMedicationAdministration, validateMedicationFollowUp, type AdministrationOutcome } from '@/lib/pflege/medicationAdministrationDomain';
-import { archiveMedicationSourceCopy, changeMedicationStatus, fetchMedicationSourceFingerprint, fetchMedicationSources, linkMedicationSource, fetchMedicationDocumentation, recordMedicationEvent, recordMedicationFollowUp, type FollowUpPayload, type MedicationDocumentation, type MedicationEvent, type MedicationEventPayload, type MedicationStatusPayload } from '@/lib/pflege/medicationAdministrationService';
+import { archiveMedicationSourceCopy, changeMedicationStatus, fetchMedicationSourceFingerprint, fetchMedicationSources, linkMedicationSource, fetchMedicationDocumentation, recordMedicationEvent, recordMedicationFollowUp, type FollowUpPayload, type MedicationDocumentation, type MedicationEvent, type MedicationEventPayload, type MedicationStatusPayload } from "../../lib/pflege/medicationAdministrationService.native.ts";
 import type { RoleKey } from '@/types';
 import { validateMedicationSource, type MedicationSourceDocument, type MedicationSourcePayload } from '@/lib/pflege/medicationSourceDomain';
 import type { MedicationSourceFingerprint } from '@/lib/pflege/medicationSourceFile';
@@ -235,7 +235,7 @@ type MedicationFormOriginal = {
     context: Context;
     related: object | null;
 };
-function useMedicationFormWrite<P extends object>(context: Context, dirty: boolean, kind: MedicationFormKind, draft: object, related: object | null, prepare: () => P, execute: (id: string, payload: P, replay: boolean, original: MedicationFormOriginal) => Promise<import('@/lib/pflege/medicationAdministrationService').MedicationWriteResult>, confirmed: (isCurrent: () => boolean) => void | Promise<void>) {
+function useMedicationFormWrite<P extends object>(context: Context, dirty: boolean, kind: MedicationFormKind, draft: object, related: object | null, prepare: () => P, execute: (id: string, payload: P, replay: boolean, original: MedicationFormOriginal) => Promise<import("../../lib/pflege/medicationAdministrationService.native.ts").MedicationWriteResult>, confirmed: (isCurrent: () => boolean) => void | Promise<void>) {
     const [owner] = useState(() => ({ tenantId: context.tenantId, actorId: context.actorId, role: context.profileRole, profileRole: context.profileRole, medicationId: context.order.id, clientId: context.order.clientId })), alive = useRef(true), original = useRef<{
         id: string;
         payload: P;

@@ -3,7 +3,7 @@ import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWor
 import { ROLE_PERMISSIONS } from '../permissions/staticRolePermissions.ts';
 import { woundInstant, woundUuid } from './woundCareDomain.ts';
 import { sameWoundReadOriginal } from "./woundReadOriginal.native.ts";
-import type { MedicationWriteResult } from './medicationAdministrationService';
+import type { MedicationWriteResult } from "./medicationAdministrationService.native.ts";
 type Row = Record<string, unknown>;
 export type WoundEditorAccess = {
     owner: string;

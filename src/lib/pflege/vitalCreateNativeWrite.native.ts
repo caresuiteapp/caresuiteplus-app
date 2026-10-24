@@ -2,7 +2,7 @@
 import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freeze } from "../clients/clientRecordNativeOriginal.native.ts";
 import { isDefiniteMedicationRejection } from './medicationRequestState.ts';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
-import type { MedicationWriteResult } from './medicationAdministrationService';
+import type { MedicationWriteResult } from "./medicationAdministrationService.native.ts";
 import type { VitalMeasurementPayload } from './vitalMeasurementDomain';
 import type { VitalCreateRuntimeWeb } from "./vitalCreateRuntime.native.ts";
 type Row = Record<string, unknown>;

@@ -15,7 +15,7 @@ import { enumerateWorkDates, resolveOfficeTimePeriod } from './wfmOfficeDateRang
 import { writeWfmOfficeAudit } from './wfmOfficeAuditService';
 import { appendOfficeMessage, createMessageId, getEntryOverlay, getManualEntry, getVisitJustification, listManualEntries, listOfficeMessages, saveManualEntry, setEntryOverlay, setVisitJustification, updateOfficeMessageReview, } from './wfmOfficeTimekeepingStore';
 import { combineDeviationAmpel, evaluateVisitTimeDeviation, shouldAutoPendingReview, validateDeviationJustification, } from './wfmVisitDeviationAmpelService';
-import { readOfficeSessions as listSessionsForDate, readOfficeEvents as fetchSessionEvents, readOfficeReviews as listReviewsForPeriod, readOfficeReviewActions as listReviewActionsForReviews, readOfficeEmployees, readOfficeAbsences, readOfficePendingRequestCount, mapOfficeReviewRow } from './wfmOfficeTimekeepingReads';
+import { readOfficeSessions as listSessionsForDate, readOfficeEvents as fetchSessionEvents, readOfficeReviews as listReviewsForPeriod, readOfficeReviewActions as listReviewActionsForReviews, readOfficeEmployees, readOfficeAbsences, readOfficePendingRequestCount, mapOfficeReviewRow } from "./wfmOfficeTimekeepingReads.native.ts";
 import { canApproveWfmOfficeTimeEntry } from './wfmOfficeTimeApproval';
 import { resolveWfmOfficeTimeDisplay } from './wfmOfficeTimeDisplayResolver';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';

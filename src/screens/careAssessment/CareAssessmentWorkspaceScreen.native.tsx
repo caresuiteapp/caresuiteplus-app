@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sameWoundJson, woundUuid } from '@/lib/pflege/woundCareDomain';
 import { createCareAssessmentReadBoundary, beginCareAssessmentRead, acceptCareAssessmentQueryRead, captureCareAssessmentPendingRead, acceptCareAssessmentConfirmedRead, isCurrentCareAssessmentReadEnvelope, type CareAssessmentReadScope, type CareAssessmentReadBoundary, type CareAssessmentReadEnvelope, type CareAssessmentPendingRead, type CareAssessmentReadTicket } from "../../lib/careAssessment/careAssessmentReadBoundary.native.ts";
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
-import { makeAssessmentDraftRequest, assertAssessmentDraftStoredRead, type AssessmentDraftRequest } from '@/lib/careAssessment/assessmentDraftRequestDomain';
+import { makeAssessmentDraftRequest, assertAssessmentDraftStoredRead, type AssessmentDraftRequest } from "../../lib/careAssessment/assessmentDraftRequestDomain.native.ts";
 import { assessmentInstrumentPacketIssue, type AssessmentInstrumentPacket } from "../../lib/careAssessment/assessmentInstrumentPacket.native.ts";
 import { AssessmentInstrumentPanel } from "./AssessmentInstrumentPanel.native.tsx";
 import { planLifecyclePacketIssue, type PlanLifecyclePacket } from "../../lib/careAssessment/planLifecyclePacket.native.ts";

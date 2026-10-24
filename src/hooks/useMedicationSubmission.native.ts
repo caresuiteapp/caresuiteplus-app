@@ -1,7 +1,7 @@
 // Generated native presentation from src/hooks/useMedicationSubmission.web.ts. Update through scripts/port-native-workspaces.mjs.
 import { useEffect, useRef, useState } from 'react';
 import { useUnsavedWebChanges } from "./useUnsavedWebChanges.native.ts";
-import type { MedicationWriteResult } from '@/lib/pflege/medicationAdministrationService';
+import type { MedicationWriteResult } from "../lib/pflege/medicationAdministrationService.native.ts";
 import { MedicationRequestState } from '@/lib/pflege/medicationRequestState';
 /** A missing acknowledgement freezes one request; retry never creates a second event. */
 export function useMedicationSubmission<P extends object>(dirty: boolean, execute: (id: string, payload: P, replay: boolean) => Promise<MedicationWriteResult>, confirmed: () => void | Promise<void>) {

@@ -1,6 +1,6 @@
 // Generated native presentation from src/lib/careAssessment/careAssessmentService.web.ts. Update through scripts/port-native-workspaces.mjs.
 import { runAssessmentLifecycleRequest, type AssessmentLifecycleRequest } from './assessmentLifecycleDomain';
-import { runAssessmentDraftRequest, type AssessmentDraftRequest } from './assessmentDraftRequestDomain';
+import { runAssessmentDraftRequest, type AssessmentDraftRequest } from "./assessmentDraftRequestDomain.native.ts";
 import { isDefiniteMedicationRejection } from '@/lib/pflege/medicationRequestState';
 import { getSupabaseClient } from "../supabase/client.ts";
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
