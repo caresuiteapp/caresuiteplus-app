@@ -50,7 +50,7 @@ export const nativeWindow=window,nativeDocument=document,nativeNavigator=navigat
 export const useNativeWorkflowWindow=()=>window;
 export const useVideoPlayer=()=>({addListener:()=>({remove:()=>{}})}),VideoView=View;
 export const isAvailableAsync=async()=>false,shareAsync=deny,printAsync=deny,printToFileAsync=deny;
-export const shareNativeFile=deny,deliverNativeArchive=deny,openNativePdfUrl=deny,printNativePdf=deny;
+export const shareNativeFile=deny,shareNativeExistingFile=deny,deliverNativeArchive=deny,openNativePdfUrl=deny,printNativePdf=deny;
 export const Paths={cache:'layout-fixture://cache'};
 export class File {constructor(uri){this.uri=uri;}get exists(){return false;}}
 export class Directory extends File {}

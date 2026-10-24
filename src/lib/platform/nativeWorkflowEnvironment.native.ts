@@ -8,7 +8,7 @@ import {AccessibilityInfo,Alert,AppState,Appearance,Dimensions} from 'react-nati
 import {synchronousWorkflowStore,nativeWorkflowLocks} from './nativeWorkflowStore.shared';
 import {nativeWorkflowLifecycle,type LifecycleListener} from './nativeWorkflowLifecycle.shared';
 import {nativeWorkspaceNodes} from './nativeWorkspaceNodes.shared';
-import {NativeWorkflowPageContext} from '@/components/navigation/NativeWorkflowPage.native';
+import {NativeWorkflowPageContext} from '@/components/navigation/NativeWorkflowPageContext.shared';
 import {NativeByteBlob} from './nativeByteBlob.shared';
 export type nativeBlob=Blob;
 export const nativeBlob:typeof Blob=NativeByteBlob;
