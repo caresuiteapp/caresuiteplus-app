@@ -88,6 +88,18 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
+  if(screen==='academy'||screen==='web-academy'){
+   const heading=page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true});
+   const titleSize=await heading.evaluate(element=>parseFloat(getComputedStyle(element).fontSize));
+   const copy=page.getByText('Kurse gestalten, Schulungen zuweisen und Abschlüsse gemeinsam verfolgen.',{exact:true});
+   const copyColor=await copy.evaluate(element=>getComputedStyle(element).color);
+   if(titleSize<24||!copyColor.startsWith('rgba(255, 255, 255')&&!copyColor.startsWith('rgb(255, 255, 255')&&!copyColor.startsWith('color(srgb 1 1 1'))throw Error(JSON.stringify({message:'Academy heading scale or header copy contrast differs from the original theme.',screen,viewport,titleSize,copyColor}));
+  }
+  if((screen==='company'||screen==='web-company')&&viewport.width>=1000){
+   const heading=await page.getByRole('heading',{name:'Pflege & Alltag Nord',exact:true}).boundingBox(),brand=await page.getByText('P&',{exact:true}).boundingBox();
+   if(!heading||!brand||brand.x<heading.x+heading.width)throw Error(JSON.stringify({message:'Wide company identity and brand must share the two-column header.',screen,viewport,heading,brand}));
+  }
+
   if(screen==='registration'){for(let step=2;step<=5;step++){if(step===5){await page.getByLabel('Admin-Passwort',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByLabel('Passwort bestätigen',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByRole('checkbox').click();}await page.getByRole('button',{name:'Weiter',exact:true}).click();await page.getByText(`REGISTRIERUNG · SCHRITT ${step} VON 5`,{exact:true}).waitFor();await page.screenshot({path:join(output,`registration-step-${step}-${viewport.width}x${viewport.height}.png`)});}}
   if(screen==='clients'){const filters=page.getByRole('button',{name:/Filter & Sortierung/});if(await filters.count())await filters.click();await page.getByText('Bearbeitungsstand',{exact:true}).waitFor();await page.screenshot({path:join(output,`clients-filters-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
