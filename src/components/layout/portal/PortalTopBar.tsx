@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, useState } from 'react';
 import {
   Platform,
@@ -124,7 +125,7 @@ export function PortalTopBar({
             accessibilityLabel="Menü öffnen"
             testID="portal-hamburger"
           >
-            <Text style={[styles.hamburgerIcon, { color: text.primary }]}>☰</Text>
+            <SemanticArtwork webSize={24} style={[styles.hamburgerIcon, { color: text.primary }]}>☰</SemanticArtwork>
           </Pressable>
         ) : null}
         <View style={styles.compactBrand}>
@@ -183,9 +184,9 @@ export function PortalTopBar({
           <Pressable onPress={() => router.push('/' as never)} style={webCursor}>
             <Text style={[styles.crumbLink, { color: text.muted }]}>Start</Text>
           </Pressable>
-          <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
+          <SemanticArtwork webSize={16} style={[styles.crumbSep, { color: text.muted }]}> › </SemanticArtwork>
           <Text style={[styles.crumbLink, { color: text.muted }]}>{portalLabel}</Text>
-          <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
+          <SemanticArtwork webSize={16} style={[styles.crumbSep, { color: text.muted }]}> › </SemanticArtwork>
           <Text style={[styles.crumbCurrent, { color: text.primary }]}>{portalLabel}</Text>
         </View>
         <Text style={[styles.title, { color: text.primary }]}>{portalLabel}</Text>
@@ -202,7 +203,7 @@ export function PortalTopBar({
             },
           ]}
         >
-          <Text style={[styles.searchIcon, { color: menuInk.muted }]}>⌕</Text>
+          <SemanticArtwork webSize={20} style={[styles.searchIcon, { color: menuInk.muted }]}>⌕</SemanticArtwork>
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -235,7 +236,7 @@ export function PortalTopBar({
               <Text style={[styles.profileName, { color: text.primary }]} numberOfLines={1}>
                 {displayName}
               </Text>
-              <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
+              <SemanticArtwork webSize={16} style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</SemanticArtwork>
             </Pressable>
           </View>
           {profileOpen ? (

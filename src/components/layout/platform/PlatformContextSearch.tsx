@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
@@ -207,7 +208,7 @@ export function PlatformContextSearch({
               }
             : {})}
         >
-          <Text style={styles.searchIcon}>⌕</Text>
+          <SemanticArtwork webSize={20} style={styles.searchIcon}>⌕</SemanticArtwork>
           <TextInput
             ref={inputRef}
             value={query}

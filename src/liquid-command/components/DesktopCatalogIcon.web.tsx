@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import React from 'react';
 import { desktopCatalogIconName, type DesktopCatalogIconName } from './desktopCatalogIconModel.web';
 
@@ -66,21 +67,9 @@ export type DesktopCatalogIconProps = {
 /** Decorative; the enclosing app, widget or workflow supplies its visible label. */
 export function DesktopCatalogIcon({ route, className, size = 24 }: DesktopCatalogIconProps) {
   return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      className={className}
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.65"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <WebActionIcon size={size} className={className}>
       <path d={ICON_PATHS[desktopCatalogIconName(route)]} />
-    </svg>
+    </WebActionIcon>
   );
 }
 

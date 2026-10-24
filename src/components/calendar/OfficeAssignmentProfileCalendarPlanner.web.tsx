@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import {
   createElement,
   useCallback,
@@ -523,7 +524,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
             accessibilityState={{ expanded: plannerOpen }}
             style={({ pressed }) => [styles.plannerToggle, plannerOpen && styles.plannerToggleActive, pressed && styles.profilePressed]}
           >
-            <Text style={styles.plannerToggleIcon}>{plannerOpen ? '−' : '+'}</Text>
+            <SemanticArtwork webSize={20} style={styles.plannerToggleIcon}>{plannerOpen ? '−' : '+'}</SemanticArtwork>
             <Text style={styles.plannerToggleLabel}>Einsatzprofile</Text>
             <Text style={styles.plannerCount}>{query.loading && !query.data ? '…' : profiles.length}</Text>
           </Pressable>
@@ -592,7 +593,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
                       <Text style={styles.employeeName}>{group.employeeName}</Text>
                       <Text style={styles.employeeMeta}>{group.profiles.length} Profil{group.profiles.length === 1 ? '' : 'e'}</Text>
                     </View>
-                    <Text style={styles.employeeChevron}>{expanded ? '−' : '+'}</Text>
+                    <SemanticArtwork webSize={20} style={styles.employeeChevron}>{expanded ? '−' : '+'}</SemanticArtwork>
                   </Pressable>
                   {expanded ? <View style={styles.employeeProfiles}>
                     {group.profiles.map((profile) => <DraggableProfileCard

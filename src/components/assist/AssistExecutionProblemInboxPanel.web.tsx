@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useFlowRouter } from '@/hooks/useFlowRouter';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -46,7 +47,7 @@ const GUIDANCE: Record<AssistProblemCategory, string> = {
 };
 const PAGE_SIZE = 12;
 function Icon({ name, spinning = false }: { name: 'refresh' | 'arrow' | 'chevron'; spinning?: boolean }) {
-  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={spinning ? 'pbi-spin' : undefined}>{name === 'refresh' ? <><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.5-1L20 9M4 15l2.4 3A7 7 0 0 0 18 17"/></> : name === 'chevron' ? <path d="m6 9 6 6 6-6"/> : <path d="M5 12h14m-5-5 5 5-5 5"/>}</svg>;
+  return <WebActionIcon size={16} className={spinning ? 'pbi-spin' : undefined}>{name === 'refresh' ? <><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.5-1L20 9M4 15l2.4 3A7 7 0 0 0 18 17"/></> : name === 'chevron' ? <path d="m6 9 6 6 6-6"/> : <path d="M5 12h14m-5-5 5 5-5 5"/>}</WebActionIcon>;
 }
 function dateLabel(value: string | null) {
   if (!value || !Number.isFinite(Date.parse(value))) return 'Termin nicht hinterlegt';

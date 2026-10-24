@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, useState } from 'react';
 import type { ProductKey } from '@/types';
 import type { SubscriptionWorkspaceSnapshot } from '@/lib/business/subscriptionWorkspaceService.web';
@@ -33,7 +34,7 @@ function ActionIcon({ kind }: { kind: 'refresh' | 'arrow' | 'check' | 'search' |
     search: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0m-2 5 6 6',
     info: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0M12 11v6M12 7h.01',
   };
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[kind]} /></svg>;
+  return <WebActionIcon><path d={paths[kind]} /></WebActionIcon>;
 }
 
 export type SubscriptionWorkspaceProps = {
@@ -104,11 +105,11 @@ export function SubscriptionWorkspace({ data, loading, error, roleLabel, onRefre
 
     <section className="cs-platform-features" aria-labelledby={`${id}-features`}>
       <div className="cs-platform-section-heading"><div><h2 id={`${id}-features`}>Im Plattformumfang enthalten</h2><p>Diese Funktionen ergänzen die Hauptmodule. Der Zugang richtet sich nach Freigaben und Berechtigungen.</p></div></div>
-      <div className="cs-platform-feature-grid">{FEATURES.map((feature) => <div className="cs-platform-feature" key={feature.name}><span className="cs-platform-feature-icon"><DesktopCatalogIcon route={feature.route} size={23} /></span><div><h3>{feature.name}</h3><p>{feature.description}</p></div></div>)}</div>
+      <div className="cs-platform-feature-grid">{FEATURES.map((feature) => <div className="cs-platform-feature" key={feature.name}><span className="cs-platform-feature-icon"><DesktopCatalogIcon route={feature.route} size={24} /></span><div><h3>{feature.name}</h3><p>{feature.description}</p></div></div>)}</div>
     </section>
 
     <div className="cs-platform-bottom-grid">
-      <section className="cs-platform-connections" aria-labelledby={`${id}-connections`}><span className="cs-platform-feature-icon cs-platform-feature-icon--violet"><DesktopCatalogIcon route="/business/connect" size={25} /></span><h2 id={`${id}-connections`}>Externe Anbindungen</h2><p>DATEV, KIM, TI-Anbindung und E-Rezept sind als zusätzliche Dienste vorgesehen. Hier können sie noch nicht gebucht oder aktiviert werden.</p><span className="cs-platform-badge cs-platform-badge--prepared">In Vorbereitung</span></section>
+      <section className="cs-platform-connections" aria-labelledby={`${id}-connections`}><span className="cs-platform-feature-icon cs-platform-feature-icon--violet"><DesktopCatalogIcon route="/business/connect" size={24} /></span><h2 id={`${id}-connections`}>Externe Anbindungen</h2><p>DATEV, KIM, TI-Anbindung und E-Rezept sind als zusätzliche Dienste vorgesehen. Hier können sie noch nicht gebucht oder aktiviert werden.</p><span className="cs-platform-badge cs-platform-badge--prepared">In Vorbereitung</span></section>
       <section className="cs-platform-faq" aria-labelledby={`${id}-faq`}><h2 id={`${id}-faq`}>Gut zu wissen</h2><details><summary>Warum sind nicht alle Module freigeschaltet?</summary><p>Kostenlos enthalten bedeutet nicht automatisch freigegeben. Modulstatus, technische Verfügbarkeit und Ihre Berechtigungen bestimmen den Zugang. Die jeweilige Modulkarte zeigt den aktuellen Stand.</p></details><details><summary>Wo passe ich meinen Desktop an?</summary><p>In „Einstellungen · Apps &amp; Widgets“ wählen Sie für jeden Desktop-Bereich Ihre Apps und Widgets aus. Diese Auswahl ändert keine Modulfreigaben.</p></details><details><summary>Entstehen durch diese Übersicht Kosten?</summary><p>Die Basisplattform kostet 0 € pro Monat. Diese Übersicht löst keine Bestellung und keine kostenpflichtige Aktivierung aus.</p></details></section>
     </div>
     <footer className="cs-platform-footer"><span>{roleLabel || 'Angemeldetes Konto'}</span><span role="status">{loading ? 'Status wird aktualisiert…' : checkedTime ? `Stand: ${checkedTime}` : 'Status abgerufen'}{data.source === 'demo' ? ' · Beispieldaten' : ''}</span></footer>

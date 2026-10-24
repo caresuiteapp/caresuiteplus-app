@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
@@ -61,7 +62,7 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
           <Text style={styles.meta}>{appointment.serviceType}</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📅</Text>
+          <SemanticArtwork style={styles.iconText}>📅</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -49,7 +50,7 @@ export function ActionToolbar({ actions, leftSlot, accentColor, style }: ActionT
         ]}
         accessibilityRole="button"
       >
-        {action.icon ? <Text style={styles.btnIcon}>{action.icon}</Text> : null}
+        {action.icon ? <SemanticArtwork webSize={20} webColor={isPrimary ? styles.btnLabelPrimary.color : isGhost ? styles.btnLabelGhost.color : styles.btnLabel.color} style={styles.btnIcon}>{action.icon}</SemanticArtwork> : null}
         <Text
           style={[
             styles.btnLabel,

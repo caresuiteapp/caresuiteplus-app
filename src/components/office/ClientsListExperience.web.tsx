@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { DeleteIntakeDraftButton } from './DeleteIntakeDraftButton.web';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -37,7 +38,7 @@ const iconPaths: Record<IconName, string> = {
   import: 'M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5',
 };
 function Icon({ name }: { name: IconName }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={iconPaths[name]} /></svg>;
+  return <WebActionIcon><path d={iconPaths[name]} /></WebActionIcon>;
 }
 function formatDate(value?: string | null) {
   if (!value) return 'Nicht hinterlegt';

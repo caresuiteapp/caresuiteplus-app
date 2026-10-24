@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -63,7 +64,7 @@ export function TIVorbereitungHero({
           <Text style={styles.meta}>{subtitle}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${accent}55` }]}>
-          <Text style={styles.iconText}>{icon}</Text>
+          <SemanticArtwork style={styles.iconText}>{icon}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

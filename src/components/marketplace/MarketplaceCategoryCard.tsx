@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MarketplaceCategory } from '@/types/marketplace';
 import { colors, spacing, typography } from '@/theme';
@@ -11,7 +12,7 @@ type MarketplaceCategoryCardProps = {
 export function MarketplaceCategoryCard({ category, partnerCount, onPress }: MarketplaceCategoryCardProps) {
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
-      <Text style={styles.icon}>{category.icon}</Text>
+      <SemanticArtwork style={styles.icon} webSize={32}>{category.icon}</SemanticArtwork>
       <View style={styles.body}>
         <Text style={styles.title}>{category.label}</Text>
         <Text style={styles.description}>{category.description}</Text>

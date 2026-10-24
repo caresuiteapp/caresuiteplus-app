@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useIsFocused, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
@@ -37,14 +38,14 @@ function age(value: string | null, now: number) {
   if (seconds < 3600) return 'vor ' + Math.floor(seconds / 60) + ' Min.';
   return 'vor ' + Math.floor(seconds / 3600) + ' Std.';
 }
-function Icon({ name, size = 18 }: { name: 'car' | 'refresh' | 'back' | 'next' | 'close' | 'pin'; size?: number }) {
+function Icon({ name, size = 20 }: { name: 'car' | 'refresh' | 'back' | 'next' | 'close' | 'pin'; size?: number }) {
   const paths: Record<typeof name, ReactNode> = {
     car: <><path d="m4 10 2-6h12l2 6M4 10h16v8H4zM6 18v3M18 18v3M7 14h2M15 14h2M2 10h2M20 10h2" /></>,
     refresh: <path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3" />,
     back: <path d="m14 6-6 6 6 6" />, next: <path d="m10 6 6 6-6 6" />, close: <path d="m6 6 12 12M18 6 6 18" />,
     pin: <><path d="M19 10c0 6-7 11-7 11S5 16 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></>,
   };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return <WebActionIcon size={size}>{paths[name]}</WebActionIcon>;
 }
 function Badge({ children, tone = 'muted' }: { children: ReactNode; tone?: string }) { return <span className="amw-badge" data-tone={tone}>{children}</span>; }
 const tripTone = (row: AssistMobilityTrip) => row.needsReview ? 'warning' : ['completed', 'confirmed', 'corrected'].includes(row.status) ? 'good' : row.status === 'recording' ? 'blue' : 'muted';
@@ -168,7 +169,7 @@ function Journal({ scope, scopeKey, initialSelectedId, editing, setEditing, edit
     await query.refresh();
   }
   return <>
-    <header className="amw-header"><div className="amw-heading"><span className="amw-symbol"><Icon name="car" size={25} /></span><div><h1>Fahrtenbuch</h1><p>Fahrten prüfen und nachvollziehbar korrigieren.</p></div></div><div className="amw-actions">{query.data ? <span className="amw-sync">Stand {datetime(query.data.generatedAt)}</span> : null}<button className="amw-button" type="button" aria-label="Fahrtenbuch aktualisieren" disabled={busy || editing} onClick={() => void query.refresh()}>{busy ? <span className="amw-spinner" /> : <Icon name="refresh" />}Aktualisieren</button></div></header>
+    <header className="amw-header"><div className="amw-heading"><span className="amw-symbol"><Icon name="car" size={24} /></span><div><h1>Fahrtenbuch</h1><p>Fahrten prüfen und nachvollziehbar korrigieren.</p></div></div><div className="amw-actions">{query.data ? <span className="amw-sync">Stand {datetime(query.data.generatedAt)}</span> : null}<button className="amw-button" type="button" aria-label="Fahrtenbuch aktualisieren" disabled={busy || editing} onClick={() => void query.refresh()}>{busy ? <span className="amw-spinner" /> : <Icon name="refresh" />}Aktualisieren</button></div></header>
     <div className="amw-metrics" aria-label="Gefilterte Fahrten"><Metric label="Fahrten" value={query.data ? String(visible.length) : '—'} /><Metric label="Abgeschlossene Strecke" value={query.data ? distance(totalDistance) : '—'} /><Metric label="Prüfung offen" value={query.data ? String(visible.filter(row => row.needsReview).length) : '—'} /><Metric label="Aufzeichnungen laufen" value={query.data ? String(visible.filter(row => row.status === 'recording').length) : '—'} /></div>
     {completed.length > measured.length ? <p className="amw-message" data-tone="warning">Bei {completed.length - measured.length} abgeschlossenen Fahrten fehlt die Distanz. Diese Fahrten sind in der Kilometerzahl nicht enthalten.</p> : null}
     <RefreshError error={error} hasData={Boolean(query.data)} busy={busy} onRetry={() => void query.refresh()} />
@@ -267,7 +268,7 @@ function Tracking({ scope, scopeKey }: { scope: Scope; scopeKey: string }) {
   const select = (id: string) => { setSelectedId(id); writeParams({ tracking: id }); requestAnimationFrame(() => { heading.current?.focus({ preventScroll: true }); heading.current?.scrollIntoView?.({ block: 'start', behavior: 'auto' }); }); };
   const filtersActive = Boolean(search || employee || signal !== 'all');
   return <>
-    <header className="amw-header"><div className="amw-heading"><span className="amw-symbol"><Icon name="pin" size={25} /></span><div><h1>Tracking</h1><p>Einsätze und freigegebene GPS-Signale.</p></div></div><div className="amw-actions">{query.data ? <span className="amw-sync">Stand {datetime(query.data.generatedAt)}</span> : null}<button type="button" className="amw-button" aria-label="Tracking aktualisieren" disabled={busy} onClick={() => void query.refresh()}>{busy ? <span className="amw-spinner" /> : <Icon name="refresh" />}Aktualisieren</button></div></header>
+    <header className="amw-header"><div className="amw-heading"><span className="amw-symbol"><Icon name="pin" size={24} /></span><div><h1>Tracking</h1><p>Einsätze und freigegebene GPS-Signale.</p></div></div><div className="amw-actions">{query.data ? <span className="amw-sync">Stand {datetime(query.data.generatedAt)}</span> : null}<button type="button" className="amw-button" aria-label="Tracking aktualisieren" disabled={busy} onClick={() => void query.refresh()}>{busy ? <span className="amw-spinner" /> : <Icon name="refresh" />}Aktualisieren</button></div></header>
     <div className="amw-metrics" aria-label="Gefilterte Tracking-Übersicht"><Metric label="Einsätze" value={query.data ? String(visible.length) : '—'} /><Metric label="GPS aktuell" value={query.data ? String(visible.filter(row => row.trackingState === 'live').length) : '—'} /><Metric label="Kein aktuelles Signal" value={query.data ? String(visible.filter(row => row.trackingState !== 'live').length) : '—'} /></div>
     <RefreshError error={error} hasData={Boolean(query.data)} busy={busy} onRetry={() => void query.refresh()} />
     {query.data?.warnings.map(warning => <p className="amw-message" data-tone="warning" role="status" key={warning}>{warning}</p>)}

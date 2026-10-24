@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -205,7 +206,7 @@ export function VitalReadingCreateScreen() {
             />
           ) : <InfoBanner presentation="inline" variant="warning" message="Keine aktive Klient:in vorhanden." />}
           <View style={styles.auditStrip}>
-            <Text style={styles.auditIcon}>🔐</Text>
+            <SemanticArtwork webSize={24} style={styles.auditIcon}>🔐</SemanticArtwork>
             <View style={styles.auditText}><Text style={styles.auditTitle}>Automatische Protokollierung</Text>
               <Text style={styles.auditMeta}>{employeeName} · Datum und Uhrzeit werden beim Speichern vom Server gesetzt.</Text></View>
           </View>
@@ -226,7 +227,7 @@ export function VitalReadingCreateScreen() {
                       const enabled = configByKey.get(item.key)?.enabled ?? item.defaultEnabled;
                       return (
                         <View key={item.key} style={[styles.configCard, enabled && { borderColor: item.color, backgroundColor: `${item.color}0D` }]}>
-                          <Text style={styles.configIcon}>{item.icon}</Text>
+                          <SemanticArtwork webSize={24} webColor={item.color} style={styles.configIcon}>{item.icon}</SemanticArtwork>
                           <View style={styles.configText}><Text style={styles.configLabel}>{item.label}</Text>
                             <Text style={styles.configStatus}>{enabled ? 'Aktiviert' : 'Deaktiviert'}</Text></View>
                           {updatingKey === item.key ? <ActivityIndicator size="small" color={item.color} /> : (
@@ -246,7 +247,7 @@ export function VitalReadingCreateScreen() {
                 <Pressable key={item.key} onPress={() => setTypeKey(item.key)} accessibilityRole="button"
                   accessibilityState={{ selected: item.key === typeKey }}
                   style={({ pressed }) => [styles.typeCard, item.key === typeKey && { borderColor: item.color, backgroundColor: `${item.color}12`, transform: [{ scale: 1.015 }] }, pressed && styles.pressed]}>
-                  <View style={[styles.typeIconWrap, { backgroundColor: `${item.color}18` }]}><Text style={styles.typeIcon}>{item.icon}</Text></View>
+                  <View style={[styles.typeIconWrap, { backgroundColor: `${item.color}18` }]}><SemanticArtwork webSize={24} webColor={item.color} style={styles.typeIcon}>{item.icon}</SemanticArtwork></View>
                   <Text style={[styles.typeLabel, item.key === typeKey && { color: item.color }]}>{item.shortLabel}</Text>
                   {item.key === typeKey ? <View style={[styles.activeDot, { backgroundColor: item.color }]} /> : null}
                 </Pressable>

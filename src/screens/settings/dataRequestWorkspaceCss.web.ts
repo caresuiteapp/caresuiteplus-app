@@ -74,7 +74,7 @@ export const DATA_REQUEST_WORKSPACE_CSS = `
     line-height: 1.4; text-align: center; overflow-wrap: anywhere;
     transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
   }
-  .cs-data-request-button svg { width: 17px; height: 17px; }
+  .cs-data-request-button svg {--cs-action-icon-size:16px; width: 16px; height: 16px; }
   .cs-data-request-button--primary { color: #fff; background: linear-gradient(125deg, #0876ee, #065bc7); border-color: #0866d5; box-shadow: 0 4px 10px rgba(8, 95, 196, .17), inset 0 1px 0 rgba(255, 255, 255, .17); }
   .cs-data-request-button--secondary { color: #155fae; background: #f3f8ff; border-color: #c6d9f0; }
   .cs-data-request-button--quiet { color: #49617a; background: #fff; border-color: #dce5ef; }
@@ -82,7 +82,7 @@ export const DATA_REQUEST_WORKSPACE_CSS = `
   .cs-data-request :is(button, input, textarea, select, summary):focus-visible { outline: 3px solid #1477d6; outline-offset: 3px; }
   .cs-data-request button:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
   .cs-data-request-feedback { display: flex; align-items: flex-start; gap: 8px; padding: 11px 13px; margin-top: 14px; border: 1px solid; border-radius: 12px; font-size: calc(12px * var(--app-font-scale, 1)); overflow-wrap: anywhere; }
-  .cs-data-request-feedback svg { width: 17px; height: 17px; margin-top: 1px; }
+  .cs-data-request-feedback svg {--cs-action-icon-size:16px; width: 16px; height: 16px; margin-top: 1px; }
   .cs-data-request-feedback--error { color: #9b3034; border-color: #f1c8c6; background: #fff2f1; }
   .cs-data-request-feedback--success { color: #266647; border-color: #cbe9d9; background: #edf9f3; }
   .cs-data-request-feedback--notice { color: #80561e; border-color: #ead5b0; background: #fff9ed; }
@@ -90,7 +90,7 @@ export const DATA_REQUEST_WORKSPACE_CSS = `
   .cs-data-request-export-scope h3 { font-size: calc(13px * var(--app-font-scale, 1)); font-weight: 650; }
   .cs-data-request-export-scope ul { padding: 0; margin: 10px 0 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
   .cs-data-request-export-scope li { display: flex; align-items: flex-start; gap: 8px; color: #48627d; font-size: calc(12px * var(--app-font-scale, 1)); }
-  .cs-data-request-export-scope li svg { width: 15px; height: 15px; margin-top: 2px; color: #26836b; }
+  .cs-data-request-export-scope li svg {--cs-action-icon-size:16px; width: 16px; height: 16px; margin-top: 2px; color: #26836b; }
   .cs-data-request-export-description { color: var(--dr-muted); font-size: calc(12px * var(--app-font-scale, 1)); }
   .cs-data-request-export-actions { display: flex; flex-direction: column; gap: 9px; margin-top: 18px; }
   .cs-data-request-export-note { padding-top: 14px; margin-top: 18px !important; border-top: 1px solid #e7edf5; }
@@ -121,7 +121,7 @@ export const DATA_REQUEST_WORKSPACE_CSS = `
   .cs-data-request-item-meta dt { color: #60758c; font-size: calc(11px * var(--app-font-scale, 1)); }
   .cs-data-request-item-meta dd { margin-top: 4px; color: #34516c; overflow-wrap: anywhere; }
   .cs-data-request-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 30px 20px; text-align: center; border: 1px dashed #d5e1ed; border-radius: 16px; background: #f9fbfd; }
-  .cs-data-request-empty > svg { color: #6787a8; width: 28px; height: 28px; margin-bottom: 2px; }
+  .cs-data-request-empty > svg {--cs-action-icon-size:32px; color: #6787a8; width: 32px; height: 32px; margin-bottom: 2px; }
   .cs-data-request-empty h3 { font-size: calc(14px * var(--app-font-scale, 1)); font-weight: 650; }
   .cs-data-request-empty p { max-width: 43em; color: var(--dr-muted); font-size: calc(12px * var(--app-font-scale, 1)); }
   .cs-data-request-history-footer { display: flex; justify-content: center; margin-top: 18px; }
@@ -131,7 +131,7 @@ export const DATA_REQUEST_WORKSPACE_CSS = `
   .cs-data-request-link > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .cs-data-request-link strong { font-size: calc(13px * var(--app-font-scale, 1)); font-weight: 650; }
   .cs-data-request-link > span > span { color: var(--dr-muted); font-size: calc(11px * var(--app-font-scale, 1)); }
-  .cs-data-request-link > svg { width: 17px; height: 17px; color: #48749f; }
+  .cs-data-request-link > svg {--cs-action-icon-size:16px; width: 16px; height: 16px; color: #48749f; }
   .cs-data-request-link--danger strong { color: #a24648; }
   .cs-data-request-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
   @media (hover: hover) {

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
@@ -82,18 +83,20 @@ function NumberStepper({
       <View style={styles.stepper}>
         <Pressable
           onPress={() => onChange(Math.max(min, value - 1))}
+          {...(Platform.OS === 'web' ? { accessibilityRole: 'button' as const, accessibilityLabel: `${label} verringern` } : {})}
           disabled={value <= min}
           style={({ pressed }) => [styles.stepperButton, value <= min && styles.disabled, pressed && styles.pressed]}
-        ><Text style={styles.stepperButtonText}>−</Text></Pressable>
+        ><SemanticArtwork webSize={20} style={styles.stepperButtonText}>−</SemanticArtwork></Pressable>
         <View style={styles.stepperValueWrap}>
           <Text style={styles.stepperValue}>{value}</Text>
           {suffix ? <Text style={styles.stepperSuffix}>{suffix}</Text> : null}
         </View>
         <Pressable
           onPress={() => onChange(Math.min(max, value + 1))}
+          {...(Platform.OS === 'web' ? { accessibilityRole: 'button' as const, accessibilityLabel: `${label} erhöhen` } : {})}
           disabled={value >= max}
           style={({ pressed }) => [styles.stepperButton, value >= max && styles.disabled, pressed && styles.pressed]}
-        ><Text style={styles.stepperButtonText}>＋</Text></Pressable>
+        ><SemanticArtwork webSize={20} style={styles.stepperButtonText}>＋</SemanticArtwork></Pressable>
       </View>
     </View>
   );
@@ -149,7 +152,7 @@ export function OfficeCalendarSettingsModal({
       ]}
     >
       <View style={styles.intro}>
-        <View style={styles.introIcon}><Text style={styles.introIconText}>⚙</Text></View>
+        <View style={styles.introIcon}><SemanticArtwork webSize={28} style={styles.introIconText}>⚙</SemanticArtwork></View>
         <View style={styles.introCopy}>
           <Text style={styles.introTitle}>Persönliche Kalenderdarstellung</Text>
           <Text style={styles.introText}>Die Einstellungen ändern die Darstellung, nicht die gespeicherten Termine oder Einsätze.</Text>

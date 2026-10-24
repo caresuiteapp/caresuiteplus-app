@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -85,7 +86,7 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
           <Text style={styles.meta}>{meta.meta}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${meta.accentColor}55` }]}>
-          <Text style={styles.iconText}>{meta.icon}</Text>
+          <SemanticArtwork style={styles.iconText}>{meta.icon}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

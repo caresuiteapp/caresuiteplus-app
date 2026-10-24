@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
+import { Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
@@ -27,7 +29,7 @@ export function TenantSettingsNavLink({ variant = 'footer' }: TenantSettingsNavL
         accessibilityRole="button"
         accessibilityLabel="Mandant bearbeiten"
       >
-        <Text style={styles.railIcon}>🏢</Text>
+        <SemanticArtwork webSize={24} style={styles.railIcon}>🏢</SemanticArtwork>
       </Pressable>
     );
   }
@@ -41,7 +43,7 @@ export function TenantSettingsNavLink({ variant = 'footer' }: TenantSettingsNavL
       accessibilityRole="button"
       accessibilityLabel="Mandant bearbeiten"
     >
-      <Text style={isLight ? styles.footerBtnTextLight : styles.footerLinkText}>🏢 Mandant</Text>
+      <SemanticIconLabel symbol="🏢" label="Mandant" style={isLight ? styles.footerBtnTextLight : styles.footerLinkText} />
     </Pressable>
   );
 }

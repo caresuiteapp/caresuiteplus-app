@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -43,7 +44,7 @@ export function CatalogIcon({ kind = 'book' }: { kind?: IconName }) {
     alert: <><path d="m12 3 10 18H2zM12 9v5M12 17h.01"/></>,
     layers: <><path d="m12 3 10 5-10 5L2 8zM3 12l9 5 9-5M3 16l9 5 9-5"/></>,
   };
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+  return <WebActionIcon>{paths[kind]}</WebActionIcon>;
 }
 
 export function CatalogWorkspace({ title, subtitle, children, actions, back, busy = false }: {

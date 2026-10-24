@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
@@ -50,7 +51,7 @@ export function CareLightTabletShell({
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={tab.label}
               >
-                <Text style={styles.railIcon}>{tab.icon}</Text>
+                <SemanticArtwork webSize={24} webColor={active ? accentColor : careLightColors.navy} style={styles.railIcon}>{tab.icon}</SemanticArtwork>
                 <Text style={[styles.railLabel, active && { color: accentColor }]} numberOfLines={2}>
                   {tab.label}
                 </Text>
@@ -59,16 +60,17 @@ export function CareLightTabletShell({
           })}
           <View style={styles.railSpacer} />
           {showModuleSwitcher ? (
-            <Pressable onPress={openSwitcher} style={styles.railItem} accessibilityRole="button">
-              <Text style={styles.railIcon}>🧩</Text>
+            <Pressable onPress={openSwitcher} style={styles.railItem} accessibilityRole="button" accessibilityLabel="Module wechseln">
+              <SemanticArtwork webSize={24} webColor={careLightColors.navy} style={styles.railIcon}>🧩</SemanticArtwork>
             </Pressable>
           ) : null}
           <Pressable
             onPress={() => openExternal(SUPPORT_LINKS.help)}
             style={styles.railItem}
             accessibilityRole="link"
+            accessibilityLabel="Hilfe"
           >
-            <Text style={styles.railIcon}>❓</Text>
+            <SemanticArtwork webSize={24} webColor={careLightColors.navy} style={styles.railIcon}>❓</SemanticArtwork>
           </Pressable>
         </View>
         <View style={styles.content}>{children}</View>

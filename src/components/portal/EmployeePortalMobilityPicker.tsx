@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import {
@@ -95,7 +96,7 @@ export function EmployeePortalMobilityPicker({
               ]}
               testID={`employee-mobility-${mode}`}
             >
-              <Text style={styles.icon}>{EMPLOYEE_TRANSPORT_MODE_ICONS[mode]}</Text>
+              <SemanticArtwork style={styles.icon} webSize={compact ? 24 : 32} webColor={portalPremium.accent.blueDark}>{EMPLOYEE_TRANSPORT_MODE_ICONS[mode]}</SemanticArtwork>
               <Text style={styles.label}>{LABELS[mode]}</Text>
             </Pressable>
           );

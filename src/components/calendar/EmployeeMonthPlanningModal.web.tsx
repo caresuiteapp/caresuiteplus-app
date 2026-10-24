@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { notifyCalendarWorkspaceChanged } from '@/lib/calendar/calendarWorkspaceRefresh.web';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -44,9 +45,9 @@ function PlanningCheckbox({ checked, disabled, onChange, accessibilityLabel, lab
     <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
       width: 24, height: 24, flexShrink: 0, boxSizing: 'border-box', borderRadius: 5,
       border: `2px solid ${checked ? '#086FDF' : '#316398'}`, background: checked ? '#086FDF' : '#FFFFFF' }}>
-      {checked ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-        <path d="m5 12 4 4L19 6" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg> : null}
+      {checked ? <WebActionIcon style={{ color: '#FFFFFF' }}>
+        <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
+      </WebActionIcon> : null}
     </span>
     <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{label}</span>
   </button>;

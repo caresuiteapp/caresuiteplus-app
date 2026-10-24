@@ -1,3 +1,5 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
@@ -55,7 +57,7 @@ export function CareLightDesktopShell({
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={styles.navIcon}>{tab.icon}</Text>
+                  <SemanticArtwork webSize={24} webColor={active ? accentColor : careLightColors.navy} style={styles.navIcon}>{tab.icon}</SemanticArtwork>
                   <Text style={[styles.navLabel, active && { color: accentColor }]}>{tab.label}</Text>
                 </Pressable>
               );
@@ -64,7 +66,7 @@ export function CareLightDesktopShell({
           <View style={styles.sidebarFooter}>
             {showModuleSwitcher ? (
               <Pressable onPress={openSwitcher} style={styles.footerBtn} accessibilityRole="button">
-                <Text style={styles.footerBtnText}>🧩 Module wechseln</Text>
+                <SemanticIconLabel symbol="🧩" label="Module wechseln" style={styles.footerBtnText} />
               </Pressable>
             ) : null}
             <Pressable
@@ -72,7 +74,7 @@ export function CareLightDesktopShell({
               style={styles.footerBtn}
               accessibilityRole="link"
             >
-              <Text style={styles.footerBtnText}>❓ Hilfe</Text>
+              <SemanticIconLabel symbol="❓" label="Hilfe" style={styles.footerBtnText} />
             </Pressable>
             <Pressable onPress={() => void signOut()} style={styles.footerBtn} accessibilityRole="button">
               <Text style={styles.footerBtnText}>Abmelden</Text>

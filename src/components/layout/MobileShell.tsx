@@ -1,5 +1,6 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -49,7 +50,7 @@ export function MobileShell({
           accessibilityRole="button"
           accessibilityLabel="Module wechseln"
         >
-          <Text style={[styles.switcherFabText, { color: linkColor }]}>🧩 Module</Text>
+          <SemanticIconLabel symbol="🧩" label="Module" style={[styles.switcherFabText, { color: linkColor }]} />
         </Pressable>
       ) : null}
       <AppTabBar

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -25,12 +26,12 @@ export function AuroraMenuItem({ title, description, icon, onPress, active = fal
         style,
       ]}
     >
-      {icon ? <Text style={styles.icon}>{icon}</Text> : null}
+      {icon ? <SemanticArtwork style={styles.icon} webSize={24} webColor={careSuiteAuroraTheme.accent.cyan}>{icon}</SemanticArtwork> : null}
       <View style={styles.textCol}>
         <Text style={[typography.bodyStrong, styles.title]}>{title}</Text>
         {description ? <Text style={[typography.caption, styles.description]}>{description}</Text> : null}
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <SemanticArtwork style={styles.chevron} webSize={20}>›</SemanticArtwork>
     </Pressable>
   );
 }

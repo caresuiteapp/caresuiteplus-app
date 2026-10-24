@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import {
   Modal,
@@ -92,7 +93,7 @@ export function PortalNavigationDrawer({
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: drawerText.primary }]}>{portalLabel}</Text>
             <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityRole="button" accessibilityLabel="Schließen">
-              <Text style={[styles.closeText, { color: drawerText.muted }]}>✕</Text>
+              <SemanticArtwork webSize={20} style={[styles.closeText, { color: drawerText.muted }]}>✕</SemanticArtwork>
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -113,7 +114,7 @@ export function PortalNavigationDrawer({
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={styles.navIcon}>{tab.icon}</Text>
+                  <SemanticArtwork webSize={24} webColor={active ? drawerText.primary : drawerText.secondary} style={styles.navIcon}>{tab.icon}</SemanticArtwork>
                   <Text style={[styles.navLabel, { color: active ? drawerText.primary : drawerText.secondary }, active && { fontWeight: '700' }]}>
                     {tab.label}
                   </Text>
@@ -132,7 +133,7 @@ export function PortalNavigationDrawer({
               accessibilityLabel="Abmelden"
               testID="portal-drawer-logout"
             >
-              <Text style={styles.navIcon}>⎋</Text>
+              <SemanticArtwork webSize={24} webColor={drawerText.primary} style={styles.navIcon}>⎋</SemanticArtwork>
               <Text style={[styles.logoutLabel, { color: drawerText.primary }]}>Abmelden</Text>
             </Pressable>
           </View>

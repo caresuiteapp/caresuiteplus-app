@@ -20,6 +20,7 @@ import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFull
 import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { documentsWorkspaceRouteTitle } from '@/lib/navigation/documentsWorkspaceRoutes';
 import { officeModuleAssignmentRouteTitle } from '@/lib/navigation/officeModuleAssignmentRoutes.web';
+import { officeQmRouteTitle } from '@/lib/navigation/officeQmRoutes.web';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
@@ -66,6 +67,8 @@ const POPUP_TITLES: Record<string, string> = {
 };
 
 function popupTitle(pathname: string): string {
+  const qmTitle = officeQmRouteTitle(pathname);
+  if (qmTitle) return qmTitle;
   const assignmentTitle = officeModuleAssignmentRouteTitle(pathname);
   if (assignmentTitle) return assignmentTitle;
   if (/^\/beratung\/arbeitsplatz(?:\/[^/]+)?\/?$/.test(pathname)) return /^\/beratung\/arbeitsplatz\/?$/.test(pathname) ? 'Beratung & Schulungen' : 'Beratungsakte';

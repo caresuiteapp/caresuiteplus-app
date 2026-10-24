@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -28,7 +29,7 @@ const employeeLabel = (visit: AssistTourVisit) => visit.employeeName || (visit.e
 const timeRange = (visit: AssistTourVisit) => `${formatTime(visit.scheduledStart)}–${formatTime(visit.scheduledEnd)}${assistBerlinDate(new Date(visit.scheduledStart)) !== assistBerlinDate(new Date(visit.scheduledEnd)) ? ' (' + new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit' }).format(new Date(visit.scheduledEnd)) + ')' : ''}`;
 const visitRoute = (id: string, edit = false) => '/assist/assignments/' + encodeURIComponent(id) + (edit ? '/edit' : '');
 
-function Icon({ name, size = 17 }: { name: 'route' | 'refresh' | 'plus' | 'left' | 'right'; size?: number }) {
+function Icon({ name, size = 20 }: { name: 'route' | 'refresh' | 'plus' | 'left' | 'right'; size?: number }) {
   const paths: Record<typeof name, ReactNode> = {
     route: <><circle cx="6" cy="5" r="2" /><circle cx="18" cy="19" r="2" /><path d="M6 7v5a4 4 0 0 0 8 0V9a4 4 0 0 1 4-4h1M18 17v-3" /></>,
     refresh: <path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3" />,
@@ -36,7 +37,7 @@ function Icon({ name, size = 17 }: { name: 'route' | 'refresh' | 'plus' | 'left'
     left: <path d="m14 5-7 7 7 7" />,
     right: <path d="m10 5 7 7-7 7" />,
   };
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+  return <WebActionIcon size={size}>{paths[name]}</WebActionIcon>;
 }
 
 export function AssistTourPlanningWorkspace({ view = 'planning' }: { view?: View }) {
@@ -157,7 +158,7 @@ function TourPlanningContent({ scope, tenantId, roleKey, permissions, view }: { 
 
   return <section className="atw" data-assist-tour-planning="workspace-v1" data-tour-view={view} data-detail-open={Boolean(detailOpen && selected && selectedVisible)}>
     <header className="atw-heading">
-      <div className="atw-heading-main"><span className="atw-symbol"><Icon name="route" size={25} /></span><div><span className="atw-eyebrow">ASSIST</span><h1>{view === 'planning' ? 'Tourenplanung' : 'Touren & Vertretung'}</h1><p>{view === 'planning' ? 'Gespeicherte Einsätze als Tagesfahrplan je Mitarbeitenden.' : 'Zuweisungen prüfen und passende Vertretungen vorbereiten.'}</p></div></div>
+      <div className="atw-heading-main"><span className="atw-symbol"><Icon name="route" size={24} /></span><div><span className="atw-eyebrow">ASSIST</span><h1>{view === 'planning' ? 'Tourenplanung' : 'Touren & Vertretung'}</h1><p>{view === 'planning' ? 'Gespeicherte Einsätze als Tagesfahrplan je Mitarbeitenden.' : 'Zuweisungen prüfen und passende Vertretungen vorbereiten.'}</p></div></div>
       <div className="atw-actions"><button type="button" className="atw-button" onClick={() => navigate('/assist/calendar')}>Kalender</button>{canManage ? <button type="button" className="atw-button atw-button-primary" onClick={() => navigate(createRoute)}><Icon name="plus" />Einsatz planen</button> : null}</div>
     </header>
     <MobilityWorkspaceNav active={view === 'planning' ? 'tours' : 'replacement'} />

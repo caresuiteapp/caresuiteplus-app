@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
@@ -108,7 +109,7 @@ function PortalTabHeroLegacy(props: PortalTabHeroProps) {
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${accent}55` }]}>
-          <Text style={styles.iconText}>{tabIcons[tab]}</Text>
+          <SemanticArtwork style={styles.iconText}>{tabIcons[tab]}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

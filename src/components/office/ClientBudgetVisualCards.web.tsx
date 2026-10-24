@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, useState } from 'react';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import type { ClientBudgetVisualModel } from '@/lib/assist/clientBudgetVisuals.web';
@@ -21,7 +22,7 @@ function status(model: ClientBudgetVisualModel) {
 }
 
 function InfoIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none" /></svg>;
+  return <WebActionIcon><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none" /></WebActionIcon>;
 }
 
 function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
@@ -81,7 +82,7 @@ function Opportunity({ model }: { model: ClientBudgetVisualModel }) {
     <summary>
       <span className="cbv-opportunity-title"><strong>{model.title}</strong><small>{model.legalLabel} · {status(model).text}</small></span>
       {showPotential ? <span className="cbv-opportunity-value"><strong>{money(model.totalCents)}</strong><small>mögliches Gesamtbudget</small></span> : null}
-      <svg className="cbv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      <WebActionIcon className="cbv-chevron"><path d="m6 9 6 6 6-6" /></WebActionIcon>
     </summary>
     <div className="cbv-opportunity-body"><BudgetVisualCard model={model} /></div>
   </details>;

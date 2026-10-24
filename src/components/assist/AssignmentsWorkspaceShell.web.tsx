@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import type { ReactNode } from 'react';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
 
@@ -29,7 +30,7 @@ export function AssignmentWorkspaceIcon({ name, size = 20 }: { name: string; siz
     alert: 'M12 3 2 21h20L12 3Zm0 6v5m0 3v1',
     play: 'm8 4 12 8-12 8z',
   };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] ?? paths.calendar} /></svg>;
+  return <WebActionIcon size={size}><path d={paths[name] ?? paths.calendar} /></WebActionIcon>;
 }
 
 export function AssignmentsWorkspaceShell({ title, description, eyebrow = 'ASSIST · EINSÄTZE', actions, onBack, children }: {

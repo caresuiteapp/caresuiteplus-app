@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -47,7 +48,7 @@ export function CareLightEmptyState({
 
   return (
     <View style={styles.root}>
-      <Text style={styles.emoji}>📭</Text>
+      <SemanticArtwork style={styles.emoji} webSize={40} webColor={systemLiquidGlass.text.secondary}>📭</SemanticArtwork>
       <Text style={styles.title}>{title}</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {actionLabel && onAction ? (

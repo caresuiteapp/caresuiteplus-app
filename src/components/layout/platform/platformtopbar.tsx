@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, useState } from 'react';
 import {
   Platform,
@@ -132,7 +133,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
               </Text>
             </View>
             <View style={styles.chevronSlot}>
-              <Text style={styles.chevron}>{tenantOpen ? '▴' : '▾'}</Text>
+              <SemanticArtwork webSize={16} style={styles.chevron}>{tenantOpen ? '▴' : '▾'}</SemanticArtwork>
             </View>
           </Pressable>
           {tenantOpen ? (

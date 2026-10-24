@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
@@ -23,7 +24,7 @@ export function CareLightListItem({
 }: CareLightListItemProps) {
   const leading = icon ? (
     <View style={styles.iconWrap}>
-      <Text style={styles.icon}>{icon}</Text>
+      <SemanticArtwork style={styles.icon} webSize={32}>{icon}</SemanticArtwork>
     </View>
   ) : undefined;
   const combinedSubtitle = [subtitle, meta].filter(Boolean).join(' · ');

@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useId, useState, type ReactNode } from 'react';
 import type { NoteDraft, NoteContent, NoteField, NoteTask, NoteSource, NoteFormat } from '@/lib/office/notes/types.web';
 import { NOTE_CATEGORIES, NOTE_FORMATS, NOTE_STATUSES, newNoteId } from '@/lib/office/notes/model.web';
@@ -16,9 +17,9 @@ function Section({ title, count, initialOpen, children }: { title: string; count
 }
 
 function FormatIcon({ format }: { format: NoteFormat }) {
-  return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  return <WebActionIcon>
     {format === 'plain' ? <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6M9 12h6M9 16h4" /></> : format === 'cornell' ? <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v11M3 15h18" /></> : format === 'mindmap' ? <><rect x="8" y="9" width="8" height="6" rx="2" /><path d="m8 10-4-4m12 4 4-4m-4 8 4 4M8 14l-4 4" /><circle cx="3" cy="5" r="2" /><circle cx="21" cy="5" r="2" /><circle cx="3" cy="19" r="2" /><circle cx="21" cy="19" r="2" /></> : <><path d="m4 17-1 4 4-1L20 7a2.2 2.2 0 0 0-3-3L4 17Zm11-11 3 3M4 17l3 3" /><path d="M12 21h9" /></>}
-  </svg>;
+  </WebActionIcon>;
 }
 
 export function NoteEditor({ draft, onChange, disabled = false }: Props) {

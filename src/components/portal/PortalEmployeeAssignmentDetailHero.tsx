@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
@@ -148,7 +149,7 @@ export function PortalEmployeeAssignmentDetailHero({
           {assignment.location ? <Text style={styles.subtitle}>{assignment.location}</Text> : null}
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📋</Text>
+          <SemanticArtwork style={styles.iconText}>📋</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

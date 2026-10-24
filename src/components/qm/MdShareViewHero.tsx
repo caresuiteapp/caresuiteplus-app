@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -54,7 +55,7 @@ export function MdShareViewHero({ packageTitle, documentCount, inspectionYear }:
           <Text style={styles.meta}>Token-validierte Einsicht — kein PDF-Download</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>👁️</Text>
+          <SemanticArtwork style={styles.iconText}>👁️</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

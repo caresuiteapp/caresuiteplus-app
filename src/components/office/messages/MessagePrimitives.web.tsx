@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { messageInitials } from '@/lib/office/messageWorkspace.web';
@@ -24,7 +25,7 @@ const paths = {
   edit: 'm15 5 4 4 M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15Z',
 } as const;
 export function MessageIcon({ name }: { name: keyof typeof paths }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
+  return <WebActionIcon><path d={paths[name]} /></WebActionIcon>;
 }
 export function MessageButton({ children, icon, tone = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { icon?: keyof typeof paths; tone?: 'primary' | 'secondary' | 'danger' | 'quiet' }) {
   return <button type="button" {...props} className={`mw-button mw-button--${tone} ${className}`}>{icon && <MessageIcon name={icon} />}{children}</button>;

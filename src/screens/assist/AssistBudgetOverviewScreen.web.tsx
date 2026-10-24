@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -136,11 +137,11 @@ function BudgetClientWorkspace({ scope, tenantId, roleKey }: { scope: string; te
 
   return <section className="abo" data-testid="assist-budget-workspace" data-budget-workspace="light-v1">
     <header className="abo-heading">
-      <div className="abo-title"><span className="abo-title-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16v14H4zM4 6l13-3v3M16 11h4v5h-4a2.5 2.5 0 0 1 0-5Z"/><path d="M16 13.5h.01"/></svg></span>
+      <div className="abo-title"><span className="abo-title-icon" aria-hidden="true"><WebActionIcon size={32}><path d="M4 6h16v14H4zM4 6l13-3v3M16 11h4v5h-4a2.5 2.5 0 0 1 0-5Z"/><path d="M16 13.5h.01"/></WebActionIcon></span>
         <div><span className="abo-eyebrow">ASSIST</span><h1>Budgets</h1><p>Ansprüche und Abrechnungsquellen im Blick.</p></div>
       </div>
       <button className="abo-button" type="button" disabled={clientsQuery.loading || clientsQuery.refreshing} onClick={() => void clientsQuery.refresh()} aria-label="Klientenliste aktualisieren">
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3"/></svg>
+        <WebActionIcon size={16}><path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3"/></WebActionIcon>
         {clientsQuery.refreshing ? 'Wird aktualisiert …' : 'Liste aktualisieren'}
       </button>
     </header>
