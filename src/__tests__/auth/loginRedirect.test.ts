@@ -67,7 +67,8 @@ describe('post-login redirect routing', () => {
     expect(employee).not.toContain('setSuccess(true)');
 
     expect(client).not.toContain('signInDemo');
-    expect(client).toContain('router.replace(resolvePostLoginRoute');
+    expect(client).toContain("resolvePostLoginRoute('client_portal')");
+    expect(client).toContain("completed.data.portalSession.portalType === 'academy_family'");
     expect(client).not.toContain('setSuccess(true)');
   });
 

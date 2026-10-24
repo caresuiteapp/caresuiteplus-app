@@ -1,5 +1,5 @@
-import { InventoryListScreen } from '@/product-workflows/screens/inventory/InventoryListScreen';
+import { CompanyInventoryRedirect } from '@/lib/navigation/CompanyInventoryRedirect';
 
-export default function InventoryItemsRoute() {
-  return <InventoryListScreen variant="items" />;
+export default function LegacyInventoryRoute() {
+  return <CompanyInventoryRedirect view="stock" />;
 }

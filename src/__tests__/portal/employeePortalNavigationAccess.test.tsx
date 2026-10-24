@@ -28,6 +28,7 @@ vi.mock('@/lib/auth', () => ({
   useAuth: () => ({ profile: { displayName: 'Testkonto' }, signOut: vi.fn() }),
   RequireAuth: 'RequireAuth', RequireEmployeePasswordSetup: 'RequireEmployeePasswordSetup', RequireRole: 'RequireRole',
 }));
+vi.mock('@/hooks/usePortalVisualViewport', () => ({ usePortalVisualViewport: () => ({ height: null, width: null, offsetTop: 0, offsetLeft: 0, keyboardVisible: false }) }));
 vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [] }) }));
 vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: null }) }));
 vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
@@ -71,14 +72,14 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     expect(tabs).toHaveLength(4);
     expect(nodes(navigation).filter(node => node.props.accessibilityRole === 'tab' || node.props.accessibilityRole === 'button')).toHaveLength(5);
     for (const tab of tabs) tab.props.onPress();
-    expect(state.replace).toHaveBeenCalledTimes(tabs.length);
+    expect(state.push).toHaveBeenCalledTimes(tabs.length);
     expect(nodes(navigation).some((node) => node.props.accessibilityLabel === 'Weitere Portalbereiche öffnen')).toBe(true);
   });
   it('keeps readable labels and the open-assignment page accessible in the full menu', () => {
     state.width = 320;
     const tree = shell();
     const navigation = tree.find(node => node.props.testID === 'portal-bottom-navigation')!;
-    const labels = nodes(navigation).filter(node => node.type === 'Text' && flatStyle(node.props.style).fontSize === 11);
+    const labels = nodes(navigation).filter(node => node.type === 'Text' && typeof node.props.children === 'string');
     expect(labels).toHaveLength(5);
     for (const label of labels) {
       expect(label.props.numberOfLines).toBe(2);
@@ -87,7 +88,7 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     }
     const open = tree.find(node => node.props.accessibilityLabel === 'Offene Einsätze');
     expect(open).toBeDefined(); open!.props.onPress();
-    expect(state.replace).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
   });
   it.each([0, 24, 48])('reserves the GPS row and navigation above system inset %s', (inset) => {
     state.bottom = inset;

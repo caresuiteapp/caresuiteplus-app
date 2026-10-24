@@ -5,7 +5,7 @@ type Query = { table: string; action: string; payload?: unknown; filters: [strin
 type Result = { data: unknown; error: unknown; count?: number | null };
 const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn(), platform: 'web' }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return f.platform; } } }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ isLiveServiceMode: () => true, guardServiceTenant: f.tenant }));

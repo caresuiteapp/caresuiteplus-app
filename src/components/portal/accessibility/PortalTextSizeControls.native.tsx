@@ -3,10 +3,10 @@ import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View, useWindowD
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 
-type Props = { compact?: boolean };
+type Props = { compact?: boolean; appearance?: 'desktop-header' };
 
 /** Native text follows the device text scale. The dialog routes to the relevant setting on Android. */
-export function PortalTextSizeControls({ compact = false }: Props) {
+export function PortalTextSizeControls({ compact = false, appearance }: Props) {
   const orbit = useLiquidVisualMode() === 'orbit';
   const { fontScale } = useWindowDimensions();
   const [visible, setVisible] = useState(false);
@@ -27,10 +27,10 @@ export function PortalTextSizeControls({ compact = false }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Textgröße ändern"
         onPress={() => setVisible(true)}
-        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, appearance === 'desktop-header' && styles.desktopHeader, pressed && styles.pressed]}
         testID="portal-text-size-controls"
       >
-        <Text style={[styles.label, orbit && styles.orbitLabel]}>aA</Text>
+        <Text style={[styles.label, orbit && styles.orbitLabel, appearance === 'desktop-header' && styles.desktopHeaderLabel]}>aA</Text>
         {!compact ? <View><Text style={[styles.caption, orbit && styles.orbitCaption]}>Textgröße</Text></View> : null}
       </Pressable>
 
@@ -63,6 +63,8 @@ export function PortalTextSizeControls({ compact = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  desktopHeader: { minHeight: 44, borderColor: 'rgba(146,205,255,0.25)', backgroundColor: 'rgba(8,29,59,0.64)' },
+  desktopHeaderLabel: { color: '#8FE4FF' },
   button: {
     minHeight: 42,
     paddingHorizontal: 12,

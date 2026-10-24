@@ -89,17 +89,13 @@ function setup() {
 describe('Server queue delivery behavior', () => {
   it('uses neutral reminders and signature requests without document or client details', () => {
     const now = Date.now();
-    for (const [kind, title] of [
-      ['visit_reminder', 'Ihr nächster Einsatz beginnt bald'],
-      ['visit_overdue', 'Bitte den geplanten Einsatzstart prüfen'],
-      ['proof_signature', 'Ihre Unterschrift wird benötigt'],
-    ]) {
+    for (const kind of ['visit_reminder', 'visit_overdue', 'proof_signature']) {
       const payload = notificationFor(
         { ...work, event_kind: kind, expires_at: new Date(now + 5 * 60_000).toISOString() },
         target,
         now,
       );
-      expect(payload.title).toBe(title);
+      expect(payload.title).toBe('Neue CareSuite-Mitteilung');
       expect(payload.ttl).toBe(300);
       expect(payload.data).toEqual({ notificationId: uid });
       expect(Object.keys(payload)).not.toContain('clientName');

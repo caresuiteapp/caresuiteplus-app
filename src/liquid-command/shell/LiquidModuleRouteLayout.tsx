@@ -13,6 +13,7 @@ import {
 } from '../navigation/workflowRoutes';
 import { DeferredSignatureApprovalPopup } from '@/components/assist/DeferredSignatureApprovalPopup';
 import { LiquidVisualModeProvider } from '../components/LiquidPrimitives';
+import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 
 type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
@@ -48,6 +49,8 @@ const MODULE_ROOTS: Record<LiquidModuleKey, readonly string[]> = {
 };
 
 function inferLiquidModule(pathname: string): LiquidModuleKey {
+  const desktopArea = desktopCatalogAreaForRoute(pathname);
+  if (desktopArea && desktopArea !== 'premium') return desktopArea;
   if (pathname.startsWith('/business/messages') || pathname.startsWith('/business/office')) return 'office';
   if (
     pathname.startsWith('/business/connect') ||

@@ -5,16 +5,20 @@ on:
   push:
     branches:
       - release/android-0.4.0-20261009
+      - release/android-0.5.0-20261016
+      - release/android-0.6.0-20261023
+      - fix/native-web-design-parity-20261024
 
 permissions:
   contents: read
 
 concurrency:
-  group: caresuite-android-production
-  cancel-in-progress: false
+  group: caresuite-android-${{ github.ref_name == 'fix/native-web-design-parity-20261024' && 'native-web-parity' || 'production' }}
+  cancel-in-progress: true
 
 jobs:
   android:
+    if: github.ref_name != 'fix/native-web-design-parity-20261024'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     defaults:
@@ -81,6 +85,22 @@ jobs:
             echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
           } >> "$GITHUB_ENV"
 
+      - name: Native Verwaltungsansichten in Handy- und Tabletgrößen prüfen
+        env:
+          CARESUITE_NATIVE_QA_DIR: /tmp/caresuite-native-qa
+        run: node scripts/verify-native-administration-visual.mjs
+
+      - name: Layoutaufnahmen bereitstellen
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Native-Verwaltung-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-qa/*.png
+            /tmp/caresuite-native-qa/verification.json
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Vollständige native App und frischen Android-Export prüfen
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -139,4 +159,42 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-MEMORY.json
             ${{ env.CARESUITE_AAB_DIR }}/GRADLE-MEMORY-VERIFIED.json
           if-no-files-found: ignore
+          retention-days: 7
+
+  native-web-parity:
+    if: github.ref_name == 'fix/native-web-design-parity-20261024'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      CARESUITE_NATIVE_QA_DIR: /tmp/caresuite-native-qa
+      LIQUID_COMMAND_BROWSER_EXECUTABLE: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20.19.4'
+          cache: npm
+      - name: Bestehende Projektabhängigkeiten laden
+        run: npm ci
+      - name: Alle Seiteneinstiege und offene Abweichungen erfassen
+        run: node scripts/audit-native-web-parity.mjs
+      - name: TypeScript prüfen
+        run: npm run typecheck
+      - name: Gemeinsame Navigation und Seitenziele prüfen
+        run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/tenant/nativeCompanyWorkspaceInteraction.test.tsx --maxWorkers=2
+      - name: Native Ansichten im vorhandenen Chrome rendern
+        run: node scripts/verify-native-administration-visual.mjs
+      - name: Aufnahmen und offene Abweichungen sichern
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Native-Web-Abgleich-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-qa/*.png
+            /tmp/caresuite-native-qa/verification.json
+            /tmp/caresuite-native-web-parity.json
+          if-no-files-found: error
           retention-days: 7

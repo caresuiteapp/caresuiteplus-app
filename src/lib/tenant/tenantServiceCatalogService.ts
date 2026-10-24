@@ -1,5 +1,6 @@
-import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import { Platform } from 'react-native';
+import { currentCompanyWorkflows } from './currentCompanyWorkflows';
+import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   ServiceCatalogCategory,
@@ -371,7 +372,7 @@ export async function fetchTenantServiceCatalog(
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -425,6 +426,7 @@ export async function fetchTenantServiceCatalog(
     if (catalogIds.length) {
       const priceRes = await fromUnknownTable(client, 'tenant_service_prices')
         .select('*').eq('tenant_id', tenantId).in('catalog_id', catalogIds).eq('is_default', true);
+      if (currentCompanyWorkflows && priceRes.error) return { ok: false, error: toGermanSupabaseError(priceRes.error) };
       priceRows = (priceRes.data ?? []) as Record<string, unknown>[];
     }
   }
@@ -477,10 +479,10 @@ export async function saveTenantServiceCatalogItem(
   const effectiveFrom = input.validFrom ?? (Platform.OS === 'web' ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) : new Date().toISOString().slice(0, 10));
   const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
-  if (Platform.OS === 'web') {
+  if (currentCompanyWorkflows) {
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
     if (!input.name.trim()) return { ok: false, error: 'Bitte eine Bezeichnung eingeben.' };
@@ -510,7 +512,7 @@ export async function saveTenantServiceCatalogItem(
       category: input.category,
       isActive: input.isActive ?? true,
       sortOrder: input.sortOrder ?? 0,
-      defaultPriceNet: input.priceNet ?? (Platform.OS === 'web' && existingIndex >= 0 ? catalog.items[existingIndex]?.defaultPriceNet : null) ?? null,
+      defaultPriceNet: input.priceNet ?? (currentCompanyWorkflows && existingIndex >= 0 ? catalog.items[existingIndex]?.defaultPriceNet : null) ?? null,
       defaultTaxMode: input.taxMode ?? 'exempt_4_16',
       travelPolicy: input.category === 'travel'
         ? normalizeTravelCompensationPolicy(input.travelPolicy)
@@ -546,12 +548,12 @@ export async function saveTenantServiceCatalogItem(
       .update(catalogPayload)
       .eq('tenant_id', tenantId)
       .eq('id', catalogId);
-    const { error } = Platform.OS === 'web' ? await query.select('id').single() : await query;
+    const { error } = currentCompanyWorkflows ? await query.select('id').single() : await query;
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
   } else {
     const table = fromUnknownTable(client, 'tenant_service_catalog');
     // A retry after a price failure must reuse the same position.
-    const query = Platform.OS === 'web'
+    const query = currentCompanyWorkflows
       ? table.upsert(catalogPayload, { onConflict: 'tenant_id,service_key' })
       : table.insert(catalogPayload);
     const { data, error } = await query.select('id').single();
@@ -564,7 +566,7 @@ export async function saveTenantServiceCatalogItem(
       tenant_id: tenantId,
       catalog_id: catalogId,
       price_net: input.priceNet,
-      tax_rate: input.taxRate ?? (Platform.OS === 'web' && input.taxMode === 'standard_19' ? 19 : 0),
+      tax_rate: input.taxRate ?? (currentCompanyWorkflows && input.taxMode === 'standard_19' ? 19 : 0),
       tax_mode: input.taxMode ?? 'exempt_4_16',
       valid_from: effectiveFrom,
       ...(Platform.OS === 'web' && input.validTo !== undefined ? { valid_to: input.validTo } : {}),
@@ -582,11 +584,11 @@ export async function saveTenantServiceCatalogItem(
       ok: false,
       error: `Die Katalogposition wurde gespeichert, der Preis jedoch nicht. Bitte den Preis prüfen und erneut speichern. ${toGermanSupabaseError(error)}`,
     });
-    if (Platform.OS === 'web' && priceReadError) return priceFailure(priceReadError);
+    if (currentCompanyWorkflows && priceReadError) return priceFailure(priceReadError);
 
     if (existingPrice) {
       const old = existingPrice as Record<string, unknown>;
-      if (Platform.OS === 'web' && Number(old.price_net) === pricePayload.price_net &&
+      if (currentCompanyWorkflows && Number(old.price_net) === pricePayload.price_net &&
           Number(old.tax_rate) === pricePayload.tax_rate && old.tax_mode === pricePayload.tax_mode &&
           (!input.validFrom || old.valid_from === input.validFrom) &&
           (input.validTo === undefined || (old.valid_to ?? null) === input.validTo)) {
@@ -603,17 +605,17 @@ export async function saveTenantServiceCatalogItem(
         change_reason: 'Katalog-Update',
         snapshot: old,
       });
-      if (Platform.OS === 'web' && versionResult.error) return priceFailure(versionResult.error);
+      if (currentCompanyWorkflows && versionResult.error) return priceFailure(versionResult.error);
       const query = fromUnknownTable(client, 'tenant_service_prices')
         .update(pricePayload)
         .eq('id', old.id);
-      const priceResult = Platform.OS === 'web'
+      const priceResult = currentCompanyWorkflows
         ? await query.eq('tenant_id', tenantId).select('id').single()
         : await query;
-      if (Platform.OS === 'web' && priceResult.error) return priceFailure(priceResult.error);
+      if (currentCompanyWorkflows && priceResult.error) return priceFailure(priceResult.error);
     } else {
       const priceResult = await fromUnknownTable(client, 'tenant_service_prices').insert(pricePayload);
-      if (Platform.OS === 'web' && priceResult.error) return priceFailure(priceResult.error);
+      if (currentCompanyWorkflows && priceResult.error) return priceFailure(priceResult.error);
     }
   }
 
@@ -640,7 +642,7 @@ export async function fetchTenantServicePriceHistory(
 ): Promise<ServiceResult<TenantServicePriceVersion[]>> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantServicePriceVersion[]>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantServicePriceVersion[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantServicePriceVersion[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

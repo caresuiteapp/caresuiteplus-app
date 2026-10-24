@@ -34,6 +34,7 @@ function fixture() {
     'app/auth/employee-login.tsx', 'app/auth/employee-first-login.tsx', 'app/auth/client-login.tsx',
     'app/business/_layout.tsx', 'app/business/(tabs)/index.tsx', 'app/business/(tabs)/index.native.tsx',
     'app/office/_layout.tsx', 'app/office/index.tsx',
+    'app/assist/_layout.tsx', 'app/assist/index.tsx',
     'app/office/(tabs)/employees.tsx', 'app/office/(tabs)/clients.tsx',
     'app/portal/employee/_layout.tsx', 'app/portal/employee/(tabs)/index.tsx',
     'app/portal/employee/assignments/[id]/execute.tsx',

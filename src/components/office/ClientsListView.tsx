@@ -129,7 +129,7 @@ function ClientsListViewContent({
     if (lifecycleFilter === 'all' && statusFilter === 'all') return 'clients-kpi-total';
     return null;
   }, [careLevelFilter, costBearerFilter, lifecycleFilter, search, statusFilter]);
-  const compactHero = embedded || shellVariant === 'desktop';
+  const compactHero = embedded || shellVariant === 'desktop' || deviceClass === 'phone' || deviceClass === 'small_tablet';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     name: 'lastName',
     city: 'city',
@@ -213,6 +213,8 @@ function ClientsListViewContent({
     setLifecycleFilter('all');
     setStatusFilter('all');
   };
+
+  if (!can('office.clients.view')) return <ErrorState message="Für die Klientenverwaltung fehlt Ihnen die Berechtigung." />;
 
   const toolbar = (
     <View style={styles.toolbar} testID="filter-bar">

@@ -6,7 +6,7 @@ import type { TenantCustomFieldDefinition } from '@/types/tenant/tenantCenter';
 const h = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn(), dirty: false, busy: false, permitted: true }));
 vi.mock('@/hooks/useUnsavedWebChanges.web', () => ({ useUnsavedWebChanges: (dirty: boolean, busy: boolean) => { h.dirty = dirty; h.busy = busy; return async () => !dirty && !busy; } }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: () => h.permitted ? null : { ok: false, error: 'Kein Zugriff' } }));
-vi.mock('@/lib/tenant/companyCustomValues.web', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/tenant/companyCustomValues.web')>(), loadCompanyCustomValues: (...args: unknown[]) => h.load(...args), saveCompanyCustomValue: (...args: unknown[]) => h.save(...args) }));
+vi.mock('@/lib/tenant/companyCustomValues', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/tenant/companyCustomValues.web')>(), loadCompanyCustomValues: (...args: unknown[]) => h.load(...args), saveCompanyCustomValue: (...args: unknown[]) => h.save(...args) }));
 import { CompanyCustomValuesPanel } from '@/components/company/CompanyCustomValuesPanel.web';
 let root: Root; let host: HTMLDivElement;
 const field: TenantCustomFieldDefinition = { id: 'f1', groupId: null, fieldKey: 'office', label: 'Büronummer', dataType: 'text', moduleKey: null, functionKey: 'documents', visibility: { office: true }, validation: {}, isActive: true, sortOrder: 0 };

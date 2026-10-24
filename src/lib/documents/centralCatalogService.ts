@@ -1,3 +1,4 @@
+import { blobBytes } from '@/lib/platform/blobBytes';
 import type { Profile, RoleKey, ServiceResult } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
@@ -11,7 +12,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { centralFileName, centralMissingFields } from './centralCatalogModel';
 import { sha256FileHex } from '@/lib/crypto/sha256Hex';
 import { Platform } from 'react-native';
-import { loadCanonicalCompanyDocumentData, loadCompanyDocumentCustomValues } from './companyDocumentContext.web';
+import { loadCanonicalCompanyDocumentData, loadCompanyDocumentCustomValues } from './companyDocumentContext';
 
 type Actor = { roleKey?: RoleKey | null; profile?: Profile | null; effectivePermissions?: readonly PermissionKey[] };
 export type CentralContextRequest = { definition?: CentralDocumentDefinition; assignmentId?: string; invoiceId?: string; medicationId?: string; woundId?: string; period?: string };
@@ -317,7 +318,7 @@ export async function downloadCentralDocument(record: CentralDocumentStored, act
   if (!client || !filePath || !expectedHash) return { ok: false, error: 'Für diesen Eintrag ist keine gespeicherte Datei verfügbar.' };
   const { data, error } = await client.storage.from('office-documents').download(filePath);
   if (error || !data) return { ok: false, error: 'Die gespeicherte PDF-Datei konnte nicht geladen werden.' };
-  const bytes = new Uint8Array(await data.arrayBuffer());
+  const bytes = await blobBytes(data);
   if (sha256FileHex(bytes) !== expectedHash) return { ok: false, error: 'Die Datei stimmt nicht mit dem gespeicherten Prüfwert überein.' };
   return { ok: true, data: bytes };
 }

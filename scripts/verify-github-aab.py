@@ -112,7 +112,7 @@ def verify_upload_certificate(bundle, expected_sha256):
 
 
 def verify_native_bundle(data):
-    expected = ['native-administration-desktop', 'Neues Passwort speichern', 'Ohne Anmeldung ein Support-Ticket einreichen', 'Neo-Assistent', 'Google Workspace']
+    expected = ['native-administration-desktop', 'Neues Passwort speichern', 'Ohne Anmeldung ein Support-Ticket einreichen', 'Neo-Assistent', 'Google Workspace', 'Notiz speichern', 'Alle Mitarbeitenden']
     # Hermes stores strings containing umlauts as UTF-16, including their ASCII
     # prefixes. The bundle is binary; both encodings must be checked directly.
     missing = [marker for marker in expected if marker.encode('utf-8') not in data and marker.encode('utf-16-le') not in data]

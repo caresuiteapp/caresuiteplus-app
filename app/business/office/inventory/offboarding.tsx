@@ -1,5 +1,5 @@
-import { InventoryListScreen } from '@/product-workflows/screens/inventory/InventoryListScreen';
+import { CompanyInventoryRedirect } from '@/lib/navigation/CompanyInventoryRedirect';
 
-export default function InventoryOffboardingRoute() {
-  return <InventoryListScreen variant="offboarding" />;
+export default function LegacyInventoryRoute() {
+  return <CompanyInventoryRedirect view="offboarding" />;
 }

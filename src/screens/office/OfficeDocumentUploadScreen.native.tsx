@@ -1,0 +1,29 @@
+import { useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
+import { File } from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
+import * as DocumentPicker from 'expo-document-picker';
+import { useRouter } from 'expo-router';
+import { ScreenShell } from '@/components/layout/ScreenShell';
+import { MobileButton, MobileCard, MobileField, MobileHeading, MobileState, m } from '@/components/mobile/MobileWorkspace';
+import { MobileSelect } from '@/components/mobile/MobileSelect';
+import { useAuth } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { loadOfficeUploadClients, uploadOfficeDocument, OFFICE_UPLOAD_MAX_BYTES } from '@/lib/office/officeDocumentsService';
+import { CLIENT_DOCUMENT_CATEGORY_LABELS } from '@/types/modules/client/clientDocuments';
+export function OfficeDocumentUploadScreen() {
+  const tenantId = useServiceTenantId() ?? ''; const { profile } = useAuth(); const { can } = usePermissions();
+  return <ScreenShell title="Datei hochladen" contentOwnsHeader showBack={false}>{!can('office.documents.view') || !can('office.clients.edit') ? <MobileState title="Keine Berechtigung für Uploads in die Klientenakte" /> : <UploadEditor key={`${tenantId}:${profile?.id}`} tenantId={tenantId} />}</ScreenShell>;
+}
+function UploadEditor({ tenantId }: { tenantId: string }) {
+  const router = useRouter(); const { profile } = useAuth(); const [clientId, setClientId] = useState(''); const [title, setTitle] = useState(''); const [category, setCategory] = useState(''); const [file, setFile] = useState<{ name: string; mime: string; size: number; base64: string }>(); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [saved, setSaved] = useState('');
+  const requestId = useRef(randomUUID()); const lock = useRef(false); const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const clients = useAsyncQuery(() => loadOfficeUploadClients(tenantId, profile?.roleKey, profile), [tenantId, profile?.id, profile?.roleKey], { queryKey: `native-upload-clients:${tenantId}:${profile?.id}`, enabled: !!tenantId });
+  const change = (setter: (v: string) => void, value: string) => { if (lock.current) return; setter(value); requestId.current = randomUUID(); setSaved(''); };
+  const pick = async () => { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }); if (result.canceled || !alive.current) return; const asset = result.assets[0]; const picked = new File(asset.uri); if (!picked.size || picked.size > OFFICE_UPLOAD_MAX_BYTES) throw new Error('Bitte eine Datei mit höchstens 20 MB auswählen.'); const base64 = await picked.base64(); if (!alive.current) return; setFile({ name: asset.name, mime: asset.mimeType ?? 'application/octet-stream', size: picked.size, base64 }); setTitle(asset.name); requestId.current = randomUUID(); setSaved(''); } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : 'Datei konnte nicht gelesen werden.'); } finally { lock.current = false; if (alive.current) setBusy(false); } };
+  const upload = async () => { if (lock.current || !file || saved) return; lock.current = true; setBusy(true); setError(''); try { const result = await uploadOfficeDocument(tenantId, { requestId: requestId.current, clientId, title, category, filename: file.name, mimeType: file.mime, sizeBytes: file.size, contentBase64: file.base64 }, profile?.roleKey, profile); if (!alive.current) return; if (!result.ok) throw new Error(result.error); setSaved(result.data.id); } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : 'Der Upload konnte nicht bestätigt werden. Bitte mit derselben Auswahl erneut versuchen.'); } finally { lock.current = false; if (alive.current) setBusy(false); } };
+  return <View style={m.stack}><MobileHeading title="Datei hochladen" subtitle="Sicher einer Klientenakte zuordnen" icon="upload" /><MobileCard>{clients.error ? <MobileState title="Aktenauswahl nicht verfügbar" message={clients.error} onRetry={() => void clients.refresh()} /> : <MobileSelect label="Klientenakte *" value={clientId} options={Object.fromEntries((clients.data ?? []).map(row => [row.id, row.name]))} disabled={busy || !!saved} onChange={value => change(setClientId, value)} />}<MobileButton label={file ? 'Andere Datei auswählen' : 'Datei auswählen'} icon="paperclip" busy={busy} disabled={!!saved} onPress={() => void pick()} />{file ? <Text style={m.body}>{file.name} · {(file.size / 1024 / 1024).toLocaleString('de', { maximumFractionDigits: 1 })} MB</Text> : null}<MobileField label="Dokumenttitel *" value={title} onChangeText={value => change(setTitle, value)} editable={!busy && !saved} /><MobileSelect label="Kategorie *" value={category} options={CLIENT_DOCUMENT_CATEGORY_LABELS} disabled={busy || !!saved} onChange={value => change(setCategory, value)} /><Text style={m.muted}>Die Datei wird in der gewählten Akte gespeichert. Sie ist zunächst nicht im Klientenportal sichtbar.</Text><MobileButton primary label={saved ? 'Gespeichert' : 'In Akte hochladen'} icon="upload" busy={busy} disabled={!file || !clientId || !title.trim() || !category || !!saved} onPress={() => void upload()} />{error ? <Text accessibilityRole="alert" style={m.error}>{error}</Text> : null}{saved ? <><Text style={m.body}>Dokument erfolgreich gespeichert.</Text><MobileButton label="Dokument öffnen" onPress={() => router.replace(`/business/office/documents/${saved}` as never)} /></> : null}</MobileCard></View>;
+}

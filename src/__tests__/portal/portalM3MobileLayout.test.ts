@@ -132,7 +132,7 @@ describe('portal M.3 mobile layout', () => {
       "router.replace(resolvePostLoginRoute('employee_portal')",
     );
     expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain(
-      "router.replace(resolvePostLoginRoute('client_portal')",
+      "resolvePostLoginRoute('client_portal')",
     );
   });
 

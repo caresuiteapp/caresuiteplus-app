@@ -62,12 +62,12 @@ class ManifestGate(unittest.TestCase):
     def test_missing_native_surfaces(self):
         with self.assertRaises(ValueError):
             verify.verify_native_bundle(b'portal-only legacy bundle')
-        data = b' '.join([b'native-administration-desktop', b'Neues Passwort speichern', b'Ohne Anmeldung ein Support-Ticket einreichen', b'Neo-Assistent', b'Google Workspace'])
-        self.assertEqual(verify.verify_native_bundle(data), 5)
+        data = b' '.join([b'native-administration-desktop', b'Neues Passwort speichern', b'Ohne Anmeldung ein Support-Ticket einreichen', b'Neo-Assistent', b'Google Workspace', b'Notiz speichern', b'Alle Mitarbeitenden'])
+        self.assertEqual(verify.verify_native_bundle(data), 7)
 
     def test_hermes_utf16_native_surface(self):
-        data = b' '.join([b'native-administration-desktop', b'Neues Passwort speichern', b'Ohne Anmeldung ein Support-Ticket einreichen', 'Neo-Assistent öffnen'.encode('utf-16-le'), b'Google Workspace'])
-        self.assertEqual(verify.verify_native_bundle(data), 5)
+        data = b' '.join([b'native-administration-desktop', b'Neues Passwort speichern', b'Ohne Anmeldung ein Support-Ticket einreichen', 'Neo-Assistent öffnen'.encode('utf-16-le'), b'Google Workspace', b'Notiz speichern', b'Alle Mitarbeitenden'])
+        self.assertEqual(verify.verify_native_bundle(data), 7)
         with self.assertRaises(ValueError):
             verify.verify_native_bundle(data.replace('Neo-Assistent'.encode('utf-16-le'), 'Web-Assistent'.encode('utf-16-le')))
 

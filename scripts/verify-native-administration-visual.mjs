@@ -1,0 +1,99 @@
+import { createHash } from 'node:crypto';
+import { build } from 'esbuild';
+import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import { existsSync, readFileSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { resolve, join } from 'node:path';
+const require=createRequire(import.meta.url);
+const root=process.cwd(),output=resolve(process.env.CARESUITE_NATIVE_QA_DIR??'/tmp/caresuite-native-qa');mkdirSync(output,{recursive:true});
+const fixture=resolve('scripts/fixtures/native-administration-preview.jsx');
+const nativeWeb=require.resolve('react-native-web');
+const portalFixture=resolve('scripts/fixtures/native-portals-data.jsx');
+const mockFixture=resolve('scripts/fixtures/administration-preview-mocks.jsx');
+const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context']);
+for(const renderer of ['native','web']){
+await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/web-desktop-preview.jsx')],outfile:join(output,renderer+'-preview.js'),bundle:true,assetNames:'assets/[name]-[hash]',platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{}','__DEV__':'false'},loader:{'.png':'file','.jpg':'file','.jpeg':'file','.ttf':'dataurl','.gif':'file','.mp4':'dataurl','.svg':'dataurl','.js':'jsx'},plugins:[{name:'isolated-native-preview',setup(b){
+ b.onResolve({filter:/.*/},args=>mocks.has(args.path)?{path:mockFixture}:undefined);
+ b.onLoad({filter:/\.(png|jpe?g|gif)$/},args=>{
+  const bytes=readFileSync(args.path);const name=createHash('sha256').update(bytes).digest('hex').slice(0,16)+args.path.slice(args.path.lastIndexOf('.'));mkdirSync(join(output,'assets'),{recursive:true});copyFileSync(args.path,join(output,'assets',name));return{loader:'js',contents:`module.exports={uri:${JSON.stringify('/assets/'+name)}};`};
+ });
+ b.onResolve({filter:/^(@\/|\.\.?\/)/},args=>{
+  if(args.importer.includes('/node_modules/')||/\.[a-z]+$/i.test(args.path))return;
+  const base=args.path.startsWith('@/product-workflows/')?resolve('src',args.path.slice('@/product-workflows/'.length)):args.path.startsWith('@/')?resolve('src',args.path.slice(2)):resolve(args.resolveDir,args.path);
+  for(const ext of (renderer==='native'?['.android.tsx','.native.tsx','.android.ts','.native.ts']:['.web.tsx','.web.ts']))if(existsSync(base+ext))return{path:base+ext};
+ });
+ b.onResolve({filter:/^@\/components\/(ui|healthos)$/},()=>({path:resolve('scripts/fixtures/native-portal-ui-exports.jsx')}));
+ b.onResolve({filter:/^(@\/lib\/portal$|@\/hooks\/usePortalActor$|@\/hooks\/useportalofficemessages$|@\/components\/portal\/ClientSignatureAttentionProvider$|@\/design\/ThemeModeProvider$|expo-linking$|@\/lib\/auth\/passwordResetService.native$|@\/lib\/supabase\/authService$|@\/lib\/auth\/businessAuthService$|@\/lib\/auth\/employeePortalAuthService$|@\/lib\/auth\/clientPortalAuthService$|@\/lib\/auth\/portalLoginFlow$)/},()=>({path:portalFixture}));
+ b.onResolve({filter:/^react-native-keyboard-controller$/},()=>({path:'keyboard',namespace:'preview-keyboard'}));
+ b.onLoad({filter:/.*/,namespace:'preview-keyboard'},()=>({loader:'jsx',resolveDir:root,contents:`import React from 'react';import {View,ScrollView,KeyboardAvoidingView as Avoid} from ${JSON.stringify(nativeWeb)};export const KeyboardProvider=({children})=><View style={{flex:1}}>{children}</View>;export const KeyboardAwareScrollView=ScrollView,KeyboardAvoidingView=Avoid;`}));
+ b.onResolve({filter:/^react-native-reanimated$/},()=>({path:'animated',namespace:'qa'}));
+ b.onResolve({filter:/^expo-blur$/},()=>({path:'blur',namespace:'qa'}));
+ b.onResolve({filter:/^react-native-svg$/},()=>({path:resolve('node_modules/react-native-svg/lib/module/elements.web.js')}));
+ b.onResolve({filter:/^react-native$/},()=>({path:'native-shim',namespace:'qa'}));
+ b.onResolve({filter:/^@expo\/vector-icons$/},()=>({path:'icons',namespace:'preview-icon-root'}));
+ b.onLoad({filter:/.*/,namespace:'preview-icon-root'},()=>({loader:'js',resolveDir:root,contents:"export {default as Feather} from '@expo/vector-icons/Feather';export {default as Ionicons} from '@expo/vector-icons/Ionicons';"}));
+ // Layout fixtures do not play intro videos; the signed AAB verifies the original video bytes separately.
+ b.onResolve({filter:/\.mp4$/},args=>({path:args.path,namespace:'preview-video'}));
+ b.onLoad({filter:/.*/,namespace:'preview-video'},()=>({loader:'js',contents:"export default '/layout-preview-video.mp4';"}));
+ b.onResolve({filter:/^expo-document-picker$/},()=>({path:'document-picker',namespace:'preview-picker'}));
+ b.onResolve({filter:/^expo-image-picker$/},()=>({path:'image-picker',namespace:'preview-picker'}));
+ b.onLoad({filter:/.*/,namespace:'preview-picker'},()=>({loader:'js',contents:"export const getDocumentAsync=async()=>({canceled:true,assets:null}),launchImageLibraryAsync=async()=>({canceled:true,assets:null}),requestMediaLibraryPermissionsAsync=async()=>({granted:false,status:'denied'});export const MediaTypeOptions={Images:'Images'};"}));
+ b.onResolve({filter:/^expo-task-manager$/},()=>({path:'tasks',namespace:'preview-device-services'}));
+ b.onResolve({filter:/^expo-location$/},()=>({path:'location',namespace:'preview-device-services'}));
+ b.onLoad({filter:/.*/,namespace:'preview-device-services'},args=>({loader:'js',contents:args.path==='tasks'?"export const isTaskDefined=()=>false,defineTask=()=>{},isTaskRegisteredAsync=async()=>false;":"export const Accuracy={High:4},ActivityType={AutomotiveNavigation:1},getForegroundPermissionsAsync=async()=>({status:'denied'}),requestForegroundPermissionsAsync=getForegroundPermissionsAsync,getBackgroundPermissionsAsync=getForegroundPermissionsAsync,requestBackgroundPermissionsAsync=getForegroundPermissionsAsync,hasStartedLocationUpdatesAsync=async()=>false,startLocationUpdatesAsync=async()=>{},stopLocationUpdatesAsync=async()=>{},getCurrentPositionAsync=async()=>{throw Error('Layout fixtures have no device location.');};"}));
+ b.onResolve({filter:/^@expo\/vector-icons\/(Feather|Ionicons)$/},args=>({path:args.path.endsWith('Ionicons')?'ionicons':'icon',namespace:'qa'}));
+ b.onResolve({filter:/^@react-native-async-storage\/async-storage$/},()=>({path:'storage',namespace:'qa'}));
+ b.onLoad({filter:/.*/,namespace:'qa'},args=>({loader:'jsx',resolveDir:root,contents:args.path==='storage'?`const data=new Map([['caresuite.liquid.registration.v1',JSON.stringify({companyName:'Pflege & Alltag Nord GmbH',legalForm:'GmbH',industry:'Alltagsbegleitung',street:'Gartenstraße 24',zip:'30159',city:'Hannover',phone:'0511 000000',email:'kontakt@example.invalid',adminFirstName:'Marlene',adminLastName:'Mustermann-Beispiel',adminEmail:'verwaltung@example.invalid',contactRole:'Geschäftsführung'})]]); export default {getItem:async k=>data.get(k)??null,removeItem:async k=>{data.delete(k)},setItem:async(k,v)=>{data.set(k,v)},multiGet:async keys=>keys.map(k=>[k,data.get(k)??null]),multiSet:async rows=>rows.forEach(([k,v])=>data.set(k,v))};`:args.path==='animated'?`import {useRef} from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export default {View:RN.View,Text:RN.Text,createAnimatedComponent:c=>c};export const useSharedValue=v=>useRef({value:v}).current,useAnimatedStyle=f=>f(),withSpring=v=>v,withTiming=v=>v,withRepeat=v=>v,withSequence=(v)=>v,withDelay=(_delay,v)=>v,runOnJS=f=>f,cancelAnimation=()=>{},Easing=RN.Easing;`:args.path==='blur'?`import {View} from ${JSON.stringify(nativeWeb)};export const BlurView=View;`:['icon','ionicons'].includes(args.path)?`import {Text} from ${JSON.stringify(nativeWeb)};import glyphs from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/${args.path==='ionicons'?'Ionicons':'Feather'}.json';export default function Icon({name,size,color}){return <Text aria-hidden style={{fontFamily:'${args.path==='ionicons'?'Ionicons':'Feather'}',fontSize:size,color}}>{String.fromCodePoint(glyphs[name]??63)}</Text>}`:`import React from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export * from ${JSON.stringify(nativeWeb)};export const Platform={...RN.Platform,OS:new URLSearchParams(location.search).get('screen')?.startsWith('web-')?'web':'android'};const scale=Number(new URLSearchParams(location.search).get('scale')??1);export const useWindowDimensions=()=>({...RN.useWindowDimensions(),fontScale:scale});export const Text=({style,allowFontScaling,...props})=>{const s=RN.StyleSheet.flatten(style)??{};return <RN.Text {...props} style={[s,allowFontScaling===false?{}:{fontSize:(s.fontSize??14)*scale,lineHeight:(s.lineHeight??(s.fontSize??14)*1.4)*scale}]}/>};` }));
+}}]});
+}
+copyFileSync('public/fonts/CenturyGothic.ttf',join(output,'CenturyGothic.ttf'));
+const fontCss=readFileSync('src/design/web/centuryGothicCss.ts','utf8').match(/export const CENTURY_GOTHIC_CSS = `([\s\S]*?)`;/)[1].replace('${CARESUITE_WEB_FONT_FAMILY}','CareSuite Century Gothic').replace('${CARESUITE_FONT_URL}','/CenturyGothic.ttf').replace('${CARESUITE_FONT_STACK}',"'CareSuite Century Gothic',sans-serif");
+copyFileSync(require.resolve('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf'),join(output,'Feather.ttf'));
+copyFileSync(require.resolve('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),join(output,'Ionicons.ttf'));
+writeFileSync(join(output,'index.html'),`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${fontCss}@font-face{font-family:CenturyGothic;src:url(/CenturyGothic.ttf)}@font-face{font-family:Feather;src:url(/Feather.ttf)}@font-face{font-family:Ionicons;src:url(/Ionicons.ttf)}html,body,#root{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:CenturyGothic,sans-serif}#root{display:flex;flex-direction:column}</style><div id="root"></div><script>const entry=document.createElement("script");entry.src=new URLSearchParams(location.search).get("screen")?.startsWith("web-")?"/web-preview.js":"/native-preview.js";document.body.appendChild(entry);</script></html>`);
+if(process.argv.includes('--prepare-only')){console.log(`Native preview compiled: ${output}`);process.exit(0);}
+const server=createServer((req,res)=>{const name=new URL(req.url,'http://localhost').pathname;const path=join(output,name==='/'?'index.html':name.slice(1));if(!path.startsWith(output)||!existsSync(path)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',path.endsWith('.js')?'text/javascript':path.endsWith('.ttf')?'font/ttf':/\.png$/.test(path)?'image/png':/\.jpe?g$/.test(path)?'image/jpeg':/\.gif$/.test(path)?'image/gif':'text/html');res.end(readFileSync(path));});
+await new Promise(done=>server.listen(0,'127.0.0.1',done));
+const executable=process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE??['/usr/bin/google-chrome','/usr/bin/chromium',chromium.executablePath()].find(existsSync);
+if(!executable)throw new Error('No existing browser available for visual verification.');
+const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[];
+try{
+// Keep enlarged device text usable when the viewport is also short.
+{
+ const page=await browser.newPage({viewport:{width:844,height:390}});
+ await page.goto(`http://127.0.0.1:${server.address().port}/?screen=desktop&scale=1.6`);
+ await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+ const grid=page.getByTestId('native-desktop-widget-viewport');await grid.scrollIntoViewIfNeeded();
+ const bounds=await grid.boundingBox();
+ if(!bounds||bounds.height<160||bounds.y<0||bounds.y+bounds.height>391){
+  const ancestors=await grid.evaluate(element=>{const rows=[];for(let item=element;item&&rows.length<8;item=item.parentElement){const r=item.getBoundingClientRect();rows.push({testId:item.getAttribute('data-testid'),y:r.y,height:r.height,clientHeight:item.clientHeight,scrollHeight:item.scrollHeight,overflowY:getComputedStyle(item).overflowY});}return rows;});
+  writeFileSync(join(output,'verification.json'),JSON.stringify({screen:'desktop-landscape-large-text',bounds,ancestors},null,2));
+  await page.screenshot({path:join(output,'failure-desktop-landscape-large-text.png')});
+  throw Error(JSON.stringify({message:'Desktop widgets are not reachable with enlarged text in landscape.',bounds}));
+ }
+ report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
+ await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await page.close();
+}
+for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:768,height:1024},{width:844,height:390},{width:1280,height:800}]){
+ for(const screen of ['desktop','web-desktop','clients','employees','company','web-company','company-editor','inventory','notes','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset']){
+  const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+  if(errors.length){await page.screenshot({path:join(output,`failure-${screen}-${viewport.width}x${viewport.height}.png`)});writeFileSync(join(output,'verification.json'),JSON.stringify({screen,viewport,errors},null,2));throw new Error(JSON.stringify({screen,viewport,errors}));}
+  if(screen==='access-hub'){await page.waitForTimeout(1100);const title=await page.getByText('Mitarbeiter',{exact:true}).boundingBox();const character=await page.getByLabel('CareSuite-Assistent mit Stethoskop',{exact:true}).boundingBox();if(viewport.width<900&&title&&character&&title.x<character.x+character.width&&title.x+title.width>character.x&&title.y<character.y+character.height&&title.y+title.height>character.y)throw Error('Access character overlaps its role label.');}
+  if(screen==='family-home'){const area=await page.getByLabel('Portalbereich today',{exact:true}).boundingBox();const logout=await page.getByRole('button',{name:'Abmelden',exact:true}).boundingBox();if(!area||area.height<160||!logout||logout.x+logout.width>viewport.width+1)throw Error('Family portal content or logout is clipped.');}
+  if(screen==='desktop'||screen==='web-desktop')await page.getByRole('button',{name:'Desktop bearbeiten',exact:true}).waitFor();
+  if(screen==='inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
+  const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
+  await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
+  if(screen==='registration'){for(let step=2;step<=5;step++){if(step===5){await page.getByLabel('Admin-Passwort',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByLabel('Passwort bestätigen',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByRole('checkbox').click();}await page.getByRole('button',{name:'Weiter',exact:true}).click();await page.getByText(`REGISTRIERUNG · SCHRITT ${step} VON 5`,{exact:true}).waitFor();await page.screenshot({path:join(output,`registration-step-${step}-${viewport.width}x${viewport.height}.png`)});}}
+  if(screen==='clients'){const filters=page.getByRole('button',{name:/Filter & Sortierung/});if(await filters.count())await filters.click();await page.getByText('Bearbeitungsstand',{exact:true}).waitFor();await page.screenshot({path:join(output,`clients-filters-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='notes'){await page.getByRole('button',{name:'Teamrunde vorbereiten öffnen',exact:true}).click();await page.getByRole('textbox',{name:'Titel',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`notes-editor-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='inventory'){await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByText('Empfänger:in *',{exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
+  report.push({screen,viewport,overflow,errors});await page.close();
+ }
+}
+for(const screen of ['desktop','clients','employees','company','notes','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){const page=await browser.newPage({viewport:{width:360,height:800}});await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});await page.close();}
+writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
+}finally{await browser.close();await new Promise(done=>server.close(done));}

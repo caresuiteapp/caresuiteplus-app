@@ -18,7 +18,7 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getCatalogDefaults } from './catalogDefaults';
-import { mergeCommunicationMessageTemplates } from './communicationTemplateDefaults';
+import { getCommunicationMessageTemplateDefaults, mergeCommunicationMessageTemplates } from './communicationTemplateDefaults';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -86,7 +86,7 @@ export const templateSupabaseRepository = {
 
     const { data, error } = await query.order('sort_order').order('title');
     if (error) {
-      if (isMissingTableError(error)) return { ok: true, data: [] };
+      if (isMissingTableError(error)) return { ok: true, data: mergeCommunicationMessageTemplates([], filters) };
       return { ok: false, error: toGermanSupabaseError(error) };
     }
 
@@ -97,7 +97,11 @@ export const templateSupabaseRepository = {
         `${t.title} ${t.description ?? ''} ${t.content}`.toLowerCase().includes(q),
       );
     }
-    rows = mergeCommunicationMessageTemplates(rows, filters);
+    // The message fallback must not hide existing document/text templates in an unfiltered list.
+    const otherTemplates = rows.filter(row => row.moduleKey !== 'communication' || row.templateType !== 'message');
+    const messages = mergeCommunicationMessageTemplates(rows, filters);
+    const merged = new Map([...otherTemplates, ...messages].map(row => [row.id, row]));
+    rows = [...merged.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, 'de'));
     return { ok: true, data: rows };
   },
 
@@ -110,8 +114,10 @@ export const templateSupabaseRepository = {
       .eq('id', id)
       .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
       .maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: data ? mapTemplateRow(data) : null };
+    if (error && !isMissingTableError(error)) return { ok: false, error: toGermanSupabaseError(error) };
+    // Built-in message templates use the same IDs in list and detail. Copies still go through create().
+    const fallback = getCommunicationMessageTemplateDefaults().find(template => template.id === id) ?? null;
+    return { ok: true, data: data ? mapTemplateRow(data) : fallback };
   },
 
   async create(

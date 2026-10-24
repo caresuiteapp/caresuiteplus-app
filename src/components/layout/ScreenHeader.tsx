@@ -1,150 +1,43 @@
-import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
-import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { type ReactNode, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { BreadcrumbTrail as Trail } from '@/types/navigation/breadcrumbs';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
-import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { spacing, typography } from '@/theme';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
-import { WEB_DESKTOP_ROUTE } from '@/lib/navigation/businessHome';
 
-type ScreenHeaderProps = {
-  title: string;
-  subtitle?: string;
-  breadcrumbTrail?: BreadcrumbTrailType;
-  showBack?: boolean;
-  onBack?: () => void;
-  rightSlot?: React.ReactNode;
-  /** Hide breadcrumb trail on phone for compact portal pages. */
-  simplifyOnPhone?: boolean;
-  /** Dense header for full-height workspaces such as chat and planning. */
-  compact?: boolean;
-};
-
-export function ScreenHeader({
-  title,
-  subtitle,
-  breadcrumbTrail,
-  showBack = true,
-  onBack,
-  rightSlot,
-  simplifyOnPhone = true,
-  compact = false,
-}: ScreenHeaderProps) {
-  const router = useRouter();
+type Props = { title: string; subtitle?: string; breadcrumbTrail?: Trail; showBack?: boolean;
+  onBack?: () => void; rightSlot?: ReactNode; simplifyOnPhone?: boolean; compact?: boolean };
+export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true, onBack, rightSlot,
+  simplifyOnPhone = true, compact = false }: Props) {
   const { isPhone } = useDeviceClass();
-  const { colors, mode } = useLegacyTheme();
-  const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
-  const leftInsetWidth = showBack ? (isPhone ? 44 : 88) : 0;
-  const sideInsetWidth = leftInsetWidth;
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          flexDirection: 'row',
-          flexWrap: isPhone ? 'wrap' : 'nowrap',
-          alignItems: 'center',
-          paddingHorizontal: spacing.md,
-          paddingVertical: compact ? 6 : spacing.md,
-          minHeight: compact ? 54 : isPhone ? 68 : 82,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.borderSoft,
-          backgroundColor: colors.bgPanel,
-          ...(Platform.OS === 'web'
-            ? ({
-                backdropFilter: mode === 'light' ? 'none' : `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
-                WebkitBackdropFilter: mode === 'light' ? 'none' : `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
-              } as unknown as ViewStyle)
-            : null),
-        },
-        left: {
-          width: sideInsetWidth,
-          minWidth: sideInsetWidth,
-        },
-        center: {
-          flex: 1,
-          alignItems: isPhone ? 'center' : 'flex-start',
-          minWidth: 0,
-        },
-        right: {
-          width: isPhone && rightSlot ? '100%' : isPhone ? 0 : undefined,
-          minWidth: isPhone ? 0 : rightSlot ? 120 : 0,
-          maxWidth: isPhone ? '100%' : 360,
-          marginTop: isPhone && rightSlot ? 8 : 0,
-          alignItems: 'flex-end',
-          flexShrink: 0,
-        },
-        backButton: {
-          minWidth: MOBILE_MIN_TOUCH_TARGET,
-          minHeight: MOBILE_MIN_TOUCH_TARGET,
-          justifyContent: 'center',
-          paddingVertical: spacing.xs,
-        },
-        backText: {
-          ...typography.caption,
-          color: mode === 'light' ? colors.primary : spatialCareColors.cyanLight,
-          fontWeight: '700',
-        },
-        title: {
-          ...typography.h3,
-          fontSize: compact ? 18 : typography.h3.fontSize,
-          lineHeight: compact ? 22 : typography.h3.lineHeight,
-          color: colors.textPrimary,
-          textAlign: isPhone ? 'center' : 'left',
-          flexShrink: 1,
-        },
-        subtitle: {
-          ...typography.caption,
-          color: colors.textMuted,
-          textAlign: isPhone ? 'center' : 'left',
-          marginTop: 2,
-        },
-      }),
-    [colors, compact, isPhone, mode, rightSlot, sideInsetWidth],
-  );
-
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-      return;
-    }
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace((Platform.OS === 'web' ? WEB_DESKTOP_ROUTE : '/') as never);
-  };
-
-  return (
-    <View
-      accessibilityRole="header"
-      style={styles.container}
-      {...(Platform.OS === 'web'
-        ? ({ dataSet: { csHealthosComponent: 'screen-header' } } as object)
-        : {})}
-    >
-      <View style={styles.left}>
-        {showBack ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={handleBack} style={styles.backButton} hitSlop={12}>
-            <Text style={styles.backText}>{isPhone ? '←' : '← Zurück'}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <View style={styles.center}>
-        {showBreadcrumbs ? <BreadcrumbTrail trail={breadcrumbTrail!} /> : null}
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={2}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.right}>{rightSlot}</View>
+  const [width, setWidth] = useState(0);
+  const narrow = width > 0 ? width < 640 : isPhone;
+  const historyBack = useWorkspaceBackNavigation();
+  const back = onBack ?? historyBack;
+  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} {...(Platform.OS === 'web' ? { dataSet: { csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' } } as object : {})}>
+    {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><SemanticIconLabel symbol="←" label="Zurück" webSize={20} style={styles.backText} /></Pressable> : null}
+    <View style={[styles.copy, narrow && styles.phoneCopy]}>
+      {breadcrumbTrail && (!narrow || !simplifyOnPhone) ? <BreadcrumbTrail trail={breadcrumbTrail} /> : null}
+      <Text accessibilityRole="header" style={[styles.title, compact && styles.compactTitle]}>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
-  );
+    {rightSlot ? <View style={[styles.actions, narrow && styles.phoneActions]}>{rightSlot}</View> : null}
+  </View>;
 }
+const styles = StyleSheet.create(withCareSuiteTypography({
+  header: { minWidth: 0, width: '100%', minHeight: 82, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 14, flexShrink: 0, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#CCDBEA' },
+  compact: { minHeight: 64, paddingVertical: 10 },
+  phoneHeader: { minHeight: 64, paddingHorizontal: 12, paddingVertical: 9, gap: 8 },
+  phoneCopy: { flexBasis: 160 },
+  copy: { flexGrow: 1, flexBasis: 220, minWidth: 0, gap: 4 },
+  title: { color: '#102B49', fontSize: font(24), lineHeight: font(31), fontWeight: '800' },
+  compactTitle: { fontSize: font(21), lineHeight: font(28) },
+  subtitle: { color: '#526B82', fontSize: font(15), lineHeight: font(23) },
+  actions: { minWidth: 0, maxWidth: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  phoneActions: { flexBasis: '100%' },
+  back: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#BED2E7', backgroundColor: '#F2F7FD' },
+  backText: { color: '#075EB8', fontSize: font(15), lineHeight: font(22), fontWeight: '700' },
+}));
+import { useWorkspaceBackNavigation } from '@/hooks/useWorkspaceBackNavigation';

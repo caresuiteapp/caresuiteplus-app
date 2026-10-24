@@ -11,7 +11,7 @@ vi.mock('react-native', () => ({ Platform: mocks.platform }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => mocks.mode }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => mocks.blocked ? { ok: false, error: 'Mandant gesperrt' } : null }));
 vi.mock('@/lib/supabase/permissionRepository', () => ({ fetchRuntimePermissions: mocks.runtime }));
-vi.mock('@/lib/inventory/companyInventoryService.web', () => ({ checkCompanyInventoryOffboarding: mocks.check }));
+vi.mock('@/lib/inventory/companyInventoryService', () => ({ checkCompanyInventoryOffboarding: mocks.check }));
 vi.mock('@/lib/inventory/inventoryRepository.demo', () => ({ inventoryDemoRepository: { listAssignmentsForEmployee: mocks.demoAssignments, listItems: mocks.demoItems } }));
 
 beforeEach(() => {

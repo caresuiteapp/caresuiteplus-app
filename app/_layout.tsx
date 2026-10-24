@@ -1,3 +1,4 @@
+import { TenantDataUploadGate } from '@/components/dataTransfers/TenantDataUploadGate.native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
@@ -5,7 +6,7 @@ import { AppStartup } from '@/components/brand/AppStartup';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 import { applyInvisibleScrollIndicators } from '@/product-workflows/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/ThemeModeProvider';
@@ -26,9 +27,12 @@ import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiag
 import { useHydrated } from '@/hooks/useHydrated';
 import { installSystemTextDefaults } from '@/product-workflows/design/installSystemTextDefaults';
 import { GlobalWorkflowFeedbackProvider } from '@/product-workflows/components/ui';
-import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
+import { MobileIconButton } from '@/components/mobile/MobileWorkspace';
+import { helpHref } from '@/features/help/helpNavigation';
+import { isHealthOSContextualPopupRoute, resolveHealthOSPopupFallbackPath } from '@/lib/navigation/healthosRoutePresentation';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
+import { administrationWorkspaceContext } from '@/lib/navigation/administrationWorkspaceContext';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
@@ -67,13 +71,22 @@ function RootShell() {
   const { width, fontScale } = useWindowDimensions();
   const compactPopup = width < 780;
   const nativeCompactPopup = Platform.OS !== 'web' && compactPopup;
-  const nativeChromeHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const nativeChromeMinimumHeight = Math.max(56, Math.ceil(34 * Math.max(1, fontScale) + 12));
+  const chromeLayoutKey = JSON.stringify([pathname, width, fontScale]);
+  const [chromeMeasurement, setChromeMeasurement] = useState<{ key: string; height: number } | null>(null);
+  const nativeChromeHeight = Math.max(nativeChromeMinimumHeight, chromeMeasurement?.key === chromeLayoutKey ? chromeMeasurement.height : 0);
+  const popupContext = administrationWorkspaceContext(pathname);
   const popupContentTop = nativeCompactPopup ? nativeChromeHeight + 14 : compactPopup ? 62 : 86;
   const popupFrameTop = nativeCompactPopup ? nativeChromeHeight + 8 : compactPopup ? 56 : 78;
   const insets = useSafeAreaInsets();
   const nativeTop = Platform.OS === 'web' ? 0 : insets.top;
   const nativeBottom = Platform.OS === 'web' ? 0 : insets.bottom;
-  const currentRouteIsPopup = isHealthOSContextualPopupRoute(pathname);
+  const nativeDesktop = Platform.OS !== 'web' && ['/business', '/business/(tabs)', '/business/dashboard', '/'].includes(pathname);
+  const currentRouteIsPopup = !nativeDesktop && isHealthOSContextualPopupRoute(pathname);
+  const returnToPrevious = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(resolveHealthOSPopupFallbackPath(pathname) as never);
+  };
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
@@ -137,23 +150,32 @@ function RootShell() {
             <StatusBar style={hostsGlobalBackground || isDark ? 'light' : 'dark'} />
             <Stack
               screenOptions={({ route }) => {
-                const contextualPopup = isHealthOSContextualPopupRoute(route.name);
+                const contextualPopup = !nativeDesktop && isHealthOSContextualPopupRoute(route.name);
                 return {
                   headerShown: false,
                   contentStyle: contextualPopup
                     ? {
                         backgroundColor: 'rgba(0, 7, 20, 0.74)',
-                        paddingTop: popupContentTop + nativeTop,
+                        paddingTop: Platform.OS === 'web' ? popupContentTop : nativeChromeHeight + nativeTop + 8,
                         paddingBottom: (compactPopup ? 8 : 24) + nativeBottom,
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
                     : { backgroundColor: SURFACE_COLOR },
-                  animation: contextualPopup ? 'fade' : 'slide_from_right',
-                  presentation: contextualPopup ? 'transparentModal' : 'card',
+                  animation: contextualPopup && Platform.OS === 'web' ? 'fade' : 'slide_from_right',
+                  presentation: contextualPopup && Platform.OS === 'web' ? 'transparentModal' : 'card',
                 };
               }}
             />
-            {currentRouteIsPopup ? (
+            {currentRouteIsPopup && Platform.OS !== 'web' ? <View onLayout={event => {
+              const measured = Math.ceil(event.nativeEvent.layout.height);
+              setChromeMeasurement(current => current?.key === chromeLayoutKey && current.height === measured ? current : { key: chromeLayoutKey, height: measured });
+            }} style={{ position: 'absolute', left: 8, right: 8, top: nativeTop, minHeight: nativeChromeMinimumHeight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#081F3F' }}>
+              <MobileIconButton label="Zurück zur vorherigen Ansicht" icon="arrow-left" dark onPress={returnToPrevious} />
+              <View style={{ flex: 1, minWidth: 0 }}><Text style={{ color: '#80D9FF', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 16 }}>{popupContext.areaLabel}</Text><Text accessibilityRole="header" style={{ color: '#EDF6FF', fontFamily: careSuiteAppFontFamily, fontSize: 15, lineHeight: 21, fontWeight: '700' }} numberOfLines={2}>{popupContext.title}</Text></View>
+              <MobileIconButton label="Hilfe zu dieser Seite" icon="help-circle" dark onPress={() => router.push(helpHref(pathname) as never)} />
+              <MobileIconButton label="Fenster schließen und zum Desktop zurückkehren" icon="x" dark onPress={() => router.dismissTo('/business' as never)} />
+            </View> : null}
+            {currentRouteIsPopup && Platform.OS === 'web' ? (
               <>
                 <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact, { top: popupFrameTop + nativeTop, bottom: (compactPopup ? 4 : 24) + nativeBottom }]} />
                 <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact, nativeCompactPopup && { height: nativeChromeHeight }, { top: (compactPopup ? 7 : 15) + nativeTop }]}>
@@ -220,6 +242,7 @@ export default function RootLayout() {
                             <GlobalScreensaver />
                             <RootShell />
                             <PortalPushRegistrationGate />
+                            <TenantDataUploadGate />
                           </PortalBiometricGate>
                         </HealthOSStoreEditionGuard>
                       </ScreensaverSettingsProvider>
