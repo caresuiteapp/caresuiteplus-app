@@ -8,6 +8,10 @@ import { describeLiquidRoute } from '@/liquid-command/navigation/routeContext';
 
 vi.mock('expo-router', () => ({ Redirect: ({ href }: { href: string }) => <a href={href}>Weiter</a> }));
 vi.mock('@/liquid-command/screens/CompanyWorkspaceScreen.web', () => ({ CompanyWorkspaceScreen: ({ initialTab, initialView }: { initialTab: string; initialView: string }) => <span>{initialTab}:{initialView}</span> }));
+vi.mock('@/liquid-command/screens/CompanyWorkspaceScreen.native', () => ({ CompanyWorkspaceScreen: ({ initialTab, initialView }: { initialTab: string; initialView: string }) => <span>{initialTab}:{initialView}</span> }));
+// Route tests isolate the lifecycle boundary; its native persistence and
+// confirmation behavior is covered by the workflow and interaction suites.
+vi.mock('@/components/navigation/NativeWorkflowPage.native', () => ({ withNativeWorkflowPage: (Page: ComponentType) => Page }));
 vi.mock('@/liquid-command/shell/LiquidModuleRouteLayout', () => ({ LiquidModuleRouteLayout: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 vi.mock('@/components/company/CompanyOrganizationWorkspace.native', () => ({ CompanyOrganizationWorkspace: ({ initialView }: { initialView: string }) => <span>structure:{initialView}</span> }));
 vi.mock('@/components/company/CompanyResourcesWorkspace.native', () => ({ CompanyResourcesWorkspace: ({ initialView }: { initialView: string }) => <span>resources:{initialView}</span> }));
@@ -22,7 +26,7 @@ const expected = {
 describe('company expansion routes', () => {
   for (const [path, [tab, view]] of Object.entries(expected)) it(`${path} opens the intended company view on web and Android`, () => {
     const Web = routes[`../../../app/unternehmen/${path}.web.tsx`].default;
-    const Native = routes[`../../../app/unternehmen/${path}.tsx`].default;
+    const Native = routes[`../../../app/unternehmen/${path}.native.tsx`].default;
     expect(renderToStaticMarkup(<Web />)).toBe(`<main><span>${tab}:${view}</span></main>`);
     expect(renderToStaticMarkup(<Native />)).toBe(`<main><span>${tab}:${view}</span></main>`);
     expect(getRouteByPath(`/unternehmen/${path}`)).toMatchObject({ requiresAuth: true, productKey: 'office' });
