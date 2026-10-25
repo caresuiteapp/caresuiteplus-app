@@ -43,6 +43,37 @@ AGP 8 package, R8 before 9, mismatched mapping archives and merged rules that
 disable shrinking, optimization or obfuscation. The values are recorded in
 `BUILD-INFO.json`; changing the wrapper or source strings alone cannot pass.
 
+## Startup regression in code 51
+
+A device report showed the native splash followed by Android's repeated-crash
+dialog. The signed code-51 bundle resolves WorkManager 2.9.1 and Room 2.5.0;
+Expo Background Task 57.0.16 introduces WorkManager, whose manifest registers
+`WorkManagerInitializer` with AndroidX Startup before React Native renders.
+The actual merged R8 configuration contains only the upstream class-level
+keeps for `RoomDatabase` and `InputMerger`. AGP 9 no longer implicitly retains
+their zero-argument constructors. This is the dependency failure corrected in
+Expo's merged [PR 51349](https://github.com/expo/expo/pull/51349), also reported
+through [Expo Background Task](https://github.com/expo/expo/issues/52173).
+Independent inspection of the delivered code-51 AAB (SHA-256
+`4d4b3005404122278a3eec707a0229076324c9588a92cdeda81d62c2f137be97`)
+finds all three classes in `classes.dex` with no declared zero-argument
+constructors. Its compiled manifest includes both the initialization provider
+and WorkManager initializer. The new gate rejects that unchanged package.
+
+The application now explicitly retains the zero-argument constructors of
+`RoomDatabase` and `InputMerger` subclasses, without preserving other members,
+upgrading runtime dependencies or disabling R8 strict full mode. The signed
+package gate inspects actual DEX class definitions for public zero-argument
+constructors on `WorkDatabase_Impl`, `OverwritingInputMerger` and
+`ArrayCreatingInputMerger`. Method references, other overloads and source
+rules alone do not establish that reflection can instantiate these classes.
+
+This package check establishes the known startup dependency requirement. The
+user's installed build and crash stack have not yet been supplied; the photo
+alone cannot prove that this is the only device failure. Actual cold starts on
+the affected device and background task execution remain separate acceptance
+steps. No app data is cleared as part of this correction.
+
 ## Images
 
 CareSuite's native image adapter already uses `expo-image` / Glide, view-sized

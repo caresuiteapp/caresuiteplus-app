@@ -76,7 +76,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 49,
+    versionCode: 51,
     intentFilters: [{"action": "VIEW", "autoVerify": true, "category": ["BROWSABLE", "DEFAULT"], "data": [{"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}]}],
     predictiveBackGestureEnabled: false,
     permissions: [
