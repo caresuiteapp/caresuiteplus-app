@@ -1,0 +1,10 @@
+{
+  "source": "public/landingpage/media/caresuite-assist-icon.webp",
+  "sourceSha256": "2b445d88745cc7e4618961a1bc6bce5d0b24de33a43140d9ed6f6b5c35cda2fa",
+  "png": "assets/brand/caresuite-app-icon.png",
+  "pngSha256": "432d1448d1169a1d7b6bff94da5b8a14420de97cbcc0c7dd64425cc2431a4649",
+  "backgroundColor": "#F8FAFC",
+  "adaptiveScale": 0.7,
+  "splashImageWidth": 200,
+  "origin": "Existing official Google Play artwork; marketing/healthos-landingpage/store-assets.sources.json"
+}

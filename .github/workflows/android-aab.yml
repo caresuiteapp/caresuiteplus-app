@@ -8,6 +8,7 @@ on:
       - release/android-0.5.0-20261016
       - release/android-0.6.0-20261023
       - release/android-0.7.0-20261024
+      - release/android-0.7.1-20261025
       - fix/native-web-design-parity-20261024
 
 permissions:
@@ -129,6 +130,8 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/CareSuite-HealthOS.aab
             ${{ env.CARESUITE_AAB_DIR }}/SHA256SUMS.txt
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-INFO.json
+            ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-VERIFICATION.json
+            ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-PREVIEW.png
             ${{ env.CARESUITE_AAB_DIR }}/EAS-VERSION-BASELINE.json
             ${{ env.CARESUITE_AAB_DIR }}/R8-build-artifacts.tar.gz
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-MEMORY.json
@@ -203,3 +206,4 @@ jobs:
             /tmp/caresuite-native-web-parity.json
           if-no-files-found: error
           retention-days: 7
+

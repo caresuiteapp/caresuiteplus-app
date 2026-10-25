@@ -9,7 +9,20 @@ import re
 import subprocess
 import sys
 import tarfile
+import tempfile
 import zipfile
+
+
+def verify_packaged_icons(archive, root, output_directory):
+    pattern = re.compile(r'^base/res/(?:mipmap|drawable)-(?:mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi)(?:-v4)?/(?:ic_launcher(?:_round|_foreground|_background|_monochrome)?|notification_icon|splashscreen_logo)\.(?:png|webp)$')
+    with tempfile.TemporaryDirectory(prefix='caresuite-icons-') as directory:
+        for name in archive.namelist():
+            if pattern.fullmatch(name):
+                target = Path(directory) / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(archive.read(name))
+        result = subprocess.run(['node', str(root / 'scripts/verify-android-app-icons.mjs'), '--resources', directory, str(output_directory)], check=True, capture_output=True, text=True)
+        return json.loads(result.stdout)
 
 
 def proto_fields(data):
@@ -162,6 +175,7 @@ def verify(bundle):
     expected_version = json.loads((root / 'app.json').read_text())['expo']['version']
     signing = json.loads((root / 'docs/store/android-signing-identity.json').read_text())
     with zipfile.ZipFile(bundle) as archive:
+        icon_report = verify_packaged_icons(archive, root, bundle.parent)
         names = archive.namelist()
         if 'BundleConfig.pb' not in names or 'base/manifest/AndroidManifest.xml' not in names:
             raise ValueError('Keine vollständige Android-App-Bundle-Struktur')
@@ -207,6 +221,8 @@ def verify(bundle):
         'introVersion': manifest['version'],
         'verifiedIntroFormats': len(manifest['formats']),
         'verifiedNativeSurfaceMarkers': native_markers,
+        'verifiedIconResources': len(icon_report['resources']),
+        'iconSourceSha256': icon_report['sourceSha256'],
         'uploadCertificateSha256': upload_fingerprint,
         'r8ArtifactArchiveSha256': r8_archive_sha256,
         'r8MappingSha256': mapping_sha256,
@@ -222,3 +238,4 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         raise SystemExit('Aufruf: python3 scripts/verify-github-aab.py PFAD_ZUR_AAB')
     verify(Path(sys.argv[1]).resolve())
+
