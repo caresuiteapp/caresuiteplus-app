@@ -95,7 +95,11 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
   }
  }
  if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
- if(screen==='employee-home')await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
+ if(screen==='employee-home'){
+  await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
+  const card=await page.getByText('Ihr aktueller Einsatz ist bereit',{exact:true}).locator('..').boundingBox(),action=await page.getByRole('button',{name:'Einsatz öffnen',exact:true}).first().boundingBox();
+  if(!card||!action||action.y+action.height>card.y+card.height+1)throw Error(JSON.stringify({message:'Enlarged employee guide content extends beyond its card.',card,action}));
+ }
  await page.close();
 }
 for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:768,height:1024},{width:844,height:390},{width:1280,height:800}]){

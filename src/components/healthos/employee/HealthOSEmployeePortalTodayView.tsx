@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', alignSelf: 'stretch', padding: 14 },
-  guideBubbleEnlarged: { flex: 0, width: '100%' },
+  guideBubbleEnlarged: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   guideBubbleTail: {
     position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
     borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,
