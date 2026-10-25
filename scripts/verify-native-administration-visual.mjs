@@ -62,7 +62,7 @@ if(!executable)throw new Error('No existing browser available for visual verific
 const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[];
 async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
- if(fragments!==1)throw Error(JSON.stringify({message:'Enlarged text splits an ordinary label inside a word.',word,fragments}));
+ if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
 }
 try{
 // Keep enlarged device text usable when the viewport is also short.
@@ -102,7 +102,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  }
  await page.close();
 }
-for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:768,height:1024},{width:844,height:390},{width:1280,height:800}]){
+for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
  for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);

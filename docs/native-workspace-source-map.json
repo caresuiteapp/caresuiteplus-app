@@ -2579,7 +2579,7 @@
     {
       "web": "src/components/office/notes/notesWorkspaceCss.web.ts",
       "native": "src/components/office/notes/notesWorkspaceCss.native.ts",
-      "sourceHash": "557757ab0a29ead1a66ea30ab08d82fbb83c7ac0841971368f927ad8c3d975ce",
+      "sourceHash": "d8c5f50564c597fd8c3fe48d484bed291a85293d336f748cd2815d76bcb11052",
       "environment": []
     },
     {
