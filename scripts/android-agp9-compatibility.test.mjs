@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { migrateExpoLibrarySdk, migrateReactNativeGradleCallbacks } = require('../plugins/androidAgp9Compatibility.cjs');
+const { migrateExpoLibrarySdk, migrateReactNativeGradleCallbacks, migrateExpoGeneratedDirectories } = require('../plugins/androidAgp9Compatibility.cjs');
 
 test('the locked Expo library helper retains SDK bounds and migrates its removed library-only target setter', () => {
   const root = dirname(require.resolve('expo-modules-core/package.json'));
@@ -28,4 +28,14 @@ test('the locked RN Gradle plugin registers each root-wide library sweep once wi
   assert.match(result, /fun configureNamespaceForLibraries\(appProject: Project\)/);
   assert.equal(migrateReactNativeGradleCallbacks(result), result);
   assert.throws(() => migrateReactNativeGradleCallbacks(source + '\n// different SDK'), /unbekannter React-Native/);
+});
+
+test('Expo generated source directories use concrete paths while retaining the explicit generation dependency', () => {
+  const root = dirname(require.resolve('expo-modules-autolinking/package.json'));
+  const source = readFileSync(join(root, 'android/expo-gradle-plugin/expo-autolinking-plugin/src/main/kotlin/expo/modules/plugin/ExpoAutolinkingPlugin.kt'), 'utf8');
+  const result = migrateExpoGeneratedDirectories(source);
+  assert.match(result, /srcDirs\(getPackageListDir\(project\)\.get\(\)\.asFile, getInlineModulesDir\(project\)\.get\(\)\.asFile\)/);
+  assert.match(result, /named\("preBuild", Task::class\.java\)\s*\.dependsOn\(generatePackagesList\)/);
+  assert.equal(migrateExpoGeneratedDirectories(result), result);
+  assert.throws(() => migrateExpoGeneratedDirectories(source + '\n// different SDK'), /unbekannter Expo-Autolinking/);
 });

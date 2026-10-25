@@ -55,4 +55,24 @@ function patchReactNativeGradleCallbacks(projectRoot) {
   if (migrated !== original) writeFileSync(file, migrated);
 }
 
-module.exports = { migrateExpoLibrarySdk, patchExpoLibrarySdk, migrateReactNativeGradleCallbacks, patchReactNativeGradleCallbacks };
+function migrateExpoGeneratedDirectories(contents) {
+  const hash = createHash('sha256').update(contents).digest('hex');
+  if (hash === '317b4220d2d664e377ada35e64fd50b839ede1240214c280e68923a33ff64049') return contents;
+  if (hash !== '8f56cafd0c2e6927e02b4f4596af94f752bc8c9b9268cdf2cf562212bed02cdf') throw new Error('AGP 9: unbekannter Expo-Autolinking-Helfer; Migration erneut prüfen.');
+  // These providers contain build-directory paths, not task outputs. The
+  // existing preBuild.dependsOn(generatePackagesList) retains generation order.
+  const result = contents.replace('.srcDirs(getPackageListDir(project), getInlineModulesDir(project))', '.srcDirs(getPackageListDir(project).get().asFile, getInlineModulesDir(project).get().asFile)');
+  if (createHash('sha256').update(result).digest('hex') !== '317b4220d2d664e377ada35e64fd50b839ede1240214c280e68923a33ff64049') throw new Error('AGP 9: Expo-Quellenmigration stimmt nicht mit der geprüften Quelle überein.');
+  return result;
+}
+
+function patchExpoGeneratedDirectories(projectRoot) {
+  const packageFile = require.resolve('expo-modules-autolinking/package.json', { paths: [projectRoot] });
+  if (JSON.parse(readFileSync(packageFile, 'utf8')).version !== '57.0.12') throw new Error('AGP 9: Expo-Autolinking-Version wurde verändert; Migration erneut prüfen.');
+  const file = join(dirname(packageFile), 'android/expo-gradle-plugin/expo-autolinking-plugin/src/main/kotlin/expo/modules/plugin/ExpoAutolinkingPlugin.kt');
+  const original = readFileSync(file, 'utf8');
+  const migrated = migrateExpoGeneratedDirectories(original);
+  if (migrated !== original) writeFileSync(file, migrated);
+}
+
+module.exports = { migrateExpoLibrarySdk, patchExpoLibrarySdk, migrateReactNativeGradleCallbacks, patchReactNativeGradleCallbacks, migrateExpoGeneratedDirectories, patchExpoGeneratedDirectories };

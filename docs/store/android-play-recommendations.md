@@ -28,6 +28,10 @@ and namespace sweeps again whenever another React Native library is applied.
 AGP 9 rejects callbacks registered after a library's DSL has been finalized.
 The same guarded migration makes each root-wide sweep run once while retaining
 all library callbacks; the runtime React Native version is unchanged.
+Expo Autolinking 57.0.12 passes two build-directory providers to the old
+SourceSet API, which AGP 9 rejects. Those directory providers are resolved to
+files; the existing `preBuild.dependsOn(generatePackagesList)` dependency is
+retained, as is the inline-module mirror. The AGP provider check remains on.
 The existing workflow now configures a fresh generated Android project with
 `:app:help` before the full release checks, verifying the actual AGP version,
 minSdk 24 and targetSdk 36. It uses the existing packages and Gradle toolchain,
