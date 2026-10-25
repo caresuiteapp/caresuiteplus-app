@@ -48,6 +48,7 @@ class ManifestGate(unittest.TestCase):
 
     def test_signed_r8_compiler_rejects_old_mapping(self):
         self.assertEqual(verify.verify_r8_compiler(b'# compiler: R8\n# compiler_version: 9.0.76\n'), '9.0.76')
+        self.assertEqual(verify.verify_r8_compiler(b'# compiler_version: 9.0.76\n# Unicode prefix: \xc3'), '9.0.76')
         for text in [b'', b'# compiler_version: 8.12.14\n', b'# compiler_version: 9.0.76\n# compiler_version: 8.12.14\n']:
             with self.subTest(text=text), self.assertRaises(ValueError):
                 verify.verify_r8_compiler(text)

@@ -143,7 +143,9 @@ def verify_agp_metadata(data):
 
 
 def verify_r8_compiler(header):
-    versions = re.findall(r'^#\s*compiler_version:\s*(\d+\.\d+(?:\.\d+)?)\s*$', header.decode('utf-8'), re.M)
+    # This is a bounded prefix and may end inside a Unicode class name. Full
+    # mapping UTF-8 validity is checked incrementally in verify_r8_artifacts.
+    versions = re.findall(r'^#\s*compiler_version:\s*(\d+\.\d+(?:\.\d+)?)\s*$', header.decode('utf-8', errors='replace'), re.M)
     if len(versions) != 1 or int(versions[0].split('.')[0]) < 9:
         raise ValueError('Das signierte Mapping stammt nicht aus R8 9 oder neuer')
     return versions[0]
