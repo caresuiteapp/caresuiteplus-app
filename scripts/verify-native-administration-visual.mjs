@@ -81,6 +81,23 @@ try{
  report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
  await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await page.close();
 }
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){
+ const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+ await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
+ if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
+ if(screen==='academy'){await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');await assertUnbrokenWord(page.getByRole('button',{name:'Schulungsplan',exact:true}),'Schulungsplan');}
+ if(screen==='consultation'){
+  await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
+  for(const name of ['Vorlagenbibliothek','Teamvorlagen','+ Neuen Fall anlegen']){
+   const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();
+   if(!bounds||bounds.x<0||bounds.x+bounds.width>361)throw Error(JSON.stringify({message:'Enlarged consultation header action extends beyond the viewport.',name,bounds}));
+  }
+ }
+ if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
+ if(screen==='employee-home')await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
+ await page.close();
+}
 for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:768,height:1024},{width:844,height:390},{width:1280,height:800}]){
  for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -123,23 +140,6 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
   report.push({screen,viewport,overflow,errors});await page.close();
  }
-}
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){
- const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
- await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
- if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
- if(screen==='academy'){await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');await assertUnbrokenWord(page.getByRole('button',{name:'Schulungsplan',exact:true}),'Schulungsplan');}
- if(screen==='consultation'){
-  await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
-  for(const name of ['Vorlagenbibliothek','Teamvorlagen','+ Neuen Fall anlegen']){
-   const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();
-   if(!bounds||bounds.x<0||bounds.x+bounds.width>361)throw Error(JSON.stringify({message:'Enlarged consultation header action extends beyond the viewport.',name,bounds}));
-  }
- }
- if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
- if(screen==='employee-home')await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
- await page.close();
 }
 writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
 }finally{await browser.close();await new Promise(done=>server.close(done));}
