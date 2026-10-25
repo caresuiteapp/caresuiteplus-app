@@ -23,6 +23,11 @@ Expo Core 57.0.16's Gradle helper also writes the library-only
 SHA-256-guarded prebuild migration moves that value to `lint.targetSdk`, the
 supported library API. Library compile/min SDK values and the application
 target remain intact. Changed or unknown upstream source is rejected.
+React Native 0.86.3's Gradle plugin also registers its root-wide BuildConfig
+and namespace sweeps again whenever another React Native library is applied.
+AGP 9 rejects callbacks registered after a library's DSL has been finalized.
+The same guarded migration makes each root-wide sweep run once while retaining
+all library callbacks; the runtime React Native version is unchanged.
 The existing workflow now configures a fresh generated Android project with
 `:app:help` before the full release checks, verifying the actual AGP version,
 minSdk 24 and targetSdk 36. It uses the existing packages and Gradle toolchain,

@@ -1,5 +1,5 @@
 const { withAppBuildGradle, withProjectBuildGradle, withGradleProperties, withDangerousMod } = require('expo/config-plugins');
-const { patchExpoLibrarySdk } = require('./androidAgp9Compatibility.cjs');
+const { patchExpoLibrarySdk, patchReactNativeGradleCallbacks } = require('./androidAgp9Compatibility.cjs');
 
 // AGP 9.0.1 supports the locked Gradle 9.3.1/JDK 17 toolchain. Keep Expo 57's
 // legacy plugin DSL while migrating the actual release optimizer to AGP 9.
@@ -31,6 +31,7 @@ function optimizeAppBuildGradle(contents) {
 function withAndroidReleaseOptimization(config) {
   config = withDangerousMod(config, ['android', config => {
     patchExpoLibrarySdk(config.modRequest.projectRoot);
+    patchReactNativeGradleCallbacks(config.modRequest.projectRoot);
     return config;
   }]);
   config = withProjectBuildGradle(config, config => {

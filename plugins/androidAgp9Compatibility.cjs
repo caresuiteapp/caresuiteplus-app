@@ -27,4 +27,32 @@ function patchExpoLibrarySdk(projectRoot) {
   if (migrated !== original) writeFileSync(file, migrated);
 }
 
-module.exports = { migrateExpoLibrarySdk, patchExpoLibrarySdk };
+function migrateReactNativeGradleCallbacks(contents) {
+  const hash = createHash('sha256').update(contents).digest('hex');
+  if (hash === '40ce11c7e23f3dacdc9c1f3b55beb2c3d038dc42395e777f38fc11ddd3102836') return contents;
+  if (hash !== '3db99fbea567e6a582c8d88f64642e1a0be24a51b74f6acfece047ba72b9e23c') throw new Error('AGP 9: unbekannter React-Native-Gradle-Helfer; Migration erneut prüfen.');
+  // RN 0.86 sweeps all libraries both from the app and from each RN library.
+  // AGP 9 rejects duplicate finalizeDsl registrations after a library was
+  // finalized. Register each existing root-wide sweep exactly once.
+  for (const [name, key] of [
+    ['configureBuildConfigFieldsForLibraries', 'caresuiteAgp9BuildConfigConfigured'],
+    ['configureNamespaceForLibraries', 'caresuiteAgp9NamespaceConfigured'],
+  ]) {
+    const before = `  fun ${name}(appProject: Project) {\n`;
+    const after = before + `    val registrationKey = "${key}"\n    if (appProject.rootProject.extensions.extraProperties.has(registrationKey)) return\n    appProject.rootProject.extensions.extraProperties.set(registrationKey, true)\n`;
+    contents = contents.replace(before, after);
+  }
+  if (createHash('sha256').update(contents).digest('hex') !== '40ce11c7e23f3dacdc9c1f3b55beb2c3d038dc42395e777f38fc11ddd3102836') throw new Error('AGP 9: React-Native-Callback-Migration stimmt nicht mit der geprüften Quelle überein.');
+  return contents;
+}
+
+function patchReactNativeGradleCallbacks(projectRoot) {
+  const packageFile = require.resolve('@react-native/gradle-plugin/package.json', { paths: [projectRoot] });
+  if (JSON.parse(readFileSync(packageFile, 'utf8')).version !== '0.86.3') throw new Error('AGP 9: React-Native-Gradle-Version wurde verändert; Migration erneut prüfen.');
+  const file = join(dirname(packageFile), 'react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/AgpConfiguratorUtils.kt');
+  const original = readFileSync(file, 'utf8');
+  const migrated = migrateReactNativeGradleCallbacks(original);
+  if (migrated !== original) writeFileSync(file, migrated);
+}
+
+module.exports = { migrateExpoLibrarySdk, patchExpoLibrarySdk, migrateReactNativeGradleCallbacks, patchReactNativeGradleCallbacks };
