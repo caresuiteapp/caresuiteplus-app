@@ -113,7 +113,10 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
-  if(screen==='notes')for(const name of ['Desktop','Vorlagen','Neue Notiz']){const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note header action extends beyond the viewport.',name,viewport,bounds}));}
+  if(screen==='notes'){
+   for(const name of ['Desktop','Vorlagen','Neue Notiz']){const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note header action extends beyond the viewport.',name,viewport,bounds}));}
+   for(const name of ['Angeheftet','Aufgaben'])await assertUnbrokenWord(page.getByRole('button',{name,exact:true}),name);
+  }
   if(screen==='inventory'||screen==='web-inventory'){
    const stock=page.getByRole('button').filter({hasText:'ohne archivierte Einträge'}),label=await stock.getByText('Bestand',{exact:true}).boundingBox(),value=await stock.getByText('2',{exact:true}).boundingBox();
    if(!label||!value||value.y<label.y+label.height-1)throw Error(JSON.stringify({message:'Inventory statistic labels and values must stack without overlap.',screen,viewport,label,value}));
