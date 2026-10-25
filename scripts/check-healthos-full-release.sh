@@ -20,6 +20,7 @@ node --experimental-vm-modules scripts/optional-visit-tasks.test.mjs
 node scripts/store-readiness-check.mjs
 node scripts/audit-android-api36.mjs
 node scripts/audit-android-release-performance.mjs
+node --test scripts/android-agp9-compatibility.test.mjs
 node --test scripts/configure-healthos-gradle-memory.test.mjs scripts/build-healthos-full-gitbash.test.mjs scripts/discover-healthos-windows-tools.test.mjs scripts/healthos-gradle-compatibility.test.mjs scripts/prepare-healthos-local-sdk.test.mjs scripts/prepare-healthos-compiler-jdk.test.mjs
 npm run healthos-full:export
 npm run healthos-full:export:audit

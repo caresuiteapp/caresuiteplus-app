@@ -18,6 +18,16 @@ migration switches preserve these interfaces. They do not disable R8. Resource
 value generation retains its previous default. No consumer-rule/global R8
 optimization opt-out is added.
 
+Expo Core 57.0.16's Gradle helper also writes the library-only
+`LibraryDefaultConfig.targetSdk` property removed in AGP 9. A version- and
+SHA-256-guarded prebuild migration moves that value to `lint.targetSdk`, the
+supported library API. Library compile/min SDK values and the application
+target remain intact. Changed or unknown upstream source is rejected.
+The existing workflow now configures a fresh generated Android project with
+`:app:help` before the full release checks, verifying the actual AGP version,
+minSdk 24 and targetSdk 36. It uses the existing packages and Gradle toolchain,
+cleans its staged source and leaves all final release checks in place.
+
 The release gate reads `androidGradlePluginVersion` from the actual signed AAB
 metadata and `compiler_version` from its signed R8 mapping. It rejects the old
 AGP 8 package, R8 before 9, mismatched mapping archives and merged rules that

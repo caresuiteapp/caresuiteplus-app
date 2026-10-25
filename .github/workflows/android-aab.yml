@@ -87,6 +87,11 @@ jobs:
             echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
           } >> "$GITHUB_ENV"
 
+      - name: Tatsächliche AGP-9-Konfiguration vor den vollständigen Releaseprüfungen prüfen
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas env:exec production --non-interactive 'node scripts/verify-android-gradle-configuration.mjs'
+
       - name: Vollständige native App und frischen Android-Export prüfen
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
