@@ -97,7 +97,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const visitExecutionFocus =
     kind === 'employee' && isEmployeeVisitExecutionRoute(pathname);
   const compactMessengerFocus = !desktopChrome && messengerFocusActive;
-  const showCompactNavigation = !desktopChrome && !keyboardVisible && !compactMessengerFocus && !visitExecutionFocus;
+  const showCompactNavigation = !desktopChrome && !keyboardVisible && !compactMessengerFocus;
   const messageInbox = usePortalOfficeMessages(
     'open',
     kind === 'client' || kind === 'employee',
@@ -132,7 +132,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       height: visibleHeight, width: visibleWidth ?? '100%',
     } as unknown as ViewStyle : null]}><LiquidBackdrop>
       <View style={styles.shell}>
-        {desktopChrome && !visitExecutionFocus ? (
+        {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator>
