@@ -103,7 +103,10 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
    const copyColor=await copy.evaluate(element=>getComputedStyle(element).color);
    if(titleSize<24||!copyColor.startsWith('rgba(255, 255, 255')&&!copyColor.startsWith('rgb(255, 255, 255')&&!copyColor.startsWith('color(srgb 1 1 1'))throw Error(JSON.stringify({message:'Academy heading scale or header copy contrast differs from the original theme.',screen,viewport,titleSize,copyColor}));
   }
-  if(screen==='consultation')await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
+  if(screen==='consultation'){
+   const library=page.getByRole('button',{name:'Vorlagenbibliothek',exact:true});await assertUnbrokenWord(library,'Vorlagenbibliothek');
+   const bounds=await library.boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Consultation action extends beyond the viewport.',viewport,bounds}));
+  }
   if((screen==='company'||screen==='web-company')&&viewport.width===600){
    const brand=await page.getByText('P&',{exact:true}).boundingBox(),edit=await page.getByRole('button',{name:'Stammdaten bearbeiten',exact:true}).boundingBox();
    if(!brand||Math.abs(brand.x+brand.width/2-viewport.width/2)>24||!edit||edit.width<viewport.width*.7)throw Error(JSON.stringify({message:'Narrow company header must center the brand and stretch its vertical actions.',screen,viewport,brand,edit}));

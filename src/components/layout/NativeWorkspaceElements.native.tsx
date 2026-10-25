@@ -43,6 +43,9 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
   if(presentation.declarations.display&&!presentation.declarations['justify-content'])box.justifyContent='flex-start';
   if(box.flexWrap==='wrap'&&!presentation.declarations['align-content'])box.alignContent='stretch';
   if(props.__workspaceCellStyle&&presentation.declarations['justify-self']==='center'){box.marginLeft='auto';box.marginRight='auto';}
+  // A Web block with auto horizontal margins fills the available width up to
+  // max-width. A Yoga flex child would instead size itself from its contents.
+  if(['div','section','header','footer','main','aside','article','nav','form','ul','ol'].includes(tag)&&box.width===undefined&&box.marginLeft==='auto'&&box.marginRight==='auto'&&!presentation.declarations.display?.startsWith('inline'))box.width='100%';
   if(presentation.declarations['grid-column']?.replace(/\s/g,'')==='1/-1')Object.assign(box,{width:'100%',flexGrow:0,flexShrink:0});
   const children=childrenOf(props.children),ownSubmit=useRef<()=>void>(()=>{}),form=useMemo(()=>({fields:fields.current,submit:()=>ownSubmit.current()}),[]);
   const fontScale=Math.max(1,Number(parent.variables['--cs-native-font-scale']??1));
