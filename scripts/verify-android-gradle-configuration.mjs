@@ -26,6 +26,9 @@ try {
   const proof = join(stage, 'caresuite-toolchain.gradle');
   writeFileSync(proof, `gradle.projectsEvaluated {
     def app = gradle.rootProject.findProject(':app')
+    // Init scripts also run in the included React Native/Expo plugin builds.
+    // The requested :app:help task still makes a missing main app an error.
+    if (app == null) return
     def plugin = app.plugins.findPlugin('com.android.application')
     def version = plugin.class.classLoader.loadClass('com.android.Version').getField('ANDROID_GRADLE_PLUGIN_VERSION').get(null)
     def android = app.extensions.getByName('android')
