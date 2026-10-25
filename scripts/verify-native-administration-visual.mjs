@@ -125,8 +125,14 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
  await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
  if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
- if(screen==='academy')await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');
- if(screen==='consultation')await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
+ if(screen==='academy'){await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');await assertUnbrokenWord(page.getByRole('button',{name:'Schulungsplan',exact:true}),'Schulungsplan');}
+ if(screen==='consultation'){
+  await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
+  for(const name of ['Vorlagenbibliothek','Teamvorlagen','+ Neuen Fall anlegen']){
+   const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();
+   if(!bounds||bounds.x<0||bounds.x+bounds.width>361)throw Error(JSON.stringify({message:'Enlarged consultation header action extends beyond the viewport.',name,bounds}));
+  }
+ }
  if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
  await page.close();
 }

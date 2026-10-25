@@ -47,11 +47,14 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
   const children=childrenOf(props.children),ownSubmit=useRef<()=>void>(()=>{}),form=useMemo(()=>({fields:fields.current,submit:()=>ownSubmit.current()}),[]);
   const fontScale=Math.max(1,Number(parent.variables['--cs-native-font-scale']??1));
   if(fontScale>1.25){
-    if(box.flexDirection==='row'){box.flexShrink??=1;box.maxWidth??='100%';}
+    // Column headers can otherwise grow to their children's intrinsic width
+    // when the shared Web design aligns those children to the start edge.
+    if(!['table','tr','td','th'].includes(tag)&&box.position!=='absolute')box.maxWidth??='100%';
+    if(box.flexDirection==='row')box.flexShrink??=1;
     const label=tag==='button'?textOf(props.children).trim():'';
     if(label&&!presentation.declarations.width){
       const word=Math.max(...label.split(/\s+|-/).map(value=>value.length)),padding=Number(box.paddingLeft??box.paddingHorizontal??box.padding??0)+Number(box.paddingRight??box.paddingHorizontal??box.padding??0),icon=children.some(child=>isValidElement(child)&&!textOf((child.props as Props).children).trim())?24:0,available=typeof props.__workspaceCellStyle?.width==='number'?props.__workspaceCellStyle.width:parent.width;
-      const intrinsic=Math.min(available,word*Number(text.fontSize??14)*fontScale*.55+padding+icon+2*Number(box.borderWidth??0));
+      const intrinsic=Math.min(available,word*Number(text.fontSize??14)*fontScale*.62+padding+icon+2*Number(box.borderWidth??0));
       box.minWidth=Math.max(Number(box.minWidth??0),intrinsic);
       if(box.flex&&box.flex>0){box.flexGrow=box.flex;box.flexShrink=1;box.flexBasis=intrinsic;delete box.flex;}
     }
