@@ -7,3 +7,10 @@
 # Source positions for crash reports; retain the R8 mapping with each release.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# PDFBox 2.0.27.0 guards its optional JPX decoder with Class.forName.
+# CareSuite uses PDFBox for embedded attachments, and Android PdfRenderer for
+# page images. Only this absent optional codec is allowed; keep other missing
+# dependencies as release errors and retain all R8 optimizations.
+# https://github.com/TomRoush/PdfBox-Android/tree/v2.0.27.0#reading-jpx-images
+-dontwarn com.gemalto.jp2.JP2Decoder
