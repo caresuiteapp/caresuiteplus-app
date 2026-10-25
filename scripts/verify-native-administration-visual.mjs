@@ -150,4 +150,4 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
  }
 }
 writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
-}finally{await browser.close();await new Promise(done=>server.close(done));}
+}catch(error){writeFileSync(join(output,'verification.json'),JSON.stringify({status:'failed',error:error instanceof Error?error.message:String(error),stack:error instanceof Error?error.stack:undefined},null,2));throw error;}finally{await browser.close();await new Promise(done=>server.close(done));}
