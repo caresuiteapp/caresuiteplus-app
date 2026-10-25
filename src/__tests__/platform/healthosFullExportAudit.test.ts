@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, truncateSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -97,7 +97,16 @@ function fixture() {
     }));
   };
   save();
-  const audit = (options: string[] = []) => spawnSync(process.execPath, [script, output, ...options], { cwd: root, encoding: 'utf8' });
+  // Let the worker process its progress messages while the auditor is running.
+  const audit = (options: string[] = []) => new Promise<{ status: number; stdout: string; stderr: string }>((complete, reject) => {
+    execFile(process.execPath, [script, output, ...options], { cwd: root, encoding: 'utf8' }, (error, stdout, stderr) => {
+      if (error && typeof error.code !== 'number') {
+        reject(error);
+        return;
+      }
+      complete({ status: error ? Number(error.code) : 0, stdout, stderr });
+    });
+  });
   return { output, sources, assets, save, audit };
 }
 
@@ -106,11 +115,11 @@ afterEach(() => {
 });
 
 describe('full HealthOS Android artifact audit', () => {
-  it('rejects an embedded browser even when it is hidden behind a native route', () => {
+  it('rejects an embedded browser even when it is hidden behind a native route', async () => {
     const artifact = fixture();
     const screen = artifact.sources.find(source => source.path.endsWith('/CommandCenterScreen.native.tsx'))!;
     screen.content += '\nexport function Embedded() { return <WebView />; }';
-    artifact.save(); const result = artifact.audit();
+    artifact.save(); const result = await artifact.audit();
     expect(result.status).toBe(1); expect(result.stderr).toContain('WebView/iframe reachable');
   });
   it.each([
@@ -118,11 +127,11 @@ describe('full HealthOS Android artifact audit', () => {
     "function Pdf() { return html && TestPlatform.OS === 'web' ? <iframe /> : <View />; }",
     "const showPdf = html && TestPlatform.OS === 'web'; function Pdf() { return showPdf ? <iframe /> : <View />; }",
     "function Pdf() { if (TestPlatform.OS === 'web') return <iframe />; return <View />; }",
-  ])('accepts PDF browser markup proven unreachable on Android: %s', (code) => {
+  ])('accepts PDF browser markup proven unreachable on Android: %s', async (code) => {
     const artifact = fixture();
     artifact.sources.find(source => source.path.endsWith('/CommandCenterScreen.native.tsx'))!.content +=
       `\nimport { Platform as TestPlatform } from 'react-native';\n${code}`;
-    artifact.save(); const result = artifact.audit();
+    artifact.save(); const result = await artifact.audit();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).nativeUiWithoutWebViews).toBe(true);
   });
@@ -133,17 +142,17 @@ describe('full HealthOS Android artifact audit', () => {
     "const showPdf = TestPlatform.OS === 'web'; function Pdf(showPdf: boolean) { return showPdf ? <iframe /> : <View />; }",
     "const showPdf = (html && false) === false; function Pdf() { return showPdf ? <iframe /> : <View />; }",
     "import { WebView as EmbeddedBrowser } from 'react-native-webview'; function Pdf() { return <EmbeddedBrowser />; }",
-  ])('rejects browser markup under native or unproven conditions: %s', (code) => {
+  ])('rejects browser markup under native or unproven conditions: %s', async (code) => {
     const artifact = fixture();
     artifact.sources.find(source => source.path.endsWith('/CommandCenterScreen.native.tsx'))!.content +=
       `\nimport { Platform as TestPlatform } from 'react-native';\n${code}`;
-    artifact.save(); const result = artifact.audit();
+    artifact.save(); const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('WebView/iframe reachable');
   });
-  it('accepts the full native graph with intact offline media and reports sizes', () => {
+  it('accepts the full native graph with intact offline media and reports sizes', async () => {
     const artifact = fixture();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status, result.stderr).toBe(0);
     const report = JSON.parse(result.stdout);
     expect(report).toMatchObject({ status: 'ok', platform: 'android', routerRoot: 'app', portalSecurityGates: true });
@@ -152,49 +161,49 @@ describe('full HealthOS Android artifact audit', () => {
     expect(report.largestAssets.length).toBeGreaterThan(0);
   });
 
-  it('rejects a portal-only bundle even when a loose full-app source map is present', () => {
+  it('rejects a portal-only bundle even when a loose full-app source map is present', async () => {
     const artifact = fixture();
     copyFileSync(join(artifact.output, `${bundle}.map`), join(artifact.output, 'full-app-decoy.map'));
     artifact.sources.splice(0, artifact.sources.length, { path: '/project/app-portal/_layout.tsx', content: 'export default PortalRoot;' });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('portal-only implementation');
   });
 
-  it('rejects the desktop access implementation selected in the Android graph', () => {
+  it('rejects the desktop access implementation selected in the Android graph', async () => {
     const artifact = fixture();
     const screen = artifact.sources.find((source) => source.path.endsWith('/AccessScreens.tsx'))!;
     screen.path = screen.path.replace('.tsx', '.web.tsx');
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('required native implementation missing');
   });
 
-  it('accepts inactive browser route candidates while reporting their presence', () => {
+  it('accepts inactive browser route candidates while reporting their presence', async () => {
     const artifact = fixture();
     artifact.sources.push(
       { path: '/project/app/index.web.tsx', content: "export { WebHome } from '../src/WebHome.web';" },
       { path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Browser only</div>; }' },
     );
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).inactiveWebCandidates).toContain('src/WebHome.web.tsx');
   });
 
-  it('rejects a browser implementation imported by a selected native route', () => {
+  it('rejects a browser implementation imported by a selected native route', async () => {
     const artifact = fixture();
     artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!.content = "export { WebHome as default } from '../src/WebHome.web';";
     artifact.sources.push({ path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Wrong platform</div>; }' });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('web or iOS implementation reachable from Android routes');
   });
 
-  it('distinguishes bundled literal browser imports inside proven web-only branches', () => {
+  it('distinguishes bundled literal browser imports inside proven web-only branches', async () => {
     const artifact = fixture();
     const entry = artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!;
     entry.content = `import { Platform } from 'react-native';\n${entry.content}`;
@@ -208,12 +217,12 @@ describe('full HealthOS Android artifact audit', () => {
     `;
     artifact.sources.push({ path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Browser only</div>; }' });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).inactiveWebCandidates).toContain('src/WebHome.web.tsx');
   });
 
-  it('does not mistake a shadowed Platform variable for the Android platform guard', () => {
+  it('does not mistake a shadowed Platform variable for the Android platform guard', async () => {
     const artifact = fixture();
     const entry = artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!;
     entry.content = `import { Platform } from 'react-native';\n${entry.content}
@@ -223,7 +232,7 @@ describe('full HealthOS Android artifact audit', () => {
     `;
     artifact.sources.push({ path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Browser</div>; }' });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('implementation reachable from Android routes');
   });
@@ -232,13 +241,13 @@ describe('full HealthOS Android artifact audit', () => {
     "if ((Platform.OS === 'android' && 'web') === 'web') require('../src/WebHome.web');",
     "if ('0' == false) require('../src/WebHome.web');",
     "throw new Error(); import '../src/WebHome.web';",
-  ])('does not omit native imports through JavaScript expression semantics: %s', (code) => {
+  ])('does not omit native imports through JavaScript expression semantics: %s', async (code) => {
     const artifact = fixture();
     const entry = artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!;
     entry.content = `import { Platform } from 'react-native';\n${entry.content}\n${code}`;
     artifact.sources.push({ path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Wrong platform</div>; }' });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('implementation reachable from Android routes');
   });
@@ -246,7 +255,7 @@ describe('full HealthOS Android artifact audit', () => {
   it.each([
     "const x = <Foo>require('./WebHome.web');",
     "const load = <T>() => require('./WebHome.web');",
-  ])('parses TypeScript module syntax without treating it as JSX: %s', (code) => {
+  ])('parses TypeScript module syntax without treating it as JSX: %s', async (code) => {
     const artifact = fixture();
     artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!.content += "\nimport '../src/parserProbe';";
     artifact.sources.push(
@@ -254,12 +263,12 @@ describe('full HealthOS Android artifact audit', () => {
       { path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Wrong platform</div>; }' },
     );
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('implementation reachable from Android routes');
   });
 
-  it('uses the configured Expo TypeScript-first resolution order', () => {
+  it('uses the configured Expo TypeScript-first resolution order', async () => {
     const artifact = fixture();
     artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!.content += "\nimport '../src/helper';";
     artifact.sources.push(
@@ -268,101 +277,101 @@ describe('full HealthOS Android artifact audit', () => {
       { path: '/project/src/WebHome.web.tsx', content: 'export function WebHome() { return <div>Wrong platform</div>; }' },
     );
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('implementation reachable from Android routes');
   });
 
-  it('rejects local HealthOS artwork excluded from the reviewed EAS archive', () => {
+  it('rejects local HealthOS artwork excluded from the reviewed EAS archive', async () => {
     const artifact = fixture();
     artifact.sources.push({ path: '/project/src/liquid-command/screens/CommandCenterScreen.tsx', content: readFileSync(resolve(root, 'src/liquid-command/screens/CommandCenterScreen.tsx'), 'utf8') });
     artifact.save();
     const ignoreFile = join(artifact.output, 'excluded-healthos.easignore');
     writeFileSync(ignoreFile, `${readFileSync(resolve(root, '.easignore'), 'utf8')}\nassets/healthos/\n`);
-    const result = artifact.audit(['--easignore', ignoreFile]);
+    const result = await artifact.audit(['--easignore', ignoreFile]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('required source or asset excluded from EAS archive: assets/healthos/');
   });
 
-  it('uses configured Metro asset extensions to reject an excluded native loading GIF', () => {
+  it('uses configured Metro asset extensions to reject an excluded native loading GIF', async () => {
     const artifact = fixture();
     artifact.sources.push({ path: '/project/src/components/brand/brandassets.ts', content: readFileSync(resolve(root, 'src/components/brand/brandassets.ts'), 'utf8') });
     artifact.save();
     const ignoreFile = join(artifact.output, 'excluded-loading.easignore');
     writeFileSync(ignoreFile, `${readFileSync(resolve(root, '.easignore'), 'utf8')}\nassets/images/caresuite-loading.gif\n`);
-    const result = artifact.audit(['--easignore', ignoreFile]);
+    const result = await artifact.audit(['--easignore', ignoreFile]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('required source or asset excluded from EAS archive: assets/images/caresuite-loading.gif');
   });
 
-  it('verifies fresh source-map text against the current checkout when requested', () => {
+  it('verifies fresh source-map text against the current checkout when requested', async () => {
     const artifact = fixture();
-    const result = artifact.audit(['--verify-current-sources']);
+    const result = await artifact.audit(['--verify-current-sources']);
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ currentSourceIdentity: true });
   });
 
-  it('rejects stale bundled source text despite a complete full route graph', () => {
+  it('rejects stale bundled source text despite a complete full route graph', async () => {
     const artifact = fixture();
     artifact.sources.find((source) => source.path.endsWith('/app/index.tsx'))!.content += '\n// older local source';
     artifact.save();
-    const result = artifact.audit(['--verify-current-sources']);
+    const result = await artifact.audit(['--verify-current-sources']);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('bundled source differs from current project: app/index.tsx');
   });
 
-  it('preserves local Expo module paths when verifying current bundled source', () => {
+  it('preserves local Expo module paths when verifying current bundled source', async () => {
     const artifact = fixture();
     const path = 'modules/caresuite-pdf/src/CareSuitePdfModule.ts';
     artifact.sources.push({ path: `/project/${path}`, content: readFileSync(resolve(root, path), 'utf8') });
     artifact.save();
-    const result = artifact.audit(['--verify-current-sources']);
+    const result = await artifact.audit(['--verify-current-sources']);
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).verifiedCurrentSources).toBe(artifact.sources.length);
   });
 
-  it('rejects stale local Expo module source under its full project path', () => {
+  it('rejects stale local Expo module source under its full project path', async () => {
     const artifact = fixture();
     const path = 'modules/caresuite-pdf/src/CareSuitePdfModule.ts';
     artifact.sources.push({ path: `/project/${path}`, content: `${readFileSync(resolve(root, path), 'utf8')}\n// stale module` });
     artifact.save();
-    const result = artifact.audit(['--verify-current-sources']);
+    const result = await artifact.audit(['--verify-current-sources']);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`bundled source differs from current project: ${path}`);
   });
 
-  it('follows native route imports into local Expo modules and rejects browser UI there', () => {
+  it('follows native route imports into local Expo modules and rejects browser UI there', async () => {
     const artifact = fixture();
     artifact.sources.find(source => source.path.endsWith('/app/index.tsx'))!.content += "\nimport '../modules/caresuite-pdf/src/CareSuitePdfModule';";
     artifact.sources.push({ path: '/project/modules/caresuite-pdf/src/CareSuitePdfModule.ts', content: "import { WebView } from 'react-native-webview';" });
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('WebView/iframe reachable');
     expect(result.stderr).toContain('modules/caresuite-pdf/src/CareSuitePdfModule.ts');
   });
 
-  it('rejects metadata for the wrong platform', () => {
+  it('rejects metadata for the wrong platform', async () => {
     const artifact = fixture();
     writeFileSync(join(artifact.output, 'metadata.json'), JSON.stringify({
       version: 0, bundler: 'metro', fileMetadata: { web: { bundle, assets: artifact.assets } },
     }));
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Android export metadata is missing');
   });
 
-  it('rejects Android metadata pointing at a browser bundle path', () => {
+  it('rejects Android metadata pointing at a browser bundle path', async () => {
     const artifact = fixture();
     writeFileSync(join(artifact.output, 'metadata.json'), JSON.stringify({
       version: 0, bundler: 'metro', fileMetadata: { android: { bundle: bundle.replace('/android/', '/web/'), assets: artifact.assets } },
     }));
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('metadata does not point to an Android runtime bundle');
   });
 
-  it('rejects a full-app map renamed next to a different bundle', () => {
+  it('rejects a full-app map renamed next to a different bundle', async () => {
     const artifact = fixture();
     const metadata = JSON.parse(readFileSync(join(artifact.output, 'metadata.json'), 'utf8'));
     const otherBundle = bundle.replace('index-fixture', 'portal-fixture');
@@ -370,90 +379,90 @@ describe('full HealthOS Android artifact audit', () => {
     copyFileSync(join(artifact.output, `${bundle}.map`), join(artifact.output, `${otherBundle}.map`));
     metadata.fileMetadata.android.bundle = otherBundle;
     writeFileSync(join(artifact.output, 'metadata.json'), JSON.stringify(metadata));
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('source map identity does not match');
   });
 
   it.each(['app/auth/register.tsx', 'app/business/(tabs)/index.tsx', 'app/office/index.tsx', 'app/portal/client/(tabs)/index.tsx'])(
-    'rejects the missing route branch %s', (route) => {
+    'rejects the missing route branch %s', async (route) => {
       const artifact = fixture();
       const base = route.replace(/\.tsx$/, '');
       for (let index = artifact.sources.length - 1; index >= 0; index--) {
         if ([`${base}.tsx`, `${base}.native.tsx`, `${base}.android.tsx`].some(path => artifact.sources[index].path.endsWith(`/${path}`))) artifact.sources.splice(index, 1);
       }
       artifact.save();
-      const result = artifact.audit();
+      const result = await artifact.audit();
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(`required native implementation missing: ${base}`);
     },
   );
 
-  it('rejects biometric and push sources that are bundled but not rendered by the root', () => {
+  it('rejects biometric and push sources that are bundled but not rendered by the root', async () => {
     const artifact = fixture();
     const rootSource = artifact.sources.find((source) => source.path.endsWith('/app/_layout.tsx'))!;
     rootSource.content = rootSource.content.replace('<PortalBiometricGate>', '<>').replace('</PortalBiometricGate>', '</>');
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('does not render PortalBiometricGate');
   });
 
-  it('rejects removal of the role boundary while its module is still bundled', () => {
+  it('rejects removal of the role boundary while its module is still bundled', async () => {
     const artifact = fixture();
     artifact.sources.find((source) => source.path.endsWith('/LiquidModuleRouteLayout.tsx'))!.content = '<RequireAuth><LiquidProductAccessGuard><Stack /></LiquidProductAccessGuard></RequireAuth>';
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('boundary misses RequireRole');
   });
 
-  it('rejects a modified packaged intro even if the approved source file is intact', () => {
+  it('rejects a modified packaged intro even if the approved source file is intact', async () => {
     const artifact = fixture();
     const path = join(artifact.output, artifact.assets[0].path);
     const video = readFileSync(path);
     video[video.length - 1] ^= 1;
     writeFileSync(path, video);
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('approved offline intro is missing or changed');
   });
 
-  it('rejects an intro asset excluded from the Android manifest despite a loose copy', () => {
+  it('rejects an intro asset excluded from the Android manifest despite a loose copy', async () => {
     const artifact = fixture();
     artifact.assets.shift();
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('approved offline intro is missing or changed');
   });
 
-  it('rejects a substituted native font', () => {
+  it('rejects a substituted native font', async () => {
     const artifact = fixture();
     const path = join(artifact.output, 'assets/century-font');
     const font = readFileSync(path);
     font[font.length - 1] ^= 1;
     writeFileSync(path, font);
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('offline Century Gothic font is missing or changed');
   });
 
-  it('rejects assets escaping the export directory', () => {
+  it('rejects assets escaping the export directory', async () => {
     const artifact = fixture();
     artifact.assets[0].path = '../outside.mp4';
     artifact.save();
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('artifact escapes export');
   });
 
-  it('reports a larger full export without imposing the portal-only size limit', () => {
+  it('reports a larger full export without imposing the portal-only size limit', async () => {
     const artifact = fixture();
     const additionalFile = join(artifact.output, 'additional-runtime-asset');
     writeFileSync(additionalFile, '');
     truncateSync(additionalFile, 55 * 1024 * 1024);
-    const result = artifact.audit();
+    const result = await artifact.audit();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).runtimeSizeMb).toBeGreaterThan(50);
   });
