@@ -68,11 +68,42 @@ constructors on `WorkDatabase_Impl`, `OverwritingInputMerger` and
 `ArrayCreatingInputMerger`. Method references, other overloads and source
 rules alone do not establish that reflection can instantiate these classes.
 
-This package check establishes the known startup dependency requirement. The
-user's installed build and crash stack have not yet been supplied; the photo
-alone cannot prove that this is the only device failure. Actual cold starts on
-the affected device and background task execution remain separate acceptance
-steps. No app data is cleared as part of this correction.
+This package check establishes the known startup dependency requirement.
+Code 52 retains those constructors, but the subsequent device report exposes
+the independent JavaScript initialization error described below. Actual cold
+starts on the affected device and background task execution remain separate
+acceptance steps. No app data is cleared as part of these corrections.
+
+## JavaScript startup error in code 52
+
+The device report confirms version 0.7.1 / code 52 and repeatedly records
+`TypeError: Object.defineProperty() called on non-object` before the first app
+screen. The Hermes stack begins at `getValue@1:11015115`, called from
+`anonymous@1:368976`. Inspection of the exact signed code-52 bytecode binds
+these virtual offsets to Expo's lazy global installer and the
+`@ungap/structured-clone` CommonJS initializer respectively. The latter reads
+global `structuredClone` before assigning its default export.
+
+`nativeWorkflowEnvironment.native.ts` imported that implementation eagerly.
+The import re-entered Expo 57.0.20's lazy `structuredClone` installer, which
+received the partially initialized module's undefined default export and
+attempted to mark it with `Object.defineProperty`. The application now uses
+Expo's installed global function at clone-call time and no longer imports the
+implementation directly. The clone algorithm and its supported value types
+are unchanged; no JSON serialization fallback is introduced.
+
+The existing native environment test runs the actual installed Expo installer
+and locked clone package in a cold VM with CommonJS partial exports. It first
+reproduces the reported exception with the old import order, then imports the
+actual corrected native environment and checks cycles, Date, Map and typed
+array copy isolation. Native modules are inert in this test, so it establishes
+the JavaScript initialization contract, not a successful physical-device
+launch. The full release and device acceptance remain separate.
+
+The existing EAS diagnostic archive also retains the composed release Hermes
+source map and the bytecode file from the same Gradle task alongside the R8
+mapping. Future JavaScript crash offsets can therefore be resolved against
+the exact packaged bytecode instead of rebuilding maps after the fact.
 
 ## Images
 

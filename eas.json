@@ -149,7 +149,9 @@
         "EXPO_PUBLIC_FOLDER": "public-portal"
       },
       "buildArtifactPaths": [
-        "android/app/build/outputs/mapping/release/*"
+        "android/app/build/outputs/mapping/release/*",
+        "android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+        "android/app/build/generated/assets/react/release/index.android.bundle"
       ]
     },
     "healthos-full-aab": {
@@ -160,7 +162,9 @@
         "buildType": "app-bundle",
         "credentialsSource": "remote",
         "buildArtifactPaths": [
-          "android/app/build/outputs/mapping/release/*"
+          "android/app/build/outputs/mapping/release/*",
+          "android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+          "android/app/build/generated/assets/react/release/index.android.bundle"
         ]
       },
       "env": {
@@ -170,7 +174,9 @@
         "EXPO_PUBLIC_FOLDER": "public-portal"
       },
       "buildArtifactPaths": [
-        "android/app/build/outputs/mapping/release/*"
+        "android/app/build/outputs/mapping/release/*",
+        "android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+        "android/app/build/generated/assets/react/release/index.android.bundle"
       ]
     }
   },

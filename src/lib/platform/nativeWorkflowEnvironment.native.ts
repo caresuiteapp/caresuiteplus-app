@@ -1,7 +1,6 @@
 import {SQLiteStorage} from 'expo-sqlite/kv-store';
 import * as Crypto from 'expo-crypto';
 import * as Clipboard from 'expo-clipboard';
-import clone from '@ungap/structured-clone';
 import NetInfo from '@react-native-community/netinfo';
 import {useContext,useMemo} from 'react';
 import {AccessibilityInfo,Alert,AppState,Appearance,Dimensions} from 'react-native';
@@ -18,7 +17,9 @@ export {nativeURL} from './nativeObjectUrl.native';
 // Workflow journals are independent from authentication and portal preferences.
 export const nativeLocalStorage=synchronousWorkflowStore(new SQLiteStorage('caresuite-workflow-journals-v1.db'));
 export const nativeSessionStorage=synchronousWorkflowStore(new SQLiteStorage('caresuite-workflow-drafts-v1.db'));
-export const nativeStructuredClone=<T,>(value:T):T=>typeof globalThis.structuredClone==='function'?globalThis.structuredClone(value):clone(value);
+// Expo installs this global lazily. Importing its @ungap implementation here
+// re-enters that installer before the implementation has exported its value.
+export const nativeStructuredClone=<T,>(value:T):T=>globalThis.structuredClone(value);
 export const nativeCrypto={randomUUID:Crypto.randomUUID,getRandomValues:Crypto.getRandomValues,subtle:{digest(algorithm:AlgorithmIdentifier,data:BufferSource){const name=typeof algorithm==='string'?algorithm:algorithm.name;if(!Object.values(Crypto.CryptoDigestAlgorithm).includes(name as Crypto.CryptoDigestAlgorithm))throw Error('Der angeforderte Datei-Hash wird nicht unterstützt.');return Crypto.digest(name as Crypto.CryptoDigestAlgorithm,data);}}};
 let connected=false,reducedMotion=true;
 NetInfo.addEventListener(state=>{connected=state.isConnected===true&&state.isInternetReachable!==false;});

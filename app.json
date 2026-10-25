@@ -20,7 +20,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "package": "app.caresuitehealthos",
-      "versionCode": 51,
+      "versionCode": 52,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
