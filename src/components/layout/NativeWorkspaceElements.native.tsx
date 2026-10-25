@@ -51,6 +51,8 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
     // when the shared Web design aligns those children to the start edge.
     if(!['table','tr','td','th'].includes(tag)&&box.position!=='absolute')box.maxWidth??='100%';
     if(box.flexDirection==='row')box.flexShrink??=1;
+  }
+  {
     const label=tag==='button'?textOf(props.children).trim():'';
     if(label&&!presentation.declarations.width){
       const word=Math.max(...label.split(/\s+|-/).map(value=>value.length)),padding=Number(box.paddingLeft??box.paddingHorizontal??box.padding??0)+Number(box.paddingRight??box.paddingHorizontal??box.padding??0),icon=children.some(child=>isValidElement(child)&&!textOf((child.props as Props).children).trim())?24:0,available=typeof props.__workspaceCellStyle?.width==='number'?props.__workspaceCellStyle.width:parent.width;
