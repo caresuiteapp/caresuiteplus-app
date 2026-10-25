@@ -44,7 +44,7 @@ describe('document workspace navigation', () => {
     try {
       expect(normalizeNavigationApp(app('/business/templates')).route).toBe('/business/office/document-catalog');
       expect(normalizeNavigationApp(app('/office/documents')).route).toBe('/business/office/documents');
-      expect(desktopModuleForRoute('/business/templates/documents-hub')).toBeNull();
+      expect(desktopModuleForRoute('/business/templates/documents-hub')).toBe('office');
       expect(buildDesktopApps([], 'business_admin').some(item => item.id === 'document-settings')).toBe(true);
     } finally { Object.defineProperty(Platform, 'OS', original); }
   });

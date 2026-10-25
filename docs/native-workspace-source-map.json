@@ -1,6 +1,22 @@
 {
   "generatedBy": "scripts/port-native-workspaces.mjs",
   "visualAcceptance": "not-verified",
+  "nativeBindings": [
+    {
+      "web": "src/components/office/NativeDocumentHtmlPreview.web.tsx",
+      "native": "src/components/office/NativeDocumentHtmlPreview.native.tsx",
+      "reason": "The Web export is an empty platform placeholder; Android renders the complete document and opens the original through native printing.",
+      "sourceHash": "bee9cbc15276bf367a15058cbf9e11739a22bc4adfdd0f3c28d5bab29ce9d487",
+      "nativeHash": "a3eb7b322616372bbf364634c894a1c9f8d354505cbd13875e409255a13c1268"
+    },
+    {
+      "web": "src/components/portal/accessibility/PortalTextSizeControls.web.tsx",
+      "native": "src/components/portal/accessibility/PortalTextSizeControls.native.tsx",
+      "reason": "Android uses the system text scale and display settings. The Web-only font context cannot run on native.",
+      "sourceHash": "03d1ba2f708589219b723052f4b30701a451a6609d66f5dd55b5de8ea9ba5160",
+      "nativeHash": "be6ad5a2461f02a02b7f224ced5fb5ae51dfe5c20231db4b350d60c3a0d0690e"
+    }
+  ],
   "modules": [
     {
       "web": "src/lib/assist/administrativeMinutes.web.ts",
@@ -2017,12 +2033,6 @@
       "environment": []
     },
     {
-      "web": "src/components/office/NativeDocumentHtmlPreview.web.tsx",
-      "native": "src/components/office/NativeDocumentHtmlPreview.native.tsx",
-      "sourceHash": "bee9cbc15276bf367a15058cbf9e11739a22bc4adfdd0f3c28d5bab29ce9d487",
-      "environment": []
-    },
-    {
       "web": "src/lib/office/occupationalSafetyPortalBoundary.web.ts",
       "native": "src/lib/office/occupationalSafetyPortalBoundary.native.ts",
       "sourceHash": "d1e8af49ddaf044da7a75c57edb3cf6f235ead8497e8151521941041fe40b951",
@@ -3780,12 +3790,6 @@
       "web": "src/components/portal/PortalSignaturePdfFrame.web.tsx",
       "native": "src/components/portal/PortalSignaturePdfFrame.native.tsx",
       "sourceHash": "0a772df37d712743a64dd25367aa5b0448649e4243b6f1b954c216b279472de4",
-      "environment": []
-    },
-    {
-      "web": "src/components/portal/accessibility/PortalTextSizeControls.web.tsx",
-      "native": "src/components/portal/accessibility/PortalTextSizeControls.native.tsx",
-      "sourceHash": "03d1ba2f708589219b723052f4b30701a451a6609d66f5dd55b5de8ea9ba5160",
       "environment": []
     },
     {

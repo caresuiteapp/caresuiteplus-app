@@ -1,89 +1,123 @@
-// Generated native presentation from src/components/portal/accessibility/PortalTextSizeControls.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
-import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
+import { CareSuiteNativeText as Text } from '@/components/ui/CareSuiteNativeText';
+import { desktopHeaderControl, desktopHeaderControlColors } from '@/design/web/desktopHeaderControls';
+import { useState } from 'react';
+import { Linking, Modal, Platform, Pressable, StyleSheet, ScrollView, View, useWindowDimensions } from 'react-native';
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
-import { desktopHeaderControl, desktopHeaderControlColors } from '@/design/web/desktopHeaderControls';
-type Props = {
-    compact?: boolean;
-    dense?: boolean;
-    appearance?: 'default' | 'desktop-header';
-};
+
+type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header' };
+
+/** Native text follows the device text scale. The dialog routes to the relevant setting on Android. */
 export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default' }: Props) {
-    const { scale, increase, decrease, reset, canIncrease, canDecrease } = useWebFontScale();
-    const orbit = useLiquidVisualMode() === 'orbit';
-    const desktopHeader = appearance === 'desktop-header';
-    const label = formatWebFontScaleLabel(scale);
-    if (compact) {
-        return (<Pressable accessibilityRole="button" accessibilityLabel={canIncrease ? `Textgröße ${label}. Text vergrößern` : `Textgröße ${label}. Auf 100 Prozent zurücksetzen`} onPress={canIncrease ? increase : reset} style={({ pressed }) => [styles.compactTrigger, orbit && styles.orbitWrap, desktopHeader && styles.headerWrap, pressed && styles.pressed]} testID="portal-text-size-controls">
-        <Text style={[styles.bigA, orbit && styles.orbitText, desktopHeader && styles.headerText]}>aA</Text>
-      </Pressable>);
+  const desktopHeader = appearance === 'desktop-header';
+  const orbit = useLiquidVisualMode() === 'orbit';
+  const { fontScale } = useWindowDimensions();
+  const [visible, setVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openAndroidTextSettings = async () => {
+    setError(null);
+    try {
+      await Linking.sendIntent('android.settings.DISPLAY_SETTINGS');
+    } catch {
+      setError('Die Anzeige-Einstellungen konnten nicht geöffnet werden. Öffnen Sie Einstellungen > Anzeige > Schriftgröße.');
     }
-    return (<View accessibilityLabel={`Textgröße ${label}`} style={[styles.wrap, orbit && styles.orbitWrap, compact && styles.wrapCompact, dense && styles.denseWrap, desktopHeader && styles.headerWrap]} testID="portal-text-size-controls">
-      <Pressable accessibilityRole="button" accessibilityLabel="Text verkleinern" accessibilityState={{ disabled: !canDecrease }} disabled={!canDecrease} onPress={decrease} style={({ pressed }) => [styles.button, compact && styles.buttonCompact, dense && styles.denseButton, desktopHeader && styles.headerButton, !canDecrease && styles.disabled, pressed && styles.pressed]}>
-        <Text style={[styles.smallA, orbit && styles.orbitText, desktopHeader && styles.headerText]}>A−</Text>
+  };
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Textgröße ändern"
+        onPress={() => setVisible(true)}
+        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, dense && styles.dense, desktopHeader && styles.header, pressed && styles.pressed]}
+        testID="portal-text-size-controls"
+      >
+        <Text style={[styles.label, orbit && styles.orbitLabel, desktopHeader && styles.headerText]}>aA</Text>
+        {!compact && !dense ? <View><Text style={[styles.caption, orbit && styles.orbitCaption]}>Textgröße</Text></View> : null}
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Textgröße ${label}. Auf 100 Prozent zurücksetzen`} onPress={reset} style={({ pressed }) => [styles.value, compact && styles.valueCompact, dense && styles.denseValue, desktopHeader && styles.headerValue, pressed && styles.pressed]}>
-        <Text style={[styles.largeA, orbit && styles.orbitAccent, desktopHeader && styles.headerAccent]}>aA</Text>
-        {!compact ? <Text style={[styles.percent, orbit && styles.orbitMuted, desktopHeader && styles.headerMuted]}>{label}</Text> : null}
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Text vergrößern" accessibilityState={{ disabled: !canIncrease }} disabled={!canIncrease} onPress={increase} style={({ pressed }) => [styles.button, compact && styles.buttonCompact, dense && styles.denseButton, desktopHeader && styles.headerButton, !canIncrease && styles.disabled, pressed && styles.pressed]}>
-        <Text style={[styles.bigA, orbit && styles.orbitText, desktopHeader && styles.headerText]}>A+</Text>
-      </Pressable>
-    </View>);
+
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent} keyboardShouldPersistTaps="handled"><View style={styles.modalCard} accessibilityViewIsModal>
+            <Text style={styles.modalTitle}>Textgröße</Text>
+            <Text style={styles.modalBody}>
+              CareSuite übernimmt automatisch die Textgröße Ihres Geräts. Aktuell werden etwa {Math.round(fontScale * 100)} % verwendet.
+            </Text>
+            <Text style={styles.modalHint}>
+              {Platform.OS === 'android'
+                ? 'Ändern Sie die Schriftgröße unter Anzeige. Nach der Rückkehr passt sich CareSuite automatisch an.'
+                : 'Öffnen Sie Einstellungen > Anzeige & Helligkeit > Textgröße. Nach der Rückkehr passt sich CareSuite automatisch an.'}
+            </Text>
+            {error ? <Text style={styles.modalError}>{error}</Text> : null}
+            {Platform.OS === 'android' ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Anzeige & Textgröße öffnen" style={styles.modalPrimary} onPress={() => void openAndroidTextSettings()}>
+                <Text style={styles.modalPrimaryText}>Anzeige & Textgröße öffnen</Text>
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Schließen" style={styles.modalSecondary} onPress={() => setVisible(false)}>
+              <Text style={styles.modalSecondaryText}>Schließen</Text>
+            </Pressable>
+          </View></ScrollView>
+        </View>
+      </Modal>
+    </>
+  );
 }
+
 const styles = StyleSheet.create({
-    headerWrap: { ...desktopHeaderControl, flexShrink: 0, padding: 0, gap: 0, overflow: 'hidden' },
-    headerButton: { minHeight: 44, minWidth: 44 },
-    headerValue: { minHeight: 44, borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(139,211,255,0.16)' },
-    headerText: { color: desktopHeaderControlColors.text },
-    headerAccent: { color: desktopHeaderControlColors.accent },
-    headerMuted: { color: desktopHeaderControlColors.muted, fontSize: 10, lineHeight: 12 },
-    denseWrap: { padding: 0, gap: 0 },
-    denseButton: { minWidth: 44, minHeight: 44 },
-    denseValue: { minWidth: 44, minHeight: 44 },
-    wrap: {
-        minHeight: 42,
-        padding: 3,
-        borderWidth: 1,
-        borderColor: liquidClassicColors.blue300Alpha32,
-        borderRadius: liquidRadius.control,
-        backgroundColor: 'rgba(9,43,78,0.82)',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-    },
-    wrapCompact: { minHeight: 38 },
-    compactTrigger: {
-        width: 42,
-        height: 42,
-        borderWidth: 1,
-        borderColor: liquidClassicColors.blue300Alpha32,
-        borderRadius: liquidRadius.control,
-        backgroundColor: 'rgba(9,43,78,0.82)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    button: {
-        minWidth: 42,
-        minHeight: 36,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    buttonCompact: { minWidth: 36, minHeight: 32 },
-    value: { minWidth: 58, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
-    valueCompact: { minWidth: 38 },
-    smallA: { color: liquidClassicColors.white88, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-    largeA: { color: liquidClassicColors.blue200, fontSize: 15, lineHeight: 18, fontWeight: '900' },
-    bigA: { color: liquidClassicColors.white, fontSize: 17, lineHeight: 20, fontWeight: '900' },
-    percent: { color: liquidClassicColors.white72, fontSize: 9, lineHeight: 11, fontWeight: '700' },
-    orbitWrap: { borderColor: liquidColors.white12, backgroundColor: '#FFFFFF' },
-    orbitText: { color: liquidColors.white },
-    orbitAccent: { color: liquidColors.blue600 },
-    orbitMuted: { color: liquidColors.white56 },
-    disabled: { opacity: 0.35 },
-    pressed: { opacity: 0.72 },
+  header: { ...desktopHeaderControl, minWidth: 44, minHeight: 44 },
+  headerText: { color: desktopHeaderControlColors.text },
+  dense: { minWidth: 44, paddingHorizontal: 10 },
+  modalScroll: { flexShrink: 1, width: '100%' },
+  modalScrollContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: 8 },
+  button: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: liquidClassicColors.blue300Alpha32,
+    borderRadius: liquidRadius.control,
+    backgroundColor: 'rgba(9,43,78,0.82)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  compact: { minWidth: 42, paddingHorizontal: 9, justifyContent: 'center' },
+  label: { color: liquidClassicColors.blue200, fontSize: 17, lineHeight: 21, fontWeight: '900' },
+  caption: { color: liquidClassicColors.white88, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  orbitButton: { borderColor: liquidColors.white12, backgroundColor: '#FFFFFF' },
+  orbitLabel: { color: liquidColors.blue600 },
+  orbitCaption: { color: liquidColors.white72 },
+  pressed: { opacity: 0.72 },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(0, 12, 28, 0.72)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    gap: 12,
+    padding: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: liquidClassicColors.blue300Alpha32,
+    backgroundColor: '#F8FBFF',
+  },
+  modalTitle: { color: '#071A31', fontSize: 23, lineHeight: 29, fontWeight: '900' },
+  modalBody: { color: '#17324D', fontSize: 16, lineHeight: 23, fontWeight: '600' },
+  modalHint: { color: '#4D647A', fontSize: 14, lineHeight: 21 },
+  modalError: { color: '#B42318', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  modalPrimary: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: '#0879E6',
+  },
+  modalPrimaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  modalSecondary: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  modalSecondaryText: { color: '#0A5FB8', fontSize: 15, fontWeight: '800' },
 });

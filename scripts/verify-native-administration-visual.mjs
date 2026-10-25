@@ -60,6 +60,10 @@ await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const executable=process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE??['/usr/bin/google-chrome','/usr/bin/chromium',chromium.executablePath()].find(existsSync);
 if(!executable)throw new Error('No existing browser available for visual verification.');
 const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[];
+async function assertUnbrokenWord(locator,word){
+ const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
+ if(fragments!==1)throw Error(JSON.stringify({message:'Enlarged text splits an ordinary label inside a word.',word,fragments}));
+}
 try{
 // Keep enlarged device text usable when the viewport is also short.
 {
@@ -109,13 +113,22 @@ for(const viewport of [{width:320,height:740},{width:360,height:800},{width:390,
   }
 
   if(screen==='registration'){for(let step=2;step<=5;step++){if(step===5){await page.getByLabel('Admin-Passwort',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByLabel('Passwort bestätigen',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByRole('checkbox').click();}await page.getByRole('button',{name:'Weiter',exact:true}).click();await page.getByText(`REGISTRIERUNG · SCHRITT ${step} VON 5`,{exact:true}).waitFor();await page.screenshot({path:join(output,`registration-step-${step}-${viewport.width}x${viewport.height}.png`)});}}
-  if(screen==='clients'||screen==='web-clients'){await page.getByRole('button',{name:'Filter',exact:true}).click();await page.getByRole('combobox',{name:'Bearbeitungsstand',exact:true}).waitFor();await page.screenshot({path:join(output,`clients-filters-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='clients'||screen==='web-clients'){await page.getByRole('button',{name:'Filter',exact:true}).click();await page.getByRole('combobox',{name:'Bearbeitungsstand',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-filters-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
   report.push({screen,viewport,overflow,errors});await page.close();
  }
 }
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){const page=await browser.newPage({viewport:{width:360,height:800}});await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});await page.close();}
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){
+ const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+ await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
+ if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
+ if(screen==='academy')await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');
+ if(screen==='consultation')await assertUnbrokenWord(page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}),'Vorlagenbibliothek');
+ if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
+ await page.close();
+}
 writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
 }finally{await browser.close();await new Promise(done=>server.close(done));}

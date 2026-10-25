@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ print: vi.fn() }));
 vi.mock('react-native', () => ({
+  Platform: { OS: 'android' },
   View: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   ScrollView: ({ children, testID }: { children: React.ReactNode; testID: string }) => <div data-testid={testID}>{children}</div>,

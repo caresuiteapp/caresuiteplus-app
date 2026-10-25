@@ -22,9 +22,10 @@ describe('R16 portal mobile stability and layout recovery', () => {
   it('keeps the bottom navigation and menu above Android system controls', () => {
     const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     expect(shell).toContain('testID="portal-navigation-footer"');
-    expect(shell).toContain('paddingBottom: desktopChrome ? 8 : Math.max(insets.bottom, 12)');
+    expect(shell).toContain('showCompactNavigation ? { paddingBottom: Math.max(insets.bottom, 12) }');
     expect(shell).toContain('menuBottomPadding');
-    expect(shell).toContain("maxHeight: '72%'");
+    expect(shell).toContain("maxHeight: '90%'");
+    expect(shell).toMatch(/<ScrollView[\s\S]*?contentContainerStyle=\{styles.moreGrid\}/);
   });
 
   it('renders a complete welcome card without a forced phone height', () => {

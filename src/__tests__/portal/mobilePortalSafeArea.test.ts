@@ -139,8 +139,9 @@ describe('ScreenHeader mobile breadcrumb simplification', () => {
   it('hides breadcrumbs on phone and wraps title safely', () => {
     const header = readSrc('src/components/layout/ScreenHeader.tsx');
     expect(header).toContain('simplifyOnPhone');
-    expect(header).toContain('numberOfLines={2}');
-    expect(header).toContain('MOBILE_MIN_TOUCH_TARGET');
+    expect(header).toContain('(!narrow || !simplifyOnPhone)');
+    expect(header).not.toContain('numberOfLines={2}');
+    expect(header).toContain('minHeight: 44');
   });
 });
 

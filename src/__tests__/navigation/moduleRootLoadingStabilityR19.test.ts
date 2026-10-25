@@ -18,11 +18,14 @@ describe('R19 stabile Modul-Startseiten und lesbare Popups', () => {
     expect(existsSync(path.join(root, 'app/assist/(tabs)/index.tsx'))).toBe(false);
   });
 
-  it('rendert unter /office ausschließlich den vollständigen Office-Arbeitsbereich', () => {
+  it('leitet /office ohne Laden des alten Dashboards zum kanonischen Fachbereich weiter', () => {
     const direct = read('app/office/index.tsx');
 
-    expect(direct).toContain('ModuleWorkspaceScreen');
-    expect(direct).toContain('moduleKey="office"');
+    expect(direct).toContain('canonicalDesktopCatalogRoute');
+    expect(direct).toContain('<Redirect href={target');
+    expect(direct).toContain('useLocalSearchParams');
+    expect(direct).toContain('Office-Arbeitsbereich nicht gefunden');
+    expect(direct).not.toContain('BusinessDashboardScreen');
     expect(direct).not.toContain('OfficeIndexScreen');
     expect(existsSync(path.join(root, 'app/office/(tabs)/index.tsx'))).toBe(false);
   });
