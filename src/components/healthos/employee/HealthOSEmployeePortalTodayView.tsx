@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type TextStyle, type ViewStyle } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -77,7 +77,9 @@ function EmployeePremiumWelcome({
   onNavigate: (route?: string) => void;
 }) {
   const { width } = useHydrationSafeWindowDimensions();
+  const { fontScale } = useWindowDimensions();
   const compact = width < 760;
+  const enlargedCompactText = compact && fontScale > 1.25;
   const type = resolveGalaxyTypography(width);
   const greeting = useClientGreeting();
   const guide = model.currentAssignment
@@ -131,7 +133,7 @@ function EmployeePremiumWelcome({
           <Text style={[type.body, styles.welcomeProvider]}>CareSuite – Ihr sicherer Arbeitsbereich</Text>
         </View>
 
-        <View style={[styles.guideArea, compact && styles.guideAreaCompact]}>
+        <View style={[styles.guideArea, compact && styles.guideAreaCompact, enlargedCompactText && styles.guideAreaEnlarged]}>
           <Image
             accessibilityIgnoresInvertColors
             accessibilityLabel="CareSuite Portalbegleiter"
@@ -139,7 +141,7 @@ function EmployeePremiumWelcome({
             source={require('../../../../assets/auth/access-employee.png')}
             style={[styles.guideMascot, compact && styles.guideMascotCompact]}
           />
-          <View style={[styles.guideBubble, compact && styles.guideBubbleCompact]}>
+          <View style={[styles.guideBubble, compact && styles.guideBubbleCompact, enlargedCompactText && styles.guideBubbleEnlarged]}>
             {!compact ? <View style={styles.guideBubbleTail} /> : null}
             <Text style={[type.bodyStrong, styles.guideTitle, breakLongWords]}>{guide.title}</Text>
             <Text style={[type.caption, styles.guideMessage]}>{guide.message}</Text>
@@ -531,6 +533,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start',
   },
   guideMascot: { width: 102, height: 118, flexShrink: 0 },
+  guideAreaEnlarged: { flexDirection: 'column' },
   guideMascotCompact: { width: 52, height: 61, alignSelf: 'flex-start' },
   guideBubble: {
     flex: 1,
@@ -544,6 +547,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', alignSelf: 'stretch', padding: 14 },
+  guideBubbleEnlarged: { flex: 0, width: '100%' },
   guideBubbleTail: {
     position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
     borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,
