@@ -46,6 +46,12 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
   // A Web block with auto horizontal margins fills the available width up to
   // max-width. A Yoga flex child would instead size itself from its contents.
   if(['div','section','header','footer','main','aside','article','nav','form','ul','ol'].includes(tag)&&box.width===undefined&&box.marginLeft==='auto'&&box.marginRight==='auto'&&!presentation.declarations.display?.startsWith('inline'))box.width='100%';
+  // Web flex rows shrink into their parent by default; Yoga rows do not.
+  // Keep wrapping action groups within the actual available parent width.
+  if(box.flexDirection==='row'){
+    box.flexShrink??=1;
+    if(!['table','tr','td','th'].includes(tag)&&box.position!=='absolute')box.maxWidth??='100%';
+  }
   if(presentation.declarations['grid-column']?.replace(/\s/g,'')==='1/-1')Object.assign(box,{width:'100%',flexGrow:0,flexShrink:0});
   const children=childrenOf(props.children),ownSubmit=useRef<()=>void>(()=>{}),form=useMemo(()=>({fields:fields.current,submit:()=>ownSubmit.current()}),[]);
   const fontScale=Math.max(1,Number(parent.variables['--cs-native-font-scale']??1));
@@ -53,7 +59,6 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
     // Column headers can otherwise grow to their children's intrinsic width
     // when the shared Web design aligns those children to the start edge.
     if(!['table','tr','td','th'].includes(tag)&&box.position!=='absolute')box.maxWidth??='100%';
-    if(box.flexDirection==='row')box.flexShrink??=1;
   }
   {
     const label=tag==='button'?textOf(props.children).trim():'';
