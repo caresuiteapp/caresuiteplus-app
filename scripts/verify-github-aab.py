@@ -134,6 +134,21 @@ def verify_native_bundle(data):
     return len(expected)
 
 
+def verify_agp_metadata(data):
+    # Inspect the signed bundle's metadata, not the configured Gradle wrapper.
+    versions = re.findall(r'^androidGradlePluginVersion=(\S+)\s*$', data.decode('utf-8'), re.M)
+    if versions != ['9.0.1']:
+        raise ValueError('Die signierte AAB wurde nicht mit dem freigegebenen Android-Gradle-Plugin 9.0.1 gebaut')
+    return versions[0]
+
+
+def verify_r8_compiler(header):
+    versions = re.findall(r'^#\s*compiler_version:\s*(\d+\.\d+(?:\.\d+)?)\s*$', header.decode('utf-8'), re.M)
+    if len(versions) != 1 or int(versions[0].split('.')[0]) < 9:
+        raise ValueError('Das signierte Mapping stammt nicht aus R8 9 oder neuer')
+    return versions[0]
+
+
 def verify_r8_artifacts(path, expected_mapping_sha256=None):
     if not path.is_file():
         raise ValueError('Das R8-Mapping-Archiv des tatsächlichen Builds fehlt')
@@ -183,6 +198,10 @@ def verify(bundle):
             raise ValueError('AAB enthält keine Upload-Signatur')
         identity = read_manifest_identity(archive.read('base/manifest/AndroidManifest.xml'))
         verify_identity(identity, expected_version)
+        agp_entry = 'BUNDLE-METADATA/com.android.tools.build.gradle/app-metadata.properties'
+        if names.count(agp_entry) != 1:
+            raise ValueError('Der Android-Gradle-Plugin-Nachweis in der signierten AAB fehlt oder ist nicht eindeutig')
+        agp_version = verify_agp_metadata(archive.read(agp_entry))
         native_bundles = [name for name in names if name.startswith('base/assets/') and name.endswith('.bundle')]
         if len(native_bundles) != 1:
             raise ValueError('Genau ein nativer JavaScript/Hermes-Bundle erwartet')
@@ -191,7 +210,12 @@ def verify(bundle):
         if names.count(mapping_entry) != 1:
             raise ValueError('Das signierte R8-Mapping im AAB fehlt oder ist nicht eindeutig')
         with archive.open(mapping_entry) as source:
-            mapping_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
+            header = source.read(65536)
+            r8_version = verify_r8_compiler(header)
+            mapping_digest = hashlib.sha256(header)
+            while chunk := source.read(256 * 1024):
+                mapping_digest.update(chunk)
+            mapping_sha256 = mapping_digest.hexdigest()
         video_hashes = {
             hashlib.sha256(archive.read(name)).hexdigest()
             for name in names if name.startswith('base/') and name.lower().endswith('.mp4')
@@ -227,6 +251,8 @@ def verify(bundle):
         'r8ArtifactArchiveSha256': r8_archive_sha256,
         'r8MappingSha256': mapping_sha256,
         'r8MergedOptimizationsVerified': True,
+        'androidGradlePluginVersion': agp_version,
+        'r8CompilerVersion': r8_version,
         'previousEasVersionCode': int(baseline),
         **identity,
     }

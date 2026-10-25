@@ -40,6 +40,18 @@ def manifest(compiled=False):
 
 
 class ManifestGate(unittest.TestCase):
+    def test_signed_agp_metadata_rejects_legacy_and_ambiguous_builds(self):
+        self.assertEqual(verify.verify_agp_metadata(b'appMetadataVersion=1.1\nandroidGradlePluginVersion=9.0.1\n'), '9.0.1')
+        for text in [b'', b'androidGradlePluginVersion=8.12.0\n', b'androidGradlePluginVersion=9.0.1\nandroidGradlePluginVersion=8.12.0\n']:
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                verify.verify_agp_metadata(text)
+
+    def test_signed_r8_compiler_rejects_old_mapping(self):
+        self.assertEqual(verify.verify_r8_compiler(b'# compiler: R8\n# compiler_version: 9.0.76\n'), '9.0.76')
+        for text in [b'', b'# compiler_version: 8.12.14\n', b'# compiler_version: 9.0.76\n# compiler_version: 8.12.14\n']:
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                verify.verify_r8_compiler(text)
+
     def test_raw_identity(self):
         identity = verify.read_manifest_identity(manifest())
         self.assertEqual(identity, {'applicationId': 'app.caresuitehealthos', 'versionName': '0.4.0', 'versionCode': 41})
