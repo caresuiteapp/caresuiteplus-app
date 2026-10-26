@@ -53,7 +53,8 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
       return {
         tenantId,
         subscribe: (tid: string, handler: () => void) =>
-          subscribeToEmployeePortalChanges(tid, scopedEmployeeId, handler),
+          subscribeToEmployeePortalChanges(tid, scopedEmployeeId, handler,
+            Platform.OS === 'web' ? { schedule: 'own' } : undefined),
       };
     }
     if (audience === 'client' && scopedClientId) {

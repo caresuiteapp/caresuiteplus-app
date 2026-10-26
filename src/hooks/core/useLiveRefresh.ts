@@ -80,8 +80,15 @@ export function useLiveRefresh(options: LiveRefreshOptions): { isLiveConnected: 
       const onVisibility = () => {
         if (document.visibilityState === 'visible') onFocus();
       };
+      const onWindowFocus = () => {
+        if (document.visibilityState === 'visible') onFocus();
+      };
       document.addEventListener('visibilitychange', onVisibility);
-      return () => document.removeEventListener('visibilitychange', onVisibility);
+      window.addEventListener('focus', onWindowFocus);
+      return () => {
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('focus', onWindowFocus);
+      };
     }
 
     const subscription = AppState.addEventListener('change', (state) => {
