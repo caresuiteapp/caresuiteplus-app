@@ -190,7 +190,7 @@ jobs:
       - name: Bestehende Projektabhängigkeiten laden
         run: npm ci
       - name: Standort-Start und veraltete Einwilligungsantworten prüfen
-        run: npx vitest run src/__tests__/portal/employeeLocationBootstrap.test.ts src/__tests__/portal/employeeMobilityNetworkRecovery.test.ts --maxWorkers=1
+        run: npx vitest run src/__tests__/portal/employeeLocationBootstrap.test.ts src/__tests__/portal/employeeMobilityNetworkRecovery.test.ts src/__tests__/portal/employeeLogbookRlsBoundary.test.ts --maxWorkers=1
       - name: Alle Seiteneinstiege und offene Abweichungen erfassen
         run: node scripts/audit-native-web-parity.mjs
       - name: Übertragene Fachseiten mit den Web-Quellen abgleichen

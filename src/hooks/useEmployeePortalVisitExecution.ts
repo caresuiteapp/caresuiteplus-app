@@ -37,6 +37,7 @@ import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
   getEmployeePortalLocationConsent,
+  applyEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
   markEmployeePortalConsentExplained,
   peekEmployeePortalTrackingEntry,

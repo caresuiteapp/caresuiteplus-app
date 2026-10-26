@@ -148,7 +148,7 @@ const readyAssertions={
  'employee-audit-logbook':{present:['DIGITALES FAHRTENBUCH','Monatsübersicht']},
  'employee-audit-time-clock':{present:['Arbeitszeit','Nicht gestartet','Zeitkonto','Büro-Check-in'],absent:['Prüfgrenze:']},
  'employee-audit-times':{present:['Meine Arbeitszeiten','Unterstützung im Alltag','Erfasste Schritte','Meine Fahrten'],absent:['Prüfgrenze:']},
- 'employee-audit-assignment-execute':{present:['Unterstützung im Alltag','Helene Musterfrau'],absent:['Prüfgrenze: Der genaue Datenvertrag']},
+ 'employee-audit-assignment-execute':{present:['Einsatzvorschau','Helene Musterfrau','Wie bist du unterwegs?','Anfahrt starten'],absent:['Prüfgrenze: Der genaue Datenvertrag']},
  'employee-audit-personal-signature':{present:['Dokumentvorschau','Signaturfelder','Unterschrift Mitarbeitende'],absent:['Prüfgrenze:']},
 };
 const expectedAliasReceivers={'employee-audit-schedule-alias':'employee-audit-calendar','employee-audit-signatures-alias':'employee-audit-signatures'};
