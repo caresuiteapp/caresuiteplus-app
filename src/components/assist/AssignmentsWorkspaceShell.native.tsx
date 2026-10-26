@@ -43,7 +43,7 @@ export function AssignmentsWorkspaceShell({ title, description, eyebrow = 'ASSIS
     onBack?: () => void;
     children: ReactNode;
 }) {
-    return <NativeWorkspaceStyleScope css={[assignmentsWorkspaceCss]}>{<ScreenShell title={title} showBack={false} contentOwnsHeader>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceStyleSheets["AssignmentsWorkspaceStyles"], assignmentsWorkspaceCss]}>{<ScreenShell title={title} showBack={false} contentOwnsHeader>
     <NativeDiv className="aw-workspace" data-cs-assignments-surface="light">
       <AssignmentsWorkspaceStyles />
       {onBack ? <NativeButton type="button" className="aw-back" onClick={onBack}><AssignmentWorkspaceIcon name="back" size={16}/>Zurück</NativeButton> : null}
@@ -52,3 +52,5 @@ export function AssignmentsWorkspaceShell({ title, description, eyebrow = 'ASSIS
     </NativeDiv>
   </ScreenShell>}</NativeWorkspaceStyleScope>;
 }
+
+export const __nativeWorkspaceStyleSheets = { "AssignmentsWorkspaceStyles": [assignmentsWorkspaceCss] };

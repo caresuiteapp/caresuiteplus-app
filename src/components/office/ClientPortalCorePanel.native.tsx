@@ -38,7 +38,7 @@ const REQUEST_STATUSES: Record<string, string> = { pending: 'Offen', approved: '
 const REQUEST_TYPES: Record<string, string> = { access: 'Portalzugang', portal_access: 'Portalzugang', client_access: 'Persönlicher Zugang', relative_access: 'Angehörigenzugang', family_access: 'Angehörigenzugang' };
 export function ClientPortalCorePanel(props: Props) {
     const tenantId = useServiceTenantId();
-    return <NativeWorkspaceStyleScope css={[portalExperienceCss]}>{<ClientPortalCoreContent key={`${tenantId}:${props.clientId}`} {...props} tenantId={tenantId}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${tenantId}:${props.clientId}`} css={[portalExperienceCss]}>{<ClientPortalCoreContent key={`${tenantId}:${props.clientId}`} {...props} tenantId={tenantId}/>}</NativeWorkspaceStyleScope>;
 }
 function ClientPortalCoreContent({ clientId, fullClient, onRecordRefresh, tenantId }: Props & {
     tenantId: string | null;

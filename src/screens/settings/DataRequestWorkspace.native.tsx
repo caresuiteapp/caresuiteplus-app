@@ -135,7 +135,7 @@ export function DataRequestWorkspace(props: DataRequestWorkspaceProps) {
     const successMessage = props.submitSuccess
         ? `Ihre Anfrage wurde gespeichert. Referenz: ${props.submitSuccess.reference}. Eingang: ${formatRequestDate(props.submitSuccess.receivedAt)}.`
         : null;
-    return (<NativeDiv className="cs-data-request" data-testid="data-request-workspace">
+    return <NativeWorkspaceStyleScope css={[DATA_REQUEST_WORKSPACE_CSS, DATA_REQUEST_WORKSPACE_CSS]}>{(<NativeDiv className="cs-data-request" data-testid="data-request-workspace">
       <NativeStyle>{DATA_REQUEST_WORKSPACE_CSS}</NativeStyle>
       <NativeDiv className="cs-data-request-grid">
         <NativeSection className="cs-data-request-card" aria-labelledby={`${id}-request-heading`}>
@@ -245,7 +245,7 @@ export function DataRequestWorkspace(props: DataRequestWorkspaceProps) {
                 const status = Object.prototype.hasOwnProperty.call(STATUS_META, request.status) ? STATUS_META[request.status] : { label: 'Status nicht verfügbar', tone: 'neutral' };
                 const title = Object.prototype.hasOwnProperty.call(REQUEST_LABELS, request.requestType) ? REQUEST_LABELS[request.requestType] : 'Datenschutzanfrage';
                 const receivedAt = request.receivedAt || request.createdAt;
-                return (<NativeDetails className="cs-data-request-item" key={request.id}>
+                return <NativeWorkspaceStyleScope key={request.id} css={[DATA_REQUEST_WORKSPACE_CSS]}>{(<NativeDetails className="cs-data-request-item" key={request.id}>
                 <NativeSummary>
                   <NativeSpan className="cs-data-request-item-title"><NativeStrong>{title}</NativeStrong><NativeSpan>Eingang: {formatRequestDate(receivedAt)}</NativeSpan></NativeSpan>
                   <NativeSpan className={`cs-data-request-status cs-data-request-status--${status.tone}`}>{status.label}</NativeSpan>
@@ -260,11 +260,11 @@ export function DataRequestWorkspace(props: DataRequestWorkspaceProps) {
                   </NativeDl>
                   {request.status === 'failed' ? <NativeP className="cs-data-request-help cs-data-request-export-note">Die Bearbeitung ist fehlgeschlagen. Ihre Anfrage ist dadurch nicht automatisch erledigt. Bei Fragen zum weiteren Vorgehen wenden Sie sich bitte an den Support.</NativeP> : null}
                 </NativeDiv>
-              </NativeDetails>);
+              </NativeDetails>)}</NativeWorkspaceStyleScope>;
             })}
         </NativeDiv> : null}
         {props.hasMore ? <NativeDiv className="cs-data-request-history-footer"><NativeButton type="button" className="cs-data-request-button cs-data-request-button--secondary" disabled={historyBusy || props.submitting} onClick={props.onLoadMore}>{props.historyLoadingMore ? 'Weitere Anfragen werden geladen…' : 'Weitere Anfragen laden'}</NativeButton></NativeDiv> : null}
         <NativeP className="cs-data-request-help cs-data-request-export-note"><NativeStrong>Regelfrist: ein Monat ab Eingang.</NativeStrong> Anfragen sind so schnell wie möglich zu beantworten. Eine erforderliche Verlängerung wird innerhalb des ersten Monats mit Begründung mitgeteilt.</NativeP>
       </NativeSection>
-    </NativeDiv>);
+    </NativeDiv>)}</NativeWorkspaceStyleScope>;
 }

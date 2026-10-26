@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/office/calendar/OfficeCalendarYearView.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeButton,NativeSpan} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "../../calendar/CalendarViewStyles.native.tsx";
+import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeButton,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useMemo } from 'react';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { buildCalendarMonthStats } from '@/lib/calendar/calendarWebViewModel';
@@ -15,7 +16,7 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth, weekStar
     const year = anchor.getFullYear();
     const months = useMemo(() => Array.from({ length: 12 }, (_, index) => buildCalendarMonthStats(events, year, index)), [events, year]);
     const today = new Date();
-    return <NativeSection className="cs-calendar-view" aria-label="Jahreskalender"><CalendarViewStyles /><NativeDiv className="cs-calendar-surface">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label="Jahreskalender"><CalendarViewStyles /><NativeDiv className="cs-calendar-surface">
     <NativeHeader className="cs-calendar-view-heading"><NativeH2>Jahresübersicht {year}</NativeH2><NativeP>Blau: Einträge · Goldene Linie: Abwesenheit</NativeP></NativeHeader>
     <NativeDiv className="cs-calendar-year-grid">{months.map(({ totalEvents, absenceDays, days }, monthIndex) => {
             const monthLabel = new Date(year, monthIndex, 1).toLocaleDateString('de-DE', { month: 'long' });
@@ -29,5 +30,5 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth, weekStar
         </NativeSpan>
       </NativeButton>;
         })}</NativeDiv>
-  </NativeDiv></NativeSection>;
+  </NativeDiv></NativeSection>}</NativeWorkspaceStyleScope>;
 }

@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/calendar/CalendarAgendaList.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSection,NativeDiv,NativeH2,NativeSpan,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./CalendarViewStyles.native.tsx";
+import {NativeSection,NativeDiv,NativeH2,NativeSpan,NativeStrong,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useMemo } from 'react';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { addDays, eventsForDay, formatDayHeader, formatTime, parseDateKey, startOfDay, toDateKey } from '@/lib/office/calendarDateUtils';
@@ -26,7 +27,7 @@ export function CalendarAgendaList({ events, onEventPress, rangeStart, rangeEnd 
         }
         return result;
     }, [events, rangeStart, rangeEnd]);
-    return <NativeSection className="cs-calendar-view" aria-label="Kalenderagenda"><CalendarViewStyles />
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label="Kalenderagenda"><CalendarViewStyles />
     {groups.size ? <NativeDiv className="cs-calendar-agenda">{[...groups].map(([key, dayEvents]) => <NativeSection key={key} className="cs-calendar-surface cs-calendar-agenda-group">
       <NativeH2 className="cs-calendar-agenda-title">{formatDayHeader(parseDateKey(key))}</NativeH2>
       <NativeDiv className="cs-calendar-agenda-events">{dayEvents.map((event) => {
@@ -41,5 +42,5 @@ export function CalendarAgendaList({ events, onEventPress, rangeStart, rangeEnd 
                     return <NativeDiv key={event.id} className="cs-calendar-agenda-row"><NativeDiv className="cs-calendar-agenda-time">{time}{continues && <NativeSpan className="cs-calendar-agenda-end">Fortsetzung vom Vortag</NativeSpan>}{endKey > key && <NativeSpan className="cs-calendar-agenda-end">bis {parseDateKey(endKey).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</NativeSpan>}</NativeDiv><OfficeCalendarEventChip event={event} showTime={false} onEventPress={onEventPress}/></NativeDiv>;
                 })}</NativeDiv>
     </NativeSection>)}</NativeDiv> : <NativeDiv className="cs-calendar-surface cs-calendar-empty"><NativeStrong>Keine Einträge in diesem Zeitraum</NativeStrong>Wähle einen anderen Zeitraum oder passe die Filter an.</NativeDiv>}
-  </NativeSection>;
+  </NativeSection>}</NativeWorkspaceStyleScope>;
 }

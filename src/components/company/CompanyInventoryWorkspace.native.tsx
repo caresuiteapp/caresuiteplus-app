@@ -39,7 +39,7 @@ type Notice = {
 } | null;
 export function CompanyInventoryWorkspace(props: CompanyInventoryWorkspaceProps) {
     const permissionsKey = props.effectivePermissions ? [...props.effectivePermissions].sort().join(',') : 'role';
-    return <NativeWorkspaceStyleScope css={[companyInventoryCss]}>{<InventoryWorkspaceScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}:${Boolean(props.scopeLimited)}`} {...props}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}:${Boolean(props.scopeLimited)}`} css={[companyInventoryCss]}>{<InventoryWorkspaceScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}:${Boolean(props.scopeLimited)}`} {...props}/>}</NativeWorkspaceStyleScope>;
 }
 function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectivePermissions, scopeLimited = false, initialView = 'stock', categoryGroupFilter, title, initialEmployeeId, initialItemId, onViewChange, onNavigationGuardChange }: CompanyInventoryWorkspaceProps) {
     const scope = useMemo<CompanyInventoryScope>(() => ({ tenantId, actorRoleKey: roleKey, actorProfileId, effectivePermissions }), [tenantId, roleKey, actorProfileId, effectivePermissions]);
@@ -667,7 +667,7 @@ function AssignmentTable({ scope, assignments, snapshot, person, permissions, bl
       <NativeTbody>
         {assignments.map(assignment => {
             const item = snapshot.items.find(entry => entry.id === assignment.itemId);
-            return <NativeWorkspaceStyleScope css={[companyInventoryCss]}>{<NativeTr key={assignment.id}>
+            return <NativeWorkspaceStyleScope key={assignment.id} css={[companyInventoryCss]}>{<NativeTr key={assignment.id}>
             <NativeTd>
               <NativeButton type="button" className="ci-name" onClick={() => open({ kind: 'detail', itemId: assignment.itemId })}>
                 {item?.name ?? 'Gegenstand nicht verfügbar'}

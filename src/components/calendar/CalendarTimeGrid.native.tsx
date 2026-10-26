@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/calendar/CalendarTimeGrid.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeSpan,NativeStrong,NativeButton,NativeDetails,NativeSummary} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./CalendarViewStyles.native.tsx";
+import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeSpan,NativeStrong,NativeButton,NativeDetails,NativeSummary,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useEffect, useMemo, useRef } from 'react';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { eventsForDay, isSameDay, toDateKey } from '@/lib/office/calendarDateUtils';
@@ -48,7 +49,7 @@ export function CalendarTimeGrid({ title, days, events, startHour, endHour, scro
         else if (!selection && selectedAssignmentProfileId)
             onAssignmentProfileDrop?.(selectedAssignmentProfileId, day, time);
     };
-    return <NativeSection className="cs-calendar-view" aria-label={days.length === 1 ? 'Tageskalender' : 'Wochenkalender'}>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label={days.length === 1 ? 'Tageskalender' : 'Wochenkalender'}>
     <CalendarViewStyles />
     <NativeDiv className="cs-calendar-surface">
       <NativeHeader className="cs-calendar-view-heading"><NativeH2>{title}</NativeH2><NativeP>{String(startHour).padStart(2, '0')}:00–{String(endHour).padStart(2, '0')}:00 Uhr</NativeP></NativeHeader>
@@ -86,5 +87,5 @@ export function CalendarTimeGrid({ title, days, events, startHour, endHour, scro
       </NativeDiv>
       {outside.length > 0 && <NativeDetails className="cs-calendar-time-overflow"><NativeSummary>{outside.length} {outside.length === 1 ? 'Eintrag liegt' : 'Einträge liegen'} außerhalb von {String(startHour).padStart(2, '0')}:00–{String(endHour).padStart(2, '0')}:00 Uhr</NativeSummary><NativeDiv className="cs-calendar-time-overflow-list">{outside.map(({ day, event }) => <NativeDiv key={`${toDateKey(day)}-${event.id}`}><NativeSpan className="cs-calendar-time-edge">{day.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}</NativeSpan><OfficeCalendarEventChip event={event} onEventPress={onEventPress}/></NativeDiv>)}</NativeDiv></NativeDetails>}
     </NativeDiv>
-  </NativeSection>;
+  </NativeSection>}</NativeWorkspaceStyleScope>;
 }

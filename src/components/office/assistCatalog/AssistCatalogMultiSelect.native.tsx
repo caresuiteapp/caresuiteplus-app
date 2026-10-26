@@ -49,7 +49,7 @@ function Choices({ label, values, onChange, items = [], loading, error, retry }:
     {!loading && !error && !items.length ? <NativeP className="cs-assist-catalog-status">Keine weiteren Leistungen hinterlegt.</NativeP> : null}
     <NativeDiv className="cs-assist-catalog-choices">{items.map(item => {
             const selected = values.includes(item.itemKey);
-            return <NativeWorkspaceStyleScope css={[`
+            return <NativeWorkspaceStyleScope key={item.id} css={[`
       .cs-assist-catalog{color:#244666;font:inherit;min-width:0}.cs-assist-catalog h4{font-size:14px;margin:0 0 10px;font-weight:650}
       .cs-assist-catalog-choices{display:flex;flex-wrap:wrap;gap:8px}.cs-assist-catalog button{font:inherit;cursor:pointer}
       .cs-assist-catalog-choices button{display:flex;align-items:center;gap:7px;min-height:40px;max-width:100%;text-align:left;overflow-wrap:anywhere;padding:8px 13px;border-radius:12px;border:1px solid #ccdcf0;color:#315b86;background:#f5f9ff;transition:background .15s,border-color .15s}

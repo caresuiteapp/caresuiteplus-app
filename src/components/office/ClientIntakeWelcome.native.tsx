@@ -88,7 +88,7 @@ export function ClientIntakeServiceChoice({ wizard }: ServiceChoiceProps) {
             const explanation = serviceExplanations[context];
             const titleId = `${id}-${context}-title`;
             const detailId = `${id}-${context}-detail`;
-            return <NativeWorkspaceStyleScope css={[clientIntakeWelcomeCss]}>{<NativeLabel key={context} className={`ci-welcome-card${selected ? ' is-selected' : ''}${context === 'academy_prepared' ? ' is-prepared' : ''}`}>
+            return <NativeWorkspaceStyleScope key={context} css={[clientIntakeWelcomeCss]}>{<NativeLabel key={context} className={`ci-welcome-card${selected ? ' is-selected' : ''}${context === 'academy_prepared' ? ' is-prepared' : ''}`}>
             <NativeInput type="checkbox" name="careContexts" value={context} checked={selected} onChange={() => toggleCareContext(context)} aria-labelledby={titleId} aria-describedby={`${detailId}${errors.careContexts ? ` ${errorId}` : ''}`} aria-invalid={Boolean(errors.careContexts)}/>
             <NativeSpan className="ci-welcome-card-top"><NativeSpan className="ci-welcome-icon"><ServiceIcon context={context}/></NativeSpan><NativeSpan className="ci-welcome-check" aria-hidden="true"><NativeSvg viewBox="0 0 20 20"><NativeSvgPath d="m5 10 3 3 7-7"/></NativeSvg></NativeSpan></NativeSpan>
             <NativeSpan className="ci-welcome-card-title" id={titleId}>{serviceLabel(context)}{context === 'academy_prepared' ? <NativeSpan className="ci-welcome-prepared">Vorbereitet</NativeSpan> : null}</NativeSpan>

@@ -190,7 +190,7 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
           {filteredWidgets.map(widget => {
                 const position = desktopIds.indexOf(widget.id);
                 const pinned = position >= 0;
-                return <NativeWorkspaceStyleScope css={[desktopAppsWidgetsCenterCss]}>{<NativeArticle key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
+                return <NativeWorkspaceStyleScope key={widget.id} css={[desktopAppsWidgetsCenterCss]}>{<NativeArticle key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
               <NativeDiv className="cs-center-card-heading cs-center-widget-heading"><NativeDiv><NativeH3>{widget.label}</NativeH3><NativeSpan className="cs-center-card-kind">{widget.category}</NativeSpan></NativeDiv><NativeSpan className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</NativeSpan></NativeDiv>
               <NativeDiv className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></NativeDiv>
               <NativeDiv className="cs-center-card-body cs-center-widget-body"><NativeP className="cs-center-card-description">{widget.description}</NativeP>

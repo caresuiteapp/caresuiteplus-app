@@ -1,4 +1,5 @@
 // Generated native presentation from src/components/calendar/OfficeAssignmentProfileCalendarPlanner.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {NativeStyle,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {CareSuiteNativeText as Text,CareSuiteNativeTextInput as TextInput} from '@/components/ui/CareSuiteNativeText';
 import { SemanticArtwork } from "../icons/SemanticArtwork.native.tsx";
 import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, } from 'react';
@@ -335,8 +336,13 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
                 handleTouchDate(resolvedId, date, time);
         },
     });
-    return (<AssignmentProfileDateSelectionContext.Provider value={dateSelection}>
-      {createElement('style', { key: 'calendar-profile-effects' }, `
+    return <NativeWorkspaceStyleScope css={[`
+        [data-cs-calendar-profile] { border-radius: 13px; transition: transform 160ms ease, box-shadow 160ms ease; }
+        [data-cs-calendar-profile]:hover { box-shadow: 0 5px 16px rgba(36, 100, 154, .12); }
+        [data-cs-calendar-planner] :is(button, [role="button"], input):focus-visible { outline: 2px solid #1674d1; outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { [data-cs-calendar-profile] { transition: none; } }
+      `]}>{(<AssignmentProfileDateSelectionContext.Provider value={dateSelection}>
+      {createElement(NativeStyle, { key: 'calendar-profile-effects' }, `
         [data-cs-calendar-profile] { border-radius: 13px; transition: transform 160ms ease, box-shadow 160ms ease; }
         [data-cs-calendar-profile]:hover { box-shadow: 0 5px 16px rgba(36, 100, 154, .12); }
         [data-cs-calendar-planner] :is(button, [role="button"], input):focus-visible { outline: 2px solid #1674d1; outline-offset: 3px; }
@@ -464,7 +470,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, 
             {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
           </View>) : <Text style={styles.error}>Das Einsatzprofil ist nicht mehr verfügbar. Bitte das Fenster schließen und ein anderes Profil auswählen.</Text>}
       </AppGlassModal>
-    </AssignmentProfileDateSelectionContext.Provider>);
+    </AssignmentProfileDateSelectionContext.Provider>)}</NativeWorkspaceStyleScope>;
 }
 const styles = StyleSheet.create({
     workspace: { width: '100%', minWidth: 0, gap: 12 },

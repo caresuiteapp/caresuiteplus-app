@@ -46,7 +46,7 @@ export function CompanyWorkspace(props: CompanyWorkspaceProps) {
     if (!access.data)
         return <NativeWorkspaceStyleScope css={[companyWorkspaceCss]}>{<LiquidState kind="error" title="Unternehmenszugriff konnte nicht geprüft werden" message={access.error ?? 'Bitte erneut versuchen.'} actionLabel="Erneut versuchen" onAction={access.refresh}/>}</NativeWorkspaceStyleScope>;
     const fingerprint = `${access.data.permissions.join(',')}:${access.data.scopeLimited}:${access.data.canManageScopes}`;
-    return <NativeWorkspaceStyleScope css={[companyWorkspaceCss]}>{<ScopedCompanyWorkspace key={`${props.tenantId}:${props.actorProfileId ?? ''}:${props.roleKey}:${props.initialTab ?? 'overview'}:${fingerprint}`} {...props} access={access.data}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.actorProfileId ?? ''}:${props.roleKey}:${props.initialTab ?? 'overview'}:${fingerprint}`} css={[companyWorkspaceCss]}>{<ScopedCompanyWorkspace key={`${props.tenantId}:${props.actorProfileId ?? ''}:${props.roleKey}:${props.initialTab ?? 'overview'}:${fingerprint}`} {...props} access={access.data}/>}</NativeWorkspaceStyleScope>;
 }
 function ScopedCompanyWorkspace({ tenantId, roleKey, initialTab = 'overview', initialView, actorProfileId, access }: CompanyWorkspaceProps & {
     access: CompanyAccess;

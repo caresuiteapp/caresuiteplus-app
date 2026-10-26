@@ -1,4 +1,5 @@
 // Generated native presentation from src/components/assist/AssignmentFormControls.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./AssignmentsWorkspaceShell.native.tsx";
 import {useNativeWorkflowWindow} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {nativeWindow as window} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {NativeStyle,NativeButton,NativeLabel,NativeSpan,NativeTextarea,NativeInput,NativeSection,NativeH3,NativeDiv,NativeStrong,NativeP,NativeSelect,NativeOption,NativeHeader,NativeH2,NativeNav,NativeDl,NativeDt,NativeDd,NativeFooter,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
@@ -24,7 +25,7 @@ const css = `
 @media(max-width:600px){.aw-workspace.acf-modal{padding:8px}.acf-dialog{max-height:calc(100dvh - 16px);border-radius:20px}.acf-dialog-body{padding:16px}.acf-dialog-header{padding:16px}.acf-dialog-header h2{font-size:20px}}
 @keyframes acf-arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.acf-dialog{animation:none}.acf-root *{transition:none!important}}
 `.replace(/font-size:(\d+(?:\.\d+)?)px/g, 'font-size:calc($1px * var(--app-font-scale,1))');
-export function AssignmentFormStyles() { return <NativeWorkspaceStyleScope css={[css, css]}>{<><AssignmentsWorkspaceStyles /><NativeStyle>{css}</NativeStyle></>}</NativeWorkspaceStyleScope>; }
+export function AssignmentFormStyles() { return null; }
 export function useAssignmentFormGuard(dirty: boolean, busy: boolean) {
     const window = useNativeWorkflowWindow();
     const navigation = useNavigation();
@@ -173,7 +174,7 @@ export function AssignmentStudioScaffold<K extends string>({ steps, activeStep, 
     }[];
     children: ReactNode;
     footer?: ReactNode;
-}) { return <NativeWorkspaceStyleScope css={[css]}>{<NativeDiv className="aw-workspace acf-root" style={{ padding: 0 }}><AssignmentFormStyles /><NativeHeader className="acf-intro"><NativeDiv className="acf-step-count">Bereich {steps.findIndex(s => s.key === activeStep) + 1} von {steps.length}</NativeDiv><NativeH2>{title}</NativeH2><NativeP>{description}</NativeP></NativeHeader><NativeDiv className="acf-layout"><NativeNav className="acf-nav" aria-label="Bereiche der Einsatzplanung">{steps.map((s, i) => <NativeButton type="button" key={s.key} aria-current={s.key === activeStep ? 'step' : undefined} onClick={() => onStepChange(s.key)}><NativeSpan>{i + 1}</NativeSpan>{s.label}</NativeButton>)}</NativeNav><NativeDiv className="acf-content"><NativeDl className="acf-summary">{summary.map(s => <NativeDiv key={s.label}><NativeDt>{s.label}</NativeDt><NativeDd>{s.value || 'Noch offen'}</NativeDd></NativeDiv>)}</NativeDl>{children}</NativeDiv></NativeDiv><NativeFooter className="acf-footer">{footer}</NativeFooter></NativeDiv>}</NativeWorkspaceStyleScope>; }
+}) { return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceStyleSheets["AssignmentFormStyles"], css]}>{<NativeDiv className="aw-workspace acf-root" style={{ padding: 0 }}><AssignmentFormStyles /><NativeHeader className="acf-intro"><NativeDiv className="acf-step-count">Bereich {steps.findIndex(s => s.key === activeStep) + 1} von {steps.length}</NativeDiv><NativeH2>{title}</NativeH2><NativeP>{description}</NativeP></NativeHeader><NativeDiv className="acf-layout"><NativeNav className="acf-nav" aria-label="Bereiche der Einsatzplanung">{steps.map((s, i) => <NativeButton type="button" key={s.key} aria-current={s.key === activeStep ? 'step' : undefined} onClick={() => onStepChange(s.key)}><NativeSpan>{i + 1}</NativeSpan>{s.label}</NativeButton>)}</NativeNav><NativeDiv className="acf-content"><NativeDl className="acf-summary">{summary.map(s => <NativeDiv key={s.label}><NativeDt>{s.label}</NativeDt><NativeDd>{s.value || 'Noch offen'}</NativeDd></NativeDiv>)}</NativeDl>{children}</NativeDiv></NativeDiv><NativeFooter className="acf-footer">{footer}</NativeFooter></NativeDiv>}</NativeWorkspaceStyleScope>; }
 export function PlatformModal({ visible, onClose, title, subtitle, children, maxWidth = 1240 }: {
     visible: boolean;
     onClose: () => void;
@@ -185,4 +186,6 @@ export function PlatformModal({ visible, onClose, title, subtitle, children, max
     glowColor?: string;
     dismissOnBackdrop?: boolean;
     bodyStyle?: unknown;
-}) { return <NativeWorkspaceStyleScope css={[css]}>{<NativePlatformModal visible={visible} onClose={onClose} title={title} subtitle={subtitle} maxWidth={maxWidth}><NativeDiv className="aw-workspace acf-root"><AssignmentFormStyles />{children}</NativeDiv></NativePlatformModal>}</NativeWorkspaceStyleScope>; }
+}) { return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceStyleSheets["AssignmentFormStyles"], css]}>{<NativePlatformModal visible={visible} onClose={onClose} title={title} subtitle={subtitle} maxWidth={maxWidth}><NativeDiv className="aw-workspace acf-root"><AssignmentFormStyles />{children}</NativeDiv></NativePlatformModal>}</NativeWorkspaceStyleScope>; }
+
+export const __nativeWorkspaceStyleSheets = { "AssignmentFormStyles": [...__nativeWorkspaceImportedStyles0["AssignmentsWorkspaceStyles"], css] };

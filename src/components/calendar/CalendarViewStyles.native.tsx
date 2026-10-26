@@ -55,3 +55,5 @@ const css = `
 @media(prefers-reduced-motion:reduce){.cs-calendar-view *{transition:none!important;scroll-behavior:auto!important;animation:none!important}}
 `;
 export function CalendarViewStyles() { return null; }
+
+export const __nativeWorkspaceStyleSheets = { "CalendarViewStyles": [css] };

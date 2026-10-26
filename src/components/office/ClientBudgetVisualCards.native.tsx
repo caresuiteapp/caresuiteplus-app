@@ -46,7 +46,7 @@ function BudgetVisualCard({ model }: {
     const available = Math.max(0, model.availableCents);
     const denominator = Math.max(total, used + reserved + available);
     const proportion = (value: number) => denominator > 0 ? `${value / denominator * 100}%` : '0%';
-    return (<>
+    return <NativeWorkspaceStyleScope css={[clientBudgetVisualCardsCss]}>{(<>
       <NativeArticle className={`cbv-card cbv-card--${model.id}`} aria-labelledby={headingId} aria-busy={pending || undefined}>
         <NativeDiv className="cbv-card-top">
           <NativeDiv className="cbv-card-title"><NativeSpan className="cbv-legal">{model.legalLabel}</NativeSpan><NativeH4 id={headingId}>{model.title}</NativeH4></NativeDiv>
@@ -74,7 +74,7 @@ function BudgetVisualCard({ model }: {
           {showAmounts ? <NativeDl><NativeDiv><NativeDt>{preview ? 'Mögliches Gesamtbudget' : 'Gesamtbudget'}</NativeDt><NativeDd>{money(model.totalCents)}</NativeDd></NativeDiv><NativeDiv><NativeDt>Verfügbar nach Planung</NativeDt><NativeDd>{money(model.availableCents)}</NativeDd></NativeDiv></NativeDl> : <NativeP>{pending ? 'Persönliche Budgetdaten werden noch geladen.' : model.statusLabel}</NativeP>}
         </NativeDiv>
       </AppGlassModal>
-    </>);
+    </>)}</NativeWorkspaceStyleScope>;
 }
 function Opportunity({ model }: {
     model: ClientBudgetVisualModel;

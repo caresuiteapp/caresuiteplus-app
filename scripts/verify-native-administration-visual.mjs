@@ -10,6 +10,7 @@ const root=process.cwd(),output=resolve(process.env.CARESUITE_NATIVE_QA_DIR??'/t
 const fixture=resolve('scripts/fixtures/native-administration-preview.jsx');
 const nativeWeb=require.resolve('react-native-web');
 const portalFixture=resolve('scripts/fixtures/native-portals-data.jsx');
+const employeePortalFixture=resolve('scripts/fixtures/native-employee-portals-preview.jsx');
 const mockFixture=resolve('scripts/fixtures/administration-preview-mocks.jsx');
 const platformFixture=resolve('scripts/fixtures/platform-console-preview-data.jsx');
 const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context']);
@@ -30,6 +31,8 @@ await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/
  });
  b.onResolve({filter:/^@\/components\/(ui|healthos)$/},()=>({path:resolve('scripts/fixtures/native-portal-ui-exports.jsx')}));
  b.onResolve({filter:/^(@\/lib\/portal$|@\/hooks\/usePortalActor$|@\/hooks\/useportalofficemessages$|@\/components\/portal\/ClientSignatureAttentionProvider$|@\/design\/ThemeModeProvider$|expo-linking$|@\/lib\/auth\/passwordResetService.native$|@\/lib\/supabase\/authService$|@\/lib\/auth\/businessAuthService$|@\/lib\/auth\/employeePortalAuthService$|@\/lib\/auth\/clientPortalAuthService$|@\/lib\/auth\/portalLoginFlow$)/},()=>({path:portalFixture}));
+ b.onResolve({filter:/^@\/hooks\/useEmployeePortalCalendarEvents$/},()=>({path:portalFixture}));
+ b.onResolve({filter:/^@\/hooks\/useEmployeePortal(?:Dashboard|ClientRecords)$/},()=>({path:employeePortalFixture}));
  b.onResolve({filter:/^react-native-keyboard-controller$/},()=>({path:'keyboard',namespace:'preview-keyboard'}));
  b.onLoad({filter:/.*/,namespace:'preview-keyboard'},()=>({loader:'jsx',resolveDir:root,contents:`import React from 'react';import {View,ScrollView,KeyboardAvoidingView as Avoid} from ${JSON.stringify(nativeWeb)};export const KeyboardProvider=({children})=><View style={{flex:1}}>{children}</View>;export const KeyboardAwareScrollView=ScrollView,KeyboardAvoidingView=Avoid;`}));
  b.onResolve({filter:/^react-native-reanimated$/},()=>({path:'animated',namespace:'qa'}));
@@ -68,6 +71,82 @@ const browser=await chromium.launch({executablePath:executable,headless:true,arg
 async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
  if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
+}
+async function portalControlBounds(locator,viewport,message){
+ await locator.scrollIntoViewIfNeeded();const bounds=await locator.boundingBox();
+ if(!bounds||bounds.width<24||bounds.height<24||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message,viewport,bounds}));
+ return bounds;
+}
+async function verifyPortalCalendar(page,viewport,fontScale=1){
+ const previous=page.getByRole('button',{name:'Vorheriger Zeitraum',exact:true}),next=page.getByRole('button',{name:'Nächster Zeitraum',exact:true});
+ const prevBounds=await portalControlBounds(previous,viewport,'Calendar previous control is clipped.'),nextBounds=await next.boundingBox();
+ if(!nextBounds||Math.abs(nextBounds.y-prevBounds.y)>1||nextBounds.x<prevBounds.x+prevBounds.width-1)throw Error(JSON.stringify({message:'Calendar navigation has lost its shared horizontal layout.',viewport,fontScale,prevBounds,nextBounds}));
+ const views=page.getByLabel('Kalenderansicht',{exact:true});const viewBounds=await views.boundingBox();
+ const labels=['Tag','Woche','Monat','Agenda','Liste'];
+ for(const label of labels){const control=views.getByRole('button',{name:label,exact:true});await portalControlBounds(control,viewport,'Calendar view control is clipped.');await assertUnbrokenWord(control,label);}
+ await page.screenshot({path:join(output,`employee-calendar-controls-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await views.getByRole('button',{name:'Monat',exact:true}).click();
+ const selected=await views.getByRole('button',{name:'Monat',exact:true}).evaluate(element=>getComputedStyle(element).backgroundColor);
+ if(selected!=='rgb(255, 255, 255)')throw Error(JSON.stringify({message:'Calendar view selection does not retain its visible selected state.',viewport,fontScale,selected}));
+ await page.screenshot({path:join(output,`employee-calendar-month-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await views.getByRole('button',{name:'Agenda',exact:true}).click();
+ await next.scrollIntoViewIfNeeded();await next.click();await page.getByText('Keine Ereignisse in diesem Zeitraum',{exact:true}).waitFor();
+ const today=page.getByRole('button',{name:'Heute',exact:true});await today.scrollIntoViewIfNeeded();await today.click();
+ const own=page.getByRole('button',{name:/Helene Musterfrau/});await own.waitFor();const eventBounds=await portalControlBounds(own,viewport,'Calendar event is clipped.');
+ const primary=own.getByText('Helene Musterfrau',{exact:true}),person=own.getByText('Marlene Beispiel',{exact:true}),service=own.getByText('Unterstützung im Alltag',{exact:true});
+ const primaryBounds=await primary.boundingBox(),personBounds=await person.boundingBox(),serviceBounds=await service.boundingBox();
+ if(!primaryBounds||!personBounds||!serviceBounds||personBounds.y<primaryBounds.y+primaryBounds.height-.5||serviceBounds.y<personBounds.y+personBounds.height-.5)throw Error(JSON.stringify({message:'Calendar event names and service have collapsed into one concatenated text row.',viewport,fontScale,primaryBounds,personBounds,serviceBounds}));
+ await page.screenshot({path:join(output,`employee-calendar-agenda-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await own.click();const route=await page.evaluate(()=>window.__previewRoute);if(route!=='/portal/employee/assignments/visual-visit')throw Error(JSON.stringify({message:'Own calendar assignment lost its operational target.',route}));
+ const team=page.getByRole('button',{name:/Friedrich Mustermann/});await team.scrollIntoViewIfNeeded();await team.click();
+ const teamMessage=page.getByText('Dieser Eintrag ist im Teamkalender sichtbar. Die Durchführung öffnen Sie bei Ihren eigenen Einsätzen.',{exact:true});await teamMessage.waitFor();await waitForNativeModal(page,teamMessage);
+ await page.screenshot({path:join(output,`employee-calendar-team-details-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const close=page.getByRole('button',{name:'Schließen',exact:true}).filter({hasText:'Schließen'}).last();await close.scrollIntoViewIfNeeded();await close.click();await teamMessage.waitFor({state:'hidden'});
+ const refresh=page.getByRole('button',{name:'Kalender aktualisieren',exact:true});await refresh.scrollIntoViewIfNeeded();await refresh.click();
+ if(!await page.evaluate(()=>window.__portalCalendarRefreshes>0))throw Error('Actual portal calendar refresh did not reach its scoped data hook.');
+ report.push({screen:'employee-calendar-interactions',viewport,fontScale,prevBounds,nextBounds,viewBounds,eventBounds,ownAssignmentRoute:route,teamDetails:true,periodRestored:true});
+}
+async function verifyEmployeePortalHome(page,viewport,fontScale=1){
+ if(await page.getByText('Meine Pflegetouren',{exact:true}).count())throw Error('Employee home still contains the unrelated care-tour panel.');
+ const hero=page.getByTestId('employee-portal-premium-home-hero'),quick=page.getByTestId('employee-portal-premium-quick-actions');
+ await hero.scrollIntoViewIfNeeded();const heroBounds=await hero.boundingBox();await quick.scrollIntoViewIfNeeded();const quickBounds=await quick.boundingBox();
+ if(!heroBounds||heroBounds.height<150||!quickBounds||quickBounds.height<100)throw Error(JSON.stringify({message:'Actual employee home cards are compressed by the page/frame chain.',viewport,fontScale,heroBounds,quickBounds}));
+ await page.screenshot({path:join(output,`employee-home-actual-actions-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const actions=quick.getByRole('button');for(const action of await actions.all())await portalControlBounds(action,viewport,'Employee quick action is clipped.');
+ const bottom=page.getByText('Offene Aufgaben',{exact:true});await bottom.scrollIntoViewIfNeeded();const bottomBounds=await bottom.boundingBox();
+ if(!bottomBounds||bottomBounds.y<-.5||bottomBounds.y+bottomBounds.height>viewport.height+.5)throw Error(JSON.stringify({message:'The end of the actual employee dashboard is unreachable.',viewport,fontScale,bottomBounds}));
+ await page.screenshot({path:join(output,`employee-home-actual-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const refresh=page.getByRole('button',{name:'Übersicht aktualisieren',exact:true});await refresh.scrollIntoViewIfNeeded();await refresh.click();
+ await page.waitForFunction(()=>window.__employeePreviewRefreshes>0);
+ report.push({screen:'employee-home-actual-frame',viewport,fontScale,heroBounds,quickBounds,bottomBounds,refreshReached:true,careToursAbsent:true});
+}
+async function verifyEmployeeClientRecords(page,viewport,fontScale=1){
+ const firstHeader=page.getByRole('button',{name:'Klientenakte Helene Musterfrau öffnen',exact:true});await firstHeader.waitFor();await firstHeader.scrollIntoViewIfNeeded();
+ const card=firstHeader.locator('..'),cardBounds=await card.boundingBox(),action=card.getByRole('button',{name:'Akte öffnen',exact:true}),actionBounds=await action.boundingBox();
+ if(!cardBounds||cardBounds.height<160||cardBounds.height>450*fontScale||!actionBounds||actionBounds.y+actionBounds.height>cardBounds.y+cardBounds.height+.5||cardBounds.y+cardBounds.height-actionBounds.y-actionBounds.height>80)throw Error(JSON.stringify({message:'Employee client card uses the full viewport height or loses its actions.',viewport,fontScale,cardBounds,actionBounds}));
+ await page.screenshot({path:join(output,`employee-clients-intrinsic-card-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const last=page.getByRole('button',{name:'Klientenakte Musterperson 14 öffnen',exact:true});await last.scrollIntoViewIfNeeded();await portalControlBounds(last,viewport,'Last employee client record cannot be reached.');
+ await page.screenshot({path:join(output,`employee-clients-last-record-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const search=page.getByRole('textbox',{name:'Klientenakten durchsuchen',exact:true});await search.scrollIntoViewIfNeeded();await search.fill('Kein passender Prüfname');await page.getByText('Keine Treffer',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Suche löschen',exact:true}).click();await firstHeader.waitFor();await search.fill('Helene');
+ const filtered=page.getByRole('button',{name:'Akte öffnen',exact:true});if(await filtered.count()!==1)throw Error('Employee client record search did not filter the actual list.');await filtered.scrollIntoViewIfNeeded();await filtered.click();
+ const route=await page.evaluate(()=>window.__previewRoute);if(route!=='/portal/employee/clients/employee-client-1')throw Error(JSON.stringify({message:'Employee client card loses its exact client record target.',route}));
+ report.push({screen:'employee-clients-actual-frame',viewport,fontScale,cardBounds,actionBounds,lastRecordReached:true,searchAndClear:true,route});
+}
+async function verifyClientPortalHome(page,viewport,fontScale=1){
+ const hero=page.getByTestId('client-portal-premium-home-hero');await hero.scrollIntoViewIfNeeded();const heroBounds=await hero.boundingBox();
+ const frame=await page.getByTestId('client-portal-page-frame').boundingBox();
+ if(!heroBounds||heroBounds.height<130||!frame||frame.height<heroBounds.height+100)throw Error(JSON.stringify({message:'The actual client home frame compresses its content.',viewport,fontScale,heroBounds,frame}));
+ const signatures=page.getByRole('button',{name:/^Unterschriften:/});await portalControlBounds(signatures,viewport,'Client home signature action is clipped.');
+ await page.screenshot({path:join(output,`client-home-actual-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await signatures.click();const route=await page.evaluate(()=>window.__previewRoute);if(route!=='/portal/client/documents/signatures')throw Error(JSON.stringify({message:'Client home signature action loses its destination.',route}));
+ report.push({screen:'client-home-actual-frame',viewport,fontScale,heroBounds,frame,signatureRoute:route});
+}
+async function verifyActualPortal(page,screen,viewport,fontScale=1){
+ if(screen==='employee-calendar')await verifyPortalCalendar(page,viewport,fontScale);
+ if(screen==='employee-home')await verifyEmployeePortalHome(page,viewport,fontScale);
+ if(screen==='employee-clients')await verifyEmployeeClientRecords(page,viewport,fontScale);
+ if(screen==='client-home')await verifyClientPortalHome(page,viewport,fontScale);
 }
 async function verifyHelpSteps(page,viewport,fontScale=1){
  const title=page.getByRole('heading',{name:'Briefkopf und Layout öffnen',exact:true});await title.waitFor();await title.scrollIntoViewIfNeeded();
@@ -268,6 +347,14 @@ for(const viewport of [{width:844,height:390},{width:1280,height:800}]){
  if(errors.length)throw Error(JSON.stringify({screen:'weather-dialog',viewport,fontScale:1.6,errors}));
  }catch(error){await recordCaseFailure(page,{screen:'weather-dialog',viewport,fontScale:1.6},error);}finally{await page.close();}
 }
+for(const viewport of [{width:844,height:390},{width:1280,height:800}])for(const screen of ['employee-home','employee-clients','employee-calendar','client-home']){
+ const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
+  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+  await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}-scale-1.6.png`)});await verifyActualPortal(page,screen,viewport,1.6);
+  if(errors.length)throw Error(JSON.stringify({screen,viewport,fontScale:1.6,errors}));
+ }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}
+}
 // Exercise the actual native article anchors and Google modal at enlarged text,
 // in addition to their ordinary-size matrix below. No provider writes occur.
 for(const [screen,viewport] of [['help-article',{width:1280,height:800}],['google-service',{width:360,height:800}]]){
@@ -291,7 +378,7 @@ for(const [screen,viewport] of [['help-article',{width:1280,height:800}],['googl
   report.push({screen,viewport,fontScale:1.6,enlargedInteraction:true,errors});
  }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}
 }
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','employee-clients','employee-calendar','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
  const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  try{
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
@@ -310,6 +397,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
   }
  }
  if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));await verifyNotesList(page,{width:360,height:800},1.6);}
+ await verifyActualPortal(page,screen,{width:360,height:800},1.6);
  if(screen==='employee-home'){
   await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
   const card=await page.getByText('Ihr aktueller Einsatz ist bereit',{exact:true}).locator('..').boundingBox(),action=await page.getByRole('button',{name:'Einsatz öffnen',exact:true}).first().boundingBox();
@@ -318,7 +406,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  }catch(error){await recordCaseFailure(page,{screen,viewport:{width:360,height:800},fontScale:1.6},error);}finally{await page.close();}
 }
 for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
- for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
+ for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','employee-clients','employee-calendar','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
@@ -380,6 +468,7 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});if(screen==='notes'){const bounds=await page.getByRole('button',{name:'Speichern',exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note editor save action extends beyond the viewport.',viewport,bounds}));}await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
+  await verifyActualPortal(page,screen,viewport);
   report.push({screen,viewport,overflow,errors});
   }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1},error);}finally{await page.close();}
  }

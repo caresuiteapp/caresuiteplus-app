@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/calendar/CalendarShell.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeHeader,NativeButton,NativeSpan,NativeH1,NativeP} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./CalendarWorkspaceStyles.native.tsx";
+import {NativeDiv,NativeHeader,NativeButton,NativeSpan,NativeH1,NativeP,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFlowRouter as useRouter } from "../../hooks/useFlowRouter.ts";
 import { ScreenShell } from "../layout/ScreenShell.tsx";
@@ -56,7 +57,7 @@ function CalendarScopedShell({ moduleKey, title = 'Kalender', showAppointmentsLi
         else
             setSelectedEvent(event);
     }, [active, onEventPressOverride]);
-    return <>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarWorkspaceStyles"]]}>{<>
     <ScreenShell title={title} contentOwnsHeader showBack={false} showBreadcrumbs={false}>
       <CalendarWorkspaceStyles />
       <NativeDiv className="cw-shell" data-cs-calendar-workspace="20261017">
@@ -71,5 +72,5 @@ function CalendarScopedShell({ moduleKey, title = 'Kalender', showAppointmentsLi
     </ScreenShell>
     <CalendarEventDrawer visible={!!selectedEvent && !onEventPressOverride && canView} event={canView ? selectedEvent : null} onClose={() => { if (active())
         setSelectedEvent(null); }}/>
-  </>;
+  </>}</NativeWorkspaceStyleScope>;
 }

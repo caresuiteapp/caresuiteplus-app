@@ -32,7 +32,7 @@ type Props = {
     onEditorStateChange?: (state: WfmEditorState) => void;
 };
 export function WfmOfficeManualEntryPanel(props: Props) {
-    return <NativeWorkspaceStyleScope css={[wfmTimeAccountsCss, `
+    return <NativeWorkspaceStyleScope key={JSON.stringify([props.tenantId, props.actorId, props.roleKey, props.initialDate, props.initialEmployeeId])} css={[wfmTimeAccountsCss, `
     .wta-manual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wta-manual-grid .wta-field-wide{grid-column:1/-1}.wta-field textarea{width:100%;min-width:0;min-height:100px;resize:vertical;border:1px solid #bccfe4;border-radius:10px;padding:10px 12px;color:#152b46;background:white;font:inherit;line-height:1.5}.wta-time-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.wta-manual-summary{display:flex;flex-wrap:wrap;gap:12px;padding:12px 14px;border:1px solid #d7e2ef;border-radius:10px;background:#f3f7fc;font-variant-numeric:tabular-nums}.wta-manual-summary span{color:#52657c}.wta-manual-summary strong{color:#152b46;margin-left:5px}.wta-fieldset{border:0;margin:0;padding:0;min-width:0;display:grid;gap:15px}.wta-message[data-tone=success]{background:#edf8f2;border-color:#bddccb;color:#1b6843}@container(max-width:570px){.wta-manual-grid{grid-template-columns:1fr}.wta-time-pair{grid-template-columns:1fr}}
   `]}>{<ManualEntry key={JSON.stringify([props.tenantId, props.actorId, props.roleKey, props.initialDate, props.initialEmployeeId])} {...props}/>}</NativeWorkspaceStyleScope>;
 }

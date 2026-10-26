@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/calendar/CalendarToolbar.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeButton,NativeH2,NativeLabel,NativeSpan,NativeInput} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./CalendarWorkspaceStyles.native.tsx";
+import {NativeDiv,NativeButton,NativeH2,NativeLabel,NativeSpan,NativeInput,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarWorkspaceIcon, CalendarWorkspaceStyles } from "./CalendarWorkspaceStyles.native.tsx";
 type CalendarToolbarProps = {
@@ -26,7 +27,7 @@ const VIEWS: {
     { value: 'agenda', label: 'Agenda' }, { value: 'list', label: 'Liste' },
 ];
 export function CalendarToolbar({ viewMode, onViewModeChange, title, onPrev, onNext, onToday, onOpenSettings, onCreate, anchor, onAnchorChange, includeYear = true }: CalendarToolbarProps) {
-    return <NativeDiv className="cw-toolbar cw-workspace">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarWorkspaceStyles"]]}>{<NativeDiv className="cw-toolbar cw-workspace">
     <CalendarWorkspaceStyles />
     <NativeDiv className="cw-toolbar-top">
       <NativeDiv className="cw-nav" aria-label="Zeitraum wechseln">
@@ -46,5 +47,5 @@ export function CalendarToolbar({ viewMode, onViewModeChange, title, onPrev, onN
       </NativeDiv>
       {onAnchorChange ? <NativeLabel className="cw-date"><NativeSpan>Gehe zu</NativeSpan><NativeInput type="date" aria-label="Datum auswählen" min="1900-01-01" max="2200-12-31" value={anchor} onChange={(event) => onAnchorChange(event.target.value)}/></NativeLabel> : null}
     </NativeDiv>
-  </NativeDiv>;
+  </NativeDiv>}</NativeWorkspaceStyleScope>;
 }

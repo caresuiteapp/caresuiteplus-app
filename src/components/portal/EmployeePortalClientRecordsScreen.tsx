@@ -66,7 +66,7 @@ export function EmployeePortalClientRecordsScreen() {
     <ScrollView
       style={styles.viewport}
       contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator
       keyboardShouldPersistTaps="handled"
       testID="employee-portal-client-records"
     >
@@ -120,6 +120,7 @@ export function EmployeePortalClientRecordsScreen() {
         return (
           <View
             key={record.clientId}
+            testID={`employee-portal-client-card-${record.clientId}`}
             style={[styles.cardPressable, compact && styles.cardPressableCompact]}
           >
             <LinearGradient
@@ -171,7 +172,7 @@ export function EmployeePortalClientRecordsScreen() {
                 </Text>
               ) : null}
 
-              <View style={styles.actions}>
+              <View style={styles.actions} testID="employee-portal-client-card-actions">
                 {phone ? (
                   <PremiumButton
                     title="Anrufen"
@@ -202,6 +203,8 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y' } as never) : {}),
   },
   container: {
+    flexGrow: 0,
+    flexShrink: 0,
     gap: careSpacing.lg,
     width: '100%',
     maxWidth: 1440,
@@ -209,6 +212,7 @@ const styles = StyleSheet.create({
     paddingBottom: careSpacing.xxl,
   },
   directoryHeader: {
+    flexShrink: 0,
     minHeight: 150, borderRadius: spatialCare.radius.stage, borderWidth: 1,
     borderColor: portalPremium.border, padding: careSpacing.xl,
     flexDirection: 'row', alignItems: 'center', gap: careSpacing.lg, overflow: 'hidden',
@@ -240,6 +244,7 @@ const styles = StyleSheet.create({
   directoryMetricValue: { color: portalPremium.text.primary, fontSize: 28, lineHeight: 32, fontWeight: '900' },
   directoryMetricLabel: { color: portalPremium.accent.blueDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   searchBar: {
+    flexShrink: 0,
     minHeight: 58, paddingHorizontal: 17, borderRadius: 18, borderWidth: 1,
     borderColor: portalPremium.border, backgroundColor: portalPremium.surfaceRaised,
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -247,23 +252,21 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, minWidth: 0, color: portalPremium.text.primary, fontSize: 15, lineHeight: 20, outlineStyle: 'none' } as never,
   clearButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: portalPremium.surfaceSoft },
   grid: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: careSpacing.md,
+    flexShrink: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: careSpacing.md,
   },
   hint: {
     ...careTypography.caption,
     marginBottom: careSpacing.xs,
   },
-  cardPressable: { flexGrow: 1, flexBasis: 460, minWidth: 0, maxWidth: '100%' },
+  cardPressable: { flexGrow: 1, flexShrink: 0, flexBasis: 460, minWidth: 0, maxWidth: '100%' },
   cardPressableCompact: { flexBasis: '100%', width: '100%' },
   cardPressed: { opacity: 0.96, transform: [{ scale: 0.992 }] },
   card: {
-    minHeight: 250, height: '100%', gap: careSpacing.md, padding: careSpacing.lg,
+    flexShrink: 0, gap: careSpacing.md, padding: careSpacing.lg,
     borderRadius: spatialCare.radius.card, borderWidth: 1, borderColor: portalPremium.border,
     overflow: 'hidden',
   },
   cardCompact: {
-    minHeight: 0,
-    height: 'auto',
     padding: careSpacing.md,
   },
   cardGlow: { position: 'absolute', right: -48, top: -58, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(53,151,255,0.10)' },
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
   meta: { ...careTypography.caption },
   hintLine: { ...careTypography.caption, fontStyle: 'italic' },
   actions: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginTop: 'auto',
+    flexShrink: 0, flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm,
     paddingTop: careSpacing.sm, borderTopWidth: 1, borderTopColor: portalPremium.borderSoft,
   },
 });

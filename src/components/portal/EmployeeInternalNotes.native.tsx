@@ -26,7 +26,7 @@ export function EmployeeInternalNotes({ actor }: {
     const { tenantId, userId, roleKey, employeeId, readOnly } = actor;
     const stableActor = useMemo<InternalNoteActor>(() => ({ tenantId, userId, roleKey, employeeId, readOnly }), [tenantId, userId, roleKey, employeeId, readOnly]);
     const scope = JSON.stringify([tenantId, userId, roleKey, employeeId, !!readOnly]);
-    return <NativeWorkspaceStyleScope css={[employeeInternalNotesCss]}>{<EmployeeInternalNotesInbox key={scope} actor={stableActor}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={scope} css={[employeeInternalNotesCss]}>{<EmployeeInternalNotesInbox key={scope} actor={stableActor}/>}</NativeWorkspaceStyleScope>;
 }
 function EmployeeInternalNotesInbox({ actor }: {
     actor: InternalNoteActor;

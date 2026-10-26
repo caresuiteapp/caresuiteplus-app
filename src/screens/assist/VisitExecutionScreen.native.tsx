@@ -45,7 +45,7 @@ export function VisitExecutionScreen() {
     const scope = JSON.stringify([tenantId, id, profile?.id, profile?.roleKey, roleKey, allowed, can('assist.execution.manage')]);
     if (!allowed || !tenantId || !id)
         return <NativeWorkspaceStyleScope css={[css]}>{<AssignmentsWorkspaceShell title="Einsatz durchführen" description="Einsatzakte und Nachbearbeitung" onBack={() => router.back()}><NativeDiv className="aw-alert" data-tone="warning" role="alert">{!allowed ? 'Sie haben keine Berechtigung, diese Einsatzdurchführung anzusehen.' : !tenantId ? 'Bitte wählen Sie zuerst ein Unternehmen aus.' : 'Es wurde kein Einsatz ausgewählt.'}</NativeDiv></AssignmentsWorkspaceShell>}</NativeWorkspaceStyleScope>;
-    return <NativeWorkspaceStyleScope css={[css]}>{<ExecutionWorkspace key={scope} id={id} tenantId={tenantId}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={scope} css={[css]}>{<ExecutionWorkspace key={scope} id={id} tenantId={tenantId}/>}</NativeWorkspaceStyleScope>;
 }
 function ExecutionWorkspace({ id, tenantId }: {
     id: string;

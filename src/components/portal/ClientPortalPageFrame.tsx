@@ -12,6 +12,8 @@ type Props = {
   children: ReactNode;
   compact?: boolean;
   showHero?: boolean;
+  /** The surrounding ScrollView owns scrolling; content keeps its full height. */
+  scrollable?: boolean;
   actionsSlot?: ReactNode;
   filtersSlot?: ReactNode;
   tabsSlot?: ReactNode;
@@ -24,6 +26,7 @@ export function ClientPortalPageFrame({
   children,
   compact = false,
   showHero = true,
+  scrollable = false,
   actionsSlot,
   filtersSlot,
   tabsSlot,
@@ -31,7 +34,7 @@ export function ClientPortalPageFrame({
   const { isPhone } = useDeviceClass();
 
   return (
-    <View style={[styles.page, isPhone && styles.pagePhone]} testID="client-portal-page-frame">
+    <View style={[styles.page, scrollable ? styles.naturalContent : styles.fillContent, isPhone && styles.pagePhone]} testID="client-portal-page-frame">
       {showHero ? (
         <PortalPremiumPageHero
           kind="client"
@@ -41,12 +44,12 @@ export function ClientPortalPageFrame({
           compact={compact}
         />
       ) : null}
-      <HealthOSPageSurface padded={!isPhone} testID="client-portal-page-surface">
+      <HealthOSPageSurface fill={!scrollable} padded={!isPhone} testID="client-portal-page-surface">
         <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-        <HealthOSPageZone kind="content">
-          <View style={styles.content}>{children}</View>
+        <HealthOSPageZone kind="content" fill={!scrollable}>
+          <View style={[styles.content, scrollable ? styles.naturalContent : styles.fillContent]}>{children}</View>
         </HealthOSPageZone>
       </HealthOSPageSurface>
     </View>
@@ -55,7 +58,6 @@ export function ClientPortalPageFrame({
 
 const styles = StyleSheet.create({
   page: {
-    flex: 1,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
@@ -64,13 +66,15 @@ const styles = StyleSheet.create({
     gap: careSpacing.lg,
   },
   content: {
-    flex: 1,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
     gap: careSpacing.md,
   },
+  fillContent: { flex: 1 },
+  naturalContent: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   pagePhone: {
     gap: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
   },
 });

@@ -16,7 +16,7 @@ export function ClientFundingSourceSelector({ values, onChange, error, disabled 
     <NativeDiv className="cs-funding-heading"><NativeP id={`${id}-hint`}>Vereinbarte Leistungen auswählen. Die Auswahl wird erst mit dem Speichern übernommen.</NativeP><NativeSpan>{values.length} ausgewählt</NativeSpan></NativeDiv>
     <NativeDiv className="cs-funding-grid">{CLIENT_FUNDING_SOURCE_KEYS.map(key => {
             const selected = values.includes(key);
-            return <NativeWorkspaceStyleScope css={[CSS]}>{<NativeLabel key={key} className="cs-funding-choice" data-selected={selected}>
+            return <NativeWorkspaceStyleScope key={key} css={[CSS]}>{<NativeLabel key={key} className="cs-funding-choice" data-selected={selected}>
         <NativeInput type="checkbox" checked={selected} onChange={() => onChange(selected ? values.filter(value => value !== key) : [...values, key])}/>
         <NativeSpan><NativeSmall>{selected ? 'Ausgewählt' : 'Nicht ausgewählt'}</NativeSmall><NativeStrong>{CLIENT_FUNDING_SOURCE_LABELS[key]}</NativeStrong><NativeSpan>{CLIENT_FUNDING_SOURCE_DESCRIPTIONS[key]}</NativeSpan></NativeSpan>
       </NativeLabel>}</NativeWorkspaceStyleScope>;

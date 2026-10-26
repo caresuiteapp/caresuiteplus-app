@@ -30,7 +30,7 @@ export function ClientIntakeWizardForm(props: ClientIntakeWizardFormProps) {
 }
 function IntakeSession(props: ClientIntakeWizardFormProps) {
     const wizard = useClientIntakeWizard({ mode: props.mode ?? 'create', clientId: props.clientId, completeSectionFlow: true });
-    return <NativeWorkspaceStyleScope css={[clientIntakeExperienceCss]}>{<IntakeWorkspace key={wizard.identityKey} {...props} wizard={wizard}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={wizard.identityKey} css={[clientIntakeExperienceCss]}>{<IntakeWorkspace key={wizard.identityKey} {...props} wizard={wizard}/>}</NativeWorkspaceStyleScope>;
 }
 function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onCloseRequestChange }: ClientIntakeWizardFormProps & {
     wizard: Wizard;
@@ -257,7 +257,7 @@ function IntakeWorkspace({ wizard, clientId, onCancel, onCreated, onUpdated, onC
         {!firstContact ? <NativeNav className="ci-navigation" aria-label="Abschnitte der Aufnahme"><NativeOl>{wizard.steps.map((section, index) => {
                 const active = section === wizard.currentSection;
                 const complete = progress.completed.includes(section);
-                return <NativeWorkspaceStyleScope css={[clientIntakeExperienceCss]}>{<NativeLi key={section}><NativeButton ref={active ? activeStep : undefined} type="button" aria-current={active ? 'step' : undefined} disabled={busy || index > lastVisitedIndex + 1} onClick={() => navigate(section)}><NativeSpan className={`ci-step-number${complete ? ' complete' : ''}`} aria-hidden="true">{complete && !active ? '✓' : String(index + 1).padStart(2, '0')}</NativeSpan><NativeSpan>{INTAKE_WEB_SECTIONS[section].label}<NativeSmall>{active ? 'Aktueller Abschnitt' : complete ? 'Angaben geprüft' : index > lastVisitedIndex + 1 ? 'Im weiteren Verlauf' : 'Noch zu prüfen'}</NativeSmall></NativeSpan>{active ? <NativeSpan className="ci-step-current" aria-hidden="true">›</NativeSpan> : null}</NativeButton></NativeLi>}</NativeWorkspaceStyleScope>;
+                return <NativeWorkspaceStyleScope key={section} css={[clientIntakeExperienceCss]}>{<NativeLi key={section}><NativeButton ref={active ? activeStep : undefined} type="button" aria-current={active ? 'step' : undefined} disabled={busy || index > lastVisitedIndex + 1} onClick={() => navigate(section)}><NativeSpan className={`ci-step-number${complete ? ' complete' : ''}`} aria-hidden="true">{complete && !active ? '✓' : String(index + 1).padStart(2, '0')}</NativeSpan><NativeSpan>{INTAKE_WEB_SECTIONS[section].label}<NativeSmall>{active ? 'Aktueller Abschnitt' : complete ? 'Angaben geprüft' : index > lastVisitedIndex + 1 ? 'Im weiteren Verlauf' : 'Noch zu prüfen'}</NativeSmall></NativeSpan>{active ? <NativeSpan className="ci-step-current" aria-hidden="true">›</NativeSpan> : null}</NativeButton></NativeLi>}</NativeWorkspaceStyleScope>;
             })}</NativeOl></NativeNav> : <NativeP className="ci-sidebar-hint">Erstkontakt → bei Bedarf Termin → vollständige Aufnahme in derselben Akte.</NativeP>}
         {!firstContact && wizard.steps.length === 1 ? <NativeP className="ci-sidebar-hint">Danach folgen persönliche Angaben, Versorgung und die passenden Unterlagen.</NativeP> : null}
       </NativeAside>

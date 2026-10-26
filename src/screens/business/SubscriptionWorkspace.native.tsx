@@ -98,7 +98,7 @@ export function SubscriptionWorkspace({ data, loading, error, roleLabel, onRefre
       {filtered.length ? <NativeDiv className="cs-platform-grid">{filtered.map((module) => {
                 const product = PRODUCTS[module.key];
                 const action = module.status === 'active' ? moduleActions[module.key] : undefined;
-                return <NativeWorkspaceStyleScope css={[SUBSCRIPTION_WORKSPACE_CSS]}>{<NativeArticle className={`cs-platform-module cs-platform-module--${product.tone}`} key={module.key}>
+                return <NativeWorkspaceStyleScope key={module.key} css={[SUBSCRIPTION_WORKSPACE_CSS]}>{<NativeArticle className={`cs-platform-module cs-platform-module--${product.tone}`} key={module.key}>
           <NativeDiv className="cs-platform-module-top"><NativeDiv className="cs-platform-module-art"><DesktopCatalogArtwork route={product.route} label={product.name} size={60}/></NativeDiv><NativeSpan className={`cs-platform-badge cs-platform-badge--${module.status}`}>{STATE_LABELS[module.status]}</NativeSpan></NativeDiv>
           <NativeH3>CareSuite+ {product.name}</NativeH3><NativeP className="cs-platform-description">{product.description}</NativeP>
           <NativeDiv className="cs-platform-module-bottom"><NativeP className="cs-platform-reason">{module.reason}</NativeP>{action ? <NativeButton type="button" className="cs-platform-open" disabled={disabled} onClick={action} aria-label={`${product.name} öffnen`}>Öffnen<ActionIcon kind="arrow"/></NativeButton> : module.status === 'active' ? <NativeP className="cs-platform-access-note">Für Ihre Rolle ist hier kein direkter Zugang verfügbar.</NativeP> : null}</NativeDiv>

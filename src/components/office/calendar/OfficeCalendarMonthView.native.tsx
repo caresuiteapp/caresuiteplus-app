@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/office/calendar/OfficeCalendarMonthView.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeButton,NativeSpan,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "../../calendar/CalendarViewStyles.native.tsx";
+import {NativeSection,NativeDiv,NativeHeader,NativeH2,NativeP,NativeButton,NativeSpan,NativeStrong,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useMemo, useState } from 'react';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { eventsForDay, formatMonthYear, getMonthGridDays, isSameDay, orderedWeekdayLabels, toDateKey } from '@/lib/office/calendarDateUtils';
@@ -32,7 +33,7 @@ export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxColla
         next.add(key); return next; });
     const today = new Date();
     const selectable = Boolean(selection || (selectedAssignmentProfileId && onAssignmentProfileDrop) || onSelectDate);
-    return <NativeSection className="cs-calendar-view" aria-label="Monatskalender">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label="Monatskalender">
     <CalendarViewStyles />
     <NativeDiv className="cs-calendar-surface">
       <NativeHeader className="cs-calendar-view-heading"><NativeH2>{formatMonthYear(anchor)}</NativeH2><NativeP>{events.length} {events.length === 1 ? 'Eintrag' : 'Einträge'} im angezeigten Zeitraum</NativeP></NativeHeader>
@@ -69,5 +70,5 @@ export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxColla
         </NativeDiv>
       </NativeDiv>
     </NativeDiv>
-  </NativeSection>;
+  </NativeSection>}</NativeWorkspaceStyleScope>;
 }

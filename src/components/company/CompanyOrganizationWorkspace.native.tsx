@@ -36,7 +36,7 @@ type Dialog = {
 };
 export function CompanyOrganizationWorkspace(props: CompanyOrganizationWorkspaceProps) {
     const permissionKey = props.effectivePermissions ? [...props.effectivePermissions].sort().join(',') : 'role';
-    return <NativeWorkspaceStyleScope css={[companyOrganizationCss]}>{<OrganizationScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionKey}`} {...props}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionKey}`} css={[companyOrganizationCss]}>{<OrganizationScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionKey}`} {...props}/>}</NativeWorkspaceStyleScope>;
 }
 function OrganizationScope({ tenantId, roleKey, actorProfileId, effectivePermissions, initialView = 'sites', onViewChange, onNavigationGuardChange, accessContent, canManageScopes = false, scopeLimited = false, accessNavigationGuard }: CompanyOrganizationWorkspaceProps) {
     const scope = useMemo<CompanyOrganizationScope>(() => ({ tenantId, actorRoleKey: roleKey, actorProfileId, effectivePermissions }), [tenantId, roleKey, actorProfileId, effectivePermissions]);
@@ -189,7 +189,7 @@ function OrganizationScope({ tenantId, roleKey, actorProfileId, effectivePermiss
         if (saved && alive.current)
             setDialog(null);
     }
-    const frame = (content: ReactNode) => <NativeSection className="cg-workspace" aria-label="Unternehmensorganisation" aria-busy={loading || busy}><NativeStyle>{companyOrganizationCss}</NativeStyle>{content}</NativeSection>;
+    const frame = (content: ReactNode) => <NativeWorkspaceStyleScope css={[companyOrganizationCss, companyOrganizationCss]}>{<NativeSection className="cg-workspace" aria-label="Unternehmensorganisation" aria-busy={loading || busy}><NativeStyle>{companyOrganizationCss}</NativeStyle>{content}</NativeSection>}</NativeWorkspaceStyleScope>;
     if (!permissions.view)
         return frame(<Empty title="Kein Zugriff auf die Unternehmensstruktur" text="Für diese Ansicht fehlt die Unternehmensberechtigung." icon="shield"/>);
     if (!snapshot)

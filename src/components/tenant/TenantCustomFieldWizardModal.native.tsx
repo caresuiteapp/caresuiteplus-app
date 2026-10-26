@@ -22,7 +22,7 @@ const MODULE_LABELS: Record<TenantModuleKey, string> = { assist: 'Assist', pfleg
 export function TenantCustomFieldWizardModal(props: TenantCustomFieldWizardModalProps) {
     if (!props.visible)
         return null;
-    return <NativeWorkspaceStyleScope css={[CUSTOM_FIELD_CSS]}>{<CustomFieldEditor key={`${props.tenantId}:${props.field?.id ?? props.field?.fieldKey ?? 'new'}`} {...props}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.field?.id ?? props.field?.fieldKey ?? 'new'}`} css={[CUSTOM_FIELD_CSS]}>{<CustomFieldEditor key={`${props.tenantId}:${props.field?.id ?? props.field?.fieldKey ?? 'new'}`} {...props}/>}</NativeWorkspaceStyleScope>;
 }
 function CustomFieldEditor({ tenantId, field, onClose, onSaved, effectivePermissions }: TenantCustomFieldWizardModalProps) {
     const window = useNativeWorkflowWindow();

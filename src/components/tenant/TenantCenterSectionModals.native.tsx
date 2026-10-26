@@ -26,7 +26,7 @@ type Props = {
 export function TenantCenterSectionModals(props: Props) {
     if (!props.activeSection)
         return null;
-    return <NativeWorkspaceStyleScope css={[COMPANY_EDITOR_CSS]}>{<CompanySectionEditor key={`${props.tenantId}:${props.activeSection}`} {...props} section={props.activeSection}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.activeSection}`} css={[COMPANY_EDITOR_CSS]}>{<CompanySectionEditor key={`${props.tenantId}:${props.activeSection}`} {...props} section={props.activeSection}/>}</NativeWorkspaceStyleScope>;
 }
 function CompanySectionEditor({ snapshot, tenantId, section, onClose, onSaved, onReloaded, effectivePermissions }: Props & {
     section: TenantCenterSectionKey;

@@ -34,7 +34,7 @@ export function DesktopAreaSwitcher({ selectedArea, areas, onSelectArea, scale =
       <NativeDiv className="cs-desktop-area-options" role="group" aria-label="Desktop im Katalog wechseln">
         {areas.map(area => {
             const selected = area.key === selectedArea;
-            return <NativeWorkspaceStyleScope css={[desktopAreaSwitcherCss]}>{<NativeButton type="button" key={area.key} className="cs-desktop-area-option" aria-label={`${area.label}-Desktop auswählen`} aria-pressed={selected} disabled={area.disabled} aria-describedby={area.disabled ? `${id}-${area.key}-status` : undefined} onClick={() => { if (!area.disabled && !selected)
+            return <NativeWorkspaceStyleScope key={area.key} css={[desktopAreaSwitcherCss]}>{<NativeButton type="button" key={area.key} className="cs-desktop-area-option" aria-label={`${area.label}-Desktop auswählen`} aria-pressed={selected} disabled={area.disabled} aria-describedby={area.disabled ? `${id}-${area.key}-status` : undefined} onClick={() => { if (!area.disabled && !selected)
                 onSelectArea(area.key); }}>
             <DesktopCatalogArtwork route={ARTWORK_ROUTES[area.key]} label={area.label} size={40}/>
             <NativeSpan className="cs-desktop-area-name">{area.label}</NativeSpan>

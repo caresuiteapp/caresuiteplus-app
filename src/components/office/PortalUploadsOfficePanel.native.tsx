@@ -123,7 +123,7 @@ export function PortalUploadsOfficePanel({ tenantId, clientId, onReviewed }: Pro
             const canReview = can(employee ? 'office.employees.edit' : 'office.clients.edit');
             const active = selected === upload.id;
             const file = preview?.id === upload.id ? preview : null;
-            return <NativeWorkspaceStyleScope css={[documentsWorkspaceCss, officeDocumentWorkspaceCss]}>{<NativeArticle className="dw-inbox-item" key={upload.id}>
+            return <NativeWorkspaceStyleScope key={upload.id} css={[documentsWorkspaceCss, officeDocumentWorkspaceCss]}>{<NativeArticle className="dw-inbox-item" key={upload.id}>
       <NativeDiv className="dw-library-title"><DocumentWorkspaceIcon name="document" size={25}/><NativeDiv><NativeStrong>{upload.fileName}</NativeStrong><NativeP>{employee ? 'Personalakte' : 'Klientenakte'} · {employee ? upload.employeeName || 'Zuordnung vorhanden' : upload.clientName || 'Zuordnung vorhanden'}</NativeP><NativeSmall>{documentDate(upload.createdAt)} · {documentSize(upload.sizeBytes)}</NativeSmall>{upload.message ? <NativeP>{upload.message}</NativeP> : null}</NativeDiv></NativeDiv>
       <NativeDiv className="dw-library-actions"><NativeButton type="button" className="dw-button" disabled={working !== null} onClick={() => void show(upload)}><DocumentWorkspaceIcon name="eye" size={16}/>{working === upload.id ? 'Datei wird geladen…' : 'Datei prüfen'}</NativeButton></NativeDiv>
       {active ? <NativeDiv className="dw-inbox-review">

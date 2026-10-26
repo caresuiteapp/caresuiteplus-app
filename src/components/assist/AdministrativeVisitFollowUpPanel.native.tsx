@@ -58,7 +58,7 @@ export function AdministrativeVisitFollowUpPanel(props: Props) {
     const { can, roleKey } = usePermissions();
     const allowed = Boolean(roleKey && !isPortalOnlyRole(roleKey) && can('assist.assignments.view') && can('assist.execution.manage') && props.visit.tenantId === props.tenantId);
     const scope = JSON.stringify([props.tenantId, props.visit.id, profile?.id, profile?.roleKey, roleKey, allowed]);
-    return <NativeWorkspaceStyleScope css={[css]}>{<FollowUpEditor key={scope} {...props} allowed={allowed}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={scope} css={[css]}>{<FollowUpEditor key={scope} {...props} allowed={allowed}/>}</NativeWorkspaceStyleScope>;
 }
 function FollowUpEditor({ visit, tenantId, onSaved, onMessage, onTaskDraftsChange, onStateChange, allowed }: Props & {
     allowed: boolean;

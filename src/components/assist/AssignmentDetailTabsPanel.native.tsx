@@ -1,5 +1,7 @@
 // Generated native presentation from src/components/assist/AssignmentDetailTabsPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeDt,NativeDd,NativeSection,NativeHeader,NativeH3,NativeP,NativeButton,NativeDl,NativeUl,NativeLi,NativeSpan,NativeSmall,NativeOl,NativeStrong,NativeTime,NativeH2,NativeLabel,NativeSelect,NativeOption} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./AssignmentsWorkspaceShell.native.tsx";
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles1} from "./AssignmentDetailStyles.native.tsx";
+import {NativeDiv,NativeDt,NativeDd,NativeSection,NativeHeader,NativeH3,NativeP,NativeButton,NativeDl,NativeUl,NativeLi,NativeSpan,NativeSmall,NativeOl,NativeStrong,NativeTime,NativeH2,NativeLabel,NativeSelect,NativeOption,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'expo-router';
@@ -56,8 +58,8 @@ export function AssignmentDetailTabsPanel(props: Props) {
     const { profile } = useAuth();
     const { can, roleKey } = usePermissions();
     if (!roleKey || isPortalOnlyRole(roleKey) || !can('assist.assignments.view'))
-        return <NativeDiv className="aw-workspace ad-root"><AssignmentsWorkspaceStyles /><NativeDiv className="aw-alert" data-tone="info" role="status">Sie haben keine Berechtigung, diesen Einsatz zu öffnen.</NativeDiv></NativeDiv>;
-    return <SurfaceContrastProvider tone="light"><AssignmentsWorkspaceStyles /><AssignmentDetailStyles /><Detail key={`${tenantId}:${profile?.id}:${profile?.roleKey}:${props.assignmentId}`} {...props}/></SurfaceContrastProvider>;
+        return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssignmentsWorkspaceStyles"]]}>{<NativeDiv className="aw-workspace ad-root"><AssignmentsWorkspaceStyles /><NativeDiv className="aw-alert" data-tone="info" role="status">Sie haben keine Berechtigung, diesen Einsatz zu öffnen.</NativeDiv></NativeDiv>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssignmentsWorkspaceStyles"], ...__nativeWorkspaceImportedStyles1["AssignmentDetailStyles"]]}>{<SurfaceContrastProvider tone="light"><AssignmentsWorkspaceStyles /><AssignmentDetailStyles /><Detail key={`${tenantId}:${profile?.id}:${profile?.roleKey}:${props.assignmentId}`} {...props}/></SurfaceContrastProvider>}</NativeWorkspaceStyleScope>;
 }
 function Detail({ assignmentId, mode = 'full', onOpenFullRecord, onEdit, onClose, onDeleted, refreshTrigger, onStatusChange, initialTab = 'overview' }: Props) {
     const router = useRouter();

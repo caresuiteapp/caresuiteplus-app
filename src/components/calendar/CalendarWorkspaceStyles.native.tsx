@@ -20,3 +20,5 @@ export function CalendarWorkspaceIcon({ name, size = 20 }: {
     };
     return <NativeWorkspaceStyleScope css={[calendarWorkspaceCss]}>{<WebActionIcon size={size}><NativeSvgPath d={paths[name] ?? paths.calendar}/></WebActionIcon>}</NativeWorkspaceStyleScope>;
 }
+
+export const __nativeWorkspaceStyleSheets = { "CalendarWorkspaceStyles": [calendarWorkspaceCss] };

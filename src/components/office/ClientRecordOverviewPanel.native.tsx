@@ -88,7 +88,7 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab, clientId }:
     <NativeDiv className="cs-record-overview-quicklinks" aria-label="Schnellzugriff">
       {overview.quickLinks.map((item) => {
             const copy = quickCopy[item.tab];
-            return <NativeWorkspaceStyleScope css={[clientRecordOverviewCss]}>{<NativeButton type="button" key={item.tab} onClick={() => onNavigateTab(item.tab)}><NativeSpan className="cs-record-overview-symbol"><Icon name={copy?.icon ?? 'file'}/></NativeSpan><NativeSpan><NativeStrong>{copy?.title ?? item.label}</NativeStrong><NativeSmall>{copy?.hint}</NativeSmall></NativeSpan><Icon name="arrow"/></NativeButton>}</NativeWorkspaceStyleScope>;
+            return <NativeWorkspaceStyleScope key={item.tab} css={[clientRecordOverviewCss]}>{<NativeButton type="button" key={item.tab} onClick={() => onNavigateTab(item.tab)}><NativeSpan className="cs-record-overview-symbol"><Icon name={copy?.icon ?? 'file'}/></NativeSpan><NativeSpan><NativeStrong>{copy?.title ?? item.label}</NativeStrong><NativeSmall>{copy?.hint}</NativeSmall></NativeSpan><Icon name="arrow"/></NativeButton>}</NativeWorkspaceStyleScope>;
         })}
     </NativeDiv>
     <NativeDiv className="cs-record-overview-grid">

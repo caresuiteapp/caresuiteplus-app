@@ -1,6 +1,6 @@
 // Generated native presentation from src/screens/documents/PlaceholderManagementScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {nativeNavigator as navigator} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {NativeStyle,NativeDiv,NativeButton,NativeStrong,NativeP,NativeSpan,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeH2,NativeSection,NativeArticle,NativeH3,NativeCode,NativeDetails,NativeSummary,NativeDl,NativeDt,NativeDd} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeStyle,NativeDiv,NativeButton,NativeStrong,NativeP,NativeSpan,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeH2,NativeSection,NativeArticle,NativeH3,NativeCode,NativeDetails,NativeSummary,NativeDl,NativeDt,NativeDd,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DocumentsWorkspaceShell } from "../../components/documents/DocumentsWorkspaceShell.native.tsx";
@@ -96,7 +96,7 @@ export function PlaceholderManagementScreen() {
             setCopying(null);
         }
     };
-    return (<DocumentsWorkspaceShell active="settings" title="Automatische Felder" description="Passende Felder für Textvorlagen finden und Dokumentfelder nachschlagen." back={{ label: 'Vorlageneinstellungen', onClick: () => router.push('/business/templates/documents-hub' as never) }}>
+    return <NativeWorkspaceStyleScope css={[css, css]}>{(<DocumentsWorkspaceShell active="settings" title="Automatische Felder" description="Passende Felder für Textvorlagen finden und Dokumentfelder nachschlagen." back={{ label: 'Vorlageneinstellungen', onClick: () => router.push('/business/templates/documents-hub' as never) }}>
       <NativeStyle>{css}</NativeStyle>
       {!canView ? <NativeDiv className="dw-alert" data-tone="danger" role="alert">{check('office.catalogs.view').reason ?? 'Sie dürfen die automatischen Felder nicht ansehen.'}</NativeDiv> : (<NativeDiv className="dph-layout">
           <NativeDiv className="dph-switch" role="group" aria-label="Vorlagenart">
@@ -126,5 +126,5 @@ export function PlaceholderManagementScreen() {
               </NativeArticle>)}</NativeDiv>
             </NativeSection>))}</NativeDiv>}
         </NativeDiv>)}
-    </DocumentsWorkspaceShell>);
+    </DocumentsWorkspaceShell>)}</NativeWorkspaceStyleScope>;
 }

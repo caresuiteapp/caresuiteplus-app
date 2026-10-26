@@ -100,7 +100,7 @@ export function ModuleAssignmentsWorkspace({ data, loading, error, roleLabel, on
                     const inventory = state?.inventory;
                     const inventoryReady = inventory?.state === 'ready';
                     const inventoryRestricted = inventory?.state === 'restricted';
-                    return <NativeWorkspaceStyleScope css={[MODULE_ASSIGNMENTS_WORKSPACE_CSS]}>{<NativeArticle className={`ma-card ma-card--${section.key}`} key={section.key}>
+                    return <NativeWorkspaceStyleScope key={section.key} css={[MODULE_ASSIGNMENTS_WORKSPACE_CSS]}>{<NativeArticle className={`ma-card ma-card--${section.key}`} key={section.key}>
           <NativeDiv className="ma-card-top"><NativeDiv className="ma-card-art"><DesktopCatalogArtwork route={section.artworkRoute} label={section.label} size={66}/></NativeDiv><NativeDiv className="ma-card-heading"><NativeH3>{section.label}</NativeH3><NativeP className="ma-card-description">{section.description}</NativeP></NativeDiv></NativeDiv>
           {!inventoryReady ? <NativeSpan className={`ma-badge ma-source-state ${inventoryRestricted ? 'ma-badge--muted' : 'ma-badge--warning'}`}>{inventoryRestricted ? <><ActionIcon kind="lock"/>Bestand geschützt</> : 'Bestand nicht geladen'}</NativeSpan> : null}
           <NativeDiv className="ma-inventory-count" aria-label={`Bestand: ${inventoryReady ? formatCount(inventory.count) : 'nicht verfügbar'} ${section.inventoryLabel}`}><NativeStrong>{inventoryReady ? formatCount(inventory.count) : '—'}</NativeStrong><NativeSpan>{inventoryLabel(section, inventoryReady ? inventory.count : null)}</NativeSpan></NativeDiv>

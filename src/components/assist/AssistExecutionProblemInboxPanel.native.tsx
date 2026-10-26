@@ -1,6 +1,7 @@
 // Generated native presentation from src/components/assist/AssistExecutionProblemInboxPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./AssistProblemInboxStyles.native.tsx";
 import {NativeSvgPath} from '@/components/layout/NativeSvgPresentation.native';
-import {NativeSection,NativeHeader,NativeDiv,NativeH2,NativeP,NativeSpan,NativeButton,NativeStrong,NativeDetails,NativeSummary,NativeUl,NativeLi,NativeLabel,NativeInput,NativeArticle,NativeH3} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeSection,NativeHeader,NativeDiv,NativeH2,NativeP,NativeSpan,NativeButton,NativeStrong,NativeDetails,NativeSummary,NativeUl,NativeLi,NativeLabel,NativeInput,NativeArticle,NativeH3,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { WebActionIcon } from "../icons/WebActionIcon.native.tsx";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useFlowRouter } from "../../hooks/useFlowRouter.ts";
@@ -195,7 +196,7 @@ function ProblemInbox({ tenantId, allowed, isScopeCurrent, refreshToken = 0, onC
     };
     const checkedTime = snapshot?.checkedAt && Number.isFinite(Date.parse(snapshot.checkedAt)) ? new Date(snapshot.checkedAt).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' }) : null;
     const healthy = !!snapshot?.complete && !error && items.length === 0;
-    return <NativeSection className="pbi-root" aria-labelledby={`${sectionId}-title`} data-cs-problem-inbox="workspace">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssistProblemInboxStyles"]]}>{<NativeSection className="pbi-root" aria-labelledby={`${sectionId}-title`} data-cs-problem-inbox="workspace">
     <AssistProblemInboxStyles />
     <NativeHeader className="pbi-header"><NativeDiv><NativeH2 id={`${sectionId}-title`}>Problem-Inbox</NativeH2><NativeP>Offene Punkte prüfen und direkt im Einsatz bearbeiten.</NativeP></NativeDiv><NativeDiv className="pbi-header-actions"><NativeSpan className="pbi-counter" data-tone={healthy ? 'healthy' : items.length || error ? 'warning' : undefined}>{error ? 'Prüfung offen' : snapshot ? hasUnverified ? `${items.length} zu prüfen` : `${!snapshot.complete ? 'Mind. ' : ''}${items.length} offen` : 'Noch nicht geprüft'}</NativeSpan><NativeButton type="button" className="pbi-button" disabled={!allowed || !tenantId || loading || refreshing || !!busyId} onClick={() => void check()}><Icon name="refresh" spinning={loading || refreshing}/>{loading || refreshing ? 'Wird geprüft…' : 'Erneut prüfen'}</NativeButton></NativeDiv></NativeHeader>
     <NativeDiv className="pbi-body" aria-busy={loading || refreshing || !!busyId}>
@@ -228,5 +229,5 @@ function ProblemInbox({ tenantId, allowed, isScopeCurrent, refreshToken = 0, onC
         {snapshot ? <NativeP className="pbi-note">{snapshot.checkedAssignments} Einsätze geprüft{checkedTime ? ` · Stand ${checkedTime} Uhr` : ''}. {refreshing ? 'Daten werden aktualisiert.' : 'Die Inbox zeigt Probleme aus gespeicherten Einsatzdaten.'}</NativeP> : null}
       </>}
     </NativeDiv>
-  </NativeSection>;
+  </NativeSection>}</NativeWorkspaceStyleScope>;
 }

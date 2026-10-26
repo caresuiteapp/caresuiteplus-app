@@ -26,6 +26,7 @@ const transparentContent = { backgroundColor: 'transparent' } as const;
 function LiquidModuleStack() {
   return (
     <Stack
+      screenLayout={Platform.OS === 'web' ? undefined : renderNativeModuleScreen}
       screenOptions={{
         headerShown: false,
         contentStyle: transparentContent,
@@ -77,17 +78,12 @@ function isModuleRoot(pathname: string, moduleKey: LiquidModuleKey): boolean {
   return MODULE_ROOTS[moduleKey].includes(pathname);
 }
 
-function LiquidModuleContent() {
+function LiquidModuleFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const moduleKey = inferLiquidModule(pathname);
   if (isModuleRoot(pathname, moduleKey)) {
-    return (
-      <>
-        <LiquidModuleStack />
-        {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
-      </>
-    );
+    return <>{children}</>;
   }
   const routeContext = describeLiquidRoute(pathname, moduleKey);
   const primaryRoute = routeContext.areaId
@@ -98,8 +94,7 @@ function LiquidModuleContent() {
     : null;
 
   return (
-    <>
-      <LiquidCommandShell
+    <LiquidCommandShell
       activeModule={moduleKey}
       activeArea={routeContext.areaId}
       title="Facharbeitsbereich"
@@ -111,8 +106,23 @@ function LiquidModuleContent() {
       contentMode="fill"
       showPageHeader={false}
     >
-      <LiquidModuleStack />
-      </LiquidCommandShell>
+      {children}
+    </LiquidCommandShell>
+  );
+}
+
+function renderNativeModuleScreen({ children }: { children: ReactNode }) {
+  return <LiquidModuleFrame>{children}</LiquidModuleFrame>;
+}
+
+function LiquidModuleContent() {
+  const moduleKey = inferLiquidModule(usePathname());
+  const stack = <LiquidModuleStack />;
+  return (
+    <>
+      {/* Native navigation state must live outside route-dependent chrome.
+          Reparenting Stack when leaving a module home remounts its navigator. */}
+      {Platform.OS === 'web' ? <LiquidModuleFrame>{stack}</LiquidModuleFrame> : stack}
       {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
     </>
   );

@@ -89,7 +89,7 @@ export function UserProfileWorkspace(props: UserProfileWorkspaceProps) {
     const displayName = profile.displayName.trim() || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Mein Profil';
     const initials = (profile.firstName.trim().slice(0, 1) + profile.lastName.trim().slice(0, 1)) || displayName.split(/\s+/).slice(0, 2).map((part) => part.slice(0, 1)).join('');
     useEffect(() => { setImageFailed(false); }, [imageUrl]);
-    return (<NativeDiv className="cs-profile-workspace" data-testid="user-profile-workspace">
+    return <NativeWorkspaceStyleScope css={[USER_PROFILE_WORKSPACE_CSS, USER_PROFILE_WORKSPACE_CSS]}>{(<NativeDiv className="cs-profile-workspace" data-testid="user-profile-workspace">
       <NativeStyle>{USER_PROFILE_WORKSPACE_CSS}</NativeStyle>
       <NativeSection className="cs-profile-hero" aria-label="Ihr Profil">
         <NativeDiv className="cs-profile-avatar" aria-busy={props.avatarBusy}>
@@ -181,5 +181,5 @@ export function UserProfileWorkspace(props: UserProfileWorkspaceProps) {
         <NativeDiv><NativeSpan className="cs-profile-session-icon"><ProfileIcon name="logout"/></NativeSpan><NativeP><NativeStrong>Von CareSuite abmelden</NativeStrong><NativeSpan>Ihre gespeicherten Angaben bleiben erhalten.</NativeSpan></NativeP></NativeDiv>
         <NativeButton type="button" className="cs-profile-button cs-profile-button--secondary" disabled={disabled || props.signOutBusy} onClick={props.onSignOut}>{props.signOutBusy ? 'Wird abgemeldet…' : 'Abmelden'}</NativeButton>
       </NativeDiv>
-    </NativeDiv>);
+    </NativeDiv>)}</NativeWorkspaceStyleScope>;
 }

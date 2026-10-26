@@ -91,7 +91,7 @@ export function ClientRecordDocumentsPanel(props: Props) {
     const { profile } = useAuth();
     const { isReadOnly } = usePermissions();
     const tenantId = useServiceTenantId();
-    return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<DocumentWorkspace key={`${tenantId}:${props.clientId}:${profile?.id}:${profile?.roleKey}:${isReadOnly}`} {...props} tenantId={tenantId} actorId={profile?.id} actorName={profile?.displayName ?? profile?.email ?? null} roleKey={profile?.roleKey} isReadOnly={isReadOnly}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${tenantId}:${props.clientId}:${profile?.id}:${profile?.roleKey}:${isReadOnly}`} css={[clientDocumentsCss]}>{<DocumentWorkspace key={`${tenantId}:${props.clientId}:${profile?.id}:${profile?.roleKey}:${isReadOnly}`} {...props} tenantId={tenantId} actorId={profile?.id} actorName={profile?.displayName ?? profile?.email ?? null} roleKey={profile?.roleKey} isReadOnly={isReadOnly}/>}</NativeWorkspaceStyleScope>;
 }
 function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocuments, onRecordRefresh, actorId, actorName, roleKey, isReadOnly }: WorkspaceProps) {
     const id = useId();

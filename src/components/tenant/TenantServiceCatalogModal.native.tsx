@@ -374,7 +374,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, initialModuleKey 
         <NativeDiv className="tscm-template-heading"><NativeH3 id={templateHeadingId}>Standardvorlagen</NativeH3><NativeP>Bezeichnung, Beschreibung und Einheit übernehmen und anschließend anpassen. Preis und Steuerregel legen Sie selbst fest. Gespeichert wird erst mit „Position anlegen“.</NativeP></NativeDiv>
         {loading ? <NativeP role="status">Vorhandene Positionen werden geprüft…</NativeP> : !catalogLoaded ? <NativeP>Die vorhandenen Positionen müssen zuerst erfolgreich geladen werden.</NativeP> : templates.length ? <NativeDiv className="tscm-template-grid">{templates.map(template => {
                     const existing = findCatalogTemplateItem(available, template);
-                    return <NativeWorkspaceStyleScope css={[CATALOG_CSS]}>{<NativeArticle className="tscm-template-card" key={template.serviceKey}>
+                    return <NativeWorkspaceStyleScope key={template.serviceKey} css={[CATALOG_CSS]}>{<NativeArticle className="tscm-template-card" key={template.serviceKey}>
             <NativeDiv className="tscm-template-meta"><NativeSpan>{CATEGORY_NAMES[template.category]}</NativeSpan><NativeSpan>{formatServicePriceUnit(template.unit)}</NativeSpan></NativeDiv>
             <NativeH4>{template.name}</NativeH4><NativeP>{template.description}</NativeP>
             {existing ? <NativeSpan className="tscm-template-existing">Bereits im Katalog{existing.isActive ? '' : ' · inaktiv'}</NativeSpan> : <NativeSpan className="tscm-template-price">Preis frei festlegen</NativeSpan>}

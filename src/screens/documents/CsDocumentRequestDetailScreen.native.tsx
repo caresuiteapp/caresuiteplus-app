@@ -46,13 +46,13 @@ function RequestDetailShell({ mode, title, subtitle, canSign, onSign, children, 
     children: ReactNode;
 }) {
     if (mode === 'office') {
-        return (<DocumentsWorkspaceShell active="signatures" title={title} description={subtitle} actions={canSign && onSign ? <NativeButton className="dw-button dw-button--primary" onClick={onSign}>Unterschreiben</NativeButton> : undefined}>
+        return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<DocumentsWorkspaceShell active="signatures" title={title} description={subtitle} actions={canSign && onSign ? <NativeButton className="dw-button dw-button--primary" onClick={onSign}>Unterschreiben</NativeButton> : undefined}>
         {children}
-      </DocumentsWorkspaceShell>);
+      </DocumentsWorkspaceShell>)}</NativeWorkspaceStyleScope>;
     }
-    return (<PortalTabScreen title={title} subtitle={subtitle} actionsSlot={canSign && onSign ? <PremiumButton title="Jetzt unterschreiben" onPress={onSign}/> : undefined}>
+    return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<PortalTabScreen title={title} subtitle={subtitle} actionsSlot={canSign && onSign ? <PremiumButton title="Jetzt unterschreiben" onPress={onSign}/> : undefined}>
       {children}
-    </PortalTabScreen>);
+    </PortalTabScreen>)}</NativeWorkspaceStyleScope>;
 }
 export function CsDocumentRequestDetailScreen({ ...props }: Props) {
     const { source } = useLocalSearchParams<{
@@ -173,21 +173,21 @@ function TemplateRequestDetail({ mode, signerRole, signerNameDefault, }: Props) 
     }
     if (isPortal && !portalActor.isLinkedReady) {
         const isResolving = portalActor.isResolvingClientLink || portalActor.isResolvingEmployeeLink;
-        return (<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+        return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
         {isResolving ? (<LoadingState message="Ihr Portalprofil wird sicher verknüpft…"/>) : (<ErrorState message="Ihr Portalprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an."/>)}
-      </RequestDetailShell>);
+      </RequestDetailShell>)}</NativeWorkspaceStyleScope>;
     }
     if (query.loading && !item) {
-        return (<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+        return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
         <LoadingState message="Dokument wird geladen…"/>
-      </RequestDetailShell>);
+      </RequestDetailShell>)}</NativeWorkspaceStyleScope>;
     }
     if (query.error || !item) {
-        return (<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+        return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<RequestDetailShell mode={mode} title="Dokument" accent={accent}>
         <ErrorState message={isPortal
                 ? toPortalUserFacingError(query.error, 'Dieses Dokument kann gerade nicht angezeigt werden. Bitte versuchen Sie es erneut.')
                 : query.error ?? 'Dieses Dokument kann gerade nicht angezeigt werden.'} onRetry={query.refresh}/>
-      </RequestDetailShell>);
+      </RequestDetailShell>)}</NativeWorkspaceStyleScope>;
     }
     if (mode === 'office') {
         return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss, signatureWorkspaceCss]}>{<>
@@ -208,7 +208,7 @@ function TemplateRequestDetail({ mode, signerRole, signerNameDefault, }: Props) 
             setSignModal(false); }} disabled={working}/>
     </>}</NativeWorkspaceStyleScope>;
     }
-    return (<>
+    return <NativeWorkspaceStyleScope css={[signatureWorkspaceCss]}>{(<>
       <RequestDetailShell mode={mode} title={item.title} subtitle={statusLabel} accent={accent} canSign={Boolean(canSign)} onSign={() => { reviewedDocumentVersion.current = item.updatedAt; setSignModal(true); }}>
         {employeeSigningBlocked ? <InfoBanner variant="warning" message={EMPLOYEE_TEMPLATE_SIGNING_RELEASE_GATE}/> : null}
         {isPortal && canSign ? (<ClientPortalGuide compact title="Bitte prüfen und unterschreiben" message="Lesen Sie das Dokument vollständig. Danach können Sie oben auf „Jetzt unterschreiben“ tippen und direkt mit Finger, Stift oder Maus unterschreiben."/>) : null}
@@ -237,5 +237,5 @@ function TemplateRequestDetail({ mode, signerRole, signerNameDefault, }: Props) 
       </RequestDetailShell>
 
       <CareSignatureModal statusMessage={actionError} visible={signModal} label="Unterschrift bestätigen" onConfirm={(dataUrl) => void handleSign(dataUrl)} onClose={() => setSignModal(false)} disabled={working}/>
-    </>);
+    </>)}</NativeWorkspaceStyleScope>;
 }

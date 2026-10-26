@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/assist/AssignmentEditForm.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeFieldset} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./AssignmentFormControls.native.tsx";
+import {NativeFieldset,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { AssignmentFormStyles, useAssignmentFormGuard, ChipSelect, PremiumInput, PremiumButton, SectionPanel, InfoBanner, ErrorState, FilterChipGroup, CareDateInput, CareTimeInput, AssistCatalogGroupedChipSelect } from "./AssignmentFormControls.native.tsx";
@@ -246,7 +247,7 @@ export function AssignmentEditForm({ visitId, initialVisit, onCancel, onSaved, o
     if (!canManage) {
         return (<InfoBanner onDarkSurface message="Keine Berechtigung zum Bearbeiten von Einsätzen." variant="warning"/>);
     }
-    return (<ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssignmentFormStyles"]]}>{(<ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       <AssignmentFormStyles />
       {listsError ? <ErrorState message={listsError} onRetry={() => setListsRetry(value => value + 1)}/> : null}
       {error ? <ErrorState message={error}/> : null}
@@ -407,7 +408,7 @@ export function AssignmentEditForm({ visitId, initialVisit, onCancel, onSaved, o
           </SectionPanel>) : null}
         </NativeFieldset>
       </AssignmentStudioScaffold>
-    </ScrollView>);
+    </ScrollView>)}</NativeWorkspaceStyleScope>;
 }
 const styles = StyleSheet.create({
     scroll: {

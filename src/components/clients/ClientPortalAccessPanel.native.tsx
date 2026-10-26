@@ -21,7 +21,7 @@ type Props = {
 };
 /** Remount on identity changes: credentials and pending results never cross client or company boundaries. */
 export function ClientPortalAccessPanel(props: Props) {
-    return <NativeWorkspaceStyleScope css={[portalExperienceCss]}>{<ClientPortalAccessContent key={`${props.tenantId}:${props.client.id}`} {...props}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={`${props.tenantId}:${props.client.id}`} css={[portalExperienceCss]}>{<ClientPortalAccessContent key={`${props.tenantId}:${props.client.id}`} {...props}/>}</NativeWorkspaceStyleScope>;
 }
 function ClientPortalAccessContent({ client, tenantId, isReadOnly = false, onRefresh }: Props) {
     const { profile } = useAuth();

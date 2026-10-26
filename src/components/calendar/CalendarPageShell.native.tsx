@@ -1,6 +1,7 @@
 // Generated native presentation from src/components/calendar/CalendarPageShell.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./CalendarWorkspaceStyles.native.tsx";
 import {nativeWindow as window} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {NativeDiv,NativeLabel,NativeSpan,NativeInput,NativeSelect,NativeOption,NativeButton,NativeP,NativeH3} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeDiv,NativeLabel,NativeSpan,NativeInput,NativeSelect,NativeOption,NativeButton,NativeP,NativeH3,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useGlobalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
@@ -154,7 +155,7 @@ function CalendarWorkspace({ config, onEventPress, showCreateAction = true, show
     const renderCalendar = ({ selectedProfileId, onProfileDrop }: {
         selectedProfileId: string | null;
         onProfileDrop?: AssignmentProfileDropHandler;
-    }) => <NativeDiv className="cw-workspace">
+    }) => <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarWorkspaceStyles"]]}>{<NativeDiv className="cw-workspace">
     <CalendarWorkspaceStyles />
     <CalendarToolbar viewMode={viewMode} onViewModeChange={(view) => patch({ view })} title={title} onPrev={() => navigate(-1)} onNext={() => navigate(1)} onToday={() => patch({ anchor: toDateKey(new Date()) })} anchor={state.anchor} onAnchorChange={(value) => { if (calendarAnchor(value))
         patch({ anchor: value }); }} onOpenSettings={canSettings ? () => setSettingsOpen(true) : undefined} onCreate={canCreate ? () => setCreateOpen(true) : undefined}/>
@@ -188,7 +189,7 @@ function CalendarWorkspace({ config, onEventPress, showCreateAction = true, show
         <NativeDiv className="cw-board-content"><CalendarEventGrid viewMode={viewMode} anchor={anchor} events={displayEvents} rangeStart={visibleRange.start} rangeEnd={visibleRange.end} planabilityByDay={planabilityByDay} weekStartDay={weekStartDay} maxCollapsedEvents={settings?.maxCollapsedEvents ?? 3} dayViewStartHour={settings?.dayViewStartHour ?? 6} weekFullDay={settings?.weekFullDay ?? true} onEventPress={handleEventPress} onSelectMonth={(month) => patch({ anchor: toDateKey(new Date(anchor.getFullYear(), month, 1)), view: 'month' })} onSelectDate={(date) => patch({ anchor: toDateKey(date), view: 'day' })} selectedAssignmentProfileId={selectedProfileId} onAssignmentProfileDrop={onProfileDrop}/></NativeDiv>
       </>}
     </NativeDiv>
-  </NativeDiv>;
+  </NativeDiv>}</NativeWorkspaceStyleScope>;
     return <>
     {planningScope ? <OfficeAssignmentProfileCalendarPlanner employeeIdFilter={employeeId} readOnly={isReadOnly || !can('assist.assignments.manage')} dataReady={calendarReady && (!canViewPlanning || planning.ready)} onScheduled={() => { planning.refresh(); return refreshWithResult(); }}>{renderCalendar}</OfficeAssignmentProfileCalendarPlanner> : renderCalendar({ selectedProfileId: null })}
     {planningOpen && employeeId && tenantId && planning.ready && calendarReady && canManagePlanning && canViewPlanning ? <EmployeeMonthPlanningModal key={`${tenantId}:${employeeId}:${selectedMonth}`} tenantId={tenantId} employeeId={employeeId} employeeName={employeeName} month={selectedMonth} initial={selectedPlan} events={planningEvents} onClose={() => setPlanningOpen(false)} onSaved={() => setPlanningOpen(false)}/> : null}

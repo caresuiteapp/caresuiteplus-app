@@ -11,7 +11,7 @@ vi.mock('react-native', () => ({
 vi.mock('@/components/ui', () => ({
   SectionPanel: ({ title, children }: any) => <section><h2>{title}</h2>{children}</section>,
   EmptyState: ({ title, message }: any) => <div>{title}: {message}</div>, LoadingState: ({ message }: any) => <div>{message}</div>,
-  ErrorState: ({ title, message, onRetry }: any) => <div>{title}: {message}{onRetry ? <button onClick={onRetry}>Erneut versuchen</button> : null}</div>,
+  ErrorState: ({ title, message, onRetry, presentation }: any) => <div data-state-presentation={presentation}>{title}: {message}{onRetry ? <button onClick={onRetry}>Erneut versuchen</button> : null}</div>,
   InfoBanner: ({ title, message }: any) => <div>{title}: {message}</div>, SuccessState: ({ message }: any) => <div>{message}</div>,
   PremiumBadge: ({ label }: any) => <span>{label}</span>, PremiumKpiCard: ({ label, value }: any) => <div>{label} {value}</div>,
   PremiumButton: ({ title, onPress, disabled, loading }: any) => <button disabled={disabled} onClick={onPress} data-loading={Boolean(loading)}>{title}</button>,
@@ -85,6 +85,9 @@ describe('employee remaining workflows on a mounted UI', () => {
     h.query.mockReturnValue(query({ error: 'Sollzeit nicht freigegeben' }));
     await render(<WfmTimeAccountPanel tenantId="tenant" userId="user" roleKey="employee_portal" employeeId="employee" />);
     expect(host.textContent).toContain('Sollzeit nicht freigegeben'); expect(host.textContent).not.toContain('Zeitkonto wird berechnet');
+    const failures = [...host.querySelectorAll('[data-state-presentation]')];
+    expect(failures).toHaveLength(2);
+    expect(failures.every((failure) => failure.getAttribute('data-state-presentation') === 'inline')).toBe(true);
     await act(async () => button('Zeitkonto aktualisieren').click()); expect(h.refresh).toHaveBeenCalledTimes(2);
   });
   it('does not claim a clear rule check when the required reads failed', async () => {

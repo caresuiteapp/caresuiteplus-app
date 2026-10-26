@@ -1,6 +1,7 @@
 // Generated native presentation from src/screens/assist/AssistLiveStatusScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "../../components/assist/AssistLiveStatusWorkspaceStyles.native.tsx";
 import {nativeDocument as document} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {NativeDiv,NativeHeader,NativeButton,NativeH1,NativeP,NativeSpan,NativeH3,NativeStrong,NativeNav,NativeSection,NativeLabel,NativeInput,NativeH2,NativeArticle,NativeDl,NativeDt,NativeDd,NativeFooter} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeDiv,NativeHeader,NativeButton,NativeH1,NativeP,NativeSpan,NativeH3,NativeStrong,NativeNav,NativeSection,NativeLabel,NativeInput,NativeH2,NativeArticle,NativeDl,NativeDt,NativeDd,NativeFooter,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useGlobalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ScreenShell } from "../../components/layout/ScreenShell.tsx";
@@ -141,7 +142,7 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
     const selectMetric = (status: LiveWorkspaceState['status']) => patchState({ view: 'live', status, query: '', employeeId: '', selectedId: null });
     const date = new Date(nowMs).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: 'numeric', month: 'long' });
     const timeLabel = generatedAt && Number.isFinite(Date.parse(generatedAt)) ? new Date(generatedAt).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : null;
-    return <ScreenShell title="Live-Status" contentOwnsHeader showBack={false} showBreadcrumbs={false}>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssistLiveStatusWorkspaceStyles"]]}>{<ScreenShell title="Live-Status" contentOwnsHeader showBack={false} showBreadcrumbs={false}>
     <NativeDiv className="ls-workspace" data-cs-live-status="web-workspace-r3">
       <AssistLiveStatusWorkspaceStyles />
       <NativeHeader className="ls-heading">
@@ -197,7 +198,7 @@ function LiveStatusWorkspace({ tenantId, storageKey, canView, permissions, isRea
         <AssignmentDetailGlassModal visible={!!detail} assignmentId={detail?.id ?? null} title={detail?.title ?? 'Einsatz'} onClose={closeDetail} onChanged={sourceChanged} onDeleted={deleteDetail}/>
       </>}
     </NativeDiv>
-  </ScreenShell>;
+  </ScreenShell>}</NativeWorkspaceStyleScope>;
 }
 function LiveAssignmentCard({ row, selected, nowMs, generatedAt, allowTick, onSelect, onOpen }: {
     row: AssistLiveWorkspaceRow;

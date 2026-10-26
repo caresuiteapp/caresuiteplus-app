@@ -14,7 +14,7 @@ type Props = {
   children: ReactNode;
   compact?: boolean;
   showHero?: boolean;
-  /** Outer ScrollView owns the viewport; Web content must keep its natural height. */
+  /** Outer ScrollView owns the viewport; its content keeps its natural height. */
   scrollable?: boolean;
   actionsSlot?: ReactNode;
   filtersSlot?: ReactNode;
@@ -34,10 +34,10 @@ export function EmployeePortalPageFrame({
   tabsSlot,
 }: Props) {
   const { isPhone } = useDeviceClass();
-  const naturalWebHeight = Platform.OS === 'web' && scrollable;
+  const naturalHeight = scrollable;
 
   return (
-    <View style={[styles.page, naturalWebHeight ? styles.naturalContent : styles.fillContent, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
+    <View style={[styles.page, naturalHeight ? styles.naturalContent : styles.fillContent, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
       {showHero ? (
         <PortalPremiumPageHero
           kind="employee"
@@ -49,7 +49,7 @@ export function EmployeePortalPageFrame({
       ) : null}
       <SurfaceContrastProvider tone="light">
         <HealthOSPageSurface
-          fill={!naturalWebHeight}
+          fill={!naturalHeight}
           padded={!isPhone}
           contentStyle={isPhone ? styles.workspacePhone : styles.workspace}
           testID="employee-portal-page-surface"
@@ -57,8 +57,8 @@ export function EmployeePortalPageFrame({
           <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
           <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
           <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-          <HealthOSPageZone kind="content" fill={!naturalWebHeight}>
-            <View style={[styles.content, naturalWebHeight ? styles.naturalContent : styles.fillContent]} testID="employee-portal-contrast-r4-workspace">
+          <HealthOSPageZone kind="content" fill={!naturalHeight}>
+            <View style={[styles.content, naturalHeight ? styles.naturalContent : styles.fillContent]} testID="employee-portal-contrast-r4-workspace">
               {children}
             </View>
           </HealthOSPageZone>

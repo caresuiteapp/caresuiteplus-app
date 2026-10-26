@@ -1,5 +1,6 @@
 // Generated native presentation from src/components/assist/AssignmentBillingBudgetPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeAside,NativeStrong,NativeP} from '@/components/layout/NativeWorkspaceElements.native';
+import {__nativeWorkspaceStyleSheets as __nativeWorkspaceImportedStyles0} from "./AssignmentFormControls.native.tsx";
+import {NativeDiv,NativeAside,NativeStrong,NativeP,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -223,7 +224,7 @@ export function AssignmentBillingBudgetPanel({ clientId, clientName, assignmentD
     const profile = profileQuery.data;
     if (!profile)
         return null;
-    return (<NativeDiv className="aw-workspace acf-root" style={{ padding: 0 }}><AssignmentFormStyles /><View style={styles.root}>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["AssignmentFormStyles"]]}>{(<NativeDiv className="aw-workspace acf-root" style={{ padding: 0 }}><AssignmentFormStyles /><View style={styles.root}>
       <SectionPanel {...FORM_CTX} title="Klientenstatus">
         <PremiumCard style={styles.statusCard}>
           <Text style={[styles.cardTitle, { color: text.primary }]}>
@@ -296,7 +297,7 @@ export function AssignmentBillingBudgetPanel({ clientId, clientName, assignmentD
         </SectionPanel>) : null}
 
       {allocation && !allocation.canSave ? (<InfoBanner message="Speichern eingeschränkt — Budget oder Berechtigungen prüfen." variant="danger"/>) : null}
-    </View></NativeDiv>);
+    </View></NativeDiv>)}</NativeWorkspaceStyleScope>;
 }
 export function AssignmentClientBillingSummary({ clientId }: {
     clientId: string;

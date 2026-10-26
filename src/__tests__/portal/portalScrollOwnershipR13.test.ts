@@ -34,7 +34,7 @@ describe('portal scroll ownership R13', () => {
     const frame = read('src/components/portal/EmployeePortalPageFrame.tsx');
     expect(frame).toMatch(/page:\s*\{[\s\S]*minHeight:\s*0/);
     expect(frame).toContain('fillContent: { flex: 1 }');
-    expect(frame).toContain('naturalWebHeight ? styles.naturalContent : styles.fillContent');
+    expect(frame).toContain('naturalHeight ? styles.naturalContent : styles.fillContent');
     expect(frame).toMatch(/content:\s*\{[\s\S]*minHeight:\s*0/);
   });
 });

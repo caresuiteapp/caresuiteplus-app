@@ -22,7 +22,7 @@ export const DesktopWeatherLocationDialog=()=>null;
 export const GoogleWorkspaceWidget=()=>null;
 export const useRouter=()=>({push:route=>{window.__previewRoute=route;},replace:route=>{window.__previewRoute=route;},back:noop,setParams:noop});
 export const useWebFontScale=()=>({scale:1,effectiveScale:1,increase:noop,decrease:noop,reset:noop,canIncrease:false,canDecrease:false});
-export const usePathname=()=>{const screen=new URLSearchParams(location.search).get('screen');return screen?.startsWith('owner-tenant')?'/platform/tenants/visual-platform-tenant':screen?.startsWith('owner-')?'/platform/dashboard':screen==='desktop'||screen==='web-desktop'?'/Desktop':screen?.startsWith('employee')?'/portal/employee':'/portal/client';};
+export const usePathname=()=>{const screen=new URLSearchParams(location.search).get('screen');return screen?.startsWith('owner-tenant')?'/platform/tenants/visual-platform-tenant':screen?.startsWith('owner-')?'/platform/dashboard':screen==='desktop'||screen==='web-desktop'?'/Desktop':screen==='employee-calendar'?'/portal/employee/calendar':screen==='employee-clients'?'/portal/employee/clients':screen?.startsWith('employee')?'/portal/employee':'/portal/client';};
 export const useLocalSearchParams=()=>new URLSearchParams(location.search).get('screen')?.startsWith('owner-')?{tenantId:'visual-platform-tenant'}:{};
 export const useNavigation=()=>({dispatch:noop,addListener:()=>noop});
 export const Link=({children})=><View>{children}</View>;

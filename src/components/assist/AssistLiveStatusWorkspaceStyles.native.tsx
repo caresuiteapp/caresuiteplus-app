@@ -23,3 +23,5 @@ export function LiveStatusIcon({ name, size = 20 }: {
     };
     return <NativeWorkspaceStyleScope css={[assistLiveStatusWorkspaceCss]}>{<WebActionIcon size={size}><NativeSvgPath d={paths[name] ?? paths.activity}/></WebActionIcon>}</NativeWorkspaceStyleScope>;
 }
+
+export const __nativeWorkspaceStyleSheets = { "AssistLiveStatusWorkspaceStyles": [assistLiveStatusWorkspaceCss] };

@@ -78,7 +78,7 @@ function requestedFilters(params: ReviewParams, defaults: ReviewFilters): Review
 /** Changing account or permission context discards the previous scope immediately. */
 export function WfmOfficeTimeHistoryPanel(props: Props) {
     const scope = JSON.stringify([props.tenantId, props.reviewerId, props.roleKey, props.canCorrect, props.initialEmployeeId, props.lockEmployeeFilter, props.period?.fromDate, props.period?.toDate]);
-    return <NativeWorkspaceStyleScope css={[wfmOfficeReviewCss]}>{<HistoryContent key={scope} {...props}/>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope key={scope} css={[wfmOfficeReviewCss]}>{<HistoryContent key={scope} {...props}/>}</NativeWorkspaceStyleScope>;
 }
 function HistoryContent({ tenantId, reviewerId, roleKey, canCorrect, initialFilterAmpel = null, reviewQueueMode = false, initialEmployeeId = null, initialEmployeeName = null, initialPreset, lockEmployeeFilter = false, period, onChanged, onEditorStateChange }: Props) {
     const window = useNativeWorkflowWindow();
