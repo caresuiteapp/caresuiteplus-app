@@ -57,6 +57,10 @@ export function RequireAuth({
     };
   }, [authMode, authReady, focused, hydrated, isAuthenticated, pathname, redirectTo, router]);
 
+  // StateViews publish global feedback. An inactive scene must stay blocked
+  // quietly instead of opening a native modal over the foreground route.
+  if (!focused && (!hydrated || !authReady || sessionPending || !isAuthenticated)) return null;
+
   if (!hydrated || !authReady || sessionPending) {
     return <LoadingState message={loadingMessage} />;
   }

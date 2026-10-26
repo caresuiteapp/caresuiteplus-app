@@ -46,6 +46,8 @@ export function PlatformSessionGate({ children }: PlatformRouteGuardProps) {
     router.replace(buildPlatformLoginPath(redirectPathRef.current ?? '/platform/dashboard') as never);
   }, [focused, ready, hasSession, router]);
 
+  if (!focused && (!ready || !hasSession)) return null;
+
   if (!ready) {
     return <LoadingState message="Sitzung wird geprüft…" />;
   }
@@ -68,6 +70,8 @@ export function PlatformRouteGuard({ children }: PlatformRouteGuardProps) {
       router.replace('/platform/forbidden' as never);
     }
   }, [focused, loading, platformUser, isActivePlatformUser, router]);
+
+  if (!focused && (loading || error || !platformUser || !isActivePlatformUser)) return null;
 
   if (loading) {
     return <LoadingState message="Platform-Zugriff wird geprüft…" />;

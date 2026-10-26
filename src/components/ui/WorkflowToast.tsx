@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { WorkflowFeedbackKind } from './WorkflowFeedbackOverlay';
 import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
+import { useStateFeedbackFocus } from './useStateFeedbackFocus';
 
 export function WorkflowToast({ message, kind = 'success', onDismiss }: {
   message: string | null;
@@ -8,11 +9,12 @@ export function WorkflowToast({ message, kind = 'success', onDismiss }: {
   onDismiss?: () => void;
 }) {
   const feedback = useWorkflowFeedback();
+  const feedbackFocused = useStateFeedbackFocus();
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
   useEffect(() => {
-    if (!message) return;
+    if (!message || !feedbackFocused) return;
     const id = feedback.show({
       autoDismissMs: 5000,
       kind,
@@ -20,7 +22,7 @@ export function WorkflowToast({ message, kind = 'success', onDismiss }: {
       onDismiss: () => onDismissRef.current?.(),
     });
     return () => feedback.dismiss(id);
-  }, [feedback, kind, message]);
+  }, [feedback, feedbackFocused, kind, message]);
 
   return null;
 }

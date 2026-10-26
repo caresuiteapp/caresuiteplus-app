@@ -7,6 +7,7 @@ import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
 import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
+import { useStateFeedbackFocus } from './useStateFeedbackFocus';
 
 type Variant = 'info' | 'success' | 'warning' | 'danger' | 'error';
 type BannerPresentation = 'auto' | 'inline' | 'overlay';
@@ -76,6 +77,7 @@ export function InfoBanner({
   onDarkSurface = false,
 }: Props) {
   const feedback = useWorkflowFeedback();
+  const feedbackFocused = useStateFeedbackFocus();
   const onDismissRef = useRef(onDismiss);
   const onActionRef = useRef(onAction);
   onDismissRef.current = onDismiss;
@@ -149,7 +151,7 @@ export function InfoBanner({
     || (presentation === 'auto' && (variant === 'success' || variant === 'danger' || variant === 'error'));
 
   useEffect(() => {
-    if (!overlay) return;
+    if (!overlay || !feedbackFocused) return;
     const kind = variant === 'danger' || variant === 'error' ? 'error' : variant;
     const id = feedback.show({
       actionLabel,
@@ -165,6 +167,7 @@ export function InfoBanner({
     actionLabel,
     dismissible,
     feedback,
+    feedbackFocused,
     hasAction,
     overlay,
     safeMessage,

@@ -593,6 +593,7 @@ const styles = StyleSheet.create({
   assignmentRow: {
     width: '100%',
     minWidth: 0,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     gap: spacing.xs,
   },

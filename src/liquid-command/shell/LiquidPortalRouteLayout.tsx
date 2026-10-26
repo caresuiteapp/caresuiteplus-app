@@ -22,6 +22,7 @@ import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   releasedLiquidPortalNavigation,
   liquidPortalLoginRoutes,
+  liquidPortalRoots,
   type LiquidPortalNavigationItem,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
@@ -396,7 +397,7 @@ export function LiquidPortalRouteLayout({
 }) {
   const { portalSession } = useAuth();
   let content: ReactNode = <PortalChrome kind={kind} overlay={overlay} />;
-  content = <RequireRole>{content}</RequireRole>;
+  content = <RequireRole ownerPath={Platform.OS === 'web' ? undefined : liquidPortalRoots[kind]}>{content}</RequireRole>;
   if (kind === 'employee') {
     content = <RequireEmployeePasswordSetup>{content}</RequireEmployeePasswordSetup>;
   }

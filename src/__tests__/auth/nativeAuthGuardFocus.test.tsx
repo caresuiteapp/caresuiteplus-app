@@ -11,15 +11,23 @@ const state = vi.hoisted(() => ({
   router: { replace: vi.fn() },
   getSession: vi.fn(),
   hasPlatformSession: vi.fn(),
-  platformAuth: { platformUser: null, loading: true, error: null, isActivePlatformUser: false, refresh: vi.fn() },
+  platformAuth: { platformUser: null, loading: true, error: null as string | null, isActivePlatformUser: false, refresh: vi.fn() },
 }));
-vi.mock('react-native', () => ({
+vi.mock('react-native', async () => {
+  const React = await import('react');
+  const View = (props: any) => React.createElement('div', { 'data-testid': props.testID }, props.children);
+  return {
   Platform: { OS: 'android' },
+  View, ScrollView: View,
+  Text: (props: any) => React.createElement('span', {}, props.children),
+  Pressable: (props: any) => React.createElement('button', { 'aria-label': props.accessibilityLabel, onClick: props.onPress }, props.children),
+  Modal: (props: any) => props.visible ? React.createElement('div', { 'data-native-modal': true }, props.children) : null,
+  StyleSheet: { create: (styles: any) => styles, absoluteFill: {}, absoluteFillObject: {} },
   BackHandler: { addEventListener: (_event: string, listener: () => boolean) => {
     state.backHandlers.add(listener);
     return { remove: () => state.backHandlers.delete(listener) };
   } },
-}));
+}; });
 vi.mock('expo-router', () => ({
   usePathname: () => state.pathname,
   useRouter: () => state.router,
@@ -28,22 +36,112 @@ vi.mock('expo-router', () => ({
 vi.mock('@/lib/supabase', () => ({ getSession: () => state.getSession() }));
 vi.mock('@/lib/platformConsole/platformSession', () => ({ hasSupabaseAuthSession: () => state.hasPlatformSession() }));
 vi.mock('@/lib/platformConsole/PlatformAuthProvider', () => ({ usePlatformAuth: () => state.platformAuth }));
-vi.mock('@/components/ui', () => ({
-  FullScreenLoader: ({ message }: { message: string }) => <span>{message}</span>,
-  LoadingState: ({ message }: { message: string }) => <span>{message}</span>,
-  ErrorState: ({ message }: { message: string }) => <span>{message}</span>,
-}));
+vi.mock('@/components/ui', async () => {
+  const states = await import('@/components/ui/StateViews');
+  return { ...states, FullScreenLoader: ({ message }: { message: string }) => <states.LoadingState message={message} /> };
+});
+vi.mock('@/design/tokens/auroraGlass', () => ({ useActiveGlassTokens: () => ({}), useAuroraAdaptiveText: () => ({}), useAuroraGlassActive: () => false, useLightLiquidGlassShell: () => false, lightLiquidGlassWebFx: () => ({}) }));
+vi.mock('@/design/tokens/themeBridge', () => ({ useLegacyTheme: () => ({ colors: { textPrimary: '#173b57', textSecondary: '#526b85' }, typography: { body: {}, h3: {} }, isLight: true }) }));
+vi.mock('@/design/tokens/radius', () => ({ careRadius: { lg: 20 } }));
+vi.mock('@/theme', () => ({ spacing: { lg: 24, md: 16, sm: 8 }, typography: { h3: {}, body: {}, caption: {} } }));
+vi.mock('@/hooks/useDeviceClass', () => ({ useDeviceClass: () => ({ isPhone: true }) }));
+vi.mock('@/components/ui/PremiumButton', () => ({ PremiumButton: () => null }));
+vi.mock('@/components/ui/CareLightButton', () => ({ CareLightButton: () => null }));
+vi.mock('@/components/brand/CareSuiteLoadingIndicator', () => ({ CareSuiteLoadingIndicator: () => <span>CareSuite</span> }));
+vi.mock('@/components/brand/appStartIntroSession', () => ({ useAppStartIntroReady: () => true }));
+vi.mock('@/components/icons/SemanticArtwork', () => ({ SemanticArtwork: () => null }));
+vi.mock('@/design/tokens/spacing', () => ({ careSpacing: { xs: 4, sm: 8, md: 16, lg: 24 } }));
+vi.mock('@/design/tokens/spatialCareSuite', () => ({ spatialCare: { radius: { card: 20, control: 12 } } }));
+vi.mock('@/design/tokens/portalPremium', () => ({ portalPremium: { text: {}, accent: {} }, usePortalPremiumRuntimeTheme: () => ({ active: false }) }));
+vi.mock('@/lib/dom/workflowFeedbackInteractionLock', () => ({ acquireWorkflowFeedbackInteractionLock: vi.fn() }));
 
 import { AuthContext } from '@/lib/auth/context';
 import { RedirectIfAuthenticated } from '@/lib/auth/RedirectIfAuthenticated';
 import { RequireAuth } from '@/lib/auth/RequireAuth';
+import { RequireRole } from '@/lib/auth/RequireRole';
+import { RequireEmployeePasswordSetup } from '@/lib/auth/RequireEmployeePasswordSetup';
 import { PlatformRouteGuard, PlatformSessionGate } from '@/components/platformConsole/PlatformRouteGuard';
+import { GlobalWorkflowFeedbackProvider } from '@/components/ui/GlobalWorkflowFeedback';
 
 let root: Root;
 let host: HTMLDivElement;
 let auth: AuthContextValue;
 const render = (view = <RedirectIfAuthenticated><span>Retained auth navigator</span></RedirectIfAuthenticated>) => act(async () => {
-  root.render(<AuthContext.Provider value={auth}>{React.cloneElement(view)}</AuthContext.Provider>);
+  root.render(<AuthContext.Provider value={auth}><GlobalWorkflowFeedbackProvider>{React.cloneElement(view)}</GlobalWorkflowFeedbackProvider></AuthContext.Provider>);
+});
+
+describe('native retained guard feedback ownership', () => {
+  const protectedPage = <RequireAuth><span>Protected data</span></RequireAuth>;
+  const modal = () => host.querySelector('[data-native-modal]');
+
+  it.each(['restoring', 'anonymous'] as const)('does not open a global native loading modal from an inactive %s auth guard', async phase => {
+    state.focused = false; auth.authReady = phase !== 'restoring'; auth.isAuthenticated = false;
+    await render(protectedPage);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Protected data');
+  });
+
+  it('dismisses the actual focused auth loading modal on blur without exposing protected children', async () => {
+    auth.authReady = false;
+    await render(protectedPage);
+    expect(modal()).not.toBeNull();
+    state.focused = false;
+    await render(protectedPage);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Protected data');
+  });
+
+  it('does not unmount an authorized child during ordinary native blur', async () => {
+    const mounted = vi.fn(), unmounted = vi.fn();
+    function Child() { React.useEffect(() => { mounted(); return unmounted; }, []); return <span>Authorized data</span>; }
+    const page = <RequireAuth><Child /></RequireAuth>;
+    await render(page); state.focused = false; await render(page);
+    expect(mounted).toHaveBeenCalledOnce(); expect(unmounted).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('Authorized data'); expect(modal()).toBeNull();
+  });
+
+  it.each(['unresolved', 'denied'] as const)('does not open a global native feedback modal from an inactive %s role guard', async phase => {
+    state.focused = false; state.pathname = '/business';
+    auth.profile = phase === 'unresolved' ? null : { roleKey: 'employee_portal', tenantId: 'tenant-1' } as NonNullable<AuthContextValue['profile']>;
+    await render(<RequireRole><span>Business data</span></RequireRole>);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Business data');
+  });
+
+  it.each(['pending', 'anonymous'] as const)('does not open a global native loading modal from an inactive %s platform session gate', async phase => {
+    state.focused = false;
+    if (phase === 'pending') state.hasPlatformSession.mockReturnValue(new Promise(() => undefined));
+    await render(<PlatformSessionGate><span>Platform data</span></PlatformSessionGate>);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Platform data');
+  });
+
+  it.each(['loading', 'error', 'denied'] as const)('does not open a global native feedback modal from an inactive %s platform guard', async phase => {
+    state.focused = false; state.platformAuth.loading = phase === 'loading';
+    state.platformAuth.error = phase === 'error' ? 'Fixture authorization service unavailable' : null;
+    await render(<PlatformRouteGuard><span>Platform data</span></PlatformRouteGuard>);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Platform data');
+  });
+
+  it('keeps the focused platform error modal and dismisses it on native blur', async () => {
+    state.platformAuth.loading = false; state.platformAuth.error = 'Fixture authorization service unavailable';
+    const page = <PlatformRouteGuard><span>Platform data</span></PlatformRouteGuard>;
+    await render(page); expect(modal()).not.toBeNull();
+    state.focused = false; await render(page);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Platform data');
+  });
+
+  it('does not cover the focused password setup form with feedback from a retained employee scene', async () => {
+    state.focused = false; state.pathname = '/auth/employee-first-login';
+    auth.portalSession = { roleKey: 'employee_portal', loginType: 'employee_portal', mustChangePassword: true, accountId: 'employee-1' } as NonNullable<AuthContextValue['portalSession']>;
+    await render(<RequireEmployeePasswordSetup><span>Employee data</span></RequireEmployeePasswordSetup>);
+    expect(modal()).toBeNull(); expect(host.textContent).not.toContain('Employee data');
+    expect(state.router.replace).not.toHaveBeenCalled();
+  });
+
+  it('retains the focused employee password requirement and its loading feedback', async () => {
+    state.pathname = '/portal/employee';
+    auth.portalSession = { roleKey: 'employee_portal', loginType: 'employee_portal', mustChangePassword: true, accountId: 'employee-1' } as NonNullable<AuthContextValue['portalSession']>;
+    await render(<RequireEmployeePasswordSetup><span>Employee data</span></RequireEmployeePasswordSetup>);
+    expect(modal()).not.toBeNull(); expect(host.textContent).not.toContain('Employee data');
+    expect(state.router.replace).toHaveBeenCalledExactlyOnceWith('/auth/employee-first-login?accountId=employee-1');
+  });
 });
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;

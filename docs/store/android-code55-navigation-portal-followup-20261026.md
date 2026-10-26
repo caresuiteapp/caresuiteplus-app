@@ -39,6 +39,19 @@ liegt darin kein aktueller Stacktrace vor.
   navigieren oder den Android-Zurückknopf übernehmen. Späte Auth- und
   Plattformprüfungen dürfen nach Fokusverlust keine fremde Seite ersetzen.
   Lade-, Rollen-, Passwort-, Session- und Produktsperren bleiben wirksam.
+- Die erhaltene native Verwaltungs-Szene prüft außerdem ihren eigenen Bereich
+  anhand der bestehenden Rollenregistry. Der gerade aktive Portalpfad darf
+  nach einem Rollenwechsel keine Verwaltungs-Kinder erneut freigeben.
+  Blockierende Lade- und Fehlermeldungen aus inaktiven, weiterhin gesperrten
+  Szenen werden nicht als globale Modal-Überlagerung eingeblendet;
+  autorisierte Inhalte bleiben bei einem normalen Fokuswechsel montiert.
+- Die gemeinsamen deklarativen Meldungs-Komponenten `StateViews`, `InfoBanner`
+  und `WorkflowToast` registrieren ihre nativen Overlay-Meldungen nur bei
+  tatsächlichem Seitenfokus. Ein Hintergrundfehler kann dadurch nicht mehr
+  die Meldung der aktiven Seite verdrängen. Das Entfernen betrifft nur die
+  eigenen Meldungskennungen; direkte globale Vorgänge, Startup außerhalb
+  der Navigation, Inline-Anzeigen und das bisherige Webverhalten bleiben
+  erhalten. Die Fokusänderung entfernt keine autorisierten Seitenkinder.
 - „Heute“ im Mitarbeitendenportal zeigt keine Pflegetouren mehr und verwendet
   einen durchgehenden Scrollbereich. Portalrahmen innerhalb äußerer ScrollViews
   behalten ihre natürliche Inhaltshöhe. Klientenkarten füllen nicht mehr die

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
-import { usePathname, useRouter } from 'expo-router';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
 import { checkRoleAccess, getLoginRedirectForPath } from '@/lib/navigation';
@@ -20,12 +20,15 @@ function matchesNavigationTarget(current: string, target: string): boolean {
 
 type RequireRoleProps = {
   children: ReactNode;
+  /** A retained native layout must also authorize its own route tree. */
+  ownerPath?: string;
 };
 
 type StableRouter = { replace: (target: string) => void };
 
-export function RequireRole({ children }: RequireRoleProps) {
+export function RequireRole({ children, ownerPath }: RequireRoleProps) {
   const pathname = usePathname();
+  const focused = useIsFocused();
   const router = useRouter() as unknown as StableRouter;
   const hydrated = useHydrated();
   const {
@@ -40,10 +43,14 @@ export function RequireRole({ children }: RequireRoleProps) {
   const [roleWaitTimedOut, setRoleWaitTimedOut] = useState(false);
 
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
-  const decision = checkRoleAccess(pathname, roleKey);
+  const ownerDecision = ownerPath ? checkRoleAccess(ownerPath, roleKey) : null;
+  const decision = ownerDecision?.shouldRedirect
+    ? ownerDecision
+    : checkRoleAccess(pathname, roleKey);
   const redirectTarget = String(decision.target);
 
   useEffect(() => {
+    if (ownerPath && !focused) return;
     if (!hydrated || !authReady || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
     if (matchesNavigationTarget(pathname, redirectTarget)) return;
     runAppTransition(() => {
@@ -59,6 +66,8 @@ export function RequireRole({ children }: RequireRoleProps) {
     pathname,
     roleKey,
     router,
+    ownerPath,
+    focused,
   ]);
 
   useEffect(() => {
@@ -70,6 +79,10 @@ export function RequireRole({ children }: RequireRoleProps) {
     const timer = setTimeout(() => setRoleWaitTimedOut(true), ROLE_RESOLUTION_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [authReady, isAuthenticated, roleKey]);
+
+  // Kept native scenes share the foreground pathname. A portal route granting
+  // its own role must not reactivate the business scene behind that portal.
+  if (!focused && (!hydrated || !authReady || (isAuthenticated && !roleKey) || decision.shouldRedirect)) return null;
 
   if (!hydrated || !authReady) {
     return <LoadingState message="Sitzung wird geprüft…" />;

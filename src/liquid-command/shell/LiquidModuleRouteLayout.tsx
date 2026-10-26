@@ -19,6 +19,7 @@ type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
   requireRole?: boolean;
   requireProduct?: boolean;
+  nativeRoleOwnerPath?: string;
 };
 
 const transparentContent = { backgroundColor: 'transparent' } as const;
@@ -138,6 +139,7 @@ export function LiquidModuleRouteLayout({
   children,
   requireRole = true,
   requireProduct = true,
+  nativeRoleOwnerPath,
 }: LiquidModuleRouteLayoutProps) {
   let content: ReactNode = (
     <PortalPremiumProvider kind="workspace">
@@ -151,7 +153,7 @@ export function LiquidModuleRouteLayout({
     content = <LiquidProductAccessGuard>{content}</LiquidProductAccessGuard>;
   }
   if (requireRole) {
-    content = <RequireRole>{content}</RequireRole>;
+    content = <RequireRole ownerPath={Platform.OS === 'web' ? undefined : nativeRoleOwnerPath}>{content}</RequireRole>;
   }
 
   return (

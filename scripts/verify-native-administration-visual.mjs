@@ -114,8 +114,8 @@ async function verifyEmployeePortalHome(page,viewport,fontScale=1){
  await page.screenshot({path:join(output,`employee-home-actual-actions-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const actions=quick.getByRole('button');for(const action of await actions.all())await portalControlBounds(action,viewport,'Employee quick action is clipped.');
  const assignmentTitle=page.getByText('Hauswirtschaftliche Unterstützung',{exact:true});await assignmentTitle.scrollIntoViewIfNeeded();
- const assignmentBounds=await assignmentTitle.boundingBox();
- if(!assignmentBounds||assignmentBounds.width<Math.min(220,viewport.width*.6))throw Error(JSON.stringify({message:'Employee assignment status consumes the readable title column.',viewport,fontScale,assignmentBounds}));
+ const assignmentBounds=await assignmentTitle.boundingBox(),assignmentRowBounds=await page.getByTestId('employee-home-assignment-visual-visit').boundingBox();
+ if(!assignmentBounds||!assignmentRowBounds||assignmentBounds.x-assignmentRowBounds.x<6||assignmentBounds.width<Math.min(220,viewport.width*.6))throw Error(JSON.stringify({message:'Employee assignment status consumes the title column or its text overlaps the edge glow.',viewport,fontScale,assignmentBounds,assignmentRowBounds}));
  await assertUnbrokenWord(assignmentTitle,'Hauswirtschaftliche');await assertUnbrokenWord(assignmentTitle,'Unterstützung');
  await page.screenshot({path:join(output,`employee-home-actual-assignment-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  await page.getByTestId('employee-home-assignment-visual-visit').click();
@@ -125,7 +125,7 @@ async function verifyEmployeePortalHome(page,viewport,fontScale=1){
  await page.screenshot({path:join(output,`employee-home-actual-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const refresh=page.getByRole('button',{name:'Übersicht aktualisieren',exact:true});await refresh.scrollIntoViewIfNeeded();await refresh.click();
  await page.waitForFunction(()=>window.__employeePreviewRefreshes>0);
- report.push({screen:'employee-home-actual-frame',viewport,fontScale,heroBounds,quickBounds,assignmentBounds,assignmentRoute,bottomBounds,refreshReached:true,careToursAbsent:true});
+ report.push({screen:'employee-home-actual-frame',viewport,fontScale,heroBounds,quickBounds,assignmentBounds,assignmentRowBounds,assignmentRoute,bottomBounds,refreshReached:true,careToursAbsent:true});
 }
 async function verifyEmployeeClientRecords(page,viewport,fontScale=1){
  const firstHeader=page.getByRole('button',{name:'Klientenakte Helene Musterfrau öffnen',exact:true});await firstHeader.waitFor();await firstHeader.scrollIntoViewIfNeeded();

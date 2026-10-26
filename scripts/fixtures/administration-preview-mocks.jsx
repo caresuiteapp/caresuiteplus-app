@@ -5,6 +5,9 @@ import { EMPTY_TENANT_COMPANY, EMPTY_TENANT_TAX, EMPTY_TENANT_LEGAL, EMPTY_TENAN
 export { loginBusinessUser,loginEmployeePortal,registerBusinessTenant,completeFirstLogin } from './native-portals-data';
 export const permissions = ['office.access','business.tenant.manage','inventory.view','inventory.manage','inventory.issue','inventory.return','inventory.damage','office.clients.view','office.employees.view'];
 export const AuthContext=createContext(null);
+// Global startup feedback has no route; focused fixtures use the same
+// optional navigation context boundary as the native implementation.
+export const NavigationContext=createContext(undefined);
 export const tenantId = 'visual-tenant';
 export const snapshot = {tenantId,company:{...EMPTY_TENANT_COMPANY,name:'Pflege & Alltag Nord',legalName:'Pflege & Alltag Nord GmbH',street:'Gartenstraße',houseNumber:'24',zip:'30159',city:'Hannover',email:'kontakt@example.invalid',phone:'0511 000000'},tax:{...EMPTY_TENANT_TAX},legal:{...EMPTY_TENANT_LEGAL},register:{...EMPTY_TENANT_REGISTER},payment:{...EMPTY_TENANT_PAYMENT},branding:{...EMPTY_TENANT_BRANDING},modules:{...DEFAULT_TENANT_MODULES},contact:{billingEmail:'rechnung@example.invalid',supportEmail:'kontakt@example.invalid',supportPhone:'0511 000000',contactPersons:[]},representatives:[],bankAccounts:[],customFields:[],catalogItems:[],auditLogs:[],sections:[],catalogSummary:'Alltagsbegleitung',assistDefaultHourlyRate:'38,00',updatedAt:'2026-10-16T08:00:00Z'};
 const inventoryPermissions=Object.fromEntries(['view','manage','issue','returnItems','reportDamage','offboarding','viewEmployees','audit','createItems','manageCatalogs'].map(key=>[key,true]));
