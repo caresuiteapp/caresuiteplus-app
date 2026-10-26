@@ -167,5 +167,15 @@
     "No real Android navigation, font metrics, PDF/GPS/hardware or server persistence proved.",
     "Existing product, role, backend and Android release gates remain intact."
   ],
-  "releaseAcceptance": false
+  "releaseAcceptance": false,
+  "ci168Checkpoint": {
+    "run": 40403418544,
+    "source": "d17d6be3549b0472a8aa86b044680cba5ebe7efd",
+    "locationTests": 34,
+    "nativeCasesPassed": 224,
+    "nativeCasesFailed": 2,
+    "failure": "The two normal-font dossier checks converted an absent automatic minWidth to NaN. The assigned 204/160px tracks and all 16 new focused cases passed.",
+    "adaptation": "An absent minimum is treated as zero in the minimum-vs-track constraint. Assigned track widths, action delivery and real-browser geometry checks remain intact.",
+    "fullRerunRequired": true
+  }
 }
