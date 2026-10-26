@@ -72,6 +72,46 @@ export function resolveWorkspacePresentation(sheets:readonly WorkspaceSheet[],no
   if(!['grid','inline-grid'].includes(declarations.display)||grid==='none')grid=null;
   if(grid){box.flexDirection='row';box.flexWrap='wrap';box.alignItems??='stretch';}return {box:nativeNumberValues(box) as ViewStyle,text:nativeNumberValues(text) as TextStyle,variables,grid,scroll,declarations};
 }
-export function workspaceGridWidths(template:string,available:number,gap:number,fontScale=1):number[]{if(!template||template==='none')return [];const repeat=template.match(/^repeat\((\d+|auto-fit|auto-fill),\s*(.*)\)$/);let tracks:string[];if(repeat){const min=Number(repeat[2].match(/minmax\((\d+(?:\.\d+)?)px/)?.[1]??180),scale=Math.max(1,fontScale),count=/^\d+$/.test(repeat[1])?Math.max(1,Math.floor(Number(repeat[1])/scale)):Math.max(1,Math.floor((available+gap)/(min*scale+gap)));tracks=Array.from({length:count},()=>repeat[2]);}else{let depth=0,token='';tracks=[];for(const char of template.trim()){if(char==='(')depth++;if(char===')')depth--;if(/\s/.test(char)&&depth===0){if(token)tracks.push(token);token='';}else token+=char;}if(token)tracks.push(token);}const weights=tracks.map(track=>Number(track.match(/([\d.]+)fr/)?.[1]??0)),fixed=tracks.map((track,i)=>{if(weights[i])return 0;const bounds=track.match(/^minmax\(\s*([\d.]+)(?:px)?\s*,\s*([\d.]+)px\s*\)$/);return bounds?Math.max(Number(bounds[1]),Number(bounds[2])):Number(track.match(/([\d.]+)px/)?.[1]??available);}),free=Math.max(0,available-gap*(tracks.length-1)-fixed.reduce((a,b)=>a+b,0)),total=weights.reduce((a,b)=>a+b,0);return tracks.map((_,i)=>weights[i]?free*weights[i]/total:Math.min(available,fixed[i]));}
+function workspaceGridTracks(template: string): string[] {
+  const tracks: string[] = [];
+  let depth = 0, token = '';
+  for (const character of template.trim()) {
+    if (character === '(') depth++;
+    if (character === ')') depth--;
+    if (/\s/.test(character) && depth === 0) {
+      if (token) tracks.push(token);
+      token = '';
+    } else token += character;
+  }
+  if (token) tracks.push(token);
+  return tracks;
+}
+
+export function workspaceGridWidths(template: string, available: number, gap: number, fontScale = 1, itemCount?: number): number[] {
+  if (!template || template === 'none') return [];
+  const sourceTracks = workspaceGridTracks(template);
+  const scale = Math.max(1, fontScale);
+  const tracks = sourceTracks.flatMap(track => {
+    const repeat = track.match(/^repeat\(\s*(\d+|auto-fit|auto-fill)\s*,\s*([\s\S]+)\)$/);
+    if (!repeat) return [track];
+    const minimum = Number(repeat[2].match(/minmax\(\s*(?:min\(\s*100%\s*,\s*)?(\d+(?:\.\d+)?)px/)?.[1] ?? 180);
+    // A mixed template has explicitly positioned tracks, such as a calendar's
+    // time gutter plus seven days. Preserve that count when text is enlarged.
+    let count = /^\d+$/.test(repeat[1])
+      ? Math.max(1, Math.floor(Number(repeat[1]) / (sourceTracks.length === 1 ? scale : 1)))
+      : Math.max(1, Math.floor((available + gap) / (minimum * scale + gap)));
+    if (repeat[1] === 'auto-fit' && itemCount !== undefined) count = Math.min(count, Math.max(1, itemCount));
+    return Array.from({ length: count }, () => workspaceGridTracks(repeat[2])).flat();
+  });
+  const weights = tracks.map(track => Number(track.match(/([\d.]+)fr/)?.[1] ?? 0));
+  const fixed = tracks.map((track, index) => {
+    if (weights[index]) return 0;
+    const bounds = track.match(/^minmax\(\s*([\d.]+)(?:px)?\s*,\s*([\d.]+)px\s*\)$/);
+    return bounds ? Math.max(Number(bounds[1]), Number(bounds[2])) : Number(track.match(/([\d.]+)px/)?.[1] ?? available);
+  });
+  const free = Math.max(0, available - gap * (tracks.length - 1) - fixed.reduce((sum, width) => sum + width, 0));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return tracks.map((_, index) => weights[index] ? free * weights[index] / total : Math.min(available, fixed[index]));
+}
 
 export function workspaceContentWidth(available:number,box:ViewStyle):number{const pixels=(value:unknown)=>typeof value==='string'&&value.endsWith('%')?parseFloat(value)*available/100:Number(value??0);return Math.max(0,available-pixels(box.paddingLeft??box.paddingHorizontal??box.padding)-pixels(box.paddingRight??box.paddingHorizontal??box.padding)-pixels(box.borderLeftWidth??box.borderWidth)-pixels(box.borderRightWidth??box.borderWidth));}

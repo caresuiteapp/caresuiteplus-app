@@ -1,3 +1,5 @@
+import {academyStyles} from '@/features/akademie/academyStyles';
+import {personnelCss} from '@/components/office/personnelCss.web';
 import {describe,it,expect} from 'vitest';
 import {readFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
@@ -6,6 +8,33 @@ import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,wor
 import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.shared';
 import {notesWorkspaceCss} from '@/components/office/notes/notesWorkspaceCss.native';
 describe('native presentation of business layouts',()=>{
+  it('fills the academy KPI row with its four items while auto-fill retains vacant tracks',()=>{
+    const sheet=compileWorkspaceCss(academyStyles),parent={tag:'section',props:{className:'academy-workspace'}},node={tag:'div',props:{className:'ac-kpis'}};
+    const presentation=resolveWorkspacePresentation([sheet],node,[parent],1280);
+    const fitted=workspaceGridWidths(presentation.grid!,1248,12,1,4);
+    expect(fitted).toEqual([303,303,303,303]);
+    expect(workspaceGridWidths(presentation.grid!.replace('auto-fit','auto-fill'),1248,12,1,4)).toHaveLength(7);
+  });
+  it('uses the authored nested minimum for auto-repeat cards instead of a default track size',()=>{
+    expect(workspaceGridWidths('repeat(auto-fill,minmax(min(100%,280px),1fr))',900,16)).toHaveLength(3);
+    expect(workspaceGridWidths('repeat(auto-fit,minmax(min(100%,280px),1fr))',240,16,1,4)).toEqual([240]);
+  });
+  it('retains the personnel search track and three separate filters from the original stylesheet',()=>{
+    const sheet=compileWorkspaceCss(personnelCss),parent={tag:'section',props:{className:'pe-list'}},node={tag:'div',props:{className:'pe-list-filters'}};
+    const presentation=resolveWorkspacePresentation([sheet],node,[parent],1280);
+    const tracks=workspaceGridWidths(presentation.grid!,1196,12);
+    expect(tracks).toHaveLength(4);
+    expect(tracks[0]).toBeCloseTo(tracks[1]*2);
+    expect(tracks.slice(1)).toEqual([tracks[1],tracks[1],tracks[1]]);
+    expect(tracks.reduce((sum,width)=>sum+width,0)+36).toBeCloseTo(1196);
+  });
+  it.each([1,1.6,2])('keeps all seven calendar days beside the time gutter at font scale %s',fontScale=>{
+    const tracks=workspaceGridWidths('64px repeat(7,minmax(0,1fr))',1200,8,fontScale);
+    expect(tracks).toHaveLength(8);
+    expect(tracks[0]).toBe(64);
+    expect(new Set(tracks.slice(1)).size).toBe(1);
+    expect(tracks.reduce((sum,width)=>sum+width,0)+56).toBeCloseTo(1200);
+  });
   it.each([[360,800,1.6],[844,390,1.6],[1280,800,1]])('keeps the actual notes list and footer reachable at %d×%d scale %s', (width,height,fontScale)=>{const sheet=compileWorkspaceCss(notesWorkspaceCss),variables={'--cs-native-viewport-width':String(width),'--cs-native-viewport-height':String(height),'--cs-native-font-scale':String(fontScale)},root={tag:'section',props:{className:'nw'}},layout={tag:'div',props:{className:'nw-layout','data-selected':false}},sidebar={tag:'aside',props:{className:'nw-sidebar'}},ancestors=[root,layout,sidebar];const presentation=(tag:string,className:string,parents=ancestors)=>resolveWorkspacePresentation([sheet],{tag,props:{className}},parents,width,{fontSize:14},variables);expect(presentation('aside','nw-sidebar',[root,layout]).scroll).toBe('vertical');const list=presentation('div','nw-notes-list');expect(list.scroll).toBe('vertical');expect(Number(list.box.minHeight)).toBeGreaterThanOrEqual(180);expect(list.box.flexShrink).toBe(0);expect(Number(list.box.flexBasis)).toBeGreaterThanOrEqual(Number(list.box.minHeight));for(const className of ['nw-sidebar-top','nw-sidebar-footer'])expect(presentation('div',className).box.flexShrink).toBe(0);if(height<600){expect(presentation('main','nw-main',[root,layout]).scroll).toBe('vertical');expect(Number(presentation('div','nw-editor-scroll',[root,layout,{tag:'main',props:{className:'nw-main'}}]).box.minHeight)).toBeGreaterThanOrEqual(180);}if(width<720){expect(resolveWorkspacePresentation([sheet],sidebar,[root,{...layout,props:{...layout.props,'data-selected':true}}],width,{},variables).box.display).toBe('none');}});
 
   it('keeps rules from every dedicated native CSS module compatible with Android numeric and enum style setters',()=>{

@@ -4198,7 +4198,7 @@
     {
       "web": "src/features/akademie/AcademyPlanning.web.tsx",
       "native": "src/features/akademie/AcademyPlanning.native.tsx",
-      "sourceHash": "ee49cb0df86a0e6f4273990bbd797ae855b29887b959390466ed5c82ddcf6a99",
+      "sourceHash": "a3ddf55fcdf9cdc3486d3e9c5ad1ffde0cf972d0f811fe766e86f65ba0438407",
       "environment": []
     },
     {

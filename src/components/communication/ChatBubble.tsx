@@ -64,6 +64,7 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
   return (
     <View style={[styles.row, isOwn ? styles.rowOwn : styles.rowOther]}>
       <View
+        testID={`message-bubble-${message.id}`}
         style={[
           styles.bubble,
           isOwn ? adaptiveStyles.bubbleOwn : adaptiveStyles.bubbleOther,
@@ -74,7 +75,7 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
         <Text selectable style={adaptiveStyles.body} testID={`message-body-${message.id}`}>
           {body}
         </Text>
-        <View style={styles.meta}>
+        <View style={styles.meta} testID={`message-meta-${message.id}`}>
           <Text style={adaptiveStyles.muted}>
             {new Date(message.sentAt ?? message.createdAt).toLocaleTimeString('de-DE', {
               hour: '2-digit',
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     borderColor: colors.warning,
     borderStyle: 'dashed',
   },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
   copyButton: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.capsule },
   edited: { fontStyle: 'italic' },
   systemWrap: { alignItems: 'center', marginVertical: spacing.sm },

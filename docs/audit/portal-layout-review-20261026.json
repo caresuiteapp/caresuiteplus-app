@@ -168,5 +168,99 @@
       "sourceFiles": 2721
     },
     "physicalDeviceAcceptance": false
+  },
+  "followupReview": {
+    "sourceCommit": "53b7c88a34ab4ec93e107fc4aeac0e0656431024",
+    "ciRun": 40380125178,
+    "ciStatus": "CI161 completed successfully, including all three portal jobs, TypeScript, source synchronization, native administration visuals and navigation checks; Android build skipped.",
+    "targetedEnlargedFramesReviewed": 15,
+    "visuallyConfirmed": [
+      "announcements-title",
+      "client-name-width",
+      "assignment-fact-columns",
+      "employee-document-metrics",
+      "payroll-and-task-full-headlines",
+      "family-home-role-label",
+      "populated-conversation-content"
+    ],
+    "notYetConfirmed": [
+      "long compound title breaks still leave a trailing fragment; optional compound boundaries added for next run",
+      "chat own-message time overflows at enlarged text; metadata wrapping added for next run",
+      "document detail carousel cards are wider; a newly added scrolled image must confirm the complete date",
+      "timeline ready content was received below the initial viewport; a newly added scrolled image must be reviewed"
+    ],
+    "artifacts": {
+      "administration": {
+        "id": 12678112586,
+        "sha256": "b6a79783c4c7a93caf25f973c1d6f9eba8e95a807a39293460c2be571f8803ba"
+      },
+      "employee": {
+        "id": 12678592099,
+        "sha256": "8d26e15f91d534bbc6937f7619ea74101b13ab5619f21cee42182fe4bd3efb21"
+      },
+      "clientAndFamily": {
+        "id": 12678127288,
+        "sha256": "e5687fce711cf5068278df5359a253c6d1c368594f6d50bdd948170bbfa5f907"
+      }
+    }
+  },
+  "administrationComparison": {
+    "sourceCommit": "e7bd663c334d6ae4aab626ee361fe1719f24384d",
+    "artifactId": 12676170575,
+    "sha256": "fa26a4beacdf293f63f195e0db4ec8375039568ac1836e42c8f620260f361691",
+    "artifactImages": 799,
+    "reviewedEnlargedInitialFrames": 27,
+    "pairedCasesReviewed": [
+      "desktop",
+      "clients",
+      "employees",
+      "company",
+      "inventory",
+      "notes",
+      "catalog",
+      "academy",
+      "consultation"
+    ],
+    "pairedViewports": [
+      320,
+      1280
+    ],
+    "findings": [
+      "Personnel mixed-repeat grid becomes two columns instead of four.",
+      "Auto-fit does not collapse vacant tracks; academy KPI row leaves unused space.",
+      "Nested min(100%, Npx) track minimum is ignored; card column counts differ.",
+      "Calendar explicit seven-day tracks can be reduced by the generic font-scale card adaptation.",
+      "Remaining spacing, table-column and text-clamping differences still require complete comparison."
+    ],
+    "implementedAwaitingImages": [
+      "Expand each repeat in a mixed grid template.",
+      "Use the authored nested minimum and actual item count for auto-fit; auto-fill keeps vacant tracks.",
+      "Mark calendar weekday/day grids to preserve their seven-column assignment at enlarged text.",
+      "Verify all four personnel filters share a row in the browser at the wide breakpoint."
+    ]
+  },
+  "latestLocalValidation": {
+    "tests": 105,
+    "files": 8,
+    "sourceOutputs": {
+      "modules": 1110,
+      "routes": 269,
+      "stale": 0,
+      "nativeFallbacks": 4
+    },
+    "portalBundlePreparedCases": 65,
+    "note": "Two outdated communication assertions were replaced with execution of the canonical redirect and both platform ownership filters; the initial expanded run failed those assertions and the corrected run passes."
+  },
+  "nextRunScope": {
+    "preparedCases": 65,
+    "states": [
+      "ready",
+      "loading",
+      "error",
+      "empty"
+    ],
+    "plannedCasesAcrossRolesAndSizes": 1044,
+    "notExecutedAtCheckpoint": true,
+    "noDeviceOrServerAcceptance": true
   }
 }

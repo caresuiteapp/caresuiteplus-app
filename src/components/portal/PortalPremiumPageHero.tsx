@@ -42,6 +42,9 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
   const type = resolveGalaxyTypography(width);
   const mobile = isPhone || width < 760;
   const icon = resolveIcon(title, kind);
+  // Optional compound boundaries keep enlarged German titles readable even
+  // when the host has no German hyphenation dictionary installed.
+  const displayTitle = title.replaceAll('Notfallnummern', 'Notfall\u00ADnummern').replaceAll('Alltagsbegleitung', 'Alltags\u00ADbegleitung');
 
   return (
     <View
@@ -66,7 +69,7 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
           <Ionicons name={kind === 'employee' ? 'briefcase' : 'shield-checkmark'} color={portalPremium.accent.blueDark} size={14} />
           <Text style={styles.eyebrow}>{eyebrow}</Text>
         </View>
-        <Text android_hyphenationFrequency="normal" textBreakStrategy="highQuality" style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{title}</Text>
+        <Text accessibilityLabel={title} android_hyphenationFrequency="normal" textBreakStrategy="highQuality" style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{displayTitle}</Text>
         {subtitle ? <Text style={[type.body, styles.subtitle, breakLongWords]}>{subtitle}</Text> : null}
       </View>
 

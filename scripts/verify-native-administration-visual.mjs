@@ -448,6 +448,11 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    const stock=page.getByRole('button').filter({hasText:'ohne archivierte Einträge'}),label=await stock.getByText('Bestand',{exact:true}).boundingBox(),value=await stock.getByText('2',{exact:true}).boundingBox();
    if(!label||!value||value.y<label.y+label.height-1)throw Error(JSON.stringify({message:'Inventory statistic labels and values must stack without overlap.',screen,viewport,label,value}));
   }
+  if((screen==='employees'||screen==='web-employees')&&viewport.width>=1100){
+   const fields=[page.getByPlaceholder('Name, Funktion, Abteilung oder Kontakt …'),...['Status','Abteilung','Sortierung'].map(name=>page.getByRole('combobox',{name,exact:true}))];
+   const bounds=await Promise.all(fields.map(field=>field.boundingBox()));
+   if(bounds.some(box=>!box)||Math.max(...bounds.map(box=>box.y))-Math.min(...bounds.map(box=>box.y))>2||bounds.some((box,index)=>index>0&&box.x<=bounds[index-1].x))throw Error(JSON.stringify({message:'Personnel search and three filters must share the original four-column row.',screen,viewport,bounds}));
+  }
   if(screen==='academy'||screen==='web-academy'){
    const heading=page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true});
    const titleSize=await heading.evaluate(element=>parseFloat(getComputedStyle(element).fontSize));

@@ -56,6 +56,21 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect([...grid.children].map(child=>child.textContent)).toEqual(['Automatisch','Spalte zwei','','Positioniert','Volle Zeile','Danach']);expect(hosts.styles.get(grid.children[2] as HTMLElement)?.width).toBe(30);expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="positioned"]')!)?.color).toBe('#b42336');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="wide"]')!)?.width).toBe('100%');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="after"]')!)?.width).toBe(30);
   });
 
+  it('keeps a marked calendar in seven columns when device text is enlarged',async()=>{
+    hosts.fontScale=1.6;
+    await render(<NativeWorkspaceStyleScope css={['.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}']}><NativeDiv className="calendar" data-grid-fixed-columns data-testid="calendar">{Array.from({length:14},(_,index)=><NativeDiv key={index} data-testid={'day-'+index}>{index+1}</NativeDiv>)}</NativeDiv></NativeWorkspaceStyleScope>);
+    const calendar=host.querySelector<HTMLElement>('[data-testid="calendar"]')!;
+    await act(async()=>hosts.layouts.get(calendar)!({nativeEvent:{layout:{x:0,y:0,width:280,height:300}}}));
+    for(const child of calendar.children)expect(hosts.styles.get(child as HTMLElement)?.width).toBeCloseTo(34);
+    expect([...calendar.children].map(child=>child.textContent)).toEqual(Array.from({length:14},(_,index)=>String(index+1)));
+  });
+  it('distributes an auto-fit row across its actual cards without leaving empty tracks',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}']}><NativeDiv className="kpis" data-testid="kpis">{Array.from({length:4},(_,index)=><NativeDiv key={index}>{index+1}</NativeDiv>)}</NativeDiv></NativeWorkspaceStyleScope>);
+    const grid=host.querySelector<HTMLElement>('[data-testid="kpis"]')!;
+    await act(async()=>hosts.layouts.get(grid)!({nativeEvent:{layout:{x:0,y:0,width:1248,height:300}}}));
+    for(const child of grid.children)expect(hosts.styles.get(child as HTMLElement)?.width).toBeCloseTo(303);
+  });
+
   it.each([[248,1,2],[248,1.6,1],[748,1.6,4],[248,2,1]])('keeps scoped area buttons inside %dpx with fontScale %s',async(available,fontScale,columns)=>{
     hosts.fontScale=fontScale;
     await render(<DesktopAreaSwitcher selectedArea="office" areas={DESKTOP_AREAS.map(area=>({...area,disabled:area.key!=='office'&&area.key!=='assist'}))} onSelectArea={vi.fn()}/>);

@@ -241,7 +241,7 @@ jobs:
       - name: Tatsächliche Android-Routen inventarisieren
         run: node scripts/audit-native-portal-route-matrix.mjs --write
       - name: Tatsächliche Seiten mit Portaloberfläche im vorhandenen Chrome prüfen
-        run: node scripts/verify-native-portal-audit.mjs --portal=${{ matrix.portal }} --states=ready --roles=${{ matrix.portal == 'client_and_family' && 'client,family' || 'client' }}
+        run: node scripts/verify-native-portal-audit.mjs --portal=${{ matrix.portal }} --states=ready,loading,error,empty --roles=${{ matrix.portal == 'client_and_family' && 'client,family' || 'client' }}
       - name: Belege und offene Fehler sichern
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
