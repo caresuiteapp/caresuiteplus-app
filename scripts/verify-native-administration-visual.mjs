@@ -49,7 +49,9 @@ await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/
  b.onLoad({filter:/.*/,namespace:'preview-device-services'},args=>({loader:'js',contents:args.path==='tasks'?"export const isTaskDefined=()=>false,defineTask=()=>{},isTaskRegisteredAsync=async()=>false;":"export const Accuracy={High:4},ActivityType={AutomotiveNavigation:1},getForegroundPermissionsAsync=async()=>({status:'denied'}),requestForegroundPermissionsAsync=getForegroundPermissionsAsync,getBackgroundPermissionsAsync=getForegroundPermissionsAsync,requestBackgroundPermissionsAsync=getForegroundPermissionsAsync,hasStartedLocationUpdatesAsync=async()=>false,startLocationUpdatesAsync=async()=>{},stopLocationUpdatesAsync=async()=>{},getCurrentPositionAsync=async()=>{throw Error('Layout fixtures have no device location.');};"}));
  b.onResolve({filter:/^@expo\/vector-icons\/(Feather|Ionicons)$/},args=>({path:args.path.endsWith('Ionicons')?'ionicons':'icon',namespace:'qa'}));
  b.onResolve({filter:/^@react-native-async-storage\/async-storage$/},()=>({path:'storage',namespace:'qa'}));
- b.onLoad({filter:/.*/,namespace:'qa'},args=>({loader:'jsx',resolveDir:root,contents:args.path==='storage'?`const data=new Map([['caresuite.liquid.registration.v1',JSON.stringify({companyName:'Pflege & Alltag Nord GmbH',legalForm:'GmbH',industry:'Alltagsbegleitung',street:'Gartenstraße 24',zip:'30159',city:'Hannover',phone:'0511 000000',email:'kontakt@example.invalid',adminFirstName:'Marlene',adminLastName:'Mustermann-Beispiel',adminEmail:'verwaltung@example.invalid',contactRole:'Geschäftsführung'})]]); export default {getItem:async k=>data.get(k)??null,removeItem:async k=>{data.delete(k)},setItem:async(k,v)=>{data.set(k,v)},multiGet:async keys=>keys.map(k=>[k,data.get(k)??null]),multiSet:async rows=>rows.forEach(([k,v])=>data.set(k,v))};`:args.path==='animated'?`import {useRef} from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export default {View:RN.View,Text:RN.Text,createAnimatedComponent:c=>c};export const useSharedValue=v=>useRef({value:v}).current,useAnimatedStyle=f=>f(),withSpring=v=>v,withTiming=v=>v,withRepeat=v=>v,withSequence=(v)=>v,withDelay=(_delay,v)=>v,runOnJS=f=>f,cancelAnimation=()=>{},Easing=RN.Easing;`:args.path==='blur'?`import {View} from ${JSON.stringify(nativeWeb)};export const BlurView=View;`:['icon','ionicons'].includes(args.path)?`import {Text} from ${JSON.stringify(nativeWeb)};import glyphs from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/${args.path==='ionicons'?'Ionicons':'Feather'}.json';export default function Icon({name,size,color}){return <Text aria-hidden style={{fontFamily:'${args.path==='ionicons'?'Ionicons':'Feather'}',fontSize:size,color}}>{String.fromCodePoint(glyphs[name]??63)}</Text>}`:`import React from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export * from ${JSON.stringify(nativeWeb)};function nativeStyle(style){const flat=RN.StyleSheet.flatten(style)??{};const {experimental_backgroundImage,...rest}=flat;return [rest,experimental_backgroundImage?{backgroundImage:experimental_backgroundImage}:null];}export const Pressable=React.forwardRef(({style,...props},ref)=><RN.Pressable {...props} ref={ref} style={typeof style==='function'?state=>nativeStyle(style(state)):nativeStyle(style)}/>);const NativeView=RN.View;export const View=React.forwardRef(({style,...props},ref)=>{const s=RN.StyleSheet.flatten(style)??{};const {experimental_backgroundImage,...rest}=s;return <NativeView {...props} ref={ref} style={[rest,experimental_backgroundImage?{backgroundImage:experimental_backgroundImage}:null]}/>;});export const Platform={...RN.Platform,OS:new URLSearchParams(location.search).get('screen')?.startsWith('web-')?'web':'android'};const scale=Number(new URLSearchParams(location.search).get('scale')??1);export const useWindowDimensions=()=>({...RN.useWindowDimensions(),fontScale:scale});export const Text=({style,allowFontScaling,...props})=>{const s=RN.StyleSheet.flatten(style)??{};return <RN.Text {...props} style={[s,allowFontScaling===false?{}:{fontSize:(s.fontSize??14)*scale,lineHeight:(s.lineHeight??(s.fontSize??14)*1.4)*scale}]}/>};` }));
+ // Android focus and accessibility calls stay in product code; the isolated
+ // browser fixture has DOM refs and no native node handles or screen reader.
+ b.onLoad({filter:/.*/,namespace:'qa'},args=>({loader:'jsx',resolveDir:root,contents:args.path==='storage'?`const data=new Map([['caresuite.liquid.registration.v1',JSON.stringify({companyName:'Pflege & Alltag Nord GmbH',legalForm:'GmbH',industry:'Alltagsbegleitung',street:'Gartenstraße 24',zip:'30159',city:'Hannover',phone:'0511 000000',email:'kontakt@example.invalid',adminFirstName:'Marlene',adminLastName:'Mustermann-Beispiel',adminEmail:'verwaltung@example.invalid',contactRole:'Geschäftsführung'})]]); export default {getItem:async k=>data.get(k)??null,removeItem:async k=>{data.delete(k)},setItem:async(k,v)=>{data.set(k,v)},multiGet:async keys=>keys.map(k=>[k,data.get(k)??null]),multiSet:async rows=>rows.forEach(([k,v])=>data.set(k,v))};`:args.path==='animated'?`import {useRef} from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export default {View:RN.View,Text:RN.Text,createAnimatedComponent:c=>c};export const useSharedValue=v=>useRef({value:v}).current,useAnimatedStyle=f=>f(),withSpring=v=>v,withTiming=v=>v,withRepeat=v=>v,withSequence=(v)=>v,withDelay=(_delay,v)=>v,runOnJS=f=>f,cancelAnimation=()=>{},Easing=RN.Easing;`:args.path==='blur'?`import {View} from ${JSON.stringify(nativeWeb)};export const BlurView=View;`:['icon','ionicons'].includes(args.path)?`import {Text} from ${JSON.stringify(nativeWeb)};import glyphs from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/${args.path==='ionicons'?'Ionicons':'Feather'}.json';export default function Icon({name,size,color}){return <Text aria-hidden style={{fontFamily:'${args.path==='ionicons'?'Ionicons':'Feather'}',fontSize:size,color}}>{String.fromCodePoint(glyphs[name]??63)}</Text>}`:`import React from 'react';import * as RN from ${JSON.stringify(nativeWeb)};export * from ${JSON.stringify(nativeWeb)};export const findNodeHandle=()=>null;export const AccessibilityInfo={...RN.AccessibilityInfo,setAccessibilityFocus:()=>{}};function nativeStyle(style){const flat=RN.StyleSheet.flatten(style)??{};const {experimental_backgroundImage,...rest}=flat;return [rest,experimental_backgroundImage?{backgroundImage:experimental_backgroundImage}:null];}export const Pressable=React.forwardRef(({style,...props},ref)=><RN.Pressable {...props} ref={ref} style={typeof style==='function'?state=>nativeStyle(style(state)):nativeStyle(style)}/>);const NativeView=RN.View;export const View=React.forwardRef(({style,...props},ref)=>{const s=RN.StyleSheet.flatten(style)??{};const {experimental_backgroundImage,...rest}=s;return <NativeView {...props} ref={ref} style={[rest,experimental_backgroundImage?{backgroundImage:experimental_backgroundImage}:null]}/>;});export const Platform={...RN.Platform,OS:new URLSearchParams(location.search).get('screen')?.startsWith('web-')?'web':'android'};const scale=Number(new URLSearchParams(location.search).get('scale')??1);export const useWindowDimensions=()=>({...RN.useWindowDimensions(),fontScale:scale});export const Text=({style,allowFontScaling,...props})=>{const s=RN.StyleSheet.flatten(style)??{};return <RN.Text {...props} style={[s,allowFontScaling===false?{}:{fontSize:(s.fontSize??14)*scale,lineHeight:(s.lineHeight??(s.fontSize??14)*1.4)*scale}]}/>};` }));
 }}]});
 }
 copyFileSync('public/fonts/CenturyGothic.ttf',join(output,'CenturyGothic.ttf'));
@@ -75,6 +77,12 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
  const shell=await center.boundingBox();
  if(!shell||shell.x<-.5||shell.x+shell.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native Apps & Widgets center exceeds the viewport.',viewport,fontScale,shell}));
  await page.screenshot({path:join(output,`desktop-center-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const areas=await center.getByRole('button',{name:/-Desktop auswählen$/}).evaluateAll(elements=>elements.map(element=>{const r=element.getBoundingClientRect();return{label:element.getAttribute('aria-label'),x:r.x,y:r.y,width:r.width,height:r.height};}));
+ if(!areas.length||areas.some(area=>area.width<=0||area.x<shell.x-.5||area.x+area.width>shell.x+shell.width+.5))throw Error(JSON.stringify({message:'Desktop area controls extend outside the center.',viewport,fontScale,shell,areas}));
+ for(let i=0;i<areas.length;i++)for(let j=i+1;j<areas.length;j++){
+  const a=areas[i],b=areas[j],horizontal=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x),vertical=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+  if(horizontal>1&&vertical>1)throw Error(JSON.stringify({message:'Desktop area controls overlap.',viewport,fontScale,first:a,second:b}));
+ }
  const app=page.getByTestId('center-app-catalog').getByRole('button',{name:/^App .+ öffnen$/}).first();
  await app.scrollIntoViewIfNeeded();
  const card=await app.boundingBox(),artwork=await app.getByTestId('desktop-catalog-artwork').boundingBox();
@@ -96,22 +104,54 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
  await center.waitFor({state:'hidden'});
  page.removeListener('pageerror',capture);
  if(errors.length)throw Error(JSON.stringify({screen:'desktop-center',viewport,fontScale,errors}));
- report.push({screen:'desktop-center',viewport,fontScale,shell,card,artwork,background:preview,selectionSaved:true,errors});
+ report.push({screen:'desktop-center',viewport,fontScale,shell,areas,card,artwork,background:preview,selectionSaved:true,errors});
 }
 async function verifyWeatherDialog(page,viewport,fontScale=1){
  const heading=page.getByRole('heading',{name:'Wetterort ändern',exact:true});await heading.waitFor();
+ await waitForNativeModal(page,heading);
  const input=page.getByRole('textbox',{name:'Stadt oder Postleitzahl in Deutschland',exact:true});await input.fill('10115');
  const result=page.getByRole('button',{name:'10115 Berlin, Berlin auswählen',exact:true});await result.waitFor();await result.scrollIntoViewIfNeeded();
  const field=await input.boundingBox(),choice=await result.boundingBox();
  if(!field||!choice||field.x<-.5||field.x+field.width>viewport.width+.5||choice.x<-.5||choice.x+choice.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather search or result extends beyond the viewport.',viewport,fontScale,field,choice}));
  await page.screenshot({path:join(output,`weather-results-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  await result.click();await heading.waitFor({state:'hidden'});await page.getByText('10115 Berlin als Wetterort ausgewählt.',{exact:true}).waitFor();
- await page.getByRole('button',{name:'Wetterort ändern',exact:true}).click();await heading.waitFor();
- await page.getByText('Wetterinformationen',{exact:true}).click();
- const information=page.getByText('Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts.',{exact:false});await information.waitFor();await information.scrollIntoViewIfNeeded();
- const info=await information.boundingBox();if(!info||info.x<-.5||info.x+info.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather information is clipped.',viewport,fontScale,info}));
+ await page.getByRole('button',{name:'Wetterort ändern',exact:true}).click();await heading.waitFor();await waitForNativeModal(page,heading);
+ const summary=page.getByText('Wetterinformationen',{exact:true});await summary.click();
+ const information=page.getByText('Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts.',{exact:false});await information.waitFor();
+ const sources=[];
+ for(const name of ['Deutscher Wetterdienst','GeoNames','CC BY 4.0']){
+  const link=page.getByRole('link',{name,exact:true});await link.scrollIntoViewIfNeeded();await waitForNativeModal(page,link);
+  const bounds=await link.boundingBox();
+  const visible=await link.evaluate(element=>{let top=0,bottom=innerHeight;for(let parent=element.parentElement;parent;parent=parent.parentElement){if(/auto|scroll|hidden/.test(getComputedStyle(parent).overflowY)){const rect=parent.getBoundingClientRect();top=Math.max(top,rect.top);bottom=Math.min(bottom,rect.bottom);}}const rect=element.getBoundingClientRect();return rect.top>=top-.5&&rect.bottom<=bottom+.5;});
+  if(!bounds||!visible||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather source link is not reachable inside its scroll viewport.',viewport,fontScale,name,bounds,visible}));
+  sources.push({name,bounds,visible});
+ }
+ await summary.scrollIntoViewIfNeeded();await waitForNativeModal(page,summary);
+ const info=await information.boundingBox(),summaryBounds=await summary.boundingBox();
+ if(!info||!summaryBounds||summaryBounds.y<-.5||summaryBounds.y+summaryBounds.height>viewport.height+.5||info.x<-.5||info.x+info.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather information or its summary is clipped.',viewport,fontScale,info,summaryBounds}));
  await page.screenshot({path:join(output,`weather-information-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
- report.push({screen:'weather-dialog',viewport,fontScale,field,choice,information:info,localDirectory:true,inertAsyncSave:true,deviceLocationRequested:false});
+ report.push({screen:'weather-dialog',viewport,fontScale,field,choice,information:info,summary:summaryBounds,sources,localDirectory:true,inertAsyncSave:true,deviceLocationRequested:false});
+}
+async function waitForNativeModal(page,locator){
+ const element=await locator.elementHandle();
+ await page.waitForFunction(element=>{
+  if(!element?.isConnected)return false;
+  for(let parent=element;parent;parent=parent.parentElement){
+   if(Number(getComputedStyle(parent).opacity)<.999||parent.getAnimations().some(animation=>animation.playState==='running'||animation.pending))return false;
+  }
+  return true;
+ },element);
+ await locator.evaluate(async element=>{
+  let previous='',stable=0;
+  for(let frame=0;frame<60;frame++){
+   await new Promise(requestAnimationFrame);
+   const rect=element.getBoundingClientRect(),position=[rect.x,rect.y,rect.width,rect.height].map(value=>value.toFixed(2)).join(',');
+   stable=position===previous?stable+1:0;previous=position;
+   if(stable>=3)return;
+  }
+  throw Error('Native modal layout did not settle before capture.');
+ });
+ await element.dispose();
 }
 async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
  const tenant=screen.startsWith('owner-tenant'),failed=screen.endsWith('-error');

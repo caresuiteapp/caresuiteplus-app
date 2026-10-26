@@ -3,6 +3,7 @@ import {NativeDetails,NativeSummary,NativeP,NativeA} from '@/components/layout/N
 import {CareSuiteNativeText as Text,CareSuiteNativeTextInput as TextInput} from '@/components/ui/CareSuiteNativeText';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import type { WeatherPlace } from '@/lib/platform/desktopWeatherModel';
 type PlaceEntry = WeatherPlace & {
     search: string;
@@ -133,7 +134,7 @@ export function DesktopWeatherLocationDialog({ visible, place, preferenceError, 
             {busy ? 'Wetterort wird gespeichert …' : status === 'loading' ? 'Ortsverzeichnis wird geladen …' : status === 'error' ? 'Ortsverzeichnis konnte nicht geladen werden.'
             : search.length < 2 ? 'Mindestens zwei Zeichen eingeben und anschließend einen Treffer auswählen.'
                 : matches.length === 0 ? 'Kein passender Ort. Versuchen Sie einen anderen Ortsnamen oder die Postleitzahl.'
-                    : matches.length > 30 ? `${matches.length} Treffer · erste 30 angezeigt. Mit der Postleitzahl eingrenzen.` : `${matches.length} passende Orte`}
+                    : matches.length === 1 ? '1 passender Ort' : matches.length > 30 ? `${matches.length} Treffer · erste 30 angezeigt. Mit der Postleitzahl eingrenzen.` : `${matches.length} passende Orte`}
           </Text>
           {status === 'error' ? <Pressable accessibilityRole="button" onPress={() => setAttempt(value => value + 1)} style={styles.automatic}><Text style={[styles.link, body]}>Erneut laden</Text></Pressable> : null}
           {status === 'ready' ? matches.slice(0, 30).map(entry => {
@@ -143,11 +144,12 @@ export function DesktopWeatherLocationDialog({ visible, place, preferenceError, 
               <Text style={[styles.link, label]}>{selected ? '✓' : '›'}</Text>
             </Pressable>;
         }) : null}
-          <Pressable accessibilityRole="button" onPress={() => void choose(null)} disabled={busy} accessibilityState={{ disabled: busy, busy }} style={styles.automatic}>
-            <Text style={[styles.link, body]}>⌖ Aktuellen Standort verwenden</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Aktuellen Standort verwenden" onPress={() => void choose(null)} disabled={busy} accessibilityState={{ disabled: busy, busy }} style={styles.automatic}>
+            <Feather name="crosshair" size={18 * scale} color="#8BDFFF" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>
+            <Text style={[styles.link, body, styles.automaticText]}>Aktuellen Standort verwenden</Text>
           </Pressable>
           <Text style={[styles.muted, small]}>Die App fragt bei Bedarf nach Ihrer Standortfreigabe. Für das Wetter werden nur ungefähre Koordinaten an Bright Sky übermittelt.</Text>
-          <NativeDetails style={{ color: '#BED1E1', fontSize: 12 * scale, lineHeight: 18 * scale, paddingTop: 8 }}>
+          <NativeDetails style={{ color: '#BED1E1', fontSize: 12 * scale, lineHeight: 1.5, paddingTop: 8 }}>
             <NativeSummary style={{ cursor: 'pointer', minHeight: 36 }}>Wetterinformationen</NativeSummary>
             <NativeP>Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts. Die Uhrzeit neben dem Ort zeigt den Stand der Messung.</NativeP>
             <NativeP>Wetterdaten: <NativeA href="https://www.dwd.de/EN/service/legal_notice/legal_notice.html" target="_blank" rel="noopener noreferrer" style={{ color: '#8BDFFF' }}>Deutscher Wetterdienst</NativeA>, bereitgestellt über Bright Sky.</NativeP>
@@ -170,6 +172,7 @@ const styles = StyleSheet.create({
     input: { minHeight: 52, borderWidth: 1, borderColor: '#739FBF', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#06182D', color: '#F4FAFF' },
     result: { minHeight: 64, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#325774', borderRadius: 15, backgroundColor: '#112B45' },
     resultText: { flex: 1, minWidth: 0, gap: 4 }, selected: { borderColor: '#77DFFF', backgroundColor: '#134563' }, pressed: { backgroundColor: '#205574' },
-    automatic: { minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#426D8C', borderRadius: 14, marginTop: 6 },
+    automatic: { minHeight: 48, padding: 12, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#426D8C', borderRadius: 14, marginTop: 6 },
+    automaticText: { flexShrink: 1, minWidth: 0, textAlign: 'center' },
     link: { color: '#8BDFFF', fontWeight: '700' }, error: { color: '#FFB4BE', padding: 12, borderRadius: 12, backgroundColor: '#48273D' },
 });

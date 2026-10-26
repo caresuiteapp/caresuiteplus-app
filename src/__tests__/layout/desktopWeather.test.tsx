@@ -3,6 +3,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildSync } from 'esbuild';
+import { resolveWorkspacePresentation } from '@/lib/platform/nativeWorkspaceStyles.shared';
 import { parseDesktopWeather, useDesktopWeather } from '@/hooks/useDesktopWeather';
 let result: ReturnType<typeof useDesktopWeather>;
 let root: Root, host: HTMLDivElement;
@@ -26,14 +27,16 @@ const nativeWeatherHost = {
   StyleSheet: { create: (styles: any) => styles },
   useWindowDimensions: () => ({ width: 360, height: 640, scale: 1, fontScale: 2 }),
 };
+let nativeWeatherDetailsStyle: Record<string, unknown> = {};
 const nativeWeatherDependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': nativeWeatherHost,
+  '@expo/vector-icons/Feather': (p: any) => <span aria-hidden="true" data-weather-icon={p.name} />,
   '@/components/ui/CareSuiteNativeText': {
     CareSuiteNativeText: NativeText,
     CareSuiteNativeTextInput: (p: any) => <input aria-label={p.accessibilityLabel} value={p.value} onInput={event => p.onChangeText(event.currentTarget.value)} />,
   },
   '@/components/layout/NativeWorkspaceElements.native': {
-    NativeDetails: (p: any) => <details>{p.children}</details>, NativeSummary: (p: any) => <summary>{p.children}</summary>,
+    NativeDetails: (p: any) => { nativeWeatherDetailsStyle = p.style; return <details>{p.children}</details>; }, NativeSummary: (p: any) => <summary>{p.children}</summary>,
     NativeP: (p: any) => <p>{p.children}</p>, NativeA: (p: any) => <a href={p.href}>{p.children}</a>,
   },
 };
@@ -57,6 +60,15 @@ describe('native desktop weather selection', () => {
   const select = (text: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.includes(text))!;
   beforeEach(() => { choose.mockReset().mockResolvedValue(true); close.mockReset(); });
 
+  it('resolves the actual generated information style as a CSS line ratio', async () => {
+    await show();
+    expect(nativeWeatherDetailsStyle.lineHeight).toBe(1.5);
+    const details = { tag: 'details', props: { style: nativeWeatherDetailsStyle } };
+    const presentation = resolveWorkspacePresentation([], details, [], 360);
+    expect(presentation.text).toMatchObject({ fontSize: 12, lineHeight: 18 });
+    expect(resolveWorkspacePresentation([], { tag: 'p', props: {} }, [details], 360, presentation.text, presentation.variables).text.lineHeight).toBe(18);
+  });
+
   it('uses the current weather view and local postcode search without network or a location prompt', async () => {
     await show();
     expect(host.textContent).toContain('IHR DESKTOP');
@@ -65,6 +77,9 @@ describe('native desktop weather selection', () => {
     expect(host.textContent).toContain('Mindestens zwei Zeichen eingeben und anschließend einen Treffer auswählen.');
     expect(host.querySelector('[data-scroll="handled"]')).toBeTruthy();
     await search('44628');
+    expect(host.textContent).toContain('1 passender Ort');
+    expect(select('Aktuellen Standort verwenden').getAttribute('aria-label')).toBe('Aktuellen Standort verwenden');
+    expect(select('Aktuellen Standort verwenden').querySelector('[data-weather-icon="crosshair"]')).toBeTruthy();
     const hit = select('44628 Herne'); expect(hit).toBeTruthy();
     await act(async () => hit.click());
     expect(choose).toHaveBeenCalledWith(expect.objectContaining({ name: 'Herne', postcode: '44628', latitude: expect.any(Number), longitude: expect.any(Number) }));

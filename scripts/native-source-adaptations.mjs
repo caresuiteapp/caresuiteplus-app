@@ -33,7 +33,6 @@ export function nativeSource(file,original){let source=original;
     replace('accessibilityState={{ selected }}', 'accessibilityState={{ selected,disabled:busy,busy }} disabled={busy}');
     replace('onPress={() => choose(entry)}', 'onPress={() => void choose(entry)}');
     replace('onPress={() => choose(null)} style={styles.automatic}', 'onPress={() => void choose(null)} disabled={busy} accessibilityState={{disabled:busy,busy}} style={styles.automatic}');
-    replace("lineHeight: 1.5, paddingTop: 8", "lineHeight: 18 * scale, paddingTop: 8");
     replace('      <Pressable onPress={event => event.stopPropagation()} style=', '      <Pressable accessibilityViewIsModal onPress={event => event.stopPropagation()} style=');
   }
   // Android's shared select owns its native modal; browser popover and DOM
