@@ -10,6 +10,7 @@ const employeeB = '20000000-0000-4000-8000-000000000002';
 const employeeC = '20000000-0000-4000-8000-000000000003';
 let db: PGlite;
 let originalClientRowCount = 0;
+const additionalTables = ["employee_logbook_daily_confirmations","employee_logbook_profiles","employee_logbook_prompt_decisions","employee_logbook_receipts","employee_logbook_segments","employee_logbook_trips","employee_logbook_vehicles","employee_logbook_points"] as const;
 
 async function actor(role: string, options: { tenant?: string; employee?: string; active?: boolean; member?: boolean } = {}) {
   await db.exec('reset role');
@@ -18,7 +19,7 @@ async function actor(role: string, options: { tenant?: string; employee?: string
     set_config('audit.member', $5, false)`, [role, options.tenant ?? tenantA, options.employee ?? employeeA, String(options.active ?? false), String(options.member ?? true)]);
   await db.exec('set role authenticated');
 }
-async function visible(table: 'employee_visit_mobility_selections' | 'employee_location_consents') {
+async function visible(table: 'employee_visit_mobility_selections' | 'employee_location_consents' | typeof additionalTables[number] | 'employee_logbook_audit_events') {
   return (await db.query<{ count: number }>(`select count(*)::int as count from public.${table}`)).rows[0].count;
 }
 
@@ -61,6 +62,31 @@ describe('employee logbook and consent PostgreSQL role boundaries', () => {
         using (tenant_id = public.current_tenant_id() and public.is_employee_portal_rls_context(tenant_id) and employee_id = public.resolve_current_employee_id())
         with check (tenant_id = public.current_tenant_id() and public.is_employee_portal_rls_context(tenant_id) and employee_id = public.resolve_current_employee_id());
     `);
+    // Adversarial legacy fixtures keep direct permissive Office branches:
+    // a helper-only patch must not be enough for these tables.
+    for (const table of additionalTables) {
+      await db.exec(`
+        create table public.${table}(tenant_id uuid, employee_id uuid, marker text);
+        insert into public.${table} values
+          ('${tenantA}', '${employeeA}', 'a'), ('${tenantA}', '${employeeB}', 'b'), ('${tenantB}', '${employeeC}', 'c');
+        alter table public.${table} enable row level security;
+        grant select, insert, update, delete on public.${table} to authenticated;
+        create policy legacy_employee_read on public.${table} for select to authenticated
+          using (public.employee_logbook_own_employee(tenant_id, employee_id));
+        create policy legacy_office_branch on public.${table} for all to authenticated
+          using (tenant_id = public.current_tenant_id() and not public.is_employee_portal_rls_context(tenant_id))
+          with check (tenant_id = public.current_tenant_id() and not public.is_employee_portal_rls_context(tenant_id));
+      `);
+    }
+    await db.exec(`
+      insert into public.employee_logbook_vehicles values ('${tenantA}', null, 'company');
+      create table public.employee_logbook_audit_events(tenant_id uuid, marker text);
+      insert into public.employee_logbook_audit_events values ('${tenantA}', 'internal'), ('${tenantB}', 'foreign');
+      alter table public.employee_logbook_audit_events enable row level security;
+      grant select, insert, update, delete on public.employee_logbook_audit_events to authenticated;
+      create policy legacy_internal_read on public.employee_logbook_audit_events for select to authenticated
+        using (tenant_id = public.current_tenant_id() and not public.is_employee_portal_rls_context(tenant_id));
+    `);
     await actor('client_portal');
     originalClientRowCount = await visible('employee_visit_mobility_selections');
     await db.exec('reset role');
@@ -101,6 +127,34 @@ describe('employee logbook and consent PostgreSQL role boundaries', () => {
     await actor('office', { member: true });
     expect(await visible('employee_visit_mobility_selections')).toBe(2);
     expect(await visible('employee_location_consents')).toBe(2);
+  });
+  it.each(additionalTables)('restricts direct legacy read/write policies on %s for every portal role', async (table) => {
+    for (const role of ['client_portal', 'family_portal', 'employee_portal']) {
+      await actor(role, { active: false, member: true });
+      expect(await visible(table)).toBe(0);
+      expect((await db.query(`update public.${table} set marker = 'blocked' returning employee_id`)).rows).toHaveLength(0);
+      expect((await db.query(`delete from public.${table} returning employee_id`)).rows).toHaveLength(0);
+      await expect(db.query(`insert into public.${table} values ($1,$2,$3)`, [tenantA, employeeA, 'blocked'])).rejects.toThrow(/row.level security/i);
+    }
+    await actor('employee_portal', { active: true });
+    expect(await visible(table)).toBe(1);
+    await actor('office', { member: true });
+    expect(await visible(table)).toBe(table === 'employee_logbook_vehicles' ? 3 : 2);
+  });
+  it('preserves company vehicles without a personal employee assignment for business members', async () => {
+    await actor('office', { member: true });
+    expect((await db.query("select marker from public.employee_logbook_vehicles where employee_id is null")).rows).toEqual([{ marker: 'company' }]);
+    expect((await db.query<{ allowed: boolean }>('select public.employee_logbook_own_employee($1, null) as allowed', [tenantA])).rows[0].allowed).toBe(true);
+  });
+  it('keeps internal logbook audit events business-only', async () => {
+    for (const role of ['client_portal', 'family_portal', 'employee_portal']) {
+      await actor(role, { active: true });
+      expect(await visible('employee_logbook_audit_events')).toBe(0);
+    }
+    await actor('office', { member: true });
+    expect(await visible('employee_logbook_audit_events')).toBe(1);
+    await actor('office', { member: false });
+    expect(await visible('employee_logbook_audit_events')).toBe(0);
   });
   it('denies a business account without membership and an unresolved role', async () => {
     await actor('office', { member: false });
