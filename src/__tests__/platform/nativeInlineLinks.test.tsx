@@ -64,7 +64,7 @@ describe('native inline links through the shared renderer',()=>{
   });
   it('keeps unavailable inline links disabled and block, image or uncertain content as Pressables outside Text',async()=>{
     function UnknownContent(){return <NativeDiv>Unbekannter Inhalt</NativeDiv>;}
-    await render(<NativeWorkspaceStyleScope css={['.block{display:flex}.decorated::before{content:"•"}.nested-block{display:block}']}>
+    await render(<NativeWorkspaceStyleScope css={['.block{display:flex}.decorated::before{content:"•"}.nested-block{display:block}.positional>a:first-child{display:flex}.disabled-block:disabled{display:flex}']}>
       <NativeFieldset disabled><NativeP>Gesperrt: <NativeA href="https://example.invalid/disabled">Gesperrter Link</NativeA></NativeP></NativeFieldset>
       <NativeP>Block: <NativeA className="block" href="/block">Blocklink</NativeA></NativeP>
       <NativeP>Bild: <NativeA href="/image"><NativeImg src="https://example.invalid/art.png" alt="Bild"/></NativeA></NativeP>
@@ -72,11 +72,13 @@ describe('native inline links through the shared renderer',()=>{
       <NativeP>Dekoration: <NativeA className="decorated" href="/decorated">Dekoriert</NativeA></NativeP>
       <NativeP>Inhalt: <NativeA href="/nested"><NativeSpan className="nested-block">Eigener Block</NativeSpan></NativeA></NativeP>
       <NativeP>Geschachtelt: <NativeSpan><NativeA href="/inline">Inline</NativeA></NativeSpan></NativeP>
+      <NativeP className="positional"><NativeA href="/first">Erster Link als Block</NativeA> und weitere Angaben.</NativeP>
+      <NativeFieldset disabled><NativeP><NativeA className="disabled-block" href="/disabled-block">Gesperrter Blocklink</NativeA></NativeP></NativeFieldset>
       <NativeA href="/standalone">Eigenständiger Link</NativeA>
     </NativeWorkspaceStyleScope>);
     const actions=links(),disabled=actions.find(link=>link.textContent==='Gesperrter Link')!;
     expect(disabled.dataset.nativeHost).toBe('text');expect(disabled.getAttribute('aria-disabled')).toBe('true');await click(disabled);expect(api.openURL).not.toHaveBeenCalled();
-    for(const text of ['Blocklink','Unbekannter Inhalt','Dekoriert','Eigener Block','Eigenständiger Link'])expect(actions.find(link=>link.textContent===text)!.dataset.nativeHost).toBe('pressable');
+    for(const text of ['Blocklink','Unbekannter Inhalt','Dekoriert','Eigener Block','Erster Link als Block','Gesperrter Blocklink','Eigenständiger Link'])expect(actions.find(link=>link.textContent===text)!.dataset.nativeHost).toBe('pressable');
     expect(actions.find(link=>link.querySelector('[data-native-host="view"]'))).toBeTruthy();
     expect(actions.find(link=>link.textContent==='Inline')!.dataset.nativeHost).toBe('text');
   });
