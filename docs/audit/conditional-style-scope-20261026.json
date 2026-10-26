@@ -16,7 +16,7 @@
     "actualScreen": "InvoicesListScreen embedded and standalone at 360px/1.6 and 1280px/1; actual compiled invoice CSS and action delivery.",
     "browser": "The real ready invoice route must retain the authored horizontal tab row at all three existing viewports."
   },
-  "regeneration": "A temporary handover step uses the existing CI generator only after the strict source check fails. It exports the changed native source files for a separate review/commit; the strict check stays failed until those outputs are committed. Remove the temporary step when committing the outputs.",
+  "regeneration": "The existing CI generator produced the three changed native files after the strict check found exactly three stale outputs. The temporary source-export step is removed in this source commit. Strict source verification remains unchanged.",
   "releaseAcceptance": false,
   "baselineCi173": {
     "run": 40416516039,
@@ -38,5 +38,38 @@
     },
     "portalPrograms": "all three passed",
     "limits": "The prior audit did not assert invoice stylesheet attachment; its green result does not clear the newly observed unstyled invoice page."
-  }
+  },
+  "regenerated": {
+    "run": 40418928281,
+    "source": "e7f7afdea4b764b924fc723b60e1a87c384cb47e",
+    "artifact": 12696526353,
+    "archiveSha256": "6fa6a220371616cd6ec572c07fb27ba3d2fbfef47aefba2e5cc04ba030b2e893",
+    "staleBefore": 3,
+    "files": [
+      {
+        "path": "src/components/assist/AssignmentsListView.native.tsx",
+        "changedLines": [
+          150,
+          183
+        ],
+        "scopeOnly": true
+      },
+      {
+        "path": "src/screens/office/InvoiceDetailScreen.native.tsx",
+        "changedLines": [
+          46
+        ],
+        "scopeOnly": true
+      },
+      {
+        "path": "src/screens/office/InvoicesListScreen.native.tsx",
+        "changedLines": [
+          12
+        ],
+        "scopeOnly": true
+      }
+    ],
+    "review": "All changed lines reduce exactly to the prior text after removing the added CSS provider tags. Business logic, permissions and callbacks are byte-identical."
+  },
+  "nextValidation": "Full CI including the four new executing screen-scope cases, actual horizontal invoice tabs and fresh original images is pending."
 }

@@ -147,7 +147,7 @@ function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = fals
       {canManage ? <><NativeButton type="button" className="aw-button aw-button--quiet" aria-label={`Einsatz für ${item.clientName} bearbeiten`} title="Einsatz bearbeiten" onClick={() => edit(item.id)}><Icon name="edit" size={16}/></NativeButton><NativeButton type="button" className="aw-button aw-button--quiet" aria-label={`Einsatz für ${item.clientName} löschen`} title="Einsatz löschen" disabled={!!deleting} onClick={() => void remove(item)}>{deleting === item.id ? <NativeSpan className="aw-spin"><Icon name="refresh" size={16}/></NativeSpan> : <Icon name="trash" size={16}/>}</NativeButton></> : null}
     </NativeDiv>
   </>;
-    const content = <>
+    const content = <NativeWorkspaceStyleScope css={[assignmentsListCss]}>{<>
     <NativeStyle>{assignmentsListCss}</NativeStyle>
     {embedded ? <NativeDiv className="awl-results-header"><NativeH2>Einsätze</NativeH2><NativeDiv className="aw-actions">{actions}</NativeDiv></NativeDiv> : null}
     {!canManage ? <NativeDiv className="aw-alert" data-tone="info">Sie können Einsätze ansehen. Zum Planen und Bearbeiten benötigen Sie die entsprechende Berechtigung.</NativeDiv> : null}
@@ -180,7 +180,7 @@ function AssignmentsListContent({ onAssignmentPress, selectedId, embedded = fals
     {list.items.length ? <NativeDiv className="awl-pagination"><NativeP>{list.items.length} von {list.filteredCount} passenden Einsätzen angezeigt</NativeP>{list.hasMore ? <NativeButton type="button" className="aw-button" onClick={list.loadMore}>Weitere Einsätze anzeigen <Icon name="plus" size={16}/></NativeButton> : null}</NativeDiv> : null}
     {canManage ? <AssignmentCreateForm visible={wizardVisible} initialClientId={initialCreateClientId} initialAssignmentDate={initialCreateAssignmentDate} initialEmployeeId={initialCreateEmployeeId} onClose={() => setWizardVisible(false)} onCreated={id => { if (!mounted.current)
         return; setWizardVisible(false); void refresh(); open(id); }}/> : null}
-  </>;
+  </>}</NativeWorkspaceStyleScope>;
     return embedded ? <NativeDiv className="aw-workspace" data-cs-assignments-surface="light"><AssignmentsWorkspaceStyles /><NativeDiv className="aw-content">{content}</NativeDiv></NativeDiv>
         : <AssignmentsWorkspaceShell title="Einsätze" description="Planung, Durchführung und Nachweise – mit einem klaren Überblick über den nächsten Schritt." actions={actions}>{content}</AssignmentsWorkspaceShell>;
 }

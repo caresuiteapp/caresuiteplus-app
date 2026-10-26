@@ -9,7 +9,7 @@ export function InvoicesListScreen(props: {
     embedded?: boolean;
     initialView?: 'list' | 'run';
 } = {}) {
-    const content = <><NativeStyle>{invoiceWorkspaceCss}</NativeStyle><InvoicesWorkspace onInvoicePress={props.onInvoicePress} selectedId={props.selectedId} initialView={props.initialView}/></>;
+    const content = <NativeWorkspaceStyleScope css={[invoiceWorkspaceCss]}>{<><NativeStyle>{invoiceWorkspaceCss}</NativeStyle><InvoicesWorkspace onInvoicePress={props.onInvoicePress} selectedId={props.selectedId} initialView={props.initialView}/></>}</NativeWorkspaceStyleScope>;
     return props.embedded ? content : <ScreenShell title="Rechnungen" contentOwnsHeader>{content}</ScreenShell>;
 }
 export function InvoiceRunsScreen() { return <NativeWorkspaceStyleScope css={[invoiceWorkspaceCss]}>{<InvoicesListScreen initialView="run"/>}</NativeWorkspaceStyleScope>; }
