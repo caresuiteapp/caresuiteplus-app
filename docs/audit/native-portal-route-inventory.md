@@ -1,5 +1,3 @@
-> VORLÄUFIGER ARBEITSSTAND: Quellen änderten sich während der Inventur. Vor jedem Gate/Abgleich nach Source-Freeze ohne --provisional neu erzeugen. Betroffen: scripts/audit-native-portal-route-matrix.mjs
-
 # Native Portal-Routeninventur
 
 Der Android-Dateibaum enthält **692 ausgewählte Seiten** und **44 Layouts**. Die tatsächliche Expo-Android-Dateiauswahl und der installierte Linking-Parser wurden synthetisch geprüft. Das belegt weder eine benutzbare App noch die Ausführung der Seiten, Formulare oder Backendaktionen.
@@ -17,14 +15,14 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | shared_access | 23 |
 | shared_or_system | 34 |
 
-- Aliasseiten: 68
+- Aliasseiten: 102
 - Nur gruppenqualifiziert auflösbare Schattenvarianten: 5
 - Native Weiterleitung im übergeordneten Layout: 22
 - Weiterhin global gesperrte Modulseiten: 176
-- Ohne statischen Navigations-/Eingangslinkbeleg: 271
+- Ohne statischen Navigations-/Eingangslinkbeleg: 269
 - Ohne passende Registryregel: 48
-- Vorbereitungs-/Platzhaltersignale: 61
-- Nicht sicher auswertbare Redirectketten: 3
+- Vorbereitungs-/Platzhaltersignale: 65
+- Nicht sicher auswertbare Redirectketten: 31
 - Strukturelle Dateiauswahl-/Parameterfehler: 0
 - Nicht aufgelöste Quell-Navigationausdrücke: 461
 
@@ -160,7 +158,7 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/business/admin/developer` | administration | Laufzeit ungeprüft | /business/admin/developer | `app/business/admin/developer/index.tsx` |
 | `/business/connect` | administration | Vorbereitungssignal | /business/connect | `app/business/(tabs)/connect.tsx` |
 | `/business/connect/[category]` | administration | Vorbereitungssignal | /business/connect | `app/business/connect/[category]/index.tsx` |
-| `/business/connect/[category]/[integrationKey]` | administration | Laufzeit ungeprüft | /business/connect | `app/business/connect/[category]/[integrationKey].native.tsx` |
+| `/business/connect/[category]/[integrationKey]` | administration | Vorbereitungssignal | /business/connect | `app/business/connect/[category]/[integrationKey].native.tsx` |
 | `/business/connect/[category]/[integrationKey]/configure` | administration | Vorbereitungssignal | /business/connect | `app/business/connect/[category]/[integrationKey]/configure.tsx` |
 | `/business/connect/accounting/prepare` | administration | Vorbereitungssignal | /business/connect | `app/business/connect/accounting/prepare.tsx` |
 | `/business/connect/billing/prepare` | administration | Vorbereitungssignal | /business/connect | `app/business/connect/billing/prepare.tsx` |
@@ -174,15 +172,15 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/business/dashboard` | administration | Alias / Redirect | /business | `app/business/dashboard.tsx` |
 | `/business/documents` | administration | Laufzeit ungeprüft | /business | `app/business/documents.native.tsx` |
 | `/business/insight` | administration | Vorbereitungssignal | /business | `app/business/insight.tsx` |
-| `/business/integrations` | administration | Laufzeit ungeprüft | /business/integrations | `app/business/(tabs)/integrations.native.tsx` |
-| `/business/integrations/[id]` | administration | Laufzeit ungeprüft | /business/integrations | `app/business/integrations/[id]/index.native.tsx` |
+| `/business/integrations` | administration | Vorbereitungssignal | /business/integrations | `app/business/(tabs)/integrations.native.tsx` |
+| `/business/integrations/[id]` | administration | Vorbereitungssignal | /business/integrations | `app/business/integrations/[id]/index.native.tsx` |
 | `/business/integrations/outbox` | administration | Laufzeit ungeprüft | /business/integrations | `app/business/integrations/outbox/index.tsx` |
 | `/business/integrations/payroll` | administration | Laufzeit ungeprüft | /business/integrations | `app/business/integrations/payroll/index.tsx` |
 | `/business/integrations/portal-preview` | administration | Laufzeit ungeprüft | /business/integrations | `app/business/integrations/portal-preview.tsx` |
 | `/business/messages` | administration | Laufzeit ungeprüft | /business/messages | `app/business/messages/index.native.tsx` |
-| `/business/messages/[threadId]` | administration | Laufzeit ungeprüft | /business/messages | `app/business/messages/[threadId].native.tsx` |
+| `/business/messages/[threadId]` | administration | Alias / Redirect | /business/messages | `app/business/messages/[threadId].native.tsx` |
 | `/business/messages/archived` | administration | Alias / Redirect | /business/messages | `app/business/messages/archived.tsx` |
-| `/business/messages/assignments` | administration | Laufzeit ungeprüft | /business/messages | `app/business/messages/assignments.native.tsx` |
+| `/business/messages/assignments` | administration | Alias / Redirect | /business/messages | `app/business/messages/assignments.native.tsx` |
 | `/business/messages/channels` | administration | Laufzeit ungeprüft | /business/messages | `app/business/messages/channels.native.tsx` |
 | `/business/messages/new` | administration | Alias / Redirect | /business/messages | `app/business/messages/new.tsx` |
 | `/business/messages/settings` | administration | Laufzeit ungeprüft | /business/messages/settings | `app/business/messages/settings.native.tsx` |
@@ -238,20 +236,20 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/business/office/employees/hr-cases` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/employees/hr-cases/index.tsx` |
 | `/business/office/employees/new` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/employees/new.native.tsx` |
 | `/business/office/fahrtenbuch` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/fahrtenbuch/index.tsx` |
-| `/business/office/inventory` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/index.native.tsx` |
-| `/business/office/inventory/assignments` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/assignments.native.tsx` |
-| `/business/office/inventory/audit` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/audit.native.tsx` |
-| `/business/office/inventory/barcode` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/barcode.native.tsx` |
-| `/business/office/inventory/categories` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/categories.native.tsx` |
-| `/business/office/inventory/damage` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/damage.native.tsx` |
-| `/business/office/inventory/employees` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/employees.native.tsx` |
-| `/business/office/inventory/items` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/items.native.tsx` |
-| `/business/office/inventory/locations` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/locations.native.tsx` |
-| `/business/office/inventory/mdm` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/mdm.native.tsx` |
-| `/business/office/inventory/offboarding` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/offboarding.native.tsx` |
-| `/business/office/inventory/protocols` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/protocols.native.tsx` |
-| `/business/office/inventory/returns` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/returns.native.tsx` |
-| `/business/office/inventory/settings` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/inventory/settings.native.tsx` |
+| `/business/office/inventory` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/index.native.tsx` |
+| `/business/office/inventory/assignments` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/assignments.native.tsx` |
+| `/business/office/inventory/audit` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/audit.native.tsx` |
+| `/business/office/inventory/barcode` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/barcode.native.tsx` |
+| `/business/office/inventory/categories` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/categories.native.tsx` |
+| `/business/office/inventory/damage` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/damage.native.tsx` |
+| `/business/office/inventory/employees` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/employees.native.tsx` |
+| `/business/office/inventory/items` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/items.native.tsx` |
+| `/business/office/inventory/locations` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/locations.native.tsx` |
+| `/business/office/inventory/mdm` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/mdm.native.tsx` |
+| `/business/office/inventory/offboarding` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/offboarding.native.tsx` |
+| `/business/office/inventory/protocols` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/protocols.native.tsx` |
+| `/business/office/inventory/returns` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/returns.native.tsx` |
+| `/business/office/inventory/settings` | administration | Alias / Redirect | /business/office | `app/business/office/inventory/settings.native.tsx` |
 | `/business/office/invoices` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/invoices/index.native.tsx` |
 | `/business/office/invoices/[id]` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/invoices/[id].native.tsx` |
 | `/business/office/invoices/[id]/edit` | administration | Laufzeit ungeprüft | /business/office | `app/business/office/invoices/[id]/edit.native.tsx` |
@@ -368,7 +366,7 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/business/security/list` | administration | Vorbereitungssignal | /business/security | `app/business/security/list.tsx` |
 | `/business/security/portal-preview` | administration | Laufzeit ungeprüft | /business/security | `app/business/security/portal-preview.tsx` |
 | `/business/settings` | administration | Vorbereitungssignal | /business | `app/business/settings.native.tsx` |
-| `/business/subscription` | administration | Laufzeit ungeprüft | /business | `app/business/(tabs)/subscription.native.tsx` |
+| `/business/subscription` | administration | Vorbereitungssignal | /business | `app/business/(tabs)/subscription.native.tsx` |
 | `/business/templates` | administration | Alias / Redirect | /business/templates | `app/business/templates/index.tsx` |
 | `/business/templates/[id]` | administration | Laufzeit ungeprüft | /business/templates | `app/business/templates/[id]/index.tsx` |
 | `/business/templates/[id]/edit` | administration | Laufzeit ungeprüft | /business/templates | `app/business/templates/[id]/edit.tsx` |
@@ -460,8 +458,8 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/office/catalogs` | administration | Laufzeit ungeprüft | /office/catalogs | `app/office/catalogs/index.native.tsx` |
 | `/office/catalogs/[id]` | administration | Laufzeit ungeprüft | /office/catalogs | `app/office/catalogs/[id]/index.native.tsx` |
 | `/office/catalogs/create` | administration | Laufzeit ungeprüft | /office/catalogs/create | `app/office/catalogs/create.native.tsx` |
-| `/office/catalogs/portal-preview` | administration | Laufzeit ungeprüft | /office/catalogs | `app/office/catalogs/portal-preview.native.tsx` |
-| `/office/catalogs/workflow-builder` | administration | Laufzeit ungeprüft | /office/catalogs/workflow-builder | `app/office/catalogs/workflow-builder.native.tsx` |
+| `/office/catalogs/portal-preview` | administration | Alias / Redirect | /office/catalogs | `app/office/catalogs/portal-preview.native.tsx` |
+| `/office/catalogs/workflow-builder` | administration | Alias / Redirect | /office/catalogs/workflow-builder | `app/office/catalogs/workflow-builder.native.tsx` |
 | `/office/clients` | administration | Laufzeit ungeprüft | /office/clients | `app/office/(tabs)/clients.tsx` |
 | `/office/clients/[id]` | administration | Alias / Redirect | /office/clients | `app/office/clients/[id]/index.tsx` |
 | `/office/clients/[id]/clinical-history` | administration | Laufzeit ungeprüft | /office/clients | `app/office/clients/[id]/clinical-history.native.tsx` |
@@ -480,27 +478,27 @@ Die drei sichtbaren Zugänge heißen **Verwaltung**, **Mitarbeiter** und **Klien
 | `/office/employees/[id]/offboarding` | administration | Laufzeit ungeprüft | /office/employees | `app/office/employees/[id]/offboarding.tsx` |
 | `/office/employees/create` | administration | Laufzeit ungeprüft | /office/employees/create | `app/office/employees/create.native.tsx` |
 | `/office/employees/portal-preview` | administration | Laufzeit ungeprüft | /office/employees | `app/office/employees/portal-preview.tsx` |
-| `/office/inventory` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/index.native.tsx` |
-| `/office/inventory/assignments` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/assignments.native.tsx` |
-| `/office/inventory/audit` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/audit.native.tsx` |
-| `/office/inventory/barcode` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/barcode.native.tsx` |
-| `/office/inventory/categories` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/categories.native.tsx` |
-| `/office/inventory/damage` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/damage.native.tsx` |
-| `/office/inventory/employees` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/employees.native.tsx` |
-| `/office/inventory/items` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/items.native.tsx` |
-| `/office/inventory/locations` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/locations.native.tsx` |
-| `/office/inventory/mdm` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/mdm.native.tsx` |
-| `/office/inventory/offboarding` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/offboarding.native.tsx` |
-| `/office/inventory/protocols` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/protocols.native.tsx` |
-| `/office/inventory/returns` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/returns.native.tsx` |
-| `/office/inventory/settings` | administration | Laufzeit ungeprüft | /office | `app/office/inventory/settings.native.tsx` |
+| `/office/inventory` | administration | Alias / Redirect | /office | `app/office/inventory/index.native.tsx` |
+| `/office/inventory/assignments` | administration | Alias / Redirect | /office | `app/office/inventory/assignments.native.tsx` |
+| `/office/inventory/audit` | administration | Alias / Redirect | /office | `app/office/inventory/audit.native.tsx` |
+| `/office/inventory/barcode` | administration | Alias / Redirect | /office | `app/office/inventory/barcode.native.tsx` |
+| `/office/inventory/categories` | administration | Alias / Redirect | /office | `app/office/inventory/categories.native.tsx` |
+| `/office/inventory/damage` | administration | Alias / Redirect | /office | `app/office/inventory/damage.native.tsx` |
+| `/office/inventory/employees` | administration | Alias / Redirect | /office | `app/office/inventory/employees.native.tsx` |
+| `/office/inventory/items` | administration | Alias / Redirect | /office | `app/office/inventory/items.native.tsx` |
+| `/office/inventory/locations` | administration | Alias / Redirect | /office | `app/office/inventory/locations.native.tsx` |
+| `/office/inventory/mdm` | administration | Alias / Redirect | /office | `app/office/inventory/mdm.native.tsx` |
+| `/office/inventory/offboarding` | administration | Alias / Redirect | /office | `app/office/inventory/offboarding.native.tsx` |
+| `/office/inventory/protocols` | administration | Alias / Redirect | /office | `app/office/inventory/protocols.native.tsx` |
+| `/office/inventory/returns` | administration | Alias / Redirect | /office | `app/office/inventory/returns.native.tsx` |
+| `/office/inventory/settings` | administration | Alias / Redirect | /office | `app/office/inventory/settings.native.tsx` |
 | `/office/invoices` | administration | Laufzeit ungeprüft | /office/invoices | `app/office/(tabs)/invoices.native.tsx` |
 | `/office/invoices/[id]` | administration | Laufzeit ungeprüft | /office/invoices | `app/office/invoices/[id]/index.native.tsx` |
 | `/office/invoices/create` | administration | Laufzeit ungeprüft | /office/invoices | `app/office/invoices/create.native.tsx` |
 | `/office/invoices/portal-preview` | administration | Laufzeit ungeprüft | /office/invoices | `app/office/invoices/portal-preview.tsx` |
 | `/office/kalender` | administration | Alias / Redirect | /office/kalender | `app/office/kalender.tsx` |
 | `/office/messages` | administration | Laufzeit ungeprüft | /office/messages | `app/office/messages/index.native.tsx` |
-| `/office/messages/[id]` | administration | Laufzeit ungeprüft | /office/messages | `app/office/messages/[id].native.tsx` |
+| `/office/messages/[id]` | administration | Alias / Redirect | /office/messages | `app/office/messages/[id].native.tsx` |
 | `/office/messages/compose` | administration | Alias / Redirect | /office/messages/compose | `app/office/messages/compose.tsx` |
 | `/office/messages/settings` | administration | Laufzeit ungeprüft | /office/messages/settings | `app/office/messages/settings.tsx` |
 | `/office/messages/templates` | administration | Laufzeit ungeprüft | /office/messages/templates | `app/office/messages/templates.native.tsx` |
