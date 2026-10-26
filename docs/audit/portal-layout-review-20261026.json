@@ -300,5 +300,62 @@
       "Help title breaks at Notfall- / nummern; no isolated final letter.",
       "Signature title breaks at Alltags- / begleitung; accessible original title is retained."
     ]
+  },
+  "nonReadyReview": {
+    "sourceCommit": "f611737071e929205fe3b24939f60251e2a34562",
+    "ciRun": 40382851541,
+    "employee": {
+      "selectedEnlargedFrames": 93,
+      "representativeDistinctBodyTextViewsReviewed": 79,
+      "overviewSheets": 14
+    },
+    "clientAndFamily": {
+      "selectedEnlargedFrames": 129,
+      "representativeDistinctBodyTextViewsReviewed": 54,
+      "overviewSheets": 9
+    },
+    "confirmedInOriginalResolution": [
+      "Feedback title Klientenakte/ Klientenakten breaks inside the final letters next to icon and close action.",
+      "Empty proof guide ends the title with an isolated final e.",
+      "Request select fields overlap the following label when text is enlarged."
+    ],
+    "implementedAwaitingNewImages": [
+      "Phone feedback heading receives a separate full-width row below icon/close controls.",
+      "Phone portal guide places its mascot above a full-width speech bubble and supports Leistungs-/nachweise.",
+      "Stacked request selects retain intrinsic height rather than sharing flex space.",
+      "Client profile without data displays an explanation and reload action."
+    ],
+    "fixtureCorrections": [
+      "Record-detail empty data includes the actual hook notFound signal.",
+      "Open-assignment input includes the actual hook isLinkedReady signal.",
+      "Empty object queries return null, so the signature detail exercises its missing-record state."
+    ],
+    "localValidation": {
+      "tests": 62,
+      "files": 7,
+      "preparedPortalCases": 65,
+      "staleNativeSourceOutputs": 0
+    },
+    "limits": [
+      "Representative text-identical frames were grouped; this is not a review of every rendered image.",
+      "Static help, compose and globally gated feature views do not necessarily perform a request in each synthetic state.",
+      "No physical Android navigation or server persistence proved."
+    ]
+  },
+  "ci163Checkpoint": {
+    "sourceCommit": "9d760ed94721a32fba98b3061d25f698a718cbac",
+    "run": 40385597787,
+    "portalJobs": "all three passed",
+    "preparedStateCases": 1044,
+    "typecheck": "passed",
+    "administrationVisualJob": "still running at this checkpoint",
+    "timelineOriginalReviewed": true,
+    "timelineResult": "Full event title, separate relative timestamp and complete subtitle are visible in the scrolled 360px/1.6 image.",
+    "administrationArtifact": {
+      "id": 12681621241,
+      "sha256": "6cf3aeeea519fc8d2100cdc98db3cd0b9c491066304f946b327ecfa562acfd69"
+    },
+    "textMeasurement": "All portals execute the broken-word negative and complete-word/soft-hyphen positive controls; previous six false failures are resolved.",
+    "releaseAcceptance": false
   }
 }

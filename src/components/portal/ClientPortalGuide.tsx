@@ -29,17 +29,17 @@ export function ClientPortalGuide({
   const small = compact || isPhone;
 
   return (
-    <View style={[styles.wrap, small && styles.wrapSmall]} testID="client-portal-guide">
+    <View style={[styles.wrap, small && styles.wrapSmall, isPhone && styles.wrapStacked]} testID="client-portal-guide">
       <Image
         accessibilityIgnoresInvertColors
         accessibilityLabel="CareSuite Portalbegleiter"
         resizeMode="contain"
         source={require('../../../assets/auth/access-client.png')}
-        style={[styles.mascot, small && styles.mascotSmall]}
+        style={[styles.mascot, small && styles.mascotSmall, isPhone && styles.mascotStacked]}
       />
-      <View style={styles.bubble}>
-        <View style={styles.bubbleTail} />
-        <Text style={[type.bodyStrong, styles.title]}>{title}</Text>
+      <View style={[styles.bubble, isPhone && styles.bubbleStacked]}>
+        <View style={[styles.bubbleTail, isPhone && styles.bubbleTailStacked]} />
+        <Text accessibilityLabel={title} style={[type.bodyStrong, styles.title]}>{title.replaceAll('Leistungsnachweise', 'Leistungs\u00ADnachweise')}</Text>
         <Text style={[type.body, styles.message]}>{message}</Text>
         {actionLabel && onAction ? (
           <Pressable
@@ -73,6 +73,10 @@ const styles = StyleSheet.create({
       : { shadowColor: '#002657', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
   },
   wrapSmall: { minHeight: 96, padding: 10, gap: 9 },
+  wrapStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  mascotStacked: { alignSelf: 'flex-start' },
+  bubbleStacked: { flex: undefined, width: '100%' },
+  bubbleTailStacked: { left: 28, top: -7, transform: [{ rotate: '135deg' }] },
   mascot: { width: 98, height: 98, flexShrink: 0 },
   mascotSmall: { width: 68, height: 74 },
   bubble: {

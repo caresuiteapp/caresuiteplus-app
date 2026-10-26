@@ -373,7 +373,13 @@ function ClientPortalProfileContent({ actor }: { actor: PortalActor }) {
     );
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <PortalTabScreen title="Profil" scroll={false} hideHeaderOnPhone>
+        <EmptyState title="Keine Profildaten" message="Für Ihren Zugang sind derzeit keine persönlichen Daten verfügbar. Laden Sie das Profil erneut oder wenden Sie sich an Ihr Betreuungsteam." actionLabel="Erneut laden" onAction={refresh} />
+      </PortalTabScreen>
+    );
+  }
 
   return (
     <PortalTabScreen title="Profil" scroll={false} hideHeaderOnPhone>

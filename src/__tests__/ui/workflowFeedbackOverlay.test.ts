@@ -60,6 +60,7 @@ const dependencies: Record<string, unknown> = {
   },
   '@/components/icons/SemanticArtwork': { SemanticArtwork: Text },
   '@/components/brand/CareSuiteLoadingIndicator': { CareSuiteLoadingIndicator: () => h('span', {}, 'CareSuite HealthOS') },
+  '@/hooks/useDeviceClass': { useDeviceClass: () => ({ isPhone: true }) },
   '@/components/brand/appStartIntroSession': { useAppStartIntroReady: () => introReady },
   '@/design/tokens/spacing': { careSpacing: { xs: 4, sm: 8, md: 16, lg: 24 } },
   '@/design/tokens/spatialCareSuite': { spatialCare: { radius: { card: 20, control: 12 }, textOnNight: '#fff', border: '#8ca2bf' } },

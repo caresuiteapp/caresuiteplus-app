@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -67,6 +68,7 @@ export function WorkflowFeedbackOverlay({
   testID = 'workflow-feedback-overlay',
 }: Props) {
   const startupReady = useAppStartIntroReady();
+  const { isPhone } = useDeviceClass();
   const portal = usePortalPremiumRuntimeTheme();
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
@@ -150,6 +152,13 @@ export function WorkflowFeedbackOverlay({
   }, [loading, portalHost]);
 
   const meta = feedbackMeta[kind];
+  const closeControl = (
+    <Pressable accessibilityLabel="Meldung schließen" accessibilityRole="button" onPress={dismiss} style={[styles.close, portal.active && styles.portalClose]}>
+      <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText]} webSize={20}>×</SemanticArtwork>
+    </Pressable>
+  );
+  const indicator = <View style={[styles.icon, { backgroundColor: meta.color }]}><SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork></View>;
+  const heading = <View style={[styles.headingText, isPhone && styles.headingTextPhone]}><Text testID={`${testID}-title`} accessibilityRole="header" style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text></View>;
   const content = (
     <View
       accessibilityRole="alert"
@@ -178,21 +187,8 @@ export function WorkflowFeedbackOverlay({
           </View>
         ) : (
           <ScrollView style={styles.messageScroll} contentContainerStyle={styles.messageContent} keyboardShouldPersistTaps="handled">
-            <View style={styles.heading}>
-              <View style={[styles.icon, { backgroundColor: meta.color }]}>
-                <SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork>
-              </View>
-              <View style={styles.headingText}>
-                <Text style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Meldung schließen"
-                accessibilityRole="button"
-                onPress={dismiss}
-                style={[styles.close, portal.active && styles.portalClose]}
-              >
-                <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText]} webSize={20}>×</SemanticArtwork>
-              </Pressable>
+            <View style={[styles.heading, isPhone && styles.headingPhone]}>
+              {isPhone ? <><View style={styles.headingControls}>{indicator}{closeControl}</View>{heading}</> : <>{indicator}{heading}{closeControl}</>}
             </View>
             <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
             <View style={styles.actions}>
@@ -284,6 +280,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.24,
   },
   heading: { flexDirection: 'row', alignItems: 'flex-start', gap: careSpacing.md },
+  headingPhone: { flexDirection: 'column' },
+  headingControls: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headingTextPhone: { flex: undefined, width: '100%' },
   messageScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
   messageContent: { gap: careSpacing.lg },
   headingText: { flex: 1, minWidth: 0, gap: careSpacing.xs },

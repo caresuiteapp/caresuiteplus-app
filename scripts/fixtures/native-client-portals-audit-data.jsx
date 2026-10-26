@@ -58,7 +58,7 @@ export function useAsyncQuery(_fetch, _deps, options) {
     return { data: items, loading: loading(), error: error(), refreshError: null, refresh, refreshWithResult: refresh, silentRefresh: refresh, refreshing: false, cacheMeta: { fromCache: false, cachedAt: null } };
   }
   const value = screen() === 'client-audit-budget' ? budgetModels : screen() === 'client-audit-proofs' ? [proof] : screen() === 'client-audit-signature-detail' ? signatureRequest : screen() === 'client-audit-signatures' ? [signatureRequest] : null;
-  return { data: loading() || failed() ? null : empty() && Array.isArray(value) ? [] : value, loading: loading(), error: error(), refreshError: null, refresh, refreshWithResult: refresh, silentRefresh: refresh, refreshing: false, cacheMeta: { fromCache: false, cachedAt: null } };
+  return { data: loading() || failed() ? null : empty() ? (Array.isArray(value) ? [] : null) : value, loading: loading(), error: error(), refreshError: null, refresh, refreshWithResult: refresh, silentRefresh: refresh, refreshing: false, cacheMeta: { fromCache: false, cachedAt: null } };
 }
 export const fetchAssistDashboardData = async () => loading() ? new Promise(() => {}) : failed() ? { ok: false, error: error() } : { ok: true, data: empty() ? { ...clientData, nextAppointment: null, upcomingAppointments: [], activities: [], openRequests: [], kpis: { appointments: 0, messages: 0, documents: 0, proofs: 0, signatures: 0, budgetAvailable: false, openRequests: 0, activities: 0 } } : clientData };
 export const listPortalServiceProofs = async () => ({ ok: true, data: itemList([proof]) });
