@@ -497,7 +497,7 @@ function PrivacyConsentModal(props: {
 
 const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
-  kpiColumn: { flexDirection: 'column' },
+  kpiColumn: { flexDirection: 'column', width: '100%' },
   blockRow: { paddingVertical: careSpacing.xs },
   modalBackdrop: {
     flex: 1,
