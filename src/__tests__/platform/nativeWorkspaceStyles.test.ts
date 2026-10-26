@@ -8,6 +8,20 @@ import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,wor
 import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.shared';
 import {notesWorkspaceCss} from '@/components/office/notes/notesWorkspaceCss.native';
 describe('native presentation of business layouts',()=>{
+  it.each([
+    ['.action{font-size:11px;font-weight:700}.scope button{font:inherit}',14,'400'],
+    ['.scope button{font:inherit;font-size:12px;font-weight:600}',12,'600'],
+    ['.scope button{font-size:12px;font-weight:600;font:inherit}',14,'400'],
+    ['.scope button{font:inherit!important}.scope button.action{font-size:12px;font-weight:600}',14,'400'],
+  ] as const)('applies font:inherit at its real cascade priority (%s)',(css,size,weight)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss(css)],{tag:'button',props:{className:'action'}},[{tag:'div',props:{className:'scope'}}],1280,{fontSize:14,fontWeight:'400',fontStyle:'normal',lineHeight:22.4},{'--cs-native-line-ratio':'1.6'});
+    expect(result.text.fontSize).toBe(size);expect(result.text.fontWeight).toBe(weight);expect(result.text.lineHeight).toBeCloseTo(size*1.6);
+  });
+  it('keeps a later inline font longhand ahead of an inherited font shorthand',()=>{
+    const result=resolveWorkspacePresentation([],{tag:'button',props:{style:{font:'inherit',fontSize:12}}},[],1280,{fontSize:14,fontWeight:'400',lineHeight:22.4},{'--cs-native-line-ratio':'1.6'});
+    expect(result.text.fontSize).toBe(12);expect(result.text.lineHeight).toBeCloseTo(19.2);
+  });
+
   it('fills the academy KPI row with its four items while auto-fill retains vacant tracks',()=>{
     const sheet=compileWorkspaceCss(academyStyles),parent={tag:'section',props:{className:'academy-workspace'}},node={tag:'div',props:{className:'ac-kpis'}};
     const presentation=resolveWorkspacePresentation([sheet],node,[parent],1280);

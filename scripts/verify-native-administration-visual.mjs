@@ -442,9 +442,16 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
   if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100){
    const first=page.getByRole('button',{name:'Klient:in ↑',exact:true}).locator('..'),cell=await first.boundingBox(),row=await first.locator('..').boundingBox();
-   if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015)throw Error(JSON.stringify({message:'Client table must preserve its authored 27% identity column.',screen,viewport,cell,row}));
+   if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015||row.height<32||row.height>50)throw Error(JSON.stringify({message:'Client table must preserve its authored column widths and compact header height.',screen,viewport,cell,row}));
   }
+  if((screen==='clients'||screen==='web-clients')&&viewport.width===320){
+   const first=await page.getByText('Import / Export',{exact:true}).boundingBox(),second=await page.getByText('Aktualisieren',{exact:true}).first().boundingBox();
+   if(!first||!second||Math.abs(first.y-second.y)>1)throw Error(JSON.stringify({message:'Phone client header actions must keep the original shared row.',screen,viewport,first,second}));
+  }
+  if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100)await assertUnbrokenWord(page.getByRole('button',{name:'Akte von Helene Musterfrau öffnen',exact:true}),'Akte öffnen');
   if((screen==='notes'||screen==='web-notes')&&viewport.width>=1100){
+   const glyph=page.locator('svg').first(),icon=await glyph.boundingBox(),plate=await glyph.locator('..').boundingBox();
+   if(!icon||!plate||icon.width<24||Math.abs(icon.x+icon.width/2-plate.x-plate.width/2)>2||Math.abs(icon.y+icon.height/2-plate.y-plate.height/2)>2)throw Error(JSON.stringify({message:'Note header artwork must keep its authored size and center.',screen,viewport,icon,plate}));
    const button=await page.getByRole('button',{name:/Freie Notiz beginnen/}).boundingBox();
    if(!button||button.width>viewport.width*.35)throw Error(JSON.stringify({message:'The inline note-start action stretches across its block container.',screen,viewport,button}));
   }

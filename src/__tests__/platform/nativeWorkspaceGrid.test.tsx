@@ -11,15 +11,18 @@ vi.mock('react-native',async importOriginal=>{
   // screenshots separately verify rendered pixels and scrolling.
   const primitive=(tag:'div'|'button'|'span')=>React.forwardRef<HTMLElement,any>((props,ref)=>{
     const style=actual.StyleSheet.flatten(props.style)??{};
-    const attach=(node:HTMLElement|null)=>{if(node){hosts.styles.set(node,style);if(props.onLayout)hosts.layouts.set(node,props.onLayout);}if(typeof ref==='function')ref(node);else if(ref)ref.current=node;};
+    const attach=(node:HTMLElement|null)=>{if(node){hosts.styles.set(node,{...style,__numberOfLines:props.numberOfLines});if(props.onLayout)hosts.layouts.set(node,props.onLayout);}if(typeof ref==='function')ref(node);else if(ref)ref.current=node;};
     return React.createElement(tag,{ref:attach,'data-native-host':tag,'data-testid':props.testID,'aria-label':props.accessibilityLabel,'aria-selected':props.accessibilityState?.selected,disabled:props.disabled,onClick:props.disabled?undefined:props.onPress},props.children);
   });
-  return {...actual,Platform:{...actual.Platform,OS:'android'},View:primitive('div'),Pressable:primitive('button'),Text:primitive('span'),findNodeHandle:()=>null,useWindowDimensions:()=>({width:hosts.width,height:800,scale:1,fontScale:hosts.fontScale})};
+  return {...actual,Platform:{...actual.Platform,OS:'android'},View:primitive('div'),Pressable:primitive('button'),Text:primitive('span'),findNodeHandle:()=>null,PanResponder:{create:()=>({panHandlers:{}})},useWindowDimensions:()=>({width:hosts.width,height:800,scale:1,fontScale:hosts.fontScale})};
 });
 vi.mock('expo-document-picker',()=>({getDocumentAsync:vi.fn()}));
 vi.mock('expo-file-system',()=>({File:class{}}));
-vi.mock('react-native-svg',()=>({default:()=>null}));
-vi.mock('@/components/layout/NativeSvgPresentation.native',()=>({NativeSvg:()=>null}));
+vi.mock('react-native-svg',async()=>{
+  const React=await import('react'),flatten=(value:any):Record<string,unknown>=>Array.isArray(value)?Object.assign({},...value.map(flatten)):value??{};
+  const Svg=React.forwardRef<HTMLElement,any>((props,ref)=>React.createElement('div',{'data-native-svg':true,ref:(node:HTMLElement|null)=>{if(node)hosts.styles.set(node,{...flatten(props.style),__svgWidth:props.width,__svgHeight:props.height,__svgColor:props.color,__svgStroke:props.stroke});if(typeof ref==='function')ref(node);else if(ref)ref.current=node;}},props.children));
+  return {default:Svg,...Object.fromEntries('Path Circle Rect Line Polyline Polygon Ellipse G Defs Stop LinearGradient RadialGradient ClipPath Pattern Text TSpan'.split(' ').map(name=>[name,()=>null]))};
+});
 vi.mock('@/components/layout/NativeWorkspaceRange.native',()=>({NativeWorkspaceRange:()=>null}));
 vi.mock('@/components/layout/NativeWorkspaceMedia.native',()=>({NativeWorkspaceMedia:()=>null}));
 vi.mock('@/components/layout/NativeWorkspacePdfFrame.native',()=>({NativeWorkspacePdfFrame:()=>null}));
@@ -31,6 +34,7 @@ import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitch
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
 import {NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {WebActionIcon} from '@/components/icons/WebActionIcon.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
 
@@ -87,9 +91,43 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
   });
 
   it.each(['block','flex','grid'])('collapses adjacent positive block margins only in %s flow',async(display)=>{
-    await render(<NativeWorkspaceStyleScope css={['.flow{display:'+display+'}.first{display:grid;margin-bottom:17px}.next{margin-top:17px}']}><NativeDiv className="flow"><NativeDiv className="first" data-testid="first">Kennzahlen</NativeDiv><NativeDiv className="next" data-testid="next">Arbeitsbereich</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
+    await render(<NativeWorkspaceStyleScope css={['.flow{display:'+display+'}.first{display:grid;margin-bottom:17px}.next{margin-top:17px;justify-self:center}']}><NativeDiv className="flow"><NativeDiv className="first" data-testid="first">Kennzahlen</NativeDiv><NativeDiv className="next" data-testid="next">Arbeitsbereich</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="first"]')!)?.marginBottom).toBe(17);
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="next"]')!)?.marginTop).toBe(display==='block'?0:17);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="next"]')!)?.marginLeft).toBeUndefined();
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="next"]')!)?.marginRight).toBeUndefined();
+  });
+
+  it.each([[true,undefined,0],[true,44,44],[false,undefined,40]] as const)('keeps reset table-header actions compact (header=%s, authored minimum=%s)',async(inHeader,minimum,expected)=>{
+    const action=<NativeButton className="reset" data-testid="sort">Nach Name sortieren</NativeButton>;
+    await render(<NativeWorkspaceStyleScope css={['.reset{padding:0;border:0}'+(minimum===undefined?'':'.reset{min-height:'+minimum+'px}')]}>{inHeader?<NativeTable><NativeThead><NativeTr><NativeTh>{action}</NativeTh></NativeTr></NativeThead></NativeTable>:<NativeDiv>{action}</NativeDiv>}</NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="sort"]')!)?.minHeight).toBe(expected);
+  });
+
+  it('centers authored icon plates and delivers resolved dimensions/color to the real SVG adapter',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.plate{display:grid;place-items:center;width:52px;height:52px}.plate svg{--cs-action-icon-size:30px;color:#7990aa}']}><NativeDiv className="plate" data-testid="plate"><WebActionIcon>{null}</WebActionIcon></NativeDiv></NativeWorkspaceStyleScope>);
+    const plate=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="plate"]')!)!,svg=hosts.styles.get(host.querySelector<HTMLElement>('[data-native-svg]')!)!;
+    expect(plate.alignItems).toBe('center');expect(plate.justifyContent).toBe('center');
+    expect(svg.width).toBe(30);expect(svg.height).toBe(30);expect(svg.__svgWidth).toBe(30);expect(svg.__svgHeight).toBe(30);
+    expect(svg.__svgColor).toBe('#7990aa');expect(svg.__svgStroke).toBe('currentColor');
+  });
+
+  it.each([['top','flex-start'],['middle','center'],['bottom','flex-end']])('honors authored %s table-cell alignment',async(value,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['td{vertical-align:'+value+'}']}><NativeTable><NativeTbody><NativeTr><NativeTd data-testid="aligned">Kurzer Inhalt</NativeTd><NativeTd>Mehrzeiliger Inhalt</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="aligned"]')!)?.justifyContent).toBe(expected);
+  });
+
+  it.each([[undefined,1,1],['normal',1,undefined],[undefined,1.6,undefined]] as const)('preserves normal-size inline control labels while respecting resets and enlarged text (%s, %s)',async(reset,scale,lines)=>{
+    hosts.fontScale=scale;
+    await render(<NativeWorkspaceStyleScope css={['.action{display:inline-flex;white-space:nowrap}'+(reset?'.label{white-space:'+reset+'}':'')]}><NativeDiv><NativeButton className="action"><NativeSpan className="label" data-testid="label">Akte öffnen</NativeSpan></NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="label"]')!)?.__numberOfLines).toBe(lines);
+    if(lines===1)expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="label"]')!)?.flexShrink).toBe(0);
+  });
+
+  it('does not size an enlarged icon-only action from a hidden label',async()=>{
+    hosts.fontScale=1.6;
+    await render(<NativeWorkspaceStyleScope css={['.hidden{display:none}']}><NativeDiv><NativeButton data-testid="icon-only"><NativeSpan className="hidden">Sehr lange verborgene Aktionsbeschriftung</NativeSpan></NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="icon-only"]')!)?.minWidth).toBeUndefined();
   });
 
   it('keeps a marked calendar in seven columns when device text is enlarged',async()=>{

@@ -1,0 +1,171 @@
+{
+  "sourceBefore": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+  "baselineCi": {
+    "run": 40397150994,
+    "result": "success",
+    "unitTests": [
+      34,
+      210,
+      211,
+      847
+    ],
+    "unitTotal": 1302,
+    "preparedCombinations": 1044,
+    "renderedOrReceiverChecked": 990,
+    "unexercisedDeviceCases": 54,
+    "typecheck": "passed",
+    "sourceSync": {
+      "modules": 1110,
+      "routes": 269,
+      "nativeFallbacks": 4,
+      "stale": 0
+    }
+  },
+  "review": {
+    "originalPngs": 14,
+    "transport": "Original fictional audit PNGs reconstructed from authenticated CI logs; complete chunk sets, PNG signatures, byte lengths and SHA-256 independently verified in memory.",
+    "notes": {
+      "employee": {
+        "viewedOriginals": 2,
+        "confirmed": [
+          "Full Klientenakte title on its own row at 360px/1.6.",
+          "Retry and close labels remain fully visible.",
+          "Empty open assignments show the expected explanation and completion text; below-viewport content still needs scrolling."
+        ]
+      },
+      "administration": {
+        "viewedOriginals": 6,
+        "confirmed": [
+          "Authored 27/20/20/13/10/10 table tracks align across header and rows.",
+          "Positive margin collapse removes the doubled workspace gap.",
+          "Free-note action remains compact; three note-template columns remain present."
+        ],
+        "remainingConfirmed": [
+          "Table header actions retain a native minimum height absent from the Web reset.",
+          "Table cells ignore authored vertical-align:middle.",
+          "Akte öffnen breaks across lines.",
+          "Phone refresh/import actions stack instead of retaining the Web row.",
+          "Notebook glyphs ignore authored size and plate centering."
+        ]
+      },
+      "clientAndFamily": {
+        "viewedOriginals": 6,
+        "confirmed": [
+          "Ready and empty request fields no longer overlap at 360px/1.6.",
+          "All fields and both form footer actions remain visible.",
+          "The wide request dialog stays ordered.",
+          "The proof guide keeps its normal-phone side arrangement and stacks at enlarged text.",
+          "The complete proof title and profile reload explanation remain visible."
+        ]
+      }
+    },
+    "images": [
+      {
+        "name": "clients-1280x800.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 282629,
+        "sha256": "a7eb3871234d5af14556c82bed66820a3d51be003cd75ceb86a092ecef17ba77"
+      },
+      {
+        "name": "web-clients-1280x800.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 292189,
+        "sha256": "e01a5fa474466d01dd34c46635ea276b6174c67d538961df99b9acc3c1ec7c2d"
+      },
+      {
+        "name": "clients-320x740.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 122024,
+        "sha256": "f5cc74d3c077316fabcc67e9c9089a2c7bb359b681dae8c8dc825ac620c12f60"
+      },
+      {
+        "name": "web-clients-320x740.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 117458,
+        "sha256": "bc84a9cf18b5147f01b9c4a3f9c746cb21a744accad466298e3e25ead41522c8"
+      },
+      {
+        "name": "notes-1280x800.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 302445,
+        "sha256": "69ca755348e6bb8648fa5441e13b3a4c2415f0b3e07ecf690d11edb95df7cbf9"
+      },
+      {
+        "name": "web-notes-1280x800.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 412728,
+        "sha256": "f0d5929faf8de665b21007637ef370c457512e76121649d2f1c6271f504e1c71"
+      },
+      {
+        "name": "employee-audit-client-detail-default-error-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 61060,
+        "sha256": "aecfffac74cc7e611d7c4de32df797229542905d9d6e68b8e975256dee9ac498"
+      },
+      {
+        "name": "employee-audit-open-assignments-default-empty-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 82378,
+        "sha256": "94921789f2f78425aadaba4ff2fc279d6b9ac3c869808b5e69e14d817c734cca"
+      },
+      {
+        "name": "client-audit-request-client-ready-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 77975,
+        "sha256": "a1dcdf865c61b89eb6a323cae403129da263bb2dec2edb7305056f35d5d62505"
+      },
+      {
+        "name": "client-audit-request-client-empty-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 79582,
+        "sha256": "fde4fdea00c7a81752169d6bd1241bbd4be36d7ca4aee441bf972a4121a87ed9"
+      },
+      {
+        "name": "client-audit-request-client-ready-1280x800-scale-1.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 177749,
+        "sha256": "bae8abd04b42cf87b5102560857c98bd691008ac8a134abfaa0dac8e2111be4a"
+      },
+      {
+        "name": "client-audit-proofs-client-empty-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 98914,
+        "sha256": "d72e4486abcdcc5da00a2693233a82d0691c334e0a96c20a1f985eec85781bc0"
+      },
+      {
+        "name": "client-audit-proofs-client-empty-320x740-scale-1.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 63403,
+        "sha256": "8b982db329c94bbd556fadedfcc698ffdbe81a8bf9cdc4b794a34c457cb7736c"
+      },
+      {
+        "name": "client-audit-profile-client-empty-360x800-scale-1.6.png",
+        "source": "15392bda54dcf1fd5e4faf6eb3c123ee402d884b",
+        "bytes": 62746,
+        "sha256": "08177a35b454efdbd1de76fe887a678706cf8a276c8d636cc9d6ed6074948307"
+      }
+    ]
+  },
+  "correctionsPrepared": [
+    "Honor font:inherit at the real declaration priority and source order for font size, weight, style and line height.",
+    "Preserve resolved SVG dimensions and CSS color; action strokes follow currentColor.",
+    "Respect centered single-cell implicit grids and explicit table-cell vertical alignment.",
+    "Remove the fallback minimum height from reset header actions while preserving their touch area.",
+    "Keep authored normal-size inline control labels on one line; enlarged labels retain wrapping and size only visible text.",
+    "Limit grid-centering treatment to actual cell widths, so flow-margin corrections cannot center unrelated blocks."
+  ],
+  "newTargetedCases": 16,
+  "browserChecks": [
+    "Compact table header height and the original 27% identity column.",
+    "The visible named record action keeps Akte öffnen on one line.",
+    "Phone header actions retain their original shared row.",
+    "The notebook artwork has its authored size and stays centered."
+  ],
+  "validationOfNewCorrections": "Pending full CI and fresh original images; baseline success does not validate these new changes.",
+  "limits": [
+    "Only selected routes, states and screenshots are covered; all 692 pages are not visually/interactively accepted.",
+    "No real Android navigation, font metrics, PDF/GPS/hardware or server persistence proved.",
+    "Existing product, role, backend and Android release gates remain intact."
+  ],
+  "releaseAcceptance": false
+}
