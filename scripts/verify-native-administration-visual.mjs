@@ -447,7 +447,7 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    if(lines<1||lines>2)throw Error(JSON.stringify({message:'Consultation phone creation action must retain the shared maximum of two text lines.',screen,viewport,lines}));
    const subtitle=await page.getByText('Beratungsbesuche nach § 37.3 und häusliche Schulungen nach § 45.',{exact:true}).evaluate(element=>{const style=getComputedStyle(element);return {fontSize:parseFloat(style.fontSize),lineHeight:parseFloat(style.lineHeight)};});
    if(!Number.isFinite(subtitle.lineHeight)||Math.abs(subtitle.lineHeight/subtitle.fontSize-1.55)>.02)throw Error(JSON.stringify({message:'Consultation subtitle must inherit its authored font line ratio.',screen,viewport,subtitle}));
-   const metricLabel=page.getByText('Offene Besuche',{exact:true}),labelBounds=await metricLabel.boundingBox(),metricBounds=await metricLabel.locator('..').boundingBox();
+   const metric=page.getByRole('button',{name:/^Offene Besuche/}),metricLabel=metric.getByText('Offene Besuche',{exact:true}),labelBounds=await metricLabel.boundingBox(),metricBounds=await metric.boundingBox();
    if(!labelBounds||!metricBounds||Math.abs(labelBounds.x-metricBounds.x-13)>1)throw Error(JSON.stringify({message:'Consultation metric labels must start at the authored left padding.',screen,viewport,labelBounds,metricBounds}));
   }
   if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100){

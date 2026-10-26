@@ -162,7 +162,7 @@
     "Phone header actions retain their original shared row.",
     "The notebook artwork has its authored size and stays centered."
   ],
-  "validationOfNewCorrections": "CI 171 passed the previous correction set; the additional CSS order, explicit font, numeric flex basis and authored metric defaults remain pending.",
+  "validationOfNewCorrections": "CI 172 passed all 490 pre-image cases, TypeScript and all portal programs. Its new metric geometry check used incorrect DOM targets on both renderers; the scoped-button selector is pending rerun.",
   "limits": [
     "Only selected routes, states and screenshots are covered; all 692 pages are not visually/interactively accepted.",
     "No real Android navigation, font metrics, PDF/GPS/hardware or server persistence proved.",
@@ -432,5 +432,53 @@
       "notAllImagesVisuallyReviewed": true
     },
     "scope": "A passing selected audit, not acceptance of all 692 pages or real Android hardware."
+  },
+  "ci172Checkpoint": {
+    "run": 40413940985,
+    "source": "dd5c20e8fd5c00df192cc43333fd46f5909ff62f",
+    "result": "failure",
+    "unitTestsBeforeImages": [
+      34,
+      245,
+      211
+    ],
+    "unitTotalBeforeImages": 490,
+    "typecheck": "passed",
+    "portalPrograms": "all three passed",
+    "nativeVisualFailures": [
+      {
+        "screen": "consultation",
+        "cause": "The immediate parent of the matched text is a native label wrapper, not the metric button.",
+        "labelX": 41,
+        "wrongParentX": 41
+      },
+      {
+        "screen": "web-consultation",
+        "cause": "The unscoped text locator also matched the Offene Besuche filter option."
+      }
+    ],
+    "passedNewBrowserChecks": [
+      "Final authored 16px phone workspace top padding.",
+      "At most two creation-action text lines.",
+      "Authored subtitle line-height/font-size ratio 1.55."
+    ],
+    "originalReview": {
+      "viewed": [
+        "web-consultation-320x740.png",
+        "consultation-320x740.png"
+      ],
+      "confirmed": [
+        "Hero starts at the Web position.",
+        "Paragraph and action line metrics are restored.",
+        "Creation action keeps two lines.",
+        "Metric content is aligned at the left inset and rows align with the Web reference."
+      ],
+      "limits": [
+        "Minor button-width and rendering differences remain; no full page or Android acceptance."
+      ]
+    },
+    "selectorCorrection": "Scope the label to the uniquely named metric button; measure that button directly. Keep the 13px inset assertion and all existing geometry/word checks.",
+    "applicationSourcesChangedBySelectorCorrection": false,
+    "fullRerunRequired": true
   }
 }
