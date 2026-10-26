@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useDesktopWeather } from '@/hooks/useDesktopWeather.native';
-import { MobileButton, MobileField, MobileSheet, MobileIconButton, MobileIcon, m } from '@/components/mobile/MobileWorkspace';
+import { MobileButton, MobileSheet, MobileIconButton, MobileIcon, m } from '@/components/mobile/MobileWorkspace';
 import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '../navigation/desktopAreas';
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork';
 import { buildDesktopAreaNavigation } from '../navigation/moduleDesktopModel';
@@ -22,17 +22,16 @@ import { filterDesktopCatalogEntries, desktopCatalogAreaForRoute } from '../navi
 import { suggestDesktopWidgets } from '../navigation/desktopWidgetSuggestions';
 const ui = { ...m, surface: [m.card, { backgroundColor: 'rgba(2,15,35,0.76)', borderColor: 'rgba(139,211,255,0.3)' }], title: [m.title, { color: '#fff' }], body: [m.body, { color: '#E6F1FA' }], muted: [m.muted, { color: '#AFC9DC' }], label: [m.label, { color: '#E6F1FA' }], row: m.wrap, pressed: { opacity: 0.78 } };
 const NativeAction = (props: ComponentProps<typeof MobileButton>) => <MobileButton {...props} dark />;
-const NativeField = (props: ComponentProps<typeof MobileField>) => <MobileField {...props} dark />;
 const NativeWorkspaceDialog = (props: ComponentProps<typeof MobileSheet>) => <MobileSheet {...props} dark />;
 import { GoogleWorkspaceWidget } from '@/components/googleWorkspace/GoogleWorkspaceWidget.native';
 import { DESKTOP_MODULES, moduleDesktopStorageKey, desktopStorageKey, restoreDesktopWidgetIds, previousDesktopWidgetIds } from '../navigation/moduleDesktopModel';
-import { buildDesktopApps, DESKTOP_CATEGORIES, type DesktopApp } from '../navigation/desktopAppCatalogModel';
+import { buildDesktopApps, type DesktopApp } from '../navigation/desktopAppCatalogModel';
+import { DesktopAppsWidgetsCenter, type DesktopCenterTab as CenterTab } from './DesktopAppsWidgetsCenter.native';
 import { nativeDesktopLayout, moveNativeDesktopWidget } from '../navigation/nativeDesktopLayout';
 import { BRAND, BACKGROUNDS, WIDGETS, DEFAULT_DESKTOP_IDS, WORKFLOWS, type WidgetDefinition } from './administrationDesktopCatalog';
 import { DesktopWeatherLocationDialog } from './DesktopWeatherLocationDialog.native';
 import type { ProductKey } from '@/types';
 
-type CenterTab = 'apps' | 'widgets' | 'workflows' | 'backgrounds';
 type Preferences = { ids: string[]; background: string; dismissed: string[] };
 
 export function CommandCenterScreen() {
@@ -41,6 +40,8 @@ export function CommandCenterScreen() {
   const identity = JSON.stringify([permissions.tenantId, auth.user?.id]);
   const [selection, setSelection] = useState<{ identity: string; area: DesktopAreaKey } | null>(null);
   const [selectionError, setSelectionError] = useState('');
+  const [center, setCenter] = useState<CenterTab | null>(null);
+  useEffect(() => setCenter(null), [identity]);
   const areaKey = `caresuite.healthos.active-area.v1.${encodeURIComponent(identity)}`;
   useEffect(() => {
     let active = true;
@@ -59,10 +60,10 @@ export function CommandCenterScreen() {
     <NativeAction label="Abmelden" onPress={() => void auth.signOut()} />
   </View></SafeAreaView>;
   if (selection?.identity !== identity) return <SafeAreaView style={styles.loading}><ActivityIndicator color="#75BEFF" /></SafeAreaView>;
-  return <View style={{ flex: 1, backgroundColor: '#071629' }}>{selectionError ? <Text style={styles.notice}>{selectionError}</Text> : null}<NativeModuleDesktop key={`${identity}:${signature}:${selection.area}`} tenantId={permissions.tenantId} availableSignature={signature} selectedArea={selection.area} onSelectArea={selectArea} /></View>;
+  return <View style={{ flex: 1, backgroundColor: '#071629' }}>{selectionError ? <Text style={styles.notice}>{selectionError}</Text> : null}<NativeModuleDesktop key={`${identity}:${signature}:${selection.area}`} tenantId={permissions.tenantId} availableSignature={signature} selectedArea={selection.area} onSelectArea={selectArea} center={center} onCenterChange={setCenter} /></View>;
 }
 
-function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSelectArea }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void }) {
+function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSelectArea, center, onCenterChange: setCenter }: { tenantId: string; availableSignature: string; selectedArea: DesktopAreaKey; onSelectArea: (area: DesktopAreaKey) => void; center: CenterTab | null; onCenterChange: (tab: CenterTab | null) => void }) {
   const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
   const router = useRouter(); const auth = useAuth(); const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -94,8 +95,8 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [attempt, setAttempt] = useState(0);
   const [workspaceHeight, setWorkspaceHeight] = useState(0); const [controlsHeight, setControlsHeight] = useState(0);
   const [saving, setSaving] = useState(false); const [edit, setEdit] = useState(false); const [navigationOpen, setNavigationOpen] = useState(false);
-  const [center, setCenter] = useState<CenterTab | null>(null); const [profileOpen, setProfileOpen] = useState(false);
-  const [query, setQuery] = useState(''); const [navQuery, setNavQuery] = useState(''); const [category, setCategory] = useState<string>('Alle');
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [navQuery, setNavQuery] = useState('');
   const [weatherOpen, setWeatherOpen] = useState(false); const weather = useDesktopWeather(scope);
   const [now, setNow] = useState(new Date());
   const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(6, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
@@ -135,13 +136,10 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const toggle = (id: string) => {
     if (!allowed.includes(id)) return;
     const ids = current.current.ids;
-    const capacity = Math.max(12, Math.ceil(ids.length / 12) * 12);
-    if (!ids.includes(id) && ids.length >= capacity) { setError('Alle Desktop-Plätze sind belegt. Entfernen Sie zuerst ein Widget.'); return; }
     persist({ ...current.current, ids: ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id] });
   };
   const open = (app: Pick<DesktopApp, 'route'>) => { setNavigationOpen(false); setCenter(null); setProfileOpen(false); router.push(nativeAdministrationRoute(app.route) as never); };
-  const openCenter = (tab: CenterTab) => { setNavigationOpen(false); setQuery(''); setCategory('Alle'); setCenter(tab); };
-  const matches = (app: { label: string; description: string; category?: string }) => (category === 'Alle' || app.category === category) && `${app.label} ${app.description}`.toLocaleLowerCase('de-DE').includes(query.trim().toLocaleLowerCase('de-DE'));
+  const openCenter = (tab: CenterTab) => { setNavigationOpen(false); setCenter(tab); };
   const groups = buildDesktopAreaNavigation(apps, selectedArea, navQuery);
 
   const gridRows = Math.ceil(12 / layout.columns);
@@ -186,14 +184,14 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
             <View style={[styles.desktopHeading, layout.mobile && { flexBasis: '100%' }]}><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text><View style={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
               {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
             </View></View>
-            <View style={styles.desktopActions}><View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.countText}>{preferences.ids.length}{!layout.mobile ? '/12' : ''} aktiv</Text></View><Pressable accessibilityRole="button" accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} accessibilityState={{ selected: edit }} onPress={() => setEdit(!edit)} style={[styles.headerControl, edit && { backgroundColor: 'rgba(24,107,91,0.68)' }]}><MobileIcon name={edit ? 'check' : 'edit-3'} color="#EAF8FF" size={16}/><Text style={styles.editText}>{edit ? 'Fertig' : 'Bearbeiten'}</Text></Pressable></View>
+            <View style={styles.desktopActions}><View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.countText}>{preferences.ids.length}{!layout.mobile && preferences.ids.length <= 12 ? '/12' : ''} aktiv</Text></View><Pressable accessibilityRole="button" accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} accessibilityState={{ selected: edit }} onPress={() => setEdit(!edit)} style={[styles.headerControl, edit && { backgroundColor: 'rgba(24,107,91,0.68)' }]}><MobileIcon name={edit ? 'check' : 'edit-3'} color="#EAF8FF" size={16}/><Text style={styles.editText}>{edit ? 'Fertig' : 'Bearbeiten'}</Text></Pressable></View>
           </View>
           {error ? <View style={ui.surface}><Text accessibilityRole="alert" style={ui.error}>{error}</Text><NativeAction label="Erneut speichern" onPress={() => persist(current.current)} /></View> : null}
           {saving ? <Text accessibilityLiveRegion="polite" style={styles.desktopEyebrow}>Auswahl wird gespeichert …</Text> : null}
           <ScrollView testID="native-desktop-widget-viewport" style={{ flex: 1, minHeight: 0, minWidth: 0 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator contentContainerStyle={{ paddingTop: 12, paddingBottom: 12 }}><View style={[ui.row, { alignItems: 'stretch', gap: layout.gap }]}>{preferences.ids.map((id, index) => {
             const widget = widgetById.get(id); if (!widget) return null;
             return <View key={id} style={[styles.widget, { width: layout.cardWidth }]}>
-              {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} /> : <NativeWidget widget={widget} artworkHeight={layout.mobile ? 90 : fitArtworkHeight} fontScale={fontScale} mobile={layout.mobile} labelHeight={layout.labelHeight} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
+              {widget.workspaceService ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => open(widget)} style={{flex:1}}><GoogleWorkspaceWidget service={widget.workspaceService} /></Pressable> : <NativeWidget widget={widget} artworkHeight={layout.mobile ? 90 : fitArtworkHeight} fontScale={fontScale} mobile={layout.mobile} labelHeight={layout.labelHeight} compact={compactHeight} narrow={layout.cardWidth / fontScale < 190} onOpen={() => open(widget)} />}
               {edit ? <View style={styles.widgetEdit}><NativeAction label="Entfernen" accessibilityLabel={`${widget.label} vom Desktop entfernen`} onPress={() => toggle(id)} /><View style={ui.row}><NativeAction label="←" accessibilityLabel={`${widget.label} nach vorne verschieben`} disabled={index === 0} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, -1) })} /><NativeAction label="→" accessibilityLabel={`${widget.label} nach hinten verschieben`} disabled={index === preferences.ids.length - 1} onPress={() => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, 1) })} /></View></View> : null}
             </View>;
           })}{suggestions.map(widget => <View key={widget.id} style={[styles.widget, styles.suggestionCard, { width: layout.cardWidth }]}>
@@ -205,20 +203,18 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       </View>
     </NativeDesktopFrame>
     <NativeWorkspaceDialog visible={navigationOpen} title="Navigation" onClose={() => setNavigationOpen(false)}>{navigation}</NativeWorkspaceDialog>
-    <NativeWorkspaceDialog visible={center !== null} title={`${moduleLabel} · ${center === 'backgrounds' ? 'Hintergründe' : center === 'widgets' ? 'Widgets' : center === 'workflows' ? 'Abläufe' : 'Apps'}`} wide onClose={() => setCenter(null)}>
-      <View style={ui.row}>{(['apps', 'widgets', 'workflows', 'backgrounds'] as const).map(tab => <NativeAction key={tab} label={{ apps: 'Apps', widgets: 'Widgets', workflows: 'Abläufe', backgrounds: 'Hintergründe' }[tab]} selected={center === tab} onPress={() => { setCenter(tab); setQuery(''); setCategory('Alle'); }} />)}</View>
-      {center === 'widgets' && recoverableWidgetIds.some(id => !preferences.ids.includes(id)) ? <View style={ui.surface}>
-        <Text style={ui.body}>Weitere Widgets aus Ihrer gespeicherten Auswahl sind verfügbar.</Text>
-        <NativeAction label="Gespeicherte Widgets wiederherstellen" onPress={() => persist({ ...current.current, ids: [...new Set([...current.current.ids, ...recoverableWidgetIds])] })} />
-      </View> : null}
-      {center === 'apps' || center === 'widgets' ? <><NativeField label="Im Center suchen" value={query} onChangeText={setQuery} autoCorrect={false} /><View style={ui.row}>{['Alle', ...DESKTOP_CATEGORIES].map(item => <NativeAction key={item} label={item} selected={category === item} onPress={() => setCategory(item)} />)}</View>
-        {(center === 'apps' ? apps : widgets).filter(matches).map(app => <View key={app.id} style={ui.surface}><Text style={ui.label}>{app.label}</Text><Text style={ui.muted}>{app.description}</Text><View style={ui.row}><NativeAction label="Öffnen" onPress={() => open(app)} />{center === 'widgets' ? <NativeAction label={preferences.ids.includes(app.id) ? 'Vom Desktop entfernen' : 'Zum Desktop hinzufügen'} selected={preferences.ids.includes(app.id)} disabled={!preferences.ids.includes(app.id) && preferences.ids.length >= Math.max(12, Math.ceil(preferences.ids.length / 12) * 12)} onPress={() => toggle(app.id)} /> : null}</View></View>)}
-        {!(center === 'apps' ? apps : widgets).some(matches) ? <Text style={ui.body}>Keine passenden Einträge. Passen Sie die Suche oder Kategorie an.</Text> : null}
-        {center === 'widgets' ? <Text style={ui.muted}>{preferences.ids.length > 12 ? `${preferences.ids.length} gespeicherte Widgets` : `${preferences.ids.length} von zwölf Widgets ausgewählt`}</Text> : null}
-      </> : null}
-      {center === 'workflows' ? WORKFLOWS.filter(item => areaAllowed && apps.some(app => app.route === nativeAdministrationRoute(item.route))).map(item => <View key={item.id} style={ui.surface}><Text style={ui.label}>{item.label}</Text><Text style={ui.body}>{item.text}</Text><NativeAction label="Workflow öffnen" onPress={() => open(item)} /></View>) : null}
-      {center === 'backgrounds' ? BACKGROUNDS.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Hintergrund ${item.label} auswählen`} accessibilityState={{ selected: item.id === preferences.background }} onPress={() => persist({ ...current.current, background: item.id })} style={[styles.backgroundChoice, item.id === preferences.background && styles.selected]}><Image source={item.thumbnail ?? item.image} resizeMode="cover" resizeMethod="resize" style={styles.backgroundPreview} /><Text style={[ui.body, { padding: 14 }]}>{item.label}{item.id === preferences.background ? ' ✓' : ''}</Text></Pressable>) : null}
-    </NativeWorkspaceDialog>
+    <DesktopAppsWidgetsCenter visible={center !== null} onClose={() => setCenter(null)} areaLabel={moduleLabel}
+      selectedArea={selectedArea} areas={DESKTOP_AREAS.map(area => ({ key: area.key, label: area.label,
+        disabled: area.key === 'settings' || area.key === 'premium' ? false : area.key === 'robotics' ? !permissions.can('robotics.access' as PermissionKey) : !availableKeys.includes(area.key as ProductKey) }))}
+      onSelectArea={onSelectArea} initialTab={center ?? 'apps'} onTabChange={setCenter}
+      apps={apps} widgets={widgets} workflows={WORKFLOWS.filter(item => areaAllowed && apps.some(app => app.route === nativeAdministrationRoute(item.route))).map(item => ({ ...item, route: nativeAdministrationRoute(item.route) }))}
+      backgrounds={BACKGROUNDS} desktopIds={preferences.ids} backgroundId={preferences.background}
+      recoverableCount={recoverableWidgetIds.filter(id => !preferences.ids.includes(id)).length}
+      onRecover={() => persist({ ...current.current, ids: [...new Set([...current.current.ids, ...recoverableWidgetIds])] })}
+      onOpen={route => open({ route })} onToggleWidget={toggle}
+      onMoveWidget={(id, direction) => persist({ ...current.current, ids: moveNativeDesktopWidget(current.current.ids, id, direction) })}
+      onBackground={background => persist({ ...current.current, background })}
+      saveStatus={error ? 'error' : saving ? 'saving' : 'saved'} onRetrySave={() => persist(current.current)} />
     <NativeWorkspaceDialog visible={profileOpen} title="Mein Profil" onClose={() => setProfileOpen(false)}>
       <Text style={ui.title}>{auth.profile?.displayName || auth.user?.displayName}</Text><Text style={ui.body}>{auth.user?.email}</Text><Text style={ui.muted}>{permissions.roleLabel ?? 'Verwaltung'}</Text>
       <NativeAction label="Kontoeinstellungen" onPress={() => open({ route: '/settings/profile' })} /><NativeAction label="Hilfe & Anleitungen" onPress={() => open({ route: '/hilfe' })} /><NativeAction label="Abmelden" onPress={() => { setProfileOpen(false); void auth.signOut(); }} />

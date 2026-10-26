@@ -1,18 +1,15 @@
 // Generated native presentation from src/components/assist/AssistLiveFilterSelect.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {useNativeWorkflowWindow} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {nativeDocument as document,nativeWindow as window} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {NativeSvgPath} from '@/components/layout/NativeSvgPresentation.native';
-import {NativeDiv,NativeStyle,NativeSpan,NativeButton,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
-import { WebActionIcon } from "../icons/WebActionIcon.native.tsx";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import {NativeDiv,NativeStyle,NativeSpan,NativeSelect,NativeOption,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 type Props = {
     className: string;
     label: string;
     ariaLabel: string;
     value: string;
+    disabled?: boolean;
     options: readonly {
         value: string;
         label: string;
+        disabled?: boolean;
     }[];
     onChange: (value: string) => void;
 };
@@ -25,151 +22,5 @@ const css = `
 .cs-live-filter-option{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:9px 10px;border-radius:7px;cursor:pointer;overflow-wrap:anywhere}.cs-live-filter-option[data-active=true]{background:#eaf4ff;color:#164e7c}.cs-live-filter-option[aria-selected=true]{color:#125d9b;font-weight:650}.cs-live-filter-check{flex:none;width:16px}
 @media(prefers-reduced-motion:reduce){.cs-live-filter-trigger,.cs-live-filter-trigger svg{transition:none}}
 `;
-// Keep the list in the dialog's DOM/focus scope. Its open state is independent of
-// live timers and refreshed options; no browser-owned native select is involved.
-export function AssistLiveFilterSelect({ className, label, ariaLabel, value, options, onChange }: Props) {
-    const window = useNativeWorkflowWindow();
-    const id = useId();
-    const rootRef = useRef<HTMLDivElement>(null);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const listRef = useRef<HTMLDivElement>(null);
-    const typeahead = useRef({ text: '', at: 0 });
-    const [open, setOpen] = useState(false);
-    const [activeValue, setActiveValue] = useState(value);
-    const activeIndex = Math.max(0, options.findIndex(option => option.value === activeValue));
-    const selected = options.find(option => option.value === value) ?? options[0];
-    const optionId = (index: number) => `${id}-option-${index}`;
-    const openList = () => { typeahead.current = { text: '', at: 0 }; setActiveValue(selected?.value ?? ''); setOpen(true); };
-    const choose = (nextValue: string) => { onChange(nextValue); setOpen(false); triggerRef.current?.focus(); };
-    useEffect(() => {
-        if (!open)
-            return;
-        const outside = (event: PointerEvent) => {
-            if (event.target instanceof Node && !rootRef.current?.contains(event.target))
-                setOpen(false);
-        };
-        const escape = (event: globalThis.KeyboardEvent) => {
-            if (event.key !== 'Escape')
-                return;
-            event.preventDefault();
-            event.stopPropagation();
-            setOpen(false);
-            triggerRef.current?.focus();
-        };
-        document.addEventListener('pointerdown', outside, true);
-        document.addEventListener('keydown', escape, true);
-        return () => {
-            document.removeEventListener('pointerdown', outside, true);
-            document.removeEventListener('keydown', escape, true);
-        };
-    }, [open]);
-    useLayoutEffect(() => {
-        if (!open || !listRef.current || !triggerRef.current)
-            return;
-        const list = listRef.current;
-        const trigger = triggerRef.current;
-        // The top layer escapes clipped panels while retaining dialog containment.
-        // Older browsers get an in-flow list so every option remains reachable.
-        if (typeof list.showPopover !== 'function') {
-            list.dataset.fallback = 'true';
-            return;
-        }
-        const place = () => {
-            const rect = trigger.getBoundingClientRect();
-            const gap = 6;
-            const below = Math.max(0, window.innerHeight - rect.bottom - 14);
-            const above = Math.max(0, rect.top - 14);
-            const upwards = below < 180 && above > below;
-            Object.assign(list.style, {
-                position: 'fixed', right: 'auto',
-                left: `${Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8))}px`,
-                width: `${Math.min(rect.width, Math.max(0, window.innerWidth - 16))}px`,
-                maxHeight: `${Math.min(290, upwards ? above : below)}px`,
-                top: upwards ? 'auto' : `${rect.bottom + gap}px`,
-                bottom: upwards ? `${window.innerHeight - rect.top + gap}px` : 'auto',
-            });
-        };
-        place();
-        list.setAttribute('popover', 'manual');
-        try {
-            list.showPopover();
-        }
-        catch {
-            list.removeAttribute('popover');
-            list.removeAttribute('style');
-            list.dataset.fallback = 'true';
-            return;
-        }
-        window.addEventListener('resize', place);
-        document.addEventListener('scroll', place, true);
-        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
-        observer?.observe(trigger);
-        return () => {
-            observer?.disconnect();
-            window.removeEventListener('resize', place);
-            document.removeEventListener('scroll', place, true);
-        };
-    }, [open]);
-    useEffect(() => {
-        if (!open)
-            return;
-        const list = listRef.current;
-        const active = list?.children[activeIndex] as HTMLElement | undefined;
-        if (!list || !active)
-            return;
-        if (active.offsetTop < list.scrollTop)
-            list.scrollTop = active.offsetTop;
-        else if (active.offsetTop + active.offsetHeight > list.scrollTop + list.clientHeight) {
-            list.scrollTop = active.offsetTop + active.offsetHeight - list.clientHeight;
-        }
-    }, [open, activeIndex]);
-    const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-        if (event.key === 'Tab') {
-            setOpen(false);
-            return;
-        }
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (!open) {
-                openList();
-                return;
-            }
-            const next = Math.max(0, Math.min(options.length - 1, activeIndex + (event.key === 'ArrowDown' ? 1 : -1)));
-            setActiveValue(options[next]?.value ?? '');
-        }
-        else if (event.key === 'Home' || event.key === 'End') {
-            event.preventDefault();
-            setOpen(true);
-            setActiveValue(options[event.key === 'Home' ? 0 : options.length - 1]?.value ?? '');
-        }
-        else if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            if (open && options[activeIndex])
-                choose(options[activeIndex].value);
-            else
-                openList();
-        }
-        else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-            event.preventDefault();
-            const now = Date.now();
-            const query = `${now - typeahead.current.at < 700 ? typeahead.current.text : ''}${event.key}`.toLocaleLowerCase('de');
-            typeahead.current = { text: query, at: now };
-            const match = options.find(option => option.label.toLocaleLowerCase('de').startsWith(query));
-            setOpen(true);
-            if (match)
-                setActiveValue(match.value);
-        }
-    };
-    return <NativeWorkspaceStyleScope css={[css, css]}>{<NativeDiv ref={rootRef} className={`${className} cs-live-filter`} data-open={open} data-cs-live-filter="controlled-list-v1">
-    <NativeStyle>{css}</NativeStyle>
-    <NativeSpan id={`${id}-label`}>{label}</NativeSpan>
-    <NativeButton ref={triggerRef} type="button" role="combobox" className="cs-live-filter-trigger" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${id}-list` : undefined} aria-activedescendant={open && options.length ? optionId(activeIndex) : undefined} value={value} onClick={() => open ? setOpen(false) : openList()} onKeyDown={onKeyDown}>
-      <NativeSpan>{selected?.label ?? label}</NativeSpan><WebActionIcon size="compact"><NativeSvgPath d="m6 9 6 6 6-6"/></WebActionIcon>
-    </NativeButton>
-    {open && <NativeDiv ref={listRef} id={`${id}-list`} role="listbox" aria-label={ariaLabel} className="cs-live-filter-list">
-      {options.map((option, index) => <NativeDiv key={option.value} id={optionId(index)} role="option" aria-label={option.label} aria-selected={option.value === value} data-value={option.value} data-active={index === activeIndex} className="cs-live-filter-option" onMouseDown={event => event.preventDefault()} onPointerMove={() => setActiveValue(option.value)} onClick={() => choose(option.value)}>
-        <NativeSpan>{option.label}</NativeSpan><NativeSpan className="cs-live-filter-check" aria-hidden="true">{option.value === value ? '✓' : ''}</NativeSpan>
-      </NativeDiv>)}
-    </NativeDiv>}
-  </NativeDiv>}</NativeWorkspaceStyleScope>;
-}
+// Keep the controlled value through refreshed options; Android owns the option modal.
+export function AssistLiveFilterSelect({ className, label, ariaLabel, value, options, onChange, disabled = false }: Props) { return <NativeWorkspaceStyleScope css={[css, css]}>{<NativeDiv className={className + ' cs-live-filter'} data-cs-live-filter="native-select-v1"><NativeStyle>{css}</NativeStyle><NativeSpan>{label}</NativeSpan><NativeSelect className="cs-live-filter-trigger" aria-label={ariaLabel} aria-description={options.length ? '' : 'Keine Auswahl verfügbar.'} value={value} disabled={disabled || !options.some(option => !option.disabled)} onChange={event => onChange(event.target.value)}>{options.map(option => <NativeOption key={option.value} value={option.value} disabled={option.disabled}>{option.label}</NativeOption>)}</NativeSelect>{!options.length ? <NativeSpan role="status">Keine Auswahl verfügbar.</NativeSpan> : null}</NativeDiv>}</NativeWorkspaceStyleScope>; }

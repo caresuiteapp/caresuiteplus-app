@@ -20,10 +20,27 @@ const native = {
   Modal: (p: any) => p.visible ? <div role="dialog">{p.children}</div> : null,
   Platform: { OS: 'android' }, StyleSheet: { create: (s: any) => s, flatten }, useWindowDimensions: () => ({ width: api.width, height: 844, fontScale: api.scale }),
 };
+// Exercise the generated Web catalogue and its callbacks with DOM boundaries.
+// Android styles and the modal window remain separate device/layout checks.
+const html = (tag: string) => (props: any) => React.createElement(tag, props, props.children);
+const workspaceElements = Object.fromEntries(['Div','Span','Label','Section','H2','P','Strong','H3','Article'].map(tag => ['Native' + tag, html(tag.toLowerCase())]));
+Object.assign(workspaceElements, {
+  NativeButton: (props: any) => <button {...props} type="button" />,
+  NativeInput: (props: any) => <input {...props} onInput={props.onChange} onChange={() => undefined} />,
+  NativeImg: (props: any) => <img {...props} />,
+  NativeStyle: () => null,
+  NativeWorkspaceStyleScope: (props: any) => props.children,
+});
+const PlatformModal = (props: any) => props.visible ? <div role="dialog" aria-label={props.title}>{props.children}{props.footerContent}</div> : null;
+const Artwork = (props: any) => <span data-catalog-artwork={props.route} />;
 const dependencies: Record<string, unknown> = {
   '@/components/portal/accessibility/PortalTextSizeControls': { PortalTextSizeControls: () => null },
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
-  '../components/DesktopCatalogArtwork': { DesktopCatalogArtwork: () => null },
+  '../components/DesktopCatalogArtwork': { DesktopCatalogArtwork: Artwork },
+  '../components/DesktopCatalogArtwork.tsx': { DesktopCatalogArtwork: Artwork },
+  './DesktopCatalogArtwork.tsx': { DesktopCatalogArtwork: Artwork },
+  '../../components/layout/platform/platformmodal.tsx': { PlatformModal },
+  '@/components/layout/NativeWorkspaceElements.native': workspaceElements,
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native, 'react-native-safe-area-context': { SafeAreaView: Box, useSafeAreaInsets: () => ({ left: 0, right: 0, top: 24, bottom: 16 }) },
   'expo-linear-gradient': { LinearGradient: Box }, '@expo/vector-icons/Feather': { __esModule: true, default: () => null },
   'expo-router': { useRouter: () => ({ push: api.push }) }, '@react-native-async-storage/async-storage': api,
@@ -45,7 +62,7 @@ const navigationCases = DESKTOP_AREAS.flatMap(module => buildDesktopAreaNavigati
   module.key,
 ).flatMap(group => group.items).map(app => ({ module, app })));
 let root: Root, host: HTMLDivElement;
-const button = (label: string) => [...(host.querySelector('[role="dialog"]') ?? host).querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === label || item.textContent === label);
+const button = (label: string) => [...(host.querySelector('[role="dialog"]') ?? host).querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === label || item.textContent === label || item.getAttribute('role') === 'tab' && item.firstChild?.textContent === label);
 const click = async (label: string) => { expect(button(label), label).toBeTruthy(); await act(async () => button(label)!.click()); };
 const key = (area: 'office' | 'assist' = 'office') => desktopAreaStorageKey(api.tenant, api.owner, area);
 const render = async () => { await act(async () => root.render(<Desktop />)); };
@@ -95,11 +112,37 @@ describe('Native administration desktop interactions', () => {
     memory.set(key(), '["people"]'); memory.set(key('assist'), '[]');
     await render(); await click('Assist'); await click('Apps und Widgets öffnen'); await click('Widgets');
     const dialog = host.querySelector('[role="dialog"]')!;
-    const title = [...dialog.querySelectorAll('span')].find(item => item.textContent === 'Klient:innen');
+    const title = [...dialog.querySelectorAll('h3')].find(item => item.textContent === 'Klient:innen');
     expect(title).toBeTruthy();
-    const card = title!.parentElement!;
-    const add = [...card.querySelectorAll<HTMLButtonElement>('button')].find(item => item.textContent === 'Zum Desktop hinzufügen');
+    const card = title!.closest('article')!;
+    const add = [...card.querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === 'Klient:innen zum Desktop hinzufügen');
     expect(add).toBeTruthy(); await act(async () => add!.click());
+    expect(JSON.parse(memory.get(key('assist'))!)).toContain('clients');
+    expect(memory.get(key())).toBe('["people"]');
+  });
+  it('renders the shared artwork catalogue, filters selected widgets and persists their order', async () => {
+    memory.set(key(), '["clients","people"]');
+    await render(); await click('Apps und Widgets öffnen');
+    expect(host.querySelector('[data-testid="desktop-apps-widgets-center"]')).toBeTruthy();
+    expect(host.querySelector('[data-testid="center-app-catalog"] [data-catalog-artwork]')).toBeTruthy();
+    await click('Widgets'); await click('Auf diesem Desktop');
+    expect(host.querySelectorAll('[data-testid="center-widget-catalog"] article')).toHaveLength(2);
+    await click('Personal nach vorne verschieben');
+    expect(JSON.parse(memory.get(key())!)).toEqual(['people', 'clients']);
+    await click('Klient:innen vom Desktop entfernen');
+    expect(JSON.parse(memory.get(key())!)).toEqual(['people']);
+    expect(host.textContent).toContain('Auswahl auf diesem Gerät gespeichert.');
+  });
+  it('keeps the catalogue open across desktop-area changes and retries failed saves', async () => {
+    memory.set(key(), '["people"]'); memory.set(key('assist'), '[]');
+    await render(); await click('Apps und Widgets öffnen');
+    await click('Assist-Desktop auswählen');
+    expect(host.querySelector('[data-testid="desktop-apps-widgets-center"]')).toBeTruthy();
+    await click('Widgets');
+    api.multiSet.mockRejectedValueOnce(new Error('storage locked'));
+    await click('Klient:innen zum Desktop hinzufügen');
+    expect(host.textContent).toContain('Die Auswahl konnte nicht gespeichert werden.');
+    await click('Speichern erneut versuchen');
     expect(JSON.parse(memory.get(key('assist'))!)).toContain('clients');
     expect(memory.get(key())).toBe('["people"]');
   });

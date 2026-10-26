@@ -6,6 +6,90 @@ export function nativeSource(file,original){let source=original;
   const block=(startText,endText,text)=>{const start=source.indexOf(startText),end=source.indexOf(endText,start);if(start<0||end<0)throw Error('Stale native block: '+file);source=source.slice(0,start)+text+source.slice(end);};
   const add=text=>{source=text+'\n'+source;};
   const delivery="import {shareNativeFile} from '@/lib/platform/nativeFileDelivery.native';";
+  // Android's shared select owns its native modal; browser popover and DOM
+  // measurements cannot execute against native workflow element handles.
+  if(file==='src/components/assist/AssistLiveFilterSelect.web.tsx'){
+    replace("import { WebActionIcon } from '@/components/icons/WebActionIcon.web';",'');
+    replace("import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';",'');
+    replace('  value: string;\n','  value: string;\n  disabled?: boolean;\n');
+    replace('options: readonly { value: string; label: string }[];','options: readonly { value: string; label: string; disabled?: boolean }[];');
+    replace('value, options, onChange }: Props)','value, options, onChange, disabled = false }: Props)');
+    replace("// Keep the list in the dialog's DOM/focus scope. Its open state is independent of\n// live timers and refreshed options; no browser-owned native select is involved.","// Keep the controlled value through refreshed options; Android owns the option modal.");
+    body('AssistLiveFilterSelect',`{return <div className={className+' cs-live-filter'} data-cs-live-filter="native-select-v1"><style>{css}</style><span>{label}</span><select className="cs-live-filter-trigger" aria-label={ariaLabel} aria-description={options.length?'': 'Keine Auswahl verfügbar.'} value={value} disabled={disabled||!options.some(option=>!option.disabled)} onChange={event=>onChange(event.target.value)}>{options.map(option=><option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>)}</select>{!options.length?<span role="status">Keine Auswahl verfügbar.</span>:null}</div>;}`);
+  }
+  // React Native already applies the device's font scale to Text. The CSS scale
+  // controls Web typography; invoking its provider here would throw on Android.
+  if(file==='src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx'){
+    replace("import { useWebFontScale } from '@/design/web/WebFontScaleProvider';",'');
+    replace('  const { effectiveScale } = useWebFontScale();','  const effectiveScale = 1;');
+  }
+  if(file==='src/liquid-command/components/DesktopAreaSwitcher.web.tsx'){
+    replace('className="cs-desktop-area-artwork" size="2.5em"','size={40}');
+  }
+  if(file==='src/liquid-command/components/desktopAreaSwitcherCss.web.ts'){
+    replace('repeat(auto-fit,minmax(min(100%,calc(112px * var(--cs-desktop-area-scale,1))),1fr))','repeat(auto-fit,minmax(112px,1fr))');
+  }
+  if(file==='src/liquid-command/screens/desktopAppsWidgetsCenterCss.web.ts'){
+    replace('repeat(auto-fill,minmax(min(100%,calc(260px * var(--cs-center-scale,1))),1fr))','repeat(auto-fill,minmax(260px,1fr))');
+  }
+  if(file==='src/screens/help/HelpCenterScreen.web.tsx'){
+    replace("@/components/layout/ScreenShell.web","@/components/layout/ScreenShell.tsx");
+    replace('router.push(route as never)','router.push(nativeAdministrationRoute(route) as never)');
+    replace('showBack={false} contentOwnsHeader>',"showBack={false} scroll={false} contentOwnsHeader><div style={{flex:1,minHeight:0,overflowY:'auto'}}>" );
+    replace('</ScreenShell>','</div></ScreenShell>');
+    add("import {nativeAdministrationRoute} from '@/liquid-command/navigation/nativeAdministrationModel';");
+  }
+  if(file==='src/components/help/HelpCenterView.web.tsx'){
+    body('printArticle',"{const article=HELP_ARTICLES.find(item=>item.title===title);if(!article)return false;await printNativeHelpArticle(article);return true;}");
+    replace('function printArticle(','async function printArticle(');
+    replace("onClick={() => { if (printArticle(articleRef.current, article.title) === false) setStatus('Das Druckfenster wurde blockiert. Bitte erlauben Sie Pop-ups für diese Seite.'); }}","onClick={async()=>{try{if(await printArticle(articleRef.current,article.title)===false)setStatus('Die Anleitung konnte nicht für den Druck gelesen werden.');}catch(error){setStatus(error instanceof Error?error.message:'Der Android-Druckdialog konnte nicht geöffnet werden.');}}}");
+    replace('window.location.origin',"'https://www.caresuiteplus.app'");
+    replace('event.target.select()','undefined');
+    replace("const heading = section?.querySelector<HTMLElement>('h2,h3'); if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }","section?.focus?.({preventScroll:true});");
+    source=source.replaceAll('Hilfe für Web & Desktop','Hilfe für Web, Desktop & App').replaceAll('Web & Desktop</span>','Web, Desktop & App</span>');
+    add("import {printNativeHelpArticle} from '@/features/help/nativeHelpArticlePrint.native';");
+  }
+  if(file==='src/components/googleWorkspace/workspaceCss.web.ts'){
+    replace('(max-width:44em)','(max-width:704px)');
+    replace('repeat(auto-fit,minmax(min(100%,17em),1fr))','repeat(auto-fit,minmax(272px,1fr))');
+    replace('repeat(auto-fit,minmax(min(100%,16em),1fr))','repeat(auto-fit,minmax(256px,1fr))');
+    source=source.replaceAll('grid-template-columns:minmax(0,1fr) auto','grid-template-columns:minmax(0,2fr) minmax(0,1fr)');
+  }
+  if(file==='src/components/googleWorkspace/WorkspaceDashboard.web.tsx'){
+    replace('  const state = useGoogleWorkspace();',"  const state = useGoogleWorkspace();\n  const refreshStatus=state.refresh;\n  useEffect(()=>{if(callbackResult)void refreshStatus();},[callbackResult,refreshStatus]);");
+  }
+  if(file==='src/components/googleWorkspace/WorkspaceServicePanel.web.tsx'){
+    replace("  const [filter, setFilter] = useState<WorkspaceFilter>({});","  const [filter, setFilter] = useState<WorkspaceFilter>({});\n  const [draft,setDraft]=useState({query:'',from:'',to:''});\n  const [filterError,setFilterError]=useState('');");
+    replace("onSubmit={e => { e.preventDefault(); const data = new FormData(e.currentTarget); const from = String(data.get('from') || ''); const to = String(data.get('to') || ''); if (from && to && from > to) { (e.currentTarget.elements.namedItem('to') as HTMLInputElement).setCustomValidity('Das Ende muss am oder nach dem Beginn liegen.'); e.currentTarget.reportValidity(); return; } resetFilter({ ...filter, pageToken: undefined, query: String(data.get('query') || ''), from, to }); }}","onSubmit={e=>{e.preventDefault();if(draft.from&&draft.to&&draft.from>draft.to){setFilterError('Das Ende muss am oder nach dem Beginn liegen.');return;}setFilterError('');resetFilter({...filter,pageToken:undefined,...draft});}}");
+    replace('type="search" name="query"','type="search" name="query" value={draft.query} onChange={e=>setDraft(previous=>({...previous,query:e.target.value}))}');
+    replace('type="date" name="from"','type="date" name="from" value={draft.from} onChange={e=>setDraft(previous=>({...previous,from:e.target.value}))}');
+    replace('type="date" name="to" onInput={e => e.currentTarget.setCustomValidity(\'\')}','type="date" name="to" value={draft.to} onChange={e=>{setDraft(previous=>({...previous,to:e.target.value}));setFilterError(\'\');}}');
+    replace('<form className="cs-w-filter"','{filterError&&<p role="alert" className="cs-w-notice error">{filterError}</p>}<form className="cs-w-filter"');
+  }
+  if(file==='src/components/googleWorkspace/WorkspaceActionForm.web.tsx'){
+    replace("  const [mode, setMode] = useState(service === 'drive' ? 'upload' : 'create');","  const [mode, setMode] = useState(service === 'drive' ? 'upload' : 'create');\n  const [values,setValues]=useState<Record<string,string>>({});\n  const [pickedFile,setPickedFile]=useState<Blob&{name?:string}>();\n  const formRef=useRef<HTMLFormElement>(null);\n  const update=(key:string,value:string)=>setValues(previous=>({...previous,[key]:value}));");
+    replace('const submit = async (form: HTMLFormElement, draft: boolean) => {','const submit = async (draft: boolean) => {');
+    replace('if (lock.current || !form.reportValidity()) return;','if (lock.current || !formRef.current?.reportValidity()) return;');
+    replace("const data = new FormData(form); const value = (key: string) => String(data.get(key) ?? '').trim();","const data={get:(key:string)=>key==='file'?pickedFile:values[key]}; const value=(key:string)=>(values[key]??'').trim();");
+    replace("await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden.')); reader.readAsDataURL(file); })","(await nativeBlobDataUrl(file)).split(',')[1]");
+    replace('<form className="cs-w-form cs-w-stack"','<form ref={formRef} className="cs-w-form cs-w-stack"');
+    replace('void submit(e.currentTarget, false)','void submit(false)');
+    replace("onClick={e => { const form = e.currentTarget.form; if (form) void submit(form, true); }}","onClick={()=>void submit(true)}");
+    for(const name of ['to','title','start','end','attendee','due','first','last','email','phone','body']){
+      replace('name="'+name+'"','name="'+name+'" value={values.'+name+"??''} onChange={e=>update('"+name+"',e.target.value)}");
+    }
+    replace('type="checkbox" name="meet"','type="checkbox" name="meet" checked={values.meet===\'on\'} onChange={e=>update(\'meet\',e.target.checked?\'on\':\'\')}');
+    replace('<input type="file" name="file" required/>','<input type="file" name="file" onChange={e=>setPickedFile(e.target.files?.[0])}/>{pickedFile&&<span className="cs-w-muted">{pickedFile.name}</span>}');
+    add("import {nativeBlobDataUrl} from '@/lib/platform/nativeInvoiceLogo.native';");
+  }
+  if(file==='src/features/akademie/AcademyCourseEditor.web.tsx'){
+    replace('!field.validity.valid','!(field as unknown as {valid():boolean}).valid()');
+  }
+  if(file==='src/components/office/ClientRecordDocumentsPanel.web.tsx'){
+    replace('requestAnimationFrame(() => rowButtons.current?.querySelector<HTMLButtonElement>(`[data-document-id="${CSS.escape(lastOpened.current ?? \'\')}"] button`)?.focus());',"requestAnimationFrame(()=>nativeWorkspaceNodes.get('native-client-document-'+JSON.stringify([tenantId,clientId,lastOpened.current]))?.focus());");
+    replace('<button className="cr-docs-row"','<button id={\'native-client-document-\'+JSON.stringify([doc.tenantId,doc.clientId,doc.id])} className="cr-docs-row"');
+    add("import {nativeWorkspaceNodes} from '@/lib/platform/nativeWorkspaceNodes.shared';");
+  }
   if(file==='src/components/documents/CentralCatalogWorkspace.web.tsx'){
     body('downloadBytes',"{return shareNativeFile(bytes,fileName,'application/pdf');}");
     body('logoImage',"{if(!url)return undefined;if(!url.startsWith('data:')&&new URL(url).protocol!=='https:')throw Error('Das Unternehmenslogo benötigt eine sichere HTTPS-Adresse.');const logo=await prepareNativeInvoiceLogo(url);if(!logo)throw Error('Das Unternehmenslogo konnte nicht für die PDF-Ausgabe geladen werden.');return logo.dataUrl;}");

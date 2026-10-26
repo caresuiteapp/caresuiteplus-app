@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartup } from '@/components/brand/AppStartup';
-import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -13,13 +12,12 @@ import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/Them
 import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/product-workflows/components/ui/effects';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
-import { isAuthRoutePath, isLightPortalRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
+import { isLightPortalRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
-import { BusinessWelcomeGate } from '@/product-workflows/components/auth/BusinessWelcomeGate';
-import { PortalWelcomeGate } from '@/product-workflows/components/auth/PortalWelcomeGate';
+import { RouteScopedLegacyOverlays } from '@/components/auth/RouteScopedLegacyOverlays';
 import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
 import { PortalPushRegistrationGate } from '@/components/portal/PortalPushRegistrationGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
@@ -204,23 +202,6 @@ function RootShell() {
         </View>
       </View>
     </ThemeProvider>
-  );
-}
-
-function RouteScopedLegacyOverlays() {
-  const startupReady = useAppStartIntroReady();
-  const pathname = usePathname();
-  const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  if (!startupReady) return null;
-  if (Platform.OS !== 'web' && pathname !== '/' && !isAuthRoutePath(pathname)) {
-    return isPortalRoutePath(pathname) ? <PortalWelcomeGate /> : <BusinessWelcomeGate />;
-  }
-  if (isLiquidCommandRoute) return null;
-  return (
-    <>
-      <BusinessWelcomeGate />
-      <PortalWelcomeGate />
-    </>
   );
 }
 

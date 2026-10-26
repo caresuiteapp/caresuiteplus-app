@@ -105,6 +105,45 @@ source map and the bytecode file from the same Gradle task alongside the R8
 mapping. Future JavaScript crash offsets can therefore be resolved against
 the exact packaged bytecode instead of rebuilding maps after the fact.
 
+## Native page rendering and entry-flow failures in code 53
+
+The next device report confirms version 0.7.1 / code 53. After the recorded
+update it contains five fatal page-render failures with the same stack:
+`Error while updating property 'borderRadius' of a view managed by: RCTText`,
+caused by `java.lang.String cannot be cast to java.lang.Double`. Earlier
+structured-clone failures in that report precede the code-53 update and are
+not counted as current failures.
+
+The shared CSS adapter retains percentage corner radii for native Views, but
+also passed them unchanged to Text. React Native 0.86.3's Android Text and
+TextInput radius setters accept numeric Float values. Actual workspace CSS
+contains `border-radius:50%` on inline status decorations. The native text
+boundary now resolves percentage text radii against the element's own size,
+and numeric-only metrics are normalized before reaching native primitives.
+Percentage layout dimensions and View corner radii remain available.
+
+The supplied images also expose gaps outside the generated page inventory:
+
+- A React Native Modal used for authentication feedback opens a separate
+  Android window above the intro's View. Feedback visibility and dismissal
+  timers now wait for the existing intro-ready state; authentication itself
+  continues independently.
+- The native root explicitly re-enabled legacy welcome gates before checking
+  the modern-route cutover rule. It now follows the same route rule as Web,
+  which excludes the current desktop, Office, portal and access routes.
+- The hand-written native Apps & Widgets list bypassed the current Web center.
+  The native desktop now uses the generated original center, including artwork,
+  filtering, per-desktop selection and ordering, recovery, save errors/retry and
+  backgrounds. Native persistence remains scoped by tenant, person and area.
+- Native company modals ignored the company surface and explicit header tone.
+  Their body, header and footer now follow the same surface rule as Web.
+
+Source correspondence, interaction tests, browser-rendered native layout
+fixtures and actual Android acceptance are separate evidence. A successful
+router push does not establish that the destination renders, and a browser
+fixture does not exercise Android's native property setters. No comprehensive
+physical-device acceptance is inferred from these checks.
+
 ## Images
 
 CareSuite's native image adapter already uses `expo-image` / Glide, view-sized

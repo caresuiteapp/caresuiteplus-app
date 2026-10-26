@@ -286,7 +286,9 @@ export function AcademyCourseEditor({ course, draftId, initialContent, busy, mod
             setSelectedId(issue.lessonId);
         requestAnimationFrame(() => {
             const settings = [...(formRef.current?.querySelectorAll<HTMLInputElement>('[data-author-settings]') ?? [])];
-            const invalidSetting = settings.find(field => !field.validity.valid || !Number.isInteger(Number(field.value)));
+            const invalidSetting = settings.find(field => !(field as unknown as {
+                valid(): boolean;
+            }).valid() || !Number.isInteger(Number(field.value)));
             const field = issue.lessonId ? formRef.current?.querySelector<HTMLElement>('[data-lesson-title]')
                 : issue.field === 'summary' ? formRef.current?.querySelector<HTMLElement>('[data-author-summary]')
                     : issue.field === 'settings' ? invalidSetting ?? settings[0]

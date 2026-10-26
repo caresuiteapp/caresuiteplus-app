@@ -1,0 +1,323 @@
+{
+  "capturedDate": "2026-10-26",
+  "project": "euagyyztvmemuaiumvxm",
+  "scope": "Read-only pg_catalog and information_schema. No business records.",
+  "missingFunction": "public.current_family_portal_access_scope()",
+  "helpers": [
+    {
+      "proname": "current_portal_type",
+      "arguments": "",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=public"
+      ],
+      "review_marker": null,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_type()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT NULLIF(auth.jwt()->'app_metadata'->>'portal_type', '')\r\n$function$\n",
+      "sha256": "0fb99f15f806cfa1e1dce0121d7e14458695a8e2fb9aefa7213868c232142dcb"
+    },
+    {
+      "schema": "public",
+      "proname": "current_portal_account_id",
+      "arguments": "",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=public"
+      ],
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_account_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN COALESCE(auth.jwt()->'app_metadata'->>'portal_account_id', '') ~*\r\n      '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'\r\n    THEN (auth.jwt()->'app_metadata'->>'portal_account_id')::uuid\r\n    ELSE NULL\r\n  END\r\n$function$\n",
+      "sha256": "7977fea6427a2b3d146b912cbc7d69cefc3c3b033d01cf890fbb50c918172df6"
+    },
+    {
+      "schema": "public",
+      "proname": "current_client_id",
+      "arguments": "",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "definition": "CREATE OR REPLACE FUNCTION public.current_client_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'client' THEN COALESCE(\r\n      (\r\n        SELECT cpa.client_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.id = public.current_portal_account_id()\r\n          AND cpa.auth_user_id = auth.uid()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.client_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.id = public.current_portal_account_id()\r\n          AND cpc.auth_user_id = auth.uid()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n    WHEN 'relative' THEN (\r\n      SELECT rpc.client_id\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n      LIMIT 1\r\n    )\r\n    WHEN 'employee' THEN NULL\r\n    ELSE COALESCE(\r\n      (\r\n        SELECT cpa.client_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.auth_user_id = auth.uid()\r\n          AND cpa.tenant_id = public.current_tenant_id()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.client_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.auth_user_id = auth.uid()\r\n          AND cpc.tenant_id = public.current_tenant_id()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT rpc.client_id\r\n        FROM public.relative_portal_codes rpc\r\n        WHERE rpc.auth_user_id = auth.uid()\r\n          AND rpc.tenant_id = public.current_tenant_id()\r\n          AND rpc.status = 'active'\r\n          AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n  END\r\n$function$\n",
+      "sha256": "425f2f7de56f496fb9264f75a890877b771ba9b383776d1f2b4b6a32fb432f29"
+    }
+  ],
+  "columns": [
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "portal_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "portal_account_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_view_appointments",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_view_documents",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_view_messages",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_send_messages",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_view_service_records",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_view_invoices",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_download_documents",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_confirm_appointments",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "can_sign_records",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "portal_access_permissions",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "tenant_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "client_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "relative_contact_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "code_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "last_used_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "blocked_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "blocked_by",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "blocked_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "regenerated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_schema": "public",
+      "table_name": "relative_portal_codes",
+      "column_name": "auth_user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ]
+}

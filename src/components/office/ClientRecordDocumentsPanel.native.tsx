@@ -2,6 +2,7 @@
 import {nativeFetch as fetch} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {NativeSvgPath,NativeSvgCircle} from '@/components/layout/NativeSvgPresentation.native';
 import {NativeLi,NativeButton,NativeSpan,NativeSmall,NativeStrong,NativeDiv,NativeStyle,NativeSection,NativeHeader,NativeH3,NativeP,NativeForm,NativeH4,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeUl,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import { nativeWorkspaceNodes } from '@/lib/platform/nativeWorkspaceNodes.shared';
 import { WebActionIcon } from "../icons/WebActionIcon.native.tsx";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
@@ -77,7 +78,7 @@ function DocumentRow({ doc, onOpen }: {
     const fileName = resolveOfficeDocumentDisplayFileName(doc);
     const duplicateFileName = fileName?.replace(/\.[^.]+$/, '').trim().toLocaleLowerCase('de') === title.trim().toLocaleLowerCase('de');
     return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<NativeLi data-document-id={doc.id}>
-    <NativeButton className="cr-docs-row" type="button" onClick={onOpen} aria-label={`${title} ansehen`} aria-describedby={`${rowId}-meta ${rowId}-status`}>
+    <NativeButton id={'native-client-document-' + JSON.stringify([doc.tenantId, doc.clientId, doc.id])} className="cr-docs-row" type="button" onClick={onOpen} aria-label={`${title} ansehen`} aria-describedby={`${rowId}-meta ${rowId}-status`}>
       <NativeSpan className="cr-docs-file" aria-hidden="true"><Icon name="file"/><NativeSmall>{documentFormat(doc)}</NativeSmall></NativeSpan>
       <NativeSpan className="cr-docs-row-copy"><NativeStrong>{title}</NativeStrong><NativeSpan id={`${rowId}-meta`} className="cr-docs-row-meta">{getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(doc))}<NativeSpan aria-hidden="true"> · </NativeSpan>{doc.documentSource === 'intake' ? 'Aus der Aufnahme' : doc.documentSource === 'upload' ? 'Hochgeladen' : 'Aktenunterlage'}</NativeSpan>{fileName && !duplicateFileName ? <NativeSmall>{fileName}</NativeSmall> : null}</NativeSpan>
       <NativeSpan id={`${rowId}-status`} className="cr-docs-row-status"><NativeSpan className={`cr-docs-status ${status.tone}`}>{status.label}</NativeSpan><NativeSmall>{documentDate(doc)}</NativeSmall></NativeSpan>
@@ -155,7 +156,7 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
     }
     function backToList() {
         setSelectedDocId(null);
-        requestAnimationFrame(() => rowButtons.current?.querySelector<HTMLButtonElement>(`[data-document-id="${CSS.escape(lastOpened.current ?? '')}"] button`)?.focus());
+        requestAnimationFrame(() => nativeWorkspaceNodes.get('native-client-document-' + JSON.stringify([tenantId, clientId, lastOpened.current]))?.focus());
     }
     async function pickFile() {
         if (isReadOnly || busy.current || fileBusy.current)

@@ -56,3 +56,12 @@ export class File {constructor(uri){this.uri=uri;}get exists(){return false;}}
 export class Directory extends File {}
 export const renderNativePdfPages=deny,extractNativePdfAttachments=deny;
 export const useServiceTenantId=()=>tenantId;
+
+// Google fixtures are local and inert. The layout runner never connects an
+// account, sends a message or changes a calendar/file/task.
+const workspaceConnection={status:'connected',email:'verwaltung@example.invalid',domain:'example.invalid',connectedAt:'2026-10-26T08:00:00Z',lastSyncAt:'2026-10-26T09:10:00Z',capabilities:Object.fromEntries(['gmail','calendar','meet','drive','docs','sheets','slides','tasks','contacts','chat'].map(key=>[key,true]))};
+export const useGoogleWorkspace=()=>({connection:workspaceConnection,loading:false,actionLoading:false,error:null,scope:'visual-person:visual-tenant:business_admin',refresh:noop,connect:deny,disconnect:deny});
+export const useWorkspacePage=(service)=>({loading:false,error:null,refresh:noop,data:{fetchedAt:'2026-10-26T09:10:00Z',items:service==='calendar'||service==='meet'?[{id:'fixture-event',title:'Teamrunde · Übergaben und Wochenplanung',subtitle:'Verwaltung Nord',when:'2026-10-27T09:00:00Z',raw:{description:'Besprechung der bevorstehenden Einsätze und offenen organisatorischen Fragen.',end:{dateTime:'2026-10-27T10:00:00Z'}}}]:service==='gmail'?[{id:'fixture-mail',title:'Unterlagen für unsere nächste Besprechung',subtitle:'team@example.invalid',unread:true}]:service==='tasks'?[{id:'fixture-task',title:'Teamrunde vorbereiten',subtitle:'Planung',completed:false,raw:{notes:'Rückmeldungen aus dem Team sammeln.'}}]:[{id:'fixture-file',title:'Organisation und Zusammenarbeit',subtitle:'Lokale Vorschau'}]}});
+export const refreshWorkspaceData=noop;
+export const invokeGoogleWorkspaceAction=async(action)=>{if(action==='tasks_lists')return{items:[{id:'fixture-list',title:'Verwaltung'}]};throw Error('Die lokale Layoutvorschau führt keine Google-Aktionen aus.');};
+export const invokeEdgeFunction=async()=>({ok:true,data:{events:[]}});

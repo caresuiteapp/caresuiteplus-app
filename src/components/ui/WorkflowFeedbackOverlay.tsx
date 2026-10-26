@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
@@ -64,10 +65,13 @@ export function WorkflowFeedbackOverlay({
   onAction,
   testID = 'workflow-feedback-overlay',
 }: Props) {
+  const startupReady = useAppStartIntroReady();
   const portal = usePortalPremiumRuntimeTheme();
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-  const visible = loading || (messageVisible && Boolean(message));
+  // Android dialogs are separate native windows: a View zIndex cannot keep
+  // them behind the intro. Work may continue while its feedback waits here.
+  const visible = startupReady && (loading || (messageVisible && Boolean(message)));
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
@@ -76,13 +80,13 @@ export function WorkflowFeedbackOverlay({
   }, [kind, message]);
 
   useEffect(() => {
-    if (!message || loading || !autoDismissMs) return;
+    if (!startupReady || !message || loading || !autoDismissMs) return;
     const timer = setTimeout(() => {
       setMessageVisible(false);
       onDismissRef.current?.();
     }, autoDismissMs);
     return () => clearTimeout(timer);
-  }, [autoDismissMs, kind, loading, message]);
+  }, [autoDismissMs, kind, loading, message, startupReady]);
 
   const dismiss = useCallback(() => {
     if (loading) return;

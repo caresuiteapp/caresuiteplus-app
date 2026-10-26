@@ -14,7 +14,7 @@ const mockFixture=resolve('scripts/fixtures/administration-preview-mocks.jsx');
 const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context']);
 for(const renderer of ['native','web']){
 await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/web-desktop-preview.jsx')],outfile:join(output,renderer+'-preview.js'),bundle:true,assetNames:'assets/[name]-[hash]',platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{}','__DEV__':'false'},loader:{'.png':'file','.jpg':'file','.jpeg':'file','.ttf':'dataurl','.gif':'file','.mp4':'dataurl','.svg':'dataurl','.js':'jsx'},plugins:[{name:'isolated-native-preview',setup(b){
- const aliasTargets=new Set(['src/lib/platform/nativeWorkflowEnvironment.native','src/lib/platform/nativeFileDelivery.native','src/lib/platform/nativePdfInspection.native','src/lib/inventory/companyInventoryService','src/lib/inventory/companyInventoryService.native','src/lib/inventory/companyInventoryService.web','src/lib/office/notes/service.shared','src/lib/office/notes/service.native','src/lib/office/notes/service.web','src/hooks/useTenantId']);
+ const aliasTargets=new Set(['src/lib/platform/nativeWorkflowEnvironment.native','src/lib/platform/nativeFileDelivery.native','src/lib/platform/nativePdfInspection.native','src/lib/inventory/companyInventoryService','src/lib/inventory/companyInventoryService.native','src/lib/inventory/companyInventoryService.web','src/lib/office/notes/service.shared','src/lib/office/notes/service.native','src/lib/office/notes/service.web','src/hooks/useTenantId','src/hooks/useGoogleWorkspace.native','src/hooks/useGoogleWorkspace.web','src/lib/googleWorkspace/googleWorkspaceService','src/lib/supabase/edgeFunctions']);
  b.onResolve({filter:/.*/},args=>{if(['expo-router/react-navigation','expo-file-system','expo-print','expo-sharing','expo-video'].includes(args.path))return {path:mockFixture};if(args.path.startsWith('@/')||args.path.startsWith('.')){const path=args.path.startsWith('@/')?resolve('src',args.path.slice(2)):resolve(args.resolveDir,args.path);const normalized=path.replace(root+'/','').replace(/\.tsx?$/,'');if(aliasTargets.has(normalized))return {path:mockFixture};}});
  b.onResolve({filter:/.*/},args=>mocks.has(args.path)?{path:mockFixture}:undefined);
  b.onLoad({filter:/\.(png|jpe?g|gif)$/},args=>{
@@ -64,6 +64,37 @@ async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
  if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
 }
+async function verifyDesktopCenter(page,viewport,fontScale=1){
+ const errors=[];const capture=error=>errors.push(error.message);page.on('pageerror',capture);
+ await page.getByRole('button',{name:'Apps und Widgets öffnen',exact:true}).click();
+ const center=page.getByTestId('desktop-apps-widgets-center');await center.waitFor();
+ await page.waitForTimeout(200);
+ const shell=await center.boundingBox();
+ if(!shell||shell.x<-.5||shell.x+shell.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native Apps & Widgets center exceeds the viewport.',viewport,fontScale,shell}));
+ await page.screenshot({path:join(output,`desktop-center-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const app=page.getByTestId('center-app-catalog').getByRole('button',{name:/^App .+ öffnen$/}).first();
+ await app.scrollIntoViewIfNeeded();
+ const card=await app.boundingBox(),artwork=await app.getByTestId('desktop-catalog-artwork').boundingBox();
+ if(!card||!artwork||artwork.width<40||artwork.height<40||card.x<-.5||card.x+card.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native catalogue artwork or app card is clipped.',viewport,fontScale,card,artwork}));
+ await page.screenshot({path:join(output,`desktop-center-apps-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await center.getByText('Widgets',{exact:true}).first().click();
+ await center.getByText('Auf diesem Desktop',{exact:true}).click();
+ const remove=page.getByTestId('center-widget-catalog').getByRole('button',{name:/ vom Desktop entfernen$/}).first();
+ await remove.scrollIntoViewIfNeeded();await remove.click();
+ await page.getByText('Auswahl auf diesem Gerät gespeichert.',{exact:true}).waitFor();
+ await page.screenshot({path:join(output,`desktop-center-widgets-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await center.getByText('Hintergründe',{exact:true}).first().click();
+ const background=page.getByTestId('center-background-catalog').getByRole('button',{name:/ als Desktop-Hintergrund verwenden$/}).first();
+ await background.scrollIntoViewIfNeeded();
+ const preview=await background.boundingBox();if(!preview||preview.width<120||preview.x<-.5||preview.x+preview.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native background catalogue is clipped.',viewport,fontScale,preview}));
+ await background.click();await page.getByText('Aktiver Hintergrund',{exact:true}).first().waitFor();
+ await page.screenshot({path:join(output,`desktop-center-backgrounds-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const done=page.getByRole('button',{name:'Center schließen',exact:true});await done.scrollIntoViewIfNeeded();await done.click();
+ await center.waitFor({state:'hidden'});
+ page.removeListener('pageerror',capture);
+ if(errors.length)throw Error(JSON.stringify({screen:'desktop-center',viewport,fontScale,errors}));
+ report.push({screen:'desktop-center',viewport,fontScale,shell,card,artwork,background:preview,selectionSaved:true,errors});
+}
 try{
 // Keep enlarged device text usable when the viewport is also short.
 {
@@ -79,12 +110,13 @@ try{
   throw Error(JSON.stringify({message:'Desktop widgets are not reachable with enlarged text in landscape.',bounds}));
  }
  report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
- await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await page.close();
+ await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await verifyDesktopCenter(page,{width:844,height:390},1.6);await page.close();
 }
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home']){
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service']){
  const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
  await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
+ if(screen==='desktop')await verifyDesktopCenter(page,{width:360,height:800},1.6);
  if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
  if(screen==='academy'){await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');await assertUnbrokenWord(page.getByRole('button',{name:'Schulungsplan',exact:true}),'Schulungsplan');}
  if(screen==='consultation'){
@@ -103,7 +135,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  await page.close();
 }
 for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
- for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset']){
+ for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
   if(errors.length){await page.screenshot({path:join(output,`failure-${screen}-${viewport.width}x${viewport.height}.png`)});writeFileSync(join(output,'verification.json'),JSON.stringify({screen,viewport,errors},null,2));throw new Error(JSON.stringify({screen,viewport,errors}));}
@@ -143,6 +175,19 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
 
   if(screen==='registration'){for(let step=2;step<=5;step++){if(step===5){await page.getByLabel('Admin-Passwort',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByLabel('Passwort bestätigen',{exact:true}).fill('LokaleLayoutPruefung2026!');await page.getByRole('checkbox').click();}await page.getByRole('button',{name:'Weiter',exact:true}).click();await page.getByText(`REGISTRIERUNG · SCHRITT ${step} VON 5`,{exact:true}).waitFor();await page.screenshot({path:join(output,`registration-step-${step}-${viewport.width}x${viewport.height}.png`)});}}
   if(screen==='clients'||screen==='web-clients'){await page.getByRole('button',{name:'Filter',exact:true}).click();await page.getByRole('combobox',{name:'Bearbeitungsstand',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-filters-${viewport.width}x${viewport.height}.png`)});}
+  if(screen==='help'){
+   await page.getByRole('button',{name:'Logo hochladen',exact:true}).click();
+   await page.getByRole('button',{name:/Logo, Briefkopf und Dokumentlayout einstellen/}).click();
+   await page.getByRole('heading',{name:'Logo, Briefkopf und Dokumentlayout einstellen',exact:true}).waitFor();
+   await page.screenshot({path:join(output,`help-reader-${viewport.width}x${viewport.height}.png`)});
+  }
+  if(screen==='google-service'){
+   await page.getByRole('button',{name:'Neu erstellen',exact:false}).click();
+   await page.getByRole('heading',{name:'Termin anlegen',exact:true}).waitFor();
+   await page.screenshot({path:join(output,`google-event-form-${viewport.width}x${viewport.height}.png`)});
+   await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
+  }
+  if(screen==='desktop')await verifyDesktopCenter(page,viewport);
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});if(screen==='notes'){const bounds=await page.getByRole('button',{name:'Speichern',exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note editor save action extends beyond the viewport.',viewport,bounds}));}await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}

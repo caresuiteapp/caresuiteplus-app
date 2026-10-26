@@ -6,6 +6,7 @@ import { AppStartIntro } from '@/components/brand/AppStartIntro.native';
 import { AppStartup } from '@/components/brand/AppStartup';
 import { appStartIntroSession, useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
+import { WorkflowFeedbackOverlay } from '@/components/ui/WorkflowFeedbackOverlay';
 
 const model = vi.hoisted(() => ({
   status: 'readyToPlay',
@@ -26,6 +27,21 @@ vi.mock('@/design/CareSuiteFontProvider', () => ({
     ? <>{children}</> : <span>Schrift lädt</span>,
 }));
 vi.mock('@/components/ui', () => ({ PremiumButton: () => null }));
+vi.mock('@/components/icons/SemanticArtwork', () => ({
+  SemanticArtwork: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+}));
+vi.mock('@/components/brand/CareSuiteLoadingIndicator', () => ({
+  CareSuiteLoadingIndicator: () => <span>CareSuite HealthOS</span>,
+}));
+vi.mock('@/theme', () => ({ typography: { h3: {}, body: {}, caption: {} } }));
+vi.mock('@/design/tokens/portalPremium', () => ({
+  usePortalPremiumRuntimeTheme: () => ({ active: false }),
+  portalPremium: {
+    surfaceRaised: '#FFFFFF', surfaceSoft: '#F4F8FD', surfaceMuted: '#EAF2FC', borderStrong: '#C5D6E9',
+    text: { primary: '#123251', secondary: '#456480', muted: '#456480', onStrong: '#FFFFFF' },
+    accent: { blue: '#0876E8', blueDark: '#056CE8' },
+  },
+}));
 vi.mock('@/design/tokens/themeBridge', () => ({
   useLegacyTheme: () => ({ colors: {}, typography: {} }),
 }));
@@ -51,6 +67,7 @@ vi.mock('expo-splash-screen', () => ({
 vi.mock('expo-status-bar', () => ({ StatusBar: () => null }));
 vi.mock('react-native', async () => {
   const React = await import('react');
+  const { createPortal } = await import('react-dom');
   function View({ children, testID, onLayout }: {
     children?: React.ReactNode; testID?: string; onLayout?: () => void;
   }) {
@@ -59,6 +76,10 @@ vi.mock('react-native', async () => {
   }
   return {
     View,
+    // Native dialogs live above ordinary View layers, regardless of zIndex.
+    Modal: ({ children, visible }: { children?: React.ReactNode; visible?: boolean }) => visible
+      ? createPortal(<div data-testid="native-modal">{children}</div>, document.body) : null,
+    Pressable: View,
     Text: View, SafeAreaView: View, ActivityIndicator: () => null,
     Platform: { OS: 'android' },
     Animated: {
@@ -137,6 +158,38 @@ afterEach(async () => {
 });
 
 describe('Native app startup intro', () => {
+  it('keeps a pending auth dialog behind the whole intro and presents it afterwards', async () => {
+    await render(<AppStartIntro><WorkflowFeedbackOverlay loading loadingMessage="Sitzung wird geprüft…" /></AppStartIntro>);
+    expect(host.querySelector('[data-testid="native-video"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="native-modal"]')).toBeNull();
+    await act(async () => emit('playToEnd'));
+    await act(async () => vi.advanceTimersByTime(160));
+    expect(host.querySelector('[data-testid="native-video"]')).toBeNull();
+    expect(document.querySelector('[data-testid="native-modal"]')?.textContent).toContain('Sitzung wird geprüft…');
+  });
+  it('does not flash an auth dialog when its background work finishes during the intro', async () => {
+    await render(<AppStartIntro><WorkflowFeedbackOverlay loading loadingMessage="Sitzung wird geprüft…" /></AppStartIntro>);
+    await render(<AppStartIntro><WorkflowFeedbackOverlay /></AppStartIntro>);
+    await act(async () => emit('playToEnd'));
+    await act(async () => vi.advanceTimersByTime(160));
+    expect(document.querySelector('[data-testid="native-modal"]')).toBeNull();
+    expect(host.querySelector('[data-testid="native-video"]')).toBeNull();
+  });
+  it('does not expire a pending message before the intro has released it', async () => {
+    const onDismiss = vi.fn();
+    await render(<AppStartIntro><WorkflowFeedbackOverlay message="Verbindung wiederhergestellt" autoDismissMs={5000} onDismiss={onDismiss} /></AppStartIntro>);
+    await act(async () => vi.advanceTimersByTime(8000));
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-testid="native-modal"]')).toBeNull();
+    await act(async () => emit('playToEnd'));
+    await act(async () => vi.advanceTimersByTime(160));
+    expect(document.querySelector('[data-testid="native-modal"]')?.textContent).toContain('Verbindung wiederhergestellt');
+    await act(async () => vi.advanceTimersByTime(4999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(document.querySelector('[data-testid="native-modal"]')).toBeNull();
+  });
   it('loads the app underneath a local, audible, non-looping video and reveals it only after the end', async () => {
     await render();
     expect(host.textContent).toContain('Sitzung lädt parallel');

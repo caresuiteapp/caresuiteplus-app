@@ -176,10 +176,7 @@
       "web": "src/components/assist/AssistLiveFilterSelect.web.tsx",
       "native": "src/components/assist/AssistLiveFilterSelect.native.tsx",
       "sourceHash": "fb7a785968295dd983bb65b1def5772a51eb56d2a67a5af9961bf47446964338",
-      "environment": [
-        "document",
-        "window"
-      ]
+      "environment": []
     },
     {
       "web": "src/components/assist/AssistExecutionProblemInboxPanel.web.tsx",
@@ -6446,6 +6443,102 @@
       "web": "src/screens/templates/TemplateSettingsScreen.web.tsx",
       "native": "src/screens/templates/TemplateSettingsScreen.native.tsx",
       "sourceHash": "0a33383a99a3c413212ae0e1e85e7cfe23aee0530985185b4b2f5ef7ef591555",
+      "environment": []
+    },
+    {
+      "web": "src/liquid-command/components/desktopAreaSwitcherCss.web.ts",
+      "native": "src/liquid-command/components/desktopAreaSwitcherCss.native.ts",
+      "sourceHash": "a1b1f7cbf961b1376b850b0979d785fd50937fee427fa7cb1d6d23411de129d1",
+      "environment": []
+    },
+    {
+      "web": "src/liquid-command/components/DesktopAreaSwitcher.web.tsx",
+      "native": "src/liquid-command/components/DesktopAreaSwitcher.native.tsx",
+      "sourceHash": "346eb9def2e7a6be11d2bec4f2ac3003fda8bfae804bbf30420d3a8261d03ecf",
+      "environment": []
+    },
+    {
+      "web": "src/liquid-command/navigation/desktopAppCatalog.web.ts",
+      "native": "src/liquid-command/navigation/desktopAppCatalog.native.ts",
+      "sourceHash": "409e54f34f8d254b02fec53209a16872d7250aeed8cdb240ecad0306d526cad4",
+      "environment": []
+    },
+    {
+      "web": "src/liquid-command/screens/desktopAppsWidgetsCenterCss.web.ts",
+      "native": "src/liquid-command/screens/desktopAppsWidgetsCenterCss.native.ts",
+      "sourceHash": "b1fada7e6bbf54bdc39daf23138991d42983078f312112543a0698b70771ee6d",
+      "environment": []
+    },
+    {
+      "web": "src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx",
+      "native": "src/liquid-command/screens/DesktopAppsWidgetsCenter.native.tsx",
+      "sourceHash": "96c2b7142f500a9da292e34d7696ea3a083ce25c4906b34734896ea3fe7bd23b",
+      "environment": []
+    },
+    {
+      "web": "src/ai/robot/neoLanguage.web.ts",
+      "native": "src/ai/robot/neoLanguage.native.ts",
+      "sourceHash": "9c60063945fe2427a8bb0ad0f1b60fa79cb8d891c88a2bf0ae70d6461917163f",
+      "environment": []
+    },
+    {
+      "web": "src/ai/robot/neoUnderstanding.web.ts",
+      "native": "src/ai/robot/neoUnderstanding.native.ts",
+      "sourceHash": "95f5db527f50820dcfc6d5b24f030fdd7d91e97a1f59aec9e73e1ee9898376d2",
+      "environment": []
+    },
+    {
+      "web": "src/ai/robot/neoConversation.web.ts",
+      "native": "src/ai/robot/neoConversation.native.ts",
+      "sourceHash": "686220c45f166d0431e7ac1ff304bc4b48d86c7190284b7968af3a941c357515",
+      "environment": []
+    },
+    {
+      "web": "src/components/help/HelpCenterView.web.tsx",
+      "native": "src/components/help/HelpCenterView.native.tsx",
+      "sourceHash": "6d6614f223395fda3151b1dac7f7c5f1775a6a108dd87672b7ac63397a419908",
+      "environment": [
+        "URL",
+        "navigator",
+        "document"
+      ]
+    },
+    {
+      "web": "src/screens/help/HelpCenterScreen.web.tsx",
+      "native": "src/screens/help/HelpCenterScreen.native.tsx",
+      "sourceHash": "6cc39aba9478b0f4ba9fed6fc81d87383cc6d754b63b98b87b8be1978c989d5e",
+      "environment": []
+    },
+    {
+      "web": "src/components/googleWorkspace/GoogleWorkspaceWidget.web.tsx",
+      "native": "src/components/googleWorkspace/GoogleWorkspaceWidget.native.tsx",
+      "sourceHash": "e317e7ad27c5bc9a296082b38d4cf6fe606223ce690d73bca6be6ea7dc3c367f",
+      "environment": []
+    },
+    {
+      "web": "src/components/googleWorkspace/WorkspaceActionForm.web.tsx",
+      "native": "src/components/googleWorkspace/WorkspaceActionForm.native.tsx",
+      "sourceHash": "bed566cdcf0a0233325ad29dee488b874463f6fc57045243c3f28cdffbfa0872",
+      "environment": [
+        "crypto"
+      ]
+    },
+    {
+      "web": "src/components/googleWorkspace/WorkspaceServicePanel.web.tsx",
+      "native": "src/components/googleWorkspace/WorkspaceServicePanel.native.tsx",
+      "sourceHash": "07073b61ea4eb790dfb43adc9a6b81160d95c171a4a87a7c4ffdac62910e73da",
+      "environment": []
+    },
+    {
+      "web": "src/components/googleWorkspace/workspaceCss.web.ts",
+      "native": "src/components/googleWorkspace/workspaceCss.native.ts",
+      "sourceHash": "cc4391b851eeb1468e550f945e8e036f5da4e062dbe7af1d5caa3a1fe8b0992d",
+      "environment": []
+    },
+    {
+      "web": "src/components/googleWorkspace/WorkspaceDashboard.web.tsx",
+      "native": "src/components/googleWorkspace/WorkspaceDashboard.native.tsx",
+      "sourceHash": "548fbd27fa79e9e574dfc72ed9a9d31e016455f514bb438416323a7942a67e53",
       "environment": []
     },
     {

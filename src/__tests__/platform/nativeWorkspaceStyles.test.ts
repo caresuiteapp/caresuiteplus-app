@@ -1,7 +1,71 @@
 import {describe,it,expect} from 'vitest';
-import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,workspaceContentWidth,matchesWorkspaceSelector} from '@/lib/platform/nativeWorkspaceStyles.shared';
+import {readFileSync,readdirSync} from 'node:fs';
+import {join} from 'node:path';
+import ts from 'typescript';
+import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,workspaceContentWidth,matchesWorkspaceSelector,normalizeNativeTextStyle,nativeTextNeedsRadiusLayout} from '@/lib/platform/nativeWorkspaceStyles.shared';
 import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.shared';
 describe('native presentation of business layouts',()=>{
+  it('keeps rules from every dedicated native CSS module compatible with Android numeric and enum style setters',()=>{
+    const files:string[]=[];
+    const walk=(directory:string)=>{for(const entry of readdirSync(directory,{withFileTypes:true})){const path=join(directory,entry.name);if(entry.isDirectory())walk(path);else if(/css.*\.native\.tsx?$/i.test(entry.name))files.push(path);}};
+    walk(join(process.cwd(),'src'));
+    expect(files.length).toBeGreaterThan(0);
+    const numeric=/^(?:border.*(?:Radius|Width)|fontSize|lineHeight|letterSpacing|opacity|zIndex|flex|flexGrow|flexShrink|aspectRatio|elevation|shadowOpacity|shadowRadius|textShadowRadius)$/;
+    let checked=0;
+    for(const path of files){
+      const ast=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true);
+      const visit=(node:ts.Node)=>{
+        if(ts.isNoSubstitutionTemplateLiteral(node)){
+          const sheet=compileWorkspaceCss(node.text),variables=Object.fromEntries(sheet.flatMap(rule=>rule.declarations).filter(([key])=>key.startsWith('--')));
+          for(const rule of sheet)for(const width of [320,800,1280])for(const fontScale of [1,1.6]){
+            const presentation=resolveWorkspacePresentation([[{...rule,selector:'*',condition:''}]],{tag:'span',props:{}},[],width,{fontSize:14},{...variables,'--cs-native-font-scale':String(fontScale),'--cs-native-viewport-width':String(width)});
+            const text=normalizeNativeTextStyle({...presentation.box,...presentation.text},{width:80,height:24});
+            for(const [key,value] of Object.entries(text))if(numeric.test(key)&&value!==null&&value!==undefined){expect(typeof value,path+' '+rule.selector+' '+key).toBe('number');expect(Number.isFinite(value),path+' '+rule.selector+' '+key).toBe(true);}
+            if(text.fontWeight!==undefined)expect(String(text.fontWeight),path+' '+rule.selector+' fontWeight').toMatch(/^(normal|bold|[1-9]00)$/);
+            if(text.borderStyle!==undefined)expect(['solid','dashed','dotted'],path+' '+rule.selector+' borderStyle').toContain(text.borderStyle);
+            checked++;
+          }
+        }
+        ts.forEachChild(node,visit);
+      };
+      visit(ast);
+    }
+    expect(checked).toBeGreaterThan(files.length);
+  });
+  it('keeps percentage View geometry while converting only text radii to native numbers',()=>{
+    const sheet=compileWorkspaceCss('.round{width:6px;height:6px;border-radius:50%;background:#3684ed}');
+    const view=resolveWorkspacePresentation([sheet],{tag:'i',props:{className:'round'}},[],390);
+    expect(view.box).toMatchObject({width:6,height:6,borderRadius:'50%',backgroundColor:'#3684ed'});
+    expect(normalizeNativeTextStyle(view.box)).toMatchObject({width:6,height:6,borderRadius:3,backgroundColor:'#3684ed'});
+    expect(nativeTextNeedsRadiusLayout(view.box)).toBe(false);
+    const responsive={...view.box,width:'100%' as const,height:undefined};
+    expect(nativeTextNeedsRadiusLayout(responsive)).toBe(true);
+    expect(normalizeNativeTextStyle(responsive).borderRadius).toBe(0);
+    expect(normalizeNativeTextStyle(responsive,{width:120,height:32})).toMatchObject({width:'100%',borderRadius:16});
+    expect(normalizeNativeTextStyle(responsive,{width:90,height:48}).borderRadius).toBe(24);
+  });
+  it('retains individual and shorthand message-bubble corners without passing percent radii to Text',()=>{
+    const sheet=compileWorkspaceCss('.message{width:80px;height:24px;border-radius:16px 16px 4px 16px}.corner{width:80px;height:24px;border-top-left-radius:50%}');
+    const message=resolveWorkspacePresentation([sheet],{tag:'span',props:{className:'message'}},[],390);
+    expect(message.box).toMatchObject({borderTopLeftRadius:16,borderTopRightRadius:16,borderBottomRightRadius:4,borderBottomLeftRadius:16});
+    const corner=resolveWorkspacePresentation([sheet],{tag:'span',props:{className:'corner'}},[],390);
+    expect(corner.box.borderTopLeftRadius).toBe('50%');expect(normalizeNativeTextStyle(corner.box).borderTopLeftRadius).toBe(12);
+  });
+  it('resolves percentage type metrics against the inherited font once, including calc',()=>{
+    const sheet=compileWorkspaceCss('.copy{font-size:125%;line-height:120%;opacity:50%}.calculated{font-size:calc(100% + 2px)}');
+    const copy=resolveWorkspacePresentation([sheet],{tag:'span',props:{className:'copy'}},[],900,{fontSize:16});
+    expect(copy.text).toMatchObject({fontSize:20,lineHeight:24});expect(copy.box.opacity).toBe(.5);
+    expect(resolveWorkspacePresentation([sheet],{tag:'span',props:{className:'calculated'}},[],900,{fontSize:16}).text.fontSize).toBe(18);
+  });
+  it('never forwards CSS auto or percentage strings to Android numeric setters',()=>{
+    const sheet=compileWorkspaceCss('.copy{width:50%;height:auto;z-index:auto;border-width:5%;letter-spacing:normal;opacity:50%;font-weight:650}');
+    const copy=resolveWorkspacePresentation([sheet],{tag:'span',props:{className:'copy'}},[],390);
+    expect(copy.box).toMatchObject({width:'50%',height:'auto',opacity:.5});
+    expect(copy.box.zIndex).toBeUndefined();expect(copy.box.borderWidth).toBeUndefined();expect(copy.text.fontWeight).toBe('700');expect(copy.text.letterSpacing).toBe(0);
+    const text=normalizeNativeTextStyle({borderRadius:'50%',borderTopLeftRadius:'25%',fontSize:'18px',lineHeight:'auto',letterSpacing:'1.5px',opacity:'50%',zIndex:'auto',width:'100%',borderWidth:'1px'} as never,{width:80,height:24});
+    expect(text).toMatchObject({borderRadius:12,borderTopLeftRadius:6,fontSize:18,letterSpacing:1.5,opacity:.5,width:'100%',borderWidth:1});
+    expect(text.lineHeight).toBeUndefined();expect(text.zIndex).toBeUndefined();
+  });
   it('uses the fixed upper bound of a sidebar before distributing the flexible pane',()=>{expect(workspaceGridWidths('minmax(275px,310px) minmax(0,1fr)',736,0)).toEqual([310,426]);expect(workspaceGridWidths('minmax(0,310px) minmax(0,1fr)',736,0)).toEqual([310,426]);});
   it('uses the same responsive grid after the navigation reduces the content width',()=>{const sheet=compileWorkspaceCss('.workspace .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}@container(max-width:850px){.workspace .cards{grid-template-columns:repeat(2,minmax(0,1fr))}}'),parent={tag:'section',props:{className:'workspace'}},node={tag:'div',props:{className:'cards'}};const wide=resolveWorkspacePresentation([sheet],node,[parent],1100),narrow=resolveWorkspacePresentation([sheet],node,[parent],600);expect(workspaceGridWidths(wide.grid!,1100,12)).toEqual([266,266,266,266]);expect(workspaceGridWidths(narrow.grid!,600,12)).toEqual([294,294]);});
   it('preserves selected, disabled and child selector rules',()=>{const sheet=compileWorkspaceCss('.toolbar button{color:#123456;padding:8px 12px}.toolbar>button[aria-pressed=true]{color:#ffffff;background:#126fbd}.toolbar button:disabled{opacity:.5}'),parent={tag:'div',props:{className:'toolbar'}},node={tag:'button',props:{'aria-pressed':true,disabled:true}};const styles=resolveWorkspacePresentation([sheet],node,[parent],390);expect(styles.text.color).toBe('#ffffff');expect(styles.box.backgroundColor).toBe('#126fbd');expect(styles.box.opacity).toBe(.5);expect(styles.box.paddingLeft).toBe(12);expect(matchesWorkspaceSelector('.other button',node,[parent])).toBe(false);});

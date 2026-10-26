@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {ProfessionalPreview} from './native-professional-preview';
+import {HelpWorkspacePreview} from './native-help-workspace-preview';
 import { CompanyWorkspaceView } from '../../src/components/company/CompanyWorkspaceView';
 import { PortalPreview } from './native-portals-preview';
 import { createRoot } from 'react-dom/client';
@@ -19,6 +20,7 @@ function Preview(){
  const [form,setForm]=useState(snapshot),[tab,setTab]=useState('overview');
  if(['academy','consultation','catalog'].includes(page))return <ProfessionalPreview screen={page}/>;
  if(page==='desktop')return <CommandCenterScreen/>;
+ if(['help','help-article','google-workspace','google-service'].includes(page))return <HelpWorkspacePreview screen={page}/>;
  if(page==='company')return <ScrollView><CompanyWorkspaceView snapshot={snapshot} tab={tab} onTab={setTab} activeAreas={['Office','Assist']} canEdit canDocuments canInventory refreshing={false} onRefresh={noop} onOpen={noop} onCustomField={noop} onCopy={noop} onDocuments={noop}/></ScrollView>;
  if(!['clients','employees','company-editor','inventory','notes'].includes(page))return <PortalPreview screen={page}/>;
  return <View style={[m.page,{padding:16}]}>{page==='notes'?<NotesWorkspace actor={{tenantId,userId:'visual-person',roleKey:'business_admin',permissions}}/>:page==='clients'?<ClientsListView/>:page==='employees'?<EmployeesListView/>:page==='inventory'?<CompanyInventoryWorkspace tenantId={tenantId} roleKey="business_admin" actorProfileId="visual-person" effectivePermissions={permissions}/>:<><MobileHeading title="Unternehmen" subtitle="Ihre Unternehmensakte" icon="briefcase"/><MobileSheet visible title="Unternehmensprofil bearbeiten" onClose={noop} footer={<MobileButton primary label="Änderungen speichern" onPress={noop}/>}><NativeWorkspaceStyleScope css={[COMPANY_EDITOR_CSS]}><NativeDiv className="cs-company-editor"><TenantCompanyEditorForms section="company" value={form} onChange={setForm} errors={{}}/></NativeDiv></NativeWorkspaceStyleScope></MobileSheet></>}</View>;

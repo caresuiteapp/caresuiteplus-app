@@ -9,7 +9,8 @@ describe('R16 portal mobile stability and layout recovery', () => {
   it('centers the employee/client access start on phones', () => {
     const hub = read('src/liquid-command/screens/AccessHubBaseScreen.tsx');
     expect(hub).toMatch(/scrollContentStacked:\s*\{[\s\S]*justifyContent: 'center'/);
-    expect(hub).toContain('<LiquidLogo width={stacked ? 286 : 560} />');
+    expect(hub).toContain('CareSuite<Text style={styles.logoAccent}> HealthOS</Text>');
+    expect(hub).toContain('allowFontScaling={false}');
   });
 
   it('uses a contrast-safe HealthOS wordmark on light portal chrome', () => {

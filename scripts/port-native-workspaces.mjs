@@ -67,6 +67,10 @@ function port(path){const file=relative(root,resolve(path)).replaceAll('\\','/')
   modules.set(file,{web:file,native,sourceHash:createHash('sha256').update(readFileSync(file)).digest('hex'),environment:info.globals,content});active.delete(file);return native;
 }
 for(const file of files.filter(file=>/\.web\.tsx$/.test(file)&&/^src\/(?:screens\/(?!auth\/|connect\/|support\/|help\/|platformConsole\/)|features\/(?:akademie|beratung)\/|components\/(?:office|assist|company|documents|inventory|clients|wfm|portal|tenant|settings|templates|careAssessment|carePlan|pflege|calendar|forms|inputs)\/|liquid-command\/screens\/(?:Assist|Company))/.test(file)))port(file);
+// Keep the native catalogue on the same presentation and interaction source as Web.
+port('src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx');
+port('src/ai/robot/neoConversation.web.ts');
+for(const file of ['src/screens/help/HelpCenterScreen.web.tsx','src/components/googleWorkspace/GoogleWorkspaceWidget.web.tsx','src/components/googleWorkspace/WorkspaceDashboard.web.tsx','src/components/googleWorkspace/WorkspaceServicePanel.web.tsx','src/components/googleWorkspace/WorkspaceActionForm.web.tsx']){generated.add(sibling(file,'.native'));port(file);}
 for(const file of sharedNativeRoots)port(file);
 const routes=[];
 for(const file of appFiles.filter(file=>/\.tsx$/.test(file)&&!/\.(?:native|android|ios)\.tsx$/.test(file))){if(!/^app\/(?:pflege|office|business|assist|stationaer|roboter|premium|akademie|beratung|unternehmen|settings|portal|device|qm|inventar|Desktop|desktop)(?:\/|\.)/.test(file)||/_layout/.test(file))continue;const web=file.endsWith('.web.tsx')?file:file.replace(/\.tsx$/,'.web.tsx'),source=existsSync(web)?web:file,native=source.replace(/(?:\.web)?\.tsx$/,'.native.tsx');if(routes.some(row=>row.native===native))continue;let prepared=readFileSync(source,'utf8');if(source.endsWith('.web.tsx')){generated.add(native);port(source);prepared=modules.get(source)?.content??prepared;}const ast=ts.createSourceFile(source,prepared,99,true,4),edits=[];
