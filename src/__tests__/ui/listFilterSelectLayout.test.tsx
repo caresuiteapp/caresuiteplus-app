@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('react-native', async () => await import('react-native-web'));
+vi.mock('react-native', async () => await vi.importActual<typeof import('react-native')>('react-native-web'));
 vi.mock('@/components/layout/platform/platformmodal', () => ({ PlatformModal: () => null }));
 vi.mock('@/design/tokens/auroraGlass', () => ({
   useAuroraGlassSelectStyles: () => ({

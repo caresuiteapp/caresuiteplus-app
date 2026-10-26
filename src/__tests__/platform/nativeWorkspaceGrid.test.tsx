@@ -30,7 +30,7 @@ vi.mock('@/liquid-command/components/DesktopCatalogArtwork.tsx',()=>({DesktopCat
 import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitcher.native';
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
-import {NativeButton,NativeDiv,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
 
@@ -65,6 +65,31 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(style('stretch').alignSelf).toBeUndefined();
     expect(style('wide').width).toBe('100%');
     expect(style('wide').alignSelf).toBeUndefined();
+  });
+
+  it.each([[1280,['50%','30%','20%']],[900,['40%','30%','30%']]] as const)('shares authored first-row tracks with every body row at %dpx',async(width,expected)=>{
+    hosts.width=width;
+    const css='.records{table-layout:fixed}.records th:first-child{width:50%}.records th:nth-child(2){width:30%}.records th:nth-child(3){width:20%}@container(max-width:1000px){.records th:first-child{width:40%}.records th:nth-child(3){width:30%}}';
+    await render(<NativeWorkspaceStyleScope css={[css]}><NativeTable className="records"><NativeThead><NativeTr>{['Name','Versorgung','Ort'].map((label,index)=><NativeTh key={label} data-testid={'head-'+index}>{label}</NativeTh>)}</NativeTr></NativeThead><NativeTbody><NativeTr>{['Helene Musterfrau','PG 2','Hannover'].map((value,index)=><NativeTd key={value} data-testid={'cell-'+index}>{value}</NativeTd>)}</NativeTr><NativeTr><NativeTd colSpan={2} data-testid="joined">Zusammenfassung</NativeTd><NativeTd>Stand</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
+    for(const [index,value] of expected.entries())for(const prefix of ['head-','cell-'])expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="'+prefix+index+'"]')!)?.width).toBe(value);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="joined"]')!)?.width).toBe(String(parseFloat(expected[0])+parseFloat(expected[1]))+'%');
+  });
+
+  it('keeps explicit colgroup tracks ahead of first-row width hints',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.records{table-layout:fixed}.records th:first-child{width:70%}.records th:nth-child(2){width:30%}']}><NativeTable className="records"><NativeColgroup><NativeCol style={{width:'25%'}}/><NativeCol style={{width:'75%'}}/></NativeColgroup><NativeThead><NativeTr><NativeTh>Name</NativeTh><NativeTh>Ort</NativeTh></NativeTr></NativeThead><NativeTbody><NativeTr><NativeTd data-testid="name">Helene</NativeTd><NativeTd data-testid="city">Hannover</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="name"]')!)?.width).toBe('25%');
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="city"]')!)?.width).toBe('75%');
+  });
+
+  it.each([['fixed','50%','30%','10%'],['fixed','50%','',''],['auto','50%','30%','20%']])('retains the fallback for a %s table without a complete percentage contract (%s/%s/%s)',async(layout,first,second,third)=>{
+    await render(<NativeWorkspaceStyleScope css={['.records{table-layout:'+layout+'}.records th:first-child{width:'+first+'}.records th:nth-child(2){width:'+second+'}.records th:nth-child(3){width:'+third+'}.records td:first-child{width:50%}.records td:nth-child(2){width:30%}.records td:nth-child(3){width:20%}']}><NativeTable className="records"><NativeThead><NativeTr><NativeTh>Name</NativeTh><NativeTh>Versorgung</NativeTh><NativeTh>Ort</NativeTh></NativeTr></NativeThead><NativeTbody><NativeTr><NativeTd data-testid="fallback">Helene</NativeTd><NativeTd>PG 2</NativeTd><NativeTd>Hannover</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="fallback"]')!)?.width).toBe(String(100/3)+'%');
+  });
+
+  it.each(['block','flex','grid'])('collapses adjacent positive block margins only in %s flow',async(display)=>{
+    await render(<NativeWorkspaceStyleScope css={['.flow{display:'+display+'}.first{display:grid;margin-bottom:17px}.next{margin-top:17px}']}><NativeDiv className="flow"><NativeDiv className="first" data-testid="first">Kennzahlen</NativeDiv><NativeDiv className="next" data-testid="next">Arbeitsbereich</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="first"]')!)?.marginBottom).toBe(17);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="next"]')!)?.marginTop).toBe(display==='block'?0:17);
   });
 
   it('keeps a marked calendar in seven columns when device text is enlarged',async()=>{

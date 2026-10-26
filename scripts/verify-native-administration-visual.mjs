@@ -440,6 +440,10 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
+  if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100){
+   const first=page.getByRole('button',{name:'Klient:in ↑',exact:true}).locator('..'),cell=await first.boundingBox(),row=await first.locator('..').boundingBox();
+   if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015)throw Error(JSON.stringify({message:'Client table must preserve its authored 27% identity column.',screen,viewport,cell,row}));
+  }
   if((screen==='notes'||screen==='web-notes')&&viewport.width>=1100){
    const button=await page.getByRole('button',{name:/Freie Notiz beginnen/}).boundingBox();
    if(!button||button.width>viewport.width*.35)throw Error(JSON.stringify({message:'The inline note-start action stretches across its block container.',screen,viewport,button}));
