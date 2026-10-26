@@ -281,7 +281,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
                   {item.id === 'home' ? (kind === 'employee' ? 'Heute' : 'Start')
-                    : item.id === 'documents' ? 'Dateien'
+                    : item.id === 'documents' ? 'Akte'
                     : item.id === 'messages' ? 'Chats'
                     : item.id === 'assignments' || item.id === 'appointments' ? 'Plan'
                     : item.id === 'open-assignments' ? 'Offen'

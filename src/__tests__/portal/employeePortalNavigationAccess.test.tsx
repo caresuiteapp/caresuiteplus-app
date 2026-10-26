@@ -126,6 +126,14 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     chat.props.onPress();
     expect(state.push).toHaveBeenCalledWith('/portal/employee/messages');
   });
+  it('retains the client document destination and accessible name behind the short record label', () => {
+    state.role = 'client_portal'; state.path = '/portal/client';
+    const navigation = shell('client').find(node => node.props.testID === 'portal-bottom-navigation')!;
+    const documents = nodes(navigation).find(node => node.props.accessibilityLabel === 'Dokumente')!;
+    expect(nodes(documents).some(node => node.type === 'Text' && node.props.children === 'Akte')).toBe(true);
+    documents.props.onPress();
+    expect(state.push).toHaveBeenCalledWith('/portal/client/documents');
+  });
   it.each([0, 24, 48])('reserves the GPS row and navigation above system inset %s', (inset) => {
     state.bottom = inset;
     const footer = shell().find((node) => node.props.testID === 'portal-navigation-footer')!;
