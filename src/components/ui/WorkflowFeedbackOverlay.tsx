@@ -68,7 +68,8 @@ export function WorkflowFeedbackOverlay({
   testID = 'workflow-feedback-overlay',
 }: Props) {
   const startupReady = useAppStartIntroReady();
-  const { isPhone } = useDeviceClass();
+  const { isPhone, width = 390, fontScale = 1 } = useDeviceClass();
+  const stackedHeading = isPhone && width / Math.max(1, fontScale) < 360;
   const portal = usePortalPremiumRuntimeTheme();
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
@@ -158,7 +159,7 @@ export function WorkflowFeedbackOverlay({
     </Pressable>
   );
   const indicator = <View style={[styles.icon, { backgroundColor: meta.color }]}><SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork></View>;
-  const heading = <View style={[styles.headingText, isPhone && styles.headingTextPhone]}><Text testID={`${testID}-title`} accessibilityRole="header" style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text></View>;
+  const heading = <View style={[styles.headingText, stackedHeading && styles.headingTextPhone]}><Text testID={`${testID}-title`} accessibilityRole="header" style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text></View>;
   const content = (
     <View
       accessibilityRole="alert"
@@ -187,8 +188,8 @@ export function WorkflowFeedbackOverlay({
           </View>
         ) : (
           <ScrollView style={styles.messageScroll} contentContainerStyle={styles.messageContent} keyboardShouldPersistTaps="handled">
-            <View style={[styles.heading, isPhone && styles.headingPhone]}>
-              {isPhone ? <><View style={styles.headingControls}>{indicator}{closeControl}</View>{heading}</> : <>{indicator}{heading}{closeControl}</>}
+            <View style={[styles.heading, stackedHeading && styles.headingPhone]}>
+              {stackedHeading ? <><View style={styles.headingControls}>{indicator}{closeControl}</View>{heading}</> : <>{indicator}{heading}{closeControl}</>}
             </View>
             <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
             <View style={styles.actions}>

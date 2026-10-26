@@ -24,21 +24,22 @@ export function ClientPortalGuide({
   compact = false,
   trailing,
 }: Props) {
-  const { width, isPhone } = useDeviceClass();
+  const { width, isPhone, fontScale = 1 } = useDeviceClass();
+  const stacked = isPhone && width / Math.max(1, fontScale) < 300;
   const type = resolveGalaxyTypography(width);
   const small = compact || isPhone;
 
   return (
-    <View style={[styles.wrap, small && styles.wrapSmall, isPhone && styles.wrapStacked]} testID="client-portal-guide">
+    <View style={[styles.wrap, small && styles.wrapSmall, stacked && styles.wrapStacked]} testID="client-portal-guide">
       <Image
         accessibilityIgnoresInvertColors
         accessibilityLabel="CareSuite Portalbegleiter"
         resizeMode="contain"
         source={require('../../../assets/auth/access-client.png')}
-        style={[styles.mascot, small && styles.mascotSmall, isPhone && styles.mascotStacked]}
+        style={[styles.mascot, small && styles.mascotSmall, stacked && styles.mascotStacked]}
       />
-      <View style={[styles.bubble, isPhone && styles.bubbleStacked]}>
-        <View style={[styles.bubbleTail, isPhone && styles.bubbleTailStacked]} />
+      <View style={[styles.bubble, stacked && styles.bubbleStacked]}>
+        <View style={[styles.bubbleTail, stacked && styles.bubbleTailStacked]} />
         <Text accessibilityLabel={title} style={[type.bodyStrong, styles.title]}>{title.replaceAll('Leistungsnachweise', 'Leistungs\u00ADnachweise')}</Text>
         <Text style={[type.body, styles.message]}>{message}</Text>
         {actionLabel && onAction ? (

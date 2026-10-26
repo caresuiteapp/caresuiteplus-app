@@ -30,7 +30,7 @@ vi.mock('@/liquid-command/components/DesktopCatalogArtwork.tsx',()=>({DesktopCat
 import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitcher.native';
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
-import {NativeDiv,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeButton,NativeDiv,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
 
@@ -54,6 +54,17 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     await render(<NativeWorkspaceStyleScope css={['.placement{display:grid;grid-template-columns:30px minmax(0,1fr);gap:14px}.placement>.positioned{grid-row:2;grid-column:2}.placement>.column{grid-column:2}.placement>.wide{grid-column:1/-1}.placement>span:first-child{color:#b42336}']}><NativeDiv className="placement" data-testid="placement"><NativeSpan className="positioned" key="positioned" data-testid="positioned">Positioniert</NativeSpan><NativeDiv key="automatic">Automatisch</NativeDiv><NativeDiv className="column" key="column">Spalte zwei</NativeDiv><NativeDiv className="wide" key="wide" data-testid="wide">Volle Zeile</NativeDiv><NativeDiv key="after" data-testid="after">Danach</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
     const grid=host.querySelector<HTMLElement>('[data-testid="placement"]')!;await act(async()=>hosts.layouts.get(grid)!({nativeEvent:{layout:{x:0,y:0,width:248,height:300}}}));
     expect([...grid.children].map(child=>child.textContent)).toEqual(['Automatisch','Spalte zwei','','Positioniert','Volle Zeile','Danach']);expect(hosts.styles.get(grid.children[2] as HTMLElement)?.width).toBe(30);expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="positioned"]')!)?.color).toBe('#b42336');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="wide"]')!)?.width).toBe('100%');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="after"]')!)?.width).toBe(30);
+  });
+
+  it('keeps inline controls and badges intrinsic in block flow, while explicit layouts retain stretch',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.flow{display:block}.badge,.action{display:inline-flex}.stack{display:flex;flex-direction:column}.wide{display:inline-flex;width:100%}.auto{display:inline-flex;width:auto;align-self:auto}']}><NativeDiv className="flow"><NativeButton data-testid="plain">Beginnen</NativeButton><NativeSpan className="badge" data-testid="badge">Aktiv</NativeSpan><NativeButton className="wide" data-testid="wide">Breite Aktion</NativeButton><NativeButton className="auto" data-testid="auto">Automatisch</NativeButton><NativeDiv className="stack"><NativeButton className="action" data-testid="stretch">Flex-Aktion</NativeButton></NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
+    const style=(id:string)=>hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="'+id+'"]')!)!;
+    expect(style('plain').alignSelf).toBe('flex-start');
+    expect(style('badge').alignSelf).toBe('flex-start');
+    expect(style('auto').alignSelf).toBe('flex-start');
+    expect(style('stretch').alignSelf).toBeUndefined();
+    expect(style('wide').width).toBe('100%');
+    expect(style('wide').alignSelf).toBeUndefined();
   });
 
   it('keeps a marked calendar in seven columns when device text is enlarged',async()=>{

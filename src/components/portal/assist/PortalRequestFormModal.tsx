@@ -121,14 +121,14 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Leistungsart"
               value={data.leistungsart}
               options={leistungsartOptions}
               onChange={(key) => setFormState({ ...data, leistungsart: key })}
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Bevorzugter Wochentag"
               value={data.wochentag}
               options={WEEKDAY_OPTIONS}
@@ -137,7 +137,7 @@ export function PortalRequestFormModal({
               }
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Bevorzugte Tageszeit"
               value={data.tageszeit}
               options={TIME_OF_DAY_OPTIONS}
@@ -146,7 +146,7 @@ export function PortalRequestFormModal({
               }
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Dringlichkeit"
               value={data.dringlichkeit}
               options={URGENCY_OPTIONS}
@@ -170,7 +170,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Geplanter Einsatz"
               value={data.appointmentId ?? (data.appointmentLabel.includes('Allgemeine') ? 'allgemein' : 'none')}
               options={appointmentOptions}
@@ -184,7 +184,7 @@ export function PortalRequestFormModal({
               }}
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Art der Änderung"
               value={data.aenderungsart}
               options={CHANGE_TYPE_OPTIONS}
@@ -198,7 +198,7 @@ export function PortalRequestFormModal({
             />
             {showsNeueTageszeit(data.aenderungsart) ? (
               <ListFilterSelect
-              style={styles.field}
+                grow={false}
                 label="Neue Tageszeit"
                 value={data.tageszeit ?? 'vormittag'}
                 options={TIME_OF_DAY_OPTIONS}
@@ -212,7 +212,7 @@ export function PortalRequestFormModal({
             ) : null}
             {showsNeuerWunschtag(data.aenderungsart) ? (
               <ListFilterSelect
-              style={styles.field}
+                grow={false}
                 label="Neuer Wunschtag"
                 value={data.wochentag ?? 'mo'}
                 options={WUNSCHTAG_OPTIONS}
@@ -226,7 +226,7 @@ export function PortalRequestFormModal({
             ) : null}
             {data.aenderungsart === 'absagen' ? (
               <ListFilterSelect
-              style={styles.field}
+                grow={false}
                 label="Absagegrund"
                 value={data.absagegrund ?? 'sonstiges'}
                 options={ABSAGEGRUND_OPTIONS}
@@ -254,7 +254,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Bevorzugte Rückrufzeit"
               value={data.rueckrufzeit}
               options={RUECKRUF_TIME_OPTIONS}
@@ -263,7 +263,7 @@ export function PortalRequestFormModal({
               }
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Grund/Thema"
               value={data.thema}
               options={RUECKRUF_TOPIC_OPTIONS}
@@ -295,7 +295,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Was möchten Sie ändern?"
               value={data.feld}
               options={STAMMDATEN_FIELD_OPTIONS}
@@ -319,7 +319,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Bereich"
               value={data.bereich}
               options={FEEDBACK_BEREICH_OPTIONS}
@@ -328,7 +328,7 @@ export function PortalRequestFormModal({
               }
             />
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Dringlichkeit"
               value={data.dringlichkeit}
               options={URGENCY_OPTIONS}
@@ -352,7 +352,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Bereich"
               value={data.bereich}
               options={FEEDBACK_BEREICH_OPTIONS}
@@ -374,7 +374,7 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              style={styles.field}
+              grow={false}
               label="Kategorie"
               value={data.kategorie}
               options={SONSTIGES_CATEGORY_OPTIONS}
@@ -416,7 +416,6 @@ export function PortalRequestFormModal({
 }
 
 const styles = StyleSheet.create({
-  field: { flex: 0 },
   fields: {
     gap: careSpacing.sm,
   },
