@@ -1,0 +1,42 @@
+{
+  "sourceBefore": "7d41b50689078a16a4a65ce19e0f37db9752f3b8",
+  "finding": "The invoice list builds style + workspace JSX in a local content binding, then returns an embedded/ScreenShell conditional. The generated list had no surrounding NativeWorkspaceStyleScope; only the sibling run-screen export had one.",
+  "evidence": {
+    "run": 40413940985,
+    "source": "dd5c20e8fd5c00df192cc43333fd46f5909ff62f",
+    "artifact": 12694746419,
+    "archiveSha256": "a225e7ef86f7025c27dd172fdf6e4796688c1ef46ab029c13463a362196b57ac",
+    "image": "admin-audit-invoices-default-ready-360x800-scale-1.6.png",
+    "imageSha256": "7759dc6c06d7f8ea2adbe94d347f7071c675f1e14ffc90967d170d23f78a2949",
+    "visuallyConfirmed": "Default stacked controls and unstyled heading instead of the existing invoice CSS."
+  },
+  "correction": "Wrap prebuilt JSX variable initializers in their native CSS scope before they are returned, forwarded as children or selected by a conditional. The original conditional/logical return control flow stays intact.",
+  "checks": {
+    "newExecutingCases": 4,
+    "actualScreen": "InvoicesListScreen embedded and standalone at 360px/1.6 and 1280px/1; actual compiled invoice CSS and action delivery.",
+    "browser": "The real ready invoice route must retain the authored horizontal tab row at all three existing viewports."
+  },
+  "regeneration": "A temporary handover step uses the existing CI generator only after the strict source check fails. It exports the changed native source files for a separate review/commit; the strict check stays failed until those outputs are committed. Remove the temporary step when committing the outputs.",
+  "releaseAcceptance": false,
+  "baselineCi173": {
+    "run": 40416516039,
+    "source": "7d41b50689078a16a4a65ce19e0f37db9752f3b8",
+    "result": "success",
+    "unitTests": [
+      34,
+      245,
+      211,
+      847
+    ],
+    "unitTotal": 1337,
+    "typecheck": "passed",
+    "sourceSync": {
+      "modules": 1110,
+      "routes": 269,
+      "nativeBindings": 4,
+      "stale": 0
+    },
+    "portalPrograms": "all three passed",
+    "limits": "The prior audit did not assert invoice stylesheet attachment; its green result does not clear the newly observed unstyled invoice page."
+  }
+}

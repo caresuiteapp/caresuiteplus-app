@@ -22,6 +22,10 @@ vi.mock('@/components/layout/NativeWorkspaceMedia.native',()=>({NativeWorkspaceM
 vi.mock('@/components/layout/NativeWorkspacePdfFrame.native',()=>({NativeWorkspacePdfFrame:()=>null}));
 vi.mock('@/lib/platform/nativeFileDelivery.native',()=>({shareNativeExistingFile:vi.fn()}));
 vi.mock('@/components/layout/ScreenShell.tsx',()=>({ScreenShell:({children}:{children:ReactNode})=>children}));
+vi.mock('@/components/office/invoices/InvoicesWorkspace.native.tsx',async()=>{
+  const React=await import('react'),{NativeDiv,NativeButton}=await import('@/components/layout/NativeWorkspaceElements.native');
+  return {InvoicesWorkspace:()=>React.createElement(NativeDiv,{className:'iw'},React.createElement(NativeDiv,{className:'iw-card','data-testid':'invoice-scope-panel'},React.createElement(NativeButton,{'data-testid':'invoice-scope-action',onClick:api.refresh},'Aktualisieren')))};
+});
 vi.mock('@/components/layout/platform/platformmodal.tsx',()=>({PlatformModal:()=>null}));
 vi.mock('@/components/icons/WebActionIcon.native.tsx',()=>({WebActionIcon:()=>null}));
 vi.mock('@/hooks/useNativePreventRemove.native',()=>({usePreventRemove:vi.fn()}));
@@ -48,6 +52,7 @@ vi.mock('@/components/calendar/EmployeeMonthPlanningModal.native.tsx',()=>({Empl
 vi.mock('@/components/office/calendar/OfficeCalendarSettingsModal.native.tsx',()=>({OfficeCalendarSettingsModal:()=>null}));
 vi.mock('@/components/calendar/OfficeAssignmentProfileCalendarPlanner.native.tsx',()=>({OfficeAssignmentProfileCalendarPlanner:({children}:{children:(selection:{selectedProfileId:null})=>ReactNode})=>{api.planner();return children({selectedProfileId:null});}}));
 
+import {InvoicesListScreen} from '@/screens/office/InvoicesListScreen.native';
 import {AssignmentStudioScaffold} from '@/components/assist/AssignmentFormControls.native';
 import {CalendarPageShell} from '@/components/calendar/CalendarPageShell.native';
 import {NativeButton,NativeDiv,NativeSpan} from '@/components/layout/NativeWorkspaceElements.native';
@@ -60,6 +65,15 @@ const render=(children:ReactNode)=>act(async()=>root.render(children));
 const style=(node:Element|null)=>hosts.styles.get(node as HTMLElement)!;
 
 describe('actual native parents inherit pure CSS emitters',()=>{
+  it.each([[false,360,1.6,12],[true,360,1.6,12],[false,1280,1,16],[true,1280,1,16]] as const)('keeps prebuilt invoice content styled in embedded=%s at %dpx scale%s',async(embedded,width,fontScale,padding)=>{
+    hosts.width=width;hosts.fontScale=fontScale;
+    await render(<InvoicesListScreen embedded={embedded}/>);
+    const panel=host.querySelector('[data-testid="invoice-scope-panel"]')!,button=host.querySelector<HTMLButtonElement>('[data-testid="invoice-scope-action"]')!;
+    expect(style(panel)).toMatchObject({paddingTop:padding,paddingLeft:padding,borderRadius:13,backgroundColor:'#fff'});
+    expect(style(button)).toMatchObject({minHeight:38,paddingTop:8,paddingLeft:12,borderRadius:10});
+    await act(async()=>button.click());expect(api.refresh).toHaveBeenCalledOnce();
+  });
+
   it.each([[360,1.6,17],[1280,1,22]])('composes assignment base and form CSS above the scaffold children at %dpx scale%s',async(width,fontScale,padding)=>{
     hosts.width=width;hosts.fontScale=fontScale;const onStepChange=vi.fn(),onSave=vi.fn();
     await render(<AssignmentStudioScaffold steps={[{key:'client',label:'Klient',icon:'person-outline'},{key:'time',label:'Zeit',icon:'time-outline'}]} activeStep="client" onStepChange={onStepChange} title="Einsatz planen" description="Daten vollständig erfassen" summary={[]} footer={null}>

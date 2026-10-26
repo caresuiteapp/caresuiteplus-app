@@ -63,6 +63,12 @@ function port(path){const file=relative(root,resolve(path)).replaceAll('\\','/')
   const transformed=ts.transform(ast,[context=>{
     function makeAsync(updated,original){if(!asyncFunctions.has(original)||original.modifiers?.some(m=>m.kind===ts.SyntaxKind.AsyncKeyword))return updated;const modifiers=f.createNodeArray([...(updated.modifiers??[]),f.createModifier(ts.SyntaxKind.AsyncKeyword)]),type=updated.type?f.createTypeReferenceNode('Promise',[updated.type]):undefined;if(ts.isFunctionDeclaration(updated))return f.updateFunctionDeclaration(updated,modifiers,updated.asteriskToken,updated.name,updated.typeParameters,updated.parameters,type,updated.body);if(ts.isArrowFunction(updated))return f.updateArrowFunction(updated,modifiers,updated.typeParameters,updated.parameters,type,updated.equalsGreaterThanToken,updated.body);if(ts.isFunctionExpression(updated))return f.updateFunctionExpression(updated,modifiers,updated.asteriskToken,updated.name,updated.typeParameters,updated.parameters,type,updated.body);throw Error('Unsupported async function: '+file);}
     function visit(node){
+      // Prebuilt JSX can be returned through a conditional or forwarded as
+      // a child. Its style scope must travel with the value itself.
+      if(ts.isVariableDeclaration(node)&&node.initializer&&jsxExpression(node.initializer)){
+        const styles=directStyles(node.initializer);
+        if(styles.length)return f.updateVariableDeclaration(node,node.name,node.exclamationToken,node.type,styleScope(ts.visitNode(node.initializer,visit),styles));
+      }
       if(ts.isArrowFunction(node)&&!ts.isBlock(node.body)&&jsxExpression(node.body)){const styles=directStyles(node.body);if(styles.length)return makeAsync(f.updateArrowFunction(node,node.modifiers,node.typeParameters,node.parameters,node.type,node.equalsGreaterThanToken,styleScope(ts.visitNode(node.body,visit),[...styles,...moduleStyles.values()])),node);}
       const hostTag=reactHostTag(node,checker);if(hostTag&&(svg[hostTag]||elements[hostTag]))return f.updateCallExpression(node,ts.visitNode(node.expression,visit),node.typeArguments,[f.createIdentifier(svg[hostTag]??elements[hostTag]),...node.arguments.slice(1).map(arg=>ts.visitNode(arg,visit))]);
       if(ts.isCallExpression(node)&&node.expression.getText(ast)==='window.confirm')return f.createAwaitExpression(f.createCallExpression(f.createIdentifier('confirmNativeWorkspaceAction'),undefined,node.arguments.map(arg=>ts.visitNode(arg,visit))));

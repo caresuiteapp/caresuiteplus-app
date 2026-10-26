@@ -194,6 +194,7 @@ jobs:
       - name: Alle Seiteneinstiege und offene Abweichungen erfassen
         run: node scripts/audit-native-web-parity.mjs
       - name: Übertragene Fachseiten mit den Web-Quellen abgleichen
+        id: native_source_sync
         run: node scripts/port-native-workspaces.mjs --check
       - name: Native Datei- und Arbeitsabläufe prüfen
         run: npx vitest run src/__tests__/platform/metroSqliteAssetResolution.test.ts src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativePdfModuleBoundary.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeWorkspaceGrid.test.tsx src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeInlineLinks.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeReactHosts.test.ts src/__tests__/platform/nativeStyleEmitterScopes.test.tsx src/__tests__/ui/stateViewFeedbackFocus.native.test.tsx src/__tests__/ui/listFilterSelectLayout.test.tsx src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx src/__tests__/office/officeNotesNativeInteraction.test.tsx src/__tests__/calendar/nativePortalCalendarPresentation.test.tsx src/__tests__/portal/employeeLogbookNativeRuntime.test.tsx src/__tests__/portal/employeePortalWorkspaceRegression.test.tsx src/__tests__/portal/clientPortalNativeContinuity.test.tsx src/__tests__/portal/clientPortalNativeLayout.test.tsx src/__tests__/portal/clientPortalSurfaceContrast.test.tsx src/__tests__/portal/employeePortalTodayAssignments.test.tsx --maxWorkers=2
@@ -208,6 +209,26 @@ jobs:
         run: node scripts/log-native-audit-review-images.mjs native
       - name: Gemeinsame Navigation und Seitenziele prüfen
         run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/legacyPortalEntryTargets.test.tsx src/__tests__/auth/businessWelcomePresentation.test.tsx src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/navigation/nativeExpoRouteResolution.test.ts src/__tests__/navigation/nativeModuleNavigatorLifecycle.test.tsx src/__tests__/auth/nativeAuthGuardFocus.test.tsx src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/tenant/nativeCompanyWorkspaceInteraction.test.tsx --maxWorkers=2
+      - name: Geänderte native Übertragungen zur Übernahme erzeugen
+        if: failure() && steps.native_source_sync.outcome == 'failure'
+        run: |
+          node scripts/port-native-workspaces.mjs --write
+          node --input-type=module <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const paths=execFileSync('git',['diff','--name-only','-z','--','src','app','docs/native-workspace-source-map.json'],{encoding:'utf8'}).split('\0').filter(Boolean);
+          for(const path of paths)if(path!=='docs/native-workspace-source-map.json'&&!/^(?:src|app)\/.+\.native\.[jt]sx?$/.test(path))throw Error('Unexpected regenerated path: '+path);
+          writeFileSync('/tmp/caresuite-native-regenerated-sources.json',JSON.stringify({source:process.env.GITHUB_SHA,files:paths.map(path=>({path,content:readFileSync(path,'utf8')}))}));
+          console.log(JSON.stringify({regeneratedFiles:paths.length,strictSourceGate:'still failed; generated files require a separate source commit'}));
+          NODE
+      - name: Neu erzeugte Übertragungen zur Quellübernahme sichern
+        if: failure() && steps.native_source_sync.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: CareSuite-Native-Quelluebernahme-${{ github.run_number }}-${{ github.run_attempt }}
+          path: /tmp/caresuite-native-regenerated-sources.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Aufnahmen und offene Abweichungen sichern
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
