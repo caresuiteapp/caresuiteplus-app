@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
+import { CareSuiteLogo } from '@/components/brand/CareSuiteLogo';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -31,7 +31,17 @@ export function BusinessWelcomeModal({
           paddingVertical: careSpacing.sm,
         },
         wordmark: {
-          justifyContent: 'center',
+          alignItems: 'center',
+          gap: careSpacing.sm,
+          maxWidth: '100%',
+        },
+        brand: {
+          ...careTypography.h2,
+          fontSize: 24,
+          fontWeight: '800',
+          color: text.primary,
+          textAlign: 'center',
+          flexShrink: 1,
         },
         greeting: {
           ...careTypography.h2,
@@ -74,7 +84,7 @@ export function BusinessWelcomeModal({
       ]}
     >
       <View style={styles.body}>
-        <CareSuiteWordmark size="lg" variant="aurora" style={styles.wordmark} />
+        <View style={styles.wordmark}><CareSuiteLogo size="md" /><Text style={styles.brand}>CareSuite HealthOS</Text></View>
         <Text style={styles.greeting} accessibilityRole="header">
           {greeting}, {displayName}
         </Text>

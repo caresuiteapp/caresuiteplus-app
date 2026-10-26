@@ -30,7 +30,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   header: { minWidth: 0, width: '100%', minHeight: 82, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 14, flexShrink: 0, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#CCDBEA' },
   compact: { minHeight: 64, paddingVertical: 10 },
   phoneHeader: { minHeight: 64, paddingHorizontal: 12, paddingVertical: 9, gap: 8 },
-  phoneCopy: { flexBasis: 160 },
+  phoneCopy: { flexBasis: '100%', width: '100%' },
   copy: { flexGrow: 1, flexBasis: 220, minWidth: 0, gap: 4 },
   title: { color: '#102B49', fontSize: font(24), lineHeight: font(31), fontWeight: '800' },
   compactTitle: { fontSize: font(21), lineHeight: font(28) },

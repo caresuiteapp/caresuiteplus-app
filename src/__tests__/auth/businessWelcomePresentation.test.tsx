@@ -9,7 +9,7 @@ vi.mock('react-native',()=>{const flatten=(value:any)=>Object.assign({},...[valu
 };});
 const f=vi.hoisted(()=>({props:null as any}));
 vi.mock('@/components/layout/platform/platformmodal',()=>({PlatformModal:(props:any)=>{f.props=props;return <section>{props.children}<button onClick={props.footerActions[0].onPress}>{props.footerActions[0].title}</button></section>;}}));
-vi.mock('@/components/brand/CareSuiteWordmark',()=>({CareSuiteWordmark:()=> <span>CareSuite HealthOS</span>}));
+vi.mock('@/components/brand/CareSuiteLogo',()=>({CareSuiteLogo:()=> <span aria-label="App-Logo"/>}));
 import {BusinessWelcomeModal} from '@/components/auth/BusinessWelcomeModal';
 import {lightSurfaceText} from '@/design/tokens/auroraGlass';
 describe('business welcome presentation',()=>{
@@ -19,7 +19,7 @@ describe('business welcome presentation',()=>{
   try {
    await act(async()=>root.render(<BusinessWelcomeModal visible displayName="Testperson" tenantName="Testorganisation" onClose={close}/>));
    expect(f.props.surfaceScope).toBe('company');expect(f.props.subtitle).toBe('Verwaltung · CareSuite HealthOS');
-   expect(host.textContent).toContain('Testperson');expect(host.textContent).toContain('Testorganisation');expect(host.textContent).not.toContain('Mandant Testorganisation');
+   expect(host.textContent).toContain('CareSuite HealthOS');expect(host.textContent).not.toContain('CareSuite+');expect(host.textContent).toContain('Testperson');expect(host.textContent).toContain('Testorganisation');expect(host.textContent).not.toContain('Mandant Testorganisation');
    const greeting=[...host.querySelectorAll('[role="heading"]')][0] as HTMLElement;
    const probe=document.createElement('span');probe.style.color=lightSurfaceText.primary;
    expect(greeting.style.color).toBe(probe.style.color);

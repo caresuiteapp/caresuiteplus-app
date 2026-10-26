@@ -1,3 +1,4 @@
+import {resolvePortalRequestTypeLabel as actualRequestTypeLabel} from '../../src/lib/portal/assist/portalRequestService';
 // Synthetic, deterministic layout inputs. No productive session or writes.
 // These stubs prove presentation only; workflow tests separately execute real services/hooks.
 import { context as baseContext, clientData, appointment } from './native-portals-data';
@@ -72,3 +73,5 @@ export const usePortalAssistRealtime = noop;
 const thread = { id: 'visual-thread', tenantId: 'visual-tenant', subject: 'Rückfrage zu meinem nächsten Einsatz', participantType: 'client', participantName: 'Helene Musterfrau', clientId: 'visual-client', status: 'open', isClosed: false, categoryLabel: 'Allgemeine Anfrage', lastMessagePreview: 'Vielen Dank für Ihre Nachricht. Wir melden uns bei Ihnen.', unreadCount: 1, createdAt: now, updatedAt: now };
 export const usePortalOfficeMessages = () => ({ threads: itemList([{ ...thread, unreadCount: state() === 'unread-message' ? 1 : 0 }]), loading: loading(), error: error(), refreshError: null, refresh, refreshWithResult: refresh, refreshing: false, isEmpty: empty() });
 export const usePortalOfficeThreadDetail = () => ({ detail: loading() || failed() || empty() ? null : { ...thread, messages: [] }, loading: loading(), error: error(), refreshing: false, sending: false, refresh, sendMessage: async body => { record({ type: 'chat-send', body }); return { ok: false, error: 'Prüfgrenze: Es wird keine produktive Nachricht versendet.' }; }, startNewChat: async () => ({ ok: false, error: 'Prüfgrenze: Es wird kein produktiver Chat erstellt.' }), markAsRead: async () => ({ ok: true, data: null }), actorClientId: 'visual-client', actorEmployeeId: null, isResolvingClientLink: false });
+
+export const resolvePortalRequestTypeLabel = value => actualRequestTypeLabel(value);

@@ -276,7 +276,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   numberOfLines={2}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.id === 'open-assignments' ? 'Offen' : item.id === 'logbook' ? 'Fahrten' : item.label}
+                  {item.id === 'home' ? (kind === 'employee' ? 'Heute' : 'Start') : item.id === 'documents' ? 'Dateien' : item.id === 'messages' ? 'Chats' : item.id === 'open-assignments' ? 'Offen' : item.id === 'logbook' ? 'Fahrten' : item.label}
                 </Text>
                 {item.id === 'messages' && messageBadge ? (
                   <View style={styles.bottomUnreadBadge}>

@@ -105,7 +105,7 @@ const plugin={name:'actual-native-portal-audit',setup(b){
   if(name==='src/lib/supabase/authService')return {path:'auth-service',namespace:'audit-native'};
   if(name==='src/lib/supabase/permissionRepository')return {path:'permissions',namespace:'audit-native'};
   if(name==='src/lib/office/officemessagerealtime')return {path:'office-realtime',namespace:'audit-native'};
-  if(name==='src/lib/realtime')return {path:'realtime',namespace:'audit-native'};
+  if(name==='src/lib/realtime'||name==='src/lib/realtime/presets')return {path:'realtime',namespace:'audit-native'};
   track(file);return {path:file};
  });
  b.onLoad({filter:/\/app\/_layout\.tsx$/},args=>{track(args.path);return {loader:'tsx',contents:readFileSync(args.path,'utf8')+'\nexport {RootShell as AuditRootShell};\n'};});
@@ -125,7 +125,7 @@ const plugin={name:'actual-native-portal-audit',setup(b){
   if(args.path==='permissions')return {resolveDir:root,contents:`import {getPermissionsForRole} from ${JSON.stringify(resolve('src/lib/permissions/staticRolePermissions.ts'))};export const fetchRuntimePermissions=async role=>getPermissionsForRole(role),getCachedRuntimePermissions=role=>getPermissionsForRole(role),clearRuntimePermissionCache=()=>{};`};
   if(args.path==='permissions-hook')return {resolveDir:root,contents:`import {usePermissions as realUsePermissions} from ${JSON.stringify(resolve('src/hooks/usePermissions.ts'))};import {usePermissions as administrationUsePermissions} from ${JSON.stringify(resolve('scripts/fixtures/native-administration-audit-data.jsx'))};export const usePermissions=()=>new URLSearchParams(location.search).get('screen')?.startsWith('admin-audit-')?administrationUsePermissions():realUsePermissions();`};
   if(args.path==='office-realtime')return {resolveDir:root,contents:`export const subscribeToOfficeMessageThread=()=>()=>{},subscribeToOfficeMessageInbox=()=>()=>{},unsubscribeOfficeMessageThread=()=>{},unsubscribeOfficeMessageInbox=()=>{},clearAllOfficeMessageRealtimeSubscriptions=()=>{},getOfficeMessageRealtimeSubscriptionCount=()=>0;`};
-  if(args.path==='realtime'){const source=readFileSync(resolve('src/lib/realtime/index.ts'),'utf8');const names=[...new Set([...source.matchAll(/\b(subscribe\w+)\b/g)].map(match=>match[1]))];return {resolveDir:root,contents:names.map(name=>`export const ${name}=()=>()=>{};`).join('\n')};}
+  if(args.path==='realtime'){const source=readFileSync(resolve('src/lib/realtime/index.ts'),'utf8')+readFileSync(resolve('src/lib/realtime/presets.ts'),'utf8');const names=[...new Set([...source.matchAll(/\b(subscribe\w+)\b/g)].map(match=>match[1]))];return {resolveDir:root,contents:names.map(name=>`export const ${name}=()=>()=>{};`).join('\n')};}
   throw Error('Unsupported native audit binding: '+args.path);
  });
 }};

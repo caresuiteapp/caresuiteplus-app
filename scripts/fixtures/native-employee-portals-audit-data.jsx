@@ -93,3 +93,9 @@ export const fetchEmployeePortalClientRecords = async () => ({ ok: true, data: l
 export const listInternalNotes = async () => ({ ok: !failed(), error: error(), data: list([{ id: 'visual-note', tenantId: 'visual-tenant', senderUserId: 'visual-office-user', senderName: 'Pflegebüro', kind: 'callback', priority: 'high', title: 'Rückruf und gemeinsame Einsatzabstimmung', body: 'Bitte Rückruf übernehmen und den Bearbeitungsstand mitteilen.', dueDate: '2026-10-27', createdAt: now, recipients: [{ id: 'visual-delivery', employeeId: 'visual-employee', recipientUserId: 'visual-user', displayName: 'Marlene Beispiel-Mustermann', status: 'open', readAt: null, updatedAt: now, revision: 1, response: '' }] }]) });
 export const updateInternalDelivery = denied;
 export const employeeAuditFixtureCoverage = { supported: ['home', 'assignments', 'assignment-detail', 'calendar', 'clients', 'client-detail', 'documents', 'document-detail', 'signatures', 'signature-request', 'personal-signature', 'profile', 'leave', 'absence', 'logbook', 'payroll', 'uploads', 'messages', 'thread', 'announcements', 'mobility', 'tasks'], pendingExactContracts: ['assignment-execute', 'time-clock', 'times', 'academy', 'consultation', 'consultation-detail'], boundary: 'These data fixtures prove presentation only, never live writes/readback, permissions, native GPS/camera/biometry or hardware stability.' };
+
+// PortalChrome calls the client-settings hook with enabled=false in this portal.
+export const useClientPortalSettings = (enabled = true) => {
+  if (enabled) throw Error('Employee audit must not request client portal settings');
+  return {settings: null, loading: false, error: null, refresh: async () => {}};
+};
