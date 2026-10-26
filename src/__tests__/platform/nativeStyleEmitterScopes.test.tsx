@@ -51,7 +51,7 @@ vi.mock('@/components/calendar/OfficeAssignmentProfileCalendarPlanner.native.tsx
 import {AssignmentStudioScaffold} from '@/components/assist/AssignmentFormControls.native';
 import {CalendarPageShell} from '@/components/calendar/CalendarPageShell.native';
 import {NativeButton,NativeDiv,NativeSpan} from '@/components/layout/NativeWorkspaceElements.native';
-import type {CalendarViewConfig} from '@/types/calendar';
+import {buildOfficeCalendarConfig} from '@/lib/calendar/calendarEventService';
 
 let root:Root,host:HTMLDivElement;
 beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;vi.clearAllMocks();hosts.width=360;hosts.fontScale=1;hosts.styles=new WeakMap();hosts.layouts=new WeakMap();host=document.createElement('div');document.body.append(host);root=createRoot(host);});
@@ -62,7 +62,7 @@ const style=(node:Element|null)=>hosts.styles.get(node as HTMLElement)!;
 describe('actual native parents inherit pure CSS emitters',()=>{
   it.each([[360,1.6,17],[1280,1,22]])('composes assignment base and form CSS above the scaffold children at %dpx scale%s',async(width,fontScale,padding)=>{
     hosts.width=width;hosts.fontScale=fontScale;const onStepChange=vi.fn(),onSave=vi.fn();
-    await render(<AssignmentStudioScaffold steps={[{key:'client',label:'Klient'},{key:'time',label:'Zeit'}]} activeStep="client" onStepChange={onStepChange} title="Einsatz planen" description="Daten vollständig erfassen" summary={[]} footer={null}>
+    await render(<AssignmentStudioScaffold steps={[{key:'client',label:'Klient',icon:'person-outline'},{key:'time',label:'Zeit',icon:'time-outline'}]} activeStep="client" onStepChange={onStepChange} title="Einsatz planen" description="Daten vollständig erfassen" summary={[]} footer={null}>
       <NativeDiv className="aw-panel" data-testid="inherited-panel"><NativeSpan>Stammdaten</NativeSpan><NativeButton className="aw-button" data-testid="inherited-action" onClick={onSave}>Speichern</NativeButton></NativeDiv>
     </AssignmentStudioScaffold>);
     const panel=host.querySelector('[data-testid="inherited-panel"]')!,button=host.querySelector<HTMLButtonElement>('[data-testid="inherited-action"]')!;
@@ -78,7 +78,7 @@ describe('actual native parents inherit pure CSS emitters',()=>{
 
   it.each([[360,1.6,4],[1280,1,8]])('keeps the expression-bodied calendar renderer inside its CSS scope at %dpx scale%s',async(width,fontScale,boardPadding)=>{
     hosts.width=width;hosts.fontScale=fontScale;
-    await render(<CalendarPageShell config={{moduleKey:'office',calendarScope:'all',defaultView:'day'} as CalendarViewConfig}/>);
+    await render(<CalendarPageShell config={{...buildOfficeCalendarConfig(),defaultView:'day'}}/>);
     expect(api.planner).toHaveBeenCalled();
     const search=host.querySelector<HTMLInputElement>('[aria-label="Kalender durchsuchen"]')!,field=search.parentElement!.parentElement!,controls=field.parentElement!,workspace=controls.parentElement!;
     expect(style(workspace)).toMatchObject({width:'100%',rowGap:14,columnGap:14});
