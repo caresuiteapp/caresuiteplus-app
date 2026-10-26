@@ -101,13 +101,21 @@ export async function resolveEmployeeAssignmentNoticeRoute(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Einsatz ist derzeit nicht erreichbar.' };
   const { data, error } = await fromUnknownTable(client, 'assist_visits')
-    .select('id,tenant_id,employee_id,planning_status,canonical_status')
+    .select('id,tenant_id,employee_id,planning_status,canonical_status,recurrence_json')
     .eq('tenant_id', scope.tenantId).eq('employee_id', scope.employeeId).eq('id', notice.visitId).maybeSingle();
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   if (!data || data.tenant_id !== scope.tenantId || data.employee_id !== scope.employeeId
     || ['draft', 'cancelled'].includes(String(data.planning_status))
     || ['cancelled', 'no_show'].includes(String(data.canonical_status))) {
     return { ok: false, error: 'Der Einsatz wurde inzwischen geändert oder ist Ihnen nicht mehr zugeordnet. Bitte den aktuellen Kalender prüfen.' };
+  }
+  const recurrence = data.recurrence_json;
+  const pattern = recurrence && typeof recurrence === 'object' && !Array.isArray(recurrence)
+    ? (recurrence as Record<string, unknown>).pattern : null;
+  // A series notice concerns its current occurrences, even if the original
+  // master visit is already completed. Concrete children retain pattern=none.
+  if (typeof pattern === 'string' && pattern.trim() && pattern !== 'none') {
+    return { ok: true, data: '/portal/employee/calendar' };
   }
   return { ok: true, data: `/portal/employee/assignments/${notice.visitId}/execute` };
 }

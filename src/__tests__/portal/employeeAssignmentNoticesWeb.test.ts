@@ -82,6 +82,25 @@ describe('employee assignment notice recipient scope', () => {
     expect(await resolveEmployeeAssignmentNoticeRoute(scope, notice)).toEqual({ ok: true, data: `/portal/employee/assignments/${visitId}/execute` });
     expect(h.queries[0].filters).toContainEqual(['eq', 'employee_id', scope.employeeId]);
   });
+  it.each(['confirmed', 'completed'])('opens the current calendar for a series whose master is %s', async canonicalStatus => {
+    h.result.data = { id: visitId, tenant_id: scope.tenantId, employee_id: scope.employeeId,
+      planning_status: 'scheduled', canonical_status: canonicalStatus,
+      recurrence_json: { pattern: 'weekly', weekdays: ['mon'] } };
+    expect(await resolveEmployeeAssignmentNoticeRoute(scope, notice))
+      .toEqual({ ok: true, data: '/portal/employee/calendar' });
+  });
+  it('opens the concrete execution for a materialized series child with pattern none', async () => {
+    h.result.data = { id: visitId, tenant_id: scope.tenantId, employee_id: scope.employeeId,
+      planning_status: 'scheduled', canonical_status: 'confirmed',
+      recurrence_json: { pattern: 'none', parentSeriesId: '30000000-0000-4000-8000-000000000003', sourceOccurrenceDate: '2026-10-26' } };
+    expect(await resolveEmployeeAssignmentNoticeRoute(scope, notice))
+      .toEqual({ ok: true, data: `/portal/employee/assignments/${visitId}/execute` });
+  });
+  it('still verifies the current employee ownership before offering the calendar for a series', async () => {
+    h.result.data = { id: visitId, tenant_id: scope.tenantId, employee_id: 'employee-b',
+      planning_status: 'scheduled', canonical_status: 'completed', recurrence_json: { pattern: 'weekly' } };
+    expect((await resolveEmployeeAssignmentNoticeRoute(scope, notice)).ok).toBe(false);
+  });
   it.each([null, { employee_id: 'employee-b', planning_status: 'scheduled' },
     { employee_id: scope.employeeId, planning_status: 'draft' }, { employee_id: scope.employeeId, planning_status: 'cancelled' },
     { employee_id: scope.employeeId, planning_status: 'scheduled', canonical_status: 'cancelled' },
