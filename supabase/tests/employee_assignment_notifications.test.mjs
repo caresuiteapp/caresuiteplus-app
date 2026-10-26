@@ -8,7 +8,7 @@ import { PGlite } from '@electric-sql/pglite';
 
 const db = new PGlite();
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
-const patch = read('../patches/employee_assignment_notifications.sql');
+const patch = read('../migrations/20261026154801_employee_assignment_notifications.sql');
 const visitSchema = read('../migrations/0116_assist_visits_disposition.sql');
 const inboxSchema = read('../migrations/0152_office_notifications_table.sql');
 const mirror = read('../migrations/0198_assist_live_tracking_portal_repair.sql');
