@@ -7,7 +7,7 @@ import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
 import { PlatformShellLayout as DesktopPlatformShell } from "../../components/platformConsole/PlatformShellLayout.native.tsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PlatformAuditLink, PlatformFormField, PlatformStatusBadge, PlatformTenantEnvironmentBadge, PLATFORM_COLORS, } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
@@ -211,7 +211,7 @@ function TenantDetailContent({ tenantId }: {
     }
     const tid = String(tenantId);
     const activeGroup = visibleGroups.find((group) => group.tabs.some((item) => item.key === tab)) ?? visibleGroups[0];
-    return (<DesktopPlatformShell scroll={false} title={tenantName} subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support">
+    return (<DesktopPlatformShell title={tenantName} subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support">
 
       <View style={styles.navigation}>
         <View style={styles.groupTabs}>
@@ -243,7 +243,7 @@ function TenantDetailContent({ tenantId }: {
 
 
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         {dossierOwner && dossier.loading ? <NativeDiv className="cs-console"><NativeDiv role="status" className="cs-notice">Vollständige Mandantenakte und Einrichtungsstand werden geprüft…</NativeDiv></NativeDiv> : null}
         {dossierOwner && dossier.error ? <NativeDiv className="cs-console"><NativeDiv role="alert" className="cs-notice error">{dossier.error}</NativeDiv><NativeButton className="cs-btn" onClick={dossier.reload}>Mandantenakte erneut laden</NativeButton></NativeDiv> : null}
         {dossierOwner && dossier.data ? <TenantDossierHeader dossier={dossier.data} onOpen={view => void changeTab(view)}/> : null}
@@ -322,7 +322,7 @@ function TenantDetailContent({ tenantId }: {
 
         {tab === 'audit' ? <TenantAuditTab tenantId={tid}/> : null}
 
-      </ScrollView>
+      </View>
 
 
 

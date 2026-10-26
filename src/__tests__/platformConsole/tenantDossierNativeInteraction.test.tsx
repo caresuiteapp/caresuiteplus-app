@@ -55,6 +55,42 @@ const facadeAliases: [RegExp,string][] = [
 const facadeCode = (await build({ entryPoints: ['src/screens/platformConsole/index.native.ts'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', external: Object.keys(facadeDeps), plugins: [{ name: 'current-operator-route-boundaries', setup(builder) { builder.onResolve({ filter: /.*/ }, args => { const alias = facadeAliases.find(([pattern]) => pattern.test(args.path)); return alias ? { path: alias[1], external: true } : undefined; }); } }] })).outputFiles[0].text;
 const facadeModule = { exports: {} as any };
 new Function('require', 'module', 'exports', facadeCode)((id: string) => { if (!(id in facadeDeps)) throw new Error('Unexpected operator facade dependency ' + id); return (facadeDeps as Record<string,any>)[id]; }, facadeModule, facadeModule.exports);
+// Keep the generated shell real: the header, tabs and page data must share one
+// vertical scroll owner. DOM topology is a regression check, not layout proof.
+const shellViewport = { width: 360, height: 800 };
+const shellDeps: Record<string, any> = { ...deps,
+  'react-native': { ...native, ScrollView: (p: any) => <div data-console-scroll="true">{p.children}</div>, View: (p: any) => <div style={flatten(p.style)}>{p.children}</div>, useWindowDimensions: () => ({ ...shellViewport, fontScale: 1.6 }) },
+  'qa:shell-icons': { SemanticIconLabel: (p: any) => <span>{p.label}</span>, SemanticArtwork: (p: any) => <span>{p.children}</span> },
+  'qa:shell-font': { webScaledFontMetric: (value: number) => value },
+  'qa:shell-navigation': { PLATFORM_CONSOLE_TITLE: 'Plattformverwaltung', PLATFORM_NAV_ITEMS: [{ path: '/platform', label: 'Übersicht', icon: '', group: 'overview' }] },
+  'qa:shell-platform': { getPlatformReleaseInfo: () => ({ environment: 'preview' }), platformRoleHasCapability: () => true, PLATFORM_ROLE_LABELS: { platform_owner: 'Plattforminhaber' } },
+  'qa:shell-auth': { usePlatformAuth: () => ({ platformUser: { role: 'platform_owner', email: 'owner@example.invalid' }, refresh: noop }) },
+  'qa:shell-theme': { spacing: { xs: 4, sm: 8, md: 16, lg: 24 } },
+  'qa:shell-toggle': { DesktopSidebarToggle: () => null },
+  'qa:shell-preferences': { useDesktopWorkspacePreferences: () => ({ leftCollapsed: false, toggleLeft: noop }) },
+  'qa:shell-boundary': { PlatformErrorBoundary: Box },
+  'qa:shell-search': { PlatformGlobalSearch: () => <button>Suchen</button> },
+  'qa:shell-surface': { HealthOSPageSurface: (p: any) => <div data-surface-fill={String(p.fill)}>{p.children}</div> },
+  'qa:shell-logo': { LiquidLogo: () => null },
+  'qa:shell-text-size': { PortalTextSizeControls: () => <button>Textgröße</button> },
+  'qa:shell-session': { useAuth: () => ({ signOut: noop }), signOut: async () => ({ ok: true }), setDemoPlatformUser: noop },
+  'qa:shell-label': { consoleLabel: (value: string) => value },
+  'expo-router': { usePathname: () => '/platform/tenants/a', useRouter: () => ({ push: noop, replace: noop }) },
+};
+const shellAliases: [RegExp,string][] = [
+  [/SemanticIconLabel|SemanticArtwork/, 'qa:shell-icons'], [/webFontSize/, 'qa:shell-font'],
+  [/platformNavigation/, 'qa:shell-navigation'], [/^@\/lib\/platformConsole$/, 'qa:shell-platform'],
+  [/PlatformAuthProvider/, 'qa:shell-auth'], [/^@\/theme$/, 'qa:shell-theme'],
+  [/DesktopSidebarToggle/, 'qa:shell-toggle'], [/useDesktopWorkspacePreferences/, 'qa:shell-preferences'],
+  [/PlatformErrorBoundary/, 'qa:shell-boundary'], [/PlatformGlobalSearch/, 'qa:shell-search'],
+  [/HealthOSPageSurface/, 'qa:shell-surface'], [/LiquidPrimitives/, 'qa:shell-logo'],
+  [/PortalTextSizeControls/, 'qa:shell-text-size'], [/^@\/lib\/auth$|supabase\/authService|platformAuthService/, 'qa:shell-session'],
+  [/consoleWorkspaceModel/, 'qa:shell-label'],
+];
+const shellCode = (await build({ entryPoints: ['src/components/platformConsole/PlatformShellLayout.native.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', external: Object.keys(shellDeps), plugins: [{ name: 'native-shell-system-boundaries', setup(builder) { builder.onResolve({ filter: /.*/ }, args => { const alias = shellAliases.find(([pattern]) => pattern.test(args.path)); return alias ? { path: alias[1], external: true } : undefined; }); } }] })).outputFiles[0].text;
+const shellModule = { exports: {} as any };
+new Function('require', 'module', 'exports', shellCode)((id: string) => { if (!(id in shellDeps)) throw new Error('Unexpected native shell dependency ' + id); return shellDeps[id]; }, shellModule, shellModule.exports);
+const ActualNativeShell = shellModule.exports.PlatformShellLayout;
 const dossier: TenantDossier = { tenantId: 'a', checkedAt: '2026-10-09T01:00:00Z', company: { name: 'Firma A' }, platform: {}, branding: null, billing: null, bank: null, portal: null, tax: null, register: null, counts: { clients: { total: 1055, active: 1055, deleted: 1, complete: 1000, portalEnabled: 0, portalLinked: 0 }, employees: { total: 2, active: 2, deleted: 0, complete: 1, portalEnabled: 0, portalLinked: 0 }, accounts: 3, adminAccounts: 1, loggedInAccounts: 0, lastLoginAt: null, services: 0, pricedServices: 0, assignments: 5, documents: 7 }, sections: [{ key: 'clients', label: 'Klient:innen', scope: 'clients', available: true, count: 1056, updatedAt: null }, { key: 'client_contacts', label: 'Kontaktpersonen', scope: 'clients', available: true, count: 2, updatedAt: null }, { key: 'tenants', label: 'Unternehmensstammdaten', scope: 'company', available: true, count: 1, updatedAt: null }] };
 const row = { id: 'person-1', tenant_id: 'a', first_name: 'Anna', last_name: 'Test', care_level: '2', email: 'anna@example.test', status: 'active' };
 const page = (id: string, query: any, rows: any[] = [row]) => ({ ok: true, data: { tenantId: id, section: query.section, rows, total: 1055, offset: query.offset ?? 0, limit: 50, hasMore: true, available: true, statuses: ['active', 'inactive'] } });
@@ -134,6 +170,30 @@ it('preserves native alerts and selected tabs while representing status through 
 it.each([['PlatformDashboardScreen', 'dashboard'], ['PlatformBillingScreen', 'billing']])('routes %s through the current canonical native console', async (exportName, section) => {
   const Page = facadeModule.exports[exportName]; await render(<Page />);
   expect(host.querySelector('[data-current-console]')?.getAttribute('data-current-console')).toBe(section);
+});
+
+it.each([360, 1280])('scrolls the native header, tabs and actual dossier together at %s', async width => {
+  shellViewport.width = width; const { NativeButton } = mod.exports;
+  await render(<ActualNativeShell title="Pflege & Alltag Nord" subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support"><NativeButton role="tab" aria-selected>Alle Klient:innen</NativeButton><Browser dossier={dossier} scope="clients" initialSection="clients" /></ActualNativeShell>);
+  const heading = [...host.querySelectorAll('[role="header"]')].find(node => node.textContent === 'Pflege & Alltag Nord')!;
+  const action = host.querySelector<HTMLButtonElement>('[aria-label="Alle Angaben zu Anna Test öffnen"]')!;
+  const owner = action.closest('[data-console-scroll]');
+  expect(owner).toBeTruthy(); expect(heading.closest('[data-console-scroll]')).toBe(owner);
+  expect(host.querySelector('[role="tab"]')?.closest('[data-console-scroll]')).toBe(owner);
+  expect(owner!.querySelector('[data-console-scroll]')).toBeNull();
+  expect(owner!.querySelector('[data-surface-fill="false"]')).toBeTruthy();
+  if (width === 360) expect((heading.parentElement as HTMLElement).style.flexBasis).toBe('100%');
+  await act(async () => action.click()); expect(host.querySelector('[role="dialog"]')?.textContent).toContain('anna@example.test');
+});
+
+it.each([800, 390])('keeps child-owned support content bounded beneath the scrolling header at height %s', async height => {
+  shellViewport.width = 360; shellViewport.height = height;
+  await render(<ActualNativeShell title="Support" scroll={false}><div data-support-workspace>Ticketliste und Verlauf</div></ActualNativeShell>);
+  const child = host.querySelector('[data-support-workspace]')!;
+  const surface = child.closest('[data-surface-fill="true"]')!;
+  expect(surface).toBeTruthy(); expect((surface.parentElement as HTMLElement).style.height).toBe(`${Math.max(480, height - 32)}px`);
+  const heading = [...host.querySelectorAll('[role="header"]')].find(node => node.textContent === 'Support')!;
+  expect(child.closest('[data-console-scroll]')).toBe(heading.closest('[data-console-scroll]'));
 });
 
 it('opens the current support facade with the exact company and ticket and denies a reader', async () => {

@@ -38,7 +38,7 @@ function filterNavByRole(role: Parameters<typeof platformRoleHasCapability>[0]) 
 export function PlatformShellLayout({ children, title, subtitle, scroll = true }: PlatformShellLayoutProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const { platformUser, refresh } = usePlatformAuth();
     const { signOut } = useAuth();
     const [signingOut, setSigningOut] = useState(false);
@@ -120,7 +120,9 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         userRole: { color: PLATFORM_COLORS.accent, fontSize: font(13), fontWeight: '600' },
         userEmail: { color: PLATFORM_COLORS.muted, fontSize: font(13), marginTop: 2 },
         main: { flex: 1, minWidth: 0, minHeight: 0 },
+        mainContent: { flexGrow: 1 },
         header: {
+            flexShrink: 0,
             minHeight: 68,
             paddingHorizontal: isWide ? spacing.lg : spacing.md,
             paddingVertical: spacing.sm,
@@ -132,7 +134,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
             flexWrap: 'wrap',
             gap: spacing.md,
         },
-        headerCopy: { flexGrow: 1, flexBasis: isWide ? 240 : 160, minWidth: 0 },
+        headerCopy: { flexGrow: 1, flexBasis: isWide ? 240 : '100%', minWidth: 0 },
         breadcrumb: { color: PLATFORM_COLORS.muted, fontSize: font(13), marginBottom: 3 },
         headerTools: { flexGrow: 1, flexBasis: isWide ? 'auto' : '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: isWide ? 'flex-end' : 'flex-start', gap: spacing.xs },
         menuButton: { minHeight: 42, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: PLATFORM_COLORS.borderStrong, paddingHorizontal: 12, backgroundColor: PLATFORM_COLORS.panel },
@@ -146,7 +148,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         securityText: { color: '#166534', fontSize: font(13), fontWeight: '700' },
         headerTitle: { color: PLATFORM_COLORS.text, fontSize: font(24), fontWeight: '800' },
         headerSub: { color: PLATFORM_COLORS.muted, fontSize: font(15), marginTop: 4 },
-        content: { flex: 1, minHeight: 0, minWidth: 0, padding: isWide ? spacing.lg : spacing.md },
+        content: { flexShrink: 0, minWidth: 0, padding: isWide ? spacing.lg : spacing.md },
     }), [isWide]);
     const navigation = (<View style={styles.sidebar} nativeID="desktop-module-navigation">
         <View style={styles.brand}>
@@ -189,7 +191,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           </Pressable>
         </Modal>) : null}
       {isWide ? (<DesktopSidebarToggle side="left" collapsed={leftCollapsed} onPress={toggleLeft} controls="desktop-module-navigation" accentColor={PLATFORM_COLORS.accent}/>) : null}
-      <View style={styles.main}>
+      <ScrollView style={styles.main} contentContainerStyle={styles.mainContent} keyboardShouldPersistTaps="handled">
         {title || !isWide ? (<View style={styles.header}>
             {!isWide ? <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: mobileMenuOpen }} style={styles.menuButton} onPress={() => setMobileMenuOpen(true)}><SemanticIconLabel symbol="☰" label="Menü" webSize={20} style={styles.menuButtonText}/></Pressable> : null}
             <View style={styles.headerCopy}>
@@ -206,13 +208,13 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
               <Pressable accessibilityRole="button" accessibilityLabel="Abmelden" disabled={signingOut} style={styles.menuButton} onPress={() => void leavePlatform()}><Text style={styles.menuButtonText}>{signingOut ? 'Wird abgemeldet…' : 'Abmelden'}</Text></Pressable>
             </View>
           </View>) : null}
-        <View style={styles.content}>
+        <View style={[styles.content, !scroll && { height: Math.max(480, height - spacing.md * 2) }]}>
           {signOutError ? <Text accessibilityRole="alert" style={{ color: '#B42318', padding: 12 }}>{signOutError}</Text> : null}
-          <HealthOSPageSurface padded>
-            <PlatformErrorBoundary>{scroll ? <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={{ flexGrow: 1, gap: 16 }} keyboardShouldPersistTaps="handled">{children}</ScrollView> : children}</PlatformErrorBoundary>
+          <HealthOSPageSurface padded fill={!scroll}>
+            <PlatformErrorBoundary>{scroll ? <View style={{ minWidth: 0, gap: 16 }}>{children}</View> : children}</PlatformErrorBoundary>
           </HealthOSPageSurface>
         </View>
-      </View>
+      </ScrollView>
     </View>);
 }
 export { PLATFORM_COLORS };

@@ -64,7 +64,7 @@ const server=createServer((req,res)=>{const name=new URL(req.url,'http://localho
 await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const executable=process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE??['/usr/bin/google-chrome','/usr/bin/chromium',chromium.executablePath()].find(existsSync);
 if(!executable)throw new Error('No existing browser available for visual verification.');
-const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[];
+const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});const report=[],failures=[];
 async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
  if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
@@ -196,6 +196,14 @@ async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
  }
  report.push({screen,viewport,fontScale,header,search,navigation,fixtureServices:'inert-local-data',errorState:failed});
 }
+async function recordCaseFailure(page,scope,error){
+ const failure={...scope,error:error instanceof Error?error.message:String(error)};
+ failures.push(failure);
+ const name=`failure-${scope.screen}-${scope.viewport.width}x${scope.viewport.height}-scale-${scope.fontScale??1}`;
+ try{await page.screenshot({path:join(output,name+'.png')});}catch{}
+ console.error(JSON.stringify(failure));
+ writeFileSync(join(output,'verification.json'),JSON.stringify({status:'running-with-failures',checks:report,failures},null,2));
+}
 try{
 // Keep enlarged device text usable when the viewport is also short.
 {
@@ -215,12 +223,38 @@ try{
 }
 for(const viewport of [{width:844,height:390},{width:1280,height:800}]){
  const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=weather-dialog&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await verifyWeatherDialog(page,viewport,1.6);
- if(errors.length)throw Error(JSON.stringify({screen:'weather-dialog',viewport,fontScale:1.6,errors}));await page.close();
+ if(errors.length)throw Error(JSON.stringify({screen:'weather-dialog',viewport,fontScale:1.6,errors}));
+ }catch(error){await recordCaseFailure(page,{screen:'weather-dialog',viewport,fontScale:1.6},error);}finally{await page.close();}
+}
+// Exercise the actual native article anchors and Google modal at enlarged text,
+// in addition to their ordinary-size matrix below. No provider writes occur.
+for(const [screen,viewport] of [['help-article',{width:1280,height:800}],['google-service',{width:360,height:800}]]){
+ const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
+  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);
+  if(screen==='help-article'){
+   const link=page.getByRole('link',{name:'Schritt für Schritt',exact:true});await link.scrollIntoViewIfNeeded();
+   await page.screenshot({path:join(output,'help-toc-1280x800-scale-1.6.png')});await link.click();
+   const target=page.getByRole('heading',{name:'Schritt für Schritt',exact:true});
+   await target.evaluate(async element=>{for(let frame=0;frame<180;frame++){const rect=element.getBoundingClientRect();if(rect.top>=-.5&&rect.bottom<=innerHeight+.5)return;await new Promise(requestAnimationFrame);}throw Error('Native article section is not reachable after its table-of-contents action.');});
+   await page.screenshot({path:join(output,'help-toc-target-1280x800-scale-1.6.png')});
+  }else{
+   await page.getByRole('button',{name:'Neu erstellen',exact:false}).click();
+   const heading=page.getByRole('heading',{name:'Termin anlegen',exact:true});await heading.waitFor();await waitForNativeModal(page,heading);
+   await page.screenshot({path:join(output,'google-event-form-360x800-scale-1.6.png')});
+   const cancel=page.getByRole('button',{name:'Abbrechen',exact:true});await cancel.scrollIntoViewIfNeeded();await cancel.click();await heading.waitFor({state:'hidden'});
+  }
+  if(errors.length)throw Error(JSON.stringify({screen,viewport,fontScale:1.6,errors}));
+  report.push({screen,viewport,fontScale:1.6,enlargedInteraction:true,errors});
+ }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}
 }
 for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
  const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+ if(screen==='access-hub')await page.waitForTimeout(1100);
  await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
  if(screen==='desktop')await verifyDesktopCenter(page,{width:360,height:800},1.6);
  if(screen==='weather-dialog')await verifyWeatherDialog(page,{width:360,height:800},1.6);
@@ -240,11 +274,12 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
   const card=await page.getByText('Ihr aktueller Einsatz ist bereit',{exact:true}).locator('..').boundingBox(),action=await page.getByRole('button',{name:'Einsatz öffnen',exact:true}).first().boundingBox();
   if(!card||!action||action.y+action.height>card.y+card.height+1)throw Error(JSON.stringify({message:'Enlarged employee guide content extends beyond its card.',card,action}));
  }
- await page.close();
+ }catch(error){await recordCaseFailure(page,{screen,viewport:{width:360,height:800},fontScale:1.6},error);}finally{await page.close();}
 }
 for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
  for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  try{
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
   if(errors.length){await page.screenshot({path:join(output,`failure-${screen}-${viewport.width}x${viewport.height}.png`)});writeFileSync(join(output,'verification.json'),JSON.stringify({screen,viewport,errors},null,2));throw new Error(JSON.stringify({screen,viewport,errors}));}
   if(screen==='access-hub'){await page.waitForTimeout(1100);const title=await page.getByText('Mitarbeiter',{exact:true}).boundingBox();const character=await page.getByLabel('CareSuite-Assistent mit Stethoskop',{exact:true}).boundingBox();if(viewport.width<900&&title&&character&&title.x<character.x+character.width&&title.x+title.width>character.x&&title.y<character.y+character.height&&title.y+title.height>character.y)throw Error('Access character overlaps its role label.');}
@@ -301,8 +336,10 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});if(screen==='notes'){const bounds=await page.getByRole('button',{name:'Speichern',exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note editor save action extends beyond the viewport.',viewport,bounds}));}await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
-  report.push({screen,viewport,overflow,errors});await page.close();
+  report.push({screen,viewport,overflow,errors});
+  }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1},error);}finally{await page.close();}
  }
 }
+if(failures.length)throw new AggregateError(failures.map(row=>new Error(JSON.stringify(row))),`${failures.length} native layout cases failed.`);
 writeFileSync(join(output,'verification.json'),JSON.stringify({renderer:'React Native Web using native source, fixture data only; Android hardware verification remains separate.',checks:report},null,2));console.log(`Native layout screenshots: ${output}`);
-}catch(error){writeFileSync(join(output,'verification.json'),JSON.stringify({status:'failed',error:error instanceof Error?error.message:String(error),stack:error instanceof Error?error.stack:undefined},null,2));throw error;}finally{await browser.close();await new Promise(done=>server.close(done));}
+}catch(error){writeFileSync(join(output,'verification.json'),JSON.stringify({status:'failed',error:error instanceof Error?error.message:String(error),stack:error instanceof Error?error.stack:undefined,checks:report,failures},null,2));throw error;}finally{await browser.close();await new Promise(done=>server.close(done));}

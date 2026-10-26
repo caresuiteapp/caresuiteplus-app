@@ -13,6 +13,7 @@ import { createAcademyTemplate } from '@/lib/akademie/workspaceTemplates';
 // providers are inert: these checks never read or change a Google account.
 const api = {
   params: {} as Record<string, string>, role: 'business_admin', formHandle: null as any,
+  workspaceLoading: false, workspaceError: null as string | null,
   push: vi.fn(), setParams: vi.fn(), close: vi.fn(), copy: vi.fn(), print: vi.fn(),
   connect: vi.fn(), disconnect: vi.fn(), refresh: vi.fn(), pageRefresh: vi.fn(),
   invoke: vi.fn(), edge: vi.fn(), statusRead: vi.fn(), pageRead: vi.fn(),
@@ -49,7 +50,7 @@ const dependencies: Record<string, unknown> = {
   './AcademyAuthorPreview.native.tsx': { AcademyAuthorPreview: () => null },
   'expo-document-picker': { getDocumentAsync: async () => ({ canceled: true, assets: [] }) },
   '../../hooks/useGoogleWorkspace.native.ts': {
-    useGoogleWorkspace: (enabled = true) => { api.statusRead(enabled); return { connection, loading: false, actionLoading: false, error: null, scope: 'fixture:tenant:business_admin', refresh: api.refresh, connect: api.connect, disconnect: api.disconnect }; },
+    useGoogleWorkspace: (enabled = true) => { api.statusRead(enabled); return { connection, loading: api.workspaceLoading, actionLoading: false, error: api.workspaceError, scope: 'fixture:tenant:business_admin', refresh: api.refresh, connect: api.connect, disconnect: api.disconnect }; },
     useWorkspacePage: (service: string, filter: unknown, enabled: boolean) => { api.pageRead(service, filter, enabled); return { data: { items: [], fetchedAt: '2026-10-26T10:00:00Z' }, loading: false, error: null, refresh: api.pageRefresh }; },
     refreshWorkspaceData: vi.fn(),
   },
@@ -66,6 +67,7 @@ let root: Root, host: HTMLDivElement;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks(); api.params = {}; api.role = 'business_admin'; api.formHandle = null;
+  api.workspaceLoading = false; api.workspaceError = null;
   api.invoke.mockResolvedValue({ id: 'fixture-resource' }); api.edge.mockResolvedValue({ ok: true, data: { events: [] } });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
@@ -122,6 +124,27 @@ describe('native help and Google presentations from their Web source', () => {
     await click('Freigaben verwalten'); expect(api.connect).toHaveBeenCalledOnce();
     await click('Verbindung trennen'); expect(api.disconnect).not.toHaveBeenCalled();
     await click('Jetzt trennen'); expect(api.disconnect).toHaveBeenCalledOnce();
+  });
+  it('keeps the multi-digit Google permission count in one native text flow', async () => {
+    await render(<WorkspaceDashboard callbackResult="connected" />);
+    const notice = host.querySelector('.cs-w-notice.success')!, pill = [...host.querySelectorAll('.cs-w-pill')].find(item => item.textContent === '10 von 10 Diensten freigegeben')!;
+    expect(notice.textContent).toBe('Google-Konto erfolgreich verbunden. 10 Dienste sind freigegeben.');
+    expect(pill).toBeTruthy();
+    // Each primitive child becomes a separate Text in a native flex/block host.
+    // Keeping the number in the same child lets the full sentence wrap together.
+    expect(notice.childNodes).toHaveLength(1); expect(pill.childNodes).toHaveLength(1);
+  });
+  it('preserves Google loading, provider error recovery and callback failure states', async () => {
+    api.workspaceLoading = true; await render(<WorkspaceDashboard />);
+    expect(host.querySelector('.cs-w-pill')?.textContent).toBe('Status wird geladen …');
+    expect(host.querySelector('.cs-w-notice.success')).toBeNull();
+    api.workspaceLoading = false; api.workspaceError = 'Lokale Statusprüfung fehlgeschlagen.'; await render(<WorkspaceDashboard callbackResult="error" />);
+    expect(host.querySelector('.cs-w-pill')?.textContent).toBe('Status nicht bestätigt');
+    expect(host.textContent).toContain('Google-Freigabe nicht abgeschlossen');
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('Google-Freigabe nicht abgeschlossen');
+    expect(host.textContent).toContain('Lokale Statusprüfung fehlgeschlagen.');
+    await click('Erneut laden'); expect(api.refresh).toHaveBeenCalledTimes(2);
+    expect(api.connect).not.toHaveBeenCalled(); expect(api.disconnect).not.toHaveBeenCalled();
   });
   it('does not request Google widget data for a role without access', async () => {
     api.role = 'employee'; await render(<GoogleWorkspaceWidget service="gmail" />);

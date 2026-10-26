@@ -193,7 +193,7 @@ jobs:
       - name: Übertragene Fachseiten mit den Web-Quellen abgleichen
         run: node scripts/port-native-workspaces.mjs --check
       - name: Native Datei- und Arbeitsabläufe prüfen
-        run: npx vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeWorkspaceGrid.test.tsx src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx src/__tests__/office/officeNotesNativeInteraction.test.tsx --maxWorkers=2
+        run: npx vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeWorkspaceGrid.test.tsx src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeInlineLinks.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx src/__tests__/office/officeNotesNativeInteraction.test.tsx --maxWorkers=2
       - name: Native Ansichten im vorhandenen Chrome rendern
         run: node scripts/verify-native-administration-visual.mjs
       - name: TypeScript prüfen
