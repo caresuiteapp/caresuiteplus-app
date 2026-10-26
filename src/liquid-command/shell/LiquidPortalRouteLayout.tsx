@@ -69,8 +69,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const { active: messengerFocusActive } = usePortalMessengerFocus();
   const [moreOpen, setMoreOpen] = useState(false);
   const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
+  const familySession = auth.portalSession?.roleKey === 'family_portal' || auth.profile?.roleKey === 'family_portal';
   const navigation = useMemo(() => {
-    const items = releasedLiquidPortalNavigation(kind, clientPortalSettings);
+    const items = releasedLiquidPortalNavigation(kind, clientPortalSettings).filter(item => !familySession || item.id !== 'budget');
     if (kind !== 'employee') return items;
     const tasks: LiquidPortalNavigationItem = {
       id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
@@ -81,7 +82,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       route: '/portal/employee/beratung', group: 'work',
     }] : [];
     return [items[0], tasks, ...consultation, ...items.slice(1)];
-  }, [kind, clientPortalSettings]);
+  }, [kind, clientPortalSettings, familySession]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
   const profileRoute =

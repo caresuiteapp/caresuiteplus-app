@@ -3,7 +3,7 @@ import { LiquidPortalRouteLayout } from '@/liquid-command/shell/LiquidPortalRout
 import { EmployeeLogbookLifecycleGate } from '@/components/portal/EmployeeLogbookLifecycleGate';
 
 const state = vi.hoisted(() => ({
-  path: '/portal/employee', width: 360, bottom: 24,
+  role: 'employee_portal', clientSettings: null as any, path: '/portal/employee', width: 360, bottom: 24,
   trip: null as Record<string, unknown> | null, gate: false, slot: 0,
   replace: vi.fn(), push: vi.fn(),
 }));
@@ -25,12 +25,12 @@ vi.mock('expo-router', () => ({
 }));
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 24, bottom: state.bottom }) }));
 vi.mock('@/lib/auth', () => ({
-  useAuth: () => ({ profile: { displayName: 'Testkonto' }, signOut: vi.fn() }),
+  useAuth: () => ({ profile: { displayName: 'Testkonto', roleKey: state.role }, signOut: vi.fn() }),
   RequireAuth: 'RequireAuth', RequireEmployeePasswordSetup: 'RequireEmployeePasswordSetup', RequireRole: 'RequireRole',
 }));
 vi.mock('@/hooks/usePortalVisualViewport', () => ({ usePortalVisualViewport: () => ({ height: null, width: null, offsetTop: 0, offsetLeft: 0, keyboardVisible: false }) }));
 vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [] }) }));
-vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: null }) }));
+vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: state.clientSettings }) }));
 vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
   PortalMessengerFocusProvider: 'MessengerFocus',
   usePortalMessengerFocus: () => ({ active: false }),
@@ -55,14 +55,23 @@ function nodes(tree: unknown): Element[] {
   return [node, ...nodes(node.props.children)];
 }
 const flatStyle = (style: unknown): Record<string, any> => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
-function shell() {
+function shell(kind: 'employee' | 'client' = 'employee') {
   state.gate = false;
-  return nodes(LiquidPortalRouteLayout({ kind: 'employee', overlay: <ViewMarker /> }));
+  return nodes(LiquidPortalRouteLayout({ kind, overlay: <ViewMarker /> }));
 }
 function ViewMarker() { return <div data-testid="gps-slot" />; }
-beforeEach(() => { vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.trip = null; state.gate = false; state.slot = 0; });
+beforeEach(() => { state.role = 'employee_portal'; state.clientSettings = null; vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.trip = null; state.gate = false; state.slot = 0; });
 
 describe('portal navigation stays accessible during GPS and execution', () => {
+  it('does not advertise a budget page to family accounts while retaining it for released client accounts', () => {
+    state.width = 1280; state.path = '/portal/client'; state.clientSettings = {portalEnabled: true, showBudget: true};
+    state.role = 'client_portal';
+    expect(shell('client').some(node => node.props.accessibilityLabel === 'Budget')).toBe(true);
+    state.role = 'family_portal';
+    const family = shell('client');
+    expect(family.some(node => node.props.accessibilityLabel === 'Budget')).toBe(false);
+    expect(family.some(node => node.props.accessibilityLabel === 'Einsätze')).toBe(true);
+  });
   it.each(['/portal/employee', '/portal/employee/assignments/visit/execute'])('keeps every navigation action callable on %s', (path) => {
     state.path = path;
     const tree = shell();
