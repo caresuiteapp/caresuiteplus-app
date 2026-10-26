@@ -1,0 +1,172 @@
+{
+  "sourceCommit": "e7bd663c334d6ae4aab626ee361fe1719f24384d",
+  "ciRun": 40374367142,
+  "scope": "Initial 360x800 ready-state browser frames at 1.6 font scale, native sources with isolated presentation data; no Android device or interaction acceptance.",
+  "reviewedSheets": [
+    "administration-01.jpg",
+    "administration-02.jpg",
+    "employee-01.jpg",
+    "employee-02.jpg",
+    "employee-03.jpg",
+    "employee-04.jpg",
+    "employee-05.jpg",
+    "client-family-01.jpg",
+    "client-family-02.jpg",
+    "client-family-03.jpg",
+    "client-family-04.jpg",
+    "client-family-05.jpg",
+    "client-family-06.jpg",
+    "client-family-07.jpg"
+  ],
+  "reviewedFrames": 81,
+  "findings": [
+    {
+      "id": "announcements-title",
+      "cases": [
+        "employee-audit-announcements"
+      ],
+      "finding": "Heading Ankündigungen splits its final letter next to the large icon."
+    },
+    {
+      "id": "detail-fact-columns",
+      "cases": [
+        "employee-audit-assignment-detail",
+        "employee-audit-document-detail",
+        "client-audit-document-detail"
+      ],
+      "finding": "Two narrow fact cards split a date or a label such as Einsatzzeit; use responsive stacking at enlarged text."
+    },
+    {
+      "id": "client-name-width",
+      "cases": [
+        "employee-audit-client-detail"
+      ],
+      "finding": "Name Musterfrau loses its last letter to a new line because avatar and badge reserve the title width."
+    },
+    {
+      "id": "employee-document-metrics",
+      "cases": [
+        "employee-audit-documents"
+      ],
+      "finding": "Spatial employee KPI title and empty-state words split; the MobilePortalKpiCard change only covers client/family."
+    },
+    {
+      "id": "portal-headline-clamp",
+      "cases": [
+        "employee-audit-payroll",
+        "employee-audit-tasks",
+        "client-audit-help"
+      ],
+      "finding": "Main section title is ellipsized at enlarged text."
+    },
+    {
+      "id": "long-document-title",
+      "cases": [
+        "client-audit-signature-detail"
+      ],
+      "finding": "Long original document title breaks inside Alltagsbegleitung; examine available width and native line-break strategy."
+    },
+    {
+      "id": "timeline-fixture-contract",
+      "cases": [
+        "admin-audit-client-timeline"
+      ],
+      "finding": "An explicit missing-preview-contract error dialog is shown. This frame does not prove a ready timeline."
+    },
+    {
+      "id": "conversation-fixture-content",
+      "cases": [
+        "employee-audit-thread",
+        "client-audit-thread"
+      ],
+      "finding": "Conversation frame is blank apart from navigation/composer; verify ready-data contract and specific receiving content."
+    },
+    {
+      "id": "family-guarded-modal-contracts",
+      "cases": [
+        "client-audit-activities",
+        "client-audit-request",
+        "client-audit-requests",
+        "client-audit-upload"
+      ],
+      "finding": "Family frames remain on home instead of opening the client modal. Check expected role guards; do not enable forbidden family writes."
+    }
+  ],
+  "correctedAndVisuallyConfirmed": [
+    {
+      "id": "client-document-metrics",
+      "cases": [
+        "client-audit-documents"
+      ],
+      "roles": [
+        "client",
+        "family"
+      ],
+      "evidence": "Full-width cards preserve Eingeschränkt and Keine eingeschränkten; six geometric/receiving-page assertions pass in CI160."
+    }
+  ],
+  "unreviewed": [
+    "320px ready frames",
+    "1280px ready frames",
+    "loading/error/empty states",
+    "all nonprepared route cases",
+    "real Android device operations",
+    "real authenticated server writes/reads"
+  ],
+  "releaseAcceptance": false,
+  "recheckedMontageArtifacts": [
+    {
+      "id": "dock-overlap",
+      "outcome": "No defect confirmed in six original-resolution dock crops. The apparent missing glyphs were an overview-resizing artifact; no navigation code was changed."
+    }
+  ],
+  "implementedAwaitingNewImages": [
+    "Measured pane-width and font-scale column limits in AdaptiveKpiGrid; scaled horizontal card widths.",
+    "Employee tab metrics use the same adaptive grid.",
+    "Main portal hero headings and role pills no longer clamp or shrink to a single line. Native title hyphenation is enabled but requires Android verification.",
+    "Enlarged announcement/document/client record headings obtain a full-width text column.",
+    "Assignment fact card basis grows with system font scale.",
+    "Fictional two-message conversations and a single namespaced client-timeline fixture provide actual receiving content. File transport and writes remain denied.",
+    "The home role pill labels a family session as Angehörigenportal; four guarded family entries assert the home content and absence of client write modals."
+  ],
+  "artifacts": {
+    "administration": {
+      "id": 12675040843,
+      "sha256": "cef83f408de1c220c33d45542380d811cc814339d84a3f9b88fd653defc4a0f1"
+    },
+    "employee": {
+      "id": 12674321853,
+      "sha256": "e418138e65f62d6217ad59b94109e1610f8a0edefa68ae3e3cc6354f99ac8a32"
+    },
+    "client_and_family": {
+      "id": 12674866815,
+      "sha256": "cee65b5fb575440ebebb64e5575dfed2604abed5f42bbe75420edf8e6c2091c5"
+    }
+  },
+  "sourceCheckedRoleGuards": [
+    {
+      "cases": [
+        "client-audit-activities",
+        "client-audit-request",
+        "client-audit-requests",
+        "client-audit-upload"
+      ],
+      "role": "family",
+      "outcome": "Remaining on home is intended: mixed feeds/requests lack a family grant; AssistPortalOverview and ClientPortalHomeDashboard explicitly block family uploads. No permissions were widened.",
+      "sources": [
+        "src/lib/portal/familyPortalAccessScope.ts",
+        "src/components/portal/assist/AssistPortalOverview.tsx",
+        "src/components/portal/assist/ClientPortalHomeDashboard.tsx"
+      ]
+    }
+  ],
+  "localValidation": {
+    "targetedTests": 138,
+    "testFiles": 17,
+    "prepareOnly": {
+      "cases": 65,
+      "sourceFiles": 2721
+    },
+    "physicalDeviceAcceptance": false
+  }
+}

@@ -233,7 +233,7 @@ function WelcomeHero({
       <View style={[styles.welcomeCopy, compactHero && styles.welcomeCopyPhone]}>
         <View style={styles.portalPill}>
           <Ionicons name="shield-checkmark" color={ink.blue} size={15} />
-          <Text style={styles.portalPillText}>MEIN KLIENTENPORTAL</Text>
+          <Text style={styles.portalPillText}>{context.roleKey === 'family_portal' ? 'MEIN ANGEHÖRIGENPORTAL' : 'MEIN KLIENTENPORTAL'}</Text>
         </View>
         <Text style={[type.h1, styles.welcomeTitle, breakLongWords]}>
           {heroLines.greetingLine}, {heroLines.nameLine}
@@ -607,6 +607,7 @@ const styles = StyleSheet.create({
   },
   portalPill: {
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     minHeight: 32,
     paddingHorizontal: 11,
     borderWidth: 1,
@@ -618,6 +619,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   portalPillText: {
+    flexShrink: 1,
     color: ink.blueDark,
     fontSize: 11,
     lineHeight: 14,

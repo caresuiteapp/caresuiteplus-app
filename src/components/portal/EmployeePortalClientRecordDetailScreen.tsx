@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -24,6 +24,7 @@ import {
 import { useEmployeePortalClientRecordDetail } from '@/hooks/useEmployeePortalClientRecords';
 import type { EmployeePortalClientRecordDetail } from '@/lib/portal/employeePortalClientRecordsService';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
@@ -68,6 +69,9 @@ function InfoBlock({ label, value }: { label: string; value: string | null | und
 
 function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail }) {
   const text = useAuroraAdaptiveText();
+  const { width } = useDeviceClass();
+  const { fontScale } = useWindowDimensions();
+  const stackedHeading = width / Math.max(1, fontScale || 1) < 300;
   const address = buildAddress(record);
 
   const kpiItems = useMemo((): KpiGridItem[] => {
@@ -119,13 +123,13 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
 
   return (
     <PremiumCard style={styles.heroCard}>
-      <View style={styles.heroTop}>
+      <View style={[styles.heroTop, stackedHeading && { flexDirection: 'column' }]}>
         <ClientAnimalAvatar
           clientId={record.clientId}
           clientName={record.displayName}
           size={64}
         />
-        <View style={styles.heroTextCol}>
+        <View style={[styles.heroTextCol, stackedHeading && { flex: undefined, width: '100%' }]}>
           <Text style={[styles.heroEyebrow, { color: text.muted }]}>Klientenakte</Text>
           <Text style={[styles.heroTitle, { color: text.primary }]}>{record.displayName}</Text>
           {address ? <Text style={[styles.heroSubtitle, { color: text.secondary }]}>{address}</Text> : null}
