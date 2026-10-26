@@ -162,9 +162,34 @@ const expectedAliasReceivers={'employee-audit-schedule-alias':'employee-audit-ca
 const caseAssertionErrors=(row,state,evidence,role)=>{const expected=state==='ready'?readyExpectation(row,role):null;if(!expected)return[];return [...(expected.present??[]).filter(text=>!evidence.bodyText.replaceAll('\u00ad','').includes(text)).map(text=>'Expected receiving-page text missing: '+text),...(expected.absent??[]).filter(text=>evidence.bodyText.replaceAll('\u00ad','').includes(text)).map(text=>'Unexpected unrelated or denied-page content: '+text)];};
 async function unbrokenLabelErrors(locator,word,description){
  if(await locator.count()===0)return['Expected layout label missing: '+description];
- const fragments=await locator.first().evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
- return fragments===1?[]:['Layout splits '+description+' across lines.'];
+ const geometry=await locator.first().evaluate((element,word)=>{
+  const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;
+  while((node=walker.nextNode())){
+   const start=node.textContent.indexOf(word);if(start<0)continue;
+   const lines=[];let glyphs=0;
+   for(let offset=start;offset<start+word.length;offset++){
+    const range=document.createRange();range.setStart(node,offset);range.setEnd(node,offset+1);
+    // Chromium may include the preceding discretionary hyphen in a Range.
+    // The final rectangle belongs to the requested character itself.
+    const rect=[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).at(-1);
+    if(!rect)continue;glyphs++;if(!lines.some(top=>Math.abs(top-rect.top)<1))lines.push(rect.top);
+   }
+   return{lines:lines.length,glyphs};
+  }
+  return{lines:0,glyphs:0};
+ },word);
+ return geometry.lines===1&&geometry.glyphs===word.length?[]:['Layout splits '+description+' across lines: '+JSON.stringify(geometry)];
 }
+async function verifyTextLineControls(browser){
+ const page=await browser.newPage({viewport:{width:320,height:740}});
+ try{
+  await page.setContent('<div id="broken-word" style="font:24px Arial;width:40px;overflow-wrap:anywhere">Musterfrau</div><div id="soft-hyphen" style="font:24px Arial;width:130px">Notfall\u00adnummern</div><div id="whole-word" style="font:24px Arial;width:300px">Musterfrau</div>');
+  if(!(await unbrokenLabelErrors(page.locator('#broken-word'),'Musterfrau','negative control')).length)throw Error('Text line measurement must reject an intentionally broken word.');
+  for(const [id,word]of [['soft-hyphen','nummern'],['whole-word','Musterfrau']])if((await unbrokenLabelErrors(page.locator('#'+id),word,'positive control')).length)throw Error('Text line measurement must accept a complete word, including after a discretionary hyphen.');
+  console.log('Text line measurement: broken-word negative and whole-word/soft-hyphen positive controls passed.');
+ }finally{await page.close();}
+}
+
 async function metricLayoutAssertionErrors(page,row,state){
  if(state!=='ready')return[];
  const errors=[];
@@ -180,6 +205,11 @@ async function metricLayoutAssertionErrors(page,row,state){
  }
  if(row.id==='client-audit-help')errors.push(...await unbrokenLabelErrors(page.getByLabel('Hilfe & Notfallnummern',{exact:true}),'nummern','emergency-number heading suffix'));
  if(row.id==='client-audit-signature-detail')errors.push(...await unbrokenLabelErrors(page.getByLabel('Vereinbarung zur Alltagsbegleitung und Unterstützung',{exact:true}),'begleitung','signature heading suffix'));
+ if(row.id==='admin-audit-client-timeline'){
+  const title=page.getByText('Synthetische Abstimmung zur Betreuung',{exact:true});
+  if(await title.count()===0)errors.push('Expected timeline title missing.');
+  else if(await title.evaluate(element=>element.scrollWidth>element.clientWidth+1||element.scrollHeight>element.clientHeight+1))errors.push('Timeline event title is clipped.');
+ }
  if(row.id==='employee-audit-announcements')errors.push(...await unbrokenLabelErrors(page.getByText('Ankündigungen',{exact:true}),'Ankündigungen','announcement heading'));
  if(row.id==='employee-audit-client-detail')errors.push(...await unbrokenLabelErrors(page.getByText('Helene Musterfrau',{exact:true}),'Musterfrau','client name'));
  if(['employee-audit-assignment-detail','employee-audit-document-detail','client-audit-document-detail'].includes(row.id)){
@@ -211,7 +241,7 @@ async function captureCaseDetail(page,row,state,imageName){
 }
 
 let browser;try{browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});}catch(error){await new Promise(done=>server.close(done));throw error;}const checks=[];
-try{for(const row of selectedCases)for(const state of (arg('states')??'ready,loading,error,empty').split(','))for(const role of (row.portal==='client_and_family'?(arg('roles')??'client').split(','):['default']))for(const {width,height,scale}of [{width:320,height:740,scale:1},{width:1280,height:800,scale:1},{width:360,height:800,scale:1.6}]){
+try{await verifyTextLineControls(browser);for(const row of selectedCases)for(const state of (arg('states')??'ready,loading,error,empty').split(','))for(const role of (row.portal==='client_and_family'?(arg('roles')??'client').split(','):['default']))for(const {width,height,scale}of [{width:320,height:740,scale:1},{width:1280,height:800,scale:1},{width:360,height:800,scale:1.6}]){
  const page=await browser.newPage({viewport:{width,height}}),errors=[],errorStacks=[],consoleErrors=[],network=[];page.on('pageerror',error=>{errors.push(error.message);errorStacks.push(error.stack??error.message)});page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});await page.route('**/*',route=>{if(route.request().url().startsWith(base+'/')||route.request().url().startsWith('data:'))return route.continue();network.push(route.request().url().split('?')[0]);return route.abort();});
  try{await page.goto(base+'/?'+new URLSearchParams({screen:row.id,state,role,scale:String(scale),route:row.href}));await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(500);const evidence=await page.evaluate(()=>({current:window.__nativePortalAuditCurrent,events:window.__nativePortalAuditEvents??[],bodyText:document.body.innerText,bodyOverflow:document.body.scrollWidth>innerWidth+1,boundaryError:document.querySelector('[data-testid="native-portal-audit-error"]')?.textContent??null,receiverId:document.querySelector('[data-testid="native-portal-audit-receiver"]')?.id??null,navigatorLayers:document.querySelectorAll('[data-testid^="native-portal-audit-navigator-"]').length}));const expectedReceiverId=expectedAliasReceivers[row.id]??row.id;const receivingCase=cases.find(candidate=>candidate.id===expectedReceiverId);if(!receivingCase)throw Error('Expected receiving case missing: '+expectedReceiverId);const expectedNavigatorLayers=receivingCase.layouts.length+1;const assertionErrors=[...caseAssertionErrors(row,state,evidence,role),...await metricLayoutAssertionErrors(page,row,state)];const name=`${row.id}-${role}-${state}-${width}x${height}-scale-${scale}.png`;await page.screenshot({path:join(output,name)});const detailImages=await captureCaseDetail(page,row,state,name);checks.push({caseId:row.id,state,role,viewport:{width,height},scale,image:name,detailImages,status:errors.length||network.length||evidence.bodyOverflow||evidence.boundaryError||evidence.events.some(event=>event.type==='render-error')||assertionErrors.length?'failed':evidence.current?.id!==expectedReceiverId||evidence.receiverId!==expectedReceiverId||evidence.navigatorLayers!==expectedNavigatorLayers?'blocked-before-expected-receiver':evidence.events.some(event=>event.type==='blocked-device-boundary')?'device-boundary-not-exercised':evidence.bodyText.includes('Prüfgrenze: Der genaue Datenvertrag')?'fixture-contract-unimplemented':state==='ready'&&readyExpectation(row,role)?'case-assertions-passed-needs-visual-review':'captured-needs-case-assertions',errors,errorStacks,consoleErrors,assertionErrors,blockedNetwork:network,expectedReceiverId,expectedNavigatorLayers,...evidence});}catch(error){checks.push({caseId:row.id,state,role,viewport:{width,height},scale,status:'failed',error:String(error),errors,errorStacks,consoleErrors,blockedNetwork:network});}finally{await page.close();writeFileSync(join(output,'verification.json'),JSON.stringify({manifest:'manifest.json',acceptance:false,checks},null,2));}
 }}finally{await browser.close();await new Promise(done=>server.close(done));}

@@ -262,5 +262,43 @@
     "plannedCasesAcrossRolesAndSizes": 1044,
     "notExecutedAtCheckpoint": true,
     "noDeviceOrServerAcceptance": true
+  },
+  "ci162Checkpoint": {
+    "sourceCommit": "f611737071e929205fe3b24939f60251e2a34562",
+    "run": 40382851541,
+    "administrationCases": 108,
+    "administrationJob": "passed",
+    "reviewedEnlargedAdministrationInitialFrames": 36,
+    "timelineScrolledImageReviewed": true,
+    "timelineFinding": "The received event title and subtitle were ellipsized without a detail action. Client record timeline now opts into full entries and puts relative time on its own line. New visual verification pending.",
+    "typecheck": "Failed because the new message-route test fixture omitted required updatedAt. The field was added locally. The corrected test file and its imported contracts pass isolated TypeScript checking; 16 tests pass. Full CI rerun remains required.",
+    "otherPortalJobs": {
+      "employee": {
+        "cases": 408,
+        "job": "passed",
+        "artifactId": 12679309902,
+        "sha256": "3a3f6ba5b61477e2846e528f61fac7035644978e992164f5072e66d394e89b8e"
+      },
+      "clientAndFamily": {
+        "cases": 528,
+        "job": "failed",
+        "failedCases": 6,
+        "artifactId": 12680915500,
+        "sha256": "184960531f0d20824a2eb674e137a6ee4573c846d05737d313a49c705d819b07",
+        "reason": "The original images show complete suffixes after discretionary hyphens. A Range can include a preceding discretionary-hyphen rectangle. The checker now measures individual glyph line positions and runs intentionally broken-word and complete-word controls. Full rerun pending."
+      }
+    },
+    "administrationArtifact": {
+      "id": 12679283219,
+      "sha256": "a0fcd63e3f7e33c5a6b794f37b44499bc2c8a582b93505bdc470c5039d344896"
+    },
+    "additionalOfficeDestinationTests": 49,
+    "targetedTimelineMessageTests": 39,
+    "releaseAcceptance": false,
+    "confirmedInOriginalImages": [
+      "Own-message timestamp/status/copy wrap within the bubble.",
+      "Help title breaks at Notfall- / nummern; no isolated final letter.",
+      "Signature title breaks at Alltags- / begleitung; accessible original title is retained."
+    ]
   }
 }

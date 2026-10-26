@@ -267,7 +267,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
             message="Änderungen an Stammdaten, Dokumenten, Portal und Aufgaben erscheinen hier automatisch. Sie können auch manuelle Notizen hinzufügen."
           />
         ) : (
-          <Timeline items={items} maxItems={500} />
+          <Timeline items={items} maxItems={500} expandEntries />
         )}
       </SectionPanel>
       {internalNotes.length > 0 ? (

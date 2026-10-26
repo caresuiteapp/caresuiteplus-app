@@ -46,7 +46,7 @@ describe('Kommunikationszentrum R22 – Production Acceptance', () => {
     expect(archive).toContain('/business/messages?chatAge=old');
     expect(assignments).toContain('/business/messages?filter=mine');
     const href = new URL(CommunicationAssignmentsRoute().props.href, 'https://fixture.invalid');
-    const base: OfficeMessageThread = { id: 'owned', tenantId: 'tenant-a', createdAt: '2026-10-26T08:00:00Z', threadType: 'client_office', status: 'open', priority: 'normal', subject: 'Synthetische Anfrage', categoryId: null, categoryLabel: null, clientId: null, clientName: null, employeeId: null, employeeName: null, participantName: null, lastMessageAt: null, lastMessagePreview: null, unreadCount: 0, archivedAt: null, assignedToUserId: 'profile-a' };
+    const base: OfficeMessageThread = { id: 'owned', tenantId: 'tenant-a', createdAt: '2026-10-26T08:00:00Z', updatedAt: '2026-10-26T08:00:00Z', threadType: 'client_office', status: 'open', priority: 'normal', subject: 'Synthetische Anfrage', categoryId: null, categoryLabel: null, clientId: null, clientName: null, employeeId: null, employeeName: null, participantName: null, lastMessageAt: null, lastMessagePreview: null, unreadCount: 0, archivedAt: null, assignedToUserId: 'profile-a' };
     const threads = [base, { ...base, id: 'foreign', assignedToUserId: 'profile-b' }, { ...base, id: 'unassigned', assignedToUserId: null }];
     for (const [parse, select] of [[parseConversationFilter, selectConversations], [parseNativeFilter, selectNativeConversations]] as const) {
       expect(select(threads, '', parse(href.searchParams.get('filter'), href.searchParams.get('chatAge')), 'profile-a').map(thread => thread.id)).toEqual(['owned']);
