@@ -203,6 +203,9 @@ jobs:
         run: npm run typecheck
       - name: Native Ansichten im vorhandenen Chrome rendern
         run: node scripts/verify-native-administration-visual.mjs
+      - name: Gezielte Originalbilder für Sichtprüfung ausgeben
+        if: always()
+        run: node scripts/log-native-audit-review-images.mjs native
       - name: Gemeinsame Navigation und Seitenziele prüfen
         run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/legacyPortalEntryTargets.test.tsx src/__tests__/auth/businessWelcomePresentation.test.tsx src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/navigation/nativeExpoRouteResolution.test.ts src/__tests__/navigation/nativeModuleNavigatorLifecycle.test.tsx src/__tests__/auth/nativeAuthGuardFocus.test.tsx src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/tenant/nativeCompanyWorkspaceInteraction.test.tsx --maxWorkers=2
       - name: Aufnahmen und offene Abweichungen sichern
@@ -242,6 +245,9 @@ jobs:
         run: node scripts/audit-native-portal-route-matrix.mjs --write
       - name: Tatsächliche Seiten mit Portaloberfläche im vorhandenen Chrome prüfen
         run: node scripts/verify-native-portal-audit.mjs --portal=${{ matrix.portal }} --states=ready,loading,error,empty --roles=${{ matrix.portal == 'client_and_family' && 'client,family' || 'client' }}
+      - name: Gezielte Portalbilder für Sichtprüfung ausgeben
+        if: always()
+        run: node scripts/log-native-audit-review-images.mjs ${{ matrix.portal }}
       - name: Belege und offene Fehler sichern
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
