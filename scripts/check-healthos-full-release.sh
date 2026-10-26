@@ -5,9 +5,11 @@ node scripts/verify-healthos-full-production.mjs
 node scripts/verify-android-app-icons.mjs
 node scripts/port-native-workspaces.mjs --check
 npm run typecheck
-npx --no-install vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx --maxWorkers=2
+npx --no-install vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx --maxWorkers=2
 npx --no-install vitest run src/__tests__/auth/authServiceTimeout.test.ts src/__tests__/auth/webSessionBootstrap.test.tsx src/__tests__/auth/webSessionAccessRecovery.test.tsx src/__tests__/navigation/webNavigationHydration.test.tsx src/__tests__/offline/offlineIdb.test.ts src/__tests__/office/officeDashboard.test.ts src/__tests__/office/officeDashboardLive.test.ts src/__tests__/dashboard/liveDashboard.test.ts src/__tests__/contentPortal/liveDataProtection.test.ts src/__tests__/realtime/realtimeWiring.test.ts src/__tests__/ui/workflowFeedbackOverlay.test.ts src/__tests__/ui/nativeAppStructure.test.ts --maxWorkers=2
 node --experimental-vm-modules --test scripts/verify-platform-observation.test.mjs
+# Current reviewed server contracts run only against isolated synthetic PostgreSQL data.
+node --test --test-concurrency=1 supabase/tests/workflow_payroll_authorization.test.mjs supabase/tests/workflow_server_repair_authorization_draft.test.mjs supabase/tests/family_portal_access_scope.test.mjs supabase/tests/workflow_current_rls_authorization.test.mjs
 npm run audit:portal-update -- --maxWorkers=2
 npm run audit:android-update
 npm run audit:android-administration

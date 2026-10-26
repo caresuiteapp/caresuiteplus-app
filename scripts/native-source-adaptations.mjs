@@ -6,6 +6,36 @@ export function nativeSource(file,original){let source=original;
   const block=(startText,endText,text)=>{const start=source.indexOf(startText),end=source.indexOf(endText,start);if(start<0||end<0)throw Error('Stale native block: '+file);source=source.slice(0,start)+text+source.slice(end);};
   const add=text=>{source=text+'\n'+source;};
   const delivery="import {shareNativeFile} from '@/lib/platform/nativeFileDelivery.native';";
+  if(file==='src/liquid-command/screens/DesktopWeatherLocationDialog.web.tsx'){
+    replace("import { useEffect, useMemo, useState } from 'react';", "import { useEffect, useMemo, useRef, useState } from 'react';");
+    replace("import { useWebFontScale } from '@/design/web/WebFontScaleProvider';",'');
+    replace("import type { WeatherPlace } from '@/hooks/useDesktopWeather.web';", "import type { WeatherPlace } from '@/lib/platform/desktopWeatherModel';");
+    replace("      const response = await fetch('/weather/de-places-v1.json', { signal: controller.signal, credentials: 'same-origin' });\n      if (!response.ok) throw new Error('Place list unavailable');\n      const rows: unknown = await response.json();", "      const rows: unknown = require('../../../assets/weather/de-places-v1.json');");
+    replace('  onChoose: (place: WeatherPlace | null) => boolean;', '  onChoose: (place: WeatherPlace | null) => boolean | Promise<boolean>;');
+    replace('  const { effectiveScale: scale } = useWebFontScale();', '  const scale = 1; // Android Text applies the system font scale once.');
+    replace("  const [query, setQuery] = useState('');", "  const [query, setQuery] = useState('');\n  const [busy,setBusy]=useState(false),[choiceError,setChoiceError]=useState('');\n  const selectionRequest=useRef(0),selectionBusy=useRef(false);");
+    replace("    setQuery('');\n    let active = true;", "    setQuery('');\n    setChoiceError('');setBusy(false);selectionBusy.current=false;selectionRequest.current++;\n    let active = true;");
+    replace('    return () => { active = false; };', '    return () => { active = false;selectionRequest.current++;selectionBusy.current=false; };');
+    block('  const choose = (next: WeatherPlace | null) => {','  const body = ',`  const choose = async (next: WeatherPlace | null) => {
+    if(!visible||selectionBusy.current)return;
+    const request=selectionRequest.current;
+    selectionBusy.current=true;setBusy(true);setChoiceError('');
+    const clean=next?{name:next.name,postcode:next.postcode,region:next.region,district:next.district,latitude:next.latitude,longitude:next.longitude}:null;
+    try{if(await onChoose(clean)&&request===selectionRequest.current)onClose();}
+    catch{if(request===selectionRequest.current)setChoiceError('Der Wetterort konnte nicht gespeichert werden. Bitte erneut versuchen.');}
+    finally{if(request===selectionRequest.current){selectionBusy.current=false;setBusy(false);}}
+  };
+`);
+    replace('in diesem Browser gespeichert.', 'auf diesem Gerät gespeichert.');
+    replace('Der Browser kann dafür nach Ihrer Standortfreigabe fragen.', 'Die App fragt bei Bedarf nach Ihrer Standortfreigabe. Für das Wetter werden nur ungefähre Koordinaten an Bright Sky übermittelt.');
+    replace("{preferenceError ? <Text accessibilityRole=\"alert\" style={[styles.error, body]}>{preferenceError}</Text> : null}", "{preferenceError||choiceError ? <Text accessibilityRole=\"alert\" style={[styles.error, body]}>{preferenceError||choiceError}</Text> : null}");
+    replace("{status === 'loading' ? 'Ortsverzeichnis wird geladen …'", "{busy ? 'Wetterort wird gespeichert …' : status === 'loading' ? 'Ortsverzeichnis wird geladen …'");
+    replace('accessibilityState={{ selected }}', 'accessibilityState={{ selected,disabled:busy,busy }} disabled={busy}');
+    replace('onPress={() => choose(entry)}', 'onPress={() => void choose(entry)}');
+    replace('onPress={() => choose(null)} style={styles.automatic}', 'onPress={() => void choose(null)} disabled={busy} accessibilityState={{disabled:busy,busy}} style={styles.automatic}');
+    replace("lineHeight: 1.5, paddingTop: 8", "lineHeight: 18 * scale, paddingTop: 8");
+    replace('      <Pressable onPress={event => event.stopPropagation()} style=', '      <Pressable accessibilityViewIsModal onPress={event => event.stopPropagation()} style=');
+  }
   // Android's shared select owns its native modal; browser popover and DOM
   // measurements cannot execute against native workflow element handles.
   if(file==='src/components/assist/AssistLiveFilterSelect.web.tsx'){
@@ -16,6 +46,33 @@ export function nativeSource(file,original){let source=original;
     replace('value, options, onChange }: Props)','value, options, onChange, disabled = false }: Props)');
     replace("// Keep the list in the dialog's DOM/focus scope. Its open state is independent of\n// live timers and refreshed options; no browser-owned native select is involved.","// Keep the controlled value through refreshed options; Android owns the option modal.");
     body('AssistLiveFilterSelect',`{return <div className={className+' cs-live-filter'} data-cs-live-filter="native-select-v1"><style>{css}</style><span>{label}</span><select className="cs-live-filter-trigger" aria-label={ariaLabel} aria-description={options.length?'': 'Keine Auswahl verfügbar.'} value={value} disabled={disabled||!options.some(option=>!option.disabled)} onChange={event=>onChange(event.target.value)}>{options.map(option=><option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>)}</select>{!options.length?<span role="status">Keine Auswahl verfügbar.</span>:null}</div>;}`);
+  }
+  if(file==='src/components/platformConsole/PlatformRuntimeBoundary.web.tsx'){
+    body('usePlatformRuntime',"{useEffect(()=>{void refreshPlatformRuntime();},[]);return useSyncExternalStore(subscribePlatformRuntime,getPlatformRuntimeSnapshot,getPlatformRuntimeServerSnapshot);}");
+    body('PlatformRuntimeBoundary',`{
+      const pathname=usePathname(),snapshot=usePlatformRuntime(),block=platformRuntimeBlock(pathname,snapshot),router=useRouter();
+      useEffect(()=>{const check=()=>{if(AppState.currentState==='active')void refreshPlatformRuntime();};check();const timer=setInterval(check,30000);const listener=AppState.addEventListener('change',state=>{if(state==='active')check();});return()=>{clearInterval(timer);listener.remove();};},[]);
+      const title=block==='checking'?'Verfügbarkeit wird geprüft':block==='maintenance'?'CareSuite wird gerade gewartet':block==='registration'?'Firmenregistrierung derzeit pausiert':'Registrierung vorübergehend nicht verfügbar';
+      const message=block==='checking'?'Einen Moment bitte. Der aktuelle Betriebsstatus wird geladen.':block==='maintenance'?'CareSuite steht vorübergehend nicht zur Verfügung. Ihre Anmeldung bleibt erhalten. Nach der Freigabe können Sie hier weiterarbeiten.':block==='registration'?'Neue Unternehmen können sich aktuell nicht registrieren. Bereits registrierte Unternehmen können CareSuite weiterhin nutzen.':'Die Registrierungsfreigabe konnte nicht bestätigt werden. Bitte versuchen Sie es erneut.';
+      return <View style={{flex:1,minHeight:0}}>
+        {snapshot.settings?.notice&&!block?<View accessibilityLiveRegion="polite" style={{padding:16,backgroundColor:'#eaf4ff'}}><Text style={{color:'#12385b'}}>{snapshot.settings.notice}</Text></View>:null}
+        <View style={{flex:1,minHeight:0}} accessibilityElementsHidden={Boolean(block)} importantForAccessibility={block?'no-hide-descendants':'auto'} pointerEvents={block?'none':'auto'}>{children}</View>
+        <Modal visible={Boolean(block)} onRequestClose={()=>{}} transparent animationType="fade"><View style={{flex:1,padding:20,justifyContent:'center',backgroundColor:'#06172bf5'}}><ScrollView contentContainerStyle={{flexGrow:1,justifyContent:'center'}}><View accessibilityViewIsModal style={{width:'100%',maxWidth:680,alignSelf:'center',padding:24,gap:20,borderWidth:1,borderColor:'#4f7aa0',borderRadius:24,backgroundColor:'#0c2640'}}>
+          <Text accessibilityRole="header" style={{color:'#eef8ff',fontSize:24,fontWeight:'700'}}>CareSuite HealthOS</Text><Text accessibilityRole="header" style={{color:'#fff',fontSize:26,fontWeight:'700'}}>{title}</Text><Text style={{color:'#eef8ff',fontSize:16,lineHeight:25}}>{message}</Text>
+          {snapshot.settings?.notice?<Text style={{color:'#eef8ff'}}>{snapshot.settings.notice}</Text>:null}
+          {block!=='checking'?<View style={{gap:12}}>{[['Erneut prüfen',()=>void refreshPlatformRuntime()],['Hilfe und Kontakt',()=>router.push('/support' as never)],['Datenschutz',()=>router.push('/datenschutz' as never)],[block==='maintenance'?'Plattformverwaltung':'Zur Anmeldung',()=>router.push((block==='maintenance'?'/platform/login':'/auth') as never)]].map(([label,action])=><Pressable key={String(label)} accessibilityRole="button" onPress={action as ()=>void} style={{padding:14,minHeight:48,borderWidth:1,borderColor:'#729aba',borderRadius:14,backgroundColor:'#123955'}}><Text style={{color:'#fff',fontSize:16}}>{String(label)}</Text></Pressable>)}</View>:null}
+        </View></ScrollView></View></Modal>
+      </View>;
+    }`);
+    add("import {AppState,Modal,Pressable,ScrollView,Text,View} from 'react-native';\nimport {useRouter} from 'expo-router';");
+  }
+  if(file==='src/components/support/SupportArchive.web.tsx'){
+    block('      const objectUrl = URL.createObjectURL(data);','    } catch (cause)',"      await shareNativeFile(new Uint8Array(await data.arrayBuffer()),file.file_name||'Support-Anhang',data.type||'application/octet-stream');\n");
+    add(delivery);
+  }
+  if(file==='src/components/platformConsole/ConsoleWorkspaceUi.web.tsx'){
+    body('downloadConsoleCsv',"{return shareNativeFile(consoleCsv(headers,rows),name+'-'+new Date().toISOString().slice(0,10)+'.csv','text/csv;charset=utf-8');}");
+    add(delivery);
   }
   // React Native already applies the device's font scale to Text. The CSS scale
   // controls Web typography; invoking its provider here would throw on Android.

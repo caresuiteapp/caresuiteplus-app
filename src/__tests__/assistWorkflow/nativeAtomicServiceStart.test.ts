@@ -5,7 +5,10 @@ const h = vi.hoisted(() => ({ rpc: vi.fn(), deferred: vi.fn(), event: vi.fn(), s
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: h.rpc }) }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
 vi.mock('@/lib/async/deferredTask', () => ({ scheduleDeferredTask: h.deferred }));
-vi.mock('@/features/assistWorkflow/saveVisitTimeEvent', () => ({ ensureVisitTimeEvent: h.event }));
+// Keep the real ensureVisitTimeEvent path: the atomic receipt already carries
+// service_start, so only a second authoritative INSERT must be forbidden.
+vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({ recordTimeEvent: h.event }));
+vi.mock('@/lib/wfm/wfmAssistAdapter', () => ({ syncAssistTimeEventToWfmPortalSafe: vi.fn() }));
 vi.mock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({ upsertAssistVisitExecutionState: h.state }));
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({ transitionAssistExecutionStatus: vi.fn() }));
 vi.mock('@/features/assistWorkflow/repairWorkflowState', () => ({ repairWorkflowState: vi.fn() }));
@@ -26,7 +29,11 @@ function ctx(): AssistExecutionContext {
 const receipt = () => ({ visitId: 'canonical-visit', employeeId: 'employee', status: 'started',
   startedAt, arrivedAt, eventId: 'event', events: [{ eventType: 'arrive', occurredAt: arrivedAt },
     { eventType: 'service_start', occurredAt: startedAt }] });
-beforeEach(() => { vi.clearAllMocks(); h.rpc.mockResolvedValue({ data: receipt(), error: null }); });
+beforeEach(() => {
+  vi.clearAllMocks(); h.rpc.mockResolvedValue({ data: receipt(), error: null });
+  h.state.mockResolvedValue({ok:true,data:{visitId:'canonical-visit',currentStep:'in_service'}});
+  h.event.mockResolvedValue({ok:true,data:{id:'unexpected-second-event'}});
+});
 describe('native and web canonical service start', () => {
   it('uses the same implementation and advances only from the atomic server receipt', async () => {
     expect(nativeStart).toBe(webStart);
@@ -39,8 +46,26 @@ describe('native and web canonical service start', () => {
       expect(result.data.visitTimes?.serviceStartedAt).toBe(startedAt);
       expect(result.data.allowedActions).toContain('end_service');
     }
-    expect(h.event).not.toHaveBeenCalled(); // Mirrors cannot precede the canonical transaction.
+    expect(h.state).toHaveBeenCalledWith('tenant','route-assignment','gestartet',expect.objectContaining({employeeId:'employee'}));
+    expect(h.event).not.toHaveBeenCalled(); // The canonical timer is never inserted twice.
     expect(h.deferred).toHaveBeenCalledTimes(1);
+  });
+  it('does not update a derived snapshot or schedule its WFM mirror before the canonical reply',async()=>{
+    let reply!:(value:unknown)=>void;
+    h.rpc.mockReturnValueOnce(new Promise(resolve=>{reply=resolve;}));
+    const result=nativeStart(ctx());await Promise.resolve();
+    expect(h.state).not.toHaveBeenCalled();expect(h.event).not.toHaveBeenCalled();expect(h.deferred).not.toHaveBeenCalled();
+    reply({data:receipt(),error:null});expect((await result).ok).toBe(true);
+    expect(h.state).toHaveBeenCalledOnce();expect(h.deferred).toHaveBeenCalledOnce();expect(h.event).not.toHaveBeenCalled();
+  });
+  it('keeps the confirmed canonical start and marks a failed projection for reconciliation',async()=>{
+    h.state.mockResolvedValueOnce({ok:false,error:'Projection unavailable'});
+    const warning=vi.spyOn(console,'warn').mockImplementation(()=>{});
+    try {
+      const result=await nativeStart(ctx());expect(result.ok).toBe(true);
+      if(result.ok){expect(result.data.detail.actualStartAt).toBe(startedAt);expect(result.data).toMatchObject({wfmSyncFailed:true});}
+      expect(h.event).not.toHaveBeenCalled();expect(h.deferred).toHaveBeenCalledOnce();
+    }finally{warning.mockRestore();}
   });
   it.each([
     ['wrong visit', { ...receipt(), visitId: 'other' }],

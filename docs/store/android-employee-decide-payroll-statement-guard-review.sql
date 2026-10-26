@@ -5,6 +5,7 @@
 -- Existing function signature, runtime body and ACL stay in place except the
 -- explicitly scoped actor/tenant checks below. Changed source aborts this file.
 BEGIN;
+SET LOCAL search_path = public, pg_temp;
 DO $review$
 BEGIN
  IF encode(sha256(convert_to(pg_get_functiondef('public.employee_decide_payroll_statement(uuid,text,text)'::regprocedure),'UTF8')),'hex')

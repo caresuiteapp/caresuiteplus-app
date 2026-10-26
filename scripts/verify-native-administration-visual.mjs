@@ -11,9 +11,12 @@ const fixture=resolve('scripts/fixtures/native-administration-preview.jsx');
 const nativeWeb=require.resolve('react-native-web');
 const portalFixture=resolve('scripts/fixtures/native-portals-data.jsx');
 const mockFixture=resolve('scripts/fixtures/administration-preview-mocks.jsx');
+const platformFixture=resolve('scripts/fixtures/platform-console-preview-data.jsx');
 const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context']);
 for(const renderer of ['native','web']){
 await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/web-desktop-preview.jsx')],outfile:join(output,renderer+'-preview.js'),bundle:true,assetNames:'assets/[name]-[hash]',platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{}','__DEV__':'false'},loader:{'.png':'file','.jpg':'file','.jpeg':'file','.ttf':'dataurl','.gif':'file','.mp4':'dataurl','.svg':'dataurl','.js':'jsx'},plugins:[{name:'isolated-native-preview',setup(b){
+ const platformTargets=new Set(['src/lib/platformConsole','src/lib/platformConsole/index','src/lib/platformConsole/PlatformAuthProvider','src/lib/platformConsole/platformAuthService','src/lib/platformConsole/platformTenantService','src/lib/platformConsole/platformSupabaseClient','src/lib/platformConsole/consoleWorkspaceService','src/lib/platformConsole/tenantDossierService.native','src/lib/platformConsole/tenantDossierService.shared','src/lib/platformConsole/tenantDossierService.web','src/lib/platformConsole/platformOperationsService.native','src/lib/platformConsole/platformOperationsService.web','src/lib/platformConsole/platformRuntime.native','src/lib/platformConsole/platformRuntime.web','src/lib/platformConsole/platformCompanyDirectoryService','src/lib/platformConsole/platformSession']);
+ b.onResolve({filter:/.*/},args=>{if(!args.path.startsWith('@/')&&!args.path.startsWith('.'))return;const target=args.path.startsWith('@/')?resolve('src',args.path.slice(2)):resolve(args.resolveDir,args.path),normalized=target.replace(root+'/','').replace(/\.tsx?$/,'');if(args.importer===platformFixture&&['src/lib/platformConsole/consoleWorkspaceService','src/lib/platformConsole/platformOperationsService.web'].includes(normalized))return;return platformTargets.has(normalized)?{path:platformFixture}:undefined;});
  const aliasTargets=new Set(['src/lib/platform/nativeWorkflowEnvironment.native','src/lib/platform/nativeFileDelivery.native','src/lib/platform/nativePdfInspection.native','src/lib/inventory/companyInventoryService','src/lib/inventory/companyInventoryService.native','src/lib/inventory/companyInventoryService.web','src/lib/office/notes/service.shared','src/lib/office/notes/service.native','src/lib/office/notes/service.web','src/hooks/useTenantId','src/hooks/useGoogleWorkspace.native','src/hooks/useGoogleWorkspace.web','src/lib/googleWorkspace/googleWorkspaceService','src/lib/supabase/edgeFunctions']);
  b.onResolve({filter:/.*/},args=>{if(['expo-router/react-navigation','expo-file-system','expo-print','expo-sharing','expo-video'].includes(args.path))return {path:mockFixture};if(args.path.startsWith('@/')||args.path.startsWith('.')){const path=args.path.startsWith('@/')?resolve('src',args.path.slice(2)):resolve(args.resolveDir,args.path);const normalized=path.replace(root+'/','').replace(/\.tsx?$/,'');if(aliasTargets.has(normalized))return {path:mockFixture};}});
  b.onResolve({filter:/.*/},args=>mocks.has(args.path)?{path:mockFixture}:undefined);
@@ -95,6 +98,64 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
  if(errors.length)throw Error(JSON.stringify({screen:'desktop-center',viewport,fontScale,errors}));
  report.push({screen:'desktop-center',viewport,fontScale,shell,card,artwork,background:preview,selectionSaved:true,errors});
 }
+async function verifyWeatherDialog(page,viewport,fontScale=1){
+ const heading=page.getByRole('heading',{name:'Wetterort ändern',exact:true});await heading.waitFor();
+ const input=page.getByRole('textbox',{name:'Stadt oder Postleitzahl in Deutschland',exact:true});await input.fill('10115');
+ const result=page.getByRole('button',{name:'10115 Berlin, Berlin auswählen',exact:true});await result.waitFor();await result.scrollIntoViewIfNeeded();
+ const field=await input.boundingBox(),choice=await result.boundingBox();
+ if(!field||!choice||field.x<-.5||field.x+field.width>viewport.width+.5||choice.x<-.5||choice.x+choice.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather search or result extends beyond the viewport.',viewport,fontScale,field,choice}));
+ await page.screenshot({path:join(output,`weather-results-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await result.click();await heading.waitFor({state:'hidden'});await page.getByText('10115 Berlin als Wetterort ausgewählt.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Wetterort ändern',exact:true}).click();await heading.waitFor();
+ await page.getByText('Wetterinformationen',{exact:true}).click();
+ const information=page.getByText('Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts.',{exact:false});await information.waitFor();await information.scrollIntoViewIfNeeded();
+ const info=await information.boundingBox();if(!info||info.x<-.5||info.x+info.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native weather information is clipped.',viewport,fontScale,info}));
+ await page.screenshot({path:join(output,`weather-information-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ report.push({screen:'weather-dialog',viewport,fontScale,field,choice,information:info,localDirectory:true,inertAsyncSave:true,deviceLocationRequested:false});
+}
+async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
+ const tenant=screen.startsWith('owner-tenant'),failed=screen.endsWith('-error');
+ if(failed)await page.getByText(tenant?'Lokaler Prüffehler: Mandantendaten konnten nicht geladen werden.':'Lokaler Prüffehler: Betriebsdaten konnten nicht geladen werden.',{exact:false}).first().waitFor();
+ else if(tenant)await page.getByText('Vollständige Mandantenakte',{exact:true}).waitFor();
+ else await page.getByText('Die gesamte Plattform',{exact:true}).waitFor();
+ const header=await page.getByRole('heading',{name:tenant?(failed?'Mandant':'Pflege & Alltag Nord'):'Übersicht',exact:true,includeHidden:true}).first().boundingBox();
+ const search=await page.getByRole('button',{name:'Plattform durchsuchen, Strg oder Command K',exact:true,includeHidden:true}).boundingBox();
+ if(!header||!search||header.x<-.5||header.x+header.width>viewport.width+.5||search.x<-.5||search.x+search.width>viewport.width+.5)throw Error(JSON.stringify({message:'Owner console header or controls exceed the viewport.',screen,viewport,fontScale,header,search}));
+ let navigation=null;
+ if(failed){
+  const retry=page.getByRole('button',{name:tenant?'Erneut versuchen':'Erneut versuchen',exact:true}).first();await retry.scrollIntoViewIfNeeded();
+  const recovery=await retry.boundingBox();if(!recovery||recovery.x<-.5||recovery.x+recovery.width>viewport.width+.5)throw Error(JSON.stringify({message:'Owner error recovery is clipped.',screen,viewport,fontScale,recovery}));
+  await page.screenshot({path:join(output,`${screen}-recovery-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  report.push({screen,viewport,fontScale,header,search,recovery,fixtureServices:'inert-local-data',errorState:true});return;
+ }
+ if(viewport.width>=960){
+  navigation=await page.locator('#desktop-module-navigation').boundingBox();
+  if(!navigation||navigation.x<-.5||Math.abs(navigation.x)>1||header.x<navigation.x+navigation.width-1)throw Error(JSON.stringify({message:'Wide owner console must keep navigation at the left edge and the header beside it.',screen,viewport,fontScale,header,navigation}));
+ }else{
+  await page.getByRole('button',{name:'Navigation öffnen',exact:true}).click();
+  await page.getByRole('button',{name:'Navigation schließen',exact:true}).waitFor();
+  navigation=await page.locator('#desktop-module-navigation').boundingBox();
+  if(!navigation||navigation.x<-.5||navigation.x+navigation.width>viewport.width+.5)throw Error(JSON.stringify({message:'Owner navigation is clipped in its native dialog.',screen,viewport,fontScale,navigation}));
+  await page.screenshot({path:join(output,`${screen}-navigation-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  await page.getByRole('button',{name:'Navigation schließen',exact:true}).click();
+ }
+ await page.screenshot({path:join(output,`${screen}-ready-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ if(tenant&&!failed){
+  await page.getByRole('tab',{name:'Personen & Akten',exact:true}).click();
+  await page.getByRole('tab',{name:'Alle Klient:innen',exact:true}).click();
+  const person=page.getByRole('button',{name:'Alle Angaben zu Helene Musterfrau öffnen',exact:true});await person.waitFor();await person.scrollIntoViewIfNeeded();
+  const personBounds=await person.boundingBox();if(!personBounds||personBounds.x<-.5||personBounds.x+personBounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native owner dossier row action is clipped.',viewport,fontScale,personBounds}));
+  await page.screenshot({path:join(output,`owner-clients-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  await person.click();await page.getByRole('heading',{name:'Helene Musterfrau',exact:true}).waitFor();
+  await page.screenshot({path:join(output,`owner-client-fields-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  await page.getByRole('button',{name:'Dialog schließen',exact:true}).last().click();
+  await page.getByRole('tab',{name:'Mandantenakte',exact:true}).click();
+  await page.getByRole('tab',{name:'Einrichtung & Prozentstand',exact:true}).click();
+  await page.getByText('Einrichtung Schritt für Schritt',{exact:true}).waitFor();
+  await page.screenshot({path:join(output,`owner-setup-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ }
+ report.push({screen,viewport,fontScale,header,search,navigation,fixtureServices:'inert-local-data',errorState:failed});
+}
 try{
 // Keep enlarged device text usable when the viewport is also short.
 {
@@ -112,11 +173,18 @@ try{
  report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
  await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await verifyDesktopCenter(page,{width:844,height:390},1.6);await page.close();
 }
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service']){
+for(const viewport of [{width:844,height:390},{width:1280,height:800}]){
+ const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}/?screen=weather-dialog&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await verifyWeatherDialog(page,viewport,1.6);
+ if(errors.length)throw Error(JSON.stringify({screen:'weather-dialog',viewport,fontScale:1.6,errors}));await page.close();
+}
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
  const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
  await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
  if(screen==='desktop')await verifyDesktopCenter(page,{width:360,height:800},1.6);
+ if(screen==='weather-dialog')await verifyWeatherDialog(page,{width:360,height:800},1.6);
+ if(screen.startsWith('owner-'))await verifyOwnerConsole(page,screen,{width:360,height:800},1.6);
  if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));
  if(screen==='academy'){await assertUnbrokenWord(page.getByRole('heading',{name:'Wissen weitergeben. Lernen begleiten.',exact:true}),'weitergeben.');await assertUnbrokenWord(page.getByRole('button',{name:'Schulungsplan',exact:true}),'Schulungsplan');}
  if(screen==='consultation'){
@@ -135,7 +203,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  await page.close();
 }
 for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
- for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service']){
+ for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
   if(errors.length){await page.screenshot({path:join(output,`failure-${screen}-${viewport.width}x${viewport.height}.png`)});writeFileSync(join(output,'verification.json'),JSON.stringify({screen,viewport,errors},null,2));throw new Error(JSON.stringify({screen,viewport,errors}));}
@@ -188,6 +256,8 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
   }
   if(screen==='desktop')await verifyDesktopCenter(page,viewport);
+  if(screen==='weather-dialog')await verifyWeatherDialog(page,viewport);
+  if(screen.startsWith('owner-'))await verifyOwnerConsole(page,screen,viewport);
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});if(screen==='notes'){const bounds=await page.getByRole('button',{name:'Speichern',exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note editor save action extends beyond the viewport.',viewport,bounds}));}await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}

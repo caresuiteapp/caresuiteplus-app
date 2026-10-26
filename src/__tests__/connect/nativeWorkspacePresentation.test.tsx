@@ -20,7 +20,7 @@ const api = {
 };
 const connection = { status: 'connected', email: 'fixture@example.invalid', domain: null, connectedAt: '2026-10-26T10:00:00Z', lastSyncAt: null,
   capabilities: Object.fromEntries(['gmail','calendar','meet','drive','docs','sheets','slides','tasks','contacts','chat'].map(key => [key, true])) };
-const tags = ['Div','Span','P','Strong','Section','H1','H2','H3','Nav','A','Pre','Label','Select','Option','Article','H4','Ul','Li','Ol','Details','Summary','Footer','Aside','Main','Header','Small'];
+const tags = ['Div','Span','P','Strong','Section','H1','H2','H3','Nav','A','Pre','Label','Select','Option','Article','H4','Fieldset','Ul','Li','Ol','Details','Summary','Footer','Aside','Main','Header','Small'];
 const nativeElements: Record<string, unknown> = Object.fromEntries(tags.map(tag => ['Native' + tag, (props: any) => React.createElement(tag.toLowerCase(), props, props.children)]));
 Object.assign(nativeElements, {
   NativeForm: (props: any) => { const dom = React.useRef<HTMLFormElement>(null); React.useImperativeHandle(props.ref, () => api.formHandle ?? dom.current, [api.formHandle]); return <form {...props} ref={dom} />; },

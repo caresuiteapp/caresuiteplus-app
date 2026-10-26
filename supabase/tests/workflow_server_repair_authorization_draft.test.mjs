@@ -108,7 +108,10 @@ await test('current-body guard denies missing/foreign/disabled/other-role identi
   await reset(authGuardDb,false);await config(authGuardDb,changes);const before=await snapshot(authGuardDb);
   await assert.rejects(()=>call(authGuardDb));assert.deepEqual(await snapshot(authGuardDb),before);
  }
- for(const sql of ["UPDATE employee_portal_accounts SET status='disabled'",'UPDATE employee_portal_accounts SET must_change_password=true','UPDATE employee_portal_accounts SET first_login_completed=false','UPDATE employees SET portal_enabled=false','UPDATE employees SET deleted_at=now()','UPDATE profiles SET is_active=false']){
+ for(const sql of ["UPDATE employee_portal_accounts SET status='disabled'",'UPDATE employee_portal_accounts SET must_change_password=true','UPDATE employee_portal_accounts SET first_login_completed=false','UPDATE employees SET portal_enabled=false','UPDATE employees SET deleted_at=now()','UPDATE profiles SET is_active=false',
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}',NULL,false,true)`,
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}','active',NULL,true)`,
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}','active',false,NULL)`]){
   await reset(authGuardDb,false);await write(authGuardDb,sql);const before=await snapshot(authGuardDb);
   await assert.rejects(()=>call(authGuardDb));assert.deepEqual(await snapshot(authGuardDb),before);
  }

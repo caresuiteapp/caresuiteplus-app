@@ -5,6 +5,7 @@
 -- Existing function signature, runtime body and ACL stay in place except the
 -- explicitly scoped actor/tenant checks below. Changed source aborts this file.
 BEGIN;
+SET LOCAL search_path = public, pg_temp;
 DO $review$
 BEGIN
  IF encode(sha256(convert_to(pg_get_functiondef('public.repair_assist_visit_workflow_status(uuid,uuid,text,text,uuid,boolean)'::regprocedure),'UTF8')),'hex')
@@ -48,7 +49,9 @@ BEGIN
       AND (p.auth_user_id=auth.uid() OR (p.auth_user_id IS NULL AND p.id=auth.uid()))
       AND NOT EXISTS (SELECT 1 FROM public.tenant_users u
         WHERE u.tenant_id=p.tenant_id AND u.auth_user_id=auth.uid()
-          AND (u.status::text<>'active' OR u.must_change_password OR NOT u.first_login_completed));
+          AND (u.status::text IS DISTINCT FROM 'active'
+            OR u.must_change_password IS DISTINCT FROM FALSE
+            OR u.first_login_completed IS DISTINCT FROM TRUE));
   EXCEPTION WHEN NO_DATA_FOUND OR TOO_MANY_ROWS THEN
     RAISE EXCEPTION 'Ein eindeutig zugeordnetes aktives Authprofil ist erforderlich.' USING ERRCODE='42501';
   END;

@@ -9,7 +9,7 @@ vi.mock('react-native', () => ({
   Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   ScrollView: ({ children, testID }: { children: React.ReactNode; testID: string }) => <div data-testid={testID}>{children}</div>,
   Image: ({ source, accessibilityLabel }: { source: { uri: string }; accessibilityLabel: string }) => <img src={source.uri} alt={accessibilityLabel} />,
-  StyleSheet: { create: (styles: unknown) => styles },
+  StyleSheet: { create: (styles: unknown) => styles, flatten: (style: any): any => { const merge = (value: any): any => Array.isArray(value) ? Object.assign({}, ...value.map(merge)) : value ?? {}; return merge(style); } },
 }));
 vi.mock('react-native-svg', () => ({ SvgXml: ({ xml }: { xml: string }) => <svg data-content={xml} /> }));
 vi.mock('expo-print', () => ({ printAsync: f.print }));

@@ -137,6 +137,33 @@ The supplied images also expose gaps outside the generated page inventory:
   backgrounds. Native persistence remains scoped by tenant, person and area.
 - Native company modals ignored the company surface and explicit header tone.
   Their body, header and footer now follow the same surface rule as Web.
+- The access hub, Help, Google Workspace, operator console and weather dialog
+  still contained separate older native views outside the page inventory.
+  Their active presentations now follow the current Web sources. Native
+  location permissions, OAuth return, file delivery and lifecycle cancellation
+  remain native adapters. Neo uses the same pure conversation engine, with a
+  desktop-only speech interface instead of the old text-command dialog.
+- The operator route barrel now selects the current shared workspace for all
+  active operator sections, not only the tenant detail page. Its native
+  capability model follows the current Web restrictions. Error, status and tab
+  semantics are retained at the actual native element boundary.
+- The Assist filters, Academy readiness focus, Help contents navigation and
+  document-list return used unsupported browser popover, validity or selector
+  APIs. They now use real native selection, field and node-registry contracts.
+  The generator fails on unsupported runtime browser globals instead of
+  silently keeping an older native presentation.
+
+The generator now checks 1,110 modules and 269 emitted native route entries.
+Four explicitly bounded platform fallbacks remain: native signature capture,
+medication source-file delivery, and the two native 3D body-model components.
+The native body models are parametrically rendered; matching the Web GLB
+appearance has not been established. Module and entry counts are source
+coverage, not proof that every possible device, data state or backend
+transaction has been accepted.
+
+The separately reviewed database contracts and their application status are
+recorded in `android-workflow-backend-review-20261026.md`. App interaction tests
+and server schema metadata do not substitute for each other.
 
 Source correspondence, interaction tests, browser-rendered native layout
 fixtures and actual Android acceptance are separate evidence. A successful

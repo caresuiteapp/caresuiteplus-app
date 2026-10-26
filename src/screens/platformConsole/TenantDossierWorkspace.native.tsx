@@ -1,206 +1,249 @@
+// Generated native presentation from src/screens/platformConsole/TenantDossierWorkspace.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {NativeSvgCircle,NativeSvgPath,NativeSvgRect} from '@/components/layout/NativeSvgPresentation.native';
+import {NativeStyle,NativeDiv,NativeImg,NativeSpan,NativeSection,NativeH3,NativeSmall,NativeStrong,NativeButton,NativeLabel,NativeSelect,NativeOption,NativeArticle,NativeH4,NativeP,NativeUl,NativeLi,NativeDetails,NativeSummary,NativeDl,NativeDt,NativeDd,NativeA,NativeInput,NativeTable,NativeThead,NativeTr,NativeTh,NativeTbody,NativeTd,NativeHeader,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import { WebActionIcon } from "../../components/icons/WebActionIcon.native.tsx";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { ListFilterSelect } from '@/components/ui/ListFilterSelect';
-import { PLATFORM_COLORS as C } from '@/components/platformConsole/PlatformColors';
-import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
-import { platformActionLabel } from '@/lib/platformConsole/platformLanguage';
-import { getTenantDossier, getTenantDossierPage, type DossierQuery } from '@/lib/platformConsole/tenantDossierService';
+import { ConsoleBadge, ConsoleDialog, ConsolePanel, ConsoleStats, ConsoleStyle } from "../../components/platformConsole/ConsoleWorkspaceUi.native.tsx";
+import { consoleDate, consoleLabel } from "../../lib/platformConsole/consoleWorkspaceModel.native.ts";
+import { platformActionLabel } from "../../lib/platformConsole/platformLanguage.native.ts";
+import { getTenantDossier, getTenantDossierPage, type DossierQuery } from "../../lib/platformConsole/tenantDossierService.native.ts";
 import { buildTenantSetup, dossierChangedFields, dossierFieldLabel, dossierPersonCompleteness, dossierRowName, safeDossierLogo, visibleDossierFields, type DossierPage, type DossierRow, type DossierScope, type TenantDossier } from '@/lib/platformConsole/tenantDossierModel';
-import type { ServiceResult } from '@/types/core/base';
-
-export type DossierView = 'company' | 'setup' | 'clients' | 'employees' | 'history';
-
-function useRequest<T>(key: string, fetch: () => Promise<ServiceResult<T>>, enabled = true, delay = 0, revision?: unknown) {
-  const [state, setState] = useState<{ key: string; data: T | null; error: string | null; loading: boolean }>({ key: '', data: null, error: null, loading: false });
-  const [retry, setRetry] = useState(0);
-  const request = useRef(0), fetchRef = useRef(fetch);
-  fetchRef.current = fetch;
-  useEffect(() => { const cleanupRequest = request;
-    const current = ++request.current;
-    if (!enabled) return;
-    setState({ key, data: null, error: null, loading: true });
-    const timer = setTimeout(() => {
-      void fetchRef.current().then(result => {
-        if (current !== request.current) return;
-        setState(result.ok ? { key, data: result.data, error: null, loading: false } : { key, data: null, error: result.error, loading: false });
-      }).catch(cause => {
-        if (current === request.current) setState({ key, data: null, error: cause instanceof Error ? cause.message : 'Die Angaben konnten nicht geladen werden.', loading: false });
-      });
-    }, delay);
-    return () => { clearTimeout(timer); cleanupRequest.current++; };
-  }, [key, enabled, delay, retry, revision]);
-  return { data: enabled && state.key === key ? state.data : null, error: enabled && state.key === key ? state.error : null, loading: enabled && (state.key !== key || state.loading), reload: () => setRetry(value => value + 1) };
+export const TENANT_DOSSIER_CSS = `
+.cs-dossier{container-type:inline-size;min-width:0;width:100%;gap:20px}.cs-dossier h4{margin:0;font-size:16px;line-height:1.5}.cs-dossier p{margin:0;line-height:1.6}.cs-dossier small{line-height:1.55}.cs-dossier-header{display:grid;grid-template-columns:86px minmax(0,1fr) minmax(180px,240px);align-items:center;gap:22px;padding:25px;border:1px solid #c4d9f6;border-radius:21px;background:linear-gradient(120deg,#fff,#edf5ff)}.cs-dossier-logo{width:86px;height:86px;background:#fff;border:1px solid #d4e1f2;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden;flex-shrink:0}.cs-dossier-logo img{max-width:100%;max-height:100%;object-fit:contain}.cs-dossier-logo span{font-size:29px;font-weight:800;color:#075dd5}.cs-dossier-heading{min-width:0}.cs-dossier-heading h3{font-size:23px;line-height:1.3;margin:5px 0 8px;overflow-wrap:anywhere}.cs-dossier-meter strong{font-size:32px;line-height:1.4;letter-spacing:-1px}.cs-dossier-meter small{display:block}.cs-dossier-progress{height:8px;overflow:hidden;background:#dce8f7;border-radius:30px;margin:8px 0}.cs-dossier-progress>span{display:block;height:100%;background:linear-gradient(90deg,#075dd5,#49a4f4);border-radius:30px}.cs-dossier-shortcuts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:14px}.cs-dossier-shortcut{display:flex;align-items:center;gap:13px;padding:18px;border:1px solid #cdddf1;border-radius:14px;background:#fff;color:#193657;text-align:left;font-weight:700;min-width:0}.cs-dossier-shortcut:hover{background:#f0f6ff}.cs-dossier-shortcut svg{--cs-action-icon-size:32px;width:32px;height:32px;color:#075dd5;flex-shrink:0}.cs-dossier-shortcut small{display:block;font-size:12px;font-weight:400;color:#586e88;margin-top:3px}.cs-dossier-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}.cs-dossier-group>div{padding:15px;background:#f6f9fe;border:1px solid #d4e1f2;border-radius:13px}.cs-dossier-group strong{font-size:21px}.cs-dossier-step{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:14px;align-items:start;padding:18px 0;border-bottom:1px solid #e1eaf6}.cs-dossier-step:last-child{border-bottom:0}.cs-dossier-step-icon{width:30px;height:30px;border-radius:9px;background:#edf3fd;display:grid;place-items:center;color:#3d658b;font-size:16px;font-weight:800}.cs-dossier-step-icon.complete{background:#e5f6ed;color:#146443}.cs-dossier-step-icon.open{background:#fff2d9;color:#8b5714}.cs-dossier-step p{font-size:14px;color:#526984;margin:5px 0}.cs-dossier-step ul{padding-left:20px;margin:7px 0;font-size:13px;color:#825115}.cs-dossier-field-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.cs-dossier-field-tools input[type=checkbox],.cs-dossier-check input{width:18px;min-height:18px;margin:0;accent-color:#075dd5}.cs-dossier-check{display:flex;gap:9px;align-items:center;font-size:13px}.cs-dossier-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}.cs-dossier-fields>div{padding:14px 16px;border:1px solid #e0e8f3;border-radius:11px;background:#fbfdff;min-width:0}.cs-dossier-fields dt{font-size:12px;font-weight:700;color:#526984;margin-bottom:6px}.cs-dossier-fields dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}.cs-dossier-fields details{max-width:100%}.cs-dossier-fields summary{cursor:pointer;color:#075dd5;font-weight:700}.cs-dossier-nested{margin:10px 0 0;padding:0 0 0 12px;border-left:2px solid #d7e5f8}.cs-dossier-nested dt{margin-top:9px}.cs-dossier-nested dd{margin:3px 0 0}.cs-dossier-empty-value{color:#8492a5;font-size:13px}.cs-dossier-person-cards{display:none;padding:16px;gap:12px}.cs-dossier-person-card{padding:17px;border:1px solid #d7e4f4;border-radius:13px;min-width:0}.cs-dossier-person-card strong{display:block;overflow-wrap:anywhere;line-height:1.5}.cs-dossier-person-card .cs-actions{margin-top:12px}.cs-dossier-event{padding:19px 22px;border-bottom:1px solid #e4ecf6}.cs-dossier-event:last-child{border-bottom:0}.cs-dossier-event header{display:flex;gap:15px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.cs-dossier-event h4{margin:5px 0}.cs-dossier-event p{font-size:14px;color:#526984;margin:9px 0}.cs-dossier-event details{margin-top:12px}.cs-dossier-event summary{color:#075dd5;cursor:pointer;font-size:14px;font-weight:700}.cs-dossier-change{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr) minmax(0,2fr);gap:12px;padding:12px 0;border-top:1px solid #e4ecf6;font-size:13px;overflow-wrap:anywhere}.cs-dossier-change-label{color:#526984;font-weight:700}.cs-dossier-inventory{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr));gap:12px}.cs-dossier-inventory button{display:flex;align-items:start;justify-content:space-between;gap:12px;text-align:left;border:1px solid #d6e3f4;border-radius:12px;background:#f9fbff;color:#24476e;padding:15px;min-width:0}.cs-dossier-inventory strong{font-size:14px;line-height:1.5}.cs-dossier-inventory span{font-size:21px;font-weight:800;white-space:nowrap}.cs-dossier-inventory small{display:block;margin-top:5px;font-size:11px}.cs-dossier-inventory button:disabled{cursor:default;opacity:.6}.cs-dossier-source{font-size:12px;color:#637c9d}.cs-dossier-data-title{display:flex;gap:10px;align-items:center}.cs-dossier-data-title svg{--cs-action-icon-size:24px;height:24px;width:24px;color:#075dd5}.cs-dossier-loading{padding:24px}.cs-dossier a{color:#075dd5}.cs-dossier button:focus-visible,.cs-dossier summary:focus-visible{outline:3px solid #8db6f1;outline-offset:3px}
+@container(max-width:780px){.cs-dossier-header{grid-template-columns:64px minmax(0,1fr);gap:16px;padding:20px}.cs-dossier-logo{width:64px;height:64px;border-radius:13px}.cs-dossier-meter{grid-column:1/-1;display:grid;grid-template-columns:80px 1fr;gap:0 15px;align-items:center}.cs-dossier-meter strong{grid-row:1/3}.cs-dossier-heading h3{font-size:20px}.cs-dossier-fields{grid-template-columns:1fr}.cs-dossier-step{grid-template-columns:30px minmax(0,1fr)}.cs-dossier-step>.cs-btn{grid-column:2;justify-self:start}.cs-dossier-table{display:none}.cs-dossier-person-cards{display:grid}.cs-dossier-change{grid-template-columns:1fr}.cs-dossier-change-label{margin-bottom:3px}}
+@media(max-width:680px){.cs-dossier-header{grid-template-columns:64px minmax(0,1fr);padding:18px}.cs-dossier-logo{width:64px;height:64px}.cs-dossier-meter{grid-column:1/-1}.cs-dossier-fields{grid-template-columns:1fr}.cs-dossier-table{display:none}.cs-dossier-person-cards{display:grid}.cs-dossier-step{grid-template-columns:30px minmax(0,1fr)}.cs-dossier-step>.cs-btn{grid-column:2;justify-self:start}.cs-dossier-change{grid-template-columns:1fr}}
+`;
+export function TenantDossierStyle() { return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS, TENANT_DOSSIER_CSS]}>{<><ConsoleStyle /><NativeStyle>{TENANT_DOSSIER_CSS}</NativeStyle></>}</NativeWorkspaceStyleScope>; }
+export type DossierView = 'overview' | 'company' | 'clients' | 'employees' | 'setup' | 'history';
+type OpenView = (view: DossierView) => void;
+export function useTenantDossier(tenantId: string, enabled: boolean, revision: unknown) {
+    const [state, setState] = useState<{
+        data: TenantDossier | null;
+        error: string | null;
+        loading: boolean;
+    }>({ data: null, error: null, loading: false });
+    const [retry, setRetry] = useState(0);
+    const request = useRef(0);
+    useEffect(() => {
+        const cleanupRequest = request;
+        const current = ++request.current;
+        setState({ data: null, error: null, loading: enabled });
+        if (!enabled)
+            return;
+        void getTenantDossier(tenantId).then(result => {
+            if (current !== request.current)
+                return;
+            setState(result.ok ? { data: result.data, error: null, loading: false } : { data: null, error: result.error, loading: false });
+        }).catch(error => { if (current === request.current)
+            setState({ data: null, loading: false, error: error instanceof Error ? error.message : 'Die Mandantenakte konnte nicht geladen werden.' }); });
+        return () => { cleanupRequest.current++; };
+    }, [tenantId, enabled, revision, retry]);
+    return { ...state, data: enabled && state.data?.tenantId === tenantId ? state.data : null, reload: () => setRetry(value => value + 1) };
 }
-
-export function useTenantDossier(tenantId: string, enabled: boolean, revision?: unknown) {
-  return useRequest(tenantId, () => getTenantDossier(tenantId), enabled, 0, revision);
+function Icon({ kind }: {
+    kind: 'people' | 'company' | 'check' | 'history';
+}) {
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<WebActionIcon>
+    {kind === 'people' ? <><NativeSvgCircle cx="9" cy="7" r="3"/><NativeSvgPath d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M21 21v-3a5 5 0 0 0-4-5"/></> : kind === 'company' ? <><NativeSvgPath d="M4 21V3h12v18M16 10h4v11M2 21h20M8 7h4M8 11h4M8 15h4M9 21v-3h2v3"/></> : kind === 'check' ? <><NativeSvgRect x="4" y="3" width="16" height="18" rx="3"/><NativeSvgPath d="m8 9 2 2 5-5M8 16h8"/></> : <><NativeSvgCircle cx="12" cy="12" r="9"/><NativeSvgPath d="M12 7v5l4 2"/></>}
+  </WebActionIcon>}</NativeWorkspaceStyleScope>;
 }
-
+function Logo({ value, name }: {
+    value: unknown;
+    name: string;
+}) {
+    const url = safeDossierLogo(value);
+    const [failed, setFailed] = useState(false);
+    useEffect(() => setFailed(false), [url]);
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-dossier-logo">{url && !failed ? <NativeImg src={url} alt={`Logo ${name}`} referrerPolicy="no-referrer" onError={() => setFailed(true)}/> : <NativeSpan aria-label={failed ? 'Logo konnte nicht geladen werden' : 'Kein Logo hinterlegt'}>{name.slice(0, 2).toUpperCase()}</NativeSpan>}</NativeDiv>}</NativeWorkspaceStyleScope>;
+}
+function Progress({ value, label }: {
+    value: number;
+    label: string;
+}) {
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-dossier-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}><NativeSpan style={{ width: `${value}%` }}/></NativeDiv>}</NativeWorkspaceStyleScope>;
+}
+export function TenantDossierHeader({ dossier, onOpen }: {
+    dossier: TenantDossier;
+    onOpen: OpenView;
+}) {
+    const setup = buildTenantSetup(dossier);
+    const name = String(dossier.company.name ?? dossier.platform.tenant_name ?? 'Unternehmen');
+    const address = [dossier.company.street, dossier.company.house_number, dossier.company.postal_code, dossier.company.city].filter(Boolean).join(' ');
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-console cs-dossier"><TenantDossierStyle /><NativeSection className="cs-dossier-header">
+    <Logo value={dossier.branding?.logo_url} name={name}/>
+    <NativeDiv className="cs-dossier-heading"><NativeDiv className="cs-eyebrow">Vollständige Mandantenakte</NativeDiv><NativeH3>{name}</NativeH3><NativeSmall>{address || 'Geschäftsanschrift noch nicht vollständig hinterlegt'}</NativeSmall><NativeDiv className="cs-actions" style={{ marginTop: 9 }}><ConsoleBadge value={dossier.company.status} label={consoleLabel(dossier.company.status)}/><NativeSmall>{dossier.counts.clients.total} Klient:innen · {dossier.counts.employees.total} Mitarbeitende · {dossier.counts.accounts} Konten</NativeSmall></NativeDiv></NativeDiv>
+    <NativeDiv className="cs-dossier-meter"><NativeStrong>{setup.percentage}%</NativeStrong><NativeSmall>Grundkonfiguration eingerichtet</NativeSmall><Progress value={setup.percentage} label="Einrichtungsstand der Grundkonfiguration"/><NativeButton className="cs-link" onClick={() => onOpen('setup')}>{setup.complete} von {setup.applicable} Prüfschritten vollständig</NativeButton></NativeDiv>
+  </NativeSection></NativeDiv>}</NativeWorkspaceStyleScope>;
+}
+export function TenantDossierOverview({ dossier, onOpen }: {
+    dossier: TenantDossier;
+    onOpen: OpenView;
+}) {
+    const setup = buildTenantSetup(dossier);
+    const available = dossier.sections.filter(section => section.available);
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-console cs-dossier"><TenantDossierStyle />
+    <ConsoleStats items={[
+            { label: 'Klient:innen', value: dossier.counts.clients.total, hint: `${dossier.counts.clients.active} aktiv · ${dossier.counts.clients.deleted} gelöscht` },
+            { label: 'Mitarbeitende', value: dossier.counts.employees.total, hint: `${dossier.counts.employees.active} aktiv · ${dossier.counts.employees.deleted} gelöscht` },
+            { label: 'Benutzerkonten', value: dossier.counts.accounts, hint: `${dossier.counts.loggedInAccounts} mit Anmeldezeitpunkt` },
+            { label: 'Einsätze', value: dossier.counts.assignments ?? '—', hint: 'Gespeicherte Einsätze des Unternehmens' },
+            { label: 'Dokumente', value: dossier.counts.documents ?? '—', hint: 'Einträge in der Dokumentenübersicht' },
+            { label: 'Offene Einrichtung', value: setup.open + setup.partial, hint: `${setup.partial} teilweise erfüllt · ${setup.open} offen` },
+        ]}/>
+    <NativeDiv className="cs-dossier-shortcuts">{([
+            ['clients', 'Klient:innen öffnen', 'Stammdaten, Kontakt, Versorgung und Budgets', 'people'],
+            ['employees', 'Mitarbeitende öffnen', 'Personalangaben, Verträge und Qualifikationen', 'people'],
+            ['company', 'Alle Unternehmensdaten', 'Logo, Bank, Steuer und Konfiguration', 'company'],
+            ['history', 'Schritte nachvollziehen', 'Zeitpunkt, Person und gespeicherte Änderungen', 'history'],
+        ] as const).map(([view, label, hint, icon]) => <NativeButton className="cs-dossier-shortcut" key={view} onClick={() => onOpen(view)}><Icon kind={icon}/><NativeSpan>{label}<NativeSmall>{hint}</NativeSmall></NativeSpan></NativeButton>)}</NativeDiv>
+    <ConsolePanel title="Was ist eingerichtet?" description={`Datenprüfung vom ${consoleDate(dossier.checkedAt)}. Alle Prüfschritte sind gleich gewichtet; Teilangaben werden anteilig bewertet.`}><NativeDiv className="cs-panel-body"><NativeDiv className="cs-dossier-group">{setup.groups.map(group => <NativeDiv key={group.label}><NativeSmall>{group.label}</NativeSmall><NativeDiv><NativeStrong>{group.percentage}%</NativeStrong></NativeDiv><Progress value={group.percentage} label={`Einrichtung ${group.label}`}/><NativeSmall>{group.complete} von {group.total} Schritten vollständig</NativeSmall></NativeDiv>)}</NativeDiv><NativeDiv className="cs-actions"><NativeButton className="cs-btn primary" onClick={() => onOpen('setup')}>Erledigte und offene Schritte prüfen</NativeButton><NativeSmall>{available.length} verfügbare Datenbereiche · {available.filter(section => (section.count ?? 0) > 0).length} mit Einträgen</NativeSmall></NativeDiv></NativeDiv></ConsolePanel>
+  </NativeDiv>}</NativeWorkspaceStyleScope>;
+}
+export function TenantSetupPanel({ dossier, onSection }: {
+    dossier: TenantDossier;
+    onSection: (section: string) => void;
+}) {
+    const setup = buildTenantSetup(dossier);
+    const [filter, setFilter] = useState('all');
+    const steps = setup.steps.filter(step => filter === 'all' || (filter === 'missing' ? ['open', 'partial'].includes(step.state) : step.state === filter));
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-console cs-dossier"><TenantDossierStyle />
+    <NativeDiv className="cs-notice">{setup.percentage}% der Grundkonfiguration sind anhand der gespeicherten Angaben erfüllt. Berechnung: Durchschnitt der anwendbaren Prüfschritte; Teilangaben und unvollständige Personen werden anteilig gewertet. Optionale Bereiche außerhalb dieser Grundprüfung bleiben in der Unternehmensakte sichtbar.</NativeDiv>
+    <ConsolePanel title="Einrichtung Schritt für Schritt" description={`Stand ${consoleDate(dossier.checkedAt)} · ${setup.complete} vollständig · ${setup.partial} teilweise · ${setup.open} offen`} actions={<NativeLabel className="cs-field">Ansicht<NativeSelect value={filter} onChange={event => setFilter(event.target.value)}><NativeOption value="all">Alle Schritte</NativeOption><NativeOption value="missing">Offen und teilweise</NativeOption><NativeOption value="complete">Vollständig</NativeOption><NativeOption value="not_applicable">Nicht anwendbar</NativeOption></NativeSelect></NativeLabel>}>
+      <NativeDiv className="cs-panel-body">{steps.map((step, index) => <NativeArticle className="cs-dossier-step" key={step.key}><NativeSpan className={`cs-dossier-step-icon ${step.state}`}>{step.state === 'complete' ? '✓' : index + 1}</NativeSpan><NativeDiv><NativeSmall>{step.group}</NativeSmall><NativeH4>{step.label}</NativeH4><NativeP>{step.evidence}</NativeP><ConsoleBadge value={step.state === 'complete' ? 'ready' : step.state === 'not_applicable' ? 'inactive' : 'pending'} label={step.state === 'complete' ? 'Vollständig' : step.state === 'partial' ? `Teilweise · ${Math.round(step.score * 100)}%` : step.state === 'open' ? 'Offen' : 'Nicht anwendbar'}/>{step.missing.length > 0 && <NativeUl>{step.missing.map(item => <NativeLi key={item}>{item}</NativeLi>)}</NativeUl>}<NativeSmall className="cs-dossier-source">Nachweis: {step.source}</NativeSmall></NativeDiv><NativeButton className="cs-btn" onClick={() => onSection(step.section)}>Daten prüfen</NativeButton></NativeArticle>)}{!steps.length && <NativeDiv className="cs-empty">Keine Prüfschritte für diese Ansicht.</NativeDiv>}</NativeDiv>
+    </ConsolePanel>
+  </NativeDiv>}</NativeWorkspaceStyleScope>;
+}
+function Value({ value, field }: {
+    value: unknown;
+    field?: string;
+}): ReactNode {
+    if (value == null || value === '')
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeSpan className="cs-dossier-empty-value">Nicht hinterlegt</NativeSpan>}</NativeWorkspaceStyleScope>;
+    if (typeof value === 'boolean')
+        return value ? 'Ja' : 'Nein';
+    if (typeof value === 'number')
+        return value.toLocaleString('de-DE', { maximumFractionDigits: 6 });
+    if (Array.isArray(value))
+        return value.length ? <NativeDetails><NativeSummary>{value.length} Einträge anzeigen</NativeSummary>{value.map((item, index) => <NativeDiv key={index} className="cs-dossier-nested"><Value value={item}/></NativeDiv>)}</NativeDetails> : <NativeSpan className="cs-dossier-empty-value">Keine Einträge</NativeSpan>;
+    if (typeof value === 'object')
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDetails><NativeSummary>Weitere Angaben anzeigen</NativeSummary><NativeDl className="cs-dossier-nested">{visibleDossierFields(value as DossierRow).map(([key, item]) => <NativeDiv key={key}><NativeDt>{dossierFieldLabel(key)}</NativeDt><NativeDd><Value value={item} field={key}/></NativeDd></NativeDiv>)}</NativeDl></NativeDetails>}</NativeWorkspaceStyleScope>;
+    if (field && /(_at|_date|date_of_birth|valid_from|valid_to|service_start)$/.test(field) && /^\d{4}-\d{2}-\d{2}/.test(String(value)))
+        return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? new Date(`${value}T12:00:00`).toLocaleDateString('de-DE') : consoleDate(value);
+    if (field && ['status', 'role_key', 'employment_type', 'product_key', 'billing_party', 'gender'].includes(field))
+        return consoleLabel(value);
+    if (/^https?:\/\//i.test(String(value)) && safeDossierLogo(value))
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeA href={String(value)} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{String(value)}</NativeA>}</NativeWorkspaceStyleScope>;
+    return String(value);
+}
+export function TenantDossierFields({ row }: {
+    row: DossierRow;
+}) {
+    const [search, setSearch] = useState('');
+    const [showEmpty, setShowEmpty] = useState(true);
+    const all = visibleDossierFields(row);
+    const populated = all.filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0));
+    const fields = all.filter(([key, value]) => (showEmpty || populated.some(([name]) => name === key)) && `${dossierFieldLabel(key)} ${key} ${JSON.stringify(value)}`.toLocaleLowerCase('de-DE').includes(search.toLocaleLowerCase('de-DE')));
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<><NativeDiv className="cs-dossier-field-tools"><NativeLabel className="cs-field" style={{ flex: 1, minWidth: 150 }}>Angabe suchen<NativeInput value={search} onChange={event => setSearch(event.target.value)} placeholder="z. B. Adresse, Pflegegrad, IBAN…"/></NativeLabel><NativeLabel className="cs-dossier-check"><NativeInput type="checkbox" checked={showEmpty} onChange={event => setShowEmpty(event.target.checked)}/>Leere Angaben anzeigen</NativeLabel><NativeSmall>{populated.length} von {all.length} Feldern befüllt</NativeSmall></NativeDiv><NativeDl className="cs-dossier-fields">{fields.map(([key, value]) => <NativeDiv key={key}><NativeDt title={`Gespeichertes Feld: ${key}`}>{dossierFieldLabel(key)}</NativeDt><NativeDd><Value value={value} field={key}/></NativeDd></NativeDiv>)}</NativeDl>{!fields.length && <NativeDiv className="cs-empty">Keine passenden Angaben.</NativeDiv>}</>}</NativeWorkspaceStyleScope>;
+}
 function useDossierPage(tenantId: string, query: DossierQuery) {
-  return useRequest(JSON.stringify([tenantId, query]), () => getTenantDossierPage(tenantId, query), true, query.search ? 250 : 0);
+    const queryKey = JSON.stringify([tenantId, query]);
+    const [state, setState] = useState<{
+        key: string;
+        data: DossierPage | null;
+        error: string | null;
+        loading: boolean;
+    }>({ key: '', data: null, error: null, loading: true });
+    const [retry, setRetry] = useState(0);
+    const request = useRef(0);
+    useEffect(() => {
+        const cleanupRequest = request;
+        const current = ++request.current;
+        setState({ key: queryKey, data: null, error: null, loading: true });
+        const timer = setTimeout(() => {
+            void getTenantDossierPage(tenantId, JSON.parse(queryKey)[1]).then(result => {
+                if (current !== request.current)
+                    return;
+                setState(result.ok ? { key: queryKey, data: result.data, error: null, loading: false } : { key: queryKey, data: null, error: result.error, loading: false });
+            }).catch(error => { if (current === request.current)
+                setState({ key: queryKey, data: null, loading: false, error: error instanceof Error ? error.message : 'Die Angaben konnten nicht geladen werden.' }); });
+        }, JSON.parse(queryKey)[1].search ? 250 : 0);
+        return () => { clearTimeout(timer); cleanupRequest.current++; };
+    }, [tenantId, queryKey, retry]);
+    return { ...state, data: state.key === queryKey ? state.data : null, loading: state.key !== queryKey || state.loading, reload: () => setRetry(value => value + 1) };
 }
-
-function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.button, disabled && s.disabled]}><Text style={s.buttonText}>{label}</Text></Pressable>;
+function PageState({ loading, error, reload }: {
+    loading: boolean;
+    error: string | null;
+    reload: () => void;
+}) {
+    if (loading)
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-dossier-loading" role="status"><NativeDiv className="cs-loading"/><NativeP style={{ marginTop: 10 }}>Angaben werden geladen…</NativeP></NativeDiv>}</NativeWorkspaceStyleScope>;
+    if (error)
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-panel-body"><NativeDiv className="cs-notice error" role="alert">{error}</NativeDiv><NativeButton className="cs-btn" onClick={reload}>Erneut laden</NativeButton></NativeDiv>}</NativeWorkspaceStyleScope>;
+    return null;
 }
-
-function Panel({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
-  return <View style={s.panel}><Text accessibilityRole="header" style={s.title}>{title}</Text>{hint ? <Text style={s.muted}>{hint}</Text> : null}{children}</View>;
+function Pager({ data, offset, onOffset, loading }: {
+    data: DossierPage | null;
+    offset: number;
+    onOffset: (offset: number) => void;
+    loading: boolean;
+}) {
+    const limit = data?.limit ?? 50;
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-pager"><NativeSpan>{data?.total != null ? `${data.total} passende Datensätze · ${data.rows.length ? offset + 1 : 0}–${offset + (data?.rows.length ?? 0)}` : 'Seitenweise Datenansicht'} · Seite {Math.floor(offset / limit) + 1}</NativeSpan><NativeDiv className="cs-actions"><NativeButton className="cs-btn" disabled={loading || offset === 0} onClick={() => onOffset(Math.max(0, offset - limit))}>Zurück</NativeButton><NativeButton className="cs-btn" disabled={loading || !data?.hasMore} onClick={() => onOffset(offset + limit)}>Weitere Datensätze</NativeButton></NativeDiv></NativeDiv>}</NativeWorkspaceStyleScope>;
 }
-
-function Progress({ value, label }: { value: number; label: string }) {
-  return <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: value }} style={s.progress}><View style={[s.progressFill, { width: `${Math.max(0, Math.min(100, value))}%` }]} /></View>;
+type DataBrowserProps = {
+    dossier: TenantDossier;
+    scope: DossierScope;
+    initialSection?: string;
+    parentId?: string;
+    excludeMain?: boolean;
+};
+export function TenantDossierDataBrowser({ dossier, scope, initialSection, parentId, excludeMain = false }: DataBrowserProps) {
+    const sections = useMemo(() => dossier.sections.filter(section => (section.scope === scope || (scope === 'company' && section.scope === 'operations')) && (!excludeMain || !['clients', 'employees'].includes(section.key))), [dossier.sections, scope, excludeMain]);
+    const firstSection = initialSection && sections.some(section => section.key === initialSection) ? initialSection : sections[0]?.key ?? '';
+    const [section, setSection] = useState(firstSection);
+    const [search, setSearch] = useState('');
+    const [status, setStatus] = useState('');
+    const [deleted, setDeleted] = useState(false);
+    const [offset, setOffset] = useState(0);
+    const [selected, setSelected] = useState<DossierRow | null>(null);
+    const current = sections.find(item => item.key === section) ?? sections[0];
+    const personKind = section === 'clients' || section === 'employees' ? section : null;
+    const page = useDossierPage(dossier.tenantId, { section: section || 'tenants', parentId, search, status, offset, includeDeleted: deleted });
+    useEffect(() => { setSection(firstSection); setSearch(''); setStatus(''); setDeleted(false); setOffset(0); setSelected(null); }, [firstSection, dossier.tenantId, parentId]);
+    const changeSection = (value: string) => { setSection(value); setSearch(''); setStatus(''); setOffset(0); setSelected(null); };
+    if (!sections.length)
+        return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-notice">Für diesen Bereich sind keine Datenquellen in der Akte hinterlegt.</NativeDiv>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-console cs-dossier"><TenantDossierStyle /><ConsolePanel title={current?.label ?? 'Gespeicherte Angaben'} description={parentId ? 'Alle zugeordneten Angaben zu dieser Person, mit vollständiger Seitenzählung.' : 'Alle gespeicherten Angaben dieses Unternehmens. Suche und Seitenzählung berücksichtigen den gesamten ausgewählten Bereich.'} actions={<NativeButton className="cs-btn" onClick={page.reload} disabled={page.loading}>Aktualisieren</NativeButton>}>
+    <NativeDiv className="cs-panel-body"><NativeDiv className="cs-toolbar"><NativeLabel className="cs-field">Datenbereich<NativeSelect value={section} onChange={event => changeSection(event.target.value)}>{sections.map(item => <NativeOption key={item.key} value={item.key}>{item.label}{!parentId ? item.available ? ` (${item.count ?? '—'})` : ' – nicht bereitgestellt' : ''}</NativeOption>)}</NativeSelect></NativeLabel><NativeLabel className="cs-field">Suchen<NativeInput value={search} maxLength={200} onChange={event => { setSearch(event.target.value); setOffset(0); }} placeholder={personKind ? 'Name, Nummer, Ort oder Angabe…' : 'Gespeicherte Angaben durchsuchen…'}/></NativeLabel>{personKind && <NativeLabel className="cs-field">Status<NativeSelect value={status} onChange={event => { setStatus(event.target.value); setOffset(0); }}><NativeOption value="">Alle Status</NativeOption>{[...new Set([...(page.data?.statuses ?? []), ...(status ? [status] : [])])].map(value => <NativeOption key={value} value={value}>{consoleLabel(value)}</NativeOption>)}</NativeSelect></NativeLabel>}</NativeDiv>{personKind && <NativeLabel className="cs-dossier-check"><NativeInput type="checkbox" checked={deleted} onChange={event => { setDeleted(event.target.checked); setOffset(0); }}/>Gelöschte Datensätze einbeziehen</NativeLabel>}</NativeDiv>
+    <PageState loading={page.loading} error={page.error} reload={page.reload}/>
+    {!page.loading && !page.error && page.data && (!page.data.available ? <NativeDiv className="cs-empty"><NativeStrong>Datenbereich nicht bereitgestellt</NativeStrong><NativeP>Diese Datenquelle ist in der aktuellen Datenbank nicht verfügbar.</NativeP></NativeDiv> : !page.data.rows.length ? <NativeDiv className="cs-empty"><NativeStrong>Keine passenden Datensätze</NativeStrong><NativeP>{search || status ? 'Bitte Suchbegriff und Statusfilter prüfen.' : personKind ? `Für dieses Unternehmen sind noch keine ${personKind === 'clients' ? 'Klient:innen' : 'Mitarbeitenden'} in dieser Auswahl angelegt.` : 'Für diesen Datenbereich sind noch keine Angaben hinterlegt.'}</NativeP></NativeDiv> : <>
+      <NativeDiv className="cs-table-scroll cs-dossier-table"><NativeTable className="cs-table"><NativeThead><NativeTr><NativeTh>{personKind ? 'Person / Nummer' : 'Datensatz'}</NativeTh><NativeTh>Status / Zuordnung</NativeTh>{personKind && <NativeTh>Grundangaben</NativeTh>}<NativeTh>Geändert</NativeTh><NativeTh>Aktion</NativeTh></NativeTr></NativeThead><NativeTbody>{page.data.rows.map((row, index) => <NativeTr key={String(row.id ?? index)}><NativeTd><NativeStrong>{dossierRowName(row)}</NativeStrong><NativeSmall>{String(row.client_number ?? row.employee_number ?? row.username ?? row.id ?? '')}</NativeSmall></NativeTd><NativeTd>{row.deleted_at ? <ConsoleBadge value="deleted" label="Gelöscht"/> : row.status ? <ConsoleBadge value={row.status} label={consoleLabel(row.status)}/> : <Value value={row.is_active ?? row.role_key ?? row.is_primary}/>}{row.portal_enabled != null && <NativeSmall>Portal {row.portal_enabled ? 'aktiviert' : 'deaktiviert'}</NativeSmall>}</NativeTd>{personKind && <NativeTd><NativeStrong>{dossierPersonCompleteness(row, personKind).percentage}%</NativeStrong><NativeSmall>{dossierPersonCompleteness(row, personKind).missing.join(', ') || 'Grundangaben vollständig'}</NativeSmall></NativeTd>}<NativeTd>{consoleDate(row.updated_at ?? row.created_at)}</NativeTd><NativeTd><NativeButton className="cs-btn" aria-label={`Alle Angaben zu ${dossierRowName(row)} öffnen`} onClick={() => setSelected(row)}>Alle Angaben</NativeButton></NativeTd></NativeTr>)}</NativeTbody></NativeTable></NativeDiv>
+      <NativeDiv className="cs-dossier-person-cards">{page.data.rows.map((row, index) => <NativeArticle className="cs-dossier-person-card" key={String(row.id ?? index)}><NativeStrong>{dossierRowName(row)}</NativeStrong><NativeSmall>{String(row.client_number ?? row.employee_number ?? row.username ?? '')}</NativeSmall><NativeDiv className="cs-actions"><ConsoleBadge value={row.deleted_at ? 'deleted' : row.status ?? 'available'} label={row.deleted_at ? 'Gelöscht' : consoleLabel(row.status ?? 'available')}/>{personKind && <NativeSmall>{dossierPersonCompleteness(row, personKind).percentage}% Grundangaben</NativeSmall>}</NativeDiv><NativeSmall>Geändert {consoleDate(row.updated_at ?? row.created_at)}</NativeSmall><NativeDiv className="cs-actions"><NativeButton className="cs-btn" aria-label={`Alle Angaben zu ${dossierRowName(row)} öffnen`} onClick={() => setSelected(row)}>Alle Angaben</NativeButton></NativeDiv></NativeArticle>)}</NativeDiv>
+    </>)}<Pager data={page.data} offset={offset} onOffset={setOffset} loading={page.loading}/>
+  </ConsolePanel>{selected && <TenantRecordDialog key={`${section}:${String(selected.id ?? 'singleton')}`} dossier={dossier} section={section} row={selected} personKind={personKind} onClose={() => setSelected(null)}/>}</NativeDiv>}</NativeWorkspaceStyleScope>;
 }
-
-function State({ loading, error, reload }: { loading: boolean; error: string | null; reload: () => void }) {
-  if (loading) return <View style={s.state} accessibilityLiveRegion="polite"><ActivityIndicator color={C.accent} /><Text style={s.muted}>Angaben werden geladen…</Text></View>;
-  if (error) return <View style={s.state}><Text accessibilityRole="alert" style={s.error}>{error}</Text><Button label="Erneut laden" onPress={reload} /></View>;
-  return null;
+function TenantRecordDialog({ dossier, section, row, personKind, onClose }: {
+    dossier: TenantDossier;
+    section: string;
+    row: DossierRow;
+    personKind: 'clients' | 'employees' | null;
+    onClose: () => void;
+}) {
+    const [related, setRelated] = useState(false);
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<ConsoleDialog title={dossierRowName(row)} description={`${dossier.sections.find(item => item.key === section)?.label ?? 'Gespeicherte Angaben'} · Unternehmenszuordnung ${dossier.tenantId}`} onClose={onClose}>
+    <NativeDiv className="cs-console cs-dossier"><TenantDossierStyle />{personKind && <NativeDiv className="cs-actions"><NativeButton className="cs-tab" aria-pressed={!related} onClick={() => setRelated(false)}>Alle Stammdaten</NativeButton><NativeButton className="cs-tab" aria-pressed={related} onClick={() => setRelated(true)}>Zugehörige Angaben und Akten</NativeButton></NativeDiv>}{personKind && related ? <TenantDossierDataBrowser dossier={dossier} scope={personKind} parentId={String(row.id)} excludeMain/> : <TenantDossierFields row={row}/>}</NativeDiv>
+  </ConsoleDialog>}</NativeWorkspaceStyleScope>;
 }
-
-export function TenantDossierHeader({ dossier, onOpen }: { dossier: TenantDossier; onOpen: (view: DossierView) => void }) {
-  const setup = buildTenantSetup(dossier), name = String(dossier.company.name ?? dossier.platform.tenant_name ?? 'Unternehmen');
-  const raw = safeDossierLogo(dossier.branding?.logo_url), logo = raw?.startsWith('/') ? 'https://www.caresuiteplus.app' + raw : raw;
-  return <Panel title={name} hint={`Unternehmensakte · Stand ${consoleDate(dossier.checkedAt)}`}>
-    <View style={s.row}>{logo ? <Image source={{ uri: logo }} style={s.logo} contentFit="contain" cachePolicy="memory" allowDownscaling recyclingKey={dossier.tenantId + logo} accessibilityLabel={`Logo ${name}`} /> : <Text style={s.initial}>{name.slice(0, 1)}</Text>}<View style={s.grow}><Text style={s.percentage}>{setup.percentage}% eingerichtet</Text><Text style={s.muted}>{setup.complete} von {setup.applicable} Prüfschritten vollständig · {setup.partial} teilweise · {setup.open} offen</Text><Progress value={setup.percentage} label="Einrichtungsstand" /></View></View>
-    <Text style={s.body}>{dossier.counts.clients.total} Klient:innen · {dossier.counts.employees.total} Mitarbeitende · {dossier.counts.accounts} Konten</Text>
-    <View style={s.row}><Button label="Einrichtung prüfen" onPress={() => onOpen('setup')} /><Button label="Alle Unternehmensdaten" onPress={() => onOpen('company')} /></View>
-  </Panel>;
+export function TenantDossierHistory({ tenantId }: {
+    tenantId: string;
+}) {
+    const [search, setSearch] = useState('');
+    const [offset, setOffset] = useState(0);
+    const page = useDossierPage(tenantId, { section: 'history', search, offset });
+    return <NativeWorkspaceStyleScope css={[TENANT_DOSSIER_CSS]}>{<NativeDiv className="cs-console cs-dossier"><TenantDossierStyle /><ConsolePanel title="Welche Schritte wurden gemacht?" description="Gespeicherte Unternehmens- und Plattformaktionen mit Zeitpunkt, ausführender Person und Änderungen. Fehlende Protokolle bleiben als fehlende Nachweise erkennbar." actions={<NativeButton className="cs-btn" onClick={page.reload} disabled={page.loading}>Aktualisieren</NativeButton>}>
+    <NativeDiv className="cs-panel-body"><NativeLabel className="cs-field">Verlauf durchsuchen<NativeInput value={search} maxLength={200} onChange={event => { setSearch(event.target.value); setOffset(0); }} placeholder="Aktion, Person oder Begründung…"/></NativeLabel></NativeDiv><PageState loading={page.loading} error={page.error} reload={page.reload}/>
+    {!page.loading && !page.error && page.data && <>{page.data.rows.map(row => <NativeArticle className="cs-dossier-event" key={`${row.source}:${String(row.id)}`}><NativeHeader><NativeDiv><NativeSmall>{consoleDate(row.created_at)}</NativeSmall><NativeH4>{platformActionLabel(row.action)}</NativeH4><NativeSmall>{String(row.actor_name ?? 'Ausführende Person nicht hinterlegt')} · {String(row.source ?? 'Protokoll')}</NativeSmall></NativeDiv><ConsoleBadge value="available" label={String(row.area ?? 'Unternehmensakte')}/></NativeHeader>{row.reason != null && <NativeP>{String(row.reason)}</NativeP>}<NativeDetails><NativeSummary>Geänderte Angaben anzeigen</NativeSummary>{dossierChangedFields(row.before, row.after).map(change => <NativeDiv className="cs-dossier-change" key={change.key}><NativeSpan className="cs-dossier-change-label">{dossierFieldLabel(change.key)}</NativeSpan><NativeDiv><NativeSmall>Vorher</NativeSmall><NativeDiv><Value value={change.before} field={change.key}/></NativeDiv></NativeDiv><NativeDiv><NativeSmall>Nachher</NativeSmall><NativeDiv><Value value={change.after} field={change.key}/></NativeDiv></NativeDiv></NativeDiv>)}{!dossierChangedFields(row.before, row.after).length && <NativeP>Für diese Aktion sind keine unterschiedlichen Feldwerte gespeichert.</NativeP>}</NativeDetails></NativeArticle>)}{!page.data.rows.length && <NativeDiv className="cs-empty"><NativeStrong>Keine protokollierten Schritte in dieser Auswahl</NativeStrong><NativeP>Der aktuelle Datenbestand und seine Zeitstempel stehen in den jeweiligen Datenbereichen.</NativeP></NativeDiv>}</>}
+    <Pager data={page.data} offset={offset} onOffset={setOffset} loading={page.loading}/>
+  </ConsolePanel></NativeDiv>}</NativeWorkspaceStyleScope>;
 }
-
-export function TenantDossierOverview({ dossier, onOpen }: { dossier: TenantDossier; onOpen: (view: DossierView) => void }) {
-  const setup = buildTenantSetup(dossier);
-  return <Panel title="Unternehmen im Überblick" hint="Der Prozentstand bewertet gespeicherte Grundangaben. Teilangaben werden anteilig gewertet; er ist keine Geräte- oder Funktionsfreigabe.">
-    <View style={s.row}>{([['clients', 'Klient:innen öffnen'], ['employees', 'Mitarbeitende öffnen'], ['history', 'Schritte nachvollziehen']] as const).map(([key, label]) => <Button key={key} label={label} onPress={() => onOpen(key)} />)}</View>
-    <Text style={s.body}>{dossier.counts.assignments ?? '—'} Einsätze · {dossier.counts.documents ?? '—'} Dokumente · {dossier.counts.services} aktive Leistungen</Text>
-    {setup.groups.map(group => <View key={group.label} style={s.card}><Text style={s.label}>{group.label} · {group.percentage}%</Text><Progress value={group.percentage} label={`Einrichtung ${group.label}`} /><Text style={s.muted}>{group.complete} von {group.total} Schritten vollständig</Text></View>)}
-    <Text style={s.muted}>{dossier.sections.filter(section => section.available).length} verfügbare Datenbereiche</Text>
-  </Panel>;
-}
-
-export function TenantSetupPanel({ dossier, onSection }: { dossier: TenantDossier; onSection: (section: string) => void }) {
-  const setup = buildTenantSetup(dossier), [filter, setFilter] = useState('all');
-  const steps = setup.steps.filter(step => filter === 'all' || (filter === 'missing' ? ['open', 'partial'].includes(step.state) : step.state === filter));
-  return <Panel title="Einrichtung Schritt für Schritt" hint={`${setup.percentage}% · ${setup.complete} vollständig · ${setup.partial} teilweise · ${setup.open} offen`}>
-    <ListFilterSelect label="Ansicht" value={filter} onChange={setFilter} options={[{ key: 'all', label: 'Alle Schritte' }, { key: 'missing', label: 'Offen und teilweise' }, { key: 'complete', label: 'Vollständig' }, { key: 'not_applicable', label: 'Nicht anwendbar' }]} />
-    {steps.map(step => <View key={step.key} style={s.card}><Text style={s.muted}>{step.group}</Text><Text style={s.label}>{step.label}</Text><Text style={s.body}>{step.state === 'complete' ? 'Vollständig' : step.state === 'partial' ? `Teilweise · ${Math.round(step.score * 100)}%` : step.state === 'open' ? 'Offen' : 'Nicht anwendbar'}</Text><Text style={s.body}>{step.evidence}</Text>{step.missing.map(item => <Text key={item} style={s.muted}>• {item}</Text>)}<Text style={s.muted}>Nachweis: {step.source}</Text><Button label={`Daten prüfen: ${step.label}`} onPress={() => onSection(step.section)} /></View>)}
-    {!steps.length ? <Text style={s.muted}>Keine Prüfschritte für diese Ansicht.</Text> : null}
-  </Panel>;
-}
-
-function searchable(value: unknown): string {
-  if (Array.isArray(value)) return value.map(searchable).join(' ');
-  if (value && typeof value === 'object') return visibleDossierFields(value as DossierRow).map(([key, item]) => dossierFieldLabel(key) + ' ' + searchable(item)).join(' ');
-  return value == null ? '' : String(value);
-}
-
-function Fold({ label, children }: { label: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return <View style={s.stack}><Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)} style={s.button}><Text style={s.buttonText}>{open ? '▾' : '▸'} {label}</Text></Pressable>{open ? children : null}</View>;
-}
-
-function Value({ value, field }: { value: unknown; field?: string }) {
-  const [linkError, setLinkError] = useState(false);
-  if (value == null || value === '') return <Text style={s.muted}>Nicht hinterlegt</Text>;
-  if (typeof value === 'boolean') return <Text style={s.body}>{value ? 'Ja' : 'Nein'}</Text>;
-  if (typeof value === 'number') return <Text selectable style={s.body}>{value.toLocaleString('de-DE', { maximumFractionDigits: 6 })}</Text>;
-  if (Array.isArray(value)) return value.length ? <Fold label={`${value.length} Einträge anzeigen`}>{value.map((item, index) => <View key={index} style={s.nested}><Value value={item} /></View>)}</Fold> : <Text style={s.muted}>Keine Einträge</Text>;
-  if (typeof value === 'object') return <Fold label="Weitere Angaben anzeigen">{visibleDossierFields(value as DossierRow).map(([key, item]) => <View key={key} style={s.nested}><Text style={s.label}>{dossierFieldLabel(key)}</Text><Value value={item} field={key} /></View>)}</Fold>;
-  const text = String(value);
-  if (field && /(_at|_date|date_of_birth|valid_from|valid_to|service_start)$/.test(field) && /^\d{4}-\d{2}-\d{2}/.test(text)) return <Text selectable style={s.body}>{/^\d{4}-\d{2}-\d{2}$/.test(text) ? new Date(`${text}T12:00:00`).toLocaleDateString('de-DE') : consoleDate(text)}</Text>;
-  if (/^https?:\/\//i.test(text) && safeDossierLogo(text)) return <View style={s.stack}><Text selectable style={s.body}>{text}</Text><Button label="Adresse öffnen" onPress={() => { setLinkError(false); void Linking.openURL(text).catch(() => setLinkError(true)); }} />{linkError ? <Text accessibilityRole="alert" style={s.error}>Die Adresse konnte nicht geöffnet werden.</Text> : null}</View>;
-  return <Text selectable style={s.body}>{field && ['status', 'role_key', 'employment_type', 'product_key', 'billing_party', 'gender'].includes(field) ? consoleLabel(value) : text}</Text>;
-}
-
-export function TenantDossierFields({ row }: { row: DossierRow }) {
-  const [search, setSearch] = useState(''), [showEmpty, setShowEmpty] = useState(true), [width, setWidth] = useState(0);
-  const { fontScale } = useWindowDimensions();
-  const all = visibleDossierFields(row), populated = all.filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length));
-  const fields = all.filter(([key, value]) => (showEmpty || populated.some(([name]) => name === key)) && (dossierFieldLabel(key) + ' ' + key + ' ' + searchable(value)).toLocaleLowerCase('de-DE').includes(search.toLocaleLowerCase('de-DE')));
-  return <View style={s.stack} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
-    <Text style={s.label}>Angabe suchen</Text><TextInput accessibilityLabel="Angabe suchen" style={s.input} value={search} onChangeText={setSearch} placeholder="Adresse, Pflegegrad, IBAN…" placeholderTextColor={C.muted} />
-    <View style={s.row}><Switch accessibilityLabel="Leere Angaben anzeigen" value={showEmpty} onValueChange={setShowEmpty} /><Text style={s.body}>Leere Angaben anzeigen</Text></View><Text style={s.muted}>{populated.length} von {all.length} Feldern befüllt</Text>
-    <View style={s.row}>{fields.map(([key, value]) => <View key={key} style={[s.card, { width: width >= 740 * Math.max(1, fontScale) ? '48%' : '100%' }]}><Text style={s.label}>{dossierFieldLabel(key)}</Text><Value value={value} field={key} /></View>)}</View>
-    {!fields.length ? <Text style={s.muted}>Keine passenden Angaben.</Text> : null}
-  </View>;
-}
-
-function Pager({ data, offset, onOffset, loading }: { data: DossierPage | null; offset: number; onOffset: (offset: number) => void; loading: boolean }) {
-  const limit = data?.limit ?? 50;
-  return <View style={s.stack}><Text style={s.muted}>{data?.total != null ? `${data.total} passende Datensätze · ${data.rows.length ? offset + 1 : 0}–${offset + data.rows.length}` : 'Seitenweise Datenansicht'} · Seite {Math.floor(offset / limit) + 1}</Text><View style={s.row}><Button label="Zurück" disabled={loading || offset === 0} onPress={() => onOffset(Math.max(0, offset - limit))} /><Button label="Weitere Datensätze" disabled={loading || !data?.hasMore} onPress={() => onOffset(offset + limit)} /></View></View>;
-}
-
-export function TenantDossierDataBrowser(props: { dossier: TenantDossier; scope: DossierScope; initialSection?: string; parentId?: string; excludeMain?: boolean }) {
-  return <DataBrowser key={`${props.dossier.tenantId}:${props.scope}:${props.parentId ?? ''}:${props.initialSection ?? ''}`} {...props} />;
-}
-
-function DataBrowser({ dossier, scope, initialSection, parentId, excludeMain = false }: { dossier: TenantDossier; scope: DossierScope; initialSection?: string; parentId?: string; excludeMain?: boolean }) {
-  const sections = useMemo(() => dossier.sections.filter(section => (section.scope === scope || (scope === 'company' && section.scope === 'operations')) && (!excludeMain || !['clients', 'employees'].includes(section.key))), [dossier.sections, scope, excludeMain]);
-  const [section, setSection] = useState(initialSection && sections.some(item => item.key === initialSection) ? initialSection : sections[0]?.key ?? '');
-  const [search, setSearch] = useState(''), [status, setStatus] = useState(''), [deleted, setDeleted] = useState(false), [offset, setOffset] = useState(0), [selected, setSelected] = useState<DossierRow | null>(null);
-  const personKind = section === 'clients' || section === 'employees' ? section : null;
-  const page = useDossierPage(dossier.tenantId, { section: section || 'tenants', parentId, search, status, offset, includeDeleted: deleted });
-  if (!sections.length) return <Text style={s.muted}>Für diesen Bereich sind keine Datenquellen in der Akte hinterlegt.</Text>;
-  const changeSection = (value: string) => { setSection(value); setSearch(''); setStatus(''); setDeleted(false); setOffset(0); setSelected(null); };
-  return <Panel title={sections.find(item => item.key === section)?.label ?? 'Gespeicherte Angaben'} hint={parentId ? 'Alle zugeordneten Angaben zu dieser Person.' : 'Suche und Seitenzählung berücksichtigen den gesamten ausgewählten Bereich.'}>
-    <ListFilterSelect label="Datenbereich" value={section} onChange={changeSection} options={sections.map(item => ({ key: item.key, label: item.label + (!parentId ? item.available ? ` (${item.count ?? '—'})` : ' – nicht bereitgestellt' : '') }))} />
-    <Text style={s.label}>Suchen</Text><TextInput accessibilityLabel="Suchen" style={s.input} value={search} maxLength={200} onChangeText={value => { setSearch(value); setOffset(0); }} placeholder="Name, Nummer, Ort oder Angabe…" placeholderTextColor={C.muted} />
-    {personKind ? <><ListFilterSelect label="Status" value={status} onChange={value => { setStatus(value); setOffset(0); }} options={[{ key: '', label: 'Alle Status' }, ...[...new Set([...(page.data?.statuses ?? []), ...(status ? [status] : [])])].map(value => ({ key: value, label: consoleLabel(value) }))]} /><View style={s.row}><Switch accessibilityLabel="Gelöschte Datensätze einbeziehen" value={deleted} onValueChange={value => { setDeleted(value); setOffset(0); }} /><Text style={s.body}>Gelöschte Datensätze einbeziehen</Text></View></> : null}
-    <Button label="Aktualisieren" disabled={page.loading} onPress={page.reload} /><State {...page} />
-    {!page.loading && !page.error && page.data ? !page.data.available ? <Text style={s.muted}>Datenbereich nicht bereitgestellt. Diese Datenquelle ist in der aktuellen Datenbank nicht verfügbar.</Text> : !page.data.rows.length ? <Text style={s.muted}>Keine passenden Datensätze. Bitte Suche und Filter prüfen.</Text> : page.data.rows.map((row, index) => {
-      const completeness = personKind ? dossierPersonCompleteness(row, personKind) : null;
-      return <View key={String(row.id ?? index)} style={s.card}><Text style={s.label}>{dossierRowName(row)}</Text><Text selectable style={s.muted}>{String(row.client_number ?? row.employee_number ?? row.username ?? row.id ?? '')}</Text><Text style={s.body}>{row.deleted_at ? 'Gelöscht' : row.status ? consoleLabel(row.status) : row.is_active == null ? 'Status nicht hinterlegt' : row.is_active ? 'Aktiv' : 'Inaktiv'}</Text>{row.portal_enabled != null ? <Text style={s.muted}>Portal {row.portal_enabled ? 'aktiviert' : 'deaktiviert'}</Text> : null}{completeness ? <><Text style={s.body}>{completeness.percentage}% Grundangaben</Text><Text style={s.muted}>{completeness.missing.join(', ') || 'Grundangaben vollständig'}</Text></> : null}<Text style={s.muted}>Geändert {consoleDate(row.updated_at ?? row.created_at)}</Text><Button label={`Alle Angaben zu ${dossierRowName(row)} öffnen`} onPress={() => setSelected(row)} /></View>;
-    }) : null}
-    <Pager data={page.data} offset={offset} onOffset={setOffset} loading={page.loading} />
-    {selected ? <RecordDialog key={`${section}:${String(selected.id ?? 'singleton')}`} dossier={dossier} section={section} row={selected} personKind={personKind} onClose={() => setSelected(null)} /> : null}
-  </Panel>;
-}
-
-function RecordDialog({ dossier, section, row, personKind, onClose }: { dossier: TenantDossier; section: string; row: DossierRow; personKind: 'clients' | 'employees' | null; onClose: () => void }) {
-  const [related, setRelated] = useState(false);
-  return <PlatformModal visible title={dossierRowName(row)} subtitle={dossier.sections.find(item => item.key === section)?.label ?? 'Gespeicherte Angaben'} onClose={onClose} maxWidth={1040} minWidth={240} maxHeightRatio={0.9}>
-    {personKind ? <View style={s.row}><Button label="Alle Stammdaten" onPress={() => setRelated(false)} /><Button label="Zugehörige Angaben und Akten" onPress={() => setRelated(true)} /></View> : null}
-    {personKind && related && typeof row.id === 'string' ? <TenantDossierDataBrowser dossier={dossier} scope={personKind} parentId={row.id} excludeMain /> : <TenantDossierFields row={row} />}
-  </PlatformModal>;
-}
-
-export function TenantDossierHistory({ tenantId }: { tenantId: string }) {
-  return <History key={tenantId} tenantId={tenantId} />;
-}
-
-function History({ tenantId }: { tenantId: string }) {
-  const [search, setSearch] = useState(''), [offset, setOffset] = useState(0);
-  const page = useDossierPage(tenantId, { section: 'history', search, offset });
-  return <Panel title="Welche Schritte wurden gemacht?" hint="Gespeicherte Unternehmens- und Plattformaktionen mit Zeitpunkt, ausführender Person und Änderungen. Fehlende Protokolle bleiben als fehlende Nachweise erkennbar.">
-    <Text style={s.label}>Verlauf durchsuchen</Text><TextInput accessibilityLabel="Verlauf durchsuchen" style={s.input} maxLength={200} value={search} onChangeText={value => { setSearch(value); setOffset(0); }} placeholder="Aktion, Person oder Begründung…" placeholderTextColor={C.muted} />
-    <Button label="Aktualisieren" onPress={page.reload} disabled={page.loading} /><State {...page} />
-    {!page.loading && !page.error && page.data ? page.data.rows.length ? page.data.rows.map(row => <View key={`${row.source}:${String(row.id)}`} style={s.card}><Text style={s.muted}>{consoleDate(row.created_at)}</Text><Text style={s.label}>{platformActionLabel(row.action)}</Text><Text style={s.body}>{String(row.actor_name ?? 'Ausführende Person nicht hinterlegt')} · {String(row.source ?? 'Protokoll')}</Text>{row.reason != null ? <Text style={s.body}>{String(row.reason)}</Text> : null}<Fold label="Geänderte Angaben anzeigen">{dossierChangedFields(row.before, row.after).map(change => <View key={change.key} style={s.nested}><Text style={s.label}>{dossierFieldLabel(change.key)}</Text><Text style={s.muted}>Vorher</Text><Value value={change.before} field={change.key} /><Text style={s.muted}>Nachher</Text><Value value={change.after} field={change.key} /></View>)}{!dossierChangedFields(row.before, row.after).length ? <Text style={s.muted}>Für diese Aktion sind keine unterschiedlichen Feldwerte gespeichert.</Text> : null}</Fold></View>) : <Text style={s.muted}>Keine protokollierten Schritte in dieser Auswahl.</Text> : null}
-    <Pager data={page.data} offset={offset} onOffset={setOffset} loading={page.loading} />
-  </Panel>;
-}
-
-const s = StyleSheet.create({
-  panel: { alignSelf: 'stretch', minWidth: 0, backgroundColor: C.panel, borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 16, gap: 12 },
-  title: { color: C.text, fontSize: 19, fontWeight: '800', flexShrink: 1 },
-  label: { color: C.text, fontSize: 14, fontWeight: '700', flexShrink: 1 },
-  body: { color: C.text, fontSize: 14, lineHeight: 21, flexShrink: 1 },
-  muted: { color: C.muted, fontSize: 13, lineHeight: 20, flexShrink: 1 },
-  error: { color: C.danger, fontSize: 14, lineHeight: 21 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center', minWidth: 0 },
-  grow: { flex: 1, minWidth: 160, gap: 8 },
-  stack: { gap: 10, minWidth: 0 },
-  card: { padding: 14, gap: 8, borderWidth: 1, borderColor: C.border, borderRadius: 12, minWidth: 0, alignSelf: 'stretch' },
-  button: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: C.borderStrong, borderRadius: 10, backgroundColor: C.panelSoft, justifyContent: 'center', maxWidth: '100%' },
-  buttonText: { color: C.accent, fontSize: 14, fontWeight: '700', flexShrink: 1 },
-  disabled: { opacity: 0.5 },
-  input: { color: C.text, borderColor: C.borderStrong, backgroundColor: C.panelSoft, borderWidth: 1, borderRadius: 10, minHeight: 48, padding: 12, fontSize: 15 },
-  state: { paddingVertical: 14, gap: 12 },
-  logo: { width: 64, height: 64, borderRadius: 12 },
-  initial: { color: C.accent, fontSize: 36, width: 64, textAlign: 'center' },
-  percentage: { color: C.text, fontSize: 23, fontWeight: '800' },
-  progress: { height: 8, backgroundColor: C.border, borderRadius: 8, overflow: 'hidden', width: '100%' },
-  progressFill: { height: '100%', backgroundColor: C.accent, borderRadius: 8 },
-  nested: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: C.borderStrong, gap: 8 },
-});

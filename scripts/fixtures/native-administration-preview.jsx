@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {ProfessionalPreview} from './native-professional-preview';
 import {HelpWorkspacePreview} from './native-help-workspace-preview';
+import {PlatformConsolePreview} from './native-platform-console-preview';
+import {WeatherPreview} from './native-weather-preview';
 import { CompanyWorkspaceView } from '../../src/components/company/CompanyWorkspaceView';
 import { PortalPreview } from './native-portals-preview';
 import { createRoot } from 'react-dom/client';
@@ -20,6 +22,8 @@ function Preview(){
  const [form,setForm]=useState(snapshot),[tab,setTab]=useState('overview');
  if(['academy','consultation','catalog'].includes(page))return <ProfessionalPreview screen={page}/>;
  if(page==='desktop')return <CommandCenterScreen/>;
+ if(page==='weather-dialog')return <WeatherPreview/>;
+ if(page.startsWith('owner-'))return <PlatformConsolePreview screen={page}/>;
  if(['help','help-article','google-workspace','google-service'].includes(page))return <HelpWorkspacePreview screen={page}/>;
  if(page==='company')return <ScrollView><CompanyWorkspaceView snapshot={snapshot} tab={tab} onTab={setTab} activeAreas={['Office','Assist']} canEdit canDocuments canInventory refreshing={false} onRefresh={noop} onOpen={noop} onCustomField={noop} onCopy={noop} onDocuments={noop}/></ScrollView>;
  if(!['clients','employees','company-editor','inventory','notes'].includes(page))return <PortalPreview screen={page}/>;

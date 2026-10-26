@@ -4,6 +4,7 @@
 -- The RPC returns only the exact authenticated active relative account and its
 -- own latest server permissions. No business rows or access grants are seeded.
 BEGIN;
+SET LOCAL search_path = public, pg_temp;
 DO $review$
 BEGIN
  IF to_regprocedure('public.current_family_portal_access_scope()') IS NOT NULL THEN

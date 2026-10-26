@@ -13,7 +13,7 @@ const dependencies: Record<string, unknown> = {
     Platform: { OS: 'android' }, View: Box, Text: (p: any) => <span>{p.children}</span>,
     TextInput: (p: any) => <input aria-label={p.accessibilityLabel} value={p.value} onInput={event => p.onChangeText(event.currentTarget.value)} />,
     Pressable: (p: any) => <button aria-label={p.accessibilityLabel} disabled={p.disabled} onClick={p.onPress}>{p.children}</button>,
-    StyleSheet: { create: (s: unknown) => s }, useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1 }), Linking: { openURL: vi.fn() },
+    StyleSheet: { create: (s: unknown) => s, flatten: (style: any): any => { const merge = (value: any): any => Array.isArray(value) ? Object.assign({}, ...value.map(merge)) : value ?? {}; return merge(style); } }, useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1 }), Linking: { openURL: vi.fn() },
   },
   'expo-linear-gradient': { LinearGradient: Box },
   'react-native-svg': { __esModule: true, default: () => null, Path: () => null },

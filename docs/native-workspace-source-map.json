@@ -3,6 +3,13 @@
   "visualAcceptance": "not-verified",
   "nativeBindings": [
     {
+      "web": "src/components/platformConsole/PlatformErrorBoundary.web.tsx",
+      "native": "src/components/platformConsole/PlatformErrorBoundary.tsx",
+      "reason": "The native React error boundary retains recovery and local incident references without browser observation/DOM APIs.",
+      "sourceHash": "bec413c183f8645fe3b01c67d4fccc56e302e25526aa28f332bca4f4e205db8c",
+      "nativeHash": "cf57f9f12269f7adb551cd889635bea1f1b7de6232c78a30dc86a841e05d7c08"
+    },
+    {
       "web": "src/components/office/NativeDocumentHtmlPreview.web.tsx",
       "native": "src/components/office/NativeDocumentHtmlPreview.native.tsx",
       "reason": "The Web export is an empty platform placeholder; Android renders the complete document and opens the original through native printing.",
@@ -6476,6 +6483,12 @@
       "environment": []
     },
     {
+      "web": "src/liquid-command/screens/DesktopWeatherLocationDialog.web.tsx",
+      "native": "src/liquid-command/screens/DesktopWeatherLocationDialog.native.tsx",
+      "sourceHash": "6aba30ddc77d1ab577d402451921c40028ef20ead9db81881b94d14d3211dc52",
+      "environment": []
+    },
+    {
       "web": "src/ai/robot/neoLanguage.web.ts",
       "native": "src/ai/robot/neoLanguage.native.ts",
       "sourceHash": "9c60063945fe2427a8bb0ad0f1b60fa79cb8d891c88a2bf0ae70d6461917163f",
@@ -6539,6 +6552,195 @@
       "web": "src/components/googleWorkspace/WorkspaceDashboard.web.tsx",
       "native": "src/components/googleWorkspace/WorkspaceDashboard.native.tsx",
       "sourceHash": "548fbd27fa79e9e574dfc72ed9a9d31e016455f514bb438416323a7942a67e53",
+      "environment": []
+    },
+    {
+      "web": "src/components/navigation/SemanticIconLabel.web.tsx",
+      "native": "src/components/navigation/SemanticIconLabel.native.tsx",
+      "sourceHash": "7ab26de6fa76c9d957bc00fa83e3b5742151f1e25206d38e20834fe6560f1d32",
+      "environment": []
+    },
+    {
+      "web": "src/lib/platformConsole/platformCapabilities.web.ts",
+      "native": "src/lib/platformConsole/platformCapabilities.native.ts",
+      "sourceHash": "59a83eba84e2359a276c2a21b304c0fe477ff3c064cd66bd9fb30190c6ccb985",
+      "environment": []
+    },
+    {
+      "web": "src/lib/platformConsole/consoleWorkspaceModel.web.ts",
+      "native": "src/lib/platformConsole/consoleWorkspaceModel.native.ts",
+      "sourceHash": "6fd1f4d96fe791ec71714150766af67b60c8210f2a7cafed64b30ffd3c5cf482",
+      "environment": []
+    },
+    {
+      "web": "src/components/platformConsole/ConsoleWorkspaceUi.web.tsx",
+      "native": "src/components/platformConsole/ConsoleWorkspaceUi.native.tsx",
+      "sourceHash": "3ff97fc402af501001e1a634c9fd4c1fa33bc651d2d4dbf99945475f5b122e24",
+      "environment": []
+    },
+    {
+      "web": "src/components/platformConsole/PlatformGlobalSearch.web.tsx",
+      "native": "src/components/platformConsole/PlatformGlobalSearch.native.tsx",
+      "sourceHash": "beeb429aec0bcc885e6b734c8b539cff5ae39cd4a3f0c221027761492e7bda81",
+      "environment": [
+        "document"
+      ]
+    },
+    {
+      "web": "src/components/platformConsole/PlatformShellLayout.web.tsx",
+      "native": "src/components/platformConsole/PlatformShellLayout.native.tsx",
+      "sourceHash": "ebcb6c3a977dad9cf7f893a3284d7471bf7ca2851c4e24994e147409d94a7d0c",
+      "environment": []
+    },
+    {
+      "web": "src/lib/platformConsole/platformLanguage.web.ts",
+      "native": "src/lib/platformConsole/platformLanguage.native.ts",
+      "sourceHash": "a300403ccccb54027146540efc47447d757c5e64bb525b9d578bdb8316dcdd54",
+      "environment": []
+    },
+    {
+      "web": "src/components/platformConsole/PlatformFreeUsagePanel.web.tsx",
+      "native": "src/components/platformConsole/PlatformFreeUsagePanel.native.tsx",
+      "sourceHash": "bb44dbed7414fdaeaec6e5e9123a1d14acff5f5c18d3031fc2115a3254e5c97c",
+      "environment": []
+    },
+    {
+      "web": "src/lib/platformConsole/platformOperationsService.web.ts",
+      "native": "src/lib/platformConsole/platformOperationsService.native.ts",
+      "sourceHash": "17fa2e039e09dbd64847c49ce2e580eebd842cd9ca6adfbd15aa6ffa505eedfd",
+      "environment": []
+    },
+    {
+      "web": "src/components/platformConsole/PlatformOperationsPanel.web.tsx",
+      "native": "src/components/platformConsole/PlatformOperationsPanel.native.tsx",
+      "sourceHash": "6a0a02f2dbb35c5caeff7387775aa1a2b79bc8cf37bfcc9fa144f9b08720111a",
+      "environment": [
+        "document"
+      ]
+    },
+    {
+      "web": "src/lib/platformConsole/platformRuntime.web.ts",
+      "native": "src/lib/platformConsole/platformRuntime.native.ts",
+      "sourceHash": "5c5a813f17425b752fb694b17125d72421738b4037652a3b04680aa7469e7f75",
+      "environment": [
+        "fetch"
+      ]
+    },
+    {
+      "web": "src/components/platformConsole/PlatformRuntimeBoundary.web.tsx",
+      "native": "src/components/platformConsole/PlatformRuntimeBoundary.native.tsx",
+      "sourceHash": "d3d78e2600d54b554555bf5ebe4db74bacf096f36bdd24cb21789863b12ad650",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/PlatformConsoleWorkspace.web.tsx",
+      "native": "src/screens/platformConsole/PlatformConsoleWorkspace.native.tsx",
+      "sourceHash": "5cd586218c7f55a32a6d2469f0c420a73da8c660507719e44678cd518da09af5",
+      "environment": []
+    },
+    {
+      "web": "src/hooks/usePlatformOperation.web.ts",
+      "native": "src/hooks/usePlatformOperation.native.ts",
+      "sourceHash": "e082e9d31e3febb73c0c3faf112a747a12d6fe006d8a51b1bfc09adf48e2fd3b",
+      "environment": []
+    },
+    {
+      "web": "src/components/platformConsole/PlatformConfirmModal.web.tsx",
+      "native": "src/components/platformConsole/PlatformConfirmModal.native.tsx",
+      "sourceHash": "f1624f1c349eb1e450ab037ef52bf23751b8e467dde4a63158dad7dd6b857b9a",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/PlatformTenantOperatorTabs.web.tsx",
+      "native": "src/screens/platformConsole/PlatformTenantOperatorTabs.native.tsx",
+      "sourceHash": "976599236a89def654b3c06a970b9160060fe6dd2c16bbfe9a990202de12b4e2",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/TenantAccountsTab.web.tsx",
+      "native": "src/screens/platformConsole/TenantAccountsTab.native.tsx",
+      "sourceHash": "b24e73893f3993329c9b9382116e37f10ce2d9ee055bf4de7dc47368e27763b5",
+      "environment": [
+        "crypto"
+      ]
+    },
+    {
+      "web": "src/components/dataTransfers/TransferStyle.web.tsx",
+      "native": "src/components/dataTransfers/TransferStyle.native.tsx",
+      "sourceHash": "20ce056e636885e087d7077fca4a22c6ddceae899d4e702edcff63a360658b28",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/TenantDataTransfers.web.tsx",
+      "native": "src/screens/platformConsole/TenantDataTransfers.native.tsx",
+      "sourceHash": "52f9002da29b6369ec5daf5ac17897fa910a98a0e191051de8d03f631824ac83",
+      "environment": [
+        "window",
+        "document"
+      ]
+    },
+    {
+      "web": "src/screens/platformConsole/TenantDossierWorkspace.web.tsx",
+      "native": "src/screens/platformConsole/TenantDossierWorkspace.native.tsx",
+      "sourceHash": "ddb1e8be199e4c4470fbf3d0644de910dbd1c1260b3f84153256b035f77cab98",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/PlatformTenantDetailScreen.web.tsx",
+      "native": "src/screens/platformConsole/PlatformTenantDetailScreen.native.tsx",
+      "sourceHash": "e8a5df5023a94cb7d3a72c5919987d93529337eaaa5caf0069fac1eca785ca85",
+      "environment": []
+    },
+    {
+      "web": "src/components/support/SupportPrimitives.web.tsx",
+      "native": "src/components/support/SupportPrimitives.native.tsx",
+      "sourceHash": "ae335a0c0de7520806a7051f7c8704a3c67102009994282815872e71c8ac30be",
+      "environment": []
+    },
+    {
+      "web": "src/components/support/SupportArchive.web.tsx",
+      "native": "src/components/support/SupportArchive.native.tsx",
+      "sourceHash": "b2f4c33b16c2ec1de310380f67ed5700bac3eaab1de23087d1282f99a0ffbaab",
+      "environment": [
+        "URL"
+      ]
+    },
+    {
+      "web": "src/lib/support/supportService.web.ts",
+      "native": "src/lib/support/supportService.native.ts",
+      "sourceHash": "76a2fdf38df8f35879967312dc05fd19df583b8836528079739acdb5d82459dd",
+      "environment": [
+        "fetch"
+      ]
+    },
+    {
+      "web": "src/components/support/SupportAccessPanel.web.tsx",
+      "native": "src/components/support/SupportAccessPanel.native.tsx",
+      "sourceHash": "a0fa3f3669694d62cf3d555c0e1360ff24618627d5c7f493d98dda45b774a447",
+      "environment": []
+    },
+    {
+      "web": "src/components/support/SupportWorkspace.web.tsx",
+      "native": "src/components/support/SupportWorkspace.native.tsx",
+      "sourceHash": "4b359e8edf0a65bfa19ea9217956baa06df2150e6feca22458f989eaa4ac669c",
+      "environment": []
+    },
+    {
+      "web": "src/components/support/PublicSupportQueue.web.tsx",
+      "native": "src/components/support/PublicSupportQueue.native.tsx",
+      "sourceHash": "8bbddcc33aeca90eea485f2d6ee1487f60ef6d6b8e08f82dcecac854a5790704",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/PlatformSupportWorkspace.web.tsx",
+      "native": "src/screens/platformConsole/PlatformSupportWorkspace.native.tsx",
+      "sourceHash": "08f63274d4e1776a71c9c42d383174b376909d15361ba2c5321e5a8339457bcb",
+      "environment": []
+    },
+    {
+      "web": "src/screens/platformConsole/index.web.ts",
+      "native": "src/screens/platformConsole/index.native.ts",
+      "sourceHash": "6eeaae386b1db4bb2917918c336879f0a583a65171c4e1a9c72f780802060cc4",
       "environment": []
     },
     {
