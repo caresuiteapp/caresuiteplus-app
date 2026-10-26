@@ -55,3 +55,9 @@ Sieben ausführende Tests dieses Helfers bestanden lokal vor dem Ausfall der Arb
 Die isolierten Präsentationsdaten für Arbeitszeit, Zeitkonto, Einsatzzeiten, Einsatzdurchführung und persönliche Dokumentunterschrift werden anhand ihrer echten Verbraucherverträge ergänzt. GPS, Kamera, PDFBox und serverseitige Speicherung werden weiterhin nicht als erfolgreich simuliert. Die neue Ausführung steht aus. Fehlende Prüfdaten und nicht erreichte Zielseiten lassen den Prüfjob künftig fehlschlagen. Sein Name bezeichnet vorbereitete Portalansichten, da die 65 Fälle weiterhin keine vollständige Abdeckung aller 692 Seiten darstellen.
 
 Der neue Helfertest ist in die bestehende CI-Kette aufgenommen. Android-Bau und Veröffentlichung bleiben gesperrt. Keine produktiven Daten wurden geändert.
+
+Beim manuellen Aktualisieren wird auch die optionale Standort-Initialisierung erneut angestoßen. Alte Hinweise werden vor der neuen Prüfung verworfen.
+
+Die Mobilitätsauswahl nutzt bei abgewiesenem Serverlesen weiterhin ihren nach Mandant, Mitarbeitenden und Einsatz getrennten lokalen Speicher. Ein abgewiesener Server-Schreibaufruf meldet eine lokal bereits gesicherte Auswahl ausdrücklich als noch nicht synchronisiert. Scheitert der lokale Schreibvorgang selbst, wird weiterhin kein Speichererfolg gemeldet. Sieben weitere ausführende Regressionstests sind vorbereitet; ihre Ausführung erfolgt im bestehenden CI-Lauf. Vier isolierte Prüfungen der Methoden mit ersetzten Speicher-/Transportgrenzen bestanden zusätzlich, ohne TypeScript- oder Gerätenachweis zu ersetzen.
+
+Die Oberflächenprüfung gibt Fallzahlen und konkrete ungelöste Fälle jetzt auch im Jobprotokoll aus. Dadurch bleibt der Prüfstand bei einem erneuten Ausfall der lokalen Arbeitsumgebung lesbar.

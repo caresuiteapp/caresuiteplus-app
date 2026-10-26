@@ -268,6 +268,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     explainedAt: string | null;
   } | null>(null);
   const [locationBootstrapWarning, setLocationBootstrapWarning] = useState<string | null>(null);
+  const [locationBootstrapRevision, setLocationBootstrapRevision] = useState(0);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
   const [workflowConfirmationPending, setWorkflowConfirmationPending] = useState(false);
@@ -315,6 +316,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   useEffect(() => {
     if (!tenantId || !assignmentId || !employeeId) return;
     let cancelled = false;
+    setLocationBootstrapWarning(null);
     void hydrateEmployeePortalLocationState({
       tenantId, employeeId, assignmentId, authProfileId,
       isCurrent: () => !cancelled && signatureScopeRef.current === signatureScopeKey,
@@ -328,7 +330,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return () => {
       cancelled = true;
     };
-  }, [tenantId, assignmentId, employeeId, authProfileId, signatureScopeKey]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, signatureScopeKey, locationBootstrapRevision]);
 
   const live = useMemo(() => tenantId && employeeId ? {
     tenantId, subscribe: (tid: string, handler: () => void) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
@@ -1605,6 +1607,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       await checkPendingWorkflowConfirmation();
       return;
     }
+    setLocationBootstrapRevision((revision) => revision + 1);
     await query.refresh();
     await refreshExecutionContext();
   }, [query, refreshExecutionContext, checkPendingWorkflowConfirmation]);
