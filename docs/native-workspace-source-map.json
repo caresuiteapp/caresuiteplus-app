@@ -458,7 +458,7 @@
     {
       "web": "src/components/calendar/CalendarWorkspaceStyles.web.tsx",
       "native": "src/components/calendar/CalendarWorkspaceStyles.native.tsx",
-      "sourceHash": "2e0a31157b9d8c4fead88706ecedba06305dad6da25fab88784b08597ce5b896",
+      "sourceHash": "b5e37cb197b005cebb8b8547610124faf6d5e56ef13f500d337679339f85335e",
       "environment": []
     },
     {

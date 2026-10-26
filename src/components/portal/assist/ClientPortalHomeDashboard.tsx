@@ -438,8 +438,8 @@ export function ClientPortalHomeDashboard({
             <Ionicons name="wallet-outline" color={ink.blue} size={22} />
           </View>
           <View style={styles.budgetHeadingCopy}>
-            <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
-            <Text style={[type.caption, styles.sectionSubtitle]}>
+            <Text accessibilityRole="header" testID="client-portal-budget-heading" style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
+            <Text testID="client-portal-budget-explanation" style={[type.caption, styles.sectionSubtitle]}>
               Entlastungsbetrag und 40-%-Umwandlung bleiben für Sie immer verständlich sichtbar.
             </Text>
           </View>
@@ -448,9 +448,9 @@ export function ClientPortalHomeDashboard({
       </View>
 
       <View style={styles.sectionHeading}>
-        <View>
-          <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre Bereiche</Text>
-          <Text style={[type.caption, styles.sectionSubtitle]}>Direkt und ohne Umwege zum gewünschten Inhalt.</Text>
+        <View style={styles.sectionHeadingCopy} testID="client-portal-sections-copy">
+          <Text accessibilityRole="header" testID="client-portal-sections-heading" style={[type.cardTitle, styles.sectionTitle]}>Ihre Bereiche</Text>
+          <Text testID="client-portal-sections-explanation" style={[type.caption, styles.sectionSubtitle]}>Direkt und ohne Umwege zum gewünschten Inhalt.</Text>
         </View>
       </View>
 
@@ -869,6 +869,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  sectionHeadingCopy: { flex: 1, minWidth: 0 },
   sectionTitle: {
     color: ink.primary,
     fontWeight: '900',

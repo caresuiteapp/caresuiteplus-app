@@ -4,6 +4,7 @@ import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/Healt
 import { careSpacing } from '@/design/tokens/spacing';
 import { PortalPremiumPageHero } from '@/components/portal/PortalPremiumPageHero';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type Props = {
   title: string;
@@ -44,7 +45,7 @@ export function ClientPortalPageFrame({
           compact={compact}
         />
       ) : null}
-      <HealthOSPageSurface fill={!scrollable} padded={!isPhone} testID="client-portal-page-surface">
+      <HealthOSPageSurface fill={!scrollable} padded={!isPhone} contentStyle={styles.workspace} testID="client-portal-page-surface">
         <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
   },
   fillContent: { flex: 1 },
   naturalContent: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  workspace: { backgroundColor: portalPremium.surface },
   pagePhone: {
     gap: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,

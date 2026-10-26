@@ -15,7 +15,7 @@ vi.mock('react-native', async () => {
   const ScrollView = ({ children, style, contentContainerStyle, testID }: any) => <div data-testid={testID} data-native-scroll="true" data-native-style={JSON.stringify(flat(style))} data-content-style={JSON.stringify(flat(contentContainerStyle))}>{children}</div>;
   return {
     View, ScrollView, Text: ({ children }: any) => <span>{children}</span>,
-    Pressable: ({ children, onPress, accessibilityLabel }: any) => <button aria-label={accessibilityLabel} onClick={onPress}>{children}</button>,
+    Pressable: ({ children, onPress, accessibilityLabel, accessibilityRole }: any) => <button data-native-role={accessibilityRole} aria-label={accessibilityLabel} onClick={onPress}>{children}</button>,
     TextInput: ({ value, onChangeText, accessibilityLabel }: any) => <input aria-label={accessibilityLabel} value={value} onInput={(event: any) => onChangeText(event.target.value)} />,
     StyleSheet: { create: (styles: unknown) => styles },
     Platform: { OS: 'android', select: (values: any) => values.android ?? values.default },
@@ -115,7 +115,9 @@ describe('employee portal workspace regression', () => {
     await editSearch('helene');
     expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).not.toContain('Friedrich-Wilhelm');
     await editSearch('kein passender name'); expect(host.textContent).toContain('Keine Treffer');
-    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Suche löschen"]')!.click());
+    const clear = host.querySelector<HTMLButtonElement>('[aria-label="Suche löschen"]')!;
+    expect(clear.getAttribute('data-native-role')).toBe('button');
+    await act(async () => clear.click());
     expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).toContain('Friedrich-Wilhelm');
     await act(async () => button('Klientenakten aktualisieren').click()); expect(h.refresh).toHaveBeenCalledOnce();
   });

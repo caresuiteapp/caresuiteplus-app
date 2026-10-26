@@ -79,3 +79,12 @@ Die vier zuvor geprüften Produktions-Datenbankkorrekturen sind weiterhin
 **nicht angewandt**. Die automatische Freigabeprüfung hat sie wegen fehlender
 ausdrücklicher Zustimmung zu den konkreten dauerhaften Produktionsänderungen
 abgelehnt. Diese Quellcodekorrekturen umgehen diese Sperre nicht.
+
+Die zusätzliche Portalprüfung hat außerdem einen Vertragskonflikt im vierten
+RLS-Entwurf aufgedeckt: Die dortige Own-Employee-Lesegrenze könnte neuere
+Kolleg:innen-Statusprojektionen im Teamkalender und in Klientenhistorien
+ausblenden. Das alte Viererpaket darf deshalb auch nach einer Zustimmung zu
+seiner bisherigen Fassung nicht unverändert angewandt werden. Die gemeinsame
+Überarbeitung von Status-Lesepfad und Servergrenze ist noch offen; der aktuelle
+Produktionsstand wurde nicht verändert. Siehe
+[Serververtragsprüfung](android-workflow-backend-review-20261026.md).

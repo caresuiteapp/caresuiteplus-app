@@ -102,7 +102,7 @@ export function EmployeePortalClientRecordsScreen() {
           style={styles.searchInput}
         />
         {search ? (
-          <Pressable accessibilityLabel="Suche löschen" onPress={() => setSearch('')} style={styles.clearButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Suche löschen" onPress={() => setSearch('')} style={styles.clearButton}>
             <Ionicons name="close" color={portalPremium.accent.blueDark} size={18} />
           </Pressable>
         ) : null}

@@ -44,6 +44,7 @@ describe('actual native calendar components used in both portals',()=>{
     expect(hosts.styles.get(previous)).toMatchObject({minWidth:40,minHeight:40,borderRadius:11,paddingLeft:9});
     const views=host.querySelector<HTMLElement>('[aria-label="Kalenderansicht"]')!;
     expect(hosts.styles.get(views)).toMatchObject({flexDirection:'row',flexWrap:'wrap',borderRadius:13});
+    for(const label of ['Tag','Woche','Monat','Agenda','Liste'])expect(Number(hosts.styles.get(button(label))?.minWidth)).toBeGreaterThanOrEqual(80);
     expect(hosts.styles.get(button('Agenda'))).toMatchObject({backgroundColor:'#fff'});
     expect(hosts.styles.get(button('Agenda').querySelector<HTMLElement>('[data-native-host="text"]')!)).toMatchObject({color:'#1461b4'});
     await act(async()=>{previous.click();host.querySelector<HTMLButtonElement>('[aria-label="Nächster Zeitraum"]')!.click();button('Heute').click();button('Monat').click();});

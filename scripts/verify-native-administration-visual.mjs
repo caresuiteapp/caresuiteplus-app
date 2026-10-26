@@ -113,12 +113,19 @@ async function verifyEmployeePortalHome(page,viewport,fontScale=1){
  if(!heroBounds||heroBounds.height<150||!quickBounds||quickBounds.height<100)throw Error(JSON.stringify({message:'Actual employee home cards are compressed by the page/frame chain.',viewport,fontScale,heroBounds,quickBounds}));
  await page.screenshot({path:join(output,`employee-home-actual-actions-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const actions=quick.getByRole('button');for(const action of await actions.all())await portalControlBounds(action,viewport,'Employee quick action is clipped.');
- const bottom=page.getByText('Offene Aufgaben',{exact:true});await bottom.scrollIntoViewIfNeeded();const bottomBounds=await bottom.boundingBox();
+ const assignmentTitle=page.getByText('Hauswirtschaftliche Unterstützung',{exact:true});await assignmentTitle.scrollIntoViewIfNeeded();
+ const assignmentBounds=await assignmentTitle.boundingBox();
+ if(!assignmentBounds||assignmentBounds.width<Math.min(220,viewport.width*.6))throw Error(JSON.stringify({message:'Employee assignment status consumes the readable title column.',viewport,fontScale,assignmentBounds}));
+ await assertUnbrokenWord(assignmentTitle,'Hauswirtschaftliche');await assertUnbrokenWord(assignmentTitle,'Unterstützung');
+ await page.screenshot({path:join(output,`employee-home-actual-assignment-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await page.getByTestId('employee-home-assignment-visual-visit').click();
+ const assignmentRoute=await page.evaluate(()=>window.__previewRoute);if(assignmentRoute!=='/portal/employee/assignments/visual-visit')throw Error(JSON.stringify({message:'The actual employee home assignment lost its exact destination.',assignmentRoute}));
+ const bottom=page.getByText('Dokumente zur Unterschrift',{exact:true});await bottom.scrollIntoViewIfNeeded();const bottomBounds=await bottom.boundingBox();
  if(!bottomBounds||bottomBounds.y<-.5||bottomBounds.y+bottomBounds.height>viewport.height+.5)throw Error(JSON.stringify({message:'The end of the actual employee dashboard is unreachable.',viewport,fontScale,bottomBounds}));
  await page.screenshot({path:join(output,`employee-home-actual-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const refresh=page.getByRole('button',{name:'Übersicht aktualisieren',exact:true});await refresh.scrollIntoViewIfNeeded();await refresh.click();
  await page.waitForFunction(()=>window.__employeePreviewRefreshes>0);
- report.push({screen:'employee-home-actual-frame',viewport,fontScale,heroBounds,quickBounds,bottomBounds,refreshReached:true,careToursAbsent:true});
+ report.push({screen:'employee-home-actual-frame',viewport,fontScale,heroBounds,quickBounds,assignmentBounds,assignmentRoute,bottomBounds,refreshReached:true,careToursAbsent:true});
 }
 async function verifyEmployeeClientRecords(page,viewport,fontScale=1){
  const firstHeader=page.getByRole('button',{name:'Klientenakte Helene Musterfrau öffnen',exact:true});await firstHeader.waitFor();await firstHeader.scrollIntoViewIfNeeded();
@@ -137,10 +144,26 @@ async function verifyClientPortalHome(page,viewport,fontScale=1){
  const hero=page.getByTestId('client-portal-premium-home-hero');await hero.scrollIntoViewIfNeeded();const heroBounds=await hero.boundingBox();
  const frame=await page.getByTestId('client-portal-page-frame').boundingBox();
  if(!heroBounds||heroBounds.height<130||!frame||frame.height<heroBounds.height+100)throw Error(JSON.stringify({message:'The actual client home frame compresses its content.',viewport,fontScale,heroBounds,frame}));
+ const copyChecks=[];
+ for(const id of ['client-portal-budget-heading','client-portal-budget-explanation','client-portal-sections-heading','client-portal-sections-explanation']){
+  const copy=page.getByTestId(id);await copy.scrollIntoViewIfNeeded();
+  const result=await copy.evaluate(element=>{
+   const rgba=value=>{const values=value.match(/[\d.]+/g)?.map(Number);return values?.length>=3?[values[0],values[1],values[2],values[3]??1]:[0,0,0,0];};
+   const over=(front,back)=>{const alpha=front[3]+back[3]*(1-front[3]);return alpha?[0,1,2].map(i=>(front[i]*front[3]+back[i]*back[3]*(1-front[3]))/alpha).concat(alpha):[0,0,0,0];};
+   const luminance=color=>color.slice(0,3).map(value=>value/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0);
+   let background=[0,0,0,0];for(let parent=element;parent&&background[3]<.999;parent=parent.parentElement)background=over(background,rgba(getComputedStyle(parent).backgroundColor));
+   background=over(background,[255,255,255,1]);const foreground=over(rgba(getComputedStyle(element).color),background),ink=luminance(foreground),paper=luminance(background),range=document.createRange();range.selectNodeContents(element);
+   const frame=element.closest('[data-testid="client-portal-page-frame"]').getBoundingClientRect();
+   return {ratio:(Math.max(ink,paper)+.05)/(Math.min(ink,paper)+.05),foreground,background,frame:{x:frame.x,width:frame.width},lines:[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).map(rect=>({x:rect.x,width:rect.width,height:rect.height}))};
+  });
+  if(result.ratio<4.5||!result.lines.length||result.lines.some(line=>line.x<Math.max(0,result.frame.x)-.5||line.x+line.width>Math.min(viewport.width,result.frame.x+result.frame.width)+.5))throw Error(JSON.stringify({message:'Client portal section copy is low contrast or extends beyond its frame.',id,viewport,fontScale,result}));
+  copyChecks.push({id,...result});
+ }
+ await page.screenshot({path:join(output,`client-home-actual-section-copy-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const signatures=page.getByRole('button',{name:/^Unterschriften:/});await portalControlBounds(signatures,viewport,'Client home signature action is clipped.');
  await page.screenshot({path:join(output,`client-home-actual-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  await signatures.click();const route=await page.evaluate(()=>window.__previewRoute);if(route!=='/portal/client/documents/signatures')throw Error(JSON.stringify({message:'Client home signature action loses its destination.',route}));
- report.push({screen:'client-home-actual-frame',viewport,fontScale,heroBounds,frame,signatureRoute:route});
+ report.push({screen:'client-home-actual-frame',viewport,fontScale,heroBounds,frame,copyChecks,signatureRoute:route});
 }
 async function verifyActualPortal(page,screen,viewport,fontScale=1){
  if(screen==='employee-calendar')await verifyPortalCalendar(page,viewport,fontScale);

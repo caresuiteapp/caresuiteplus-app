@@ -14,6 +14,7 @@ import {
   HealthOSStatusBadge,
 } from '@/components/healthos';
 import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/healthosShellLayoutRules';
+import { resolveHealthOSStatusDisplay } from '@/components/healthos/status/healthosStatusMapping';
 import { PremiumListRow, CachedDataBanner, PremiumButton, ErrorState, SuccessState } from '@/components/ui';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
@@ -248,33 +249,28 @@ function AssignmentList({
 }) {
   return (
     <View style={styles.listContainer}>
-      {assignments.map((item, index) => (
-        <PremiumListRow
-          key={item.assignmentId}
-          title={item.title}
-          subtitle={`${item.clientName} · ${item.timeRange}`}
-          multiline
-          leading={
-            <HealthOSStatusBadge
-              domain="assignment"
-              technicalValue={item.statusTechnical}
-              dot
-            />
-          }
-          trailing={
-            item.isActive ? (
-              <Text style={[styles.actionLabel, { color: accentColor }]}>Aktiv</Text>
-            ) : item.hasOpenDocumentation ? (
-              <Text style={[styles.actionLabel, { color: accentColor }]}>Dok. offen</Text>
-            ) : item.signaturePending ? (
-              <Text style={[styles.actionLabel, { color: accentColor }]}>Unterschr. offen</Text>
-            ) : undefined
-          }
-          showChevron
-          showDivider={index < assignments.length - 1}
-          onPress={() => onNavigate(item.navigationRoute)}
-        />
-      ))}
+      {assignments.map((item, index) => {
+        const statusLabel = resolveHealthOSStatusDisplay('assignment', item.statusTechnical).label;
+        const actionLabel = item.isActive ? 'Aktiv' : item.hasOpenDocumentation ? 'Dok. offen' : item.signaturePending ? 'Unterschr. offen' : null;
+        return (
+          <Pressable
+            key={item.assignmentId}
+            testID={`employee-home-assignment-${item.assignmentId}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title}, ${item.clientName}, ${item.timeRange}, ${statusLabel}${actionLabel ? `, ${actionLabel}` : ''}`}
+            onPress={() => onNavigate(item.navigationRoute)}
+            style={({ pressed }) => [styles.assignmentRow, index < assignments.length - 1 && styles.assignmentDivider, pressed && styles.assignmentPressed]}
+          >
+            <View style={styles.assignmentStatusRow}>
+              <HealthOSStatusBadge domain="assignment" technicalValue={item.statusTechnical} dot />
+              {actionLabel ? <Text style={[styles.actionLabel, { color: accentColor }]}>{actionLabel}</Text> : null}
+              <Ionicons name="chevron-forward" color={portalPremium.text.muted} size={18} style={styles.assignmentChevron} />
+            </View>
+            <Text style={styles.assignmentTitle}>{item.title}</Text>
+            <Text style={styles.assignmentSubtitle}>{item.clientName} · {item.timeRange}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -294,6 +290,7 @@ function TaskList({
         <PremiumListRow
           key={task.id}
           title={task.label}
+          multiline
           trailing={
             <Text style={[styles.countBadge, { color: accentColor }]}>{task.count}</Text>
           }
@@ -592,6 +589,35 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.8, transform: [{ scale: 0.988 }] },
   listContainer: {
     gap: spacing.xs,
+  },
+  assignmentRow: {
+    width: '100%',
+    minWidth: 0,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  assignmentDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: portalPremium.borderSoft,
+  },
+  assignmentPressed: { opacity: 0.8 },
+  assignmentStatusRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  assignmentChevron: { marginLeft: 'auto' },
+  assignmentTitle: {
+    ...typography.bodyStrong,
+    color: portalPremium.text.primary,
+    width: '100%',
+  },
+  assignmentSubtitle: {
+    ...typography.caption,
+    color: portalPremium.text.secondary,
+    width: '100%',
   },
   countBadge: {
     ...typography.caption,

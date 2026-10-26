@@ -6,6 +6,25 @@ ausschließlich lesende Katalogabfragen und aggregierte Fehlerzählungen. Es
 wurden keine Klienten-, Personal- oder Abrechnungsdatensätze gelesen, keine
 produktiven Funktionen aufgerufen und keine Datenbankänderungen angewandt.
 
+## Folgeprüfung: altes Viererpaket nicht anwenden
+
+Die Portal-Nachprüfung hat zusätzlich einen Vertragskonflikt des vierten
+Entwurfs `android-workflow-rls-ceilings-review.sql` bestätigt. Die enge
+Own-Employee-Lesegrenze auf `assignments` würde die aktuelle Statusprojektion
+von Kolleg:innen-Einsätzen ausfiltern. Der aktive Teamkalender und die
+Teamhistorie in Klientenakten lesen diese Projektionen heute ebenfalls;
+Besuche könnten sichtbar bleiben, aber still auf einen älteren kanonischen
+Status zurückfallen. Die bisherigen 17 Fälle deckten diesen Vertrag nicht ab.
+
+Das zuvor zusammengestellte Viererpaket ist deshalb auch nach einer Freigabe
+seiner alten Fassung nicht anwendbar. Zuerst müssen die eingeschränkten
+Status-Lesepfade und die Serverregeln gemeinsam überarbeitet und mit frischem
+Policy-/Grant-/Helper-Abgleich geprüft werden. Ein nur lokal untersuchter
+Teamstatus-Reader mit vier Rückgabefeldern ist ein Zukunftsprototyp; die
+aktuelle App ruft ihn nicht auf. 28 synthetische Fälle belegen eine engere
+Lösungsrichtung, keine produktive Migration oder vollständige Workflowfreigabe.
+Keine Policy wurde zur Behebung des UI-Fehlers verbreitert oder angewandt.
+
 ## Tatsächlicher Serverstand und vorbereitete Korrekturen
 
 Projekt: `caresuiteplus-production`, `euagyyztvmemuaiumvxm`, Frankfurt.
