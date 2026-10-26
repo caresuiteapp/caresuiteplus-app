@@ -59,6 +59,13 @@ const entry=`import React from 'react';import {View} from 'react-native';import 
 const sharedFixture=resolve('scripts/fixtures/native-portal-ui-exports.jsx'),rnWeb=require.resolve('react-native-web');
 const files=new Map(),vendorWebSelections=new Map(),track=file=>{if(file.startsWith(root+'/')&&!file.includes('/node_modules/')&&existsSync(file))files.set(relative(root,file),createHash('sha256').update(readFileSync(file)).digest('hex'));};
 const plugin={name:'actual-native-portal-audit',setup(b){
+ // Browser evidence cannot execute Android PDFBox. Preserve the exact module
+ // interface and reject only a requested device action; never fake a PDF result.
+ b.onLoad({filter:/\/modules\/caresuite-pdf\/src\/CareSuitePdfModule\.ts$/},args=>{
+  track(args.path);
+  return {loader:'js',contents:`const reject=operation=>async()=>{(globalThis.__nativePortalAuditEvents??=[]).push({type:'blocked-device-boundary',operation});throw Error('Native PDF operation requires an Android device: '+operation)};const module={extractAttachments:reject('CareSuitePdf.extractAttachments'),renderPages:reject('CareSuitePdf.renderPages')};export const getCareSuitePdfModule=()=>module;export default module;`};
+ });
+
  b.onResolve({filter:/.*/},args=>Object.hasOwn(nativePortalAuditDeviceBindings,args.path)?{path:args.path,namespace:'audit-device'}:undefined);
  b.onLoad({filter:/.*/,namespace:'audit-device'},args=>({loader:'js',resolveDir:root,contents:nativePortalAuditDeviceBindings[args.path]}));
  b.onResolve({filter:/^portal-audit:transport$/},()=>({path:'transport',namespace:'portal-audit'}));

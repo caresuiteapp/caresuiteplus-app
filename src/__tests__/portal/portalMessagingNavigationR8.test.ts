@@ -45,7 +45,9 @@ describe('Portal messaging and navigation R8', () => {
       'documents',
       'uploads',
       'messages',
+      'announcements',
       'payroll',
+      'help',
       'profile',
     ]);
   });

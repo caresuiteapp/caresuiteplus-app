@@ -13,6 +13,13 @@ import { fetchLivePortalDocumentDetail, downloadLivePortalDocument } from '@/lib
 const row = (patch = {}) => ({ id: 'proof-a', tenant_id: 'tenant-a', client_id: 'client-a', category: 'leistungsnachweis', title: 'Freigegebener Leistungsnachweis', file_name: 'proof.pdf', mime_type: 'application/pdf', storage_path: 'tenant-a/client-a/proof-a.pdf', status: 'abgeschlossen', sensitivity: 'care', portal_visible: true, source: 'upload', created_at: '2026-10-01T08:00:00Z', updated_at: '2026-10-01T08:00:00Z', ...patch });
 beforeEach(() => { vi.clearAllMocks(); f.queries = []; f.replies = []; f.released = true; f.settings.mockResolvedValue({ ok: true, data: {} }); f.assist.mockResolvedValue({ ok: false, error: 'Not an assist proof' }); f.legacy.mockResolvedValue({ ok: true, data: null }); f.pdf.mockResolvedValue({ ok: false, error: 'No PDF' }); f.signed.mockResolvedValue({ data: { signedUrl: 'https://example.invalid/scoped-proof.pdf' }, error: null }); });
 describe('proof-only portal document reader', () => {
+  it.each([undefined, {documentOnly: true}])('keeps ordinary released documents independent of proof settings: %j', async options => {
+    f.settings.mockRejectedValue(Error('Proof settings are not available'));
+    f.replies = [{data: row({category: 'vertrag'}), error: null}];
+    expect((await fetchLivePortalDocumentDetail('tenant-a', 'client-a', 'proof-a', options)).ok).toBe(true);
+    expect(f.settings).not.toHaveBeenCalled();
+    expect(f.queries[0].eq).toEqual(expect.arrayContaining([['tenant_id', 'tenant-a'], ['client_id', 'client-a'], ['portal_visible', true]]));
+  });
   it('does not let a document-only family read fall back to a service record or assist proof', async () => {
     expect((await fetchLivePortalDocumentDetail('tenant-a', 'client-a', 'proof-a', { documentOnly: true })).ok).toBe(false);
     expect(f.queries[0].neq).toContainEqual(['category', 'leistungsnachweis']);

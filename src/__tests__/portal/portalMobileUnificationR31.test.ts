@@ -13,7 +13,8 @@ describe('portal mobile unification R31', () => {
     const shell = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     const employeeHome = readSrc('app/portal/employee/(tabs)/index.tsx');
 
-    expect(shell).not.toContain('liquidPortalRoots');
+    expect(shell).toContain('let content: ReactNode = <PortalChrome kind={kind} overlay={overlay} />;');
+    expect(shell).toContain('ownerPath={Platform.OS === \'web\' ? undefined : liquidPortalRoots[kind]}');
     expect(shell).not.toContain('pathname === liquidPortalRoots');
     expect(employeeHome).toContain('EmployeePortalOverviewScreen');
     expect(employeeHome).not.toContain('PortalHomeScreen');

@@ -11,11 +11,16 @@ describe('employee portal R23 production acceptance', () => {
     const catalog = readSrc('src/liquid-command/navigation/portalCatalog.ts');
     const legacy = readSrc('src/lib/navigation/employeePortalNavigation.ts');
     const employeeCatalog = catalog.split('employee: [')[1]?.split('],\n  client: [')[0] ?? '';
-    const removed = ['Aufgaben', 'Unterschriften', 'Mitteilungen', 'Mobilität', 'Hilfe'];
+    const removed = ['Aufgaben', 'Unterschriften', 'Mobilität'];
 
     for (const label of removed) {
       expect(employeeCatalog).not.toContain(`label: '${label}'`);
       expect(legacy).not.toContain(`label: '${label}'`);
+    }
+
+    for (const id of ['announcements', 'help']) {
+      expect(employeeCatalog).toMatch(new RegExp(`id: '${id}'[^\\n]*route: '/portal/employee/${id}'`));
+      expect(employeeCatalog).not.toMatch(new RegExp(`id: '${id}'[^\\n]*compact: true`));
     }
 
     for (const label of ['Heute', 'Einsätze', 'Klient:innen', 'Kalender', 'Nachrichten', 'Profil']) {

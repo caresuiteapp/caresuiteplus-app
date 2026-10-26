@@ -424,7 +424,7 @@ export async function downloadLivePortalDocument(
       return signed.ok ? { ok: true, data: { fileName: legacy.data.fileName, mimeType: legacy.data.mimeType, downloadUrl: signed.data } } : signed;
     }
     let query = fromUnknownTable(supabase, 'client_documents')
-      .select(options?.proofOnly || options?.documentOnly ? 'id,tenant_id,client_id,category,source,storage_path' : 'storage_path')
+      .select('id,tenant_id,client_id,category,source,storage_path')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .eq('id', documentId);
