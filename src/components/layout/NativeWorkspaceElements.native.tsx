@@ -106,7 +106,7 @@ function canFlowAsText(node:WorkspaceNode,sheets:readonly WorkspaceSheet[],ances
 }
 function NativeElement({tag,props}:{tag:string;props:Props}){
   const router=useRouter(),parent=useContext(Context),owner=useContext(NativeWorkflowPageContext),[dateDraft,setDateDraft]=useState(String(props.value??props.defaultValue??'')),nativeRef=useRef<any>(null),modalScroll=useRef<ScrollView|null>(null),fields=useRef(new Map<string,Field>()),[invalid,setInvalid]=useState(false),[selectOpen,setSelectOpen]=useState(false),[fileError,setFileError]=useState(''),[open,setOpen]=useState(!!props.open),[width,setWidth]=useState<number|null>(null),id=useRef('native-field-'+Math.random().toString(36).slice(2)).current,metrics=useRef({height:0,content:0,top:0,left:0});
-  const disabled=!!(props.disabled||parent.disabled),node:WorkspaceNode={tag,props:{...props,disabled},index:props.__workspaceIndex,count:props.__workspaceCount,typeIndex:props.__workspaceTypeIndex},defaults=defaultStyle(tag),presentation=resolveWorkspacePresentation(parent.sheets,node,parent.ancestors,parent.width,{...parent.text,...defaults.text},parent.variables),box:ViewStyle={...defaults.box,...presentation.box,...props.__workspaceCellStyle},text=presentation.text,value=props.value??props.defaultValue??'',typedDate=tag==='input'&&['date','time','month','datetime-local'].includes(props.type),current=useRef({props,value,disabled});current.current={props,value:typedDate?dateDraft:value,disabled};
+  const disabled=!!(props.disabled||parent.disabled),node:WorkspaceNode={tag,props:{...props,disabled},index:props.__workspaceIndex,count:props.__workspaceCount,typeIndex:props.__workspaceTypeIndex},defaults=defaultStyle(tag),presentation=resolveWorkspacePresentation(parent.sheets,node,parent.ancestors,parent.width,{...parent.text,...defaults.text},parent.variables),box:ViewStyle={...defaults.box,...(tag==='button'&&flexGridDisplays.has(presentation.declarations.display??'')?{alignItems:'stretch',justifyContent:'flex-start',gap:0} as ViewStyle:{}),...presentation.box,...props.__workspaceCellStyle},text=presentation.text,value=props.value??props.defaultValue??'',typedDate=tag==='input'&&['date','time','month','datetime-local'].includes(props.type),current=useRef({props,value,disabled});current.current={props,value:typedDate?dateDraft:value,disabled};
   useEffect(()=>{if(typedDate)setDateDraft(String(value));},[typedDate,value]);
   useEffect(()=>{if(!typedDate||dateDraft===String(value))return;const protect=(event:any)=>{event.preventDefault();event.returnValue='';};nativeWorkflowLifecycle.add(owner,protect);return()=>nativeWorkflowLifecycle.remove(owner,protect);},[typedDate,dateDraft,value,owner]);
   const containerType=presentation.declarations['container-type']??presentation.declarations.container?.split('/')[1]?.trim(),isContainer=!!containerType&&containerType!=='normal';
@@ -149,13 +149,13 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
   {
     // Intrinsic controls already have their natural text width. Only flexible
     // normal-size actions need a word minimum; enlarged labels keep protection.
-    const needsWordMinimum=fontScale>1||Number(box.flex??box.flexGrow??0)>0;
+    const needsWordMinimum=fontScale>1||Number(box.flex??0)>0||Number(box.flexGrow??0)>0;
     const label=tag==='button'&&!normalInlineNoWrap&&needsWordMinimum?visibleTextOf(props.children,{...parent,ancestors:[...parent.ancestors,node],text,variables:presentation.variables}).trim():'';
     if(label&&!presentation.declarations.width){
       const word=Math.max(...label.split(/\s+|-/).map(value=>value.length)),padding=Number(box.paddingLeft??box.paddingHorizontal??box.padding??0)+Number(box.paddingRight??box.paddingHorizontal??box.padding??0),icon=children.some(child=>isValidElement(child)&&!textOf((child.props as Props).children).trim())?24:0,available=typeof props.__workspaceCellStyle?.width==='number'?props.__workspaceCellStyle.width:parent.width;
       const intrinsic=Math.min(available,word*Number(text.fontSize??14)*fontScale*.62+padding+icon+2*Number(box.borderWidth??0));
       box.minWidth=Math.max(Number(box.minWidth??0),intrinsic);
-      if(box.flex&&box.flex>0){box.flexGrow=box.flex;box.flexShrink=1;box.flexBasis=intrinsic;delete box.flex;}
+      if(box.flex&&box.flex>0){box.flexGrow=box.flex;box.flexShrink=1;box.flexBasis=fontScale>1?intrinsic:0;delete box.flex;}
     }
   }
   if(tag==='button'&&!presentation.declarations.display&&children.some(child=>{const childTag=tagOf(child);if(!childTag||!isValidElement<Props>(child))return false;const display=resolveWorkspacePresentation(parent.sheets,{tag:childTag,props:child.props},[...parent.ancestors,node],parent.width,text,presentation.variables).declarations.display;return ['block','flex','grid'].includes(display)||blockText.has(childTag);}))Object.assign(box,{flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:0});

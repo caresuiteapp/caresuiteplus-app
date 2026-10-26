@@ -162,7 +162,7 @@
     "Phone header actions retain their original shared row.",
     "The notebook artwork has its authored size and stays centered."
   ],
-  "validationOfNewCorrections": "Pending full CI and fresh original images; baseline success does not validate these new changes.",
+  "validationOfNewCorrections": "CI 171 passed the previous correction set; the additional CSS order, explicit font, numeric flex basis and authored metric defaults remain pending.",
   "limits": [
     "Only selected routes, states and screenshots are covered; all 692 pages are not visually/interactively accepted.",
     "No real Android navigation, font metrics, PDF/GPS/hardware or server persistence proved.",
@@ -214,7 +214,7 @@
     ],
     "transportModesArrayPresent": true,
     "operations": "Read-only system-catalog queries only; no row data or writes.",
-    "acceptance": "Schema presence replaces the earlier missing-table finding. Tenant/role authorization and authenticated write/readback remain unproved."
+    "acceptance": "employee_mobility_settings is the settings table, not the visit-selection table. Its presence does not clear the earlier visit-persistence blocker; authenticated read/write and role/tenant acceptance remain unproved."
   },
   "additionalCorrections": [
     "Pass sibling-type position to support authored first-of-type selectors; the first carrier caption regains its Web size while later metadata stays small."
@@ -233,7 +233,21 @@
     "nativeVisual": "failed: normal-size 320px client header actions wrap after the broad word-minimum restoration.",
     "consultationOriginalReview": {
       "word": "Vorlagenbibliothek remains intact in the fresh Web/native 320px originals.",
-      "limit": "Button widths, vertical spacing and the new-case line wrapping are not identical; this is not a full visual acceptance."
+      "limit": "Button widths, vertical spacing and the new-case line wrapping are not identical; this is not a full visual acceptance.",
+      "images": [
+        {
+          "name": "consultation-320x740.png",
+          "source": "f8673a5aadb7776adc107750428f68af3766da46",
+          "bytes": 135154,
+          "sha256": "64d7d12adce6832c618ba687ddee2e399a90ce65eee2d1c8b104426a8e7ec9bd"
+        },
+        {
+          "name": "web-consultation-320x740.png",
+          "source": "f8673a5aadb7776adc107750428f68af3766da46",
+          "bytes": 135258,
+          "sha256": "3e64ff20c739f050835dd09f3efbe4e1142d572ed50333431900bbc4d80d979c"
+        }
+      ]
     },
     "sourceEvidence": {
       "clientHeader": "Intrinsic inline-flex buttons, no flex grow and no explicit nowrap; phone font size 10px.",
@@ -241,5 +255,182 @@
     },
     "correction": "Apply normal-size word estimates only to positively flexible actions. Preserve enlarged-label protection and explicit-nowrap handling. The real-browser shared-row and whole-word assertions remain mandatory.",
     "fullRerunRequired": true
+  },
+  "stagingVisitMobilityRecheck": {
+    "project": "caresuiteplus-staging",
+    "projectId": "shwpweerzsfkqaivmaoc",
+    "systemCatalogOnly": true,
+    "expectedVisitTable": "employee_visit_mobility_selections",
+    "exists": false,
+    "otherTablesPresent": [
+      "employee_mobility_settings",
+      "employee_location_consents"
+    ],
+    "source": "src/lib/portal/employeePortalMobilitySelection.ts",
+    "impact": "The service still uses the absent visit-selection table. Scoped local fallback is not proof of cross-device server persistence.",
+    "correctionToEarlierClaim": "Presence of employee_mobility_settings does not clear this separate missing-table finding.",
+    "writesPerformed": false
+  },
+  "remainingConsultationCorrection": {
+    "sourceBefore": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+    "rootCauses": [
+      "Winning property keys were applied in first insertion order, allowing an earlier padding-top longhand to override a later padding shorthand.",
+      "The normal numeric-flex word guard replaced the authored zero flex basis with its minimum, distributing the remaining row disproportionately.",
+      "The explicit root font shorthand (400 14px/1.55) was ignored, so its authored line ratio never reached the subtitle and inheriting actions.",
+      "Fallback native button centering and a 6px gap leaked into explicitly styled column-flex metric cards; Web flex defaults are stretch/start with no gap."
+    ],
+    "changesPrepared": [
+      "Apply winning declarations by cascade priority, then actual declaration sequence.",
+      "Keep the normal numeric flex zero basis while preserving its visible-word minimum; enlarged actions retain their protective content basis.",
+      "Expand supported explicit font size/line-height/weight/style shorthands at the actual cascade position; retain stronger longhands and font:inherit behavior.",
+      "Use CSS alignment/gap defaults for explicitly flex/grid-styled buttons, then apply authored alignment; retain fallback styles for unstyled buttons."
+    ],
+    "checksPrepared": [
+      "Real consultation stylesheet: 16px phone workspace top padding, 24px wide workspace top padding.",
+      "Priority, importance, repeated shorthand, margin and gap ordering.",
+      "Real Web/native 320px workspace top padding and creation-action maximum of two text lines.",
+      "Real consultation root/action line metrics plus important font longhands; actual browser subtitle line ratio 1.55.",
+      "Explicit metric defaults versus centered authored actions and unstyled native fallback; actual 320px metric-label left inset."
+    ],
+    "validation": "Pending next CI and fresh original images; CI 171 validates only the previous source.",
+    "additionalTargetedCases": 15
+  },
+  "ci171Checkpoint": {
+    "run": 40411288538,
+    "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+    "result": "success",
+    "unitTests": [
+      34,
+      230,
+      211,
+      847
+    ],
+    "unitTotal": 1322,
+    "typecheck": "passed",
+    "sourceSync": {
+      "modules": 1110,
+      "routes": 269,
+      "nativeBindings": 4,
+      "stale": 0
+    },
+    "portalChecks": {
+      "administration": 108,
+      "employee": 408,
+      "clientAndFamily": 528,
+      "renderedOrReceiverChecked": 990,
+      "deviceBoundariesNotExercised": 54,
+      "unresolved": 0
+    },
+    "images": [
+      {
+        "name": "clients-1280x800.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 285135,
+        "sha256": "0915e5ef959f02bac7a4fb7f8e9e0eff5211b320bd7c5bdfe0771ad81e371498"
+      },
+      {
+        "name": "web-clients-1280x800.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 292189,
+        "sha256": "e01a5fa474466d01dd34c46635ea276b6174c67d538961df99b9acc3c1ec7c2d"
+      },
+      {
+        "name": "clients-320x740.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 113763,
+        "sha256": "ee763cb1d5a4c4d637ef223ad6baf143dd80253f5be942945cd5c72c3f5d677a"
+      },
+      {
+        "name": "web-clients-320x740.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 117458,
+        "sha256": "bc84a9cf18b5147f01b9c4a3f9c746cb21a744accad466298e3e25ead41522c8"
+      },
+      {
+        "name": "notes-1280x800.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 302188,
+        "sha256": "2036ff9c9aba3a9dc211103e6b01432247da01499be2b4775b5a92ca53f45cf0"
+      },
+      {
+        "name": "web-notes-1280x800.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 412728,
+        "sha256": "f0d5929faf8de665b21007637ef370c457512e76121649d2f1c6271f504e1c71"
+      },
+      {
+        "name": "consultation-320x740.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 135154,
+        "sha256": "64d7d12adce6832c618ba687ddee2e399a90ce65eee2d1c8b104426a8e7ec9bd"
+      },
+      {
+        "name": "web-consultation-320x740.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 135258,
+        "sha256": "3e64ff20c739f050835dd09f3efbe4e1142d572ed50333431900bbc4d80d979c"
+      },
+      {
+        "name": "employee-audit-client-detail-default-error-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 61060,
+        "sha256": "aecfffac74cc7e611d7c4de32df797229542905d9d6e68b8e975256dee9ac498"
+      },
+      {
+        "name": "employee-audit-open-assignments-default-empty-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 82378,
+        "sha256": "94921789f2f78425aadaba4ff2fc279d6b9ac3c869808b5e69e14d817c734cca"
+      },
+      {
+        "name": "client-audit-request-client-ready-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 77975,
+        "sha256": "a1dcdf865c61b89eb6a323cae403129da263bb2dec2edb7305056f35d5d62505"
+      },
+      {
+        "name": "client-audit-request-client-empty-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 79582,
+        "sha256": "fde4fdea00c7a81752169d6bd1241bbd4be36d7ca4aee441bf972a4121a87ed9"
+      },
+      {
+        "name": "client-audit-request-client-ready-1280x800-scale-1.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 177749,
+        "sha256": "bae8abd04b42cf87b5102560857c98bd691008ac8a134abfaa0dac8e2111be4a"
+      },
+      {
+        "name": "client-audit-proofs-client-empty-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 98914,
+        "sha256": "d72e4486abcdcc5da00a2693233a82d0691c334e0a96c20a1f985eec85781bc0"
+      },
+      {
+        "name": "client-audit-proofs-client-empty-320x740-scale-1.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 63403,
+        "sha256": "8b982db329c94bbd556fadedfcc698ffdbe81a8bf9cdc4b794a34c457cb7736c"
+      },
+      {
+        "name": "client-audit-profile-client-empty-360x800-scale-1.6.png",
+        "source": "b0d1619ac148afe1153f8c7ff95f64cefbdfb401",
+        "bytes": 62746,
+        "sha256": "08177a35b454efdbd1de76fe887a678706cf8a276c8d636cc9d6ed6074948307"
+      }
+    ],
+    "manualReview": {
+      "newlyViewed": [
+        "clients-320x740.png",
+        "clients-1280x800.png"
+      ],
+      "confirmed": [
+        "Phone import and refresh actions share the original row.",
+        "The wide table retains its tracks, compact header, full record action and restored first carrier caption size."
+      ],
+      "consultation": "Its byte-identical original remains visually open for spacing, action proportions and metric alignment.",
+      "notAllImagesVisuallyReviewed": true
+    },
+    "scope": "A passing selected audit, not acceptance of all 692 pages or real Android hardware."
   }
 }

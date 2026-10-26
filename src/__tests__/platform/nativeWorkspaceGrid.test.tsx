@@ -33,7 +33,7 @@ vi.mock('@/liquid-command/components/DesktopCatalogArtwork.tsx',()=>({DesktopCat
 import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitcher.native';
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
-import {NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
 import {WebActionIcon} from '@/components/icons/WebActionIcon.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
@@ -130,10 +130,19 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="icon-only"]')!)?.minWidth).toBeUndefined();
   });
 
-  it('retains a readable minimum for a flexible normal-size long-word action',async()=>{
-    await render(<NativeWorkspaceStyleScope css={['.library{display:inline-flex;flex:1;white-space:normal}']}><NativeDiv><NativeButton className="library" data-testid="library">Vorlagenbibliothek</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+  it.each(['flex:1','flex:0 1 0;flex-grow:1'])('retains a readable minimum and zero basis for a flexible normal-size long-word action (%s)',async(flex)=>{
+    await render(<NativeWorkspaceStyleScope css={['.library{display:inline-flex;'+flex+';white-space:normal}']}><NativeDiv><NativeButton className="library" data-testid="library">Vorlagenbibliothek</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
     const minimum=Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.minWidth);
     expect(minimum).toBeGreaterThan(100);expect(minimum).toBeLessThanOrEqual(360);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.flexBasis).toBe(0);
+  });
+
+  it('uses authored CSS flex defaults for metric buttons while keeping explicit action alignment',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.metric{display:flex;flex-direction:column;text-align:left}.action{display:inline-flex;align-items:center;justify-content:center;gap:8px}']}><NativeDiv><NativeButton className="metric" data-testid="metric"><NativeSpan>Offene Besuche</NativeSpan><NativeStrong>2</NativeStrong></NativeButton><NativeButton className="action" data-testid="aligned-action">Aktion</NativeButton><NativeButton data-testid="unstyled-action">Aktion</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+    const metric=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="metric"]')!)!,action=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="aligned-action"]')!)!,fallback=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="unstyled-action"]')!)!;
+    expect(metric.alignItems).toBe('stretch');expect(metric.justifyContent).toBe('flex-start');expect(metric.gap).toBe(0);
+    expect(action.alignItems).toBe('center');expect(action.justifyContent).toBe('center');expect(action.rowGap).toBe(8);
+    expect(fallback.alignItems).toBe('center');expect(fallback.gap).toBe(6);
   });
 
   it('keeps normal-size intrinsic header actions at their natural content width',async()=>{

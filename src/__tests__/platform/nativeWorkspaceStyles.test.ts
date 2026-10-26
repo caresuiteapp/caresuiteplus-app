@@ -1,3 +1,4 @@
+import {consultationStyles} from '@/features/beratung/consultationStyles';
 import {academyStyles} from '@/features/akademie/academyStyles';
 import {personnelCss} from '@/components/office/personnelCss.web';
 import {describe,it,expect} from 'vitest';
@@ -8,6 +9,40 @@ import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,wor
 import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.shared';
 import {notesWorkspaceCss} from '@/components/office/notes/notesWorkspaceCss.native';
 describe('native presentation of business layouts',()=>{
+  it.each([
+    ['.copy{font:400 14px/1.55 Inter,sans-serif}',14,'400','normal',21.7],
+    ['.copy{font:italic 600 1rem/1.4 "Inter",sans-serif}',16,'600','italic',22.4],
+    ['.copy{font:400 14px/1.55 Inter;font-size:12px!important}',12,'400','normal',18.6],
+    ['.copy{font-size:12px!important;font:400 14px/1.55 Inter}',12,'400','normal',18.6],
+  ] as const)('expands supported font metrics without overriding stronger longhands (%s)',(css,size,weight,style,line)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss(css)],{tag:'p',props:{className:'copy'}},[],288);
+    expect(result.text.fontSize).toBe(size);expect(result.text.fontWeight).toBe(weight);expect(result.text.fontStyle).toBe(style);expect(result.text.lineHeight).toBeCloseTo(line);
+  });
+  it('inherits the real consultation line ratio into the smaller header action',()=>{
+    const sheets=[compileWorkspaceCss(consultationStyles)],rootNode={tag:'div',props:{className:'cw-root'}},root=resolveWorkspacePresentation(sheets,rootNode,[],288),button=resolveWorkspacePresentation(sheets,{tag:'button',props:{className:'cw-button'}},[rootNode],288,root.text,root.variables);
+    expect(root.text.fontSize).toBe(14);expect(root.text.lineHeight).toBeCloseTo(21.7);
+    expect(button.text.fontSize).toBe(13);expect(button.text.lineHeight).toBeCloseTo(20.15);
+  });
+
+  it.each([
+    ['.pane{padding-top:24px;padding:16px}',16,16],
+    ['.pane{padding:16px;padding-top:24px}',24,16],
+    ['.pane{padding:16px;padding-top:24px;padding:8px}',8,8],
+    ['.pane{padding-top:24px!important;padding:16px}',24,16],
+    ['.scope .pane{padding-left:28px}.pane{padding:12px}',12,28],
+  ] as const)('preserves shorthand/longhand cascade priority and declaration order (%s)',(css,top,left)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss(css)],{tag:'main',props:{className:'pane'}},[{tag:'div',props:{className:'scope'}}],288);
+    expect(result.box.paddingTop).toBe(top);expect(result.box.paddingLeft).toBe(left);
+  });
+  it('lets later margin and gap shorthands reset their earlier longhands',()=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss('.pane{margin-top:24px;row-gap:20px;margin:8px;gap:6px 10px}')],{tag:'div',props:{className:'pane'}},[],288);
+    expect(result.box.marginTop).toBe(8);expect(result.box.rowGap).toBe(6);expect(result.box.columnGap).toBe(10);
+  });
+  it.each([[288,16,12],[1280,24,38.4]] as const)('uses the real consultation workspace padding at %spx',(width,top,left)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss(consultationStyles)],{tag:'main',props:{className:'cw-workspace'}},[{tag:'div',props:{className:'cw-root'}}],width,{}, {'--cs-native-viewport-width':String(width)});
+    expect(result.box.paddingTop).toBe(top);expect(result.box.paddingLeft).toBeCloseTo(left);
+  });
+
   it('matches first-of-type with type position instead of overall child position',()=>{
     const node={tag:'small',props:{},index:1,count:4,typeIndex:0};
     expect(matchesWorkspaceSelector('small:first-of-type',node,[])).toBe(true);

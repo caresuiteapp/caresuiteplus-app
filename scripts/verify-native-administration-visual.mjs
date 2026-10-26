@@ -440,6 +440,16 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
+  if((screen==='consultation'||screen==='web-consultation')&&viewport.width===320){
+   const workspace=await page.getByLabel('Beratung und Schulungen',{exact:true}).boundingBox(),header=await page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}).locator('..').locator('..').boundingBox();
+   if(!workspace||!header||Math.abs(header.y-workspace.y-16)>1)throw Error(JSON.stringify({message:'Consultation phone workspace must use the final authored 16px top padding.',screen,viewport,workspace,header}));
+   const lines=await page.getByRole('button',{name:'+ Neuen Fall anlegen',exact:true}).evaluate(element=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT),ys=new Set();let node;while((node=walker.nextNode())){if(!node.textContent.trim())continue;const range=document.createRange();range.selectNodeContents(node);for(const rect of range.getClientRects())if(rect.width>0&&rect.height>0)ys.add(Math.round(rect.y));}return ys.size;});
+   if(lines<1||lines>2)throw Error(JSON.stringify({message:'Consultation phone creation action must retain the shared maximum of two text lines.',screen,viewport,lines}));
+   const subtitle=await page.getByText('Beratungsbesuche nach § 37.3 und häusliche Schulungen nach § 45.',{exact:true}).evaluate(element=>{const style=getComputedStyle(element);return {fontSize:parseFloat(style.fontSize),lineHeight:parseFloat(style.lineHeight)};});
+   if(!Number.isFinite(subtitle.lineHeight)||Math.abs(subtitle.lineHeight/subtitle.fontSize-1.55)>.02)throw Error(JSON.stringify({message:'Consultation subtitle must inherit its authored font line ratio.',screen,viewport,subtitle}));
+   const metricLabel=page.getByText('Offene Besuche',{exact:true}),labelBounds=await metricLabel.boundingBox(),metricBounds=await metricLabel.locator('..').boundingBox();
+   if(!labelBounds||!metricBounds||Math.abs(labelBounds.x-metricBounds.x-13)>1)throw Error(JSON.stringify({message:'Consultation metric labels must start at the authored left padding.',screen,viewport,labelBounds,metricBounds}));
+  }
   if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100){
    const first=page.getByRole('button',{name:'Klient:in ↑',exact:true}).locator('..'),cell=await first.boundingBox(),row=await first.locator('..').boundingBox();
    if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015||row.height<32||row.height>50)throw Error(JSON.stringify({message:'Client table must preserve its authored column widths and compact header height.',screen,viewport,cell,row}));
