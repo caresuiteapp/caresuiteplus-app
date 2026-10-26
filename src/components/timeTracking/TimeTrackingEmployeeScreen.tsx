@@ -303,11 +303,12 @@ export function TimeTrackingEmployeeScreen() {
       {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
       <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
         <View style={styles.kpiRow}>
-          <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
+          <PremiumKpiCard label="Status" value={statusLabel} valueLines={0} accentColor={accent} />
           <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
           <PremiumKpiCard
             label="Netto"
             value={session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—'}
+            valueLines={0}
             accentColor={accent}
           />
         </View>

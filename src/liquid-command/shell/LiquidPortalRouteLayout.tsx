@@ -108,6 +108,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     [messageInbox.threads],
   );
   const messageBadge = formatNavBadgeLabel(unreadMessageCount);
+  const compactMessageBadge = unreadMessageCount > 0
+    ? unreadMessageCount > 99 ? '99+' : String(unreadMessageCount)
+    : undefined;
   const menuBottomPadding = Math.max(insets.bottom + 18, 30);
 
   const navigationLabel = (id: string, label: string) =>
@@ -210,7 +213,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   <LiquidIconButton
                     label={navigationLabel('messages', 'Nachrichten')}
                     glyph="♧"
-                    badge={messageBadge}
+                    badge={compactMessageBadge}
                     onPress={() => router.push(
                       kind === 'employee'
                         ? '/portal/employee/messages'
@@ -277,11 +280,17 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   numberOfLines={2}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.id === 'home' ? (kind === 'employee' ? 'Heute' : 'Start') : item.id === 'documents' ? 'Dateien' : item.id === 'messages' ? 'Chats' : item.id === 'open-assignments' ? 'Offen' : item.id === 'logbook' ? 'Fahrten' : item.label}
+                  {item.id === 'home' ? (kind === 'employee' ? 'Heute' : 'Start')
+                    : item.id === 'documents' ? 'Dateien'
+                    : item.id === 'messages' ? 'Chats'
+                    : item.id === 'assignments' || item.id === 'appointments' ? 'Plan'
+                    : item.id === 'open-assignments' ? 'Offen'
+                    : item.id === 'logbook' ? 'Fahrt'
+                    : item.label}
                 </Text>
-                {item.id === 'messages' && messageBadge ? (
+                {item.id === 'messages' && compactMessageBadge ? (
                   <View style={styles.bottomUnreadBadge}>
-                    <Text style={styles.bottomUnreadBadgeText}>{messageBadge}</Text>
+                    <Text style={styles.bottomUnreadBadgeText}>{compactMessageBadge}</Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -509,8 +518,9 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   },
   unreadBadge: {
     minWidth: 42,
-    height: 24,
+    minHeight: 24,
     paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: 12,
     backgroundColor: liquidColors.blue500,
     alignItems: 'center',
@@ -672,9 +682,10 @@ const styles = StyleSheet.create(withCareSuiteTypography({
     position: 'absolute',
     top: 1,
     right: 4,
-    minWidth: 34,
-    height: 18,
+    minWidth: 18,
+    minHeight: 18,
     paddingHorizontal: 4,
+    paddingVertical: 1,
     borderRadius: 9,
     backgroundColor: liquidColors.blue500,
     alignItems: 'center',
@@ -682,8 +693,8 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   },
   bottomUnreadBadgeText: {
     color: liquidColors.onAccent,
-    fontSize: webScaledFontMetric(13),
-    lineHeight: webScaledFontMetric(18),
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(12),
     fontWeight: '900',
   },
   bottomGlyph: {

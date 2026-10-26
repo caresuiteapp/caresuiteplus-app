@@ -106,6 +106,25 @@ function selectedPagePattern(contextKey: string): RegExp {
 }
 
 describe('installed Expo Router resolves the actual native application catalogue', () => {
+  it('selects and loads every Web receiver without executing Android or native route modules', () => {
+    const webContext = Object.assign((key: string) => {
+      if (/\.(?:native|android|ios)\.[jt]sx?$/.test(key)) throw Error('Native route executed in Web: ' + key);
+      return { default: () => null, source: key };
+    }, { keys: () => keys, resolve: (key: string) => key, id: 'actual-web-app-files' });
+    const tree = getRoutes(webContext, { platform: 'web', ignoreRequireErrors: false, ignoreEntryPoints: true });
+    const receivers: string[] = [];
+    function inspect(node: any) {
+      if (!node.generated) {
+        expect(node.contextKey).not.toMatch(/\.(?:native|android|ios)\.[jt]sx?$/);
+        expect(node.loadRoute().source).toBe(node.contextKey);
+        receivers.push(node.contextKey);
+      }
+      for (const child of node.children) inspect(child);
+    }
+    inspect(tree);
+    expect(receivers.length).toBeGreaterThan(600);
+    expect(receivers).toContain('./akademie/auswertungen.web.tsx');
+  });
   it('includes every active catalogue and navigation entry plus representative portal links', () => {
     expect(new Set(desktopCases.map(row => row.href)).size).toBeGreaterThan(40);
     expect(cases.flatMap(row => row.origins ?? []).some(label => label.startsWith('Apps/'))).toBe(true);
