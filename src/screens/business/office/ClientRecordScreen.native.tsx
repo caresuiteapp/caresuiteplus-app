@@ -1,5 +1,5 @@
 // Generated native presentation from src/screens/business/office/ClientRecordScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeP,NativeDetails,NativeSummary} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeP,NativeDiv,NativeDetails,NativeSummary} from '@/components/layout/NativeWorkspaceElements.native';
 import { usePageFlag } from "../../../hooks/usePageFlag.native.ts";
 import { useBudgetRecordTabs } from "../../../hooks/useBudgetRecordTabs.native.ts";
 import { useEffect, useMemo, useState } from 'react';
@@ -29,7 +29,7 @@ import { buildClientRecordOverview, resolveClientCostBearer } from "../../../lib
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { resolveClientRecordTabKey, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import { CLIENT_RECORD_TAB_LABELS, clientRecordTabsForRequestedView, resolveClientRecordTabKey, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { ClientRecordTabContent } from "./ClientRecordTabPanels.native.tsx";
 import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -128,12 +128,14 @@ function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp,
     const { profile } = useAuth();
     const tenantId = useServiceTenantId();
     const { can } = usePermissions();
-    const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
+    const { detail, careContexts, tabs: contextTabs, loading, error, refresh } = useClientRecord(id);
     const fullQuery = useClientFullDetail(id);
     const fullClient = fullQuery.data?.id === id ? fullQuery.data : null;
     const [archiving, setArchiving] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
     const resolvedTabParam = resolveClientRecordTabKey(initialTabOverride ?? tabParam);
+    const canViewBilling = can('clients.billing_profile.view');
+    const tabs = useMemo(() => clientRecordTabsForRequestedView(contextTabs, resolvedTabParam, canViewBilling), [contextTabs, resolvedTabParam, canViewBilling]);
     const initialChoice = resolvedTabParam ?? storedUrlTab;
     const initialTab = initialChoice && tabs.includes(initialChoice)
         ? initialChoice
@@ -185,6 +187,13 @@ function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp,
         <EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden."/>
       </ScreenShell>);
     }
+    const unavailableTitle = resolvedTabParam && !tabs.includes(resolvedTabParam)
+        ? `${CLIENT_RECORD_TAB_LABELS[resolvedTabParam] ?? 'Angeforderter Aktenbereich'} nicht verfügbar`
+        : null;
+    const unavailableNotice = unavailableTitle ? <SectionPanel title={unavailableTitle}><NativeP>Dieser Bereich steht in dieser Akte derzeit nicht zur Verfügung. Die angeforderte Ansicht wurde nicht geöffnet.</NativeP><PremiumButton title="Zur Aktenübersicht" variant="secondary" onPress={() => router.replace(`/business/office/clients/${encodeURIComponent(detail.id)}` as never)}/></SectionPanel> : null;
+    if (unavailableNotice && activeTab === 'uebersicht') {
+        return embedded ? unavailableNotice : <ScreenShell title="Klient:innenakte" subtitle={unavailableTitle ?? undefined}>{unavailableNotice}</ScreenShell>;
+    }
     const canEdit = can('office.clients.edit');
     const canArchive = can('office.clients.archive') && detail.status !== 'archiviert';
     const canDelete = can('office.clients.delete');
@@ -213,6 +222,7 @@ function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp,
 
       <ClientRecordNavigation tabs={tabs} value={activeTab} onChange={selectTab}>
       <View style={styles.tabPanel}>
+        {unavailableNotice}
         {budgetNavigationNotice ? <NativeP role="status" style={{ margin: 0, padding: '12px 15px', border: '1px solid #dfc88d', borderRadius: 12, background: '#fff8e8', color: '#79551d', fontSize: 'calc(12px * var(--app-font-scale, 1))' }}>{budgetNavigationNotice}</NativeP> : null}
         {activeTab === 'uebersicht' && overview ? (<ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} clientId={detail.id}/>) : null}
         {activeTab === 'stammdaten' && (<StammdatenTab detail={detail} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} careContexts={careContexts} onEditMasterData={canEdit ? handleEditMasterData : undefined}/>)}
@@ -225,7 +235,7 @@ function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp,
             <DetailInfoRow label="E-Mail" value={detail.email ?? '—'}/>
           </SectionPanel>) : null}
         {activeTab === 'leistungsbereiche' ? (<ClientRecordTabContent tab="leistungsbereiche" clientId={detail.id} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh} onBudgetDirtyChange={onBudgetDirtyChange} onBudgetBusyChange={onBudgetBusyChange}/>) : null}
-        {!['uebersicht', 'stammdaten', 'kontakt', 'leistungsbereiche'].includes(activeTab) ? (<ClientRecordTabContent tab={activeTab} clientId={detail.id} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh} onBudgetDirtyChange={onBudgetDirtyChange} onBudgetBusyChange={onBudgetBusyChange}/>) : null}
+        {activeTab === 'abrechnung' && !fullClient ? (fullQuery.loading ? <LoadingState message="Abrechnungsdaten werden geladen…"/> : <ErrorState message={fullQuery.error ?? 'Die Abrechnungsdaten dieser Akte sind derzeit nicht verfügbar.'} onRetry={fullQuery.refresh}/>) : !['uebersicht', 'stammdaten', 'kontakt', 'leistungsbereiche'].includes(activeTab) ? (<ClientRecordTabContent tab={activeTab} clientId={detail.id} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh} onBudgetDirtyChange={onBudgetDirtyChange} onBudgetBusyChange={onBudgetBusyChange}/>) : null}
       </View>
 
       </ClientRecordNavigation>

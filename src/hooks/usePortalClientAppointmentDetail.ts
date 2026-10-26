@@ -12,6 +12,7 @@ import { subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { DEFAULT_LIVE_POLL_MS } from './core';
 import { useAsyncQuery, useMutation } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalClientAppointmentDetail(appointmentId: string | undefined) {
   const {
@@ -21,14 +22,16 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
     roleKey,
     isLinkedReady,
     isResolvingClientLink,
+    familyAccess,
   } = usePortalActor();
   const profileId = actorId ?? '';
-  const queryKey = JSON.stringify([tenantId, clientId, actorId, roleKey, appointmentId]);
+  const familyAppointmentsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'appointments');
+  const queryKey = JSON.stringify([tenantId, clientId, actorId, roleKey, appointmentId, familyAppointmentsAllowed]);
   const current = useRef<string | null>(queryKey);
   current.current = queryKey;
   useEffect(() => { current.current = queryKey; return () => { current.current = null; }; }, [queryKey]);
   const publishBasic = useRef<(detail: PortalClientAppointmentDetail) => void>(() => {});
-  const enabled = !!appointmentId && isLinkedReady && !!tenantId && !!clientId;
+  const enabled = !!appointmentId && isLinkedReady && !!tenantId && !!clientId && familyAppointmentsAllowed;
   const scope = { tenantId: tenantId ?? '', accountId: profileId, clientId: clientId ?? '', roleKey };
   const live = useMemo(() => tenantId && clientId ? {
     tenantId,
@@ -61,18 +64,19 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
         tenantId,
         clientId,
       }),
-    { successMessage: 'Änderungsanfrage gesendet.' },
+    { successMessage: 'Änderungsanfrage gesendet.', scopeKey: queryKey },
   );
 
   const refresh = query.refresh;
 
   const requestChange = useCallback(
     async (reason: string) => {
+      if (!enabled) return null;
       const result = await changeMutation.mutate(reason);
       if (result) await refresh();
       return result;
     },
-    [changeMutation, refresh],
+    [enabled, changeMutation, refresh],
   );
 
   return {
@@ -82,7 +86,9 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
     refreshError: query.refreshError,
     loading: isResolvingClientLink || (query.loading && !query.data),
     error:
-      !isResolvingClientLink && !clientId
+      !familyAppointmentsAllowed
+        ? 'Einsätze sind für diesen Angehörigenzugang nicht freigegeben.'
+      : !isResolvingClientLink && !clientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
         : query.error
           ? toPortalUserFacingError(

@@ -14,8 +14,9 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
   const { user, profile, portalSession } = useAuth();
   const actor = usePortalActor();
   const userId = user?.id ?? profile?.id ?? portalSession?.accountId ?? null;
-  const employeeId = actor.roleKey === 'employee_portal' ? actor.employeeId : null;
-  const enabled = !!tenantId && !!userId && (actor.roleKey !== 'employee_portal' || !!employeeId);
+  const employeeActor = actor.roleKey === 'employee_portal' || actor.roleKey === 'caregiver' || actor.roleKey === 'nurse';
+  const employeeId = employeeActor ? actor.employeeId : null;
+  const enabled = !!tenantId && !!userId && (!employeeActor || !!employeeId);
   const query = useAsyncQuery(async () => {
     const [list, count] = await Promise.all([
       fetchUserNotifications(tenantId!, userId!, employeeId, tab),
@@ -24,9 +25,9 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
     if (!list.ok) return list;
     return { ok: true as const, data: { notifications: list.data,
       unreadCount: count?.ok ? count.data : list.data.filter((item) => !item.isRead).length } };
-  }, [tenantId, userId, employeeId, tab], {
+  }, [tenantId, userId, employeeId, actor.roleKey, tab], {
     enabled,
-    queryKey: JSON.stringify(['notifications', tenantId, userId, employeeId, tab]),
+    queryKey: JSON.stringify(['notifications', tenantId, userId, employeeId, actor.roleKey, tab]),
     live: tenantId && userId ? { tenantId,
       subscribe: (tid, handler) => subscribeToNotificationChanges(tid, handler) } : undefined,
   });

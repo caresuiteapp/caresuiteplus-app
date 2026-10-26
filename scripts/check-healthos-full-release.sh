@@ -10,6 +10,7 @@ npx --no-install vitest run src/__tests__/auth/authServiceTimeout.test.ts src/__
 node --experimental-vm-modules --test scripts/verify-platform-observation.test.mjs
 # Current reviewed server contracts run only against isolated synthetic PostgreSQL data.
 node --test --test-concurrency=1 supabase/tests/workflow_payroll_authorization.test.mjs supabase/tests/workflow_server_repair_authorization_draft.test.mjs supabase/tests/family_portal_access_scope.test.mjs supabase/tests/workflow_current_rls_authorization.test.mjs
+npx --no-install vitest run src/__tests__/clients/clientRecordRouteDestinations.test.tsx src/__tests__/clients/clientRecordBudgetNavigationWeb.test.tsx src/__tests__/tenant/tenantServiceCatalogPersistence.test.ts src/__tests__/permissions/runtimePermissionScope.test.tsx src/__tests__/permissions/runtimePermissionRepository.test.ts src/__tests__/portal/employeePayrollScreenInteraction.test.tsx src/__tests__/portal/familyHomeTransportCapabilities.test.ts src/__tests__/portal/employeeMobilityEntry.test.tsx src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx src/__tests__/clients/clientRecordReadScope.test.tsx --maxWorkers=2
 npm run audit:portal-update -- --maxWorkers=2
 npm run audit:android-update
 npm run audit:android-administration

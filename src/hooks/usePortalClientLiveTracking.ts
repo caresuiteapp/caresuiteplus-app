@@ -12,6 +12,7 @@ import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
 import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 import { useDevicePerformance, livePollIntervalMs } from '@/lib/performance';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export type PortalClientLiveTrackingState = {
   assignmentId: string | null;
@@ -65,25 +66,30 @@ export function usePortalClientLiveTracking() {
   const {
     tenantId,
     clientId,
+    actorId,
+    roleKey,
+    familyAccess,
     isLinkedReady,
     isResolvingClientLink,
   } = usePortalActor();
+  const appointmentsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'appointments');
+  const enabled = isLinkedReady && !!tenantId && !!clientId && appointmentsAllowed;
   const perf = useDevicePerformance();
   const [tick, setTick] = useState(0);
 
   const bump = useCallback(() => setTick((t) => t + 1), []);
 
   useVisibilityAwarePolling({
-    enabled: Boolean(tenantId && clientId),
+    enabled,
     intervalMs: livePollIntervalMs(perf.profile, LIVE_TRACKING_POLL_MS),
     onPoll: bump,
   });
 
   useEffect(() => {
-    if (!tenantId) return;
+    if (!enabled || !tenantId) return;
     const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, bump);
     return unsubscribe;
-  }, [tenantId, bump]);
+  }, [enabled, tenantId, bump]);
 
   const query = useAsyncQuery(
     async () => {
@@ -102,7 +108,7 @@ export function usePortalClientLiveTracking() {
       }
     },
     [tenantId, clientId, tick],
-    { enabled: isLinkedReady && !!tenantId && !!clientId },
+    { enabled, queryKey: JSON.stringify([tenantId, actorId, roleKey, clientId, appointmentsAllowed]) },
   );
 
   const refresh = useCallback(async () => {
@@ -113,7 +119,9 @@ export function usePortalClientLiveTracking() {
     state: query.refreshError ? undefined : query.data as PortalClientLiveTrackingState | undefined,
     loading: isResolvingClientLink || query.loading,
     error:
-      !isResolvingClientLink && !clientId
+      !appointmentsAllowed
+        ? 'Einsätze sind für diesen Angehörigenzugang nicht freigegeben.'
+      : !isResolvingClientLink && !clientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
         : query.error || query.refreshError
           ? toPortalUserFacingError(

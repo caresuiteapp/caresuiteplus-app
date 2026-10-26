@@ -131,6 +131,22 @@ export function usePortalActor(): PortalActor {
     return () => clearTimeout(timeout);
   }, [offlineLinkExpiresAt, identityClock]);
 
+  const familyScopeExpiresAt = roleKey === 'family_portal' ? familyAccess?.expiresAt : null;
+  useEffect(() => {
+    if (!familyScopeExpiresAt) return;
+    const expiresAt = Date.parse(familyScopeExpiresAt);
+    if (!Number.isFinite(expiresAt)) return;
+    const timeout = setTimeout(() => {
+      if (priorIdentity.current !== identity) return;
+      if (expiresAt > Date.now()) { setIdentityClock(Date.now()); return; }
+      // Withdraw the retained data identity too, so all scoped queries discard
+      // their data even when no navigation or network refresh happens.
+      setFamilyAccess(null);
+      setResolvedClientId(null);
+    }, Math.min(86_400_000, Math.max(0, expiresAt - Date.now())));
+    return () => clearTimeout(timeout);
+  }, [familyScopeExpiresAt, identity, identityClock]);
+
   useEffect(() => {
     if (!isClientPortalActor || !isClientPortalScopeId(tenantId) || !isLivePortal) {
       setIsResolvingClientLink(false);
@@ -146,6 +162,7 @@ export function usePortalActor(): PortalActor {
 
       if (!isClientPortalScopeId(portalAccountId)) {
         const sessionResult = await getSession();
+        if (cancelled) return;
         const metaAccountId = sessionResult.ok
           ? sessionResult.data?.user.app_metadata?.portal_account_id
           : null;
@@ -213,7 +230,12 @@ export function usePortalActor(): PortalActor {
       }
 
       setIsResolvingClientLink(false);
-    })();
+    })().catch(() => {
+      if (cancelled) return;
+      setResolvedClientId(null);
+      setFamilyAccess(null);
+      setIsResolvingClientLink(false);
+    });
 
     return () => {
       cancelled = true;
@@ -228,6 +250,7 @@ export function usePortalActor(): PortalActor {
     portalSession?.accountId,
     portalSession?.relativeContactId,
     updatePortalSession,
+    identity,
   ]);
 
   const employeeIdentityInput = useRef({ portalSession, user, session, sessionEmployeeId, profileEmployeeId });

@@ -4,13 +4,13 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RegisterScreen } from '@/screens/onboarding/RegisterScreen';
 import { CompanySetupScreen } from '@/screens/onboarding/CompanySetupScreen';
-import { BusinessAccessScreen, RegisterOrganizationScreen } from '@/liquid-command/screens/AccessScreens';
+import { BusinessAccessScreen, RegisterOrganizationScreen, EmployeeAccessScreen, PortalAccessScreen } from '@/liquid-command/screens/AccessScreens';
 
 const h = vi.hoisted(() => ({
-  user: null as any, session: null as any, complete: vi.fn(), update: vi.fn(), replace: vi.fn(), welcome: vi.fn(), register: vi.fn(), get: vi.fn(), set: vi.fn(), remove: vi.fn(), login: vi.fn(), signIn: vi.fn(), scroll: vi.fn(),
+  focused: true, portalLogin: vi.fn(), clientLogin: vi.fn(), completePortal: vi.fn(), portalSignIn: vi.fn(), user: null as any, session: null as any, complete: vi.fn(), update: vi.fn(), replace: vi.fn(), welcome: vi.fn(), register: vi.fn(), get: vi.fn(), set: vi.fn(), remove: vi.fn(), login: vi.fn(), signIn: vi.fn(), scroll: vi.fn(),
 }));
-vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: h.user, portalSession: h.session, updatePortalSession: h.update, signInWithSupabaseSession: h.signIn }),
-  completeFirstLogin: h.complete, loginBusinessUser: h.login, loginEmployeePortal: vi.fn(), registerBusinessTenant: h.register,
+vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: h.user, portalSession: h.session, updatePortalSession: h.update, signInPortalSession: h.portalSignIn, signInWithSupabaseSession: h.signIn }),
+  completeFirstLogin: h.complete, loginBusinessUser: h.login, loginEmployeePortal: h.portalLogin, registerBusinessTenant: h.register,
 }));
 vi.mock('react-native', async () => {
   const react = await import('react');
@@ -24,13 +24,13 @@ vi.mock('react-native', async () => {
 });
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: h.get, setItem: h.set, removeItem: h.remove } }));
-vi.mock('expo-router', async () => { const {useEffect} = await import('react'); return { Link: () => null, useRouter: () => ({ replace: h.replace }), Redirect: ({href}: any) => {useEffect(() => {h.replace(href);}, [href]); return null;} }; });
+vi.mock('expo-router', async () => { const {useEffect} = await import('react'); return { Link: () => null, useIsFocused: () => h.focused, useRouter: () => ({ replace: h.replace }), Redirect: ({href}: any) => {useEffect(() => {h.replace(href);}, [href]); return null;} }; });
 vi.mock('@/lib/auth/authNavigation', () => ({ resolveBusinessDashboardRoute: () => '/business' }));
 vi.mock('@/lib/auth/businessWelcomeSession', () => ({ markBusinessWelcomePending: vi.fn() }));
 vi.mock('@/lib/auth/portalWelcomeSession', () => ({ markPortalWelcomePending: h.welcome }));
-vi.mock('@/lib/auth/clientPortalAuthService', () => ({ loginClientPortal: vi.fn() }));
+vi.mock('@/lib/auth/clientPortalAuthService', () => ({ loginClientPortal: h.clientLogin }));
 vi.mock('@/lib/auth/clientPortalUsernameGenerator', () => ({ sanitizePortalUsernameInput: (s: string) => s }));
-vi.mock('@/lib/auth/portalLoginFlow', () => ({ completePortalLogin: vi.fn() }));
+vi.mock('@/lib/auth/portalLoginFlow', () => ({ completePortalLogin: h.completePortal }));
 vi.mock('@/lib/auth/portalCodeGenerator', () => ({ normalizePortalCodeInput: (s: string) => s }));
 vi.mock('@/lib/supabase/authService', () => ({ signOut: vi.fn() }));
 vi.mock('@/liquid-command/components/CompanyRegistrationSelect', () => ({ CompanyRegistrationSelect: () => null }));
@@ -61,7 +61,7 @@ async function review() {
   await act(async () => host.querySelector<HTMLButtonElement>('[role=checkbox]')!.click()); await click('Weiter');
 }
 beforeEach(() => {
-  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.clearAllMocks(); h.user = null; h.session = null;
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.clearAllMocks(); h.user = null; h.session = null; h.focused = true; h.portalSignIn.mockResolvedValue(undefined);
   h.get.mockResolvedValue(JSON.stringify(saved)); h.set.mockResolvedValue(undefined); h.remove.mockResolvedValue(undefined); h.register.mockResolvedValue(confirmed); h.signIn.mockResolvedValue(undefined);
   host = document.createElement('div'); document.body.append(host); root = createRoot(host); unmounted = false;
 });
@@ -119,4 +119,48 @@ describe('first business login after registration lifecycle', () => {
   it('does not welcome or navigate a different identity during secure-session hydration',async()=>{
     const accept=deferred();h.login.mockResolvedValue({ok:true,data:{supabaseSession:session}});h.signIn.mockReturnValue(accept.promise);await loginForm();await click('Anmelden');h.user={id:'auth-other'};await act(async()=>root.render(<BusinessAccessScreen/>));await act(async()=>accept.resolve(undefined));expect(h.replace).not.toHaveBeenCalled();
   });
+});
+
+const portalResult = {ok:true,data:{portalSession:{roleKey:'client_portal',tenantId:'fixture-tenant',accountId:'fixture-account',sessionToken:'fixture-token',loginType:'client_portal',mustChangePassword:false}}};
+async function portalForm(kind:'client'|'employee') {
+ await act(async()=>root.render(kind==='client'?<PortalAccessScreen portal="client"/>:<EmployeeAccessScreen/>));
+ await act(async()=>{for(const [label,value] of [['Benutzername','fixture-user'],[kind==='client'?'Portal-Code':'Passwort oder Einmalpasswort',kind==='client'?'ABCDEF':'Password123!']]){const input=host.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}});
+}
+describe.each(['client','employee'] as const)('actual %s login request lifecycle',kind=>{
+ const label=kind==='client'?'Portal sicher öffnen':'Mitarbeitenden-App öffnen';
+ const login=()=>kind==='client'?h.clientLogin:h.portalLogin;
+ it('locks two synchronous login activations',async()=>{
+  const pending=deferred();login().mockReturnValue(pending.promise);await portalForm(kind);
+  const button=[...host.querySelectorAll('button')].find(node=>node.textContent===label)!;
+  await act(async()=>{button.click();button.click();});expect(login()).toHaveBeenCalledTimes(1);
+  await act(async()=>pending.resolve({ok:false,error:'Testbedingte Unterbrechung'}));
+ });
+ it('does not establish a late portal session after the page unmounts',async()=>{
+  const pending=deferred();login().mockReturnValue(pending.promise);await portalForm(kind);await click(label);
+  await act(async()=>root.unmount());unmounted=true;await act(async()=>pending.resolve(portalResult));
+  expect(h.completePortal).not.toHaveBeenCalled();expect(h.portalSignIn).not.toHaveBeenCalled();expect(h.replace).not.toHaveBeenCalled();
+ });
+ it('does not establish a late portal session from a retained unfocused page',async()=>{
+  const pending=deferred();login().mockReturnValue(pending.promise);await portalForm(kind);await click(label);
+  h.focused=false;await act(async()=>root.render(kind==='client'?<PortalAccessScreen portal="client"/>:<EmployeeAccessScreen/>));await act(async()=>pending.resolve(portalResult));
+  expect(h.completePortal).not.toHaveBeenCalled();expect(h.portalSignIn).not.toHaveBeenCalled();expect(h.replace).not.toHaveBeenCalled();
+ });
+ it('does not continue a pending token completion after the page loses focus',async()=>{
+  const pending=deferred();login().mockResolvedValue(portalResult);h.completePortal.mockReturnValue(pending.promise);await portalForm(kind);await click(label);expect(h.completePortal).toHaveBeenCalledOnce();
+  h.focused=false;await act(async()=>root.render(kind==='client'?<PortalAccessScreen portal="client"/>:<EmployeeAccessScreen/>));await act(async()=>pending.resolve(portalResult));
+  expect(h.portalSignIn).not.toHaveBeenCalled();expect(h.replace).not.toHaveBeenCalled();
+ });
+});
+
+describe('retained business login foreground ownership',()=>{
+ const session={access_token:'test-only-business-token',user:{id:'fixture-business-user'}};
+ it('does not install a late business login after the scene loses focus',async()=>{
+  const pending=deferred();h.login.mockReturnValue(pending.promise);await loginForm();await click('Anmelden');
+  h.focused=false;await act(async()=>root.render(<BusinessAccessScreen/>));await act(async()=>pending.resolve({ok:true,data:{supabaseSession:session}}));
+  expect(h.signIn).not.toHaveBeenCalled();expect(h.replace).not.toHaveBeenCalled();
+ });
+ it('does not redirect after pending business session installation loses focus',async()=>{
+  const pending=deferred();h.login.mockResolvedValue({ok:true,data:{supabaseSession:session}});h.signIn.mockReturnValue(pending.promise);await loginForm();await click('Anmelden');expect(h.signIn).toHaveBeenCalledOnce();
+  h.focused=false;await act(async()=>root.render(<BusinessAccessScreen/>));await act(async()=>pending.resolve(undefined));expect(h.replace).not.toHaveBeenCalled();
+ });
 });

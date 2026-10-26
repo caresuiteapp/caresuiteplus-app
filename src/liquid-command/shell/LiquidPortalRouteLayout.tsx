@@ -71,13 +71,12 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
   const navigation = useMemo(() => {
     const items = releasedLiquidPortalNavigation(kind, clientPortalSettings);
-    if (kind !== 'employee' || Platform.OS !== 'web') return items;
-    // Native destinations remain gated until their receiving workflows are implemented.
+    if (kind !== 'employee') return items;
     const tasks: LiquidPortalNavigationItem = {
       id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
       route: '/portal/employee/tasks', group: 'work',
     };
-    const consultation: LiquidPortalNavigationItem[] = isConsultationWorkspaceEnabled() ? [{
+    const consultation: LiquidPortalNavigationItem[] = Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? [{
       id: 'consultation', label: 'Beratung & Schulungen', glyph: '◎',
       route: '/portal/employee/beratung', group: 'work',
     }] : [];

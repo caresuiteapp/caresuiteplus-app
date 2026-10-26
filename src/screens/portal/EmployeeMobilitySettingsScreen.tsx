@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeeMobilitySettingsForm } from '@/components/portal/EmployeeMobilitySettingsForm';
-import { LoadingState } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
@@ -10,7 +10,7 @@ import { spacing } from '@/theme';
 
 export function EmployeeMobilitySettingsScreen() {
   const { can, check, roleLabel } = usePermissions();
-  const { tenantId, employeeId, isReady } = usePortalActor();
+  const { tenantId, employeeId, isReady, isResolvingEmployeeLink } = usePortalActor();
   const canViewProfile = can('portal.employee.profile.view');
 
   if (!canViewProfile) {
@@ -24,12 +24,18 @@ export function EmployeeMobilitySettingsScreen() {
     );
   }
 
-  if (!isReady || !tenantId || !employeeId) {
+  if (!isReady || isResolvingEmployeeLink) {
     return (
       <PortalTabScreen title="Mobilität" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Mobilitätseinstellungen werden geladen…" />
       </PortalTabScreen>
     );
+  }
+
+  if (!tenantId || !employeeId) {
+    return <PortalTabScreen title="Mobilität" subtitle="Zugang prüfen" scroll={false}>
+      <ErrorState presentation="inline" title="Mobilität nicht verfügbar" message="Das Mitarbeitendenkonto ist noch nicht vollständig verknüpft. Bitte wenden Sie sich an die Verwaltung." />
+    </PortalTabScreen>;
   }
 
   return (

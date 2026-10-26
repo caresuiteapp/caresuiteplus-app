@@ -1,0 +1,1769 @@
+{
+  "schemaVersion": 1,
+  "scope": "All actually Android-selected client/family routes, their known shared content and subview actions; not a release acceptance",
+  "observedDate": "2026-10-26",
+  "routeInventorySourceTreeHash": "5f590f9edfdeea1be1e3d5a0a461f763c234a8dbc6159e3d4fb95f66dc2d4570",
+  "counts": {
+    "selectedPages": 18,
+    "standardClientPages": 16,
+    "legacyOwnerRedirects": 2,
+    "functionGroups": 13,
+    "fullShellVisualAcceptances": 0,
+    "deviceAcceptances": 0,
+    "productionWriteReadbacks": 0
+  },
+  "acceptance": {
+    "release": "not_established",
+    "buildHold": "must_remain",
+    "serverChangesApplied": false,
+    "unverifiedClaimsMustRemainOpen": true
+  },
+  "executedBatches": [
+    {
+      "kind": "Real route/hook/provider/service/component with controlled host/transport boundaries; no productive data",
+      "tests": [
+        "src/__tests__/portal/clientBudgetDirectRouteBoundary.test.tsx",
+        "src/__tests__/portal/clientProfileScreenActions.test.tsx",
+        "src/__tests__/portal/familyPortalActorExpiry.test.tsx",
+        "src/__tests__/portal/clientProfileFamilyBoundary.test.ts",
+        "src/__tests__/portal/clientAnnouncementRead.test.ts",
+        "src/__tests__/portal/clientPortalWorkflowRecovery.test.tsx",
+        "src/__tests__/portal/clientFamilyCapabilities.test.tsx",
+        "src/__tests__/portal/familyHomeTransportCapabilities.test.ts"
+      ],
+      "result": "58 passed in 8 files",
+      "timeSource": "local test execution log, not device time"
+    },
+    {
+      "kind": "Family actor expiry plus existing employee identity regressions and overlapping capability/home/recovery tests",
+      "result": "56 passed in 5 files; overlaps with 58-case batch, must not be summed as unique count"
+    }
+  ],
+  "confirmedChanges": [
+    "Capability-bound list/detail/live/chat/signature and home data reads",
+    "Expiry-aware family capability checks and retained actor identity withdrawal",
+    "Family own-account profile instead of broad client demographic/clinical reads",
+    "Direct family budget route denied before transport",
+    "Active assist proof page does not mount globally unreleased care-proof panel",
+    "Proof action acknowledgement/locking/retry and stale response rejection",
+    "Profile request reuses scoped mutation lock, catches failures and drops old completions",
+    "Announcement detail state and read receipt bound to current origin"
+  ],
+  "releaseBlockers": [
+    "Family scope RPC remains missing in production per parent read-only catalog evidence; no migration applied",
+    "New full-shell renderer has not yet produced accepted per-page visual evidence",
+    "No actual authenticated Android lifecycle/action/server-readback acceptance",
+    "Family appointment-change write capability contract still unresolved",
+    "Normal client native Academy direct-link release boundary still unresolved",
+    "No periodic productive family capability revalidation proven; source scope/expiry checks are not a live RLS guarantee"
+  ],
+  "rows": [
+    {
+      "id": "app/liquid-command/portal/client.tsx",
+      "routeTemplate": "/liquid-command/portal/client",
+      "selectedFile": "app/liquid-command/portal/client.tsx",
+      "functionGroups": [
+        "academy-and-legacy"
+      ],
+      "roleContract": null,
+      "sourceClassification": "native_owner_redirects_page",
+      "receiverTrace": [
+        {
+          "file": "app/liquid-command/portal/client.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/screens/PortalHomeScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/liquid-command/portal/family.tsx",
+      "routeTemplate": "/liquid-command/portal/family",
+      "selectedFile": "app/liquid-command/portal/family.tsx",
+      "functionGroups": [
+        "academy-and-legacy"
+      ],
+      "roleContract": null,
+      "sourceClassification": "native_owner_redirects_page",
+      "receiverTrace": [
+        {
+          "file": "app/liquid-command/portal/family.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/screens/PortalHomeScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/liquid-command/components/LiquidPrimitives.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/(tabs)/index.tsx",
+      "routeTemplate": "/portal/client",
+      "selectedFile": "app/portal/client/(tabs)/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "home-and-modals"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": true,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/(tabs)/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/AdaptivePortalOverview.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/AssistPortalOverview.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/AssistPortalSectionView.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/AssistPortalShell.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/PortalEmptyState.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/AssistPortalSectionView.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalAssignmentCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalAssignmentPreviewSheet.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/maps/AssistLiveMap.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/PortalGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/MobilePortalKpiCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/AdaptivePortalDashboard.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/akademie/index.native.tsx",
+      "routeTemplate": "/portal/client/akademie",
+      "selectedFile": "app/portal/client/akademie/index.native.tsx",
+      "functionGroups": [
+        "academy-and-legacy"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/akademie/index.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "app/portal/client/akademie/index.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/announcements/index.tsx",
+      "routeTemplate": "/portal/client/announcements",
+      "selectedFile": "app/portal/client/announcements/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "announcements"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/announcements",
+        "exact": true,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/announcements/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/ClientPortalAnnouncementsScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/PortalGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/(tabs)/appointments.tsx",
+      "routeTemplate": "/portal/client/appointments",
+      "selectedFile": "app/portal/client/(tabs)/appointments.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "appointments"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/appointments",
+        "exact": true,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/(tabs)/appointments.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalAppointmentsTab.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalTabHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalTabGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/PortalGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/MobilePortalKpiCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalLiveTrackingSection.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/maps/AssistLiveMap.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalAssignmentCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/healthos/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/healthos/HealthOSStatusBadge.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalAssignmentCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalAssignmentPreviewSheet.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalAssignmentPreviewSheet.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/appointments/[id]/index.tsx",
+      "routeTemplate": "/portal/client/appointments/[id]",
+      "selectedFile": "app/portal/client/appointments/[id]/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "appointments"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/appointments",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/appointments/[id]/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/budget/index.native.tsx",
+      "routeTemplate": "/portal/client/budget",
+      "selectedFile": "app/portal/client/budget/index.native.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "budget"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/budget/index.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "app/portal/client/budget/index.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/(tabs)/documents.tsx",
+      "routeTemplate": "/portal/client/documents",
+      "selectedFile": "app/portal/client/(tabs)/documents.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "documents"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/documents",
+        "exact": true,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/(tabs)/documents.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalDocumentsTab.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalTabHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalTabGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/PortalGlassHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/assist/MobilePortalKpiCard.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalDocumentListCard.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/documents/[id]/index.native.tsx",
+      "routeTemplate": "/portal/client/documents/[id]",
+      "selectedFile": "app/portal/client/documents/[id]/index.native.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "documents",
+        "signatures"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/documents",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/documents/[id]/index.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "app/portal/client/documents/[id]/index.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/documents/signatures/index.native.tsx",
+      "routeTemplate": "/portal/client/documents/signatures",
+      "selectedFile": "app/portal/client/documents/signatures/index.native.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "signatures"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/documents",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/documents/signatures/index.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/ClientDocumentSignaturesScreen.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/office/documentSignatures/CsDocumentRequestCard.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/documents/signatures/[id].native.tsx",
+      "routeTemplate": "/portal/client/documents/signatures/[id]",
+      "selectedFile": "app/portal/client/documents/signatures/[id].native.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "signatures"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/documents",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/documents/signatures/[id].native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "app/portal/client/documents/signatures/[id].native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/help/index.tsx",
+      "routeTemplate": "/portal/client/help",
+      "selectedFile": "app/portal/client/help/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "help"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/help/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/ClientPortalHelpScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/live.tsx",
+      "routeTemplate": "/portal/client/live",
+      "selectedFile": "app/portal/client/live.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "live"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/live.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalGuide.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/images/CareSuiteImage.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/maps/AssistLiveMap.native.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/messages/index.tsx",
+      "routeTemplate": "/portal/client/messages",
+      "selectedFile": "app/portal/client/messages/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "messaging"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/messages",
+        "exact": true,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/messages/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/communication/portalmessagingscreens.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/permissions/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/permissions/LockedActionBanner.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/messages/[threadId].tsx",
+      "routeTemplate": "/portal/client/messages/[threadId]",
+      "selectedFile": "app/portal/client/messages/[threadId].tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "messaging"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client/messages",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/messages/[threadId].tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/communication/portalmessagingscreens.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/PortalTabScreen.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/EmployeePortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalPremiumPageHero.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/keyboard/PortalKeyboard.native.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/ClientPortalPageFrame.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/PortalMobileTabHeader.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/permissions/index.ts",
+          "symbol": null
+        },
+        {
+          "file": "src/components/permissions/LockedActionBanner.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/components/portal/portalofficethread.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/(tabs)/profile.tsx",
+      "routeTemplate": "/portal/client/profile",
+      "selectedFile": "app/portal/client/(tabs)/profile.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "profile"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/(tabs)/profile.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/ClientPortalProfileScreen.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    },
+    {
+      "id": "app/portal/client/proofs/index.tsx",
+      "routeTemplate": "/portal/client/proofs",
+      "selectedFile": "app/portal/client/proofs/index.tsx",
+      "functionGroups": [
+        "entry-and-identity",
+        "proofs"
+      ],
+      "roleContract": {
+        "matchedRule": "/portal/client",
+        "exact": false,
+        "allowedRoles": [
+          "client_portal",
+          "family_portal"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "sourceClassification": "selected_native_page_unverified",
+      "receiverTrace": [
+        {
+          "file": "app/portal/client/proofs/index.tsx",
+          "symbol": null
+        },
+        {
+          "file": "src/screens/portal/ClientPortalProofsScreen.tsx",
+          "symbol": null
+        }
+      ],
+      "evidence": {
+        "syntheticLinking": "passed",
+        "pageRuntimeAcceptance": false,
+        "fullShellVisualAcceptance": false,
+        "androidDeviceAcceptance": false,
+        "productionWriteReadbackAcceptance": false
+      },
+      "open": [
+        "Actual Android lifecycle/navigation and per-page visual evidence",
+        "Authenticated tenant/record/server authorization and meaningful action/readback evidence"
+      ]
+    }
+  ],
+  "functionGroups": [
+    {
+      "id": "entry-and-identity",
+      "label": "Anmeldung, Mandant, Konto, Klientenzuordnung und Gültigkeit",
+      "sources": [
+        "app/portal/client/_layout.tsx",
+        "src/hooks/usePortalActor.ts",
+        "src/lib/portal/resolveFamilyPortalAccess.ts",
+        "src/lib/portal/familyPortalAccessScope.ts"
+      ],
+      "actions": [
+        "Kanonische Kontozuordnung abwarten",
+        "Fehlende oder verweigerte Zuordnung beenden",
+        "Alte Antworten nach Auth-/Accountwechsel verwerfen",
+        "Zeitlich befristeten Family-Scope beim Ablauf entziehen"
+      ],
+      "tests": [
+        "familyPortalActorExpiry.test.tsx",
+        "portalActorVerifiedEmployeeLink.test.tsx"
+      ],
+      "boundaries": [
+        "current_family_portal_access_scope fehlt nach Root-Katalogbefund; keine produktive Anwendung",
+        "Widerrufstests setzen den Actor-Scope synthetisch; keine Behauptung einer produktiven Push- oder periodischen Permissionrevalidierung"
+      ]
+    },
+    {
+      "id": "home-and-modals",
+      "label": "Startseite und Assist-Unteransichten/Dialoge",
+      "sources": [
+        "src/hooks/usePortalContext.ts",
+        "src/lib/portal/engine/resolvePortalContext.ts",
+        "src/lib/portal/engine/portalFeatureAccess.ts",
+        "src/lib/portal/clientPortalDashboardLive.ts",
+        "src/lib/portal/assist/portalAssistDashboardService.ts",
+        "src/components/portal/assist/AssistPortalOverview.tsx",
+        "src/components/portal/assist/ClientPortalHomeDashboard.tsx"
+      ],
+      "actions": [
+        "Startseite lesen und aktualisieren",
+        "Betreuung/Begleitung",
+        "Freigegebene Termine/Dokumente/Nachrichten/Nachweise/Rechnungen",
+        "Anfragen, Aktivitäten, Uploads und persönliche Budgets für Family ohne passende Capability vor Transport sperren",
+        "Scopewechsel/Widerruf verwirft Altantworten"
+      ],
+      "tests": [
+        "familyHomeTransportCapabilities.test.ts",
+        "clientFamilyCapabilities.test.tsx",
+        "clientPortalNativeContinuity.test.tsx"
+      ],
+      "boundaries": [
+        "Vollshell-/Pixelbeleg im neuen Renderer noch nicht ausgeführt",
+        "Kein echter Request-/Upload-/Dokumentspeichervorgang in Produktion ausgeführt"
+      ]
+    },
+    {
+      "id": "appointments",
+      "label": "Einsatzliste, Detail und Änderungsanfrage",
+      "sources": [
+        "src/hooks/usePortalAppointments.ts",
+        "src/hooks/usePortalClientAppointmentDetail.ts",
+        "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
+        "src/lib/portal/appointmentService.ts"
+      ],
+      "actions": [
+        "Listen-/Detailread mit konkretem Klienten-/Datensatzscope",
+        "Cache und verspätete Antworten",
+        "Familien-Lesefreigabe vor Service",
+        "Änderungsanfrage und Rückmeldung"
+      ],
+      "tests": [
+        "clientFamilyCapabilities.test.tsx",
+        "clientPortalWorkflowRecovery.test.tsx"
+      ],
+      "boundaries": [
+        "Family-Änderungsanfrage ist noch auf individuellen Schreibvertrag zu prüfen; appointments ist nur Lesecapability, confirm_appointments wird derzeit nicht verwendet",
+        "Keine echte Terminänderung/Androidnavigation durchgeführt"
+      ]
+    },
+    {
+      "id": "live",
+      "label": "Live-Anfahrt",
+      "sources": [
+        "src/hooks/usePortalClientLiveTracking.ts",
+        "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
+        "src/lib/portal/portalAppointmentsLiveService.ts"
+      ],
+      "actions": [
+        "Polling/Realtime nur für verknüpften erlaubten Actor",
+        "Freigegebene kanonische Anfahrt lesen",
+        "GPS-/Refreshfehler ohne alte Standortanzeige"
+      ],
+      "tests": [
+        "clientFamilyCapabilities.test.tsx",
+        "clientBudgetAndLiveRelease.test.ts"
+      ],
+      "boundaries": [
+        "Kein tatsächlicher GPS-/Hintergrund-/Gerätelauf durchgeführt"
+      ]
+    },
+    {
+      "id": "documents",
+      "label": "Dokumentliste, Detail und Download",
+      "sources": [
+        "src/hooks/usePortalDocuments.ts",
+        "src/hooks/usePortalDocumentDetail.ts",
+        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx"
+      ],
+      "actions": [
+        "Liste/Detail lesen",
+        "Download gesondert freigeben",
+        "Fremde oder verspätete Downloadantwort nicht öffnen",
+        "Aktualisieren und lesbarer Fehler"
+      ],
+      "tests": [
+        "clientFamilyCapabilities.test.tsx",
+        "clientPortalWorkflowRecovery.test.tsx"
+      ],
+      "boundaries": [
+        "Kein authentifizierter produktiver Storage-Download/Byte-Readback durchgeführt"
+      ]
+    },
+    {
+      "id": "signatures",
+      "label": "Offene Unterschriften, Detail und Nachweissignatur",
+      "sources": [
+        "src/components/portal/ClientSignatureAttentionProviderCore.tsx",
+        "src/screens/portal/ClientDocumentSignaturesScreen.web.tsx",
+        "src/screens/documents/CsDocumentRequestDetailScreen.web.tsx",
+        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx"
+      ],
+      "actions": [
+        "Offene Dokumente/Nachweise getrennt nach Lese- und Signaturcapability",
+        "Read-only Family nicht hinter unmöglicher Signaturpflicht blockieren",
+        "Reviewstand/Canvas an Dokument und Actor binden",
+        "Bestehende gespeicherte Unterschrift und Delivery-Retry getrennt behandeln"
+      ],
+      "tests": [
+        "clientFamilyCapabilities.test.tsx",
+        "clientSignatureAttentionInteraction.test.tsx",
+        "clientSignatureRefreshWeb.test.tsx"
+      ],
+      "boundaries": [
+        "Keine neue echte Unterschrift, Bestätigung oder fachliche Serverquittung erzeugt",
+        "Synthetische Signatur-/Scopebelege ersetzen keinen tatsächlichen Android-Canvas-/Storage-/Serverablauf"
+      ]
+    },
+    {
+      "id": "proofs",
+      "label": "Leistungsnachweise, PDF und Rückfrage",
+      "sources": [
+        "src/screens/portal/ClientPortalProofsScreen.tsx",
+        "src/lib/portal/assist/portalServiceProofService.ts",
+        "src/lib/portal/assist/portalRequestService.ts"
+      ],
+      "actions": [
+        "Nachweise lesen",
+        "PDF öffnen/Fehler und Retry",
+        "Signaturlink",
+        "Eine gebundene Rückfrage bis bestätigter Antwort",
+        "Abgelehnte klinische Pflegefunktion nicht über freigegebene Assist-Seite mounten"
+      ],
+      "tests": [
+        "clientPortalWorkflowRecovery.test.tsx"
+      ],
+      "boundaries": [
+        "Server-RLS und Anfrage-Receipt nicht produktiv ausgeführt",
+        "Bisheriger Nachweisöffnen-Fallback für Family nur mit service_records aber ohne documents führt auf Dokumentdetail; genaue inhaltliche Erreichbarkeit muss zusätzlich abgestimmt werden"
+      ]
+    },
+    {
+      "id": "budget",
+      "label": "Persönliche Budgetroute",
+      "sources": [
+        "app/portal/client/budget/index.tsx",
+        "src/lib/portal/assist/portalBudgetService.ts"
+      ],
+      "actions": [
+        "Positive Freigabe und genaues Klientenprofil prüfen",
+        "Family-Direktlink vor Budgettransport sperren",
+        "Account-/Rollenwechsel löscht alte Werte",
+        "Refreshfehler als gespeicherten Stand ausweisen"
+      ],
+      "tests": [
+        "clientBudgetDirectRouteBoundary.test.tsx",
+        "clientBudgetAndLiveRelease.test.ts"
+      ],
+      "boundaries": [
+        "Keine produktive Budget-/Buchungsberechnung gegen echte Daten getestet"
+      ]
+    },
+    {
+      "id": "messaging",
+      "label": "Nachrichten, Thread, Neuer Chat und Anhänge",
+      "sources": [
+        "src/hooks/useportalofficemessages.ts",
+        "src/hooks/useportalofficethreaddetail.ts",
+        "src/components/portal/portalofficethread.tsx",
+        "src/components/portal/PortalNewChatModal.tsx"
+      ],
+      "actions": [
+        "Inbox und Direktthread nur mit Lesefähigkeit",
+        "Lesestatus, Senden und Neustart getrennt",
+        "Keine Family-Schreibaktion ohne send_messages",
+        "Scopegebundene Composeinstanz und transportgebundene Identität"
+      ],
+      "tests": [
+        "clientFamilyCapabilities.test.tsx"
+      ],
+      "boundaries": [
+        "Kein produktiver Nachrichtenversand oder Attachment-Upload ausgeführt",
+        "In-flight server authorization nach Rechtewiderruf bleibt echter RLS-/API-Nachweis"
+      ]
+    },
+    {
+      "id": "profile",
+      "label": "Eigenes Klientenprofil und Stammdatenanfrage; Family-Kontoeinstellungen",
+      "sources": [
+        "src/hooks/useClientPortalProfile.ts",
+        "src/lib/portal/clientProfileService.ts",
+        "src/screens/portal/ClientPortalProfileScreen.tsx"
+      ],
+      "actions": [
+        "Kanonisches eigenes Profil/CarePlans lesen",
+        "Family erhält nur Konto-/Geräte-/Biometrieeinstellungen; kein vollständiges Klientenprofil oder Pflegeplan",
+        "Gebundene Stammdatenanfrage mit Doppelclicksperre, Throwfehler und Retry",
+        "Altbestätigung nach Clientwechsel verwerfen"
+      ],
+      "tests": [
+        "clientProfileScreenActions.test.tsx",
+        "clientProfileFamilyBoundary.test.ts",
+        "clientPortalWorkflowRecovery.test.tsx"
+      ],
+      "boundaries": [
+        "Kein echtes Biometrie-/Geräteeinstellungstesten oder produktiver Stammdaten-Writer"
+      ]
+    },
+    {
+      "id": "announcements",
+      "label": "Mitteilungen, Volltext, Lesestatus und Retry",
+      "sources": [
+        "src/screens/portal/ClientPortalAnnouncementsScreen.tsx",
+        "src/lib/portal/clientAnnouncementReadService.ts"
+      ],
+      "actions": [
+        "Eigene zugeteilte Mitteilungen lesen",
+        "Preview nicht als vollständigen Text bestätigen",
+        "Read-Receipt erst nach erfolgreichem Volltext und noch aktivem Scope",
+        "Altvolltexte nach Konto-/Mandantenwechsel entfernen"
+      ],
+      "tests": [
+        "clientAnnouncementRead.test.ts"
+      ],
+      "boundaries": [
+        "Volltext-UI-Scope ist quellengebunden; tatsächlicher nativer Mitteilungsdetailclick noch offen",
+        "Kein produktiver Lesestatus geändert"
+      ]
+    },
+    {
+      "id": "help",
+      "label": "Hilfe, Suche und externe Telefonnummern/Links",
+      "sources": [
+        "src/screens/portal/ClientPortalHelpScreen.tsx"
+      ],
+      "actions": [
+        "Suchfilter und aufklappbare Anleitung",
+        "Telefon-/Weblinks an Betriebssystem übergeben"
+      ],
+      "tests": [],
+      "boundaries": [
+        "Telefon- und externe URL-Aufrufe nicht auf tatsächlichem Gerät ausgeführt",
+        "Keine aktuelle fachliche Prüfung sämtlicher hinterlegter Hilfekontakte in diesem technischen Audit"
+      ]
+    },
+    {
+      "id": "academy-and-legacy",
+      "label": "Akademie-Familiengrenze und Legacy-Einstiege",
+      "sources": [
+        "app/portal/client/_layout.tsx",
+        "app/portal/client/akademie/index.native.tsx",
+        "app/liquid-command/_layout.tsx"
+      ],
+      "actions": [
+        "Academy-only Zugang bietet Browserwechsel statt Care-Hooks",
+        "Legacy-Clientowner nach /portal/client",
+        "Legacy-Familyowner ohne aktuelle Zuordnung zur Startseite"
+      ],
+      "tests": [],
+      "boundaries": [
+        "Normaler client_portal Direktlink /portal/client/akademie mountet nach Quellbefund generierten AcademyWorkspace, keine allgemeine Native-Akademiefreigabe belegt; muss als offener Releasegrenzpfad behandelt werden",
+        "Kein Browserlogin und keine Akademiemutation durchgeführt"
+      ]
+    }
+  ],
+  "sourceHashes": [
+    {
+      "file": "app/liquid-command/_layout.tsx",
+      "sha256": "830563c2082cc66c9b344a72bbcdd149ad2961edec6900800b28d567297adddd"
+    },
+    {
+      "file": "app/portal/client/_layout.tsx",
+      "sha256": "2d337dfdb27dfd70d7bffecf6b933a59f1347915c054f5e0b927af597a6bc2de"
+    },
+    {
+      "file": "app/portal/client/akademie/index.native.tsx",
+      "sha256": "2807642e16c3625e627c187bd35e1c0ef2f4d831884478d592ff3961a2662865"
+    },
+    {
+      "file": "app/portal/client/budget/index.tsx",
+      "sha256": "66e248d2cfbe0ee50ef9924795f5d2c8d297e6569be2c02d6e93ad1868246a21"
+    },
+    {
+      "file": "src/components/portal/ClientSignatureAttentionProviderCore.tsx",
+      "sha256": "92a8ee2d8d47a4012a1f70789c9dd57ffb7041fc68688e865380b3fa2fbdceb3"
+    },
+    {
+      "file": "src/components/portal/PortalNewChatModal.tsx",
+      "sha256": "a4bc8973cda0f5a2c962ffe8d43fd89e8437e80bfdcb8e038d5b49d485bfd449"
+    },
+    {
+      "file": "src/components/portal/assist/AssistPortalOverview.tsx",
+      "sha256": "3b27989841a25c12a997eff9146382b09ac415813276ac3bf08aa2abecd550e4"
+    },
+    {
+      "file": "src/components/portal/assist/ClientPortalHomeDashboard.tsx",
+      "sha256": "1ec7dc42e7261433d2ada57bed133c528c5139a0ebee0f916353d3c0a9225629"
+    },
+    {
+      "file": "src/components/portal/portalofficethread.tsx",
+      "sha256": "312763093ec0fbd79e02c64531da9964c49c7b81e9b8c65067700b234ffe8ecd"
+    },
+    {
+      "file": "src/hooks/useClientPortalProfile.ts",
+      "sha256": "d8b2e4a38034a6c2157faa954ae06ff9091a27be8beac8991fc035e95ca05526"
+    },
+    {
+      "file": "src/hooks/usePortalActor.ts",
+      "sha256": "364cc45ba487b03a0519ecfd3c168b17cd249ed222570c41e8dcbfecba34232d"
+    },
+    {
+      "file": "src/hooks/usePortalAppointments.ts",
+      "sha256": "680ee8bc63f2d0cd9c7e0fbe4288db780e7b1c98ecae12535d09b2de7d306069"
+    },
+    {
+      "file": "src/hooks/usePortalClientAppointmentDetail.ts",
+      "sha256": "d8f6d3826fca184d0176533c026d78d963761fb164a4645de09aaaaed33665fc"
+    },
+    {
+      "file": "src/hooks/usePortalClientLiveTracking.ts",
+      "sha256": "0a1a8731e10ed4a7be380c8148d5920f18b75dc8966dbf8c134bf3559263ca17"
+    },
+    {
+      "file": "src/hooks/usePortalContext.ts",
+      "sha256": "1bcca308113b5bb2595b9c2200bb077e0a97905e24a79bcd58c1fe52376ac60a"
+    },
+    {
+      "file": "src/hooks/usePortalDocumentDetail.ts",
+      "sha256": "0ed4b6bd2c016ab12fefbfa8b89ad6e2f00a05060efab009193b8fb7a93bad98"
+    },
+    {
+      "file": "src/hooks/usePortalDocuments.ts",
+      "sha256": "9ae59299b92f87a891573781d72ca5ae82ed6026c2b4462a2c57f5ddc8359921"
+    },
+    {
+      "file": "src/hooks/useportalofficemessages.ts",
+      "sha256": "7a37371a08c0eaca8cd01e203e3a397e149a99360a9464db2d35d3c8e67dba8f"
+    },
+    {
+      "file": "src/hooks/useportalofficethreaddetail.ts",
+      "sha256": "95438ab3b907542940f0d6b8bb0f810354fbfccbd46d54d7e2cd24fb1971145d"
+    },
+    {
+      "file": "src/lib/portal/appointmentService.ts",
+      "sha256": "a1c5014b68f6dacd9cda8aff55c89a4896109197afe4c43133ffa718ecd64215"
+    },
+    {
+      "file": "src/lib/portal/assist/portalAssistDashboardService.ts",
+      "sha256": "0ce340d322044953e2d867662abaa744bd99086acfa8e75ec97086a09393202c"
+    },
+    {
+      "file": "src/lib/portal/assist/portalBudgetService.ts",
+      "sha256": "4101eba6bcdc81668459752c32de2abbaa7984004c3cf7a07676db38b501bf90"
+    },
+    {
+      "file": "src/lib/portal/assist/portalRequestService.ts",
+      "sha256": "d5b88c263732a1b5c668793f89d7a27e3194d7ccf47abb073b086b91d6c8fe1c"
+    },
+    {
+      "file": "src/lib/portal/assist/portalServiceProofService.ts",
+      "sha256": "b1008aaf10f7f67b1884ad261229571e3166b6d810435bfa9c80c1920452f35b"
+    },
+    {
+      "file": "src/lib/portal/clientAnnouncementReadService.ts",
+      "sha256": "b9b4f5f23e08e5581446969db15360b570fd8bda72f74b620d20f60909477136"
+    },
+    {
+      "file": "src/lib/portal/clientPortalDashboardLive.ts",
+      "sha256": "e2d172554d7690724abd6ccd6ddcbd8e285461902f5c07a5ffcb7e387035d2cb"
+    },
+    {
+      "file": "src/lib/portal/clientProfileService.ts",
+      "sha256": "ece797e3e1375f62fe23d38dfe2084beee09f1ea1e868e7959bf463c50018767"
+    },
+    {
+      "file": "src/lib/portal/engine/portalFeatureAccess.ts",
+      "sha256": "8d1bdfe0e7616c7b061aaae90a1a74d9e2cbf28713906302b33659dcb733317e"
+    },
+    {
+      "file": "src/lib/portal/engine/resolvePortalContext.ts",
+      "sha256": "2844a8ceefd70947e6b3d2eb66b30697b011d4c7a1902b800f31be3f800105b0"
+    },
+    {
+      "file": "src/lib/portal/familyPortalAccessScope.ts",
+      "sha256": "c9193f2602a0e05d8f691da4bda66796cf1a6ace964fc262a775dc69a3f2cf72"
+    },
+    {
+      "file": "src/lib/portal/portalAppointmentsLiveService.ts",
+      "sha256": "339a0a7319c2d43a7e393b2f168b17ce2348abe7de38496ceaeaee943272e715"
+    },
+    {
+      "file": "src/lib/portal/resolveFamilyPortalAccess.ts",
+      "sha256": "fc04916100f5c43f8765f7b2d8052323c533114455f1fcc4e25e800be03d4d51"
+    },
+    {
+      "file": "src/screens/documents/CsDocumentRequestDetailScreen.web.tsx",
+      "sha256": "cdc5c2038e0f8e803770ed850300663a1639339a9b17a0e9ffce9f083de1f143"
+    },
+    {
+      "file": "src/screens/portal/ClientDocumentSignaturesScreen.web.tsx",
+      "sha256": "9dc991bed62270a65bc846bd6cf1e44ec195a155e32b99cd49b3916e2973f622"
+    },
+    {
+      "file": "src/screens/portal/ClientPortalAnnouncementsScreen.tsx",
+      "sha256": "386e1133053dce1525d92a6a6bfe10cd47e774e62a5f609311ba385acc12ee1d"
+    },
+    {
+      "file": "src/screens/portal/ClientPortalHelpScreen.tsx",
+      "sha256": "1813f2939d91f3391a5971c8286a9768dc4e7936c19ea9050939b997e3b41b07"
+    },
+    {
+      "file": "src/screens/portal/ClientPortalProfileScreen.tsx",
+      "sha256": "2e0c162eff8e7a7af8d170eb29aab452e3571e02caaaffbbca81bae1839d98f6"
+    },
+    {
+      "file": "src/screens/portal/ClientPortalProofsScreen.tsx",
+      "sha256": "482265d36aeec8b0e035ae3a7ed77c411b6ff8ec6377e52d678aa0f3716707ff"
+    },
+    {
+      "file": "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
+      "sha256": "bccb45d7482c88e9485f3264ddc40990d6613aad1a25fd9539adbc5f7185d6d3"
+    },
+    {
+      "file": "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx",
+      "sha256": "ebd33ff2808550ad4c6186251ae4da54c19789d48d836fa6eae80bbf73c416bd"
+    },
+    {
+      "file": "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
+      "sha256": "fedb6145f634a397156a7bbad06402e314ddd608a8a116fcd8700950d042401a"
+    }
+  ],
+  "limitations": [
+    "Source tracing and simulated boundaries do not prove zero bugs or complete release readiness",
+    "Test references without an executed batch are coverage pointers, not pass claims",
+    "Prepared or locked clinical features remain locked; no endpoint/feature activation in this audit",
+    "No productive patient/personnel rows, messages, signatures, migrations or storage writes were used"
+  ]
+}

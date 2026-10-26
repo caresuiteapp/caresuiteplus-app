@@ -26,7 +26,7 @@ vi.mock('@/components/aurora', () => ({ AuroraSegmentedControl: () => null }));
 vi.mock('@/hooks/core/useAsyncQuery', () => ({ useAsyncQuery: h.query }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: () => true, check: () => ({}), roleLabel: 'Mitarbeitende' }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => h.actor.tenantId }));
-vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => h.actor }));
+vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ ...h.actor }) }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ user: { id: 'user' }, profile: { employeeId: 'employee' } }) }));
 vi.mock('@/lib/wfm', () => ({ listWfmAbsencesForEmployee: vi.fn(), requestWfmAbsence: h.request, withdrawWfmAbsenceRequest: h.withdraw, getWfmTodayAmpel: vi.fn(), getWfmTimeAccountForMonth: vi.fn(), evaluateAndStoreArbzgForToday: vi.fn(), listEmployeeRuleViolationsForToday: vi.fn() }));
 vi.mock('@/hooks/useEmployeeMobilitySettings', () => ({ useEmployeeMobilitySettings: h.mobility }));
@@ -42,6 +42,7 @@ const settings = (patch = {}) => ({ tenantId: 'tenant', employeeId: 'employee', 
 const mobility = (patch = {}) => ({ settings: settings(), addressContext: { employeeHome: {}, tenantOffice: {} }, loading: false, error: null, saving: false, saveError: null, save: h.save, refresh: h.refresh, ...patch });
 beforeEach(() => {
   vi.clearAllMocks(); (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  Object.assign(h.actor,{tenantId:'tenant',employeeId:'employee',actorId:'user',roleKey:'employee_portal',isReady:true});
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
   h.query.mockReturnValue(query({ data: [] })); h.refresh.mockResolvedValue(undefined); h.refreshWithResult.mockResolvedValue(true); h.mobility.mockReturnValue(mobility());
 });
@@ -50,6 +51,17 @@ const render = async (element: React.ReactNode) => { await act(async () => root.
 const button = (text: string) => [...host.querySelectorAll('button')].find((e) => e.textContent === text)!;
 const edit = async (label: string, value: string) => { await act(async () => { const el = host.querySelector(`[aria-label="${label}"]`) as HTMLInputElement; el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); }); };
 describe('employee remaining workflows on a mounted UI', () => {
+  it('does not retain an old employee absence draft after the identity changes',async()=>{
+    await render(<WfmAbsencePortalScreen />);await edit('Von','12.10.2026');await edit('Bis','13.10.2026');await edit('Kurze Begründung','Persönliche alte Begründung');
+    h.actor={...h.actor,employeeId:'employee-b',actorId:'user-b'};await render(<WfmAbsencePortalScreen />);
+    expect(host.querySelector<HTMLInputElement>('[aria-label="Von"]')?.value).toBe('');expect(host.querySelector<HTMLTextAreaElement>('[aria-label="Kurze Begründung"]')?.value).toBe('');
+  });
+  it('does not refresh or show an old absence submission after an actor switch',async()=>{
+    let resolve!:(value:any)=>void;h.request.mockReturnValueOnce(new Promise(done=>{resolve=done;}));await render(<WfmAbsencePortalScreen />);await edit('Von','12.10.2026');await edit('Bis','13.10.2026');await act(async()=>button('Antrag einreichen').click());
+    h.actor={...h.actor,employeeId:'employee-b',actorId:'user-b'};await render(<WfmAbsencePortalScreen />);await act(async()=>resolve({ok:true,data:{id:'old-absence'}}));
+    expect(h.refreshWithResult).not.toHaveBeenCalled();expect(host.textContent).not.toContain('Antrag wurde eingereicht');expect(button('Antrag einreichen').disabled).toBe(false);
+  });
+
   it('shows absence read errors with a real retry instead of claiming no requests', async () => {
     h.query.mockReturnValue(query({ error: 'Netzwerkfehler' })); await render(<WfmAbsencePortalScreen />);
     expect(host.textContent).toContain('Netzwerkfehler'); expect(host.textContent).not.toContain('Es liegen keine Anträge vor');

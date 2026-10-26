@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { currentCompanyWorkflows } from './currentCompanyWorkflows';
 import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { RoleKey, ServiceResult } from '@/types';
@@ -336,8 +335,8 @@ export async function seedAssistCatalogIfEmpty(tenantId: string): Promise<Servic
   return seedTenantServiceCatalogIfEmpty(tenantId);
 }
 
-/** Web editors need the complete inventory to recognize already saved templates. */
-async function readWebCatalogPages(
+/** Every released company editor needs the complete inventory and exact prices. */
+async function readCatalogPages(
   load: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown; count: number | null }>,
 ): Promise<Record<string, unknown>[]> {
   const rows: Record<string, unknown>[] = [];
@@ -386,9 +385,9 @@ export async function fetchTenantServiceCatalog(
 
   let catalogRows: Record<string, unknown>[] = [];
   let priceRows: Record<string, unknown>[] = [];
-  if (Platform.OS === 'web') {
+  if (currentCompanyWorkflows) {
     try {
-      catalogRows = await readWebCatalogPages((from, to) => {
+      catalogRows = await readCatalogPages((from, to) => {
         let query = fromUnknownTable(client, 'tenant_service_catalog')
           .select('*', { count: 'exact' }).eq('tenant_id', tenantId);
         if (moduleKey) query = query.eq('module_key', moduleKey);
@@ -401,7 +400,7 @@ export async function fetchTenantServiceCatalog(
       for (let offset = 0; offset < catalogRows.length; offset += 150) {
         const ids = catalogRows.slice(offset, offset + 150).map((row) => String(row.id));
         const idSet = new Set(ids);
-        const batch = await readWebCatalogPages((from, to) => fromUnknownTable(client, 'tenant_service_prices')
+        const batch = await readCatalogPages((from, to) => fromUnknownTable(client, 'tenant_service_prices')
           .select('*', { count: 'exact' }).eq('tenant_id', tenantId).in('catalog_id', ids)
           .eq('is_default', true).order('id').range(from, to));
         for (const row of batch) {
@@ -432,7 +431,7 @@ export async function fetchTenantServiceCatalog(
   }
 
   const priceByCatalog = new Map(priceRows.map((row) => [String(row.catalog_id), row]));
-  if (Platform.OS === 'web' && priceByCatalog.size !== priceRows.length) {
+  if (currentCompanyWorkflows && priceByCatalog.size !== priceRows.length) {
     return { ok: false, error: 'Für eine Position sind mehrere Standardpreise hinterlegt. Bitte die Preiszuordnung prüfen, bevor Sie den Katalog bearbeiten.' };
   }
   const items = ((catalogRows ?? []) as Record<string, unknown>[]).map((row) =>
@@ -476,7 +475,7 @@ export async function saveTenantServiceCatalogItem(
   input: SaveCatalogItemInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantServiceCatalogSnapshot>> {
-  const effectiveFrom = input.validFrom ?? (Platform.OS === 'web' ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) : new Date().toISOString().slice(0, 10));
+  const effectiveFrom = input.validFrom ?? (currentCompanyWorkflows ? new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) : new Date().toISOString().slice(0, 10));
   const webDenied = await guardLegacyCompanyWebAccess<TenantServiceCatalogSnapshot>(tenantId);
   if (webDenied) return webDenied;
   const denied = currentCompanyWorkflows ? null : enforcePermission<TenantServiceCatalogSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
@@ -569,7 +568,7 @@ export async function saveTenantServiceCatalogItem(
       tax_rate: input.taxRate ?? (currentCompanyWorkflows && input.taxMode === 'standard_19' ? 19 : 0),
       tax_mode: input.taxMode ?? 'exempt_4_16',
       valid_from: effectiveFrom,
-      ...(Platform.OS === 'web' && input.validTo !== undefined ? { valid_to: input.validTo } : {}),
+      ...(currentCompanyWorkflows && input.validTo !== undefined ? { valid_to: input.validTo } : {}),
       is_default: true,
       updated_at: new Date().toISOString(),
     };
@@ -592,7 +591,7 @@ export async function saveTenantServiceCatalogItem(
           Number(old.tax_rate) === pricePayload.tax_rate && old.tax_mode === pricePayload.tax_mode &&
           (!input.validFrom || old.valid_from === input.validFrom) &&
           (input.validTo === undefined || (old.valid_to ?? null) === input.validTo)) {
-        return fetchTenantServiceCatalog(tenantId, actorRoleKey, Platform.OS === 'web' ? input.moduleKey : undefined);
+        return fetchTenantServiceCatalog(tenantId, actorRoleKey, currentCompanyWorkflows ? input.moduleKey : undefined);
       }
       const versionResult = await fromUnknownTable(client, 'tenant_service_price_versions').insert({
         tenant_id: tenantId,
@@ -619,7 +618,7 @@ export async function saveTenantServiceCatalogItem(
     }
   }
 
-  return fetchTenantServiceCatalog(tenantId, actorRoleKey, Platform.OS === 'web' ? input.moduleKey : undefined);
+  return fetchTenantServiceCatalog(tenantId, actorRoleKey, currentCompanyWorkflows ? input.moduleKey : undefined);
 }
 
 export function resetTenantServiceCatalogStore(): void {

@@ -44,7 +44,7 @@ export function AssistPortalOverview({
 }: AssistPortalOverviewProps) {
   return (
     <AssistPortalOverviewContent
-      key={`${context.tenantId}:${context.clientId}`}
+      key={JSON.stringify([context.tenantId, context.clientId, context.roleKey, context.familyAccess?.accountId, context.familyAccess?.permissions])}
       context={context}
       showSuccess={showSuccess}
       onRefresh={onRefresh}
@@ -80,7 +80,7 @@ function AssistPortalOverviewContent({
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
-  const uploadReleased = canAccessPortalFeature(context, 'assist', 'documents');
+  const uploadReleased = context.roleKey !== 'family_portal' && canAccessPortalFeature(context, 'assist', 'documents');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
   const clearModalRoute = useCallback(() => {

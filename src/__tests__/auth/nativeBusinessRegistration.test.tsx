@@ -37,7 +37,7 @@ vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ t
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: {
   getItem: (...args: any[]) => h.get(...args), setItem: (...args: any[]) => h.set(...args), removeItem: (...args: any[]) => h.remove(...args),
 } }));
-vi.mock('expo-router', () => ({ Link: 'Link', useRouter: () => ({ replace: h.replace }) }));
+vi.mock('expo-router', () => ({ Link: 'Link', useIsFocused: () => true, useRouter: () => ({ replace: h.replace }) }));
 vi.mock('expo-linking', () => ({ useURL: () => null }));
 vi.mock('@/lib/auth', () => ({
   useAuth: () => ({ signInWithSupabaseSession: h.signIn, signInPortalSession: h.portalSignIn, updatePortalSession: h.updateSession, portalSession: h.portalSession }),

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { PortalAnnouncementsHero } from '@/components/portal';
@@ -19,6 +19,8 @@ export function EmployeePortalAnnouncementsScreen() {
 
 function EmployeeAnnouncementsContent({ notifications, loading, error, refresh, tenantId, userId, employeeId }:
   Pick<ReturnType<typeof useNotifications>, 'notifications' | 'loading' | 'error' | 'refresh' | 'tenantId' | 'userId' | 'employeeId'>) {
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullBodies, setFullBodies] = useState<Record<string, string>>({});
   const [detailErrors, setDetailErrors] = useState<Record<string, string | undefined>>({});
@@ -32,6 +34,7 @@ function EmployeeAnnouncementsContent({ notifications, loading, error, refresh, 
     setLoadingId(item.id);
     try {
       const result = await acknowledgeBroadcastNotification(tenantId, item.id, userId, employeeId);
+      if (!active.current) return;
       if (!result.ok) setDetailErrors((current) => ({ ...current, [item.id]: 'Die Bestätigung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.' }));
       else {
         setAcknowledgedIds((current) => new Set([...current, item.id]));
@@ -39,10 +42,11 @@ function EmployeeAnnouncementsContent({ notifications, loading, error, refresh, 
         void refresh();
       }
     } catch {
+      if (!active.current) return;
       setDetailErrors((current) => ({ ...current, [item.id]: 'Die Bestätigung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.' }));
     } finally {
       inFlight.current.delete(item.id);
-      setLoadingId(null);
+      if (active.current) setLoadingId(null);
     }
   };
   const openAnnouncement = async (item: AppNotification) => {
@@ -57,7 +61,8 @@ function EmployeeAnnouncementsContent({ notifications, loading, error, refresh, 
     setLoadingId(item.id);
     setDetailErrors((current) => ({ ...current, [item.id]: undefined }));
     try {
-      const result = await readClientPortalAnnouncement(tenantId, userId, item, employeeId);
+      const result = await readClientPortalAnnouncement(tenantId, userId, item, employeeId, { isCurrent: () => active.current });
+      if (!active.current) return;
       if (result.ok) {
         setFullBodies((current) => ({ ...current, [item.id]: result.data.body }));
         if (result.data.readWarning) setDetailErrors((current) => ({ ...current, [item.id]: result.data.readWarning! }));
@@ -67,7 +72,7 @@ function EmployeeAnnouncementsContent({ notifications, loading, error, refresh, 
       }
     } finally {
       inFlight.current.delete(item.id);
-      setLoadingId((current) => current === item.id ? null : current);
+      if (active.current) setLoadingId((current) => current === item.id ? null : current);
     }
   };
 

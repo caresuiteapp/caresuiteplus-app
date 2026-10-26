@@ -195,6 +195,8 @@ jobs:
         run: node scripts/port-native-workspaces.mjs --check
       - name: Native Datei- und Arbeitsabläufe prüfen
         run: npx vitest run src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeWorkspaceGrid.test.tsx src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeInlineLinks.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeReactHosts.test.ts src/__tests__/platform/nativeStyleEmitterScopes.test.tsx src/__tests__/ui/stateViewFeedbackFocus.native.test.tsx src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx src/__tests__/office/officeNotesNativeInteraction.test.tsx src/__tests__/calendar/nativePortalCalendarPresentation.test.tsx src/__tests__/portal/employeeLogbookNativeRuntime.test.tsx src/__tests__/portal/employeePortalWorkspaceRegression.test.tsx src/__tests__/portal/clientPortalNativeContinuity.test.tsx src/__tests__/portal/clientPortalNativeLayout.test.tsx src/__tests__/portal/clientPortalSurfaceContrast.test.tsx src/__tests__/portal/employeePortalTodayAssignments.test.tsx --maxWorkers=2
+      - name: Portalrechte, Wiederaufnahme und direkte Aktenziele prüfen
+        run: npx vitest run src/__tests__/portal/employeeNativeTasksNavigation.test.tsx src/__tests__/portal/clientFamilyCapabilities.test.tsx src/__tests__/portal/clientPortalWorkflowRecovery.test.tsx src/__tests__/clients/clientRecordRouteDestinations.test.tsx src/__tests__/clients/clientRecordBudgetNavigationWeb.test.tsx src/__tests__/tenant/tenantServiceCatalogPersistence.test.ts src/__tests__/permissions/runtimePermissionScope.test.tsx src/__tests__/permissions/runtimePermissionRepository.test.ts src/__tests__/portal/employeePayrollScreenInteraction.test.tsx src/__tests__/portal/familyHomeTransportCapabilities.test.ts src/__tests__/portal/employeeMobilityEntry.test.tsx src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx src/__tests__/clients/clientRecordReadScope.test.tsx src/__tests__/portal/familyPortalActorExpiry.test.tsx src/__tests__/portal/clientProfileFamilyBoundary.test.ts src/__tests__/portal/clientProfileScreenActions.test.tsx src/__tests__/portal/clientBudgetDirectRouteBoundary.test.tsx src/__tests__/portal/clientAnnouncementRead.test.ts src/__tests__/auth/phoneDeviceApprovalLifecycle.test.tsx --maxWorkers=2
       - name: Native Ansichten im vorhandenen Chrome rendern
         run: node scripts/verify-native-administration-visual.mjs
       - name: TypeScript prüfen
@@ -213,3 +215,38 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+
+  portal-audit:
+    name: Vollständige Portaloberflächen – ${{ matrix.portal }}
+    if: github.ref_name == 'fix/native-web-design-parity-20261024'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        portal: [administration, employee, client_and_family]
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      CARESUITE_NATIVE_PORTAL_AUDIT_DIR: /tmp/caresuite-native-portal-audit
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '20.19.4'
+          cache: npm
+      - name: Bestehende Projektabhängigkeiten laden
+        run: npm ci
+      - name: Tatsächliche Android-Routen inventarisieren
+        run: node scripts/audit-native-portal-route-matrix.mjs --write
+      - name: Tatsächliche Seiten mit Portaloberfläche im vorhandenen Chrome prüfen
+        run: node scripts/verify-native-portal-audit.mjs --portal=${{ matrix.portal }} --states=ready
+      - name: Belege und offene Fehler sichern
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: CareSuite-Portal-Audit-${{ matrix.portal }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-portal-audit/*.json
+            /tmp/caresuite-native-portal-audit/*.png
+            docs/audit/native-portal-route-matrix.json
+          retention-days: 14

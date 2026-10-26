@@ -61,7 +61,7 @@ export function usePortalOfficeMessages(
       clientId,
       employeeId,
     ],
-    { enabled: enabled && !!tenantId && isLinkedReady && familyMessagesAllowed, queryKey: JSON.stringify([tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter]) },
+    { enabled: enabled && !!tenantId && isLinkedReady && familyMessagesAllowed, queryKey: JSON.stringify([tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter, familyMessagesAllowed]) },
   );
 
   const refresh = query.refresh;

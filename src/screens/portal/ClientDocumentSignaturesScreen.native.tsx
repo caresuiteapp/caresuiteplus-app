@@ -19,6 +19,7 @@ import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } f
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
 import { portalPremium } from "../../design/tokens/portalPremium.tsx";
 import { spacing } from '@/theme';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 type FilterKey = 'open' | 'done';
 const FILTER_OPTIONS = [
     { key: 'open', label: 'Offen' },
@@ -28,7 +29,8 @@ export function ClientDocumentSignaturesScreen() {
     const router = useRouter();
     const attention = useClientSignatureAttention();
     const proofs = attention.items.filter((item) => item.kind === 'proof');
-    const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
+    const { tenantId, clientId, roleKey, isLinkedReady, familyAccess } = usePortalActor();
+    const documentsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
     const { can } = usePermissions();
     const [filter, setFilter] = useState<FilterKey>('open');
     const { width } = useDeviceClass();
@@ -49,17 +51,17 @@ export function ClientDocumentSignaturesScreen() {
             summaryOnly: true,
         });
     }, [tenantId, clientId, roleKey, filter]), [tenantId, clientId, roleKey, filter], {
-        enabled: isLinkedReady &&
+        enabled: isLinkedReady && documentsAllowed &&
             (roleKey === 'client_portal' || roleKey === 'family_portal') &&
             !!tenantId &&
             !!clientId,
-        queryKey: JSON.stringify([tenantId, clientId, roleKey, filter]),
+        queryKey: JSON.stringify([tenantId, clientId, roleKey, filter, documentsAllowed]),
         live: { tenantId, subscribe, pollMs: 30000, refreshOnFocus: true },
     });
     const items = filter === 'open'
         ? (query.data ?? []).filter((r) => r.pendingSignatureRoles.some((role) => role === 'client' || role === 'representative'))
         : (query.data ?? []).filter((r) => !r.pendingSignatureRoles.some((role) => role === 'client' || role === 'representative') && r.signatures.some((signature) => ['client', 'representative'].includes(signature.signerRole) && signature.status === 'signed'));
-    if (!can('portal.client.documents.view' as never)) {
+    if (!documentsAllowed || !can('portal.client.documents.view' as never)) {
         return (<PortalTabScreen title="Unterschriften" scroll={false}>
         <EmptyState title="Kein Zugriff" message="Dokumente sind derzeit nicht verfügbar."/>
       </PortalTabScreen>);

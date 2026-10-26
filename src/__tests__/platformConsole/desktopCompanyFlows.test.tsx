@@ -36,6 +36,12 @@ vi.mock('@/components/ui', () => ({ LoadingState: ({ message }: any) => <div>{me
 vi.mock('@/lib/platformConsole/PlatformAuthProvider', () => ({ usePlatformAuth: () => ({ platformUser: { role: 'platform_admin' } }) }));
 vi.mock('@/lib/platformConsole/platformAccessService', () => ({ managePlatformTenantAccess: api.status }));
 vi.mock('@/lib/platformConsole/platformCompanyDirectoryService', () => ({ listPlatformCompanies: api.list }));
+// These newer owner-only tabs keep their real components. Their transports
+// are explicit denials here; dedicated dossier/account/transfer interaction
+// suites exercise the corresponding read/write contracts.
+vi.mock('@/lib/platformConsole/tenantDossierService.web', () => ({ getTenantDossier: vi.fn().mockResolvedValue({ ok: false, error: 'Owner dossier transport is outside this registration/status fixture.' }), getTenantDossierPage: vi.fn().mockResolvedValue({ ok: false, error: 'Owner dossier pages are not provided by this fixture.' }), getTenantDossierSummaries: vi.fn().mockResolvedValue({ ok: false, error: 'Owner dossier summaries are not provided by this fixture.' }) }));
+vi.mock('@/lib/platformConsole/platformAccountService', () => ({ listPlatformAccounts: vi.fn().mockResolvedValue({ ok: false, error: 'Account reads are outside this registration/status fixture.' }), managePlatformAccount: vi.fn().mockRejectedValue(new Error('Account writes are denied in this fixture.')) }));
+vi.mock('@/lib/dataTransfers/service', () => ({ listTransfers: vi.fn().mockRejectedValue(new Error('Transfer reads are outside this registration/status fixture.')), listTransferFiles: vi.fn().mockRejectedValue(new Error('File reads are outside this fixture.')), downloadTransferFile: vi.fn().mockRejectedValue(new Error('File downloads are denied in this fixture.')), transferAction: vi.fn().mockRejectedValue(new Error('Transfer writes are denied in this fixture.')), formatTransferSize: () => { throw Error('No transfer file display contract was provided.'); } }));
 vi.mock('@/lib/platformConsole', () => ({ getPlatformTenantDetail: api.detail, platformRoleHasCapability: () => true, updatePlatformTenantStatus: api.status, updatePlatformTenantRecord: api.record, resolvePlatformTenantDetailId: (row: any) => row.id }));
 vi.mock('@/components/platformConsole', () => ({
   PLATFORM_COLORS: {}, PlatformAuditLink: () => <span>Audit-Verweis</span>, PlatformFormField: ({ label, children }: any) => <label>{label}{children}</label>,

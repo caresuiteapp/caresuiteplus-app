@@ -14,10 +14,10 @@ import { canClientPortalSeeFeature } from '@/lib/client/clientPortalSettingsServ
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 function ClientPortalBudgetRoute() {
     const tenantId = useServiceTenantId();
-    const { clientId, isLinkedReady, isResolvingClientLink } = usePortalActor();
+    const { clientId, actorId, roleKey, isLinkedReady, isResolvingClientLink } = usePortalActor();
     const text = useAuroraAdaptiveText();
     const portalSettings = useClientPortalSettings();
-    const budgetReleased = !!portalSettings.settings && canClientPortalSeeFeature(portalSettings.settings, 'budget');
+    const budgetReleased = roleKey === 'client_portal' && !!portalSettings.settings && canClientPortalSeeFeature(portalSettings.settings, 'budget');
     const budgetQuery = useAsyncQuery(() => {
         if (!tenantId || !clientId) {
             return Promise.resolve({
@@ -27,7 +27,7 @@ function ClientPortalBudgetRoute() {
         }
         return fetchPortalBudgetVisuals(tenantId, clientId);
     }, [tenantId, clientId], { enabled: !!tenantId && !!clientId && isLinkedReady && budgetReleased,
-        queryKey: `client-budget:${tenantId ?? ''}:${clientId ?? ''}:${budgetReleased}` });
+        queryKey: JSON.stringify(['client-budget', tenantId, actorId, roleKey, clientId, budgetReleased]) });
     const missingClientLink = !isResolvingClientLink && !clientId;
     const visuals = budgetQuery.data ?? [];
     return (<PortalTabScreen title="Budget">
@@ -37,10 +37,12 @@ function ClientPortalBudgetRoute() {
         <Text style={[styles.subtitle, { color: text.secondary }]}>
           Geld, mögliche Stunden und die Auswirkung auf Ihr Pflegegeld – automatisch aus Ihren aktuellen Angaben berechnet.
         </Text>
-        {budgetQuery.loading || portalSettings.loading || isResolvingClientLink ? (<Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte werden geladen …</Text>) : budgetQuery.error || portalSettings.error || missingClientLink || !budgetReleased || visuals.length === 0 ? (<Text style={[styles.liveStatus, { color: text.muted }]}>
+        {budgetQuery.loading || portalSettings.loading || isResolvingClientLink ? (<Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte werden geladen …</Text>) : budgetQuery.refreshError && visuals.length > 0 ? (<Text style={[styles.liveStatus, { color: text.muted }]}>Gespeicherter Stand · Aktualisieren derzeit nicht möglich</Text>) : budgetQuery.error || portalSettings.error || missingClientLink || !budgetReleased || visuals.length === 0 ? (<Text style={[styles.liveStatus, { color: text.muted }]}>
             Persönliche Budgetwerte sind derzeit nicht verfügbar.
           </Text>) : (<Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte · automatisch aktuell</Text>)}
       </View>
+
+      {budgetQuery.refreshError && visuals.length > 0 && budgetReleased ? (<ErrorState title="Budget nicht aktualisiert" message="Die angezeigten Werte stammen aus dem zuletzt geladenen Stand. Bitte prüfen Sie die Verbindung und laden Sie die Werte erneut." onRetry={budgetQuery.refresh}/>) : null}
 
       {isResolvingClientLink || portalSettings.loading || budgetQuery.loading ? (<LoadingState message="Ihre persönlichen Budgetwerte werden geladen…"/>) : missingClientLink ? (<ErrorState title="Budget nicht verfügbar" message="Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an oder wenden Sie sich an Ihr Pflegebüro." onRetry={budgetQuery.refresh}/>) : portalSettings.error ? (<ErrorState title="Budgetfreigabe konnte nicht geladen werden" message="Bitte versuchen Sie es erneut. Bis die Freigabe geprüft wurde, werden keine Budgetwerte angezeigt." onRetry={portalSettings.refresh}/>) : !budgetReleased ? (<ClientPortalGuide compact title="Budget noch nicht freigegeben" message="Sobald Ihr Pflegebüro die Budgetansicht für Sie freigibt, erscheinen Ihre persönlichen Werte hier."/>) : budgetQuery.error ? (<ErrorState title="Budget konnte nicht geladen werden" message="Ihre persönlichen Budgetwerte konnten gerade nicht geladen werden. Es werden keine Ersatzbeträge angezeigt." onRetry={budgetQuery.refresh}/>) : visuals.length === 0 ? (<EmptyState title="Noch keine Budgetdaten" message="Für Ihr Profil sind derzeit keine freigegebenen Budgetwerte hinterlegt. Es werden keine geschätzten Beträge angezeigt." actionLabel="Erneut laden" onAction={budgetQuery.refresh}/>) : (<ClientBudgetVisualCards models={visuals}/>)}
     </PortalTabScreen>);

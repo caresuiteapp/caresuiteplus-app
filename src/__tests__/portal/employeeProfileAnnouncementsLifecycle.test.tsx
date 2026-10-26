@@ -88,6 +88,16 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('employee profile and announcement identity boundaries', () => {
+  it.each(['caregiver','nurse'])('includes the verified employee recipient for the allowed %s portal role',async role=>{
+    h.actor.roleKey=role;await render(<NotificationsProbe />);expect(h.notifications).toHaveBeenCalledWith('tenant-a','user-a','employee-a','broadcasts');
+  });
+  it('does not mark a late old-employee full text read after an actor switch',async()=>{
+    const pending=deferred<any>();h.detail.mockReturnValueOnce(pending.promise);await render(<EmployeePortalAnnouncementsScreen />);await press('Vollständig lesen');
+    h.actor={...h.actor,employeeId:'employee-b',actorId:'account-b'};await render(<EmployeePortalAnnouncementsScreen />);
+    await act(async()=>pending.resolve({ok:true,data:{body:'Alte private Dienstinformation'}}));
+    expect(h.read).not.toHaveBeenCalled();expect(host.textContent).not.toContain('Alte private Dienstinformation');
+  });
+
   it('keeps the real basic profile visible when the additional personnel query fails and offers retry', async () => {
     h.personnel.mockResolvedValueOnce({ ok: false, error: 'Personalakte nicht verfügbar' });
     await render(<EmployeeProfileScreen />);

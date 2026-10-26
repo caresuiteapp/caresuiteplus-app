@@ -14,10 +14,10 @@ import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 
 export default function ClientPortalBudgetRoute() {
   const tenantId = useServiceTenantId();
-  const { clientId, isLinkedReady, isResolvingClientLink } = usePortalActor();
+  const { clientId, actorId, roleKey, isLinkedReady, isResolvingClientLink } = usePortalActor();
   const text = useAuroraAdaptiveText();
   const portalSettings = useClientPortalSettings();
-  const budgetReleased = !!portalSettings.settings && canClientPortalSeeFeature(portalSettings.settings, 'budget');
+  const budgetReleased = roleKey === 'client_portal' && !!portalSettings.settings && canClientPortalSeeFeature(portalSettings.settings, 'budget');
 
   const budgetQuery = useAsyncQuery(
     () => {
@@ -31,7 +31,7 @@ export default function ClientPortalBudgetRoute() {
     },
     [tenantId, clientId],
     { enabled: !!tenantId && !!clientId && isLinkedReady && budgetReleased,
-      queryKey: `client-budget:${tenantId ?? ''}:${clientId ?? ''}:${budgetReleased}` },
+      queryKey: JSON.stringify(['client-budget', tenantId, actorId, roleKey, clientId, budgetReleased]) },
   );
 
   const missingClientLink = !isResolvingClientLink && !clientId;
@@ -47,6 +47,8 @@ export default function ClientPortalBudgetRoute() {
         </Text>
         {budgetQuery.loading || portalSettings.loading || isResolvingClientLink ? (
           <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte werden geladen …</Text>
+        ) : budgetQuery.refreshError && visuals.length > 0 ? (
+          <Text style={[styles.liveStatus, { color: text.muted }]}>Gespeicherter Stand · Aktualisieren derzeit nicht möglich</Text>
         ) : budgetQuery.error || portalSettings.error || missingClientLink || !budgetReleased || visuals.length === 0 ? (
           <Text style={[styles.liveStatus, { color: text.muted }]}>
             Persönliche Budgetwerte sind derzeit nicht verfügbar.
@@ -55,6 +57,12 @@ export default function ClientPortalBudgetRoute() {
           <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte · automatisch aktuell</Text>
         )}
       </View>
+
+      {budgetQuery.refreshError && visuals.length > 0 && budgetReleased ? (
+        <ErrorState title="Budget nicht aktualisiert"
+          message="Die angezeigten Werte stammen aus dem zuletzt geladenen Stand. Bitte prüfen Sie die Verbindung und laden Sie die Werte erneut."
+          onRetry={budgetQuery.refresh} />
+      ) : null}
 
       {isResolvingClientLink || portalSettings.loading || budgetQuery.loading ? (
         <LoadingState message="Ihre persönlichen Budgetwerte werden geladen…" />

@@ -1,6 +1,6 @@
 import { PortalDeviceSettingsCard } from '@/components/auth/PortalDeviceSettingsCard';
 import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
-import { useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
@@ -23,10 +23,11 @@ import {
   PremiumButton,
 } from '@/components/ui';
 import { useClientPortalProfile } from '@/hooks/useClientPortalProfile';
+import { useMutation } from '@/hooks/core/useMutation';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
-import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalActor, type PortalActor } from '@/hooks/usePortalActor';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import {
   buildPortalRequestDescription,
@@ -260,6 +261,23 @@ function renderProfileSections(profile: PortalClientProfile, isWide: boolean, te
 }
 
 export function ClientPortalProfileScreen() {
+  const actor = usePortalActor();
+  if (actor.roleKey === 'family_portal') return <FamilyPortalAccountSettings />;
+  return <ClientPortalProfileContent key={JSON.stringify([actor.tenantId, actor.actorId, actor.roleKey, actor.clientId])} actor={actor} />;
+}
+
+function FamilyPortalAccountSettings() {
+  return <PortalTabScreen title="Mein Zugang" hideHeaderOnPhone>
+    <View style={styles.scroll}>
+      <PortalGlassHero title="Mein Angehörigenzugang" subtitle="Sicherheit und Einstellungen für Ihren persönlichen Zugang" />
+      <PortalBiometricSettingsCard />
+      <PortalDeviceSettingsCard />
+      <ClientPortalGuide compact title="Ihre persönlichen Einstellungen" message="Hier verwalten Sie die Anmeldung auf Ihrem Gerät. Die freigegebenen Termine, Nachrichten und Dokumente finden Sie in den jeweiligen Bereichen. Klientenstammdaten und Pflegepläne sind über diesen Zugang nicht freigegeben." />
+    </View>
+  </PortalTabScreen>;
+}
+
+function ClientPortalProfileContent({ actor }: { actor: PortalActor }) {
   const { profile: authProfile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.client.profile.view');
@@ -270,7 +288,7 @@ export function ClientPortalProfileScreen() {
   const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
-  const { tenantId, actorId } = usePortalActor();
+  const { tenantId, actorId } = actor;
   const { context } = usePortalContext();
   const {
     profile,
@@ -283,9 +301,25 @@ export function ClientPortalProfileScreen() {
     missingClientLink,
   } = useClientPortalProfile();
   const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [requestError, setRequestError] = useState<string | null>(null);
-  const [requestSuccess, setRequestSuccess] = useState(false);
+  const request = useMutation(async (payload: PortalStructuredRequestPayload) => {
+    if (!tenantId || !profile?.clientId || profile.clientId !== actor.clientId || !actorId || !actor.isLinkedReady || actor.roleKey !== 'client_portal') {
+      return { ok: false as const, error: 'Ihr Portalprofil konnte nicht sicher zugeordnet werden. Bitte aktualisieren Sie die Seite.' };
+    }
+    return createPortalRequest({
+      tenantId, clientId: profile.clientId, portalUserId: actorId,
+      moduleKey: context?.primaryModule ?? 'assist', requestType: 'stammdaten',
+      title: resolvePortalRequestTypeLabel('stammdaten'),
+      description: buildPortalRequestDescription('stammdaten', payload),
+      payload: serializePortalRequestPayload('stammdaten', payload),
+    });
+  }, {
+    scopeKey: JSON.stringify([tenantId, actorId, actor.roleKey, actor.clientId, actor.isLinkedReady]),
+    successMessage: 'Ihre Stammdaten-Anfrage wurde übermittelt.',
+    onSuccess: () => setRequestModalOpen(false),
+  });
+  const submitting = request.loading;
+  const requestError = request.error ? toPortalUserFacingError(request.error, 'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.') : null;
+  const requestSuccess = Boolean(request.successMessage);
 
   const isWide = isTablet || isDesktop;
 
@@ -298,39 +332,6 @@ export function ClientPortalProfileScreen() {
         : careSpacing.xl + insets.bottom,
     }),
     [footerInFlow, insets.bottom, showBottomTabs],
-  );
-
-  const handleStammdatenRequest = useCallback(
-    async (payload: PortalStructuredRequestPayload) => {
-      if (!tenantId || !profile?.clientId || !actorId) return;
-      if (submitting) return;
-      setSubmitting(true);
-      setRequestError(null);
-      const result = await createPortalRequest({
-        tenantId,
-        clientId: profile.clientId,
-        portalUserId: actorId,
-        moduleKey: context?.primaryModule ?? 'assist',
-        requestType: 'stammdaten',
-        title: resolvePortalRequestTypeLabel('stammdaten'),
-        description: buildPortalRequestDescription('stammdaten', payload),
-        payload: serializePortalRequestPayload('stammdaten', payload),
-      });
-      setSubmitting(false);
-      if (result.ok) {
-        setRequestModalOpen(false);
-        setRequestSuccess(true);
-        setTimeout(() => setRequestSuccess(false), 2500);
-      } else {
-        setRequestError(
-          toPortalUserFacingError(
-            result.error,
-            'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
-          ),
-        );
-      }
-    },
-    [tenantId, profile?.clientId, actorId, context?.primaryModule, submitting],
   );
 
   if (!canViewProfile) {
@@ -473,12 +474,12 @@ export function ClientPortalProfileScreen() {
         submitting={submitting}
         submitError={requestError}
         onClose={() => {
-          setRequestError(null);
+          request.reset();
           setRequestModalOpen(false);
         }}
         onSubmit={(payload) => {
           if (isPortalFormRequestType('stammdaten')) {
-            void handleStammdatenRequest(payload);
+            void request.mutate(payload);
           }
         }}
       />

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
@@ -10,14 +10,24 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { radius, typography } from '@/theme';
 import type { AppNotification } from '@/types/office/broadcast';
+import { usePortalActor } from '@/hooks/usePortalActor';
 
 export function ClientPortalAnnouncementsScreen() {
+  const query = useNotifications('broadcasts');
+  const actor = usePortalActor();
+  const scope = JSON.stringify([query.tenantId, query.userId, actor.actorId, actor.roleKey, actor.clientId]);
+  return <ClientPortalAnnouncementsContent key={scope} query={query} />;
+}
+
+function ClientPortalAnnouncementsContent({ query }: { query: ReturnType<typeof useNotifications> }) {
   const { colors } = useLegacyTheme();
-  const { notifications, loading, error, refresh, tenantId, userId } = useNotifications('broadcasts');
+  const { notifications, loading, error, refresh, tenantId, userId } = query;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullBodies, setFullBodies] = useState<Record<string, string>>({});
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [detailErrors, setDetailErrors] = useState<Record<string, string | undefined>>({});
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const openAnnouncement = useCallback(async (item: AppNotification) => {
     if (detailLoadingId === item.id) return;
@@ -33,7 +43,8 @@ export function ClientPortalAnnouncementsScreen() {
     }
     setDetailErrors((current) => ({ ...current, [item.id]: undefined }));
     setDetailLoadingId(item.id);
-    const result = await readClientPortalAnnouncement(tenantId, userId, item);
+    const result = await readClientPortalAnnouncement(tenantId, userId, item, undefined, { isCurrent: () => mounted.current });
+    if (!mounted.current) return;
     setDetailLoadingId((current) => current === item.id ? null : current);
     if (result.ok) {
       setFullBodies((current) => ({ ...current, [item.id]: result.data.body }));

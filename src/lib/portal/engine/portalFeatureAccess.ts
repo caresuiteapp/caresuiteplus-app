@@ -7,6 +7,7 @@ import type {
 } from '@/lib/portal/types';
 import type { PortalBudgetType } from '@/types/portal/assist';
 import { isFeatureVisible } from './portalVisibility';
+import { familyPortalFeatureAllowed } from '@/lib/portal/familyPortalAccessScope';
 
 export type PortalClientCareProfile = {
   careContexts: ClientCareContext[];
@@ -103,10 +104,11 @@ export function canAccessPortalFeature(
   context: Pick<
     PortalContext,
     'activeModuleKeys' | 'visibleFeatures' | 'portalRole' | 'visibilityRules' | 'careProfile'
-  >,
+  > & Partial<Pick<PortalContext, 'roleKey' | 'tenantId' | 'clientId' | 'familyAccess'>>,
   moduleKey: PortalModuleKey,
   featureKey: string,
 ): boolean {
+  if (!familyPortalFeatureAllowed(context, featureKey)) return false;
   if (!contextHasActiveModule(context, moduleKey)) return false;
   if (!isFeatureInVisibleList(context.visibleFeatures, moduleKey, featureKey)) return false;
   return isFeatureVisible(

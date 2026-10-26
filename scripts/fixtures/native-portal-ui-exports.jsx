@@ -22,3 +22,8 @@ export { ListFilterSelect } from '../../src/components/ui/ListFilterSelect';
 export { PremiumDataTable } from '../../src/components/ui/PremiumDataTable';
 
 export { PremiumAvatar } from '../../src/components/ui/PremiumAvatar';
+export { PremiumListHeroFrame } from '../../src/components/ui/PremiumListHeroFrame';
+export { ModuleTile } from '../../src/components/ui/ModuleTile';
+export { SegmentedTabs } from '../../src/components/ui/SegmentedTabs';
+export { CareLightButton } from '../../src/components/ui/CareLightButton';
+export { WorkflowFeedbackOverlay } from '../../src/components/ui/WorkflowFeedbackOverlay';

@@ -1,5 +1,5 @@
 import { ClientCareProofPanel } from '@/components/pflege/PortalCarePanels';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
@@ -9,7 +9,10 @@ import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText } from '@/design/tokens
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalActor, type PortalActor } from '@/hooks/usePortalActor';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
+import { isUnreleasedModuleKey } from '@/lib/modules/constants';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { createPortalRequest } from '@/lib/portal/assist/portalRequestService';
 import {
   listPortalServiceProofs,
@@ -18,18 +21,24 @@ import {
 } from '@/lib/portal/assist/portalServiceProofService';
 import { subscribePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import type { PortalServiceProof } from '@/types/portal/serviceProofs';
-import { ErrorState, LoadingState, CareLightButton } from '@/components/ui';
+import { ErrorState, LoadingState, SuccessState, CareLightButton } from '@/components/ui';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const STATUS_COLORS: Record<string, string> = {
   offen: PORTAL_LIGHT_LINK_ORANGE,
-  unterschrieben: '#34C759',
-  abgerechnet: '#62F3FF',
+  unterschrieben: '#167248',
+  abgerechnet: '#245A96',
 };
 
 /** Full-screen Leistungsnachweise — PDF, Status, Historie (K.1.2). */
 export function ClientPortalProofsScreen() {
+  const actor = usePortalActor();
+  const scope = JSON.stringify([actor.tenantId, actor.actorId, actor.roleKey, actor.clientId, actor.familyAccess?.permissions]);
+  return <ClientPortalProofsContent key={scope} actor={actor} />;
+}
+
+function ClientPortalProofsContent({ actor }: { actor: PortalActor }) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
@@ -40,56 +49,58 @@ export function ClientPortalProofsScreen() {
     actorId,
     isLinkedReady,
     isResolvingClientLink,
-  } = usePortalActor();
+    roleKey,
+    familyAccess,
+  } = actor;
+  const proofsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'service_records');
+  const downloadAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'download_documents');
+  const signAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'sign_records');
+  const inquiryAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'send_messages');
 
-  const [proofs, setProofs] = useState<PortalServiceProof[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionProofId, setActionProofId] = useState<string | null>(null);
-
-  const loadProofs = useCallback(async () => {
-    if (isResolvingClientLink) return;
-    if (!tenantId || !clientId || !isLinkedReady) {
-      setProofs([]);
-      setError(
-        'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.',
-      );
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const result = await listPortalServiceProofs(tenantId, clientId);
-    if (result.ok) {
-      setProofs(result.data);
-    } else {
-      setError(
-        toPortalUserFacingError(
-          result.error,
-          'Ihre Nachweise konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
-        ),
-      );
-      setProofs([]);
-    }
-    setLoading(false);
-  }, [tenantId, clientId, isLinkedReady, isResolvingClientLink]);
-
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [inquirySent, setInquirySent] = useState(false);
+  const actionLock = useRef(false);
+  const mounted = useRef(true);
   useEffect(() => {
-    void loadProofs();
-  }, [loadProofs]);
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const query = useAsyncQuery(
+    () => listPortalServiceProofs(tenantId!, clientId!),
+    [tenantId, clientId, actorId, roleKey],
+    { enabled: isLinkedReady && !!tenantId && !!clientId && proofsAllowed,
+      queryKey: JSON.stringify([tenantId, actorId, roleKey, clientId, proofsAllowed]) },
+  );
+  const proofs = query.data ?? [];
+  const loading = query.loading;
+  const queryError = query.error ?? query.refreshError;
+  const error = !isResolvingClientLink && !isLinkedReady
+    ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+    : queryError ? toPortalUserFacingError(queryError, 'Ihre Nachweise konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.') : null;
+  const loadProofs = query.refresh;
 
   useEffect(() => subscribePortalProofCache(() => void loadProofs()), [loadProofs]);
 
   const handleViewPdf = async (proof: PortalServiceProof) => {
+    if (actionLock.current || !downloadAllowed) return;
+    actionLock.current = true;
     setActionProofId(proof.id);
-    const result = await resolvePortalServiceProofDownloadUrl(proof);
-    setActionProofId(null);
-
-    if (result.ok) {
-      await Linking.openURL(result.data);
-      return;
+    setActionError(null);
+    try {
+      const result = await resolvePortalServiceProofDownloadUrl(proof);
+      if (!mounted.current) return;
+      if (result.ok) {
+        await Linking.openURL(result.data);
+      } else {
+        router.push(`/portal/client/documents/${proof.id}` as never);
+      }
+    } catch {
+      if (mounted.current) setActionError('Das PDF konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.');
+    } finally {
+      actionLock.current = false;
+      if (mounted.current) setActionProofId(null);
     }
-    router.push(`/portal/client/documents/${proof.id}` as never);
   };
 
   const handleSign = (proof: PortalServiceProof) => {
@@ -97,27 +108,44 @@ export function ClientPortalProofsScreen() {
   };
 
   const handleInquiry = async () => {
-    if (!tenantId || !clientId) return;
+    if (!tenantId || !clientId || !isLinkedReady || !inquiryAllowed || actionLock.current || inquirySent) return;
+    actionLock.current = true;
     setActionProofId('inquiry');
-    const result = await createPortalRequest({
-      tenantId,
-      clientId,
-      portalUserId: actorId,
-      moduleKey: 'assist',
-      requestType: 'nachweise',
-      title: 'Rückfrage zu Nachweisen',
-      description: 'Bitte um Rückmeldung zu meinen Leistungsnachweisen.',
-    });
-    setActionProofId(null);
-    if (!result.ok) {
-      setError(
-        toPortalUserFacingError(
-          result.error,
-          'Ihre Rückfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
-        ),
-      );
+    setActionError(null);
+    try {
+      const result = await createPortalRequest({
+        tenantId,
+        clientId,
+        portalUserId: actorId,
+        moduleKey: 'assist',
+        requestType: 'nachweise',
+        title: 'Rückfrage zu Nachweisen',
+        description: 'Bitte um Rückmeldung zu meinen Leistungsnachweisen.',
+      });
+      if (!mounted.current) return;
+      if (result.ok) {
+        setInquirySent(true);
+      } else {
+        setActionError(
+          toPortalUserFacingError(
+            result.error,
+            'Ihre Rückfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+          ),
+        );
+      }
+    } catch {
+      if (mounted.current) setActionError('Ihre Rückfrage konnte nicht bestätigt werden. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.');
+    } finally {
+      actionLock.current = false;
+      if (mounted.current) setActionProofId(null);
     }
   };
+
+  if (!proofsAllowed) {
+    return <PortalTabScreen title="Nachweise" hideHeaderOnPhone>
+      <ClientPortalGuide compact title="Nachweise nicht freigegeben" message="Leistungsnachweise sind für diesen Angehörigenzugang nicht freigegeben. Bitte wenden Sie sich bei Fragen an Ihr Pflegebüro." />
+    </PortalTabScreen>;
+  }
 
   return (
     <PortalTabScreen title="Nachweise" hideHeaderOnPhone scroll={false}>
@@ -128,10 +156,12 @@ export function ClientPortalProofsScreen() {
           showStatusDot
         />
 
-        <ClientCareProofPanel />
+        {!isUnreleasedModuleKey('pflege') ? <ClientCareProofPanel /> : null}
 
         {loading || isResolvingClientLink ? <LoadingState message="Nachweise werden geladen…" /> : null}
         {error ? <ErrorState title="Nachweise" message={error} onRetry={loadProofs} /> : null}
+        {actionError ? <Text accessibilityRole="alert" style={styles.actionError}>{actionError}</Text> : null}
+        {inquirySent ? <SuccessState message="Ihre Rückfrage zu den Nachweisen wurde übermittelt." /> : null}
 
         {!loading && !isResolvingClientLink && !error && proofs.length === 0 ? (
           <ClientPortalGuide
@@ -146,7 +176,7 @@ export function ClientPortalProofsScreen() {
             {proofs.map((proof) => (
               <GlassCard key={proof.id} style={styles.item}>
                 <View style={styles.itemHeader}>
-                  <Text style={[type.body, { color: text.primary, fontWeight: '600' }]} {...noBreakTextProps}>
+                  <Text style={[type.body, styles.itemTitle, { color: text.primary, fontWeight: '600' }]} {...noBreakTextProps}>
                     {proof.title}
                   </Text>
                   <Text
@@ -161,14 +191,15 @@ export function ClientPortalProofsScreen() {
                 </View>
                 <Text style={[type.caption, { color: text.muted }]}>{proof.periodLabel}</Text>
                 <View style={styles.itemActions}>
-                  <CareLightButton
+                  {downloadAllowed ? <CareLightButton
                     title="PDF anzeigen"
                     variant="secondary"
                     loading={actionProofId === proof.id}
+                    disabled={actionProofId !== null}
                     onPress={() => void handleViewPdf(proof)}
-                  />
-                  {proof.status === 'offen' && proof.signatureRequired ? (
-                    <CareLightButton title="Unterschreiben" onPress={() => handleSign(proof)} />
+                  /> : <CareLightButton title="Nachweis öffnen" variant="secondary" onPress={() => handleSign(proof)} />}
+                  {proof.status === 'offen' && proof.signatureRequired && signAllowed ? (
+                    <CareLightButton title="Unterschreiben" disabled={actionProofId !== null} onPress={() => handleSign(proof)} />
                   ) : null}
                 </View>
               </GlassCard>
@@ -176,11 +207,11 @@ export function ClientPortalProofsScreen() {
           </View>
         ) : null}
 
-        <Pressable onPress={() => void handleInquiry()} style={styles.inquiryLink}>
+        {inquiryAllowed ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: actionProofId !== null || inquirySent }} disabled={actionProofId !== null || inquirySent || !isLinkedReady} onPress={() => void handleInquiry()} style={styles.inquiryLink}>
           <Text style={[type.caption, { color: PORTAL_LIGHT_LINK_ORANGE, fontWeight: '600' }]}>
-            {actionProofId === 'inquiry' ? 'Wird gesendet…' : 'Rückfrage senden'}
+            {actionProofId === 'inquiry' ? 'Wird gesendet…' : inquirySent ? 'Rückfrage gesendet' : 'Rückfrage senden'}
           </Text>
-        </Pressable>
+        </Pressable> : null}
       </ScrollView>
     </PortalTabScreen>
   );
@@ -199,10 +230,13 @@ const styles = StyleSheet.create({
   },
   itemHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: careSpacing.sm,
   },
+  itemTitle: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  actionError: { color: '#9F263E', lineHeight: 22 },
   badge: {
     fontWeight: '700',
     textTransform: 'uppercase',

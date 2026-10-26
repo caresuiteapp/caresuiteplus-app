@@ -16,7 +16,7 @@ export function useBudgetRecordTabs({ tabs, initialTab, requestedTab, storedUrlT
   const allowed = useRef(tabs); allowed.current = tabs;
   const dirty = useRef(false); const busy = useRef(false);
   const sequence = useRef(0); const alive = useRef(true);
-  const incoming = useRef<{ requested?: ClientRecordTabKey; stored?: ClientRecordTabKey } | null>(null);
+  const incoming = useRef<{ requested?: ClientRecordTabKey; stored?: ClientRecordTabKey; tabKeys: string } | null>(null);
   const tabKeys = tabs.join(',');
   useEffect(() => { alive.current = true; return () => { alive.current = false; sequence.current += 1; }; }, []);
   const onBudgetDirtyChange = useCallback((value: boolean) => { dirty.current = value; }, []);
@@ -48,8 +48,8 @@ export function useBudgetRecordTabs({ tabs, initialTab, requestedTab, storedUrlT
   useEffect(() => {
     if (!allowed.current.length) return;
     const previous = incoming.current;
-    if (previous && previous.requested === requestedTab && previous.stored === storedUrlTab) return;
-    incoming.current = { requested: requestedTab, stored: storedUrlTab };
+    if (previous && previous.requested === requestedTab && previous.stored === storedUrlTab && previous.tabKeys === tabKeys) return;
+    incoming.current = { requested: requestedTab, stored: storedUrlTab, tabKeys };
     const requestedChanged = !previous || previous.requested !== requestedTab;
     const next = requestedChanged ? (requestedTab ?? storedUrlTab ?? initialTab) : (storedUrlTab ?? requestedTab ?? initialTab);
     if (allowed.current.includes(next)) void requestTab(next, true);

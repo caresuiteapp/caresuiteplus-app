@@ -279,6 +279,6 @@ describe('Inventar — UI Wiring', () => {
     const officeNav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
     const route = readSrc('app/business/office/inventory/index.tsx');
     expect(officeNav).toContain('/business/office/inventory');
-    expect(route).toContain('InventoryDashboardScreen');
+    expect(route).toContain('CompanyInventoryRedirect');
   });
 });

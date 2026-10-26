@@ -1,0 +1,3185 @@
+{
+  "schemaVersion": 1,
+  "auditId": "native-employee-portal-full-audit",
+  "date": "2026-10-26",
+  "sourceCommit": "b700ef091bcb06784eb2a225ff295c40bd926efc",
+  "workingTreeIncludesUncommittedFixes": true,
+  "releaseDecision": "HOLD - not a complete product/device/backend approval",
+  "routeMatrixReference": "docs/audit/native-portal-route-matrix.json",
+  "coreFunctionReference": "docs/audit/native-employee-core-functions.json",
+  "scope": "All 33 selected Android employee routes plus all known route-level aliases, subviews/tabs and first-login in referenced core report",
+  "method": [
+    "Actual Android route selection and named barrel-export resolution",
+    "Read-only source/role/tenant/record/API/readback inspection",
+    "Existing controlled service/React primitive harness tests, no new dependencies",
+    "Actual existing PNG handreview; expanded every-view renderer still pending",
+    "No productive transactions/messages, SQL application, commits, pushes or builds"
+  ],
+  "classificationMeaning": {
+    "active": "Existing normal page or reachable record/action path; not a functional release approval",
+    "alias": "Actual route redirects to another employee route",
+    "gated": "Explicit receiver release flag gate; not activated by this audit",
+    "no_verified_native_entrypoint": "Receiver exists, but normal active native entrypoint not verified"
+  },
+  "routeCount": 33,
+  "routes": [
+    {
+      "id": "app/portal/employee/(tabs)/index.tsx",
+      "routeTemplate": "/portal/employee",
+      "selectedFile": "app/portal/employee/(tabs)/index.tsx",
+      "sourceSHA256": "4e71430dc7373f4e3cda418216b7b4adf2a8e4a801fa79019aedf8e76e9996fb",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "home"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/akademie/index.native.tsx",
+      "routeTemplate": "/portal/employee/akademie",
+      "selectedFile": "app/portal/employee/akademie/index.native.tsx",
+      "sourceSHA256": "2807642e16c3625e627c187bd35e1c0ef2f4d831884478d592ff3961a2662865",
+      "classification": "no_verified_native_entrypoint",
+      "classificationBasis": "Route exists; current actual native Shell/Home/Profile entry not proven (source graph incoming references alone are insufficient)",
+      "functionIds": [
+        "academy"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/announcements/index.tsx",
+      "routeTemplate": "/portal/employee/announcements",
+      "selectedFile": "app/portal/employee/announcements/index.tsx",
+      "sourceSHA256": "be5a12dadde80f2dce390e4bdc00633485826a65025557d0115dd15f9f13b0a4",
+      "classification": "active",
+      "classificationBasis": "Existing receiver restored to actual Employee Shell menu in native and Web catalogs; scoped nonclinical information/support only",
+      "functionIds": [
+        "employee-announcements"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/announcements",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/arbeitszeit/index.tsx",
+      "routeTemplate": "/portal/employee/arbeitszeit",
+      "selectedFile": "app/portal/employee/arbeitszeit/index.tsx",
+      "sourceSHA256": "32ac94d570d1287f366846ff5492c15d59c090fed72696aec50d8fe95ceb1a05",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "workday-clock"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/arbeitszeit",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 102,
+          "arguments": [
+            "'time.tracking.own.view'"
+          ],
+          "literals": [
+            "time.tracking.own.view"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 103,
+          "arguments": [
+            "'time.tracking.own.start'"
+          ],
+          "literals": [
+            "time.tracking.own.start"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 104,
+          "arguments": [
+            "'time.tracking.admin.view'"
+          ],
+          "literals": [
+            "time.tracking.admin.view"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 105,
+          "arguments": [
+            "'time.tracking.team.view'"
+          ],
+          "literals": [
+            "time.tracking.team.view"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 285,
+          "arguments": [
+            "'time.settings.manage'"
+          ],
+          "literals": [
+            "time.settings.manage"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 350,
+          "arguments": [
+            "'time.settings.manage'"
+          ],
+          "literals": [
+            "time.settings.manage"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 408,
+          "arguments": [
+            "'time.tracking.admin.correct'"
+          ],
+          "literals": [
+            "time.tracking.admin.correct"
+          ]
+        },
+        {
+          "file": "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+          "scope": "TimeTrackingEmployeeScreen",
+          "method": "can",
+          "line": 437,
+          "arguments": [
+            "'time.tracking.team.view'"
+          ],
+          "literals": [
+            "time.tracking.team.view"
+          ]
+        },
+        {
+          "file": "src/components/wfm/WfmCheckinScanPanel.tsx",
+          "scope": "WfmCheckinScanPanel",
+          "method": "can",
+          "line": 41,
+          "arguments": [
+            "'time.tracking.own.start'"
+          ],
+          "literals": [
+            "time.tracking.own.start"
+          ]
+        },
+        {
+          "file": "src/components/wfm/WfmOfficeManualEntryPanel.native.tsx",
+          "scope": "ManualEntry",
+          "method": "can",
+          "line": 46,
+          "arguments": [
+            "'time.tracking.admin.correct'"
+          ],
+          "literals": [
+            "time.tracking.admin.correct"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/arbeitszeit/abwesenheiten/index.tsx",
+      "routeTemplate": "/portal/employee/arbeitszeit/abwesenheiten",
+      "selectedFile": "app/portal/employee/arbeitszeit/abwesenheiten/index.tsx",
+      "sourceSHA256": "24fe5a41540a222c248a3e207880777d5b2ce0af250977dd9960a2cbaf4e08b0",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "employee-absence-requests"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/arbeitszeit/abwesenheiten",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/components/wfm/WfmAbsencePortalScreen.tsx",
+          "scope": "WfmAbsencePortalScreen",
+          "method": "can",
+          "line": 103,
+          "arguments": [
+            "'portal.employee.absences.view'"
+          ],
+          "literals": [
+            "portal.employee.absences.view"
+          ]
+        },
+        {
+          "file": "src/components/wfm/WfmAbsencePortalScreen.tsx",
+          "scope": "WfmAbsencePortalScreen",
+          "method": "can",
+          "line": 104,
+          "arguments": [
+            "'portal.employee.absences.request'"
+          ],
+          "literals": [
+            "portal.employee.absences.request"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/arbeitszeit/urlaub/index.tsx",
+      "routeTemplate": "/portal/employee/arbeitszeit/urlaub",
+      "selectedFile": "app/portal/employee/arbeitszeit/urlaub/index.tsx",
+      "sourceSHA256": "267c22c5b9003ba725ffa24487b632d3adfe8b860ab8ca109842035a70ffe54e",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "employee-absence-requests"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/arbeitszeit/urlaub",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/components/wfm/WfmAbsencePortalScreen.tsx",
+          "scope": "WfmAbsencePortalScreen",
+          "method": "can",
+          "line": 103,
+          "arguments": [
+            "'portal.employee.absences.view'"
+          ],
+          "literals": [
+            "portal.employee.absences.view"
+          ]
+        },
+        {
+          "file": "src/components/wfm/WfmAbsencePortalScreen.tsx",
+          "scope": "WfmAbsencePortalScreen",
+          "method": "can",
+          "line": 104,
+          "arguments": [
+            "'portal.employee.absences.request'"
+          ],
+          "literals": [
+            "portal.employee.absences.request"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/(tabs)/assignments.tsx",
+      "routeTemplate": "/portal/employee/assignments",
+      "selectedFile": "app/portal/employee/(tabs)/assignments.tsx",
+      "sourceSHA256": "19d9eb3fe66bf719c350962b78d369ddbb7bbf4a113c2f2788828f5e29d8ca34",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "assignment-lists"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/assignments",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/assignments/[id]/index.tsx",
+      "routeTemplate": "/portal/employee/assignments/[id]",
+      "selectedFile": "app/portal/employee/assignments/[id]/index.tsx",
+      "sourceSHA256": "16e6e15befe60b19263b77195fef2f9f8c6023863a63809b2ddb9f002f2671bf",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "assignment-detail"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/assignments",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/PortalAssignmentDetailScreen.tsx",
+          "scope": "PortalAssignmentDetailScreen",
+          "method": "can",
+          "line": 47,
+          "arguments": [
+            "'portal.employee.appointments.view'"
+          ],
+          "literals": [
+            "portal.employee.appointments.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/assignments/[id]/execute.native.tsx",
+      "routeTemplate": "/portal/employee/assignments/[id]/execute",
+      "selectedFile": "app/portal/employee/assignments/[id]/execute.native.tsx",
+      "sourceSHA256": "2e14c3665a4bb7ccadf1cf1e707c7c076635dc24a1aabbce47c38f8092ef192a",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "assignment-execution"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/assignments",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/beratung/index.native.tsx",
+      "routeTemplate": "/portal/employee/beratung",
+      "selectedFile": "app/portal/employee/beratung/index.native.tsx",
+      "sourceSHA256": "676a8b68865cf602ad06f9d1ba65b530a25ba0b5203ef54b2bd593f228e7978d",
+      "classification": "gated",
+      "classificationBasis": "ConsultationWorkspaceScreen.native requires EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED; native menu remains gated",
+      "functionIds": [
+        "consultation"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/beratung/[id].native.tsx",
+      "routeTemplate": "/portal/employee/beratung/[id]",
+      "selectedFile": "app/portal/employee/beratung/[id].native.tsx",
+      "sourceSHA256": "6896bb7b416a49f20ee83fd282586b7674b2ac99601a60b62db4d7d71d887b66",
+      "classification": "gated",
+      "classificationBasis": "ConsultationWorkspaceScreen.native requires EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED; native menu remains gated",
+      "functionIds": [
+        "consultation"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/(tabs)/calendar.tsx",
+      "routeTemplate": "/portal/employee/calendar",
+      "selectedFile": "app/portal/employee/(tabs)/calendar.tsx",
+      "sourceSHA256": "313042911dedc4e801eaca577289774f559a845a3e763508cc71217ea10a60ce",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "team-calendar"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/clients/index.tsx",
+      "routeTemplate": "/portal/employee/clients",
+      "selectedFile": "app/portal/employee/clients/index.tsx",
+      "sourceSHA256": "34f60155738ffdc2317b48dba1ce97695a9c72fac72788dc2b83ea05fb1f60ca",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "client-records"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/clients/[id].tsx",
+      "routeTemplate": "/portal/employee/clients/[id]",
+      "selectedFile": "app/portal/employee/clients/[id].tsx",
+      "sourceSHA256": "015b6ba484b06d0c76be95f2d4dbc57fd9c5cb102f4797b1c9ebe8b80655abbe",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "client-records"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/(tabs)/documents.tsx",
+      "routeTemplate": "/portal/employee/documents",
+      "selectedFile": "app/portal/employee/(tabs)/documents.tsx",
+      "sourceSHA256": "07edaf2649b3486f158305556f11d8d5d8822257b27f523d9f0b64f07989b5d8",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "employee-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/documents",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/documents/[id]/index.tsx",
+      "routeTemplate": "/portal/employee/documents/[id]",
+      "selectedFile": "app/portal/employee/documents/[id]/index.tsx",
+      "sourceSHA256": "d08ec6b8410d4f88ab3b11fb29e320c3e764c8c8f4adafbaa6968dcee3737d1f",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "employee-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/documents",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/PortalDocumentDetailScreen.tsx",
+          "scope": "PortalDocumentDetailScreen",
+          "method": "can",
+          "line": 25,
+          "arguments": [
+            "'portal.employee.documents.view'"
+          ],
+          "literals": [
+            "portal.employee.documents.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/PortalDocumentDetailScreen.tsx",
+          "scope": "PortalDocumentDetailScreen",
+          "method": "can",
+          "line": 26,
+          "arguments": [
+            "'portal.employee.documents.download'"
+          ],
+          "literals": [
+            "portal.employee.documents.download"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/documents/signatures/index.tsx",
+      "routeTemplate": "/portal/employee/documents/signatures",
+      "selectedFile": "app/portal/employee/documents/signatures/index.tsx",
+      "sourceSHA256": "577f013390b153dda26b8f6eec2128395a50d2de3277fb67e9f522711701d477",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "employee-signature-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/documents/signatures",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/EmployeeDocumentSignaturesScreen.tsx",
+          "scope": "EmployeeDocumentSignaturesScreen",
+          "method": "can",
+          "line": 50,
+          "arguments": [
+            "'portal.employee.documents.view' as never"
+          ],
+          "literals": [
+            "portal.employee.documents.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/documents/signatures/[id].native.tsx",
+      "routeTemplate": "/portal/employee/documents/signatures/[id]",
+      "selectedFile": "app/portal/employee/documents/signatures/[id].native.tsx",
+      "sourceSHA256": "6b293b07730f6b8dff3fae1912bae770f221e746a9a44b13e2a84e0f04140047",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "employee-signature-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/documents/signatures/[id]",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/execution/index.tsx",
+      "routeTemplate": "/portal/employee/execution",
+      "selectedFile": "app/portal/employee/execution/index.tsx",
+      "sourceSHA256": "461d11b68e00995e630b25f78d513dc066ce684aa7b03ef175207871d7b3b8d7",
+      "classification": "no_verified_native_entrypoint",
+      "classificationBasis": "Route exists; current actual native Shell/Home/Profile entry not proven (source graph incoming references alone are insufficient)",
+      "functionIds": [
+        "assignment-lists",
+        "employee-information-pages"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/fahrtenbuch/index.tsx",
+      "routeTemplate": "/portal/employee/fahrtenbuch",
+      "selectedFile": "app/portal/employee/fahrtenbuch/index.tsx",
+      "sourceSHA256": "95134300bd8ab45124bf6db91f44cddd436f9de2f6770455b1f6bf1731845e69",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "logbook"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/help/index.tsx",
+      "routeTemplate": "/portal/employee/help",
+      "selectedFile": "app/portal/employee/help/index.tsx",
+      "sourceSHA256": "a15eed7b5024275943a44dca07104c42cfd925f71e13aa3d540bae2f006c131f",
+      "classification": "active",
+      "classificationBasis": "Existing receiver restored to actual Employee Shell menu in native and Web catalogs; scoped nonclinical information/support only",
+      "functionIds": [
+        "employee-information-pages"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/messages/index.tsx",
+      "routeTemplate": "/portal/employee/messages",
+      "selectedFile": "app/portal/employee/messages/index.tsx",
+      "sourceSHA256": "d4c4aaeb6ccecee7b1fcec6f2cecd695ce134cdcef0c42392e24568f22d676cc",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "employee-messaging"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/messages",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "ClientPortalOfficeMessagesScreen",
+          "method": "can",
+          "line": 61,
+          "arguments": [
+            "'portal.client.messages.view'"
+          ],
+          "literals": [
+            "portal.client.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "EmployeePortalOfficeMessagesScreen",
+          "method": "can",
+          "line": 79,
+          "arguments": [
+            "'portal.employee.messages.view'"
+          ],
+          "literals": [
+            "portal.employee.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "ClientPortalOfficeConversationScreen",
+          "method": "can",
+          "line": 127,
+          "arguments": [
+            "'portal.client.messages.view'"
+          ],
+          "literals": [
+            "portal.client.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "EmployeePortalOfficeConversationScreen",
+          "method": "can",
+          "line": 182,
+          "arguments": [
+            "'portal.employee.messages.view'"
+          ],
+          "literals": [
+            "portal.employee.messages.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/messages/[threadId].tsx",
+      "routeTemplate": "/portal/employee/messages/[threadId]",
+      "selectedFile": "app/portal/employee/messages/[threadId].tsx",
+      "sourceSHA256": "82a7121f7f44aa96c7a287a567832638b9074c51653a32f6e69f044aa1ca7130",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "employee-messaging"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/messages",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "ClientPortalOfficeMessagesScreen",
+          "method": "can",
+          "line": 61,
+          "arguments": [
+            "'portal.client.messages.view'"
+          ],
+          "literals": [
+            "portal.client.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "EmployeePortalOfficeMessagesScreen",
+          "method": "can",
+          "line": 79,
+          "arguments": [
+            "'portal.employee.messages.view'"
+          ],
+          "literals": [
+            "portal.employee.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "ClientPortalOfficeConversationScreen",
+          "method": "can",
+          "line": 127,
+          "arguments": [
+            "'portal.client.messages.view'"
+          ],
+          "literals": [
+            "portal.client.messages.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/portalofficemessagesscreens.tsx",
+          "scope": "EmployeePortalOfficeConversationScreen",
+          "method": "can",
+          "line": 182,
+          "arguments": [
+            "'portal.employee.messages.view'"
+          ],
+          "literals": [
+            "portal.employee.messages.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/mobilitaet/index.tsx",
+      "routeTemplate": "/portal/employee/mobilitaet",
+      "selectedFile": "app/portal/employee/mobilitaet/index.tsx",
+      "sourceSHA256": "7ce27d63d52f0c12d48d67f74f65600de13d34e64d0c75e72cea3e2d7d6366c9",
+      "classification": "no_verified_native_entrypoint",
+      "classificationBasis": "Route exists; current actual native Shell/Home/Profile entry not proven (source graph incoming references alone are insufficient)",
+      "functionIds": [
+        "mobility-settings"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/EmployeeMobilitySettingsScreen.tsx",
+          "scope": "EmployeeMobilitySettingsScreen",
+          "method": "can",
+          "line": 14,
+          "arguments": [
+            "'portal.employee.profile.view'"
+          ],
+          "literals": [
+            "portal.employee.profile.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/offene-einsaetze.tsx",
+      "routeTemplate": "/portal/employee/offene-einsaetze",
+      "selectedFile": "app/portal/employee/offene-einsaetze.tsx",
+      "sourceSHA256": "f325d6ddf2073d571263e4d935dac53889112fe93a50c81c08a286220f64e33d",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "assignment-lists"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/payroll/index.tsx",
+      "routeTemplate": "/portal/employee/payroll",
+      "selectedFile": "app/portal/employee/payroll/index.tsx",
+      "sourceSHA256": "2e54db6ac84fc87b0eba37b0b7c3dd468e7ab799d7317a5cbf1b107b4e450931",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "payroll"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/(tabs)/profile.tsx",
+      "routeTemplate": "/portal/employee/profile",
+      "selectedFile": "app/portal/employee/(tabs)/profile.tsx",
+      "sourceSHA256": "30280b74936c3fc5ae80a701732b07247bb1708c17bb0a0cbf5842f45653ad53",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "profile"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/EmployeeProfileScreen.tsx",
+          "scope": "EmployeeProfileScreen",
+          "method": "can",
+          "line": 37,
+          "arguments": [
+            "'portal.employee.profile.view'"
+          ],
+          "literals": [
+            "portal.employee.profile.view"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/(tabs)/schedule.tsx",
+      "routeTemplate": "/portal/employee/schedule",
+      "selectedFile": "app/portal/employee/(tabs)/schedule.tsx",
+      "sourceSHA256": "b0d5eda254b5d4cd56f0b51603ccc3eecac5d38e9a18103d4f21a9ffc6773360",
+      "classification": "alias",
+      "classificationBasis": "Actual Redirect to /portal/employee/calendar",
+      "functionIds": [
+        "team-calendar"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/signatures/index.tsx",
+      "routeTemplate": "/portal/employee/signatures",
+      "selectedFile": "app/portal/employee/signatures/index.tsx",
+      "sourceSHA256": "25aafed819c7bc9f1a930704747ca8ef415e6f5d80fd58e38f560efc0b3b70e3",
+      "classification": "alias",
+      "classificationBasis": "Actual Redirect to /portal/employee/documents/signatures",
+      "functionIds": [
+        "employee-signature-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/signatures/[id]/index.tsx",
+      "routeTemplate": "/portal/employee/signatures/[id]",
+      "selectedFile": "app/portal/employee/signatures/[id]/index.tsx",
+      "sourceSHA256": "0599bad8150bff6dbec08e2cfa9a175325187b796543525062a1274d2a809793",
+      "classification": "no_verified_native_entrypoint",
+      "classificationBasis": "Route exists; current actual native Shell/Home/Profile entry not proven (source graph incoming references alone are insufficient)",
+      "functionIds": [
+        "employee-signature-documents"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/screens/portal/PortalSignatureDetailScreen.tsx",
+          "scope": "PortalSignatureDetailScreen",
+          "method": "can",
+          "line": 20,
+          "arguments": [
+            "'portal.employee.signatures.view'"
+          ],
+          "literals": [
+            "portal.employee.signatures.view"
+          ]
+        },
+        {
+          "file": "src/screens/portal/PortalSignatureDetailScreen.tsx",
+          "scope": "PortalSignatureDetailScreen",
+          "method": "can",
+          "line": 21,
+          "arguments": [
+            "'portal.employee.signatures.sign'"
+          ],
+          "literals": [
+            "portal.employee.signatures.sign"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/tasks/index.native.tsx",
+      "routeTemplate": "/portal/employee/tasks",
+      "selectedFile": "app/portal/employee/tasks/index.native.tsx",
+      "sourceSHA256": "47ecb88c970033ec1d9eb82f8398b3acf4bd9bd8c01fe116afa55803433dd9f1",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "internal-tasks"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    },
+    {
+      "id": "app/portal/employee/times/index.tsx",
+      "routeTemplate": "/portal/employee/times",
+      "selectedFile": "app/portal/employee/times/index.tsx",
+      "sourceSHA256": "e6094bddb02fdd6748d2e4eab3ea3dbc43ff6e117fea475ad20d9e81c07f46bb",
+      "classification": "active",
+      "classificationBasis": "Record/detail/action entry from another employee page",
+      "functionIds": [
+        "visit-times"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee/times",
+        "exact": true,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": [
+        {
+          "file": "src/components/wfm/EmployeePortalTimesScreen.tsx",
+          "scope": "EmployeePortalTimesScreen",
+          "method": "can",
+          "line": 46,
+          "arguments": [
+            "'time.tracking.own.view'"
+          ],
+          "literals": [
+            "time.tracking.own.view"
+          ]
+        },
+        {
+          "file": "src/components/wfm/EmployeePortalTimesScreen.tsx",
+          "scope": "EmployeePortalTimesScreen",
+          "method": "can",
+          "line": 47,
+          "arguments": [
+            "'portal.employee.absences.view'"
+          ],
+          "literals": [
+            "portal.employee.absences.view"
+          ]
+        },
+        {
+          "file": "src/components/wfm/EmployeePortalTimesScreen.tsx",
+          "scope": "EmployeePortalTimesScreen",
+          "method": "can",
+          "line": 48,
+          "arguments": [
+            "'portal.employee.absences.request'"
+          ],
+          "literals": [
+            "portal.employee.absences.request"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app/portal/employee/uploads/index.native.tsx",
+      "routeTemplate": "/portal/employee/uploads",
+      "selectedFile": "app/portal/employee/uploads/index.native.tsx",
+      "sourceSHA256": "c67c5f7a2ae6e41c882229a7f1fb27b20cf5c2dafc55d3cb6a7bc382d37ac08a",
+      "classification": "active",
+      "classificationBasis": "Native menu entry",
+      "functionIds": [
+        "employee-uploads"
+      ],
+      "evidenceState": "source_audited_with_explicit_function_and_visual_gaps",
+      "visualStatus": "pending_full_shell_state_matrix",
+      "hardwareStatus": "unverified",
+      "roleContract": {
+        "matchedRule": "/portal/employee",
+        "exact": false,
+        "allowedRoles": [
+          "employee_portal",
+          "caregiver",
+          "nurse"
+        ],
+        "requiresAuth": true,
+        "productKey": null
+      },
+      "guards": [
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalBiometricGate",
+          "scope": "RootLayout",
+          "line": 221,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "PortalPushRegistrationGate",
+          "scope": "RootLayout",
+          "line": 225,
+          "props": {}
+        },
+        {
+          "file": "app/_layout.tsx",
+          "name": "TenantDataUploadGate",
+          "scope": "RootLayout",
+          "line": 226,
+          "props": {}
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "LiquidPortalRouteLayout",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 6,
+          "props": {
+            "kind": "employee",
+            "overlay": "<EmployeeLogbookLifecycleGate />"
+          }
+        },
+        {
+          "file": "app/portal/employee/_layout.tsx",
+          "name": "EmployeeLogbookLifecycleGate",
+          "scope": "EmployeePortalLiquidLayout",
+          "line": 8,
+          "props": {}
+        }
+      ],
+      "permissionReferences": []
+    }
+  ],
+  "additionalFunctions": [
+    {
+      "id": "logbook",
+      "routeTemplates": [
+        "/portal/employee/fahrtenbuch"
+      ],
+      "sources": [
+        "src/screens/portal/EmployeeLogbookScreen.tsx",
+        "src/lib/employeeLogbook/employeeLogbookRepository.supabase.ts",
+        "src/lib/employeeLogbook/employeeLogbookAutomation.ts"
+      ],
+      "functions": [
+        "Overview totals/open day count",
+        "Record: route type, assignment/client/manual reason, GPS begin",
+        "Record: stop and navigation handoff, finish/review old trip",
+        "Trips: kilometre confirmation, daily signature modal/PDF",
+        "Receipts: pick file, amount/date validation, optional trip assignment, upload+insert",
+        "Licence: front/back upload and profile merge"
+      ],
+      "reads": [
+        "employee_logbook_profiles/vehicles/trips/daily_confirmations/segments/receipts filtered by tenant+employee",
+        "Trip rows paginated; link options from own appointments and tenant client scope"
+      ],
+      "writes": [
+        "createLogbookTrip, appendLogbookPoints, finishEmployeeLogbookRecording",
+        "confirmEmployeeLogbookTrip optimistic status/distance conditions and readback",
+        "confirmLogbookDay signature + trip snapshot",
+        "employee-logbook storage exact ArrayBuffer, createLogbookReceipt, saveLogbookProfile"
+      ],
+      "readback": [
+        "Trip confirmation uncertain update reread",
+        "Licence refreshWithResult differentiates saved file and stale screen",
+        "Receipt insertion success currently does not reload rendered receipt history (screen only has form)"
+      ],
+      "states": [
+        "disabled queries while employee link resolves",
+        "new loading/inline missing-link guard before bundle dereference",
+        "service errors; stale active trip review; no-car eligibility; persisted GPS point queue"
+      ],
+      "evidence": [
+        "employeeLogbookNativeRuntime.test.tsx:4 PASS actual screen/shared UI/native signature surface with inert transports",
+        "employeeLogbookFilesInteraction.test.tsx:5 PASS UI callbacks with mocked UI widgets",
+        "employeeLogbookRecoveryScope.test.tsx:14 PASS gate recovery/scoping, mocked producers"
+      ],
+      "gaps": [
+        "Exact user Android Fahrtenbuch exception/installed-time correlation absent",
+        "No device GPS/background-service/permission restart or Android signature/file-picker end-to-end proof",
+        "No live RLS/persistence test performed",
+        "All five tabs need new full-shell phone/tablet/large-font pixels"
+      ]
+    },
+    {
+      "id": "employee-documents",
+      "routeTemplates": [
+        "/portal/employee/documents",
+        "/portal/employee/documents/[id]"
+      ],
+      "sources": [
+        "src/components/portal/PortalDocumentsTab.tsx",
+        "src/screens/portal/PortalDocumentDetailScreen.tsx",
+        "src/hooks/usePortalDocuments.ts",
+        "src/hooks/usePortalDocumentDetail.ts",
+        "src/lib/portal/employeeDocumentsLiveService.ts"
+      ],
+      "functions": [
+        "List and refresh personal released documents",
+        "Open correct document ID",
+        "Preview HTML and permitted download",
+        "Preserve stale data with refresh warning"
+      ],
+      "reads": [
+        "fetchPortalDocuments/fetchPortalDocumentDetail with tenant, actor, audience role, verified employee"
+      ],
+      "writes": [
+        "No record mutation; download resolves authorized URL and native Linking handoff"
+      ],
+      "readback": [
+        "Query refresh exposes success only when refreshWithResult succeeds",
+        "activeScope prevents old account download completion opening a file"
+      ],
+      "states": [
+        "loading/error/empty/denied/unlinked/audience mismatch; partial refresh error"
+      ],
+      "evidence": [
+        "employeeDocumentInteraction.test.tsx:3 PASS mounted hook interaction with mocked transport",
+        "employeeReadScopeRepair.test.tsx included in108-test batch"
+      ],
+      "gaps": [
+        "No actual Android PDF/HTML preview/download handoff proof",
+        "No fresh full-shell detail/list pixels at all requested scales",
+        "Live storage/RLS remains unverified"
+      ]
+    },
+    {
+      "id": "employee-signature-documents",
+      "routeTemplates": [
+        "/portal/employee/documents/signatures",
+        "/portal/employee/documents/signatures/[id]",
+        "/portal/employee/signatures",
+        "/portal/employee/signatures/[id]"
+      ],
+      "sources": [
+        "src/screens/portal/EmployeeDocumentSignaturesScreen.tsx",
+        "src/screens/documents/CsDocumentRequestDetailScreen.native.tsx",
+        "src/screens/portal/PortalSignatureDetailScreen.tsx",
+        "src/hooks/usePortalSignatureDetail.ts",
+        "src/lib/portal/portalDocumentSignatureService.ts"
+      ],
+      "functions": [
+        "Open/done filters and scoped request list",
+        "Request detail full document, signer identity and native signature",
+        "Personal signature detail legacy receiver",
+        "Signatures alias redirect from Home task/count entry"
+      ],
+      "reads": [
+        "fetchPortalCsDocumentRequests tenant+role+employee includeCompleted",
+        "fetchPortalSignatureDocumentDetail with tenant/employee/role/document"
+      ],
+      "writes": [
+        "signPortalDocument with expectedVersionNumber, employeeId and signer data; native request RPC/receipt pipeline"
+      ],
+      "readback": [
+        "Signature query refresh; partial/uncertain result explicitly surfaced by services/tests"
+      ],
+      "states": [
+        "role permissions, verified link readiness, already completed lock, failed retry, duplicate write lock"
+      ],
+      "evidence": [
+        "employeePersonalSignatureInteraction.test.tsx:5 PASS controlled mounted callbacks",
+        "employeeDocumentInteraction/ReadScope suites passed",
+        "Existing template-signature release test was read, not run in this audit batch"
+      ],
+      "gaps": [
+        "Native request detail has not been rendered in current expanded full-shell matrix",
+        "Legacy personal-signature detail has no verified current normal-menu entry",
+        "No Android/real backend sign→PDF→readback proof in this audit"
+      ]
+    },
+    {
+      "id": "employee-uploads",
+      "routeTemplates": [
+        "/portal/employee/uploads"
+      ],
+      "sources": [
+        "src/components/portal/EmployeePortalUploadScreen.native.tsx",
+        "src/hooks/useEmployeePortalUploads.ts",
+        "src/lib/portal/employeePortalUploadServiceCore.ts",
+        "src/lib/portal/employeePortalMediaValidation.ts"
+      ],
+      "functions": [
+        "Own-personnel vs client upload context",
+        "Search/select actual client",
+        "Camera/library/document pick, cancel/remove, settings guidance",
+        "Validate type/size/exact bytes then submit",
+        "Reload upload and review status"
+      ],
+      "reads": [
+        "listEmployeePortalUploads revalidates canonical employee identity, tenant+employee filters",
+        "Client options from current employee tenant read contract"
+      ],
+      "writes": [
+        "Native exact binary storage payload; stable upload ID portal_uploads insert; optional linked client document stage"
+      ],
+      "readback": [
+        "Lost insert response rereads same id+tenant+employee; does not delete possibly committed file",
+        "Persisted save separated from failed list refresh"
+      ],
+      "states": [
+        "permission denied/cancelled/picker error/invalid file/unknown commit/double click/account change"
+      ],
+      "evidence": [
+        "employeeUploadRecovery.test.ts:10 PASS service mocks",
+        "employeeUploadApprovalRecovery.test.ts:4 PASS stable archival/reconciliation; employeePayrollReadAndUploadTruth.test.ts byte path",
+        "Native upload source explicitly selected; older extensionless upload tests do not prove its full rendering"
+      ],
+      "gaps": [
+        "No full native camera/gallery/document-pick flow on actual Android",
+        "Full-screen large-font client chooser + upload form pixels pending",
+        "Live storage policies and archived document readback not exercised"
+      ]
+    },
+    {
+      "id": "employee-messaging",
+      "routeTemplates": [
+        "/portal/employee/messages",
+        "/portal/employee/messages/[threadId]"
+      ],
+      "sources": [
+        "src/screens/communication/portalmessagingscreens.tsx",
+        "src/screens/portal/portalofficemessagesscreens.tsx",
+        "src/components/portal/portalofficemessenger.tsx",
+        "src/components/portal/portalofficethread.tsx",
+        "src/hooks/useportalofficethreaddetail.ts",
+        "src/lib/office/portalofficemessageservice.ts"
+      ],
+      "functions": [
+        "Inbox open/closed/search, new conversation and compose=1 deep link",
+        "Direct thread and native Back/List behaviour",
+        "Send text/files/voice, preserve draft on failure, explicit retry",
+        "Mark incoming messages read only while app+screen active",
+        "Closed conversation restart and group read-only behaviour"
+      ],
+      "reads": [
+        "Office thread list/detail actor membership + tenant; real route barrel selects lowercase portalmessagingscreens, not legacy PortalMessagesScreens/ConversationScreen"
+      ],
+      "writes": [
+        "ensurePortalWriteSession before send",
+        "portal_create_office_thread with scoped actor; fallback path checked in services",
+        "messages/storage/thread summary writes and markPortalThreadMessagesRead"
+      ],
+      "readback": [
+        "Scoped thread remount resets old draft/attachments",
+        "Stable send lock keeps newly edited text/attachments when prior send completes",
+        "Refresh/subscription, read-mark retry after failed result"
+      ],
+      "states": [
+        "empty/error/loading/closed/group/read-only, scope changes, app background and off-focus"
+      ],
+      "evidence": [
+        "portalConversationLifecycle.test.tsx:18 PASS",
+        "portalNewChatInteraction.test.tsx:9 PASS",
+        "portalRequestActorIntegrity.test.ts:14 PASS shared actor contracts"
+      ],
+      "gaps": [
+        "No productive messages sent; no claim of deployed sender/recipient RLS acceptance",
+        "Actual microphone/native attachment viewer and keyboard reachability at all scales pending expanded renderer",
+        "Older communication feature screens are not the current employee receiver and were not mistaken for it"
+      ]
+    },
+    {
+      "id": "employee-absence-requests",
+      "routeTemplates": [
+        "/portal/employee/arbeitszeit/urlaub",
+        "/portal/employee/arbeitszeit/abwesenheiten"
+      ],
+      "sources": [
+        "src/components/wfm/WfmAbsencePortalScreen.tsx",
+        "src/lib/wfm/wfmAbsenceService.ts"
+      ],
+      "functions": [
+        "Vacation only vs general absence categories",
+        "From/to local-date validation and optional note",
+        "Single-flight request submit",
+        "Own pending request withdrawal",
+        "Read list/status and retry after failed read"
+      ],
+      "reads": [
+        "listWfmAbsencesForEmployee tenant/user/role with employee option; service canonical employee resolver"
+      ],
+      "writes": [
+        "requestWfmAbsence and withdrawWfmAbsenceRequest actor-scoped service calls"
+      ],
+      "readback": [
+        "refreshWithResult distinguishes committed request/withdrawal from stale list"
+      ],
+      "states": [
+        "permission view/request split, invalid day range, loading/error/empty, double-click and thrown service failure"
+      ],
+      "evidence": [
+        "employeeRemainingWorkflowsInteraction.test.tsx:9 PASS including mobility/account/read warnings",
+        "wfmAbsencePortalDateSubmit.test.ts:5 PASS",
+        "portalRequestActorIntegrity.test.ts:14 PASS shared current actor boundary"
+      ],
+      "gaps": [
+        "UI fixture uses mocked date input/widgets, not actual Android date control",
+        "No production leave/absence write performed or deployment/RLS proof",
+        "All general categories + keyboard/picker at phone/tablet/large-font need pixels"
+      ]
+    },
+    {
+      "id": "employee-announcements",
+      "routeTemplates": [
+        "/portal/employee/announcements"
+      ],
+      "sources": [
+        "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx",
+        "src/hooks/usenotifications.ts",
+        "src/lib/portal/clientAnnouncementReadService.ts",
+        "src/lib/office/notificationservice.ts"
+      ],
+      "functions": [
+        "Read complete announcement, then explicit acknowledgement",
+        "Drop prior account content and ignore late response",
+        "Refresh/retry and preserved content on partial error"
+      ],
+      "reads": [
+        "useNotifications broadcasts with tenant/user/employee scoped identity",
+        "readClientPortalAnnouncement detail before acknowledgement"
+      ],
+      "writes": [
+        "acknowledgeBroadcastNotification only after full body available"
+      ],
+      "readback": [
+        "Acknowledgement result and notification refresh"
+      ],
+      "states": [
+        "loading/error/empty, duplicate click, account switch, late old response"
+      ],
+      "evidence": [
+        "employeeProfileAnnouncementsLifecycle.test.tsx:8 PASS profile/announcement scope lifecycle"
+      ],
+      "gaps": [
+        "No verified current native menu/inbound entry from active Home/Profile/Shell",
+        "Actual Android announcement full-body/ack UI pixels pending",
+        "No productive acknowledgement or live policy proof"
+      ]
+    },
+    {
+      "id": "employee-information-pages",
+      "routeTemplates": [
+        "/portal/employee/help",
+        "/portal/employee/execution"
+      ],
+      "sources": [
+        "app/portal/employee/help/index.tsx",
+        "app/portal/employee/execution/index.tsx"
+      ],
+      "functions": [
+        "Help contact action routes to messages?compose=1",
+        "Execution hub directs to assigned-visit list"
+      ],
+      "reads": [],
+      "writes": [],
+      "readback": [],
+      "states": [
+        "Informational pages, no invented backend success"
+      ],
+      "evidence": [
+        "Source linkage audited; no current actual native render/interaction test for these two pages"
+      ],
+      "gaps": [
+        "No verified normal native entrypoint to either information page",
+        "Fresh native phone/tablet/large-font pixels pending"
+      ]
+    }
+  ],
+  "executedTestBatches": [
+    {
+      "files": 4,
+      "testsPassed": 37,
+      "paths": [
+        "src/__tests__/portal/employeeLogbookNativeRuntime.test.tsx",
+        "src/__tests__/portal/employeeLogbookFilesInteraction.test.tsx",
+        "src/__tests__/portal/employeeLogbookRecoveryScope.test.tsx",
+        "src/__tests__/portal/portalActorVerifiedEmployeeLink.test.tsx"
+      ],
+      "evidenceSnapshot": "Historical intermediate source run; overlapping updated suites are rerun separately in finalization and must not be summed as distinct cases."
+    },
+    {
+      "files": 2,
+      "testsPassed": 13,
+      "paths": [
+        "src/__tests__/portal/employeeNativeTasksNavigation.test.tsx",
+        "src/__tests__/portal/employeePortalNavigationAccess.test.tsx"
+      ],
+      "evidenceSnapshot": "Historical intermediate source run; overlapping updated suites are rerun separately in finalization and must not be summed as distinct cases."
+    },
+    {
+      "files": 12,
+      "testsPassed": 108,
+      "paths": [
+        "src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx",
+        "src/__tests__/portal/employeeDocumentInteraction.test.tsx",
+        "src/__tests__/portal/employeePersonalSignatureInteraction.test.tsx",
+        "src/__tests__/portal/employeeProfileAnnouncementsLifecycle.test.tsx",
+        "src/__tests__/portal/portalConversationLifecycle.test.tsx",
+        "src/__tests__/portal/portalNewChatInteraction.test.tsx",
+        "src/__tests__/portal/employeeReadScopeRepair.test.tsx",
+        "src/__tests__/portal/employeePayrollReadAndUploadTruth.test.ts",
+        "src/__tests__/portal/employeeUploadRecovery.test.ts",
+        "src/__tests__/portal/employeeUploadApprovalRecovery.test.ts",
+        "src/__tests__/portal/portalRequestActorIntegrity.test.ts",
+        "src/__tests__/wfm/wfmAbsencePortalDateSubmit.test.ts"
+      ],
+      "evidenceSnapshot": "Historical intermediate source run; overlapping updated suites are rerun separately in finalization and must not be summed as distinct cases."
+    }
+  ],
+  "findings": [
+    {
+      "id": "employee-logbook-unlinked-crash",
+      "status": "fixed_in_working_tree",
+      "severity": "P1",
+      "source": "src/screens/portal/EmployeeLogbookScreen.tsx",
+      "proof": "Actual screen test failed twice with Cannot read properties of undefined (reading trips) when actor.isReady=true/employeeId=null and queries disabled. Link-pending Loading + settled missing-link inline Error now precede bundle access. Four native runtime cases and37related tests pass.",
+      "limit": "Not asserted to be exact missing user Android Fahrtenbuch stack."
+    },
+    {
+      "id": "native-tasks-missing-navigation",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+      "proof": "Before fix actual native Shell could not find Tasks at360/1280 (2FAIL), actor fallback/role controls passed. After narrow Tasks enable on native, all4 actual Shell→AndroidRoute→EmployeeInternalNotes.native+read receipt tests pass; existing9nav tests pass. Consultation flag unchanged."
+    },
+    {
+      "id": "payroll-null-owner-rpc",
+      "status": "open_known_server_contract_blocker",
+      "severity": "P1",
+      "source": "supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql",
+      "proof": "Existing PGlite infrastructure with actual migrations: NULLemployee/NULLtenant/bothNULL can confirm RLS-invisible statement; 3denial testsFAIL,3controltestsPASS. Parent already owns separate draft; no SQL applied.",
+      "evidence": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/employee-audit/payroll-null-rpc-result.json"
+    },
+    {
+      "id": "payroll-reject-validation-mismatch",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+      "proof": "Actual RPC char_length<10 source contract matched by Array.from(trim).length on the native screen. Existing UI happy/deny/retry cases pass, including Unicode code points. See employeePayrollScreenInteraction.test.tsx."
+    },
+    {
+      "id": "payroll-picker-rejection",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+      "proof": "Actual screen now catches picker rejection with retryable error feedback; cancellation keeps current receipt; actual screen tests cover Error/non-Error/cancel/retry without file writes."
+    },
+    {
+      "id": "payroll-private-draft-and-late-actor-completion",
+      "status": "fixed_in_working_tree",
+      "severity": "P1",
+      "source": "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+      "proof": "Four actual controlled-screen regressions failed before fix: old rejection draft/receipt survived actor change; late picker attached old file; late upload proceeded to claim; old PDF URL opened. Keyed actor/tenant/employee/role content and unmount checks stop stale next phases/UI. Existing current actor submit+readback, confirm/reject and missing-link cases pass.",
+      "limit": "Already started storage or DB operations are not cancelled/reverted; no real productive transaction or hardware handoff was performed."
+    },
+    {
+      "id": "absence-private-draft-and-late-actor-completion",
+      "status": "fixed_in_working_tree",
+      "severity": "P1",
+      "source": "src/components/wfm/WfmAbsencePortalScreen.tsx",
+      "proof": "Two mounted-screen regressions failed before fix: old personal dates/note retained on actor switch; previous submit completion refreshed current actor screen. Tenant/user/employee/role/mode keyed content and post-await unmount checks prevent those outcomes. Existing date submit/withdraw/retry contracts preserved.",
+      "limit": "No claim that an already submitted request is revoked; actual server approval/RLS remains unverified."
+    },
+    {
+      "id": "employee-announcement-read-after-actor-change",
+      "status": "fixed_in_working_tree",
+      "severity": "P1",
+      "source": "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx",
+      "proof": "Uses existing read service isCurrent option and post-await active checks; a delayed old employee full-text response cannot issue its next mark-read call, publish body, acknowledge success or refresh old view."
+    },
+    {
+      "id": "employee-announcements-and-help-unreachable",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/liquid-command/navigation/portalCatalog.ts",
+      "proof": "No product entry previously linked existing employee announcements/help routes. Both are now actual Employee Shell menu destinations; compact four-tab selection and consultation release gate unchanged. Phone/tablet actual Shell target tests and installed Expo Android linking checks pass.",
+      "limit": "Shell menu target checks are not full rendering of those destination views; standalone announcement lifecycle is separately exercised."
+    },
+    {
+      "id": "notification-employee-role-coverage",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/hooks/usenotifications.ts",
+      "proof": "Existing employee portal role contract also permits caregiver and nurse. Notification loader now includes their verified employee recipient and gates missing link; role is included in query identity. Mounted hook tests assert exact tenant/user/employee arguments for both roles."
+    },
+    {
+      "id": "mobility-missing-link-endless-loading",
+      "status": "fixed_in_working_tree",
+      "severity": "P2",
+      "source": "src/screens/portal/EmployeeMobilitySettingsScreen.tsx",
+      "proof": "Settled missing employee mapping now ends with explicit inline unavailable state; pending link stays loading; form mounts only with employee/tenant and existing profile permission. Four controlled screen cases pass.",
+      "limit": "This separate direct-link receiver still has no verified normal current native menu entry; no GPS/mobility setting write or full-shell design acceptance claimed."
+    }
+  ],
+  "fixtureFiles": [
+    "scripts/fixtures/native-employee-portals-audit-preview.jsx",
+    "scripts/fixtures/native-employee-portals-audit-data.jsx"
+  ],
+  "fixtureVerification": {
+    "actualAndroidImports": 33,
+    "caseCountIncludingCompose": 34,
+    "syntaxAndImportReferences": "passed",
+    "fullBundleAndPixels": "not yet verified",
+    "pendingExactFixtureContracts": [
+      "assignment-execute",
+      "time-clock",
+      "times",
+      "academy",
+      "consultation",
+      "consultation-detail"
+    ],
+    "writes": "Explicitly denied, not simulated successful; cannot serve as backend/readback proof"
+  },
+  "releaseGaps": [
+    "Every unique actual native view/subview and modal still needs expanded full-shell phone/tablet/landscape/160% visual and reachable-control evidence",
+    "Actual Execute.native is not covered by extensionless .tsx NativeDocumentation tests; must be rendered explicitly",
+    "Android Fahrtenbuch current stack and actual permissions/GPS/background/signature/file handoffs remain unverified",
+    "Deployed backend/RLS and real success+readback for transactions not proved by mocks/fixtures; no productive writes authorized/performed",
+    "New navigation/inset/logbook guards have local functional tests but no fresh final all-page Android device run",
+    "Unknown/orphan entrypoints and explicit gates are listed per33routes; no modules/role locks activated"
+  ],
+  "crashEvidenceSeparation": {
+    "oldCode53": "Historical RCTText borderRadius String→Double records belong to old build, not reused as current proof",
+    "currentCode55Report": "Current report proves Assist calendar raw style host crash; exact Employee Fahrtenbuch device stack still absent",
+    "newLogbookFinding": "Independent actual screen reproduction, not hardware symbolication"
+  },
+  "visualEvidenceReviewed": [
+    {
+      "path": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/parity-138/caresuite-native-qa/employee-home-actual-assignment-360x800-scale-1.6.png",
+      "finding": "Complete words/status now readable; missing8pxinset confirmed and fixed afterward. New inset has not yet received fresh pixels."
+    },
+    {
+      "path": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/parity-138/caresuite-native-qa/employee-home-actual-bottom-844x390-scale-1.6.png",
+      "finding": "All three actual task labels/counters/chevrons readable and reachable."
+    }
+  ],
+  "routeClassifications": {
+    "active": 25,
+    "no_verified_native_entrypoint": 4,
+    "gated": 2,
+    "alias": 2
+  },
+  "followupAudit": {
+    "date": "2026-10-26",
+    "scope": "Final source/controlled-component follow-up; physical Android and expanded full-shell pixels still unverified",
+    "sourceFiles": [
+      "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+      "src/components/wfm/WfmAbsencePortalScreen.tsx",
+      "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx",
+      "src/screens/portal/EmployeeMobilitySettingsScreen.tsx",
+      "src/hooks/usenotifications.ts",
+      "src/liquid-command/navigation/portalCatalog.ts",
+      "src/liquid-command/navigation/portalCatalog.web.ts"
+    ],
+    "sourceSHA256": {
+      "src/screens/portal/EmployeePayrollMonthScreen.tsx": "29f47a34175216378f49969a1ff99baa0170ab70f202735f31d86b81a1062a68",
+      "src/components/wfm/WfmAbsencePortalScreen.tsx": "fe0e917ec0396300252d85bad96a36fe5327c0a3b5c00733448949abab342f16",
+      "src/screens/portal/EmployeePortalAnnouncementsScreen.tsx": "4a64382a017b29352b4356dcdd8b2b7eeb326970dde380824f33a0785d505304",
+      "src/screens/portal/EmployeeMobilitySettingsScreen.tsx": "9c22ae6181665490aab33e69ff536da7a0b690954fcbb36eea242037b9e2f3a2",
+      "src/hooks/usenotifications.ts": "8922fbfc2e90d7eb61b0d47a5b600319967d8b4ce753d5e0d668a91b11a1a63c",
+      "src/liquid-command/navigation/portalCatalog.ts": "0ef8ac4278787c53c73cf0861ed4cfaab9a53ebc0a053fd1988dd06ba3ea7c3f",
+      "src/liquid-command/navigation/portalCatalog.web.ts": "1d9aab94dba84a884fcfb2c83253e5c568ae0a9b2397c87b09d00354ccd3fd16"
+    }
+  },
+  "followupTestEvidence": [
+    {
+      "files": 4,
+      "testsPassed": 305,
+      "paths": [
+        "src/__tests__/navigation/nativeExpoRouteResolution.test.ts",
+        "src/__tests__/portal/employeeNativeTasksNavigation.test.tsx",
+        "src/__tests__/portal/employeePayrollScreenInteraction.test.tsx",
+        "src/__tests__/portal/employeeProfileAnnouncementsLifecycle.test.tsx"
+      ],
+      "limits": "Installed Expo linking is synthetic/inert page imports. Shell/Screen cases use controlled services and primitive hosts; no visual or productive acceptance."
+    },
+    {
+      "files": 2,
+      "testsPassed": 16,
+      "paths": [
+        "src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx",
+        "src/__tests__/wfm/wfmAbsencePortalDateSubmit.test.ts"
+      ],
+      "limits": "Actual absence screen with simulated service transports plus existing demo/date workflow, no productive writer."
+    },
+    {
+      "files": 1,
+      "testsPassed": 4,
+      "paths": [
+        "src/__tests__/portal/employeeMobilityEntry.test.tsx"
+      ],
+      "limits": "Actual screen entry state and transport-form mount boundary; no form/backend/pixel proof."
+    }
+  ],
+  "finalizationRegression": {
+    "files": 22,
+    "testsPassed": 202,
+    "testsFailed": 0,
+    "skipped": 0,
+    "command": "Existing Vitest; one worker, testTimeout15000; all earlier employee audit suite paths plus PayrollScreen/MobilityEntry/clientAnnouncementRead/portalNotificationOwnership",
+    "log": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/employee-finalization-vitest.log",
+    "limits": "Controlled hosts/services, no live writes or device/pixel acceptance; overlaps other runs and must not be added to them."
+  }
+}

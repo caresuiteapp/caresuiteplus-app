@@ -13,6 +13,7 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData } from '@/types/portal/assist';
+import { familyPortalAllows, familyPortalFeatureAllowed } from '@/lib/portal/familyPortalAccessScope';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -285,12 +286,12 @@ function AttentionBar({ items }: { items: AttentionItem[] }) {
 export function ClientPortalHomeDashboard({
   context,
   data,
-  tripsReleased,
-  budgetReleased,
-  proofsReleased,
-  requestsReleased,
-  uploadReleased = false,
-  activitiesReleased,
+  tripsReleased: tripFeatureReleased,
+  budgetReleased: budgetFeatureReleased,
+  proofsReleased: proofFeatureReleased,
+  requestsReleased: requestFeatureReleased,
+  uploadReleased: uploadFeatureReleased = false,
+  activitiesReleased: activityFeatureReleased,
   onRequestChange,
   onRequestExtra,
   onUpload,
@@ -305,6 +306,18 @@ export function ClientPortalHomeDashboard({
   const compact = isPhone || width < 760;
   const stackedMain = isPhone || width < 1120;
   const actionWidth: DimensionValue = compact ? '100%' : width < 1540 ? '48.8%' : '23.8%';
+  const family = context.roleKey === 'family_portal';
+  const appointmentsAllowed = familyPortalFeatureAllowed(context, 'appointments');
+  const messagesAllowed = familyPortalFeatureAllowed(context, 'messages');
+  const documentsAllowed = familyPortalFeatureAllowed(context, 'documents');
+  const signaturesAllowed = documentsAllowed && (!family || familyPortalAllows(context.familyAccess, 'sign_records'));
+  const canComposeMessage = messagesAllowed && (!family || familyPortalAllows(context.familyAccess, 'send_messages'));
+  const tripsReleased = tripFeatureReleased && appointmentsAllowed;
+  const proofsReleased = proofFeatureReleased && familyPortalFeatureAllowed(context, 'nachweise');
+  const budgetReleased = budgetFeatureReleased && !family;
+  const requestsReleased = requestFeatureReleased && !family;
+  const uploadReleased = uploadFeatureReleased && !family;
+  const activitiesReleased = activityFeatureReleased && !family;
   const guide = resolveClientPortalHomeGuide(data);
 
   const openGuideTarget = () => {
@@ -322,7 +335,7 @@ export function ClientPortalHomeDashboard({
   };
 
   const attentionItems: AttentionItem[] = [
-    ...(data.kpis.signatures > 0
+    ...(signaturesAllowed && data.kpis.signatures > 0
       ? [{
           key: 'signatures',
           icon: 'create-outline' as IoniconName,
@@ -331,7 +344,7 @@ export function ClientPortalHomeDashboard({
           onPress: () => router.push('/portal/client/documents/signatures' as never),
         }]
       : []),
-    ...(data.kpis.messages > 0
+    ...(messagesAllowed && data.kpis.messages > 0
       ? [{
           key: 'messages',
           icon: 'chatbubble-ellipses-outline' as IoniconName,
@@ -398,17 +411,17 @@ export function ClientPortalHomeDashboard({
 
       <AttentionBar items={attentionItems} />
 
-      <View style={[styles.mainGrid, stackedMain && styles.mainGridStacked]}>
-        <View style={styles.appointmentColumn}>
+      {appointmentsAllowed || requestsReleased || canComposeMessage || uploadReleased ? <View style={[styles.mainGrid, stackedMain && styles.mainGridStacked]}>
+        {appointmentsAllowed ? <View style={styles.appointmentColumn}>
           <PortalNextAppointmentHero
             appointment={data.nextAppointment}
             onRequestChange={requestsReleased ? onRequestChange : undefined}
             onRequestExtra={requestsReleased ? onRequestExtra : undefined}
             emptyActionLabel="Einsatz anfragen"
           />
-        </View>
+        </View> : null}
 
-        <View style={[styles.quickPanel, stackedMain && styles.quickPanelStacked]}>
+        {requestsReleased || canComposeMessage || uploadReleased ? <View style={[styles.quickPanel, stackedMain && styles.quickPanelStacked]}>
           <LinearGradient
             colors={['#0B5CC9', '#073E8D', '#052B68']}
             start={{ x: 0, y: 0 }}
@@ -421,18 +434,18 @@ export function ClientPortalHomeDashboard({
           <Text style={[type.cardTitle, styles.quickTitle]}>Was möchten Sie tun?</Text>
           <View style={styles.quickTasks}>
             {requestsReleased ? <QuickTask icon="add-circle-outline" label="Einsatz anfragen" onPress={onRequestExtra} /> : null}
-            <QuickTask
+            {canComposeMessage ? <QuickTask
               icon="chatbubble-ellipses-outline"
               label="Nachricht schreiben"
               onPress={() => router.push('/portal/client/messages?compose=1' as never)}
-            />
+            /> : null}
             {uploadReleased ? <QuickTask icon="cloud-upload-outline" label="Dokument hochladen" onPress={onUpload} /> : null}
             {requestsReleased ? <QuickTask icon="call-outline" label="Rückruf anfordern" onPress={onRequestCallback} /> : null}
           </View>
-        </View>
-      </View>
+        </View> : null}
+      </View> : null}
 
-      <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
+      {!family ? <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
         <View style={styles.budgetHeading}>
           <View style={styles.budgetHeadingIcon}>
             <Ionicons name="wallet-outline" color={ink.blue} size={22} />
@@ -445,7 +458,7 @@ export function ClientPortalHomeDashboard({
           </View>
         </View>
         <ClientBudgetVisualCards models={data.budgetVisuals} />
-      </View>
+      </View> : null}
 
       <View style={styles.sectionHeading}>
         <View style={styles.sectionHeadingCopy} testID="client-portal-sections-copy">
@@ -455,7 +468,7 @@ export function ClientPortalHomeDashboard({
       </View>
 
       <View style={styles.actionGrid}>
-        <HomeActionCard
+        {appointmentsAllowed ? <HomeActionCard
           icon="calendar-outline"
           title="Einsätze"
           description={data.kpis.appointments > 0 ? plural(data.kpis.appointments, 'kommender Einsatz', 'kommende Einsätze') : 'Planung und Termine öffnen'}
@@ -463,8 +476,8 @@ export function ClientPortalHomeDashboard({
           accentColor="#056CE8"
           width={actionWidth}
           onPress={() => router.push('/portal/client/appointments' as never)}
-        />
-        <HomeActionCard
+        /> : null}
+        {messagesAllowed ? <HomeActionCard
           icon="chatbubbles-outline"
           title="Nachrichten"
           description={data.kpis.messages > 0 ? plural(data.kpis.messages, 'neue Nachricht', 'neue Nachrichten') : 'Verwaltung kontaktieren'}
@@ -472,8 +485,8 @@ export function ClientPortalHomeDashboard({
           accentColor="#6D4AFF"
           width={actionWidth}
           onPress={() => router.push('/portal/client/messages' as never)}
-        />
-        <HomeActionCard
+        /> : null}
+        {documentsAllowed ? <HomeActionCard
           icon="folder-open-outline"
           title="Dokumente"
           description={data.kpis.documents > 0 ? plural(data.kpis.documents, 'Dokument verfügbar', 'Dokumente verfügbar') : 'Persönliche Ablage öffnen'}
@@ -481,8 +494,8 @@ export function ClientPortalHomeDashboard({
           accentColor="#0F9F89"
           width={actionWidth}
           onPress={() => router.push('/portal/client/documents' as never)}
-        />
-        <HomeActionCard
+        /> : null}
+        {signaturesAllowed ? <HomeActionCard
           icon="create-outline"
           title="Unterschriften"
           description={data.kpis.signatures > 0 ? plural(data.kpis.signatures, 'Unterschrift offen', 'Unterschriften offen') : 'Zurzeit alles erledigt'}
@@ -490,8 +503,9 @@ export function ClientPortalHomeDashboard({
           accentColor="#C0448F"
           width={actionWidth}
           onPress={() => router.push('/portal/client/documents/signatures' as never)}
-        />
+        /> : null}
       </View>
+      {family && !appointmentsAllowed && !messagesAllowed && !documentsAllowed ? <Text style={[type.body, { color: ink.secondary }]}>Für diesen Angehörigenzugang sind noch keine Bereiche freigegeben. Bitte wenden Sie sich bei Fragen an Ihr Pflegebüro.</Text> : null}
 
       {moreItems.length > 0 ? (
         <View style={styles.moreStrip}>

@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "scope": [
+    "administration",
+    "employee",
+    "client_and_family"
+  ],
+  "status": "audit-in-progress-no-release-acceptance",
+  "baselineEvidence": {
+    "runNumber": 140,
+    "runId": 40284030703,
+    "head": "d1a3c45a7052acbb55d79a88bf07404a74ed2a16",
+    "artifactId": 12634275408,
+    "zipBytes": 101230472,
+    "zipSha256": "f749df92a486c74722ba7e4c2d2212c20326da6f5084300089b03bbe17601a13",
+    "checks": 483,
+    "pngs": 799,
+    "renderer": "React Native Web using native source, fixture data only; Android hardware verification remains separate.",
+    "meaning": "Component/page-frame fixture evidence, not all unique pages or real device/server acceptance."
+  },
+  "cases": [
+    {
+      "caseId": "employee-home",
+      "targetRouteTemplate": "/portal/employee",
+      "components": [
+        "src/screens/portal/EmployeePortalOverviewScreen.tsx",
+        "src/screens/portal/PortalTabScreen.tsx",
+        "src/components/portal/EmployeePortalPageFrame.tsx",
+        "src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx"
+      ],
+      "renderLevel": "receiving-screen-with-page-frame",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready"
+      ],
+      "interactions": [
+        "dashboard refresh",
+        "exact own-assignment target",
+        "last task reachable"
+      ],
+      "gaps": [
+        "actual app route default not mounted",
+        "RootShell and LiquidPortalRouteLayout not mounted",
+        "other account/data states unrendered"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "employee-clients",
+      "targetRouteTemplate": "/portal/employee/clients",
+      "components": [
+        "src/screens/portal/PortalTabScreen.tsx",
+        "src/components/portal/EmployeePortalPageFrame.tsx",
+        "src/components/portal/EmployeePortalClientRecordsScreen.tsx"
+      ],
+      "renderLevel": "manually-composed-page-frame",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready",
+        "search-empty"
+      ],
+      "interactions": [
+        "intrinsic card actions",
+        "14th record reachable",
+        "search and clear",
+        "exact selected client target"
+      ],
+      "gaps": [
+        "actual app route default not mounted",
+        "RootShell and LiquidPortalRouteLayout not mounted",
+        "loading/read-error/unlinked states unrendered"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "employee-calendar",
+      "targetRouteTemplate": "/portal/employee/calendar",
+      "components": [
+        "src/screens/portal/PortalTabScreen.tsx",
+        "src/components/portal/EmployeePortalCalendarScreen.tsx",
+        "src/components/calendar/CalendarToolbar.native.tsx",
+        "src/components/calendar/CalendarAgendaList.native.tsx"
+      ],
+      "renderLevel": "manually-composed-page-frame",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready",
+        "period-empty",
+        "team-detail"
+      ],
+      "interactions": [
+        "view mode",
+        "next and today",
+        "own assignment target",
+        "read-only team detail",
+        "refresh"
+      ],
+      "gaps": [
+        "actual app route default not mounted",
+        "RootShell and LiquidPortalRouteLayout not mounted",
+        "loading/read-error/unlinked states unrendered"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "client-home",
+      "targetRouteTemplate": "/portal/client",
+      "components": [
+        "src/screens/portal/PortalTabScreen.tsx",
+        "src/components/portal/ClientPortalPageFrame.tsx",
+        "src/components/portal/assist/ClientPortalHomeDashboard.tsx"
+      ],
+      "renderLevel": "manually-composed-page-frame",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready",
+        "budget unavailable message"
+      ],
+      "interactions": [
+        "signature target",
+        "section contrast and text bounds"
+      ],
+      "gaps": [
+        "actual home coordinator and app route not mounted",
+        "RootShell and LiquidPortalRouteLayout not mounted",
+        "request/upload/messages workflows bypassed by noop callbacks",
+        "other permissions/accounts/data states unrendered"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "client-appointment",
+      "targetRouteTemplate": "/portal/client/appointments/[id]",
+      "components": [
+        "src/components/portal/ClientPortalAssignmentCard.tsx"
+      ],
+      "renderLevel": "component-only",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready"
+      ],
+      "interactions": [],
+      "gaps": [
+        "standalone card is not the appointment detail page",
+        "all ancestor layouts and real detail workflow absent"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "employee-execution-card",
+      "targetRouteTemplate": "/portal/employee/assignments/[id]/execute",
+      "components": [
+        "src/components/portal/EmployeePortalVisitCompactCard.tsx"
+      ],
+      "renderLevel": "component-only",
+      "readyEvidence": true,
+      "states": [
+        "synthetic-ready"
+      ],
+      "interactions": [],
+      "gaps": [
+        "standalone card is not the visit execution page",
+        "all execution stages and ancestor layouts absent"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    },
+    {
+      "caseId": "family-home",
+      "targetRouteTemplate": null,
+      "components": [
+        "src/liquid-command/screens/PortalHomeScreen.tsx"
+      ],
+      "renderLevel": "legacy-component-without-receiving-native-route",
+      "readyEvidence": false,
+      "states": [
+        "synthetic-ready"
+      ],
+      "interactions": [],
+      "gaps": [
+        "not an actual native Family portal receiving route",
+        "cannot count as route or portal acceptance; current Family/Academy gates need separate cases"
+      ],
+      "fullShellEvidence": false,
+      "androidHardwareEvidence": false,
+      "liveBackendEvidence": false,
+      "browserFixtureCount": 8
+    }
+  ],
+  "fullShellAcceptedCaseCount": 0,
+  "pendingWork": [
+    "Link every actual route inventory row to exact selected page and receiver, keeping aliases/locks distinct.",
+    "Render actual route defaults inside actual ancestor layouts; preserve native role/module gates.",
+    "Exercise actual active nested tabs/dialogs and ready/loading/empty/error/account/scope states.",
+    "Keep synthetic transport, hardware interfaces, production schema and live persistence evidence separate."
+  ],
+  "manuallyReviewed140": [
+    "employee-home-actual-assignment-360x800-scale-1.6.png",
+    "employee-home-actual-assignment-320x740-scale-1.png",
+    "employee-home-actual-bottom-844x390-scale-1.6.png",
+    "employee-calendar-controls-360x800-scale-1.png",
+    "employee-clients-last-record-360x800-scale-1.6.png",
+    "client-home-actual-section-copy-320x740-scale-1.png",
+    "client-home-actual-section-copy-360x800-scale-1.6.png",
+    "client-home-actual-section-copy-1280x800-scale-1.6.png"
+  ],
+  "manualFindings140": "Known row inset, word wrapping, last-task reachability and client section contrast corrections are visible in these limited fixtures. No full-portal acceptance follows.",
+  "preparedActualRouteHarness": {
+    "status": "prepare-only-passed-not-rendered",
+    "command": "node scripts/verify-native-portal-audit.mjs --prepare-only",
+    "cases": 65,
+    "uniqueSelectedPageFiles": 55,
+    "byPortal": {
+      "client_and_family": {
+        "cases": 22,
+        "pageFiles": 15
+      },
+      "employee": {
+        "cases": 34,
+        "pageFiles": 33
+      },
+      "administration": {
+        "cases": 9,
+        "pageFiles": 7
+      }
+    },
+    "physicalDeviceVerified": false,
+    "visualAcceptance": false,
+    "fullAppAcceptance": false,
+    "remaining": "Actual existing-CI browser execution, case-specific interaction assertions, manual pixel review and all uncovered routes/states remain open."
+  }
+}

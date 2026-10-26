@@ -18,6 +18,7 @@ import {
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -50,6 +51,12 @@ function ClientDetailFact({
 }
 
 export function PortalClientAppointmentDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const actor = usePortalActor();
+  return <PortalClientAppointmentDetailContent key={JSON.stringify([actor.tenantId, actor.actorId, actor.roleKey, actor.clientId, id])} />;
+}
+
+function PortalClientAppointmentDetailContent() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);

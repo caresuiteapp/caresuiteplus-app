@@ -25,6 +25,7 @@ export function useBudgetRecordTabs({ tabs, initialTab, requestedTab, storedUrlT
     const incoming = useRef<{
         requested?: ClientRecordTabKey;
         stored?: ClientRecordTabKey;
+        tabKeys: string;
     } | null>(null);
     const tabKeys = tabs.join(',');
     useEffect(() => { alive.current = true; return () => { alive.current = false; sequence.current += 1; }; }, []);
@@ -73,9 +74,9 @@ export function useBudgetRecordTabs({ tabs, initialTab, requestedTab, storedUrlT
         if (!allowed.current.length)
             return;
         const previous = incoming.current;
-        if (previous && previous.requested === requestedTab && previous.stored === storedUrlTab)
+        if (previous && previous.requested === requestedTab && previous.stored === storedUrlTab && previous.tabKeys === tabKeys)
             return;
-        incoming.current = { requested: requestedTab, stored: storedUrlTab };
+        incoming.current = { requested: requestedTab, stored: storedUrlTab, tabKeys };
         const requestedChanged = !previous || previous.requested !== requestedTab;
         const next = requestedChanged ? (requestedTab ?? storedUrlTab ?? initialTab) : (storedUrlTab ?? requestedTab ?? initialTab);
         if (allowed.current.includes(next))

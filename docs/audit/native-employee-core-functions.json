@@ -1,0 +1,1058 @@
+{
+  "schemaVersion": 1,
+  "auditId": "native-employee-core-functions",
+  "date": "2026-10-26",
+  "mode": "read_only_product_source_with_authorized_synthetic_qa",
+  "routeMatrixReference": {
+    "path": "docs/audit/native-portal-route-matrix.json",
+    "rowIdContract": "rows[].id = Android route file; routeTemplate = public route.",
+    "availabilityAtCreation": "Central matrix unavailable at initial read; known Android route IDs recorded. Central file not edited.",
+    "validation": "Central matrix appeared before completion; all routeMatrixIds validated against its 692 rows. Central file was not edited.",
+    "validatedRouteFileReferences": 21
+  },
+  "scope": [
+    "home",
+    "assignment-lists",
+    "assignment-detail",
+    "assignment-execution",
+    "team-calendar",
+    "client-records",
+    "workday-clock",
+    "visit-times",
+    "payroll",
+    "profile",
+    "mobility-settings",
+    "internal-tasks",
+    "academy",
+    "consultation",
+    "first-login"
+  ],
+  "delegatedToParent": [
+    "Logbook/tracking lifecycle",
+    "Personal documents/signature documents/downloads",
+    "Uploads",
+    "Messenger",
+    "Absence/vacation/requests",
+    "Aggregate portal inventory"
+  ],
+  "sourceBasis": {
+    "repo": "caresuiteapp/caresuiteplus-app",
+    "baselineObservedAtStart": "411d2e44",
+    "note": "Source reference, not installed artifact proof; no resync/commit/push."
+  },
+  "actionsPerformed": {
+    "sourceReads": true,
+    "syntheticSqlReproduction": true,
+    "productEdits": false,
+    "migrationEdits": false,
+    "remoteRequests": false,
+    "productionDatabaseWrites": false,
+    "installs": false,
+    "builds": false,
+    "commits": false,
+    "pushes": false,
+    "testsRunHere": [
+      "PGlite NULL-owner reproduction only:6 cases,3controlPASS,3denialFAIL."
+    ]
+  },
+  "sharedGateSources": [
+    "app/portal/employee/_layout.tsx",
+    "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+    "src/lib/auth/RequireEmployeePasswordSetup.tsx",
+    "src/hooks/usePortalActor.ts"
+  ],
+  "functions": [
+    {
+      "id": "home",
+      "routeTemplates": [
+        "/portal/employee"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/(tabs)/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePortalOverviewScreen",
+        "EmployeePortalDashboardScreen",
+        "HealthOSEmployeePortalTodayView"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeePortalOverviewScreen.tsx",
+        "src/screens/portal/EmployeePortalDashboardScreen.tsx",
+        "src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx",
+        "src/hooks/useEmployeePortalDashboard.ts",
+        "src/lib/offline/assignmentCacheService.ts",
+        "src/lib/portal/employeePortalLiveOverviewService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Tenant/employee/role/actor dashboard projection."
+      },
+      "reads": [
+        "loadDashboardProjectionWithCache",
+        "fetchLiveEmployeePortalOverview -> fetchLivePortalAppointmentsForEmployee",
+        "Portal signature dashboard counts"
+      ],
+      "writes": [],
+      "readback": [
+        "Refresh failure distinct from retained cached projection."
+      ],
+      "checks": {
+        "permission": "Ready linked employee and shared shell gates.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Actor-scoped dashboard cache and cache state."
+      },
+      "existingTestRefs": [
+        "read-scope",
+        "visual-script"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "assignment-lists",
+      "routeTemplates": [
+        "/portal/employee/assignments",
+        "/portal/employee/offene-einsaetze",
+        "/portal/employee/execution"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/(tabs)/assignments.tsx",
+        "app/portal/employee/offene-einsaetze.tsx",
+        "app/portal/employee/execution/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "PortalAppointmentsTab(employee)",
+        "EmployeeOpenAssignmentsScreen",
+        "EmployeePortalExecutionHubRoute"
+      ],
+      "sourceFiles": [
+        "src/components/portal/PortalAppointmentsTab.tsx",
+        "src/screens/portal/EmployeeOpenAssignmentsScreen.tsx",
+        "src/hooks/usePortalAppointments.ts",
+        "src/lib/portal/appointmentService.ts",
+        "src/lib/portal/employeePortalOpenAssignments.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Open list requires current employeeId and excludes abgeschlossen/storniert/nicht_erschienen."
+      },
+      "reads": [
+        "loadPortalAppointmentsWithCache",
+        "fetchPortalAppointments: own employee visits and own released calendar events"
+      ],
+      "writes": [],
+      "readback": [
+        "Focus refresh after returning from execution."
+      ],
+      "checks": {
+        "permission": "Ready linked employee.",
+        "empty": "Complete open list only after linked-ready, nonloading, nonerror state.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Cache banner; stale cached general-list item avoids direct execution jump."
+      },
+      "existingTestRefs": [
+        "read-scope",
+        "calendar-details"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "assignment-detail",
+      "routeTemplates": [
+        "/portal/employee/assignments/[id]"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/assignments/[id]/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "PortalAssignmentDetailScreen"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/PortalAssignmentDetailScreen.tsx",
+        "src/hooks/usePortalAppointmentDetail.ts",
+        "src/lib/offline/assignmentCacheService.ts",
+        "src/lib/portal/appointmentService.ts",
+        "src/lib/portal/employeePortalExecutionLiveService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Route ID in cache/query key; calendar: uses separate own-calendar read, public notes and no execution route."
+      },
+      "reads": [
+        "loadPortalAppointmentDetailWithCache -> fetchPortalAppointmentDetail",
+        "fetchLiveEmployeePortalAssignmentDetail -> assertLiveEmployeeAssignmentAccess"
+      ],
+      "writes": [],
+      "readback": [
+        "Live refresh and scoped detail-cache metadata."
+      ],
+      "checks": {
+        "permission": "Incomplete scope denied; loaded assignment ownership asserted.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Scoped detail cache with partial/cache metadata."
+      },
+      "existingTestRefs": [
+        "read-scope",
+        "calendar-details"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "assignment-execution",
+      "routeTemplates": [
+        "/portal/employee/assignments/[id]/execute"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/assignments/[id]/execute.native.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePortalExecutionErrorBoundary",
+        "EmployeePortalVisitExecutionScreen.native",
+        "useEmployeePortalVisitExecution"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeePortalVisitExecutionScreen.native.tsx",
+        "src/hooks/useEmployeePortalVisitExecution.ts",
+        "src/features/assistWorkflow/resolveAssistExecutionContext.ts",
+        "src/features/assistWorkflow/startServiceAtomic.shared.ts",
+        "src/lib/portal/employeePortalExecutionLiveService.ts",
+        "src/features/assistWorkflow/saveTaskResultsBatch.ts",
+        "src/features/assistWorkflow/saveVisitDocumentation.ts",
+        "src/features/assistWorkflow/saveClientSignature.ts",
+        "src/lib/assist/assistVisitSignaturePersistenceService.shared.ts",
+        "src/features/assistWorkflow/finalizeVisit.ts",
+        "src/lib/portal/deferredVisitClientSignatureService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Occurrence/resolved persistence owner; current ctx tenant/employee/assignment equality, signature scope/epoch and single-flight."
+      },
+      "reads": [
+        "resolveAssistExecutionContext",
+        "Detail/time events/documentation/signature/proof readback"
+      ],
+      "writes": [
+        "ensurePortalWriteSession before workflow writes",
+        "web_start_assist_visit_service RPC",
+        "transitionLiveEmployeePortalAssignment / repair_assist_visit_workflow_status",
+        "assist_time_events + WFM mirror",
+        "updateLiveEmployeePortalTasksBatch",
+        "assist_visit_documentation upsert",
+        "Image Storage + assist_visit_signatures",
+        "assist_visit_proofs/finalize",
+        "employee_portal_release_deferred_signature RPC"
+      ],
+      "readback": [
+        "Start checks visit/employee/status/event/timestamp receipt.",
+        "Documentation compares persisted content/owner fields.",
+        "Signature checks IDs, storage/content hashes/signer; unknown transport outcome read back before image cleanup.",
+        "Bounded pending confirmation separates unknown write outcome from success."
+      ],
+      "checks": {
+        "permission": "Execution permission plus current writable session/context; signed/locked edits restricted.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Page/section boundaries; draft retention, retry and reconciliation.",
+        "offline": "readOnlyExecution = isOffline; local task/documentation draft/cache support separate."
+      },
+      "existingTestRefs": [
+        "execution-drafts",
+        "rpc-binding",
+        "signature-source"
+      ],
+      "unverified": [
+        "Complete generated Execute.native not mounted with Android renderer/live backend.",
+        "Vitest NativeDocumentation import resolves base .tsx; production imports generated .native.tsx explicitly.",
+        "GPS/camera/signature drawing/storage/WFM/final proof delivery not exercised end to end."
+      ]
+    },
+    {
+      "id": "team-calendar",
+      "routeTemplates": [
+        "/portal/employee/calendar",
+        "/portal/employee/schedule"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/(tabs)/calendar.tsx",
+        "app/portal/employee/(tabs)/schedule.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePortalCalendarScreen"
+      ],
+      "sourceFiles": [
+        "src/components/portal/EmployeePortalCalendarScreen.tsx",
+        "src/hooks/useEmployeePortalCalendarEvents.ts",
+        "src/lib/calendar/calendarEventService.ts",
+        "src/lib/calendar/calendarEventRepository.ts",
+        "src/lib/portal/employeePortalCalendarNavigation.ts",
+        "supabase/migrations/20260801170000_employee_portal_team_records_calendar.sql"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Period scoped to actor. Tenant-wide released team read intentional R23; own visit navigates, colleague opens information."
+      },
+      "reads": [
+        "getEmployeePortalTeamCalendarEvents",
+        "calendarEventRepository.listForEmployeePortalTeam -> calendar_events",
+        "Assist recurrence/team-visit fallback + related employee names"
+      ],
+      "writes": [],
+      "readback": [
+        "Reload hook; actor clears selection and new period clears old pending results."
+      ],
+      "checks": {
+        "permission": "Linked employee/current tenant; deliberate team-read policy.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "calendar-details",
+        "read-scope",
+        "visual-script"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "client-records",
+      "routeTemplates": [
+        "/portal/employee/clients",
+        "/portal/employee/clients/[id]"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/clients/index.tsx",
+        "app/portal/employee/clients/[id].tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePortalClientRecordsScreen",
+        "EmployeePortalClientRecordDetailScreen"
+      ],
+      "sourceFiles": [
+        "src/components/portal/EmployeePortalClientRecordsScreen.tsx",
+        "src/components/portal/EmployeePortalClientRecordDetailScreen.tsx",
+        "src/hooks/useEmployeePortalClientRecords.ts",
+        "src/lib/portal/employeePortalClientRecordsService.ts",
+        "supabase/migrations/20260801170000_employee_portal_team_records_calendar.sql"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Active tenant directory; detail ID must exist in directory; tenant/client predicates on contacts and addresses."
+      },
+      "reads": [
+        "Paginated clients/assist_visits",
+        "client_addresses/client_contacts",
+        "Released portal client documents",
+        "Team appointment history"
+      ],
+      "writes": [],
+      "readback": [
+        "Separate contactsError/documentsError/accessError preserve read-failure distinctions."
+      ],
+      "checks": {
+        "permission": "Tenant-wide read-only R23 policy intentional, not own-assignment-only.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "client-record-service",
+        "read-scope",
+        "visual-script"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "Parent owns document preview/storage/delivery."
+      ]
+    },
+    {
+      "id": "workday-clock",
+      "routeTemplates": [
+        "/portal/employee/arbeitszeit"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/arbeitszeit/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "TimeTrackingEmployeeScreen"
+      ],
+      "sourceFiles": [
+        "src/components/timeTracking/TimeTrackingEmployeeScreen.tsx",
+        "src/lib/wfm/wfmClockService.ts",
+        "src/lib/wfm/wfmWorkSessionRepository.ts",
+        "src/lib/timeTracking/timeTrackingSettingsService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Current Berlin work date/session; employee fallback resolved by resolveEmployeeIdForUser."
+      },
+      "reads": [
+        "getWfmTodayStatus -> workforce_work_sessions/workforce_time_events",
+        "fetchPortalTimeTrackingSettings",
+        "Time-account/rule-warning panels"
+      ],
+      "writes": [
+        "wfm_apply_clock_action: clock_in/pause/resume/switch/clock_out"
+      ],
+      "readback": [
+        "Action reloads getWfmTodayStatus and account revision."
+      ],
+      "checks": {
+        "permission": "time.tracking.own.view/start + service tenant/permission checks.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Action lock and try/finally release controls.",
+        "offline": "Offline contract not accepted by this source audit.",
+        "settingsPrivacy": "Start requires loaded enabled settings; privacy confirmation retained."
+      },
+      "existingTestRefs": [
+        "remaining-workflows"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "Native QR/check-in and real WFM transaction not executed."
+      ]
+    },
+    {
+      "id": "visit-times",
+      "routeTemplates": [
+        "/portal/employee/times"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/times/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePortalTimesScreen"
+      ],
+      "sourceFiles": [
+        "src/components/wfm/EmployeePortalTimesScreen.tsx",
+        "src/lib/wfm/wfmPortalTimesService.ts",
+        "src/lib/wfm/wfmWorkSessionRepository.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Own employee, default 60-day lookback."
+      },
+      "reads": [
+        "listEmployeeVisitTimes -> assist_visits/assist_time_events/assist_driving_log",
+        "500-row pages and 100-ID event chunks"
+      ],
+      "writes": [],
+      "readback": [
+        "Later-page failure rejects whole read instead of partial completeness."
+      ],
+      "checks": {
+        "permission": "time.tracking.own.view and employee resolver.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "times-completeness"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "payroll",
+      "routeTemplates": [
+        "/portal/employee/payroll"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/payroll/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeePayrollMonthScreen"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+        "src/lib/payroll/payrollMonthService.ts",
+        "supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql",
+        "supabase/migrations/0265_payroll_integrity_and_receipt_storage.sql"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Selected year/month + employee; identity-keyed owner clears personal drafts on tenant/actor/employee/role change. Async completions cannot initiate a next phase after owner unmount."
+      },
+      "reads": [
+        "payroll_month_statements",
+        "employee_expense_claims",
+        "employee_payroll_mileage_rate_cents",
+        "Signed payroll PDF URL"
+      ],
+      "writes": [
+        "employee_decide_payroll_statement RPC",
+        "employee_expense_claims insert",
+        "office-documents receipt upload tenant/payroll/expenses/employee"
+      ],
+      "readback": [
+        "Persisted write distinguished from failed subsequent refresh.",
+        "Actual migration RPC fails three NULL-identity denial expectations in synthetic SQL."
+      ],
+      "checks": {
+        "permission": "Ordinary RLS read/write; decision RPC has concrete NULL-ownership defect.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "payroll-existing-sql",
+        "payroll-null-repro",
+        "src/__tests__/portal/employeePayrollScreenInteraction.test.tsx (19 controlled screen cases)"
+      ],
+      "unverified": [
+        "Synthetic resolvers reproduce SQL behavior, not real login/session reachability.",
+        "No real payroll decision/receipt upload attempted.",
+        "Root read-only production function catalogue confirms the old NULL-unsafe definition hash; no production mutation or real decision transaction performed."
+      ]
+    },
+    {
+      "id": "profile",
+      "routeTemplates": [
+        "/portal/employee/profile"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/(tabs)/profile.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeeProfileScreen",
+        "PortalEmployeeProfileTabContent"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeeProfileScreen.tsx",
+        "src/hooks/useEmployeePortalProfile.ts",
+        "src/hooks/useEmployeePortalPersonnelView.ts",
+        "src/lib/portal/employeeProfileService.ts",
+        "src/lib/portal/employeeProfileLiveService.ts",
+        "src/lib/portal/employeePortalPersonnelLiveService.ts",
+        "src/components/portal/profile/portalProfileTabs.ts",
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.tsx",
+        "src/components/auth/PortalBiometricSettingsCard.tsx",
+        "src/components/auth/PortalDeviceSettingsCard.tsx"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Own personal record; fetchPortalEmployeeIdForAuthUser rechecked against requested employee."
+      },
+      "reads": [
+        "employees + own appointments/timesheet",
+        "loadEmployeePersonnelFileLive; portal projection/document visibility"
+      ],
+      "writes": [
+        "No employee master-data edit; Office change hint.",
+        "Separate device/biometric/push actions, not personnel writes."
+      ],
+      "readback": [
+        "Scope-keyed reads clear previous profile/personnel/timesheet and ignore late responses."
+      ],
+      "checks": {
+        "permission": "portal.employee.profile.view + repeated own-employee check.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Base profile retained on optional personnel failure; retry.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "profile-lifecycle"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "14 read-only tabs: overview,master_data,contact,employment,compensation,tax_social,secondary_employment,roles_permissions,qualifications,documents,portal,deployability,work_materials,audit.",
+        "No native biometric/push API acceptance."
+      ]
+    },
+    {
+      "id": "mobility-settings",
+      "routeTemplates": [
+        "/portal/employee/mobilitaet"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/mobilitaet/index.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeeMobilitySettingsScreen",
+        "EmployeeMobilitySettingsForm"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeeMobilitySettingsScreen.tsx",
+        "src/components/portal/EmployeeMobilitySettingsForm.tsx",
+        "src/hooks/useEmployeeMobilitySettings.ts",
+        "src/lib/office/employeeMobilityService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Save payload tenant/employee must match current hook scope."
+      },
+      "reads": [
+        "employee_mobility_settings",
+        "Employee home / tenant office address context"
+      ],
+      "writes": [
+        "saveEmployeeMobilitySettings"
+      ],
+      "readback": [
+        "refreshWithResult after persistence; refresh failure keeps saved result."
+      ],
+      "checks": {
+        "permission": "Screen permission and linked scope.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Settings/address errors, saveLock, try/finally.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [
+        "remaining-workflows"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown."
+      ]
+    },
+    {
+      "id": "internal-tasks",
+      "routeTemplates": [
+        "/portal/employee/tasks"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/tasks/index.native.tsx"
+      ],
+      "actualNativeReceiver": [
+        "EmployeeInternalNotes.native",
+        "AssignmentTasks"
+      ],
+      "sourceFiles": [
+        "app/portal/employee/tasks/index.native.tsx",
+        "src/components/portal/EmployeeInternalNotes.native.tsx",
+        "src/lib/office/notes/internalService.native.ts",
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "src/liquid-command/navigation/portalCatalog.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "InternalNoteActor contains user/role/employeeLinkReadOnly; own delivery ID + employee + expected revision."
+      },
+      "reads": [
+        "office_internal_note_read inbox",
+        "Assignment categories from dashboard"
+      ],
+      "writes": [
+        "office_internal_note_delivery_update read/status/response"
+      ],
+      "readback": [
+        "Delivery ID/revision/status/response receipt checked."
+      ],
+      "checks": {
+        "permission": "auth.getUser equals actor.userId; portal metadata/employee checked; RPC authoritative.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "employeeLinkReadOnly prevents update; DB connection needed."
+      },
+      "existingTestRefs": [
+        "navigation-model"
+      ],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "Native menu omission despite generated receiving route."
+      ]
+    },
+    {
+      "id": "academy",
+      "routeTemplates": [
+        "/portal/employee/akademie"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/akademie/index.native.tsx"
+      ],
+      "actualNativeReceiver": [
+        "AcademyWorkspaceScreen.native(view=learner)"
+      ],
+      "sourceFiles": [
+        "app/portal/employee/akademie/index.native.tsx",
+        "src/features/akademie/AcademyWorkspaceScreen.native.tsx",
+        "src/lib/akademie/workspaceService.ts"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Learner sections limited; tenant/view/current command identity."
+      },
+      "reads": [
+        "academy_workspace_load(p_tenant,p_view)"
+      ],
+      "writes": [
+        "academy_workspace_mutate",
+        "Authoritative certificate download path"
+      ],
+      "readback": [
+        "applyAcademyMutationReceipt and pending-command recovery present; server validation not fully audited."
+      ],
+      "checks": {
+        "permission": "Learner receiver; ensurePortalWriteSession before portal mutations.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Uncertain command and refresh-required states.",
+        "offline": "Offline contract not accepted by this source audit."
+      },
+      "existingTestRefs": [],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "No Academy menu item in inspected employee catalog.",
+        "Source/API binding only; full Academy SQL/tests/workflow not audited by subgroup."
+      ]
+    },
+    {
+      "id": "consultation",
+      "routeTemplates": [
+        "/portal/employee/beratung",
+        "/portal/employee/beratung/[id]"
+      ],
+      "routeMatrixIds": [
+        "app/portal/employee/beratung/index.native.tsx",
+        "app/portal/employee/beratung/[id].native.tsx"
+      ],
+      "actualNativeReceiver": [
+        "ConsultationWorkspaceScreen.native(employeeView=true)"
+      ],
+      "sourceFiles": [
+        "app/portal/employee/beratung/index.native.tsx",
+        "app/portal/employee/beratung/[id].native.tsx",
+        "src/features/beratung/ConsultationWorkspaceScreen.native.tsx",
+        "src/lib/beratung/workspaceService.ts",
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Case/encounter params; connected receiver keyed to identity/draft scope."
+      },
+      "reads": [
+        "consultation_workspace_load(p_tenant,p_employee_view,p_case)"
+      ],
+      "writes": [
+        "consultation_workspace_mutate"
+      ],
+      "readback": [
+        "Successful command reloads workspace; scope-aware state."
+      ],
+      "checks": {
+        "permission": "Release flag; ready requires isLinkedReady && !employeeLinkReadOnly.",
+        "empty": "Explicit empty/not-found versus read-failure states inspected.",
+        "loading": "Source loading/busy state inspected; no device execution.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Offline read-only link prevents ready connected receiver."
+      },
+      "existingTestRefs": [],
+      "unverified": [
+        "No authenticated Android/backend round trip executed; deployed SQL/RLS/storage state unknown.",
+        "Native consultation menu insertion is Web-only.",
+        "Source/API binding only; full receiving UI/SQL permissions not accepted by subgroup."
+      ]
+    },
+    {
+      "id": "first-login",
+      "routeTemplates": [
+        "/auth/employee-first-login",
+        "/liquid-command/access/employee-first-login"
+      ],
+      "routeMatrixIds": [
+        "app/auth/employee-first-login.tsx",
+        "app/liquid-command/access/employee-first-login.tsx"
+      ],
+      "actualNativeReceiver": [
+        "AccessScreens.EmployeeFirstLoginScreen"
+      ],
+      "sourceFiles": [
+        "app/auth/employee-first-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/lib/auth/RequireEmployeePasswordSetup.tsx",
+        "src/lib/auth/employeePortalAuthService.ts",
+        "supabase/functions/employee-portal-complete-first-login/index.ts",
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx"
+      ],
+      "binding": {
+        "actor": "Current authenticated actor/role; portal shell requires auth, role and completed first login.",
+        "tenant": "Current tenant included in query/cache/write scope.",
+        "employee": "usePortalActor verifies live employee binding; verified cached identity is used only offline.",
+        "record": "Current employee PortalSession account/token; UI scope includes tenant/account/loginType/token. Edge uses validated session tenant/account."
+      },
+      "reads": [
+        "Active unexpired portal_sessions token + matching account/tenant"
+      ],
+      "writes": [
+        "employee-portal-complete-first-login Edge",
+        "UI clears mustChangePassword only after completion"
+      ],
+      "readback": [
+        "Mounted/submitted scope and pending request reject late/different-account receipt."
+      ],
+      "checks": {
+        "permission": "RequireEmployeePasswordSetup blocks portal; employee_portal session required.",
+        "empty": "Missing/expired session explicit.",
+        "loading": "Synchronous pendingScope lock; no duplicate submit.",
+        "error": "Source error/retry/reconciliation states inspected.",
+        "offline": "Server confirmation required."
+      },
+      "existingTestRefs": [
+        "first-login-lifecycle"
+      ],
+      "unverified": [
+        "Edge source only; no password/auth account mutation."
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "EMP-PAYROLL-NULL-OWNER",
+      "severity": "P1",
+      "status": "source_and_synthetic_sql_confirmed_deployed_state_unknown",
+      "functionIds": [
+        "payroll"
+      ],
+      "sourceFiles": [
+        "supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql",
+        "src/lib/payroll/payrollMonthService.ts"
+      ],
+      "sourceLocations": [
+        "employee_decide_payroll_statement line263; ownershipIF around282; authenticatedGRANT313"
+      ],
+      "description": "SECURITY DEFINER RPC compares identity with <> without NULL rejection. Known published statement confirms despite zero ordinary RLS-visible rows.",
+      "proofRef": "payroll-null-repro",
+      "limits": [
+        "Deployment not queried.",
+        "NULL-tenant-only combination depends on actual resolver behavior; bothNULL and same-tenant/no-employee separately reproduced.",
+        "No productive data/request."
+      ]
+    },
+    {
+      "id": "EMP-NATIVE-MENU-RECEIVERS",
+      "severity": "P2",
+      "status": "source_confirmed",
+      "functionIds": [
+        "internal-tasks",
+        "consultation"
+      ],
+      "sourceFiles": [
+        "src/liquid-command/shell/LiquidPortalRouteLayout.tsx",
+        "src/liquid-command/navigation/portalCatalog.ts",
+        "app/portal/employee/tasks/index.native.tsx",
+        "app/portal/employee/beratung/index.native.tsx"
+      ],
+      "sourceLocations": [
+        "Actual shell navigation block around73-85"
+      ],
+      "description": "Actual shell inserts Tasks/Notes and Consultation only for Web although generated native receiving routes exist.",
+      "limits": [
+        "Navigation parity, no RLS claim.",
+        "Consultation release flag applies."
+      ]
+    },
+    {
+      "id": "EMP-PAYROLL-REJECT-LENGTH",
+      "severity": "P2",
+      "status": "source_confirmed_not_runtime_executed",
+      "functionIds": [
+        "payroll"
+      ],
+      "sourceFiles": [
+        "src/screens/portal/EmployeePayrollMonthScreen.tsx",
+        "supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql"
+      ],
+      "sourceLocations": [
+        "UI92",
+        "SQL around288"
+      ],
+      "description": "UI permits/describes3 characters; RPC requires10; length3-9 submitted then rejected.",
+      "limits": [
+        "No real rejection submitted."
+      ]
+    },
+    {
+      "id": "EMP-NATIVE-EXECUTION-COVERAGE",
+      "severity": "verification_gap",
+      "status": "test_source_confirmed",
+      "functionIds": [
+        "assignment-execution"
+      ],
+      "sourceFiles": [
+        "vitest.config.ts",
+        "src/__tests__/portal/employeeExecutionDraftLifecycle.test.tsx",
+        "src/screens/portal/EmployeePortalVisitExecutionScreen.native.tsx"
+      ],
+      "description": "Vitest maps RN to RNWeb without native extension preference. Test NativeDocumentation resolves base.tsx, production imports generated.native.tsx.",
+      "limits": [
+        "Useful mocked tests valid for actual receiver; no full Android/backend proof."
+      ]
+    }
+  ],
+  "existingTestEvidence": [
+    {
+      "id": "read-scope",
+      "path": "src/__tests__/portal/employeeReadScopeRepair.test.tsx",
+      "classification": "mounted_hooks_service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Scope resets, late errors, missing employee, cache-refresh distinction",
+      "limits": "Actor/services mocked; no RLS/native host"
+    },
+    {
+      "id": "client-record-service",
+      "path": "src/__tests__/portal/employeeClientRecordsRepair.test.ts",
+      "classification": "service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Tenant/deletion predicates;501 rows;optional failures",
+      "limits": "In-memory query builder, no deployed RLS"
+    },
+    {
+      "id": "calendar-details",
+      "path": "src/__tests__/portal/employeeCalendarAndDetailsRepair.test.ts",
+      "classification": "service_mocked_and_pure_model",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Incomplete/foreign scope; public notes; own/colleague routes/periods",
+      "limits": "Repositories/live adapters mocked"
+    },
+    {
+      "id": "execution-drafts",
+      "path": "src/__tests__/portal/employeeExecutionDraftLifecycle.test.tsx",
+      "classification": "mounted_mocked_native_hosts",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Task/documentation draft retry and visit isolation",
+      "limits": "RN/storage/writes mocked; NativeDocumentation base .tsx differs from production generated .native.tsx"
+    },
+    {
+      "id": "rpc-binding",
+      "path": "src/__tests__/portal/employeePortalRpcBinding.test.ts",
+      "classification": "service_mocked_and_static",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Supabase receiver binding and source guard",
+      "limits": "No server transaction"
+    },
+    {
+      "id": "signature-source",
+      "path": "src/__tests__/portal/employeeVisitSignatureConfirmationR106.test.ts",
+      "classification": "static",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Pending confirmation and polling source assertions",
+      "limits": "No full generated native render"
+    },
+    {
+      "id": "profile-lifecycle",
+      "path": "src/__tests__/portal/employeeProfileAnnouncementsLifecycle.test.tsx",
+      "classification": "mounted_hooks_ui_service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Profile/personnel/avatar account isolation and optional-read failure",
+      "limits": "Actor/services/permissions/hosts mocked"
+    },
+    {
+      "id": "times-completeness",
+      "path": "src/__tests__/wfm/employeePortalTimesCompleteness.test.ts",
+      "classification": "service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Independent drives,501rows,100IDchunks,later-page errors",
+      "limits": "Resolver/permissions/query builder mocked"
+    },
+    {
+      "id": "remaining-workflows",
+      "path": "src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx",
+      "classification": "mounted_ui_service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "WFM retries and mobility draft/write controls",
+      "limits": "Hooks/services/actor/hosts mocked; parent owns absence review"
+    },
+    {
+      "id": "first-login-lifecycle",
+      "path": "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+      "classification": "mounted_ui_service_mocked",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Account switch and late receipt safety",
+      "limits": "Edge/session updates/hosts mocked"
+    },
+    {
+      "id": "navigation-model",
+      "path": "src/__tests__/portal/employeePortalNavigationAccess.test.tsx",
+      "classification": "mocked_react_tree",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Android handlers/labels/open assignments",
+      "limits": "No renderer; no proof Tasks/Consultation menu entry"
+    },
+    {
+      "id": "visual-script",
+      "path": "scripts/verify-native-administration-visual.mjs",
+      "classification": "visual_rnweb_actual_components_fixture_bindings",
+      "executionStatus": "script_inspected_no_new_visual_run_in_this_subgroup",
+      "coverageByDesign": "Actual Home/Client-list/Calendar geometry,scroll,route targets",
+      "limits": "RNWeb; actor/auth/backend fixtures; no complete Execute/Payroll backend"
+    },
+    {
+      "id": "payroll-existing-sql",
+      "path": "src/__tests__/payroll/payrollOfficeSqlWeb.test.ts",
+      "classification": "synthetic_sql_existing_harness",
+      "executionStatus": "inspected_only_not_run_in_this_audit",
+      "coverageByDesign": "Real local migration RLS/constraints/triggers for Office publication/review",
+      "limits": "Synthetic auth resolvers/unrelated tables; NULL decision test absent"
+    },
+    {
+      "id": "payroll-null-repro",
+      "path": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/employee-audit/payroll-null-rpc-repro.mjs",
+      "classification": "synthetic_sql_executed",
+      "executionStatus": "executed_expected_security_regression_failure",
+      "coverageByDesign": "6cases:3controlPASS+3denialFAIL; NULL identities bypass RPC while SELECT sees0rows",
+      "limits": "Local synthetic rows/resolvers; actual migration RPC/RLS/trigger; deployed/login reachability unknown",
+      "resultPath": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/employee-audit/payroll-null-rpc-result.json",
+      "counts": {
+        "total": 6,
+        "passedControls": 3,
+        "failedDenialExpectations": 3
+      }
+    }
+  ],
+  "verificationSummary": {
+    "static": "Source/test inspection is not test pass.",
+    "serviceMocked": "Scope/pagination/lifecycle/recovery tests identified, not rerun.",
+    "actualNativeRender": "No complete generated Execute/Payroll Android render/backend flow.",
+    "visual": "Existing RNWeb script source only; no new pixel run; actor/auth/backend fixtures.",
+    "hardware": "No device/emulator validation.",
+    "syntheticSql": "Actual migration context and existing fixture:3 NULL-denial regressions reproduced.",
+    "deployment": "Current SQL/Edge/RLS/storage state not queried."
+  }
+}

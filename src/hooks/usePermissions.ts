@@ -9,28 +9,31 @@ import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { portalEmployeeSessionSignature } from '@/lib/auth/verifiedPortalEmployeeLink';
+
+const NO_PERMISSIONS: readonly PermissionKey[] = [];
 
 export function usePermissions() {
-  const { profile, user, portalSession } = useAuth();
+  const { profile, user, portalSession, session } = useAuth();
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const serviceTenantId = useServiceTenantId();
   const tenantId = serviceTenantId ?? (isDemoMode() ? DEMO_TENANT_ID : '');
 
-  const [permissions, setPermissions] = useState<readonly PermissionKey[]>(() =>
-    getPermissionsForRole(roleKey),
-  );
+  const demo = isDemoMode();
+  const scope = JSON.stringify([tenantId, roleKey, profile?.id, user?.id, portalSession?.accountId, portalSession?.sessionToken, portalEmployeeSessionSignature(session), session?.expiresAt, demo]);
+  const [resolved, setResolved] = useState<{ scope: string; permissions: readonly PermissionKey[] } | null>(null);
+  const demoPermissions = useMemo(() => roleKey ? getPermissionsForRole(roleKey) : NO_PERMISSIONS, [roleKey]);
+  const permissions = demo ? demoPermissions : resolved?.scope === scope ? resolved.permissions : NO_PERMISSIONS;
 
   useEffect(() => {
-    if (!roleKey) {
-      setPermissions([]);
-      return;
-    }
-    if (isDemoMode()) {
-      setPermissions(getPermissionsForRole(roleKey));
-      return;
-    }
-    void fetchRuntimePermissions(roleKey, tenantId || null).then(setPermissions);
-  }, [roleKey, tenantId]);
+    if (!roleKey || demo) return;
+    let current = true;
+    void fetchRuntimePermissions(roleKey, tenantId || null, scope).then(
+      permissions => { if (current) setResolved({ scope, permissions }); },
+      () => { if (current) setResolved({ scope, permissions: NO_PERMISSIONS }); },
+    );
+    return () => { current = false; };
+  }, [roleKey, tenantId, scope, demo]);
 
   return useMemo(
     () => ({

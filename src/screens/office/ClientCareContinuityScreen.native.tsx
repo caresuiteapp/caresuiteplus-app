@@ -99,7 +99,7 @@ export function ClientCareContinuityScreen() {
     };
     return <ScreenShell title="Versorgungsunterbrechung / Austritt" subtitle={summary.clientName} showBack onBack={() => router.back()} scroll>
     <SectionPanel title="Vorgang eindeutig wählen" subtitle="Vorübergehende Unterbrechung ist kein Austritt">
-      <View style={styles.choices}><Choice label="Unterbrechung und Rückkehr" selected onPress={() => undefined}/><Choice label="Endgültiger Austritt / Kündigung" selected={false} onPress={() => setMode('exit')}/></View>
+      <View style={styles.choices}><Choice label="Unterbrechung und Rückkehr" selected onPress={() => setMode('continuity')}/><Choice label="Endgültiger Austritt / Kündigung" selected={false} onPress={() => setMode('exit')}/></View>
       <InfoBanner title="Historie bleibt unverändert" message="Nur noch nicht begonnene Einsätze im bestätigten Zeitraum werden serverseitig gestoppt. Tatsächliche Zeiten, erledigte Aufgaben, Dokumentation und Originalbelege bleiben erhalten. Rückkehr erzeugt keine Einsätze automatisch neu." variant="info" presentation="inline"/>
     </SectionPanel>
     {error ? <InfoBanner title="Vorgang gesperrt" message={error} variant="danger" presentation="inline"/> : null}
