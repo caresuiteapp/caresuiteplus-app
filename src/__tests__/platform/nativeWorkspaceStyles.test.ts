@@ -10,6 +10,19 @@ import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.s
 import {notesWorkspaceCss} from '@/components/office/notes/notesWorkspaceCss.native';
 describe('native presentation of business layouts',()=>{
   it.each([
+    ['h1','font-size:1.7em',14,28,23.8],
+    ['small','font-size:.8em',14,12,11.2],
+    ['input','font-size:inherit',13,14,13],
+  ] as const)('resolves authored %s font metrics against the parent instead of its element fallback',(tag,css,parent,fallback,expected)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss('.unit{'+css+'}')],{tag,props:{className:'unit'}},[],360,{fontSize:parent},{},{fontSize:fallback});
+    expect(result.text.fontSize).toBeCloseTo(expected);
+  });
+  it('keeps element defaults below an authored font inheritance reset',()=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss('.unit{font:inherit}')],{tag:'h1',props:{className:'unit'}},[],360,{fontSize:14,fontWeight:'400',lineHeight:21},{'--cs-native-line-ratio':'1.5'},{fontSize:28,fontWeight:'700'});
+    expect(result.text.fontSize).toBe(14);expect(result.text.fontWeight).toBe('400');expect(result.text.lineHeight).toBe(21);
+  });
+
+  it.each([
     ['.copy{font:400 14px/1.55 Inter,sans-serif}',14,'400','normal',21.7],
     ['.copy{font:italic 600 1rem/1.4 "Inter",sans-serif}',16,'600','italic',22.4],
     ['.copy{font:400 14px/1.55 Inter;font-size:12px!important}',12,'400','normal',18.6],

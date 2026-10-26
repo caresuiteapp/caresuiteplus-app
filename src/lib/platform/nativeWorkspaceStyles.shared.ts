@@ -57,7 +57,7 @@ export function normalizeNativeTextStyle(style:TextStyle,bounds?:NativeTextBound
   }
   return result as TextStyle;
 }
-export function resolveWorkspacePresentation(sheets:readonly WorkspaceSheet[],node:WorkspaceNode,ancestors:readonly WorkspaceNode[],width:number,inherited:TextStyle={},inheritedVariables:Record<string,string>={}):WorkspacePresentation{
+export function resolveWorkspacePresentation(sheets:readonly WorkspaceSheet[],node:WorkspaceNode,ancestors:readonly WorkspaceNode[],width:number,inherited:TextStyle={},inheritedVariables:Record<string,string>={},elementDefaults:TextStyle={}):WorkspacePresentation{
   // Shorthands must be applied after lower-priority or earlier longhands,
   // even when their property key first appeared near the start of the sheet.
   const winners=new Map<string,{value:string;priority:number;order:number}>();
@@ -79,7 +79,14 @@ export function resolveWorkspacePresentation(sheets:readonly WorkspaceSheet[],no
       fontFields={'font-size':parts[2],'font-weight':prefix.find(part=>/^(?:bold|[1-9]00)$/.test(part))??'normal','font-style':prefix.includes('italic')?'italic':'normal','line-height':parts[3]??'normal'};
     }
     for(const [property,fontValue] of Object.entries(fontFields))if((winners.get(property)?.priority??-1)<=priority)winners.set(property,{value:fontValue,priority,order:declarationOrder++});
-  };for(let sheet=0;sheet<sheets.length;sheet++)for(const rule of sheets[sheet]){if(!conditionMatches(rule.condition,width,Number(inheritedVariables['--cs-native-viewport-width']??width),Number(inheritedVariables['--cs-native-viewport-height']??width))||!matchesWorkspaceSelector(rule.selector,node,ancestors))continue;for(const [key,value] of rule.declarations){const priority=(value.includes('!important')?1e9:0)+rule.specificity*1e5+sheet*10000+rule.order;offer(key,value,priority);}}
+  };
+  // Element defaults are a lower cascade layer. Relative authored sizes and
+  // font:inherit must still resolve against the actual parent's text metrics.
+  for(const [key,value] of Object.entries(elementDefaults))if(value!==undefined){
+    const property=key==='textDecorationLine'?'text-decoration':key.replace(/[A-Z]/g,char=>'-'+char.toLowerCase());
+    offer(property,typeof value==='number'&&['fontSize','lineHeight','letterSpacing'].includes(key)?String(value)+'px':String(value),-1);
+  }
+  for(let sheet=0;sheet<sheets.length;sheet++)for(const rule of sheets[sheet]){if(!conditionMatches(rule.condition,width,Number(inheritedVariables['--cs-native-viewport-width']??width),Number(inheritedVariables['--cs-native-viewport-height']??width))||!matchesWorkspaceSelector(rule.selector,node,ancestors))continue;for(const [key,value] of rule.declarations){const priority=(value.includes('!important')?1e9:0)+rule.specificity*1e5+sheet*10000+rule.order;offer(key,value,priority);}}
   for(const [key,value] of Object.entries(node.props.style as CSSProperties??{}))if(value!==undefined&&value!==null)offer(key.replace(/[A-Z]/g,char=>'-'+char.toLowerCase()),String(value),2e9);const variables={...inheritedVariables};for(const [key,{value}] of winners)if(key.startsWith('--'))variables[key]=variablesIn(value,variables);const declarations=Object.fromEntries([...winners].filter(([key])=>!key.startsWith('--')).sort(([,a],[,b])=>a.priority-b.priority||a.order-b.order).map(([key,entry])=>[key,variablesIn(entry.value,variables).replace(/(-?\d*\.?\d+)(?:[ds]?v)([wh])/g,(_,n:string,axis:string)=>String(Number(n)*Number(variables['--cs-native-viewport-'+(axis==='w'?'width':'height')]??width)/100)+'px')]));
   const box:Record<string,unknown>={},text:Record<string,unknown>={...inherited};const inheritedFont=typeof inherited.fontSize==='number'?inherited.fontSize:14,ownFont=length(declarations['font-size'],inheritedFont,width,inheritedFont),font=typeof ownFont==='number'?ownFont:percentage(ownFont)!==undefined?inheritedFont*percentage(ownFont)!:inheritedFont;text.fontSize=font;if(variables['--cs-native-line-ratio']&&!declarations['line-height'])text.lineHeight=font*Number(variables['--cs-native-line-ratio']);let grid:string|null=null,scroll:WorkspacePresentation['scroll']=null;
   for(const [property,original] of Object.entries(declarations)){const raw=resolveWorkspaceColorMixes(original.replaceAll('currentColor',String(declarations.color==='currentColor'?inherited.color??'#173b57':declarations.color??inherited.color??'#173b57')));let key=camel(property),value:unknown=raw;if(property==='font'||raw==='inherit')continue;

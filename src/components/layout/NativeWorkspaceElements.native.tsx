@@ -44,14 +44,14 @@ function fixedRowWidthsOf(children:ReactNode,scope:Scope):(string|number)[]|null
   const items=childrenOf(children);
   for(const [index,child] of items.entries()){
     const tag=tagOf(child);if(!tag||!['tr','thead','tbody','tfoot'].includes(tag)||!isValidElement<Props>(child))continue;
-    const node:WorkspaceNode={tag,props:child.props,index,count:items.length,typeIndex:indexOfType(child,index,items)},resolved=resolveWorkspacePresentation(scope.sheets,node,scope.ancestors,scope.width,{...scope.text,...defaultStyle(tag).text},scope.variables);
+    const node:WorkspaceNode={tag,props:child.props,index,count:items.length,typeIndex:indexOfType(child,index,items)},resolved=resolveWorkspacePresentation(scope.sheets,node,scope.ancestors,scope.width,scope.text,scope.variables,defaultStyle(tag).text);
     const next={...scope,ancestors:[...scope.ancestors,node],text:resolved.text,variables:resolved.variables};
     if(tag==='tr'){
       const cells=childrenOf(child.props.children);
       if(cells.length!==scope.tableColumns)return [];
       const tracks=cells.map((cell,index)=>{
         const tag=tagOf(cell);if(!tag||!isValidElement<Props>(cell)||Number(cell.props.colSpan??1)!==1)return undefined;
-        return resolveWorkspacePresentation(scope.sheets,{tag,props:cell.props,index,count:cells.length,typeIndex:indexOfType(cell,index,cells)},next.ancestors,scope.width,{...next.text,...defaultStyle(tag).text},next.variables).box.width;
+        return resolveWorkspacePresentation(scope.sheets,{tag,props:cell.props,index,count:cells.length,typeIndex:indexOfType(cell,index,cells)},next.ancestors,scope.width,next.text,next.variables,defaultStyle(tag).text).box.width;
       });
       if(!tracks.every(value=>typeof value==='string'&&/^\d+(?:\.\d+)?%$/.test(value)&&parseFloat(value)>0))return [];
       if(Math.abs(tracks.reduce<number>((sum,value)=>sum+parseFloat(String(value)),0)-100)>.01)return [];
@@ -66,7 +66,7 @@ function collapsedSiblingMargins(children:ReactNode[],scope:Scope):Map<ReactNode
   const result=new Map<ReactNode,ViewStyle>();let previousBottom=0;
   for(const [index,child] of children.entries()){
     const tag=tagOf(child);if(!tag||!isValidElement<Props>(child)){previousBottom=0;continue;}
-    const item=resolveWorkspacePresentation(scope.sheets,{tag,props:child.props,index,count:children.length,typeIndex:indexOfType(child,index,children)},scope.ancestors,scope.width,{...scope.text,...defaultStyle(tag).text},scope.variables);
+    const item=resolveWorkspacePresentation(scope.sheets,{tag,props:child.props,index,count:children.length,typeIndex:indexOfType(child,index,children)},scope.ancestors,scope.width,scope.text,scope.variables,defaultStyle(tag).text);
     if(child.props.hidden||item.declarations.display==='none')continue;
     const display=item.declarations.display??(blockContainers.has(tag)||blockText.has(tag)?'block':'inline');
     if(!['block','flex','grid','flow-root','list-item'].includes(display)||item.box.position==='absolute'||item.declarations.float&&item.declarations.float!=='none'||item.declarations.clear&&item.declarations.clear!=='none'){previousBottom=0;continue;}
@@ -81,7 +81,7 @@ function visibleTextOf(children:ReactNode,scope:Scope):string{
   return items.map((child,index)=>{
     if(isTextPrimitive(child))return String(child);if(!isValidElement<Props>(child)||(child.type as {nativeSvgTitle?:boolean}).nativeSvgTitle)return '';
     const tag=tagOf(child);if(!tag)return visibleTextOf(child.props.children,scope);
-    const node:WorkspaceNode={tag,props:{...child.props,disabled:!!(child.props.disabled||scope.disabled)},index,count:items.length,typeIndex:indexOfType(child,index,items)},resolved=resolveWorkspacePresentation(scope.sheets,node,scope.ancestors,scope.width,{...scope.text,...defaultStyle(tag).text},scope.variables);
+    const node:WorkspaceNode={tag,props:{...child.props,disabled:!!(child.props.disabled||scope.disabled)},index,count:items.length,typeIndex:indexOfType(child,index,items)},resolved=resolveWorkspacePresentation(scope.sheets,node,scope.ancestors,scope.width,scope.text,scope.variables,defaultStyle(tag).text);
     if(child.props.hidden||resolved.declarations.display==='none')return '';
     return visibleTextOf(child.props.children,{...scope,ancestors:[...scope.ancestors,node],text:resolved.text,variables:resolved.variables});
   }).join('');
@@ -97,7 +97,7 @@ function canFlowAsText(node:WorkspaceNode,sheets:readonly WorkspaceSheet[],ances
   node={...node,props:{...node.props,disabled:!!(node.props.disabled||disabled)}};
   if(node.tag==='br')return true;
   if(!inline.has(node.tag)&&node.tag!=='a'||node.tag!=='a'&&node.props.onClick)return false;
-  const presentation=resolveWorkspacePresentation(sheets,node,ancestors,width,{...inherited,...defaultStyle(node.tag).text},variables),display=presentation.declarations.display;
+  const presentation=resolveWorkspacePresentation(sheets,node,ancestors,width,inherited,variables,defaultStyle(node.tag).text),display=presentation.declarations.display;
   if(display==='none')return true;
   if(display&&display!=='inline'||presentation.grid||presentation.scroll||presentation.box.position==='absolute'||presentation.declarations.width||presentation.declarations.height)return false;
   if(['before','after'].some(pseudo=>{const content=resolveWorkspacePresentation(sheets,{...node,pseudo:pseudo as 'before'|'after'},ancestors,width,presentation.text,presentation.variables).declarations.content;return content!==undefined&&content!=='none';}))return false;
@@ -106,7 +106,7 @@ function canFlowAsText(node:WorkspaceNode,sheets:readonly WorkspaceSheet[],ances
 }
 function NativeElement({tag,props}:{tag:string;props:Props}){
   const router=useRouter(),parent=useContext(Context),owner=useContext(NativeWorkflowPageContext),[dateDraft,setDateDraft]=useState(String(props.value??props.defaultValue??'')),nativeRef=useRef<any>(null),modalScroll=useRef<ScrollView|null>(null),fields=useRef(new Map<string,Field>()),[invalid,setInvalid]=useState(false),[selectOpen,setSelectOpen]=useState(false),[fileError,setFileError]=useState(''),[open,setOpen]=useState(!!props.open),[width,setWidth]=useState<number|null>(null),id=useRef('native-field-'+Math.random().toString(36).slice(2)).current,metrics=useRef({height:0,content:0,top:0,left:0});
-  const disabled=!!(props.disabled||parent.disabled),node:WorkspaceNode={tag,props:{...props,disabled},index:props.__workspaceIndex,count:props.__workspaceCount,typeIndex:props.__workspaceTypeIndex},defaults=defaultStyle(tag),presentation=resolveWorkspacePresentation(parent.sheets,node,parent.ancestors,parent.width,{...parent.text,...defaults.text},parent.variables),box:ViewStyle={...defaults.box,...(tag==='button'&&flexGridDisplays.has(presentation.declarations.display??'')?{alignItems:'stretch',justifyContent:'flex-start',gap:0} as ViewStyle:{}),...presentation.box,...props.__workspaceCellStyle},text=presentation.text,value=props.value??props.defaultValue??'',typedDate=tag==='input'&&['date','time','month','datetime-local'].includes(props.type),current=useRef({props,value,disabled});current.current={props,value:typedDate?dateDraft:value,disabled};
+  const disabled=!!(props.disabled||parent.disabled),node:WorkspaceNode={tag,props:{...props,disabled},index:props.__workspaceIndex,count:props.__workspaceCount,typeIndex:props.__workspaceTypeIndex},defaults=defaultStyle(tag),presentation=resolveWorkspacePresentation(parent.sheets,node,parent.ancestors,parent.width,parent.text,parent.variables,defaults.text),box:ViewStyle={...defaults.box,...(tag==='button'&&flexGridDisplays.has(presentation.declarations.display??'')?{alignItems:'stretch',justifyContent:'flex-start',gap:0} as ViewStyle:{}),...presentation.box,...props.__workspaceCellStyle},text=presentation.text,value=props.value??props.defaultValue??'',typedDate=tag==='input'&&['date','time','month','datetime-local'].includes(props.type),current=useRef({props,value,disabled});current.current={props,value:typedDate?dateDraft:value,disabled};
   useEffect(()=>{if(typedDate)setDateDraft(String(value));},[typedDate,value]);
   useEffect(()=>{if(!typedDate||dateDraft===String(value))return;const protect=(event:any)=>{event.preventDefault();event.returnValue='';};nativeWorkflowLifecycle.add(owner,protect);return()=>nativeWorkflowLifecycle.remove(owner,protect);},[typedDate,dateDraft,value,owner]);
   const containerType=presentation.declarations['container-type']??presentation.declarations.container?.split('/')[1]?.trim(),isContainer=!!containerType&&containerType!=='normal';

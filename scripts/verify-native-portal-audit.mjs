@@ -209,6 +209,7 @@ async function metricLayoutAssertionErrors(page,row,state,role){
  if(state==='empty'&&row.id==='client-audit-proofs')errors.push(...await unbrokenLabelErrors(page.getByLabel('Noch keine Leistungsnachweise',{exact:true}),'nachweise','empty proof heading suffix'));
  if(state!=='ready')return errors;
  if(row.id==='admin-audit-invoices'){
+  errors.push(...await unbrokenLabelErrors(page.getByRole('heading',{name:'Rechnungen',exact:true}),'Rechnungen','invoice page heading'));
   const first=await page.getByRole('button',{name:'Rechnungsübersicht',exact:true}).boundingBox(),second=await page.getByRole('button',{name:'Rechnungseingang',exact:true}).boundingBox();
   if(!first||!second||Math.abs(first.y-second.y)>1)errors.push('Invoice workspace tabs lost their authored horizontal row.');
  }

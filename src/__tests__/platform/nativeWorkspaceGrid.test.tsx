@@ -33,7 +33,7 @@ vi.mock('@/liquid-command/components/DesktopCatalogArtwork.tsx',()=>({DesktopCat
 import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitcher.native';
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
-import {NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeH1,NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
 import {WebActionIcon} from '@/components/icons/WebActionIcon.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
@@ -135,6 +135,11 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     const minimum=Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.minWidth);
     expect(minimum).toBeGreaterThan(100);expect(minimum).toBeLessThanOrEqual(360);
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.flexBasis).toBe(0);
+  });
+
+  it.each([['font-size:1.5em',21],['font:inherit',14],['',28]] as const)('uses the parent for authored heading metrics while preserving an unstyled fallback (%s)',async(css,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['.invoice{font-size:14px;line-height:1.5}.invoice h1{'+css+'}']}><NativeDiv className="invoice"><NativeH1 data-testid="relative-heading">Rechnungen</NativeH1></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="relative-heading"]')!)?.fontSize).toBe(expected);
   });
 
   it('uses authored CSS flex defaults for metric buttons while keeping explicit action alignment',async()=>{
