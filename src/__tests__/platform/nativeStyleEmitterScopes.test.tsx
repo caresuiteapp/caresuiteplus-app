@@ -23,8 +23,8 @@ vi.mock('@/components/layout/NativeWorkspacePdfFrame.native',()=>({NativeWorkspa
 vi.mock('@/lib/platform/nativeFileDelivery.native',()=>({shareNativeExistingFile:vi.fn()}));
 vi.mock('@/components/layout/ScreenShell.tsx',()=>({ScreenShell:({children}:{children:ReactNode})=>children}));
 vi.mock('@/components/office/invoices/InvoicesWorkspace.native.tsx',async()=>{
-  const React=await import('react'),{NativeDiv,NativeButton}=await import('@/components/layout/NativeWorkspaceElements.native');
-  return {InvoicesWorkspace:()=>React.createElement(NativeDiv,{className:'iw'},React.createElement(NativeDiv,{className:'iw-card','data-testid':'invoice-scope-panel'},React.createElement(NativeButton,{'data-testid':'invoice-scope-action',onClick:api.refresh},'Aktualisieren')))};
+  const {NativeDiv,NativeButton}=await import('@/components/layout/NativeWorkspaceElements.native');
+  return {InvoicesWorkspace:()=><NativeDiv className="iw"><NativeDiv className="iw-card" data-testid="invoice-scope-panel"><NativeButton data-testid="invoice-scope-action" onClick={api.refresh}>Aktualisieren</NativeButton></NativeDiv></NativeDiv>};
 });
 vi.mock('@/components/layout/platform/platformmodal.tsx',()=>({PlatformModal:()=>null}));
 vi.mock('@/components/icons/WebActionIcon.native.tsx',()=>({WebActionIcon:()=>null}));
