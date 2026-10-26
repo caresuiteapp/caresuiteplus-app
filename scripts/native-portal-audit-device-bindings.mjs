@@ -3,6 +3,10 @@
 const deny = `const deny=name=>{(globalThis.__nativePortalAuditEvents??=[]).push({type:'blocked-device-boundary',operation:name});throw Error('Native device boundary is not exercised by this visual audit: '+name)};const reject=name=>async()=>deny(name);`;
 const rejected = (prefix, names) => names.map(name => `export const ${name}=reject(${JSON.stringify(prefix + '.' + name)});`).join('\n');
 export const nativePortalAuditDeviceBindings = {
+  '@maplibre/maplibre-react-native': `${deny}
+    import React from 'react';
+    export const Map=()=>deny('MapLibre.Map'),Camera=React.forwardRef(()=>deny('MapLibre.Camera')),
+      GeoJSONSource=()=>deny('MapLibre.GeoJSONSource'),Layer=()=>deny('MapLibre.Layer');`,
   'expo-task-manager': `${deny}
     const tasks=new Map();
     export const defineTask=(name,executor)=>{if(typeof name!=='string'||typeof executor!=='function')throw Error('Invalid audit task definition');tasks.set(name,executor)};
