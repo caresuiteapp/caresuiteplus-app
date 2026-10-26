@@ -217,7 +217,22 @@ async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
   await page.getByRole('tab',{name:'Mandantenakte',exact:true}).click();
   await page.getByRole('tab',{name:'Einrichtung & Prozentstand',exact:true}).click();
   const setupHeading=page.getByText('Einrichtung Schritt für Schritt',{exact:true});await setupHeading.waitFor();await setupHeading.scrollIntoViewIfNeeded();await waitForNativeModal(page,setupHeading);
+  const profile=page.getByRole('heading',{name:'Firmenprofil',exact:true});await profile.scrollIntoViewIfNeeded();
+  const profileBounds=await profile.boundingBox();
+  if(!profileBounds||profileBounds.width<Math.min(180,viewport.width*.35))throw Error(JSON.stringify({message:'Setup profile copy loses its flexible grid column.',viewport,fontScale,profileBounds}));
+  await assertUnbrokenWord(profile,'Firmenprofil');
   await page.screenshot({path:join(output,`owner-setup-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  const setupActions=page.getByRole('button',{name:'Daten prüfen',exact:true}),setupBounds=[];
+  for(let index=0;index<await setupActions.count();index++){
+   const action=setupActions.nth(index);await action.scrollIntoViewIfNeeded();const bounds=await action.boundingBox();
+   if(!bounds||bounds.width<80||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Setup action falls into its narrow icon track.',viewport,fontScale,index,bounds}));
+   await assertUnbrokenWord(action,'Daten');await assertUnbrokenWord(action,'prüfen');setupBounds.push(bounds);
+  }
+  if(!setupBounds.length)throw Error('Setup fixture must provide its actual data inspection actions.');
+  const firstAction=setupActions.first();await firstAction.scrollIntoViewIfNeeded();
+  await page.screenshot({path:join(output,`owner-setup-action-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+  await firstAction.click();await page.getByRole('heading',{name:'Unternehmensstammdaten',exact:true}).waitFor();
+  report.push({screen:'owner-setup-inspection',viewport,fontScale,profileBounds,actions:setupBounds,firstActionOpened:true});
  }
  report.push({screen,viewport,fontScale,header,search,navigation,fixtureServices:'inert-local-data',errorState:failed});
 }

@@ -6682,7 +6682,7 @@
     {
       "web": "src/screens/platformConsole/TenantDossierWorkspace.web.tsx",
       "native": "src/screens/platformConsole/TenantDossierWorkspace.native.tsx",
-      "sourceHash": "0470e3fdd0bdc7ddd809f4af233140b31d28d31cf1214d2480aefd27e17d1022",
+      "sourceHash": "254c47057266da3d751ce3e9584cfc5c6cdc74b78c0afc781cdeb22c8edd6855",
       "environment": []
     },
     {
