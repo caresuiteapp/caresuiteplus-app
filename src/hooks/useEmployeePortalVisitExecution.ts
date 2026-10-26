@@ -28,8 +28,7 @@ import {
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
-import { getEmployeeLocationConsent } from '@/features/liveTracking/getEmployeeLocationConsent';
-import { fetchEmployeeLocationConsentRecord } from '@/features/liveTracking/employeeLocationConsentPersistence';
+import { hydrateEmployeePortalLocationState } from '@/lib/portal/hydrateEmployeePortalLocationState';
 import {
   persistInternalLocationConsent,
   requestLocationPermissionOnce,
@@ -37,10 +36,8 @@ import {
 import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
-  getEmployeePortalGpsPermissionStatus,
   getEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
-  applyEmployeePortalLocationConsent,
   markEmployeePortalConsentExplained,
   peekEmployeePortalTrackingEntry,
   rebuildEmployeePortalTrackingWarnings,
@@ -265,10 +262,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [liveErrorCode, setLiveErrorCode] = useState<LiveTrackingErrorCode | null>(null);
   const [consentRevision, setConsentRevision] = useState(0);
   const [employeeLevelConsent, setEmployeeLevelConsent] = useState<{
+    scope: string;
     granted: boolean;
     grantedAt: string | null;
     explainedAt: string | null;
   } | null>(null);
+  const [locationBootstrapWarning, setLocationBootstrapWarning] = useState<string | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
   const [workflowConfirmationPending, setWorkflowConfirmationPending] = useState(false);
@@ -303,6 +302,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     setWorkflowConfirmationPending(false);
     setWorkflowLoading(false);
     setStartServiceLoading(false);
+    setEmployeeLevelConsent(null);
+    setLocationBootstrapWarning(null);
+    setGpsPermission('undetermined');
     return () => {
       workflowAttemptRef.current += 1;
       pendingWorkflowConfirmationRef.current = null;
@@ -313,36 +315,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   useEffect(() => {
     if (!tenantId || !assignmentId || !employeeId) return;
     let cancelled = false;
-    void (async () => {
-      const employeeRecord = await fetchEmployeeLocationConsentRecord(tenantId, employeeId);
-      if (cancelled) return;
-      if (employeeRecord.ok && employeeRecord.data?.granted) {
-        setEmployeeLevelConsent(employeeRecord.data);
-        applyEmployeePortalLocationConsent(tenantId, assignmentId, employeeRecord.data);
+    void hydrateEmployeePortalLocationState({
+      tenantId, employeeId, assignmentId, authProfileId,
+      isCurrent: () => !cancelled && signatureScopeRef.current === signatureScopeKey,
+      onConsent: (consent) => {
+        setEmployeeLevelConsent({ ...consent, scope: signatureScopeKey });
         setConsentRevision((n) => n + 1);
-        return;
-      }
-      const visitConsent = await getEmployeeLocationConsent({
-        tenantId,
-        employeeId,
-        routeParamId: assignmentId,
-        portalAccountId: authProfileId,
-        localConsent: getEmployeePortalLocationConsent(tenantId, assignmentId),
-      });
-      if (cancelled || !visitConsent.ok || !visitConsent.data.granted) return;
-      setEmployeeLevelConsent(visitConsent.data);
-      applyEmployeePortalLocationConsent(tenantId, assignmentId, visitConsent.data);
-      setConsentRevision((n) => n + 1);
-    })();
+      },
+      onPermission: setGpsPermission,
+      onWarning: setLocationBootstrapWarning,
+    });
     return () => {
       cancelled = true;
     };
-  }, [tenantId, assignmentId, employeeId, authProfileId]);
-
-  useEffect(() => {
-    if (!assignmentId) return;
-    void getEmployeePortalGpsPermissionStatus().then(setGpsPermission);
-  }, [assignmentId]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, signatureScopeKey]);
 
   const live = useMemo(() => tenantId && employeeId ? {
     tenantId, subscribe: (tid: string, handler: () => void) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
@@ -1125,7 +1111,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     markEmployeePortalConsentExplained(tenantId, assignmentId);
     const local = grantEmployeePortalLocationConsent(tenantId, assignmentId);
-    setEmployeeLevelConsent(local);
+    setEmployeeLevelConsent({ ...local, scope: signatureScopeKey });
     setConsentRevision((n) => n + 1);
 
     const [employeePersisted, persisted] = await Promise.all([
@@ -1167,7 +1153,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     void refreshExecutionContext().catch(() => undefined);
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, authProfileId, refreshExecutionContext]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, refreshExecutionContext, signatureScopeKey]);
 
   const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: string }> => {
     if (!tenantId || !assignmentId || !employeeId || signatureScopeRef.current !== signatureScopeKey) {
@@ -1580,10 +1566,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     if (!tenantId || !assignmentId) return null;
 
     const assignmentConsent = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    const currentEmployeeConsent = employeeLevelConsent?.scope === signatureScopeKey ? employeeLevelConsent : null;
     const granted =
       liveContext?.consentStatus?.granted ||
       assignmentConsent.granted ||
-      employeeLevelConsent?.granted;
+      currentEmployeeConsent?.granted;
 
     if (!granted) {
       return assignmentConsent;
@@ -1594,12 +1581,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       grantedAt:
         liveContext?.consentStatus?.grantedAt ??
         assignmentConsent.grantedAt ??
-        employeeLevelConsent?.grantedAt ??
+        currentEmployeeConsent?.grantedAt ??
         null,
       explainedAt:
         liveContext?.consentStatus?.explainedAt ??
         assignmentConsent.explainedAt ??
-        employeeLevelConsent?.explainedAt ??
+        currentEmployeeConsent?.explainedAt ??
         null,
     };
   }, [
@@ -1607,6 +1594,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     assignmentId,
     consentRevision,
     employeeLevelConsent,
+    signatureScopeKey,
     liveContext?.consentStatus?.granted,
     liveContext?.consentStatus?.grantedAt,
     liveContext?.consentStatus?.explainedAt,
@@ -1706,7 +1694,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     actionLoading: workflowLoading,
     startServiceLoading,
     workflowConfirmationPending,
-    refetchWarning,
+    refetchWarning: refetchWarning ?? locationBootstrapWarning,
     taskSaving: taskDrafts.saving,
     taskSaveError: taskDrafts.saveError,
     acceptConfirmedTaskAdditions,
