@@ -93,7 +93,7 @@ function ClientPortalProofsContent({ actor }: { actor: PortalActor }) {
       if (result.ok) {
         await Linking.openURL(result.data);
       } else {
-        router.push(`/portal/client/documents/${proof.id}` as never);
+        router.push(`/portal/client/documents/${encodeURIComponent(proof.id)}?source=proof` as never);
       }
     } catch {
       if (mounted.current) setActionError('Das PDF konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.');
@@ -104,7 +104,7 @@ function ClientPortalProofsContent({ actor }: { actor: PortalActor }) {
   };
 
   const handleSign = (proof: PortalServiceProof) => {
-    router.push(`/portal/client/documents/${proof.id}` as never);
+    router.push(`/portal/client/documents/${encodeURIComponent(proof.id)}?source=proof` as never);
   };
 
   const handleInquiry = async () => {

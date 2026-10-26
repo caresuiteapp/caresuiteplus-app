@@ -26,6 +26,7 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
   } = usePortalActor();
   const profileId = actorId ?? '';
   const familyAppointmentsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'appointments');
+  const requestChangeAllowed = roleKey !== 'family_portal';
   const queryKey = JSON.stringify([tenantId, clientId, actorId, roleKey, appointmentId, familyAppointmentsAllowed]);
   const current = useRef<string | null>(queryKey);
   current.current = queryKey;
@@ -71,16 +72,16 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
 
   const requestChange = useCallback(
     async (reason: string) => {
-      if (!enabled) return null;
+      if (!enabled || !requestChangeAllowed) return null;
       const result = await changeMutation.mutate(reason);
       if (result) await refresh();
       return result;
     },
-    [enabled, changeMutation, refresh],
+    [enabled, requestChangeAllowed, changeMutation, refresh],
   );
 
   return {
-    data: query.data,
+    data: query.data && !requestChangeAllowed ? { ...query.data, canRequestChange: false } : query.data,
     fromCache: query.cacheMeta.fromCache,
     cachedAt: query.cacheMeta.cachedAt,
     refreshError: query.refreshError,

@@ -23,7 +23,7 @@ export function ClientPortalAttentionPrompt() {
     if (activeProof.current.account !== account || activeProof.current.path !== pathname) {
         activeProof.current = { account, path: '' };
     }
-    if (signatures.items.some((item) => item.route === pathname)) {
+    if (signatures.items.some((item) => item.route.split(/[?#]/, 1)[0] === pathname)) {
         activeProof.current = { account, path: pathname };
     }
     // Keep the current signing detail usable when its signature disappears from the inbox.

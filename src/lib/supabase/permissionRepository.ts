@@ -35,22 +35,28 @@ export async function fetchRuntimePermissions(
     return [];
   }
 
-  const { data: roleRow, error: roleError } = await client.from('roles').select('id').eq('key', roleKey).maybeSingle();
-  if (roleError) return [];
-  if (!roleRow?.id) {
-    const fallback = getPermissionsForRole(roleKey);
-    return remember(fallback);
+  // Role keys are unique per tenant, not globally. A visible system definition
+  // must not make an equally named tenant role an ambiguous maybeSingle read.
+  let roleRow: { id: string } | null = null;
+  if (tenantId) {
+    const own = await client.from('roles').select('id').eq('key', roleKey).eq('tenant_id', tenantId).maybeSingle();
+    if (own.error) return [];
+    roleRow = own.data;
   }
-
-  const { data: globalPerms, error: globalError } = await client
-    .from('role_permissions')
-    .select('permission_key')
-    .eq('role_id', roleRow.id);
-
-  if (globalError) return [];
-  let permissions = (globalPerms ?? []).map(
-    (row) => row.permission_key as PermissionKey,
-  );
+  if (!roleRow) {
+    const system = await client.from('roles').select('id').eq('key', roleKey).is('tenant_id', null).maybeSingle();
+    if (system.error) return [];
+    roleRow = system.data;
+  }
+  let permissions: PermissionKey[] = [];
+  if (roleRow?.id) {
+    const { data: globalPerms, error: globalError } = await client
+      .from('role_permissions')
+      .select('permission_key')
+      .eq('role_id', roleRow.id);
+    if (globalError) return [];
+    permissions = (globalPerms ?? []).map(row => row.permission_key as PermissionKey);
+  }
 
   if (tenantId) {
     const { data: tenantPerms, error: tenantError } = await client

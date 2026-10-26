@@ -14,6 +14,7 @@ import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 export function usePortalDocumentDetail(
   documentId: string | undefined,
   audience: OperationalPortalAudience,
+  contentKind?: 'service-proof',
 ) {
   const {
     tenantId,
@@ -33,12 +34,12 @@ export function usePortalDocumentDetail(
   const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
   const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
   const familyDocumentsAllowed =
-    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
+    roleKey !== 'family_portal' || familyPortalAllows(familyAccess, contentKind === 'service-proof' ? 'service_records' : 'documents');
   const familyDownloadAllowed =
     roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'download_documents');
   const queryEnabled = !!documentId && isLinkedReady && roleMatchesAudience && familyDocumentsAllowed &&
     (audience === 'client' ? Boolean(scopedClientId) : Boolean(scopedEmployeeId));
-  const scope = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, documentId, familyDocumentsAllowed, familyDownloadAllowed]);
+  const scope = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, documentId, contentKind, familyDocumentsAllowed, familyDownloadAllowed]);
   const activeScope = useRef<string | null>(scope);
   activeScope.current = scope;
   useEffect(() => { activeScope.current = scope; return () => { activeScope.current = null; }; }, [scope]);
@@ -49,6 +50,7 @@ export function usePortalDocumentDetail(
         tenantId,
         clientId: scopedClientId,
         employeeId: scopedEmployeeId,
+        ...(contentKind ? { contentKind } : {}),
       }),
     [documentId, profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId],
     {
@@ -63,6 +65,7 @@ export function usePortalDocumentDetail(
         tenantId,
         clientId: scopedClientId,
         employeeId: scopedEmployeeId,
+        ...(contentKind ? { contentKind } : {}),
       });
       if (result.ok && result.data.downloadUrl && activeScope.current === scope) await Linking.openURL(result.data.downloadUrl);
       return result;
@@ -93,7 +96,7 @@ export function usePortalDocumentDetail(
         : audience === 'employee' && !resolvingLink && !scopedEmployeeId
           ? 'Ihr Mitarbeitendenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
                 : roleKey === 'family_portal' && !familyDocumentsAllowed
-          ? 'Dokumente sind für diesen Angehörigenzugang nicht freigegeben.'
+          ? contentKind === 'service-proof' ? 'Leistungsnachweise sind für diesen Angehörigenzugang nicht freigegeben.' : 'Dokumente sind für diesen Angehörigenzugang nicht freigegeben.'
         : (query.error ?? query.refreshError)
           ? toPortalUserFacingError(
               (query.error ?? query.refreshError)!,

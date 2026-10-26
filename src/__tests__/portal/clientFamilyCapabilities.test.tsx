@@ -59,6 +59,24 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('family capabilities across actual retained client hooks', () => {
+  it('keeps service-record-only proof reads separate from general document deep links', async () => {
+    grant('service_records');
+    let detail!: ReturnType<typeof usePortalDocumentDetail>;
+    function Probe({ proof }: { proof: boolean }) { detail = usePortalDocumentDetail('proof-a', 'client', proof ? 'service-proof' : undefined); return null; }
+    await render(<Probe proof />);
+    expect(f.document).toHaveBeenCalledExactlyOnceWith('proof-a', 'account-a', 'family_portal', { tenantId: 'tenant-a', clientId: 'client-a', employeeId: null, contentKind: 'service-proof' });
+    await act(async () => { await detail.download(); }); expect(f.download).not.toHaveBeenCalled();
+    await render(<Probe proof={false} />); expect(detail.data).toBeNull(); expect(detail.error).toContain('nicht freigegeben'); expect(f.document).toHaveBeenCalledOnce();
+  });
+  it('does not turn appointment visibility, messaging or confirmation capabilities into a schedule-change writer', async () => {
+    grant('appointments', 'send_messages', 'confirm_appointments');
+    f.appointment.mockResolvedValue({ ok: true, data: { id: 'visit-a', canRequestChange: true } });
+    let detail!: ReturnType<typeof usePortalClientAppointmentDetail>;
+    function Probe() { detail = usePortalClientAppointmentDetail('visit-a'); return null; }
+    await render(<Probe />); expect(f.appointment).toHaveBeenCalledOnce(); expect(detail.data?.canRequestChange).toBe(false);
+    await act(async () => { await detail.requestChange('Bitte einen anderen Termin planen.'); });
+    expect(f.change).not.toHaveBeenCalled();
+  });
   it('blocks appointment detail and live-location deep links before their services', async () => {
     let detail!: ReturnType<typeof usePortalClientAppointmentDetail>;
     let live!: ReturnType<typeof usePortalClientLiveTracking>;

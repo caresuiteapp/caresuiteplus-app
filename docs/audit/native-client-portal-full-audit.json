@@ -37,6 +37,22 @@
     {
       "kind": "Family actor expiry plus existing employee identity regressions and overlapping capability/home/recovery tests",
       "result": "56 passed in 5 files; overlaps with 58-case batch, must not be summed as unique count"
+    },
+    {
+      "kind": "Three subsequent source-blocker fixes: actual family hook, document services, generator adaptation and native browser boundary, plus regressions",
+      "tests": [
+        "src/__tests__/portal/familyAppointmentWriteBoundary.test.ts",
+        "src/__tests__/portal/familyDocumentContentRouting.test.ts",
+        "src/__tests__/portal/nativeAcademyPortalBoundary.test.tsx",
+        "src/__tests__/portal/proofOnlyDocumentBoundary.test.ts",
+        "src/__tests__/portal/clientFamilyCapabilities.test.tsx",
+        "src/__tests__/portal/clientPortalWorkflowRecovery.test.tsx",
+        "src/__tests__/portal/legacyProofDocumentRecovery.test.ts",
+        "src/__tests__/portal/clientSignatureGateWeb.test.tsx",
+        "src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx"
+      ],
+      "result": "59 passed in 9 files",
+      "overlap": "Contains previously executed cases. Counts must not be summed as unique coverage."
     }
   ],
   "confirmedChanges": [
@@ -47,14 +63,16 @@
     "Active assist proof page does not mount globally unreleased care-proof panel",
     "Proof action acknowledgement/locking/retry and stale response rejection",
     "Profile request reuses scoped mutation lock, catches failures and drops old completions",
-    "Announcement detail state and read receipt bound to current origin"
+    "Announcement detail state and read receipt bound to current origin",
+    "Family appointment changes denied at UI hook and service before any request writer",
+    "Proof-only and document-only read/download classes stay separate for family roles, without an OR permission fallback",
+    "Proof navigation and signature-gate query handling preserve the exact proof source",
+    "Normal-client native Academy deep links use the same explicit browser-only release boundary as Academy-only access"
   ],
   "releaseBlockers": [
     "Family scope RPC remains missing in production per parent read-only catalog evidence; no migration applied",
     "New full-shell renderer has not yet produced accepted per-page visual evidence",
     "No actual authenticated Android lifecycle/action/server-readback acceptance",
-    "Family appointment-change write capability contract still unresolved",
-    "Normal client native Academy direct-link release boundary still unresolved",
     "No periodic productive family capability revalidation proven; source scope/expiry checks are not a live RLS guarantee"
   ],
   "rows": [
@@ -1368,15 +1386,17 @@
         "Listen-/Detailread mit konkretem Klienten-/Datensatzscope",
         "Cache und verspätete Antworten",
         "Familien-Lesefreigabe vor Service",
-        "Änderungsanfrage und Rückmeldung"
+        "Änderungsanfrage und Rückmeldung",
+        "Family-Terminänderungen vor Lese-/Schreibtransport verweigern; appointments/confirm_appointments/send_messages werden nicht als Terminänderungsgrant umgedeutet"
       ],
       "tests": [
         "clientFamilyCapabilities.test.tsx",
-        "clientPortalWorkflowRecovery.test.tsx"
+        "clientPortalWorkflowRecovery.test.tsx",
+        "familyAppointmentWriteBoundary.test.ts"
       ],
       "boundaries": [
-        "Family-Änderungsanfrage ist noch auf individuellen Schreibvertrag zu prüfen; appointments ist nur Lesecapability, confirm_appointments wird derzeit nicht verwendet",
-        "Keine echte Terminänderung/Androidnavigation durchgeführt"
+        "Der serverseitige portal_requests-Writer besitzt keinen spezifischen Family-Terminänderungsvertrag; die App verweigert diesen Family-Writer ausdrücklich.",
+        "Keine produktive Terminänderung oder tatsächliche Android-Navigation ausgeführt."
       ]
     },
     {
@@ -1406,17 +1426,24 @@
       "sources": [
         "src/hooks/usePortalDocuments.ts",
         "src/hooks/usePortalDocumentDetail.ts",
-        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx"
+        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx",
+        "src/lib/portal/documentService.ts",
+        "src/lib/portal/portalDocumentsLiveService.ts"
       ],
       "actions": [
         "Liste/Detail lesen",
         "Download gesondert freigeben",
         "Fremde oder verspätete Downloadantwort nicht öffnen",
-        "Aktualisieren und lesbarer Fehler"
+        "Aktualisieren und lesbarer Fehler",
+        "Expliziter Proof-Querymarker wählt ausschließlich proofOnly-Quelle mit Kategorie-, Mandanten-, Klienten- und ID-Filter",
+        "Family-Dokumentdetail bleibt documentOnly und kann weder assist_visit_proof noch service_records als Fallback lesen",
+        "Downloads prüfen ihre Dokumentklasse und den konkreten Datensatz erneut"
       ],
       "tests": [
         "clientFamilyCapabilities.test.tsx",
-        "clientPortalWorkflowRecovery.test.tsx"
+        "clientPortalWorkflowRecovery.test.tsx",
+        "proofOnlyDocumentBoundary.test.ts",
+        "familyDocumentContentRouting.test.ts"
       ],
       "boundaries": [
         "Kein authentifizierter produktiver Storage-Download/Byte-Readback durchgeführt"
@@ -1429,13 +1456,16 @@
         "src/components/portal/ClientSignatureAttentionProviderCore.tsx",
         "src/screens/portal/ClientDocumentSignaturesScreen.web.tsx",
         "src/screens/documents/CsDocumentRequestDetailScreen.web.tsx",
-        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx"
+        "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx",
+        "src/lib/portal/clientSignatureAttentionCore.ts",
+        "src/components/portal/ClientPortalAttentionPrompt.web.tsx"
       ],
       "actions": [
         "Offene Dokumente/Nachweise getrennt nach Lese- und Signaturcapability",
         "Read-only Family nicht hinter unmöglicher Signaturpflicht blockieren",
         "Reviewstand/Canvas an Dokument und Actor binden",
-        "Bestehende gespeicherte Unterschrift und Delivery-Retry getrennt behandeln"
+        "Bestehende gespeicherte Unterschrift und Delivery-Retry getrennt behandeln",
+        "Proof-Aufgaben erhalten source=proof; Signaturgate vergleicht den Pfad ohne Query, damit die Unterschriftsseite bedienbar bleibt"
       ],
       "tests": [
         "clientFamilyCapabilities.test.tsx",
@@ -1463,11 +1493,12 @@
         "Abgelehnte klinische Pflegefunktion nicht über freigegebene Assist-Seite mounten"
       ],
       "tests": [
-        "clientPortalWorkflowRecovery.test.tsx"
+        "clientPortalWorkflowRecovery.test.tsx",
+        "proofOnlyDocumentBoundary.test.ts"
       ],
       "boundaries": [
-        "Server-RLS und Anfrage-Receipt nicht produktiv ausgeführt",
-        "Bisheriger Nachweisöffnen-Fallback für Family nur mit service_records aber ohne documents führt auf Dokumentdetail; genaue inhaltliche Erreichbarkeit muss zusätzlich abgestimmt werden"
+        "Der Nachweisöffnen-Link erhält source=proof; alleinige service_records-Fähigkeit erweitert keine generischen Dokumentrechte.",
+        "Server-RLS und Anfrage-Receipt wurden nicht produktiv ausgeführt."
       ]
     },
     {
@@ -1580,17 +1611,23 @@
       "sources": [
         "app/portal/client/_layout.tsx",
         "app/portal/client/akademie/index.native.tsx",
-        "app/liquid-command/_layout.tsx"
+        "app/liquid-command/_layout.tsx",
+        "src/screens/portal/NativeAcademyPortalEntry.native.tsx",
+        "scripts/native-source-adaptations.mjs"
       ],
       "actions": [
         "Academy-only Zugang bietet Browserwechsel statt Care-Hooks",
         "Legacy-Clientowner nach /portal/client",
-        "Legacy-Familyowner ohne aktuelle Zuordnung zur Startseite"
+        "Legacy-Familyowner ohne aktuelle Zuordnung zur Startseite",
+        "Auch normale Client-Direktlinks zur Akademie erhalten eine ausdrückliche native Browsergrenze statt des generierten AcademyWorkspace",
+        "Browserfehler, Abmeldefehler und Rückkehr zum Care-Portal sind prüfbare Aktionen"
       ],
-      "tests": [],
+      "tests": [
+        "nativeAcademyPortalBoundary.test.tsx"
+      ],
       "boundaries": [
-        "Normaler client_portal Direktlink /portal/client/akademie mountet nach Quellbefund generierten AcademyWorkspace, keine allgemeine Native-Akademiefreigabe belegt; muss als offener Releasegrenzpfad behandelt werden",
-        "Kein Browserlogin und keine Akademiemutation durchgeführt"
+        "Die tatsächliche native Route muss nach der koordinierten Root-Regeneration separat im Vollshell-/Gerätelauf abgenommen werden; die enge Generatoradaption und Boundarykomponente sind synthetisch geprüft.",
+        "Web-Akademie und globale Modulfreigaben wurden nicht aktiviert/verändert; kein Browserlogin oder Akademie-Writer ausgeführt."
       ]
     }
   ],
@@ -1601,7 +1638,7 @@
     },
     {
       "file": "app/portal/client/_layout.tsx",
-      "sha256": "2d337dfdb27dfd70d7bffecf6b933a59f1347915c054f5e0b927af597a6bc2de"
+      "sha256": "58cce9ff80d34a74e973c46c64a67f9040805337fd02596f6c9f8f418e3cf480"
     },
     {
       "file": "app/portal/client/akademie/index.native.tsx",
@@ -1610,6 +1647,14 @@
     {
       "file": "app/portal/client/budget/index.tsx",
       "sha256": "66e248d2cfbe0ee50ef9924795f5d2c8d297e6569be2c02d6e93ad1868246a21"
+    },
+    {
+      "file": "scripts/native-source-adaptations.mjs",
+      "sha256": "a478cfa579dc386bcd190a776023e0f16fba0f5457b329b7c9045b248513a1cc"
+    },
+    {
+      "file": "src/components/portal/ClientPortalAttentionPrompt.web.tsx",
+      "sha256": "a78eaf494224d854c0a6b745b12fe99fc15940f9e89310a46c2f4b69ca7fffaf"
     },
     {
       "file": "src/components/portal/ClientSignatureAttentionProviderCore.tsx",
@@ -1645,7 +1690,7 @@
     },
     {
       "file": "src/hooks/usePortalClientAppointmentDetail.ts",
-      "sha256": "d8f6d3826fca184d0176533c026d78d963761fb164a4645de09aaaaed33665fc"
+      "sha256": "40122a5d8201aa2f7f2eed1caf64ba8eb1cd6d6a02504f79cb45983d9b028e3c"
     },
     {
       "file": "src/hooks/usePortalClientLiveTracking.ts",
@@ -1657,7 +1702,7 @@
     },
     {
       "file": "src/hooks/usePortalDocumentDetail.ts",
-      "sha256": "0ed4b6bd2c016ab12fefbfa8b89ad6e2f00a05060efab009193b8fb7a93bad98"
+      "sha256": "08e21165a6c1d5f296fc484778422be997cebf00fc666730c75904a988ed5961"
     },
     {
       "file": "src/hooks/usePortalDocuments.ts",
@@ -1673,7 +1718,7 @@
     },
     {
       "file": "src/lib/portal/appointmentService.ts",
-      "sha256": "a1c5014b68f6dacd9cda8aff55c89a4896109197afe4c43133ffa718ecd64215"
+      "sha256": "fe63d21a0dd5e7d5b10caa34faaf87942449a987211d4eb916123ae57e9ffc59"
     },
     {
       "file": "src/lib/portal/assist/portalAssistDashboardService.ts",
@@ -1704,6 +1749,14 @@
       "sha256": "ece797e3e1375f62fe23d38dfe2084beee09f1ea1e868e7959bf463c50018767"
     },
     {
+      "file": "src/lib/portal/clientSignatureAttentionCore.ts",
+      "sha256": "e0b0bb2acf4f557233fbe99d78af4d72f076bfd9473408dd62d902dfdfd882e0"
+    },
+    {
+      "file": "src/lib/portal/documentService.ts",
+      "sha256": "4633748d470dfcc9ff4839aca96e2027506d82233b9de11128b9901f25397a98"
+    },
+    {
       "file": "src/lib/portal/engine/portalFeatureAccess.ts",
       "sha256": "8d1bdfe0e7616c7b061aaae90a1a74d9e2cbf28713906302b33659dcb733317e"
     },
@@ -1718,6 +1771,10 @@
     {
       "file": "src/lib/portal/portalAppointmentsLiveService.ts",
       "sha256": "339a0a7319c2d43a7e393b2f168b17ce2348abe7de38496ceaeaee943272e715"
+    },
+    {
+      "file": "src/lib/portal/portalDocumentsLiveService.ts",
+      "sha256": "e5b50356531197ef5a2859ab3a51d00112e2ad3a1c7ac05423a63cfb031e505a"
     },
     {
       "file": "src/lib/portal/resolveFamilyPortalAccess.ts",
@@ -1745,7 +1802,11 @@
     },
     {
       "file": "src/screens/portal/ClientPortalProofsScreen.tsx",
-      "sha256": "482265d36aeec8b0e035ae3a7ed77c411b6ff8ec6377e52d678aa0f3716707ff"
+      "sha256": "8c11631c38320232b44cbb8fbcf9e25407d91dd5f7a88204a93e6e8111cd7931"
+    },
+    {
+      "file": "src/screens/portal/NativeAcademyPortalEntry.native.tsx",
+      "sha256": "c918331d4aef1e6389b24074f964b36e329c779437d4eb35d2e62df8f7eae964"
     },
     {
       "file": "src/screens/portal/PortalClientAppointmentDetailScreen.tsx",
@@ -1753,7 +1814,7 @@
     },
     {
       "file": "src/screens/portal/PortalClientDocumentDetailScreenCore.tsx",
-      "sha256": "ebd33ff2808550ad4c6186251ae4da54c19789d48d836fa6eae80bbf73c416bd"
+      "sha256": "d2f80660717499631a59444807ea1c49ee2a0c972ff1a99d899c6396815d8546"
     },
     {
       "file": "src/screens/portal/PortalClientLiveTrackingScreen.tsx",
@@ -1765,5 +1826,21 @@
     "Test references without an executed batch are coverage pointers, not pass claims",
     "Prepared or locked clinical features remain locked; no endpoint/feature activation in this audit",
     "No productive patient/personnel rows, messages, signatures, migrations or storage writes were used"
-  ]
+  ],
+  "resolvedSourceBlockers": [
+    {
+      "id": "family-appointment-write",
+      "status": "source and synthetic boundaries corrected; no writer activated",
+      "serverContract": "supabase/migrations/0102_portal_assist_workflows.sql:portal_requests_portal_insert; W05 confirm_appointments is not a schedule-change grant"
+    },
+    {
+      "id": "service-record-only-proof-detail",
+      "status": "source and real-hook/service boundary tests corrected; production scope and storage RLS still unverified"
+    },
+    {
+      "id": "native-client-academy-entry",
+      "status": "native generator adaptation and boundary component corrected; coordinated generator and actual native full-shell acceptance pending"
+    }
+  ],
+  "provenanceLimit": "Route inventory was generated before the last source-blocker corrections. The exact route IDs remain valid; regenerated native receivers and fresh inventory must be bound by the parent before final acceptance."
 }

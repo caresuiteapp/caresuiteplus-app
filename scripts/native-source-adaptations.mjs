@@ -1,5 +1,10 @@
 import ts from 'typescript';
 export function nativeSource(file,original){let source=original;
+  // The native client portal must not mount the browser-only Academy workplace.
+  if(file==='app/portal/client/akademie/index.web.tsx'){
+    if(!original.includes('AcademyWorkspaceScreen'))throw Error('Stale native Academy entry adaptation');
+    return "export { NativeAcademyPortalEntry as default } from '@/screens/portal/NativeAcademyPortalEntry.native';\n";
+  }
   const replace=(from,to)=>{if(!source.includes(from))throw Error('Stale native adaptation: '+file+' '+from.slice(0,60));source=source.replace(from,to);};
   const body=(name,text)=>{const ast=ts.createSourceFile(file,source,99,true,4),fn=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name);if(!fn?.body)throw Error('Stale native function: '+file+' '+name);source=source.slice(0,fn.body.getStart(ast))+text+source.slice(fn.body.end);};
   const callback=(name,text)=>{const ast=ts.createSourceFile(file,source,99,true,4);let found;const visit=n=>{if(ts.isVariableDeclaration(n)&&n.name.getText(ast)===name&&n.initializer&&ts.isCallExpression(n.initializer)){const fn=n.initializer.arguments[0];if(fn&&(ts.isArrowFunction(fn)||ts.isFunctionExpression(fn))&&ts.isBlock(fn.body))found=fn.body;}ts.forEachChild(n,visit);};visit(ast);if(!found)throw Error('Stale native callback: '+file+' '+name);source=source.slice(0,found.getStart(ast))+text+source.slice(found.end);};

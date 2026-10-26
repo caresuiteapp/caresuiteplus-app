@@ -96,7 +96,7 @@ describe('actual client proof actions', () => {
     f.actor = { ...f.actor, roleKey: 'family_portal', familyAccess: { validFrom: '2026-01-01T00:00:00.000000Z', expiresAt: null, permissions: { service_records: true } } as FamilyPortalAccessScope };
     await render(<ClientPortalProofsScreen />);
     expect(host.textContent).toContain(proof.title); expect(host.textContent).not.toContain('PDF anzeigen'); expect(host.textContent).not.toContain('Unterschreiben'); expect(host.textContent).not.toContain('Rückfrage senden');
-    await click('Nachweis öffnen'); expect(f.push).toHaveBeenCalledExactlyOnceWith('/portal/client/documents/proof-a');
+    await click('Nachweis öffnen'); expect(f.push).toHaveBeenCalledExactlyOnceWith('/portal/client/documents/proof-a?source=proof');
   });
   it('discards a prior client read and action completion across a retained route scope change', async () => {
     const pending = deferred<unknown>(); f.create.mockReturnValueOnce(pending.promise);

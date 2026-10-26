@@ -52,3 +52,13 @@ Acht gezielte Suiten mit 58 bestandenen Fällen prüfen tatsächliche Routen/Hoo
 | `/portal/client/proofs` | entry-and-identity, proofs | nicht abgenommen |
 
 Die maschinenlesbare Matrix verknüpft jede tatsächliche Route mit Empfängerquellen, Funktionsgruppen, Tests, Quellhashes und Nachweisgrenzen. Die individuellen Freigaben sind eine App-Lesegrenze; frische serverseitige Autorisierung bleibt erforderlich.
+
+## Nachfolgender enger Korrekturblock
+
+59 Fälle in neun Suiten bestehen für den nächsten Quellstand (überlappend mit vorherigen Läufen):
+
+- Family-Terminänderungen werden mangels eines passenden individuellen Writervertrags vor Transport verweigert. Lesefreigabe, Nachrichten- und Bestätigungsfähigkeit werden nicht umgedeutet.
+- `source=proof` bindet das Nachweisdetail an ausschließlich freigegebene Proofquellen. Family-Dokumentdetails bleiben getrennt; eine `documents`-Freigabe aktiviert keinen `service_records`-Fallback und umgekehrt. Der Download prüft dieselbe Klasse erneut.
+- Der normale native Client-Akademie-Direktlink erhält eine Browsergrenze. Die Web-Akademie bleibt unverändert. Die enge Generatoradaption und die tatsächliche Boundarykomponente sind getestet; koordinierte Regeneration und Geräte-/Vollshellprüfung bleiben erforderlich.
+
+Die drei zuvor offenen Quellblocker sind damit im App-Quellstand korrigiert. Das ist keine Freigabe der fehlenden Family-Scope-RPC, produktiver RLS-/Storage-Regeln oder tatsächlicher Androidabläufe. Die neue native Empfängerdatei und die Routeninventur müssen vom Elternagenten nach Regeneration an diesen Stand gebunden werden.

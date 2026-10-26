@@ -32,13 +32,13 @@ import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function PortalClientDocumentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const { tenantId, clientId, actorId, roleKey, familyAccess } = usePortalActor();
-  return <PortalClientDocumentDetailContent key={JSON.stringify([tenantId, actorId, roleKey, clientId, id, familyAccess?.permissions])} />;
+  return <PortalClientDocumentDetailContent key={JSON.stringify([tenantId, actorId, roleKey, clientId, id, source, familyAccess?.permissions])} />;
 }
 
 function PortalClientDocumentDetailContent() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const router = useRouter();
   const { refresh: refreshAttention } = useClientSignatureAttention();
   const insets = useSafeAreaInsets();
@@ -69,7 +69,7 @@ function PortalClientDocumentDetailContent() {
     downloadError,
     successMessage,
     notFound,
-  } = usePortalDocumentDetail(id, 'client');
+  } = usePortalDocumentDetail(id, 'client', source === 'proof' ? 'service-proof' : undefined);
 
   const scrollPadding = useMemo(
     () => ({

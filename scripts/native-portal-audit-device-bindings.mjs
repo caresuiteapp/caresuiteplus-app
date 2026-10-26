@@ -41,6 +41,15 @@ export const nativePortalAuditDeviceBindings = {
     export const isDevice=false,deviceName='Synthetic visual audit',modelName='Browser-native boundary',manufacturer='Audit',brand='Audit',osName='Android',osVersion='audit-only',totalMemory=4*1024*1024*1024;
     export const DeviceType={UNKNOWN:0,PHONE:1,TABLET:2,DESKTOP:3,TV:4};${rejected('Device', ['getDeviceTypeAsync','isRootedExperimentalAsync'])}`,
   'expo-speech': `${deny}${rejected('Speech', ['speak','stop','pause','resume','isSpeakingAsync','getAvailableVoicesAsync'])}`,
+  'expo-speech-recognition': `${deny}
+    export const ExpoSpeechRecognitionModule={
+      abort(){},stop(){},addListener(){return{remove(){}}},
+      isRecognitionAvailable:()=>deny('SpeechRecognition.isRecognitionAvailable'),
+      supportsOnDeviceRecognition:()=>deny('SpeechRecognition.supportsOnDeviceRecognition'),
+      requestPermissionsAsync:reject('SpeechRecognition.requestPermissionsAsync'),
+      start:()=>deny('SpeechRecognition.start')
+    };
+    export const useSpeechRecognitionEvent=()=>{};`,
   'expo-sqlite': `${deny}${rejected('SQLite', ['openDatabaseAsync','deleteDatabaseAsync'])}export const openDatabaseSync=()=>deny('SQLite.openDatabaseSync');`,
   'expo-sqlite/kv-store': `const stores=new Map();export class SQLiteStorage{
     constructor(name){if(!stores.has(name))stores.set(name,new Map());this.values=stores.get(name)}

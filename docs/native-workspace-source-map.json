@@ -3663,7 +3663,7 @@
     {
       "web": "src/components/portal/ClientPortalAttentionPrompt.web.tsx",
       "native": "src/components/portal/ClientPortalAttentionPrompt.native.tsx",
-      "sourceHash": "492703ec1f09f573aa41f1095ad920b2ea27ac61cdace47f216760de6c5a01c4",
+      "sourceHash": "a78eaf494224d854c0a6b745b12fe99fc15940f9e89310a46c2f4b69ca7fffaf",
       "environment": []
     },
     {

@@ -1,6 +1,3 @@
 import {withNativeWorkflowPage} from '@/components/navigation/NativeWorkflowPage.native';
-import { AcademyWorkspaceScreen } from "../../../../src/features/akademie/AcademyWorkspaceScreen.native.tsx";
-function AcademyPortalRoute() {
-    return <AcademyWorkspaceScreen view="learner"/>;
-}
-export default withNativeWorkflowPage(AcademyPortalRoute);
+import {NativeAcademyPortalEntry as NativeOriginalPage} from "@/screens/portal/NativeAcademyPortalEntry.native";
+export default withNativeWorkflowPage(NativeOriginalPage);

@@ -40,7 +40,7 @@ export async function fetchClientPendingProofs(
     id: String(row.id),
     kind: 'proof' as const,
     title: row.proof_number ? `Leistungsnachweis ${String(row.proof_number)}` : 'Leistungsnachweis',
-    route: `/portal/client/documents/${String(row.id)}`,
+    route: `/portal/client/documents/${encodeURIComponent(String(row.id))}?source=proof`,
   })) };
 }
 export async function fetchClientPendingDocuments(
