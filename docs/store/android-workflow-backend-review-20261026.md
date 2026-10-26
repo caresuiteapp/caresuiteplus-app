@@ -23,6 +23,14 @@ Funktionsdefinition beziehungsweise das Fehlen der neuen Scope-Funktion.
 Geänderte Quellen brechen ab. Sie erzeugen keine Backfills, neuen Fachbelege,
 Attestationen oder Freigabemarker. Die Dateien sind keine angewandten Migrationen.
 
+Die automatische Freigabeprüfung hat am 26.10.2026 die Anwendung des
+vorbereiteten Pakets auf `caresuiteplus-production` abgelehnt: Der bisherige
+Auftrag wurde als breite Datenbankprüfung, nicht als eindeutige Freigabe dieser
+dauerhaften Änderungen an DEFINER-Funktionen, RLS-Regeln, Grants und Triggern
+gewertet. Es wurde keine Änderung angewandt und kein anderer Ausführungsweg
+verwendet. Für die produktive Anwendung ist eine ausdrückliche Freigabe nötig.
+Die App-Korrekturen und deren Build laufen davon unabhängig weiter.
+
 Die Office-Reparatur verwendet ausdrücklich die vorhandene Berechtigungs- und
 Scopeprüfung. Ein begrenzter Organisationszugang erhält dadurch keine bislang
 ungeprüfte mandantenweite DEFINER-Schreibbefugnis. Die Änderung ersetzt nicht
@@ -33,9 +41,14 @@ die getrennte Prüfung von Korrektur-, Abschluss- und Nachweisregeln.
 Die permissive Policy `assignments_select_own_tenant` erlaubt weiterhin
 mandantenweite SELECTs für `authenticated`. Per OR kann sie enge Own-Policies
 übersteuern. `assist_visit_execution_state_tenant` verwendet für ALL weiterhin
-`is_tenant_member(tenant_id)`. Die separat vorbereiteten RLS-Ceilings müssen
-gegen genau diese aktuellen Policies und die vollständigen aktiven Rollen
-geprüft werden. Aktive RLS allein belegt hier keine korrekte Zeilenfreigabe.
+`is_tenant_member(tenant_id)`. Der separat geprüfte Entwurf
+`android-workflow-rls-ceilings-review.sql` ergänzt fünf restriktive Regeln auf
+genau diesen zwei Tabellen und schützt Portal-Identitäten vor Umbindung.
+Er erhält die acht ursprünglichen Policies und alle effektiven CRUD-Grants.
+17 isolierte PostgreSQL-Fälle reproduzieren die aktuellen Lücken und prüfen
+legitime Business-, Mitarbeitenden-, Klienten- und Angehörigenzugriffe,
+gesperrte/fremde Identitäten, neue Upserts, Wiederholung und Katalogdrift.
+Aktive RLS allein belegt keine korrekte Zeilenfreigabe.
 
 Die fehlende Angehörigen-Scope-RPC ist ein eigenständiger Ablaufdefekt. Ihre
 Ergänzung ersetzt keine Prüfung sämtlicher Inhalts- und Storage-Policies auf
@@ -59,6 +72,10 @@ alle fehlenden Funktionen oder deren Module produktiv zu aktivieren.
   engen Guards, legitime eigene/Office-/Maschinenaufrufe, NULL-/fremde/inaktive
   Identitäten, Akteursspoofing, Source-Drift und SQL-Receipt bis zum echten
   App-Decoder. Historische breitere Entwürfe bleiben getrennt.
+- Der gemeinsame abschließende Lauf dieser drei Suiten und des aktuellen
+  RLS-Entwurfs besteht mit 59 Tests, ohne übersprungene oder fehlgeschlagene
+  Fälle. Er läuft ausschließlich mit synthetischen Daten. Der bestehende
+  Android-Releasecheck führt diese Serververträge vor dem Paketbau aus.
 - Sieben fokussierte App-Suiten bestehen mit 64 Tests: private Notizen,
   kanonischer Start, bestätigte Wiederaufnahme, gespeicherte Signaturfassungen,
   finaler Proof-Receipt und bytegenauer Transport durch den tatsächlich
