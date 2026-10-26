@@ -130,10 +130,15 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="icon-only"]')!)?.minWidth).toBeUndefined();
   });
 
-  it('retains a readable minimum for a normally wrapping long-word action',async()=>{
-    await render(<NativeWorkspaceStyleScope css={['.library{display:inline-flex;white-space:normal}']}><NativeDiv><NativeButton className="library" data-testid="library">Vorlagenbibliothek</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+  it('retains a readable minimum for a flexible normal-size long-word action',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.library{display:inline-flex;flex:1;white-space:normal}']}><NativeDiv><NativeButton className="library" data-testid="library">Vorlagenbibliothek</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
     const minimum=Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.minWidth);
     expect(minimum).toBeGreaterThan(100);expect(minimum).toBeLessThanOrEqual(360);
+  });
+
+  it('keeps normal-size intrinsic header actions at their natural content width',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.actions{display:flex;flex-wrap:wrap;gap:8px}.action{display:inline-flex;padding:7px 10px;font-size:10px}']}><NativeDiv className="actions"><NativeButton className="action" data-testid="intrinsic-import">Import / Export</NativeButton><NativeButton className="action" data-testid="intrinsic-refresh">Aktualisieren</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+    for(const id of ['intrinsic-import','intrinsic-refresh'])expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="'+id+'"]')!)?.minWidth).toBeUndefined();
   });
 
   it('styles the first sibling of its type after text and a different element',async()=>{

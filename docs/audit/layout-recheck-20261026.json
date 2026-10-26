@@ -219,5 +219,27 @@
   "additionalCorrections": [
     "Pass sibling-type position to support authored first-of-type selectors; the first carrier caption regains its Web size while later metadata stays small."
   ],
-  "additionalTargetedCases": 3
+  "additionalTargetedCases": 4,
+  "ci170Checkpoint": {
+    "run": 40407759027,
+    "source": "f8673a5aadb7776adc107750428f68af3766da46",
+    "locationAndNativeAndPermissionTests": [
+      34,
+      229,
+      211
+    ],
+    "typecheck": "passed",
+    "portalPrograms": "all three passed",
+    "nativeVisual": "failed: normal-size 320px client header actions wrap after the broad word-minimum restoration.",
+    "consultationOriginalReview": {
+      "word": "Vorlagenbibliothek remains intact in the fresh Web/native 320px originals.",
+      "limit": "Button widths, vertical spacing and the new-case line wrapping are not identical; this is not a full visual acceptance."
+    },
+    "sourceEvidence": {
+      "clientHeader": "Intrinsic inline-flex buttons, no flex grow and no explicit nowrap; phone font size 10px.",
+      "consultationHeader": "Inline-flex buttons with flex:1 at phone widths and white-space:normal."
+    },
+    "correction": "Apply normal-size word estimates only to positively flexible actions. Preserve enlarged-label protection and explicit-nowrap handling. The real-browser shared-row and whole-word assertions remain mandatory.",
+    "fullRerunRequired": true
+  }
 }

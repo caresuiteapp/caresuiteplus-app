@@ -147,7 +147,10 @@ function NativeElement({tag,props}:{tag:string;props:Props}){
     if(!['table','tr','td','th'].includes(tag)&&box.position!=='absolute')box.maxWidth??='100%';
   }
   {
-    const label=tag==='button'&&!normalInlineNoWrap?visibleTextOf(props.children,{...parent,ancestors:[...parent.ancestors,node],text,variables:presentation.variables}).trim():'';
+    // Intrinsic controls already have their natural text width. Only flexible
+    // normal-size actions need a word minimum; enlarged labels keep protection.
+    const needsWordMinimum=fontScale>1||Number(box.flex??box.flexGrow??0)>0;
+    const label=tag==='button'&&!normalInlineNoWrap&&needsWordMinimum?visibleTextOf(props.children,{...parent,ancestors:[...parent.ancestors,node],text,variables:presentation.variables}).trim():'';
     if(label&&!presentation.declarations.width){
       const word=Math.max(...label.split(/\s+|-/).map(value=>value.length)),padding=Number(box.paddingLeft??box.paddingHorizontal??box.padding??0)+Number(box.paddingRight??box.paddingHorizontal??box.padding??0),icon=children.some(child=>isValidElement(child)&&!textOf((child.props as Props).children).trim())?24:0,available=typeof props.__workspaceCellStyle?.width==='number'?props.__workspaceCellStyle.width:parent.width;
       const intrinsic=Math.min(available,word*Number(text.fontSize??14)*fontScale*.62+padding+icon+2*Number(box.borderWidth??0));
