@@ -144,7 +144,8 @@
         "bytes": 62746,
         "sha256": "08177a35b454efdbd1de76fe887a678706cf8a276c8d636cc9d6ed6074948307"
       }
-    ]
+    ],
+    "followupSource": "b4e94bfbb009dd8af351b4861ad45284f47608de"
   },
   "correctionsPrepared": [
     "Honor font:inherit at the real declaration priority and source order for font size, weight, style and line height.",
@@ -177,5 +178,46 @@
     "failure": "The two normal-font dossier checks converted an absent automatic minWidth to NaN. The assigned 204/160px tracks and all 16 new focused cases passed.",
     "adaptation": "An absent minimum is treated as zero in the minimum-vs-track constraint. Assigned track widths, action delivery and real-browser geometry checks remain intact.",
     "fullRerunRequired": true
-  }
+  },
+  "ci169Checkpoint": {
+    "run": 40404081044,
+    "source": "b4e94bfbb009dd8af351b4861ad45284f47608de",
+    "locationAndNativeAndPermissionTests": [
+      34,
+      226,
+      211
+    ],
+    "typecheck": "passed",
+    "nativeVisual": "failed: Vorlagenbibliothek breaks at 320, 360, 390 and 412px after the broad normal-font minimum removal.",
+    "visuallyConfirmedInOriginals": [
+      "Correct shared phone header row.",
+      "Compact table header and full Akte öffnen label.",
+      "Authored table tracks and centered cell content.",
+      "Correct notebook glyph sizes/centering and compact free-note action."
+    ],
+    "correction": "Skip the heuristic only for the explicitly single-line normal-size controls. Retain visible-word minimums for other controls. Existing whole-word and viewport checks remain active."
+  },
+  "stagingRecheck": {
+    "project": "caresuiteplus-staging",
+    "projectId": "shwpweerzsfkqaivmaoc",
+    "table": "public.employee_mobility_settings",
+    "exists": true,
+    "rlsEnabled": true,
+    "authenticatedGrants": {
+      "select": true,
+      "insert": true,
+      "update": true
+    },
+    "upsertUniqueKey": [
+      "tenant_id",
+      "employee_id"
+    ],
+    "transportModesArrayPresent": true,
+    "operations": "Read-only system-catalog queries only; no row data or writes.",
+    "acceptance": "Schema presence replaces the earlier missing-table finding. Tenant/role authorization and authenticated write/readback remain unproved."
+  },
+  "additionalCorrections": [
+    "Pass sibling-type position to support authored first-of-type selectors; the first carrier caption regains its Web size while later metadata stays small."
+  ],
+  "additionalTargetedCases": 3
 }

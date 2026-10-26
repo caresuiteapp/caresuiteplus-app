@@ -130,6 +130,18 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="icon-only"]')!)?.minWidth).toBeUndefined();
   });
 
+  it('retains a readable minimum for a normally wrapping long-word action',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.library{display:inline-flex;white-space:normal}']}><NativeDiv><NativeButton className="library" data-testid="library">Vorlagenbibliothek</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
+    const minimum=Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="library"]')!)?.minWidth);
+    expect(minimum).toBeGreaterThan(100);expect(minimum).toBeLessThanOrEqual(360);
+  });
+
+  it('styles the first sibling of its type after text and a different element',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.flow>span{font-size:11px}.flow>span:first-of-type{font-size:13px}']}><NativeDiv className="flow">Text davor<NativeButton>Aktion</NativeButton><NativeSpan data-testid="first-type">Versorgung</NativeSpan><NativeSpan data-testid="next-type">Metadaten</NativeSpan></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="first-type"]')!)?.fontSize).toBe(13);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="next-type"]')!)?.fontSize).toBe(11);
+  });
+
   it('keeps a marked calendar in seven columns when device text is enlarged',async()=>{
     hosts.fontScale=1.6;
     await render(<NativeWorkspaceStyleScope css={['.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}']}><NativeDiv className="calendar" data-grid-fixed-columns data-testid="calendar">{Array.from({length:14},(_,index)=><NativeDiv key={index} data-testid={'day-'+index}>{index+1}</NativeDiv>)}</NativeDiv></NativeWorkspaceStyleScope>);

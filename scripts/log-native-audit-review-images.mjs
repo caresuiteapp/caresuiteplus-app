@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 
 const mode=process.argv[2];
 const names={
-  native:['clients-1280x800.png','web-clients-1280x800.png','clients-320x740.png','web-clients-320x740.png','notes-1280x800.png','web-notes-1280x800.png'],
+  native:['clients-1280x800.png','web-clients-1280x800.png','clients-320x740.png','web-clients-320x740.png','notes-1280x800.png','web-notes-1280x800.png','consultation-320x740.png','web-consultation-320x740.png'],
   administration:[],
   employee:['employee-audit-client-detail-default-error-360x800-scale-1.6.png','employee-audit-open-assignments-default-empty-360x800-scale-1.6.png'],
   client_and_family:['client-audit-request-client-ready-360x800-scale-1.6.png','client-audit-request-client-empty-360x800-scale-1.6.png','client-audit-request-client-ready-1280x800-scale-1.png','client-audit-proofs-client-empty-360x800-scale-1.6.png','client-audit-proofs-client-empty-320x740-scale-1.png','client-audit-profile-client-empty-360x800-scale-1.6.png'],

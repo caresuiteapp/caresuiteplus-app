@@ -8,6 +8,12 @@ import {compileWorkspaceCss,resolveWorkspacePresentation,workspaceGridWidths,wor
 import {resolveWorkspaceColorMixes} from '@/lib/platform/nativeWorkspaceColors.shared';
 import {notesWorkspaceCss} from '@/components/office/notes/notesWorkspaceCss.native';
 describe('native presentation of business layouts',()=>{
+  it('matches first-of-type with type position instead of overall child position',()=>{
+    const node={tag:'small',props:{},index:1,count:4,typeIndex:0};
+    expect(matchesWorkspaceSelector('small:first-of-type',node,[])).toBe(true);
+    expect(matchesWorkspaceSelector('small:first-of-type',{...node,index:2,typeIndex:1},[])).toBe(false);
+    expect(matchesWorkspaceSelector('small:not(:first-of-type)',{...node,index:2,typeIndex:1},[])).toBe(true);
+  });
   it.each([
     ['.action{font-size:11px;font-weight:700}.scope button{font:inherit}',14,'400'],
     ['.scope button{font:inherit;font-size:12px;font-weight:600}',12,'600'],
