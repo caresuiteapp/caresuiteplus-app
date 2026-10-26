@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -11,7 +11,7 @@ import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 export function EmployeeOpenAssignmentsScreen() {
   const router = useRouter();
   const { employeeId } = usePortalActor();
-  const { items, loading, error, refresh, refreshing, fromCache, isLinkedReady } = usePortalAppointments('employee');
+  const { items, loading, error, refreshError, refresh, refreshing, fromCache, isLinkedReady } = usePortalAppointments('employee');
   const open = useMemo(() => selectEmployeeOpenAssignments(items, employeeId ?? ''), [items, employeeId]);
   // Also remove a just-completed visit after returning from execution.
   const refreshRef = useRef(refresh);
@@ -27,8 +27,9 @@ export function EmployeeOpenAssignmentsScreen() {
         {fromCache ? <Text style={styles.hint}>Zwischengespeicherter Stand. Zum Speichern bitte eine Verbindung herstellen.</Text> : null}
         {loading ? <LoadingState presentation="inline" message="Offene Einsätze werden geladen…" /> : null}
         {error ? <ErrorState presentation="inline" message={error} onRetry={refresh} /> : null}
+        {Platform.OS === 'web' && !error && refreshError ? <ErrorState presentation="inline" message={refreshError} onRetry={refresh} /> : null}
         {!loading && !error && !isLinkedReady ? <Text style={styles.copy}>Ihr Mitarbeitendenkonto wird noch zugeordnet. Bitte erneut laden.</Text> : null}
-        {!loading && !error && isLinkedReady && open.length === 0 ? <Text style={styles.empty}>Alles erledigt. Sie haben keine offenen Einsätze.</Text> : null}
+        {!loading && !error && !(Platform.OS === 'web' && refreshError) && isLinkedReady && open.length === 0 ? <Text style={styles.empty}>Alles erledigt. Sie haben keine offenen Einsätze.</Text> : null}
         {open.map((item) => (
           <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${item.clientName ?? item.title}: Einsatz bearbeiten`}
             onPress={() => router.push(`/portal/employee/assignments/${item.id}/execute` as never)} style={styles.card}>
