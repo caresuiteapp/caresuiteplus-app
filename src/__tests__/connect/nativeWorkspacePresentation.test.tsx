@@ -8,6 +8,9 @@ import { HELP_ARTICLES } from '@/features/help/helpCatalog';
 import { NativeByteBlob } from '@/lib/platform/nativeByteBlob.shared';
 import { nativeWorkspaceNodes } from '@/lib/platform/nativeWorkspaceNodes.shared';
 import { createAcademyTemplate } from '@/lib/akademie/workspaceTemplates';
+import { helpCenterCss } from '@/features/help/helpCenterCss';
+import { workspaceCss } from '@/components/googleWorkspace/workspaceCss.native';
+import { compileWorkspaceCss, resolveWorkspacePresentation, workspaceGridWidths } from '@/lib/platform/nativeWorkspaceStyles.shared';
 
 // The actual generated native presentations run here. Only native hosts and
 // providers are inert: these checks never read or change a Google account.
@@ -78,6 +81,21 @@ const fill = async (name: string, value: string) => { const field = host.querySe
 const submit = async () => { await act(async () => host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))); };
 
 describe('native help and Google presentations from their Web source', () => {
+  it.each([[248, 28, 9], [826, 34, 13]])('reserves the Help number track and remaining text width inside %dpx', (available, numberWidth, gap) => {
+    const sheet = compileWorkspaceCss(helpCenterCss), ancestors = [{ tag: 'main', props: { className: 'cs-help' } }, { tag: 'ol', props: { className: 'hh-steps' } }];
+    const row = resolveWorkspacePresentation([sheet], { tag: 'li', props: {} }, ancestors, available);
+    expect(workspaceGridWidths(row.grid!, available, gap, 1.6)).toEqual([numberWidth, available - numberWidth - gap]);
+    expect(resolveWorkspacePresentation([sheet], { tag: 'li', props: {}, pseudo: 'before' }, ancestors, available).declarations.content).toBeUndefined();
+    const badge = resolveWorkspacePresentation([sheet], { tag: 'span', props: { className: 'hh-step-number' } }, [...ancestors, { tag: 'li', props: {} }], available);
+    expect(badge.box.width).toBe(numberWidth);
+  });
+  it('allows the Google service identity to shrink and wrap within a 320px screen', () => {
+    const sheet = compileWorkspaceCss(workspaceCss), root = { tag: 'section', props: { className: 'cs-workspace' } };
+    const identity = resolveWorkspacePresentation([sheet], { tag: 'div', props: { className: 'cs-w-row cs-w-service-identity' } }, [root], 254);
+    expect(identity.box.flexGrow).toBe(1); expect(identity.box.flexShrink).toBe(1); expect(identity.box.maxWidth).toBe('100%');
+    const title = resolveWorkspacePresentation([sheet], { tag: 'div', props: { className: 'cs-w-service-title' } }, [root], 208);
+    expect(title.box.flex).toBe(1); expect(title.box.minWidth).toBe(0);
+  });
   it('retains help journeys, article links, clipboard and native print handoff', async () => {
     await render(<HelpCenterScreen />);
     expect(host.textContent).toContain('Ein Ablauf, Schritt für Schritt');
@@ -88,6 +106,15 @@ describe('native help and Google presentations from their Web source', () => {
     await click('Drucken / PDF'); expect(api.print).toHaveBeenCalledWith(expect.objectContaining({ id: 'dokument-logo' }));
     await act(async () => host.querySelector<HTMLAnchorElement>('a[href$="-steps"]')!.click());
     expect(api.section.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' }); expect(api.section.focus).toHaveBeenCalledOnce();
+    const steps = [...host.querySelectorAll('.hh-steps > li')];
+    expect(steps).toHaveLength(5);
+    for (const [index, step] of steps.entries()) {
+      expect(step.children).toHaveLength(2);
+      expect(step.children[0].className).toBe('hh-step-number');
+      expect(step.children[0].textContent).toBe(String(index + 1).padStart(2, '0'));
+      expect(step.children[1].querySelector('h3')?.textContent).toBeTruthy();
+      expect(step.children[1].querySelector('p')?.textContent).toBeTruthy();
+    }
     await click('Bereich öffnen'); expect(api.push).toHaveBeenCalledWith('/business/templates/ci-layout');
     await click('Zurück zur Arbeit'); expect(api.close).toHaveBeenCalledOnce();
   });
@@ -159,6 +186,19 @@ describe('native help and Google presentations from their Web source', () => {
     expect(api.invoke).not.toHaveBeenCalled();
     await fill('to', '2026-10-27'); await submit();
     expect(api.pageRead.mock.calls.at(-1)?.[1]).toEqual({ query: '', from: '2026-10-26', to: '2026-10-27', pageToken: undefined });
+  });
+  it('opens the native calendar form through a vector action icon and bounded service identity', async () => {
+    await render(<WorkspaceServicePanel service="calendar" connection={connection} scope="fixture:tenant:business_admin" />);
+    const identity = host.querySelector('.cs-w-service-identity')!;
+    expect(identity.querySelector('.cs-w-service-title h2')?.textContent).toBe('Kalender');
+    expect(identity.querySelector('.cs-w-service-title p')?.textContent).toBe('Termine im gewählten Zeitraum und neue Veranstaltungen.');
+    const action = [...host.querySelectorAll('button')].find(button => button.textContent === 'Neu erstellen')!;
+    expect(action.querySelector('svg path')?.getAttribute('d')).toBe('M12 5v14M5 12h14');
+    expect(action.textContent).not.toContain('＋');
+    await act(async () => action.click());
+    expect(host.textContent).toContain('Termin anlegen');
+    expect(api.invoke).not.toHaveBeenCalled();
+    await click('Abbrechen'); expect(host.textContent).not.toContain('Termin anlegen');
   });
   it('passes the controlled native Gmail draft to an inert provider with unchanged UTF-8 content', async () => {
     await render(<WorkspaceActionForm service="gmail" onSaved={vi.fn()} onCancel={vi.fn()} />);

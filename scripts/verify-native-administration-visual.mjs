@@ -69,6 +69,27 @@ async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
  if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
 }
+async function verifyHelpSteps(page,viewport,fontScale=1){
+ const title=page.getByRole('heading',{name:'Briefkopf und Layout öffnen',exact:true});await title.waitFor();await title.scrollIntoViewIfNeeded();
+ const bounds=await title.boundingBox();
+ if(!bounds||bounds.width<Math.min(240,viewport.width*.3)||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Help step copy is squeezed into the number column.',viewport,fontScale,bounds}));
+ await assertUnbrokenWord(title,'Briefkopf');
+ await page.screenshot({path:join(output,`help-steps-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ report.push({screen:'help-step-copy',viewport,fontScale,bounds});
+}
+async function verifyNotesList(page,viewport,fontScale=1){
+ const list=page.getByTestId('office-notes-list');await list.waitFor();await list.scrollIntoViewIfNeeded();
+ const bounds=await list.boundingBox();
+ if(!bounds||bounds.height<199||bounds.width<160||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Note list loses its usable viewport below the filters.',viewport,fontScale,bounds}));
+ const note=page.getByRole('button',{name:/Teamrunde vorbereiten/});await note.scrollIntoViewIfNeeded();
+ await page.screenshot({path:join(output,`notes-list-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ report.push({screen:'notes-list',viewport,fontScale,bounds});
+}
+async function verifyGoogleDescription(page,viewport,fontScale=1){
+ const description=page.getByText('Termine im gewählten Zeitraum und neue Veranstaltungen.',{exact:true});await description.waitFor();
+ const bounds=await description.boundingBox();
+ if(!bounds||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Google service description extends beyond the viewport.',viewport,fontScale,bounds}));
+}
 async function verifyDesktopCenter(page,viewport,fontScale=1){
  const errors=[];const capture=error=>errors.push(error.message);page.on('pageerror',capture);
  await page.getByRole('button',{name:'Apps und Widgets öffnen',exact:true}).click();
@@ -163,7 +184,11 @@ async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
  if(!header||!search||header.x<-.5||header.x+header.width>viewport.width+.5||search.x<-.5||search.x+search.width>viewport.width+.5)throw Error(JSON.stringify({message:'Owner console header or controls exceed the viewport.',screen,viewport,fontScale,header,search}));
  let navigation=null;
  if(failed){
-  const retry=page.getByRole('button',{name:tenant?'Erneut versuchen':'Erneut versuchen',exact:true}).first();await retry.scrollIntoViewIfNeeded();
+  const copy=page.getByText(tenant?'Lokaler Prüffehler: Mandantendaten konnten nicht geladen werden.':'Lokaler Prüffehler: Betriebsdaten konnten nicht geladen werden.',{exact:false}).first();await waitForNativeModal(page,copy);
+  const copyBounds=await copy.boundingBox();
+  if(!copyBounds||copyBounds.width<Math.min(180,viewport.width*.55))throw Error(JSON.stringify({message:'Error description is squeezed between header controls.',screen,viewport,fontScale,copyBounds}));
+  if(tenant)await assertUnbrokenWord(copy,'Mandantendaten');
+  const retry=page.getByRole('button',{name:'Erneut versuchen',exact:true}).first();await retry.scrollIntoViewIfNeeded();
   const recovery=await retry.boundingBox();if(!recovery||recovery.x<-.5||recovery.x+recovery.width>viewport.width+.5)throw Error(JSON.stringify({message:'Owner error recovery is clipped.',screen,viewport,fontScale,recovery}));
   await page.screenshot({path:join(output,`${screen}-recovery-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
   report.push({screen,viewport,fontScale,header,search,recovery,fixtureServices:'inert-local-data',errorState:true});return;
@@ -186,12 +211,12 @@ async function verifyOwnerConsole(page,screen,viewport,fontScale=1){
   const person=page.getByRole('button',{name:'Alle Angaben zu Helene Musterfrau öffnen',exact:true});await person.waitFor();await person.scrollIntoViewIfNeeded();
   const personBounds=await person.boundingBox();if(!personBounds||personBounds.x<-.5||personBounds.x+personBounds.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native owner dossier row action is clipped.',viewport,fontScale,personBounds}));
   await page.screenshot({path:join(output,`owner-clients-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
-  await person.click();await page.getByRole('heading',{name:'Helene Musterfrau',exact:true}).waitFor();
+  await person.click();const personHeading=page.getByRole('heading',{name:'Helene Musterfrau',exact:true});await personHeading.waitFor();await waitForNativeModal(page,personHeading);
   await page.screenshot({path:join(output,`owner-client-fields-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
   await page.getByRole('button',{name:'Dialog schließen',exact:true}).last().click();
   await page.getByRole('tab',{name:'Mandantenakte',exact:true}).click();
   await page.getByRole('tab',{name:'Einrichtung & Prozentstand',exact:true}).click();
-  await page.getByText('Einrichtung Schritt für Schritt',{exact:true}).waitFor();
+  const setupHeading=page.getByText('Einrichtung Schritt für Schritt',{exact:true});await setupHeading.waitFor();await setupHeading.scrollIntoViewIfNeeded();await waitForNativeModal(page,setupHeading);
   await page.screenshot({path:join(output,`owner-setup-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  }
  report.push({screen,viewport,fontScale,header,search,navigation,fixtureServices:'inert-local-data',errorState:failed});
@@ -239,8 +264,9 @@ for(const [screen,viewport] of [['help-article',{width:1280,height:800}],['googl
    await page.screenshot({path:join(output,'help-toc-1280x800-scale-1.6.png')});await link.click();
    const target=page.getByRole('heading',{name:'Schritt für Schritt',exact:true});
    await target.evaluate(async element=>{for(let frame=0;frame<180;frame++){const rect=element.getBoundingClientRect();if(rect.top>=-.5&&rect.bottom<=innerHeight+.5)return;await new Promise(requestAnimationFrame);}throw Error('Native article section is not reachable after its table-of-contents action.');});
-   await page.screenshot({path:join(output,'help-toc-target-1280x800-scale-1.6.png')});
+   await page.screenshot({path:join(output,'help-toc-target-1280x800-scale-1.6.png')});await verifyHelpSteps(page,viewport,1.6);
   }else{
+   await verifyGoogleDescription(page,viewport,1.6);
    await page.getByRole('button',{name:'Neu erstellen',exact:false}).click();
    const heading=page.getByRole('heading',{name:'Termin anlegen',exact:true});await heading.waitFor();await waitForNativeModal(page,heading);
    await page.screenshot({path:join(output,'google-event-form-360x800-scale-1.6.png')});
@@ -268,7 +294,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
    if(!bounds||bounds.x<0||bounds.x+bounds.width>361)throw Error(JSON.stringify({message:'Enlarged consultation header action extends beyond the viewport.',name,bounds}));
   }
  }
- if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));}
+ if(screen==='notes'){const create=await page.getByRole('button',{name:'Neue Notiz',exact:true}).boundingBox();if(!create||create.x<0||create.x+create.width>361)throw Error(JSON.stringify({message:'Enlarged note creation control is clipped.',create}));await verifyNotesList(page,{width:360,height:800},1.6);}
  if(screen==='employee-home'){
   await assertUnbrokenWord(page.getByText(/^Hauswirtschaftliche Unterstützung/).first(),'Hauswirtschaftliche');
   const card=await page.getByText('Ihr aktueller Einsatz ist bereit',{exact:true}).locator('..').boundingBox(),action=await page.getByRole('button',{name:'Einsatz öffnen',exact:true}).first().boundingBox();
@@ -324,12 +350,15 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    await page.getByRole('heading',{name:'Logo, Briefkopf und Dokumentlayout einstellen',exact:true}).waitFor();
    await page.screenshot({path:join(output,`help-reader-${viewport.width}x${viewport.height}.png`)});
   }
+  if(screen==='help'||screen==='help-article')await verifyHelpSteps(page,viewport);
   if(screen==='google-service'){
+   await verifyGoogleDescription(page,viewport);
    await page.getByRole('button',{name:'Neu erstellen',exact:false}).click();
    await page.getByRole('heading',{name:'Termin anlegen',exact:true}).waitFor();
    await page.screenshot({path:join(output,`google-event-form-${viewport.width}x${viewport.height}.png`)});
    await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
   }
+  if(screen==='notes')await verifyNotesList(page,viewport);
   if(screen==='desktop')await verifyDesktopCenter(page,viewport);
   if(screen==='weather-dialog')await verifyWeatherDialog(page,viewport);
   if(screen.startsWith('owner-'))await verifyOwnerConsole(page,screen,viewport);

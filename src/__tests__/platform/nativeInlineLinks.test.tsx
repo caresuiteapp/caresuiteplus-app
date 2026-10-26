@@ -23,11 +23,16 @@ vi.mock('@/components/layout/NativeSvgPresentation.native',()=>({NativeSvg:()=>n
 vi.mock('@/components/layout/NativeWorkspaceRange.native',()=>({NativeWorkspaceRange:()=>null}));
 vi.mock('@/components/layout/NativeWorkspaceMedia.native',()=>({NativeWorkspaceMedia:()=>null}));
 vi.mock('@/components/layout/NativeWorkspacePdfFrame.native',()=>({NativeWorkspacePdfFrame:()=>null}));
-vi.mock('@/lib/platform/nativeFileDelivery.native',()=>({shareNativeExistingFile:api.share}));
+vi.mock('@/lib/platform/nativeFileDelivery.native',()=>({shareNativeExistingFile:api.share,shareNativeFile:vi.fn()}));
+vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({roleKey:'business_admin'})}));
+vi.mock('@/hooks/useGoogleWorkspace.native.ts',()=>({useGoogleWorkspace:()=>({loading:false,connection:{status:'connected',email:'team@example.invalid',capabilities:{gmail:true,calendar:true}}}),useWorkspacePage:()=>({loading:false,data:{items:[{id:'mail-fixture',title:'Rückruf im Team',unread:true,subtitle:'Postfach'}],fetchedAt:'2026-10-26T08:00:00Z'}})}));
+vi.mock('@/lib/platformConsole/tenantDossierService.native.ts',()=>({getTenantDossier:vi.fn(),getTenantDossierPage:vi.fn()}));
 
 import {DesktopWeatherLocationDialog} from '@/liquid-command/screens/DesktopWeatherLocationDialog.native';
-import {NativeA,NativeDiv,NativeFieldset,NativeImg,NativeP,NativeSpan,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeA,NativeDiv,NativeFieldset,NativeImg,NativeP,NativeSpan,NativeTable,NativeTbody,NativeTr,NativeTd,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {nativeWorkspaceNodes} from '@/lib/platform/nativeWorkspaceNodes.shared';
+import {GoogleWorkspaceWidget} from '@/components/googleWorkspace/GoogleWorkspaceWidget.native';
+import {TenantDossierFields} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 
 let root:Root,host:HTMLDivElement;
 beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;vi.clearAllMocks();api.openURL.mockReset().mockResolvedValue(undefined);api.share.mockReset().mockResolvedValue(undefined);api.styles=new WeakMap();host=document.createElement('div');document.body.append(host);root=createRoot(host);});
@@ -37,6 +42,21 @@ async function click(element:HTMLElement){expect(element).toBeTruthy();await act
 const links=()=>[...host.querySelectorAll<HTMLElement>('[role="link"]')];
 
 describe('native inline links through the shared renderer',()=>{
+  it('keeps actual Google unread titles and dossier counters in single primitive text runs',async()=>{
+    await render(<><GoogleWorkspaceWidget service="gmail"/><TenantDossierFields row={{first_name:'Anna',phone:'',active:true}}/></>);
+    const title=[...host.querySelectorAll<HTMLElement>('[data-native-host="view"]')].find(node=>node.textContent==='● Rückruf im Team')!;expect(title).toBeTruthy();expect(title.children).toHaveLength(1);expect(title.firstElementChild!.textContent).toBe('● Rückruf im Team');
+    const counter=[...host.querySelectorAll<HTMLElement>('[data-native-host="text"]')].find(node=>node.parentElement?.dataset.nativeHost==='view'&&node.textContent==='2 von 3 Feldern befüllt')!;expect(counter).toBeTruthy();expect(counter.children).toHaveLength(1);expect(counter.firstElementChild!.textContent).toBe('2 von 3 Feldern befüllt');
+  });
+  it('preserves styled element identity, original selector positions, link actions and newlines between text runs',async()=>{
+    const view=(count:number)=><NativeWorkspaceStyleScope css={['.runs>span:nth-child(3){color:#b42336}']}><NativeDiv className="runs" data-testid="runs">Offen: {count}<NativeSpan key="stable" data-testid="styled"> Fälle </NativeSpan>{'\nStand: '}{5}<NativeA key="details" href="/business/office">Details</NativeA>.</NativeDiv></NativeWorkspaceStyleScope>;
+    await render(view(2));const runs=host.querySelector<HTMLElement>('[data-testid="runs"]')!,styled=host.querySelector<HTMLElement>('[data-testid="styled"]')!;expect([...runs.children].map(node=>node.textContent)).toEqual(['Offen: 2',' Fälle ','\nStand: 5','Details','.']);expect(api.styles.get(styled)).toMatchObject({color:'#b42336'});await click(links()[0]);expect(api.push).toHaveBeenCalledExactlyOnceWith('/business/office');
+    await render(view(9));expect(host.querySelector('[data-testid="styled"]')).toBe(styled);expect(runs.firstElementChild!.textContent).toBe('Offen: 9');
+  });
+  it('does not merge primitive slots belonging to grids or table cells',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.raw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}']}><NativeDiv className="raw-grid" data-testid="grid">{1}{' von '}{3}</NativeDiv><NativeTable><NativeTbody><NativeTr><NativeTd data-testid="cell">{1}{' von '}{3}</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
+    for(const id of ['grid','cell'])expect([...host.querySelector('[data-testid="'+id+'"]')!.children].map(node=>node.textContent)).toEqual(['1',' von ','3']);
+  });
+
   it('renders the generated weather information as continuous paragraphs with three accessible inline actions',async()=>{
     await render(<DesktopWeatherLocationDialog visible place={null} preferenceError={null} onChoose={vi.fn()} onClose={vi.fn()}/>);
     const info=[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent==='Wetterinformationen')!;

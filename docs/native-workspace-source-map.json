@@ -2583,7 +2583,7 @@
     {
       "web": "src/components/office/notes/notesWorkspaceCss.web.ts",
       "native": "src/components/office/notes/notesWorkspaceCss.native.ts",
-      "sourceHash": "d8c5f50564c597fd8c3fe48d484bed291a85293d336f748cd2815d76bcb11052",
+      "sourceHash": "c21a2f6346ef2fee0b2df1cdfbdf9c25ac42c282fb4df7504205f2f05124274a",
       "environment": []
     },
     {
@@ -2607,7 +2607,7 @@
     {
       "web": "src/components/office/notes/NotesWorkspace.web.tsx",
       "native": "src/components/office/notes/NotesWorkspace.native.tsx",
-      "sourceHash": "c62274f9237fb14e8d12334beb82dbba2b6983b210bd9db563ddbc0ce118edaf",
+      "sourceHash": "110d5695d43648fb2a1ab357866b2e52ce91f09a569756d92ff5994383755fb4",
       "environment": [
         "structuredClone"
       ]
@@ -6509,7 +6509,7 @@
     {
       "web": "src/components/help/HelpCenterView.web.tsx",
       "native": "src/components/help/HelpCenterView.native.tsx",
-      "sourceHash": "6d6614f223395fda3151b1dac7f7c5f1775a6a108dd87672b7ac63397a419908",
+      "sourceHash": "feba0fc4d830a00a77a18bcd388b9a7de7709a6d2c7a77d55c7192ed21d327bb",
       "environment": [
         "URL",
         "navigator",
@@ -6539,13 +6539,13 @@
     {
       "web": "src/components/googleWorkspace/WorkspaceServicePanel.web.tsx",
       "native": "src/components/googleWorkspace/WorkspaceServicePanel.native.tsx",
-      "sourceHash": "07073b61ea4eb790dfb43adc9a6b81160d95c171a4a87a7c4ffdac62910e73da",
+      "sourceHash": "0a9309f1462069fed8a5c34b6f3fefa9ce8a3adb50a1d49345c66cf09e163dfb",
       "environment": []
     },
     {
       "web": "src/components/googleWorkspace/workspaceCss.web.ts",
       "native": "src/components/googleWorkspace/workspaceCss.native.ts",
-      "sourceHash": "cc4391b851eeb1468e550f945e8e036f5da4e062dbe7af1d5caa3a1fe8b0992d",
+      "sourceHash": "b8204c9c86d0966544d27ae13c70925a874e72a1ce574f0260bde04d257f0079",
       "environment": []
     },
     {
@@ -6682,7 +6682,7 @@
     {
       "web": "src/screens/platformConsole/TenantDossierWorkspace.web.tsx",
       "native": "src/screens/platformConsole/TenantDossierWorkspace.native.tsx",
-      "sourceHash": "ddb1e8be199e4c4470fbf3d0644de910dbd1c1260b3f84153256b035f77cab98",
+      "sourceHash": "0470e3fdd0bdc7ddd809f4af233140b31d28d31cf1214d2480aefd27e17d1022",
       "environment": []
     },
     {

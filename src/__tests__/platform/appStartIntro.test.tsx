@@ -79,7 +79,7 @@ vi.mock('react-native', async () => {
     // Native dialogs live above ordinary View layers, regardless of zIndex.
     Modal: ({ children, visible }: { children?: React.ReactNode; visible?: boolean }) => visible
       ? createPortal(<div data-testid="native-modal">{children}</div>, document.body) : null,
-    Pressable: View,
+    Pressable: View, ScrollView: View,
     Text: View, SafeAreaView: View, ActivityIndicator: () => null,
     Platform: { OS: 'android' },
     Animated: {

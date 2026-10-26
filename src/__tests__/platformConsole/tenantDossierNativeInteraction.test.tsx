@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { build } from 'esbuild';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { TenantDossier } from '@/lib/platformConsole/tenantDossierModel';
+import { buildTenantSetup } from '@/lib/platformConsole/tenantDossierModel';
 
 const api = { page: vi.fn(), summary: vi.fn(), role: 'platform_owner', params: {} as Record<string,string> };
 const Box = React.forwardRef<HTMLDivElement, any>((p, ref) => <div ref={ref} data-testid={p.testID} role={p.accessibilityRole} data-live={p.accessibilityLiveRegion}>{p.children}</div>);
@@ -142,6 +143,20 @@ it('opens the corresponding native setup section and exposes missing criteria', 
   let card: HTMLElement | null = title; while (card && !card.querySelector('button')) card = card.parentElement;
   expect(card).toBeTruthy(); await act(async () => card!.querySelector<HTMLButtonElement>('button')!.click());
   expect(open).toHaveBeenCalledWith('tenant_bank_accounts');
+});
+
+it('keeps multi-digit setup counts and the percentage explanation in continuous native text', async () => {
+  const setup = buildTenantSetup(dossier), open = vi.fn();
+  expect(setup.applicable).toBeGreaterThanOrEqual(10);
+  const Header = mod.exports.TenantDossierHeader;
+  await render(<Header dossier={dossier} onOpen={open} />);
+  const count = [...host.querySelectorAll('button')].find(button => button.textContent?.includes('Prüfschritten vollständig'))!;
+  expect([...count.children].map(child => child.textContent)).toEqual([`${setup.complete} von ${setup.applicable} Prüfschritten vollständig`]);
+  await act(async () => count.click()); expect(open).toHaveBeenCalledWith('setup');
+  await render(<Setup dossier={dossier} onSection={open} />);
+  const explanation = [...host.querySelectorAll('span')].find(node => node.textContent?.startsWith(`${setup.percentage}% der Grundkonfiguration sind anhand`));
+  expect(explanation).toBeTruthy();
+  expect(explanation!.parentElement!.children).toHaveLength(1);
 });
 
 it('shows recorded actors and before/after values without revealing credentials', async () => {

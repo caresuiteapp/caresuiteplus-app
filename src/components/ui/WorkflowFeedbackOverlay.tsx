@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -176,14 +177,13 @@ export function WorkflowFeedbackOverlay({
             </Text>
           </View>
         ) : (
-          <>
+          <ScrollView style={styles.messageScroll} contentContainerStyle={styles.messageContent} keyboardShouldPersistTaps="handled">
             <View style={styles.heading}>
               <View style={[styles.icon, { backgroundColor: meta.color }]}>
                 <SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork>
               </View>
               <View style={styles.headingText}>
                 <Text style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text>
-                <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
               </View>
               <Pressable
                 accessibilityLabel="Meldung schließen"
@@ -194,6 +194,7 @@ export function WorkflowFeedbackOverlay({
                 <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText]} webSize={20}>×</SemanticArtwork>
               </Pressable>
             </View>
+            <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
             <View style={styles.actions}>
               {actionLabel && onAction ? (
                 <Pressable
@@ -214,7 +215,7 @@ export function WorkflowFeedbackOverlay({
                 <Text style={[styles.actionText, portal.active && styles.portalActionText]}>Schließen</Text>
               </Pressable>
             </View>
-          </>
+          </ScrollView>
         )}
       </View>
     </View>
@@ -255,6 +256,8 @@ const styles = StyleSheet.create({
   dialog: {
     width: '100%',
     maxWidth: 560,
+    maxHeight: '100%',
+    flexShrink: 1,
     borderWidth: 1,
     borderRadius: spatialCare.radius.card,
     backgroundColor: 'rgba(31, 32, 58, 0.98)',
@@ -281,6 +284,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.24,
   },
   heading: { flexDirection: 'row', alignItems: 'flex-start', gap: careSpacing.md },
+  messageScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
+  messageContent: { gap: careSpacing.lg },
   headingText: { flex: 1, minWidth: 0, gap: careSpacing.xs },
   icon: {
     width: 40,
@@ -304,7 +309,10 @@ const styles = StyleSheet.create({
   closeText: { color: spatialCare.textOnNight, fontSize: 26, lineHeight: 28 },
   action: {
     flex: 1,
+    flexBasis: 160,
     minHeight: 48,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
     borderRadius: spatialCare.radius.control,
     alignItems: 'center',
     justifyContent: 'center',
@@ -315,7 +323,10 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   actionPrimary: {
     flex: 1,
+    flexBasis: 160,
     minHeight: 48,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
     borderRadius: spatialCare.radius.control,
     alignItems: 'center',
     justifyContent: 'center',
@@ -323,8 +334,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#69E8FF',
   },
-  actionPrimaryText: { ...typography.body, color: '#0D1022', fontWeight: '800' },
-  actionText: { ...typography.body, color: spatialCare.textOnNight, fontWeight: '800' },
+  actionPrimaryText: { ...typography.body, color: '#0D1022', fontWeight: '800', textAlign: 'center' },
+  actionText: { ...typography.body, color: spatialCare.textOnNight, fontWeight: '800', textAlign: 'center' },
   loadingContent: {
     position: 'relative',
     alignItems: 'center',
