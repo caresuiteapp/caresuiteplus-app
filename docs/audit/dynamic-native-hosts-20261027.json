@@ -16,7 +16,7 @@
   },
   "handover": "The existing strict source gate remains a failure until regenerated files are committed. A temporary existing-CI export captures the exact regenerated sources, then executes the existing host/emitter test files. It must be removed after source adoption.",
   "releaseAcceptance": false,
-  "validation": "Exact generated output adopted; temporary CI export removed. Full CI and fresh original review pending.",
+  "validation": "CI 183 passed source synchronization, 34+276+211 pre-image tests, and the administration browser checks including expansion/collapse. TypeScript rejected the overly broad ElementType return because it includes void HTML hosts; the helper now returns the registry's actual native component union and preserves non-string component types. Full CI pending.",
   "handoverReceipt": {
     "run": 40427909484,
     "source": "da41e42094249896369e47fe597baa416e93493b",

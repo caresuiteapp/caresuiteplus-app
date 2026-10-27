@@ -238,9 +238,8 @@ export const NativeTable=element('table'),NativeThead=element('thead'),NativeTbo
 export const NativeA=element('a'),NativeImg=element('img'),NativeFigure=element('figure'),NativeFigcaption=element('figcaption'),NativeDetails=element('details'),NativeSummary=element('summary'),NativeDialog=element('dialog'),NativeStyle=element('style'),NativeVideo=element('video'),NativeAudio=element('audio'),NativeSource=element('source'),NativeIframe=element('iframe');
 
 /** Resolve the selected host once without replacing data uses of its original value. */
-export function nativeWorkspaceHost(component:ElementType,bindings:Readonly<Record<string,ComponentType<any>>>):ElementType{
-  if(typeof component!=='string')return component;
-  const native=bindings[component];
-  if(!native)throw Error('Unsupported native workspace host: '+component);
-  return native;
+export function nativeWorkspaceHost<Component extends ElementType,Registry extends Readonly<Record<string,ComponentType<any>>>>(component:Component,bindings:Registry):Exclude<Component,string>|Registry[keyof Registry]{
+  if(typeof component!=='string')return component as Exclude<Component,string>;
+  if(!Object.prototype.hasOwnProperty.call(bindings,component))throw Error('Unsupported native workspace host: '+component);
+  return bindings[component] as Registry[keyof Registry];
 }
