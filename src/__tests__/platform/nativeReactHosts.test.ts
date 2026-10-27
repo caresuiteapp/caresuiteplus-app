@@ -17,6 +17,17 @@ describe('native React host boundary',()=>{
   ])('rejects JSX and aliased React factories: %s',source=>{
     expect(findNativeReactHosts(native(source)).length).toBeGreaterThan(0);
   });
+  it.each([
+    "export function Page({compact}){const Surface=compact?'details':'section';return <Surface/>;}",
+    "import {createElement} from 'react';const Surface=compact?'details':'section';createElement(Surface);",
+    "const kind='section';export function Page(){const Surface=kind;return <Surface/>;}",
+  ])('finds dynamically selected native hosts through their actual binding: %s',source=>{
+    expect(findNativeReactHosts(native(source)).map(row=>row.tag)).toContain('section');
+  });
+  it('ignores unused host data and shadowed component parameters',()=>{
+    const source="const Surface='details';function Inner(Surface){return <Surface/>;}export const data=Surface;";
+    expect(findNativeReactHosts(native(source))).toEqual([]);
+  });
   it('keeps component factories, local helper scopes and printed HTML strings valid',()=>{
     const source=`import {createElement} from 'react';
       const markup='<style>.report{color:blue}</style>';
@@ -34,5 +45,10 @@ describe('native React host boundary',()=>{
     const calendar=readFileSync('src/components/calendar/OfficeAssignmentProfileCalendarPlanner.native.tsx','utf8');
     expect(calendar).toContain('createElement(NativeStyle,');
     expect(calendar).toContain('NativeWorkspaceStyleScope');
+    const recommendations=readFileSync('src/components/documents/DocumentRecommendations.native.tsx','utf8');
+    expect(recommendations).toMatch(/const Surface = props\.compact \? 'details' : 'section'/);
+    expect(recommendations).toContain('nativeWorkspaceHost(Surface,');
+    expect(recommendations).toContain('"details": NativeDetails');
+    expect(recommendations).toContain('"section": NativeSection');
   },20000);
 });

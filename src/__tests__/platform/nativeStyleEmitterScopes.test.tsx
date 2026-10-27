@@ -4,7 +4,7 @@ import {createRoot,type Root} from 'react-dom/client';
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 
 const hosts=vi.hoisted(()=>({width:360,fontScale:1,styles:new WeakMap<HTMLElement,Record<string,unknown>>(),layouts:new WeakMap<HTMLElement,(event:any)=>void>()}));
-const api=vi.hoisted(()=>({refresh:vi.fn(),saveWorkspace:vi.fn(),planner:vi.fn()}));
+const api=vi.hoisted(()=>({allowDocs:false,refresh:vi.fn(),saveWorkspace:vi.fn(),planner:vi.fn()}));
 vi.mock('react-native',async importOriginal=>{
   const actual=await importOriginal<typeof import('react-native')>(),React=await import('react');
   const primitive=(tag:'div'|'button'|'span'|'input')=>React.forwardRef<HTMLElement,any>((props,ref)=>{
@@ -36,7 +36,7 @@ vi.mock('@/lib/platform/nativeWorkflowEnvironment.native',()=>({
 vi.mock('@/lib/platform/nativeWorkspaceActions.native',()=>({confirmNativeWorkspaceAction:vi.fn(),runNativeWorkspaceEffect:vi.fn()}));
 vi.mock('@/lib/auth/context',()=>({useAuth:()=>({profile:{id:'user-1',roleKey:'business_admin'},user:{id:'user-1'}})}));
 vi.mock('@/hooks/useTenantId',()=>({useServiceTenantId:()=> 'tenant-1'}));
-vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({can:()=>false,isReadOnly:false})}));
+vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({can:(key:string)=>api.allowDocs&&key==='office.documents.view',isReadOnly:false})}));
 vi.mock('@/hooks/useCalendarEvents.native.ts',()=>({useCalendarEvents:()=>({events:[],allEvents:[],calendarReady:true,loading:false,refreshing:false,error:null,refreshError:null,refresh:api.refresh,refreshWithResult:api.refresh})}));
 vi.mock('@/hooks/useEmployeeMonthPlanning.native.ts',()=>({useEmployeeMonthPlanning:()=>({employees:[],plans:[],absences:[],ready:true,loading:false,error:null,employeeError:null,refresh:vi.fn()})}));
 vi.mock('@/hooks/useTenantCalendarSettings.native.ts',()=>({useTenantCalendarSettings:()=>({settings:null,loading:false,form:{},error:null})}));
@@ -53,18 +53,32 @@ vi.mock('@/components/office/calendar/OfficeCalendarSettingsModal.native.tsx',()
 vi.mock('@/components/calendar/OfficeAssignmentProfileCalendarPlanner.native.tsx',()=>({OfficeAssignmentProfileCalendarPlanner:({children}:{children:(selection:{selectedProfileId:null})=>ReactNode})=>{api.planner();return children({selectedProfileId:null});}}));
 
 import {InvoicesListScreen} from '@/screens/office/InvoicesListScreen.native';
+import {DocumentRecommendations} from '@/components/documents/DocumentRecommendations.native';
 import {AssignmentStudioScaffold} from '@/components/assist/AssignmentFormControls.native';
 import {CalendarPageShell} from '@/components/calendar/CalendarPageShell.native';
 import {NativeButton,NativeDiv,NativeSpan} from '@/components/layout/NativeWorkspaceElements.native';
 import {buildOfficeCalendarConfig} from '@/lib/calendar/calendarEventService';
 
 let root:Root,host:HTMLDivElement;
-beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;vi.clearAllMocks();hosts.width=360;hosts.fontScale=1;hosts.styles=new WeakMap();hosts.layouts=new WeakMap();host=document.createElement('div');document.body.append(host);root=createRoot(host);});
+beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;vi.clearAllMocks();api.allowDocs=false;hosts.width=360;hosts.fontScale=1;hosts.styles=new WeakMap();hosts.layouts=new WeakMap();host=document.createElement('div');document.body.append(host);root=createRoot(host);});
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
 const render=(children:ReactNode)=>act(async()=>root.render(children));
 const style=(node:Element|null)=>hosts.styles.get(node as HTMLElement)!;
 
 describe('actual native parents inherit pure CSS emitters',()=>{
+  it.each([true,false])('renders the actual document recommendation container with compact=%s and native expansion',async compact=>{
+    api.allowDocs=true;hosts.fontScale=1.6;
+    await render(<DocumentRecommendations module="office" workflow="invoice" clientId="client-001" compact={compact}/>);
+    expect(host.querySelector('details,section,summary')).toBeNull();
+    const catalog=()=>[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent?.includes('Gesamten Katalog öffnen'));
+    if(compact){
+      expect(catalog()).toBeUndefined();
+      const summary=[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent?.includes('Dokumentvorschläge'))!;
+      expect(summary).toBeTruthy();await act(async()=>summary.click());expect(catalog()).toBeTruthy();
+      await act(async()=>summary.click());expect(catalog()).toBeUndefined();
+    }else expect(catalog()).toBeTruthy();
+  });
+
   it.each([[false,360,1.6,12],[true,360,1.6,12],[false,1280,1,16],[true,1280,1,16]] as const)('keeps prebuilt invoice content styled in embedded=%s at %dpx scale%s',async(embedded,width,fontScale,padding)=>{
     hosts.width=width;hosts.fontScale=fontScale;
     await render(<InvoicesListScreen embedded={embedded}/>);

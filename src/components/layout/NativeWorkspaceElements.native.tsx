@@ -1,4 +1,4 @@
-import {Children,Fragment,cloneElement,createContext,forwardRef,isValidElement,useContext,useEffect,useImperativeHandle,useMemo,useRef,useState,type CSSProperties,type JSX,type ReactNode,type Ref} from 'react';
+import {Children,Fragment,cloneElement,createContext,forwardRef,isValidElement,useContext,useEffect,useImperativeHandle,useMemo,useRef,useState,type CSSProperties,type JSX,type ReactNode,type Ref,type ElementType,type ComponentType} from 'react';
 import {AccessibilityInfo,Alert,Image,Linking,Modal,Pressable,ScrollView,View,findNodeHandle,useWindowDimensions,type TextStyle,type ViewStyle,type AccessibilityRole} from 'react-native';
 import {useRouter} from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -236,3 +236,11 @@ export const NativeForm=element('form'),NativeLabel=element('label'),NativeField
 export const NativeUl=element('ul'),NativeOl=element('ol'),NativeLi=element('li'),NativeDl=element('dl'),NativeDt=element('dt'),NativeDd=element('dd');
 export const NativeTable=element('table'),NativeThead=element('thead'),NativeTbody=element('tbody'),NativeTfoot=element('tfoot'),NativeTr=element('tr'),NativeTh=element('th'),NativeTd=element('td'),NativeCaption=element('caption'),NativeColgroup=element('colgroup'),NativeCol=element('col');
 export const NativeA=element('a'),NativeImg=element('img'),NativeFigure=element('figure'),NativeFigcaption=element('figcaption'),NativeDetails=element('details'),NativeSummary=element('summary'),NativeDialog=element('dialog'),NativeStyle=element('style'),NativeVideo=element('video'),NativeAudio=element('audio'),NativeSource=element('source'),NativeIframe=element('iframe');
+
+/** Resolve the selected host once without replacing data uses of its original value. */
+export function nativeWorkspaceHost(component:ElementType,bindings:Readonly<Record<string,ComponentType<any>>>):ElementType{
+  if(typeof component!=='string')return component;
+  const native=bindings[component];
+  if(!native)throw Error('Unsupported native workspace host: '+component);
+  return native;
+}

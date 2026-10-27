@@ -145,7 +145,7 @@ const readyAssertions={
  'employee-audit-thread':{present:['Können Sie mir bitte meinen nächsten Einsatz bestätigen?','Ihr nächster Einsatz ist für morgen bestätigt.']},
  'client-audit-thread':{present:['Können Sie mir bitte meinen nächsten Einsatz bestätigen?','Ihr nächster Einsatz ist für morgen bestätigt.']},
  'client-audit-documents':{present:['Dokumente','Keine eingeschränkten']},
- 'admin-audit-client-billing':{present:['Abrechnungsprofil','Verträge']},
+ 'admin-audit-client-billing':{present:['Abrechnungsprofil','Verträge','Dokumentvorschläge']},
  'admin-audit-client-billing-restricted':{present:['Abrechnung nicht verfügbar'],absent:['Abrechnungsprofil']},
  'admin-audit-client-service-records':{present:['Leistungsnachweise nicht verfügbar'],absent:['Abrechnungsprofil']},
  'employee-audit-schedule-alias':{present:['Kalender aktualisieren']},
@@ -255,6 +255,12 @@ async function metricLayoutAssertionErrors(page,row,state,role){
 async function captureCaseDetail(page,row,state,imageName){
  if(state!=='ready')return[];
  const details=[];
+ if(row.id==='admin-audit-client-billing'){
+  const summary=page.getByRole('button',{name:/Dokumentvorschläge/});await summary.scrollIntoViewIfNeeded();await summary.click();
+  await page.getByRole('button',{name:/Gesamten Katalog öffnen/}).waitFor();
+  const image=imageName.replace('.png','-recommendations.png');await page.screenshot({path:join(output,image)});details.push(image);
+  await summary.click();if(await page.getByRole('button',{name:/Gesamten Katalog öffnen/}).count())throw Error('Collapsed document recommendations retain their action body.');
+ }
  if(row.id==='admin-audit-client-timeline'){
   await page.getByText('Synthetische Abstimmung zur Betreuung',{exact:true}).scrollIntoViewIfNeeded();
   const image=imageName.replace('.png','-timeline.png');await page.screenshot({path:join(output,image)});details.push(image);
