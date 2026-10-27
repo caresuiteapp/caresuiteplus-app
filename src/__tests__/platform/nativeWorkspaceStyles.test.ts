@@ -47,6 +47,14 @@ describe('native presentation of business layouts',()=>{
     const result=resolveWorkspacePresentation([compileWorkspaceCss(css)],{tag:'main',props:{className:'pane'}},[{tag:'div',props:{className:'scope'}}],288);
     expect(result.box.paddingTop).toBe(top);expect(result.box.paddingLeft).toBe(left);
   });
+  it.each([
+    ['padding:16px!important',{paddingTop:28},16],
+    ['padding-top:28px!important',{padding:16},28],
+    ['padding-top:28px',{padding:16},16],
+  ] as const)('keeps important stylesheet rules above normal inline shorthands and longhands (%s)',(css,style,top)=>{
+    const result=resolveWorkspacePresentation([compileWorkspaceCss('.unit{'+css+'}')],{tag:'div',props:{className:'unit',style}},[],288);
+    expect(result.box.paddingTop).toBe(top);
+  });
   it('lets later margin and gap shorthands reset their earlier longhands',()=>{
     const result=resolveWorkspacePresentation([compileWorkspaceCss('.pane{margin-top:24px;row-gap:20px;margin:8px;gap:6px 10px}')],{tag:'div',props:{className:'pane'}},[],288);
     expect(result.box.marginTop).toBe(8);expect(result.box.rowGap).toBe(6);expect(result.box.columnGap).toBe(10);

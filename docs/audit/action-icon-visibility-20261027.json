@@ -17,8 +17,10 @@
   "correction": "Match the Web icon's inline display, vertical alignment, aspect ratio and stroke style defaults. An explicit style display:none and an important CSS display:none still hide the artwork.",
   "checks": {
     "newExecutingCases": 3,
-    "browser": "Both actual Web and native client list previews must show four 16px metric arrows at each existing normal viewport."
+    "browser": "Both actual Web and native client list previews must show four 16px metric arrows at each existing normal viewport.",
+    "newExecutingCascadeCases": 3
   },
-  "validation": "Pending fresh CI and original image review.",
-  "releaseAcceptance": false
+  "validation": "CI 179 passed normal visibility and explicit hiding but failed important hiding. Correction pending full CI.",
+  "releaseAcceptance": false,
+  "additionalFinding": "CI 179 exposed that the shared resolver ranked normal inline styles above important stylesheet rules (2e9 versus 1e9). Important author declarations now rank above normal inline styles, including shorthand/longhand ordering. The failing icon suppression assertion is retained."
 }
