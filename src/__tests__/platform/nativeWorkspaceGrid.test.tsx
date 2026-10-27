@@ -142,6 +142,13 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="relative-heading"]')!)?.fontSize).toBe(expected);
   });
 
+  it.each([['row',1],['row-reverse',1],['column',0],['column-reverse',0]] as const)('allows horizontal auto-width copy to fit without collapsing column fields (%s)',async(direction,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['.flow{display:flex;flex-direction:'+direction+'}.copy{min-width:0}.sized{width:46px}.locked{flex-shrink:0}']}><NativeDiv className="flow"><NativeDiv className="copy" data-testid="flex-copy"><NativeSpan>Einzelrechnungen, Monatsdurchläufe und Zahlungsstände.</NativeSpan></NativeDiv><NativeDiv className="sized" data-testid="flex-sized">Symbol</NativeDiv><NativeDiv className="locked" data-testid="flex-locked">Fest</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="flex-copy"]')!)?.flexShrink??0)).toBe(expected);
+    expect(Number(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="flex-sized"]')!)?.flexShrink??0)).toBe(0);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="flex-locked"]')!)?.flexShrink).toBe(0);
+  });
+
   it('uses authored CSS flex defaults for metric buttons while keeping explicit action alignment',async()=>{
     await render(<NativeWorkspaceStyleScope css={['.metric{display:flex;flex-direction:column;text-align:left}.action{display:inline-flex;align-items:center;justify-content:center;gap:8px}']}><NativeDiv><NativeButton className="metric" data-testid="metric"><NativeSpan>Offene Besuche</NativeSpan><NativeStrong>2</NativeStrong></NativeButton><NativeButton className="action" data-testid="aligned-action">Aktion</NativeButton><NativeButton data-testid="unstyled-action">Aktion</NativeButton></NativeDiv></NativeWorkspaceStyleScope>);
     const metric=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="metric"]')!)!,action=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="aligned-action"]')!)!,fallback=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="unstyled-action"]')!)!;

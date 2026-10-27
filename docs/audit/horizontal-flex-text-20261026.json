@@ -1,0 +1,25 @@
+{
+  "sourceBefore": "c2e5d9bc62811af08b1b8288d4e889d914923af0",
+  "finding": "The styled normal 320px invoice subtitle keeps an intrinsic single-line width in a horizontal flex heading and clips at the content edge. Enlarged text already has a max-width guard; normal text still needs the Web flex shrink behavior.",
+  "evidence": {
+    "run": 40421292840,
+    "artifact": 12697874645,
+    "archiveSha256": "04ee0ba2d965ae00a95baa26d0d5d5ee4f1b88e4762540f886f53c1742a9675c",
+    "image": "admin-audit-invoices-default-ready-320x740-scale-1.png",
+    "imageSha256": "f78f03b1b164f6422dbbb8c0674d27b27769e57b5c8f347389e61128e5adb351"
+  },
+  "correction": "Track authored flex direction in the native scope. Auto-width block content in horizontal flex parents gets flex-shrink:1 when no shrink is authored. Explicit widths, absolute elements, explicit shrink values and column flows retain their existing sizing.",
+  "checks": {
+    "newExecutingCases": 4,
+    "contract": "Row and reversed row content shrink; column and reversed column retain intrinsic field sizing. Fixed widths and authored shrink zero remain intact.",
+    "browser": "Actual invoice subtitle text ranges must remain within the viewport in all three existing audit sizes."
+  },
+  "releaseAcceptance": false,
+  "validation": "Pending full CI and fresh originals.",
+  "beforeCorrectionCi177": {
+    "run": 40421292840,
+    "source": "c2e5d9bc62811af08b1b8288d4e889d914923af0",
+    "result": "success",
+    "scope": "All existing prepared checks passed; this additional original-image clipping finding was not covered by the prior checks."
+  }
+}
