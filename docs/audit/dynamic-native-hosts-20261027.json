@@ -16,5 +16,16 @@
   },
   "handover": "The existing strict source gate remains a failure until regenerated files are committed. A temporary existing-CI export captures the exact regenerated sources, then executes the existing host/emitter test files. It must be removed after source adoption.",
   "releaseAcceptance": false,
-  "validation": "Prepared; regeneration, tests, TypeScript and fresh originals pending."
+  "validation": "Exact generated output adopted; temporary CI export removed. Full CI and fresh original review pending.",
+  "handoverReceipt": {
+    "run": 40427909484,
+    "source": "da41e42094249896369e47fe597baa416e93493b",
+    "artifact": 12700148805,
+    "archiveSha256": "9896ec4c88de8be6e581872bc22b3a60bf80e0b555bd22a4284b1b77bf6786de",
+    "files": [
+      "src/components/documents/DocumentRecommendations.native.tsx"
+    ],
+    "targetedTests": 21,
+    "result": "Actual host/emitter test files passed after generation. The strict source check remained failed until source adoption."
+  }
 }

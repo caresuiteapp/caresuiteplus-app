@@ -1,5 +1,5 @@
 // Generated native presentation from src/components/documents/DocumentRecommendations.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSummary,NativeSpan,NativeStrong,NativeStyle,NativeDiv,NativeH3,NativeP,NativeButton,NativeSmall,NativeEm,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeDetails,NativeSection,NativeSummary,NativeSpan,NativeStrong,NativeStyle,NativeDiv,NativeH3,NativeP,NativeButton,NativeSmall,NativeEm,NativeWorkspaceStyleScope,nativeWorkspaceHost} from '@/components/layout/NativeWorkspaceElements.native';
 import { useRouter } from 'expo-router';
 import { usePermissions } from '@/hooks/usePermissions';
 import { documentCatalogRoute, getDocumentRecommendations } from '@/lib/documents/documentRecommendations';
@@ -13,8 +13,8 @@ export function DocumentRecommendations(props: DocumentRecommendationsProps) {
     const recommendations = canCreate ? getDocumentRecommendations(props).filter((entry) => (entry.target !== 'client' || can('office.clients.view') && can('office.clients.view_sensitive')) && (entry.target !== 'employee' || can('office.employees.view')) && (!entry.clinicalReviewRequired || can('office.clients.view_sensitive'))) : [];
     const scoped = Boolean(props.clientId || props.employeeId);
     const open = (href: string) => router.push(href as never);
-    const Surface = props.compact ? 'details' : 'section';
-    return <NativeWorkspaceStyleScope css={[documentRecommendationCss, documentRecommendationCss]}>{<Surface className={`cs-doc-rec${props.compact ? ' compact' : ''}${props.widget ? ' widget' : ''}`} aria-label={props.title ?? 'Dokumentvorschläge'}>
+    const Surface = props.compact ? 'details' : 'section', __nativeWorkspaceHost0 = nativeWorkspaceHost(Surface, { "details": NativeDetails, "section": NativeSection });
+    return <NativeWorkspaceStyleScope css={[documentRecommendationCss, documentRecommendationCss]}>{<__nativeWorkspaceHost0 className={`cs-doc-rec${props.compact ? ' compact' : ''}${props.widget ? ' widget' : ''}`} aria-label={props.title ?? 'Dokumentvorschläge'}>
     {props.compact ? <NativeSummary className="cs-doc-rec-summary"><NativeSpan aria-hidden="true">▤</NativeSpan><NativeStrong>{props.title ?? 'Dokumentvorschläge'}</NativeStrong><NativeSpan>{recommendations.length ? `${recommendations.length} Vorschläge` : 'Katalog und Fassungen'}</NativeSpan></NativeSummary> : null}
     <NativeStyle>{documentRecommendationCss}</NativeStyle>
     <NativeDiv className="cs-doc-rec-content">
@@ -22,7 +22,7 @@ export function DocumentRecommendations(props: DocumentRecommendationsProps) {
     {recommendations.length ? <NativeDiv className="cs-doc-rec-grid">{recommendations.map((entry) => <NativeButton type="button" key={entry.key} onClick={() => open(entry.href)} className="cs-doc-rec-card"><NativeSpan className="cs-doc-rec-icon" aria-hidden="true">▤</NativeSpan><NativeSpan><NativeStrong>{entry.title}</NativeStrong><NativeSmall>{entry.reason}</NativeSmall><NativeEm>{entry.sourceMode === 'original' ? 'Original mit Begleitblatt' : 'Bearbeitbaren Entwurf öffnen'} <NativeSpan aria-hidden="true">→</NativeSpan></NativeEm></NativeSpan></NativeButton>)}</NativeDiv> : null}
     <NativeDiv className="cs-doc-rec-actions"><NativeButton type="button" onClick={() => open(documentCatalogRoute(props))}>Gesamten Katalog öffnen <NativeSpan aria-hidden="true">↗</NativeSpan></NativeButton><NativeButton type="button" onClick={() => open(documentCatalogRoute({ ...props, tab: 'records' }))}>{scoped ? 'Gespeicherte Dokumente dieser Akte' : 'Gespeicherte Dokumentfassungen'}</NativeButton></NativeDiv>
     </NativeDiv>
-  </Surface>}</NativeWorkspaceStyleScope>;
+  </__nativeWorkspaceHost0>}</NativeWorkspaceStyleScope>;
 }
 export const documentRecommendationCss = `
 .cs-doc-rec{container-type:inline-size;width:100%;min-width:0;box-sizing:border-box;margin:16px 0;padding:20px;border:1px solid #d7e3f1;border-radius:18px;background:linear-gradient(115deg,#fff,#eef5ff);color:#15304e;font-family:inherit}

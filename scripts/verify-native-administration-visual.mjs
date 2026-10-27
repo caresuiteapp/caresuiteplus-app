@@ -459,6 +459,9 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015||row.height<32||row.height>50)throw Error(JSON.stringify({message:'Client table must preserve its authored column widths and compact header height.',screen,viewport,cell,row}));
   }
   if((screen==='clients'||screen==='web-clients')&&viewport.width===320){
+   const draft=page.getByRole('button').filter({hasText:'begonnene Aufnahmen'}),draftBounds=await draft.boundingBox(),draftLabel=await draft.getByText('Entwürfe',{exact:true}).boundingBox(),draftHint=await draft.getByText('begonnene Aufnahmen',{exact:true}).boundingBox();
+   if(!draftBounds||!draftLabel||!draftHint||Math.abs((draftLabel.y+draftHint.y+draftHint.height)/2-draftBounds.y-draftBounds.height/2)>2)throw Error(JSON.stringify({message:'Client block-button content must retain the Web vertical centering when the adjacent card is taller.',screen,viewport,draftBounds,draftLabel,draftHint}));
+
    const first=await page.getByText('Import / Export',{exact:true}).boundingBox(),second=await page.getByText('Aktualisieren',{exact:true}).first().boundingBox();
    if(!first||!second||Math.abs(first.y-second.y)>1)throw Error(JSON.stringify({message:'Phone client header actions must keep the original shared row.',screen,viewport,first,second}));
   }

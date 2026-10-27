@@ -77,6 +77,11 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(style('wide').alignSelf).toBeUndefined();
   });
 
+  it.each([['','center'],['display:flex;flex-direction:column;justify-content:flex-start','flex-start']])('centers unstyled block-button content vertically while preserving authored flex alignment (%s)',async(css,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['.metric{'+css+'}.metric>span{display:block}']}><NativeButton className="metric" data-testid="metric"><NativeSpan>Entwürfe</NativeSpan><NativeStrong>1</NativeStrong><NativeSpan>begonnene Aufnahmen</NativeSpan></NativeButton></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="metric"]')!)?.justifyContent).toBe(expected);
+  });
+
   it.each([[1280,['50%','30%','20%']],[900,['40%','30%','30%']]] as const)('shares authored first-row tracks with every body row at %dpx',async(width,expected)=>{
     hosts.width=width;
     const css='.records{table-layout:fixed}.records th:first-child{width:50%}.records th:nth-child(2){width:30%}.records th:nth-child(3){width:20%}@container(max-width:1000px){.records th:first-child{width:40%}.records th:nth-child(3){width:30%}}';
