@@ -450,6 +450,10 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    const metric=page.getByRole('button',{name:/^Offene Besuche/}),metricLabel=metric.getByText('Offene Besuche',{exact:true}),labelBounds=await metricLabel.boundingBox(),metricBounds=await metric.boundingBox();
    if(!labelBounds||!metricBounds||Math.abs(labelBounds.x-metricBounds.x-13)>1)throw Error(JSON.stringify({message:'Consultation metric labels must start at the authored left padding.',screen,viewport,labelBounds,metricBounds}));
   }
+  if(screen==='clients'||screen==='web-clients'){
+   const icons=await page.getByLabel('Akten nach Bearbeitungsstand filtern',{exact:true}).locator('svg').evaluateAll(nodes=>nodes.map(node=>{const style=getComputedStyle(node),bounds=node.getBoundingClientRect();return {display:style.display,width:bounds.width,height:bounds.height};}));
+   if(icons.length!==4||icons.some(icon=>icon.display==='none'||Math.abs(icon.width-16)>1||Math.abs(icon.height-16)>1))throw Error(JSON.stringify({message:'Client metric arrows must retain the shared Web inline visibility and 16px size.',screen,viewport,icons}));
+  }
   if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100){
    const first=page.getByRole('button',{name:'Klient:in ↑',exact:true}).locator('..'),cell=await first.boundingBox(),row=await first.locator('..').boundingBox();
    if(!cell||!row||Math.abs(cell.width/row.width-.27)>.015||row.height<32||row.height>50)throw Error(JSON.stringify({message:'Client table must preserve its authored column widths and compact header height.',screen,viewport,cell,row}));

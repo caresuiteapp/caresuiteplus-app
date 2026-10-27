@@ -112,6 +112,12 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(svg.__svgColor).toBe('#7990aa');expect(svg.__svgStroke).toBe('currentColor');
   });
 
+  it.each([['',undefined,'flex'],['',{display:'none'},'none'],['!important',undefined,'none']] as const)('matches Web icon visibility with an inline override and CSS importance (%s, %s)',async(importance,style,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['.metric svg{display:none'+importance+';--cs-action-icon-size:16px}']}><NativeDiv className="metric"><WebActionIcon style={style}>{null}</WebActionIcon></NativeDiv></NativeWorkspaceStyleScope>);
+    const svg=hosts.styles.get(host.querySelector<HTMLElement>('[data-native-svg]')!)!;
+    expect(svg.display).toBe(expected);expect(svg.width).toBe(16);expect(svg.height).toBe(16);expect(svg.aspectRatio).toBe(1);
+  });
+
   it.each([['top','flex-start'],['middle','center'],['bottom','flex-end']])('honors authored %s table-cell alignment',async(value,expected)=>{
     await render(<NativeWorkspaceStyleScope css={['td{vertical-align:'+value+'}']}><NativeTable><NativeTbody><NativeTr><NativeTd data-testid="aligned">Kurzer Inhalt</NativeTd><NativeTd>Mehrzeiliger Inhalt</NativeTd></NativeTr></NativeTbody></NativeTable></NativeWorkspaceStyleScope>);
     expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="aligned"]')!)?.justifyContent).toBe(expected);
