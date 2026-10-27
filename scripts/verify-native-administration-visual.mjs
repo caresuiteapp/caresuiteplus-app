@@ -464,6 +464,10 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   }
   if((screen==='clients'||screen==='web-clients')&&viewport.width>=1100)await assertUnbrokenWord(page.getByRole('button',{name:'Akte von Helene Musterfrau öffnen',exact:true}),'Akte öffnen');
   if((screen==='notes'||screen==='web-notes')&&viewport.width>=1100){
+   const workspace=await page.getByLabel('Persönliche Notizen',{exact:true}).boundingBox(),sidebar=await page.getByLabel('Notizübersicht',{exact:true}).boundingBox(),footer=await page.getByText('Persönliche Notizen in Ihrem Unternehmenskonto.',{exact:true}).boundingBox();
+   if(!workspace||!sidebar||!footer||footer.y+footer.height>Math.min(workspace.y+workspace.height,viewport.height)+1)throw Error(JSON.stringify({message:'The note sidebar footer must stay inside the bounded workspace without scrolling the whole sidebar.',screen,viewport,workspace,sidebar,footer}));
+   report.push({screen:'notes-footer-bounded',renderer:screen,viewport,workspace,sidebar,footer});
+
    const glyph=page.locator('svg').first(),icon=await glyph.boundingBox(),plate=await glyph.locator('..').boundingBox();
    if(!icon||!plate||icon.width<24||Math.abs(icon.x+icon.width/2-plate.x-plate.width/2)>2||Math.abs(icon.y+icon.height/2-plate.y-plate.height/2)>2)throw Error(JSON.stringify({message:'Note header artwork must keep its authored size and center.',screen,viewport,icon,plate}));
    const button=await page.getByRole('button',{name:/Freie Notiz beginnen/}).boundingBox();

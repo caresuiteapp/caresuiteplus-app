@@ -60,6 +60,12 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect([...grid.children].map(child=>child.textContent)).toEqual(['Automatisch','Spalte zwei','','Positioniert','Volle Zeile','Danach']);expect(hosts.styles.get(grid.children[2] as HTMLElement)?.width).toBe(30);expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="positioned"]')!)?.color).toBe('#b42336');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="wide"]')!)?.width).toBe('100%');expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="after"]')!)?.width).toBe(30);
   });
 
+  it.each([[2,'nowrap'],[3,'wrap']] as const)('keeps %d bounded grid cells in their actual number of rows',async(count,expected)=>{
+    await render(<NativeWorkspaceStyleScope css={['.bounded{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));height:300px;min-height:0}']}><NativeDiv className="bounded" data-testid="bounded">{Array.from({length:count},(_,index)=><NativeDiv key={index}>Bereich {index+1}</NativeDiv>)}</NativeDiv></NativeWorkspaceStyleScope>);
+    const style=hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="bounded"]')!)!;
+    expect(style.flexWrap).toBe(expected);expect(style.alignItems).toBe('stretch');expect(style.height).toBe(300);
+  });
+
   it('keeps inline controls and badges intrinsic in block flow, while explicit layouts retain stretch',async()=>{
     await render(<NativeWorkspaceStyleScope css={['.flow{display:block}.badge,.action{display:inline-flex}.stack{display:flex;flex-direction:column}.wide{display:inline-flex;width:100%}.auto{display:inline-flex;width:auto;align-self:auto}']}><NativeDiv className="flow"><NativeButton data-testid="plain">Beginnen</NativeButton><NativeSpan className="badge" data-testid="badge">Aktiv</NativeSpan><NativeButton className="wide" data-testid="wide">Breite Aktion</NativeButton><NativeButton className="auto" data-testid="auto">Automatisch</NativeButton><NativeDiv className="stack"><NativeButton className="action" data-testid="stretch">Flex-Aktion</NativeButton></NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
     const style=(id:string)=>hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="'+id+'"]')!)!;
