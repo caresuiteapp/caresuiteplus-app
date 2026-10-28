@@ -29,11 +29,14 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
   const [unlocking, setUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const active = useRef(true), inFlight = useRef(false), unlockLock = useRef(false);
+  const generation = useRef(0);
   const activity = useRef(Date.now()), background = useRef<number | null>(null);
   const receiptKey = `caresuite.security-receipt.${identity.replace(/[^a-zA-Z0-9._-]/g, '.')}`;
   const refresh = useCallback(async () => {
     if (!ready || inFlight.current) return;
     inFlight.current = true;
+    const requestGeneration = generation.current;
+    const isCurrent = () => active.current && generation.current === requestGeneration;
     try {
       if (isDeviceOffline()) {
         const raw = await sensitiveAuthStorage.getItem(receiptKey);
@@ -41,26 +44,26 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
         if (!cached) {
           throw new Error('Für dieses Konto ist offline noch keine gültige Gerätefreigabe verfügbar. Bitte einmal mit Internetverbindung anmelden.');
         }
-        if (active.current) { setState(cached); setError(null); }
+        if (isCurrent()) { setState(cached); setError(null); }
         return;
       }
       const current = await withServiceQueryTimeout(readAccountSecurityState(), 'Sitzungsprüfung', 12_000);
-      if (!active.current) return;
+      if (!isCurrent()) return;
       setState(current); setError(null);
       if (current.active && (!current.mfaRequired || current.aal === 'aal2')) {
         await sensitiveAuthStorage.setItem(receiptKey, JSON.stringify({ ...current, validUntil: Date.now() + RECEIPT_TTL_MS }));
-        if (!active.current) return;
+        if (!isCurrent()) return;
         // Device registration never grants permissions and uses the active server session.
         await registerCurrentAccountDevice().catch(() => { /* The profile exposes registration errors and retry; metadata failure never revokes an otherwise verified session. */ });
       }
     } catch (cause) {
-      if (active.current) setError(cause instanceof Error ? cause.message : 'Die sichere Anmeldung konnte nicht geprüft werden.');
-    } finally { inFlight.current = false; }
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Die sichere Anmeldung konnte nicht geprüft werden.');
+    } finally { if (isCurrent()) inFlight.current = false; }
   }, [ready, receiptKey, session?.accessToken]);
   useEffect(() => {
-    active.current = true; void refresh();
+    active.current = true; generation.current++; inFlight.current = false; setState(null); setError(null); void refresh();
     const timer = setInterval(() => void refresh(), 60_000);
-    return () => { active.current = false; clearInterval(timer); };
+    return () => { active.current = false; generation.current++; clearInterval(timer); };
   }, [refresh, session?.accessToken]);
   useEffect(() => {
     const timer = setInterval(() => { if (Date.now() - activity.current >= INACTIVITY_MS) setLocked(true); }, 5_000);
@@ -78,9 +81,11 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
       if (typeof document !== 'undefined') for (const name of ['pointerdown', 'keydown', 'wheel', 'touchstart']) document.removeEventListener(name, markActivity);
     };
   }, [refresh, portalSession]);
+  const workspaceOpened = useRef(false);
   const verified = Boolean(state?.active && (!state.mfaRequired || state.aal === 'aal2'));
   const blocked = !ready || !verified || !!error;
-  if (blocked) return <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+  if (!blocked) workspaceOpened.current = true;
+  const securityScreen = blocked ? <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
     <View style={styles.panel}>
       <Text style={styles.title}>Sichere Anmeldung</Text>
       {!ready || (!state && !error) ? <ActivityIndicator accessibilityLabel="Anmeldung wird geprüft" /> : null}
@@ -92,10 +97,12 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
       {error ? <PremiumButton title="Sichere Anmeldung erneut prüfen" onPress={() => void refresh()} /> : null}
       <PremiumButton title="Abmelden" variant="secondary" onPress={() => void signOut()} />
     </View>
-  </ScrollView>;
+  </ScrollView> : null;
+  if (!workspaceOpened.current) return securityScreen;
+  const obscured = locked || blocked;
   return <View style={styles.root} onStartShouldSetResponderCapture={() => { if (!locked) activity.current = Date.now(); return false; }} onMoveShouldSetResponderCapture={() => { if (!locked) activity.current = Date.now(); return false; }}>
-    <View style={styles.root} pointerEvents={locked ? 'none' : 'auto'} accessibilityElementsHidden={locked} importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>{children}</View>
-    {locked ? <View style={styles.overlay} accessibilityViewIsModal>
+    <View style={styles.root} pointerEvents={obscured ? 'none' : 'auto'} accessibilityElementsHidden={obscured} importantForAccessibility={obscured ? 'no-hide-descendants' : 'auto'}>{children}</View>
+    {blocked ? <View style={styles.overlay} accessibilityViewIsModal>{securityScreen}</View> : locked ? <View style={styles.overlay} accessibilityViewIsModal>
       <View style={styles.panel}>
         <Text style={styles.title}>CareSuite gesperrt</Text>
         <Text style={styles.text}>Ihre Eingaben bleiben geöffnet. Bestätigen Sie Ihre Identität, um weiterzuarbeiten.</Text>
