@@ -55,6 +55,9 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
         if (!isCurrent()) return;
         // Device registration never grants permissions and uses the active server session.
         await registerCurrentAccountDevice().catch(() => { /* The profile exposes registration errors and retry; metadata failure never revokes an otherwise verified session. */ });
+      } else {
+        // A server-confirmed revocation must never regain offline access from an older receipt.
+        await sensitiveAuthStorage.removeItem(receiptKey);
       }
     } catch (cause) {
       if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Die sichere Anmeldung konnte nicht geprüft werden.');
