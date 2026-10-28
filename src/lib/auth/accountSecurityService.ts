@@ -69,7 +69,7 @@ export async function savePersonalNotificationPreference(event: NotificationEven
   return value;
 }
 
-/** Isolate MFA verification so a late response cannot overwrite another account's session. */
+/** Enrollment and challenge requests retain the account that started them. */
 async function isolatedMfaClient(expectedUserId: string) {
   const current = await client().auth.getSession();
   const session = current.data.session;
@@ -95,10 +95,12 @@ export async function enrollMfaFactor(expectedUserId: string) {
 export async function verifyMfaFactor(expectedUserId: string, factorId: string, code: string): Promise<void> {
   if (!/^\d{6}$/.test(code)) throw new Error('Bitte den sechsstelligen Authenticator-Code eingeben.');
   const isolated = await isolatedMfaClient(expectedUserId);
-  const result = await isolated.auth.mfa.challengeAndVerify({ factorId, code });
-  if (result.error) throw new Error('Der Code wurde nicht bestätigt. Bitte einen aktuellen Code versuchen.');
+  const challenge = await isolated.auth.mfa.challenge({ factorId });
+  if (challenge.error) throw new Error('Die Sicherheitsprüfung konnte nicht gestartet werden.');
   const current = await client().auth.getSession();
   if (current.data.session?.user.id !== expectedUserId) throw new Error('Das angemeldete Konto hat sich geändert.');
-  const adopted = await client().auth.setSession({ access_token: result.data.access_token, refresh_token: result.data.refresh_token });
-  if (adopted.error) throw new Error('Die bestätigte Anmeldung konnte nicht übernommen werden. Bitte erneut anmelden.');
+  // Verify against the current client's authenticated session. The server binds
+  // the factor/challenge to its owner; never import an isolated response's tokens.
+  const result = await client().auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
+  if (result.error) throw new Error('Der Code wurde nicht bestätigt. Bitte einen aktuellen Code versuchen.');
 }
