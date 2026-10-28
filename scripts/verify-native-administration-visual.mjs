@@ -40,6 +40,7 @@ await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/
  b.onLoad({filter:/.*/,namespace:'preview-keyboard'},()=>({loader:'jsx',resolveDir:root,contents:`import React from 'react';import {View,ScrollView,KeyboardAvoidingView as Avoid} from ${JSON.stringify(nativeWeb)};export const KeyboardProvider=({children})=><View style={{flex:1}}>{children}</View>;export const KeyboardAwareScrollView=ScrollView,KeyboardAvoidingView=Avoid;`}));
  b.onResolve({filter:/^react-native-reanimated$/},()=>({path:'animated',namespace:'qa'}));
  b.onResolve({filter:/^expo-blur$/},()=>({path:'blur',namespace:'qa'}));
+ b.onResolve({filter:/^\.\/elements$/},args=>args.importer.includes('/react-native-svg/lib/module/')?{path:resolve('node_modules/react-native-svg/lib/module/elements.web.js')}:undefined);
  b.onResolve({filter:/^react-native-svg$/},()=>({path:resolve('node_modules/react-native-svg/lib/module/ReactNativeSVG.web.js')}));
  b.onResolve({filter:/^react-native$/},()=>({path:'native-shim',namespace:'qa'}));
  b.onResolve({filter:/^@expo\/vector-icons$/},()=>({path:'icons',namespace:'preview-icon-root'}));
