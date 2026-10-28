@@ -201,7 +201,7 @@ jobs:
       - name: Gemeinsame Kontosicherheit und geschützte Entwürfe prüfen
         run: |
           node --test supabase/tests/account_security_platform_sync.test.mjs
-          npx --no-install vitest run src/__tests__/auth/accountSecurityReceipt.test.ts src/__tests__/auth/accountSessionGate.test.tsx src/__tests__/auth/accountSecurityService.test.ts src/__tests__/platform/encryptedWorkflowStorage.test.ts src/__tests__/offline/deviceSyncOverview.test.ts src/__tests__/settings/userProfileAccountWebInteraction.test.tsx --maxWorkers=2
+          npx --no-install vitest run src/__tests__/auth/accountSecurityReceipt.test.ts src/__tests__/auth/accountSessionGate.test.tsx src/__tests__/auth/accountSecurityService.test.ts src/__tests__/auth/mfaSettingsCard.test.tsx src/__tests__/platform/encryptedWorkflowStorage.test.ts src/__tests__/offline/deviceSyncOverview.test.ts src/__tests__/settings/userProfileAccountWebInteraction.test.tsx --maxWorkers=2
       - name: Alle Seiteneinstiege und offene Abweichungen erfassen
         run: node scripts/audit-native-web-parity.mjs
       - name: Übertragene Fachseiten mit den Web-Quellen abgleichen

@@ -16,13 +16,14 @@ function MfaContent({ userId, required, onVerified }: { userId: string; required
   const qrSize = Math.max(120, Math.min(200, width - 140));
   const active = useRef(true), lock = useRef(false);
   const [factors, setFactors] = useState<Awaited<ReturnType<typeof readMfaFactors>>>([]);
+  const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<Awaited<ReturnType<typeof enrollMfaFactor>> | null>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(async () => {
-    try { const value = await readMfaFactors(userId); if (active.current) { setFactors(value); setError(null); } }
+    try { const value = await readMfaFactors(userId); if (active.current) { setFactors(value); setSelectedFactorId(previous => value.some(factor => factor.id === previous) ? previous : value[0]?.id ?? null); setError(null); } }
     catch (cause) { if (active.current) setError(message(cause)); }
   }, [userId]);
   useEffect(() => { active.current = true; void refresh(); return () => { active.current = false; }; }, [refresh]);
@@ -38,6 +39,12 @@ function MfaContent({ userId, required, onVerified }: { userId: string; required
       ? 'Für diesen Zugang ist eine zusätzliche Bestätigung mit einer Authenticator-App erforderlich.'
       : 'Schützen Sie Ihre Anmeldung zusätzlich mit einem sechsstelligen Authenticator-Code. Gesicht oder Fingerabdruck entsperren das Gerät und ersetzen diesen Kontoschutz nicht.'}</Text>
     <Text style={styles.label}>{factors.length ? `${factors.length} bestätigte Authenticator-Verknüpfung${factors.length === 1 ? '' : 'en'}` : 'Noch kein Authenticator bestätigt'}</Text>
+    {!enrollment && factors.length > 1 ? <View style={styles.stack}>
+      <Text style={styles.label}>Authenticator auswählen</Text>
+      {factors.map((factor, index) => <PremiumButton key={factor.id}
+        title={`${factor.friendly_name || `Authenticator ${index + 1}`}${selectedFactorId === factor.id ? ' · Ausgewählt' : ''}`}
+        variant={selectedFactorId === factor.id ? 'primary' : 'secondary'} disabled={busy} onPress={() => setSelectedFactorId(factor.id)} />)}
+    </View> : null}
     {enrollment ? <View style={styles.stack}>
       <Text style={styles.text}>Scannen Sie den QR-Code mit Ihrer Authenticator-App oder übernehmen Sie den Einrichtungsschlüssel. Geben Sie anschließend den dort angezeigten Code ein.</Text>
       <View style={styles.qr}><SvgXml xml={enrollment.totp.qr_code} width={qrSize} height={qrSize} /></View>
@@ -50,7 +57,7 @@ function MfaContent({ userId, required, onVerified }: { userId: string; required
         onChangeText={value => setCode(value.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" autoComplete="one-time-code"
         textContentType="oneTimeCode" maxLength={6} style={styles.input} editable={!busy} />
       <PremiumButton title="Authenticator-Code bestätigen" loading={busy} disabled={code.length !== 6} onPress={() => void run(async () => {
-        await verifyMfaFactor(userId, enrollment?.id ?? factors[0]!.id, code);
+        await verifyMfaFactor(userId, enrollment?.id ?? selectedFactorId ?? factors[0]!.id, code);
         if (!active.current) return;
         setEnrollment(null); setCode(''); setFeedback('Zusätzliche Anmeldung bestätigt.'); await refresh(); onVerified?.();
       })} />
