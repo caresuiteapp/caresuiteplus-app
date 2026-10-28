@@ -1,6 +1,6 @@
+import { currentCompanyWorkflows } from './currentCompanyWorkflows';
 import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { RoleKey, ServiceResult } from '@/types';
-import { Platform } from 'react-native';
 import type { CustomFieldDataType, TenantCustomFieldDefinition, TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -38,14 +38,14 @@ export async function fetchTenantCustomFieldDefinitions(
 ): Promise<ServiceResult<TenantCustomFieldDefinition[]>> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantCustomFieldDefinition[]>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
   if (!isLiveServiceMode()) {
     const fields = DEMO_FIELDS.get(tenantId) ?? [];
-    return { ok: true, data: Platform.OS === 'web' && !includeInactive ? fields.filter(field => field.isActive) : fields };
+    return { ok: true, data: currentCompanyWorkflows && !includeInactive ? fields.filter(field => field.isActive) : fields };
   }
 
   const client = getSupabaseClient();
@@ -54,7 +54,7 @@ export async function fetchTenantCustomFieldDefinitions(
   let query = fromUnknownTable(client, 'tenant_custom_field_definitions')
     .select('*')
     .eq('tenant_id', tenantId);
-  if (Platform.OS !== 'web' || !includeInactive) query = query.eq('is_active', true);
+  if (!currentCompanyWorkflows || !includeInactive) query = query.eq('is_active', true);
   const { data, error } = await query.order('sort_order');
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
@@ -75,10 +75,10 @@ export async function saveTenantCustomFieldDefinition(
 ): Promise<SaveCustomFieldResult> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantCustomFieldDefinition[]>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantCustomFieldDefinition[]>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
 
-  if (Platform.OS === 'web') {
+  if (currentCompanyWorkflows) {
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
   }
@@ -118,7 +118,7 @@ export async function saveTenantCustomFieldDefinition(
     updated_at: new Date().toISOString(),
   };
 
-  if (Platform.OS === 'web') {
+  if (currentCompanyWorkflows) {
     const table = fromUnknownTable(client, 'tenant_custom_field_definitions');
     const query = input.id
       ? table.update(payload).eq('tenant_id', tenantId).eq('id', input.id)

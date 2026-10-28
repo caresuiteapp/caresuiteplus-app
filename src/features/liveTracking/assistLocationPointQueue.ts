@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { protectedDataStorage as AsyncStorage } from '@/lib/security/protectedDataStorage';
 import { appendLocationPoint } from '@/lib/assist/assistTrackingPersistenceService';
 import type { AssistLocationPointInsert } from '@/types/assistExecutionPersistence';
 

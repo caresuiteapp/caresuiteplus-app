@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, type DimensionValue, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions, type DimensionValue, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
 import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -32,7 +32,7 @@ function neonGlow(accentColor: string): ViewStyle {
   };
 }
 
-/** Two-column mobile KPI tile with neon border and equal height. */
+/** KPI tile that retains enough reading width when system text is enlarged. */
 export function MobilePortalKpiCard({
   icon,
   label,
@@ -48,9 +48,10 @@ export function MobilePortalKpiCard({
   const text = useAuroraAdaptiveText();
   const useLightGlass = useLightLiquidGlassShell();
   const { width } = useDeviceClass();
+  const { fontScale } = useWindowDimensions();
   const type = resolveGalaxyTypography(width);
   const hasValue = value !== null && value !== undefined && value > 0;
-  const itemWidth = '48%' as DimensionValue;
+  const itemWidth: DimensionValue = width / Math.max(1, fontScale || 1) < 300 ? '100%' : '48%';
   const ctaHandler = onCta ?? onPress;
 
   if (hidden) return null;

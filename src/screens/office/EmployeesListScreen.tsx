@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { EmployeeCreateModal } from '@/components/office/employeecreatemodal';
@@ -129,6 +129,7 @@ export function EmployeesListScreen({
   return (
     <>
       <C14vSubpageShell
+        contentOwnsHero={Platform.OS !== 'web'}
         title="Mitarbeitende"
         eyebrow={`${moduleLabel.toUpperCase()} · TEAM`}
         subtitle={`${contextLabel}${isReadOnly ? ' · Lesemodus' : ''}`}
@@ -136,7 +137,7 @@ export function EmployeesListScreen({
         showBack={false}
         scroll={false}
         accentColor={accent}
-        actions={[
+        actions={Platform.OS !== 'web' ? undefined : [
           ...(canCreate
             ? [
                 {

@@ -1,0 +1,48 @@
+{
+  "sourceBefore": "81efdaf57b886b350a159a0273b4ca9ddae20180",
+  "reference": {
+    "source": "9d760ed94721a32fba98b3061d25f698a718cbac",
+    "artifactId": 12681883015,
+    "sha256": "9c1bcee751b48f4b6c4584840bef7e0f4945829600da6f5a363da5ad9764d271",
+    "originalImagesReviewed": [
+      "web-clients-1280x800.png",
+      "clients-1280x800.png"
+    ]
+  },
+  "findings": [
+    "Fixed client table defines its six tracks on th selectors (27/20/20/13/10/10%), while the native bridge previously read only inline colgroup widths and assigned equal tracks.",
+    "Adjacent 17px margins between KPI grid and workspace sum in Yoga, while CSS block flow collapses them to 17px."
+  ],
+  "corrections": [
+    "Resolve complete authored percentage tracks totaling 100% from the first row of fixed tables in their ancestor/index and responsive scope. Apply the same tracks to header, body and spanning cells; retain colgroup precedence.",
+    "Collapse adjacent positive margins in ordinary block containers; leave flex/grid parent spacing and unsupported margin cases unchanged."
+  ],
+  "verification": {
+    "newNativeCases": 9,
+    "wideBrowserAssertion": "The first client-table column occupies its authored 27% in both Web and native rendering.",
+    "localExecution": "Unavailable after execution environment disconnected; existing CI must validate the full patch.",
+    "freshImagesPending": true
+  },
+  "ci165": {
+    "run": 40393246211,
+    "source": "81efdaf57b886b350a159a0273b4ca9ddae20180",
+    "primaryJob": "TypeScript failed in the new CSS test because react-native-web has no installed declaration file.",
+    "testsPassedBeforeTypecheck": [
+      34,
+      201,
+      211
+    ],
+    "correction": "Use Vitest importActual with the existing React Native export types, retaining the real React Native Web host and computed CSS assertions."
+  },
+  "device": {
+    "name": "ChristianLaptop",
+    "status": "offline",
+    "lastSeenHoursAgo": 955
+  },
+  "limits": [
+    "Only complete percentage tracks totaling 100% are adopted from a fixed table's first row; other fixed/auto contracts retain the previous fallback and remain unaccepted.",
+    "Remaining spacing, other pages, all device operations and real server persistence require further acceptance.",
+    "No physical Android device is available through the connected device service."
+  ],
+  "releaseAcceptance": false
+}

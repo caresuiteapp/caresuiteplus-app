@@ -12,7 +12,7 @@ const mocked = vi.hoisted(() => ({ client: null as unknown, mode: 'supabase', te
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => mocked.mode }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => mocked.tenantBlocked ? { ok: false, error: 'Mandant gesperrt' } : null }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { permissions: mocked.serverPermissions, scopeLimited: mocked.scopeLimited, canManageScopes: !mocked.scopeLimited } }) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { permissions: mocked.serverPermissions, scopeLimited: mocked.scopeLimited, canManageScopes: !mocked.scopeLimited } }) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: (_role: unknown, permission: string, context?: { effectivePermissions?: readonly string[] }) =>
   mocked.denied.has(permission) || (context?.effectivePermissions && !context.effectivePermissions.includes(permission))
     ? { ok: false, error: 'Keine Berechtigung' } : null }));

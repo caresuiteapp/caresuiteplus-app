@@ -63,8 +63,8 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId, ref
 
   return (
     <SectionPanel title="Zeitkonto" subtitle={`Monat ${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`}>
-      {todayQuery.error || todayQuery.refreshError ? <ErrorState title="Tageskonto nicht aktuell" message={todayQuery.error ?? todayQuery.refreshError!} onRetry={() => void todayQuery.refresh()} /> : null}
-      {monthQuery.error || monthQuery.refreshError ? <ErrorState title="Monatskonto nicht aktuell" message={monthQuery.error ?? monthQuery.refreshError!} onRetry={() => void monthQuery.refresh()} /> : null}
+      {todayQuery.error || todayQuery.refreshError ? <ErrorState presentation="inline" title="Tageskonto nicht aktuell" message={todayQuery.error ?? todayQuery.refreshError!} onRetry={() => void todayQuery.refresh()} /> : null}
+      {monthQuery.error || monthQuery.refreshError ? <ErrorState presentation="inline" title="Monatskonto nicht aktuell" message={monthQuery.error ?? monthQuery.refreshError!} onRetry={() => void monthQuery.refresh()} /> : null}
       <View style={styles.kpiRow}>
         <PremiumKpiCard
           label="Heute (Min.)"
@@ -91,7 +91,7 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId, ref
             />
           ) : null}
         </View>
-      ) : monthQuery.loading ? <LoadingState message="Zeitkonto wird berechnet…" /> : null}
+      ) : monthQuery.loading ? <LoadingState presentation="inline" message="Zeitkonto wird berechnet…" /> : null}
       <PremiumButton title="Zeitkonto aktualisieren" variant="ghost" onPress={() => void Promise.all([todayQuery.refresh(), monthQuery.refresh()])} />
     </SectionPanel>
   );

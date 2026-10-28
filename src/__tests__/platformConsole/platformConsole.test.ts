@@ -6,7 +6,9 @@ import {
   setDemoPlatformUser,
   validatePlatformReason,
 } from '@/lib/platformConsole';
-import type { PlatformUser } from '@/types/platformConsole';
+import { platformRoleHasCapability as nativeCapability } from '@/lib/platformConsole/platformCapabilities.native';
+import { platformRoleHasCapability as webCapability } from '@/lib/platformConsole/platformCapabilities.web';
+import type { PlatformCapability, PlatformRoleKey, PlatformUser } from '@/types/platformConsole';
 
 const OWNER: PlatformUser = {
   id: 'pu-1',
@@ -150,5 +152,26 @@ describe('Platform Audit (Demo)', () => {
     if (result.ok) {
       expect(result.data.items[0]?.action).toBe('module.enabled');
     }
+  });
+});
+
+
+describe('current native and Web platform access policy', () => {
+  const roles: PlatformRoleKey[] = ['platform_owner', 'platform_admin', 'platform_billing', 'platform_support', 'platform_developer', 'platform_readonly'];
+  const capabilities: PlatformCapability[] = ['tenants.read', 'tenants.write', 'tenants.suspend', 'modules.read', 'modules.write', 'flags.write', 'support.read', 'support.write', 'audit.read', 'system.write', 'bodymap.review.read', 'bodymap.review.write', 'billing.write', 'payments.write'];
+  it.each(roles)('uses the current Web policy for %s in native views and shared services', role => {
+    for (const capability of capabilities) {
+      expect(nativeCapability(role, capability), capability).toBe(webCapability(role, capability));
+      expect(platformRoleHasCapability(role, capability), capability).toBe(webCapability(role, capability));
+    }
+  });
+  it('keeps readonly support and non-owner clinical review unavailable according to the current policy', () => {
+    expect(nativeCapability('platform_readonly', 'support.read')).toBe(false);
+    for (const role of ['platform_admin', 'platform_developer', 'platform_readonly'] as const) {
+      expect(nativeCapability(role, 'bodymap.review.read')).toBe(false);
+      expect(nativeCapability(role, 'bodymap.review.write')).toBe(false);
+    }
+    expect(nativeCapability(null, 'tenants.read')).toBe(false);
+    expect(nativeCapability('platform_owner', 'payments.write')).toBe(false);
   });
 });

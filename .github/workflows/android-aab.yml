@@ -2,19 +2,33 @@ name: CareSuite Android AAB
 
 on:
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: 'Vom Nutzer ausdrücklich angefordertes signiertes Android-Update erzeugen'
+        type: boolean
+        required: true
+        default: false
   push:
     branches:
-      - release/android-0.4.0-20261009
+      - main
+      - fix/native-web-design-parity-20261024
+  pull_request:
+  create:
 
 permissions:
   contents: read
 
 concurrency:
-  group: caresuite-android-production
-  cancel-in-progress: false
+  group: caresuite-android-${{ github.ref_name == 'fix/native-web-design-parity-20261024' && 'native-web-parity' || 'production' }}
+  cancel-in-progress: true
 
 jobs:
   android:
+    # Normal pushes and Web deployments never create app packages.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.build_android) ||
+      (github.event_name == 'create' && github.event.ref_type == 'branch' && startsWith(github.event.ref, 'release/android-request-'))
+    needs: [native-web-parity, portal-audit]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     defaults:
@@ -81,10 +95,31 @@ jobs:
             echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
           } >> "$GITHUB_ENV"
 
+      - name: Tatsächliche AGP-9-Konfiguration vor den vollständigen Releaseprüfungen prüfen
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas env:exec production --non-interactive 'node scripts/verify-android-gradle-configuration.mjs'
+
       - name: Vollständige native App und frischen Android-Export prüfen
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas env:exec production --non-interactive 'bash scripts/build-healthos-full-aab-on-runner.sh --checks-only'
+
+      - name: Native Verwaltungsansichten in Handy- und Tabletgrößen prüfen
+        env:
+          CARESUITE_NATIVE_QA_DIR: /tmp/caresuite-native-qa
+        run: node scripts/verify-native-administration-visual.mjs
+
+      - name: Layoutaufnahmen bereitstellen
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Native-Verwaltung-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-qa/*.png
+            /tmp/caresuite-native-qa/verification.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Gradle-Speicher für den vollständigen R8-Build einrichten
         run: |
@@ -108,6 +143,8 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/CareSuite-HealthOS.aab
             ${{ env.CARESUITE_AAB_DIR }}/SHA256SUMS.txt
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-INFO.json
+            ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-VERIFICATION.json
+            ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-PREVIEW.png
             ${{ env.CARESUITE_AAB_DIR }}/EAS-VERSION-BASELINE.json
             ${{ env.CARESUITE_AAB_DIR }}/R8-build-artifacts.tar.gz
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-MEMORY.json
@@ -140,3 +177,95 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/GRADLE-MEMORY-VERIFIED.json
           if-no-files-found: ignore
           retention-days: 7
+
+  native-web-parity:
+    if: github.event_name != 'create' || (github.event.ref_type == 'branch' && startsWith(github.event.ref, 'release/android-request-'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      CARESUITE_NATIVE_QA_DIR: /tmp/caresuite-native-qa
+      LIQUID_COMMAND_BROWSER_EXECUTABLE: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20.19.4'
+          cache: npm
+      - name: Bestehende Projektabhängigkeiten laden
+        run: npm ci
+      - name: Standort-Start und veraltete Einwilligungsantworten prüfen
+        run: npx vitest run src/__tests__/portal/employeeLocationBootstrap.test.ts src/__tests__/portal/employeeMobilityNetworkRecovery.test.ts src/__tests__/portal/employeeLogbookRlsBoundary.test.ts --maxWorkers=1
+      - name: Gemeinsame Kontosicherheit und geschützte Entwürfe prüfen
+        run: |
+          node --test supabase/tests/account_security_platform_sync.test.mjs
+          npx --no-install vitest run src/__tests__/auth/accountSecurityReceipt.test.ts src/__tests__/platform/encryptedWorkflowStorage.test.ts src/__tests__/offline/deviceSyncOverview.test.ts src/__tests__/settings/userProfileAccountWebInteraction.test.tsx --maxWorkers=2
+      - name: Alle Seiteneinstiege und offene Abweichungen erfassen
+        run: node scripts/audit-native-web-parity.mjs
+      - name: Übertragene Fachseiten mit den Web-Quellen abgleichen
+        run: node scripts/port-native-workspaces.mjs --check
+      - name: Native Datei- und Arbeitsabläufe prüfen
+        run: npx vitest run src/__tests__/platform/metroSqliteAssetResolution.test.ts src/__tests__/platform/nativeWorkflowEnvironment.test.ts src/__tests__/platform/nativeFileTransport.test.ts src/__tests__/platform/nativePdfModuleBoundary.test.ts src/__tests__/platform/nativeWorkspaceStyles.test.ts src/__tests__/platform/nativeWorkspaceGrid.test.tsx src/__tests__/platform/nativeTextBridge.test.tsx src/__tests__/platform/nativeInlineLinks.test.tsx src/__tests__/platform/nativeRuntimeGlobals.test.ts src/__tests__/platform/nativeReactHosts.test.ts src/__tests__/platform/nativeStyleEmitterScopes.test.tsx src/__tests__/ui/stateViewFeedbackFocus.native.test.tsx src/__tests__/ui/listFilterSelectLayout.test.tsx src/__tests__/platform/nativeAssistFilterSelect.test.tsx src/__tests__/platform/nativeTextSizeGuide.test.tsx src/__tests__/connect/nativeWorkspacePresentation.test.tsx src/__tests__/office/officeNotesNativeInteraction.test.tsx src/__tests__/calendar/nativePortalCalendarPresentation.test.tsx src/__tests__/portal/employeeLogbookNativeRuntime.test.tsx src/__tests__/portal/employeePortalWorkspaceRegression.test.tsx src/__tests__/portal/clientPortalNativeContinuity.test.tsx src/__tests__/portal/clientPortalNativeLayout.test.tsx src/__tests__/portal/clientPortalSurfaceContrast.test.tsx src/__tests__/portal/employeePortalTodayAssignments.test.tsx --maxWorkers=2
+      - name: Portalrechte, Wiederaufnahme und direkte Aktenziele prüfen
+        run: npx vitest run src/__tests__/portal/employeeNativeTasksNavigation.test.tsx src/__tests__/portal/clientFamilyCapabilities.test.tsx src/__tests__/portal/clientPortalWorkflowRecovery.test.tsx src/__tests__/clients/clientRecordRouteDestinations.test.tsx src/__tests__/clients/clientRecordBudgetNavigationWeb.test.tsx src/__tests__/tenant/tenantServiceCatalogPersistence.test.ts src/__tests__/permissions/runtimePermissionScope.test.tsx src/__tests__/permissions/runtimePermissionRepository.test.ts src/__tests__/portal/employeePayrollScreenInteraction.test.tsx src/__tests__/portal/familyHomeTransportCapabilities.test.ts src/__tests__/portal/employeeMobilityEntry.test.tsx src/__tests__/portal/employeeRemainingWorkflowsInteraction.test.tsx src/__tests__/clients/clientRecordReadScope.test.tsx src/__tests__/portal/familyPortalActorExpiry.test.tsx src/__tests__/portal/clientProfileFamilyBoundary.test.ts src/__tests__/portal/clientProfileScreenActions.test.tsx src/__tests__/portal/clientBudgetDirectRouteBoundary.test.tsx src/__tests__/portal/clientAnnouncementRead.test.ts src/__tests__/auth/phoneDeviceApprovalLifecycle.test.tsx src/__tests__/portal/familyAppointmentWriteBoundary.test.ts src/__tests__/portal/familyDocumentContentRouting.test.ts src/__tests__/portal/nativeAcademyPortalBoundary.test.tsx src/__tests__/portal/proofOnlyDocumentBoundary.test.ts --maxWorkers=2
+      - name: TypeScript prüfen
+        run: npm run typecheck
+      - name: Native Ansichten im vorhandenen Chrome rendern
+        run: node scripts/verify-native-administration-visual.mjs
+      - name: Gezielte Originalbilder für Sichtprüfung ausgeben
+        if: always()
+        run: node scripts/log-native-audit-review-images.mjs native
+      - name: Gemeinsame Navigation und Seitenziele prüfen
+        run: npx vitest run src/__tests__/layout/nativeDesktopInteraction.test.tsx src/__tests__/navigation/moduleDesktop.test.ts src/__tests__/navigation/legacyPortalEntryTargets.test.tsx src/__tests__/auth/businessWelcomePresentation.test.tsx src/__tests__/navigation/companyInventoryRoutes.test.tsx src/__tests__/navigation/nativeWebDestinationParity.test.ts src/__tests__/navigation/nativeExpoRouteResolution.test.ts src/__tests__/navigation/nativeModuleNavigatorLifecycle.test.tsx src/__tests__/auth/nativeAuthGuardFocus.test.tsx src/__tests__/portal/nativePortalViewport.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/tenant/nativeCompanyWorkspaceInteraction.test.tsx --maxWorkers=2
+      - name: Aufnahmen und offene Abweichungen sichern
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Native-Web-Abgleich-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-qa/*.png
+            /tmp/caresuite-native-qa/verification.json
+            /tmp/caresuite-native-web-parity.json
+          if-no-files-found: error
+          retention-days: 7
+
+
+  portal-audit:
+    name: Vorbereitete Portalansichten – ${{ matrix.portal }}
+    if: github.event_name != 'create' || (github.event.ref_type == 'branch' && startsWith(github.event.ref, 'release/android-request-'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        portal: [administration, employee, client_and_family]
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      CARESUITE_NATIVE_PORTAL_AUDIT_DIR: /tmp/caresuite-native-portal-audit
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '20.19.4'
+          cache: npm
+      - name: Bestehende Projektabhängigkeiten laden
+        run: npm ci
+      - name: Tatsächliche Android-Routen inventarisieren
+        run: node scripts/audit-native-portal-route-matrix.mjs --write
+      - name: Tatsächliche Seiten mit Portaloberfläche im vorhandenen Chrome prüfen
+        run: node scripts/verify-native-portal-audit.mjs --portal=${{ matrix.portal }} --states=ready,loading,error,empty --roles=${{ matrix.portal == 'client_and_family' && 'client,family' || 'client' }}
+      - name: Gezielte Portalbilder für Sichtprüfung ausgeben
+        if: always()
+        run: node scripts/log-native-audit-review-images.mjs ${{ matrix.portal }}
+      - name: Belege und offene Fehler sichern
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: CareSuite-Portal-Audit-${{ matrix.portal }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            /tmp/caresuite-native-portal-audit/*.json
+            /tmp/caresuite-native-portal-audit/*.png
+            docs/audit/native-portal-route-matrix.json
+          retention-days: 14

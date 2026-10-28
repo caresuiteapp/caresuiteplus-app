@@ -174,20 +174,20 @@ async function serviceFixture(options = {}) {
   const response = options.response ?? { release:model.OPTIONAL_VISIT_TASKS_RELEASE, source, parentId:parent, inserted:1, tasks:[task()] };
   const platform = options.platform || 'web';
   const serviceFile = resolvePlatformSource('@/lib/portal/optionalVisitTaskService', path.join(root, 'src/screens/portal/EmployeePortalVisitExecutionScreen' + (platform === 'web' ? '.web' : '') + '.tsx'), platform);
-  if (platform === 'android') assert.equal(serviceFile, path.join(root, 'src/lib/portal/optionalVisitTaskService.ts'));
+  if (platform === 'android') assert.equal(serviceFile, path.join(root, 'src/lib/portal/optionalVisitTaskService.native.ts'));
   const service = await loadSource(path.relative(root, serviceFile), {
     '@/lib/services/mode':{ getServiceMode:() => options.mode ?? 'supabase' },
     '@/lib/auth/portalSupabaseAuth':{ ensurePortalWriteSession:async value => { calls.push(['session',value]); return options.session ?? { ok:true }; } },
     '@/lib/assist/visitService':{ resolveExecutableVisitId:async (...args) => { calls.push(['occurrence',...args]); return options.executable ?? { ok:true,data:{ visitId:uid(10) } }; } },
     '@/features/liveTracking/resolveLiveAssignment':{ resolveLiveAssignment:async args => { calls.push(['resolve',args]); return options.resolved ?? { ok:true,data:{ detail:{ tenantId:uid(1) }, employeeId:uid(3), visitId:uid(10), assignmentId:uid(11), persistenceSource:source } }; } },
-    '@/lib/supabase/client':{ getSupabaseClient:() => options.noClient ? null : { rpc:(name,params) => { calls.push(['rpc',name,params]); return { abortSignal:signal => { calls.push(['signal',signal]); return options.reject ? Promise.reject(Error('network')) : Promise.resolve({ data:response,error:options.error ?? null }); } }; } } },
+    [runtimeImport(path.relative(root, serviceFile), 'getSupabaseClient')]:{ getSupabaseClient:() => options.noClient ? null : { rpc:(name,params) => { calls.push(['rpc',name,params]); return { abortSignal:signal => { calls.push(['signal',signal]); return options.reject ? Promise.reject(Error('network')) : Promise.resolve({ data:response,error:options.error ?? null }); } }; } } },
   }, { setTimeout:callback => { timers.add(callback); return callback; }, clearTimeout:timer => timers.delete(timer) }, platform);
   return { save:input => service.addEmployeeOptionalVisitTasks(scope,input ?? [draft()]), calls, timers };
 }
 
 test('Der native Speicherdienst bestätigt beide Einsatzquellen und verweigert fremde Zuordnungen', async () => {
   const consumer = 'src/screens/portal/EmployeePortalVisitExecutionScreen.tsx';
-  assert.equal(resolvePlatformSource(runtimeImport(consumer, 'addEmployeeOptionalVisitTasks'), path.join(root, consumer), 'android'), path.join(root, 'src/lib/portal/optionalVisitTaskService.ts'));
+  assert.equal(resolvePlatformSource(runtimeImport(consumer, 'addEmployeeOptionalVisitTasks'), path.join(root, consumer), 'android'), path.join(root, 'src/lib/portal/optionalVisitTaskService.native.ts'));
   for (const source of ['assist_visits', 'assignments']) {
     const f = await serviceFixture({ platform: 'android', source });
     assert.equal((await f.save()).ok, true);

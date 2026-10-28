@@ -1,0 +1,28 @@
+// Generated native presentation from src/lib/organization/organizationLifecycleWorkspaceForm.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { organizationLifecycleDefinitions, organizationLifecycleKinds, organizationLifecycleVersion, validateOrganizationLifecycleCommand, type OrganizationLifecycleCommand, type OrganizationLifecycleContext, type OrganizationLifecycleKind, type OrganizationLifecycleSource, type OrganizationLifecycleState } from "./organizationLifecycleWorkspaceDomain.native.ts";
+export type OrganizationLifecycleDraft = {
+    version: typeof organizationLifecycleVersion;
+    scope: {
+        tenantId: string;
+        actorId: string;
+    };
+    headId: string | null;
+    kind: OrganizationLifecycleKind;
+    occurredAt: string;
+    note: string;
+    values: Record<string, string>;
+    selected: Record<string, {
+        id: string;
+        value: OrganizationLifecycleSource;
+    }>;
+};
+export const organizationLifecycleGroups = [...new Set(organizationLifecycleKinds.map(kind => organizationLifecycleDefinitions[kind].group))];
+export const organizationLifecycleKindsForGroup = (group: string) => organizationLifecycleKinds.filter(kind => organizationLifecycleDefinitions[kind].group === group);
+export const organizationLifecycleFields = (kind: OrganizationLifecycleKind) => organizationLifecycleDefinitions[kind].fields;
+export const organizationLifecycleSourceFields = (kind: OrganizationLifecycleKind) => organizationLifecycleDefinitions[kind].sources;
+export const organizationLifecycleSourceOptions = (field: {
+    kinds: readonly string[];
+}, context: OrganizationLifecycleContext) => context.sources.rows.filter(row => field.kinds.includes(row.kind)).map(row => ({ id: `${row.kind}:${row.id}`, label: [String(row.snapshot.title ?? row.snapshot.name ?? row.snapshot.subject ?? row.snapshot.reference ?? row.snapshot.status ?? row.kind), String(row.snapshot.version ?? row.snapshot.state ?? ''), row.id].filter(Boolean).join(' · '), value: row }));
+export function buildOrganizationLifecycleCommand(draft: OrganizationLifecycleDraft, state: OrganizationLifecycleState, requestId: string, eventId: string): OrganizationLifecycleCommand { const payload: Record<string, unknown> = { ...draft.values }; for (const [key, value] of Object.entries(draft.selected))
+    payload[key] = structuredClone(value.value); const command: OrganizationLifecycleCommand = { version: organizationLifecycleVersion, requestId, eventId, tenantId: draft.scope.tenantId, actorId: draft.scope.actorId, expectedHeadId: state.headId, kind: draft.kind, occurredAt: draft.occurredAt, note: draft.note, payload }; validateOrganizationLifecycleCommand(command); return command; }

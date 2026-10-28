@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   View,
   type ViewStyle,
@@ -17,6 +18,8 @@ type ListFilterSelectProps = {
   options: ListFilterOption[];
   onChange: (key: string) => void;
   style?: ViewStyle;
+  /** Disable flex growth for fields stacked vertically in a form. */
+  grow?: boolean;
   onLightSurface?: boolean;
 };
 
@@ -26,9 +29,17 @@ export function ListFilterSelect({
   options,
   onChange,
   style,
+  grow = true,
 }: ListFilterSelectProps) {
   const [open, setOpen] = useState(false);
   const styles = useAuroraGlassSelectStyles();
+  const wrapStyle: ViewStyle = grow ? styles.wrap : {
+    ...StyleSheet.flatten(styles.wrap),
+    flex: undefined,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  };
   const selectedLabel = options.find((opt) => opt.key === value)?.label ?? value;
 
   const handleSelect = (key: string) => {
@@ -63,7 +74,7 @@ export function ListFilterSelect({
 
   return (
     <View
-      style={[styles.wrap, style]}
+      style={[wrapStyle, style]}
       {...(Platform.OS === 'web'
         ? ({ dataSet: { csHealthosComponent: 'filter-select' } } as object)
         : {})}

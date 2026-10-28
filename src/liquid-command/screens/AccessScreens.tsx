@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useRouter } from 'expo-router';
+import { Link, useIsFocused, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   completeFirstLogin,
@@ -172,6 +172,7 @@ export function BusinessAccessScreen() {
   const { signInWithSupabaseSession, user } = useAuth();
   const loginLifecycle = useRef({ mounted: true, generation: 0, userId: user?.id, expectedUserId: undefined as string | undefined });
   const loginLock = useRef(false);
+  const requestLifecycle = usePortalLoginRequest();
   if (loginLifecycle.current.userId !== user?.id) {
     loginLifecycle.current.userId = user?.id;
     if (user?.id !== loginLifecycle.current.expectedUserId) loginLifecycle.current.generation += 1;
@@ -193,17 +194,23 @@ export function BusinessAccessScreen() {
     setError(null);
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!requestLifecycle.focused) { loginLock.current = false; setLoading(false); setPassword(''); setError(null); }
+  }, [requestLifecycle.focused]);
+
   const submit = async () => {
-    if (loginLock.current || !loginLifecycle.current.mounted) return;
+    if (loginLock.current || !loginLifecycle.current.mounted || !requestLifecycle.focused) return;
     setError(null);
     if (!email.trim() || !password) {
       setError('E-Mail und Passwort sind erforderlich.');
       return;
     }
+    const attempt = requestLifecycle.begin();
+    if (attempt === null) return;
     setLoading(true);
     loginLock.current = true;
     const generation = loginLifecycle.current.generation;
-    const isCurrent = () => loginLifecycle.current.mounted && loginLifecycle.current.generation === generation;
+    const isCurrent = () => loginLifecycle.current.mounted && loginLifecycle.current.generation === generation && requestLifecycle.isCurrent(attempt);
     try {
       const result = await loginBusinessUser(email, password);
       if (!isCurrent()) return;
@@ -223,7 +230,7 @@ export function BusinessAccessScreen() {
     } catch (cause) {
       if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
-      if (isCurrent()) { loginLock.current = false; setLoading(false); }
+      if (isCurrent()) { requestLifecycle.finish(attempt); loginLock.current = false; setLoading(false); }
     }
   };
 
@@ -278,6 +285,37 @@ export function BusinessAccessScreen() {
   );
 }
 
+/** A retained login scene may finish requests only while it owns the foreground. */
+function usePortalLoginRequest() {
+  const focused = useIsFocused();
+  const lifecycle = useRef({ mounted: true, focused, generation: 0, pending: null as number | null });
+  if (lifecycle.current.focused !== focused) {
+    lifecycle.current.focused = focused;
+    lifecycle.current.generation += 1;
+    lifecycle.current.pending = null;
+  }
+  useEffect(() => {
+    lifecycle.current.mounted = true;
+    return () => { lifecycle.current.mounted = false; lifecycle.current.generation += 1; lifecycle.current.pending = null; };
+  }, []);
+  return {
+    focused,
+    begin() {
+      const state = lifecycle.current;
+      if (!state.mounted || !state.focused || state.pending !== null) return null;
+      state.pending = ++state.generation;
+      return state.pending;
+    },
+    isCurrent(attempt: number) {
+      const state = lifecycle.current;
+      return state.mounted && state.focused && state.pending === attempt && state.generation === attempt;
+    },
+    finish(attempt: number) {
+      if (lifecycle.current.pending === attempt) lifecycle.current.pending = null;
+    },
+  };
+}
+
 export function EmployeeAccessScreen() {
   const router = useRouter();
   const { signInPortalSession } = useAuth();
@@ -285,19 +323,22 @@ export function EmployeeAccessScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const submitting = useRef(false);
+  const lifecycle = usePortalLoginRequest();
+  useEffect(() => { if (!lifecycle.focused) { setLoading(false); setPassword(''); setError(null); } }, [lifecycle.focused]);
 
   const submit = async () => {
-    if (submitting.current) return;
+    const attempt = lifecycle.begin();
+    if (attempt === null) return;
     setError(null);
     if (!username.trim() || !password) {
       setError('Benutzername und Passwort sind erforderlich.');
+      lifecycle.finish(attempt);
       return;
     }
-    submitting.current = true;
     setLoading(true);
     try {
       const result = await loginEmployeePortal(username, password);
+      if (!lifecycle.isCurrent(attempt)) return;
       if (!result.ok || !result.data.portalSession) {
         setError(result.ok ? 'Die sichere Portal-Sitzung fehlt.' : result.error);
         return;
@@ -306,22 +347,23 @@ export function EmployeeAccessScreen() {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
       });
+      if (!lifecycle.isCurrent(attempt)) return;
       if (!completed.ok) {
         setError(completed.error);
         return;
       }
       await signInPortalSession(completed.data.portalSession);
+      if (!lifecycle.isCurrent(attempt)) return;
       if (!completed.data.portalSession.mustChangePassword) markPortalWelcomePending('employee');
       router.replace(
-        result.data.mustChangePassword
+        completed.data.portalSession.mustChangePassword
           ? '/auth/employee-first-login'
           : '/portal/employee' as never,
       );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
+      if (lifecycle.isCurrent(attempt)) setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
-      submitting.current = false;
-      setLoading(false);
+      if (lifecycle.isCurrent(attempt)) { lifecycle.finish(attempt); setLoading(false); }
     }
   };
 
@@ -370,19 +412,26 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const lifecycle = usePortalLoginRequest();
+  useEffect(() => { if (!lifecycle.focused) { setLoading(false); setCode(''); setError(null); } }, [lifecycle.focused]);
   const submit = async () => {
+    const attempt = lifecycle.begin();
+    if (attempt === null) return;
     setError(null);
     if (!username.trim()) {
       setError('Benutzername ist erforderlich.');
+      lifecycle.finish(attempt);
       return;
     }
     if (!code.trim()) {
       setError('Der sechsstellige Portal-Code ist erforderlich.');
+      lifecycle.finish(attempt);
       return;
     }
     setLoading(true);
     try {
       const result = await loginClientPortal(username, code);
+      if (!lifecycle.isCurrent(attempt)) return;
       if (!result.ok || !result.data.portalSession) {
         setError(result.ok ? 'Die sichere Portal-Sitzung fehlt.' : result.error);
         return;
@@ -391,17 +440,19 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
       });
+      if (!lifecycle.isCurrent(attempt)) return;
       if (!completed.ok) {
         setError(completed.error);
         return;
       }
       await signInPortalSession(completed.data.portalSession);
+      if (!lifecycle.isCurrent(attempt)) return;
       markPortalWelcomePending('client');
       router.replace('/portal/client' as never);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
+      if (lifecycle.isCurrent(attempt)) setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
     } finally {
-      setLoading(false);
+      if (lifecycle.isCurrent(attempt)) { lifecycle.finish(attempt); setLoading(false); }
     }
   };
 

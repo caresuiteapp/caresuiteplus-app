@@ -1,5 +1,6 @@
-import { Redirect } from 'expo-router';
+import { CompanyWorkspaceScreen } from '@/screens/office/CompanyWorkspaceScreen.native';
+import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
 
 export default function CompanySectionRoute() {
-  return <Redirect href="/unternehmen" />;
+  return <LiquidModuleRouteLayout><CompanyWorkspaceScreen initialTab="structure" initialView="placements" /></LiquidModuleRouteLayout>;
 }

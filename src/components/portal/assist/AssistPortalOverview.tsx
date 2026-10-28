@@ -3,14 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
 import { ClientPortalHomeDashboard } from '@/components/portal/assist/ClientPortalHomeDashboard';
-import { MobilePortalDashboard } from '@/components/portal/assist/MobilePortalDashboard';
 import { PortalActivitiesModal } from '@/components/portal/assist/PortalActivitiesModal';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
 import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
@@ -44,21 +42,9 @@ export function AssistPortalOverview({
   onRefresh,
   initialModal = null,
 }: AssistPortalOverviewProps) {
-  const { isPhone } = useDeviceClass();
-
-  if (isPhone) {
-    return (
-      <MobilePortalDashboard
-        context={context}
-        showSuccess={showSuccess}
-        onRefresh={onRefresh}
-        initialModal={initialModal}
-      />
-    );
-  }
-
   return (
-    <AssistPortalOverviewDesktop
+    <AssistPortalOverviewContent
+      key={JSON.stringify([context.tenantId, context.clientId, context.roleKey, context.familyAccess?.accountId, context.familyAccess?.permissions])}
       context={context}
       showSuccess={showSuccess}
       onRefresh={onRefresh}
@@ -67,7 +53,7 @@ export function AssistPortalOverview({
   );
 }
 
-function AssistPortalOverviewDesktop({
+function AssistPortalOverviewContent({
   context,
   showSuccess,
   onRefresh,
@@ -94,7 +80,7 @@ function AssistPortalOverviewDesktop({
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
-  const uploadReleased = canAccessPortalFeature(context, 'assist', 'documents');
+  const uploadReleased = context.roleKey !== 'family_portal' && canAccessPortalFeature(context, 'assist', 'documents');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
   const clearModalRoute = useCallback(() => {
@@ -233,6 +219,7 @@ function AssistPortalOverviewDesktop({
   return (
     <AssistPortalShell>
       <View style={styles.container}>
+        {error ? <ErrorState title="Übersicht konnte nicht aktualisiert werden" message={error} onRetry={handleRefresh} presentation="inline" /> : null}
         {showSuccess ? <SuccessState message="Daten aktualisiert." /> : null}
         {localSuccess ? <SuccessState message="Ihre Anfrage wurde übermittelt." /> : null}
         {uploadSuccess ? (
@@ -326,6 +313,5 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
     width: '100%',
     maxWidth: '100%',
-    paddingHorizontal: careSpacing.md,
   },
 });

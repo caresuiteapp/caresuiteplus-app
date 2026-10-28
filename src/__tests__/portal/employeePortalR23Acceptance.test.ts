@@ -11,11 +11,16 @@ describe('employee portal R23 production acceptance', () => {
     const catalog = readSrc('src/liquid-command/navigation/portalCatalog.ts');
     const legacy = readSrc('src/lib/navigation/employeePortalNavigation.ts');
     const employeeCatalog = catalog.split('employee: [')[1]?.split('],\n  client: [')[0] ?? '';
-    const removed = ['Aufgaben', 'Unterschriften', 'Mitteilungen', 'Mobilität', 'Hilfe'];
+    const removed = ['Aufgaben', 'Unterschriften', 'Mobilität'];
 
     for (const label of removed) {
       expect(employeeCatalog).not.toContain(`label: '${label}'`);
       expect(legacy).not.toContain(`label: '${label}'`);
+    }
+
+    for (const id of ['announcements', 'help']) {
+      expect(employeeCatalog).toMatch(new RegExp(`id: '${id}'[^\\n]*route: '/portal/employee/${id}'`));
+      expect(employeeCatalog).not.toMatch(new RegExp(`id: '${id}'[^\\n]*compact: true`));
     }
 
     for (const label of ['Heute', 'Einsätze', 'Klient:innen', 'Kalender', 'Nachrichten', 'Profil']) {
@@ -23,15 +28,16 @@ describe('employee portal R23 production acceptance', () => {
     }
   });
 
-  it('limits client records to the authenticated employee assignments', () => {
+  it('keeps the active tenant directory under the existing server scope and sanitizes portal data', () => {
     const clients = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
     const patch = readSrc('supabase/patches/ambulatory_employee_portal_scope.sql');
 
-    expect(clients).toContain('loadEmployeeClientVisits');
-    expect(clients).toContain(".eq('employee_id', employeeId)");
-    expect(clients).toContain('loadClientsByIds');
-    expect(clients).not.toContain('loadAllTenantClients');
-    expect(clients).not.toContain('fetchLivePortalAppointmentsForEmployeeTeam');
+    expect(clients).toContain('loadTeamClientVisits');
+    expect(clients).toContain(".eq('status', 'active')");
+    expect(clients).toContain(".is('deleted_at', null)");
+    expect(clients).toContain('loadAllTenantClients');
+    expect(clients).toContain('if (!tenantId.trim() || !_employeeId.trim())');
+    expect(clients).toContain('fetchLivePortalAppointmentsForEmployeeTeam');
     expect(clients).toContain(".eq('tenant_id', tenantId)");
     expect(clients).toContain('sanitizeEmployeePortalPayload');
     expect(patch).toContain('tenant_id = public.current_tenant_id()');

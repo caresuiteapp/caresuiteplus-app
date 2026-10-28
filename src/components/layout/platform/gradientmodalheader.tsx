@@ -44,13 +44,13 @@ export function GradientModalHeader({
 }: GradientModalHeaderProps) {
   const runtimePortalTheme = usePortalPremiumRuntimeTheme();
   const runtimeTheme = useLegacyTheme();
-  const webTone = Platform.OS === 'web' ? tone : undefined;
-  const explicitLight = webTone === 'light';
-  const portalTheme = webTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
-  const isLight = webTone ? webTone === 'light' : runtimeTheme.isLight;
+  const explicitTone = tone;
+  const explicitLight = explicitTone === 'light';
+  const portalTheme = explicitTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
+  const isLight = explicitTone ? explicitTone === 'light' : runtimeTheme.isLight;
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const auroraHeader = !webTone && !portalTheme.active && auroraActive && shellHostsAurora;
+  const auroraHeader = !explicitTone && !portalTheme.active && auroraActive && shellHostsAurora;
   const plainLightHeader = portalTheme.active || (isLight && !auroraHeader);
   const text = useAuroraAdaptiveText();
   const headerGlass = useShellGlassSurfaceStyle('modal', { viewContext: 'form' });

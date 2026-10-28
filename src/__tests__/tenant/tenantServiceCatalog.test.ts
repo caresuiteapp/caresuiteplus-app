@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   fetchTenantServiceCatalog,
-  formatCatalogSummary,
   resetTenantServiceCatalogStore,
   saveTenantServiceCatalogItem,
 } from '@/lib/tenant/tenantServiceCatalogService';
@@ -10,20 +9,13 @@ import {
 vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 
 describe('tenantServiceCatalogService', () => {
-  it('liefert Demo-Standardleistungen für alle Module', async () => {
+  it('liefert ohne Serververbindung keine nativen Beispielpreise als Unternehmenskatalog', async () => {
     resetTenantServiceCatalogStore();
     const result = await fetchTenantServiceCatalog(DEMO_TENANT_ID, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.items.some((item) => item.serviceKey === 'assist.alltagsbegleitung')).toBe(true);
-    expect(result.data.items.some((item) => item.moduleKey === 'pflege')).toBe(true);
-    expect(result.data.items.some((item) => item.moduleKey === 'stationaer')).toBe(true);
-    expect(result.data.items.some((item) => item.moduleKey === 'beratung')).toBe(true);
-    expect(formatCatalogSummary(result.data.items)).toContain('Assist');
-    expect(formatCatalogSummary(result.data.items)).toContain('Std.');
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
   });
 
-  it('speichert Katalog-Einträge im Demo-Modus', async () => {
+  it('meldet ohne Serververbindung keine erfolgreiche native Katalogspeicherung', async () => {
     resetTenantServiceCatalogStore();
     const saved = await saveTenantServiceCatalogItem(
       DEMO_TENANT_ID,
@@ -37,8 +29,6 @@ describe('tenantServiceCatalogService', () => {
       },
       'business_admin',
     );
-    expect(saved.ok).toBe(true);
-    if (!saved.ok) return;
-    expect(saved.data.items.some((item) => item.serviceKey === 'assist.custom.test')).toBe(true);
+    expect(saved).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
   });
 });

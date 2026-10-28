@@ -23,13 +23,8 @@ describe('employee login timeout regressions', () => {
     expect(portalAuth).toContain('withPortalSessionTimeout(\n      client.auth.setSession');
   });
 
-  it('blocks duplicate employee login submissions while one request is running', () => {
-    const accessScreens = source('src/liquid-command/screens/AccessScreens.tsx');
-
-    expect(accessScreens).toContain('const submitting = useRef(false);');
-    expect(accessScreens).toContain('if (submitting.current) return;');
-    expect(accessScreens).toContain('submitting.current = false;');
-  });
+  // Synchronous duplicate activation is exercised through both actual login
+  // screens in businessRegistrationLifecycle.test.tsx, rather than private ref names.
 
   it('uses trusted signed claims when the shared profile bootstrap is unavailable', () => {
     const provider = source('src/lib/auth/AuthProvider.tsx');

@@ -15,11 +15,14 @@ import { ensurePortalWriteSession } from '@/lib/auth/portalSupabaseAuth';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
   const { portalSession } = useAuth();
-  const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady, isResolvingClientLink } =
+  const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady, isResolvingClientLink, isResolvingEmployeeLink, familyAccess } =
     usePortalActor();
+  const messagesAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'messages');
+  const sendingAllowed = messagesAllowed && (roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'send_messages'));
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -45,8 +48,8 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       return fetchPortalOfficeThreadDetail(tenantId, threadId, actorResult.data);
     },
     [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId],
-    { enabled: !!tenantId && !!threadId && isLinkedReady,
-      queryKey: JSON.stringify(['portal-chat', tenantId, actorProfileId, actorRoleKey, actorClientId, actorEmployeeId, threadId]) },
+    { enabled: !!tenantId && !!threadId && isLinkedReady && messagesAllowed,
+      queryKey: JSON.stringify(['portal-chat', tenantId, actorProfileId, actorRoleKey, actorClientId, actorEmployeeId, threadId, messagesAllowed]) },
   );
 
   const queryRefresh = query.refresh;
@@ -57,15 +60,16 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
   }, [queryRefresh]);
 
   useEffect(() => {
-    if (!tenantId || !threadId) return;
+    if (!tenantId || !threadId || !isLinkedReady || !messagesAllowed) return;
     const unsubscribe = subscribeToOfficeMessageThread(tenantId, threadId, () => {
       void refresh();
     });
     return unsubscribe;
-  }, [tenantId, threadId, refresh]);
+  }, [tenantId, threadId, refresh, isLinkedReady, messagesAllowed]);
 
   const markAsRead = useCallback(async () => {
     if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+    if (!isLinkedReady || !messagesAllowed) return { ok: false as const, error: 'Nachrichten sind für diesen Portalzugang nicht freigegeben.' };
     const actorResult = resolvePortalActor(
       actorRoleKey,
       portalSession,
@@ -87,11 +91,14 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     actorEmployeeId,
     portalSession,
     silentRefresh,
+    isLinkedReady,
+    messagesAllowed,
   ]);
 
   const sendMessage = useCallback(
     async (body: string, attachments: PendingMessageAttachment[] = []) => {
       if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+      if (!isLinkedReady || !sendingAllowed) return { ok: false as const, error: 'Nachrichten senden ist für diesen Portalzugang nicht freigegeben.' };
       const actorResult = resolvePortalActor(
         actorRoleKey,
         portalSession,
@@ -129,11 +136,12 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       }
       return result;
     },
-    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, portalSession, refresh],
+    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, portalSession, refresh, isLinkedReady, sendingAllowed],
   );
 
   const startNewChat = useCallback(async () => {
     if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+    if (!isLinkedReady || !sendingAllowed) return { ok: false as const, error: 'Nachrichten senden ist für diesen Portalzugang nicht freigegeben.' };
     const actorResult = resolvePortalActor(
       actorRoleKey,
       portalSession,
@@ -154,13 +162,16 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     } catch {
       return { ok: false as const, error: toUserFacingSendError() };
     }
-  }, [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, portalSession]);
+  }, [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, portalSession, isLinkedReady, sendingAllowed]);
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,
-    loading: query.loading || (!!threadId && !isLinkedReady),
+    loading: query.loading || isResolvingClientLink || isResolvingEmployeeLink,
     error:
-      query.error || sendError
+      !messagesAllowed ? 'Nachrichten sind für diesen Angehörigenzugang nicht freigegeben.'
+      : !isLinkedReady && !isResolvingClientLink && !isResolvingEmployeeLink
+        ? 'Ihr Portalprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an.'
+      : query.error || sendError
         ? toPortalUserFacingError(
             query.error ?? sendError,
             'Der Chat konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
@@ -168,6 +179,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
         : null,
     refreshing: query.refreshing,
     sending,
+    canSend: isLinkedReady && sendingAllowed,
     refresh,
     sendMessage,
     startNewChat,

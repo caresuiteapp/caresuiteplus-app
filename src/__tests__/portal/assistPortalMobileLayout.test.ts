@@ -94,13 +94,8 @@ describe('Assist portal mobile layout', () => {
     expect(layout).toContain('kind="client"');
   });
 
-  it('delegates phone overview to MobilePortalDashboard without touching desktop JSX', () => {
-    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
-    expect(overview).toContain('MobilePortalDashboard');
-    expect(overview).toContain('if (isPhone)');
-    expect(overview).toContain('ClientPortalHomeDashboard');
-    expect(overview).not.toContain('PortalKpiCard');
-  });
+  // Rotation and bound-client form continuity are exercised by the actual
+  // overview/form components in clientPortalNativeContinuity.test.tsx.
 
   it('MobilePortalDashboard uses single scroll surface via portal shell', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');

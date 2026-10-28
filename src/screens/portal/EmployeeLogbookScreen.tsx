@@ -133,7 +133,8 @@ export function EmployeeLogbookScreen() {
     } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'Die Navigation konnte nicht geöffnet werden. Bitte erneut versuchen.'); }
   }
 
-  if (!actor.isReady || query.loading && !query.data || eligibilityQuery.loading && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
+  if (!actor.isReady || actor.isResolvingEmployeeLink || query.loading && !query.data || eligibilityQuery.loading && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
+  if (!actor.employeeId) return <PortalTabScreen title="Fahrtenbuch"><ErrorState presentation="inline" title="Fahrtenbuch nicht verfügbar" message="Das Mitarbeitendenkonto ist noch nicht vollständig verknüpft. Bitte melden Sie sich erneut an. Wenn der Fehler bestehen bleibt, wenden Sie sich an die Verwaltung." /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Fahrtenbuch"><ErrorState title="Fahrtenbuch nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
   if (eligibilityQuery.error && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><ErrorState title="Fahrtenbuchfreigabe nicht verfügbar" message={eligibilityQuery.error} onRetry={() => void eligibilityQuery.refresh()} /></PortalTabScreen>;
   if (eligibilityQuery.data && !eligibilityQuery.data.eligible && !active && !query.data?.trips.some((trip) => trip.status === 'confirmation_required')) {

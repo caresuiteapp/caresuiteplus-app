@@ -25,6 +25,7 @@ import type { OfficeMessageCategory } from '@/types/office/messaging';
 import { PORTAL_EMERGENCY_DISCLAIMER } from '@/lib/office/messagecategoryconstants';
 import { portalAudienceForRole } from '@/lib/portal/portalAudience';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 type PortalNewChatModalProps = {
   visible: boolean;
@@ -60,6 +61,7 @@ export function PortalNewChatModal({
     isLinkedReady,
     isResolvingClientLink,
     isResolvingEmployeeLink,
+    familyAccess,
   } = usePortalActor();
   const draftActorId = actorId ?? portalSession?.accountId ?? null;
   const [subject, setSubject] = useState('');
@@ -77,7 +79,8 @@ export function PortalNewChatModal({
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
   // Keep the action tappable so a missing account link produces an actionable
   // explanation instead of a permanently disabled, apparently broken button.
-  const canSend = !submitting;
+  const familySendingAllowed = roleKey !== 'family_portal' || (familyPortalAllows(familyAccess, 'messages') && familyPortalAllows(familyAccess, 'send_messages'));
+  const canSend = !submitting && familySendingAllowed;
 
   const styles = useMemo(
     () =>
@@ -208,6 +211,10 @@ export function PortalNewChatModal({
 
   const handleCreate = async () => {
     if (sendLockRef.current) return;
+    if (!familySendingAllowed) {
+      setError('Nachrichten senden ist für diesen Angehörigenzugang nicht freigegeben.');
+      return;
+    }
     if (!tenantId) {
       setError('Der Mandant konnte nicht geladen werden. Bitte melden Sie sich erneut an.');
       return;
@@ -347,13 +354,13 @@ export function PortalNewChatModal({
         <Text style={chatStyles.disclaimer}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
       </ScrollView>
       <View style={chatStyles.composer}>
-        {error ? <Text accessibilityRole="alert" style={chatStyles.error}>{error}</Text> : null}
+        {error || !familySendingAllowed ? <Text accessibilityRole="alert" style={chatStyles.error}>{error ?? 'Nachrichten senden ist für diesen Angehörigenzugang nicht freigegeben.'}</Text> : null}
         <TextInput
           accessibilityLabel="Ihre Nachricht an die Verwaltung"
           testID="portal-new-chat-message"
           value={initialMessage}
           onChangeText={setInitialMessage}
-          editable={!submitting}
+          editable={!submitting && familySendingAllowed}
           multiline
           placeholder="Nachricht schreiben…"
           placeholderTextColor="#5B7187"

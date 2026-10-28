@@ -43,7 +43,9 @@ describe('client portal experience recovery', () => {
   it('keeps the client document read path free of office writes and settings-table gates', () => {
     const service = readSrc('src/lib/portal/portalDocumentsLiveService.ts');
     expect(service).not.toContain('syncClientDocumentPortalReleaseIfEnabled');
-    expect(service).not.toContain('fetchClientPortalSettingsResolved');
+    const proofGate = service.slice(service.indexOf('  if (proofOnly) {'), service.indexOf('  let query =', service.indexOf('  if (proofOnly) {')));
+    expect(proofGate).toContain('fetchClientPortalSettingsResolved');
+    expect(proofGate).toContain("canClientPortalSeeFeature(settings.data, 'proofs')");
     expect(service).toContain(".eq('portal_visible', true)");
     expect(service).toContain('PORTAL_INTERNAL_SENSITIVITIES');
   });

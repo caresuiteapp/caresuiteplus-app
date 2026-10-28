@@ -1,0 +1,89 @@
+// Generated native presentation from src/screens/pflege/CareTourStopProofScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScreenShell } from '@/components/layout';
+import { ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { fetchCareTours } from '@/lib/pflege/careTourPlanningService';
+import { createCatalogCareProofBatch, fetchCareOperations, fetchCareStopProofBatch, newCareStopProofBatchRequestId, type CareStopProofLineInput } from '@/lib/pflege/ambulatoryOperationsService';
+import { fetchCareMedicalOrders } from '@/lib/pflege/careClinicalCoreService';
+import { validTariffs, basisLabels } from '@/lib/pflege/ambulatoryOperationsDomain';
+import { buildCareStopProofLine, validateCareStopProofLines } from '@/lib/pflege/careStopMultipleProofDomain';
+import { berlinCalendarDate } from '@/lib/pflege/careTourWorkflow';
+import { formatDate, formatTime } from '@/lib/formatters/dateTimeFormatters';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+export function CareTourStopProofScreen({ stopId }: {
+    stopId: string;
+}) {
+    const tenantId = useServiceTenantId();
+    const { profile } = useAuth();
+    const router = useRouter();
+    const { c } = useCareLightPalette();
+    const query = useAsyncQuery(async () => { if (!tenantId)
+        return { ok: false as const, error: 'Kein Mandant.' }; const [tours, operations, orders, batch] = await Promise.all([fetchCareTours(tenantId, profile?.roleKey), fetchCareOperations(tenantId, profile?.roleKey), fetchCareMedicalOrders(tenantId, profile?.roleKey), fetchCareStopProofBatch(tenantId, profile?.roleKey, stopId)]); if (!tours.ok)
+        return tours; if (!operations.ok)
+        return operations; if (!batch.ok)
+        return batch; return { ok: true as const, data: { tours: tours.data, operations: operations.data, orders: orders.ok ? orders.data : [], ordersError: orders.ok ? '' : orders.error, batch: batch.data } }; }, [tenantId, profile?.roleKey, stopId], { enabled: !!tenantId, queryKey: `${tenantId}:${profile?.id}:${stopId}:catalog-proof-batch` });
+    const stop = query.data?.tours.flatMap(t => t.stops).find(s => s.id === stopId);
+    const day = stop?.actualStartedAt ? berlinCalendarDate(new Date(stop.actualStartedAt)) : '';
+    const admission = query.data?.operations.admissions.filter(a => a.clientId === stop?.clientId && ['active', 'closed'].includes(a.status) && a.startsOn <= day && (!a.endsOn || a.endsOn >= day)).sort((a, b) => b.startsOn.localeCompare(a.startsOn))[0];
+    const tariffs = admission ? validTariffs(query.data?.operations.tariffs ?? [], day, admission.basis, admission.payerIk) : [];
+    const orders = query.data?.orders.filter(v => v.clientId === stop?.clientId && ['active', 'completed'].includes(v.status) && v.validFrom <= day && (!v.validUntil || v.validUntil >= day) && (!v.insurerApprovalRequired || v.insurerApprovalStatus === 'approved')) ?? [];
+    const [tariffId, setTariffId] = useState('');
+    const [quantity, setQuantity] = useState('1');
+    const [orderId, setOrderId] = useState('');
+    const [execution, setExecution] = useState('');
+    const [deviation, setDeviation] = useState('');
+    const [lines, setLines] = useState<CareStopProofLineInput[]>([]);
+    const [search, setSearch] = useState('');
+    const [error, setError] = useState('');
+    const [busy, setBusy] = useState(false);
+    const pending = useRef<{
+        requestId: string;
+        lines: readonly CareStopProofLineInput[];
+    } | null>(null);
+    const tariff = tariffs.find(v => v.id === tariffId);
+    function addLine() { if (!admission)
+        return; const built = buildCareStopProofLine(tariff, admission.basis, quantity, orderId, execution, deviation); if (!built.ok) {
+        setError(built.error);
+        return;
+    } if (lines.some(v => v.tariffId === built.line.tariffId && v.orderId === built.line.orderId)) {
+        setError('Gleicher Tarif und Verordnungsbezug sind bereits als Position erfasst.');
+        return;
+    } setLines(v => [...v, built.line]); setTariffId(''); setQuantity('1'); setOrderId(''); setExecution(''); setDeviation(''); setError(''); }
+    async function save() { if (!tenantId || !stop || !query.data?.batch.stopUpdatedAt || busy)
+        return; if (!pending.current) {
+        const invalid = validateCareStopProofLines(lines);
+        if (invalid) {
+            setError(invalid);
+            return;
+        }
+        pending.current = { requestId: newCareStopProofBatchRequestId(), lines: lines.map(v => Object.freeze({ ...v })) };
+    } setBusy(true); setError(''); const frozen = pending.current; const result = await createCatalogCareProofBatch(tenantId, profile?.roleKey, stop.id, query.data.batch.stopUpdatedAt, frozen.lines, frozen.requestId); setBusy(false); if (!result.ok) {
+        setError(`${result.error} Dieselbe unveränderte Anfrage kann erneut gesendet werden.`);
+        return;
+    } pending.current = null; await query.refresh(); }
+    if (query.loading)
+        return <ScreenShell title="Leistungsnachweis"><LoadingState message="Versorgung und gültige Vergütung werden geladen…"/></ScreenShell>;
+    if (!stop || stop.status !== 'completed')
+        return <ScreenShell title="Leistungsnachweis"><ErrorState message={query.error ?? 'Kein abgeschlossener Einsatz gefunden.'} onRetry={query.refresh}/></ScreenShell>;
+    const existing = query.data?.batch.proofIds ?? [];
+    return <ScreenShell title="Leistungsnachweise aus Einsatz" subtitle={stop.clientName}><View style={styles.stack}>
+  <SectionPanel title="Dokumentierte Versorgung"><Text style={{ color: c.text }}>{stop.serviceSummary}</Text><Text style={{ color: c.text }}>{formatDate(stop.actualStartedAt)} · {formatTime(stop.actualStartedAt)}–{formatTime(stop.actualEndedAt)}</Text><Text style={{ color: c.text }}>{stop.notes}</Text></SectionPanel>
+  {existing.length ? <SectionPanel title={`${existing.length} getrennte Leistungsnachweise`} subtitle="Jede Position behält ihre eigene Finanzierung, Menge und Originalquelle">{existing.map((id, index) => <PremiumButton key={id} title={`Position ${index + 1} öffnen`} variant="secondary" onPress={() => router.push(`/pflege/leistungsnachweis-workflow?id=${id}` as never)}/>)}</SectionPanel> : stop.serviceProofId ? <PremiumButton title="Vorhandenen einzelnen Leistungsnachweis öffnen" onPress={() => router.replace(`/pflege/leistungsnachweis-workflow?id=${stop.serviceProofId}` as never)}/> : !admission ? <><ErrorState message="Freigegebene Aufnahme für den Leistungstag fehlt."/><PremiumButton title="Aufnahme öffnen" onPress={() => router.push('/pflege/aufnahme' as never)}/></> : <>
+   <SectionPanel title="Getrennte Leistungspositionen" subtitle={`${basisLabels[admission.basis]} · ${admission.payerName || 'Privat'}${admission.payerIk ? ` · IK ${admission.payerIk}` : ''}`}>
+    {lines.map((line, index) => { const item = tariffs.find(v => v.id === line.tariffId); return <View key={`${line.tariffId}:${line.orderId}`} style={styles.line}><Text style={{ color: c.text, fontWeight: '700' }}>{index + 1}. {item?.code} · {item?.label}</Text><Text style={{ color: c.text }}>{line.quantity} {item?.unit} · {line.executionDetail}</Text>{line.deviation ? <Text style={{ color: c.muted }}>Abweichung: {line.deviation}</Text> : null}<PremiumButton title="Position entfernen" variant="secondary" disabled={busy || !!pending.current} onPress={() => setLines(v => v.filter((_, i) => i !== index))}/></View>; })}
+    <PremiumInput label="Leistung im Katalog suchen" value={search} onChangeText={setSearch} editable={!busy && !pending.current}/><View style={styles.options}>{tariffs.filter(v => `${v.code} ${v.label}`.toLowerCase().includes(search.toLowerCase())).map(v => <PremiumButton key={v.id} title={`${v.code} · ${v.label} · ${(v.unitPriceCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}`} variant={tariffId === v.id ? 'primary' : 'secondary'} disabled={busy || !!pending.current} onPress={() => setTariffId(v.id)}/>)}</View>
+    {!tariffs.length ? <PremiumButton title="Leistungskatalog öffnen" variant="secondary" onPress={() => router.push('/pflege/leistungskatalog' as never)}/> : null}<PremiumInput label="Menge in der Originaleinheit des Tarifs" value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" editable={!busy && !pending.current}/>
+    {admission.basis === 'sgb_v' ? <><Text style={{ color: c.text }}>Gültige Verordnung dieser Position</Text>{query.data?.ordersError ? <ErrorState message={query.data.ordersError}/> : null}<View style={styles.options}>{orders.map(v => <PremiumButton key={v.id} title={`${v.title} · ${v.orderingPhysician}`} variant={orderId === v.id ? 'primary' : 'secondary'} disabled={busy || !!pending.current} onPress={() => setOrderId(v.id)}/>)}</View></> : null}
+    <PremiumInput label="Tatsächliche Durchführung dieser Position" value={execution} onChangeText={setExecution} multiline editable={!busy && !pending.current}/><PremiumInput label="Abweichung dieser Position (optional)" value={deviation} onChangeText={setDeviation} multiline editable={!busy && !pending.current}/><PremiumButton title="Position getrennt hinzufügen" variant="secondary" disabled={busy || !!pending.current} onPress={addLine}/>
+    <Text style={{ color: c.muted }}>Plantext, tatsächliche Durchführung, Tarifstand, Finanzierung und Verordnung bleiben je Position getrennt. Ein Einsatzstatus erzeugt keine Position automatisch.</Text>
+   </SectionPanel>{error ? <ErrorState message={error}/> : null}<PremiumButton title={pending.current ? 'Unveränderte Mehrfachanfrage erneut senden' : `${lines.length} getrennte Nachweise erstellen`} loading={busy} disabled={busy || lines.length < 2} onPress={() => void save()}/>
+  </>}
+ </View></ScreenShell>;
+}
+const styles = StyleSheet.create({ stack: { gap: 16, paddingBottom: 32 }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, line: { gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#dbe3ec' } });

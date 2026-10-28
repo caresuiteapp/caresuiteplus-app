@@ -1,0 +1,202 @@
+// Generated native presentation from src/lib/clients/clientLifecycleWorkspaceDomain.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+export const clientLifecycleVersion = '2026-10-16.2' as const;
+export const clientLifecycleKinds = ['function_inventory_review', 'inquiry_capture', 'inquiry_decision', 'identity_candidate', 'identity_resolution', 'residence_revision', 'future_visit_replan_review', 'contact_revision', 'representation_evidence', 'medical_contact_revision', 'diagnosis_revision', 'allergy_revision', 'document_ingest', 'document_content_confirmation', 'emergency_information_revision', 'admission_prerequisite_review', 'admission_release_decision', 'interruption_revision', 'return_plan_review', 'exit_revision', 'correction'] as const;
+export type ClientLifecycleKind = (typeof clientLifecycleKinds)[number];
+export type ClientLifecycleSource = {
+    kind: string;
+    id: string;
+    snapshot: Record<string, unknown>;
+};
+type Field = {
+    key: string;
+    label: string;
+    type?: 'text' | 'date' | 'instant' | 'uuid' | 'sha256' | 'enum';
+    values?: readonly string[];
+};
+type Source = {
+    key: string;
+    label: string;
+    kinds: readonly string[];
+};
+export type ClientLifecycleDefinition = {
+    group: string;
+    label: string;
+    right: string;
+    extraRights?: readonly string[];
+    sources: readonly Source[];
+    fields: readonly Field[];
+};
+const f = (key: string, label: string, type: Field['type'] = 'text', values?: readonly string[]): Field => ({ key, label, type, ...(values ? { values } : {}) });
+const s = (key: string, label: string, ...kinds: string[]): Source => ({ key, label, kinds });
+const edit = 'office.clients.edit', create = 'office.clients.create', status = 'office.clients.status_change', contacts = 'office.clients.manage_contacts', sensitive = 'office.clients.view_sensitive';
+export const clientLifecycleDefinitions: Record<ClientLifecycleKind, ClientLifecycleDefinition> = {
+    function_inventory_review: { group: 'Funktionsinventar', label: 'Aktuellen Funktionsbestand abgleichen', right: 'office.clients.view', sources: [s('client', 'Klientenoriginal', 'client'), s('function', 'Funktions-/Aufgabenoriginal', 'client_task', 'assessment', 'client_lifecycle_event')], fields: [f('inventorySha256', 'Inventarfingerabdruck', 'sha256'), f('coverage', 'Abdeckungsstand', 'enum', ['complete', 'incomplete', 'stale']), f('openFunctions', 'Offene Funktionen')] },
+    inquiry_capture: { group: 'Anfrage & Identität', label: 'Anfrage und Erstkontakt erfassen', right: create, sources: [s('inquiry', 'Anfrageoriginal', 'inquiry'), s('contact', 'Kontaktoriginal', 'contact', 'client_contact')], fields: [f('concern', 'Anliegen'), f('urgencyCode', 'Dringlichkeit'), f('callbackAt', 'Rückrufzeit', 'instant'), f('state', 'Anfragestand', 'enum', ['open', 'deferred', 'withdrawn'])] },
+    inquiry_decision: { group: 'Anfrage & Identität', label: 'Erstkontakt getrennt entscheiden', right: create, sources: [s('inquiry', 'Anfrageoriginal', 'inquiry'), s('capture', 'Erstkontaktfassung', 'client_lifecycle_event')], fields: [f('decision', 'Entscheidung', 'enum', ['accepted_candidate', 'deferred', 'rejected']), f('reasonCode', 'Entscheidungsgrund'), f('decisionSha256', 'Entscheidungsbeleg', 'sha256')] },
+    identity_candidate: { group: 'Anfrage & Identität', label: 'Identitätskandidaten vollständig binden', right: create, sources: [s('inquiry', 'Anfrageoriginal', 'inquiry'), s('client', 'Klientenoriginal', 'client')], fields: [f('candidateSetSha256', 'Kandidatenbestand', 'sha256'), f('matchBasis', 'Abgleichsgrundlage'), f('state', 'Prüfstand', 'enum', ['distinct_candidate', 'possible_match', 'exact_match'])] },
+    identity_resolution: { group: 'Anfrage & Identität', label: 'Identität ohne stilles Zusammenführen entscheiden', right: create, sources: [s('candidate', 'Kandidatenfassung', 'client_lifecycle_event'), s('client', 'Klientenoriginal', 'client')], fields: [f('decision', 'Identitätsentscheidung', 'enum', ['create_distinct', 'use_existing', 'needs_review']), f('reason', 'Begründung'), f('resolutionSha256', 'Entscheidungsbeleg', 'sha256')] },
+    residence_revision: { group: 'Wohnen & Kontakte', label: 'Kontakt- und Wohnsituation fortschreiben', right: edit, sources: [s('client', 'Klientenoriginal', 'client'), s('address', 'Adressoriginal', 'client_address', 'address')], fields: [f('residenceSha256', 'Wohnsituationsstand', 'sha256'), f('validFrom', 'Gültig ab', 'instant'), f('state', 'Fassungsstand', 'enum', ['draft', 'current_candidate', 'withdrawn'])] },
+    future_visit_replan_review: { group: 'Wohnen & Kontakte', label: 'Künftige Besuche nach Adressänderung prüfen', right: edit, sources: [s('residence', 'Wohnsituationsfassung', 'client_lifecycle_event'), s('visit', 'Besuchs-/Tourenoriginal', 'visit', 'tour_stop', 'care_visit')], fields: [f('affectedFrom', 'Betroffen ab', 'instant'), f('planSha256', 'Planungsabgleich', 'sha256'), f('decision', 'Prüfergebnis', 'enum', ['replan_required', 'unchanged_confirmed', 'blocked'])] },
+    contact_revision: { group: 'Wohnen & Kontakte', label: 'Angehörige und Kontakte fortschreiben', right: contacts, sources: [s('client', 'Klientenoriginal', 'client'), s('contact', 'Kontaktoriginal', 'contact', 'client_contact')], fields: [f('relationshipCode', 'Beziehungsart'), f('contactSha256', 'Kontaktdatenstand', 'sha256'), f('state', 'Kontaktstand', 'enum', ['active_candidate', 'inactive_candidate', 'withdrawn'])] },
+    representation_evidence: { group: 'Wohnen & Kontakte', label: 'Vertretung und Umfang getrennt belegen', right: contacts, extraRights: ['office.clients.manage_consents'], sources: [s('client', 'Klientenoriginal', 'client'), s('representative', 'Vertretungsoriginal', 'contact', 'client_contact'), s('document', 'Vertretungsdokument', 'client_document', 'document')], fields: [f('scope', 'Vertretungsumfang'), f('validFrom', 'Gültig ab', 'instant'), f('validUntil', 'Gültig bis', 'instant'), f('evidenceSha256', 'Vertretungsbeleg', 'sha256'), f('state', 'Prüfstand', 'enum', ['candidate', 'expired', 'revoked', 'unclear'])] },
+    medical_contact_revision: { group: 'Wohnen & Kontakte', label: 'Ärztliche und weitere Kontakte fortschreiben', right: contacts, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('contact', 'Fachkontaktoriginal', 'doctor', 'medical_contact', 'client_contact')], fields: [f('professionCode', 'Kontaktart'), f('contactSha256', 'Kontaktdatenstand', 'sha256'), f('state', 'Kontaktstand', 'enum', ['active_candidate', 'inactive_candidate', 'unverified'])] },
+    diagnosis_revision: { group: 'Klinische Angaben', label: 'Diagnoseangabe als Quelle fortschreiben', right: edit, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('diagnosis', 'Diagnoseoriginal', 'client_diagnosis', 'diagnosis'), s('document', 'Quelldokument', 'client_document', 'document')], fields: [f('codeSystem', 'Codesystem'), f('diagnosisCode', 'Diagnosecode'), f('validFrom', 'Gültig ab', 'instant'), f('evidenceSha256', 'Quellenbeleg', 'sha256'), f('state', 'Prüfstand', 'enum', ['reported', 'confirmed_document', 'disputed', 'ended'])] },
+    allergy_revision: { group: 'Klinische Angaben', label: 'Allergieangabe als Quelle fortschreiben', right: edit, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('allergy', 'Allergieoriginal', 'client_allergy', 'allergy'), s('document', 'Quelldokument', 'client_document', 'document')], fields: [f('substanceCode', 'Stoffcode'), f('reaction', 'Reaktion'), f('evidenceSha256', 'Quellenbeleg', 'sha256'), f('state', 'Prüfstand', 'enum', ['reported', 'confirmed_document', 'disputed', 'ended'])] },
+    document_ingest: { group: 'Dokumente', label: 'Dokument unverändert übernehmen', right: edit, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('document', 'Dokumentoriginal', 'client_document', 'document')], fields: [f('contentSha256', 'Dateifingerabdruck', 'sha256'), f('documentType', 'Dokumentart'), f('receivedAt', 'Eingang', 'instant'), f('state', 'Übernahmestand', 'enum', ['received', 'quarantined', 'rejected'])] },
+    document_content_confirmation: { group: 'Dokumente', label: 'Dokumentinhalt ausdrücklich bestätigen', right: edit, extraRights: [sensitive], sources: [s('document', 'Übernommenes Dokument', 'client_lifecycle_event'), s('nativeDocument', 'Dokumentoriginal', 'client_document', 'document')], fields: [f('contentSha256', 'Bestätigter Fingerabdruck', 'sha256'), f('decision', 'Inhaltsentscheidung', 'enum', ['confirmed', 'disputed', 'unreadable']), f('limitations', 'Grenzen der Bestätigung')] },
+    emergency_information_revision: { group: 'Notfall & Aufnahme', label: 'Notfallinformationen fortschreiben', right: edit, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('contact', 'Notfallkontakt', 'client_contact', 'contact'), s('document', 'Notfalldokument', 'client_document', 'document')], fields: [f('informationSha256', 'Notfallstand', 'sha256'), f('validFrom', 'Gültig ab', 'instant'), f('state', 'Prüfstand', 'enum', ['current_candidate', 'incomplete', 'withdrawn'])] },
+    admission_prerequisite_review: { group: 'Notfall & Aufnahme', label: 'Aufnahmevoraussetzungen getrennt prüfen', right: status, extraRights: [sensitive], sources: [s('client', 'Klientenoriginal', 'client'), s('inquiry', 'Anfrageoriginal', 'inquiry'), s('document', 'Aufnahmedokument', 'client_document', 'document')], fields: [f('prerequisiteSha256', 'Voraussetzungsstand', 'sha256'), f('decision', 'Prüfergebnis', 'enum', ['complete_candidate', 'incomplete', 'blocked']), f('openItems', 'Offene Punkte')] },
+    admission_release_decision: { group: 'Notfall & Aufnahme', label: 'Aufnahmefreigabe ausdrücklich entscheiden', right: status, extraRights: [sensitive], sources: [s('review', 'Voraussetzungsprüfung', 'client_lifecycle_event'), s('client', 'Klientenoriginal', 'client')], fields: [f('decision', 'Freigabeentscheidung', 'enum', ['approved_candidate', 'pending', 'rejected']), f('decisionSha256', 'Entscheidungsbeleg', 'sha256'), f('limitations', 'Grenzen')] },
+    interruption_revision: { group: 'Unterbrechung & Austritt', label: 'Unterbrechung mit Zeitraum erfassen', right: status, sources: [s('client', 'Klientenoriginal', 'client'), s('care', 'Versorgungs-/Einsatzoriginal', 'care_case', 'care_visit', 'client_status')], fields: [f('reasonCode', 'Unterbrechungsgrund'), f('startsAt', 'Beginn', 'instant'), f('endsAt', 'Voraussichtliches Ende', 'instant'), f('state', 'Unterbrechungsstand', 'enum', ['planned', 'active_candidate', 'ended_candidate'])] },
+    return_plan_review: { group: 'Unterbrechung & Austritt', label: 'Rückkehrplanung getrennt prüfen', right: status, sources: [s('interruption', 'Unterbrechungsfassung', 'client_lifecycle_event'), s('care', 'Versorgungs-/Einsatzoriginal', 'care_case', 'care_visit', 'client_status')], fields: [f('returnAt', 'Geplante Rückkehr', 'instant'), f('planSha256', 'Rückkehrplan', 'sha256'), f('decision', 'Prüfergebnis', 'enum', ['ready_candidate', 'replan_required', 'blocked'])] },
+    exit_revision: { group: 'Unterbrechung & Austritt', label: 'Austritt als eigene Fassung erfassen', right: status, sources: [s('client', 'Klientenoriginal', 'client'), s('care', 'Versorgungs-/Einsatzoriginal', 'care_case', 'care_visit', 'client_status'), s('document', 'Austrittsdokument', 'client_document', 'document')], fields: [f('exitAt', 'Austrittszeit', 'instant'), f('reasonCode', 'Austrittsgrund'), f('evidenceSha256', 'Austrittsbeleg', 'sha256'), f('state', 'Austrittsstand', 'enum', ['planned', 'confirmed_candidate', 'cancelled'])] },
+    correction: { group: 'Berichtigung', label: 'Unveränderlichen Klientenvorgang berichtigen', right: edit, sources: [], fields: [f('targetId', 'Zu berichtigender Vorgang', 'uuid'), f('reason', 'Berichtigungsgrund'), f('evidenceSha256', 'Berichtigungsbeleg', 'sha256')] },
+};
+export const clientLifecycleReadRights = ['office.clients.view'] as const;
+export const clientLifecycleWorkspaceDefinitions = clientLifecycleDefinitions;
+export const clientLifecycleWorkspaceReadRights = clientLifecycleReadRights;
+export type ClientLifecycleWorkspaceKind = ClientLifecycleKind;
+export type ClientLifecycleCommand = {
+    version: typeof clientLifecycleVersion;
+    requestId: string;
+    eventId: string;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    kind: ClientLifecycleKind;
+    occurredAt: string;
+    note: string;
+    payload: Record<string, unknown>;
+};
+export type ClientLifecycleEvent = {
+    id: string;
+    sequence: number;
+    previousId: string | null;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    actorName: string;
+    recordedAt: string;
+    command: ClientLifecycleCommand;
+};
+export type ClientLifecycleHistory = {
+    version: typeof clientLifecycleVersion;
+    tenantId: string;
+    clientId: string;
+    count: number;
+    headId: string | null;
+    events: ClientLifecycleEvent[];
+};
+export type ClientLifecycleContext = {
+    version: typeof clientLifecycleVersion;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    loadedAt: string;
+    sources: {
+        count: number;
+        rows: ClientLifecycleSource[];
+    };
+    history: ClientLifecycleHistory;
+};
+export type ClientLifecycleReceipt = {
+    version: typeof clientLifecycleVersion;
+    requestId: string;
+    command: ClientLifecycleCommand;
+    event: ClientLifecycleEvent;
+};
+export type ClientLifecycleState = {
+    headId: string | null;
+    events: ClientLifecycleEvent[];
+    corrected: string[];
+};
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const instant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+const sha = /^[0-9a-f]{64}$/;
+const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const text = (v: unknown, label: string) => { if (typeof v !== 'string' || !v.trim())
+    throw Error(`${label} fehlt.`); return v; };
+const id = (v: unknown, label: string) => { const x = text(v, label); if (!uuid.test(x) || x !== x.toLowerCase())
+    throw Error(`${label} ist ungültig.`); return x; };
+const time = (v: unknown, label: string) => { const x = text(v, label); if (!instant.test(x) || Number.isNaN(Date.parse(x)))
+    throw Error(`${label} ist ungültig.`); return x; };
+export function clientLifecycleSource(v: unknown, label = 'Originalquelle'): asserts v is ClientLifecycleSource { if (!object(v) || Object.keys(v).sort().join(',') !== 'id,kind,snapshot')
+    throw Error(`${label} ist unvollständig.`); id(v.id, `${label}-ID`); text(v.kind, `${label}-Art`); if (!object(v.snapshot) || v.snapshot.id !== v.id)
+    throw Error(`${label} stimmt nicht mit dem nativen Original überein.`); }
+function validateField(value: unknown, rule: Field) { const x = text(value, rule.label); if (rule.type === 'uuid')
+    id(x, rule.label); if (rule.type === 'instant')
+    time(x, rule.label); if (rule.type === 'sha256' && !sha.test(x))
+    throw Error(`${rule.label} ist ungültig.`); if (rule.type === 'enum' && !rule.values?.includes(x))
+    throw Error(`${rule.label} hat einen unbekannten Wert.`); }
+export function validateClientLifecycleCommand(c: ClientLifecycleCommand) { if (!object(c) || c.version !== clientLifecycleVersion)
+    throw Error(' Klientenvorgang oder Version ist ungültig.'); id(c.requestId, 'Anfrage-ID'); id(c.eventId, 'Ereignis-ID'); id(c.tenantId, 'Mandant'); id(c.clientId, 'Klient'); id(c.actorId, 'Akteur'); if (c.expectedHeadId !== null)
+    id(c.expectedHeadId, 'Erwarteter Verlaufskopf'); if (!clientLifecycleKinds.includes(c.kind))
+    throw Error(' Klientenvorgang ist unbekannt.'); time(c.occurredAt, 'Tatsächlicher Vorgangszeitpunkt'); if (text(c.note, 'Nachvollziehbarer Anlass').length > 4000)
+    throw Error('Anlass ist zu lang.'); if (!object(c.payload))
+    throw Error('Vorgangsangaben fehlen.'); const d = clientLifecycleDefinitions[c.kind], keys = [...d.sources.map(x => x.key), ...d.fields.map(x => x.key)].sort(); if (Object.keys(c.payload).sort().join(',') !== keys.join(','))
+    throw Error('Vorgangsfelder sind unvollständig oder enthalten Fremdfelder.'); const selected: ClientLifecycleSource[] = []; for (const rule of d.sources) {
+    const value = c.payload[rule.key];
+    clientLifecycleSource(value, rule.label);
+    if (!rule.kinds.includes(value.kind))
+        throw Error(`${rule.label} hat die falsche Originalart.`);
+    selected.push(value);
+} for (const source of selected) {
+    if (source.snapshot.tenant_id !== undefined && source.snapshot.tenant_id !== c.tenantId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Mandanten.');
+    if (source.kind !== 'inquiry' && source.snapshot.client_id !== undefined && source.snapshot.client_id !== c.clientId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Klienten.');
+} if (c.kind === 'identity_resolution' && selected[0]?.id === selected[1]?.id)
+    throw Error('Die Identitätsentscheidung benötigt Kandidatenfassung und Klientenoriginal getrennt.'); if (c.kind === 'representation_evidence' && Date.parse(String(c.payload.validUntil)) <= Date.parse(String(c.payload.validFrom)))
+    throw Error('Die Vertretungsgültigkeit ist nicht chronologisch.'); if (c.kind === 'interruption_revision' && Date.parse(String(c.payload.endsAt)) <= Date.parse(String(c.payload.startsAt)))
+    throw Error('Die Unterbrechung ist nicht chronologisch.'); for (const rule of d.fields)
+    validateField(c.payload[rule.key], rule); }
+export const emptyClientLifecycleState = (): ClientLifecycleState => ({ headId: null, events: [], corrected: [] });
+export function applyClientLifecycleCommand(state: ClientLifecycleState, c: ClientLifecycleCommand) { validateClientLifecycleCommand(c); if (c.expectedHeadId !== state.headId)
+    throw Error('Der  Klientenverlauf wurde zwischenzeitlich geändert.'); if (state.events.some(x => x.id === c.eventId || x.command.requestId === c.requestId))
+    throw Error('Anfrage oder Ereignis ist bereits vorhanden.'); const corrected = [...state.corrected]; if (c.kind === 'correction') {
+    const target = String(c.payload.targetId);
+    if (!state.events.some(x => x.id === target && x.command.kind !== 'correction') || corrected.includes(target))
+        throw Error('Nur ein vorhandener noch nicht berichtigter Originalvorgang kann berichtigt werden.');
+    corrected.push(target);
+} return { headId: c.eventId, events: [...state.events], corrected }; }
+export function decodeClientLifecycleHistory(value: unknown, scope: {
+    tenantId: string;
+    clientId: string;
+}) { if (!object(value) || value.version !== clientLifecycleVersion || value.tenantId !== scope.tenantId || value.clientId !== scope.clientId || !Array.isArray(value.events) || value.count !== value.events.length)
+    throw Error('Der  Klientenverlauf ist unvollständig.'); let state = emptyClientLifecycleState(); for (let i = 0; i < value.events.length; i++) {
+    const raw = value.events[i];
+    if (!object(raw) || raw.sequence !== i + 1 || raw.previousId !== state.headId || raw.tenantId !== scope.tenantId || raw.clientId !== scope.clientId || !object(raw.command))
+        throw Error('Der  Klientenverlauf ist abgeschnitten oder falsch zugeordnet.');
+    const c = structuredClone(raw.command) as ClientLifecycleCommand;
+    validateClientLifecycleCommand(c);
+    if (raw.id !== c.eventId || c.tenantId !== scope.tenantId || c.clientId !== scope.clientId)
+        throw Error('Der  Klientenverlauf enthält ein fremdes Original.');
+    state = applyClientLifecycleCommand(state, c);
+    state.events.push(structuredClone(raw) as ClientLifecycleEvent);
+} if (value.headId !== state.headId)
+    throw Error('Der  Klientenverlauf hat keinen eindeutigen Kopf.'); return { history: structuredClone(value) as ClientLifecycleHistory, state }; }
+export function decodeClientLifecycleContext(value: unknown, expected: {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}) { if (!object(value) || Object.keys(value).sort().join(',') !== 'actorId,clientId,history,loadedAt,sources,tenantId,version' || value.version !== clientLifecycleVersion || value.tenantId !== expected.tenantId || value.clientId !== expected.clientId || value.actorId !== expected.actorId || !object(value.sources) || !Array.isArray(value.sources.rows) || value.sources.count !== value.sources.rows.length)
+    throw Error('Vollständige Klientenoriginale konnten nicht bestätigt werden.'); time(value.loadedAt, 'Lesezeitpunkt'); const seen = new Set<string>(); for (const row of value.sources.rows) {
+    clientLifecycleSource(row);
+    const key = `${row.kind}:${row.id}`;
+    if (seen.has(key))
+        throw Error('Originalquelle ist doppelt.');
+    seen.add(key);
+    if (row.snapshot.tenant_id !== undefined && row.snapshot.tenant_id !== expected.tenantId)
+        throw Error('Originalquelle gehört zu einem anderen Mandanten.');
+    if (row.kind !== 'inquiry' && row.snapshot.client_id !== undefined && row.snapshot.client_id !== expected.clientId)
+        throw Error('Originalquelle gehört zu einem anderen Klienten.');
+} decodeClientLifecycleHistory(value.history, expected); return structuredClone(value) as ClientLifecycleContext; }
+export function assertClientLifecycleSelectionCurrent(c: ClientLifecycleCommand, context: ClientLifecycleContext) { validateClientLifecycleCommand(c); for (const rule of clientLifecycleDefinitions[c.kind].sources) {
+    const source = c.payload[rule.key] as ClientLifecycleSource;
+    if (!context.sources.rows.some(row => JSON.stringify(row) === JSON.stringify(source)))
+        throw Error('Eine ausgewählte  Klientengrundlage ist nicht mehr aktuell.');
+} }
+export function decodeClientLifecycleReceipt(value: unknown, c: ClientLifecycleCommand) { if (!object(value) || value.version !== clientLifecycleVersion || value.requestId !== c.requestId || !object(value.command) || JSON.stringify(value.command) !== JSON.stringify(c) || !object(value.event) || value.event.id !== c.eventId || JSON.stringify(value.event.command) !== JSON.stringify(c))
+    throw Error('Die native  Klientenquittung stimmt nicht mit der gesicherten Anfrage überein.'); return structuredClone(value) as ClientLifecycleReceipt; }

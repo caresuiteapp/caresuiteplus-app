@@ -48,6 +48,7 @@ const dependencies: Record<string, unknown> = {
   'expo-router': { useRouter: () => ({ push: api.push }), useNavigation: () => ({ dispatch: api.dispatch }), usePathname: () => '/settings/profile' },
   'expo-router/react-navigation': { usePreventRemove: (prevent: boolean, callback: (event: Removal) => void) => { api.preventRemoval = prevent; api.onRemove = callback; } },
   '@/lib/auth/context': { useAuth: () => api },
+  '@/components/auth/AccountSecurityCenter': { AccountSecurityCenter: () => <section aria-label="Kontosicherheit" /> },
   '@/lib/auth/userProfileAccountService.web': services,
   '@/lib/auth/profileAvatarUrl': { resolveProfileAvatarDisplayUrl: resolveAvatar },
   '@/lib/auth/passwordResetService.web': { requestBusinessPasswordReset: requestPasswordReset },

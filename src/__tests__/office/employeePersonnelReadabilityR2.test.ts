@@ -10,7 +10,8 @@ describe('Personalbereich Lesbarkeit und Popup-Größe R2', () => {
     const surface = read('src/components/office/PersonalWorkspaceSurface.tsx');
     const contract = read('src/design/web/centralHealthOSPopupContractCss.ts');
     const list = read('src/screens/office/EmployeesListScreen.tsx');
-    const page = read('src/components/layout/HealthOSPageSurface.web.tsx');
+    const page = read('src/components/layout/HealthOSPageSurface.tsx');
+    expect(read('src/components/layout/HealthOSPageSurface.web.tsx')).toContain("from './HealthOSPageSurface.tsx'");
     const section = read('src/components/ui/SectionPanel.tsx');
     const glass = read('src/design/tokens/auroraGlass.ts');
 

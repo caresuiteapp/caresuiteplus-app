@@ -289,7 +289,7 @@ export async function recoverEmployeePortalPendingCameraMedia(): Promise<Employe
 
 export async function openEmployeePortalMediaLibrary(): Promise<EmployeePortalMediaPickerResult> {
   try {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS === 'ios') {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) return libraryPermissionError(permission.canAskAgain);
     }

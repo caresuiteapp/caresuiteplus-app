@@ -1,0 +1,170 @@
+// Generated native presentation from src/components/careAssessment/MentalHealthCarePathPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
+import { EmptyState, ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { blankMentalHealthCareEntry, makeMentalHealthCarePacket, mentalHealthCareEntryIssue, type MentalHealthCareEntry, type MentalHealthCareOriginal, type MentalHealthPathSources } from "../../lib/careAssessment/mentalHealthCarePath.native.ts";
+import { readMentalHealthCarePage, readMentalHealthCareSources } from "../../lib/careAssessment/mentalHealthCareRepository.supabase.native.ts";
+import { recoverMentalHealthCare, saveMentalHealthCareDurably } from "../../lib/careAssessment/mentalHealthCareWorkflow.native.ts";
+import { clearMentalHealthCareDraft, readMentalHealthCareDraft, saveMentalHealthCareDraft } from "../../lib/careAssessment/mentalHealthCareDraft.native.ts";
+import { spacing, typography, colors } from '@/theme';
+import { MentalHealthCareReviewPanel } from "./MentalHealthCareReviewPanel.native.tsx";
+type Props = {
+    tenantId: string;
+    clientId: string;
+    assessmentId: string;
+    actorId: string;
+    canRead: boolean;
+    canWrite: boolean;
+    canRelease: boolean;
+    canReview: boolean;
+};
+type Step = 'biography' | 'orientation' | 'behaviour' | 'crisis' | 'sleep' | 'participation' | 'protectedRisk' | 'psychiatricHkp' | 'review';
+const steps: {
+    key: Step;
+    label: string;
+}[] = [{ key: 'biography', label: 'M-01 Biografie' }, { key: 'orientation', label: 'M-02 Orientierung' }, { key: 'behaviour', label: 'M-03 Beobachtung' }, { key: 'crisis', label: 'M-04 Krise' }, { key: 'sleep', label: 'M-05 Schlaf' }, { key: 'participation', label: 'M-06 Teilhabe' }, { key: 'protectedRisk', label: 'M-07 Schutzbedarf' }, { key: 'psychiatricHkp', label: 'M-08 Psychiatrische HKP' }, { key: 'review', label: 'Prüfung & Freigabe' }];
+const option = (rows: readonly {
+    id: string;
+    payload: Record<string, unknown>;
+}[], empty: string) => [{ key: '', label: empty }, ...rows.map(row => ({ key: row.id, label: String(row.payload.display_name ?? row.payload.title ?? row.payload.name ?? row.id) }))];
+const nullable = (v: string) => v.trim() || null;
+export function MentalHealthCarePathPanel(props: Props) { const key = [props.tenantId, props.clientId, props.assessmentId, props.actorId, props.canRead, props.canWrite, props.canRelease, props.canReview].join(':'); return <MentalHealthCarePathWorkspace key={key} {...props}/>; }
+function MentalHealthCarePathWorkspace({ tenantId, clientId, assessmentId, actorId, canRead, canWrite, canRelease, canReview }: Props) {
+    const alive = useRef(true), generation = useRef(0), [step, setStep] = useState<Step>('biography'), [entry, setEntry] = useState<MentalHealthCareEntry | null>(null), [original, setOriginal] = useState<MentalHealthCareOriginal | null>(null), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [draftAvailable, setDraftAvailable] = useState(() => !!readMentalHealthCareDraft({ tenantId, clientId, assessmentId, actorId }));
+    const current = () => alive.current && canRead;
+    const query = useAsyncQuery(async () => { const ticket = ++generation.current, isCurrent = () => current() && generation.current === ticket; const [sources, history] = await Promise.all([readMentalHealthCareSources({ tenantId, clientId, assessmentId, actorId, isCurrent }), readMentalHealthCarePage({ tenantId, clientId, assessmentId, actorId, isCurrent })]); if (!isCurrent())
+        throw Error('Assessment, Profil oder Rechtekontext hat gewechselt.'); if (!sources.ok)
+        throw Error(sources.error); if (!history.ok)
+        throw Error(history.error); return { ok: true as const, data: { sources: sources.data, history: history.data } }; }, [tenantId, clientId, assessmentId, actorId, canRead], { enabled: canRead, queryKey: `${tenantId}:${clientId}:${assessmentId}:${actorId}:mental-health-care-path` });
+    useEffect(() => { alive.current = true; return () => { alive.current = false; generation.current++; }; }, []);
+    const context = { tenantId, clientId, assessmentId, actorId };
+    const issue = entry ? mentalHealthCareEntryIssue(entry) : null;
+    const begin = () => { if (!query.data || busy || uncertain)
+        return; setOriginal(null); setEntry(blankMentalHealthCareEntry(tenantId, clientId, assessmentId)); setReason(''); setError(null); setSuccess(null); setStep('biography'); };
+    const continueOriginal = (row: MentalHealthCareOriginal) => { if (busy || uncertain)
+        return; setOriginal(row); setEntry(structuredClone(row.entry)); setReason('Fortschreibung der vollständig gelesenen psychosozialen Originalfassung.'); setStep('biography'); setError(null); setSuccess(null); };
+    const patch = <K extends keyof MentalHealthCareEntry>(key: K, value: MentalHealthCareEntry[K]) => { if (canWrite && !busy && !uncertain)
+        setEntry(old => old ? ({ ...old, [key]: value }) : old); };
+    const storeDraft = () => { if (!entry)
+        return; try {
+        saveMentalHealthCareDraft(context, entry, original?.headId ?? null, reason);
+        setDraftAvailable(true);
+        setSuccess('Entwurf nur für dieses Profil, diesen Pflegefall und dieses Assessment lokal gesichert.');
+        setError(null);
+    }
+    catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Entwurf konnte nicht gesichert werden.');
+    } };
+    const resume = () => { const draft = readMentalHealthCareDraft(context); if (!draft) {
+        setDraftAvailable(false);
+        setError('Kein passender lokaler Entwurf gefunden.');
+        return;
+    } const head = draft.originalHeadId ? query.data?.history.find(row => row.headId === draft.originalHeadId) ?? null : null; if (draft.originalHeadId && !head) {
+        setError('Historische Ausgangsfassung des Entwurfs ist nicht mehr vollständig lesbar.');
+        return;
+    } setOriginal(head); setEntry(structuredClone(draft.entry)); setReason(draft.reason); setDraftAvailable(true); setSuccess(`Entwurf vom ${draft.updatedAt} wiederaufgenommen; alle Originale werden vor dem Schreiben neu geprüft.`); setError(null); };
+    const write = async (next: MentalHealthCareEntry) => { if (!query.data || busy || !canWrite)
+        return; const problem = mentalHealthCareEntryIssue(next); if (problem) {
+        setError(problem);
+        return;
+    } setBusy(true); setError(null); setSuccess(null); try {
+        const requestId = crypto.randomUUID(), packet = makeMentalHealthCarePacket({ schemaVersion: '1', requestId, action: original ? 'revise' : 'create', tenantId, clientId, assessmentId, actorId, expectedHeadId: original?.headId ?? null, expectedRevision: original?.revision ?? 0, entry: next, reason: original ? reason : '', original, sources: query.data.sources });
+        const result = await saveMentalHealthCareDurably(packet, current);
+        if (result.ok) {
+            clearMentalHealthCareDraft(context);
+            setDraftAvailable(false);
+            setUncertain(false);
+            setOriginal(result.data);
+            setEntry(structuredClone(result.data.entry));
+            setReason('');
+            setSuccess('Alle acht psychosozialen Abschnitte und ihre Originalbezüge wurden gemeinsam mit nativer Quittung gespeichert.');
+            await query.refresh();
+        }
+        else {
+            setError(result.error);
+            setUncertain(result.uncertain === true);
+        }
+    }
+    catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Psychosozialer Gesamtweg konnte nicht gespeichert werden.');
+    }
+    finally {
+        if (alive.current)
+            setBusy(false);
+    } };
+    const transition = (kind: 'review' | 'release' | 'return' | 'correct') => { if (!entry || busy || uncertain)
+        return; const now = new Date().toISOString(); if (kind === 'review')
+        void write({ ...entry, status: 'review_requested', review: { ...entry.review, requestedBy: actorId, requestedAt: now, releasedBy: null, releasedAt: null, returnedBy: null, returnedAt: null, returnReason: '' } });
+    else if (kind === 'release' && canRelease && entry.status === 'review_requested')
+        void write({ ...entry, status: 'released', review: { ...entry.review, releasedBy: actorId, releasedAt: now, returnedBy: null, returnedAt: null, returnReason: '' } });
+    else if (kind === 'return' && entry.status === 'review_requested')
+        void write({ ...entry, status: 'returned', review: { ...entry.review, returnedBy: actorId, returnedAt: now, returnReason: reason, releasedBy: null, releasedAt: null } });
+    else if (kind === 'correct' && original)
+        void write({ ...entry, status: 'corrected', review: { ...entry.review, correctionTargetId: original.headId, correctionReason: reason, releasedBy: null, releasedAt: null } }); };
+    const recover = async () => { setBusy(true); setError(null); const result = await recoverMentalHealthCare(context, current); if (alive.current) {
+        setBusy(false);
+        if (result?.ok) {
+            setUncertain(false);
+            setOriginal(result.data);
+            setEntry(structuredClone(result.data.entry));
+            setSuccess('Die unveränderte ursprüngliche Anfrage wurde ausschließlich anhand ihrer nativen Quittung bestätigt.');
+            await query.refresh();
+        }
+        else
+            setError(result?.error ?? 'Keine passende vollständige Quittung gefunden.');
+    } };
+    return <SectionPanel title="Psychosozialer Assessment-, Schutz- und Freigabeweg" subtitle="M-01 bis M-08 · gemeinsamer Originalbestand, Entwurf, Rechtewechsel, Wiederaufnahme und Abschluss">
+  {!canRead ? <InfoBanner variant="warning" message="Aktuelle Pflegeplan-, Risiko- und Sensitivitätsrechte sind gemeinsam erforderlich. Der Ablauf bleibt vollständig verborgen."/> : query.loading && !query.data ? <LoadingState message="Assessment, Themen, Risiken, Maßnahmen, Verlauf, Verordnungen, Qualifikationen, Freigaben und Personen werden vollständig geladen…"/> : !query.data ? <ErrorState message={query.error ?? 'Psychosozialer Gesamtweg nicht verfügbar.'} onRetry={query.refresh}/> : <>
+   <InfoBanner variant="info" title="Getrennte Tatsachen und Entscheidungen" message="Beobachtung, persönliche Perspektive, Angebot, tatsächliche Teilnahme, Krisenreaktion, qualifizierte Einschätzung, Verordnung, Kostenträgerentscheidung und Freigabe bleiben getrennte Originale. Der Ablauf erzeugt weder Diagnose noch Wirksamkeits- oder Rechtsbehauptung."/>
+   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><PremiumButton title="Neuen Gesamtentwurf beginnen" disabled={!canWrite || busy || uncertain} onPress={begin}/>{draftAvailable ? <PremiumButton title="Lokalen Entwurf wiederaufnehmen" variant="secondary" disabled={!canWrite || busy || uncertain} onPress={resume}/> : null}{uncertain ? <PremiumButton title="Unveränderte Anfrage per Quittung prüfen" loading={busy} onPress={recover}/> : null}</View>
+   {error ? <InfoBanner variant="warning" title={uncertain ? 'Speicherausgang ungeklärt' : 'Angaben prüfen'} message={error}/> : null}{success ? <InfoBanner variant="success" message={success}/> : null}
+   {query.data.history.length ? <SectionPanel title="Vollständiger append-only Verlauf" subtitle={`${query.data.history.length} Fassung(en)`}>{query.data.history.map(row => <View key={row.headId} style={{ gap: spacing.xs, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderSoft }}><Text style={typography.label}>Revision {row.revision} · {row.status}</Text><Text style={{ ...typography.caption, color: colors.textMuted }}>{row.entry.title}</Text><PremiumButton title="Diese Fassung vollständig öffnen und fortschreiben" variant="ghost" disabled={!canWrite || busy || uncertain} onPress={() => continueOriginal(row)}/></View>)}</SectionPanel> : <EmptyState title="Noch keine psychosoziale Gesamtfassung" message="Ein neuer Entwurf übernimmt keine Diagnose, Teilnahme, Wirksamkeit oder Freigabe aus dem Assessment."/>}
+   {entry ? <><FilterChipGroup wrap options={steps} value={step} onChange={next => setStep(next as Step)}/><MentalHealthStep step={step} entry={entry} sources={query.data.sources} disabled={!canWrite || busy || uncertain} patch={patch}/><PremiumInput label="Begründung für Fortschreibung, Prüfung, Rückgabe, Freigabe oder Korrektur" value={reason} onChangeText={setReason} multiline editable={canWrite && !busy && !uncertain}/>{issue ? <InfoBanner variant="warning" message={issue}/> : null}<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><PremiumButton title="Entwurf lokal sichern" variant="secondary" disabled={!canWrite || busy || uncertain} onPress={storeDraft}/><PremiumButton title="Gesamtfassung speichern" disabled={!canWrite || busy || uncertain || !!issue || (!!original && reason.trim().length < 10)} loading={busy} onPress={() => void write(entry)}/><PremiumButton title="Zur getrennten fachlichen Prüfung" variant="secondary" disabled={!canWrite || busy || uncertain || !!issue || entry.status === 'review_requested' || (!!original && reason.trim().length < 10)} onPress={() => transition('review')}/>{entry.status === 'review_requested' ? <><PremiumButton title="Begründet zurückgeben" variant="secondary" disabled={!canWrite || busy || uncertain || reason.trim().length < 10} onPress={() => transition('return')}/><PremiumButton title="Getrennt fachlich freigeben" disabled={!canRelease || busy || uncertain || entry.review.requestedBy === actorId || reason.trim().length < 10} onPress={() => transition('release')}/></> : null}{original ? <PremiumButton title="Append-only berichtigen" variant="ghost" disabled={!canRelease || busy || uncertain || reason.trim().length < 10} onPress={() => transition('correct')}/> : null}</View>{original && ['released', 'corrected'].includes(original.status) ? <MentalHealthCareReviewPanel tenantId={tenantId} clientId={clientId} assessmentId={assessmentId} actorId={actorId} canView={canRead} canRequest={canWrite} canReview={canReview} careOriginal={original} sources={query.data.sources}/> : null}</> : null}
+  </>}
+ </SectionPanel>;
+}
+function MentalHealthStep({ step, entry, sources, disabled, patch }: {
+    step: Step;
+    entry: MentalHealthCareEntry;
+    sources: MentalHealthPathSources;
+    disabled: boolean;
+    patch: <K extends keyof MentalHealthCareEntry>(key: K, value: MentalHealthCareEntry[K]) => void;
+}) {
+    const input = (label: string, value: string, onChangeText: (v: string) => void) => <PremiumInput label={label} value={value} onChangeText={onChangeText} multiline editable={!disabled}/>;
+    if (step === 'biography') {
+        const x = entry.biography, set = (v: Partial<typeof x>) => patch('biography', { ...x, ...v });
+        return <SectionPanel title="Personenzentrierte Biografie und Datenminimierung">{input('Perspektive der Person', x.personPerspective, v => set({ personPerspective: v }))}{input('Gewohnheiten', x.habits, v => set({ habits: v }))}{input('Interessen', x.interests, v => set({ interests: v }))}{input('Hilfreiche Ansprache', x.helpfulApproach, v => set({ helpfulApproach: v }))}{input('Tatsächliche Informationsquelle', x.informationSource, v => set({ informationSource: v }))}{input('Quellzeitpunkt mit Mikrosekunden', x.sourceRecordedAt ?? '', v => set({ sourceRecordedAt: nullable(v) }))}{input('Warum nur diese intimen Angaben erforderlich sind', x.minimizationNote, v => set({ minimizationNote: v }))}</SectionPanel>;
+    }
+    if (step === 'orientation') {
+        const x = entry.orientation, set = (v: Partial<typeof x>) => patch('orientation', { ...x, ...v });
+        return <SectionPanel title="Orientierung und vereinbarte Unterstützung">{input('Beobachteter Orientierungsbedarf', x.observedNeed, v => set({ observedNeed: v }))}{input('Orientierungshilfen', x.aids, v => set({ aids: v }))}{input('Tagesstruktur', x.dailyStructure, v => set({ dailyStructure: v }))}{input('Beobachtete Auslöser', x.triggers, v => set({ triggers: v }))}{input('Vereinbarte Intervention', x.agreedIntervention, v => set({ agreedIntervention: v }))}</SectionPanel>;
+    }
+    if (step === 'behaviour') {
+        const x = entry.behaviour, set = (v: Partial<typeof x>) => patch('behaviour', { ...x, ...v });
+        return <SectionPanel title="Wertfreie Beobachtung, Kontext, Reaktion und Verlauf">{input('Wertfreie Beobachtung', x.observation, v => set({ observation: v }))}{input('Kontext', x.context, v => set({ context: v }))}{input('Beobachteter Auslöser', x.trigger, v => set({ trigger: v }))}{input('Tatsächliche Reaktion', x.response, v => set({ response: v }))}{input('Tatsächlicher Verlauf', x.course, v => set({ course: v }))}{input('Tatsächlicher Zeitpunkt', x.observedAt ?? '', v => set({ observedAt: nullable(v) }))}<FilterChipGroup wrap options={option(sources.people, 'Dokumentierende Person wählen')} value={x.observedBy ?? ''} onChange={v => set({ observedBy: nullable(v) })}/></SectionPanel>;
+    }
+    if (step === 'crisis') {
+        const x = entry.crisis, set = (v: Partial<typeof x>) => patch('crisis', { ...x, ...v });
+        return <SectionPanel title="Psychische Krise: Zeichen, Plan, Kontakte und Verantwortung">{input('Beobachtete Zeichen', x.signs, v => set({ signs: v }))}{input('Krisenplan', x.plan, v => set({ plan: v }))}{input('Erreichbare Kontakte', x.contacts, v => set({ contacts: v }))}{input('Konkrete Schritte', x.steps, v => set({ steps: v }))}{input('Erreichbare Verantwortung', x.responsibility, v => set({ responsibility: v }))}{input('Tatsächlicher Prüftermin', x.reviewAt ?? '', v => set({ reviewAt: nullable(v) }))}</SectionPanel>;
+    }
+    if (step === 'sleep') {
+        const x = entry.sleep, set = (v: Partial<typeof x>) => patch('sleep', { ...x, ...v });
+        return <SectionPanel title="Schlaf und Ruhe ohne automatische Diagnose">{input('Gewohnheiten', x.habits, v => set({ habits: v }))}{input('Tatsächlicher Nachtverlauf', x.nightCourse, v => set({ nightCourse: v }))}{input('Beobachtete Störung oder Erhebungsgrenze', x.disruption, v => set({ disruption: v }))}{input('Vereinbarte Unterstützung', x.support, v => set({ support: v }))}{input('Tatsächlicher Beobachtungszeitpunkt', x.observedAt ?? '', v => set({ observedAt: nullable(v) }))}</SectionPanel>;
+    }
+    if (step === 'participation') {
+        const x = entry.participation, set = (v: Partial<typeof x>) => patch('participation', { ...x, ...v });
+        return <SectionPanel title="Teilhabe: Wunsch, Angebot und tatsächliche Teilnahme getrennt">{input('Teilhabewunsch', x.wish, v => set({ wish: v }))}{input('Kontaktperson', x.contactPerson, v => set({ contactPerson: v }))}{input('Tatsächliches Angebot', x.offer, v => set({ offer: v }))}{input('Tatsächliche Teilnahme oder Nichtteilnahme', x.actualParticipation, v => set({ actualParticipation: v }))}{input('Ablehnung oder ausdrückliche Nichtablehnung', x.refusal, v => set({ refusal: v }))}{input('Tatsächlicher Zeitpunkt', x.observedAt ?? '', v => set({ observedAt: nullable(v) }))}</SectionPanel>;
+    }
+    if (step === 'protectedRisk') {
+        const x = entry.protectedRisk, set = (v: Partial<typeof x>) => patch('protectedRisk', { ...x, ...v });
+        return <SectionPanel title="Geschützter Selbstgefährdungs- und Schutzbedarf">{input('Schutzrelevante Beobachtung', x.observation, v => set({ observation: v }))}{input('Qualifizierte Einschätzung', x.qualifiedAssessment, v => set({ qualifiedAssessment: v }))}{input('Schutzplan', x.plan, v => set({ plan: v }))}{input('Tatsächliche Übergabe', x.handover, v => set({ handover: v }))}{input('Need-to-know-Begründung', x.needToKnowReason, v => set({ needToKnowReason: v }))}{input('Tatsächlicher Einschätzungszeitpunkt', x.assessedAt ?? '', v => set({ assessedAt: nullable(v) }))}<FilterChipGroup wrap options={option(sources.people, 'Qualifizierte Person wählen')} value={x.assessedBy ?? ''} onChange={v => set({ assessedBy: nullable(v) })}/></SectionPanel>;
+    }
+    if (step === 'psychiatricHkp') {
+        const x = entry.psychiatricHkp, set = (v: Partial<typeof x>) => patch('psychiatricHkp', { ...x, ...v });
+        return <SectionPanel title="Psychiatrische HKP: Verordnung, Plan, Qualifikation und Kostenträgerentscheidung"><FilterChipGroup wrap options={option(sources.prescriptions, 'Verordnung wählen')} value={x.prescriptionId ?? ''} onChange={v => set({ prescriptionId: nullable(v) })}/>{input('Besonderer Behandlungsplan', x.specialPlan, v => set({ specialPlan: v }))}<FilterChipGroup wrap options={option(sources.qualifications, 'Qualifikationsnachweis wählen')} value={x.qualificationId ?? ''} onChange={v => set({ qualificationId: nullable(v) })}/>{input('Tatsächlicher Verlauf', x.course, v => set({ course: v }))}<FilterChipGroup wrap options={option(sources.approvals, 'Kostenträgerentscheidung wählen')} value={x.approvalId ?? ''} onChange={v => set({ approvalId: nullable(v) })}/>{input('Gültigkeit der Entscheidung', x.approvedUntil ?? '', v => set({ approvedUntil: nullable(v) }))}</SectionPanel>;
+    }
+    return <SectionPanel title="Gemeinsame Prüfung, Rückgabe, Freigabe und Korrektur"><InfoBanner variant="warning" message="Eine lokale technische Vollständigkeit ist keine fachliche, psychiatrische, datenschutzrechtliche oder rechtliche Freigabe. Prüfanfrage und Freigabe benötigen getrennte aktuelle Identitäten; Rückgaben und Korrekturen bleiben append-only nachvollziehbar."/><Text style={{ ...typography.body, color: colors.textSecondary }}>Aktueller Status: {entry.status}</Text></SectionPanel>;
+}

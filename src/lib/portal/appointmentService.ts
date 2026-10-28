@@ -498,6 +498,9 @@ export async function requestPortalAppointmentChange(
   reason: string,
   portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<{ requestId: string }>> {
+  // W-05 grants appointment visibility/confirmation separately. Neither is a
+  // contract for creating a schedule-change request through portal_requests.
+  if (roleKey === 'family_portal') return { ok: false, error: 'Einsatzänderungen sind für diesen Angehörigenzugang nicht freigegeben. Bitte nutzen Sie bei Fragen den freigegebenen Nachrichtenbereich.' };
   const denied = enforcePermission<{ requestId: string }>(
     roleKey,
     'portal.client.appointments.request_change',

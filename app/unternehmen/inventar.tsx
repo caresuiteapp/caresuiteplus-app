@@ -1,6 +1,6 @@
-import { Redirect } from 'expo-router';
+import { CompanyWorkspaceScreen } from '@/screens/office/CompanyWorkspaceScreen.native';
+import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
 
-/** Native clients continue to use the existing inventory workflow. */
 export default function CompanyInventoryRoute() {
-  return <Redirect href="/business/office/inventory" />;
+  return <LiquidModuleRouteLayout><CompanyWorkspaceScreen initialTab="inventory" /></LiquidModuleRouteLayout>;
 }

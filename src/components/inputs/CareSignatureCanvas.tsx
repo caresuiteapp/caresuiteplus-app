@@ -99,6 +99,7 @@ type Props = {
   label?: string;
   onConfirm: (dataUrl: string) => void;
   onClear?: () => void;
+  onDirtyChange?: (dirty:boolean) => void;
   onCancel?: () => void;
   disabled?: boolean;
   size?: 'compact' | 'large';
@@ -632,6 +633,7 @@ function NativeSignatureCanvas({
   label,
   onConfirm,
   onClear,
+  onDirtyChange,
   onCancel,
   disabled,
   size = 'compact',
@@ -645,6 +647,8 @@ function NativeSignatureCanvas({
   const insets = useSafeAreaInsets();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
+  const dirty=strokes.length>0||current.length>0;
+  useEffect(()=>{onDirtyChange?.(dirty);},[dirty,onDirtyChange]);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const nativeSvgRef = useRef<Svg | null>(null);

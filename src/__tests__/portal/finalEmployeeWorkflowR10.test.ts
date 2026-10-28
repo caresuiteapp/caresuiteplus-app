@@ -68,11 +68,12 @@ describe('final employee workflow R10', () => {
     expect(progress).not.toContain('👤');
   });
 
-  it('opens execution as a distraction-free full-viewport workspace', () => {
+  it('keeps execution content focused while retaining portal navigation', () => {
     const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     const tab = read('src/screens/portal/PortalTabScreen.tsx');
     const signature = read('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
-    expect(shell).toContain('desktopChrome && !visitExecutionFocus');
+    expect(shell).toContain('!visitExecutionFocus && !compactMessengerFocus');
+    expect(shell).not.toContain('desktopChrome && !visitExecutionFocus');
     expect(shell).toContain('(visitExecutionFocus || compactMessengerFocus) && styles.contentFrameFocus');
     expect(tab).toContain('employee-visit-focus-screen');
     expect(signature.match(/forceFullscreen/g)).toHaveLength(3);

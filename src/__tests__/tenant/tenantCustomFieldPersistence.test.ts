@@ -8,7 +8,7 @@ import {
 
 const mocked = vi.hoisted(() => ({ os: 'web', canManage: true, live: true, blockedTenant: '', client: null as unknown }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return mocked.os; } } }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { scopeLimited: false, permissions: mocked.canManage ? ['business.tenant.manage'] : [] } }) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: async () => ({ ok: true, data: { scopeLimited: false, permissions: mocked.canManage ? ['business.tenant.manage'] : [] } }) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => mocked.client }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({
   isLiveServiceMode: () => mocked.live,
@@ -150,21 +150,20 @@ describe('custom-field web persistence', () => {
     expect(database.calls[2].operation).toBe('update');
   });
 
-  it('includes inactive definitions in the web company editor while default reads stay active-only', async () => {
+  it('includes inactive definitions in company editors while default reads stay active-only', async () => {
     const result = await saveTenantCustomFieldDefinition(TENANT, { ...field(), isActive: false }, 'business_admin');
     expect(result).toEqual({ ok: true, data: [expect.objectContaining({ isActive: false })] });
     expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual({ ok: true, data: [] });
     expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).toEqual(result);
     mocked.os = 'android';
-    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).toEqual({ ok: true, data: [] });
+    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).toEqual(result);
+    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual({ ok: true, data: [] });
   });
 
-  it('preserves native demo visibility while Web requires authoritative live access', async () => {
-    mocked.live = false; mocked.os = 'android';
-    const saved = await saveTenantCustomFieldDefinition(TENANT, { ...field(), isActive: false }, 'business_admin');
-    expect(saved).toEqual({ ok: true, data: [expect.objectContaining({ isActive: false })] });
-    expect(await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin')).toEqual(saved);
-    mocked.os = 'web';
+  it.each(['web', 'android', 'ios'])('requires authoritative live access on %s without writing or returning demo fields', async os => {
+    mocked.live = false; mocked.os = os;
+    expect(await saveTenantCustomFieldDefinition(TENANT, { ...field(), isActive: false }, 'business_admin')).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
     expect((await fetchTenantCustomFieldDefinitions(TENANT, 'business_admin', true)).ok).toBe(false);
+    expect(database.calls).toEqual([]);
   });
 });

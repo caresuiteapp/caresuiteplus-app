@@ -11,12 +11,13 @@ import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindow
 export type { AdaptiveDeviceClass };
 
 export function useDeviceClass() {
-  const { width } = useHydrationSafeWindowDimensions();
+  const { width, fontScale } = useHydrationSafeWindowDimensions();
   const deviceClass = useMemo(() => resolveAdaptiveDeviceClass(width), [width]);
 
   return {
     deviceClass,
     width,
+    fontScale,
     isPhone: isAdaptivePhone(deviceClass),
     isTablet: isAdaptiveTablet(deviceClass),
     isDesktop: deviceClass === 'desktop',

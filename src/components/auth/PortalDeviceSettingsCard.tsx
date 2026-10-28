@@ -1,3 +1,4 @@
+import { AccountSecurityCenter } from './AccountSecurityCenter';
 import { portalBackgroundRefreshStatus } from '@/lib/offline/portalBackgroundRefresh';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Text, View } from 'react-native';
@@ -46,7 +47,8 @@ function PortalDeviceSettingsContent() {
       active = false;
     };
   }, [kind, portalSession?.accountId]);
-  if (Platform.OS === 'web' || !portalSession) return null;
+  if (!portalSession) return null;
+  if (Platform.OS === 'web') return <AccountSecurityCenter />;
   return (
     <View
       style={{
@@ -134,6 +136,7 @@ function PortalDeviceSettingsContent() {
           }}
         />
       ) : null}
+      <AccountSecurityCenter />
       <Text style={{ color: portalPremium.text.primary, fontSize: 18, fontWeight: '700' }}>
         Einsätze schneller öffnen
       </Text>

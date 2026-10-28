@@ -107,9 +107,14 @@ describe('Client UI Reality Fix', () => {
     expect(signatureLookup).not.toContain(".eq('client_id', clientId)");
     expect(documents).not.toContain("update({ status: recoveredStatus })");
     expect(documents).toContain("status: row.status as IntakeDocumentStatus");
-    expect(hook).toContain('containsSignedDocument');
+    expect(hook).toContain('await persistDraft({ forSubmit: true })');
+    expect(hook).toContain('expectedRevision: scope.serverRevision');
+    expect(hook).toContain('scope.completed = true');
     expect(hook).not.toContain('persistClientIntakeDocuments');
-    expect(hook).toContain('atomare Serverabschluss');
+    expect(hook).toContain('await submitClientIntake(tenantId, form,');
+    const completion = readSrc('lib/clients/clientIntakeService.ts');
+    expect(completion).toContain("supabase.functions.invoke('complete-client-intake'");
+    expect(completion).toContain("receipt?.contract !== 'client-intake-completion-v1'");
     expect(record).toContain('loadClientIntakeDraft');
     expect(record).toContain('draft.clientId !== id');
     expect(record).toContain('persistClientIntakeDocuments');

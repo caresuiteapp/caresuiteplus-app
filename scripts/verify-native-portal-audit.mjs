@@ -1,0 +1,284 @@
+import {build} from 'esbuild';
+import {chromium} from 'playwright';
+import ts from 'typescript';
+import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {existsSync,readFileSync,mkdirSync,writeFileSync,copyFileSync,statSync} from 'node:fs';
+import {dirname,resolve,relative,join} from 'node:path';
+import {createServer} from 'node:http';
+import {createNativePortalAuditResolver} from './native-portal-audit-resolver.mjs';
+import {nativePortalAuditDeviceBindings} from './native-portal-audit-device-bindings.mjs';
+
+const root=process.cwd(),require=createRequire(import.meta.url),resolver=createNativePortalAuditResolver(root);
+const output=resolve(process.env.CARESUITE_NATIVE_PORTAL_AUDIT_DIR??'/tmp/caresuite-native-portal-audit');mkdirSync(output,{recursive:true});
+const arg=name=>process.argv.find(value=>value.startsWith('--'+name+'='))?.slice(name.length+3);
+const runtime=resolve('scripts/fixtures/native-portal-audit-runtime.jsx'),authBridge=resolve('scripts/fixtures/native-portal-audit-auth.jsx'),oldMocks=resolve('scripts/fixtures/administration-preview-mocks.jsx');
+const scopes=[
+ {portal:'client_and_family',prefix:'client-audit-',preview:resolve('scripts/fixtures/native-client-portals-audit-preview.jsx'),data:resolve('scripts/fixtures/native-client-portals-audit-data.jsx'),component:'ClientPortalAuditPreview',registry:'clientPortalAuditRoutes'},
+ {portal:'employee',prefix:'employee-audit-',preview:resolve('scripts/fixtures/native-employee-portals-audit-preview.jsx'),data:resolve('scripts/fixtures/native-employee-portals-audit-data.jsx'),component:'EmployeePortalAuditPreview',registry:'employeePortalAuditRoutes'},
+ {portal:'administration',prefix:'admin-audit-',preview:resolve('scripts/fixtures/native-administration-audit-preview.jsx'),data:resolve('scripts/fixtures/native-administration-audit-data.jsx'),component:'AdministrationPortalAuditPreview',registry:'administrationPortalAuditRoutes'},
+].filter(scope=>existsSync(scope.preview)&&existsSync(scope.data));
+const ast=file=>ts.createSourceFile(file,readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+const key=node=>ts.isStringLiteralLike(node)?node.text:node.getText();
+function metadata(scope){
+ const page=ast(scope.preview),data=ast(scope.data),imports=new Map(),routes=new Map(),receivers=new Map();
+ for(const statement of page.statements)if(ts.isImportDeclaration(statement)&&statement.importClause?.name&&ts.isStringLiteral(statement.moduleSpecifier)){const resolved=resolver.resolve(statement.moduleSpecifier.text,scope.preview);if(resolved)imports.set(statement.importClause.name.text,resolved);}
+ for(const source of [page,data]){
+  const visit=node=>{if(ts.isObjectLiteralExpression(node))for(const property of node.properties)if(ts.isPropertyAssignment(property)&&key(property.name).startsWith(scope.prefix)){
+   const id=key(property.name),value=property.initializer;
+   if(ts.isArrayLiteralExpression(value)&&ts.isStringLiteralLike(value.elements[0])&&ts.isIdentifier(value.elements[1])){routes.set(id,value.elements[0].text);receivers.set(id,imports.get(value.elements[1].text));}
+   if(ts.isStringLiteralLike(value))routes.set(id,value.text);
+   if(ts.isIdentifier(value)&&imports.has(value.text))receivers.set(id,imports.get(value.text));
+  }ts.forEachChild(node,visit);};visit(source);
+ }
+ return [...routes].map(([id,href])=>({id,href,portal:scope.portal,preview:scope.preview,component:scope.component,page:receivers.get(id)}));
+}
+const matrix=JSON.parse(readFileSync('docs/audit/native-portal-route-matrix.json','utf8'));
+const layoutPaths=matrix.layouts.map(layout=>resolve('app',layout.contextKey.replace(/^\.\//,'')));
+const cases=scopes.flatMap(metadata).map(row=>{
+ if(!row.page)throw Error('Actual page default import not found: '+row.id);
+ const inventory=matrix.rows.find(candidate=>resolve(candidate.selectedFile)===row.page);
+ if(!inventory)throw Error('Fixture page is not selected by the actual Android route inventory: '+relative(root,row.page));
+ const directory=dirname(row.page),layouts=layoutPaths.filter(file=>file!==resolve('app/_layout.tsx')&&(directory===dirname(file)||directory.startsWith(dirname(file)+'/'))).sort((a,b)=>a.split('/').length-b.split('/').length);
+ return {...row,routeTemplate:inventory.routeTemplate,inventoryId:inventory.id,layouts};
+});
+const selectedCases=cases.filter(row=>(!arg('portal')||row.portal===arg('portal'))&&(!arg('case')||row.id===arg('case')));
+if(!selectedCases.length)throw Error('No actual portal route cases selected.');
+const exportsOf=file=>{const names=new Set();for(const statement of ast(file).statements){if(statement.modifiers?.some(modifier=>modifier.kind===ts.SyntaxKind.ExportKeyword)){if((ts.isFunctionDeclaration(statement)||ts.isClassDeclaration(statement))&&statement.name)names.add(statement.name.text);if(ts.isVariableStatement(statement))for(const declaration of statement.declarationList.declarations)if(ts.isIdentifier(declaration.name))names.add(declaration.name.text);}if(ts.isExportDeclaration(statement)&&statement.exportClause&&ts.isNamedExports(statement.exportClause))for(const item of statement.exportClause.elements)if(!item.isTypeOnly)names.add(item.name.text);}return [...names];};
+const dataNames=[...new Set(scopes.flatMap(scope=>exportsOf(scope.data)))].filter(name=>!['useAuth','usePathname','useRouter','useLocalSearchParams','useGlobalSearchParams','useNavigation','useIsFocused','Link','NavigationContext','usePreventRemove'].includes(name));
+const transportSource=scopes.map((scope,index)=>`import * as scope${index} from ${JSON.stringify(scope.data)};`).join('\n')+`\nconst current=()=>{const id=new URLSearchParams(location.search).get('screen')??'';${scopes.map((scope,index)=>`if(id.startsWith(${JSON.stringify(scope.prefix)}))return scope${index};`).join('')}throw Error('Unknown synthetic transport scope');};\nexport const auditAuthValue=()=>current().useAuth();\n`+dataNames.map(name=>`export const ${name}=(...args)=>{const value=current()[${JSON.stringify(name)}];if(typeof value!=='function')throw Error('Unprovided exact synthetic contract: '+${JSON.stringify(name)});return value(...args);};`).join('\n');
+const normalized=file=>relative(root,file).replaceAll('\\','/').replace(/\.(?:android|native|web)\.(?:tsx?|jsx?)$/, '').replace(/\.(?:tsx?|jsx?)$/,'');
+const transportTargets=new Set([
+ 'src/hooks/usePortalActor','src/hooks/usePortalContext','src/hooks/usePortalAppointments','src/hooks/usePortalAppointmentDetail','src/hooks/usePortalDocuments','src/hooks/usePortalDocumentDetail','src/hooks/useClientPortalProfile','src/hooks/usePortalClientAppointmentDetail','src/hooks/usePortalClientLiveTracking','src/hooks/useClientPortalSettings','src/hooks/useportalofficemessages','src/hooks/useportalofficethreaddetail','src/hooks/usenotifications','src/hooks/core/useAsyncQuery','src/hooks/useEmployeePortalDashboard','src/hooks/useEmployeePortalClientRecords','src/hooks/useEmployeePortalClientRecord','src/hooks/useEmployeePortalCalendarEvents','src/hooks/useEmployeePortalUploads','src/hooks/useEmployeePortalProfile','src/hooks/useEmployeePortalPersonnelView','src/hooks/useEmployeeMobilitySettings','src/hooks/usePortalSignatureDetail','src/hooks/useClientRecord','src/hooks/useClientFullDetail','src/hooks/useEmployeePersonnelFile','src/ai/useAiPageContext',
+ 'src/features/liveTracking/employeeLocationConsentPersistence','src/features/liveTracking/getEmployeeLocationConsent','src/features/assistWorkflow/resolveAssistExecutionContext','src/lib/portal/employeePortalMobilitySelection','src/lib/portal/employeePortalVisitAttachmentService',
+ 'src/lib/office/messageattachmentservice',
+ 'src/lib/portal/assist/portalAssistDashboardService','src/lib/portal/assist/portalRequestService','src/lib/portal/assist/portalServiceProofService','src/lib/portal/clientAnnouncementReadService',
+]);
+const sourceImports=new Map();function importDefault(file){if(!sourceImports.has(file))sourceImports.set(file,'Layer'+sourceImports.size);return sourceImports.get(file);}
+const layerCode=cases.map(row=>`${JSON.stringify(row.id)}:[${row.layouts.map(importDefault).join(',')}${row.layouts.length?',':''}()=>React.createElement(ActualRouteReceiver,{caseId:${JSON.stringify(row.id)}},React.createElement(${scopes.find(scope=>scope.portal===row.portal).component},{screen:${JSON.stringify(row.id)},caseId:${JSON.stringify(row.id)}}))]`).join(',\n');
+const caseCode=Object.fromEntries(cases.map(row=>[row.id,{href:row.href,portal:row.portal,routeTemplate:row.routeTemplate,inventoryId:row.inventoryId,page:relative(root,row.page),layouts:row.layouts.map(file=>relative(root,file)),layerNames:[...row.layouts.map(file=>relative(dirname('app'),file).replace(/\/[^/]+$/,'')),relative(root,row.page)]}]));
+const entry=`import React from 'react';import {View} from 'react-native';import {SafeAreaInsetsContext,SafeAreaFrameContext} from 'react-native-safe-area-context';import {createRoot} from 'react-dom/client';\nimport {AuditRootShell} from ${JSON.stringify(resolve('app/_layout.tsx'))};\nimport {AuthContext} from ${JSON.stringify(resolve('src/lib/auth/context.ts'))};\nimport {ThemeModeProvider} from ${JSON.stringify(resolve('src/design/ThemeModeProvider.tsx'))};\nimport {PerformanceProvider} from ${JSON.stringify(resolve('src/lib/performance/PerformanceProvider.tsx'))};\nimport {WebFontScaleProvider} from ${JSON.stringify(resolve('src/design/web/WebFontScaleProvider.tsx'))};\nimport {GlobalWorkflowFeedbackProvider} from ${JSON.stringify(resolve('src/components/ui/GlobalWorkflowFeedback.tsx'))};\nimport {ModalStackProvider} from ${JSON.stringify(resolve('src/components/navigation/ModalStackProvider.tsx'))};\nimport {AppStartIntroReadyContext} from ${JSON.stringify(resolve('src/components/brand/appStartIntroSession.ts'))};\nimport {useAuditLocation,readPortalAuditCase,recordPortalAuditEvent} from ${JSON.stringify(runtime)};\nimport {auditAuthValue} from 'portal-audit:transport';\n${scopes.map(scope=>`import {${scope.component}} from ${JSON.stringify(scope.preview)};`).join('\n')}\n${[...sourceImports].map(([file,name])=>`import ${name} from ${JSON.stringify(file)};`).join('\n')}\nfunction ActualRouteReceiver({caseId,children}){return React.createElement(View,{testID:'native-portal-audit-receiver',nativeID:caseId,style:{flex:1,minWidth:0,minHeight:0}},children)}\nwindow.__nativePortalAuditCases=${JSON.stringify(caseCode)};window.__nativePortalAuditLayers={${layerCode}};\nclass Boundary extends React.Component{state={error:null};static getDerivedStateFromError(error){return{error:String(error)}}componentDidCatch(error,info){recordPortalAuditEvent('render-error',{error:String(error),stack:info.componentStack})}render(){return this.state.error?React.createElement('div',{'data-testid':'native-portal-audit-error',role:'alert'},this.state.error):this.props.children}}\nfunction Preview(){useAuditLocation();const config=readPortalAuditCase(),value={isInitialized:true,isLoading:false,authReady:true,isAuthenticated:true,authMode:'supabase',profileBootstrapError:null,retryProfileBootstrap:async()=>{},signInWithSupabaseSession:async()=>{throw Error('Audit writes disabled')},signInPortalSession:async()=>{throw Error('Audit writes disabled')},updatePortalSession:async()=>{throw Error('Audit writes disabled')},updateProfile:()=>{},...auditAuthValue()};window.__nativePortalAuditCurrent=config;return <Boundary key={config.id}><SafeAreaFrameContext.Provider value={{x:0,y:0,width:innerWidth,height:innerHeight}}><SafeAreaInsetsContext.Provider value={{top:0,right:0,bottom:0,left:0}}><AuthContext.Provider value={value}><AppStartIntroReadyContext.Provider value={true}><ThemeModeProvider><PerformanceProvider><WebFontScaleProvider><GlobalWorkflowFeedbackProvider><ModalStackProvider><AuditRootShell/></ModalStackProvider></GlobalWorkflowFeedbackProvider></WebFontScaleProvider></PerformanceProvider></ThemeModeProvider></AppStartIntroReadyContext.Provider></AuthContext.Provider></SafeAreaInsetsContext.Provider></SafeAreaFrameContext.Provider></Boundary>;}\ncreateRoot(document.getElementById('root')).render(<Preview/>);`;
+const sharedFixture=resolve('scripts/fixtures/native-portal-ui-exports.jsx'),rnWeb=require.resolve('react-native-web');
+const files=new Map(),vendorWebSelections=new Map(),track=file=>{if(file.startsWith(root+'/')&&!file.includes('/node_modules/')&&existsSync(file))files.set(relative(root,file),createHash('sha256').update(readFileSync(file)).digest('hex'));};
+const plugin={name:'actual-native-portal-audit',setup(b){
+ // Browser evidence cannot execute Android PDFBox. Preserve the exact module
+ // interface and reject only a requested device action; never fake a PDF result.
+ b.onLoad({filter:/\/modules\/caresuite-pdf\/src\/CareSuitePdfModule\.ts$/},args=>{
+  track(args.path);
+  return {loader:'js',contents:`const reject=operation=>async()=>{(globalThis.__nativePortalAuditEvents??=[]).push({type:'blocked-device-boundary',operation});throw Error('Native PDF operation requires an Android device: '+operation)};const module={extractAttachments:reject('CareSuitePdf.extractAttachments'),renderPages:reject('CareSuitePdf.renderPages')};export const getCareSuitePdfModule=()=>module;export default module;`};
+ });
+
+ b.onResolve({filter:/encryptedWorkflowStorage\.native$/},()=>({path:'encryptedWorkflowStorage',namespace:'audit-storage'}));
+ b.onLoad({filter:/.*/,namespace:'audit-storage'},()=>({loader:'js',contents:`const stores=new Map();export const encryptedNativeWorkflowStore=name=>{if(!stores.has(name))stores.set(name,new Map());const m=stores.get(name);return {get length(){return m.size},key:i=>[...m.keys()][i]??null,getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear()}};`}));
+ b.onResolve({filter:/.*/},args=>Object.hasOwn(nativePortalAuditDeviceBindings,args.path)?{path:args.path,namespace:'audit-device'}:undefined);
+ b.onLoad({filter:/.*/,namespace:'audit-device'},args=>({loader:'js',resolveDir:root,contents:nativePortalAuditDeviceBindings[args.path]}));
+ b.onResolve({filter:/^portal-audit:transport$/},()=>({path:'transport',namespace:'portal-audit'}));
+ b.onLoad({filter:/.*/,namespace:'portal-audit'},()=>({loader:'jsx',resolveDir:root,contents:transportSource}));
+ b.onResolve({filter:/^expo-router$/},()=>({path:runtime}));
+ b.onResolve({filter:/^react-native$/},()=>({path:'rn',namespace:'audit-native'}));
+ b.onResolve({filter:/^react-native\/Libraries\/(Image\/resolveAssetSource|Utilities\/codegenNativeComponent)$/},args=>({path:args.path.includes('resolveAssetSource')?'asset-source':'codegen',namespace:'audit-native'}));
+ b.onResolve({filter:/^expo-status-bar$/},()=>({path:'status',namespace:'audit-native'}));
+ b.onResolve({filter:/^(@\/components\/(ui|healthos))$/},()=>({path:sharedFixture}));
+ b.onResolve({filter:/^@\/lib\/auth$/},()=>({path:authBridge}));
+ b.onResolve({filter:/^react-native-keyboard-controller$/},()=>({path:'keyboard',namespace:'audit-native'}));
+ b.onResolve({filter:/^(expo-file-system|expo-print|expo-sharing|expo-video|expo-router\/react-navigation)$/},()=>({path:oldMocks}));
+ b.onResolve({filter:/^(@react-native-async-storage\/async-storage|react-native-reanimated|expo-blur)$/},args=>({path:args.path,namespace:'audit-native'}));
+ b.onResolve({filter:/^@expo\/vector-icons\/(Ionicons|Feather)$/},args=>({path:args.path.endsWith('Ionicons')?'Ionicons':'Feather',namespace:'audit-native'}));
+ b.onResolve({filter:/^expo-linear-gradient$/},()=>({path:oldMocks}));
+ // The application is selected as Android, while installed vendor hosts run in
+ // a browser. Expo's real web polyfill must initialize its web NativeModule /
+ // EventEmitter implementation; the generic native installer is a no-op here.
+ b.onResolve({filter:/^\.{1,2}\//},args=>{
+  if(!args.importer.includes('/node_modules/'))return;
+  const base=resolve(dirname(args.importer),args.path),extension=base.match(/\.(tsx?|jsx?)$/)?.[0];
+  // Expo Font's .web server-context implementation is Node SSR-only. Its
+  // installed generic implementation is the documented no-op client context.
+  if(base.replace(/\.(?:tsx?|jsx?)$/,'').endsWith('/expo-font/build/serverContext'))return;
+  const candidates=extension?[base.slice(0,-extension.length)+'.web'+extension]:resolver.extensions.flatMap(ext=>[base+'.web.'+ext,join(base,'index.web.'+ext)]);
+  const file=candidates.find(candidate=>existsSync(candidate)&&statSync(candidate).isFile());
+  if(!file)return;
+  vendorWebSelections.set(relative(root,file),createHash('sha256').update(readFileSync(file)).digest('hex'));
+  return {path:file};
+ });
+ b.onResolve({filter:/^(@\/|\.{1,2}\/)/},args=>{
+  if(args.importer.includes('/node_modules/'))return;
+  const file=resolver.resolve(args.path,args.importer);if(!file)return;
+  if(normalized(file)==='src/hooks/usePermissions'&&!scopes.some(scope=>scope.data===args.importer))return {path:'permissions-hook',namespace:'audit-native'};
+  const name=normalized(file);if(transportTargets.has(name)&&!scopes.some(scope=>scope.data===args.importer))return {path:'transport',namespace:'portal-audit'};
+  if(name==='src/lib/supabase/client')return {path:'supabase',namespace:'audit-native'};
+  if(name==='src/lib/supabase/authService')return {path:'auth-service',namespace:'audit-native'};
+  if(name==='src/lib/supabase/permissionRepository')return {path:'permissions',namespace:'audit-native'};
+  if(name==='src/lib/office/officemessagerealtime')return {path:'office-realtime',namespace:'audit-native'};
+  if(name==='src/lib/realtime'||name==='src/lib/realtime/presets')return {path:'realtime',namespace:'audit-native'};
+  track(file);return {path:file};
+ });
+ b.onLoad({filter:/\/app\/_layout\.tsx$/},args=>{track(args.path);return {loader:'tsx',contents:readFileSync(args.path,'utf8')+'\nexport {RootShell as AuditRootShell};\n'};});
+ b.onLoad({filter:/\.(png|jpe?g|gif|svg)$/},args=>{const bytes=readFileSync(args.path),name=createHash('sha256').update(bytes).digest('hex').slice(0,16)+args.path.slice(args.path.lastIndexOf('.'));mkdirSync(join(output,'assets'),{recursive:true});copyFileSync(args.path,join(output,'assets',name));return {loader:'js',contents:`module.exports = {uri:${JSON.stringify('/assets/'+name)}};`};});
+ b.onLoad({filter:/.*/,namespace:'audit-native'},args=>{
+  if(args.path==='rn')return {loader:'jsx',resolveDir:root,contents:`import React from 'react';import * as RN from ${JSON.stringify(rnWeb)};export * from ${JSON.stringify(rnWeb)};export const Platform={...RN.Platform,OS:'android',select:options=>options.android??options.native??options.default};export const findNodeHandle=()=>null;export const AccessibilityInfo={...RN.AccessibilityInfo,setAccessibilityFocus:()=>{}};const scale=Number(new URLSearchParams(location.search).get('scale')??1);export const useWindowDimensions=()=>({...RN.useWindowDimensions(),fontScale:scale});const style=value=>{const {experimental_backgroundImage,...rest}=RN.StyleSheet.flatten(value)??{};return[rest,experimental_backgroundImage?{backgroundImage:experimental_backgroundImage}:null]};export const View=React.forwardRef(({style:value,...props},ref)=><RN.View {...props} ref={ref} style={style(value)}/>);export const Pressable=React.forwardRef(({style:value,...props},ref)=><RN.Pressable {...props} ref={ref} style={typeof value==='function'?state=>style(value(state)):style(value)}/>);export const Text=({style:value,allowFontScaling,...props})=>{const flat=RN.StyleSheet.flatten(value)??{};return<RN.Text {...props} style={[flat,allowFontScaling===false?{}:{fontSize:(flat.fontSize??14)*scale,lineHeight:(flat.lineHeight??(flat.fontSize??14)*1.4)*scale}]}/>};`};
+  if(args.path==='asset-source')return {contents:'export default source=>source;'};
+  if(args.path==='codegen')return {loader:'jsx',resolveDir:root,contents:`import React from 'react';import {View} from ${JSON.stringify(rnWeb)};export default name=>React.forwardRef((props,ref)=><View {...props} ref={ref} testID={'audit-native-device-boundary-'+name}/>);`};
+  if(args.path==='status')return {resolveDir:root,contents:'export const StatusBar=()=>null;'};
+  if(args.path==='keyboard')return {resolveDir:root,contents:`export {ScrollView as KeyboardAwareScrollView,KeyboardAvoidingView} from ${JSON.stringify(rnWeb)};export const KeyboardProvider=({children})=>children;`};
+  if(args.path==='@react-native-async-storage/async-storage')return {resolveDir:root,contents:`const values=new Map();export default {getItem:async key=>values.get(key)??null,setItem:async(key,value)=>{values.set(key,value)},removeItem:async key=>values.delete(key),multiGet:async keys=>keys.map(key=>[key,values.get(key)??null]),multiSet:async rows=>rows.forEach(([key,value])=>values.set(key,value))};`};
+  if(args.path==='react-native-reanimated')return {resolveDir:root,contents:`import {useRef} from'react';import * as RN from${JSON.stringify(rnWeb)};export default{View:RN.View,Text:RN.Text,createAnimatedComponent:value=>value};export const useSharedValue=value=>useRef({value}).current,useAnimatedStyle=fn=>fn(),withSpring=value=>value,withTiming=value=>value,withRepeat=value=>value,withSequence=value=>value,withDelay=(_delay,value)=>value,runOnJS=fn=>fn,cancelAnimation=()=>{},Easing=RN.Easing;`};
+  if(args.path==='expo-blur')return {resolveDir:root,contents:`export {View as BlurView} from ${JSON.stringify(rnWeb)};`};
+  if(['Ionicons','Feather'].includes(args.path))return {loader:'jsx',resolveDir:root,contents:`import {Text} from ${JSON.stringify(rnWeb)};import glyphs from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/${args.path}.json';export default function Icon({name,size,color}){return<Text style={{fontFamily:'${args.path}',fontSize:size,color}}>{String.fromCodePoint(glyphs[name]??63)}</Text>};`};
+  if(args.path==='supabase')return {resolveDir:root,contents:`const fail=()=>{throw Error('Unprovided exact audit Supabase contract; network is blocked')};export const getSupabaseClient=()=>({from:fail,rpc:fail,storage:new Proxy({},{get:()=>fail}),auth:new Proxy({},{get:()=>fail}),channel:fail}),resetSupabaseClient=()=>{};`};
+  if(args.path==='auth-service')return {resolveDir:root,contents:`export const getSession=async()=>({ok:true,data:null}),signOut=async()=>({ok:false,error:'Audit sign-out transport denied'}),signInWithPassword=signOut,onAuthStateChange=()=>({unsubscribe(){}}),toGermanAuthError=error=>String(error);`};
+  if(args.path==='permissions')return {resolveDir:root,contents:`import {getPermissionsForRole} from ${JSON.stringify(resolve('src/lib/permissions/staticRolePermissions.ts'))};export const fetchRuntimePermissions=async role=>getPermissionsForRole(role),getCachedRuntimePermissions=role=>getPermissionsForRole(role),clearRuntimePermissionCache=()=>{};`};
+  if(args.path==='permissions-hook')return {resolveDir:root,contents:`import {usePermissions as realUsePermissions} from ${JSON.stringify(resolve('src/hooks/usePermissions.ts'))};import {usePermissions as administrationUsePermissions} from ${JSON.stringify(resolve('scripts/fixtures/native-administration-audit-data.jsx'))};export const usePermissions=()=>new URLSearchParams(location.search).get('screen')?.startsWith('admin-audit-')?administrationUsePermissions():realUsePermissions();`};
+  if(args.path==='office-realtime')return {resolveDir:root,contents:`export const subscribeToOfficeMessageThread=()=>()=>{},subscribeToOfficeMessageInbox=()=>()=>{},unsubscribeOfficeMessageThread=()=>{},unsubscribeOfficeMessageInbox=()=>{},clearAllOfficeMessageRealtimeSubscriptions=()=>{},getOfficeMessageRealtimeSubscriptionCount=()=>0;`};
+  if(args.path==='realtime'){const source=readFileSync(resolve('src/lib/realtime/index.ts'),'utf8')+readFileSync(resolve('src/lib/realtime/presets.ts'),'utf8');const names=[...new Set([...source.matchAll(/\b(subscribe\w+)\b/g)].map(match=>match[1]))];return {resolveDir:root,contents:names.map(name=>`export const ${name}=()=>()=>{};`).join('\n')};}
+  throw Error('Unsupported native audit binding: '+args.path);
+ });
+}};
+await build({stdin:{contents:entry,resolveDir:root,sourcefile:'actual-portal-audit-entry.jsx',loader:'jsx'},outfile:join(output,'portal-audit.js'),bundle:true,platform:'browser',format:'iife',jsx:'automatic',mainFields:['react-native','browser','module','main'],define:{'global':'globalThis','process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{"APP_ENV":"production","EXPO_PUBLIC_APP_EDITION":"full","EXPO_PUBLIC_DEMO_MODE":"false"}','__DEV__':'false'},loader:{'.ttf':'dataurl','.mp4':'dataurl','.mp3':'file','.js':'jsx'},plugins:[plugin],metafile:true});
+const manifest={schemaVersion:1,kind:'actual-route-and-ancestor-shell-with-simulated-navigator',controlledDeviceInsets:{top:0,right:0,bottom:0,left:0},deviceBindings:{packages:Object.keys(nativePortalAuditDeviceBindings),pdf:'Exact lazy CareSuitePdf module interface; PDF actions reject; no PDFBox execution proof',storage:'Isolated in-memory key/value stores; no SQLite persistence proof',crypto:'Browser WebCrypto, no native implementation proof',connectivity:'Explicit synthetic connected state, external network blocked',operations:'Device actions reject and record blocked-device-boundary events; defining task callbacks is allowed locally'},notProved:['Realtime delivery and polling (subscriptions disabled in isolated browser fixtures)','physical Android rendering/navigation','session restoration and startup intro','native hardware interfaces','live server permissions and writes/readback'],resolutionExtensions:resolver.extensions,vendorHostResolution:'Installed vendor-relative web implementations in the browser; application routes remain Android-selected',vendorWebSelections:Object.fromEntries(vendorWebSelections),cases:cases.map(row=>({...row,page:relative(root,row.page),preview:relative(root,row.preview),layouts:row.layouts.map(file=>relative(root,file))})),sourceHashes:Object.fromEntries(files)};
+writeFileSync(join(output,'manifest.json'),JSON.stringify(manifest,null,2));
+for(const family of ['CenturyGothic','Feather','Ionicons'])copyFileSync(family==='CenturyGothic'?'public/fonts/CenturyGothic.ttf':require.resolve(`@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/${family}.ttf`),join(output,family+'.ttf'));
+writeFileSync(join(output,'index.html'),`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@font-face{font-family:CenturyGothic;src:url(/CenturyGothic.ttf)}@font-face{font-family:Feather;src:url(/Feather.ttf)}@font-face{font-family:Ionicons;src:url(/Ionicons.ttf)}html,body,#root{margin:0;width:100%;height:100%;overflow:hidden}#root{display:flex;flex-direction:column}</style><div id="root"></div><script src="/portal-audit.js"></script></html>`);
+if(process.argv.includes('--prepare-only')){console.log(JSON.stringify({prepared:output,cases:cases.length,sourceFiles:files.size}));process.exit(0);}
+const executable=process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE??['/usr/bin/google-chrome','/usr/bin/chromium',chromium.executablePath()].find(existsSync);if(!executable)throw Error('No existing browser; no installation is performed. Prepared cases remain unrendered.');
+const server=createServer((request,response)=>{const path=join(output,new URL(request.url,'http://localhost').pathname.replace(/^\//,'')||'index.html');if(!path.startsWith(output+'/')||!existsSync(path)){response.writeHead(404);response.end();return;}response.setHeader('Content-Type',path.endsWith('.js')?'text/javascript':path.endsWith('.ttf')?'font/ttf':path.endsWith('.png')?'image/png':path.endsWith('.svg')?'image/svg+xml':'text/html');response.end(readFileSync(path));});
+await new Promise(done=>server.listen(0,'127.0.0.1',done));const base=`http://127.0.0.1:${server.address().port}`;
+const readyAssertions={
+ 'admin-audit-client-timeline':{present:['Verlauf / Timeline','Synthetische Abstimmung zur Betreuung'],absent:['Für diese zusätzliche Datenquelle']},
+ 'employee-audit-thread':{present:['Können Sie mir bitte meinen nächsten Einsatz bestätigen?','Ihr nächster Einsatz ist für morgen bestätigt.']},
+ 'client-audit-thread':{present:['Können Sie mir bitte meinen nächsten Einsatz bestätigen?','Ihr nächster Einsatz ist für morgen bestätigt.']},
+ 'client-audit-documents':{present:['Dokumente','Keine eingeschränkten']},
+ 'admin-audit-client-billing':{present:['Abrechnungsprofil','Verträge','Dokumentvorschläge']},
+ 'admin-audit-client-billing-restricted':{present:['Abrechnung nicht verfügbar'],absent:['Abrechnungsprofil']},
+ 'admin-audit-client-service-records':{present:['Leistungsnachweise nicht verfügbar'],absent:['Abrechnungsprofil']},
+ 'employee-audit-schedule-alias':{present:['Kalender aktualisieren']},
+ 'employee-audit-signatures-alias':{present:['Dokumente & Unterschriften']},
+ 'employee-audit-logbook':{present:['DIGITALES FAHRTENBUCH','Monatsübersicht']},
+ 'employee-audit-time-clock':{present:['Arbeitszeit','Nicht gestartet','Zeitkonto','Büro-Check-in'],absent:['Prüfgrenze:']},
+ 'employee-audit-times':{present:['Meine Arbeitszeiten','Unterstützung im Alltag','Erfasste Schritte','Meine Fahrten'],absent:['Prüfgrenze:']},
+ 'employee-audit-assignment-execute':{present:['Einsatzvorschau','Helene Musterfrau','Wie bist du unterwegs?','Anfahrt starten'],absent:['Prüfgrenze: Der genaue Datenvertrag']},
+ 'employee-audit-personal-signature':{present:['Dokumentvorschau','Signaturfelder','Unterschrift Mitarbeitende'],absent:['Prüfgrenze:']},
+};
+const guardedFamilyHomeCases=new Set(['client-audit-request','client-audit-upload','client-audit-requests','client-audit-activities']);
+const readyExpectation=(row,role)=>role==='family'&&guardedFamilyHomeCases.has(row.id)?{present:['MEIN ANGEHÖRIGENPORTAL','Ihre Bereiche'],absent:['MEIN KLIENTENPORTAL','Dokument-Upload','Offene Anfragen','Zusatzeinsatz anfragen']}:readyAssertions[row.id];
+const expectedAliasReceivers={'employee-audit-schedule-alias':'employee-audit-calendar','employee-audit-signatures-alias':'employee-audit-signatures'};
+const caseAssertionErrors=(row,state,evidence,role)=>{const expected=state==='ready'?readyExpectation(row,role):null;if(!expected)return[];return [...(expected.present??[]).filter(text=>!evidence.bodyText.replaceAll('\u00ad','').includes(text)).map(text=>'Expected receiving-page text missing: '+text),...(expected.absent??[]).filter(text=>evidence.bodyText.replaceAll('\u00ad','').includes(text)).map(text=>'Unexpected unrelated or denied-page content: '+text)];};
+async function unbrokenLabelErrors(locator,word,description){
+ if(await locator.count()===0)return['Expected layout label missing: '+description];
+ const geometry=await locator.first().evaluate((element,word)=>{
+  const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;
+  while((node=walker.nextNode())){
+   const start=node.textContent.indexOf(word);if(start<0)continue;
+   const lines=[];let glyphs=0;
+   for(let offset=start;offset<start+word.length;offset++){
+    const range=document.createRange();range.setStart(node,offset);range.setEnd(node,offset+1);
+    // Chromium may include the preceding discretionary hyphen in a Range.
+    // The final rectangle belongs to the requested character itself.
+    const rect=[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).at(-1);
+    if(!rect)continue;glyphs++;if(!lines.some(top=>Math.abs(top-rect.top)<1))lines.push(rect.top);
+   }
+   return{lines:lines.length,glyphs};
+  }
+  return{lines:0,glyphs:0};
+ },word);
+ return geometry.lines===1&&geometry.glyphs===word.length?[]:['Layout splits '+description+' across lines: '+JSON.stringify(geometry)];
+}
+async function verifyTextLineControls(browser){
+ const page=await browser.newPage({viewport:{width:320,height:740}});
+ try{
+  await page.setContent('<div id="broken-word" style="font:24px Arial;width:40px;overflow-wrap:anywhere">Musterfrau</div><div id="soft-hyphen" style="font:24px Arial;width:130px">Notfall\u00adnummern</div><div id="whole-word" style="font:24px Arial;width:300px">Musterfrau</div>');
+  if(!(await unbrokenLabelErrors(page.locator('#broken-word'),'Musterfrau','negative control')).length)throw Error('Text line measurement must reject an intentionally broken word.');
+  for(const [id,word]of [['soft-hyphen','nummern'],['whole-word','Musterfrau']])if((await unbrokenLabelErrors(page.locator('#'+id),word,'positive control')).length)throw Error('Text line measurement must accept a complete word, including after a discretionary hyphen.');
+  console.log('Text line measurement: broken-word negative and whole-word/soft-hyphen positive controls passed.');
+ }finally{await page.close();}
+}
+
+async function metricLayoutAssertionErrors(page,row,state,role){
+ const errors=[];
+ if(state==='error'){
+  const title=page.getByTestId('global-workflow-feedback-title');
+  if(await title.count()){
+   const words=(await title.textContent()).match(/[A-Za-zÄÖÜäöüß]{8,}/g)??[];
+   for(const word of words)errors.push(...await unbrokenLabelErrors(title,word,'feedback heading '+word));
+  }
+ }
+ if(state==='empty'&&row.id==='employee-audit-open-assignments'&&await page.getByText('Alles erledigt. Sie haben keine offenen Einsätze.',{exact:true}).count()===0)errors.push('Empty assignment list has no receiving-page explanation for a linked employee.');
+ if(state==='empty'&&row.id==='client-audit-profile'&&role==='client'&&await page.getByText('Keine Profildaten',{exact:true}).count()===0)errors.push('Empty client profile has no receiving-page explanation.');
+ if(state==='empty'&&row.id==='employee-audit-client-detail'&&await page.getByText('Klient:in nicht gefunden oder kein Zugriff.',{exact:true}).count()===0)errors.push('Missing client record has no receiving-page explanation.');
+ if(['ready','empty'].includes(state)&&row.id==='client-audit-request'&&role==='client'){
+  const weekday=await page.getByRole('button',{name:/^Bevorzugter Wochentag:/}).boundingBox(),nextLabel=await page.getByText('Bevorzugte Tageszeit',{exact:true}).boundingBox();
+  if(!weekday||!nextLabel||weekday.y+weekday.height>nextLabel.y+1)errors.push('Request fields overlap instead of retaining their complete intrinsic height.');
+ }
+ if(state==='empty'&&row.id==='client-audit-proofs')errors.push(...await unbrokenLabelErrors(page.getByLabel('Noch keine Leistungsnachweise',{exact:true}),'nachweise','empty proof heading suffix'));
+ if(state!=='ready')return errors;
+ if(row.id==='admin-audit-invoices'){
+  const subtitle=page.getByText('Einzelrechnungen, Monatsdurchläufe und Zahlungsstände.',{exact:true});
+  if(await subtitle.count()===0)errors.push('Invoice workspace subtitle is missing.');
+  else{
+   const overflow=await subtitle.first().evaluate(element=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const range=document.createRange();range.selectNodeContents(node);if([...range.getClientRects()].some(rect=>rect.width>0&&(rect.left< -1||rect.right>innerWidth+1)))return true;}return false;});
+   if(overflow)errors.push('Invoice workspace subtitle is clipped beyond the viewport instead of wrapping.');
+  }
+  errors.push(...await unbrokenLabelErrors(page.getByRole('heading',{name:'Rechnungen',exact:true}),'Rechnungen','invoice page heading'));
+  const first=await page.getByRole('button',{name:'Rechnungsübersicht',exact:true}).boundingBox(),second=await page.getByRole('button',{name:'Rechnungseingang',exact:true}).boundingBox();
+  if(!first||!second||Math.abs(first.y-second.y)>1)errors.push('Invoice workspace tabs lost their authored horizontal row.');
+ }
+ if(['client-audit-documents','employee-audit-documents'].includes(row.id))errors.push(...await unbrokenLabelErrors(page.getByText('Keine eingeschränkten',{exact:true}),'eingeschränkten','document metric word'));
+ if(['employee-audit-thread','client-audit-thread'].includes(row.id)){
+  for(const id of ['visual-message-own','visual-message-office']){
+   const bubble=page.getByTestId('message-bubble-'+id),meta=page.getByTestId('message-meta-'+id);
+   if(await bubble.count()===0||await meta.count()===0){errors.push('Expected populated message bubble missing: '+id);continue;}
+   const bounds=await bubble.boundingBox();
+   const overflow=await meta.evaluate((element,bounds)=>[...element.children].some(child=>{const box=child.getBoundingClientRect();return box.left<bounds.x-1||box.right>bounds.x+bounds.width+1||box.top<bounds.y-1||box.bottom>bounds.y+bounds.height+1;}),bounds);
+   if(overflow)errors.push('Message time/status/copy actions extend beyond the bubble: '+id);
+  }
+ }
+ if(row.id==='client-audit-help')errors.push(...await unbrokenLabelErrors(page.getByLabel('Hilfe & Notfallnummern',{exact:true}),'nummern','emergency-number heading suffix'));
+ if(row.id==='client-audit-signature-detail')errors.push(...await unbrokenLabelErrors(page.getByLabel('Vereinbarung zur Alltagsbegleitung und Unterstützung',{exact:true}),'begleitung','signature heading suffix'));
+ if(row.id==='admin-audit-client-timeline'){
+  const title=page.getByText('Synthetische Abstimmung zur Betreuung',{exact:true});
+  if(await title.count()===0)errors.push('Expected timeline title missing.');
+  else if(await title.evaluate(element=>element.scrollWidth>element.clientWidth+1||element.scrollHeight>element.clientHeight+1))errors.push('Timeline event title is clipped.');
+ }
+ if(row.id==='employee-audit-announcements')errors.push(...await unbrokenLabelErrors(page.getByText('Ankündigungen',{exact:true}),'Ankündigungen','announcement heading'));
+ if(row.id==='employee-audit-client-detail')errors.push(...await unbrokenLabelErrors(page.getByText('Helene Musterfrau',{exact:true}),'Musterfrau','client name'));
+ if(['employee-audit-assignment-detail','employee-audit-document-detail','client-audit-document-detail'].includes(row.id)){
+  const dates=page.getByText(/\d{2}\.\d{2}\.\d{4}/);
+  if(await dates.count()===0)errors.push('Expected detail date missing.');
+  else{const text=await dates.first().textContent(),date=text.match(/\d{2}\.\d{2}\.\d{4}/)?.[0];if(date)errors.push(...await unbrokenLabelErrors(dates,date,'detail date'));}
+ }
+ const titles={'employee-audit-payroll':'Gehalt & Auslagen','employee-audit-tasks':'Aufgaben & Notizen','client-audit-help':'Hilfe & Notfallnummern'};
+ if(titles[row.id]){
+  const title=page.getByLabel(titles[row.id],{exact:true});
+  if(await title.count()===0)errors.push('Expected full page heading missing.');
+  else if(await title.first().evaluate(element=>element.scrollWidth>element.clientWidth+1||element.scrollHeight>element.clientHeight+1))errors.push('Page heading is clipped.');
+ }
+ return errors;
+}
+
+async function captureCaseDetail(page,row,state,imageName){
+ if(state!=='ready')return[];
+ const details=[];
+ if(row.id==='admin-audit-client-billing'){
+  const summary=page.getByRole('button',{name:/Dokumentvorschläge/});await summary.scrollIntoViewIfNeeded();await summary.click();
+  await page.getByRole('button',{name:/Gesamten Katalog öffnen/}).waitFor();
+  const image=imageName.replace('.png','-recommendations.png');await page.screenshot({path:join(output,image)});details.push(image);
+  await summary.click();if(await page.getByRole('button',{name:/Gesamten Katalog öffnen/}).count())throw Error('Collapsed document recommendations retain their action body.');
+ }
+ if(row.id==='admin-audit-client-timeline'){
+  await page.getByText('Synthetische Abstimmung zur Betreuung',{exact:true}).scrollIntoViewIfNeeded();
+  const image=imageName.replace('.png','-timeline.png');await page.screenshot({path:join(output,image)});details.push(image);
+ }
+ if(['employee-audit-assignment-detail','employee-audit-document-detail','client-audit-document-detail'].includes(row.id)){
+  await page.getByText(/\d{2}\.\d{2}\.\d{4}/).first().scrollIntoViewIfNeeded();
+  const image=imageName.replace('.png','-date.png');await page.screenshot({path:join(output,image)});details.push(image);
+ }
+ return details;
+}
+
+let browser;try{browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox']});}catch(error){await new Promise(done=>server.close(done));throw error;}const checks=[];
+try{await verifyTextLineControls(browser);for(const row of selectedCases)for(const state of (arg('states')??'ready,loading,error,empty').split(','))for(const role of (row.portal==='client_and_family'?(arg('roles')??'client').split(','):['default']))for(const {width,height,scale}of [{width:320,height:740,scale:1},{width:1280,height:800,scale:1},{width:360,height:800,scale:1.6}]){
+ const page=await browser.newPage({viewport:{width,height}}),errors=[],errorStacks=[],consoleErrors=[],network=[];page.on('pageerror',error=>{errors.push(error.message);errorStacks.push(error.stack??error.message)});page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text())});await page.route('**/*',route=>{if(route.request().url().startsWith(base+'/')||route.request().url().startsWith('data:'))return route.continue();network.push(route.request().url().split('?')[0]);return route.abort();});
+ try{await page.goto(base+'/?'+new URLSearchParams({screen:row.id,state,role,scale:String(scale),route:row.href}));await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(500);const evidence=await page.evaluate(()=>({current:window.__nativePortalAuditCurrent,events:window.__nativePortalAuditEvents??[],bodyText:document.body.innerText,bodyOverflow:document.body.scrollWidth>innerWidth+1,boundaryError:document.querySelector('[data-testid="native-portal-audit-error"]')?.textContent??null,receiverId:document.querySelector('[data-testid="native-portal-audit-receiver"]')?.id??null,navigatorLayers:document.querySelectorAll('[data-testid^="native-portal-audit-navigator-"]').length}));const expectedReceiverId=expectedAliasReceivers[row.id]??row.id;const receivingCase=cases.find(candidate=>candidate.id===expectedReceiverId);if(!receivingCase)throw Error('Expected receiving case missing: '+expectedReceiverId);const expectedNavigatorLayers=receivingCase.layouts.length+1;const assertionErrors=[...caseAssertionErrors(row,state,evidence,role),...await metricLayoutAssertionErrors(page,row,state,role)];const name=`${row.id}-${role}-${state}-${width}x${height}-scale-${scale}.png`;await page.screenshot({path:join(output,name)});const detailImages=await captureCaseDetail(page,row,state,name);checks.push({caseId:row.id,state,role,viewport:{width,height},scale,image:name,detailImages,status:errors.length||network.length||evidence.bodyOverflow||evidence.boundaryError||evidence.events.some(event=>event.type==='render-error')||assertionErrors.length?'failed':evidence.current?.id!==expectedReceiverId||evidence.receiverId!==expectedReceiverId||evidence.navigatorLayers!==expectedNavigatorLayers?'blocked-before-expected-receiver':evidence.events.some(event=>event.type==='blocked-device-boundary')?'device-boundary-not-exercised':evidence.bodyText.includes('Prüfgrenze: Der genaue Datenvertrag')?'fixture-contract-unimplemented':state==='ready'&&readyExpectation(row,role)?'case-assertions-passed-needs-visual-review':'captured-needs-case-assertions',errors,errorStacks,consoleErrors,assertionErrors,blockedNetwork:network,expectedReceiverId,expectedNavigatorLayers,...evidence});}catch(error){checks.push({caseId:row.id,state,role,viewport:{width,height},scale,status:'failed',error:String(error),errors,errorStacks,consoleErrors,blockedNetwork:network});}finally{await page.close();writeFileSync(join(output,'verification.json'),JSON.stringify({manifest:'manifest.json',acceptance:false,checks},null,2));}
+}}finally{await browser.close();await new Promise(done=>server.close(done));}
+const unresolved=checks.filter(check=>['failed','blocked-before-expected-receiver','fixture-contract-unimplemented'].includes(check.status));
+console.log(JSON.stringify({portal:arg('portal')??'all',acceptance:false,checks:checks.length,statusCounts:checks.reduce((counts,check)=>({...counts,[check.status]:(counts[check.status]??0)+1}),{}),unresolved:unresolved.map(check=>({caseId:check.caseId,state:check.state,role:check.role,viewport:check.viewport,scale:check.scale,status:check.status,errors:check.errors,assertionErrors:check.assertionErrors,boundaryError:check.boundaryError,bodyText:check.bodyText?.slice(0,1800),events:check.events}))},null,2));
+if(unresolved.length)process.exitCode=1;

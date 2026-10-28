@@ -24,7 +24,7 @@ describe('HealthOS full native Android release', () => {
     fullEnvironment();
     const config = resolveConfig();
     expect(config.name).toBe('CareSuite HealthOS');
-    expect(config.version).toBe('0.4.0');
+    expect(config.version).toBe('0.8.0');
     expect(config.android?.package).toBe('app.caresuitehealthos');
     expect(config.extra?.eas?.projectId).toBe('567bda34-8356-4de8-9349-a0de3143567e');
     expect(config.extra?.router?.root).toBe('app');
@@ -86,3 +86,4 @@ describe('HealthOS full native Android release', () => {
     }
   });
 });
+

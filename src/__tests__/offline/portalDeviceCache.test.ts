@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 const memory = vi.hoisted(() => new Map<string, string>());
 vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
-vi.mock('@/lib/security/sensitiveAuthStorage', () => ({
-  sensitiveAuthStorage: {
+vi.mock('@/lib/security/protectedDataStorage', () => ({
+  protectedDataStorage: {
     getItem: vi.fn(async (key: string) => memory.get(key) ?? null),
     setItem: vi.fn(async (key: string, raw: string) => {
       memory.set(key, raw);
@@ -13,7 +13,7 @@ vi.mock('@/lib/security/sensitiveAuthStorage', () => ({
     }),
   },
 }));
-import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
+import { protectedDataStorage } from '@/lib/security/protectedDataStorage';
 import {
   clearOfflineDb,
   getStoreRecord,
@@ -43,7 +43,7 @@ beforeEach(async () => {
 describe('Native encrypted read-model cache', () => {
   it('reopens a recent detail without another secure disk read and without sharing mutable objects', async () => {
     await putStoreRecord('assignments', { key: 'visit-a', data: { title: 'Saved' } });
-    vi.mocked(sensitiveAuthStorage.getItem).mockClear();
+    vi.mocked(protectedDataStorage.getItem).mockClear();
     const a = await getStoreRecord<{ key: string; data: { title: string } }>(
       'assignments',
       'visit-a',
@@ -54,15 +54,15 @@ describe('Native encrypted read-model cache', () => {
       'visit-a',
     );
     expect(b!.data.title).toBe('Saved');
-    expect(sensitiveAuthStorage.getItem).not.toHaveBeenCalled();
+    expect(protectedDataStorage.getItem).not.toHaveBeenCalled();
   });
   it('serializes overlapping writes so an older save cannot replace the newest record', async () => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const original = vi.mocked(sensitiveAuthStorage.setItem).getMockImplementation()!;
-    vi.mocked(sensitiveAuthStorage.setItem).mockImplementation(async (key, raw) => {
+    const original = vi.mocked(protectedDataStorage.setItem).getMockImplementation()!;
+    vi.mocked(protectedDataStorage.setItem).mockImplementation(async (key, raw) => {
       if (raw.includes('first')) await held;
       await original(key, raw);
     });
@@ -71,7 +71,7 @@ describe('Native encrypted read-model cache', () => {
     release();
     await Promise.all([first, second]);
     expect(await getStoreRecord('assignments', 'same')).toEqual({ key: 'same', value: 'second' });
-    vi.mocked(sensitiveAuthStorage.setItem).mockImplementation(original);
+    vi.mocked(protectedDataStorage.setItem).mockImplementation(original);
   });
   it('separates client/account/tenant data, preserves drafts and never restores old GPS as live', async () => {
     await putStoreRecord('doc_drafts', { key: 'draft-a', value: 'Unsaved' });

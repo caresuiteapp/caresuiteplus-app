@@ -22,6 +22,7 @@ import { mapClientDocument } from '@/lib/supabase/mappers/clientExtendedMapper';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
+import { fetchClientPortalSettingsResolved, canClientPortalSeeFeature } from '@/lib/client/clientPortalSettingsService';
 import {
   fetchAssistProofPortalDocumentDetail,
   getProofPdfForClientPortal,
@@ -276,19 +277,30 @@ async function loadPortalVisibleClientDocumentDetail(
   tenantId: string,
   clientId: string,
   documentId: string,
+  proofOnly = false,
+  documentOnly = false,
 ): Promise<ServiceResult<PortalDocumentDetail>> {
   const supabase = getSupabaseClient();
   if (!supabase) return unavailable();
+  if (proofOnly && documentOnly) return { ok: false, error: 'Der angeforderte Dokumentbereich ist nicht eindeutig.' };
 
-  const { data, error } = await fromUnknownTable(supabase, 'client_documents')
+  if (proofOnly) {
+    if (!tenantId.trim() || !clientId.trim() || !documentId.trim()) return { ok: false, error: 'Nachweis nicht gefunden oder nicht freigegeben.' };
+    const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
+    if (!settings.ok) return settings;
+    if (!canClientPortalSeeFeature(settings.data, 'proofs')) return { ok: false, error: 'Nachweise sind derzeit nicht freigegeben.' };
+  }
+  let query = fromUnknownTable(supabase, 'client_documents')
     .select(LIST_SELECT)
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('id', documentId)
     .eq('portal_visible', true)
     .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
-    .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
-    .maybeSingle();
+    .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`);
+  if (proofOnly) query = query.eq('category', PORTAL_PROOFS_CATEGORY);
+  if (documentOnly) query = query.neq('category', PORTAL_PROOFS_CATEGORY);
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     if (isMissingTableError(error)) {
@@ -298,6 +310,7 @@ async function loadPortalVisibleClientDocumentDetail(
     return { ok: false, error: 'Das Dokument konnte gerade nicht geöffnet werden.' };
   }
   if (!data) {
+    if (documentOnly) return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
     const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
     if (assistProof.ok) return assistProof;
     const legacy = await fetchLegacyPortalServiceProof(tenantId, clientId, documentId);
@@ -316,6 +329,12 @@ async function loadPortalVisibleClientDocumentDetail(
   }
 
   const row = data as Record<string, unknown>;
+  if (proofOnly && (row.id !== documentId || row.tenant_id !== tenantId || row.client_id !== clientId || row.category !== PORTAL_PROOFS_CATEGORY)) {
+    return { ok: false, error: 'Nachweis nicht gefunden oder nicht freigegeben.' };
+  }
+  if (documentOnly && (row.id !== documentId || row.tenant_id !== tenantId || row.client_id !== clientId || row.category === PORTAL_PROOFS_CATEGORY || row.source === 'assist_visit_proof')) {
+    return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+  }
   if (String(row.source ?? '') === 'assist_visit_proof') {
     const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
     if (assistProof.ok) return assistProof;
@@ -337,9 +356,10 @@ export async function fetchLivePortalDocumentDetail(
   tenantId: string,
   clientId: string,
   documentId: string,
+  options?: { proofOnly?: boolean; documentOnly?: boolean },
 ): Promise<ServiceResult<PortalDocumentDetail>> {
   return runService(async () => {
-    return loadPortalVisibleClientDocumentDetail(tenantId, clientId, documentId);
+    return loadPortalVisibleClientDocumentDetail(tenantId, clientId, documentId, options?.proofOnly === true, options?.documentOnly === true);
   });
 }
 
@@ -384,8 +404,9 @@ export async function downloadLivePortalDocument(
   tenantId: string,
   clientId: string,
   documentId: string,
+  options?: { proofOnly?: boolean; documentOnly?: boolean },
 ): Promise<ServiceResult<{ fileName: string; mimeType: string; downloadUrl: string }>> {
-  const detail = await fetchLivePortalDocumentDetail(tenantId, clientId, documentId);
+  const detail = await fetchLivePortalDocumentDetail(tenantId, clientId, documentId, options);
   if (!detail.ok) return detail;
   if (!detail.data.downloadReady) {
     return { ok: false, error: 'Dieses Dokument steht aktuell nicht zum Download bereit.' };
@@ -402,14 +423,19 @@ export async function downloadLivePortalDocument(
       const signed = await resolvePortalDocumentDownloadUrl(legacy.data.storagePath);
       return signed.ok ? { ok: true, data: { fileName: legacy.data.fileName, mimeType: legacy.data.mimeType, downloadUrl: signed.data } } : signed;
     }
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select('storage_path')
+    let query = fromUnknownTable(supabase, 'client_documents')
+      .select('id,tenant_id,client_id,category,source,storage_path')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .eq('id', documentId)
-      .maybeSingle();
+      .eq('id', documentId);
+    if (options?.proofOnly) query = query.eq('category', PORTAL_PROOFS_CATEGORY);
+    if (options?.documentOnly) query = query.neq('category', PORTAL_PROOFS_CATEGORY);
+    if (options?.proofOnly || options?.documentOnly) query = query.eq('portal_visible', true)
+      .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES]).not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`);
+    const { data, error } = await query.maybeSingle();
 
     if (error || !data) {
+      if (options?.documentOnly) return { ok: false, error: 'Download konnte nicht vorbereitet werden.' };
       const assistPdf = await getProofPdfForClientPortal(tenantId, clientId, documentId);
       if (assistPdf.ok) {
         const assistDetail = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
@@ -427,6 +453,14 @@ export async function downloadLivePortalDocument(
       return { ok: false, error: 'Download konnte nicht vorbereitet werden.' };
     }
 
+    if (options?.proofOnly) {
+      const row = data as Record<string, unknown>;
+      if (row.id !== documentId || row.tenant_id !== tenantId || row.client_id !== clientId || row.category !== PORTAL_PROOFS_CATEGORY) return { ok: false, error: 'Nachweis nicht gefunden oder nicht freigegeben.' };
+    }
+    if (options?.documentOnly) {
+      const row = data as Record<string, unknown>;
+      if (row.id !== documentId || row.tenant_id !== tenantId || row.client_id !== clientId || row.category === PORTAL_PROOFS_CATEGORY || row.source === 'assist_visit_proof') return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+    }
     const storagePath = String((data as { storage_path?: string | null }).storage_path ?? '');
     const signed = await resolvePortalDocumentDownloadUrl(storagePath);
     if (!signed.ok) return signed;

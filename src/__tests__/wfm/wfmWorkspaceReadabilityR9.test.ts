@@ -54,7 +54,8 @@ describe('WFM workspace navigation, readability and width use R9', () => {
     const palette = read('src/components/wfm/WfmOfficeTimekeepingLayout.tsx');
     const sharedTable = read('src/components/ui/PremiumDataTable.tsx');
     const glass = read('src/design/tokens/auroraGlass.ts');
-    const page = read('src/components/layout/HealthOSPageSurface.web.tsx');
+    const page = read('src/components/layout/HealthOSPageSurface.tsx');
+    expect(read('src/components/layout/HealthOSPageSurface.web.tsx')).toContain("from './HealthOSPageSurface.tsx'");
     const css = read('src/design/web/centralHealthOSPopupContractCss.ts');
 
     expect(table).toContain('const TABLE_TEXT = WORKTIME_TEXT');

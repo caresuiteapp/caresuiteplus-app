@@ -8,5 +8,5 @@ export default function BusinessLayout() {
   if (Platform.OS === 'web' && isLegacyBusinessHomePath(pathname)) {
     return <Redirect href={BUSINESS_HOME_ROUTE as never} />;
   }
-  return <LiquidModuleRouteLayout />;
+  return <LiquidModuleRouteLayout nativeRoleOwnerPath="/business" />;
 }

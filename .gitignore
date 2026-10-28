@@ -76,3 +76,7 @@ public/calendar-reader/
 # Local production audit export.
 /dist-remediation-web/
 /dist-remediation-web-final/
+
+# Reproducible full route/backend inventories are generated and retained by audit CI.
+/docs/audit/native-portal-route-matrix.json
+/docs/audit/native-portal-backend-dependencies.json

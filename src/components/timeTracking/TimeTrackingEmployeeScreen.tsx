@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
@@ -79,6 +79,7 @@ function formatDuration(minutes: number): string {
 export function TimeTrackingEmployeeScreen() {
   const router = useRouter();
   const pathname = usePathname();
+  const { width, fontScale } = useWindowDimensions();
   const { profile, user } = useAuth();
   const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
@@ -302,12 +303,13 @@ export function TimeTrackingEmployeeScreen() {
       {statusQuery.refreshError ? <ErrorState title="Arbeitszeit nicht aktuell" message={statusQuery.refreshError} onRetry={() => void refresh()} /> : null}
       {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
       <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
-        <View style={styles.kpiRow}>
-          <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
+        <View style={[styles.kpiRow, width < 600 * Math.max(1, fontScale) && styles.kpiColumn]}>
+          <PremiumKpiCard label="Status" value={statusLabel} valueLines={0} accentColor={accent} />
           <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
           <PremiumKpiCard
             label="Netto"
             value={session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—'}
+            valueLines={0}
             accentColor={accent}
           />
         </View>
@@ -495,6 +497,7 @@ function PrivacyConsentModal(props: {
 
 const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  kpiColumn: { flexDirection: 'column', flexWrap: 'nowrap', width: '100%' },
   blockRow: { paddingVertical: careSpacing.xs },
   modalBackdrop: {
     flex: 1,

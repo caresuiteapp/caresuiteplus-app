@@ -1,0 +1,19 @@
+# Gemeinsamer Web-/Android-Stand vom 28.10.2026
+
+## Release-Vertrag
+Web und App verwenden dieselben fachlichen Quellen und Berechtigungen. Native Ableitungen werden über `port-native-workspaces.mjs` erzeugt und vor dem Web-Build geprüft. Änderungen gehen nach erfolgreichen Prüfungen sofort ins Web; Android-Pakete werden ausschließlich auf ausdrücklichen Auftrag erstellt. Für diesen Auftrag ist Android 0.8.0 vorgesehen, ohne Store-Veröffentlichung. Die EAS-Versionsverwaltung bestimmt den endgültigen versionCode.
+
+Der Stand vereinigt main einschließlich dauerhafter Einsatzänderungshinweise mit dem bisherigen nativen Paritätszweig. Konto-/Geräteverwaltung, Authenticator, persönliche Benachrichtigungspräferenzen, Gerätefreigaben und lokale Entwurfsübersicht sind gemeinsam eingebunden. Android nutzt SQLCipher mit gerätegebundenem SecureStore-Schlüssel für die umgestellten lokalen Fachdaten und bestätigt die Migration vor dem Löschen alter Klartextwerte. Dokumentationsentwürfe sind zusätzlich an den aktuellen Akteur gebunden. Android-Fotoauswahl nutzt den Systempicker ohne pauschalen Galeriezugriff.
+
+## Datenbankbelege
+Die additive Self-Service-Migration wurde in staging als 20261028170539 und in Produktion als 20261028172616 angewendet. Der persönliche Push-Opt-out wurde getrennt in beiden Umgebungen angewendet; Produktionsversion 20261028172727. Die kanonischen SQL-Dateien stehen unter supabase/migrations. Anonyme Ausführungsrechte für die sechs neuen Konto-RPCs wurden ausgeschlossen; die anonyme Zustandsabfrage ergibt keine aktive Sitzung. Es wurden keine Testnutzer, fachlichen Testdatensätze oder Testnachrichten angelegt.
+
+## Bewusst offene Freigabe
+`supabase/patches/account_security_enforcement_review.sql` wurde NICHT angewendet. Die automatische Freigabeprüfung lehnte die umfassende Änderung bestehender Autorisierungshelfer und zusätzlicher restriktiver Richtlinien wegen Aussperrungs-/Betriebsrisiko ab. Die additive Alternative verändert diese bisherigen Servergrenzen nicht. Die neue Oberfläche prüft Sitzungen regelmäßig, privilegierte Benutzer erhalten die MFA-Schranke, die neuen Self-Service-RPCs erzwingen MFA serverseitig. Ein gezielt abgemeldetes Gerät verliert seine Refresh-Sitzung. Bestehende alte APIs können bereits ausgestellte Zugriffstoken bis zum Ablauf akzeptieren; eine sofortige globale Sperre ist erst mit der gesonderten Serverdurchsetzung vollständig.
+
+Der automatische Push-Versand bleibt ausgeschaltet. Persönliche Präferenzen filtern den bestehenden Sender, aktivieren ihn aber nicht. Mitarbeiter-/Kundenereignisse und neutrale Push-Inhalte folgen den vorhandenen Empfängerregeln; zusätzliche System-Push-Unterstützung für Geschäftskonten ist nicht vorhanden. Keine historischen Benachrichtigungen wurden ausgelöst.
+
+Offline-Entwürfe sind kein Nachweis erfolgreicher Serverübertragung. Die Übersicht zeigt ausschließlich zum aktuellen Konto passende lokale Entwürfe und vorhandenen Cachezeitpunkt. Keine automatische Wiederholung abschließender Signatur-/Nachweisschreibvorgänge wurde ergänzt. Alte ungebundene Dokumentationsentwürfe bleiben erhalten, werden aber keinem neuen Konto automatisch zugeordnet.
+
+## Validierung und Grenzen
+414 Prüfungen des Einsatz-Workflows und 104 bestehende Offline-/Ablaufprüfungen bestanden lokal; 36 fokussierte Sicherheits-/Profilprüfungen sowie zehn isolierte PostgreSQL-Vertragstests bestanden. Weitere CI-/Build-Ergebnisse sind am jeweiligen Release-Commit zu prüfen. Browseransichten mit kontrollierten nativen Schnittstellen sind keine physische Android-Abnahme. Gerätebiometrie, SQLCipher-Laufzeit, Standort/Hintergrundverhalten, Kamera und Push müssen zusätzlich auf einem echten Gerät geprüft werden. Vier bekannte manuelle native Darstellungen bleiben im Quellabgleich dokumentiert; gesperrte klinische Module werden nicht freigeschaltet.

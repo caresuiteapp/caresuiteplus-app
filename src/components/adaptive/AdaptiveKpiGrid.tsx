@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type DimensionValue, type ViewStyle } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, useWindowDimensions, type DimensionValue, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import {
   kpiColumnsForDeviceClass,
   kpiGridColumnCount,
@@ -33,8 +33,19 @@ type AdaptiveKpiGridProps = {
 export { kpiGridColumnCount };
 
 export function AdaptiveKpiGrid({ items, style, columns: columnOverrides, phoneLayout = 'scroll' }: AdaptiveKpiGridProps) {
-  const { deviceClass, isPhone } = useDeviceClass();
-  const columnCount = columnOverrides?.[deviceClass] ?? kpiColumnsForDeviceClass(deviceClass);
+  const { deviceClass, isPhone, width } = useDeviceClass();
+  const { fontScale } = useWindowDimensions();
+  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  const scale = Math.max(1, fontScale || 1);
+  const requestedColumns = columnOverrides?.[deviceClass] ?? kpiColumnsForDeviceClass(deviceClass);
+  // Configured columns are an upper bound; the actual pane and system text
+  // size determine how many readable cards fit beside one another.
+  const readableColumns = Math.max(1, Math.floor(((availableWidth ?? width) + careSpacing.sm) / (160 * scale + careSpacing.sm)));
+  const columnCount = Math.max(1, Math.min(requestedColumns, readableColumns));
+  const measure = (event: LayoutChangeEvent) => {
+    const measured = event.nativeEvent.layout.width;
+    if (measured > 0) setAvailableWidth(previous => previous !== null && Math.abs(previous - measured) < 1 ? previous : measured);
+  };
   const useHorizontalScroll = isPhone && phoneLayout === 'scroll' && items.length > columnCount;
 
   if (isPhone && phoneLayout === 'grid') {
@@ -42,7 +53,7 @@ export function AdaptiveKpiGrid({ items, style, columns: columnOverrides, phoneL
       items.slice(row * columnCount, (row + 1) * columnCount),
     );
     return (
-      <View style={[styles.phoneGrid, style]}>
+      <View onLayout={measure} style={[styles.phoneGrid, style]}>
         {rows.map((row) => (
           <View key={row[0].id} style={styles.phoneRow}>
             {Array.from({ length: columnCount }, (_, index) => (
@@ -59,12 +70,13 @@ export function AdaptiveKpiGrid({ items, style, columns: columnOverrides, phoneL
   if (useHorizontalScroll) {
     return (
       <ScrollView
+        onLayout={measure}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, style]}
       >
         {items.map((item) => (
-          <View key={item.id} style={styles.scrollItem}>
+          <View key={item.id} style={[styles.scrollItem, { width: 160 * scale }]}>
             {item.node}
           </View>
         ))}
@@ -75,7 +87,7 @@ export function AdaptiveKpiGrid({ items, style, columns: columnOverrides, phoneL
   const itemWidth = `${Math.floor(100 / columnCount) - 1}%`;
 
   return (
-    <View style={[styles.grid, { gap: careSpacing.sm }, style]}>
+    <View onLayout={measure} style={[styles.grid, { gap: careSpacing.sm }, style]}>
       {items.map((item) => (
         <View
           key={item.id}

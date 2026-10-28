@@ -23,17 +23,21 @@ export function useClientPortalProfile() {
     clientId,
     roleKey,
   };
+  const scope = JSON.stringify([tenantId, actorId, roleKey, clientId]);
+  // A family grant names individual content capabilities, not the client's
+  // complete demographic, insurance or clinical profile.
+  const profileAllowed = roleKey !== 'family_portal';
 
   const profileQuery = useAsyncQuery(
     () => fetchClientPortalProfile(queryParams),
     [actorId, tenantId, clientId, roleKey],
-    { enabled: isLinkedReady && !!actorId && !!roleKey && !!clientId },
+    { enabled: profileAllowed && isLinkedReady && !!actorId && !!roleKey && !!clientId, queryKey: `profile:${scope}` },
   );
 
   const carePlanQuery = useAsyncQuery(
     () => fetchClientCarePlanSummaries(queryParams),
     [actorId, tenantId, clientId, roleKey],
-    { enabled: isLinkedReady && !!actorId && !!roleKey && !!clientId },
+    { enabled: profileAllowed && isLinkedReady && !!actorId && !!roleKey && !!clientId, queryKey: `care-plans:${scope}` },
   );
 
   const refresh = useCallback(async () => {

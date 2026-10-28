@@ -1,39 +1,14 @@
 ---
-description: Kein automatisches Netlify-Deploy — nur auf explizite Anfrage
+description: Gemeinsamer Web-/App-Quellstand; Web sofort, Android-Pakete auf Anweisung
 alwaysApply: true
 ---
 
-# Kein automatisches Deploy
+# Veröffentlichungen ab 28.10.2026
 
-Deploy ist ein **separater, manueller Schritt** und darf **nur** auf explizite Anfrage des Nutzers erfolgen.
+Die ausdrückliche Nutzervorgabe ersetzt die frühere Regel gegen automatische Webdeployments.
 
-Git-Pushes ohne `[deploy]` in der Commit-Message lösen **keinen** Netlify-Build aus (`netlify.toml`: ignore-Script).
-
-## Verboten (ohne explizite Anfrage)
-
-- **Niemals** `[deploy]` in Commit-Messages schreiben — außer der Nutzer sagt ausdrücklich „deploy“, „deployen“, „[deploy]“ oder „netlify pushen“
-- **Niemals** zu `origin/main` (oder anderen Branches) pushen, allein um ein Netlify-Deploy auszulösen
-- **Niemals** leere Commits als Deploy-Trigger erstellen
-- **Niemals** `netlify deploy` oder vergleichbare Deploy-Befehle ausführen
-- **Niemals** annehmen, ein Push würde automatisch deployen
-
-## Erlaubt
-
-- Commits und Pushes von Code-Änderungen, wenn der Nutzer das ausdrücklich verlangt (z. B. „commit“, „pushen“)
-- Deploy **nur** wenn der Nutzer es klar sagt, z. B.:
-  - „deploy“ / „deployen“
-  - „netlify pushen“
-  - „[deploy]“ (dann ggf. manuell im Netlify-Dashboard deployen — Push allein reicht nicht)
-
-## Deploy auslösen (wenn angefragt)
-
-**Standardweg:** Commit mit `[deploy]` in der Message pushen (nur wenn der Nutzer deployen will).
-
-Alternativen ohne `[deploy]`-Commit:
-
-1. **Build Hook** im Netlify-Dashboard (Site settings → Build & deploy → Build hooks) — Build Hooks **umgehen** das ignore-Script.
-2. **Netlify CLI:** `netlify login` dann `netlify deploy --prod --build` (lokal bauen und hochladen).
-
-**Nicht zuverlässig bei ignore-Script:** Dashboard → Deploys → „Trigger deploy“ — Netlify führt ignore **auch** bei manuellen Triggern aus; mit `exit 0` oder ohne `[deploy]` im Commit → **Canceled**.
-
-Commit/Push und Deploy sind getrennte Schritte. Ein normaler Push (ohne `[deploy]`) startet **keinen** Production-Build.
+- Fachliche Änderungen gleichzeitig für Web und App pflegen; vor Veröffentlichung den Quellabgleich und die betroffenen Prüfungen ausführen.
+- Fertige Webänderungen nach den Releaseprüfungen auf dem bestehenden Vercel-Hauptprojekt veröffentlichen. Keine leeren Deploy-Trigger-Commits und keine zusätzliche Hostingvariante anlegen.
+- Native Änderungen im selben Hauptzweig sammeln. Normale Pushes, PRs und Webdeployments erzeugen kein Android-Paket.
+- Nur nach ausdrücklicher Nutzeranweisung `workflow_dispatch` mit `build_android=true` verwenden oder einen neuen `release/android-request-<Datum>-<Kennung>`-Branch auf dem bereits veröffentlichten, geprüften Hauptcommit anlegen. Das Anlegen dieses Branches ist eine bewusste Buildanforderung; ihn niemals als normalen Arbeitsbranch verwenden.
+- App-Paket-Erzeugung ist keine Google-Play-Veröffentlichung. Keine automatische Store-Einreichung.

@@ -1,0 +1,41 @@
+// Generated native presentation from src/lib/careAssessment/counselingCoordinationDraft.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeLocalStorage as localStorage,nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import type { CounselingCoordinationEntry } from "./counselingCoordinationPath.native.ts";
+type Context = {
+    tenantId: string;
+    clientId: string;
+    assessmentId: string;
+    actorId: string;
+};
+export type CounselingCoordinationDraft = Readonly<{
+    version: 1;
+    entry: CounselingCoordinationEntry;
+    originalHeadId: string | null;
+    reason: string;
+    updatedAt: string;
+}>;
+const prefix = 'caresuite:pflege:counseling-coordination-draft:v1:';
+const key = (c: Context) => `${prefix}${c.tenantId}:${c.clientId}:${c.assessmentId}:${c.actorId}`;
+const storage = () => typeof localStorage === 'undefined' ? null : localStorage;
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+export function saveCounselingCoordinationDraft(c: Context, entry: CounselingCoordinationEntry, originalHeadId: string | null, reason: string) { if ([c.tenantId, c.clientId, c.assessmentId, c.actorId].some(v => !uuid(v)) || entry.tenantId !== c.tenantId || entry.clientId !== c.clientId || entry.assessmentId !== c.assessmentId || originalHeadId !== null && !uuid(originalHeadId) || reason.length > 4000)
+    throw Error('Lokaler Entwurf besitzt einen ungültigen Akten- oder Profilbezug.'); const draft = { version: 1 as const, entry: structuredClone(entry), originalHeadId, reason, updatedAt: new Date().toISOString() }, raw = JSON.stringify(draft); if (raw.length > 300000)
+    throw Error('Lokaler Entwurf überschreitet den zulässigen Umfang.'); const target = storage(); if (!target)
+    throw Error('Lokaler Entwurfsspeicher ist nicht verfügbar.'); target.setItem(key(c), raw); if (target.getItem(key(c)) !== raw)
+    throw Error('Lokaler Entwurf konnte nicht bestätigt werden.'); }
+export function readCounselingCoordinationDraft(c: Context): CounselingCoordinationDraft | null { try {
+    const raw = storage()?.getItem(key(c));
+    if (!raw || raw.length > 300000)
+        return null;
+    const d = JSON.parse(raw) as CounselingCoordinationDraft;
+    if (d.version !== 1 || !d.entry || d.entry.tenantId !== c.tenantId || d.entry.clientId !== c.clientId || d.entry.assessmentId !== c.assessmentId || d.originalHeadId !== null && !uuid(d.originalHeadId) || typeof d.reason !== 'string' || d.reason.length > 4000 || typeof d.updatedAt !== 'string')
+        return null;
+    return structuredClone(d);
+}
+catch {
+    return null;
+} }
+export function clearCounselingCoordinationDraft(c: Context) { try {
+    storage()?.removeItem(key(c));
+}
+catch { /* fail closed */ } }

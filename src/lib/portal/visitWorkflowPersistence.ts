@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { protectedDataStorage as AsyncStorage } from '@/lib/security/protectedDataStorage';
 
 export type VisitWorkflowUiState = {
   step?: string | null;
