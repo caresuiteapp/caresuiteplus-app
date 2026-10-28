@@ -30,6 +30,7 @@ describe('systemweite Ungelesen-Anzeige R4', () => {
     expect(portal).toContain("kind === 'client' || kind === 'employee'");
     expect(portal).toContain('sum + thread.unreadCount');
     expect(portal).toContain("item.id === 'messages' && messageBadge");
-    expect(portal).toContain('badge={messageBadge}');
+    expect(portal).toContain('badge={compactMessageBadge}');
+    expect(portal).toContain('const compactMessageBadge = unreadMessageCount > 0');
   });
 });
